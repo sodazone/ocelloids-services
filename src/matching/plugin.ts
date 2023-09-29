@@ -28,7 +28,7 @@ const levelPluginCallback: FastifyPluginAsync<LevelPluginOptions> = async (fasti
   fastify.log.info(`Open database at ${dbPath}`);
 
   const level = new Level(dbPath);
-  const engine = new MatchingEngine(level);
+  const engine = new MatchingEngine(level, fastify.log);
 
   fastify.decorate('engine', engine);
   fastify.decorate('db', level);

@@ -5,7 +5,7 @@ import closeWithGrace from 'close-with-grace';
 import Fastify from 'fastify';
 
 import matching from './matching/plugin.js';
-import monitoring from './monitoring-service.js';
+import monitoring from './service.js';
 
 const environment = process.env.NODE_ENV || 'development';
 

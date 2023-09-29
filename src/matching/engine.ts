@@ -1,3 +1,4 @@
+import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
 
 import { DB } from '../types.js';
@@ -24,12 +25,14 @@ const sublevelOpts = { valueEncoding: 'json' };
  */
 export class MatchingEngine {
   #db: DB;
+  #log: pino.BaseLogger;
 
   #confirmations: SubLevel<any>;
   #notifications: SubLevel<any>;
 
-  constructor(db: DB) {
+  constructor(db: DB, log: pino.BaseLogger) {
     this.#db = db;
+    this.#log = log;
 
     this.#confirmations = this.#sl('fi');
     this.#notifications = this.#sl('no');
@@ -40,42 +43,42 @@ export class MatchingEngine {
   }
 
   async onFinalizedBlock(chainBlock: ChainBlock) {
-    console.log('REC FIN ', chainBlock);
+    this.#log.info('REC FIN ', chainBlock);
     const orig = this.#slorig(chainBlock);
     const dest = this.#sldest(chainBlock);
 
     for await (const [k, v] of orig.iterator()) {
-      console.log(`[O] Fin ${k}`);
+      this.#log.info(`[O] Fin ${k}`);
 
       await orig.del(k);
       const ck = `${v.messageHash}:${v.recipient}`;
 
       try {
         const conf = await this.#confirmations.get(ck);
-        console.log('[O] NOTIFY', conf, v);
+        this.#log.info('[O] NOTIFY', conf, v);
         await this.#notifications.put(ck, {
           notification: 'here'
         });
       } catch (e) {
-        console.log(`[O] Confirmed ${ck}`, v);
+        this.#log.info(`[O] Confirmed ${ck}`, v);
         await this.#confirmations.put(ck, v);
       }
     }
 
     for await (const [k, v] of dest.iterator()) {
-      console.log(`[I] Fin ${k}`);
+      this.#log.info(`[I] Fin ${k}`);
 
       await dest.del(k);
       const ck = `${v.messageHash}:${chainBlock.chainId}`;
 
       try {
         const conf = await this.#confirmations.get(ck);
-        console.log('[O] NOTIFY', conf, v);
+        this.#log.info('[O] NOTIFY', conf, v);
         await this.#notifications.put(ck, {
           notification: 'here'
         });
       } catch (e) {
-        console.log(`[I] Confirmed ${ck}`, v);
+        this.#log.info(`[I] Confirmed ${ck}`, v);
         await this.#confirmations.put(ck, v);
       }
     }
@@ -85,7 +88,7 @@ export class MatchingEngine {
     chainBlock: ChainBlock,
     message: OriginMessage
   ) {
-    console.log(`[O:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    this.#log.info(`[O:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
 
     const db = this.#slorig(chainBlock);
     return db.put(message.messageHash, message);
@@ -95,7 +98,7 @@ export class MatchingEngine {
     chainBlock: ChainBlock,
     message: Message
   )  {
-    console.log(`[I:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    this.#log.info(`[I:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
 
     const db = this.#sldest(chainBlock);
     return db.put(message.messageHash, message);

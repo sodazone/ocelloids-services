@@ -1,3 +1,5 @@
+import pino from 'pino';
+
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './engine.js';
@@ -7,7 +9,7 @@ describe('message matching engine', () => {
 
   beforeEach(() => {
     const db = new Level();
-    engine = new MatchingEngine(db);
+    engine = new MatchingEngine(db, pino.default({enabled: false}));
   });
 
   it('should work in the happy sequence', async () => {

@@ -6,16 +6,14 @@ import Connector from './connector.js';
 import { XcmMessageEvent } from './types.js';
 import { FinalizedCollector, OutboundMessageCollector} from './collectors/index.js';
 import { DummyConfiguration } from './configuration.js';
-import { QuerySubscription } from 'subscriptions/types.js';
+import { QuerySubscription } from './subscriptions/types.js';
 
 /**
  * @param {FastifyInstance} fastify
  * @param {Object} options
  */
-async function monitoring(fastify: FastifyInstance, _options: FastifyPluginOptions) {
-  const { log, engine, db } = fastify;
-
-  log.info('Register monitoring service routes');
+async function monitoringService(fastify: FastifyInstance, _options: FastifyPluginOptions) {
+  const { engine, db, log } = fastify;
 
   const ctx = {
     log,
@@ -26,7 +24,10 @@ async function monitoring(fastify: FastifyInstance, _options: FastifyPluginOptio
   const outCollector = new OutboundMessageCollector(ctx, connector, db);
 
   outCollector.on('message', (message: XcmMessageEvent) => {
-    console.log('outbound', message);
+    log.info(
+      `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
+    );
+
     engine.waitOrigin({
       chainId: message.chainId,
       blockHash: message.event.blockHash.toHex()
@@ -45,7 +46,10 @@ async function monitoring(fastify: FastifyInstance, _options: FastifyPluginOptio
   } : {
     chainId: string | number, head: Header
   }) => {
-    console.log('finalized', head.hash.toHex());
+    log.info(
+      `finalized: [chainId=${chainId}, hash=${head.hash.toHex()}]`
+    );
+
     engine.onFinalizedBlock({
       chainId, blockHash: head.hash.toHex()
     });
@@ -54,6 +58,8 @@ async function monitoring(fastify: FastifyInstance, _options: FastifyPluginOptio
   finCollector.start();
 
   fastify.addHook('onClose', async () => {
+    log.info('Shutting down monitoring service');
+
     outCollector.stop();
     await connector.disconnect();
   });
@@ -71,4 +77,4 @@ async function monitoring(fastify: FastifyInstance, _options: FastifyPluginOptio
   });
 }
 
-export default monitoring;
+export default monitoringService;
