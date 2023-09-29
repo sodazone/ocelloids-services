@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+dist/
+docs/
+db/
+**/.yarn/cache
+**/.yarn/versions
+**/.yarn/*.gz
+.eslintcache
+.npmrc
+tsconfig*buildinfo
