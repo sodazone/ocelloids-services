@@ -24,18 +24,27 @@ export class FinalizedCollector extends EventEmitter {
   }
 
   start() {
+    const { log } = this.#ctx;
+
     this.#apis.chains.forEach(
       chain => {
-        this.#subs[chain] = this.#apis.rx[chain].pipe(
-          finalizedHeads(),
-          map(head => ({
-            head,
-            chainId: chain
-          }))
-        ).subscribe({
-          next: ({ head, chainId }) => this.emit('head', { chainId, head }),
-          error: (error) => this.#ctx.log.error(`Error on finalized block subscription of chain ${chain}`, error)
-        });
+        this.#subs[chain] = this.#apis.rx[chain]
+          .pipe(
+            finalizedHeads(),
+            map(head => ({
+              head,
+              chainId: chain
+            }))
+          ).subscribe({
+            next: ({ head, chainId }) => this.emit(
+              'head',
+              { chainId, head }
+            ),
+            error: (error) => log.error(
+              `Error on finalized block subscription of chain ${chain}`,
+              error
+            )
+          });
       }
     );
   }
