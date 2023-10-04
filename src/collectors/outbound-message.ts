@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import { Subscription, merge, mergeAll } from 'rxjs';
+import { Subscription } from 'rxjs';
 
 import Connector from '../connector.js';
 import { extractXcmReceive, extractXcmTransfers } from '../ops/index.js';
@@ -11,7 +11,7 @@ import { ControlQuery } from '@sodazone/ocelloids';
 
 type SubscriptionHandler = QuerySubscription & {
   rxSubscription: Subscription,
-  destinationSubscriptions: Subscription,
+  destinationSubscriptions: Subscription[],
   sendersControl: ControlQuery
 }
 
@@ -45,7 +45,7 @@ export class OutboundMessageCollector extends EventEmitter {
   monitor(qs: QuerySubscription) {
     const { id, origin, senders, followAllDest, destinations } = qs;
 
-    // Probably can/should be checked at API request
+    // TODO: rm on API rq validation
     if (!followAllDest && !destinations) {
       throw new Error('No destinations set');
     }
@@ -68,27 +68,21 @@ export class OutboundMessageCollector extends EventEmitter {
         ...msg,
         chainId: origin
       } as XcmMessageEvent),
-      error: error => console.log('ERROR ON ORIGIN NEW BLOCK', error)
+      error: error => this.#ctx.log.error(`Error on subscription ${id} at origin ${origin}`, error)
     });
 
     const dests = destinations || this.#apis.chains.filter(c => c !== origin.toString());
-    const n = dests
+    const destinationSubscriptions = dests
       .map(c => {
-        console.log('API', c);
         const chainId = c.toString();
         return this.#apis.rx[chainId].pipe(
           extractXcmReceive(chainId)
-        );
-      });
-
-    // Don't use merge and keep array of subscriptions
-    const destinationSubscriptions = merge(n)
-      .pipe(mergeAll())
-      .subscribe({
-        next: msg => this.emit('receive', {
-          ...msg
-        }),
-        error: error => console.log('ERROR IN DEST NEW BLOCK', error)
+        ).subscribe({
+          next: msg => this.emit('receive', {
+            ...msg
+          }),
+          error: error => this.#ctx.log.error(`Error on subscription ${id} at destination ${chainId}`, error)
+        });
       });
 
     this.#subs[id] = {
@@ -114,13 +108,13 @@ export class OutboundMessageCollector extends EventEmitter {
 
       this.#ctx.log.info(`Unsubscribe ${id}`);
       rxSubscription.unsubscribe();
-      destinationSubscriptions.unsubscribe();
+      destinationSubscriptions.forEach(sub => sub.unsubscribe());
 
       this.#ctx.log.info(`Deleting subscription from storage ${id}`);
       delete this.#subs[id];
       this.#slqs(origin).del(id);
     } catch (error) {
-      console.log('Subscription ID not found', id);
+      this.#ctx.log.error(`Error unsubscribing ${id}`, id);
     }
   }
 
@@ -145,13 +139,14 @@ export class OutboundMessageCollector extends EventEmitter {
 
   stop() {
     const { log } = this.#ctx;
+    log.info('Stopping Outbound Message Collector');
 
     for (const {
       id, rxSubscription, destinationSubscriptions
     } of Object.values(this.#subs)) {
       log.info(`Unsubscribe ${id}`);
       rxSubscription.unsubscribe();
-      destinationSubscriptions.unsubscribe();
+      destinationSubscriptions.forEach(sub => sub.unsubscribe());
     }
   }
 }
