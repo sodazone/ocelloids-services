@@ -1,0 +1,17 @@
+[[networks]]
+name = "rococo_local_testnet"
+id = 0
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/rococo-local.json"
+
+[[networks]]
+name = "local"
+id = 1_000
+relay = "rococo_local_testnet"
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/rococo-local-asset-hub-kusama-local_1000.json"
+

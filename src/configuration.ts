@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
+import toml from 'toml';
+
 import { ServerOptions } from './types.js';
 
 export type NetworkConfiguration = {
@@ -32,7 +34,7 @@ const configPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, 
   fastify.log.info(`Loading configuration from ${configPath}`);
 
   // TODO validation
-  const config = JSON.parse(
+  const config = toml.parse(
     fs.readFileSync(configPath, 'utf-8')
   ) as ServiceConfiguration;
 
