@@ -5,19 +5,21 @@ import type { Header } from '@polkadot/types/interfaces';
 import Connector from './connector.js';
 import { XcmMessageEvent } from './types.js';
 import { FinalizedCollector, OutboundMessageCollector} from './collectors/index.js';
-import { DummyConfiguration } from './configuration.js';
 import { QuerySubscription } from './subscriptions/types.js';
 
 /**
  * @param {FastifyInstance} fastify
  * @param {Object} options
  */
-async function monitoringService(fastify: FastifyInstance, _options: FastifyPluginOptions) {
-  const { engine, db, log } = fastify;
+async function monitoringService(
+  fastify: FastifyInstance,
+  _options: FastifyPluginOptions
+) {
+  const { engine, db, log, config } = fastify;
 
   const ctx = {
     log,
-    config: DummyConfiguration,
+    config
   };
 
   const connector = new Connector(ctx);

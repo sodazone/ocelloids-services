@@ -1,3 +1,9 @@
+import fs from 'node:fs';
+
+import { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
+
+import { ServerOptions } from './types.js';
 
 export type NetworkConfiguration = {
   name: string,
@@ -11,46 +17,26 @@ export type NetworkConfiguration = {
 }
 
 export type ServiceConfiguration = {
-    networks: NetworkConfiguration[]
+  networks: NetworkConfiguration[]
 }
 
-export const DummyConfiguration  = {
-  'networks': [
-    /*
-    {
-      'name': 'assethub',
-      'id': 1000,
-      'relay': 'polkadot',
-      'provider': {
-        'type': 'rpc',
-        'url': 'wss://polkadot-asset-hub-rpc.polkadot.io'
-      }
-    },
-    {
-      'name': 'astar',
-      'id': 2012,
-      'relay': 'polkadot',
-      'provider': {
-        'type': 'smoldot',
-        'spec': './chain-specs/polkadot-astar.json'
-      }
-    }*/
-    {
-      'name': 'rococo_local_testnet',
-      'id': 0,
-      'provider': {
-        type: 'smoldot',
-        spec: './chain-specs/rococo-local.json'
-      }
-    },
-    {
-      'name': 'local',
-      'id': 1000,
-      'relay': 'rococo_local_testnet',
-      'provider': {
-        'type': 'smoldot',
-        'spec': './chain-specs/rococo-local-asset-hub-kusama-local_1000.json'
-      }
-    }
-  ]
-} as ServiceConfiguration;
+declare module 'fastify' {
+  interface FastifyInstance {
+    config: ServiceConfiguration
+  }
+}
+
+const configPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, options) => {
+  const configPath = options.config;
+
+  fastify.log.info(`Loading configuration from ${configPath}`);
+
+  // TODO validation
+  const config = JSON.parse(
+    fs.readFileSync(configPath, 'utf-8')
+  ) as ServiceConfiguration;
+
+  fastify.decorate('config', config);
+};
+
+export default fp(configPluginCallback, { fastify: '>=4.x', name: 'config' });

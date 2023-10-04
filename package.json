@@ -3,13 +3,13 @@
   "version": "0.0.1",
   "type": "module",
   "description": "Ocelloids monitoring service",
-  "main": "dist/server.js",
+  "main": "dist/main.js",
   "engines": {
     "node": ">=18.14"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon --exec ts-node-esm ./src/server.ts",
+    "dev": "nodemon --exec ts-node-esm ./src/main.ts -c ./conf/dev.json",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest"
   },
@@ -52,6 +52,7 @@
   "dependencies": {
     "@sodazone/ocelloids": "^1.1.8-dev.0",
     "close-with-grace": "^1.2.0",
+    "commander": "^11.0.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.23.2",
     "fastify-plugin": "^4.5.1",

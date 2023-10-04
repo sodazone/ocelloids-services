@@ -56,3 +56,10 @@ export class GenericXcmMessageWithContext implements XcmMessageWithContext {
     };
   }
 }
+
+export type ServerOptions = {
+  // Configuration file path
+  config: string,
+  // Database path
+  db?: string
+}
