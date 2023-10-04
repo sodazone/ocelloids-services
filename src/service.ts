@@ -37,6 +37,19 @@ async function monitoringService(fastify: FastifyInstance, _options: FastifyPlug
     });
   });
 
+  outCollector.on('receive', (message: XcmMessageEvent) => {
+    log.info(
+      `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
+    );
+
+    engine.waitDestination({
+      chainId: message.chainId,
+      blockHash: message.event.blockHash.toHex()
+    }, {
+      messageHash: message.messageHash
+    });
+  });
+
   outCollector.start();
 
   const finCollector = new FinalizedCollector(connector);

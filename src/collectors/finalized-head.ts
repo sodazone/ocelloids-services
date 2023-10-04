@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 
+import { map } from 'rxjs';
 import { finalizedHeads } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
@@ -15,9 +16,25 @@ export class FinalizedCollector extends EventEmitter {
   }
 
   start() {
-    // TODO all nets...
-    this.#apis.rx[1000].pipe(
-      finalizedHeads()
-    ).subscribe(head => this.emit('head', { chainId: '1000', head }));
+    // TODO: save in db and unsubscribe on stop
+    this.#apis.chains.map(
+      chain => this.#apis.rx[chain].pipe(
+        finalizedHeads(),
+        map(head => ({
+          head,
+          chainId: chain
+        }))
+      ).subscribe({
+        next: ({ head, chainId }) => this.emit('head', { chainId, head }),
+        error: (error) => console.log('Error on finalized block!!', error)
+      })
+    );
+
+    // merge(allChainsFinalized)
+    //   .pipe(mergeAll())
+    //   .subscribe({
+    //     next: ({ head, chainId }) => this.emit('head', { chainId, head }),
+    //     error: (error) => console.log('Error on finalized block!!', error)
+    //   });
   }
 }

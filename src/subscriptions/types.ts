@@ -4,5 +4,7 @@ export type QuerySubscription = {
   senders: string[]
   notify: {
     endpoint: string
-  }
+  },
+  followAllDest?: boolean
+  destinations?: (string | number)[]
 }

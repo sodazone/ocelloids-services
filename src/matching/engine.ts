@@ -53,16 +53,7 @@ export class MatchingEngine {
       await orig.del(k);
       const ck = `${v.messageHash}:${v.recipient}`;
 
-      try {
-        const conf = await this.#confirmations.get(ck);
-        this.#log.info('[O] NOTIFY', conf, v);
-        await this.#notifications.put(ck, {
-          notification: 'here'
-        });
-      } catch (e) {
-        this.#log.info(`[O] Confirmed ${ck}`, v);
-        await this.#confirmations.put(ck, v);
-      }
+      await this.#confirmOrNotify(ck, v);
     }
 
     for await (const [k, v] of dest.iterator()) {
@@ -71,16 +62,7 @@ export class MatchingEngine {
       await dest.del(k);
       const ck = `${v.messageHash}:${chainBlock.chainId}`;
 
-      try {
-        const conf = await this.#confirmations.get(ck);
-        this.#log.info('[O] NOTIFY', conf, v);
-        await this.#notifications.put(ck, {
-          notification: 'here'
-        });
-      } catch (e) {
-        this.#log.info(`[I] Confirmed ${ck}`, v);
-        await this.#confirmations.put(ck, v);
-      }
+      await this.#confirmOrNotify(ck, v);
     }
   }
 
@@ -118,5 +100,18 @@ export class MatchingEngine {
 
   #sldest({chainId, blockHash}: ChainBlock) {
     return this.#sl<Message>(`D:${chainId}:${blockHash}`);
+  }
+
+  async #confirmOrNotify(ck: string, v: OriginMessage | Message) {
+    try {
+      const conf = await this.#confirmations.get(ck);
+      this.#log.info('[O] NOTIFY', conf, v);
+      await this.#notifications.put(ck, {
+        notification: 'here'
+      });
+    } catch (e) {
+      this.#log.info(`[O] Confirmed ${ck}`, v);
+      await this.#confirmations.put(ck, v);
+    }
   }
 }

@@ -1,9 +1,9 @@
 import { EventEmitter } from 'node:events';
 
-import { Subscription } from 'rxjs';
+import { Subscription, merge, mergeAll } from 'rxjs';
 
 import Connector from '../connector.js';
-import { extractXcmTransfers } from '../ops/index.js';
+import { extractXcmReceive, extractXcmTransfers } from '../ops/index.js';
 import { DB, DefaultSubstrateApis, XcmMessageEvent } from '../types.js';
 import { ServiceContext } from '../context.js';
 import { QuerySubscription } from 'subscriptions/types.js';
@@ -11,6 +11,7 @@ import { ControlQuery } from '@sodazone/ocelloids';
 
 type SubscriptionHandler = QuerySubscription & {
   rxSubscription: Subscription,
+  destinationSubscriptions: Subscription,
   sendersControl: ControlQuery
 }
 
@@ -42,7 +43,12 @@ export class OutboundMessageCollector extends EventEmitter {
   }
 
   monitor(qs: QuerySubscription) {
-    const { id, origin, senders } = qs;
+    const { id, origin, senders, followAllDest, destinations } = qs;
+
+    // Probably can/should be checked at API request
+    if (!followAllDest && !destinations) {
+      throw new Error('No destinations set');
+    }
 
     const sendersControl = ControlQuery.from({
       'events.event.section': 'xcmpQueue',
@@ -57,22 +63,70 @@ export class OutboundMessageCollector extends EventEmitter {
           'recipient': 2000
         }
       })
-    ).subscribe(msg => this.emit('message', {
-      ...msg,
-      chainId: origin
-    } as XcmMessageEvent));
+    ).subscribe({
+      next: msg => this.emit('message', {
+        ...msg,
+        chainId: origin
+      } as XcmMessageEvent),
+      error: error => console.log('ERROR ON ORIGIN NEW BLOCK', error)
+    });
+
+    const dests = destinations || this.#apis.chains.filter(c => c !== origin.toString());
+    const n = dests
+      .map(c => {
+        console.log('API', c);
+        const chainId = c.toString();
+        return this.#apis.rx[chainId].pipe(
+          extractXcmReceive(chainId)
+        );
+      });
+
+    // Don't use merge and keep array of subscriptions
+    const destinationSubscriptions = merge(n)
+      .pipe(mergeAll())
+      .subscribe({
+        next: msg => this.emit('receive', {
+          ...msg
+        }),
+        error: error => console.log('ERROR IN DEST NEW BLOCK', error)
+      });
 
     this.#subs[id] = {
       ...qs,
       sendersControl,
-      rxSubscription
+      rxSubscription,
+      destinationSubscriptions
     };
   }
 
   subscribe(qs: QuerySubscription) {
+    this.#ctx.log.info(`New Subscription: ${qs}`);
     this.#slqs(qs.origin).put(qs.id, qs).then(() => {
       this.monitor(qs);
     });
+  }
+
+  unsubscribe(id: string) {
+    try {
+      const {
+        origin, rxSubscription, destinationSubscriptions
+      } = this.#subs[id];
+
+      this.#ctx.log.info(`Unsubscribe ${id}`);
+      rxSubscription.unsubscribe();
+      destinationSubscriptions.unsubscribe();
+
+      this.#ctx.log.info(`Deleting subscription from storage ${id}`);
+      delete this.#subs[id];
+      this.#slqs(origin).del(id);
+    } catch (error) {
+      console.log('Subscription ID not found', id);
+    }
+  }
+
+  listSubscriptions() {
+    // TODO: return configurable values too
+    return Object.keys(this.#subs);
   }
 
   async start() {
@@ -93,10 +147,11 @@ export class OutboundMessageCollector extends EventEmitter {
     const { log } = this.#ctx;
 
     for (const {
-      id, rxSubscription
+      id, rxSubscription, destinationSubscriptions
     } of Object.values(this.#subs)) {
       log.info(`Unsubscribe ${id}`);
       rxSubscription.unsubscribe();
+      destinationSubscriptions.unsubscribe();
     }
   }
 }

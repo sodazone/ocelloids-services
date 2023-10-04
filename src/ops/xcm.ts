@@ -11,7 +11,7 @@ import {
   flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
-import { GenericXcmMessageWithContext, XcmCriteria, XcmMessageSentWithContext, XcmMessageWithContext } from '../types.js';
+import { GenericXcmMessageWithContext, XcmCriteria, XcmMessageEvent, XcmMessageSentWithContext, XcmMessageWithContext } from '../types.js';
 
 function findOutboundHrmpMessage(
   api: ApiPromise,
@@ -87,7 +87,7 @@ export function extractXcmTransfers(
     return source.pipe(
       blocks(),
       retryWithTruncatedExpBackoff(),
-      tap(({block}) => console.log(block.header.number.toNumber())),
+      tap(({block}) => console.log('ORIGIN: ', block.header.number.toNumber())),
       mongoFilter(sendersControl),
       extractTxWithEvents(),
       flattenBatch(),
@@ -95,5 +95,47 @@ export function extractXcmTransfers(
       xcmMessagesSent(api),
       findOutboundHrmpMessage(api, messageCriteria),
     );
+  };
+}
+
+function mapXcmpQueueMessage(id: string) {
+  return (source: Observable<types.EventWithIdAndTx>): Observable<XcmMessageEvent>  => {
+    return (source.pipe(
+      mongoFilter({
+        'section': 'xcmpQueue',
+        'method': { $in: ['Success', 'Fail']}
+      }),
+      map(event => {
+        if (event.method === 'Success') {
+          const xcmMessage = event.data as any;
+          return {
+            event,
+            messageHash: xcmMessage.messageHash.toHex() as string,
+            chainId: id
+          } as XcmMessageEvent;
+        } else if (event.method === 'Fail') {
+          console.log('XCM receive fail not implemented');
+          return null;
+        } else {
+          return null;
+        }
+      }),
+      filterNonNull()
+    )
+    );
+  };
+}
+
+export function extractXcmReceive(id: string) {
+  return (source: Observable<ApiRx>): Observable<XcmMessageEvent>  => {
+    return (source.pipe(
+      blocks(),
+      retryWithTruncatedExpBackoff(),
+      tap(({block}) => console.log('DEST: ', block.header.number.toNumber())),
+      extractTxWithEvents(),
+      flattenBatch(),
+      extractEventsWithTx(),
+      mapXcmpQueueMessage(id)
+    ));
   };
 }
