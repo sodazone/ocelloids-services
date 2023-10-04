@@ -54,7 +54,7 @@ async function monitoringService(
 
   outCollector.start();
 
-  const finCollector = new FinalizedCollector(connector);
+  const finCollector = new FinalizedCollector(ctx, connector);
 
   finCollector.on('head', ({
     chainId, head
@@ -76,6 +76,7 @@ async function monitoringService(
     log.info('Shutting down monitoring service');
 
     outCollector.stop();
+    finCollector.stop();
     await connector.disconnect();
   });
 
