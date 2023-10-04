@@ -1,40 +1,53 @@
 import { EventEmitter } from 'node:events';
 
-import { map } from 'rxjs';
+import { Subscription, map } from 'rxjs';
 import { finalizedHeads } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
 import { DefaultSubstrateApis } from '../types.js';
+import { ServiceContext } from '../context.js';
 
 export class FinalizedCollector extends EventEmitter {
   #apis: DefaultSubstrateApis;
+  #ctx: ServiceContext;
 
-  constructor(connector: Connector) {
+  #subs: Record<string, Subscription> = {};
+
+  constructor(
+    ctx: ServiceContext,
+    connector: Connector
+  ) {
     super();
 
     this.#apis = connector.connect();
+    this.#ctx = ctx;
   }
 
   start() {
-    // TODO: save in db and unsubscribe on stop
-    this.#apis.chains.map(
-      chain => this.#apis.rx[chain].pipe(
-        finalizedHeads(),
-        map(head => ({
-          head,
-          chainId: chain
-        }))
-      ).subscribe({
-        next: ({ head, chainId }) => this.emit('head', { chainId, head }),
-        error: (error) => console.log('Error on finalized block!!', error)
-      })
+    this.#apis.chains.forEach(
+      chain => {
+        this.#subs[chain] = this.#apis.rx[chain].pipe(
+          finalizedHeads(),
+          map(head => ({
+            head,
+            chainId: chain
+          }))
+        ).subscribe({
+          next: ({ head, chainId }) => this.emit('head', { chainId, head }),
+          error: (error) => this.#ctx.log.error(`Error on finalized block subscription of chain ${chain}`, error)
+        });
+      }
     );
+  }
 
-    // merge(allChainsFinalized)
-    //   .pipe(mergeAll())
-    //   .subscribe({
-    //     next: ({ head, chainId }) => this.emit('head', { chainId, head }),
-    //     error: (error) => console.log('Error on finalized block!!', error)
-    //   });
+  stop() {
+    const { log } = this.#ctx;
+    log.info('Stopping Finalized Collector');
+
+    for (const [chain, sub] of Object.entries(this.#subs)) {
+      log.info(`Unsubscribe finalized heads of chain ${chain}`);
+      sub.unsubscribe();
+      delete this.#subs[chain];
+    }
   }
 }
