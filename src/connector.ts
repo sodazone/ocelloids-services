@@ -50,6 +50,7 @@ export default class Connector {
       }
       break;
     case 'smoldot':
+      // TODO: refactor registration of relay
       if (network.relay) {
         if (this.#relays[network.relay] === undefined) {
           const key = Object.values(Sc.WellKnownChain).find(c => c === network.relay);
@@ -73,9 +74,17 @@ export default class Connector {
       } else {
         // A Smoldot relay client
         this.#ctx.log.info(`Register relay: ${network.name}`);
-        this.#relays[network.name] = new ScProvider(Sc,
-          fs.readFileSync(new URL(network.provider.spec!, import.meta.url), 'utf-8')
-        );
+        const key = Object.values(Sc.WellKnownChain).find(c => c === network.name);
+
+        if (key) {
+          this.#relays[network.name] = new ScProvider(
+            Sc, Sc.WellKnownChain[key]
+          );
+        } else {
+          this.#relays[network.name] = new ScProvider(Sc,
+            fs.readFileSync(new URL(network.provider.spec!, import.meta.url), 'utf-8')
+          );
+        }
       }
       break;
     default:
