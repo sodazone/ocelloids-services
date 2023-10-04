@@ -47,7 +47,7 @@ async function monitoringService(fastify: FastifyInstance, _options: FastifyPlug
     chainId: string | number, head: Header
   }) => {
     log.info(
-      `finalized: [chainId=${chainId}, hash=${head.hash.toHex()}]`
+      `finalized: [chainId=${chainId}, hash=${head.hash.toHex()}, block=${head.number.toNumber()}]`
     );
 
     engine.onFinalizedBlock({
@@ -68,10 +68,22 @@ async function monitoringService(fastify: FastifyInstance, _options: FastifyPlug
     reply.send('Bob Dobbs');
   });
 
+  fastify.get('/subs', {}, async (_request, reply) => {
+    reply.status(201).send(outCollector.listSubscriptions());
+  });
+
   fastify.post<{
     Body: QuerySubscription
   }>('/sub', {}, async (request, reply) => {
     outCollector.subscribe(request.body);
+
+    reply.status(201).send();
+  });
+
+  fastify.post<{
+    Body: { id: string }
+  }>('/unsub', {}, async (request, reply) => {
+    outCollector.unsubscribe(request.body.id);
 
     reply.status(201).send();
   });
