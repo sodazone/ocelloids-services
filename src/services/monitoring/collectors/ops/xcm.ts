@@ -11,7 +11,10 @@ import {
   flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
-import { GenericXcmMessageWithContext, XcmCriteria, XcmMessageEvent, XcmMessageSentWithContext, XcmMessageWithContext } from '../types.js';
+import {
+  GenericXcmMessageWithContext, XcmCriteria, XcmMessageEvent,
+  XcmMessageSentWithContext, XcmMessageWithContext
+} from '../../types.js';
 
 function findOutboundHrmpMessage(
   api: ApiPromise,

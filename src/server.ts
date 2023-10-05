@@ -3,10 +3,15 @@ import process from 'node:process';
 import closeWithGrace from 'close-with-grace';
 import Fastify from 'fastify';
 
+import FastifySwagger from '@fastify/swagger';
+import FastifySwaggerUI from '@fastify/swagger-ui';
+import FastifyHealthcheck from 'fastify-healthcheck';
+
+import version from './version.js';
 import { ServerOptions } from './types.js';
-import matching from './matching/plugin.js';
-import monitoring from './service.js';
-import configuration from './configuration.js';
+import {
+  Root, Configuration, Monitoring, Matching
+} from './services/index.js';
 
 const environment = process.env.NODE_ENV || 'development';
 
@@ -37,9 +42,27 @@ export function createServer(
     logger: ServerDefauls.logger
   });
 
-  server.register(configuration, opts);
-  server.register(matching, opts);
-  server.register(monitoring);
+  server.register(FastifySwagger, {
+    openapi: {
+      info: {
+        title: 'XCM Monitoring Service',
+        version: version()
+      }
+    }
+  });
+
+  server.register(FastifySwaggerUI, {
+    routePrefix: '/documentation'
+  });
+
+  server.register(FastifyHealthcheck, {
+    exposeUptime: true
+  });
+
+  server.register(Root);
+  server.register(Configuration, opts);
+  server.register(Matching, opts);
+  server.register(Monitoring);
 
   const closeListeners = closeWithGrace({
     delay: ServerDefauls.delay

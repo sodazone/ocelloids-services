@@ -2,14 +2,13 @@
 import fs from 'node:fs';
 
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
-import { WsProvider } from '@polkadot/api';
-import { ScProvider } from '@polkadot/rpc-provider/substrate-connect';
+import { WsProvider, ScProvider } from '@polkadot/api';
 import * as Sc from '@substrate/connect';
 import { config as oconfig, SubstrateApis } from '@sodazone/ocelloids';
 
 import { NetworkConfiguration } from './configuration.js';
 import { ServiceContext } from './context.js';
-import { DefaultSubstrateApis } from 'types.js';
+import { DefaultSubstrateApis } from './types.js';
 
 /**
  *

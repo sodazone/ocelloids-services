@@ -3,7 +3,7 @@ import fp from 'fastify-plugin';
 
 import { Level } from 'level';
 import { MatchingEngine } from './engine.js';
-import { DB, ServerOptions } from '../types.js';
+import { DB } from '../types.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -12,7 +12,11 @@ declare module 'fastify' {
   }
 }
 
-const levelPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, options) => {
+type DBOptions = {
+  db: string;
+}
+
+const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
   const dbPath = options.db || './db';
 
   fastify.log.info(`Open database at ${dbPath}`);

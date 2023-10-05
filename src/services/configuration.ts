@@ -5,7 +5,7 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import toml from 'toml';
 
-import { ServerOptions } from './types.js';
+import { ServerOptions } from '../types.js';
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),

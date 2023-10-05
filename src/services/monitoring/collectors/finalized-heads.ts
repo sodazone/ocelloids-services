@@ -3,11 +3,11 @@ import { EventEmitter } from 'node:events';
 import { Subscription, map } from 'rxjs';
 import { finalizedHeads } from '@sodazone/ocelloids';
 
-import Connector from '../connector.js';
-import { DefaultSubstrateApis } from '../types.js';
-import { ServiceContext } from '../context.js';
+import Connector from '../../connector.js';
+import { DefaultSubstrateApis } from '../../types.js';
+import { ServiceContext } from '../../context.js';
 
-export class FinalizedCollector extends EventEmitter {
+export class FinalizedHeadCollector extends EventEmitter {
   #apis: DefaultSubstrateApis;
   #ctx: ServiceContext;
 
