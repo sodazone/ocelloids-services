@@ -67,14 +67,15 @@ export default class Connector {
         }
 
         this.#chains[network.name] = new ScProvider(Sc,
-          // TODO: handle local and absolute locations
-          fs.readFileSync(new URL(network.provider.spec!, import.meta.url), 'utf-8'),
+          this.#loadSpec(network.provider.spec),
           this.#relays[network.relay]
         );
       } else {
         // A Smoldot relay client
         this.#ctx.log.info(`Register relay: ${network.name}`);
-        const key = Object.values(Sc.WellKnownChain).find(c => c === network.name);
+        const key = Object.values(Sc.WellKnownChain).find(
+          c => c === network.name
+        );
 
         if (key) {
           this.#relays[network.name] = new ScProvider(
@@ -82,7 +83,7 @@ export default class Connector {
           );
         } else {
           this.#relays[network.name] = new ScProvider(Sc,
-            fs.readFileSync(new URL(network.provider.spec!, import.meta.url), 'utf-8')
+            this.#loadSpec(network.provider.spec)
           );
         }
       }
@@ -126,5 +127,9 @@ export default class Connector {
     if (this.#substrateApis) {
       this.#substrateApis.disconnect();
     }
+  }
+
+  #loadSpec(spec: string) {
+    return fs.readFileSync(spec, 'utf-8');
   }
 }
