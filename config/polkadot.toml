@@ -1,0 +1,26 @@
+[[networks]]
+name = "polkadot"
+id = 0
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/polkadot.json"
+
+[[networks]]
+name = "asset_hub"
+id = 1_000
+relay = "polkadot"
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/polkadot-asset-hub.json"
+
+[[networks]]
+name = "astar"
+id = 2_006
+relay = "polkadot"
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/polkadot-astar.json"
+
