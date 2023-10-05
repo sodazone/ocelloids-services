@@ -9,8 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "CONFIG_PATH=cfg/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
-    "dev:dev": "npm run dev -- -c ./cfg/dev.toml",
+    "dev": "CONFIG_PATH=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest"
   },
