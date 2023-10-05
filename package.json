@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --exec ts-node-esm ./src/main.ts",
-    "dev:dev": "npm run dev -c ./cfg/dev.toml",
+    "dev:dev": "npm run dev -- -c ./cfg/dev.toml",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest"
   },
