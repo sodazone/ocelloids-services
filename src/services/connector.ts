@@ -38,57 +38,17 @@ export default class Connector {
   }
 
   private registerNetwork(network: NetworkConfiguration) {
-    switch (network.provider.type) {
-    case 'rpc':
-      if (network.provider.url) {
-        this.#chains[network.name] = new WsProvider(network.provider.url);
-      } else {
-        throw new Error(
-          `Please provide a web socket endpoint for ${network.name}`
-        );
-      }
-      break;
-    case 'smoldot':
-      // TODO: refactor registration of relay
-      if (network.relay) {
-        if (this.#relays[network.relay] === undefined) {
-          const key = Object.values(Sc.WellKnownChain).find(c => c === network.relay);
-          if (key) {
-            this.#ctx.log.info(`Register relay: ${key}`);
-            this.#relays[network.relay] = new ScProvider(
-              Sc, Sc.WellKnownChain[key]
-            );
-          } else {
-            this.#ctx.log.error(
-              `Unknown relay network ${network.relay}.\nKnown networks ${Object.values(Sc.WellKnownChain)}`
-            );
-          }
-        }
+    const { name, relay, provider } = network;
 
-        this.#chains[network.name] = new ScProvider(Sc,
-          this.#loadSpec(network.provider.spec),
-          this.#relays[network.relay]
-        );
+    if (provider.type === 'smoldot') {
+      if (relay !== undefined) {
+        this.#registerSmoldotParachain(name, relay, provider.spec);
       } else {
-        // A Smoldot relay client
-        this.#ctx.log.info(`Register relay: ${network.name}`);
-        const key = Object.values(Sc.WellKnownChain).find(
-          c => c === network.name
-        );
-
-        if (key) {
-          this.#relays[network.name] = new ScProvider(
-            Sc, Sc.WellKnownChain[key]
-          );
-        } else {
-          this.#relays[network.name] = new ScProvider(Sc,
-            this.#loadSpec(network.provider.spec)
-          );
-        }
+        this.#registerSmoldotRelay(name, provider.spec);
       }
-      break;
-    default:
-      throw new Error('Unsupported provider type');
+    } else {
+      this.#ctx.log.info(`Register WS provider: ${name}`);
+      this.#chains[name] = new WsProvider(provider.url);
     }
   }
 
@@ -130,5 +90,47 @@ export default class Connector {
 
   #loadSpec(spec: string) {
     return fs.readFileSync(spec, 'utf-8');
+  }
+
+  #registerSmoldotRelay(name: string, spec: string) {
+    this.#ctx.log.info(`Register relay smoldot provider: ${name}`);
+    const key = Object.values(Sc.WellKnownChain).find(
+      c => c === name
+    );
+
+    if (key) {
+      this.#relays[name] = new ScProvider(
+        Sc, Sc.WellKnownChain[key]
+      );
+    } else {
+      this.#relays[name] = new ScProvider(Sc,
+        this.#loadSpec(spec)
+      );
+    }
+  }
+
+  #getNetworkConfig(name: string) {
+    const conf =  this.#ctx.config.networks.find(n => n.name === name);
+    if (conf === undefined) {
+      throw new Error(`Configuration for network ${name} not found.`);
+    }
+    return conf;
+  }
+
+  #registerSmoldotParachain(name: string, relay: string, spec: string) {
+    this.#ctx.log.info(`Register parachain smoldot provider: ${name}`);
+    // Make sure relay client is registered first
+    if (this.#relays[relay] === undefined) {
+      const relayConfig = this.#getNetworkConfig(relay);
+      if (relayConfig.provider.type === 'rpc') {
+        throw new Error('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
+      }
+      this.#registerSmoldotRelay(relayConfig.name, relayConfig.provider.spec);
+    }
+
+    this.#chains[name] = new ScProvider(Sc,
+      this.#loadSpec(spec),
+      this.#relays[relay]
+    );
   }
 }

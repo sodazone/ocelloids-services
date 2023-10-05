@@ -1,6 +1,6 @@
 import pino from 'pino';
 
-import { ServiceConfiguration } from '../configuration.js';
+import { ServiceConfiguration } from '../services/configuration.js';
 
 export const mockLog: pino.BaseLogger = {
   level: 'log',
@@ -11,6 +11,50 @@ export const mockLog: pino.BaseLogger = {
   debug: jest.fn(),
   trace: jest.fn(),
   silent: jest.fn()
+};
+
+export const mockConfigProviderMismatch: ServiceConfiguration = {
+  networks: [
+    {
+      name: 'kusama',
+      id: 0,
+      provider: {
+        type: 'rpc',
+        url: 'wss://kusama.io'
+      }
+    },
+    {
+      name: 'shiden',
+      id: 2006,
+      relay: 'kusama',
+      provider: {
+        type: 'smoldot',
+        spec: './chain-specs/shiden.json'
+      }
+    }
+  ]
+};
+
+export const mockConfigRelayMismatch: ServiceConfiguration = {
+  networks: [
+    {
+      name: 'polkadot',
+      id: 0,
+      provider: {
+        type: 'smoldot',
+        spec: './chain-specs/polkadot.json'
+      }
+    },
+    {
+      name: 'asset-hub',
+      id: 1000,
+      relay: 'rococo',
+      provider: {
+        type: 'smoldot',
+        spec: './chain-specs/ah.json'
+      }
+    }
+  ]
 };
 
 export const mockConfigLC: ServiceConfiguration = {
