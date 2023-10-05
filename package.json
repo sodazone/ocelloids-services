@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon --exec ts-node-esm ./src/main.ts",
+    "dev": "CONFIG_PATH=cfg/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "dev:dev": "npm run dev -- -c ./cfg/dev.toml",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest"
@@ -58,6 +58,7 @@
     "fastify": "^4.23.2",
     "fastify-plugin": "^4.5.1",
     "level": "^8.0.0",
-    "toml": "^3.0.0"
+    "toml": "^3.0.0",
+    "zod": "^3.22.4"
   }
 }

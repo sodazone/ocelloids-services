@@ -88,7 +88,7 @@ export default class Connector {
       }
       break;
     default:
-      throw new Error(`Unsupported provider type ${network.provider.type}`);
+      throw new Error('Unsupported provider type');
     }
   }
 

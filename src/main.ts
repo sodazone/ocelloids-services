@@ -1,19 +1,33 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
+import process from 'node:process';
+
+import z from 'zod';
 import { Command, program } from 'commander';
 
 import { createServer } from './server.js';
-import { ServerOptions } from './types.js';
+import { $ServerOptions } from './types.js';
 
 function startServer(this: Command) {
-  const opts = this.opts<ServerOptions>();
-  createServer(opts);
+  try {
+    const opts = $ServerOptions.parse(this.opts());
+    createServer(opts);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      console.error(err.issues);
+    } else {
+      console.error(err);
+    }
+    program.help();
+  }
 }
 
 program
   .name('xcm-mon')
   .description('XCM Monitoring Server')
-  .requiredOption('-c, --config <path>')
-  .option('d, --db <path>', './db')
-  .action(startServer)
-  .parse();
+  .option('-c, --config <path>', 'The service configuration file path', process.env.CONFIG_PATH)
+  .option('d, --db <path>', 'The database directory path', process.env.DB_PATH ?? './db')
+  .action(startServer);
+
+program.parse();

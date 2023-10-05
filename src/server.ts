@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 import process from 'node:process';
 
 import closeWithGrace from 'close-with-grace';

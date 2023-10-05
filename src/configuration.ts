@@ -1,26 +1,41 @@
 import fs from 'node:fs';
 
+import z from 'zod';
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-
 import toml from 'toml';
 
 import { ServerOptions } from './types.js';
 
-export type NetworkConfiguration = {
-  name: string,
-  id: number,
-  relay?: string,
-  provider: {
-    type: 'rpc' | 'smoldot',
-    url?: string,
-    spec?: string
-  }
-}
+const $RpcProvider = z.object({
+  type: z.literal('rpc'),
+  url: z.string().min(1)
+});
 
-export type ServiceConfiguration = {
-  networks: NetworkConfiguration[]
-}
+const $SmoldotProvider = z.object({
+  type: z.literal('smoldot'),
+  spec: z.string().min(1)
+});
+
+const $NetworkProvider = z.discriminatedUnion('type', [
+  $RpcProvider, $SmoldotProvider
+]);
+
+const $NetworkConfiguration = z.object({
+  name: z.string({
+    required_error: 'Network name is required'
+  }).min(1),
+  id: z.number().int(),
+  relay: z.string().min(1).optional(),
+  provider: $NetworkProvider
+});
+
+const $ServiceConfiguration = z.object({
+  networks: z.array($NetworkConfiguration).min(1),
+});
+
+export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
+export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -33,12 +48,21 @@ const configPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, 
 
   fastify.log.info(`Loading configuration from ${configPath}`);
 
-  // TODO validation
-  const config = toml.parse(
-    fs.readFileSync(configPath, 'utf-8')
-  ) as ServiceConfiguration;
-
-  fastify.decorate('config', config);
+  try {
+    const config = $ServiceConfiguration.parse(
+      toml.parse(
+        fs.readFileSync(configPath, 'utf-8')
+      )
+    );
+    fastify.decorate('config', config);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      fastify.log.error(err.issues);
+    } else {
+      fastify.log.error(err);
+    }
+    throw new Error('Error while loading configuration.');
+  }
 };
 
 export default fp(configPluginCallback, { fastify: '>=4.x', name: 'config' });

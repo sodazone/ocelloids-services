@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { AnyJson } from '@polkadot/types-codec/types';
 import type { Bytes } from '@polkadot/types';
 
@@ -57,9 +59,14 @@ export class GenericXcmMessageWithContext implements XcmMessageWithContext {
   }
 }
 
-export type ServerOptions = {
-  // Configuration file path
-  config: string,
-  // Database path
-  db?: string
-}
+export const $ServerOptions = z.object({
+  config: z.string({
+    required_error: 'Configuration file path is required'
+  }).min(1),
+  db: z.string({
+    required_error: 'Database directory path is required'
+  }).min(1)
+});
+
+export type ServerOptions = z.infer<typeof $ServerOptions>;
+
