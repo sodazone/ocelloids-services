@@ -11,5 +11,10 @@
     },
     "include": [
       "src/**/*"
+    ],
+    "exclude": [
+      "node_modules",
+      "src/_mocks/*",
+      "**/*.spec.ts"
     ]
   }
