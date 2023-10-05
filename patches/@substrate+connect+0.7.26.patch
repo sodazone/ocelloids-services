@@ -1,0 +1,31 @@
+diff --git a/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js b/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
+index 7faa866..a0a33d9 100644
+--- a/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
++++ b/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
+@@ -22,8 +22,8 @@ const getClientAndIncRef = (config) => {
+             return Promise.resolve(clientPromise);
+     }
+     const newClientPromise = getStart().then((start) => start({
+-        forbidTcp: true,
+-        forbidNonLocalWs: true,
++        forbidTcp: false,
++        forbidNonLocalWs: false,
+         maxLogLevel: 9999999,
+         cpuRateLimit: 0.5,
+         logCallback: (level, target, message) => {
+diff --git a/node_modules/@substrate/connect/dist/mjs/connector/specs/index.js b/node_modules/@substrate/connect/dist/mjs/connector/specs/index.js
+index b49e634..8711253 100644
+--- a/node_modules/@substrate/connect/dist/mjs/connector/specs/index.js
++++ b/node_modules/@substrate/connect/dist/mjs/connector/specs/index.js
+@@ -1,7 +1,7 @@
+-import ksmcc3 from "./ksmcc3.json";
+-import polkadot from "./polkadot.json";
+-import rococo_v2_2 from "./rococo_v2_2.json";
+-import westend2 from "./westend2.json";
++import ksmcc3 from "./ksmcc3.json" assert { type: "json" };
++import polkadot from "./polkadot.json" assert { type: "json" };
++import rococo_v2_2 from "./rococo_v2_2.json" assert { type: "json" };
++import westend2 from "./westend2.json" assert { type: "json" };
+ const chains = {
+     ksmcc3,
+     polkadot,
