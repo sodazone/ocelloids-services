@@ -6,7 +6,7 @@ import process from 'node:process';
 import z from 'zod';
 import { Command, program } from 'commander';
 
-import version from './version.js';
+import { version } from './consts.js';
 import { createServer } from './server.js';
 import { $ServerOptions } from './types.js';
 
@@ -25,9 +25,9 @@ function startServer(this: Command) {
 }
 
 program
-  .name('xcm-mon')
+  .name('mon-xcm')
   .description('XCM Monitoring Server')
-  .version(version())
+  .version(version)
   .option('-c, --config <path>', 'The service configuration file path', process.env.CONFIG_PATH)
   .option('d, --db <path>', 'The database directory path', process.env.DB_PATH ?? './db')
   .action(startServer);

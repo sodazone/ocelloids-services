@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Ocelloids monitoring service",
   "main": "dist/main.js",
+  "bin": {
+    "mon-xcm": "./dist/main.js"
+  },
   "engines": {
     "node": ">=18.14"
   },

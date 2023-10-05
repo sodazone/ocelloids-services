@@ -7,7 +7,7 @@ import FastifySwagger from '@fastify/swagger';
 import FastifySwaggerUI from '@fastify/swagger-ui';
 import FastifyHealthcheck from 'fastify-healthcheck';
 
-import version from './version.js';
+import { version } from './consts.js';
 import { ServerOptions } from './types.js';
 import {
   Root, Configuration, Monitoring, Matching
@@ -46,7 +46,7 @@ export function createServer(
     openapi: {
       info: {
         title: 'XCM Monitoring Service',
-        version: version()
+        version
       }
     }
   });

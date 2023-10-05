@@ -1,8 +1,6 @@
 import { FastifyInstance } from 'fastify';
 
-import getVersion from '../version.js';
-
-const version = getVersion();
+import { version } from '../consts.js';
 
 export default async function Root(fastify: FastifyInstance) {
   fastify.get('/',{
