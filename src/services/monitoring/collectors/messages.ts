@@ -56,10 +56,11 @@ export class MessageCollector extends EventEmitter {
    */
   async subscribe(qs: QuerySubscription) {
     const { log } = this.#ctx;
-
-    const exists = await this.getSubscription(qs.id);
-    if (exists) {
+    try {
+      await this.getSubscription(qs.id);
       throw new Error(`Subscription with ID ${qs.id} already exists`);
+    } catch (_) {
+    // OK ^^
     }
 
     log.info(`New Subscription: ${qs}`);

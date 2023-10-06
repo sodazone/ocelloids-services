@@ -1,8 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { Operation, applyPatch } from 'rfc6902';
 
 import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
 import { $ChainHead, $QuerySubscription, $SafeId, QuerySubscription } from './types.js';
+import $JSONPatch from './json-patch.js';
 
 /**
  * Subscriptions HTTP API.
@@ -76,6 +78,29 @@ export function SubscriptionApi(
     await msgCollector.subscribe(request.body);
 
     reply.status(201).send();
+  });
+
+  fastify.patch <{
+    Params: {
+      id: string
+    },
+    Body: Operation[]
+  }>('/subs/:id', {
+    schema: {
+      params: {
+        id: zodToJsonSchema($SafeId)
+      },
+      body: $JSONPatch,
+      response: {
+        200: zodToJsonSchema($QuerySubscription)
+      }
+    }
+  }, async (request, reply) => {
+    const sub = await msgCollector.getSubscription(request.params.id);
+    applyPatch(sub, request.body);
+    $QuerySubscription.parse(sub);
+    //await msgCollector.subscribe(request.body);
+    reply.status(200).send(sub);
   });
 
   fastify.delete<{

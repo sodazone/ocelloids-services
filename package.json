@@ -66,6 +66,7 @@
     "fastify-healthcheck": "^4.4.0",
     "fastify-plugin": "^4.5.1",
     "level": "^8.0.0",
+    "rfc6902": "^5.0.1",
     "toml": "^3.0.0",
     "zod": "^3.22.4",
     "zod-to-json-schema": "^3.21.4"
