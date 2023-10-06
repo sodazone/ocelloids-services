@@ -15,7 +15,7 @@ export type ChainHead = z.infer<typeof $ChainHead>;
 
 export const $SafeId = z.string({
   required_error: 'id is required'
-}).min(1).max(1024).regex(/(\-_\:\.[0-9][a-z][A-Z])+/);
+}).min(1).max(1024).regex(/(-_:\.[0-9][a-z][A-Z])+/);
 
 export type XcmCriteria = {
   sendersControl: ControlQuery,
