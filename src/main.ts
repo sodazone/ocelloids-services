@@ -62,16 +62,16 @@ program
   )
   .addOption(
     optionOf(
-      '-c, --config <path>',
-      'service configuration file path',
-      'XCMON_CONFIG_PATH'
+      '-c, --config <file>',
+      'service configuration file',
+      'XCMON_CONFIG_FILE'
     ).makeOptionMandatory(true)
   )
   .addOption(
     optionOf(
-      '-d, --db <path>',
-      'database directory path',
-      'XCMON_DB_PATH'
+      '-d, --db <dir>',
+      'database directory',
+      'XCMON_DB_DIR'
     ).default('./db')
   )
   .addOption(
