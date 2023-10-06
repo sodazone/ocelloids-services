@@ -43,7 +43,6 @@ export class MatchingEngine {
   }
 
   async onFinalizedBlock(chainBlock: ChainBlock) {
-    this.#log.info('REC FIN ', chainBlock);
     const orig = this.#slorig(chainBlock);
     const dest = this.#sldest(chainBlock);
 

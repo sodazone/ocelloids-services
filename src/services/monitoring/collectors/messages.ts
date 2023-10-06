@@ -36,6 +36,7 @@ export class MessageCollector extends EventEmitter {
     this.#ctx = ctx;
   }
 
+  // TODO: figure out subscriptions order. If dest fails, origin shouldn't sub
   monitor(qs: QuerySubscription) {
     const { log } = this.#ctx;
     try {
@@ -118,9 +119,28 @@ export class MessageCollector extends EventEmitter {
     }
   }
 
-  listSubscriptions() {
-    // TODO: return configurable values too
-    return Object.keys(this.#subs);
+  async getSubscription(id: string) {
+    let subscription: QuerySubscription | undefined;
+
+    for (const network of this.#ctx.config.networks) {
+      const subs = await this.#recover(network.id);
+      subscription = subs.find(s => s.id === id);
+      if (subscription) {
+        break;
+      }
+    }
+
+    return subscription;
+  }
+
+  async getSubscriptions() {
+    let subscriptions: QuerySubscription[] = [];
+    for (const network of this.#ctx.config.networks) {
+      const subs = await this.#recover(network.id);
+      subscriptions = subscriptions.concat(subs);
+    }
+
+    return subscriptions;
   }
 
   async start() {

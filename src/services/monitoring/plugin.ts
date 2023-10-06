@@ -93,7 +93,32 @@ async function Monitoring(
       }
     }
   }, async (_, reply) => {
-    reply.send(msgCollector.listSubscriptions());
+    reply.send(await msgCollector.getSubscriptions());
+  });
+
+  fastify.get<{
+    Params: {
+      id: string
+    }
+  }>('/subs/:id', {
+    schema: {
+      params: {
+        id: { type: 'string' }
+      },
+      response: {
+        200: zodToJsonSchema(
+          $QuerySubscription
+        ),
+        '4xx': { type: 'string' }
+      }
+    }
+  }, async (request, reply) => {
+    const sub = await msgCollector.getSubscription(request.params.id);
+    if (sub !== undefined) {
+      reply.send(sub);
+    } else {
+      reply.status(404).send('Subscription not found');
+    }
   });
 
   fastify.post <{
@@ -123,10 +148,10 @@ async function Monitoring(
   }>('/subs/:id', {
     schema: {
       params: {
-        id: { type: 'string', pattern: '[0-9]+' }
+        id: { type: 'string' }
       },
       response: {
-        201: {
+        200: {
           type: 'null',
           description: 'Accepted'
         }
@@ -135,7 +160,7 @@ async function Monitoring(
   }, async (request, reply) => {
     msgCollector.unsubscribe(request.params.id);
 
-    reply.status(201).send();
+    reply.status(200).send();
   });
 }
 
