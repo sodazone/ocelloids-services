@@ -31,8 +31,8 @@ You can also use environment variables:
 
 ## Subscription API
 
-You can find the OpenAPI documentation at [http://localhost:3000/documentation](http://localhost:3000/documentation).
+You can find the OpenAPI documentation at [http://localhost:3000/documentation](http://<host>/documentation).
 
 ## Healthcheck
 
-The server exposes a healthchek endpoint at [http://localhost:3000/healthcheck](http://localhost:3000/).
+The server exposes a healthchek endpoint at [http://localhost:3000/health](http://<host>/health).
