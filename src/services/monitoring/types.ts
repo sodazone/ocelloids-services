@@ -2,7 +2,7 @@ import z from 'zod';
 import type { AnyJson } from '@polkadot/types-codec/types';
 import type { Bytes } from '@polkadot/types';
 
-import { types, Criteria, ControlQuery } from '@sodazone/ocelloids';
+import { types, ControlQuery } from '@sodazone/ocelloids';
 
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
@@ -15,7 +15,7 @@ export type ChainHead = z.infer<typeof $ChainHead>;
 
 export type XcmCriteria = {
   sendersControl: ControlQuery,
-  messageCriteria: Criteria
+  messageControl: ControlQuery
 }
 
 export type XcmMessageSentWithContext = {

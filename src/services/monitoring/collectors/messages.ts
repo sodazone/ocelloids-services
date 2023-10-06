@@ -115,7 +115,7 @@ export class MessageCollector extends EventEmitter {
   async getSubscriptions() {
     let subscriptions: QuerySubscription[] = [];
     for (const network of this.#ctx.config.networks) {
-      const subs = await this.#recover(network.id);
+      const subs = await this.#subsInDB(network.id);
       subscriptions = subscriptions.concat(subs);
     }
 
@@ -131,7 +131,7 @@ export class MessageCollector extends EventEmitter {
     const { config: { networks }, log } = this.#ctx;
 
     for (const network of networks) {
-      const subs = await this.#recover(network.id);
+      const subs = await this.#subsInDB(network.id);
 
       log.info(`Origin subscriptions: [chainId=${network.id}] (${subs.length})`);
 
@@ -186,13 +186,15 @@ export class MessageCollector extends EventEmitter {
       'block.extrinsics.signer.id': { $in: senders }
     });
 
+    const messageControl = ControlQuery.from({
+      'recipient': { $in: destinations }
+    });
+
     const api = this.#apis.promise[origin];
     const originSub = this.#apis.rx[origin].pipe(
       extractXcmTransfers(api, {
         sendersControl,
-        messageCriteria: {
-          'recipient': { $in: destinations }
-        }
+        messageControl
       })
     ).subscribe({
       next: msg => this.emit('message', {
@@ -249,7 +251,7 @@ export class MessageCollector extends EventEmitter {
     );
   }
 
-  async #recover(origin: string | number) {
-    return (await this.#slqs(origin).values()).all();
+  async #subsInDB(origin: string | number) {
+    return await this.#slqs(origin).values().all();
   }
 }

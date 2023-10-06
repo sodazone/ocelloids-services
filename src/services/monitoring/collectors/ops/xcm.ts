@@ -7,7 +7,8 @@ import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/
 import { ApiRx, ApiPromise } from '@polkadot/api';
 
 import {
-  Criteria, blocks, extractEventsWithTx, extractTxWithEvents, filterNonNull,
+  ControlQuery,
+  blocks, extractEventsWithTx, extractTxWithEvents, filterNonNull,
   flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
@@ -18,7 +19,7 @@ import {
 
 function findOutboundHrmpMessage(
   api: ApiPromise,
-  messageCriteria: Criteria
+  messageControl: ControlQuery
 ) {
   return (source: Observable<XcmMessageSentWithContext>)
   : Observable<XcmMessageWithContext> => {
@@ -52,7 +53,7 @@ function findOutboundHrmpMessage(
               });
           }),
           filterNonNull(),
-          mongoFilter(messageCriteria)
+          mongoFilter(messageControl)
         );
       }));
   };
@@ -82,7 +83,7 @@ export function extractXcmTransfers(
   api: ApiPromise,
   {
     sendersControl,
-    messageCriteria
+    messageControl
   }: XcmCriteria
 ) {
   return (source: Observable<ApiRx>)
@@ -96,7 +97,7 @@ export function extractXcmTransfers(
       flattenBatch(),
       extractEventsWithTx(),
       xcmMessagesSent(api),
-      findOutboundHrmpMessage(api, messageCriteria),
+      findOutboundHrmpMessage(api, messageControl),
     );
   };
 }
