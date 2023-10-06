@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/main.js",
-    "dev": "XCMON_CONFIG_PATH=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
+    "dev": "XCMON_CONFIG_FILE=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest",
     "postinstall": "patch-package"
