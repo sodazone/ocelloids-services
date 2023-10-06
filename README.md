@@ -28,3 +28,11 @@ You can also use environment variables:
 | XCMON_CONFIG_FILE | The service configuration file. | - |
 | XCMON_DB_DIR | The database directory.  | ./db |
 | XCMON_CLOSE_GRACE_DELAY | Milliseconds for the graceful close to finish. | 500 |
+
+## Subscription API
+
+You can find the OpenAPI documentation at [http://localhost:3000/documentation](http://localhost:3000/documentation).
+
+## Healthcheck
+
+The server exposes a healthchek endpoint at [http://localhost:3000/healthcheck](http://localhost:3000/).
