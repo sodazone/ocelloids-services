@@ -35,7 +35,8 @@ async function Monitoring(
 
     engine.waitOrigin({
       chainId: message.chainId,
-      blockHash: message.event.blockHash.toHex()
+      blockHash: message.event.blockHash.toHex(),
+      blockNumber: message.event.blockNumber.toString()
     }, {
       recipient: message.recipient,
       messageHash: message.messageHash
@@ -49,7 +50,8 @@ async function Monitoring(
 
     engine.waitDestination({
       chainId: message.chainId,
-      blockHash: message.event.blockHash.toHex()
+      blockHash: message.event.blockHash.toHex(),
+      blockNumber: message.event.blockNumber.toString()
     }, {
       messageHash: message.messageHash
     });
@@ -69,7 +71,9 @@ async function Monitoring(
     );
 
     engine.onFinalizedBlock({
-      chainId, blockHash: head.hash.toHex()
+      chainId,
+      blockHash: head.hash.toHex(),
+      blockNumber: head.number.toString()
     });
   });
 

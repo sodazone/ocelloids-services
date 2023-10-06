@@ -8,6 +8,7 @@ export const $ChainHead = z.object({
   chainId: z.string().min(1),
   blockNumber: z.string().min(1),
   blockHash: z.string().min(1),
+  parentHash: z.string().min(1),
   receivedAt: z.date()
 });
 
@@ -65,17 +66,15 @@ export class GenericXcmMessageWithContext implements XcmMessageWithContext {
 
 export const $QuerySubscription = z.object({
   id: $SafeId,
-  origin: z.string({
+  origin: z.number({
     required_error: 'origin id is required',
-    coerce: true
-  }).regex(/[0-9]+/, 'origin id must be numeric'),
+  }).min(0),
   senders: z.array(z.string()).min(
     1, 'at least 1 sender address is required'
   ),
-  destinations: z.array(z.string({
-    required_error: 'destination id is required',
-    coerce: true
-  }).regex(/[0-9]+/, 'destination id must be numeric')),
+  destinations: z.array(z.number({
+    required_error: 'destination id is required'
+  }).min(0)),
   followAllDestinations: z.boolean().default(false),
   // TODO union...
   notify: z.object({

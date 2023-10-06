@@ -7,7 +7,8 @@ type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, T
 
 export type ChainBlock = {
   chainId: string | number,
-  blockHash: string
+  blockHash: string,
+  blockNumber: string
 }
 
 type Message = {

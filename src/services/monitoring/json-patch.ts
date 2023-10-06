@@ -23,20 +23,24 @@ export default {
     },
     'add': {
       'description': 'add operation. Value can be any JSON value.',
+      'type': 'object',
       'properties': { 'op': { 'enum': ['add'] } },
       'required': ['value']
     },
     'remove': {
       'description': 'remove operation. Only a path is specified.',
+      'type': 'object',
       'properties': { 'op': { 'enum': ['remove'] } }
     },
     'replace': {
       'description': 'replace operation. Value can be any JSON value.',
+      'type': 'object',
       'properties': { 'op': { 'enum': ['replace'] } },
       'required': ['value']
     },
     'move': {
       'description': 'move operation. "from" is a JSON Pointer.',
+      'type': 'object',
       'properties': {
         'op': { 'enum': ['move'] },
         'from': { '$ref': '#/definitions/jsonPointer' }
@@ -45,6 +49,7 @@ export default {
     },
     'copy': {
       'description': 'copy operation. "from" is a JSON Pointer.',
+      'type': 'object',
       'properties': {
         'op': { 'enum': ['copy'] },
         'from': { '$ref': '#/definitions/jsonPointer' }
@@ -53,6 +58,7 @@ export default {
     },
     'test': {
       'description': 'test operation. Value can be any JSON value.',
+      'type': 'object',
       'properties': { 'op': { 'enum': ['test'] } },
       'required': ['value']
     },

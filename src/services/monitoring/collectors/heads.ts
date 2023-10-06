@@ -40,14 +40,40 @@ export class FinalizedHeadCollector extends EventEmitter {
               chainId: chain
             }))
           ).subscribe({
-            next: ({ head, chainId }) => {
+            next: async ({ head, chainId }) => {
+              // TODO: no chain id
+
+              const  currentHead = await this.#chainHeads.get(chainId);
+
+              const currentHeight = BigInt(currentHead.blockNumber);
+
+              log.info(`CURRENT HEIGHT ${currentHeight} ${chainId}`);
+
               const chainHead: ChainHead = {
                 chainId,
                 blockNumber: head.number.toString(),
                 blockHash: head.hash.toHex(),
+                parentHash: head.parentHash.toHex(),
                 receivedAt: new Date()
               };
               this.#chainHeads.put(chainId, chainHead);
+
+              // TODO: to address
+              // . stop while catching up
+              // . getHeader fail
+
+              let parentHead = head;
+              while (parentHead.number.toBigInt() - currentHeight > 1) {
+                log.warn(`Catching up ${chainId} from ${currentHeight} to ${parentHead.number.toString()}`);
+                const api = await this.#apis.promise[chain].isReady;
+                parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
+                this.emit(
+                  'head',
+                  { chainId, head: parentHead }
+                );
+              }
+
+              // Emit current head
               this.emit(
                 'head',
                 { chainId, head }

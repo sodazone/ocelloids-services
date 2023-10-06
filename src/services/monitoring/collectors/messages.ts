@@ -79,12 +79,12 @@ export class MessageCollector extends EventEmitter {
   unsubscribe(id: string) {
     try {
       const {
-        origin, originSub: rxSubscription, destinationSubs: destinationSubscriptions
+        origin, originSub, destinationSubs
       } = this.#subs[id];
 
       this.#ctx.log.info(`Unsubscribe ${id}`);
-      rxSubscription.unsubscribe();
-      destinationSubscriptions.forEach(sub => sub.unsubscribe());
+      originSub.unsubscribe();
+      destinationSubs.forEach(sub => sub.unsubscribe());
 
       this.#ctx.log.info(`Deleting subscription from storage ${id}`);
       delete this.#subs[id];
@@ -186,6 +186,7 @@ export class MessageCollector extends EventEmitter {
   #monitor(qs: QuerySubscription) {
     const { log } = this.#ctx;
     const { id, origin, senders, destinations } = qs;
+    const strOrig = origin.toString();
 
     // Set up origin subscription
 
@@ -199,8 +200,8 @@ export class MessageCollector extends EventEmitter {
       'recipient': { $in: destinations }
     });
 
-    const api = this.#apis.promise[origin];
-    const originSub = this.#apis.rx[origin].pipe(
+    const api = this.#apis.promise[strOrig];
+    const originSub = this.#apis.rx[strOrig].pipe(
       extractXcmTransfers(api, {
         sendersControl,
         messageControl
@@ -255,13 +256,13 @@ export class MessageCollector extends EventEmitter {
     };
   }
 
-  #slqs(origin: string | number) {
+  #slqs(chainId: string | number) {
     return this.#db.sublevel<string, QuerySubscription>(
-      origin + ':subs', { valueEncoding: 'json'}
+      chainId + ':subs', { valueEncoding: 'json'}
     );
   }
 
-  async #subsInDB(origin: string | number) {
-    return await this.#slqs(origin).values().all();
+  async #subsInDB(chainId: string | number) {
+    return await this.#slqs(chainId.toString()).values().all();
   }
 }
