@@ -2,8 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
-import { $QuerySubscription, QuerySubscription } from '../types.js';
-import { $ChainHead } from './types.js';
+import { $ChainHead, $QuerySubscription, $SafeId, QuerySubscription } from './types.js';
 
 /**
  * Subscriptions HTTP API.
@@ -42,24 +41,21 @@ export function SubscriptionApi(
   }>('/subs/:id', {
     schema: {
       params: {
-        id: { type: 'string' }
+        id: zodToJsonSchema($SafeId)
       },
       response: {
         200: zodToJsonSchema(
           $QuerySubscription
         ),
         404: {
-          type: 'null'
+          type: 'string'
         }
       }
     }
   }, async (request, reply) => {
-    const sub = await msgCollector.getSubscription(request.params.id);
-    if (sub !== undefined) {
-      reply.send(sub);
-    } else {
-      reply.status(404).send();
-    }
+    reply.send(await msgCollector.getSubscription(
+      request.params.id
+    ));
   });
 
   fastify.post <{
@@ -89,7 +85,7 @@ export function SubscriptionApi(
   }>('/subs/:id', {
     schema: {
       params: {
-        id: { type: 'string' }
+        id: zodToJsonSchema($SafeId)
       },
       response: {
         200: {

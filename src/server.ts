@@ -12,6 +12,7 @@ import { ServerOptions } from './types.js';
 import {
   Root, Configuration, Monitoring, Matching
 } from './services/index.js';
+import { NotFound } from './errors.js';
 
 const environment = process.env.NODE_ENV || 'development';
 
@@ -79,6 +80,15 @@ export function createServer(
   server.addHook('onClose', function (_, done) {
     closeListeners.uninstall();
     done();
+  });
+
+  server.setErrorHandler(function (error, _, reply) {
+    if (error instanceof NotFound) {
+      reply.status(404).send(error.message);
+    } else {
+      // to parent handler
+      reply.send(error);
+    }
   });
 
   server.listen({

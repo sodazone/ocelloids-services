@@ -4,12 +4,11 @@ import { Subscription } from 'rxjs';
 
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmTransfers } from './ops/index.js';
-import {
-  DB, DefaultSubstrateApis, QuerySubscription
-} from '../../types.js';
-import { XcmMessageEvent } from '../types.js';
+import { DB, DefaultSubstrateApis } from '../../types.js';
+import { XcmMessageEvent, QuerySubscription } from '../types.js';
 import { ServiceContext } from '../../context.js';
 import { ControlQuery } from '@sodazone/ocelloids';
+import { NotFound } from '../../../errors.js';
 
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
@@ -93,25 +92,33 @@ export class MessageCollector extends EventEmitter {
     }
   }
 
+  /**
+   * Retrieves a subscription by identifier.
+   *
+   * @param {string} id The subscription identifier
+   * @returns {QuerySubscription} the subscription information
+   * @throws {NotFound} if the subscription does not exist
+   */
   async getSubscription(id: string) {
-    let subscription: QuerySubscription | undefined;
-
     // TODO: case if network config changes...
     for (const network of this.#ctx.config.networks) {
       try {
-        subscription = await this.#slqs(network.id).get(id);
+        const subscription = await this.#slqs(network.id).get(id);
+        return subscription;
       } catch (error) {
         continue;
       }
-
-      if (subscription) {
-        break;
-      }
     }
 
-    return subscription;
+    throw new NotFound(`Subscription ${id} not found.`);
   }
 
+  /**
+   * Retrieves the registered subscriptions in the database
+   * for all the configured networks.
+   *
+   * @returns {QuerySubscription[]} an array with the subscriptions
+   */
   async getSubscriptions() {
     let subscriptions: QuerySubscription[] = [];
     for (const network of this.#ctx.config.networks) {
