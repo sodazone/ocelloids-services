@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import type { Header } from '@polkadot/types/interfaces';
@@ -9,12 +9,15 @@ import { XcmMessageEvent } from './types.js';
 import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
 
 /**
- * @param {FastifyInstance} fastify
- * @param {Object} options
+ * Monitoring service Fastify plugin.
+ *
+ * Exposes the subscription HTTP API and interfaces with
+ * the XCM collector events and the matching engine.
+ *
+ * @param {FastifyInstance} fastify The Fastify instance.
  */
 async function Monitoring(
-  fastify: FastifyInstance,
-  _options: FastifyPluginOptions
+  fastify: FastifyInstance
 ) {
   const { engine, db, log, config } = fastify;
 
@@ -136,7 +139,7 @@ async function Monitoring(
       }
     }
   }, async (request, reply) => {
-    msgCollector.subscribe(request.body);
+    await msgCollector.subscribe(request.body);
 
     reply.status(201).send();
   });
@@ -157,7 +160,7 @@ async function Monitoring(
         }
       }
     }
-  }, async (request, reply) => {
+  }, (request, reply) => {
     msgCollector.unsubscribe(request.params.id);
 
     reply.status(200).send();

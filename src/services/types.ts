@@ -30,5 +30,8 @@ export const $QuerySubscription = z.object({
   })
 });
 
+/**
+ * Parameters for a query subscriptions.
+ */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
 
