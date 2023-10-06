@@ -29,17 +29,16 @@ const envToLogger: Record<string, any> = {
   test: false,
 };
 
-const ServerDefauls = {
-  delay: (process.env.FASTIFY_CLOSE_GRACE_DELAY ?? 500) as number,
-  port: (process.env.PORT ?? 3000) as number,
-  logger: envToLogger[environment]
-};
-
+/**
+ * Creates and starts the server process with specified options.
+ *
+ * @param {ServerOptions} opts - Options for configuring the server.
+ */
 export function createServer(
   opts: ServerOptions
 ) {
   const server = Fastify({
-    logger: ServerDefauls.logger
+    logger: envToLogger[environment]
   });
 
   server.register(FastifySwagger, {
@@ -65,7 +64,7 @@ export function createServer(
   server.register(Monitoring);
 
   const closeListeners = closeWithGrace({
-    delay: ServerDefauls.delay
+    delay: opts.grace
   }, async function ({ err }) {
     if (err) {
       server.log.error(err);
@@ -77,14 +76,15 @@ export function createServer(
     await server.close();
   });
 
-  server.addHook('onClose', function (_instance, done) {
+  server.addHook('onClose', function (_, done) {
     closeListeners.uninstall();
     done();
   });
 
   server.listen({
-    port: ServerDefauls.port
-  }, function (err, _address) {
+    port: opts.port,
+    host: opts.host
+  }, function (err, _) {
     if (err) {
       server.log.error(err);
       process.exit(1);

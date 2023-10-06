@@ -1,11 +1,11 @@
 {
-  "name": "ocelloids-mon",
+  "name": "xcm-monitoring",
   "version": "0.0.1",
   "type": "module",
-  "description": "Ocelloids monitoring service",
+  "description": "XCM monitoring service",
   "main": "dist/main.js",
   "bin": {
-    "mon-xcm": "./dist/main.js"
+    "xcm-mon": "./dist/main.js"
   },
   "engines": {
     "node": ">=18.14"
@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/main.js",
-    "dev": "CONFIG_PATH=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
+    "dev": "XCMON_CONFIG_PATH=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "jest",
     "postinstall": "patch-package"
