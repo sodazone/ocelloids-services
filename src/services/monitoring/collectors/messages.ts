@@ -13,7 +13,8 @@ import { NotFound } from '../../../errors.js';
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
   destinationSubs: Subscription[],
-  sendersControl: ControlQuery
+  sendersControl: ControlQuery,
+  messageControl: ControlQuery
 }
 
 /**
@@ -247,6 +248,7 @@ export class MessageCollector extends EventEmitter {
     this.#subs[id] = {
       ...qs,
       sendersControl,
+      messageControl,
       originSub,
       destinationSubs
     };
