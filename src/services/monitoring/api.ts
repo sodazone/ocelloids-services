@@ -113,7 +113,7 @@ export function SubscriptionApi(
         }
       }
     }
-  }, async (_,reply) => {
+  }, async (_, reply) => {
     reply.send(await headCollector.listHeads());
   });
 
