@@ -1,15 +1,23 @@
 import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-import { MessageCollector } from './collectors/index.js';
+import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
 import { $QuerySubscription, QuerySubscription } from '../types.js';
+import { $ChainHead } from './types.js';
 
 /**
  * Subscriptions HTTP API.
  */
 export function SubscriptionApi(
   fastify: FastifyInstance,
-  { collector }: { collector: MessageCollector },
+  {
+    msgCollector,
+    headCollector
+  }:
+  {
+    msgCollector: MessageCollector,
+    headCollector: FinalizedHeadCollector
+  },
   done: (err?: Error) => void
 ) {
   fastify.get('/subs', {
@@ -24,7 +32,7 @@ export function SubscriptionApi(
       }
     }
   }, async (_, reply) => {
-    reply.send(await collector.getSubscriptions());
+    reply.send(await msgCollector.getSubscriptions());
   });
 
   fastify.get<{
@@ -46,7 +54,7 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    const sub = await collector.getSubscription(request.params.id);
+    const sub = await msgCollector.getSubscription(request.params.id);
     if (sub !== undefined) {
       reply.send(sub);
     } else {
@@ -69,7 +77,7 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    await collector.subscribe(request.body);
+    await msgCollector.subscribe(request.body);
 
     reply.status(201).send();
   });
@@ -91,9 +99,22 @@ export function SubscriptionApi(
       }
     }
   }, (request, reply) => {
-    collector.unsubscribe(request.params.id);
+    msgCollector.unsubscribe(request.params.id);
 
-    reply.status(200).send();
+    reply.send();
+  });
+
+  fastify.get('/heads', {
+    schema: {
+      response: {
+        200: {
+          type: 'array',
+          items: zodToJsonSchema($ChainHead)
+        }
+      }
+    }
+  }, async (_,reply) => {
+    reply.send(await headCollector.listHeads());
   });
 
   done();

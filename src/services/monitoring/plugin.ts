@@ -57,9 +57,9 @@ async function Monitoring(
 
   msgCollector.start();
 
-  const finHeadCollector = new FinalizedHeadCollector(ctx, connector);
+  const headCollector = new FinalizedHeadCollector(ctx, connector, db);
 
-  finHeadCollector.on('head', ({
+  headCollector.on('head', ({
     chainId, head
   } : {
     chainId: string | number, head: Header
@@ -73,18 +73,19 @@ async function Monitoring(
     });
   });
 
-  finHeadCollector.start();
+  headCollector.start();
 
   fastify.addHook('onClose', async () => {
     log.info('Shutting down monitoring service');
 
     msgCollector.stop();
-    finHeadCollector.stop();
+    headCollector.stop();
     await connector.disconnect();
   });
 
   fastify.register(SubscriptionApi, {
-    collector: msgCollector
+    msgCollector,
+    headCollector
   });
 }
 

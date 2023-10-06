@@ -1,2 +1,2 @@
-export * from './finalized-heads.js';
+export * from './heads.js';
 export * from './messages.js';
