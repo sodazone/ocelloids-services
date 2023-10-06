@@ -7,7 +7,7 @@ import FastifySwagger from '@fastify/swagger';
 import FastifySwaggerUI from '@fastify/swagger-ui';
 import FastifyHealthcheck from 'fastify-healthcheck';
 
-import { version } from './consts.js';
+import version from './version.js';
 import { ServerOptions } from './types.js';
 import {
   Root, Configuration, Monitoring, Matching

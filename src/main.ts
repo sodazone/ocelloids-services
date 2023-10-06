@@ -6,7 +6,7 @@ import process from 'node:process';
 import z from 'zod';
 import { Option, Command, program, InvalidArgumentError } from 'commander';
 
-import { version } from './consts.js';
+import version from './version.js';
 import { createServer } from './server.js';
 import { $ServerOptions } from './types.js';
 
