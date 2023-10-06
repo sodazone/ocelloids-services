@@ -11,7 +11,7 @@ import { createServer } from './server.js';
 import { $ServerOptions } from './types.js';
 
 /**
- * Start the server from the command line.
+ * Starts the server from the command line.
  */
 function startServer(this: Command) {
   try {
