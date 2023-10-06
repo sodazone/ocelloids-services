@@ -57,6 +57,11 @@ export class MessageCollector extends EventEmitter {
   async subscribe(qs: QuerySubscription) {
     const { log } = this.#ctx;
 
+    const exists = await this.getSubscription(qs.id);
+    if (exists) {
+      throw new Error(`Subscription with ID ${qs.id} already exists`);
+    }
+
     log.info(`New Subscription: ${qs}`);
 
     await this.#slqs(qs.origin).put(qs.id, qs);
@@ -93,8 +98,12 @@ export class MessageCollector extends EventEmitter {
 
     // TODO: case if network config changes...
     for (const network of this.#ctx.config.networks) {
-      // TODO this thore if not found..
-      this.#slqs(network.id).get(id);
+      try {
+        subscription = await this.#slqs(network.id).get(id);
+      } catch (error) {
+        continue;
+      }
+
       if (subscription) {
         break;
       }

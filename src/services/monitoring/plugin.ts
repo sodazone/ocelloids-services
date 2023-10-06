@@ -112,7 +112,9 @@ async function Monitoring(
         200: zodToJsonSchema(
           $QuerySubscription
         ),
-        '4xx': { type: 'string' }
+        404: {
+          type: 'null'
+        }
       }
     }
   }, async (request, reply) => {
@@ -120,7 +122,7 @@ async function Monitoring(
     if (sub !== undefined) {
       reply.send(sub);
     } else {
-      reply.status(404).send('Subscription not found');
+      reply.status(404).send();
     }
   });
 
