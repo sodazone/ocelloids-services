@@ -13,8 +13,8 @@ Options:
   -V, --version         output the version number
   -h, --host <address>  host to bind to (default: "localhost", env: XCMON_HOST)
   -p, --port <number>   port number to listen on (default: 3000, env: XCMON_PORT)
-  -c, --config <path>   service configuration file (env: XCMON_CONFIG_PATH)
-  -d, --db <path>       database directory (default: "./db", env: XCMON_DB_PATH)
+  -c, --config <file>   service configuration file (env: XCMON_CONFIG_PATH)
+  -d, --db <dir>        database directory (default: "./db", env: XCMON_DB_PATH)
   -g, --grace           milliseconds for the graceful close to finish (env: XCMON_CLOSE_GRACE_DELAY)
   --help                display help for command
 ```
