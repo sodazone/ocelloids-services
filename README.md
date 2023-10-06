@@ -4,7 +4,7 @@
 
 The service can support the following parameters from the command line:
 
-```shell
+```
 Usage: xcm-mon [options]
 
 XCM Monitoring Server
