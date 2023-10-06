@@ -46,12 +46,8 @@ export function SubscriptionApi(
         id: zodToJsonSchema($SafeId)
       },
       response: {
-        200: zodToJsonSchema(
-          $QuerySubscription
-        ),
-        404: {
-          type: 'string'
-        }
+        200: zodToJsonSchema($QuerySubscription),
+        404: { type: 'string' }
       }
     }
   }, async (request, reply) => {
@@ -92,7 +88,8 @@ export function SubscriptionApi(
       },
       body: $JSONPatch,
       response: {
-        200: zodToJsonSchema($QuerySubscription)
+        200: zodToJsonSchema($QuerySubscription),
+        404: { type: 'string' }
       }
     }
   }, async (request, reply) => {
