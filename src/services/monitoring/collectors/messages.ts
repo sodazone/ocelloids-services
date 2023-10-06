@@ -168,6 +168,8 @@ export class MessageCollector extends EventEmitter {
     const { log } = this.#ctx;
     const { id, origin, senders, destinations } = qs;
 
+    // Set up origin subscription
+
     const sendersControl = ControlQuery.from({
       'events.event.section': 'xcmpQueue',
       'events.event.method': 'XcmpMessageSent',
@@ -192,11 +194,17 @@ export class MessageCollector extends EventEmitter {
       )
     });
 
-    const dests = destinations || this.#apis.chains.filter(c => c !== origin.toString());
-    const destinationSubs = dests
-      .map(c => {
+    // Set up destination subscriptions
+
+    const dests = destinations || this.#apis.chains.filter(
+      c => c !== origin.toString()
+    );
+    const destinationSubs : Subscription[] = [];
+
+    try {
+      dests.forEach(c => {
         const chainId = c.toString();
-        return this.#apis.rx[chainId].pipe(
+        destinationSubs.push(this.#apis.rx[chainId].pipe(
           extractXcmReceive(chainId)
         ).subscribe({
           next: msg => this.emit('receive', {
@@ -205,8 +213,17 @@ export class MessageCollector extends EventEmitter {
           error: error => log.error(
             `Error on subscription ${id} at destination ${chainId}`, error
           )
-        });
+        }));
       });
+    } catch (error) {
+      // Clean up subscriptions.
+      originSub.unsubscribe();
+      destinationSubs.forEach(s => {
+        s.unsubscribe();
+      });
+
+      throw error;
+    }
 
     this.#subs[id] = {
       ...qs,
