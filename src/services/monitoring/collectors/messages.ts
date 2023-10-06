@@ -91,9 +91,10 @@ export class MessageCollector extends EventEmitter {
   async getSubscription(id: string) {
     let subscription: QuerySubscription | undefined;
 
+    // TODO: case if network config changes...
     for (const network of this.#ctx.config.networks) {
-      const subs = await this.#recover(network.id);
-      subscription = subs.find(s => s.id === id);
+      // TODO this thore if not found..
+      this.#slqs(network.id).get(id);
       if (subscription) {
         break;
       }
