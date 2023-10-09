@@ -12,11 +12,12 @@ import {
   blocks,
   finalizedHeads,
   finalizedBlocks,
-  retryWithTruncatedExpBackoff
+  retryWithTruncatedExpBackoff,
+  SubstrateApis
 } from '@sodazone/ocelloids';
 
 import Connector from '../../connector.js';
-import { DB, GenericSubstrateApis } from '../../types.js';
+import { DB } from '../../types.js';
 import { ServiceContext } from '../../context.js';
 
 type BinBlock = {
@@ -29,7 +30,7 @@ type BinBlock = {
  *
  */
 export class BlockCache extends EventEmitter {
-  #apis: GenericSubstrateApis;
+  #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
 

@@ -8,7 +8,6 @@ import { config as oconfig, SubstrateApis } from '@sodazone/ocelloids';
 
 import { NetworkConfiguration } from './configuration.js';
 import { ServiceContext } from './context.js';
-import { GenericSubstrateApis } from './types.js';
 
 /**
  *
@@ -17,7 +16,7 @@ export default class Connector {
   #relays: Record<string, ScProvider> = {};
   #chains: Record<string, ProviderInterface> = {};
   #chainIdMap: Record<string, number> = {};
-  #substrateApis?: GenericSubstrateApis;
+  #substrateApis?: SubstrateApis;
   #ctx: ServiceContext;
 
   constructor(ctx: ServiceContext) {

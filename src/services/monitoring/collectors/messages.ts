@@ -1,13 +1,13 @@
 import { EventEmitter } from 'node:events';
 
 import { Subscription } from 'rxjs';
+import { SubstrateApis, ControlQuery } from '@sodazone/ocelloids';
 
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
-import { DB, GenericSubstrateApis } from '../../types.js';
+import { DB } from '../../types.js';
 import { XcmMessageEvent, QuerySubscription } from '../types.js';
 import { ServiceContext } from '../../context.js';
-import { ControlQuery } from '@sodazone/ocelloids';
 import { NotFound } from '../../../errors.js';
 import { BlockCache } from './cache.js';
 
@@ -31,7 +31,7 @@ type SubscriptionHandler = QuerySubscription & {
  * @see {XcmMessageEvent}
  */
 export class MessageCollector extends EventEmitter {
-  #apis: GenericSubstrateApis;
+  #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
 
