@@ -10,7 +10,11 @@ import FastifyHealthcheck from 'fastify-healthcheck';
 import version from './version.js';
 import { ServerOptions } from './types.js';
 import {
-  Root, Configuration, Monitoring, Matching
+  Root,
+  Storage,
+  Configuration,
+  Monitoring,
+  Matching
 } from './services/index.js';
 import { NotFound } from './errors.js';
 
@@ -60,8 +64,9 @@ export function createServer(
   });
 
   server.register(Root);
+  server.register(Storage, opts);
   server.register(Configuration, opts);
-  server.register(Matching, opts);
+  server.register(Matching);
   server.register(Monitoring);
 
   const closeListeners = closeWithGrace({
