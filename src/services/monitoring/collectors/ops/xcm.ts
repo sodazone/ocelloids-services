@@ -117,6 +117,7 @@ function mapXcmpQueueMessage(id: string) {
             chainId: id
           } as XcmMessageEvent;
         } else if (event.method === 'Fail') {
+          // TODO: implement
           console.log('XCM receive fail not implemented');
           return null;
         } else {

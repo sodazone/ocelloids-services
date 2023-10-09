@@ -2,8 +2,8 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
-import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
-import { $ChainHead, $QuerySubscription, $SafeId, QuerySubscription } from './types.js';
+import { MessageCollector } from './collectors/index.js';
+import { $QuerySubscription, $SafeId, QuerySubscription } from './types.js';
 import $JSONPatch from './json-patch.js';
 
 /**
@@ -12,12 +12,10 @@ import $JSONPatch from './json-patch.js';
 export function SubscriptionApi(
   fastify: FastifyInstance,
   {
-    msgCollector,
-    headCollector
+    msgCollector
   }:
   {
-    msgCollector: MessageCollector,
-    headCollector: FinalizedHeadCollector
+    msgCollector: MessageCollector
   },
   done: (err?: Error) => void
 ) {
@@ -120,19 +118,6 @@ export function SubscriptionApi(
     msgCollector.unsubscribe(request.params.id);
 
     reply.send();
-  });
-
-  fastify.get('/heads', {
-    schema: {
-      response: {
-        200: {
-          type: 'array',
-          items: zodToJsonSchema($ChainHead)
-        }
-      }
-    }
-  }, async (_, reply) => {
-    reply.send(await headCollector.listHeads());
   });
 
   done();

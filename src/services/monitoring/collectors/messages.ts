@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import { Subscription } from 'rxjs';
-import { SubstrateApis, ControlQuery } from '@sodazone/ocelloids';
+import { SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids';
 
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
@@ -9,7 +9,7 @@ import { DB } from '../../types.js';
 import { XcmMessageEvent, QuerySubscription } from '../types.js';
 import { ServiceContext } from '../../context.js';
 import { NotFound } from '../../../errors.js';
-import { BlockCache } from './cache.js';
+import { HeadCatcher } from './head-catcher.js';
 
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
@@ -36,13 +36,13 @@ export class MessageCollector extends EventEmitter {
   #db: DB;
 
   #subs: Record<string, SubscriptionHandler> = {};
-  #cache: BlockCache;
+  #cache: HeadCatcher;
 
   constructor(
     ctx: ServiceContext,
     connector: Connector,
     db: DB,
-    cache: BlockCache
+    cache: HeadCatcher
   ) {
     super();
 
@@ -211,15 +211,19 @@ export class MessageCollector extends EventEmitter {
       extractXcmSend(api, {
         sendersControl,
         messageControl
-      })
+      }),
+      retryWithTruncatedExpBackoff()
     ).subscribe({
       next: msg => this.emit('message', {
         ...msg,
         chainId: origin
       } as XcmMessageEvent),
-      error: error => log.error(
-        `Error on subscription ${id} at origin ${origin}`, error
-      )
+      error: error => {
+        log.error(
+          `Error on subscription ${id} at origin ${origin}`
+        );
+        log.error(error);
+      }
     });
 
     // Set up destination subscriptions
@@ -233,14 +237,18 @@ export class MessageCollector extends EventEmitter {
       dests.forEach(c => {
         const chainId = c.toString();
         destinationSubs.push(this.#cache.finalizedBlocks(chainId).pipe(
-          extractXcmReceive(chainId)
+          extractXcmReceive(chainId),
+          retryWithTruncatedExpBackoff()
         ).subscribe({
           next: msg => this.emit('receive', {
             ...msg
           }),
-          error: error => log.error(
-            `Error on subscription ${id} at destination ${chainId}`, error
-          )
+          error: error => {
+            log.error(
+              `Error on subscription ${id} at destination ${chainId}`
+            );
+            log.error(error);
+          }
         }));
       });
     } catch (error) {

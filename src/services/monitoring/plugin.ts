@@ -1,12 +1,9 @@
 import { FastifyInstance } from 'fastify';
 
-import type { Header } from '@polkadot/types/interfaces';
-
 import Connector from '../connector.js';
 import { XcmMessageEvent } from './types.js';
-import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
+import { MessageCollector, HeadCatcher } from './collectors/index.js';
 import { SubscriptionApi } from './api.js';
-import { BlockCache } from './collectors/cache.js';
 
 /**
  * Monitoring service Fastify plugin.
@@ -27,8 +24,8 @@ async function Monitoring(
   };
 
   const connector = new Connector(ctx);
-  const blockCache = new BlockCache(ctx, connector, db);
-  const msgCollector = new MessageCollector(ctx, connector, db, blockCache);
+  const headCatcher = new HeadCatcher(ctx, connector, db);
+  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher);
 
   msgCollector.on('message', (message: XcmMessageEvent) => {
     log.info(
@@ -59,39 +56,19 @@ async function Monitoring(
     });
   });
 
+  headCatcher.start();
   msgCollector.start();
-
-  const headCollector = new FinalizedHeadCollector(ctx, connector, db);
-
-  headCollector.on('head', ({
-    chainId, head
-  } : {
-    chainId: string | number, head: Header
-  }) => {
-    log.info(
-      `finalized: [chainId=${chainId}, hash=${head.hash.toHex()}, block=${head.number.toNumber()}]`
-    );
-
-    engine.onFinalizedBlock({
-      chainId,
-      blockHash: head.hash.toHex(),
-      blockNumber: head.number.toString()
-    });
-  });
-
-  headCollector.start();
 
   fastify.addHook('onClose', async () => {
     log.info('Shutting down monitoring service');
 
     msgCollector.stop();
-    headCollector.stop();
+    headCatcher.stop();
     await connector.disconnect();
   });
 
   fastify.register(SubscriptionApi, {
     msgCollector,
-    headCollector
   });
 }
 

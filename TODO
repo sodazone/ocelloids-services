@@ -1,0 +1,16 @@
+TODO
+====
+
+[] Remove processing logic on new blocks
+[] Store bounded cache of new blocks on our database (binary Uint8Array)
+[] Processing logic on finalized blocks, retrieve from database (Smoldot best block peers problem)
+[] Continuous catch-up on finalized blocks stream, Smoldot skips finalized numbers (why?)
+[] Start up catch-up from finalized head in background, one-shot only on start, pass it to finalezed block processing logic
+[] Resilient catch-up logic, cases (1) stops catch-up in the middle (2) getBlock fails, retries (max retries and alert of unrecoverable gap?)
+[] Load default configuration by environment var, e.g. config/development.toml
+[] Follow all destinations logic
+[] Update subscriptions (API + logic)
+[] Allow updating control queries for senders and destinations
+[] Notifications models and webhook client (retries etc.)
+[] Handle modifications in network configuration (?)
+[] Handle smoldot panics
