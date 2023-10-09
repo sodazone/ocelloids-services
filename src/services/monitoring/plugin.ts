@@ -6,6 +6,7 @@ import Connector from '../connector.js';
 import { XcmMessageEvent } from './types.js';
 import { FinalizedHeadCollector, MessageCollector } from './collectors/index.js';
 import { SubscriptionApi } from './api.js';
+import { BlockCache } from './collectors/cache.js';
 
 /**
  * Monitoring service Fastify plugin.
@@ -26,14 +27,15 @@ async function Monitoring(
   };
 
   const connector = new Connector(ctx);
-  const msgCollector = new MessageCollector(ctx, connector, db);
+  const blockCache = new BlockCache(ctx, connector, db);
+  const msgCollector = new MessageCollector(ctx, connector, db, blockCache);
 
   msgCollector.on('message', (message: XcmMessageEvent) => {
     log.info(
       `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
     );
 
-    engine.waitOrigin({
+    engine.onOutboundMessage({
       chainId: message.chainId,
       blockHash: message.event.blockHash.toHex(),
       blockNumber: message.event.blockNumber.toString()
@@ -48,7 +50,7 @@ async function Monitoring(
       `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
     );
 
-    engine.waitDestination({
+    engine.onInboundMessage({
       chainId: message.chainId,
       blockHash: message.event.blockHash.toHex(),
       blockNumber: message.event.blockNumber.toString()

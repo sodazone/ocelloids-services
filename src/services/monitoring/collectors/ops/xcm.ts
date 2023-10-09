@@ -1,14 +1,15 @@
 import type { } from '@polkadot/api-augment';
 
-import { map, tap, from, switchMap, Observable, mergeMap } from 'rxjs';
+import { map, from, switchMap, Observable, mergeMap } from 'rxjs';
 
 import type { Vec } from '@polkadot/types';
+import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
-import { ApiRx, ApiPromise } from '@polkadot/api';
+import { ApiPromise } from '@polkadot/api';
 
 import {
   ControlQuery,
-  blocks, extractEventsWithTx, extractTxWithEvents, filterNonNull,
+  extractEventsWithTx, extractTxWithEvents, filterNonNull,
   flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
@@ -79,19 +80,16 @@ function xcmMessagesSent(api: ApiPromise) {
   };
 }
 
-export function extractXcmTransfers(
+export function extractXcmSend(
   api: ApiPromise,
   {
     sendersControl,
     messageControl
   }: XcmCriteria
 ) {
-  return (source: Observable<ApiRx>)
+  return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageWithContext> => {
     return source.pipe(
-      blocks(),
-      retryWithTruncatedExpBackoff(),
-      tap(({block}) => console.log('ORIGIN: ', block.header.number.toNumber())),
       mongoFilter(sendersControl),
       extractTxWithEvents(),
       flattenBatch(),
@@ -103,7 +101,8 @@ export function extractXcmTransfers(
 }
 
 function mapXcmpQueueMessage(id: string) {
-  return (source: Observable<types.EventWithIdAndTx>): Observable<XcmMessageEvent>  => {
+  return (source: Observable<types.EventWithIdAndTx>):
+  Observable<XcmMessageEvent>  => {
     return (source.pipe(
       mongoFilter({
         'section': 'xcmpQueue',
@@ -131,11 +130,9 @@ function mapXcmpQueueMessage(id: string) {
 }
 
 export function extractXcmReceive(id: string) {
-  return (source: Observable<ApiRx>): Observable<XcmMessageEvent>  => {
+  return (source: Observable<SignedBlockExtended>)
+  : Observable<XcmMessageEvent>  => {
     return (source.pipe(
-      blocks(),
-      retryWithTruncatedExpBackoff(),
-      tap(({block}) => console.log('DEST: ', block.header.number.toNumber())),
       extractTxWithEvents(),
       flattenBatch(),
       extractEventsWithTx(),

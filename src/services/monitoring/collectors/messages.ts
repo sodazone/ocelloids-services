@@ -3,12 +3,13 @@ import { EventEmitter } from 'node:events';
 import { Subscription } from 'rxjs';
 
 import Connector from '../../connector.js';
-import { extractXcmReceive, extractXcmTransfers } from './ops/index.js';
+import { extractXcmReceive, extractXcmSend } from './ops/index.js';
 import { DB, GenericSubstrateApis } from '../../types.js';
 import { XcmMessageEvent, QuerySubscription } from '../types.js';
 import { ServiceContext } from '../../context.js';
 import { ControlQuery } from '@sodazone/ocelloids';
 import { NotFound } from '../../../errors.js';
+import { BlockCache } from './cache.js';
 
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
@@ -35,16 +36,19 @@ export class MessageCollector extends EventEmitter {
   #db: DB;
 
   #subs: Record<string, SubscriptionHandler> = {};
+  #cache: BlockCache;
 
   constructor(
     ctx: ServiceContext,
     connector: Connector,
-    db: DB
+    db: DB,
+    cache: BlockCache
   ) {
     super();
 
     this.#apis = connector.connect();
     this.#db = db;
+    this.#cache = cache;
     this.#ctx = ctx;
   }
 
@@ -164,7 +168,9 @@ export class MessageCollector extends EventEmitter {
     log.info('Stopping message collectors');
 
     for (const {
-      id, originSub: rxSubscription, destinationSubs: destinationSubscriptions
+      id,
+      originSub: rxSubscription,
+      destinationSubs: destinationSubscriptions
     } of Object.values(this.#subs)) {
       log.info(`Unsubscribe ${id}`);
       rxSubscription.unsubscribe();
@@ -201,8 +207,8 @@ export class MessageCollector extends EventEmitter {
     });
 
     const api = this.#apis.promise[strOrig];
-    const originSub = this.#apis.rx[strOrig].pipe(
-      extractXcmTransfers(api, {
+    const originSub = this.#cache.finalizedBlocks(strOrig).pipe(
+      extractXcmSend(api, {
         sendersControl,
         messageControl
       })
@@ -226,7 +232,7 @@ export class MessageCollector extends EventEmitter {
     try {
       dests.forEach(c => {
         const chainId = c.toString();
-        destinationSubs.push(this.#apis.rx[chainId].pipe(
+        destinationSubs.push(this.#cache.finalizedBlocks(chainId).pipe(
           extractXcmReceive(chainId)
         ).subscribe({
           next: msg => this.emit('receive', {

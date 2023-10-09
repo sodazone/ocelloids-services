@@ -19,7 +19,6 @@ export default class Connector {
   #chainIdMap: Record<string, number> = {};
   #substrateApis?: GenericSubstrateApis;
   #ctx: ServiceContext;
-  #errorListenerRemovers: (() => void)[] = [];
 
   constructor(ctx: ServiceContext) {
     this.#ctx = ctx;
@@ -66,12 +65,6 @@ export default class Connector {
       provider.connect().catch(
         this.#ctx.log.error.bind(this.#ctx.log)
       );
-      this.#errorListenerRemovers.push(
-        provider.on(
-          'error',
-          (e) => this.#ctx.log.error.bind(this.#ctx.log, 'MACA SMOL', e)
-        )
-      );
     }
 
     for (const key of Object.keys(this.#chains)) {
@@ -80,12 +73,6 @@ export default class Connector {
       if (provider instanceof ScProvider) {
         provider.connect().catch(
           this.#ctx.log.error.bind(this.#ctx.log)
-        );
-        this.#errorListenerRemovers.push(
-          provider.on(
-            'error',
-            (e) => this.#ctx.log.error.bind(this.#ctx.log, 'MONCHO SMOL', e)
-          )
         );
       }
     }
@@ -98,9 +85,6 @@ export default class Connector {
   async disconnect() {
     if (this.#substrateApis) {
       await this.#substrateApis.disconnect();
-    }
-    for (const remove of this.#errorListenerRemovers) {
-      remove();
     }
   }
 

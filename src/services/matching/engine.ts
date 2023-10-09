@@ -22,7 +22,8 @@ type OriginMessage = Message & {
 const sublevelOpts = { valueEncoding: 'json' };
 
 /**
- *
+ * Matches sent XCM messages on the destination.
+ * It does not assume any ordering.
  */
 export class MatchingEngine {
   #db: DB;
@@ -45,7 +46,6 @@ export class MatchingEngine {
 
   async onFinalizedBlock(chainBlock: ChainBlock) {
     const orig = this.#slorig(chainBlock);
-    const dest = this.#sldest(chainBlock);
 
     for await (const [k, v] of orig.iterator()) {
       this.#log.info(`[O] Fin ${k}`);
@@ -55,35 +55,52 @@ export class MatchingEngine {
 
       await this.#confirmOrNotify(ck, v);
     }
-
-    for await (const [k, v] of dest.iterator()) {
-      this.#log.info(`[I] Fin ${k}`);
-
-      await dest.del(k);
-      const ck = `${v.messageHash}:${chainBlock.chainId}`;
-
-      await this.#confirmOrNotify(ck, v);
-    }
   }
 
-  async waitOrigin(
+  async onOutboundMessage(
     chainBlock: ChainBlock,
     message: OriginMessage
   ) {
-    this.#log.info(`[O:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    const log = this.#log;
 
-    const db = this.#slorig(chainBlock);
-    return db.put(message.messageHash, message);
+    log.info(`[O:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+
+    // Confirmation key at destination
+    const ck = `${message.messageHash}:${message.recipient}`;
+    try {
+      const conf = await this.#confirmations.get(ck);
+      log.info('[O] NOTIFY', conf, message);
+      await this.#notify(ck, message);
+    } catch (e) {
+      log.info(`[O] Confirmed ${ck}`, message);
+      await this.#confirmations.put(ck, message);
+    }
   }
 
-  async waitDestination(
+  // TODO implement
+  async #notify(key: string, _message: any) {
+    await this.#notifications.put(key, {
+      notification: 'here'
+    });
+  }
+
+  async onInboundMessage(
     chainBlock: ChainBlock,
     message: Message
   )  {
-    this.#log.info(`[I:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    const log = this.#log;
 
-    const db = this.#sldest(chainBlock);
-    return db.put(message.messageHash, message);
+    log.info(`[I:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+
+    const ck = `${message.messageHash}:${chainBlock.chainId}`;
+    try {
+      const conf = await this.#confirmations.get(ck);
+      log.info('[I] NOTIFY', conf, message);
+      await this.#notify(ck, message);
+    } catch (e) {
+      log.info(`[I] Confirmed ${ck}`, message);
+      await this.#confirmations.put(ck, message);
+    }
   }
 
   get _db() {
