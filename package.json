@@ -34,6 +34,12 @@
     ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        { "tsconfig": "tsconfig.test.json" }
+      ]
     }
   },
   "devDependencies": {
@@ -59,6 +65,7 @@
     "@fastify/swagger": "^8.11.0",
     "@fastify/swagger-ui": "^1.10.0",
     "@sodazone/ocelloids": "^1.1.8-dev.0",
+    "cbor-x": "^1.5.4",
     "close-with-grace": "^1.2.0",
     "commander": "^11.0.0",
     "dotenv": "^16.3.1",
