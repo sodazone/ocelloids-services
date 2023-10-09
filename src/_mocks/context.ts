@@ -1,17 +1,10 @@
-import pino from 'pino';
+import { pino } from 'pino';
 
 import { ServiceConfiguration } from '../services/configuration.js';
 
-export const mockLog: pino.BaseLogger = {
-  level: 'log',
-  fatal: jest.fn(),
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  trace: jest.fn(),
-  silent: jest.fn()
-};
+export const mockLog: pino.BaseLogger = pino({
+  enabled: false
+});
 
 export const mockConfigProviderMismatch: ServiceConfiguration = {
   networks: [
