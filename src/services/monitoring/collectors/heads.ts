@@ -4,12 +4,12 @@ import { Subscription, map } from 'rxjs';
 import { finalizedHeads } from '@sodazone/ocelloids';
 
 import Connector from '../../connector.js';
-import { DB, DefaultSubstrateApis } from '../../types.js';
+import { DB, GenericSubstrateApis } from '../../types.js';
 import { ServiceContext } from '../../context.js';
 import { ChainHead } from '../types.js';
 
 export class FinalizedHeadCollector extends EventEmitter {
-  #apis: DefaultSubstrateApis;
+  #apis: GenericSubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
 
