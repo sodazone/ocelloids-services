@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 
 import Connector from '../connector.js';
-import { XcmMessageEvent } from './types.js';
+import { XcmMessageReceivedEvent, XcmMessageSentEvent } from './types.js';
 import { MessageCollector, HeadCatcher, Inbound, Outbound } from './collectors/index.js';
 import { SubscriptionApi } from './api/index.js';
 
@@ -27,7 +27,7 @@ async function Monitoring(
   const headCatcher = new HeadCatcher(ctx, connector, db);
   const msgCollector = new MessageCollector(ctx, connector, db, headCatcher);
 
-  msgCollector.on(Outbound, (message: XcmMessageEvent) => {
+  msgCollector.on(Outbound, (message: XcmMessageSentEvent) => {
     log.info(
       `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
     );
@@ -39,7 +39,7 @@ async function Monitoring(
     }, message);
   });
 
-  msgCollector.on(Inbound, (message: XcmMessageEvent) => {
+  msgCollector.on(Inbound, (message: XcmMessageReceivedEvent) => {
     log.info(
       `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
     );
@@ -48,9 +48,7 @@ async function Monitoring(
       chainId: message.chainId,
       blockHash: message.event.blockHash.toHex(),
       blockNumber: message.event.blockNumber.toString()
-    }, {
-      messageHash: message.messageHash
-    });
+    }, message);
   });
 
   await headCatcher.start();

@@ -2,7 +2,7 @@ import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
 
 import { DB } from '../types.js';
-import { XcmMessageEvent } from 'services/monitoring/types.js';
+import { XcmMessageReceivedEvent, XcmMessageSentEvent } from 'services/monitoring/types.js';
 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
@@ -11,14 +11,6 @@ export type ChainBlock = {
   blockHash: string,
   blockNumber: string
 }
-
-type Message = {
-  messageHash: string
-}
-
-// type OriginMessage = Message & {
-//   recipient: string | number
-// }
 
 const sublevelOpts = { valueEncoding: 'json' };
 
@@ -30,14 +22,16 @@ export class MatchingEngine {
   #db: DB;
   #log: pino.BaseLogger;
 
-  #confirmations: SubLevel<any>;
+  #outbound: SubLevel<XcmMessageSentEvent>;
+  #inbound: SubLevel<XcmMessageReceivedEvent>;
   #notifications: SubLevel<any>;
 
   constructor(db: DB, log: pino.BaseLogger) {
     this.#db = db;
     this.#log = log;
 
-    this.#confirmations = this.#sl('fi');
+    this.#outbound = this.#sl('out');
+    this.#inbound = this.#sl('in');
     this.#notifications = this.#sl('no');
   }
 
@@ -47,7 +41,7 @@ export class MatchingEngine {
 
   async onOutboundMessage(
     chainBlock: ChainBlock,
-    message: XcmMessageEvent
+    message: XcmMessageSentEvent
   ) {
     const log = this.#log;
 
@@ -56,13 +50,14 @@ export class MatchingEngine {
     // Confirmation key at destination
     const ck = `${message.messageHash}:${message.recipient}`;
     try {
-      const conf = await this.#confirmations.get(ck);
+      const conf = await this.#inbound.get(ck);
+      // TODO: better merging with toHuman()
       const merged = { ...conf, ...message };
-      log.info(merged.toHuman(), '[O] NOTIFY');
+      log.info('[OUT] NOTIFY %s', ck);
       await this.#notify(ck, merged);
     } catch (e) {
       log.info('[OUT] CONFIRMED %s', ck);
-      await this.#confirmations.put(ck, message);
+      await this.#outbound.put(ck, message);
     }
   }
 
@@ -75,20 +70,23 @@ export class MatchingEngine {
 
   async onInboundMessage(
     chainBlock: ChainBlock,
-    message: Message
+    message: XcmMessageReceivedEvent
   )  {
     const log = this.#log;
+    const { messageHash, outcome } = message;
 
-    log.info(`[I:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    log.info(chainBlock, '[IN] MESSAGE %s (Outcome: %s)', messageHash, outcome);
 
-    const ck = `${message.messageHash}:${chainBlock.chainId}`;
+    const ck = `${messageHash}:${chainBlock.chainId}`;
     try {
-      const conf = await this.#confirmations.get(ck);
-      log.info('[I] NOTIFY', conf, message);
-      await this.#notify(ck, message);
+      const conf = await this.#outbound.get(ck);
+      log.info('[IN] NOTIFY %s', ck);
+      // TODO: better merging with toHuman()
+      const merged = { ...conf, ...message };
+      await this.#notify(ck, merged);
     } catch (e) {
-      log.info(`[I] Confirmed ${ck}`, message);
-      await this.#confirmations.put(ck, message);
+      log.info('[IN] CONFIRMED %s', ck);
+      await this.#inbound.put(ck, message);
     }
   }
 

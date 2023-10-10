@@ -8,7 +8,7 @@ import {
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
 import { DB } from '../../types.js';
-import { XcmMessageEvent, QuerySubscription } from '../types.js';
+import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent } from '../types.js';
 import { ServiceContext } from '../../context.js';
 import { NotFound } from '../../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
@@ -47,7 +47,7 @@ export const Inbound = Symbol.for('inbound-message');
  * - Inbound: Emitted when a new XCM message is originated.
  * - Outbound: Emitted when an XCM message is received at the destination network.
  *
- * @see {XcmMessageEvent}
+ * @see {XcmMessageSentEvent}
  * @see {Inbound}
  * @see {Outbound}
  */
@@ -246,7 +246,7 @@ export class MessageCollector extends EventEmitter {
     ).subscribe({
       next: message => this.emit(
         Outbound,
-        new XcmMessageEvent(origin, message)
+        new XcmMessageSentEvent(origin, message)
       ),
       error: error => {
         log.error(
@@ -257,7 +257,6 @@ export class MessageCollector extends EventEmitter {
     });
 
     // Set up destination subscriptions
-
     const dests = destinations || this.#apis.chains.filter(
       c => c !== origin.toString()
     );
@@ -267,12 +266,13 @@ export class MessageCollector extends EventEmitter {
       dests.forEach(c => {
         const chainId = c.toString();
         destinationSubs.push(this.#cache.finalizedBlocks(chainId).pipe(
-          extractXcmReceive(chainId),
+          extractXcmReceive(),
           retryWithTruncatedExpBackoff()
         ).subscribe({
-          next: msg => this.emit(Inbound, {
-            ...msg
-          }),
+          next: msg => this.emit(
+            Inbound,
+            new XcmMessageReceivedEvent(chainId, msg)
+          ),
           error: error => {
             log.error(
               `Error on subscription ${id} at destination ${chainId}`

@@ -23,25 +23,70 @@ export type XcmCriteria = {
   messageControl: ControlQuery
 }
 
-export type XcmMessageSentWithContext = {
+export type XcmMessageWithContext = {
   event: types.EventWithIdAndTx,
   messageHash: string,
 }
 
-export interface XcmMessageWithContext extends XcmMessageSentWithContext {
+export interface XcmMessageSentWithContext extends XcmMessageWithContext {
   messageData: Bytes,
   recipient: number,
   instructions: AnyJson,
 }
 
-export class GenericXcmMessageWithContext implements XcmMessageWithContext {
+export interface XcmMessageReceivedWithContext extends XcmMessageWithContext {
+  outcome: 'Success' | 'Fail',
+  error: AnyJson
+}
+
+export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedWithContext {
+  event: types.EventWithIdAndTx;
+  messageHash: string;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+
+  constructor(msg: XcmMessageReceivedWithContext) {
+    this.event = msg.event;
+    this.messageHash = msg.messageHash;
+    this.outcome = msg.outcome;
+    this.error = msg.error;
+  }
+
+  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
+    return {
+      messageHash: this.messageHash,
+      event: this.event.toHuman(),
+      outcome: this.outcome,
+      error: this.error
+    };
+  }
+}
+
+export class XcmMessageReceivedEvent extends GenericXcmMessageReceivedWithContext {
+  chainId: string | number;
+
+  constructor(chainId: string| number, msg: XcmMessageReceivedWithContext) {
+    super(msg);
+    this.chainId = chainId;
+  }
+
+  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
+    const data = super.toHuman();
+    return {
+      ...data,
+      chainId: this.chainId.toString()
+    };
+  }
+}
+
+export class GenericXcmMessageSentWithContext implements XcmMessageSentWithContext {
   messageData: Bytes;
   recipient: number;
   instructions: AnyJson;
   messageHash: string;
   event: types.EventWithIdAndTx;
 
-  constructor(msg: XcmMessageWithContext) {
+  constructor(msg: XcmMessageSentWithContext) {
     this.event = msg.event;
     this.messageData = msg.messageData;
     this.recipient = msg.recipient;
@@ -60,10 +105,10 @@ export class GenericXcmMessageWithContext implements XcmMessageWithContext {
   }
 }
 
-export class XcmMessageEvent extends GenericXcmMessageWithContext {
+export class XcmMessageSentEvent extends GenericXcmMessageSentWithContext {
   chainId: string | number;
 
-  constructor(chainId: string| number, msg: XcmMessageWithContext) {
+  constructor(chainId: string| number, msg: XcmMessageSentWithContext) {
     super(msg);
     this.chainId = chainId;
   }

@@ -14,8 +14,9 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmMessageWithContext, XcmCriteria, XcmMessageEvent,
-  XcmMessageSentWithContext, XcmMessageWithContext
+  GenericXcmMessageReceivedWithContext,
+  GenericXcmMessageSentWithContext, XcmCriteria, XcmMessageReceivedWithContext,
+  XcmMessageSentWithContext
 } from '../../types.js';
 
 function findOutboundHrmpMessage(
@@ -23,7 +24,7 @@ function findOutboundHrmpMessage(
   messageControl: ControlQuery
 ) {
   return (source: Observable<XcmMessageSentWithContext>)
-  : Observable<XcmMessageWithContext> => {
+  : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
         const { event: {blockHash}, messageHash } = sentMsg;
@@ -42,7 +43,7 @@ function findOutboundHrmpMessage(
                 const xcmProgram = api.registry.createType(
                   'XcmVersionedXcm', data.slice(1)
                 );
-                return new GenericXcmMessageWithContext({
+                return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data,
                   recipient: recipient.toNumber(),
@@ -88,7 +89,7 @@ export function extractXcmSend(
   }: XcmCriteria
 ) {
   return (source: Observable<SignedBlockExtended>)
-  : Observable<XcmMessageWithContext> => {
+  : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       mongoFilter(sendersControl),
       extractTxWithEvents(),
@@ -100,9 +101,9 @@ export function extractXcmSend(
   };
 }
 
-function mapXcmpQueueMessage(id: string) {
+function mapXcmpQueueMessage() {
   return (source: Observable<types.EventWithIdAndTx>):
-  Observable<XcmMessageEvent>  => {
+  Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
       mongoFilter({
         'section': 'xcmpQueue',
@@ -111,21 +112,22 @@ function mapXcmpQueueMessage(id: string) {
       map(event => {
         if (event.method === 'Success') {
           const xcmMessage = event.data as any;
-          return {
+          return new GenericXcmMessageReceivedWithContext({
             event,
             messageHash: xcmMessage.messageHash.toHex() as string,
-            chainId: id
-          } as XcmMessageEvent;
+            outcome: event.method,
+            error: null
+          });
         } else if (event.method === 'Fail') {
-          // TODO: implement
           const xcmMessage = event.data as any;
           const error = xcmMessage.error;
-          console.log('XCM receive fail not implemented', error);
-          return {
+          console.log('XCM receive fail', error);
+          return new GenericXcmMessageReceivedWithContext({
             event,
             messageHash: xcmMessage.messageHash.toHex() as string,
-            chainId: id
-          } as XcmMessageEvent;
+            outcome: event.method,
+            error: error
+          });
         } else {
           return null;
         }
@@ -136,14 +138,14 @@ function mapXcmpQueueMessage(id: string) {
   };
 }
 
-export function extractXcmReceive(chainId: string) {
+export function extractXcmReceive() {
   return (source: Observable<SignedBlockExtended>)
-  : Observable<XcmMessageEvent>  => {
+  : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
       extractTxWithEvents(),
       flattenBatch(),
       extractEventsWithTx(),
-      mapXcmpQueueMessage(chainId)
+      mapXcmpQueueMessage()
     ));
   };
 }
