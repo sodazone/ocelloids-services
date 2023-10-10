@@ -244,10 +244,10 @@ export class MessageCollector extends EventEmitter {
       }),
       retryWithTruncatedExpBackoff()
     ).subscribe({
-      next: msg => this.emit(Outbound, {
-        ...msg,
-        chainId: origin
-      } as XcmMessageEvent),
+      next: message => this.emit(
+        Outbound,
+        new XcmMessageEvent(origin, message)
+      ),
       error: error => {
         log.error(
           `Error on subscription ${id} at origin ${origin}`

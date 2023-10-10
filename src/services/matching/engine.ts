@@ -2,6 +2,7 @@ import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
 
 import { DB } from '../types.js';
+import { XcmMessageEvent } from 'services/monitoring/types.js';
 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
@@ -15,9 +16,9 @@ type Message = {
   messageHash: string
 }
 
-type OriginMessage = Message & {
-  recipient: string | number
-}
+// type OriginMessage = Message & {
+//   recipient: string | number
+// }
 
 const sublevelOpts = { valueEncoding: 'json' };
 
@@ -46,20 +47,21 @@ export class MatchingEngine {
 
   async onOutboundMessage(
     chainBlock: ChainBlock,
-    message: OriginMessage
+    message: XcmMessageEvent
   ) {
     const log = this.#log;
 
-    log.info(`[O:MSG] ${JSON.stringify(chainBlock)} to ${JSON.stringify(message)}`);
+    log.info(chainBlock, '[OUT] MESSAGE %s', message.messageHash);
 
     // Confirmation key at destination
     const ck = `${message.messageHash}:${message.recipient}`;
     try {
       const conf = await this.#confirmations.get(ck);
-      log.info('[O] NOTIFY', conf, message);
-      await this.#notify(ck, message);
+      const merged = { ...conf, ...message };
+      log.info(merged.toHuman(), '[O] NOTIFY');
+      await this.#notify(ck, merged);
     } catch (e) {
-      log.info(`[O] Confirmed ${ck}`, message);
+      log.info('[OUT] CONFIRMED %s', ck);
       await this.#confirmations.put(ck, message);
     }
   }

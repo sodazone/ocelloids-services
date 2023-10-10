@@ -34,10 +34,6 @@ export interface XcmMessageWithContext extends XcmMessageSentWithContext {
   instructions: AnyJson,
 }
 
-export type XcmMessageEvent = XcmMessageWithContext & {
-  chainId: string | number
-}
-
 export class GenericXcmMessageWithContext implements XcmMessageWithContext {
   messageData: Bytes;
   recipient: number;
@@ -60,6 +56,23 @@ export class GenericXcmMessageWithContext implements XcmMessageWithContext {
       instructions: this.instructions,
       messageHash: this.messageHash,
       event: this.event.toHuman()
+    };
+  }
+}
+
+export class XcmMessageEvent extends GenericXcmMessageWithContext {
+  chainId: string | number;
+
+  constructor(chainId: string| number, msg: XcmMessageWithContext) {
+    super(msg);
+    this.chainId = chainId;
+  }
+
+  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
+    const data = super.toHuman();
+    return {
+      ...data,
+      chainId: this.chainId.toString()
     };
   }
 }

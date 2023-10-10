@@ -118,8 +118,14 @@ function mapXcmpQueueMessage(id: string) {
           } as XcmMessageEvent;
         } else if (event.method === 'Fail') {
           // TODO: implement
-          console.log('XCM receive fail not implemented');
-          return null;
+          const xcmMessage = event.data as any;
+          const error = xcmMessage.error;
+          console.log('XCM receive fail not implemented', error);
+          return {
+            event,
+            messageHash: xcmMessage.messageHash.toHex() as string,
+            chainId: id
+          } as XcmMessageEvent;
         } else {
           return null;
         }
@@ -130,14 +136,14 @@ function mapXcmpQueueMessage(id: string) {
   };
 }
 
-export function extractXcmReceive(id: string) {
+export function extractXcmReceive(chainId: string) {
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageEvent>  => {
     return (source.pipe(
       extractTxWithEvents(),
       flattenBatch(),
       extractEventsWithTx(),
-      mapXcmpQueueMessage(id)
+      mapXcmpQueueMessage(chainId)
     ));
   };
 }

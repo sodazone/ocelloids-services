@@ -36,10 +36,7 @@ async function Monitoring(
       chainId: message.chainId,
       blockHash: message.event.blockHash.toHex(),
       blockNumber: message.event.blockNumber.toString()
-    }, {
-      recipient: message.recipient,
-      messageHash: message.messageHash
-    });
+    }, message);
   });
 
   msgCollector.on(Inbound, (message: XcmMessageEvent) => {
