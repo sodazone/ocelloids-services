@@ -34,17 +34,22 @@ function messageCriteria(recipients: number[]) : Criteria {
   };
 }
 
+export const Outbound = Symbol.for('outbound-message');
+export const Inbound = Symbol.for('inbound-message');
+
 /**
  * XCM message collector.
  *
  * Maintains state of the subscriptions in the system and the underlying reactive streams,
  * both for origin and destination networks.
  *
- * Emits XcmMessageEvent events:
- * - 'message' - Emitted when a new XCM message is received.
- * - 'receive' - Emitted when an XCM message is received at the destination network.
+ * Emits 'XcmMessageEvent' events:
+ * - Inbound: Emitted when a new XCM message is originated.
+ * - Outbound: Emitted when an XCM message is received at the destination network.
  *
  * @see {XcmMessageEvent}
+ * @see {Inbound}
+ * @see {Outbound}
  */
 export class MessageCollector extends EventEmitter {
   #apis: SubstrateApis;
@@ -239,7 +244,7 @@ export class MessageCollector extends EventEmitter {
       }),
       retryWithTruncatedExpBackoff()
     ).subscribe({
-      next: msg => this.emit('message', {
+      next: msg => this.emit(Outbound, {
         ...msg,
         chainId: origin
       } as XcmMessageEvent),
@@ -265,7 +270,7 @@ export class MessageCollector extends EventEmitter {
           extractXcmReceive(chainId),
           retryWithTruncatedExpBackoff()
         ).subscribe({
-          next: msg => this.emit('receive', {
+          next: msg => this.emit(Inbound, {
             ...msg
           }),
           error: error => {
