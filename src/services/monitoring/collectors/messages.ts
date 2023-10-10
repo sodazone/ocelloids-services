@@ -202,12 +202,12 @@ export class MessageCollector extends EventEmitter {
 
     for (const {
       id,
-      originSub: rxSubscription,
-      destinationSubs: destinationSubscriptions
+      originSub,
+      destinationSubs
     } of Object.values(this.#subs)) {
       log.info(`Unsubscribe ${id}`);
-      rxSubscription.unsubscribe();
-      destinationSubscriptions.forEach(sub => sub.unsubscribe());
+      originSub.unsubscribe();
+      destinationSubs.forEach(sub => sub.unsubscribe());
     }
   }
 
