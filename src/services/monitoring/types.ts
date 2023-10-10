@@ -75,7 +75,6 @@ export const $QuerySubscription = z.object({
   destinations: z.array(z.number({
     required_error: 'destination id is required'
   }).min(0)),
-  followAllDestinations: z.boolean().default(false),
   // TODO union...
   notify: z.object({
     endpoint: z.string()
