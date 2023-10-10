@@ -43,7 +43,6 @@ export class HeadCatcher extends EventEmitter {
   #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
-
   #subs: Record<string, Subscription> = {};
 
   constructor(
