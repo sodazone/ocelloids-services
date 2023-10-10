@@ -56,8 +56,8 @@ async function Monitoring(
     });
   });
 
-  headCatcher.start();
-  msgCollector.start();
+  await headCatcher.start();
+  await msgCollector.start();
 
   fastify.addHook('onClose', async () => {
     log.info('Shutting down monitoring service');
@@ -67,7 +67,7 @@ async function Monitoring(
     await connector.disconnect();
   });
 
-  fastify.register(SubscriptionApi, {
+  await fastify.register(SubscriptionApi, {
     msgCollector,
   });
 }
