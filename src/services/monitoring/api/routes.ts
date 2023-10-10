@@ -7,7 +7,7 @@ import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
 const allowedPaths = [
-  '/senders', '/destinations', '/followDestinations', '/notify'
+  '/senders', '/destinations', '/notify'
 ];
 
 function hasOp(patch: Operation[], path: string) {
@@ -120,8 +120,6 @@ export function SubscriptionApi(
       if (hasOp(patch, '/destinations')) {
         msgCollector.updateDestinations(id, sub.destinations);
       }
-
-      // TODO: follow all?
 
       await msgCollector.updateInDB(sub);
 
