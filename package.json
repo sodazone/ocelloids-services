@@ -30,7 +30,8 @@
     "testEnvironment": "node",
     "collectCoverage": true,
     "coveragePathIgnorePatterns": [
-      ".*/dist"
+      ".*/dist",
+      "_mocks"
     ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
