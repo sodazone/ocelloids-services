@@ -1,10 +1,12 @@
 import { EventEmitter } from 'node:events';
 
-import { Observable, Subscription, mergeMap, from, tap } from 'rxjs';
+import { Observable, Subscription, mergeMap, from, tap, switchMap, map } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
+import type { Vec } from '@polkadot/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
+import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 import { ApiPromise } from '@polkadot/api';
 import { createSignedBlockExtended } from '@polkadot/api-derive';
 
@@ -30,6 +32,9 @@ type BinBlock = {
 function max(...args: bigint[]) {
   return args.reduce((m, e) => e > m ? e : m);
 }
+
+export type GetOutboundHrmpMessages = (hash: `0x${string}`)
+=> Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
 
 /**
  * The HeadCatcher performs the following tasks ("moo" 🐮):
@@ -77,15 +82,38 @@ export class HeadCatcher extends EventEmitter {
             b.block.header.hash.toHex(),
             b.block.header.number.toString()
           )),
-          retryWithTruncatedExpBackoff()
+          retryWithTruncatedExpBackoff(),
+          mergeMap(block => {
+            return api.pipe(
+              switchMap(_api => _api.at(block.block.header.hash)),
+              retryWithTruncatedExpBackoff(),
+              switchMap(at =>
+               from(
+                 at.query.parachainSystem.hrmpOutboundMessages()
+               ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+              ),
+              tap(_ => console.log('RETRIEVED HRMP INSTRUCTIONS ON NEW BLOCK')),
+              retryWithTruncatedExpBackoff(),
+              map(messages =>  {
+                return {
+                  block,
+                  messages
+                };
+              })
+            );
+          })
         ).subscribe({
-          next: async block => {
+          next: async ({ block, messages }) => {
             const hash = block.block.header.hash.toHex();
+
+            // TODO: review to use SCALE instead of CBOR
             await db.put(hash, encode({
               block: block.toU8a(),
               events: block.events.map(ev => ev.toU8a()),
               author: block.author?.toU8a()
             }));
+
+            await db.put('hrmp-messages:' + hash, messages.toU8a());
           },
           error: error => log.error(
             error,
@@ -143,6 +171,51 @@ export class HeadCatcher extends EventEmitter {
       blockFromHeader(api),
       retryWithTruncatedExpBackoff()
     );
+  }
+
+  // TODO: remove  strategy
+  outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
+    const api = this.#apis.promise[chainId];
+    const db = this.#blockCache(chainId);
+
+    if (this.#hasSub(chainId)) {
+      return (hash: `0x${string}`)
+      : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
+        console.log('returning from cache');
+
+        return from(db.get('hrmp-messages:' + hash)).pipe(
+          tap(_ => console.log('MACARIOOOOOOOOOOOOOOo')),
+          map(buffer => {
+            return api.registry.createType(
+              'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
+            ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
+          }),
+          tap(msg => console.log('GOT FROM CACHE', msg.toHuman()))
+        );
+
+        /*
+          return from(messages) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>;
+        } catch (error) {
+          console.log('error!!!', error);
+          throw new Error('HRMP messages not found in cache.');
+        }*/
+      };
+    } else {
+      return (hash: `0x${string}`)
+      : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
+        console.log('returning from network');
+
+        return from(api.at(hash)).pipe(
+          retryWithTruncatedExpBackoff(),
+          switchMap(at =>
+           from(
+             at.query.parachainSystem.hrmpOutboundMessages()
+           ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+          ),
+          retryWithTruncatedExpBackoff()
+        );
+      };
+    }
   }
 
   /**

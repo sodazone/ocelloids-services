@@ -57,19 +57,19 @@ export class MessageCollector extends EventEmitter {
   #db: DB;
 
   #subs: Record<string, SubscriptionHandler> = {};
-  #cache: HeadCatcher;
+  #catcher: HeadCatcher;
 
   constructor(
     ctx: ServiceContext,
     connector: Connector,
     db: DB,
-    cache: HeadCatcher
+    catcher: HeadCatcher
   ) {
     super();
 
     this.#apis = connector.connect();
     this.#db = db;
-    this.#cache = cache;
+    this.#catcher = catcher;
     this.#ctx = ctx;
   }
 
@@ -237,11 +237,16 @@ export class MessageCollector extends EventEmitter {
     );
 
     const api = this.#apis.promise[strOrig];
-    const originSub = this.#cache.finalizedBlocks(strOrig).pipe(
-      extractXcmSend(api, {
-        sendersControl,
-        messageControl
-      }),
+    const getHrmp = this.#catcher.outboundHrmpMessages(strOrig);
+    const originSub = this.#catcher.finalizedBlocks(strOrig).pipe(
+      extractXcmSend(
+        api,
+        {
+          sendersControl,
+          messageControl
+        },
+        getHrmp
+      ),
       retryWithTruncatedExpBackoff()
     ).subscribe({
       next: message => this.emit(
@@ -265,7 +270,7 @@ export class MessageCollector extends EventEmitter {
     try {
       dests.forEach(c => {
         const chainId = c.toString();
-        destinationSubs.push(this.#cache.finalizedBlocks(chainId).pipe(
+        destinationSubs.push(this.#catcher.finalizedBlocks(chainId).pipe(
           extractXcmReceive(),
           retryWithTruncatedExpBackoff()
         ).subscribe({

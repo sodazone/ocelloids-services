@@ -1,16 +1,14 @@
 import type { } from '@polkadot/api-augment';
 
-import { map, from, switchMap, Observable, mergeMap } from 'rxjs';
+import { map, Observable, mergeMap, tap } from 'rxjs';
 
-import type { Vec } from '@polkadot/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 import { ApiPromise } from '@polkadot/api';
 
 import {
   ControlQuery,
   extractEventsWithTx, extractTxWithEvents, filterNonNull,
-  flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
+  flattenBatch, mongoFilter, types
 } from '@sodazone/ocelloids';
 
 import {
@@ -18,24 +16,20 @@ import {
   GenericXcmMessageSentWithContext, XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../../types.js';
+import { GetOutboundHrmpMessages } from '../head-catcher.js';
 
 function findOutboundHrmpMessage(
   api: ApiPromise,
-  messageControl: ControlQuery
+  messageControl: ControlQuery,
+  getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
   return (source: Observable<XcmMessageSentWithContext>)
-  : Observable<XcmMessageSentWithContext> => {
+  : Observable<GenericXcmMessageSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
         const { event: {blockHash}, messageHash } = sentMsg;
-        return from(api.at(blockHash)).pipe(
-          retryWithTruncatedExpBackoff(),
-          switchMap(at =>
-           from(
-             at.query.parachainSystem.hrmpOutboundMessages()
-           ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
-          ),
-          retryWithTruncatedExpBackoff(),
+        return getOutboundHrmpMessages(blockHash.toHex()).pipe(
+          tap(_ => console.log('FOUND HRMP INSTRUCTIONS')),
           map(messages =>  {
             return messages
               .map(msg => {
@@ -55,7 +49,9 @@ function findOutboundHrmpMessage(
               });
           }),
           filterNonNull(),
-          mongoFilter(messageControl)
+          tap(msg => console.log('FOUND MESSAGE', msg.toHuman())),
+          mongoFilter(messageControl),
+          tap(m => console.log('FILTERED BY MSG CONTROL', m.toHuman()))
         );
       }));
   };
@@ -86,7 +82,8 @@ export function extractXcmSend(
   {
     sendersControl,
     messageControl
-  }: XcmCriteria
+  }: XcmCriteria,
+  getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageSentWithContext> => {
@@ -96,7 +93,9 @@ export function extractXcmSend(
       flattenBatch(),
       extractEventsWithTx(),
       xcmMessagesSent(api),
-      findOutboundHrmpMessage(api, messageControl),
+      tap(msg => console.log('SEND XCM MESSAGE', msg.messageHash)),
+      findOutboundHrmpMessage(api, messageControl, getOutboundHrmpMessages),
+      tap(msg => console.log('SEND XCM MESSAGE WITH INSTRUCTIONS', msg.toHuman())),
     );
   };
 }
@@ -121,7 +120,7 @@ function mapXcmpQueueMessage() {
         } else if (event.method === 'Fail') {
           const xcmMessage = event.data as any;
           const error = xcmMessage.error;
-          console.log('XCM receive fail', error);
+          console.log('XCM receive fail', error.toHuman());
           return new GenericXcmMessageReceivedWithContext({
             event,
             messageHash: xcmMessage.messageHash.toHex() as string,
