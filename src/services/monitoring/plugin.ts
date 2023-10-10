@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import Connector from '../connector.js';
 import { XcmMessageEvent } from './types.js';
 import { MessageCollector, HeadCatcher } from './collectors/index.js';
-import { SubscriptionApi } from './api.js';
+import { SubscriptionApi } from './api/index.js';
 
 /**
  * Monitoring service Fastify plugin.

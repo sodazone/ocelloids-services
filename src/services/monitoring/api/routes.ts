@@ -2,9 +2,9 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
-import { MessageCollector } from './collectors/index.js';
-import { $QuerySubscription, $SafeId, QuerySubscription } from './types.js';
-import $JSONPatch from './json-patch.js';
+import { MessageCollector } from '../collectors/index.js';
+import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
+import $JSONPatch from '../json-patch.js';
 
 /**
  * Subscriptions HTTP API.
