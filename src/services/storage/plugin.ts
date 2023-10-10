@@ -2,7 +2,10 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { Level } from 'level';
+import { MemoryLevel } from 'memory-level';
+
 import { DB } from '../types.js';
+import { environment } from '../../environment.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,11 +24,17 @@ type DBOptions = {
  * @param options
  */
 const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
-  const dbPath = options.db || './db';
+  let level;
 
-  fastify.log.info(`Open database at ${dbPath}`);
+  if (environment === 'test') {
+    level = new MemoryLevel();
+  } else {
+    const dbPath = options.db || './db';
 
-  const level = new Level(dbPath);
+    fastify.log.info(`Open database at ${dbPath}`);
+
+    level = new Level(dbPath);
+  }
 
   fastify.decorate('db', level);
 
