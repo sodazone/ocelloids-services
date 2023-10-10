@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-// import { log } from 'console';
 
 import { ServiceContext } from './context.js';
 import Connector from './connector.js';
@@ -13,14 +12,15 @@ import {
   mockLog
 } from '../_mocks/context.js';
 
-jest.mock('@substrate/connect');
-jest.mock('fs', () => {
+jest.mock('node:fs', () => {
   const original = jest.requireActual('node:fs');
   return {
     ...original,
     readFileSync: jest.fn()
   };
 });
+jest.mock('@substrate/connect');
+
 jest.mock('@polkadot/api', () => {
   const original = jest.requireActual('@polkadot/api');
 
@@ -82,7 +82,6 @@ describe('connector', () => {
         log: mockLog,
         config: mockConfigLC
       };
-      jest.spyOn(fs, 'readFileSync').mockImplementation(() => '');
 
       const connector = new Connector(ctx);
       const apis = connector.connect();
