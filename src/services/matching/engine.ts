@@ -1,5 +1,6 @@
 import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
+import { Mutex } from 'async-mutex';
 
 import { DB } from '../types.js';
 import { XcmMessageReceivedEvent, XcmMessageSentEvent } from 'services/monitoring/types.js';
@@ -25,10 +26,12 @@ export class MatchingEngine {
   #outbound: SubLevel<XcmMessageSentEvent>;
   #inbound: SubLevel<XcmMessageReceivedEvent>;
   #notifications: SubLevel<any>;
+  #mutex: Mutex;
 
   constructor(db: DB, log: pino.BaseLogger) {
     this.#db = db;
     this.#log = log;
+    this.#mutex = new Mutex();
 
     this.#outbound = this.#sl('out');
     this.#inbound = this.#sl('in');
@@ -49,16 +52,18 @@ export class MatchingEngine {
 
     // Confirmation key at destination
     const ck = `${message.messageHash}:${message.recipient}`;
-    try {
-      const conf = await this.#inbound.get(ck);
-      // TODO: better merging with toHuman()
-      const merged = { ...conf, ...message };
-      log.info('[OUT] NOTIFY %s', ck);
-      await this.#notify(ck, merged);
-    } catch (e) {
-      log.info('[OUT] CONFIRMED %s', ck);
-      await this.#outbound.put(ck, message);
-    }
+    await this.#mutex.runExclusive(async () => {
+      try {
+        const conf = await this.#inbound.get(ck);
+        // TODO: better merging with toHuman()
+        const merged = { ...conf, ...message };
+        log.info('[OUT] NOTIFY %s', ck);
+        await this.#notify(ck, merged);
+      } catch (e) {
+        log.info('[OUT] CONFIRMED %s', ck);
+        await this.#outbound.put(ck, message);
+      }
+    });
   }
 
   // TODO implement
@@ -78,16 +83,18 @@ export class MatchingEngine {
     log.info(chainBlock, '[IN] MESSAGE %s (Outcome: %s)', messageHash, outcome);
 
     const ck = `${messageHash}:${chainBlock.chainId}`;
-    try {
-      const conf = await this.#outbound.get(ck);
-      log.info('[IN] NOTIFY %s', ck);
-      // TODO: better merging with toHuman()
-      const merged = { ...conf, ...message };
-      await this.#notify(ck, merged);
-    } catch (e) {
-      log.info('[IN] CONFIRMED %s', ck);
-      await this.#inbound.put(ck, message);
-    }
+    await this.#mutex.runExclusive(async () => {
+      try {
+        const conf = await this.#outbound.get(ck);
+        log.info('[IN] NOTIFY %s', ck);
+        // TODO: better merging with toHuman()
+        const merged = { ...conf, ...message };
+        await this.#notify(ck, merged);
+      } catch (e) {
+        log.info('[IN] CONFIRMED %s', ck);
+        await this.#inbound.put(ck, message);
+      }
+    });
   }
 
   #sl<TV>(prefix: string) {
