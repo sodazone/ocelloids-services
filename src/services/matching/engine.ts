@@ -44,19 +44,6 @@ export class MatchingEngine {
     return (await this.#notifications.keys().all()).length;
   }
 
-  async onFinalizedBlock(chainBlock: ChainBlock) {
-    const orig = this.#slorig(chainBlock);
-
-    for await (const [k, v] of orig.iterator()) {
-      this.#log.info(`[O] Fin ${k}`);
-
-      await orig.del(k);
-      const ck = `${v.messageHash}:${v.recipient}`;
-
-      await this.#confirmOrNotify(ck, v);
-    }
-  }
-
   async onOutboundMessage(
     chainBlock: ChainBlock,
     message: OriginMessage
@@ -103,32 +90,7 @@ export class MatchingEngine {
     }
   }
 
-  get _db() {
-    return this.#db;
-  }
-
   #sl<TV>(prefix: string) {
     return this.#db.sublevel<string, TV>(prefix, sublevelOpts);
-  }
-
-  #slorig({chainId, blockHash}: ChainBlock) {
-    return this.#sl<OriginMessage>(`O:${chainId}:${blockHash}`);
-  }
-
-  #sldest({chainId, blockHash}: ChainBlock) {
-    return this.#sl<Message>(`D:${chainId}:${blockHash}`);
-  }
-
-  async #confirmOrNotify(ck: string, v: OriginMessage | Message) {
-    try {
-      const conf = await this.#confirmations.get(ck);
-      this.#log.info('[O] NOTIFY', conf, v);
-      await this.#notifications.put(ck, {
-        notification: 'here'
-      });
-    } catch (e) {
-      this.#log.info(`[O] Confirmed ${ck}`, v);
-      await this.#confirmations.put(ck, v);
-    }
   }
 }
