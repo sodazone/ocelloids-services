@@ -13,10 +13,19 @@ import { $ServerOptions } from './types.js';
 /**
  * Starts the server from the command line.
  */
-function startServer(this: Command) {
+async function startServer(this: Command) {
   try {
     const opts = $ServerOptions.parse(this.opts());
-    createServer(opts);
+    const server = await createServer(opts);
+    server.listen({
+      port: opts.port,
+      host: opts.host
+    }, function (err, _) {
+      if (err) {
+        server.log.error(err);
+        process.exit(1);
+      }
+    });
   } catch (err) {
     if (err instanceof z.ZodError) {
       console.error(err.issues);
