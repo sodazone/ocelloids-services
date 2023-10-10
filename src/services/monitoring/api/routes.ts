@@ -4,7 +4,15 @@ import { Operation, applyPatch } from 'rfc6902';
 
 import { MessageCollector } from '../collectors/index.js';
 import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
-import $JSONPatch from '../json-patch.js';
+import $JSONPatch from './json-patch.js';
+
+const allowedPaths = [
+  '/senders', '/destinations', '/followDestinations', '/notify'
+];
+
+function hasOp(patch: Operation[], path: string) {
+  return patch.some(op => op.path.startsWith(path));
+}
 
 /**
  * Subscriptions HTTP API.
@@ -87,15 +95,42 @@ export function SubscriptionApi(
       body: $JSONPatch,
       response: {
         200: zodToJsonSchema($QuerySubscription),
+        400: { type: 'string' },
         404: { type: 'string' }
       }
     }
   }, async (request, reply) => {
-    const sub = await msgCollector.getSubscription(request.params.id);
-    applyPatch(sub, request.body);
-    $QuerySubscription.parse(sub);
-    //await msgCollector.subscribe(request.body);
-    reply.status(200).send(sub);
+    const patch = request.body;
+    const { id } = request.params;
+    const sub = await msgCollector.getSubscription(id);
+
+    // Check allowed patch ops
+    const allowedOps = patch.every(op => allowedPaths
+      .some(s => op.path.startsWith(s))
+    );
+
+    if (allowedOps) {
+      applyPatch(sub, patch);
+      $QuerySubscription.parse(sub);
+
+      if (hasOp(patch, '/senders')) {
+        msgCollector.updateSenders(id, sub.senders);
+      }
+
+      if (hasOp(patch, '/destinations')) {
+        msgCollector.updateDestinations(id, sub.destinations);
+      }
+
+      // TODO: follow all?
+
+      await msgCollector.updateInDB(sub);
+
+      reply.status(200).send(sub);
+    } else {
+      reply.status(400).send(
+        'Only operations on these paths are allowed: ' + allowedPaths.join(',')
+      );
+    }
   });
 
   fastify.delete<{

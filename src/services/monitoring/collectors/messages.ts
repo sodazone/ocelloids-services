@@ -1,7 +1,9 @@
 import { EventEmitter } from 'node:events';
 
 import { Subscription } from 'rxjs';
-import { SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids';
+import {
+  SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff, Criteria
+} from '@sodazone/ocelloids';
 
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
@@ -16,6 +18,20 @@ type SubscriptionHandler = QuerySubscription & {
   destinationSubs: Subscription[],
   sendersControl: ControlQuery,
   messageControl: ControlQuery
+}
+
+function sendersCriteria(senders: string[]) : Criteria {
+  return {
+    'events.event.section': 'xcmpQueue',
+    'events.event.method': 'XcmpMessageSent',
+    'block.extrinsics.signer.id': { $in: senders }
+  };
+}
+
+function messageCriteria(recipients: number[]) : Criteria {
+  return {
+    'recipient': { $in: recipients }
+  };
 }
 
 /**
@@ -67,7 +83,11 @@ export class MessageCollector extends EventEmitter {
     // OK ^^
     }
 
-    log.info(`New Subscription: ${qs}`);
+    log.info(
+      '[%s] new subscription: %s',
+      qs.origin,
+      qs
+    );
 
     await this.#slqs(qs.origin).put(qs.id, qs);
     this.#monitor(qs);
@@ -81,20 +101,24 @@ export class MessageCollector extends EventEmitter {
    * @param {string} id The subscription identifier.
    */
   unsubscribe(id: string) {
+    const { log } = this.#ctx;
     try {
       const {
         origin, originSub, destinationSubs
       } = this.#subs[id];
 
-      this.#ctx.log.info(`Unsubscribe ${id}`);
+      log.info(
+        '[%s] unsubscribe %s',
+        origin,
+        id
+      );
+
       originSub.unsubscribe();
       destinationSubs.forEach(sub => sub.unsubscribe());
-
-      this.#ctx.log.info(`Deleting subscription from storage ${id}`);
       delete this.#subs[id];
       this.#slqs(origin).del(id);
     } catch (error) {
-      this.#ctx.log.error(`Error unsubscribing ${id}`, id);
+      log.error(`Error unsubscribing ${id}`, id);
     }
   }
 
@@ -146,7 +170,11 @@ export class MessageCollector extends EventEmitter {
     for (const network of networks) {
       const subs = await this.#subsInDB(network.id);
 
-      log.info(`Origin subscriptions: [chainId=${network.id}] (${subs.length})`);
+      log.info(
+        '[%s] number of subscriptions %d',
+        network.id,
+        subs.length
+      );
 
       for (const sub of subs) {
         try {
@@ -196,15 +224,12 @@ export class MessageCollector extends EventEmitter {
 
     // Set up origin subscription
 
-    const sendersControl = ControlQuery.from({
-      'events.event.section': 'xcmpQueue',
-      'events.event.method': 'XcmpMessageSent',
-      'block.extrinsics.signer.id': { $in: senders }
-    });
-
-    const messageControl = ControlQuery.from({
-      'recipient': { $in: destinations }
-    });
+    const sendersControl = ControlQuery.from(
+      sendersCriteria(senders)
+    );
+    const messageControl = ControlQuery.from(
+      messageCriteria(destinations)
+    );
 
     const api = this.#apis.promise[strOrig];
     const originSub = this.#cache.finalizedBlocks(strOrig).pipe(
@@ -268,6 +293,34 @@ export class MessageCollector extends EventEmitter {
       originSub,
       destinationSubs
     };
+  }
+
+  /**
+   * Updates the senders control handler.
+   *
+   * Applies to the outbound extrinsic signers.
+   */
+  updateSenders(id: string, senders: string[]) {
+    const { sendersControl } = this.#subs[id];
+    sendersControl.change(sendersCriteria(senders));
+  }
+
+  /**
+   * Updates the message control handler.
+   *
+   * Applies to the outbound XCM message.
+   */
+  updateDestinations(id: string, recipients: number[]) {
+    const { messageControl } = this.#subs[id];
+    messageControl.change(messageCriteria(recipients));
+  }
+
+  /**
+   * Updates the subscription data in the database.
+   */
+  async updateInDB(qs: QuerySubscription) {
+    const db = await this.#slqs(qs.origin);
+    await db.put(qs.id, qs);
   }
 
   #slqs(chainId: string | number) {
