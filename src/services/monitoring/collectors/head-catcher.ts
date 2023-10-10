@@ -245,11 +245,22 @@ export class HeadCatcher extends EventEmitter {
           // avoid re-entrant overlaps
           memHeight = max(memHeight, bnHeadNum);
 
+          if (memHeight - currentHeight > 1) {
+            log.info(
+              '[%s] FINALIZED catching up %s-%s',
+              chainId,
+              currentHeight,
+              memHeight
+            );
+          }
+
           let parentHead = head;
+
           while (parentHead.number.toBigInt() - currentHeight > 1) {
             parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
             heads.push(parentHead);
 
+            // TODO: log every n blocks
             log.info(
               '[%s] FINALIZED CATCH-UP block %s (%s)',
               chainId,
@@ -259,16 +270,7 @@ export class HeadCatcher extends EventEmitter {
 
             // Throttle
             // TODO: configurable
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-
-          if (heads.length > 1) {
-            log.info(
-              '[%s] FINALIZED caught up range %s-%s',
-              chainId,
-              currentHeight,
-              bnHeadNum
-            );
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
 
           // Update the head in storage
