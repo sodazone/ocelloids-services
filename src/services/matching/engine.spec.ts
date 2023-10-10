@@ -14,10 +14,48 @@ describe('message matching engine', () => {
     }));
   });
 
-  it('should work in the happy sequence', async () => {
+  it('should match inbound and outbound', async () => {
     await engine.onOutboundMessage(
       { chainId: '0', blockNumber: '0', blockHash: '0x0' },
       { messageHash: 'M0', recipient: '1' }
+    );
+
+    await engine.onInboundMessage(
+      { chainId: '1', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0' }
+    );
+
+    expect(await engine.notificationsCount()).toBe(1);
+  });
+
+  it('should match outbound and inbound', async () => {
+    await engine.onInboundMessage(
+      { chainId: '1', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0' }
+    );
+
+    await engine.onOutboundMessage(
+      { chainId: '0', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0', recipient: '1' }
+    );
+
+    expect(await engine.notificationsCount()).toBe(1);
+  });
+
+  it('should tolerate duplicates', async () => {
+    await engine.onOutboundMessage(
+      { chainId: '0', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0', recipient: '1' }
+    );
+
+    await engine.onOutboundMessage(
+      { chainId: '0', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0', recipient: '1' }
+    );
+
+    await engine.onInboundMessage(
+      { chainId: '1', blockNumber: '0', blockHash: '0x0' },
+      { messageHash: 'M0' }
     );
 
     await engine.onInboundMessage(
