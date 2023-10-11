@@ -290,13 +290,10 @@ export class MessageCollector extends EventEmitter {
     });
 
     // Set up destination subscriptions
-    const dests = destinations || this.#apis.chains.filter(
-      c => c !== origin.toString()
-    );
     const destinationSubs : Subscription[] = [];
 
     try {
-      dests.forEach(c => {
+      destinations.forEach(c => {
         const chainId = c.toString();
         destinationSubs.push(this.#catcher.finalizedBlocks(chainId).pipe(
           extractXcmReceive(),
