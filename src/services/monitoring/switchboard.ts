@@ -6,19 +6,18 @@ import {
 } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
-import { extractXcmReceive, extractXcmSend } from './ops/index.js';
+import { extractXcmReceive, extractXcmSend } from './ops/xcm.js';
 import { DB } from '../types.js';
-import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMessageNotify } from './types.js';
 import { ServiceContext } from '../context.js';
 import { NotFound } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
-
-type SubscriptionHandler = QuerySubscription & {
-  originSub: Subscription,
-  destinationSubs: Subscription[],
-  sendersControl: ControlQuery,
-  messageControl: ControlQuery
-}
+import {
+  XcmMessageSentEvent,
+  QuerySubscription,
+  XcmMessageReceivedEvent,
+  XcmMessageNotify,
+  SubscriptionHandler
+} from './types.js';
 
 function sendersCriteria(senders: string[]) : Criteria {
   return {

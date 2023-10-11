@@ -1,6 +1,8 @@
 import z from 'zod';
+import { Subscription, Observable } from 'rxjs';
 import type { AnyJson } from '@polkadot/types-codec/types';
-import type { Bytes } from '@polkadot/types';
+import type { Bytes, Vec } from '@polkadot/types';
+import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 
 import { types, ControlQuery } from '@sodazone/ocelloids';
 
@@ -181,3 +183,19 @@ export const $QuerySubscription = z.object({
  * Parameters for a query subscriptions.
  */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
+
+export type SubscriptionHandler = QuerySubscription & {
+  originSub: Subscription,
+  destinationSubs: Subscription[],
+  sendersControl: ControlQuery,
+  messageControl: ControlQuery
+}
+
+export type BinBlock = {
+  block: Uint8Array;
+  events: Uint8Array[];
+  author?: Uint8Array;
+}
+
+export type GetOutboundHrmpMessages = (hash: `0x${string}`)
+=> Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>

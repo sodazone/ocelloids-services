@@ -21,21 +21,12 @@ import {
 import Connector from '../connector.js';
 import { DB } from '../types.js';
 import { ServiceContext } from '../context.js';
-import { ChainHead } from './types.js';
+import { ChainHead, BinBlock, GetOutboundHrmpMessages } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
-
-type BinBlock = {
-  block: Uint8Array;
-  events: Uint8Array[];
-  author?: Uint8Array;
-}
 
 function max(...args: bigint[]) {
   return args.reduce((m, e) => e > m ? e : m);
 }
-
-export type GetOutboundHrmpMessages = (hash: `0x${string}`)
-=> Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
 
 /**
  * The HeadCatcher performs the following tasks ("moo" 🐮):
