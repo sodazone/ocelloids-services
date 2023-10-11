@@ -82,6 +82,9 @@ describe('monitoring server API', () => {
     server = await createServer({
       config: 'config/test.toml',
       db: '',
+      janitor: false,
+      sweepExpiry: 0,
+      sweepInterval: 0,
       grace: 1000,
       host: 'localhost',
       port: 0
