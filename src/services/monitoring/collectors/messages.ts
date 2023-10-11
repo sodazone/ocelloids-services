@@ -12,6 +12,7 @@ import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMes
 import { ServiceContext } from '../../context.js';
 import { NotFound } from '../../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
+import { Janitor } from 'services/storage/janitor.js';
 
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
@@ -55,6 +56,7 @@ export class MessageCollector extends EventEmitter {
   #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
+  #janitor: Janitor;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #catcher: HeadCatcher;
@@ -63,7 +65,8 @@ export class MessageCollector extends EventEmitter {
     ctx: ServiceContext,
     connector: Connector,
     db: DB,
-    catcher: HeadCatcher
+    catcher: HeadCatcher,
+    janitor: Janitor
   ) {
     super();
 
@@ -71,6 +74,7 @@ export class MessageCollector extends EventEmitter {
     this.#db = db;
     this.#catcher = catcher;
     this.#ctx = ctx;
+    this.#janitor = janitor;
   }
 
   async onNotification(msg: XcmMessageNotify) {

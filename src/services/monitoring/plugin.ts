@@ -17,7 +17,7 @@ import { SubscriptionApi } from './api/index.js';
 async function Monitoring(
   fastify: FastifyInstance
 ) {
-  const { engine, db, log, config } = fastify;
+  const { engine, db, janitor, log, config } = fastify;
 
   const ctx = {
     log,
@@ -26,7 +26,7 @@ async function Monitoring(
 
   const connector = new Connector(ctx);
   const headCatcher = new HeadCatcher(ctx, connector, db);
-  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher);
+  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher, janitor);
 
   msgCollector.on(Outbound, (message: XcmMessageSentEvent) => {
     log.info(

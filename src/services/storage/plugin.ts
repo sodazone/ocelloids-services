@@ -6,10 +6,12 @@ import { MemoryLevel } from 'memory-level';
 
 import { DB } from '../types.js';
 import { environment } from '../../environment.js';
+import { Janitor } from './janitor.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: DB
+    db: DB,
+    janitor: Janitor
   }
 }
 
@@ -24,21 +26,26 @@ type DBOptions = {
  * @param options
  */
 const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
-  let level;
+  let db;
 
   if (environment === 'test') {
-    level = new MemoryLevel();
+    db = new MemoryLevel();
   } else {
     const dbPath = options.db || './db';
 
     fastify.log.info(`Open database at ${dbPath}`);
 
-    level = new Level(dbPath);
+    db = new Level(dbPath);
   }
 
-  fastify.decorate('db', level);
+  const janitor = new Janitor(db);
+
+  fastify.decorate('db', db);
+  fastify.decorate('janitor', janitor);
 
   fastify.addHook('onClose', (instance, done) => {
+    janitor.stop();
+
     instance.db.close((err) => {
       if (err) {
         instance.log.error('Error while closing the database', err);
@@ -46,6 +53,8 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, optio
       done();
     });
   });
+
+  janitor.start();
 };
 
 export default fp(levelPluginCallback, { fastify: '>=4.x', name: 'level' });
