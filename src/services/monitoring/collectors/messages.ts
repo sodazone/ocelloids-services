@@ -1,7 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import { Subscription, tap } from 'rxjs';
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
+import { Subscription } from 'rxjs';
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff, Criteria
 } from '@sodazone/ocelloids';
@@ -13,7 +12,6 @@ import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMes
 import { ServiceContext } from '../../context.js';
 import { NotFound } from '../../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
-import { Janitor } from 'services/storage/janitor.js';
 
 type SubscriptionHandler = QuerySubscription & {
   originSub: Subscription,
@@ -57,7 +55,6 @@ export class MessageCollector extends EventEmitter {
   #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
-  #janitor: Janitor;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #catcher: HeadCatcher;
@@ -66,8 +63,7 @@ export class MessageCollector extends EventEmitter {
     ctx: ServiceContext,
     connector: Connector,
     db: DB,
-    catcher: HeadCatcher,
-    janitor: Janitor
+    catcher: HeadCatcher
   ) {
     super();
 
@@ -75,7 +71,6 @@ export class MessageCollector extends EventEmitter {
     this.#db = db;
     this.#catcher = catcher;
     this.#ctx = ctx;
-    this.#janitor = janitor;
   }
 
   async onNotification(msg: XcmMessageNotify) {
@@ -263,7 +258,6 @@ export class MessageCollector extends EventEmitter {
     const api = this.#apis.promise[origChainId];
     const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
     const originSub = this.#catcher.finalizedBlocks(origChainId).pipe(
-      tap(this.#updateJanitorTasks(origChainId)),
       extractXcmSend(
         api,
         {
@@ -366,22 +360,5 @@ export class MessageCollector extends EventEmitter {
 
   async #subsInDB(chainId: string | number) {
     return await this.#slqs(chainId.toString()).values().all();
-  }
-
-  #updateJanitorTasks(chainId: string) {
-    return ({ block: { header } }: SignedBlockExtended) => {
-      if (this.#catcher.hasCache(chainId)) {
-        this.#janitor.addToClean(
-          {
-            sublevel: chainId + ':blocks',
-            key: 'hrmp-messages:' + header.hash.toHex()
-          },
-          {
-            sublevel: chainId + ':blocks',
-            key: header.hash.toHex()
-          }
-        );
-      }
-    };
   }
 }

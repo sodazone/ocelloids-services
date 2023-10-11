@@ -25,8 +25,8 @@ async function Monitoring(
   };
 
   const connector = new Connector(ctx);
-  const headCatcher = new HeadCatcher(ctx, connector, db);
-  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher, janitor);
+  const headCatcher = new HeadCatcher(ctx, connector, db, janitor);
+  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher);
 
   msgCollector.on(Outbound, (message: XcmMessageSentEvent) => {
     log.info(

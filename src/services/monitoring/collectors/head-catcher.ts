@@ -22,6 +22,7 @@ import Connector from '../../connector.js';
 import { DB } from '../../types.js';
 import { ServiceContext } from '../../context.js';
 import { ChainHead } from '../types.js';
+import { Janitor } from 'services/storage/janitor.js';
 
 type BinBlock = {
   block: Uint8Array;
@@ -48,18 +49,22 @@ export class HeadCatcher extends EventEmitter {
   #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;
+  #janitor: Janitor;
+
   #subs: Record<string, Subscription> = {};
 
   constructor(
     ctx: ServiceContext,
     connector: Connector,
-    db: DB
+    db: DB,
+    janitor: Janitor
   ) {
     super();
 
     this.#apis = connector.connect();
     this.#ctx = ctx;
     this.#db = db;
+    this.#janitor = janitor;
   }
 
   start() {
@@ -159,7 +164,8 @@ export class HeadCatcher extends EventEmitter {
             chainId, api, head.hash.toHex()
           ));
         }),
-        retryWithTruncatedExpBackoff()
+        retryWithTruncatedExpBackoff(),
+        tap(this.#updateJanitorTasks(chainId)),
       );
     }
 
@@ -347,5 +353,20 @@ export class HeadCatcher extends EventEmitter {
         valueEncoding: 'buffer'
       }
     );
+  }
+
+  #updateJanitorTasks(chainId: string) {
+    return ({ block: { header } }: SignedBlockExtended) => {
+      this.#janitor.addToClean(
+        {
+          sublevel: chainId + ':blocks',
+          key: 'hrmp-messages:' + header.hash.toHex()
+        },
+        {
+          sublevel: chainId + ':blocks',
+          key: header.hash.toHex()
+        }
+      );
+    };
   }
 }
