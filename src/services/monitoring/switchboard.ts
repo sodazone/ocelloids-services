@@ -5,12 +5,12 @@ import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff, Criteria
 } from '@sodazone/ocelloids';
 
-import Connector from '../../connector.js';
+import Connector from '../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
-import { DB } from '../../types.js';
-import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMessageNotify } from '../types.js';
-import { ServiceContext } from '../../context.js';
-import { NotFound } from '../../../errors.js';
+import { DB } from '../types.js';
+import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMessageNotify } from './types.js';
+import { ServiceContext } from '../context.js';
+import { NotFound } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
 
 type SubscriptionHandler = QuerySubscription & {
@@ -38,7 +38,7 @@ export const Outbound = Symbol.for('outbound-message');
 export const Inbound = Symbol.for('inbound-message');
 
 /**
- * XCM message collector.
+ * XCM subscriptions switchboard.
  *
  * Maintains state of the subscriptions in the system and the underlying reactive streams,
  * both for origin and destination networks.
@@ -51,7 +51,7 @@ export const Inbound = Symbol.for('inbound-message');
  * @see {Inbound}
  * @see {Outbound}
  */
-export class MessageCollector extends EventEmitter {
+export class Switchboard extends EventEmitter {
   #apis: SubstrateApis;
   #ctx: ServiceContext;
   #db: DB;

@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
-import { MessageCollector } from '../collectors/index.js';
+import { Switchboard } from '../switchboard.js';
 import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
@@ -20,10 +20,10 @@ function hasOp(patch: Operation[], path: string) {
 export function SubscriptionApi(
   fastify: FastifyInstance,
   {
-    msgCollector
+    switchboard
   }:
   {
-    msgCollector: MessageCollector
+    switchboard: Switchboard
   },
   done: (err?: Error) => void
 ) {
@@ -39,7 +39,7 @@ export function SubscriptionApi(
       }
     }
   }, async (_, reply) => {
-    reply.send(await msgCollector.getSubscriptions());
+    reply.send(await switchboard.getSubscriptions());
   });
 
   fastify.get<{
@@ -57,7 +57,7 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    reply.send(await msgCollector.getSubscription(
+    reply.send(await switchboard.getSubscription(
       request.params.id
     ));
   });
@@ -77,7 +77,7 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    await msgCollector.subscribe(request.body);
+    await switchboard.subscribe(request.body);
 
     reply.status(201).send();
   });
@@ -102,7 +102,7 @@ export function SubscriptionApi(
   }, async (request, reply) => {
     const patch = request.body;
     const { id } = request.params;
-    const sub = await msgCollector.getSubscription(id);
+    const sub = await switchboard.getSubscription(id);
 
     // Check allowed patch ops
     const allowedOps = patch.every(op => allowedPaths
@@ -114,14 +114,14 @@ export function SubscriptionApi(
       $QuerySubscription.parse(sub);
 
       if (hasOp(patch, '/senders')) {
-        msgCollector.updateSenders(id, sub.senders);
+        switchboard.updateSenders(id, sub.senders);
       }
 
       if (hasOp(patch, '/destinations')) {
-        msgCollector.updateDestinations(id, sub.destinations);
+        switchboard.updateDestinations(id, sub.destinations);
       }
 
-      await msgCollector.updateInDB(sub);
+      await switchboard.updateInDB(sub);
 
       reply.status(200).send(sub);
     } else {
@@ -148,7 +148,7 @@ export function SubscriptionApi(
       }
     }
   }, (request, reply) => {
-    msgCollector.unsubscribe(request.params.id);
+    switchboard.unsubscribe(request.params.id);
 
     reply.send();
   });

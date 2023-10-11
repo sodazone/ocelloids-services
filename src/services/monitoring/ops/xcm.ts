@@ -15,7 +15,7 @@ import {
   GenericXcmMessageReceivedWithContext,
   GenericXcmMessageSentWithContext, XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
-} from '../../types.js';
+} from '../types.js';
 import { GetOutboundHrmpMessages } from '../head-catcher.js';
 
 function findOutboundHrmpMessage(

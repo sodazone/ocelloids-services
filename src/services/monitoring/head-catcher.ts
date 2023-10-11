@@ -18,10 +18,10 @@ import {
   SubstrateApis
 } from '@sodazone/ocelloids';
 
-import Connector from '../../connector.js';
-import { DB } from '../../types.js';
-import { ServiceContext } from '../../context.js';
-import { ChainHead } from '../types.js';
+import Connector from '../connector.js';
+import { DB } from '../types.js';
+import { ServiceContext } from '../context.js';
+import { ChainHead } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
 
 type BinBlock = {

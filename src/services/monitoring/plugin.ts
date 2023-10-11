@@ -2,7 +2,8 @@ import { FastifyInstance } from 'fastify';
 
 import Connector from '../connector.js';
 import { XcmMessageReceivedEvent, XcmMessageSentEvent } from './types.js';
-import { MessageCollector, HeadCatcher, Inbound, Outbound } from './collectors/index.js';
+import { HeadCatcher } from './head-catcher.js';
+import { Switchboard, Inbound, Outbound } from  './switchboard.js';
 import { Notification } from '../../services/matching/engine.js';
 import { SubscriptionApi } from './api/index.js';
 
@@ -26,9 +27,9 @@ async function Monitoring(
 
   const connector = new Connector(ctx);
   const headCatcher = new HeadCatcher(ctx, connector, db, janitor);
-  const msgCollector = new MessageCollector(ctx, connector, db, headCatcher);
+  const switchboard = new Switchboard(ctx, connector, db, headCatcher);
 
-  msgCollector.on(Outbound, (message: XcmMessageSentEvent) => {
+  switchboard.on(Outbound, (message: XcmMessageSentEvent) => {
     log.info(
       `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
     );
@@ -36,7 +37,7 @@ async function Monitoring(
     engine.onOutboundMessage(message, message);
   });
 
-  msgCollector.on(Inbound, (message: XcmMessageReceivedEvent) => {
+  switchboard.on(Inbound, (message: XcmMessageReceivedEvent) => {
     log.info(
       `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
     );
@@ -44,21 +45,21 @@ async function Monitoring(
     engine.onInboundMessage(message, message);
   });
 
-  engine.on(Notification, msgCollector.onNotification);
+  engine.on(Notification, switchboard.onNotification);
 
   await headCatcher.start();
-  await msgCollector.start();
+  await switchboard.start();
 
   fastify.addHook('onClose', async () => {
     log.info('Shutting down monitoring service');
 
-    msgCollector.stop();
+    switchboard.stop();
     headCatcher.stop();
     await connector.disconnect();
   });
 
   await fastify.register(SubscriptionApi, {
-    msgCollector,
+    switchboard,
   });
 }
 
