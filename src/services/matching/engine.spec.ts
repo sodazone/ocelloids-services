@@ -2,7 +2,7 @@ import { pino } from 'pino';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { MatchingEngine } from './engine.js';
+import { MatchingEngine, Notification } from './engine.js';
 import { XcmMessageReceivedEvent, XcmMessageSentEvent } from '../monitoring/types.js';
 
 const inboundMessage : XcmMessageReceivedEvent = {
@@ -38,6 +38,9 @@ describe('message matching engine', () => {
   });
 
   it('should match inbound and outbound', async () => {
+    const cb = jest.fn();
+    engine.on(Notification, cb);
+
     await engine.onOutboundMessage(
       { chainId: '0', blockNumber: '0', blockHash: '0x0' },
       outboundMessage
@@ -48,10 +51,13 @@ describe('message matching engine', () => {
       inboundMessage
     );
 
-    expect(await engine.notificationsCount()).toBe(1);
+    expect(cb).toBeCalledTimes(1);
   });
 
   it('should match outbound and inbound', async () => {
+    const cb = jest.fn();
+    engine.on(Notification, cb);
+
     await engine.onInboundMessage(
       { chainId: '1', blockNumber: '0', blockHash: '0x0' },
       inboundMessage
@@ -62,10 +68,13 @@ describe('message matching engine', () => {
       outboundMessage
     );
 
-    expect(await engine.notificationsCount()).toBe(1);
+    expect(cb).toBeCalledTimes(1);
   });
 
   it('should work async concurrently', async () => {
+    const cb = jest.fn();
+    engine.on(Notification, cb);
+
     await Promise.all([
       engine.onOutboundMessage(
         { chainId: '0', blockNumber: '0', blockHash: '0x0' },
@@ -77,6 +86,6 @@ describe('message matching engine', () => {
       )
     ]);
 
-    expect(await engine.notificationsCount()).toBe(1);
+    expect(cb).toBeCalledTimes(1);
   });
 });
