@@ -141,13 +141,19 @@ export class XcmMessageSentEvent {
   }
 }
 
+type XcmMessageNofityContext = {
+  chainId: string | number,
+  blockNumber: string,
+  blockHash: string,
+  event: Record<string, AnyJson>
+}
+
 export type XcmMessageNotify = {
   subscriptionId: string,
-  outboundEvent: Record<string, AnyJson>,
-  inboundEvent: Record<string, AnyJson>,
+  origin: XcmMessageNofityContext,
+  destination: XcmMessageNofityContext,
   messageHash: string,
   messageData: string,
-  recipient: number,
   instructions: AnyJson,
   outcome: 'Success' | 'Fail',
   error: AnyJson

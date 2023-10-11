@@ -45,7 +45,7 @@ async function Monitoring(
     engine.onInboundMessage(message, message);
   });
 
-  engine.on(Notification, switchboard.onNotification);
+  engine.on(Notification, switchboard.onNotification.bind(switchboard));
 
   await headCatcher.start();
   await switchboard.start();

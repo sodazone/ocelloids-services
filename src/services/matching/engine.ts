@@ -30,7 +30,6 @@ export class MatchingEngine extends EventEmitter {
 
   #outbound: SubLevel<XcmMessageSentEvent>;
   #inbound: SubLevel<XcmMessageReceivedEvent>;
-  #notifications: SubLevel<any>;
   #mutex: Mutex;
 
   constructor(db: DB, log: pino.BaseLogger) {
@@ -42,11 +41,6 @@ export class MatchingEngine extends EventEmitter {
 
     this.#outbound = this.#sl('out');
     this.#inbound = this.#sl('in');
-    this.#notifications = this.#sl('no');
-  }
-
-  async notificationsCount() {
-    return (await this.#notifications.keys().all()).length;
   }
 
   async onOutboundMessage(
@@ -72,19 +66,31 @@ export class MatchingEngine extends EventEmitter {
   }
 
   async #notify(key: string, outMsg: XcmMessageSentEvent, inMsg: XcmMessageReceivedEvent) {
+    // TODO: from class
     try {
       const message: XcmMessageNotify = {
-        ...outMsg,
-        ...inMsg,
-        outboundEvent: outMsg.event,
-        inboundEvent: inMsg.event
+        subscriptionId: outMsg.subscriptionId,
+        destination: {
+          chainId: inMsg.chainId,
+          blockNumber: inMsg.blockNumber,
+          blockHash: inMsg.blockHash,
+          event: inMsg.event
+        },
+        origin: {
+          chainId: outMsg.chainId,
+          blockNumber: outMsg.blockNumber,
+          blockHash: outMsg.blockHash,
+          event: outMsg.event
+        },
+        instructions: outMsg.instructions,
+        messageData: outMsg.messageData,
+        messageHash: inMsg.messageHash,
+        outcome: inMsg.outcome,
+        error: inMsg.error
       };
-      // TODO when removal?
-      await this.#notifications.put(key, message);
       this.emit(Notification, message);
     } catch (e) {
-      // TODO
-      console.log(e);
+      this.#log.error(e, 'Error on notification');
     }
   }
 
