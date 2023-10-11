@@ -258,31 +258,33 @@ export class Switchboard extends EventEmitter {
 
     const api = this.#apis.promise[origChainId];
     const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
-    const originSub = this.#catcher.finalizedBlocks(origChainId).pipe(
-      extractXcmSend(
-        api,
-        {
-          sendersControl,
-          messageControl
+
+    const originSub = this.#catcher.finalizedBlocks(origChainId)
+      .pipe(
+        extractXcmSend(
+          api,
+          {
+            sendersControl,
+            messageControl
+          },
+          getHrmp
+        ),
+        retryWithTruncatedExpBackoff()
+      ).subscribe({
+        next: message => {
+          this.emit(
+            Outbound,
+            new XcmMessageSentEvent(id, origin, message)
+          );
         },
-        getHrmp
-      ),
-      retryWithTruncatedExpBackoff()
-    ).subscribe({
-      next: message => {
-        this.emit(
-          Outbound,
-          new XcmMessageSentEvent(id, origin, message)
-        );
-      },
-      error: error => {
-        log.error(
-          error,
-          'Error on subscription %s at origin %s',
-          id, origin
-        );
-      }
-    });
+        error: error => {
+          log.error(
+            error,
+            'Error on subscription %s at origin %s',
+            id, origin
+          );
+        }
+      });
 
     // Set up destination subscriptions
     const destinationSubs : Subscription[] = [];
@@ -290,21 +292,24 @@ export class Switchboard extends EventEmitter {
     try {
       destinations.forEach(c => {
         const chainId = c.toString();
-        destinationSubs.push(this.#catcher.finalizedBlocks(chainId).pipe(
-          extractXcmReceive(),
-          retryWithTruncatedExpBackoff()
-        ).subscribe({
-          next: msg => this.emit(
-            Inbound,
-            new XcmMessageReceivedEvent(chainId, msg)
-          ),
-          error: error => {
-            log.error(
-              `Error on subscription ${id} at destination ${chainId}`
-            );
-            log.error(error);
-          }
-        }));
+
+        destinationSubs.push(
+          this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractXcmReceive(),
+              retryWithTruncatedExpBackoff()
+            ).subscribe({
+              next: msg => this.emit(
+                Inbound,
+                new XcmMessageReceivedEvent(chainId, msg)
+              ),
+              error: error => {
+                log.error(
+                  `Error on subscription ${id} at destination ${chainId}`
+                );
+                log.error(error);
+              }
+            }));
       });
     } catch (error) {
       // Clean up subscriptions.

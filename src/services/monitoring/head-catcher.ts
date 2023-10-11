@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import { Observable, Subscription, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import { Observable, Subscription, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
@@ -43,6 +43,7 @@ export class HeadCatcher extends EventEmitter {
   #janitor: Janitor;
 
   #subs: Record<string, Subscription> = {};
+  #pipes: Record<string, Observable<any>> = {};
 
   constructor(
     ctx: ServiceContext,
@@ -142,11 +143,18 @@ export class HeadCatcher extends EventEmitter {
    * - https://github.com/smol-dot/smoldot/blob/6f7afdc9d35a1377af1073be6c0791a62a9c7f45/light-base/src/sync_service.rs#L507
    * - https://github.com/smol-dot/smoldot/blob/6f7afdc9d35a1377af1073be6c0791a62a9c7f45/light-base/src/json_rpc_service/background.rs#L713
    */
-  finalizedBlocks(chainId: string) : Observable<SignedBlockExtended> {
+  finalizedBlocks(
+    chainId: string
+  ) : Observable<SignedBlockExtended> {
     const api = this.#apis.promise[chainId];
+    let pipe = this.#pipes[chainId];
+
+    if (pipe) {
+      return pipe;
+    }
 
     if (this.hasCache(chainId)) {
-      return this.#apis.rx[chainId].pipe(
+      pipe = this.#apis.rx[chainId].pipe(
         finalizedHeads(),
         retryWithTruncatedExpBackoff(),
         this.#catchUpHeads(chainId, api),
@@ -157,16 +165,21 @@ export class HeadCatcher extends EventEmitter {
         }),
         retryWithTruncatedExpBackoff(),
         tap(this.#updateJanitorTasks(chainId)),
+        share()
+      );
+    } else {
+      pipe = this.#apis.rx[chainId].pipe(
+        finalizedHeads(),
+        retryWithTruncatedExpBackoff(),
+        this.#catchUpHeads(chainId, api),
+        blockFromHeader(api),
+        retryWithTruncatedExpBackoff(),
+        share()
       );
     }
 
-    return this.#apis.rx[chainId].pipe(
-      finalizedHeads(),
-      retryWithTruncatedExpBackoff(),
-      this.#catchUpHeads(chainId, api),
-      blockFromHeader(api),
-      retryWithTruncatedExpBackoff()
-    );
+    this.#pipes[chainId] = pipe;
+    return pipe;
   }
 
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
@@ -259,7 +272,10 @@ export class HeadCatcher extends EventEmitter {
    *
    * @private
    */
-  #catchUpHeads(chainId: string, api: ApiPromise) {
+  #catchUpHeads(
+    chainId: string,
+    api: ApiPromise
+  ) {
     const { log } = this.#ctx;
 
     let memHeight : bigint = BigInt(0);
