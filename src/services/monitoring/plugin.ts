@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import Connector from '../connector.js';
 import { XcmMessageReceivedEvent, XcmMessageSentEvent } from './types.js';
 import { MessageCollector, HeadCatcher, Inbound, Outbound } from './collectors/index.js';
+import { Notification } from '../../services/matching/engine.js';
 import { SubscriptionApi } from './api/index.js';
 
 /**
@@ -32,11 +33,7 @@ async function Monitoring(
       `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
     );
 
-    engine.onOutboundMessage({
-      chainId: message.chainId,
-      blockHash: message.event.blockHash.toHex(),
-      blockNumber: message.event.blockNumber.toString()
-    }, message);
+    engine.onOutboundMessage(message, message);
   });
 
   msgCollector.on(Inbound, (message: XcmMessageReceivedEvent) => {
@@ -44,12 +41,10 @@ async function Monitoring(
       `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
     );
 
-    engine.onInboundMessage({
-      chainId: message.chainId,
-      blockHash: message.event.blockHash.toHex(),
-      blockNumber: message.event.blockNumber.toString()
-    }, message);
+    engine.onInboundMessage(message, message);
   });
+
+  engine.on(Notification, msgCollector.onNotification);
 
   await headCatcher.start();
   await msgCollector.start();

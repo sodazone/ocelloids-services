@@ -9,7 +9,7 @@ const testSubContent = {
     2000
   ],
   notify: {
-    endpoint: 'http://localhost'
+    type: 'log'
   }
 };
 

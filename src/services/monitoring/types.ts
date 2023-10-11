@@ -62,20 +62,26 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
   }
 }
 
-export class XcmMessageReceivedEvent extends GenericXcmMessageReceivedWithContext {
+export class XcmMessageReceivedEvent {
   chainId: string | number;
+  event: Record<string, AnyJson>;
+  messageHash: string;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+  blockHash: string;
+  blockNumber: string;
 
-  constructor(chainId: string| number, msg: XcmMessageReceivedWithContext) {
-    super(msg);
+  constructor(
+    chainId: string| number,
+    msg: XcmMessageReceivedWithContext
+  ) {
     this.chainId = chainId;
-  }
-
-  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
-    const data = super.toHuman();
-    return {
-      ...data,
-      chainId: this.chainId.toString()
-    };
+    this.event = msg.event.toHuman();
+    this.messageHash = msg.messageHash;
+    this.outcome = msg.outcome;
+    this.error = msg.error;
+    this.blockHash = msg.event.blockHash.toHex();
+    this.blockNumber = msg.event.blockNumber.toString();
   }
 }
 
@@ -105,22 +111,54 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   }
 }
 
-export class XcmMessageSentEvent extends GenericXcmMessageSentWithContext {
+export class XcmMessageSentEvent {
+  subscriptionId: string;
   chainId: string | number;
+  messageData: string;
+  recipient: number;
+  instructions: AnyJson;
+  messageHash: string;
+  event: Record<string, AnyJson>;
+  blockHash: string;
+  blockNumber: string;
 
-  constructor(chainId: string| number, msg: XcmMessageSentWithContext) {
-    super(msg);
+  constructor(
+    subscriptionId: string,
+    chainId: string| number,
+    msg: XcmMessageSentWithContext
+  ) {
     this.chainId = chainId;
-  }
-
-  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
-    const data = super.toHuman();
-    return {
-      ...data,
-      chainId: this.chainId.toString()
-    };
+    this.subscriptionId = subscriptionId;
+    this.event = msg.event.toHuman();
+    this.messageData = msg.messageData.toHex();
+    this.recipient = msg.recipient;
+    this.instructions = msg.instructions;
+    this.messageHash = msg.messageHash;
+    this.blockHash = msg.event.blockHash.toHex();
+    this.blockNumber = msg.event.blockNumber.toString();
   }
 }
+
+export type XcmMessageNotify = {
+  subscriptionId: string,
+  outboundEvent: Record<string, AnyJson>,
+  inboundEvent: Record<string, AnyJson>,
+  messageHash: string,
+  messageData: string,
+  recipient: number,
+  instructions: AnyJson,
+  outcome: 'Success' | 'Fail',
+  error: AnyJson
+}
+
+const $WebhookNotification = z.object({
+  type: z.literal('webhook'),
+  url: z.string().min(5).regex(/https?:\/\/.*/)
+});
+
+const $LogNotification = z.object({
+  type: z.literal('log'),
+});
 
 export const $QuerySubscription = z.object({
   id: $SafeId,
@@ -133,10 +171,10 @@ export const $QuerySubscription = z.object({
   destinations: z.array(z.number({
     required_error: 'destination id is required'
   }).min(0)),
-  // TODO union...
-  notify: z.object({
-    endpoint: z.string()
-  })
+  notify: z.union([
+    $WebhookNotification,
+    $LogNotification
+  ])
 });
 
 /**

@@ -8,7 +8,7 @@ import {
 import Connector from '../../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/index.js';
 import { DB } from '../../types.js';
-import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent } from '../types.js';
+import { XcmMessageSentEvent, QuerySubscription, XcmMessageReceivedEvent, XcmMessageNotify } from '../types.js';
 import { ServiceContext } from '../../context.js';
 import { NotFound } from '../../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
@@ -71,6 +71,25 @@ export class MessageCollector extends EventEmitter {
     this.#db = db;
     this.#catcher = catcher;
     this.#ctx = ctx;
+  }
+
+  async onNotification(msg: XcmMessageNotify) {
+    try {
+      const { subscriptionId } = msg;
+      const sub = await this.getSubscription(subscriptionId);
+      if (sub.notify.type === 'log') {
+        this.#ctx.log.info(
+          msg,
+          'NOTIFICATION => %s',
+          subscriptionId
+        );
+      } else if (sub.notify.type === 'webhook') {
+      // TODO impl
+      }
+    } catch (error) {
+      // TODO impl
+      console.log(error);
+    }
   }
 
   /**
@@ -251,13 +270,14 @@ export class MessageCollector extends EventEmitter {
     ).subscribe({
       next: message => this.emit(
         Outbound,
-        new XcmMessageSentEvent(origin, message)
+        new XcmMessageSentEvent(id, origin, message)
       ),
       error: error => {
         log.error(
-          `Error on subscription ${id} at origin ${origin}`
+          error,
+          'Error on subscription %s at origin %s',
+          id, origin
         );
-        log.error(error);
       }
     });
 

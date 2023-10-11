@@ -5,8 +5,27 @@ import { MemoryLevel as Level } from 'memory-level';
 import { MatchingEngine } from './engine.js';
 import { XcmMessageReceivedEvent, XcmMessageSentEvent } from '../monitoring/types.js';
 
-const inboundMessage = { messageHash: 'M0', chainId: '1', outcome: 'Sucess', error: null } as unknown as XcmMessageReceivedEvent;
-const outboundMessage = { messageHash: 'M0', recipient: '1' } as unknown as XcmMessageSentEvent;
+const inboundMessage : XcmMessageReceivedEvent = {
+  messageHash: 'M0',
+  chainId: '1',
+  outcome: 'Success',
+  error: null,
+  event: {},
+  blockHash: '0x0',
+  blockNumber: '2'
+};
+
+const outboundMessage : XcmMessageSentEvent = {
+  messageHash: 'M0',
+  recipient: 1,
+  chainId: '0',
+  event: {},
+  instructions: {},
+  messageData: '0x0',
+  subscriptionId: '1',
+  blockHash: '0x0',
+  blockNumber: '2'
+};
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
