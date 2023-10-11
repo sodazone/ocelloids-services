@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 
-import { Subscription } from 'rxjs';
+import { Subscription, tap } from 'rxjs';
+import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff, Criteria
 } from '@sodazone/ocelloids';
@@ -248,7 +249,7 @@ export class MessageCollector extends EventEmitter {
   #monitor(qs: QuerySubscription) {
     const { log } = this.#ctx;
     const { id, origin, senders, destinations } = qs;
-    const strOrig = origin.toString();
+    const origChainId = origin.toString();
 
     // Set up origin subscription
 
@@ -259,9 +260,10 @@ export class MessageCollector extends EventEmitter {
       messageCriteria(destinations)
     );
 
-    const api = this.#apis.promise[strOrig];
-    const getHrmp = this.#catcher.outboundHrmpMessages(strOrig);
-    const originSub = this.#catcher.finalizedBlocks(strOrig).pipe(
+    const api = this.#apis.promise[origChainId];
+    const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
+    const originSub = this.#catcher.finalizedBlocks(origChainId).pipe(
+      tap(this.#updateJanitorTasks(origChainId)),
       extractXcmSend(
         api,
         {
@@ -272,10 +274,12 @@ export class MessageCollector extends EventEmitter {
       ),
       retryWithTruncatedExpBackoff()
     ).subscribe({
-      next: message => this.emit(
-        Outbound,
-        new XcmMessageSentEvent(id, origin, message)
-      ),
+      next: message => {
+        this.emit(
+          Outbound,
+          new XcmMessageSentEvent(id, origin, message)
+        );
+      },
       error: error => {
         log.error(
           error,
@@ -365,5 +369,22 @@ export class MessageCollector extends EventEmitter {
 
   async #subsInDB(chainId: string | number) {
     return await this.#slqs(chainId.toString()).values().all();
+  }
+
+  #updateJanitorTasks(chainId: string) {
+    return ({ block: { header } }: SignedBlockExtended) => {
+      if (this.#catcher.hasCache(chainId)) {
+        this.#janitor.addToClean(
+          {
+            sublevel: chainId + ':blocks',
+            key: 'hrmp-messages:' + header.hash.toHex()
+          },
+          {
+            sublevel: chainId + ':blocks',
+            key: header.hash.toHex()
+          }
+        );
+      }
+    };
   }
 }

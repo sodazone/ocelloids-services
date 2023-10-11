@@ -1,6 +1,6 @@
 import type { } from '@polkadot/api-augment';
 
-import { map, Observable, mergeMap, tap } from 'rxjs';
+import { map, Observable, mergeMap } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import { ApiPromise } from '@polkadot/api';
@@ -29,7 +29,7 @@ function findOutboundHrmpMessage(
       mergeMap(sentMsg => {
         const { event: {blockHash}, messageHash } = sentMsg;
         return getOutboundHrmpMessages(blockHash.toHex()).pipe(
-          tap(_ => console.log('FOUND HRMP INSTRUCTIONS')),
+
           map(messages =>  {
             return messages
               .map(msg => {
@@ -49,9 +49,7 @@ function findOutboundHrmpMessage(
               });
           }),
           filterNonNull(),
-          tap(msg => console.log('FOUND MESSAGE', msg.toHuman())),
-          mongoFilter(messageControl),
-          tap(m => console.log('FILTERED BY MSG CONTROL', m.toHuman()))
+          mongoFilter(messageControl)
         );
       }));
   };
@@ -93,9 +91,7 @@ export function extractXcmSend(
       flattenBatch(),
       extractEventsWithTx(),
       xcmMessagesSent(api),
-      tap(msg => console.log('SEND XCM MESSAGE', msg.messageHash)),
       findOutboundHrmpMessage(api, messageControl, getOutboundHrmpMessages),
-      tap(msg => console.log('SEND XCM MESSAGE WITH INSTRUCTIONS', msg.toHuman())),
     );
   };
 }
@@ -120,7 +116,6 @@ function mapXcmpQueueMessage() {
         } else if (event.method === 'Fail') {
           const xcmMessage = event.data as any;
           const error = xcmMessage.error;
-          console.log('XCM receive fail', error.toHuman());
           return new GenericXcmMessageReceivedWithContext({
             event,
             messageHash: xcmMessage.messageHash.toHex() as string,

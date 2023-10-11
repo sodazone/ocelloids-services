@@ -84,6 +84,27 @@ program
     ).default('./db')
   )
   .addOption(
+    optionOf(
+      '-j, --janitor <boolean>',
+      'enables or disables the db janitor',
+      'XCMON_DB_JANITOR_ENABLE'
+    ).default(true)
+  )
+  .addOption(
+    optionOf(
+      '--sweep-interval <milliseconds>',
+      'milliseconds to wait before each sweeping',
+      'XCMON_DB_JANITOR_SWEEP_INTERVAL'
+    ).default(300000).argParser(positiveInt) // 5 minutes
+  )
+  .addOption(
+    optionOf(
+      '--sweep-expiry <milliseconds>',
+      'milliseconds before a task is swept',
+      'XCMON_DB_JANITOR_SWEEP_EXPIRY'
+    ).default(25 * 60000).argParser(positiveInt) // 25 minutes
+  )
+  .addOption(
     optionOf('-g, --grace',
       'milliseconds for the graceful close to finish',
       'XCMON_CLOSE_GRACE_DELAY',

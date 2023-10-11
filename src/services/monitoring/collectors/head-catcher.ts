@@ -92,7 +92,6 @@ export class HeadCatcher extends EventEmitter {
                  at.query.parachainSystem.hrmpOutboundMessages()
                ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
               ),
-              tap(_ => console.log('RETRIEVED HRMP INSTRUCTIONS ON NEW BLOCK')),
               retryWithTruncatedExpBackoff(),
               map(messages =>  {
                 return {
@@ -150,7 +149,7 @@ export class HeadCatcher extends EventEmitter {
   finalizedBlocks(chainId: string) : Observable<SignedBlockExtended> {
     const api = this.#apis.promise[chainId];
 
-    if (this.#hasSub(chainId)) {
+    if (this.hasCache(chainId)) {
       return this.#apis.rx[chainId].pipe(
         finalizedHeads(),
         retryWithTruncatedExpBackoff(),
@@ -173,38 +172,24 @@ export class HeadCatcher extends EventEmitter {
     );
   }
 
-  // TODO: remove  strategy
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
     const api = this.#apis.promise[chainId];
     const db = this.#blockCache(chainId);
 
-    if (this.#hasSub(chainId)) {
+    if (this.hasCache(chainId)) {
       return (hash: `0x${string}`)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        console.log('returning from cache');
-
         return from(db.get('hrmp-messages:' + hash)).pipe(
-          tap(_ => console.log('MACARIOOOOOOOOOOOOOOo')),
           map(buffer => {
             return api.registry.createType(
               'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
             ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
-          }),
-          tap(msg => console.log('GOT FROM CACHE', msg.toHuman()))
+          })
         );
-
-        /*
-          return from(messages) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>;
-        } catch (error) {
-          console.log('error!!!', error);
-          throw new Error('HRMP messages not found in cache.');
-        }*/
       };
     } else {
       return (hash: `0x${string}`)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        console.log('returning from network');
-
         return from(api.at(hash)).pipe(
           retryWithTruncatedExpBackoff(),
           switchMap(at =>
@@ -224,7 +209,7 @@ export class HeadCatcher extends EventEmitter {
    *
    * @private
    */
-  #hasSub(chainId: string) {
+  hasCache(chainId: string) {
     return this.#subs[chainId] !== undefined;
   }
 
@@ -256,8 +241,6 @@ export class HeadCatcher extends EventEmitter {
         null,
         author as AccountId
       );
-
-      await cache.del(hash);
 
       return sBlock;
     } catch (error) {

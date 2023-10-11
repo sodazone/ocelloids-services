@@ -6,7 +6,7 @@ import { MemoryLevel } from 'memory-level';
 
 import { DB } from '../types.js';
 import { environment } from '../../environment.js';
-import { Janitor } from './janitor.js';
+import { Janitor, JanitorOptions } from './janitor.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -15,7 +15,7 @@ declare module 'fastify' {
   }
 }
 
-type DBOptions = {
+type DBOptions = JanitorOptions & {
   db: string;
 }
 
@@ -38,7 +38,7 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, optio
     db = new Level(dbPath);
   }
 
-  const janitor = new Janitor(db);
+  const janitor = new Janitor(fastify.log, db, options);
 
   fastify.decorate('db', db);
   fastify.decorate('janitor', janitor);

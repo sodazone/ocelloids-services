@@ -1,39 +1,64 @@
-import { Subscription, interval } from 'rxjs';
-import { DB } from '../../services/types.js';
+import { pino } from 'pino';
 
-const DEFAULT_INVERTVAL = 10 * 60 * 1000;
+import { DB } from '../../services/types.js';
 
 export type JanitorTask = {
   sublevel: string,
   key: string
 }
 
+export type JanitorOptions = {
+  sweepInterval: number;
+  sweepExpiry: number;
+  janitor: boolean;
+};
+
 /**
- *
+ * Database clean up tasks.
  */
 export class Janitor {
+  #log: pino.BaseLogger;
   #db: DB;
-  #delay: number = 5000; // 5 secs
-  #sub?: Subscription;
+  #expiry: number;
+  #interval: number;
+  #enabled: boolean;
+  #intervalId?: NodeJS.Timeout;
 
-  constructor(db: DB) {
+  constructor(log: pino.BaseLogger, db: DB, options: JanitorOptions) {
+    this.#log = log;
     this.#db = db;
+    this.#expiry = options.sweepExpiry;
+    this.#interval = options.sweepInterval;
+    this.#enabled = options.janitor;
   }
 
   start() {
-    // TODO: or setInterval?
-    this.#sub = interval(DEFAULT_INVERTVAL)
-      .subscribe(this.#sweep.bind(this));
-  }
+    if (this.#enabled) {
+      this.#log.info(
+        'Starting janitor (interval=%dms, expiry=%dms)',
+        this.#interval,
+        this.#expiry
+      );
 
-  stop() {
-    if (this.#sub) {
-      this.#sub.unsubscribe();
+      this.#intervalId = setInterval(
+        this.#sweep.bind(this),
+        this.#interval
+      );
     }
   }
 
-  async addToClean(task: JanitorTask) {
-    await this.#taskDB.put(Date.now() + this.#delay, task);
+  stop() {
+    if (this.#intervalId) {
+      this.#log.info('Stopping janitor.');
+
+      clearInterval(this.#intervalId);
+    }
+  }
+
+  async addToClean(...tasks: JanitorTask[]) {
+    for (const task of tasks) {
+      await this.#taskDB.put(Date.now() + this.#expiry, task);
+    }
   }
 
   get #taskDB() {
@@ -47,9 +72,12 @@ export class Janitor {
     const db = this.#taskDB;
     const now = Date.now();
 
-    for await (const task of db.values({ lt: now })) {
-      console.log('DELE JAN', task);
+    this.#log.info('Janitor sweep');
+
+    for await (const [key, task] of db.iterator({ lt: now })) {
       await this.#db.sublevel(task.sublevel).del(task.key);
+      await db.del(key);
+      this.#log.debug(task, 'Janitor swept');
     }
   }
 }
