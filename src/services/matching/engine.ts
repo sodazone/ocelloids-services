@@ -43,13 +43,8 @@ export class MatchingEngine extends EventEmitter {
     this.#inbound = this.#sl('in');
   }
 
-  async onOutboundMessage(
-    chainBlock: ChainBlock,
-    outMsg: XcmMessageSentEvent
-  ) {
+  async onOutboundMessage(outMsg: XcmMessageSentEvent) {
     const log = this.#log;
-
-    log.info(chainBlock, '[OUT] MESSAGE %s', outMsg.messageHash);
 
     // Confirmation key at destination
     const ck = `${outMsg.messageHash}:${outMsg.recipient}`;
@@ -94,16 +89,10 @@ export class MatchingEngine extends EventEmitter {
     }
   }
 
-  async onInboundMessage(
-    chainBlock: ChainBlock,
-    inMsg: XcmMessageReceivedEvent
-  )  {
+  async onInboundMessage(inMsg: XcmMessageReceivedEvent)  {
     const log = this.#log;
-    const { messageHash, outcome } = inMsg;
 
-    log.info(chainBlock, '[IN] MESSAGE %s (Outcome: %s)', messageHash, outcome);
-
-    const ck = `${messageHash}:${chainBlock.chainId}`;
+    const ck = `${inMsg.messageHash}:${inMsg.chainId}`;
     await this.#mutex.runExclusive(async () => {
       try {
         const outMsg = await this.#outbound.get(ck);

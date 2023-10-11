@@ -31,18 +31,26 @@ async function Monitoring(
 
   switchboard.on(Outbound, (message: XcmMessageSentEvent) => {
     log.info(
-      `out xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}, recipient=${message.recipient}`
+      '[%s] OUT MESSAGE block=%s, messageHash=%s, recipient=%s',
+      message.chainId,
+      message.blockNumber,
+      message.messageHash,
+      message.recipient
     );
 
-    engine.onOutboundMessage(message, message);
+    engine.onOutboundMessage(message);
   });
 
   switchboard.on(Inbound, (message: XcmMessageReceivedEvent) => {
     log.info(
-      `in xcm: [chainId=${message.chainId}, messageHash=${message.messageHash}`
+      '[%s] IN MESSAGE block=%s, messageHash=%s, outcome=%s',
+      message.chainId,
+      message.blockNumber,
+      message.messageHash,
+      message.outcome
     );
 
-    engine.onInboundMessage(message, message);
+    engine.onInboundMessage(message);
   });
 
   engine.on(Notification, switchboard.onNotification.bind(switchboard));

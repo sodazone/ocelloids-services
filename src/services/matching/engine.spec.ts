@@ -41,15 +41,9 @@ describe('message matching engine', () => {
     const cb = jest.fn();
     engine.on(Notification, cb);
 
-    await engine.onOutboundMessage(
-      { chainId: '0', blockNumber: '0', blockHash: '0x0' },
-      outboundMessage
-    );
+    await engine.onOutboundMessage(outboundMessage);
 
-    await engine.onInboundMessage(
-      { chainId: '1', blockNumber: '0', blockHash: '0x0' },
-      inboundMessage
-    );
+    await engine.onInboundMessage(inboundMessage);
 
     expect(cb).toBeCalledTimes(1);
   });
@@ -58,15 +52,9 @@ describe('message matching engine', () => {
     const cb = jest.fn();
     engine.on(Notification, cb);
 
-    await engine.onInboundMessage(
-      { chainId: '1', blockNumber: '0', blockHash: '0x0' },
-      inboundMessage
-    );
+    await engine.onInboundMessage(inboundMessage);
 
-    await engine.onOutboundMessage(
-      { chainId: '0', blockNumber: '0', blockHash: '0x0' },
-      outboundMessage
-    );
+    await engine.onOutboundMessage(outboundMessage);
 
     expect(cb).toBeCalledTimes(1);
   });
@@ -76,14 +64,8 @@ describe('message matching engine', () => {
     engine.on(Notification, cb);
 
     await Promise.all([
-      engine.onOutboundMessage(
-        { chainId: '0', blockNumber: '0', blockHash: '0x0' },
-        outboundMessage
-      ),
-      engine.onInboundMessage(
-        { chainId: '1', blockNumber: '0', blockHash: '0x0' },
-        inboundMessage
-      )
+      engine.onOutboundMessage(outboundMessage),
+      engine.onInboundMessage(inboundMessage)
     ]);
 
     expect(cb).toBeCalledTimes(1);
