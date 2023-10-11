@@ -1,12 +1,14 @@
+import EventEmitter from 'events';
 import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
 import { DB } from '../types.js';
 import {
-  XcmMessageNotify, XcmMessageReceivedEvent, XcmMessageSentEvent
-} from 'services/monitoring/types.js';
-import EventEmitter from 'events';
+  XcmMessageNotify,
+  XcmMessageReceivedEvent,
+  XcmMessageSentEvent
+} from '../monitoring/types.js';
 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
@@ -51,38 +53,32 @@ export class MatchingEngine extends EventEmitter {
     await this.#mutex.runExclusive(async () => {
       try {
         const inMsg = await this.#inbound.get(ck);
-        log.info('[OUT] NOTIFY %s', ck);
-        await this.#notify(ck, outMsg, inMsg);
+
+        log.info(
+          '[%s] MATCHED %s',
+          outMsg.chainId,
+          ck
+        );
+
+        this.#inbound.del(ck);
+        await this.#notify(outMsg, inMsg);
       } catch (e) {
-        log.info('[OUT] CONFIRMED %s', ck);
+        log.info(
+          '[%s] STORED FOR MATCHING %s',
+          outMsg.chainId,
+          ck
+        );
         await this.#outbound.put(ck, outMsg);
       }
     });
   }
 
-  async #notify(key: string, outMsg: XcmMessageSentEvent, inMsg: XcmMessageReceivedEvent) {
-    // TODO: from class
+  async #notify(
+    outMsg: XcmMessageSentEvent,
+    inMsg: XcmMessageReceivedEvent
+  ) {
     try {
-      const message: XcmMessageNotify = {
-        subscriptionId: outMsg.subscriptionId,
-        destination: {
-          chainId: inMsg.chainId,
-          blockNumber: inMsg.blockNumber,
-          blockHash: inMsg.blockHash,
-          event: inMsg.event
-        },
-        origin: {
-          chainId: outMsg.chainId,
-          blockNumber: outMsg.blockNumber,
-          blockHash: outMsg.blockHash,
-          event: outMsg.event
-        },
-        instructions: outMsg.instructions,
-        messageData: outMsg.messageData,
-        messageHash: inMsg.messageHash,
-        outcome: inMsg.outcome,
-        error: inMsg.error
-      };
+      const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
       this.emit(Notification, message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
@@ -96,10 +92,21 @@ export class MatchingEngine extends EventEmitter {
     await this.#mutex.runExclusive(async () => {
       try {
         const outMsg = await this.#outbound.get(ck);
-        log.info('[IN] NOTIFY %s', ck);
-        await this.#notify(ck, outMsg, inMsg);
+
+        log.info(
+          '[%s] MATCHED %s',
+          inMsg.chainId,
+          ck
+        );
+
+        this.#outbound.del(ck);
+        await this.#notify(outMsg, inMsg);
       } catch (e) {
-        log.info('[IN] CONFIRMED %s', ck);
+        log.info(
+          '[%s] STORED FOR MATCHING %s',
+          inMsg.chainId,
+          ck
+        );
         await this.#inbound.put(ck, inMsg);
       }
     });

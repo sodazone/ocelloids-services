@@ -78,16 +78,18 @@ export class Switchboard extends EventEmitter {
       const sub = await this.getSubscription(subscriptionId);
       if (sub.notify.type === 'log') {
         this.#ctx.log.info(
-          msg,
-          'NOTIFICATION => %s',
-          subscriptionId
+          '[%s => %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s',
+          msg.origin.chainId,
+          msg.destination.chainId,
+          subscriptionId,
+          msg.messageHash,
+          msg.outcome
         );
       } else if (sub.notify.type === 'webhook') {
       // TODO impl
       }
     } catch (error) {
-      // TODO impl
-      console.log(error);
+      this.#ctx.log.error(error, 'Notification type not supported');
     }
   }
 

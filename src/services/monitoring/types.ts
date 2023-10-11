@@ -148,15 +148,39 @@ type XcmMessageNofityContext = {
   event: Record<string, AnyJson>
 }
 
-export type XcmMessageNotify = {
-  subscriptionId: string,
-  origin: XcmMessageNofityContext,
-  destination: XcmMessageNofityContext,
-  messageHash: string,
-  messageData: string,
-  instructions: AnyJson,
-  outcome: 'Success' | 'Fail',
-  error: AnyJson
+export class XcmMessageNotify {
+  subscriptionId: string;
+  origin: XcmMessageNofityContext;
+  destination: XcmMessageNofityContext;
+  messageHash: string;
+  messageData: string;
+  instructions: AnyJson;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+
+  constructor(
+    outMsg: XcmMessageSentEvent,
+    inMsg: XcmMessageReceivedEvent
+  ) {
+    this.subscriptionId = outMsg.subscriptionId;
+    this.destination = {
+      chainId: inMsg.chainId,
+      blockNumber: inMsg.blockNumber,
+      blockHash: inMsg.blockHash,
+      event: inMsg.event
+    };
+    this.origin = {
+      chainId: outMsg.chainId,
+      blockNumber: outMsg.blockNumber,
+      blockHash: outMsg.blockHash,
+      event: outMsg.event
+    };
+    this.instructions = outMsg.instructions;
+    this.messageData = outMsg.messageData;
+    this.messageHash = inMsg.messageHash;
+    this.outcome = inMsg.outcome;
+    this.error = inMsg.error;
+  }
 }
 
 const $WebhookNotification = z.object({
