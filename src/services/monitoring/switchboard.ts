@@ -25,7 +25,7 @@ import { sendersCriteria, messageCriteria } from './ops/criteria.js';
  * XCM Subscriptions Switchboard.
  *
  * Manages subscriptions and notifications for Cross-Consensus Message Format (XCM) formatted messages.
- * Enables subscribing to and unsubscribing from XCM messages of interestm handling 'matched' notifications,
+ * Enables subscribing to and unsubscribing from XCM messages of interest, handling 'matched' notifications,
  * and managing subscription lifecycles.
  * Monitors active subscriptions, processes incoming 'matched' notifications,
  * and dynamically updates selection criteria of the subscriptions.
