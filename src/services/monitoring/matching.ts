@@ -8,8 +8,8 @@ import {
   XcmMessageReceived,
   XcmMessageSent
 } from './types.js';
-import { XcmNotification } from '../events.js';
 
+export const XcmNotification = Symbol('xcm-notification');
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
 export type ChainBlock = {

@@ -1,5 +1,3 @@
-import { EventEmitter } from 'node:events';
-
 import { FastifyInstance } from 'fastify';
 
 import { Subscription } from 'rxjs';
@@ -20,8 +18,7 @@ import {
   SubscriptionHandler
 } from './types.js';
 import { ServiceConfiguration } from '../configuration.js';
-import { MatchingEngine } from './matching.js';
-import { XcmInbound, XcmNotification, XcmOutbound } from '../events.js';
+import { MatchingEngine, XcmNotification } from './matching.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 
 /**
@@ -30,16 +27,9 @@ import { sendersCriteria, messageCriteria } from './ops/criteria.js';
  * Maintains state of the subscriptions in the system and the underlying reactive streams,
  * both for origin and destination networks.
  *
- * Consumes XCM notifications.
- * Emits XCM events:
- * - Inbound: Emitted when a new XCM message is originated.
- * - Outbound: Emitted when an XCM message is received at the destination network.
- *
- * @see {XcmMessageSent}
- * @see {Inbound}
- * @see {Outbound}
+ * Coordinates the matching and notification logic.
  */
-export class Switchboard extends EventEmitter {
+export class Switchboard {
   #connector: Connector;
   #apis: SubstrateApis;
   #config: ServiceConfiguration;
@@ -53,8 +43,6 @@ export class Switchboard extends EventEmitter {
   constructor(
     ctx: FastifyInstance
   ) {
-    super();
-
     const { log , db, config } = ctx;
     const connector = new Connector(log, config);
 
@@ -182,7 +170,7 @@ export class Switchboard extends EventEmitter {
 
   async start() {
     await this.#startNetworkMonitors();
-    this.#setupEventHandlers();
+    this.#engine.on(XcmNotification, this.onNotification.bind(this));
     this.#catcher.start();
   }
 
@@ -275,8 +263,7 @@ export class Switchboard extends EventEmitter {
         retryWithTruncatedExpBackoff()
       ).subscribe({
         next: message => {
-          this.emit(
-            XcmOutbound,
+          this.#engine.onOutboundMessage(
             new XcmMessageSent(id, origin, message)
           );
         },
@@ -302,8 +289,7 @@ export class Switchboard extends EventEmitter {
               extractXcmReceive(),
               retryWithTruncatedExpBackoff()
             ).subscribe({
-              next: msg => this.emit(
-                XcmInbound,
+              next: msg => this.#engine.onInboundMessage(
                 new XcmMessageReceived(chainId, msg)
               ),
               error: error => {
@@ -361,34 +347,6 @@ export class Switchboard extends EventEmitter {
         }
       }
     }
-  }
-
-  #setupEventHandlers() {
-    this.on(XcmOutbound, (message: XcmMessageSent) => {
-      this.#log.info(
-        '[%s] OUT MESSAGE block=%s, messageHash=%s, recipient=%s',
-        message.chainId,
-        message.blockNumber,
-        message.messageHash,
-        message.recipient
-      );
-
-      this.#engine.onOutboundMessage(message);
-    });
-
-    this.on(XcmInbound, (message: XcmMessageReceived) => {
-      this.#log.info(
-        '[%s] IN MESSAGE block=%s, messageHash=%s, outcome=%s',
-        message.chainId,
-        message.blockNumber,
-        message.messageHash,
-        message.outcome
-      );
-
-      this.#engine.onInboundMessage(message);
-    });
-
-    this.#engine.on(XcmNotification, this.onNotification.bind(this));
   }
 
   #slqs(chainId: string | number) {

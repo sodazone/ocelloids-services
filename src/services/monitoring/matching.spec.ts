@@ -2,9 +2,8 @@ import { pino } from 'pino';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { MatchingEngine } from './matching.js';
+import { MatchingEngine, XcmNotification } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
-import { XcmNotification } from '../events.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: 'M0',
