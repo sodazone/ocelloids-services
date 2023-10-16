@@ -6,8 +6,8 @@ import { Mutex } from 'async-mutex';
 import { DB } from '../types.js';
 import {
   XcmMessageNotify,
-  XcmMessageReceivedEvent,
-  XcmMessageSentEvent
+  XcmMessageReceived,
+  XcmMessageSent
 } from '../monitoring/types.js';
 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -30,8 +30,8 @@ export class MatchingEngine extends EventEmitter {
   #db: DB;
   #log: pino.BaseLogger;
 
-  #outbound: SubLevel<XcmMessageSentEvent>;
-  #inbound: SubLevel<XcmMessageReceivedEvent>;
+  #outbound: SubLevel<XcmMessageSent>;
+  #inbound: SubLevel<XcmMessageReceived>;
   #mutex: Mutex;
 
   constructor(db: DB, log: pino.BaseLogger) {
@@ -45,7 +45,7 @@ export class MatchingEngine extends EventEmitter {
     this.#inbound = this.#sl('in');
   }
 
-  async onOutboundMessage(outMsg: XcmMessageSentEvent) {
+  async onOutboundMessage(outMsg: XcmMessageSent) {
     const log = this.#log;
 
     // Confirmation key at destination
@@ -74,8 +74,8 @@ export class MatchingEngine extends EventEmitter {
   }
 
   async #notify(
-    outMsg: XcmMessageSentEvent,
-    inMsg: XcmMessageReceivedEvent
+    outMsg: XcmMessageSent,
+    inMsg: XcmMessageReceived
   ) {
     try {
       const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
@@ -85,7 +85,7 @@ export class MatchingEngine extends EventEmitter {
     }
   }
 
-  async onInboundMessage(inMsg: XcmMessageReceivedEvent)  {
+  async onInboundMessage(inMsg: XcmMessageReceived)  {
     const log = this.#log;
 
     const ck = `${inMsg.messageHash}:${inMsg.chainId}`;

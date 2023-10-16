@@ -252,9 +252,12 @@ export class HeadCatcher extends EventEmitter {
         author as AccountId
       );
 
+      cache.del(hash).catch(err => {
+        this.#ctx.log.error(err, 'Error deleting cached block');
+      });
+
       return sBlock;
     } catch (error) {
-      // Fallback to try from API
       return await api.derive.chain.getBlock(hash);
     }
   }

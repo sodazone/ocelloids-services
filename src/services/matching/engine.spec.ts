@@ -3,9 +3,9 @@ import { pino } from 'pino';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine, Notification } from './engine.js';
-import { XcmMessageReceivedEvent, XcmMessageSentEvent } from '../monitoring/types.js';
+import { XcmMessageReceived, XcmMessageSent } from '../monitoring/types.js';
 
-const inboundMessage : XcmMessageReceivedEvent = {
+const inboundMessage : XcmMessageReceived = {
   messageHash: 'M0',
   chainId: '1',
   outcome: 'Success',
@@ -15,7 +15,7 @@ const inboundMessage : XcmMessageReceivedEvent = {
   blockNumber: '2'
 };
 
-const outboundMessage : XcmMessageSentEvent = {
+const outboundMessage : XcmMessageSent = {
   messageHash: 'M0',
   recipient: 1,
   chainId: '0',

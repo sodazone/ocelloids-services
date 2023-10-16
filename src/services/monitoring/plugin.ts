@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 
 import Connector from '../connector.js';
-import { XcmMessageReceivedEvent, XcmMessageSentEvent } from './types.js';
+import { XcmMessageReceived, XcmMessageSent } from './types.js';
 import { HeadCatcher } from './head-catcher.js';
 import { Switchboard, Inbound, Outbound } from  './switchboard.js';
 import { Notification } from '../../services/matching/engine.js';
@@ -29,7 +29,7 @@ async function Monitoring(
   const headCatcher = new HeadCatcher(ctx, connector, db, janitor);
   const switchboard = new Switchboard(ctx, connector, db, headCatcher);
 
-  switchboard.on(Outbound, (message: XcmMessageSentEvent) => {
+  switchboard.on(Outbound, (message: XcmMessageSent) => {
     log.info(
       '[%s] OUT MESSAGE block=%s, messageHash=%s, recipient=%s',
       message.chainId,
@@ -41,7 +41,7 @@ async function Monitoring(
     engine.onOutboundMessage(message);
   });
 
-  switchboard.on(Inbound, (message: XcmMessageReceivedEvent) => {
+  switchboard.on(Inbound, (message: XcmMessageReceived) => {
     log.info(
       '[%s] IN MESSAGE block=%s, messageHash=%s, outcome=%s',
       message.chainId,

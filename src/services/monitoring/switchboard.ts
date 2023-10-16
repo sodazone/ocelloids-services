@@ -12,9 +12,9 @@ import { ServiceContext } from '../context.js';
 import { NotFound } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
-  XcmMessageSentEvent,
+  XcmMessageSent,
   QuerySubscription,
-  XcmMessageReceivedEvent,
+  XcmMessageReceived,
   XcmMessageNotify,
   SubscriptionHandler
 } from './types.js';
@@ -46,7 +46,7 @@ export const Inbound = Symbol.for('inbound-message');
  * - Inbound: Emitted when a new XCM message is originated.
  * - Outbound: Emitted when an XCM message is received at the destination network.
  *
- * @see {XcmMessageSentEvent}
+ * @see {XcmMessageSent}
  * @see {Inbound}
  * @see {Outbound}
  */
@@ -274,7 +274,7 @@ export class Switchboard extends EventEmitter {
         next: message => {
           this.emit(
             Outbound,
-            new XcmMessageSentEvent(id, origin, message)
+            new XcmMessageSent(id, origin, message)
           );
         },
         error: error => {
@@ -301,7 +301,7 @@ export class Switchboard extends EventEmitter {
             ).subscribe({
               next: msg => this.emit(
                 Inbound,
-                new XcmMessageReceivedEvent(chainId, msg)
+                new XcmMessageReceived(chainId, msg)
               ),
               error: error => {
                 log.error(
