@@ -1,14 +1,15 @@
 import { EventEmitter } from 'node:events';
 
+import { FastifyInstance } from 'fastify';
+
 import { Subscription } from 'rxjs';
 import {
-  SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff, Criteria
+  SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
 import { extractXcmReceive, extractXcmSend } from './ops/xcm.js';
-import { DB } from '../types.js';
-import { ServiceContext } from '../context.js';
+import { DB, Logger } from '../types.js';
 import { NotFound } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
@@ -18,23 +19,10 @@ import {
   XcmMessageNotify,
   SubscriptionHandler
 } from './types.js';
-
-function sendersCriteria(senders: string[]) : Criteria {
-  return {
-    'events.event.section': 'xcmpQueue',
-    'events.event.method': 'XcmpMessageSent',
-    'block.extrinsics.signer.id': { $in: senders }
-  };
-}
-
-function messageCriteria(recipients: number[]) : Criteria {
-  return {
-    'recipient': { $in: recipients }
-  };
-}
-
-export const Outbound = Symbol.for('outbound-message');
-export const Inbound = Symbol.for('inbound-message');
+import { ServiceConfiguration } from '../configuration.js';
+import { MatchingEngine } from './matching.js';
+import { XcmInbound, XcmNotification, XcmOutbound } from '../events.js';
+import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 
 /**
  * XCM subscriptions switchboard.
@@ -42,7 +30,8 @@ export const Inbound = Symbol.for('inbound-message');
  * Maintains state of the subscriptions in the system and the underlying reactive streams,
  * both for origin and destination networks.
  *
- * Emits 'XcmMessageEvent' events:
+ * Consumes XCM notifications.
+ * Emits XCM events:
  * - Inbound: Emitted when a new XCM message is originated.
  * - Outbound: Emitted when an XCM message is received at the destination network.
  *
@@ -51,33 +40,42 @@ export const Inbound = Symbol.for('inbound-message');
  * @see {Outbound}
  */
 export class Switchboard extends EventEmitter {
+  #connector: Connector;
   #apis: SubstrateApis;
-  #ctx: ServiceContext;
+  #config: ServiceConfiguration;
+  #log: Logger;
   #db: DB;
 
   #subs: Record<string, SubscriptionHandler> = {};
+  #engine: MatchingEngine;
   #catcher: HeadCatcher;
 
   constructor(
-    ctx: ServiceContext,
-    connector: Connector,
-    db: DB,
-    catcher: HeadCatcher
+    ctx: FastifyInstance
   ) {
     super();
 
+    const { log , db, config } = ctx;
+    const connector = new Connector(log, config);
+
+    this.#connector = connector;
     this.#apis = connector.connect();
+
     this.#db = db;
-    this.#catcher = catcher;
-    this.#ctx = ctx;
+    this.#log = log;
+    this.#config = config;
+
+    this.#engine = new MatchingEngine(db, log);
+    this.#catcher = new HeadCatcher(ctx, connector);
   }
 
   async onNotification(msg: XcmMessageNotify) {
+    // TODO: impl notifier
     try {
       const { subscriptionId } = msg;
       const sub = await this.getSubscription(subscriptionId);
       if (sub.notify.type === 'log') {
-        this.#ctx.log.info(
+        this.#log.info(
           '[%s => %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s',
           msg.origin.chainId,
           msg.destination.chainId,
@@ -89,7 +87,7 @@ export class Switchboard extends EventEmitter {
       // TODO impl
       }
     } catch (error) {
-      this.#ctx.log.error(error, 'Notification type not supported');
+      this.#log.error(error, 'Notification type not supported');
     }
   }
 
@@ -100,7 +98,6 @@ export class Switchboard extends EventEmitter {
    * @throws {Error} If there is an error during the subscription setup process.
    */
   async subscribe(qs: QuerySubscription) {
-    const { log } = this.#ctx;
     try {
       await this.getSubscription(qs.id);
       throw new Error(`Subscription with ID ${qs.id} already exists`);
@@ -108,7 +105,7 @@ export class Switchboard extends EventEmitter {
     // OK ^^
     }
 
-    log.info(
+    this.#log.info(
       '[%s] new subscription: %s',
       qs.origin,
       qs
@@ -126,13 +123,12 @@ export class Switchboard extends EventEmitter {
    * @param {string} id The subscription identifier.
    */
   unsubscribe(id: string) {
-    const { log } = this.#ctx;
     try {
       const {
         origin, originSub, destinationSubs
       } = this.#subs[id];
 
-      log.info(
+      this.#log.info(
         '[%s] unsubscribe %s',
         origin,
         id
@@ -143,7 +139,7 @@ export class Switchboard extends EventEmitter {
       delete this.#subs[id];
       this.#slqs(origin).del(id);
     } catch (error) {
-      log.error(`Error unsubscribing ${id}`, id);
+      this.#log.error(`Error unsubscribing ${id}`, id);
     }
   }
 
@@ -156,7 +152,7 @@ export class Switchboard extends EventEmitter {
    */
   async getSubscription(id: string) {
     // TODO: case if network config changes...
-    for (const network of this.#ctx.config.networks) {
+    for (const network of this.#config.networks) {
       try {
         const subscription = await this.#slqs(network.id).get(id);
         return subscription;
@@ -176,7 +172,7 @@ export class Switchboard extends EventEmitter {
    */
   async getSubscriptions() {
     let subscriptions: QuerySubscription[] = [];
-    for (const network of this.#ctx.config.networks) {
+    for (const network of this.#config.networks) {
       const subs = await this.#subsInDB(network.id);
       subscriptions = subscriptions.concat(subs);
     }
@@ -184,51 +180,59 @@ export class Switchboard extends EventEmitter {
     return subscriptions;
   }
 
-  /**
-   * Starts collecting XCM messages.
-   *
-   * Monitors all the active subscriptions for the configured networks.
-   */
   async start() {
-    const { config: { networks }, log } = this.#ctx;
-
-    for (const network of networks) {
-      const subs = await this.#subsInDB(network.id);
-
-      log.info(
-        '[%s] number of subscriptions %d',
-        network.id,
-        subs.length
-      );
-
-      for (const sub of subs) {
-        try {
-          this.#monitor(sub);
-        } catch (err) {
-          log.error(`Unable to create subscription: ${JSON.stringify(sub, null, 2)}`);
-          log.error(err);
-        }
-      }
-    }
+    await this.#startNetworkMonitors();
+    this.#setupEventHandlers();
+    this.#catcher.start();
   }
 
   /**
-   * Stops the message collectors and unsubscribes from the underlying
+   * Stops the switchboard and unsubscribes from the underlying
    * reactive subscriptions.
    */
-  stop() {
-    const { log } = this.#ctx;
-    log.info('Stopping message collectors');
+  async stop() {
+    this.#log.info('Stopping switchboard');
 
     for (const {
       id,
       originSub,
       destinationSubs
     } of Object.values(this.#subs)) {
-      log.info(`Unsubscribe ${id}`);
+      this.#log.info(`Unsubscribe ${id}`);
       originSub.unsubscribe();
       destinationSubs.forEach(sub => sub.unsubscribe());
     }
+
+    this.#catcher.stop();
+    await this.#connector.disconnect();
+  }
+
+  /**
+   * Updates the senders control handler.
+   *
+   * Applies to the outbound extrinsic signers.
+   */
+  updateSenders(id: string, senders: string[]) {
+    const { sendersControl } = this.#subs[id];
+    sendersControl.change(sendersCriteria(senders));
+  }
+
+  /**
+   * Updates the message control handler.
+   *
+   * Applies to the outbound XCM message.
+   */
+  updateDestinations(id: string, recipients: number[]) {
+    const { messageControl } = this.#subs[id];
+    messageControl.change(messageCriteria(recipients));
+  }
+
+  /**
+   * Updates the subscription data in the database.
+   */
+  async updateInDB(qs: QuerySubscription) {
+    const db = await this.#slqs(qs.origin);
+    await db.put(qs.id, qs);
   }
 
   /**
@@ -243,7 +247,6 @@ export class Switchboard extends EventEmitter {
    * @private
    */
   #monitor(qs: QuerySubscription) {
-    const { log } = this.#ctx;
     const { id, origin, senders, destinations } = qs;
     const origChainId = origin.toString();
 
@@ -273,12 +276,12 @@ export class Switchboard extends EventEmitter {
       ).subscribe({
         next: message => {
           this.emit(
-            Outbound,
+            XcmOutbound,
             new XcmMessageSent(id, origin, message)
           );
         },
         error: error => {
-          log.error(
+          this.#log.error(
             error,
             'Error on subscription %s at origin %s',
             id, origin
@@ -300,14 +303,14 @@ export class Switchboard extends EventEmitter {
               retryWithTruncatedExpBackoff()
             ).subscribe({
               next: msg => this.emit(
-                Inbound,
+                XcmInbound,
                 new XcmMessageReceived(chainId, msg)
               ),
               error: error => {
-                log.error(
+                this.#log.error(
                   `Error on subscription ${id} at destination ${chainId}`
                 );
-                log.error(error);
+                this.#log.error(error);
               }
             }));
       });
@@ -331,31 +334,61 @@ export class Switchboard extends EventEmitter {
   }
 
   /**
-   * Updates the senders control handler.
+   * Starts collecting XCM messages.
    *
-   * Applies to the outbound extrinsic signers.
+   * Monitors all the active subscriptions for the configured networks.
+   *
+   * @private
    */
-  updateSenders(id: string, senders: string[]) {
-    const { sendersControl } = this.#subs[id];
-    sendersControl.change(sendersCriteria(senders));
+  async #startNetworkMonitors() {
+    const { networks } = this.#config;
+
+    for (const network of networks) {
+      const subs = await this.#subsInDB(network.id);
+
+      this.#log.info(
+        '[%s] number of subscriptions %d',
+        network.id,
+        subs.length
+      );
+
+      for (const sub of subs) {
+        try {
+          this.#monitor(sub);
+        } catch (err) {
+          this.#log.error(`Unable to create subscription: ${JSON.stringify(sub, null, 2)}`);
+          this.#log.error(err);
+        }
+      }
+    }
   }
 
-  /**
-   * Updates the message control handler.
-   *
-   * Applies to the outbound XCM message.
-   */
-  updateDestinations(id: string, recipients: number[]) {
-    const { messageControl } = this.#subs[id];
-    messageControl.change(messageCriteria(recipients));
-  }
+  #setupEventHandlers() {
+    this.on(XcmOutbound, (message: XcmMessageSent) => {
+      this.#log.info(
+        '[%s] OUT MESSAGE block=%s, messageHash=%s, recipient=%s',
+        message.chainId,
+        message.blockNumber,
+        message.messageHash,
+        message.recipient
+      );
 
-  /**
-   * Updates the subscription data in the database.
-   */
-  async updateInDB(qs: QuerySubscription) {
-    const db = await this.#slqs(qs.origin);
-    await db.put(qs.id, qs);
+      this.#engine.onOutboundMessage(message);
+    });
+
+    this.on(XcmInbound, (message: XcmMessageReceived) => {
+      this.#log.info(
+        '[%s] IN MESSAGE block=%s, messageHash=%s, outcome=%s',
+        message.chainId,
+        message.blockNumber,
+        message.messageHash,
+        message.outcome
+      );
+
+      this.#engine.onInboundMessage(message);
+    });
+
+    this.#engine.on(XcmNotification, this.onNotification.bind(this));
   }
 
   #slqs(chainId: string | number) {

@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 
-import { ServiceContext } from './context.js';
 import Connector from './connector.js';
 import {
   mockConfigLC,
@@ -57,33 +56,18 @@ jest.mock('@polkadot/api', () => {
 
 describe('connector', () => {
   it('should fail if relay is configured with RPC and parachain is configured with Smoldot', () => {
-    const ctx: ServiceContext = {
-      log: mockLog,
-      config: mockConfigProviderMismatch
-    };
-
-    expect(() => new Connector(ctx))
+    expect(() => new Connector(mockLog, mockConfigProviderMismatch))
       .toThrowError('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
   });
 
   it('should fail if `relay` field in parachain config does not match WellKnown chain or relay chain config name', () => {
-    const ctx: ServiceContext = {
-      log: mockLog,
-      config: mockConfigRelayMismatch
-    };
-
-    expect(() => new Connector(ctx))
+    expect(() => new Connector(mockLog, mockConfigRelayMismatch))
       .toThrowError('Configuration for network rococo not found.');
   });
 
   describe('connect', () => {
     it('should return all network apis with light-client-only config', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigLC
-      };
-
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigLC);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);
@@ -93,12 +77,7 @@ describe('connector', () => {
     });
 
     it('should return all network apis with RPC-only config', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigWS
-      };
-
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigWS);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);
@@ -108,12 +87,7 @@ describe('connector', () => {
     });
 
     it('should return all network apis with a mix of light-client or RPC config', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigMixed
-      };
-
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigMixed);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);
@@ -123,12 +97,7 @@ describe('connector', () => {
     });
 
     it('should return all network apis with relay network as the last item in the config', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigRelayLast
-      };
-
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigRelayLast);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);
@@ -138,12 +107,7 @@ describe('connector', () => {
     });
 
     it('should return apis if already registered', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigWS
-      };
-
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigWS);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);
@@ -155,13 +119,9 @@ describe('connector', () => {
 
   describe('disconnect', () => {
     it('should call disconnect on apis', () => {
-      const ctx: ServiceContext = {
-        log: mockLog,
-        config: mockConfigLC
-      };
       jest.spyOn(fs, 'readFileSync').mockImplementation(() => '');
 
-      const connector = new Connector(ctx);
+      const connector = new Connector(mockLog, mockConfigLC);
       const apis = connector.connect();
 
       expect(apis.chains.length).toBe(3);

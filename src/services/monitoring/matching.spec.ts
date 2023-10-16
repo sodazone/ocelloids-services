@@ -2,8 +2,9 @@ import { pino } from 'pino';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { MatchingEngine, Notification } from './engine.js';
-import { XcmMessageReceived, XcmMessageSent } from '../monitoring/types.js';
+import { MatchingEngine } from './matching.js';
+import { XcmMessageReceived, XcmMessageSent } from './types.js';
+import { XcmNotification } from '../events.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: 'M0',
@@ -39,7 +40,7 @@ describe('message matching engine', () => {
 
   it('should match inbound and outbound', async () => {
     const cb = jest.fn();
-    engine.on(Notification, cb);
+    engine.on(XcmNotification, cb);
 
     await engine.onOutboundMessage(outboundMessage);
 
@@ -50,7 +51,7 @@ describe('message matching engine', () => {
 
   it('should match outbound and inbound', async () => {
     const cb = jest.fn();
-    engine.on(Notification, cb);
+    engine.on(XcmNotification, cb);
 
     await engine.onInboundMessage(inboundMessage);
 
@@ -61,7 +62,7 @@ describe('message matching engine', () => {
 
   it('should work async concurrently', async () => {
     const cb = jest.fn();
-    engine.on(Notification, cb);
+    engine.on(XcmNotification, cb);
 
     await Promise.all([
       engine.onOutboundMessage(outboundMessage),

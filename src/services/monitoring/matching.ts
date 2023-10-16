@@ -1,14 +1,14 @@
 import EventEmitter from 'events';
-import pino from 'pino';
 import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
-import { DB } from '../types.js';
+import { DB, Logger } from '../types.js';
 import {
   XcmMessageNotify,
   XcmMessageReceived,
   XcmMessageSent
-} from '../monitoring/types.js';
+} from './types.js';
+import { XcmNotification } from '../events.js';
 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
@@ -18,8 +18,6 @@ export type ChainBlock = {
   blockNumber: string
 }
 
-export const Notification = Symbol('notification');
-
 const sublevelOpts = { valueEncoding: 'json' };
 
 /**
@@ -28,13 +26,13 @@ const sublevelOpts = { valueEncoding: 'json' };
  */
 export class MatchingEngine extends EventEmitter {
   #db: DB;
-  #log: pino.BaseLogger;
+  #log: Logger;
 
   #outbound: SubLevel<XcmMessageSent>;
   #inbound: SubLevel<XcmMessageReceived>;
   #mutex: Mutex;
 
-  constructor(db: DB, log: pino.BaseLogger) {
+  constructor(db: DB, log: Logger) {
     super();
 
     this.#db = db;
@@ -79,7 +77,7 @@ export class MatchingEngine extends EventEmitter {
   ) {
     try {
       const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
-      this.emit(Notification, message);
+      this.emit(XcmNotification, message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
     }

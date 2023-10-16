@@ -6,30 +6,37 @@ import { WsProvider, ScProvider } from '@polkadot/api';
 import * as Sc from '@substrate/connect';
 import { config as oconfig, SubstrateApis } from '@sodazone/ocelloids';
 
-import { NetworkConfiguration } from './configuration.js';
-import { ServiceContext } from './context.js';
+import { NetworkConfiguration, ServiceConfiguration } from './configuration.js';
+import { Logger } from './types.js';
 
 /**
- *
+ * Handles substrate network connections,
+ * with support for light clients.
  */
 export default class Connector {
+  #log: Logger;
+  #config: ServiceConfiguration;
   #relays: Record<string, ScProvider> = {};
   #chains: Record<string, ProviderInterface> = {};
   #chainIdMap: Record<string, number> = {};
+
   #substrateApis?: SubstrateApis;
-  #ctx: ServiceContext;
 
-  constructor(ctx: ServiceContext) {
-    this.#ctx = ctx;
+  constructor(
+    log: Logger,
+    config: ServiceConfiguration
+  ) {
+    this.#log = log;
+    this.#config = config;
 
-    const { config: { networks } } = ctx;
+    const { networks } = config;
 
     for (const network of networks) {
       if (this.#chains[network.name] !== undefined) {
         continue;
       }
 
-      ctx.log.info(`Register network: ${network.name} [chainId=${network.id}]`);
+      log.info(`Register network: ${network.name} [chainId=${network.id}]`);
 
       this.#chainIdMap[network.name] = network.id;
       this.registerNetwork(network);
@@ -46,7 +53,7 @@ export default class Connector {
         this.#registerSmoldotRelay(name, provider.spec);
       }
     } else {
-      this.#ctx.log.info(`Register WS provider: ${name}`);
+      this.#log.info(`Register WS provider: ${name}`);
       this.#chains[name] = new WsProvider(provider.url);
     }
   }
@@ -62,7 +69,7 @@ export default class Connector {
       const provider = this.#relays[key];
       providers[this.#chainIdMap[key]] = {provider};
       provider.connect().catch(
-        this.#ctx.log.error.bind(this.#ctx.log)
+        this.#log.error.bind(this.#log)
       );
     }
 
@@ -71,7 +78,7 @@ export default class Connector {
       providers[this.#chainIdMap[key]] = {provider};
       if (provider instanceof ScProvider) {
         provider.connect().catch(
-          this.#ctx.log.error.bind(this.#ctx.log)
+          this.#log.error.bind(this.#log)
         );
       }
     }
@@ -92,7 +99,8 @@ export default class Connector {
   }
 
   #registerSmoldotRelay(name: string, spec: string) {
-    this.#ctx.log.info(`Register relay smoldot provider: ${name}`);
+    this.#log.info(`Register relay smoldot provider: ${name}`);
+
     const key = Object.values(Sc.WellKnownChain).find(
       c => c === name
     );
@@ -109,7 +117,8 @@ export default class Connector {
   }
 
   #getNetworkConfig(name: string) {
-    const conf =  this.#ctx.config.networks.find(n => n.name === name);
+    const { networks } = this.#config;
+    const conf =  networks.find(n => n.name === name);
     if (conf === undefined) {
       throw new Error(`Configuration for network ${name} not found.`);
     }
@@ -117,7 +126,8 @@ export default class Connector {
   }
 
   #registerSmoldotParachain(name: string, relay: string, spec: string) {
-    this.#ctx.log.info(`Register parachain smoldot provider: ${name}`);
+    this.#log.info(`Register parachain smoldot provider: ${name}`);
+
     // Make sure relay client is registered first
     if (this.#relays[relay] === undefined) {
       const relayConfig = this.#getNetworkConfig(relay);

@@ -19,10 +19,11 @@ import {
 } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
-import { DB } from '../types.js';
-import { ServiceContext } from '../context.js';
+import { DB, Logger } from '../types.js';
 import { ChainHead, BinBlock, GetOutboundHrmpMessages } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
+import { FastifyInstance } from 'fastify';
+import { ServiceConfiguration } from 'services/configuration.js';
 
 function max(...args: bigint[]) {
   return args.reduce((m, e) => e > m ? e : m);
@@ -38,7 +39,8 @@ function max(...args: bigint[]) {
  */
 export class HeadCatcher extends EventEmitter {
   #apis: SubstrateApis;
-  #ctx: ServiceContext;
+  #log: Logger;
+  #config: ServiceConfiguration;
   #db: DB;
   #janitor: Janitor;
 
@@ -46,34 +48,33 @@ export class HeadCatcher extends EventEmitter {
   #pipes: Record<string, Observable<any>> = {};
 
   constructor(
-    ctx: ServiceContext,
+    { log, config, db, janitor }: FastifyInstance,
     connector: Connector,
-    db: DB,
-    janitor: Janitor
   ) {
     super();
 
+    this.#log = log;
+    this.#config = config;
     this.#apis = connector.connect();
-    this.#ctx = ctx;
     this.#db = db;
     this.#janitor = janitor;
   }
 
   start() {
-    const { log, config } = this.#ctx;
+    const { networks } = this.#config;
 
-    for (const network of config.networks) {
+    for (const network of networks) {
       // We only need to cache for smoldot
       if (network.provider.type === 'smoldot') {
         const chainId = network.id.toString();
         const api = this.#apis.rx[chainId];
         const db = this.#blockCache(chainId);
 
-        log.info('[%s] Register resilient head hunter', chainId);
+        this.#log.info('[%s] Register resilient head hunter', chainId);
 
         this.#subs[chainId] = api.pipe(
           blocks(),
-          tap(b => log.info(
+          tap(b => this.#log.info(
             '[%s] SEEN block %s (%s)',
             chainId,
             b.block.header.hash.toHex(),
@@ -111,7 +112,7 @@ export class HeadCatcher extends EventEmitter {
 
             await db.put('hrmp-messages:' + hash, messages.toU8a());
           },
-          error: error => log.error(
+          error: error => this.#log.error(
             error,
             '[%s] Error on caching block for chain',
             chainId
@@ -122,11 +123,10 @@ export class HeadCatcher extends EventEmitter {
   }
 
   stop() {
-    const { log } = this.#ctx;
-    log.info('Stopping Head Catcher');
+    this.#log.info('Stopping Head Catcher');
 
     for (const [chain, sub] of Object.entries(this.#subs)) {
-      log.info(`Unsubscribe head catcher of chain ${chain}`);
+      this.#log.info(`Unsubscribe head catcher of chain ${chain}`);
       sub.unsubscribe();
       delete this.#subs[chain];
     }
@@ -253,7 +253,7 @@ export class HeadCatcher extends EventEmitter {
       );
 
       cache.del(hash).catch(err => {
-        this.#ctx.log.error(err, 'Error deleting cached block');
+        this.#log.error(err, 'Error deleting cached block');
       });
 
       return sBlock;
@@ -279,8 +279,6 @@ export class HeadCatcher extends EventEmitter {
     chainId: string,
     api: ApiPromise
   ) {
-    const { log } = this.#ctx;
-
     let memHeight : bigint = BigInt(0);
 
     return (source: Observable<Header>)
@@ -300,7 +298,7 @@ export class HeadCatcher extends EventEmitter {
 
           heads.push(head);
 
-          log.info('[%s] FINALIZED block %s (%s)',
+          this.#log.info('[%s] FINALIZED block %s (%s)',
             chainId,
             head.hash.toHex(),
             bnHeadNum
@@ -318,7 +316,7 @@ export class HeadCatcher extends EventEmitter {
           memHeight = max(memHeight, bnHeadNum);
 
           if (memHeight - currentHeight > 1) {
-            log.info(
+            this.#log.info(
               '[%s] FINALIZED catching up %s-%s',
               chainId,
               currentHeight,
@@ -333,7 +331,7 @@ export class HeadCatcher extends EventEmitter {
             heads.push(parentHead);
 
             // TODO: log every n blocks
-            log.info(
+            this.#log.info(
               '[%s] FINALIZED CATCH-UP block %s (%s)',
               chainId,
               parentHead.hash.toHex(),
