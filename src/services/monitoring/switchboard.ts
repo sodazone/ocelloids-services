@@ -22,12 +22,13 @@ import { MatchingEngine, XcmNotification } from './matching.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 
 /**
- * XCM subscriptions switchboard.
+ * XCM Subscriptions Switchboard.
  *
- * Maintains state of the subscriptions in the system and the underlying reactive streams,
- * both for origin and destination networks.
- *
- * Coordinates the matching and notification logic.
+ * Manages subscriptions and notifications for Cross-Consensus Message Format (XCM) formatted messages.
+ * Enables subscribing to and unsubscribing from XCM messages of interestm handling 'matched' notifications,
+ * and managing subscription lifecycles.
+ * Monitors active subscriptions, processes incoming 'matched' notifications,
+ * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard {
   #connector: Connector;
