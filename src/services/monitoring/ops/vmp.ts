@@ -30,7 +30,7 @@ type EventRecordWithContext = {
 }
 
 export function extractDmpSend(
-  api: ApiPromise,
+  _api: ApiPromise,
   {
     sendersControl
   }: XcmCriteria
@@ -111,7 +111,6 @@ function mapUmpQueueMessage() {
       }),
       map(({ record: { event }, blockHash, blockNumber }) => {
         const xcmMessage = event.data as any;
-        console.log('MID', xcmMessage.id.toHex());
         if (xcmMessage.success.toPrimitive()) {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
