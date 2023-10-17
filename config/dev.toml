@@ -3,15 +3,28 @@ name = "rococo_local_testnet"
 id = 0
 
   [networks.provider]
-  type = "smoldot"
-  spec = "./chain-specs/rococo-local.json"
+  type = "rpc"
+  url = "ws://127.0.0.1:9900"
+  #type = "smoldot"
+  #spec = "./chain-specs/rococo-local.json"
 
 [[networks]]
-name = "local"
+name = "asset-hub"
 id = 1_000
 relay = "rococo_local_testnet"
 
   [networks.provider]
-  type = "smoldot"
-  spec = "./chain-specs/rococo-local-asset-hub-kusama-local_1000.json"
+  type = "rpc"
+  url = "ws://127.0.0.1:9910"
+  #type = "smoldot"
+  #spec = "./chain-specs/rococo-local-asset-hub-kusama-local_1000.json"
+
+[[networks]]
+name = "local"
+id = 2_000
+relay = "rococo_local_testnet"
+
+  [networks.provider]
+  type = "rpc"
+  url = "ws://127.0.0.1:9920"
 

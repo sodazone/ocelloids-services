@@ -1,10 +1,12 @@
 import z from 'zod';
+
 import { Subscription, Observable } from 'rxjs';
+
 import type { AnyJson } from '@polkadot/types-codec/types';
 import type { Bytes, Vec } from '@polkadot/types';
 import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 
-import { types, ControlQuery } from '@sodazone/ocelloids';
+import { ControlQuery } from '@sodazone/ocelloids';
 
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
@@ -20,14 +22,19 @@ export const $SafeId = z.string({
   required_error: 'id is required'
 }).min(1).max(1024).regex(/[A-Za-z0-9:\.\-_]+/);
 
+export type HexString = `0x${string}`;
+
 export type XcmCriteria = {
   sendersControl: ControlQuery,
   messageControl: ControlQuery
 }
 
 export type XcmMessageWithContext = {
-  event: types.EventWithIdAndTx,
-  messageHash: string,
+  event: AnyJson,
+  extrinsicId?: string,
+  blockNumber: string,
+  blockHash: HexString,
+  messageHash: HexString,
 }
 
 export interface XcmMessageSentWithContext extends XcmMessageWithContext {
@@ -42,8 +49,11 @@ export interface XcmMessageReceivedWithContext extends XcmMessageWithContext {
 }
 
 export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedWithContext {
-  event: types.EventWithIdAndTx;
-  messageHash: string;
+  event: AnyJson;
+  extrinsicId?: string | undefined;
+  blockNumber: string;
+  blockHash: HexString;
+  messageHash: HexString;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
 
@@ -52,12 +62,18 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
     this.messageHash = msg.messageHash;
     this.outcome = msg.outcome;
     this.error = msg.error;
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber;
+    this.extrinsicId = msg.extrinsicId;
   }
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
     return {
       messageHash: this.messageHash,
-      event: this.event.toHuman(),
+      extrinsicId: this.extrinsicId,
+      blockHash: this.blockHash,
+      blockNumber: this.blockNumber,
+      event: this.event,
       outcome: this.outcome,
       error: this.error
     };
@@ -66,24 +82,26 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
 
 export class XcmMessageReceived {
   chainId: string | number;
-  event: Record<string, AnyJson>;
-  messageHash: string;
+  event: AnyJson;
+  messageHash: HexString;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
-  blockHash: string;
+  blockHash: HexString;
   blockNumber: string;
+  extrinsicId?: string;
 
   constructor(
     chainId: string| number,
     msg: XcmMessageReceivedWithContext
   ) {
     this.chainId = chainId;
-    this.event = msg.event.toHuman();
+    this.event = msg.event;
     this.messageHash = msg.messageHash;
     this.outcome = msg.outcome;
     this.error = msg.error;
-    this.blockHash = msg.event.blockHash.toHex();
-    this.blockNumber = msg.event.blockNumber.toString();
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber;
+    this.extrinsicId = msg.extrinsicId;
   }
 }
 
@@ -91,8 +109,11 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   messageData: Bytes;
   recipient: number;
   instructions: AnyJson;
-  messageHash: string;
-  event: types.EventWithIdAndTx;
+  messageHash: HexString;
+  event: AnyJson;
+  blockHash: HexString;
+  blockNumber: string;
+  extrinsicId?: string;
 
   constructor(msg: XcmMessageSentWithContext) {
     this.event = msg.event;
@@ -100,6 +121,9 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
     this.recipient = msg.recipient;
     this.instructions = msg.instructions;
     this.messageHash = msg.messageHash;
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber;
+    this.extrinsicId = msg.extrinsicId;
   }
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
@@ -108,7 +132,10 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
       recipient: this.recipient,
       instructions: this.instructions,
       messageHash: this.messageHash,
-      event: this.event.toHuman()
+      event: this.event,
+      blockHash: this.blockHash,
+      blockNumber: this.blockNumber,
+      extrinsicId: this.extrinsicId
     };
   }
 }
@@ -119,10 +146,11 @@ export class XcmMessageSent {
   messageData: string;
   recipient: number;
   instructions: AnyJson;
-  messageHash: string;
-  event: Record<string, AnyJson>;
-  blockHash: string;
+  messageHash: HexString;
+  event: AnyJson;
+  blockHash: HexString;
   blockNumber: string;
+  extrinsicId?: string;
 
   constructor(
     subscriptionId: string,
@@ -131,28 +159,30 @@ export class XcmMessageSent {
   ) {
     this.chainId = chainId;
     this.subscriptionId = subscriptionId;
-    this.event = msg.event.toHuman();
+    this.event = msg.event;
     this.messageData = msg.messageData.toHex();
     this.recipient = msg.recipient;
     this.instructions = msg.instructions;
     this.messageHash = msg.messageHash;
-    this.blockHash = msg.event.blockHash.toHex();
-    this.blockNumber = msg.event.blockNumber.toString();
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber;
+    this.extrinsicId = msg.extrinsicId;
   }
 }
 
 type XcmMessageNofityContext = {
   chainId: string | number,
   blockNumber: string,
-  blockHash: string,
-  event: Record<string, AnyJson>
+  blockHash: HexString,
+  extrinsicId?: string,
+  event: AnyJson
 }
 
 export class XcmMessageNotify {
   subscriptionId: string;
   origin: XcmMessageNofityContext;
   destination: XcmMessageNofityContext;
-  messageHash: string;
+  messageHash: HexString;
   messageData: string;
   instructions: AnyJson;
   outcome: 'Success' | 'Fail';
@@ -167,12 +197,14 @@ export class XcmMessageNotify {
       chainId: inMsg.chainId,
       blockNumber: inMsg.blockNumber,
       blockHash: inMsg.blockHash,
+      extrinsicId: inMsg.extrinsicId,
       event: inMsg.event
     };
     this.origin = {
       chainId: outMsg.chainId,
       blockNumber: outMsg.blockNumber,
       blockHash: outMsg.blockHash,
+      extrinsicId: outMsg.extrinsicId,
       event: outMsg.event
     };
     this.instructions = outMsg.instructions;
@@ -215,7 +247,7 @@ export const $QuerySubscription = z.object({
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
 
 export type SubscriptionHandler = QuerySubscription & {
-  originSub: Subscription,
+  originSubs: Subscription[],
   destinationSubs: Subscription[],
   sendersControl: ControlQuery,
   messageControl: ControlQuery
@@ -229,3 +261,6 @@ export type BinBlock = {
 
 export type GetOutboundHrmpMessages = (hash: `0x${string}`)
 => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+
+export type GetOutboundUmpMessages = (hash: `0x${string}`)
+=> Observable<Vec<Bytes>>

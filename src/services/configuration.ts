@@ -37,6 +37,18 @@ const $ServiceConfiguration = z.object({
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 
+export function isRelay({networks}: ServiceConfiguration, chainId: number) {
+  return networks.findIndex(
+    n => n.relay === undefined && n.id === chainId
+  ) >= 0;
+}
+
+export function isNetworkDefined({networks}: ServiceConfiguration, chainId: number) {
+  return networks.findIndex(
+    n => n.id === chainId
+  ) >= 0;
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     config: ServiceConfiguration

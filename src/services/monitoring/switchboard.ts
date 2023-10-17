@@ -6,7 +6,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import Connector from '../connector.js';
-import { extractXcmReceive, extractXcmSend } from './ops/xcm.js';
+import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { DB, Logger } from '../types.js';
 import { NotFound } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
@@ -15,11 +15,20 @@ import {
   QuerySubscription,
   XcmMessageReceived,
   XcmMessageNotify,
-  SubscriptionHandler
+  SubscriptionHandler,
+  XcmMessageReceivedWithContext,
+  XcmMessageSentWithContext
 } from './types.js';
-import { ServiceConfiguration } from '../configuration.js';
+import { ServiceConfiguration, isNetworkDefined, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
+import { extractDmpReceive, extractDmpSend, extractUmpReceive, extractUmpSend } from './ops/vmp.js';
+import { Notifier } from './notifier.js';
+
+type Monitor = {
+  subs: Subscription[]
+  controls: Record<string, ControlQuery>
+}
 
 /**
  * XCM Subscriptions Switchboard.
@@ -40,6 +49,7 @@ export class Switchboard {
   #subs: Record<string, SubscriptionHandler> = {};
   #engine: MatchingEngine;
   #catcher: HeadCatcher;
+  #notifier: Notifier;
 
   constructor(
     ctx: FastifyInstance
@@ -56,28 +66,13 @@ export class Switchboard {
 
     this.#engine = new MatchingEngine(db, log);
     this.#catcher = new HeadCatcher(ctx, connector);
+    this.#notifier = new Notifier(log);
   }
 
   async onNotification(msg: XcmMessageNotify) {
-    // TODO: impl notifier
-    try {
-      const { subscriptionId } = msg;
-      const sub = await this.getSubscription(subscriptionId);
-      if (sub.notify.type === 'log') {
-        this.#log.info(
-          '[%s => %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s',
-          msg.origin.chainId,
-          msg.destination.chainId,
-          subscriptionId,
-          msg.messageHash,
-          msg.outcome
-        );
-      } else if (sub.notify.type === 'webhook') {
-      // TODO impl
-      }
-    } catch (error) {
-      this.#log.error(error, 'Notification type not supported');
-    }
+    const { subscriptionId } = msg;
+    const sub = await this.getSubscription(subscriptionId);
+    this.#notifier.notify(sub, msg);
   }
 
   /**
@@ -91,11 +86,15 @@ export class Switchboard {
       await this.getSubscription(qs.id);
       throw new Error(`Subscription with ID ${qs.id} already exists`);
     } catch (_) {
-    // OK ^^
+      // OK ^^
     }
 
+    this.#validateChainIds([
+      qs.origin, ...qs.destinations
+    ]);
+
     this.#log.info(
-      '[%s] new subscription: %s',
+      '[%s] new subscription: %j',
       qs.origin,
       qs
     );
@@ -114,7 +113,7 @@ export class Switchboard {
   unsubscribe(id: string) {
     try {
       const {
-        origin, originSub, destinationSubs
+        origin, originSubs, destinationSubs
       } = this.#subs[id];
 
       this.#log.info(
@@ -123,12 +122,12 @@ export class Switchboard {
         id
       );
 
-      originSub.unsubscribe();
+      originSubs.forEach(sub => sub.unsubscribe());
       destinationSubs.forEach(sub => sub.unsubscribe());
       delete this.#subs[id];
       this.#slqs(origin).del(id);
     } catch (error) {
-      this.#log.error(`Error unsubscribing ${id}`, id);
+      this.#log.error(error, 'Error unsubscribing %s', id);
     }
   }
 
@@ -184,11 +183,11 @@ export class Switchboard {
 
     for (const {
       id,
-      originSub,
+      originSubs,
       destinationSubs
     } of Object.values(this.#subs)) {
       this.#log.info(`Unsubscribe ${id}`);
-      originSub.unsubscribe();
+      originSubs.forEach(sub => sub.unsubscribe());
       destinationSubs.forEach(sub => sub.unsubscribe());
     }
 
@@ -212,6 +211,8 @@ export class Switchboard {
    * Applies to the outbound XCM message.
    */
   updateDestinations(id: string, recipients: number[]) {
+    this.#validateChainIds(recipients);
+
     const { messageControl } = this.#subs[id];
     messageControl.change(messageCriteria(recipients));
   }
@@ -236,10 +237,105 @@ export class Switchboard {
    * @private
    */
   #monitor(qs: QuerySubscription) {
-    const { id, origin, senders, destinations } = qs;
-    const origChainId = origin.toString();
+    const { id } = qs;
 
-    // Set up origin subscription
+    let origMonitor : Monitor = { subs: [], controls: {} };
+    let destMonitor : Monitor = { subs: [], controls: {} };
+
+    try {
+      origMonitor = this.#monitorOrigins(qs);
+      destMonitor = this.#monitorDestinations(qs);
+    } catch (error) {
+      // Clean up origin subscriptions.
+      origMonitor.subs.forEach(s => {
+        s.unsubscribe();
+      });
+      throw error;
+    }
+
+    const {
+      sendersControl, messageControl
+    } = origMonitor.controls;
+
+    this.#subs[id] = {
+      ...qs,
+      sendersControl,
+      messageControl,
+      originSubs: origMonitor.subs,
+      destinationSubs: destMonitor.subs
+    };
+  }
+
+  #monitorDestinations({
+    id, destinations
+  }: QuerySubscription) : Monitor {
+    const subs : Subscription[] = [];
+    try {
+      // Set up destination subscriptions
+      destinations.forEach(c => {
+        const chainId = c.toString();
+        const inboundHandler = {
+          next: (
+            msg: XcmMessageReceivedWithContext
+          ) => this.#engine.onInboundMessage(
+            new XcmMessageReceived(chainId, msg)
+          ),
+          error: (error: any) => {
+            this.#log.error(
+              error,
+              'Error on subscription %s at destination %s',
+              id,
+              chainId
+            );
+          }
+        };
+
+        // D: HRMP / XCMP
+        subs.push(
+          this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractXcmpReceive(),
+              retryWithTruncatedExpBackoff()
+            ).subscribe(inboundHandler)
+        );
+
+        // D: VMP
+
+        // D: DMP
+        subs.push(
+          this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractDmpReceive(),
+              retryWithTruncatedExpBackoff()
+            ).subscribe(inboundHandler)
+        );
+
+        // D: UMP
+        subs.push(
+          this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractUmpReceive(),
+              retryWithTruncatedExpBackoff()
+            ).subscribe(inboundHandler)
+        );
+      });
+    } catch (error) {
+      // Clean up subscriptions.
+      subs.forEach(s => {
+        s.unsubscribe();
+      });
+      throw error;
+    }
+
+    return { subs, controls: {} };
+  }
+
+  #monitorOrigins({
+    id, origin, senders, destinations
+  }: QuerySubscription) : Monitor {
+    const subs : Subscription[] = [];
+    const origChainId = origin.toString();
+    const api = this.#apis.promise[origChainId];
 
     const sendersControl = ControlQuery.from(
       sendersCriteria(senders)
@@ -248,76 +344,83 @@ export class Switchboard {
       messageCriteria(destinations)
     );
 
-    const api = this.#apis.promise[origChainId];
-    const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
-
-    const originSub = this.#catcher.finalizedBlocks(origChainId)
-      .pipe(
-        extractXcmSend(
-          api,
-          {
-            sendersControl,
-            messageControl
-          },
-          getHrmp
-        ),
-        retryWithTruncatedExpBackoff()
-      ).subscribe({
-        next: message => {
-          this.#engine.onOutboundMessage(
-            new XcmMessageSent(id, origin, message)
-          );
-        },
-        error: error => {
-          this.#log.error(
-            error,
-            'Error on subscription %s at origin %s',
-            id, origin
-          );
-        }
-      });
-
-    // Set up destination subscriptions
-    const destinationSubs : Subscription[] = [];
+    // Set up origin subscriptions
+    const outboundHandler = {
+      next: (msg: XcmMessageSentWithContext) => {
+        this.#engine.onOutboundMessage(
+          new XcmMessageSent(id, origin, msg)
+        );
+      },
+      error: (error: any) => {
+        this.#log.error(
+          error,
+          'Error on subscription %s at origin %s',
+          id, origin
+        );
+      }
+    };
 
     try {
-      destinations.forEach(c => {
-        const chainId = c.toString();
-
-        destinationSubs.push(
-          this.#catcher.finalizedBlocks(chainId)
+      // O: VMP
+      if (isRelay(this.#config, origin)) {
+      // O: DMP
+        subs.push(
+          this.#catcher.finalizedBlocks(origChainId)
             .pipe(
-              extractXcmReceive(),
-              retryWithTruncatedExpBackoff()
-            ).subscribe({
-              next: msg => this.#engine.onInboundMessage(
-                new XcmMessageReceived(chainId, msg)
-              ),
-              error: error => {
-                this.#log.error(
-                  `Error on subscription ${id} at destination ${chainId}`
-                );
-                this.#log.error(error);
-              }
-            }));
-      });
+              extractDmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                }
+              )
+            ).subscribe(outboundHandler)
+        );
+      } else {
+        // O: UMP
+        const getUmp = this.#catcher.outboundUmpMessages(origChainId);
+        subs.push(
+          this.#catcher.finalizedBlocks(origChainId)
+            .pipe(
+              extractUmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                },
+                getUmp
+              )
+            ).subscribe(outboundHandler)
+        );
+      }
+
+      // O: HRMP / XCMP
+      const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
+      subs.push(
+        this.#catcher.finalizedBlocks(origChainId)
+          .pipe(
+            extractXcmpSend(
+              api,
+              {
+                sendersControl,
+                messageControl
+              },
+              getHrmp
+            ),
+            retryWithTruncatedExpBackoff()
+          ).subscribe(outboundHandler)
+      );
     } catch (error) {
       // Clean up subscriptions.
-      originSub.unsubscribe();
-      destinationSubs.forEach(s => {
+      subs.forEach(s => {
         s.unsubscribe();
       });
-
       throw error;
     }
 
-    this.#subs[id] = {
-      ...qs,
-      sendersControl,
-      messageControl,
-      originSub,
-      destinationSubs
-    };
+    return { subs, controls: {
+      sendersControl, messageControl
+    }};
   }
 
   /**
@@ -334,7 +437,7 @@ export class Switchboard {
       const subs = await this.#subsInDB(network.id);
 
       this.#log.info(
-        '[%s] number of subscriptions %d',
+        '[%s] #subscriptions %d',
         network.id,
         subs.length
       );
@@ -343,8 +446,11 @@ export class Switchboard {
         try {
           this.#monitor(sub);
         } catch (err) {
-          this.#log.error(`Unable to create subscription: ${JSON.stringify(sub, null, 2)}`);
-          this.#log.error(err);
+          this.#log.error(
+            err,
+            'Unable to create subscription: %j',
+            sub
+          );
         }
       }
     }
@@ -358,5 +464,13 @@ export class Switchboard {
 
   async #subsInDB(chainId: string | number) {
     return await this.#slqs(chainId.toString()).values().all();
+  }
+
+  #validateChainIds(chainIds: number[]) {
+    chainIds.forEach(chainId => {
+      if (!isNetworkDefined(this.#config, chainId)) {
+        throw new Error('Invalid chain id:' +  chainId);
+      }
+    });
   }
 }

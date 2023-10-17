@@ -27,8 +27,8 @@ function findOutboundHrmpMessage(
   : Observable<GenericXcmMessageSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
-        const { event: {blockHash}, messageHash } = sentMsg;
-        return getOutboundHrmpMessages(blockHash.toHex()).pipe(
+        const { blockHash, messageHash } = sentMsg;
+        return getOutboundHrmpMessages(blockHash).pipe(
 
           map(messages =>  {
             return messages
@@ -55,27 +55,25 @@ function findOutboundHrmpMessage(
   };
 }
 
-function xcmMessagesSent(api: ApiPromise) {
+function xcmpMessagesSent() {
   return (source: Observable<types.EventWithIdAndTx>)
     : Observable<XcmMessageSentWithContext> => {
     return (source.pipe(
       map(event => {
-        if (api.events.xcmpQueue.XcmpMessageSent.is(event)) {
-          const xcmMessage = event.data as any;
-          return {
-            event,
-            messageHash: xcmMessage.messageHash.toHex() as string
-          } as XcmMessageSentWithContext;
-        } else {
-          return null;
-        }
-      }),
-      filterNonNull()
+        const xcmMessage = event.data as any;
+        return {
+          event: event.toHuman(),
+          blockHash: event.blockHash.toHex(),
+          blockNumber: event.blockNumber.toString(),
+          extrinsicId: event.extrinsicId,
+          messageHash: xcmMessage.messageHash.toHex()
+        } as XcmMessageSentWithContext;
+      })
     ));
   };
 }
 
-export function extractXcmSend(
+export function extractXcmpSend(
   api: ApiPromise,
   {
     sendersControl,
@@ -86,11 +84,15 @@ export function extractXcmSend(
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
-      mongoFilter(sendersControl),
       extractTxWithEvents(),
       flattenBatch(),
+      mongoFilter(sendersControl),
       extractEventsWithTx(),
-      xcmMessagesSent(api),
+      mongoFilter({
+        'section': 'xcmpQueue',
+        'method': 'XcmpMessageSent'
+      }),
+      xcmpMessagesSent(),
       findOutboundHrmpMessage(api, messageControl, getOutboundHrmpMessages),
     );
   };
@@ -108,8 +110,11 @@ function mapXcmpQueueMessage() {
         if (event.method === 'Success') {
           const xcmMessage = event.data as any;
           return new GenericXcmMessageReceivedWithContext({
-            event,
-            messageHash: xcmMessage.messageHash.toHex() as string,
+            event: event.toHuman(),
+            blockHash: event.blockHash.toHex(),
+            blockNumber: event.blockNumber.toString(),
+            extrinsicId: event.extrinsicId,
+            messageHash: xcmMessage.messageHash.toHex(),
             outcome: event.method,
             error: null
           });
@@ -117,8 +122,11 @@ function mapXcmpQueueMessage() {
           const xcmMessage = event.data as any;
           const error = xcmMessage.error;
           return new GenericXcmMessageReceivedWithContext({
-            event,
-            messageHash: xcmMessage.messageHash.toHex() as string,
+            event: event.toHuman(),
+            blockHash: event.blockHash.toHex(),
+            blockNumber: event.blockNumber.toString(),
+            extrinsicId: event.extrinsicId,
+            messageHash: xcmMessage.messageHash.toHex(),
             outcome: event.method,
             error: error
           });
@@ -132,7 +140,7 @@ function mapXcmpQueueMessage() {
   };
 }
 
-export function extractXcmReceive() {
+export function extractXcmpReceive() {
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(

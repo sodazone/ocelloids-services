@@ -1,10 +1,10 @@
 import { EventEmitter } from 'node:events';
 
-import { Observable, Subscription, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import { Observable, Subscription, combineLatest, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
-import type { Vec } from '@polkadot/types';
+import type { Vec, Bytes } from '@polkadot/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 import { ApiPromise } from '@polkadot/api';
@@ -20,7 +20,7 @@ import {
 
 import Connector from '../connector.js';
 import { DB, Logger } from '../types.js';
-import { ChainHead, BinBlock, GetOutboundHrmpMessages } from './types.js';
+import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
 import { FastifyInstance } from 'fastify';
 import { ServiceConfiguration } from 'services/configuration.js';
@@ -86,21 +86,27 @@ export class HeadCatcher extends EventEmitter {
               switchMap(_api => _api.at(block.block.header.hash)),
               retryWithTruncatedExpBackoff(),
               switchMap(at =>
-               from(
-                 at.query.parachainSystem.hrmpOutboundMessages()
-               ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+                combineLatest([
+                  from(
+                    at.query.parachainSystem.hrmpOutboundMessages()
+                  ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>,
+                  from(
+                    at.query.parachainSystem.upwardMessages()
+                  ) as Observable<Vec<Bytes>>
+                ])
               ),
               retryWithTruncatedExpBackoff(),
-              map(messages =>  {
+              map(([hrmpMessages, umpMessages]) =>  {
                 return {
                   block,
-                  messages
+                  hrmpMessages,
+                  umpMessages
                 };
               })
             );
           })
         ).subscribe({
-          next: async ({ block, messages }) => {
+          next: async ({ block, hrmpMessages, umpMessages }) => {
             const hash = block.block.header.hash.toHex();
 
             // TODO: review to use SCALE instead of CBOR
@@ -110,7 +116,8 @@ export class HeadCatcher extends EventEmitter {
               author: block.author?.toU8a()
             }));
 
-            await db.put('hrmp-messages:' + hash, messages.toU8a());
+            await db.put('hrmp-messages:' + hash, hrmpMessages.toU8a());
+            await db.put('ump-messages:' + hash, umpMessages.toU8a());
           },
           error: error => this.#log.error(
             error,
@@ -206,6 +213,38 @@ export class HeadCatcher extends EventEmitter {
            from(
              at.query.parachainSystem.hrmpOutboundMessages()
            ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+          ),
+          retryWithTruncatedExpBackoff()
+        );
+      };
+    }
+  }
+
+  // TODO: refactor outbound cached together with hrmp
+  outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
+    const api = this.#apis.promise[chainId];
+    const db = this.#blockCache(chainId);
+
+    if (this.hasCache(chainId)) {
+      return (hash: `0x${string}`)
+      : Observable<Vec<Bytes>> => {
+        return from(db.get('ump-messages:' + hash)).pipe(
+          map(buffer => {
+            return api.registry.createType(
+              'Vec<Bytes>', buffer
+            ) as Vec<Bytes>;
+          })
+        );
+      };
+    } else {
+      return (hash: `0x${string}`)
+      : Observable<Vec<Bytes>> => {
+        return from(api.at(hash)).pipe(
+          retryWithTruncatedExpBackoff(),
+          switchMap(at =>
+           from(
+             at.query.parachainSystem.upwardMessages()
+           ) as Observable<Vec<Bytes>>
           ),
           retryWithTruncatedExpBackoff()
         );
@@ -369,6 +408,10 @@ export class HeadCatcher extends EventEmitter {
         {
           sublevel: chainId + ':blocks',
           key: 'hrmp-messages:' + header.hash.toHex()
+        },
+        {
+          sublevel: chainId + ':blocks',
+          key: 'ump-messages:' + header.hash.toHex()
         },
         {
           sublevel: chainId + ':blocks',

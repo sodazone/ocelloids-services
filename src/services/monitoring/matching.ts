@@ -62,9 +62,10 @@ export class MatchingEngine extends EventEmitter {
         await this.#notify(outMsg, inMsg);
       } catch (e) {
         log.info(
-          '[%s] STORED FOR MATCHING %s',
+          '[%s] STORED FOR MATCHING %s | %s',
           outMsg.chainId,
-          ck
+          ck,
+          outMsg.subscriptionId
         );
         await this.#outbound.put(ck, outMsg);
       }
