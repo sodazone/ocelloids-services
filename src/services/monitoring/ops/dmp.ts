@@ -182,7 +182,8 @@ function findDmpMessages(api: ApiPromise) {
 export function extractDmpSend(
   api: ApiPromise,
   {
-    sendersControl
+    sendersControl,
+    messageControl
   }: XcmCriteria
 ) {
   return (source: Observable<SignedBlockExtended>)
@@ -192,7 +193,6 @@ export function extractDmpSend(
       flattenBatch(),
       mongoFilter({
         'extrinsic.call.section': 'xcmPallet',
-        // TODO filter dest in known paras?
         'extrinsic.call.method': { $in: [
           'limitedReserveTransferAssets',
           'reserveTransferAssets',
@@ -201,7 +201,8 @@ export function extractDmpSend(
         ]}
       }),
       mongoFilter(sendersControl),
-      findDmpMessages(api)
+      findDmpMessages(api),
+      mongoFilter(messageControl)
     );
   };
 }
