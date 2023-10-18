@@ -1,8 +1,7 @@
 import { switchMap, mergeMap, map, from, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { Vec } from '@polkadot/types';
-import type { AnyJson } from '@polkadot/types-codec/types';
+import type { Vec, Bytes } from '@polkadot/types';
 import type { PolkadotCorePrimitivesInboundDownwardMessage } from '@polkadot/types/lookup';
 import type { Outcome, VersionedMultiLocation, VersionedMultiAssets, VersionedXcm } from '@polkadot/types/interfaces/xcm';
 import { ApiPromise } from '@polkadot/api';
@@ -19,12 +18,76 @@ import {
   XcmMessageSentWithContext
 } from '../types.js';
 
-// TODO: this should be deprecated when...
-/**
- *
- * @param api
- * @notice
- */
+/*
+ ==================================================================================
+ NOTICE
+ ==================================================================================
+
+ This DMP message matching implementation is provisional and will be replaced
+ as soon as possible.
+
+ For details see: https://github.com/paritytech/polkadot-sdk/issues/1905
+*/
+
+type Json = { [property: string]: Json };
+
+function matchInstructions(
+  xcmProgram: VersionedXcm,
+  assets: VersionedMultiAssets,
+  beneficiary: VersionedMultiLocation
+): boolean {
+  const program = xcmProgram.value.toHuman() as Json[];
+  let sameAssetFun = false;
+  let sameBeneficiary = false;
+
+  for (const instruction of program) {
+    const {
+      DepositAsset, ReceiveTeleportedAsset, ReserveAssetDeposited
+    } = instruction;
+
+    if (ReceiveTeleportedAsset || ReserveAssetDeposited) {
+      const fun = ReceiveTeleportedAsset[0]?.fun ?? ReserveAssetDeposited[0]?.fun;
+      if (fun) {
+        const asset = assets.value.toHuman() as Json;
+        sameAssetFun = JSON.stringify(fun) === JSON.stringify(asset[0]?.fun);
+      }
+      continue;
+    }
+
+    if (DepositAsset) {
+      sameBeneficiary = JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman());
+      break;
+    }
+  }
+
+  return sameAssetFun && sameBeneficiary;
+}
+
+function createXcmMessageSent(
+  {
+    api, paraId, data, tx: {extrinsic}
+  } : {
+  api: ApiPromise,
+  paraId: number,
+  data: Bytes,
+  tx: types.TxWithIdAndEvent
+}) : GenericXcmMessageSentWithContext {
+  const xcmProgram = api.registry.createType(
+    'XcmVersionedXcm', data
+  ) as VersionedXcm;
+  const blockHash = extrinsic.blockHash.toHex();
+  const blockNumber = extrinsic.blockNumber.toString();
+  return new GenericXcmMessageSentWithContext({
+    blockHash,
+    blockNumber,
+    event: {},
+    recipient: paraId,
+    instructions: xcmProgram.toHuman(),
+    messageData: data,
+    messageHash: xcmProgram.hash.toHex()
+  });
+}
+
 function findDmpMessages(api: ApiPromise) {
   return (source: Observable<types.TxWithIdAndEvent>)
         : Observable<XcmMessageSentWithContext> => {
@@ -34,8 +97,8 @@ function findDmpMessages(api: ApiPromise) {
         const beneficiary = tx.extrinsic.args[1] as VersionedMultiLocation;
         const assets = tx.extrinsic.args[2] as VersionedMultiAssets;
 
-        const destJson = dest.value.toHuman() as Record<string, Record<string, Record<string, AnyJson>>>;
-        const paraIdStr = destJson?.interior?.X1?.Parachain as string;
+        const destJson = dest.value.toHuman() as Json;
+        const paraIdStr = destJson?.interior?.X1?.Parachain as unknown as string;
 
         if (paraIdStr) {
           return {
@@ -49,7 +112,7 @@ function findDmpMessages(api: ApiPromise) {
         return null;
       }),
       filterNonNull(),
-      mergeMap(({ tx, paraId, beneficiary }) => {
+      mergeMap(({ tx, paraId, beneficiary, assets }) => {
         return from(api.at(tx.extrinsic.blockHash)).pipe(
           retryWithTruncatedExpBackoff(),
           switchMap(at =>
@@ -59,41 +122,42 @@ function findDmpMessages(api: ApiPromise) {
           ),
           retryWithTruncatedExpBackoff(),
           map(messages => {
-            const blockHash = tx.extrinsic.blockHash.toHex();
-            const blockNumber = tx.extrinsic.blockNumber.toString();
-
             if (messages.length === 1) {
-              const message =  messages[0];
-              const xcmProgram = api.registry.createType(
-                'XcmVersionedXcm', message.msg
-              ) as VersionedXcm;
-              const xcmProgramJson = xcmProgram.value.toHuman() as Record<string, Record<string,AnyJson>>[];
-              const matched = xcmProgramJson.find(instruction => {
-                const { DepositAsset } = instruction;
-                if (DepositAsset) {
-                  return JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman());
-                }
-                return false;
-              }) !== undefined;
-              console.log('PPPPP', matched, JSON.stringify(xcmProgram.toHuman(), null, 2));
-              console.log('AVIPPP', JSON.stringify(beneficiary.value.toHuman(), null, 2));
-              return new GenericXcmMessageSentWithContext({
-                blockHash,
-                blockNumber,
-                event: {},
-                recipient: paraId,
-                instructions: xcmProgram.toHuman(),
-                messageData: message.msg,
-                messageHash: xcmProgram.hash.toHex()
+              return createXcmMessageSent({
+                api,
+                tx,
+                paraId,
+                data: messages[0].msg
               });
             } else {
-              // Matche by data heuristics...
-              // see issue GH
-              /*for (const message of messages) {
-                  const xcmProgram = api.registry.createType(
-                    'XcmVersionedXcm', message.msg
-                  );
-                }*/
+              // XXX Temporary matching heuristics until DMP message
+              // sent event is implemented.
+              const filteredMessages = messages.filter(message => {
+                const xcmProgram = api.registry.createType(
+                  'XcmVersionedXcm', message.msg
+                ) as VersionedXcm;
+
+                return matchInstructions(
+                  xcmProgram,
+                  assets,
+                  beneficiary
+                );
+              });
+
+              if (filteredMessages.length === 1) {
+                return createXcmMessageSent({
+                  api,
+                  tx,
+                  paraId,
+                  data: filteredMessages[0].msg
+                });
+              }
+
+              if (filteredMessages.length > 1) {
+                // XXX See note at the start of this file
+                console.error('Undecidable message set', filteredMessages.map(m => m.toHuman()));
+              }
+
               return null;
             }
           }),
