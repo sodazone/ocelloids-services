@@ -197,7 +197,10 @@ function findOutboundUmpMessage(
           }),
           filterNonNull(),
           map(p => {
-            // TODO HACK, OMG...
+            // XXX HACK
+            // To keep consistency until message ids using topic instructions are
+            // standarised, we just override the message hash, as a workaround when
+            // the instruction is present.
             const instructions : any = p.instructions;
             const setTopic = (instructions['V3'] as any[]).find((i: any) => i['SetTopic'] !== undefined);
             const hashPatch =  setTopic ? setTopic['SetTopic'] as HexString : p.messageHash;
