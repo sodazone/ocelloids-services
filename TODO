@@ -15,12 +15,16 @@ TODO
 [] Filtering of instructions (?)
 [] Handle modifications in network configuration (?)
 [] Handle subscription exploding on network config change
+[x] Support VMP messages 
+[x] - DMP: only attempted + dmp queue + extrinsic params and instructions matching. if undecidable: notify undecidable set (block, txs, messages)
+[x] - UMP: parachainSystem upward message sent w/ message hash parachainsystem (UpwardMessageSent)
 
 TO TEST
 ===
 [] Handle smoldot panics
 [x] Running with RPCs
-[] Teleports
+[] DMP
+[] UMP
 
 FUTURE
 ===
