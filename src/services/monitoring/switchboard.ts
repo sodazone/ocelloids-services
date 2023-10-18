@@ -266,12 +266,16 @@ export class Switchboard {
     };
   }
 
+  /**
+   * Set up inbound monitors for XCM protocols.
+   *
+   * @private
+   */
   #monitorDestinations({
     id, destinations
   }: QuerySubscription) : Monitor {
     const subs : Subscription[] = [];
     try {
-      // Set up destination subscriptions
       destinations.forEach(c => {
         const chainId = c.toString();
         const inboundHandler = {
@@ -290,7 +294,7 @@ export class Switchboard {
           }
         };
 
-        // D: HRMP / XCMP
+        // Inbound HRMP / XCMP transport
         subs.push(
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
@@ -299,9 +303,8 @@ export class Switchboard {
             ).subscribe(inboundHandler)
         );
 
-        // D: VMP
-
-        // D: DMP
+        // Inbound VMP
+        // DMP
         subs.push(
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
@@ -309,8 +312,7 @@ export class Switchboard {
               retryWithTruncatedExpBackoff()
             ).subscribe(inboundHandler)
         );
-
-        // D: UMP
+        // UMP
         subs.push(
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
@@ -330,6 +332,11 @@ export class Switchboard {
     return { subs, controls: {} };
   }
 
+  /**
+   * Set up outbound monitors for XCM protocols.
+   *
+   * @private
+   */
   #monitorOrigins({
     id, origin, senders, destinations
   }: QuerySubscription) : Monitor {
@@ -344,7 +351,6 @@ export class Switchboard {
       messageCriteria(destinations)
     );
 
-    // Set up origin subscriptions
     const outboundHandler = {
       next: (msg: XcmMessageSentWithContext) => {
         this.#engine.onOutboundMessage(
@@ -361,40 +367,7 @@ export class Switchboard {
     };
 
     try {
-      // O: VMP
-      if (isRelay(this.#config, origin)) {
-      // O: DMP
-        subs.push(
-          this.#catcher.finalizedBlocks(origChainId)
-            .pipe(
-              extractDmpSend(
-                api,
-                {
-                  sendersControl,
-                  messageControl
-                }
-              )
-            ).subscribe(outboundHandler)
-        );
-      } else {
-        // O: UMP
-        const getUmp = this.#catcher.outboundUmpMessages(origChainId);
-        subs.push(
-          this.#catcher.finalizedBlocks(origChainId)
-            .pipe(
-              extractUmpSend(
-                api,
-                {
-                  sendersControl,
-                  messageControl
-                },
-                getUmp
-              )
-            ).subscribe(outboundHandler)
-        );
-      }
-
-      // O: HRMP / XCMP
+      // Outbound HRMP / XCMP transport
       const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
       subs.push(
         this.#catcher.finalizedBlocks(origChainId)
@@ -410,6 +383,39 @@ export class Switchboard {
             retryWithTruncatedExpBackoff()
           ).subscribe(outboundHandler)
       );
+
+      // Outbound VMP
+      if (isRelay(this.#config, origin)) {
+        // DMP
+        subs.push(
+          this.#catcher.finalizedBlocks(origChainId)
+            .pipe(
+              extractDmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                }
+              )
+            ).subscribe(outboundHandler)
+        );
+      } else {
+        // UMP
+        const getUmp = this.#catcher.outboundUmpMessages(origChainId);
+        subs.push(
+          this.#catcher.finalizedBlocks(origChainId)
+            .pipe(
+              extractUmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                },
+                getUmp
+              )
+            ).subscribe(outboundHandler)
+        );
+      }
     } catch (error) {
       // Clean up subscriptions.
       subs.forEach(s => {
