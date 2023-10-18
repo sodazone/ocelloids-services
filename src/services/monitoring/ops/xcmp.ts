@@ -104,7 +104,7 @@ function mapXcmpQueueMessage() {
     return (source.pipe(
       mongoFilter({
         'section': 'xcmpQueue',
-        'method': { $in: ['Success', 'Fail']}
+        'method': { $in: ['Success', 'Fail'] }
       }),
       map(event => {
         if (event.method === 'Success') {
