@@ -113,6 +113,8 @@ export function SubscriptionApi(
       applyPatch(sub, patch);
       $QuerySubscription.parse(sub);
 
+      await switchboard.updateInDB(sub);
+
       if (hasOp(patch, '/senders')) {
         switchboard.updateSenders(id, sub.senders);
       }
@@ -121,7 +123,7 @@ export function SubscriptionApi(
         switchboard.updateDestinations(id, sub.destinations);
       }
 
-      await switchboard.updateInDB(sub);
+      switchboard.updateInMemory(sub);
 
       reply.status(200).send(sub);
     } else {

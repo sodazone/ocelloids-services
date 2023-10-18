@@ -20,7 +20,7 @@ import {
 
 import Connector from '../connector.js';
 import { DB, Logger } from '../types.js';
-import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types.js';
+import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
 import { FastifyInstance } from 'fastify';
 import { ServiceConfiguration } from 'services/configuration.js';
@@ -75,10 +75,10 @@ export class HeadCatcher extends EventEmitter {
         this.#subs[chainId] = api.pipe(
           blocks(),
           tap(b => this.#log.info(
-            '[%s] SEEN block %s (%s)',
+            '[%s] SEEN block #%s %s',
             chainId,
-            b.block.header.hash.toHex(),
-            b.block.header.number.toString()
+            b.block.header.number.toString(),
+            b.block.header.hash.toHex()
           )),
           retryWithTruncatedExpBackoff(),
           mergeMap(block => {
@@ -194,7 +194,7 @@ export class HeadCatcher extends EventEmitter {
     const db = this.#blockCache(chainId);
 
     if (this.hasCache(chainId)) {
-      return (hash: `0x${string}`)
+      return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
         return from(db.get('hrmp-messages:' + hash)).pipe(
           map(buffer => {
@@ -205,7 +205,7 @@ export class HeadCatcher extends EventEmitter {
         );
       };
     } else {
-      return (hash: `0x${string}`)
+      return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
         return from(api.at(hash)).pipe(
           retryWithTruncatedExpBackoff(),
@@ -226,7 +226,7 @@ export class HeadCatcher extends EventEmitter {
     const db = this.#blockCache(chainId);
 
     if (this.hasCache(chainId)) {
-      return (hash: `0x${string}`)
+      return (hash: HexString)
       : Observable<Vec<Bytes>> => {
         return from(db.get('ump-messages:' + hash)).pipe(
           map(buffer => {
@@ -237,7 +237,7 @@ export class HeadCatcher extends EventEmitter {
         );
       };
     } else {
-      return (hash: `0x${string}`)
+      return (hash: HexString)
       : Observable<Vec<Bytes>> => {
         return from(api.at(hash)).pipe(
           retryWithTruncatedExpBackoff(),
@@ -337,10 +337,10 @@ export class HeadCatcher extends EventEmitter {
 
           heads.push(head);
 
-          this.#log.info('[%s] FINALIZED block %s (%s)',
+          this.#log.info('[%s] FINALIZED block #%s %s',
             chainId,
-            head.hash.toHex(),
-            bnHeadNum
+            bnHeadNum,
+            head.hash.toHex()
           );
 
           const chainHead: ChainHead = {
@@ -356,7 +356,7 @@ export class HeadCatcher extends EventEmitter {
 
           if (memHeight - currentHeight > 1) {
             this.#log.info(
-              '[%s] FINALIZED catching up %s-%s',
+              '[%s] FINALIZED catching up from #%s to #%s',
               chainId,
               currentHeight,
               memHeight
@@ -371,10 +371,10 @@ export class HeadCatcher extends EventEmitter {
 
             // TODO: log every n blocks
             this.#log.info(
-              '[%s] FINALIZED CATCH-UP block %s (%s)',
+              '[%s] FINALIZED CATCH-UP block #%s %s',
               chainId,
-              parentHead.hash.toHex(),
-              parentHead.number.toBigInt()
+              parentHead.number.toBigInt(),
+              parentHead.hash.toHex()
             );
 
             // Throttle

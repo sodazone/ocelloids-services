@@ -46,7 +46,7 @@ function matchInstructions(
     } = instruction;
 
     if (ReceiveTeleportedAsset || ReserveAssetDeposited) {
-      const fun = ReceiveTeleportedAsset[0]?.fun ?? ReserveAssetDeposited[0]?.fun;
+      const fun = ReceiveTeleportedAsset?.[0]?.fun ?? ReserveAssetDeposited[0]?.fun;
       if (fun) {
         const asset = assets.value.toHuman() as Json;
         sameAssetFun = (

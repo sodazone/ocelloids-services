@@ -16,7 +16,7 @@ import {
   Configuration,
   Monitoring
 } from './services/index.js';
-import { NotFound } from './errors.js';
+import { NotFound, ValidationError } from './errors.js';
 import { ZodError } from 'zod';
 
 /**
@@ -35,6 +35,8 @@ export async function createServer(
     if (error instanceof NotFound) {
       reply.status(404).send(error.message);
     } else if (error instanceof ZodError) {
+      reply.status(400).send(error.message);
+    } else if (error instanceof ValidationError) {
       reply.status(400).send(error.message);
     } else {
       // to parent handler

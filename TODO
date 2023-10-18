@@ -18,13 +18,18 @@ TODO
 [x] Support VMP messages 
 [x] - DMP: only attempted + dmp queue + extrinsic params and instructions matching. if undecidable: notify undecidable set (block, txs, messages)
 [x] - UMP: parachainSystem upward message sent w/ message hash parachainsystem (UpwardMessageSent)
+[x] change status code for subs API errors
+[] Complete unique key deletions
+[] General review, adjust logging etc.
+[] Test coverage, docs (e.g. unique paths logic)
 
 TO TEST
 ===
 [] Handle smoldot panics
 [x] Running with RPCs
-[] DMP
-[] UMP
+[] DMP (smoldot)
+[] UMP (smoldot)
+[] batched transfers
 
 FUTURE
 ===

@@ -60,7 +60,7 @@ export class MatchingEngine extends EventEmitter {
         const inMsg = await this.#inbound.get(ck);
 
         log.info(
-          '[%s] MATCHED %s',
+          '[%s] ✔ MATCHED %s',
           outMsg.chainId,
           ck
         );
@@ -69,7 +69,7 @@ export class MatchingEngine extends EventEmitter {
         await this.#notify(outMsg, inMsg);
       } catch (e) {
         log.info(
-          '[%s] OUTBOUND STORED FOR MATCHING %s (subId=%s)',
+          '[%s] 🡅 STORED %s (subId=%s)',
           outMsg.chainId,
           ck,
           outMsg.subscriptionId
@@ -88,7 +88,7 @@ export class MatchingEngine extends EventEmitter {
         const outMsg = await this.#outbound.get(ck);
 
         log.info(
-          '[%s] MATCHED %s',
+          '[%s] ✔ MATCHED %s',
           inMsg.chainId,
           ck
         );
@@ -97,7 +97,7 @@ export class MatchingEngine extends EventEmitter {
         await this.#notify(outMsg, inMsg);
       } catch (e) {
         log.info(
-          '[%s] INBOUND STORED FOR MATCHING %s',
+          '[%s] 🡇 STORED %s',
           inMsg.chainId,
           ck
         );

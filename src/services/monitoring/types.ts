@@ -246,11 +246,12 @@ export const $QuerySubscription = z.object({
  */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
 
-export type SubscriptionHandler = QuerySubscription & {
+export type SubscriptionHandler = {
   originSubs: Subscription[],
   destinationSubs: Subscription[],
   sendersControl: ControlQuery,
-  messageControl: ControlQuery
+  messageControl: ControlQuery,
+  descriptor: QuerySubscription
 }
 
 export type BinBlock = {

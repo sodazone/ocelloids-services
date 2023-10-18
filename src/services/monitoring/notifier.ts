@@ -12,7 +12,7 @@ export class Notifier {
     try {
       if (sub.notify.type === 'log') {
         this.#log.info(
-          '[%s => %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
+          '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
           msg.origin.chainId,
           msg.destination.chainId,
           sub.id,

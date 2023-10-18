@@ -8,7 +8,7 @@ import {
 import Connector from '../connector.js';
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { DB, Logger } from '../types.js';
-import { NotFound } from '../../errors.js';
+import { NotFound, ValidationError } from '../../errors.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
   XcmMessageSent,
@@ -83,25 +83,18 @@ export class Switchboard {
    * @throws {Error} If there is an error during the subscription setup process.
    */
   async subscribe(qs: QuerySubscription) {
-    try {
-      await this.getSubscription(qs.id);
-      throw new Error(`Subscription with ID ${qs.id} already exists`);
-    } catch (_) {
-      // OK ^^
+    if (await this.existsSubscription(qs.id)) {
+      throw new ValidationError(`Subscription with ID ${qs.id} already exists`);
     }
 
-    this.#validateChainIds([
-      qs.origin, ...qs.destinations
-    ]);
+    await this.updateInDB(qs);
+    this.#monitor(qs);
 
     this.#log.info(
       '[%s] new subscription: %j',
       qs.origin,
       qs
     );
-
-    await this.#slqs(qs.origin).put(qs.id, qs);
-    this.#monitor(qs);
   }
 
   /**
@@ -114,7 +107,7 @@ export class Switchboard {
   unsubscribe(id: string) {
     try {
       const {
-        origin, originSubs, destinationSubs
+        descriptor: { origin }, originSubs, destinationSubs
       } = this.#subs[id];
 
       this.#log.info(
@@ -126,6 +119,7 @@ export class Switchboard {
       originSubs.forEach(sub => sub.unsubscribe());
       destinationSubs.forEach(sub => sub.unsubscribe());
       delete this.#subs[id];
+      // TODO delete unique paths
       this.#slqs(origin).del(id);
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id);
@@ -151,6 +145,18 @@ export class Switchboard {
     }
 
     throw new NotFound(`Subscription ${id} not found.`);
+  }
+
+  /**
+   *
+   */
+  async existsSubscription(id: string) : Promise<boolean> {
+    try {
+      await this.getSubscription(id);
+      return true;
+    } catch {
+      return  false;
+    }
   }
 
   /**
@@ -183,7 +189,7 @@ export class Switchboard {
     this.#log.info('Stopping switchboard');
 
     for (const {
-      id,
+      descriptor: { id },
       originSubs,
       destinationSubs
     } of Object.values(this.#subs)) {
@@ -202,7 +208,14 @@ export class Switchboard {
    * Applies to the outbound extrinsic signers.
    */
   updateSenders(id: string, senders: string[]) {
-    const { sendersControl } = this.#subs[id];
+    const { sendersControl/*, descriptor*/ } = this.#subs[id];
+
+    /*
+    const deletes = descriptor.senders.filter(
+      d => senders.indexOf(d) < 0
+    );
+    // TODO Iterate delete uniques paths*/
+
     sendersControl.change(sendersCriteria(senders));
   }
 
@@ -212,16 +225,30 @@ export class Switchboard {
    * Applies to the outbound XCM message.
    */
   updateDestinations(id: string, recipients: number[]) {
-    this.#validateChainIds(recipients);
+    const { messageControl/*, descriptor*/ } = this.#subs[id];
 
-    const { messageControl } = this.#subs[id];
+    /*
+    const deletes = descriptor.destinations.filter(
+      d => recipients.indexOf(d) < 0
+    );
+    // TODO Iterate delete uniques paths*/
+
     messageControl.change(messageCriteria(recipients));
+  }
+
+  updateInMemory(sub: QuerySubscription) {
+    this.#subs[sub.id].descriptor = sub;
   }
 
   /**
    * Updates the subscription data in the database.
    */
   async updateInDB(qs: QuerySubscription) {
+    this.#validateChainIds([
+      qs.origin, ...qs.destinations
+    ]);
+    await this.#validateSubscriptionPaths(qs);
+
     const db = await this.#slqs(qs.origin);
     await db.put(qs.id, qs);
   }
@@ -259,7 +286,7 @@ export class Switchboard {
     } = origMonitor.controls;
 
     this.#subs[id] = {
-      ...qs,
+      descriptor: qs,
       sendersControl,
       messageControl,
       originSubs: origMonitor.subs,
@@ -463,6 +490,37 @@ export class Switchboard {
     }
   }
 
+  async #validateSubscriptionPaths(qs: QuerySubscription) {
+    const uniques = this.#db.sublevel<string, string>('ukeys', {});
+    const batch = uniques.batch();
+    let existingKey = false;
+    let subId: string;
+    let ukey: string;
+    for (const d of qs.destinations) {
+      // Senders
+      for (const s of qs.senders) {
+        ukey = `${qs.origin}:${d}:${s}`;
+        try {
+          subId = await uniques.get(ukey);
+          existingKey = subId !== qs.id;
+          if (existingKey) {
+            break;
+          }
+        } catch (error) {
+          batch.put(ukey, qs.id);
+        }
+      }
+      // Throw
+      if (existingKey) {
+        batch.clear();
+        batch.close();
+        throw new ValidationError(`Path ${ukey!} already defined in ${subId!}`);
+      }
+    }
+
+    await batch.write();
+  }
+
   #slqs(chainId: string | number) {
     return this.#db.sublevel<string, QuerySubscription>(
       chainId + ':subs', { valueEncoding: 'json'}
@@ -476,7 +534,7 @@ export class Switchboard {
   #validateChainIds(chainIds: number[]) {
     chainIds.forEach(chainId => {
       if (!isNetworkDefined(this.#config, chainId)) {
-        throw new Error('Invalid chain id:' +  chainId);
+        throw new ValidationError('Invalid chain id:' +  chainId);
       }
     });
   }
