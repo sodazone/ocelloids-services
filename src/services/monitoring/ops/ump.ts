@@ -4,10 +4,10 @@ import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { EventRecord } from '@polkadot/types/interfaces';
-import type { Outcome } from '@polkadot/types/interfaces/xcm';
 import { ApiPromise } from '@polkadot/api';
 
 import {
+  ControlQuery,
   extractEventsWithTx, extractTxWithEvents, filterNonNull,
   flattenBatch, mongoFilter, types
 } from '@sodazone/ocelloids';
@@ -27,78 +27,6 @@ type EventRecordWithContext = {
   section: string,
   blockNumber: string,
   blockHash: HexString
-}
-
-export function extractDmpSend(
-  _api: ApiPromise,
-  {
-    sendersControl
-  }: XcmCriteria
-) {
-  return (source: Observable<SignedBlockExtended>)
-    : Observable<XcmMessageSentWithContext> => {
-    return source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
-      mongoFilter({
-        'extrinsic.call.section': 'xcmPallet',
-        // TODO filter dest in known paras?
-        'extrinsic.call.method': { $in: [
-          'limitedReserveTransferAssets',
-          'reserveTransferAssets',
-          'limitedTeleportAssets',
-          'teleportAssets'
-        ]}
-      }),
-      mongoFilter(sendersControl),
-      map(x => {
-        console.log(x.extrinsic.toHuman());
-        return null;
-      }),
-      filterNonNull()
-      // TODO filter Extrinsics and extract params to match
-      // TODO get from queue and match instructions + id
-    );
-  };
-}
-
-function mapDmpQueueMessage() {
-  return (source: Observable<types.EventWithIdAndTx>):
-    Observable<XcmMessageReceivedWithContext>  => {
-    return (source.pipe(
-      mongoFilter({
-        'section': 'dmpQueue',
-        'method': 'ExecutedDownward'
-      }),
-      map(event => {
-        const xcmMessage = event.data as any;
-        const outcome = xcmMessage.outcome as Outcome;
-        if (outcome.isComplete) {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
-            extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageId.toHex(),
-            outcome: 'Success',
-            error: null
-          });
-        } else {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
-            extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageId.toHex(),
-            outcome: 'Fail',
-            // TODO: extract error for Outcome.Incomplete and Outcome.Error
-            error: null
-          });
-        }
-      }),
-    )
-    );
-  };
 }
 
 function mapUmpQueueMessage() {
@@ -136,18 +64,6 @@ function mapUmpQueueMessage() {
   };
 }
 
-export function extractDmpReceive() {
-  return (source: Observable<SignedBlockExtended>)
-    : Observable<XcmMessageReceivedWithContext>  => {
-    return (source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
-      extractEventsWithTx(),
-      mapDmpQueueMessage()
-    ));
-  };
-}
-
 function umpMessagesSent() {
   return (source: Observable<types.EventWithIdAndTx>)
         : Observable<XcmMessageSentWithContext> => {
@@ -168,7 +84,7 @@ function umpMessagesSent() {
 
 function findOutboundUmpMessage(
   api: ApiPromise,
-  // messageControl: ControlQuery,
+  messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
   return (source: Observable<XcmMessageSentWithContext>)
@@ -177,7 +93,6 @@ function findOutboundUmpMessage(
       mergeMap(sentMsg => {
         const { blockHash, messageHash } = sentMsg;
         return getOutboundUmpMessages(blockHash).pipe(
-
           map(messages =>  {
             return messages
               .map(data => {
@@ -208,8 +123,8 @@ function findOutboundUmpMessage(
               ...p,
               messageHash: hashPatch
             } as GenericXcmMessageSentWithContext;
-          })
-          //mongoFilter(messageControl)
+          }),
+          mongoFilter(messageControl)
         );
       }));
   };
@@ -218,7 +133,8 @@ function findOutboundUmpMessage(
 export function extractUmpSend(
   api: ApiPromise,
   {
-    sendersControl
+    sendersControl,
+    messageControl
   }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
@@ -234,7 +150,7 @@ export function extractUmpSend(
         'method': 'UpwardMessageSent'
       }),
       umpMessagesSent(),
-      findOutboundUmpMessage(api, getOutboundUmpMessages)
+      findOutboundUmpMessage(api, messageControl, getOutboundUmpMessages)
     );
   };
 }

@@ -22,8 +22,9 @@ import {
 import { ServiceConfiguration, isNetworkDefined, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
-import { extractDmpReceive, extractDmpSend, extractUmpReceive, extractUmpSend } from './ops/vmp.js';
+import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { Notifier } from './notifier.js';
+import { extractDmpReceive, extractDmpSend } from './ops/dmp.js';
 
 type Monitor = {
   subs: Subscription[]
