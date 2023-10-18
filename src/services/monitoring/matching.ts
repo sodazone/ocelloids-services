@@ -8,6 +8,7 @@ import {
   XcmMessageReceived,
   XcmMessageSent
 } from './types.js';
+import { Janitor } from 'services/storage/janitor.js';
 
 export const XcmNotification = Symbol('xcm-notification');
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -27,16 +28,22 @@ const sublevelOpts = { valueEncoding: 'json' };
 export class MatchingEngine extends EventEmitter {
   #db: DB;
   #log: Logger;
+  #janitor: Janitor;
 
   #outbound: SubLevel<XcmMessageSent>;
   #inbound: SubLevel<XcmMessageReceived>;
   #mutex: Mutex;
 
-  constructor(db: DB, log: Logger) {
+  constructor(
+    log: Logger,
+    db: DB,
+    janitor: Janitor
+  ) {
     super();
 
     this.#db = db;
     this.#log = log;
+    this.#janitor = janitor;
     this.#mutex = new Mutex();
 
     this.#outbound = this.#sl('out');
@@ -62,7 +69,7 @@ export class MatchingEngine extends EventEmitter {
         await this.#notify(outMsg, inMsg);
       } catch (e) {
         log.info(
-          '[%s] STORED FOR MATCHING %s | %s',
+          '[%s] OUTBOUND STORED FOR MATCHING %s (subId=%s)',
           outMsg.chainId,
           ck,
           outMsg.subscriptionId
@@ -70,18 +77,6 @@ export class MatchingEngine extends EventEmitter {
         await this.#outbound.put(ck, outMsg);
       }
     });
-  }
-
-  async #notify(
-    outMsg: XcmMessageSent,
-    inMsg: XcmMessageReceived
-  ) {
-    try {
-      const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
-      this.emit(XcmNotification, message);
-    } catch (e) {
-      this.#log.error(e, 'Error on notification');
-    }
   }
 
   async onInboundMessage(inMsg: XcmMessageReceived)  {
@@ -102,13 +97,29 @@ export class MatchingEngine extends EventEmitter {
         await this.#notify(outMsg, inMsg);
       } catch (e) {
         log.info(
-          '[%s] STORED FOR MATCHING %s',
+          '[%s] INBOUND STORED FOR MATCHING %s',
           inMsg.chainId,
           ck
         );
         await this.#inbound.put(ck, inMsg);
+        await this.#janitor.schedule({
+          sublevel: 'in',
+          key: ck
+        });
       }
     });
+  }
+
+  async #notify(
+    outMsg: XcmMessageSent,
+    inMsg: XcmMessageReceived
+  ) {
+    try {
+      const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
+      this.emit(XcmNotification, message);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
   }
 
   #sl<TV>(prefix: string) {

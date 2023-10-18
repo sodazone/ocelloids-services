@@ -6,24 +6,24 @@ import { MatchingEngine, XcmNotification } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
 
 const inboundMessage : XcmMessageReceived = {
-  messageHash: 'M0',
+  messageHash: '0xCAFE',
   chainId: '1',
   outcome: 'Success',
   error: null,
   event: {},
-  blockHash: '0x0',
+  blockHash: '0xBEEF',
   blockNumber: '2'
 };
 
 const outboundMessage : XcmMessageSent = {
-  messageHash: 'M0',
+  messageHash: '0xCAFE',
   recipient: 1,
   chainId: '0',
   event: {},
   instructions: {},
   messageData: '0x0',
   subscriptionId: '1',
-  blockHash: '0x0',
+  blockHash: '0xBEEF',
   blockNumber: '2'
 };
 
@@ -32,9 +32,9 @@ describe('message matching engine', () => {
 
   beforeEach(() => {
     const db = new Level();
-    engine = new MatchingEngine(db, pino({
+    engine = new MatchingEngine(pino({
       enabled: false
-    }));
+    }), db, jest.fn());
   });
 
   it('should match inbound and outbound', async () => {

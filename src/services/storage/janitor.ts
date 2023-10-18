@@ -4,7 +4,8 @@ import { DB } from '../../services/types.js';
 
 export type JanitorTask = {
   sublevel: string,
-  key: string
+  key: string,
+  expiry?: number
 }
 
 export type JanitorOptions = {
@@ -55,9 +56,12 @@ export class Janitor {
     }
   }
 
-  async addToClean(...tasks: JanitorTask[]) {
+  async schedule(...tasks: JanitorTask[]) {
     for (const task of tasks) {
-      await this.#taskDB.put(Date.now() + this.#expiry, task);
+      await this.#taskDB.put(
+        Date.now() + (task.expiry ?? this.#expiry),
+        task
+      );
     }
   }
 

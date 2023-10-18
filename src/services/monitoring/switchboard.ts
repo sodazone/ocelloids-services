@@ -55,7 +55,7 @@ export class Switchboard {
   constructor(
     ctx: FastifyInstance
   ) {
-    const { log , db, config } = ctx;
+    const { log , db, janitor, config } = ctx;
     const connector = new Connector(log, config);
 
     this.#connector = connector;
@@ -65,7 +65,7 @@ export class Switchboard {
     this.#log = log;
     this.#config = config;
 
-    this.#engine = new MatchingEngine(db, log);
+    this.#engine = new MatchingEngine(log, db, janitor);
     this.#catcher = new HeadCatcher(ctx, connector);
     this.#notifier = new Notifier(log);
   }

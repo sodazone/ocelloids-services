@@ -404,7 +404,7 @@ export class HeadCatcher extends EventEmitter {
 
   #updateJanitorTasks(chainId: string) {
     return ({ block: { header } }: SignedBlockExtended) => {
-      this.#janitor.addToClean(
+      this.#janitor.schedule(
         {
           sublevel: chainId + ':blocks',
           key: 'hrmp-messages:' + header.hash.toHex()
