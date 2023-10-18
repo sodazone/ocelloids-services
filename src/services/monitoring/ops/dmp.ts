@@ -49,13 +49,21 @@ function matchInstructions(
       const fun = ReceiveTeleportedAsset[0]?.fun ?? ReserveAssetDeposited[0]?.fun;
       if (fun) {
         const asset = assets.value.toHuman() as Json;
-        sameAssetFun = JSON.stringify(fun) === JSON.stringify(asset[0]?.fun);
+        sameAssetFun = (
+          JSON.stringify(fun) === JSON.stringify(asset[0]?.fun)
+        );
       }
       continue;
     }
 
     if (DepositAsset) {
-      sameBeneficiary = JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman());
+      sameBeneficiary = (
+        JSON.stringify(
+          DepositAsset.beneficiary
+        ) === JSON.stringify(
+          beneficiary.value.toHuman()
+        )
+      );
       break;
     }
   }
@@ -155,7 +163,10 @@ function findDmpMessages(api: ApiPromise) {
 
               if (filteredMessages.length > 1) {
                 // XXX See note at the start of this file
-                console.error('Undecidable message set', filteredMessages.map(m => m.toHuman()));
+                console.error(
+                  'Undecidable message set:',
+                  filteredMessages.map(m => m.toHuman())
+                );
               }
 
               return null;
