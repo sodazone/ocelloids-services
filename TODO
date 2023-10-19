@@ -11,15 +11,15 @@ TODO
 [x] Consider subscribe to new heads only on subscription, or a good strategy to clear DB (??)
 [x] Implement XCM outcome in message
 [] Notifications models and webhook client (retries etc.)
-[] Throttle config
+[] Throttle config (?)
 [] Filtering of instructions (?)
 [] Handle modifications in network configuration (?)
-[] Handle subscription exploding on network config change
+[x] Handle subscription exploding on network config change
 [x] Support VMP messages 
 [x] - DMP: only attempted + dmp queue + extrinsic params and instructions matching. if undecidable: notify undecidable set (block, txs, messages)
 [x] - UMP: parachainSystem upward message sent w/ message hash parachainsystem (UpwardMessageSent)
 [x] change status code for subs API errors
-[] Complete unique key deletions
+[x] Complete unique key deletions
 [] General review, adjust logging etc.
 [] Test coverage, docs (e.g. unique paths logic)
 
@@ -29,7 +29,8 @@ TO TEST
 [x] Running with RPCs
 [] DMP (smoldot)
 [] UMP (smoldot)
-[] batched transfers
+[x] batched transfers
+[] Handle subscription exploding on network config change
 
 FUTURE
 ===
