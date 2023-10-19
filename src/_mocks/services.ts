@@ -3,7 +3,7 @@ import { pino } from 'pino';
 import { SubsDB } from '../services/storage/subs.js';
 import { Janitor } from '../services/storage/janitor.js';
 import { ServiceConfiguration } from '../services/configuration.js';
-import Connector from '../services/connector/connector.js';
+import Connector from '../services/networking/connector.js';
 import { DB } from '../services/types';
 
 export const MockServices = {
