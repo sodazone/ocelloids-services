@@ -60,21 +60,24 @@ export class MatchingEngine extends EventEmitter {
       if (outMsg.messageId) {
         // Still we don't know if the inbound is upgraded, i.e. uses message ids
         const idKey = `${outMsg.messageId}:${outMsg.recipient}`;
-        Promise.any([
-          this.#inbound.get(idKey),
-          this.#inbound.get(hashKey)
-        ]).then(async inMsg => {
+        try {
+          const inMsg = await Promise.any([
+            this.#inbound.get(idKey),
+            this.#inbound.get(hashKey)
+          ]);
+
           log.info(
-            '[%s] ✔ MATCHED %s',
+            '[%s] ✔ MATCHED hash=%s id=%s',
             outMsg.chainId,
-            hashKey
+            hashKey,
+            idKey
           );
           await this.#inbound.batch()
             .del(idKey)
             .del(hashKey)
             .write();
           await this.#notify(outMsg, inMsg);
-        }).catch(async () => {
+        } catch {
           log.info(
             '[%s] 🡅 STORED hash=%s id=%s (subId=%s)',
             outMsg.chainId,
@@ -86,17 +89,18 @@ export class MatchingEngine extends EventEmitter {
             .put(idKey, outMsg)
             .put(hashKey, outMsg)
             .write();
-        });
+        }
       } else {
-        this.#inbound.get(hashKey).then(async inMsg => {
+        try {
+          const inMsg = await this.#inbound.get(hashKey);
           log.info(
-            '[%s] ✔ MATCHED %s',
+            '[%s] ✔ MATCHED hash=%s',
             outMsg.chainId,
             hashKey
           );
           await this.#inbound.del(hashKey);
           await this.#notify(outMsg, inMsg);
-        }).catch(async () => {
+        } catch {
           log.info(
             '[%s] 🡅 STORED hash=%s (subId=%s)',
             outMsg.chainId,
@@ -104,7 +108,7 @@ export class MatchingEngine extends EventEmitter {
             outMsg.subscriptionId
           );
           await this.#outbound.put(hashKey, outMsg);
-        });
+        }
       }
     });
   }
@@ -112,30 +116,71 @@ export class MatchingEngine extends EventEmitter {
   async onInboundMessage(inMsg: XcmMessageReceived)  {
     const log = this.#log;
 
-    const ck = `${inMsg.messageHash}:${inMsg.chainId}`;
     await this.#mutex.runExclusive(async () => {
-      try {
-        const outMsg = await this.#outbound.get(ck);
+      const hashKey = `${inMsg.messageHash}:${inMsg.chainId}`;
+      const idKey = `${inMsg.messageId}:${inMsg.chainId}`;
 
-        log.info(
-          '[%s] ✔ MATCHED %s',
-          inMsg.chainId,
-          ck
-        );
-
-        this.#outbound.del(ck);
-        await this.#notify(outMsg, inMsg);
-      } catch (e) {
-        log.info(
-          '[%s] 🡇 STORED %s',
-          inMsg.chainId,
-          ck
-        );
-        await this.#inbound.put(ck, inMsg);
-        await this.#janitor.schedule({
-          sublevel: 'in',
-          key: ck
-        });
+      if (hashKey === idKey) {
+        try {
+          const outMsg = await this.#outbound.get(hashKey);
+          log.info(
+            '[%s] ✔ MATCHED hash=%s',
+            outMsg.chainId,
+            hashKey
+          );
+          await this.#outbound.del(hashKey);
+          await this.#notify(outMsg, inMsg);
+        } catch {
+          log.info(
+            '[%s] 🡇 STORED hash=%s',
+            inMsg.chainId,
+            hashKey
+          );
+          await this.#inbound.put(hashKey, inMsg);
+          await this.#janitor.schedule({
+            sublevel: 'in',
+            key: hashKey
+          });
+        }
+      } else {
+        try {
+          const outMsg = await Promise.any([
+            this.#outbound.get(idKey),
+            this.#outbound.get(hashKey)
+          ]);
+          log.info(
+            '[%s] ✔ MATCHED hash=%s id=%s',
+            outMsg.chainId,
+            hashKey,
+            idKey
+          );
+          await this.#outbound.batch()
+            .del(idKey)
+            .del(hashKey)
+            .write();
+          await this.#notify(outMsg, inMsg);
+        } catch {
+          log.info(
+            '[%s] 🡇 STORED hash=%s id=%s',
+            inMsg.chainId,
+            hashKey,
+            idKey
+          );
+          await this.#inbound.batch()
+            .put(idKey, inMsg)
+            .put(hashKey, inMsg)
+            .write();
+          await this.#janitor.schedule(
+            {
+              sublevel: 'in',
+              key: hashKey
+            },
+            {
+              sublevel: 'in',
+              key: idKey
+            }
+          );
+        }
       }
     });
   }

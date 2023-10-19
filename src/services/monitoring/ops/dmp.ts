@@ -230,13 +230,17 @@ function mapDmpQueueMessage() {
       map(event => {
         const xcmMessage = event.data as any;
         const outcome = xcmMessage.outcome as Outcome;
+        const messageId = xcmMessage.messageId.toHex();
+        const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
+
         if (outcome.isComplete) {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
             blockNumber: event.blockNumber.toString(),
             extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageId.toHex(),
+            messageHash,
+            messageId,
             outcome: 'Success',
             error: null
           });
@@ -246,7 +250,8 @@ function mapDmpQueueMessage() {
             blockHash: event.blockHash.toHex(),
             blockNumber: event.blockNumber.toString(),
             extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageId.toHex(),
+            messageHash,
+            messageId,
             outcome: 'Fail',
             error: extractXcmError(outcome)
           });

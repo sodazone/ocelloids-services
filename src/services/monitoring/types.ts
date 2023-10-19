@@ -55,12 +55,14 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
   blockNumber: string;
   blockHash: HexString;
   messageHash: HexString;
+  messageId: HexString;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
 
   constructor(msg: XcmMessageReceivedWithContext) {
     this.event = msg.event;
     this.messageHash = msg.messageHash;
+    this.messageId = msg.messageId ?? msg.messageHash;
     this.outcome = msg.outcome;
     this.error = msg.error;
     this.blockHash = msg.blockHash;
@@ -71,6 +73,7 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
     return {
       messageHash: this.messageHash,
+      messageId: this.messageId,
       extrinsicId: this.extrinsicId,
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
@@ -85,6 +88,7 @@ export class XcmMessageReceived {
   chainId: string | number;
   event: AnyJson;
   messageHash: HexString;
+  messageId: HexString;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
   blockHash: HexString;
@@ -98,6 +102,7 @@ export class XcmMessageReceived {
     this.chainId = chainId;
     this.event = msg.event;
     this.messageHash = msg.messageHash;
+    this.messageId = msg.messageId ?? msg.messageHash;
     this.outcome = msg.outcome;
     this.error = msg.error;
     this.blockHash = msg.blockHash;
@@ -115,6 +120,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   blockHash: HexString;
   blockNumber: string;
   extrinsicId?: string;
+  messageId?: HexString;
 
   constructor(msg: XcmMessageSentWithContext) {
     this.event = msg.event;
@@ -125,6 +131,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber;
     this.extrinsicId = msg.extrinsicId;
+    this.messageId = msg.messageId;
   }
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
@@ -136,7 +143,8 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
       event: this.event,
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
-      extrinsicId: this.extrinsicId
+      extrinsicId: this.extrinsicId,
+      messageId: this.messageId
     };
   }
 }

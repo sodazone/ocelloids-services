@@ -41,12 +41,15 @@ function mapUmpQueueMessage() {
       }),
       map(({ record: { event }, blockHash, blockNumber }) => {
         const xcmMessage = event.data as any;
+        const messageId = xcmMessage.id.toHex();
+        const messageHash = messageId;
         if (xcmMessage.success.toPrimitive()) {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash,
             blockNumber,
-            messageHash: xcmMessage.id.toHex(),
+            messageHash,
+            messageId,
             outcome: 'Success',
             error: null
           });
@@ -55,7 +58,8 @@ function mapUmpQueueMessage() {
             event: event.toHuman(),
             blockHash,
             blockNumber,
-            messageHash: xcmMessage.id.toHex(),
+            messageHash,
+            messageId,
             outcome: 'Fail',
             error: null
           });
