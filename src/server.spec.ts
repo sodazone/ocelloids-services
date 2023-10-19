@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify';
+
 import { createServer } from './server.js';
+import { _configToml } from './_mocks/services.js';
 
 const testSubContent = {
   id: 'macatron',
@@ -18,31 +20,7 @@ jest.mock('node:fs', () => {
   return {
     ...original,
     readFileSync: () => {
-      return `
-      [[networks]]
-      name = "local_1"
-      id = 1_000
-      
-        [networks.provider]
-        type = "rpc"
-        url = "ws://localhost:9001"
-      
-      [[networks]]
-      name = "local_2000"
-      id = 2_000
-      
-        [networks.provider]
-        type = "rpc"
-        url = "ws://localhost:9002"
-      
-      [[networks]]
-      name = "local_3000"
-      id = 3_000
-      
-        [networks.provider]
-        type = "rpc"
-        url = "ws://localhost:9003"
-      `;
+      return _configToml;
     }
   };
 });

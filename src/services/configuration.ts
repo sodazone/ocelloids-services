@@ -30,7 +30,7 @@ const $NetworkConfiguration = z.object({
   provider: $NetworkProvider
 });
 
-const $ServiceConfiguration = z.object({
+export const $ServiceConfiguration = z.object({
   networks: z.array($NetworkConfiguration).min(1),
 });
 

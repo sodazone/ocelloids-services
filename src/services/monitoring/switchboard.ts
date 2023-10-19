@@ -113,7 +113,8 @@ export class Switchboard {
       originSubs.forEach(sub => sub.unsubscribe());
       destinationSubs.forEach(sub => sub.unsubscribe());
       delete this.#subs[id];
-      this.#db.remove(origin, id);
+
+      this.#db.remove(id);
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id);
     }
@@ -168,18 +169,16 @@ export class Switchboard {
    * Applies to the outbound XCM message.
    */
   updateDestinations(id: string, recipients: number[]) {
-    const { messageControl/*, descriptor*/ } = this.#subs[id];
-
-    /*
-    const deletes = descriptor.destinations.filter(
-      d => recipients.indexOf(d) < 0
-    );
-    // TODO Iterate delete uniques paths*/
-
+    const { messageControl } = this.#subs[id];
     messageControl.change(messageCriteria(recipients));
   }
 
-  updateSubscription(sub: QuerySubscription) {
+  /**
+   * Updates a subscription descriptor.
+   */
+  async updateSubscription(sub: QuerySubscription) {
+    const { descriptor } = this.#subs[sub.id];
+    await this.#db.updateUniquePaths(descriptor, sub);
     this.#subs[sub.id].descriptor = sub;
   }
 
