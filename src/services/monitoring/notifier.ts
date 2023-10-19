@@ -11,6 +11,7 @@ export class Notifier {
   notify(sub: QuerySubscription, msg: XcmMessageNotify) {
     try {
       if (sub.notify.type === 'log') {
+        console.log('NOTIF', msg);
         this.#log.info(
           '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
           msg.origin.chainId,

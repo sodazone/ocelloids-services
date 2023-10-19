@@ -20,6 +20,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
+import { messageIdOrHashPatch } from './patch.js';
 
 type EventRecordWithContext = {
   record: EventRecord,
@@ -88,7 +89,7 @@ function findOutboundUmpMessage(
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
   return (source: Observable<XcmMessageSentWithContext>)
-  : Observable<GenericXcmMessageSentWithContext> => {
+  : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
         const { blockHash, messageHash } = sentMsg;
@@ -111,19 +112,7 @@ function findOutboundUmpMessage(
               });
           }),
           filterNonNull(),
-          map(p => {
-            // XXX HACK
-            // To keep consistency until message ids using topic instructions are
-            // standarised, we just override the message hash, as a workaround when
-            // the instruction is present.
-            const instructions : any = p.instructions;
-            const setTopic = (instructions['V3'] as any[]).find((i: any) => i['SetTopic'] !== undefined);
-            const hashPatch =  setTopic ? setTopic['SetTopic'] as HexString : p.messageHash;
-            return {
-              ...p,
-              messageHash: hashPatch
-            } as GenericXcmMessageSentWithContext;
-          }),
+          messageIdOrHashPatch(),
           mongoFilter(messageControl)
         );
       }));

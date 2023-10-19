@@ -17,6 +17,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
+import { messageIdOrHashPatch } from './patch.js';
 
 /*
  ==================================================================================
@@ -202,9 +203,21 @@ export function extractDmpSend(
       }),
       mongoFilter(sendersControl),
       findDmpMessages(api),
+      messageIdOrHashPatch(),
       mongoFilter(messageControl)
     );
   };
+}
+
+function extractXcmError(outcome: Outcome) {
+  if (outcome.isIncomplete) {
+    const [_, err] = outcome.asIncomplete;
+    return err.type.toString();
+  }
+  if (outcome.isError) {
+    return outcome.asError.type.toString();
+  }
+  return undefined;
 }
 
 function mapDmpQueueMessage() {
@@ -237,7 +250,7 @@ function mapDmpQueueMessage() {
             messageHash: xcmMessage.messageId.toHex(),
             outcome: 'Fail',
             // TODO: extract error for Outcome.Incomplete and Outcome.Error
-            error: null
+            error: extractXcmError(outcome)
           });
         }
       }),
