@@ -24,6 +24,14 @@ const sublevelOpts = { valueEncoding: 'json' };
 /**
  * Matches sent XCM messages on the destination.
  * It does not assume any ordering.
+ *
+ * Current matching logic takes into account that messages at origin and destination
+ * might or might not have a unique ID set via SetTopic instruction.
+ * Therefore, it supports matching logic using both message hash and message ID.
+ *
+ * When unique message ID is implemented in all XCM events, we can:
+ * - simplify logic to match only by message ID
+ * - check notification storage by message ID and do not store for matching if already matched
  */
 export class MatchingEngine extends EventEmitter {
   #db: DB;

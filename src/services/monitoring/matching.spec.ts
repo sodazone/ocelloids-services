@@ -6,6 +6,7 @@ import { _Services } from '../../_mocks/services.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: '0xCAFE',
+  messageId: '0xCAF0',
   chainId: '1',
   outcome: 'Success',
   error: null,
@@ -16,6 +17,7 @@ const inboundMessage : XcmMessageReceived = {
 
 const outboundMessage : XcmMessageSent = {
   messageHash: '0xCAFE',
+  messageId: '0xCAF0',
   recipient: 1,
   chainId: '0',
   event: {},
