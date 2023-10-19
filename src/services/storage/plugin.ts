@@ -1,3 +1,4 @@
+
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
@@ -33,6 +34,7 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions>
 = async (fastify, options) => {
   let db;
 
+  /* istanbul ignore else  */
   if (environment === 'test') {
     db = new MemoryLevel();
   } else {
@@ -55,6 +57,7 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions>
     janitor.stop();
 
     instance.storage.db.close((err) => {
+      /* istanbul ignore if */
       if (err) {
         instance.log.error('Error while closing the database', err);
       }
