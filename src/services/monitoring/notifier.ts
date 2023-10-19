@@ -1,10 +1,10 @@
-import { Logger } from 'services/types.js';
+import { Logger, Services } from '../../services/types.js';
 import { QuerySubscription, XcmMessageNotify } from './types.js';
 
 export class Notifier {
   #log: Logger;
 
-  constructor(log: Logger) {
+  constructor({ log }: Services) {
     this.#log = log;
   }
 

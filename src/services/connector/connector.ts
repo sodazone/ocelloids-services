@@ -6,8 +6,8 @@ import { WsProvider, ScProvider } from '@polkadot/api';
 import * as Sc from '@substrate/connect';
 import { config as oconfig, SubstrateApis } from '@sodazone/ocelloids';
 
-import { NetworkConfiguration, ServiceConfiguration } from './configuration.js';
-import { Logger } from './types.js';
+import { NetworkConfiguration, ServiceConfiguration } from '../configuration.js';
+import { Logger } from '../types.js';
 
 /**
  * Handles substrate network connections,

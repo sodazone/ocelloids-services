@@ -27,6 +27,8 @@ export function SubscriptionApi(
   },
   done: (err?: Error) => void
 ) {
+  const { storage: { subsDB } } = fastify;
+
   fastify.get('/subs', {
     schema: {
       response: {
@@ -39,7 +41,7 @@ export function SubscriptionApi(
       }
     }
   }, async (_, reply) => {
-    reply.send(await switchboard.getSubscriptions());
+    reply.send(await subsDB.getAll());
   });
 
   fastify.get<{
@@ -57,7 +59,7 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    reply.send(await switchboard.getSubscription(
+    reply.send(await subsDB.getById(
       request.params.id
     ));
   });
@@ -102,7 +104,7 @@ export function SubscriptionApi(
   }, async (request, reply) => {
     const patch = request.body;
     const { id } = request.params;
-    const sub = await switchboard.getSubscription(id);
+    const sub = await subsDB.getById(id);
 
     // Check allowed patch ops
     const allowedOps = patch.every(op => allowedPaths
@@ -113,7 +115,7 @@ export function SubscriptionApi(
       applyPatch(sub, patch);
       $QuerySubscription.parse(sub);
 
-      await switchboard.updateInDB(sub);
+      await subsDB.save(sub);
 
       if (hasOp(patch, '/senders')) {
         switchboard.updateSenders(id, sub.senders);
@@ -123,7 +125,7 @@ export function SubscriptionApi(
         switchboard.updateDestinations(id, sub.destinations);
       }
 
-      switchboard.updateInMemory(sub);
+      switchboard.updateSubscription(sub);
 
       reply.status(200).send(sub);
     } else {

@@ -7,10 +7,14 @@ import { MemoryLevel } from 'memory-level';
 import { DB } from '../types.js';
 import { environment } from '../../environment.js';
 import { Janitor, JanitorOptions } from './janitor.js';
+import { SubsDB } from './subs.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: DB,
+    storage: {
+      db: DB,
+      subsDB: SubsDB
+    }
     janitor: Janitor
   }
 }
@@ -25,7 +29,8 @@ type DBOptions = JanitorOptions & {
  * @param fastify
  * @param options
  */
-const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
+const levelPluginCallback: FastifyPluginAsync<DBOptions>
+= async (fastify, options) => {
   let db;
 
   if (environment === 'test') {
@@ -37,16 +42,19 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions> = async (fastify, optio
 
     db = new Level(dbPath);
   }
-
+  const subsDB = new SubsDB(fastify.log, db, fastify.config);
   const janitor = new Janitor(fastify.log, db, options);
 
-  fastify.decorate('db', db);
+  fastify.decorate('storage', {
+    db,
+    subsDB
+  });
   fastify.decorate('janitor', janitor);
 
   fastify.addHook('onClose', (instance, done) => {
     janitor.stop();
 
-    instance.db.close((err) => {
+    instance.storage.db.close((err) => {
       if (err) {
         instance.log.error('Error while closing the database', err);
       }

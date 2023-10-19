@@ -1,9 +1,8 @@
-import { pino } from 'pino';
-
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
+import { MockServices } from '../../_mocks/services.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: '0xCAFE',
@@ -32,9 +31,13 @@ describe('message matching engine', () => {
 
   beforeEach(() => {
     const db = new Level();
-    engine = new MatchingEngine(pino({
-      enabled: false
-    }), db, jest.fn());
+    engine = new MatchingEngine({
+      ...MockServices,
+      storage: {
+        ...MockServices.storage,
+        db
+      }
+    });
   });
 
   it('should match inbound and outbound', async () => {

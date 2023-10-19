@@ -1,14 +1,10 @@
-import { FastifyInstance } from 'fastify';
-
 import { Subscription } from 'rxjs';
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
 
-import Connector from '../connector.js';
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
-import { DB, Logger } from '../types.js';
-import { NotFound, ValidationError } from '../../errors.js';
+import { Logger, Services } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
   XcmMessageSent,
@@ -19,11 +15,14 @@ import {
   XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from './types.js';
-import { ServiceConfiguration, isNetworkDefined, isRelay } from '../configuration.js';
+
+import { ServiceConfiguration, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
+import { SubsDB } from '../storage/subs.js';
+import { Notifier } from './notifier.js';
+
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
-import { Notifier } from './notifier.js';
 import { extractDmpReceive, extractDmpSend } from './ops/dmp.js';
 
 type Monitor = {
@@ -41,11 +40,10 @@ type Monitor = {
  * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard {
-  #connector: Connector;
   #apis: SubstrateApis;
   #config: ServiceConfiguration;
   #log: Logger;
-  #db: DB;
+  #db: SubsDB;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #engine: MatchingEngine;
@@ -53,26 +51,26 @@ export class Switchboard {
   #notifier: Notifier;
 
   constructor(
-    ctx: FastifyInstance
+    ctx: Services
   ) {
-    const { log , db, janitor, config } = ctx;
-    const connector = new Connector(log, config);
+    const {
+      log , storage: { subsDB }, config, connector
+    } = ctx;
 
-    this.#connector = connector;
     this.#apis = connector.connect();
 
-    this.#db = db;
+    this.#db = subsDB;
     this.#log = log;
     this.#config = config;
 
-    this.#engine = new MatchingEngine(log, db, janitor);
-    this.#catcher = new HeadCatcher(ctx, connector);
-    this.#notifier = new Notifier(log);
+    this.#engine = new MatchingEngine(ctx);
+    this.#catcher = new HeadCatcher(ctx);
+    this.#notifier = new Notifier(ctx);
   }
 
   async onNotification(msg: XcmMessageNotify) {
     const { subscriptionId } = msg;
-    const sub = await this.getSubscription(subscriptionId);
+    const sub = await this.#db.getById(subscriptionId);
     this.#notifier.notify(sub, msg);
   }
 
@@ -83,11 +81,7 @@ export class Switchboard {
    * @throws {Error} If there is an error during the subscription setup process.
    */
   async subscribe(qs: QuerySubscription) {
-    if (await this.existsSubscription(qs.id)) {
-      throw new ValidationError(`Subscription with ID ${qs.id} already exists`);
-    }
-
-    await this.updateInDB(qs);
+    await this.#db.insert(qs);
     this.#monitor(qs);
 
     this.#log.info(
@@ -119,60 +113,10 @@ export class Switchboard {
       originSubs.forEach(sub => sub.unsubscribe());
       destinationSubs.forEach(sub => sub.unsubscribe());
       delete this.#subs[id];
-      // TODO delete unique paths
-      this.#slqs(origin).del(id);
+      this.#db.remove(origin, id);
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id);
     }
-  }
-
-  /**
-   * Retrieves a subscription by identifier.
-   *
-   * @param {string} id The subscription identifier
-   * @returns {QuerySubscription} the subscription information
-   * @throws {NotFound} if the subscription does not exist
-   */
-  async getSubscription(id: string) {
-    // TODO: case if network config changes...
-    for (const network of this.#config.networks) {
-      try {
-        const subscription = await this.#slqs(network.id).get(id);
-        return subscription;
-      } catch (error) {
-        continue;
-      }
-    }
-
-    throw new NotFound(`Subscription ${id} not found.`);
-  }
-
-  /**
-   *
-   */
-  async existsSubscription(id: string) : Promise<boolean> {
-    try {
-      await this.getSubscription(id);
-      return true;
-    } catch {
-      return  false;
-    }
-  }
-
-  /**
-   * Retrieves the registered subscriptions in the database
-   * for all the configured networks.
-   *
-   * @returns {QuerySubscription[]} an array with the subscriptions
-   */
-  async getSubscriptions() {
-    let subscriptions: QuerySubscription[] = [];
-    for (const network of this.#config.networks) {
-      const subs = await this.#subsInDB(network.id);
-      subscriptions = subscriptions.concat(subs);
-    }
-
-    return subscriptions;
   }
 
   async start() {
@@ -185,7 +129,7 @@ export class Switchboard {
    * Stops the switchboard and unsubscribes from the underlying
    * reactive subscriptions.
    */
-  async stop() {
+  stop() {
     this.#log.info('Stopping switchboard');
 
     for (const {
@@ -199,7 +143,6 @@ export class Switchboard {
     }
 
     this.#catcher.stop();
-    await this.#connector.disconnect();
   }
 
   /**
@@ -236,21 +179,8 @@ export class Switchboard {
     messageControl.change(messageCriteria(recipients));
   }
 
-  updateInMemory(sub: QuerySubscription) {
+  updateSubscription(sub: QuerySubscription) {
     this.#subs[sub.id].descriptor = sub;
-  }
-
-  /**
-   * Updates the subscription data in the database.
-   */
-  async updateInDB(qs: QuerySubscription) {
-    this.#validateChainIds([
-      qs.origin, ...qs.destinations
-    ]);
-    await this.#validateSubscriptionPaths(qs);
-
-    const db = await this.#slqs(qs.origin);
-    await db.put(qs.id, qs);
   }
 
   /**
@@ -468,7 +398,7 @@ export class Switchboard {
     const { networks } = this.#config;
 
     for (const network of networks) {
-      const subs = await this.#subsInDB(network.id);
+      const subs = await this.#db.getByNetworkId(network.id);
 
       this.#log.info(
         '[%s] #subscriptions %d',
@@ -488,54 +418,5 @@ export class Switchboard {
         }
       }
     }
-  }
-
-  async #validateSubscriptionPaths(qs: QuerySubscription) {
-    const uniques = this.#db.sublevel<string, string>('ukeys', {});
-    const batch = uniques.batch();
-    let existingKey = false;
-    let subId: string;
-    let ukey: string;
-    for (const d of qs.destinations) {
-      // Senders
-      for (const s of qs.senders) {
-        ukey = `${qs.origin}:${d}:${s}`;
-        try {
-          subId = await uniques.get(ukey);
-          existingKey = subId !== qs.id;
-          if (existingKey) {
-            break;
-          }
-        } catch (error) {
-          batch.put(ukey, qs.id);
-        }
-      }
-      // Throw
-      if (existingKey) {
-        batch.clear();
-        batch.close();
-        throw new ValidationError(`Path ${ukey!} already defined in ${subId!}`);
-      }
-    }
-
-    await batch.write();
-  }
-
-  #slqs(chainId: string | number) {
-    return this.#db.sublevel<string, QuerySubscription>(
-      chainId + ':subs', { valueEncoding: 'json'}
-    );
-  }
-
-  async #subsInDB(chainId: string | number) {
-    return await this.#slqs(chainId.toString()).values().all();
-  }
-
-  #validateChainIds(chainIds: number[]) {
-    chainIds.forEach(chainId => {
-      if (!isNetworkDefined(this.#config, chainId)) {
-        throw new ValidationError('Invalid chain id:' +  chainId);
-      }
-    });
   }
 }

@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
-import { DB, Logger } from '../types.js';
+import { DB, Logger, Services } from '../types.js';
 import {
   XcmMessageNotify,
   XcmMessageReceived,
@@ -35,9 +35,9 @@ export class MatchingEngine extends EventEmitter {
   #mutex: Mutex;
 
   constructor(
-    log: Logger,
-    db: DB,
-    janitor: Janitor
+    {
+      log, storage: { db }, janitor
+    }: Services
   ) {
     super();
 

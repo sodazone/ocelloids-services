@@ -14,7 +14,8 @@ import {
   Root,
   Storage,
   Configuration,
-  Monitoring
+  Monitoring,
+  Connector
 } from './services/index.js';
 import { NotFound, ValidationError } from './errors.js';
 import { ZodError } from 'zod';
@@ -80,8 +81,9 @@ export async function createServer(
   });
 
   await server.register(Root);
-  await server.register(Storage, opts);
   await server.register(Configuration, opts);
+  await server.register(Storage, opts);
+  await server.register(Connector);
   await server.register(Monitoring);
 
   return server;

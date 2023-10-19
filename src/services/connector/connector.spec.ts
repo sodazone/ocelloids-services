@@ -9,7 +9,7 @@ import {
   mockConfigRelayMismatch,
   mockConfigWS,
   mockLog
-} from '../_mocks/context.js';
+} from '../../_mocks/context.js';
 
 jest.mock('node:fs', () => {
   const original = jest.requireActual('node:fs');

@@ -18,11 +18,9 @@ import {
   SubstrateApis
 } from '@sodazone/ocelloids';
 
-import Connector from '../connector.js';
-import { DB, Logger } from '../types.js';
+import { DB, Logger, Services } from '../types.js';
 import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from 'services/storage/janitor.js';
-import { FastifyInstance } from 'fastify';
 import { ServiceConfiguration } from 'services/configuration.js';
 
 function max(...args: bigint[]) {
@@ -48,8 +46,13 @@ export class HeadCatcher extends EventEmitter {
   #pipes: Record<string, Observable<any>> = {};
 
   constructor(
-    { log, config, db, janitor }: FastifyInstance,
-    connector: Connector,
+    {
+      log,
+      config,
+      storage: { db },
+      janitor,
+      connector
+    }: Services
   ) {
     super();
 

@@ -34,6 +34,14 @@ jest.mock('node:fs', () => {
         [networks.provider]
         type = "rpc"
         url = "ws://localhost:9002"
+      
+      [[networks]]
+      name = "local_3000"
+      id = 3_000
+      
+        [networks.provider]
+        type = "rpc"
+        url = "ws://localhost:9003"
       `;
     }
   };
@@ -126,6 +134,19 @@ describe('monitoring server API', () => {
   });
 
   describe('modify resources', () => {
+    it('should fail creating a subscription with an existing id', done => {
+      server.inject({
+        method: 'POST',
+        url: '/subs',
+        body: testSubContent
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(400);
+
+        done();
+      });
+    });
+
     it('should retrieve an existing subscription', done => {
       server.inject({
         method: 'GET',
