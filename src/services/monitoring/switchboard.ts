@@ -152,14 +152,7 @@ export class Switchboard {
    * Applies to the outbound extrinsic signers.
    */
   updateSenders(id: string, senders: string[]) {
-    const { sendersControl/*, descriptor*/ } = this.#subs[id];
-
-    /*
-    const deletes = descriptor.senders.filter(
-      d => senders.indexOf(d) < 0
-    );
-    // TODO Iterate delete uniques paths*/
-
+    const { sendersControl } = this.#subs[id];
     sendersControl.change(sendersCriteria(senders));
   }
 
