@@ -25,12 +25,12 @@ type DBOptions = JanitorOptions & {
 }
 
 /**
- * Abstract Level DB plug-in.
+ * Storage plug-in.
  *
  * @param fastify
  * @param options
  */
-const levelPluginCallback: FastifyPluginAsync<DBOptions>
+const storagePlugin: FastifyPluginAsync<DBOptions>
 = async (fastify, options) => {
   let db;
 
@@ -68,5 +68,5 @@ const levelPluginCallback: FastifyPluginAsync<DBOptions>
   janitor.start();
 };
 
-export default fp(levelPluginCallback, { fastify: '>=4.x', name: 'level' });
+export default fp(storagePlugin, { fastify: '>=4.x', name: 'storage' });
 

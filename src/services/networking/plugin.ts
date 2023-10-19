@@ -9,8 +9,7 @@ declare module 'fastify' {
   }
 }
 
-const connectorPlugin: FastifyPluginAsync
-= async fastify => {
+const connectorPlugin: FastifyPluginAsync = async fastify => {
   const connector = new Connector(fastify.log, fastify.config);
   fastify.decorate('connector', connector);
 

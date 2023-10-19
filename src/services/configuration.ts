@@ -55,7 +55,7 @@ declare module 'fastify' {
   }
 }
 
-const configPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, options) => {
+const configPlugin: FastifyPluginAsync<ServerOptions> = async (fastify, options) => {
   const configPath = options.config;
 
   fastify.log.info(`Loading configuration from ${configPath}`);
@@ -77,4 +77,4 @@ const configPluginCallback: FastifyPluginAsync<ServerOptions> = async (fastify, 
   }
 };
 
-export default fp(configPluginCallback, { fastify: '>=4.x', name: 'config' });
+export default fp(configPlugin, { fastify: '>=4.x', name: 'config' });
