@@ -4,7 +4,12 @@ import { BatchOperation, DB, Family, Logger } from '../types.js';
 import { ServiceConfiguration, isNetworkDefined } from '../configuration.js';
 
 /**
- * Handles the subscriptions database.
+ * Subscriptions persistence.
+ *
+ * A subscription is expected to
+ * - Have a unique id in the database.
+ * - Have a set of unique paths, being each path a combination of
+ *   '<origin id>:<destination id>:<sender address>'
  */
 export class SubsDB {
   #log: Logger;
@@ -54,6 +59,8 @@ export class SubsDB {
 
   /**
    * Retrieves all the subscriptions for a given network.
+   *
+   * @returns {QuerySubscription[]} an array with the subscriptions
    */
   async getByNetworkId(chainId: string | number) {
     return await this.#subsFamily(chainId.toString()).values().all();
@@ -82,6 +89,8 @@ export class SubsDB {
 
   /**
    * Inserts a new subscription.
+   *
+   * @throws {ValidationError} if there is a validation error.
    */
   async insert(qs: QuerySubscription) {
     if (await this.exists(qs.id)) {
@@ -92,6 +101,8 @@ export class SubsDB {
 
   /**
    * Updates the subscription data.
+   *
+   * @throws {ValidationError} if there is a validation error.
    */
   async save(qs: QuerySubscription) {
     this.#validateChainIds([
@@ -104,7 +115,7 @@ export class SubsDB {
   }
 
   /**
-   * Removes a subscription for the given network and id.
+   * Removes a subscription for the given id.
    */
   async remove(id: string) {
     const qs = await this.getById(id);
