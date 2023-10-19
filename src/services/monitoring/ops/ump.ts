@@ -4,6 +4,7 @@ import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { EventRecord } from '@polkadot/types/interfaces';
+import type { VersionedXcm } from '@polkadot/types/interfaces/xcm';
 import { ApiPromise } from '@polkadot/api';
 
 import {
@@ -20,7 +21,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
-import { messageIdOrHashPatch } from './patch.js';
+import { getMessageId } from './util.js';
 
 type EventRecordWithContext = {
   record: EventRecord,
@@ -97,7 +98,7 @@ function findOutboundUmpMessage(
           map(messages =>  {
             return messages
               .map(data => {
-                const xcmProgram = api.registry.createType(
+                const xcmProgram : VersionedXcm = api.registry.createType(
                   'XcmVersionedXcm', data
                 );
                 return new GenericXcmMessageSentWithContext({
@@ -105,6 +106,7 @@ function findOutboundUmpMessage(
                   messageData: data,
                   recipient: 0, // always relay
                   messageHash: xcmProgram.hash.toHex(),
+                  messageId: getMessageId(xcmProgram),
                   instructions: xcmProgram.toHuman()
                 });
               }).find(msg => {
@@ -112,7 +114,6 @@ function findOutboundUmpMessage(
               });
           }),
           filterNonNull(),
-          messageIdOrHashPatch(),
           mongoFilter(messageControl)
         );
       }));
@@ -139,7 +140,11 @@ export function extractUmpSend(
         'method': 'UpwardMessageSent'
       }),
       umpMessagesSent(),
-      findOutboundUmpMessage(api, messageControl, getOutboundUmpMessages)
+      findOutboundUmpMessage(
+        api,
+        messageControl,
+        getOutboundUmpMessages
+      )
     );
   };
 }

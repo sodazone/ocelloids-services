@@ -35,6 +35,7 @@ export type XcmMessageWithContext = {
   blockNumber: string,
   blockHash: HexString,
   messageHash: HexString,
+  messageId?: HexString
 }
 
 export interface XcmMessageSentWithContext extends XcmMessageWithContext {
@@ -150,6 +151,7 @@ export class XcmMessageSent {
   event: AnyJson;
   blockHash: HexString;
   blockNumber: string;
+  messageId?: HexString;
   extrinsicId?: string;
 
   constructor(
@@ -164,6 +166,7 @@ export class XcmMessageSent {
     this.recipient = msg.recipient;
     this.instructions = msg.instructions;
     this.messageHash = msg.messageHash;
+    this.messageId = msg.messageId;
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber;
     this.extrinsicId = msg.extrinsicId;

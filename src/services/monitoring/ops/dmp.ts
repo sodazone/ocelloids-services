@@ -17,7 +17,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
-import { messageIdOrHashPatch } from './patch.js';
+import { getMessageId } from './util.js';
 
 /*
  ==================================================================================
@@ -81,9 +81,9 @@ function createXcmMessageSent(
   data: Bytes,
   tx: types.TxWithIdAndEvent
 }) : GenericXcmMessageSentWithContext {
-  const xcmProgram = api.registry.createType(
+  const xcmProgram : VersionedXcm = api.registry.createType(
     'XcmVersionedXcm', data
-  ) as VersionedXcm;
+  );
   const blockHash = extrinsic.blockHash.toHex();
   const blockNumber = extrinsic.blockNumber.toString();
   return new GenericXcmMessageSentWithContext({
@@ -93,7 +93,8 @@ function createXcmMessageSent(
     recipient: paraId,
     instructions: xcmProgram.toHuman(),
     messageData: data,
-    messageHash: xcmProgram.hash.toHex()
+    messageHash: xcmProgram.hash.toHex(),
+    messageId: getMessageId(xcmProgram)
   });
 }
 
@@ -142,10 +143,9 @@ function findDmpMessages(api: ApiPromise) {
               // XXX Temporary matching heuristics until DMP message
               // sent event is implemented.
               const filteredMessages = messages.filter(message => {
-                const xcmProgram = api.registry.createType(
+                const xcmProgram : VersionedXcm = api.registry.createType(
                   'XcmVersionedXcm', message.msg
-                ) as VersionedXcm;
-
+                );
                 return matchInstructions(
                   xcmProgram,
                   assets,
@@ -203,7 +203,6 @@ export function extractDmpSend(
       }),
       mongoFilter(sendersControl),
       findDmpMessages(api),
-      messageIdOrHashPatch(),
       mongoFilter(messageControl)
     );
   };
@@ -249,7 +248,6 @@ function mapDmpQueueMessage() {
             extrinsicId: event.extrinsicId,
             messageHash: xcmMessage.messageId.toHex(),
             outcome: 'Fail',
-            // TODO: extract error for Outcome.Incomplete and Outcome.Error
             error: extractXcmError(outcome)
           });
         }

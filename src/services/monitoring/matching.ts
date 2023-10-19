@@ -54,27 +54,57 @@ export class MatchingEngine extends EventEmitter {
     const log = this.#log;
 
     // Confirmation key at destination
-    const ck = `${outMsg.messageHash}:${outMsg.recipient}`;
     await this.#mutex.runExclusive(async () => {
-      try {
-        const inMsg = await this.#inbound.get(ck);
+      const hashKey = `${outMsg.messageHash}:${outMsg.recipient}`;
 
-        log.info(
-          '[%s] ✔ MATCHED %s',
-          outMsg.chainId,
-          ck
-        );
-
-        this.#inbound.del(ck);
-        await this.#notify(outMsg, inMsg);
-      } catch (e) {
-        log.info(
-          '[%s] 🡅 STORED %s (subId=%s)',
-          outMsg.chainId,
-          ck,
-          outMsg.subscriptionId
-        );
-        await this.#outbound.put(ck, outMsg);
+      if (outMsg.messageId) {
+        // Still we don't know if the inbound is upgraded, i.e. uses message ids
+        const idKey = `${outMsg.messageId}:${outMsg.recipient}`;
+        Promise.any([
+          this.#inbound.get(idKey),
+          this.#inbound.get(hashKey)
+        ]).then(async inMsg => {
+          log.info(
+            '[%s] ✔ MATCHED %s',
+            outMsg.chainId,
+            hashKey
+          );
+          await this.#inbound.batch()
+            .del(idKey)
+            .del(hashKey)
+            .write();
+          await this.#notify(outMsg, inMsg);
+        }).catch(async () => {
+          log.info(
+            '[%s] 🡅 STORED hash=%s id=%s (subId=%s)',
+            outMsg.chainId,
+            hashKey,
+            idKey,
+            outMsg.subscriptionId
+          );
+          await this.#outbound.batch()
+            .put(idKey, outMsg)
+            .put(hashKey, outMsg)
+            .write();
+        });
+      } else {
+        this.#inbound.get(hashKey).then(async inMsg => {
+          log.info(
+            '[%s] ✔ MATCHED %s',
+            outMsg.chainId,
+            hashKey
+          );
+          await this.#inbound.del(hashKey);
+          await this.#notify(outMsg, inMsg);
+        }).catch(async () => {
+          log.info(
+            '[%s] 🡅 STORED hash=%s (subId=%s)',
+            outMsg.chainId,
+            hashKey,
+            outMsg.subscriptionId
+          );
+          await this.#outbound.put(hashKey, outMsg);
+        });
       }
     });
   }
