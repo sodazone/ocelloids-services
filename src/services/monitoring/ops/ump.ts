@@ -48,27 +48,15 @@ function mapUmpQueueMessage(origin: number) {
         // If we can get origin ID, only return message if origin matches with subscription origin
         // If no origin ID, we will return the message without matching with subscription origin
         if ((originId && originId === origin.toString()) || !originId) {
-          if (xcmMessage.success.toPrimitive()) {
-            return new GenericXcmMessageReceivedWithContext({
-              event: event.toHuman(),
-              blockHash,
-              blockNumber,
-              messageHash,
-              messageId,
-              outcome: 'Success',
-              error: null
-            });
-          } else {
-            return new GenericXcmMessageReceivedWithContext({
-              event: event.toHuman(),
-              blockHash,
-              blockNumber,
-              messageHash,
-              messageId,
-              outcome: 'Fail',
-              error: null
-            });
-          }
+          return new GenericXcmMessageReceivedWithContext({
+            event: event.toHuman(),
+            blockHash,
+            blockNumber,
+            messageHash,
+            messageId,
+            outcome: xcmMessage.success.toPrimitive() ? 'Success' : 'Fail',
+            error: null
+          });
         }
         return null;
       }),
