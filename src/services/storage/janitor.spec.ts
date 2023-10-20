@@ -23,8 +23,6 @@ describe('janitor service', () => {
     );
     now = jest.spyOn(Date, 'now')
       .mockImplementation(() => 0);
-
-    janitor.start();
   });
 
   afterEach(() => {
@@ -37,6 +35,8 @@ describe('janitor service', () => {
       .put('k1', '')
       .put('k2', '')
       .write();
+
+    janitor.start();
 
     await janitor.schedule({
       key: 'k1',
@@ -65,6 +65,8 @@ describe('janitor service', () => {
       .put('k2', '')
       .put('k3', '')
       .write();
+
+    janitor.start();
 
     await janitor.schedule({
       key: 'k1',
@@ -105,8 +107,6 @@ describe('janitor service', () => {
   });
 
   it('should avoid key collisions', async () => {
-    now.mockRestore();
-
     const p : Promise<void>[] = [];
     for (let i = 0; i < 10; i++) {
       p.push(janitor.schedule({
@@ -116,5 +116,36 @@ describe('janitor service', () => {
     }
     await Promise.all(p);
     expect((await janitor.allTaskTimes()).length).toBe(10);
+  });
+
+  it('should continue if the tasks fails', async () => {
+    const s1 = db.sublevel('s1');
+    await s1.batch()
+      .put('k1', '')
+      .put('k2', '')
+      .put('k3', '')
+      .write();
+
+    janitor.start();
+
+    await janitor.schedule({
+      key: 'k2', sublevel: 's1'
+    },
+    {
+      key: 'no', sublevel: 'no'
+    },
+    {
+      key: 'k1', sublevel: 's1'
+    });
+
+    expect((await janitor.allTaskTimes()).length).toBe(3);
+
+    now.mockImplementation(() => 1000);
+    jest.advanceTimersByTime(1000);
+
+    await janitor.stop();
+    expect((await janitor.allTaskTimes()).length).toBe(0);
+    expect((await s1.keys().all()).length).toBe(1);
+    expect(await s1.get('k3')).toBeDefined();
   });
 });

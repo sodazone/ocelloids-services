@@ -101,7 +101,7 @@ export class Janitor {
       try {
         await this.#sweep();
       } catch (error) {
-        this.#log.warn(error, 'Error while sweeping');
+        this.#log.error(error, 'Error while sweeping');
       }
     }
   }
@@ -116,9 +116,13 @@ export class Janitor {
     const range = tasks.iterator({ lt: now.toISOString() });
 
     for await (const [key, task] of range) {
-      await this.#db.sublevel(task.sublevel).del(task.key);
-      await tasks.del(key);
-      this.#log.debug(task, 'Janitor swept');
+      try {
+        await this.#db.sublevel(task.sublevel).del(task.key);
+        await tasks.del(key);
+        this.#log.debug(task, 'Janitor swept');
+      } catch (error) {
+        this.#log.warn(error, 'Error sweeping %s', key);
+      }
     }
   }
 }
