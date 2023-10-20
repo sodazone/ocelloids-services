@@ -26,6 +26,7 @@ export class Janitor {
 
   #running: boolean;
   #while: Promise<void> = Promise.resolve();
+  #cancel = (_?: unknown) => {};
 
   constructor(log: pino.BaseLogger, db: DB, options: JanitorOptions) {
     this.#log = log;
@@ -51,6 +52,7 @@ export class Janitor {
     if (this.#running) {
       this.#log.info('Stopping janitor.');
       this.#running = false;
+      this.#cancel();
       await this.#while;
     }
   }
@@ -79,18 +81,28 @@ export class Janitor {
   }
 
   async #run() {
-    const delay = () => new Promise(
-      resolve => setTimeout(
-        resolve,
-        this.#interval
-      )
-    );
+    const cancellable = new Promise(resolve => {
+      this.#cancel = resolve;
+    });
+    const delay = () => Promise.race([
+      new Promise(
+        resolve => setTimeout(
+          resolve,
+          this.#interval
+        )
+      ),
+      cancellable
+    ]);
 
     this.#running = true;
 
     while (this.#running) {
       await delay();
-      await this.#sweep();
+      try {
+        await this.#sweep();
+      } catch (error) {
+        this.#log.warn(error, 'Error while sweeping');
+      }
     }
   }
 
