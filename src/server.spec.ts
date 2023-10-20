@@ -25,6 +25,10 @@ jest.mock('node:fs', () => {
   };
 });
 
+jest.mock('level', () => {
+  return { Level: jest.requireActual('memory-level').MemoryLevel };
+});
+
 jest.mock('@substrate/connect');
 
 jest.mock('@polkadot/api', () => {

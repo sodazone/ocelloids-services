@@ -1,12 +1,9 @@
 
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-
 import { Level } from 'level';
-import { MemoryLevel } from 'memory-level';
 
 import { DB } from '../types.js';
-import { environment } from '../../environment.js';
 import { Janitor, JanitorOptions } from './janitor.js';
 import { SubsDB } from './subs.js';
 
@@ -32,18 +29,11 @@ type DBOptions = JanitorOptions & {
  */
 const storagePlugin: FastifyPluginAsync<DBOptions>
 = async (fastify, options) => {
-  let db;
+  const dbPath = options.db || './db';
 
-  /* istanbul ignore else  */
-  if (environment === 'test') {
-    db = new MemoryLevel();
-  } else {
-    const dbPath = options.db || './db';
+  fastify.log.info(`Open database at ${dbPath}`);
 
-    fastify.log.info(`Open database at ${dbPath}`);
-
-    db = new Level(dbPath);
-  }
+  const db = new Level(dbPath);
   const subsDB = new SubsDB(fastify.log, db, fastify.config);
   const janitor = new Janitor(fastify.log, db, options);
 
