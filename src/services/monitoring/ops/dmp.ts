@@ -123,6 +123,7 @@ function findDmpMessages(api: ApiPromise) {
       }),
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
+        // TODO: need to extract to head-catcher as getOutboundDmpMessages
         return from(api.at(tx.extrinsic.blockHash)).pipe(
           retryWithTruncatedExpBackoff(),
           switchMap(at =>
