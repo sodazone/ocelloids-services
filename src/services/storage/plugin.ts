@@ -54,14 +54,16 @@ const storagePlugin: FastifyPluginAsync<DBOptions>
   fastify.decorate('janitor', janitor);
 
   fastify.addHook('onClose', (instance, done) => {
-    janitor.stop();
-
-    instance.storage.db.close((err) => {
-      /* istanbul ignore if */
-      if (err) {
-        instance.log.error('Error while closing the database', err);
-      }
-      done();
+    janitor.stop().catch(err => {
+      instance.log.error('Error while stopping the janitor', err);
+    }).finally(() => {
+      instance.storage.db.close(err => {
+        /* istanbul ignore if */
+        if (err) {
+          instance.log.error('Error while closing the database', err);
+        }
+        done();
+      });
     });
   });
 
