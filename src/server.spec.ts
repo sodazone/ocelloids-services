@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 
 import { createServer } from './server.js';
-import { _configToml } from './_mocks/services.js';
+import { _configToml } from './_mocks/data.js';
 
 const testSubContent = {
   id: 'macatron',

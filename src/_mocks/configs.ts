@@ -1,10 +1,4 @@
-import { pino } from 'pino';
-
 import { ServiceConfiguration } from '../services/configuration.js';
-
-export const mockLog: pino.BaseLogger = pino({
-  enabled: false
-});
 
 export const mockConfigProviderMismatch: ServiceConfiguration = {
   networks: [
