@@ -71,12 +71,12 @@ export class HeadCatcher extends EventEmitter {
       // We only need to cache for smoldot
       if (network.provider.type === 'smoldot') {
         const chainId = network.id.toString();
+        const isRelayChain = network.relay === undefined;
         const api = this.#apis.rx[chainId];
         const db = this.#blockCache(chainId);
 
         this.#log.info('[%s] Register head catcher', chainId);
-
-        this.#subs[chainId] = api.pipe(
+        const blockPipe = api.pipe(
           blocks(),
           tap(b => this.#log.info(
             '[%s] SEEN block #%s %s',
@@ -84,12 +84,14 @@ export class HeadCatcher extends EventEmitter {
             b.block.header.number.toString(),
             b.block.header.hash.toHex()
           )),
-          retryWithTruncatedExpBackoff(),
+          retryWithTruncatedExpBackoff()
+        );
+        const paraPipe = blockPipe.pipe(
           mergeMap(block => {
             return api.pipe(
               switchMap(_api => _api.at(block.block.header.hash)),
               retryWithTruncatedExpBackoff(),
-              switchMap(at =>
+              mergeMap(at =>
                 combineLatest([
                   from(
                     at.query.parachainSystem.hrmpOutboundMessages()
@@ -109,26 +111,42 @@ export class HeadCatcher extends EventEmitter {
               })
             );
           })
-        ).subscribe({
-          next: async ({ block, hrmpMessages, umpMessages }) => {
-            const hash = block.block.header.hash.toHex();
+        );
 
-            // TODO: review to use SCALE instead of CBOR
-            await db.put(hash, encode({
-              block: block.toU8a(),
-              events: block.events.map(ev => ev.toU8a()),
-              author: block.author?.toU8a()
-            }));
-
-            await db.put('hrmp-messages:' + hash, hrmpMessages.toU8a());
-            await db.put('ump-messages:' + hash, umpMessages.toU8a());
-          },
-          error: error => this.#log.error(
-            error,
-            '[%s] Error on caching block for chain',
-            chainId
-          )
-        });
+        if (isRelayChain) {
+          this.#subs[chainId] = blockPipe.subscribe(
+            {
+              next: async (block) => {
+                this.#putBlock(block);
+              },
+              error: error => this.#log.error(
+                error,
+                '[%s] Error on caching block for relay chain',
+                chainId
+              )
+            }
+          );
+        } else {
+          this.#subs[chainId] = paraPipe.subscribe(
+            {
+              next: async ({ block, hrmpMessages, umpMessages }) => {
+                this.#putBlock(block);
+                const hash = block.block.header.hash.toHex();
+                if (hrmpMessages.length > 0) {
+                  await db.put('hrmp-messages:' + hash, hrmpMessages.toU8a());
+                }
+                if (umpMessages.length > 0) {
+                  await db.put('ump-messages:' + hash, umpMessages.toU8a());
+                }
+              },
+              error: error => this.#log.error(
+                error,
+                '[%s] Error on caching block and XCMP messages for parachain',
+                chainId
+              )
+            }
+          );
+        }
       }
     }
   }
@@ -404,6 +422,17 @@ export class HeadCatcher extends EventEmitter {
         valueEncoding: 'buffer'
       }
     );
+  }
+
+  async #putBlock(block: SignedBlockExtended) {
+    const hash = block.block.header.hash.toHex();
+
+    // TODO: review to use SCALE instead of CBOR
+    await this.#db.put(hash, encode({
+      block: block.toU8a(),
+      events: block.events.map(ev => ev.toU8a()),
+      author: block.author?.toU8a()
+    }));
   }
 
   #updateJanitorTasks(chainId: string) {
