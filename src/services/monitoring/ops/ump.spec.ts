@@ -1,26 +1,26 @@
-import { xcmpSend, xcmpReceive } from '../../../_mocks/xcm.js';
-import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
+import { umpReceive, umpSend } from '../../../_mocks/xcm.js';
+import { extractUmpReceive, extractUmpSend } from './ump.js';
 
-describe('xcmp operator', () => {
-  describe('extractXcmpSend', () => {
-    it('should extract XCMP sent message', done => {
+describe('ump operator', () => {
+  describe('extractUmpSend', () => {
+    it('should extract UMP sent message', done => {
       const {
         blocks,
         apiPromise,
         sendersControl,
         messageControl,
-        getHrmp
-      } = xcmpSend;
+        getUmp
+      } = umpSend;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpSend(
+      const testPipe = extractUmpSend(
         apiPromise,
         {
           sendersControl,
           messageControl
         },
-        getHrmp
+        getUmp
       )(blocks);
 
       testPipe.subscribe({
@@ -42,13 +42,13 @@ describe('xcmp operator', () => {
     });
   });
 
-  describe('extractXcmpReceive', () => {
-    it('should extract XCMP receive with outcome success', done => {
-      const { successBlocks } = xcmpReceive;
+  describe('extractUmpReceive', () => {
+    it('should extract UMP receive with outcome success', done => {
+      const { successBlocks } = umpReceive;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(successBlocks);
+      const testPipe = extractUmpReceive(1000)(successBlocks);
 
       testPipe.subscribe({
         next: msg => {
@@ -69,11 +69,11 @@ describe('xcmp operator', () => {
     });
 
     it('should extract XCMP receive with outcome fail', done => {
-      const { failBlocks } = xcmpReceive;
+      const { failBlocks } = umpReceive;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(failBlocks);
+      const testPipe = extractUmpReceive(1000)(failBlocks);
 
       testPipe.subscribe({
         next: msg => {
@@ -85,7 +85,6 @@ describe('xcmp operator', () => {
           expect(msg.messageHash).toBeDefined();
           expect(msg.outcome).toBeDefined();
           expect(msg.outcome).toBe('Fail');
-          expect(msg.error).toBeDefined();
         },
         complete: () => {
           expect(calls).toBeCalledTimes(1);
