@@ -1,6 +1,8 @@
 node_modules
 npm-debug.log
 .npmrc
+node_modules
 db
 coverage
 examples
+src/_mocks
