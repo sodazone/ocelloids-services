@@ -1,6 +1,4 @@
-import { pino } from 'pino';
-
-import { DB } from '../../services/types.js';
+import { DB, Logger } from '../../services/types.js';
 
 export type JanitorTask = {
   sublevel: string,
@@ -18,7 +16,7 @@ export type JanitorOptions = {
  * Database clean up tasks.
  */
 export class Janitor {
-  #log: pino.BaseLogger;
+  #log: Logger;
   #db: DB;
   #expiry: number;
   #interval: number;
@@ -28,7 +26,7 @@ export class Janitor {
   #while: Promise<void> = Promise.resolve();
   #cancel = (_?: unknown) => {};
 
-  constructor(log: pino.BaseLogger, db: DB, options: JanitorOptions) {
+  constructor(log: Logger, db: DB, options: JanitorOptions) {
     this.#log = log;
     this.#db = db;
     this.#expiry = options.sweepExpiry;
@@ -50,7 +48,7 @@ export class Janitor {
 
   async stop() {
     if (this.#running) {
-      this.#log.info('Stopping janitor.');
+      this.#log.info('Stopping janitor');
       this.#running = false;
       this.#cancel();
       await this.#while;
@@ -110,18 +108,15 @@ export class Janitor {
     const tasks = this.#taskDB;
     // We use now for easy tesing
     const now = new Date(Date.now());
-
-    this.#log.info('Janitor sweep');
-
     const range = tasks.iterator({ lt: now.toISOString() });
 
     for await (const [key, task] of range) {
       try {
         await this.#db.sublevel(task.sublevel).del(task.key);
         await tasks.del(key);
-        this.#log.debug(task, 'Janitor swept');
+        this.#log.debug(task, 'Swept %s %j', key, task);
       } catch (error) {
-        this.#log.warn(error, 'Error sweeping %s', key);
+        this.#log.warn(error, 'Error sweeping %s %j', key, task);
       }
     }
   }

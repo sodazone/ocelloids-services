@@ -74,7 +74,7 @@ export class HeadCatcher extends EventEmitter {
         const api = this.#apis.rx[chainId];
         const db = this.#blockCache(chainId);
 
-        this.#log.info('[%s] Register resilient head hunter', chainId);
+        this.#log.info('[%s] Register head catcher', chainId);
 
         this.#subs[chainId] = api.pipe(
           blocks(),
@@ -134,7 +134,7 @@ export class HeadCatcher extends EventEmitter {
   }
 
   stop() {
-    this.#log.info('Stopping Head Catcher');
+    this.#log.info('Stopping head catcher');
 
     for (const [chain, sub] of Object.entries(this.#subs)) {
       this.#log.info(`Unsubscribe head catcher of chain ${chain}`);
