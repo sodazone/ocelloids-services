@@ -222,7 +222,7 @@ export class Switchboard {
    * @private
    */
   #monitorDestinations({
-    id, destinations
+    id, destinations, origin
   }: QuerySubscription) : Monitor {
     const subs : Subscription[] = [];
     try {
@@ -266,7 +266,7 @@ export class Switchboard {
         subs.push(
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
-              extractUmpReceive(),
+              extractUmpReceive(origin),
               retryWithTruncatedExpBackoff()
             ).subscribe(inboundHandler)
         );

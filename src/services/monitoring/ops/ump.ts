@@ -31,7 +31,7 @@ type EventRecordWithContext = {
   blockHash: HexString
 }
 
-function mapUmpQueueMessage() {
+function mapUmpQueueMessage(origin: number) {
   return (source: Observable<EventRecordWithContext>):
     Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
@@ -43,30 +43,37 @@ function mapUmpQueueMessage() {
         const xcmMessage = event.data as any;
         const messageId = xcmMessage.id.toHex();
         const messageHash = messageId;
-        if (xcmMessage.success.toPrimitive()) {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash,
-            blockNumber,
-            messageHash,
-            messageId,
-            outcome: 'Success',
-            error: null
-          });
-        } else {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash,
-            blockNumber,
-            messageHash,
-            messageId,
-            outcome: 'Fail',
-            error: null
-          });
+        const messageOrigin = xcmMessage.origin.toHuman();
+        const originId = messageOrigin?.Ump?.Para?.replace(/,/g, '');
+        // If we can get origin ID, only return message if origin matches with subscription origin
+        // If no origin ID, we will return the message without matching with subscription origin
+        if ((originId && originId === origin.toString()) || !originId) {
+          if (xcmMessage.success.toPrimitive()) {
+            return new GenericXcmMessageReceivedWithContext({
+              event: event.toHuman(),
+              blockHash,
+              blockNumber,
+              messageHash,
+              messageId,
+              outcome: 'Success',
+              error: null
+            });
+          } else {
+            return new GenericXcmMessageReceivedWithContext({
+              event: event.toHuman(),
+              blockHash,
+              blockNumber,
+              messageHash,
+              messageId,
+              outcome: 'Fail',
+              error: null
+            });
+          }
         }
-      })
-    )
-    );
+        return null;
+      }),
+      filterNonNull()
+    ));
   };
 }
 
@@ -153,7 +160,7 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive() {
+export function extractUmpReceive(origin: number) {
   return (source: Observable<SignedBlockExtended>)
     : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
@@ -166,7 +173,7 @@ export function extractUmpReceive() {
           blockHash: header.hash.toHex()
         } as EventRecordWithContext)
         )),
-      mapUmpQueueMessage()
+      mapUmpQueueMessage(origin)
     ));
   };
 }
