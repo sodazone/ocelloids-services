@@ -31,6 +31,7 @@ function max(...args: bigint[]) {
  * The HeadCatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
  * - Caches seen extended signed blocks and supplies them when required on finalization.
+ * - Caches storage data from XCM queues.
  *
  * @see {HeadCatcher.finalizedBlocks}
  * @see {HeadCatcher.#catchUpHeads}
