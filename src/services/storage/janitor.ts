@@ -23,7 +23,9 @@ export class Janitor {
   #expiry: number;
   #interval: number;
   #enabled: boolean;
-  #intervalId?: NodeJS.Timeout;
+
+  #running: boolean;
+  #while: Promise<void> = Promise.resolve();
 
   constructor(log: pino.BaseLogger, db: DB, options: JanitorOptions) {
     this.#log = log;
@@ -31,6 +33,7 @@ export class Janitor {
     this.#expiry = options.sweepExpiry;
     this.#interval = options.sweepInterval;
     this.#enabled = options.janitor;
+    this.#running = false;
   }
 
   start() {
@@ -40,47 +43,69 @@ export class Janitor {
         this.#interval,
         this.#expiry
       );
-
-      this.#intervalId = setInterval(
-        this.#sweep.bind(this),
-        this.#interval
-      );
+      this.#while = this.#run();
     }
   }
 
-  stop() {
-    if (this.#intervalId) {
+  async stop() {
+    if (this.#running) {
       this.#log.info('Stopping janitor.');
-
-      clearInterval(this.#intervalId);
+      this.#running = false;
+      await this.#while;
     }
   }
 
   async schedule(...tasks: JanitorTask[]) {
+    const batch = this.#taskDB.batch();
     for (const task of tasks) {
-      await this.#taskDB.put(
-        Date.now() + (task.expiry ?? this.#expiry),
-        task
-      );
+      const time = new Date(Date.now() + (task.expiry ?? this.#expiry));
+      const key = time.toISOString() + task.sublevel + task.key;
+      batch.put(key, task);
     }
+    await batch.write();
+  }
+
+  async allTaskTimes() {
+    return await this.#taskDB.keys().all();
   }
 
   get #taskDB() {
-    return this.#db.sublevel<number, JanitorTask>(
+    return this.#db.sublevel<string, JanitorTask>(
       'janitor:tasks',
-      {valueEncoding: 'json'}
+      {
+        valueEncoding: 'json'
+      }
     );
   }
 
+  async #run() {
+    const delay = () => new Promise(
+      resolve => setTimeout(
+        resolve,
+        this.#interval
+      )
+    );
+
+    this.#running = true;
+
+    while (this.#running) {
+      await delay();
+      await this.#sweep();
+    }
+  }
+
   async #sweep() {
-    const db = this.#taskDB;
-    const now = Date.now();
+    const tasks = this.#taskDB;
+    // We use now for easy tesing
+    const now = new Date(Date.now());
 
     this.#log.info('Janitor sweep');
 
-    for await (const [key, task] of db.iterator({ lt: now })) {
+    const range = tasks.iterator({ lt: now.toISOString() });
+
+    for await (const [key, task] of range) {
       await this.#db.sublevel(task.sublevel).del(task.key);
-      await db.del(key);
+      await tasks.del(key);
       this.#log.debug(task, 'Janitor swept');
     }
   }

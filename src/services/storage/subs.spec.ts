@@ -1,67 +1,11 @@
 import { MemoryLevel as Level } from 'memory-level';
+
 import { SubsDB } from './subs';
 import { _Config, _Pino } from '../../_mocks/services';
 import { QuerySubscription } from '../monitoring/types';
+import { _subsFix } from '../../_mocks/data';
 
-const subsFix : QuerySubscription[] = [
-  {
-    id: '0:1000:1',
-    origin: 0,
-    destinations: [
-      1000
-    ],
-    senders: ['a', 'b', 'c'],
-    notify: {
-      type: 'log'
-    }
-  },
-  {
-    id: '0:1000:2',
-    origin: 0,
-    destinations: [
-      1000
-    ],
-    senders: ['d', 'e', 'f'],
-    notify: {
-      type: 'log'
-    }
-  },
-  {
-    id: '0:2000:1',
-    origin: 0,
-    destinations: [
-      2000
-    ],
-    senders: ['a', 'b', 'c'],
-    notify: {
-      type: 'log'
-    }
-  },
-  {
-    id: '100:0-2000:1',
-    origin: 1000,
-    destinations: [
-      0, 2000
-    ],
-    senders: ['a', 'b', 'c'],
-    notify: {
-      type: 'log'
-    }
-  },
-  {
-    id: '100:0-2000:2',
-    origin: 1000,
-    destinations: [
-      0, 2000
-    ],
-    senders: ['d', 'e', 'f'],
-    notify: {
-      type: 'log'
-    }
-  },
-];
-
-describe('subscriptions database', () => {
+describe('subscriptions persistence', () => {
   let db: SubsDB;
 
   async function expectUpdate(
@@ -100,25 +44,42 @@ describe('subscriptions database', () => {
 
   describe('prepare data', () => {
     it('should insert subscriptions fix', async () => {
-      for (const sub of subsFix) {
+      for (const sub of _subsFix) {
         await db.insert(sub);
       }
-      for (const sub of subsFix) {
-        expect(await db.exists(sub.id)).toBe(true);
-      }
+      expect((await db.getAll()).length).toBe(5);
     });
   });
 
   describe('modify subscriptions', () => {
     it('should prevent duplicate ids', async () => {
       await expect(async () => {
-        await db.insert(subsFix[0]);
+        await db.insert(_subsFix[0]);
+      }).rejects.toThrowError();
+    });
+    it('should remove subsciption by id', async () => {
+      const subs = await db.getAll();
+      await db.remove(subs[subs.length - 1].id);
+      expect((await db.getAll()).length).toBe(subs.length - 1);
+    });
+    it('should prevent unconfigured chain ids', async () => {
+      await expect(async () => {
+        await db.save({
+          ..._subsFix[0],
+          origin: 1337
+        });
+      }).rejects.toThrowError();
+      await expect(async () => {
+        await db.save({
+          ..._subsFix[0],
+          destinations: [1337]
+        });
       }).rejects.toThrowError();
     });
     it('should enforce unique paths', async () => {
       await expect(async () => {
         await db.insert({
-          ...subsFix[0],
+          ..._subsFix[0],
           id: 'Z-0:1000:1',
           origin: 0,
           destinations: [
@@ -131,7 +92,7 @@ describe('subscriptions database', () => {
 
     it('should update uniques on senders modification', async () => {
       await expectUpdate(
-        subsFix[0],
+        _subsFix[0],
         {
           senders: ['y'],
         }
@@ -140,7 +101,7 @@ describe('subscriptions database', () => {
 
     it('should update uniques on destinations modification', async () => {
       await expectUpdate(
-        subsFix[1],
+        _subsFix[1],
         {
           destinations: [
             3000
@@ -151,7 +112,7 @@ describe('subscriptions database', () => {
 
     it('should update uniques on senders and destinations modification', async () => {
       await expectUpdate(
-        subsFix[2],
+        _subsFix[2],
         {
           senders: ['ALICE', 'BOB'],
           destinations: [
