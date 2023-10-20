@@ -124,7 +124,6 @@ function findDmpMessages(api: ApiPromise) {
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
         return from(api.at(tx.extrinsic.blockHash)).pipe(
-          retryWithTruncatedExpBackoff(),
           switchMap(at =>
               from(
                 at.query.dmp.downwardMessageQueues(paraId)

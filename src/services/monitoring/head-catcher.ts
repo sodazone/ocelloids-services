@@ -90,7 +90,6 @@ export class HeadCatcher extends EventEmitter {
           mergeMap(block => {
             return api.pipe(
               switchMap(_api => _api.at(block.block.header.hash)),
-              retryWithTruncatedExpBackoff(),
               mergeMap(at =>
                 combineLatest([
                   from(
