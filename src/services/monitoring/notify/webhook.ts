@@ -86,7 +86,6 @@ export class WebhookNotifier
           // TODO store in not deliverable reason
         }
       } catch (error) {
-        console.error(error);
         this.#log.warn(
           error,
           'Error while posting to webhook %s',
