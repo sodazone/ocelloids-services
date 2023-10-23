@@ -75,7 +75,7 @@ export class MatchingEngine extends EventEmitter {
           ]);
 
           log.info(
-            '[%s] ✔ MATCHED hash=%s id=%s',
+            '[%s:out] MATCHED hash=%s id=%s',
             outMsg.chainId,
             hashKey,
             idKey
@@ -87,7 +87,7 @@ export class MatchingEngine extends EventEmitter {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s] 🡅 STORED hash=%s id=%s (subId=%s)',
+            '[%s:out] STORED hash=%s id=%s (subId=%s)',
             outMsg.chainId,
             hashKey,
             idKey,
@@ -102,7 +102,7 @@ export class MatchingEngine extends EventEmitter {
         try {
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
-            '[%s] ✔ MATCHED hash=%s',
+            '[%s:out] MATCHED hash=%s',
             outMsg.chainId,
             hashKey
           );
@@ -110,7 +110,7 @@ export class MatchingEngine extends EventEmitter {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s] 🡅 STORED hash=%s (subId=%s)',
+            '[%s:out] STORED hash=%s (subId=%s)',
             outMsg.chainId,
             hashKey,
             outMsg.subscriptionId
@@ -132,7 +132,7 @@ export class MatchingEngine extends EventEmitter {
         try {
           const outMsg = await this.#outbound.get(hashKey);
           log.info(
-            '[%s] ✔ MATCHED hash=%s',
+            '[%s:in] MATCHED hash=%s',
             outMsg.chainId,
             hashKey
           );
@@ -140,9 +140,10 @@ export class MatchingEngine extends EventEmitter {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s] 🡇 STORED hash=%s',
+            '[%s:in] STORED hash=%s (subId=%s)',
             inMsg.chainId,
-            hashKey
+            hashKey,
+            inMsg.subscriptionId
           );
           await this.#inbound.put(hashKey, inMsg);
           await this.#janitor.schedule({
@@ -157,7 +158,7 @@ export class MatchingEngine extends EventEmitter {
             this.#outbound.get(hashKey)
           ]);
           log.info(
-            '[%s] ✔ MATCHED hash=%s id=%s',
+            '[%s:in] MATCHED hash=%s id=%s',
             outMsg.chainId,
             hashKey,
             idKey
@@ -169,10 +170,11 @@ export class MatchingEngine extends EventEmitter {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s] 🡇 STORED hash=%s id=%s',
+            '[%s:in] STORED hash=%s id=%s (subId=%s)',
             inMsg.chainId,
             hashKey,
-            idKey
+            idKey,
+            inMsg.subscriptionId
           );
           await this.#inbound.batch()
             .put(idKey, inMsg)

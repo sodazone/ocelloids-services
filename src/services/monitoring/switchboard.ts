@@ -232,7 +232,7 @@ export class Switchboard {
           next: (
             msg: XcmMessageReceivedWithContext
           ) => this.#engine.onInboundMessage(
-            new XcmMessageReceived(chainId, msg)
+            new XcmMessageReceived(id, chainId, msg)
           ),
           error: (error: any) => {
             this.#log.error(
