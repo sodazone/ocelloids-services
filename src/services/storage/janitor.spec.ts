@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 import { MemoryLevel as Level } from 'memory-level';
 
 import { _Config, _Pino } from '../../_mocks/services';
@@ -8,7 +10,7 @@ jest.useFakeTimers();
 describe('janitor service', () => {
   let janitor : Janitor;
   let db : Level;
-  let now: jest.SpyInstance;
+  let now: any;
 
   beforeEach(() => {
     db = new Level();

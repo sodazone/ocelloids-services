@@ -1,6 +1,6 @@
-import fs from 'node:fs';
+import { jest } from '@jest/globals';
 
-import Connector from './connector.js';
+import '../../_mocks/network.js';
 import {
   mockConfigLC,
   mockConfigMixed,
@@ -11,48 +11,7 @@ import {
 } from '../../_mocks/configs.js';
 import { _Pino } from '../../_mocks/services';
 
-jest.mock('node:fs', () => {
-  const original = jest.requireActual('node:fs');
-  return {
-    ...original,
-    readFileSync: jest.fn()
-  };
-});
-jest.mock('@substrate/connect');
-
-jest.mock('@polkadot/api', () => {
-  const original = jest.requireActual('@polkadot/api');
-
-  return {
-    ...original,
-    WsProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true;
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn()
-      };
-    }),
-    ScProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true;
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn()
-      };
-    })
-  };
-});
+const Connector = (await import('./connector.js')).default;
 
 describe('connector', () => {
   it('should fail if relay is configured with RPC and parachain is configured with Smoldot', () => {
@@ -119,8 +78,6 @@ describe('connector', () => {
 
   describe('disconnect', () => {
     it('should call disconnect on apis', () => {
-      jest.spyOn(fs, 'readFileSync').mockImplementation(() => '');
-
       const connector = new Connector(_Pino, mockConfigLC);
       const apis = connector.connect();
 

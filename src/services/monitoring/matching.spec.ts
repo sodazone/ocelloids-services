@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine, XcmNotification } from './matching.js';

@@ -1,4 +1,6 @@
 /* eslint-disable max-len */
+import { jest } from '@jest/globals';
+
 import { from } from 'rxjs';
 import { ApiPromise } from '@polkadot/api';
 import { ApiDecoration } from '@polkadot/api/types';

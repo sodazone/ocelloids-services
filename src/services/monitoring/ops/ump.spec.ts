@@ -1,4 +1,7 @@
+import { jest } from '@jest/globals';
+
 import { umpReceive, umpSend } from '../../../_mocks/xcm.js';
+
 import { extractUmpReceive, extractUmpSend } from './ump.js';
 
 describe('ump operator', () => {

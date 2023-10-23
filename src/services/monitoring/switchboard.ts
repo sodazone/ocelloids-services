@@ -19,7 +19,7 @@ import {
 import { ServiceConfiguration, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { SubsDB } from '../storage/subs.js';
-import { Notifier } from './notifier.js';
+import { Notifier } from './notify/notifier.js';
 
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';

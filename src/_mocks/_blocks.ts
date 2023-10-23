@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import * as url from 'url';
 import { readFileSync } from 'node:fs';
 
 import { decode } from 'cbor-x';
@@ -7,6 +8,8 @@ import { createSignedBlockExtended } from '@polkadot/api-derive';
 import type { SignedBlock, EventRecord, AccountId } from '@polkadot/types/interfaces';
 
 import { HexString } from '../services/monitoring/types';
+
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 export type BinBlock = {
   block: Uint8Array;

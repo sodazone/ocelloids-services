@@ -1,7 +1,6 @@
-import { FastifyInstance } from 'fastify';
+import './_mocks/network.js';
 
-import { createServer } from './server.js';
-import { _configToml } from './_mocks/data.js';
+import { FastifyInstance } from 'fastify';
 
 const testSubContent = {
   id: 'macatron',
@@ -15,55 +14,7 @@ const testSubContent = {
   }
 };
 
-jest.mock('node:fs', () => {
-  const original = jest.requireActual('node:fs');
-  return {
-    ...original,
-    readFileSync: () => {
-      return _configToml;
-    }
-  };
-});
-
-jest.mock('level', () => {
-  return { Level: jest.requireActual('memory-level').MemoryLevel };
-});
-
-jest.mock('@substrate/connect');
-
-jest.mock('@polkadot/api', () => {
-  const original = jest.requireActual('@polkadot/api');
-
-  return {
-    ...original,
-    WsProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true;
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn()
-      };
-    }),
-    ScProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true;
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn()
-      };
-    })
-  };
-});
+const { createServer } = await import('./server.js');
 
 describe('monitoring server API', () => {
   let server: FastifyInstance;

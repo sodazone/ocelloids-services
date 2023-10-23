@@ -1,4 +1,7 @@
+import { jest } from '@jest/globals';
+
 import { xcmpSend, xcmpReceive } from '../../../_mocks/xcm.js';
+
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 
 describe('xcmp operator', () => {
