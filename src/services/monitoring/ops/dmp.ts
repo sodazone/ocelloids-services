@@ -232,29 +232,16 @@ function mapDmpQueueMessage() {
         const messageId = xcmMessage.messageId.toHex();
         const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
 
-        if (outcome.isComplete) {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
-            extrinsicId: event.extrinsicId,
-            messageHash,
-            messageId,
-            outcome: 'Success',
-            error: null
-          });
-        } else {
-          return new GenericXcmMessageReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
-            extrinsicId: event.extrinsicId,
-            messageHash,
-            messageId,
-            outcome: 'Fail',
-            error: extractXcmError(outcome)
-          });
-        }
+        return new GenericXcmMessageReceivedWithContext({
+          event: event.toHuman(),
+          blockHash: event.blockHash.toHex(),
+          blockNumber: event.blockNumber.toString(),
+          extrinsicId: event.extrinsicId,
+          messageHash,
+          messageId,
+          outcome: outcome.isComplete ? 'Success' : 'Fail',
+          error: outcome.isComplete ? null : extractXcmError(outcome)
+        });
       }),
     )
     );

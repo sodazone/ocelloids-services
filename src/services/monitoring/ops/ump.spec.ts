@@ -43,7 +43,7 @@ describe('ump operator', () => {
   });
 
   describe('extractUmpReceive', () => {
-    it('should extract UMP receive with outcome success', done => {
+    it('should extract failed UMP received message', done => {
       const { successBlocks } = umpReceive;
 
       const calls = jest.fn();

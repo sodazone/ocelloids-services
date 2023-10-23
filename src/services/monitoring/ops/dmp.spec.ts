@@ -1,26 +1,60 @@
-import { xcmpSend, xcmpReceive } from '../../../_mocks/xcm.js';
-import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
+import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue } from '../../../_mocks/xcm.js';
+import { extractDmpReceive, extractDmpSend } from './dmp.js';
 
-describe('xcmp operator', () => {
-  describe('extractXcmpSend', () => {
-    it('should extract XCMP sent message', done => {
+describe('dmp operator', () => {
+  describe('extractDmpSend', () => {
+    it('should extract DMP sent message', done => {
       const {
         blocks,
         apiPromise,
         sendersControl,
-        messageControl,
-        getHrmp
-      } = xcmpSend;
+        messageControl
+      } = dmpSendSingleMessageInQueue;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpSend(
+      const testPipe = extractDmpSend(
         apiPromise,
         {
           sendersControl,
           messageControl
+        }
+      )(blocks);
+
+      testPipe.subscribe({
+        next: msg => {
+          calls();
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.instructions).toBeDefined();
+          expect(msg.messageData).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.recipient).toBeDefined();
         },
-        getHrmp
+        complete: () => {
+          expect(calls).toBeCalledTimes(1);
+          done();
+        }
+      });
+    });
+
+    it('should extract DMP sent message with multiple messages in the queue', done => {
+      const {
+        blocks,
+        apiPromise,
+        sendersControl,
+        messageControl
+      } = dmpSendMultipleMessagesInQueue;
+
+      const calls = jest.fn();
+
+      const testPipe = extractDmpSend(
+        apiPromise,
+        {
+          sendersControl,
+          messageControl
+        }
       )(blocks);
 
       testPipe.subscribe({
@@ -42,13 +76,13 @@ describe('xcmp operator', () => {
     });
   });
 
-  describe('extractXcmpReceive', () => {
-    it('should extract XCMP receive with outcome success', done => {
-      const { successBlocks } = xcmpReceive;
+  describe('extractDmpReceive', () => {
+    it('should extract DMP received message with outcome success', done => {
+      const { successBlocks } = dmpReceive;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(successBlocks);
+      const testPipe = extractDmpReceive()(successBlocks);
 
       testPipe.subscribe({
         next: msg => {
@@ -68,12 +102,12 @@ describe('xcmp operator', () => {
       });
     });
 
-    it('should extract failed XCMP received message with error', done => {
-      const { failBlocks } = xcmpReceive;
+    it('should extract failed DMP received message with error', done => {
+      const { failBlocks } = dmpReceive;
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(failBlocks);
+      const testPipe = extractDmpReceive()(failBlocks);
 
       testPipe.subscribe({
         next: msg => {
@@ -86,6 +120,7 @@ describe('xcmp operator', () => {
           expect(msg.outcome).toBeDefined();
           expect(msg.outcome).toBe('Fail');
           expect(msg.error).toBeDefined();
+          expect(msg.error).toBe('UntrustedReserveLocation');
         },
         complete: () => {
           expect(calls).toBeCalledTimes(1);
