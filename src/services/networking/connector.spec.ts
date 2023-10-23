@@ -52,7 +52,7 @@ describe('connector', () => {
       expect(apis.chains.length).toBe(3);
       expect(apis.rx['0']).toBeDefined();
       expect(apis.rx['1000']).toBeDefined();
-      expect(apis.rx['2006']).toBeDefined();
+      expect(apis.rx['2032']).toBeDefined();
     });
 
     it('should return all network apis with relay network as the last item in the config', () => {
