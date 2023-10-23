@@ -235,7 +235,7 @@ export const dmpSendMultipleMessagesInQueue = {
       } as unknown as ApiDecoration<'promise'>);
     }),
     registry: {
-      createType: jest.fn().mockImplementation((_type: string, data: {toHex: () => string}) => {
+      createType: jest.fn((_type: string, data: {toHex: () => string}) => {
         if (data.toHex() === '0x031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257') {
           return {
             value: {
