@@ -68,7 +68,7 @@ export class WebhookNotifier
               options => {
                 const { bearer } = options.context;
                 if (bearer && !options.headers.authorization) {
-                  options.headers.authorization = `token ${bearer}`;
+                  options.headers.authorization = `Bearer ${bearer}`;
                 }
               }
             ]

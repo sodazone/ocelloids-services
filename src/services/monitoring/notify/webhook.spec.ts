@@ -48,6 +48,9 @@ describe('webhook notifier', () => {
       port: number
     };
     webhookUrl = `http://${address}:${port}/`;
+    console.log(webhookUrl);
+
+    await fastify.ready();
   });
 
   afterAll(async () => {
