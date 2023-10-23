@@ -43,14 +43,11 @@ describe('webhook notifier', () => {
     await fastify.listen({
       port: 0
     });
-    const { address, port } = fastify.server.address() as {
-      address: string,
+    const { port } = fastify.server.address() as {
       port: number
     };
-    webhookUrl = `http://${address}:${port}/`;
-    console.log(webhookUrl);
 
-    await fastify.ready();
+    webhookUrl = `http://localhost:${port}/`;
   });
 
   afterAll(async () => {
