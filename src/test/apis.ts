@@ -2,7 +2,7 @@
 // import { ApiRx } from '@polkadot/api';
 
 // import { Observable, from, of } from 'rxjs';
-import { testBlocksFrom } from './_blocks';
+import { testBlocksFrom } from './_blocks.js';
 
 export const polkadotBlocks = testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json');
 // const polkadotHeaders = polkadotBlocks.map(tb => tb.block.header);

@@ -5,4 +5,4 @@ node_modules
 db
 coverage
 examples
-src/_mocks
+src/test

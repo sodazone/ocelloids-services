@@ -1,5 +1,5 @@
 import Fastify, { FastifyRequest } from 'fastify';
-import { XcmMessageNotify } from '../services/monitoring/types';
+import { XcmMessageNotify } from '../services/monitoring/types.js';
 
 type XcmReqDef = {
   Body: XcmMessageNotify,

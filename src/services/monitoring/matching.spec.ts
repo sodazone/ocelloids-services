@@ -4,7 +4,7 @@ import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
-import { _services } from '../../_mocks/services.js';
+import { _services } from '../../test/services.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: '0xCAFE',

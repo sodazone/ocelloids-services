@@ -4,10 +4,10 @@ import { ApiRx } from '@polkadot/api';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 
 import { HeadCatcher } from './head-catcher.js';
-import { _services } from '../../_mocks/services.js';
+import { _services } from '../../test/services.js';
 import Connector from '../networking/connector.js';
-import { mockConfigMixed } from '../../_mocks/configs.js';
-import { polkadotBlocks } from '../../_mocks/apis.js';
+import { mockConfigMixed } from '../../test/configs.js';
+import { polkadotBlocks } from '../../test/apis.js';
 
 describe('head catcher', () => {
   let catcher: HeadCatcher;

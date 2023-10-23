@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { _config, _log } from '../../_mocks/services';
+import { _config, _log } from '../../test/services';
 import { Janitor } from './janitor';
 
 jest.useFakeTimers();

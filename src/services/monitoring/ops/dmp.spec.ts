@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue } from '../../../_mocks/xcm.js';
+import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue } from '../../../test/xcm.js';
 import { extractDmpReceive, extractDmpSend } from './dmp.js';
 
 describe('dmp operator', () => {

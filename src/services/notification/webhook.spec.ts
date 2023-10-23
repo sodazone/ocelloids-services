@@ -2,8 +2,8 @@ import { jest } from '@jest/globals';
 
 import { FastifyInstance } from 'fastify';
 
-import { buildMockServer } from '../../_mocks/webhook.js';
-import { _log, _services } from '../../_mocks/services.js';
+import { buildMockServer } from '../../test/webhook.js';
+import { _log, _services } from '../../test/services.js';
 
 import { XcmMessageNotify } from '../monitoring/types.js';
 

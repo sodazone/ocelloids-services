@@ -7,7 +7,7 @@ import { TypeRegistry, Metadata } from '@polkadot/types';
 import { createSignedBlockExtended } from '@polkadot/api-derive';
 import type { SignedBlock, EventRecord, AccountId } from '@polkadot/types/interfaces';
 
-import { HexString } from '../services/monitoring/types';
+import { HexString } from '../services/monitoring/types.js';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 

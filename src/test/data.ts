@@ -1,4 +1,4 @@
-import { QuerySubscription } from '../services/monitoring/types';
+import { QuerySubscription } from '../services/monitoring/types.js';
 
 export const _subsFix : QuerySubscription[] = [
   {

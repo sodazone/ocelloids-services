@@ -1,4 +1,4 @@
-import './_mocks/network.js';
+import './test/network.js';
 
 import { FastifyInstance } from 'fastify';
 
