@@ -3,8 +3,8 @@ import Stream from 'node:stream';
 import got from 'got';
 import { ulid } from 'ulidx';
 
-import version from '../../../version.js';
-import { QuerySubscription, XcmMessageNotify } from '../types.js';
+import version from '../../version.js';
+import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
 import { Family, Logger, Services } from 'services/types.js';
 
 import { Notifier } from './types.js';

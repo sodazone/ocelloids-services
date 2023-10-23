@@ -1,5 +1,5 @@
-import { Logger, Services } from '../../types.js';
-import { QuerySubscription, XcmMessageNotify } from '../types.js';
+import { Logger, Services } from '../types.js';
+import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
 import { LogNotifier } from './log.js';
 import { Notifier } from './types.js';
 import { WebhookNotifier } from './webhook.js';
