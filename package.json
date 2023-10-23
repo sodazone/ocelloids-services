@@ -15,7 +15,7 @@
     "start": "node ./dist/main.js",
     "dev": "XCMON_CONFIG_FILE=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
-    "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" npx jest",
     "postinstall": "patch-package"
   },
   "author": "soda <projects@soda.zone>",

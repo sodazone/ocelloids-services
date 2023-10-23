@@ -67,7 +67,7 @@ describe('webhook notifier', () => {
       id: 'xyz',
       notify: {
         type: 'webhook',
-        url: webhookUrl + 'ok/'
+        url: webhookUrl + 'ok'
       },
       origin: 0,
       senders: []
