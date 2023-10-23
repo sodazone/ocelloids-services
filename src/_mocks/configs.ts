@@ -126,12 +126,12 @@ export const mockConfigMixed: ServiceConfiguration = {
       }
     },
     {
-      name: 'astar',
-      id: 2006,
+      name: 'interlay',
+      id: 2032,
       relay: 'polkadot',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/astar.json'
+        spec: './chain-specs/interlay.json'
       }
     }
   ]

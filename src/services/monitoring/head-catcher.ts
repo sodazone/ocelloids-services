@@ -76,14 +76,16 @@ export class HeadCatcher extends EventEmitter {
         const db = this.#blockCache(chainId);
 
         this.#log.info('[%s] Register head catcher', chainId);
+
         const blockPipe = api.pipe(
           blocks(),
-          tap(b => this.#log.info(
-            '[%s] SEEN block #%s %s',
-            chainId,
-            b.block.header.number.toString(),
-            b.block.header.hash.toHex()
-          )),
+          tap(b => {
+            this.#log.info(
+              '[%s] SEEN block #%s %s',
+              chainId,
+              b.block.header.number.toString(),
+              b.block.header.hash.toHex()
+            );}),
           retryWithTruncatedExpBackoff()
         );
         const paraPipe = blockPipe.pipe(
@@ -116,7 +118,7 @@ export class HeadCatcher extends EventEmitter {
           this.#subs[chainId] = blockPipe.subscribe(
             {
               next: async (block) => {
-                this.#putBlock(block);
+                this.#putBlock(chainId, block);
               },
               error: error => this.#log.error(
                 error,
@@ -129,7 +131,7 @@ export class HeadCatcher extends EventEmitter {
           this.#subs[chainId] = paraPipe.subscribe(
             {
               next: async ({ block, hrmpMessages, umpMessages }) => {
-                this.#putBlock(block);
+                this.#putBlock(chainId, block);
                 const hash = block.block.header.hash.toHex();
                 if (hrmpMessages.length > 0) {
                   await db.put('hrmp-messages:' + hash, hrmpMessages.toU8a());
@@ -423,11 +425,11 @@ export class HeadCatcher extends EventEmitter {
     );
   }
 
-  async #putBlock(block: SignedBlockExtended) {
+  async #putBlock(chainId: string, block: SignedBlockExtended) {
     const hash = block.block.header.hash.toHex();
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#db.put(hash, encode({
+    await this.#blockCache(chainId).put(hash, encode({
       block: block.toU8a(),
       events: block.events.map(ev => ev.toU8a()),
       author: block.author?.toU8a()

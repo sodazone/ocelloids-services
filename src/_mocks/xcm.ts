@@ -51,8 +51,8 @@ export const xcmpSend = {
 };
 
 export const xcmpReceive = {
-  successBlocks: from(testBlocksFrom('hrmp-in-2030-success.cbor.bin', 'interlay.json')),
-  failBlocks: from(testBlocksFrom('hrmp-in-2030-fail.cbor.bin', 'interlay.json'))
+  successBlocks: from(testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')),
+  failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json'))
 };
 
 // UMP testing mocks
