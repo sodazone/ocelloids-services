@@ -4,7 +4,10 @@ import { LogNotifier } from './log.js';
 import { Notifier } from './types.js';
 import { WebhookNotifier } from './webhook.js';
 
-export class NotifierHub {
+/**
+ * Notifier hub.
+ */
+export class NotifierHub implements Notifier {
   #log: Logger;
   #notifiers: {
     [property: string]: Notifier

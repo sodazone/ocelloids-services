@@ -33,7 +33,9 @@
       ".*/dist",
       "_mocks"
     ],
-    "extensionsToTreatAsEsm": [".ts"],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "transform": {
       "^.+\\.tsx?$": [
         "ts-jest",
@@ -82,6 +84,7 @@
     "level": "^8.0.0",
     "rfc6902": "^5.0.1",
     "toml": "^3.0.0",
+    "ulidx": "^2.2.1",
     "zod": "^3.22.4",
     "zod-to-json-schema": "^3.21.4"
   }

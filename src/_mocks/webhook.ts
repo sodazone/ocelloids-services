@@ -1,21 +1,23 @@
 import Fastify, { FastifyRequest } from 'fastify';
 import { XcmMessageNotify } from '../services/monitoring/types';
 
-export type XcmMessageRequest = FastifyRequest<{
-  Body: XcmMessageNotify
-}>;
+type XcmReqDef = {
+  Body: XcmMessageNotify,
+  Params: {
+    id: string
+  }
+};
+export type XcmMessageRequest = FastifyRequest<XcmReqDef>;
 
 export function buildMockServer(
-  onNotification: (
-    request: XcmMessageRequest
-  ) => void = () => {}
+  routes: {
+    ok: (request: XcmMessageRequest) => void
+  }
 ) {
   const fastify = Fastify();
 
-  fastify.post<{
-    Body: XcmMessageNotify
-  }>('/xcm-notifications', function (request, reply) {
-    onNotification(request);
+  fastify.post<XcmReqDef>('/ok/:id', function (request, reply) {
+    routes.ok(request);
     reply.send();
   });
 

@@ -9,10 +9,6 @@ export class LogNotifier implements Notifier {
     this.#log = log;
   }
 
-  stop(): Promise<void> {
-    return Promise.resolve();
-  }
-
   notify(
     sub: QuerySubscription,
     msg: XcmMessageNotify
