@@ -19,7 +19,7 @@ import {
 import { ServiceConfiguration, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { SubsDB } from '../storage/subs.js';
-import { Notifier } from './notify/notifier.js';
+import { NotifierHub } from './notify/hub.js';
 
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
@@ -48,7 +48,7 @@ export class Switchboard {
   #subs: Record<string, SubscriptionHandler> = {};
   #engine: MatchingEngine;
   #catcher: HeadCatcher;
-  #notifier: Notifier;
+  #notifier: NotifierHub;
 
   constructor(
     ctx: Services
@@ -65,7 +65,7 @@ export class Switchboard {
 
     this.#engine = new MatchingEngine(ctx);
     this.#catcher = new HeadCatcher(ctx);
-    this.#notifier = new Notifier(ctx);
+    this.#notifier = new NotifierHub(ctx);
   }
 
   async onNotification(msg: XcmMessageNotify) {

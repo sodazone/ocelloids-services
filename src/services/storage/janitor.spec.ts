@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { _Config, _Pino } from '../../_mocks/services';
+import { _config, _log } from '../../_mocks/services';
 import { Janitor } from './janitor';
 
 jest.useFakeTimers();
@@ -15,7 +15,7 @@ describe('janitor service', () => {
   beforeEach(() => {
     db = new Level();
     janitor = new Janitor(
-      _Pino,
+      _log,
       db,
       {
         sweepInterval: 500,

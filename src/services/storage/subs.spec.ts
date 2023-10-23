@@ -1,7 +1,7 @@
 import { MemoryLevel as Level } from 'memory-level';
 
 import { SubsDB } from './subs';
-import { _Config, _Pino } from '../../_mocks/services';
+import { _config, _log } from '../../_mocks/services';
 import { QuerySubscription } from '../monitoring/types';
 import { _subsFix } from '../../_mocks/data';
 
@@ -36,9 +36,9 @@ describe('subscriptions persistence', () => {
   beforeAll(() => {
     const mem = new Level();
     db = new SubsDB(
-      _Pino,
+      _log,
       mem,
-      _Config
+      _config
     );
   });
 

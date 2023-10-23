@@ -1,1 +1,1 @@
-export * from './notifier.js';
+export * from './hub.js';

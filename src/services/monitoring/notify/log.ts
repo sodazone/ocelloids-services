@@ -1,15 +1,23 @@
-import { Logger } from '../../../services/types.js';
+import { Logger, Services } from '../../../services/types.js';
 import { QuerySubscription, XcmMessageNotify } from '../types.js';
-import { NotifyHandler } from './notifier.js';
+import { Notifier } from './types.js';
 
-export function logNotifyHandler(
-  log: Logger
-) : NotifyHandler {
-  return (
+export class LogNotifier implements Notifier {
+  #log: Logger;
+
+  constructor({ log }: Services) {
+    this.#log = log;
+  }
+
+  stop(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  notify(
     sub: QuerySubscription,
     msg: XcmMessageNotify
-  ) => {
-    log.info(
+  ) : Promise<boolean> {
+    this.#log.info(
       '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
       msg.origin.chainId,
       msg.destination.chainId,
@@ -19,5 +27,6 @@ export function logNotifyHandler(
       msg.origin.blockNumber,
       msg.destination.blockNumber
     );
-  };
+    return Promise.resolve(true);
+  }
 }

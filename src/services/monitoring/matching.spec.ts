@@ -4,7 +4,7 @@ import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine, XcmNotification } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
-import { _Services } from '../../_mocks/services.js';
+import { _services } from '../../_mocks/services.js';
 
 const inboundMessage : XcmMessageReceived = {
   messageHash: '0xCAFE',
@@ -37,9 +37,9 @@ describe('message matching engine', () => {
   beforeEach(() => {
     const db = new Level();
     engine = new MatchingEngine({
-      ..._Services,
+      ..._services,
       storage: {
-        ..._Services.storage,
+        ..._services.storage,
         db
       }
     });
