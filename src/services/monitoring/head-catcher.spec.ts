@@ -8,7 +8,6 @@ import { _services } from '../../_mocks/services.js';
 import Connector from '../networking/connector.js';
 import { mockConfigMixed } from '../../_mocks/configs.js';
 import { polkadotBlocks } from '../../_mocks/apis.js';
-import { afterEach } from 'node:test';
 
 describe('head catcher', () => {
   let catcher: HeadCatcher;
