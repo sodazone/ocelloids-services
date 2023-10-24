@@ -40,7 +40,7 @@ describe('message matching engine', () => {
       ..._services,
       storage: {
         ..._services.storage,
-        db
+        root: db
       }
     });
   });
