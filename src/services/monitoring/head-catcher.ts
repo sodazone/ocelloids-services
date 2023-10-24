@@ -197,12 +197,11 @@ export class HeadCatcher extends EventEmitter {
         finalizedHeads(),
         retryWithTruncatedExpBackoff(),
         this.#catchUpHeads(chainId, api),
-        mergeMap(head => {
-          return from(this.#getBlock(
-            chainId, api, head.hash.toHex()
-          ));
-        }),
+        mergeMap(head => from(this.#getBlock(
+          chainId, api, head.hash.toHex()
+        ))),
         retryWithTruncatedExpBackoff(),
+        // Revisit: clean up as a side effect?
         tap(this.#updateJanitorTasks(chainId)),
         share()
       );
