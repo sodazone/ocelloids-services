@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs';
+import { Subscription, Observable, from, map } from 'rxjs';
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
@@ -175,6 +175,10 @@ export class Switchboard {
     this.#subs[sub.id].descriptor = sub;
   }
 
+  getById(id: string) {
+    return this.#subs[id];
+  }
+
   /**
    * Main monitoring logic.
    *
@@ -228,12 +232,14 @@ export class Switchboard {
     try {
       destinations.forEach(c => {
         const chainId = c.toString();
-        const inboundHandler = {
-          next: (
-            msg: XcmMessageReceivedWithContext
-          ) => this.#engine.onInboundMessage(
+        const inboundPipe = () => (
+          source: Observable<XcmMessageReceivedWithContext>
+        ) => source.pipe(
+          map(msg => from(this.#engine.onInboundMessage(
             new XcmMessageReceived(id, chainId, msg)
-          ),
+          )))
+        );
+        const inboundHandler = {
           error: (error: any) => {
             this.#log.error(
               error,
@@ -249,7 +255,8 @@ export class Switchboard {
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractXcmpReceive(),
-              retryWithTruncatedExpBackoff()
+              retryWithTruncatedExpBackoff(),
+              inboundPipe()
             ).subscribe(inboundHandler)
         );
 
@@ -259,7 +266,8 @@ export class Switchboard {
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractDmpReceive(),
-              retryWithTruncatedExpBackoff()
+              retryWithTruncatedExpBackoff(),
+              inboundPipe()
             ).subscribe(inboundHandler)
         );
         // UMP
@@ -267,7 +275,8 @@ export class Switchboard {
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractUmpReceive(origin),
-              retryWithTruncatedExpBackoff()
+              retryWithTruncatedExpBackoff(),
+              inboundPipe()
             ).subscribe(inboundHandler)
         );
       });
@@ -301,12 +310,14 @@ export class Switchboard {
       messageCriteria(destinations)
     );
 
+    const outboundPipe =  () => (
+      source: Observable<XcmMessageSentWithContext>
+    ) => source.pipe(
+      map(msg => from(this.#engine.onOutboundMessage(
+        new XcmMessageSent(id, origin, msg)
+      )))
+    );
     const outboundHandler = {
-      next: (msg: XcmMessageSentWithContext) => {
-        this.#engine.onOutboundMessage(
-          new XcmMessageSent(id, origin, msg)
-        );
-      },
       error: (error: any) => {
         this.#log.error(
           error,
@@ -330,7 +341,8 @@ export class Switchboard {
               },
               getHrmp
             ),
-            retryWithTruncatedExpBackoff()
+            retryWithTruncatedExpBackoff(),
+            outboundPipe()
           ).subscribe(outboundHandler)
       );
 
@@ -346,7 +358,9 @@ export class Switchboard {
                   sendersControl,
                   messageControl
                 }
-              )
+              ),
+              retryWithTruncatedExpBackoff(),
+              outboundPipe()
             ).subscribe(outboundHandler)
         );
       } else {
@@ -362,7 +376,9 @@ export class Switchboard {
                   messageControl
                 },
                 getUmp
-              )
+              ),
+              retryWithTruncatedExpBackoff(),
+              outboundPipe()
             ).subscribe(outboundHandler)
         );
       }
