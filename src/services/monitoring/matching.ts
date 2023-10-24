@@ -8,7 +8,7 @@ import {
   XcmMessageReceived,
   XcmMessageSent
 } from './types.js';
-import { Janitor } from 'services/storage/janitor.js';
+import { Janitor } from 'services/persistence/janitor.js';
 
 export const XcmNotification = Symbol('xcm-notification');
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -44,7 +44,7 @@ export class MatchingEngine extends EventEmitter {
 
   constructor(
     {
-      log, storage: { db }, janitor
+      log, storage: { root: db }, janitor
     }: Services
   ) {
     super();

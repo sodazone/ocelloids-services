@@ -11,7 +11,7 @@ import { ServiceConfiguration, isNetworkDefined } from '../configuration.js';
  * - Have a set of unique paths, being each path a combination of
  *   '<origin id>:<destination id>:<sender address>'
  */
-export class SubsDB {
+export class SubsStore {
   #log: Logger;
   #db: DB;
   #config: ServiceConfiguration;

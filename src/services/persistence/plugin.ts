@@ -5,49 +5,53 @@ import { Level } from 'level';
 
 import { DB } from '../types.js';
 import { Janitor, JanitorOptions } from './janitor.js';
-import { SubsDB } from './subs.js';
+import { SubsStore } from './subs.js';
+import { Scheduler, SchedulerOptions } from './scheduler.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     storage: {
-      db: DB,
-      subsDB: SubsDB
+      root: DB,
+      subs: SubsStore
     }
+    scheduler: Scheduler
     janitor: Janitor
   }
 }
 
-type DBOptions = JanitorOptions & {
+type DBOptions = JanitorOptions & SchedulerOptions & {
   db: string;
 }
 
 /**
- * Storage plug-in.
+ * Persistence related services.
  *
  * @param fastify
  * @param options
  */
-const storagePlugin: FastifyPluginAsync<DBOptions>
+const persistencePlugin: FastifyPluginAsync<DBOptions>
 = async (fastify, options) => {
   const dbPath = options.db || './db';
 
   fastify.log.info(`Open database at ${dbPath}`);
 
-  const db = new Level(dbPath);
-  const subsDB = new SubsDB(fastify.log, db, fastify.config);
-  const janitor = new Janitor(fastify.log, db, options);
+  const root = new Level(dbPath);
+  const subs = new SubsStore(fastify.log, root, fastify.config);
+  const scheduler = new Scheduler(fastify.log, root, options);
+  const janitor = new Janitor(fastify.log, root, scheduler, options);
 
   fastify.decorate('storage', {
-    db,
-    subsDB
+    root,
+    subs
   });
   fastify.decorate('janitor', janitor);
+  fastify.decorate('scheduler', scheduler);
 
   fastify.addHook('onClose', (instance, done) => {
-    janitor.stop().catch(error => {
-      instance.log.error(error, 'Error while stopping the janitor');
+    scheduler.stop().catch(error => {
+      instance.log.error(error, 'Error while stopping the scheduler');
     }).finally(() => {
-      instance.storage.db.close(error => {
+      instance.storage.root.close(error => {
         instance.log.info('Closing database');
         /* istanbul ignore if */
         if (error) {
@@ -58,8 +62,8 @@ const storagePlugin: FastifyPluginAsync<DBOptions>
     });
   });
 
-  janitor.start();
+  scheduler.start();
 };
 
-export default fp(storagePlugin, { fastify: '>=4.x', name: 'storage' });
+export default fp(persistencePlugin, { fastify: '>=4.x', name: 'persistence' });
 

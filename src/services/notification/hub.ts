@@ -6,6 +6,8 @@ import { WebhookNotifier } from './webhook.js';
 
 /**
  * Notifier hub.
+ *
+ * Provides resolution of the supported notifiers.
  */
 export class NotifierHub implements Notifier {
   #log: Logger;

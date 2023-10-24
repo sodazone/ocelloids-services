@@ -20,7 +20,7 @@ import {
 
 import { DB, Logger, Services } from '../types.js';
 import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
-import { Janitor } from 'services/storage/janitor.js';
+import { Janitor } from 'services/persistence/janitor.js';
 import { ServiceConfiguration } from 'services/configuration.js';
 
 function max(...args: bigint[]) {
@@ -50,7 +50,7 @@ export class HeadCatcher extends EventEmitter {
     {
       log,
       config,
-      storage: { db },
+      storage: { root: db },
       janitor,
       connector
     }: Services

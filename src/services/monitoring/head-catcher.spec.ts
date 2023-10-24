@@ -53,7 +53,7 @@ describe('head catcher', () => {
       } as unknown as Connector,
       storage: {
         ..._services.storage,
-        db
+        root: db
       }
     });
   });

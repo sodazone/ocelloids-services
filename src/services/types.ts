@@ -4,8 +4,8 @@ import {
   AbstractBatchOperation
 } from 'abstract-level';
 
-import { SubsDB } from './storage/subs.js';
-import { Janitor } from './storage/janitor.js';
+import { SubsStore } from './persistence/subs.js';
+import { Janitor } from './persistence/janitor.js';
 import { ServiceConfiguration } from './configuration.js';
 import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -18,8 +18,8 @@ export type Logger = FastifyBaseLogger
 export type Services = {
   log: Logger,
   storage: {
-    db: DB,
-    subsDB: SubsDB
+    root: DB,
+    subs: SubsStore
   },
   janitor: Janitor,
   config: ServiceConfiguration,

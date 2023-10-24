@@ -7,8 +7,8 @@ export const $ServerOptions = z.object({
   db: z.string({
     required_error: 'Database directory path is required'
   }).min(1),
-  janitor: z.boolean().default(true),
-  sweepInterval: z.number().min(1000),
+  scheduler: z.boolean().default(true),
+  schedFrequency: z.number().min(1000),
   sweepExpiry: z.number().min(20000),
   port: z.number().min(0),
   host: z.string().min(1),

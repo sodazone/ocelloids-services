@@ -18,7 +18,7 @@ import {
 
 import { ServiceConfiguration, isRelay } from '../configuration.js';
 import { MatchingEngine, XcmNotification } from './matching.js';
-import { SubsDB } from '../storage/subs.js';
+import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';
 
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
@@ -43,7 +43,7 @@ export class Switchboard {
   #apis: SubstrateApis;
   #config: ServiceConfiguration;
   #log: Logger;
-  #db: SubsDB;
+  #db: SubsStore;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #engine: MatchingEngine;
@@ -54,12 +54,12 @@ export class Switchboard {
     ctx: Services
   ) {
     const {
-      log , storage: { subsDB }, config, connector
+      log , storage: { subs }, config, connector
     } = ctx;
 
     this.#apis = connector.connect();
 
-    this.#db = subsDB;
+    this.#db = subs;
     this.#log = log;
     this.#config = config;
 

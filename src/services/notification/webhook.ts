@@ -17,7 +17,7 @@ export class WebhookNotifier
   #log: Logger;
   #notis: Family;
 
-  constructor({ log, storage: { db } }: Services) {
+  constructor({ log, storage: { root: db } }: Services) {
     super();
 
     this.#log = log;

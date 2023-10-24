@@ -1,12 +1,12 @@
 import { MemoryLevel as Level } from 'memory-level';
 
-import { SubsDB } from './subs';
+import { SubsStore } from './subs';
 import { _config, _log } from '../../test/services';
 import { QuerySubscription } from '../monitoring/types';
 import { _subsFix } from '../../test/data';
 
 describe('subscriptions persistence', () => {
-  let db: SubsDB;
+  let db: SubsStore;
 
   async function expectUpdate(
     original: QuerySubscription,
@@ -35,7 +35,7 @@ describe('subscriptions persistence', () => {
 
   beforeAll(() => {
     const mem = new Level();
-    db = new SubsDB(
+    db = new SubsStore(
       _log,
       mem,
       _config

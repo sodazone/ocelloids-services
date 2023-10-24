@@ -2,8 +2,8 @@ import { pino } from 'pino';
 import toml from 'toml';
 import { MemoryLevel } from 'memory-level';
 
-import { SubsDB } from '../services/storage/subs.js';
-import { Janitor } from '../services/storage/janitor.js';
+import { SubsStore } from '../services/persistence/subs.js';
+import { Janitor } from '../services/persistence/janitor.js';
 import { $ServiceConfiguration } from '../services/configuration.js';
 import Connector from '../services/networking/connector.js';
 import { _configToml } from './data.js';
@@ -21,8 +21,8 @@ export const _services = {
   config: _config,
   connector: {} as unknown as Connector,
   storage: {
-    db: new MemoryLevel(),
-    subsDB: {} as unknown as SubsDB
+    root: new MemoryLevel(),
+    subs: {} as unknown as SubsStore
   },
   janitor: {
     schedule: () => {}

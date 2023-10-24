@@ -4,23 +4,28 @@ import { MemoryLevel as Level } from 'memory-level';
 
 import { _config, _log } from '../../test/services';
 import { Janitor } from './janitor';
+import { Scheduler } from './scheduler';
 
 jest.useFakeTimers();
 
 describe('janitor service', () => {
   let janitor : Janitor;
+  let scheduler: Scheduler;
   let db : Level;
   let now: any;
 
   beforeEach(() => {
     db = new Level();
+    scheduler = new Scheduler(_log, db, {
+      schedFrequency: 500,
+      scheduler: true
+    });
     janitor = new Janitor(
       _log,
       db,
+      scheduler,
       {
-        sweepInterval: 500,
-        sweepExpiry: 500,
-        janitor: true
+        sweepExpiry: 500
       }
     );
     now = jest.spyOn(Date, 'now')
@@ -38,20 +43,20 @@ describe('janitor service', () => {
       .put('k2', '')
       .write();
 
-    janitor.start();
+    scheduler.start();
 
     await janitor.schedule({
       key: 'k1',
       sublevel: 's1'
     });
 
-    expect((await janitor.allTaskTimes()).length).toBe(1);
+    expect((await scheduler.allTaskTimes()).length).toBe(1);
     expect(await s1.get('k1')).toBeDefined();
 
     now.mockImplementation(() => 1000);
     jest.advanceTimersByTime(1000);
 
-    await janitor.stop();
+    await scheduler.stop();
 
     await expect(async () => {
       await s1.get('k1');
@@ -68,7 +73,7 @@ describe('janitor service', () => {
       .put('k3', '')
       .write();
 
-    janitor.start();
+    scheduler.start();
 
     await janitor.schedule({
       key: 'k1',
@@ -82,26 +87,26 @@ describe('janitor service', () => {
       expiry: 2000
     });
 
-    expect((await janitor.allTaskTimes()).length).toBe(3);
+    expect((await scheduler.allTaskTimes()).length).toBe(3);
     expect(await s1.get('k1')).toBeDefined();
 
     now.mockImplementation(() => 1000);
     jest.advanceTimersByTime(1000);
 
-    await janitor.stop();
+    await scheduler.stop();
 
     await expect(async () => {
       await s1.get('k1');
     }).rejects.toThrowError();
 
-    expect((await janitor.allTaskTimes()).length).toBe(1);
+    expect((await scheduler.allTaskTimes()).length).toBe(1);
     expect(await s1.get('k3')).toBeDefined();
 
-    janitor.start();
+    scheduler.start();
     now.mockImplementation(() => 2500);
     jest.advanceTimersByTime(2500);
 
-    await janitor.stop();
+    await scheduler.stop();
 
     await expect(async () => {
       await s1.get('k3');
@@ -117,7 +122,7 @@ describe('janitor service', () => {
       }));
     }
     await Promise.all(p);
-    expect((await janitor.allTaskTimes()).length).toBe(10);
+    expect((await scheduler.allTaskTimes()).length).toBe(10);
   });
 
   it('should continue if the tasks fails', async () => {
@@ -128,7 +133,7 @@ describe('janitor service', () => {
       .put('k3', '')
       .write();
 
-    janitor.start();
+    scheduler.start();
 
     await janitor.schedule({
       key: 'k2', sublevel: 's1'
@@ -140,13 +145,13 @@ describe('janitor service', () => {
       key: 'k1', sublevel: 's1'
     });
 
-    expect((await janitor.allTaskTimes()).length).toBe(3);
+    expect((await scheduler.allTaskTimes()).length).toBe(3);
 
     now.mockImplementation(() => 1000);
     jest.advanceTimersByTime(1000);
 
-    await janitor.stop();
-    expect((await janitor.allTaskTimes()).length).toBe(0);
+    await scheduler.stop();
+    expect((await scheduler.allTaskTimes()).length).toBe(0);
     expect((await s1.keys().all()).length).toBe(1);
     expect(await s1.get('k3')).toBeDefined();
   });
