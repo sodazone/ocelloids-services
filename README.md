@@ -31,7 +31,7 @@ You can also use environment variables:
 | XCMON_CONFIG_FILE | The service configuration file. | - |
 | XCMON_DB_DIR | The database directory.  | ./db |
 | XCMON_DB_SCHEDULER_ENABLE | Enables or disables the task scheduler. | true |
-| XCMON_DB_SCHEDULER_FREQUENCY | milliseconds to wait before each tick. | 30000 |
+| XCMON_DB_SCHEDULER_FREQUENCY | Milliseconds to wait before each tick. | 30000 |
 | XCMON_DB_JANITOR_SWEEP_EXPIRY | Milliseconds before a task is swept. | 1500000 |
 | XCMON_CLOSE_GRACE_DELAY | Milliseconds for the graceful close to finish. | 500 |
 
