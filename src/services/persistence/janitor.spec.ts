@@ -17,7 +17,7 @@ describe('janitor service', () => {
   beforeEach(() => {
     db = new Level();
     scheduler = new Scheduler(_log, db, {
-      schedFrequency: 500,
+      schedulerFrequency: 500,
       scheduler: true
     });
     janitor = new Janitor(

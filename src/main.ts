@@ -85,17 +85,17 @@ program
   )
   .addOption(
     optionOf(
-      '-j, --janitor <boolean>',
-      'enables or disables the db janitor',
-      'XCMON_DB_JANITOR_ENABLE'
+      '--scheduler <boolean>',
+      'enables or disables the db scheduler',
+      'XCMON_DB_SCHEDULER_ENABLE'
     ).default(true)
   )
   .addOption(
     optionOf(
-      '--sweep-interval <milliseconds>',
-      'milliseconds to wait before each sweeping',
-      'XCMON_DB_JANITOR_SWEEP_INTERVAL'
-    ).default(300000).argParser(positiveInt) // 5 minutes
+      '--scheduler-frequency <milliseconds>',
+      'milliseconds to wait before each tick',
+      'XCMON_DB_SCHEDULER_FREQUENCY'
+    ).default(30000).argParser(positiveInt) // 30 secs
   )
   .addOption(
     optionOf(

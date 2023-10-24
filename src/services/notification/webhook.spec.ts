@@ -64,7 +64,7 @@ describe('webhook notifier', () => {
       _services.storage.root,
       {
         scheduler: true,
-        schedFrequency: 500
+        schedulerFrequency: 500
       });
     notifier = new WebhookNotifier({
       ..._services,

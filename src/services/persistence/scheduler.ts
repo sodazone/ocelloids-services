@@ -10,7 +10,7 @@ export type Scheduled<T = any> = {
 
 export type SchedulerOptions = {
   scheduler: boolean,
-  schedFrequency: number
+  schedulerFrequency: number
 }
 
 export class Scheduler extends Stream.EventEmitter {
@@ -36,7 +36,7 @@ export class Scheduler extends Stream.EventEmitter {
       { valueEncoding: 'json' }
     );
     this.#enabled = opts.scheduler;
-    this.#frequency = opts.schedFrequency;
+    this.#frequency = opts.schedulerFrequency;
 
     this.#running = false;
   }
