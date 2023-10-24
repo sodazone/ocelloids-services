@@ -9,6 +9,7 @@ import { Janitor } from './persistence/janitor.js';
 import { ServiceConfiguration } from './configuration.js';
 import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
+import { Scheduler } from './persistence/scheduler.js';
 
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>;
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
@@ -22,6 +23,7 @@ export type Services = {
     subs: SubsStore
   },
   janitor: Janitor,
+  scheduler: Scheduler,
   config: ServiceConfiguration,
   connector: Connector
 }

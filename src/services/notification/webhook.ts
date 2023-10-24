@@ -5,9 +5,10 @@ import { ulid } from 'ulidx';
 
 import version from '../../version.js';
 import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
-import { Family, Logger, Services } from 'services/types.js';
+import { Logger, Services } from 'services/types.js';
 
 import { Notifier } from './types.js';
+import { Scheduler } from 'services/persistence/scheduler.js';
 
 export const Delivered = Symbol('delivered');
 
@@ -15,17 +16,13 @@ export class WebhookNotifier
   extends Stream.EventEmitter
   implements Notifier {
   #log: Logger;
-  #notis: Family;
+  #scheduler: Scheduler;
 
-  constructor({ log, storage: { root: db } }: Services) {
+  constructor({ log, scheduler }: Services) {
     super();
 
     this.#log = log;
-    this.#notis = db.sublevel<string, XcmMessageNotify>(
-      'noti:whook', {
-        valueEncoding: 'json'
-      });
-    // TODO: retry pendings on constructor or on start?
+    this.#scheduler = scheduler;
   }
 
   async notify(

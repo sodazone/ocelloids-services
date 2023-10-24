@@ -7,6 +7,7 @@ import { Janitor } from '../services/persistence/janitor.js';
 import { $ServiceConfiguration } from '../services/configuration.js';
 import Connector from '../services/networking/connector.js';
 import { _configToml } from './data.js';
+import { Scheduler } from '../services/persistence/scheduler.js';
 
 export const _log = pino({
   enabled: false
@@ -24,6 +25,7 @@ export const _services = {
     root: new MemoryLevel(),
     subs: {} as unknown as SubsStore
   },
+  scheduler: {} as unknown as Scheduler,
   janitor: {
     schedule: () => {}
   } as unknown as Janitor
