@@ -8,6 +8,7 @@ import { _log, _services } from '../../test/services.js';
 import { XcmMessageNotify } from '../monitoring/types.js';
 
 import { Delivered, WebhookNotifier } from './webhook.js';
+import { Scheduler } from '../persistence/scheduler.js';
 
 const notification : XcmMessageNotify = {
   subscriptionId: '1',
@@ -34,6 +35,9 @@ describe('webhook notifier', () => {
   let webhookUrl : string;
   let fastify : FastifyInstance;
 
+  let scheduler : Scheduler;
+  let notifier : WebhookNotifier;
+
   beforeAll(async () => {
     fastify = buildMockServer({
       ok: request => {
@@ -54,8 +58,21 @@ describe('webhook notifier', () => {
     await fastify.close();
   });
 
+  beforeEach(() => {
+    scheduler = new Scheduler(
+      _services.log,
+      _services.storage.root,
+      {
+        scheduler: true,
+        schedFrequency: 500
+      });
+    notifier = new WebhookNotifier({
+      ..._services,
+      scheduler
+    });
+  });
+
   it('should post a notification', async () => {
-    const notifier = new WebhookNotifier(_services);
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
@@ -74,7 +91,6 @@ describe('webhook notifier', () => {
   });
 
   it('should fail posting to the wrong path', async () => {
-    const notifier = new WebhookNotifier(_services);
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 

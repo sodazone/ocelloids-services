@@ -1,4 +1,4 @@
-import { ScheduledTask, Scheduler } from './scheduler.js';
+import { Scheduled, Scheduler } from './scheduler.js';
 import { DB, Logger } from '../../services/types.js';
 
 export type JanitorTask = {
@@ -37,18 +37,18 @@ export class Janitor {
   }
 
   async schedule(...tasks: JanitorTask[]) {
-    await this.#sched.schedule<JanitorTask>(...tasks.map(payload => {
-      const time = new Date(Date.now() + (payload.expiry ?? this.#expiry));
-      const key = time.toISOString() + payload.sublevel + payload.key;
+    await this.#sched.schedule<JanitorTask>(...tasks.map(task => {
+      const time = new Date(Date.now() + (task.expiry ?? this.#expiry));
+      const key = time.toISOString() + task.sublevel + task.key;
       return {
         key,
         type: JanitorTaskType,
-        payload
-      } as ScheduledTask<JanitorTask>;
+        task
+      } as Scheduled<JanitorTask>;
     }));
   }
 
-  async #sweep({payload: {sublevel, key}}: ScheduledTask<JanitorTask>) {
+  async #sweep({task: {sublevel, key}}: Scheduled<JanitorTask>) {
     await this.#db.sublevel(sublevel).del(key);
   }
 }

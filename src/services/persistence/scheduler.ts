@@ -2,10 +2,10 @@ import Stream from 'node:stream';
 
 import { DB, Family, Logger } from '../types.js';
 
-export type ScheduledTask<T = any> = {
-  key: string
+export type Scheduled<T = any> = {
+  key?: string
   type: string
-  payload: T
+  task: T
 }
 
 export type SchedulerOptions = {
@@ -31,7 +31,7 @@ export class Scheduler extends Stream.EventEmitter {
     super();
 
     this.#log = log;
-    this.#tasks = db.sublevel<string, ScheduledTask>(
+    this.#tasks = db.sublevel<string, Scheduled>(
       'sched:tasks',
       { valueEncoding: 'json' }
     );
@@ -60,10 +60,12 @@ export class Scheduler extends Stream.EventEmitter {
     }
   }
 
-  async schedule<T>(...tasks: ScheduledTask<T>[]) {
+  async schedule<T>(...tasks: Scheduled<T>[]) {
     const batch = this.#tasks.batch();
     for (const task of tasks) {
-      batch.put(task.key, task);
+      if (task.key) {
+        batch.put(task.key, task);
+      }
     }
     await batch.write();
   }

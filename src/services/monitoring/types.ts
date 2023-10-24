@@ -256,6 +256,8 @@ export const $QuerySubscription = z.object({
   ])
 });
 
+export type WebhookNotification = z.infer<typeof $WebhookNotification>;
+
 /**
  * Parameters for a query subscriptions.
  */
