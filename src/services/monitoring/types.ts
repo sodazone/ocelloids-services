@@ -232,7 +232,8 @@ export class XcmMessageNotify {
 const $WebhookNotification = z.object({
   type: z.literal('webhook'),
   url: z.string().min(5).regex(/https?:\/\/.*/),
-  bearer: z.optional(z.string().min(1))
+  bearer: z.optional(z.string().min(1)),
+  limit: z.optional(z.number().min(0))
 });
 
 const $LogNotification = z.object({

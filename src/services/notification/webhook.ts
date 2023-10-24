@@ -65,11 +65,10 @@ export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
       const res = await got.post<XcmMessageNotify>(url, {
         json: msg,
         headers: {
-          accept: 'application/vnd.github.v3+json',
           'user-agent': 'xcmon/' + version
         },
         retry: {
-          limit: 5,
+          limit: config.limit ?? 5,
           methods: ['POST']
         },
         context: {
@@ -112,7 +111,9 @@ export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
           msg
         });
       } else {
-        // TODO not deliverable reason or retry?
+        // Should not enter here, since the non success status codes
+        // are retryable and will throw an exception when the limit
+        // is of retries is reached.
         this.#log.error(
           'Not deliverable webhook %s %s',
           config.url,
@@ -125,6 +126,7 @@ export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
         'Error while posting to webhook %s',
         config.url
       );
+
       // Re-schedule in 5 minutes
       const time = new Date(Date.now() + DEFAULT_DELAY);
       const key = time.toISOString() + id;
