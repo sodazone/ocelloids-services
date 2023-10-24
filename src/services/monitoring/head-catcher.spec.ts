@@ -1,20 +1,22 @@
+// import { jest } from '@jest/globals';
+
 import { MemoryLevel } from 'memory-level';
-import { of, Subject } from 'rxjs';
+import { from, of } from 'rxjs';
 import { ApiRx } from '@polkadot/api';
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
+// import type { SignedBlockExtended } from '@polkadot/api-derive/types';
+import { ApiDecoration } from '@polkadot/api/types';
 
 import { HeadCatcher } from './head-catcher.js';
 import { _services } from '../../test/services.js';
 import Connector from '../networking/connector.js';
 import { mockConfigMixed } from '../../test/configs.js';
-import { polkadotBlocks } from '../../test/apis.js';
+import { interlayBlocks, polkadotBlocks } from '../../test/blocks.js';
+import { DB } from '../types.js';
 
 describe('head catcher', () => {
   let catcher: HeadCatcher;
-  let polkadotNewBlocksSub: Subject<SignedBlockExtended>;
-  let interlayNewBlocksSub: Subject<SignedBlockExtended>;
+  let db: DB;
 
-  const db = new MemoryLevel();
   function sl(chainId: string) {
     return db.sublevel<string, Uint8Array>(
       chainId + ':blocks',
@@ -25,63 +27,119 @@ describe('head catcher', () => {
   }
 
   beforeEach(() => {
-    polkadotNewBlocksSub = new Subject<SignedBlockExtended>();
-    interlayNewBlocksSub = new Subject<SignedBlockExtended>();
-    catcher = new HeadCatcher({
-      ..._services,
-      config: mockConfigMixed,
-      connector: {
-        connect: () => ({
-          rx: {
-            '0': of({
-              derive: {
-                chain: {
-                  subscribeNewBlocks: () => polkadotNewBlocksSub
-                },
-              }
-            } as unknown as ApiRx),
-            '1000': of({} as unknown as ApiRx),
-            '2032': of({
-              derive: {
-                chain: {
-                  subscribeNewBlocks: () => interlayNewBlocksSub
-                },
-              }
-            } as unknown as ApiRx)
-          }
-        })
-      } as unknown as Connector,
-      storage: {
-        ..._services.storage,
-        root: db
-      }
-    });
+    db = new MemoryLevel();
   });
 
-  afterEach(() => db.clear());
-
-  afterAll(done => {
+  afterEach(done => {
     db.close();
     done();
   });
 
   describe('start', () => {
-    it('should store new blocks in db for relay chain if using smoldot provider', done => {
-      polkadotNewBlocksSub.subscribe({
-        complete: async () => {
-          const slkeys = await sl('0').keys().all();
+    it(
+      'should store new blocks in db for relay chain if using smoldot provider',
+      async () => {
+        catcher = new HeadCatcher({
+          ..._services,
+          config: mockConfigMixed,
+          connector: {
+            connect: () => ({
+              rx: {
+                '0': of({
+                  derive: {
+                    chain: {
+                      subscribeNewBlocks: () => from(polkadotBlocks)
+                    },
+                  }
+                } as unknown as ApiRx),
+                '1000': of({} as unknown as ApiRx),
+                '2032': of({} as unknown as ApiRx)
+              }
+            })
+          } as unknown as Connector,
+          storage: {
+            ..._services.storage,
+            root: db
+          }
+        });
 
-          expect(slkeys).toEqual([
-            '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'
-          ]);
-          done();
-        }
+        const expectedKeys = [
+          '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f',
+          '0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb',
+          '0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'
+        ];
+
+        catcher.start();
+
+        const slkeys = await sl('0').keys().all();
+        expect(expectedKeys.every(k => slkeys.includes(k))).toBe(true);
+
+        catcher.stop();
       });
 
-      catcher.start();
-      polkadotNewBlocksSub.next(polkadotBlocks[0]);
-      polkadotNewBlocksSub.complete();
-      interlayNewBlocksSub.complete();
-    });
+    it(
+      'should store new blocks and outbound xcm messages in db for parachain if using smoldot provider',
+      async () => {
+        catcher = new HeadCatcher({
+          ..._services,
+          config: mockConfigMixed,
+          connector: {
+            connect: () => ({
+              rx: {
+                '0': of({} as unknown as ApiRx),
+                '1000': of({} as unknown as ApiRx),
+                '2032': of({
+                  at: () => of({
+                    query: {
+                      parachainSystem: {
+                        hrmpOutboundMessages: () => [
+                          {
+                            length: 1,
+                            toU8a: () => new Uint8Array([2, 42])
+                          }
+                        ],
+                        upwardMessages: () => [
+                          {
+                            length: 1,
+                            toU8a: () => new Uint8Array([8, 31, 6])
+                          }
+                        ]
+                      }
+                    }
+                  } as unknown as ApiDecoration<'rxjs'>),
+                  derive: {
+                    chain: {
+                      subscribeNewBlocks: () => from(interlayBlocks)
+                    },
+                  }
+                } as unknown as ApiRx)
+              }
+            })
+          } as unknown as Connector,
+          storage: {
+            ..._services.storage,
+            root: db
+          }
+        });
+
+        const expectedKeys = [
+          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
+          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
+          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
+          'hrmp-messages:0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
+          'hrmp-messages:0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
+          'hrmp-messages:0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
+          'ump-messages:0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
+          'ump-messages:0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
+          'ump-messages:0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'
+        ];
+
+        catcher.start();
+
+        const slkeys = await sl('2032').keys().all();
+        expect(expectedKeys.every(k => slkeys.includes(k))).toBe(true);
+
+        catcher.stop();
+      });
   });
 });

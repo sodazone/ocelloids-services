@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import { Observable, Subscription, combineLatest, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import { Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
@@ -76,6 +76,7 @@ export class HeadCatcher extends EventEmitter {
         const db = this.#blockCache(chainId);
 
         this.#log.info('[%s] Register head catcher', chainId);
+        console.log('register chain', chainId);
 
         const blockPipe = api.pipe(
           blocks(),
@@ -89,11 +90,13 @@ export class HeadCatcher extends EventEmitter {
           retryWithTruncatedExpBackoff()
         );
         const paraPipe = blockPipe.pipe(
+          tap(b => console.log('block', b.block.header.toHuman())),
           mergeMap(block => {
             return api.pipe(
               switchMap(_api => _api.at(block.block.header.hash)),
+              tap(at => console.log('ATATATAT', at)),
               mergeMap(at =>
-                combineLatest([
+                zip([
                   from(
                     at.query.parachainSystem.hrmpOutboundMessages()
                   ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>,
@@ -115,11 +118,11 @@ export class HeadCatcher extends EventEmitter {
         );
 
         if (isRelayChain) {
-          this.#subs[chainId] = blockPipe.subscribe(
+          this.#subs[chainId] = blockPipe.pipe(
+            map(block => from(this.#putBlock(chainId, block))),
+            mergeAll()
+          ).subscribe(
             {
-              next: async (block) => {
-                this.#putBlock(chainId, block);
-              },
               error: error => this.#log.error(
                 error,
                 '[%s] Error on caching block for relay chain',
@@ -128,18 +131,24 @@ export class HeadCatcher extends EventEmitter {
             }
           );
         } else {
-          this.#subs[chainId] = paraPipe.subscribe(
+          this.#subs[chainId] = paraPipe.pipe(
+            map(({ block, hrmpMessages, umpMessages }) => {
+              const ops = [from(this.#putBlock(chainId, block))];
+
+              const hash = block.block.header.hash.toHex();
+              if (hrmpMessages.length > 0) {
+                console.log('putting hrmp messages');
+                ops.push(from(db.put('hrmp-messages:' + hash, hrmpMessages.toU8a())));
+              }
+              if (umpMessages.length > 0) {
+                console.log('putting ump messages');
+                ops.push(from(db.put('ump-messages:' + hash, umpMessages.toU8a())));
+              }
+              return ops;
+            }),
+            mergeAll()
+          ).subscribe(
             {
-              next: async ({ block, hrmpMessages, umpMessages }) => {
-                this.#putBlock(chainId, block);
-                const hash = block.block.header.hash.toHex();
-                if (hrmpMessages.length > 0) {
-                  await db.put('hrmp-messages:' + hash, hrmpMessages.toU8a());
-                }
-                if (umpMessages.length > 0) {
-                  await db.put('ump-messages:' + hash, umpMessages.toU8a());
-                }
-              },
               error: error => this.#log.error(
                 error,
                 '[%s] Error on caching block and XCMP messages for parachain',
@@ -341,79 +350,81 @@ export class HeadCatcher extends EventEmitter {
     chainId: string,
     api: ApiPromise
   ) {
-    let memHeight : bigint = BigInt(0);
-
     return (source: Observable<Header>)
     : Observable<Header> => {
       return source.pipe(
-        mergeMap(async head => {
-          const bnHeadNum = head.number.toBigInt();
-          let currentHeight: bigint;
-          try {
-            const  currentHead = await this.#chainHeads.get(chainId);
-            currentHeight = max(BigInt(currentHead.blockNumber), memHeight);
-          } catch (error) {
-            currentHeight = bnHeadNum;
-          }
-
-          const heads : Header[] = [];
-
-          heads.push(head);
-
-          this.#log.info('[%s] FINALIZED block #%s %s',
-            chainId,
-            bnHeadNum,
-            head.hash.toHex()
-          );
-
-          const chainHead: ChainHead = {
-            chainId,
-            blockNumber: head.number.toString(),
-            blockHash: head.hash.toHex(),
-            parentHash: head.parentHash.toHex(),
-            receivedAt: new Date()
-          };
-
-          // avoid re-entrant overlaps
-          memHeight = max(memHeight, bnHeadNum);
-
-          if (memHeight - currentHeight > 1) {
-            this.#log.info(
-              '[%s] FINALIZED catching up from #%s to #%s',
-              chainId,
-              currentHeight,
-              memHeight
-            );
-          }
-
-          let parentHead = head;
-
-          while (parentHead.number.toBigInt() - currentHeight > 1) {
-            parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
-            heads.push(parentHead);
-
-            // TODO: log every n blocks
-            this.#log.info(
-              '[%s] FINALIZED CATCH-UP block #%s %s',
-              chainId,
-              parentHead.number.toBigInt(),
-              parentHead.hash.toHex()
-            );
-
-            // Throttle
-            // TODO: configurable
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-
-          // Update the head in storage
-          await this.#chainHeads.put(chainId, chainHead);
-
-          return heads;
-        }),
+        mergeMap(async head => from(this.#doCatchUp(chainId, api, head))),
         retryWithTruncatedExpBackoff(),
+        mergeAll(),
         mergeMap(head => head)
       );
     };
+  }
+
+  async #doCatchUp(chainId: string, api: ApiPromise, head: Header) {
+    let memHeight : bigint = BigInt(0);
+    const bnHeadNum = head.number.toBigInt();
+    let currentHeight: bigint;
+    try {
+      const  currentHead = await this.#chainHeads.get(chainId);
+      currentHeight = max(BigInt(currentHead.blockNumber), memHeight);
+    } catch (error) {
+      currentHeight = bnHeadNum;
+    }
+
+    const heads : Header[] = [];
+
+    heads.push(head);
+
+    this.#log.info('[%s] FINALIZED block #%s %s',
+      chainId,
+      bnHeadNum,
+      head.hash.toHex()
+    );
+
+    const chainHead: ChainHead = {
+      chainId,
+      blockNumber: head.number.toString(),
+      blockHash: head.hash.toHex(),
+      parentHash: head.parentHash.toHex(),
+      receivedAt: new Date()
+    };
+
+    // avoid re-entrant overlaps
+    memHeight = max(memHeight, bnHeadNum);
+
+    if (memHeight - currentHeight > 1) {
+      this.#log.info(
+        '[%s] FINALIZED catching up from #%s to #%s',
+        chainId,
+        currentHeight,
+        memHeight
+      );
+    }
+
+    let parentHead = head;
+
+    while (parentHead.number.toBigInt() - currentHeight > 1) {
+      parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
+      heads.push(parentHead);
+
+      // TODO: log every n blocks
+      this.#log.info(
+        '[%s] FINALIZED CATCH-UP block #%s %s',
+        chainId,
+        parentHead.number.toBigInt(),
+        parentHead.hash.toHex()
+      );
+
+      // Throttle
+      // TODO: configurable
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // Update the head in storage
+    await this.#chainHeads.put(chainId, chainHead);
+
+    return heads;
   }
 
   #blockCache(chainId: string) {
@@ -426,6 +437,7 @@ export class HeadCatcher extends EventEmitter {
   }
 
   async #putBlock(chainId: string, block: SignedBlockExtended) {
+    console.log('putting block', this.#blockCache(chainId).put);
     const hash = block.block.header.hash.toHex();
 
     // TODO: review to use SCALE instead of CBOR
