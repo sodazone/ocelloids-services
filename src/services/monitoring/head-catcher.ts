@@ -353,9 +353,8 @@ export class HeadCatcher extends EventEmitter {
     return (source: Observable<Header>)
     : Observable<Header> => {
       return source.pipe(
-        mergeMap(async head => from(this.#doCatchUp(chainId, api, head))),
+        mergeMap(head => from(this.#doCatchUp(chainId, api, head))),
         retryWithTruncatedExpBackoff(),
-        mergeAll(),
         mergeMap(head => head)
       );
     };
