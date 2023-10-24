@@ -11,7 +11,7 @@ import type {
 } from '@polkadot/types/lookup';
 import { ControlQuery } from '@sodazone/ocelloids';
 
-import { testBlocksFrom } from './_blocks.js';
+import { testBlocksFrom } from './blocks.js';
 
 // XCMP testing mocks
 

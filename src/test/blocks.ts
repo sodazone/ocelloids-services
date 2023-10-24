@@ -49,3 +49,7 @@ export function testBlocksFrom(file: string, metadataFile: string) {
     );
   });
 }
+
+export const polkadotBlocks = testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json');
+export const interlayBlocks = testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json');
+export const assetHubBlocks = testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json');
