@@ -31,7 +31,7 @@
     "collectCoverage": true,
     "coveragePathIgnorePatterns": [
       ".*/dist",
-      "_mocks"
+      "test"
     ],
     "extensionsToTreatAsEsm": [
       ".ts"
