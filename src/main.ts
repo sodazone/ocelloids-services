@@ -86,7 +86,7 @@ program
   .addOption(
     optionOf(
       '--scheduler <boolean>',
-      'enables or disables the db scheduler',
+      'enables or disables the task scheduler',
       'XCMON_DB_SCHEDULER_ENABLE'
     ).default(true)
   )
