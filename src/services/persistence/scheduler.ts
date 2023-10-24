@@ -70,6 +70,10 @@ export class Scheduler extends Stream.EventEmitter {
     await batch.write();
   }
 
+  async remove(key: string) {
+    await this.#tasks.del(key);
+  }
+
   async allTaskTimes() {
     return await this.#tasks.keys().all();
   }
