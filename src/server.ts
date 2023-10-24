@@ -8,6 +8,7 @@ import FastifySwaggerUI from '@fastify/swagger-ui';
 import FastifyHealthcheck from 'fastify-healthcheck';
 
 import version from './version.js';
+import { errorHandler } from './errors.js';
 import { logger } from './environment.js';
 import { ServerOptions } from './types.js';
 import {
@@ -17,8 +18,6 @@ import {
   Monitoring,
   Connector
 } from './services/index.js';
-import { NotFound, ValidationError } from './errors.js';
-import { ZodError } from 'zod';
 
 /**
  * Creates and starts the server process with specified options.
@@ -32,18 +31,7 @@ export async function createServer(
     logger
   });
 
-  server.setErrorHandler(function (error, _, reply) {
-    if (error instanceof NotFound) {
-      reply.status(404).send(error.message);
-    } else if (error instanceof ZodError) {
-      reply.status(400).send(error.message);
-    } else if (error instanceof ValidationError) {
-      reply.status(400).send(error.message);
-    } else {
-      // to parent handler
-      reply.send(error);
-    }
-  });
+  server.setErrorHandler(errorHandler);
 
   const closeListeners = closeWithGrace({
     delay: opts.grace
