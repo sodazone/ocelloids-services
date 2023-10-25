@@ -29,7 +29,6 @@ function findOutboundHrmpMessage(
       mergeMap(sentMsg => {
         const { blockHash, messageHash } = sentMsg;
         return getOutboundHrmpMessages(blockHash).pipe(
-
           map(messages =>  {
             return messages
               .map(msg => {

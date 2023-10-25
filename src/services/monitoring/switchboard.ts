@@ -390,9 +390,12 @@ export class Switchboard {
       throw error;
     }
 
-    return { subs, controls: {
-      sendersControl, messageControl
-    }};
+    return {
+      subs,
+      controls: {
+        sendersControl, messageControl
+      }
+    };
   }
 
   /**
