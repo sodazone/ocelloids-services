@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
 
-import '../../test/network.js';
+import '../../testing/network.js';
 
 import { of, throwError } from 'rxjs';
 
-import { _config, _services } from '../../test/services.js';
+import { _config, _services } from '../../testing/services.js';
 import { SubsStore } from '../persistence/subs';
 import {
   QuerySubscription,

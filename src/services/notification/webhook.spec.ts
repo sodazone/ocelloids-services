@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import nock from 'nock';
 import { MemoryLevel } from 'memory-level';
 
-import { _log, _services } from '../../test/services.js';
+import { _log, _services } from '../../testing/services.js';
 
 import { XcmMessageNotify } from '../monitoring/types.js';
 import { Delivered, WebhookNotifier } from './webhook.js';

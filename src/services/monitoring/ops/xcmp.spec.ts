@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { xcmpSend, xcmpReceive } from '../../../test/xcm.js';
+import { xcmpSend, xcmpReceive } from '../../../testing/xcm.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 

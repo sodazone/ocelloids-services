@@ -1,9 +1,9 @@
 import { MemoryLevel as Level } from 'memory-level';
 
 import { SubsStore } from './subs';
-import { _config, _log } from '../../test/services';
+import { _config, _log } from '../../testing/services';
 import { QuerySubscription } from '../monitoring/types';
-import { _subsFix } from '../../test/data';
+import { _subsFix } from '../../testing/data';
 
 describe('subscriptions persistence', () => {
   let db: SubsStore;

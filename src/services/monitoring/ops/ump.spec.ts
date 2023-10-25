@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { umpReceive, umpSend } from '../../../test/xcm.js';
+import { umpReceive, umpSend } from '../../../testing/xcm.js';
 
 import { extractUmpReceive, extractUmpSend } from './ump.js';
 

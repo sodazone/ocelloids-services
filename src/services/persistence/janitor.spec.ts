@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { _config, _log } from '../../test/services';
+import { _config, _log } from '../../testing/services';
 import { Janitor } from './janitor';
 import { Scheduler } from './scheduler';
 

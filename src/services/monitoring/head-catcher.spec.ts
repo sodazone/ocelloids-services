@@ -7,10 +7,10 @@ import { ApiDecoration } from '@polkadot/api/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import * as P from '@polkadot/api-derive';
 
-import { _services } from '../../test/services.js';
+import { _services } from '../../testing/services.js';
 import Connector from '../networking/connector.js';
-import { mockConfigMixed } from '../../test/configs.js';
-import { interlayBlocks, polkadotBlocks } from '../../test/blocks.js';
+import { mockConfigMixed } from '../../testing/configs.js';
+import { interlayBlocks, polkadotBlocks } from '../../testing/blocks.js';
 import { DB } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
 import type { HeadCatcher as HC } from './head-catcher.js';
