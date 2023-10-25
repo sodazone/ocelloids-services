@@ -98,7 +98,7 @@ export class Switchboard {
    *
    * @param {string} id The subscription identifier.
    */
-  unsubscribe(id: string) {
+  async unsubscribe(id: string) {
     try {
       const {
         descriptor: { origin }, originSubs, destinationSubs
@@ -114,7 +114,7 @@ export class Switchboard {
       destinationSubs.forEach(sub => sub.unsubscribe());
       delete this.#subs[id];
 
-      this.#db.remove(id);
+      await this.#db.remove(id);
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id);
     }

@@ -151,8 +151,8 @@ export function SubscriptionApi(
         }
       }
     }
-  }, (request, reply) => {
-    switchboard.unsubscribe(request.params.id);
+  }, async (request, reply) => {
+    await switchboard.unsubscribe(request.params.id);
 
     reply.send();
   });
