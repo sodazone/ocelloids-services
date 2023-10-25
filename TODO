@@ -10,18 +10,17 @@ TODO
 [x] Allow updating control queries for senders and destinations
 [x] Consider subscribe to new heads only on subscription, or a good strategy to clear DB (??)
 [x] Implement XCM outcome in message
-[] Notifications models and webhook client (retries etc.)
-[] Throttle config (?)
-[] Filtering of instructions (?)
-[] Handle modifications in network configuration (?)
+[x] Notifications models and webhook client (retries etc.)
 [x] Handle subscription exploding on network config change
 [x] Support VMP messages 
 [x] - DMP: only attempted + dmp queue + extrinsic params and instructions matching. if undecidable: notify undecidable set (block, txs, messages)
 [x] - UMP: parachainSystem upward message sent w/ message hash parachainsystem (UpwardMessageSent)
 [x] change status code for subs API errors
 [x] Complete unique key deletions
+[x] Test coverage
 [] General review, adjust logging etc.
-[] Test coverage, docs (e.g. unique paths logic)
+[] docs (e.g. unique paths logic)
+[] Handle modifications in network configuration (?)
 
 TO TEST
 ===
@@ -36,3 +35,5 @@ FUTURE
 ===
 [] Smoldot DB checkpointing
 [] Use SCALE instead of CBOR
+[] Filtering of instructions
+[] Throttle config
