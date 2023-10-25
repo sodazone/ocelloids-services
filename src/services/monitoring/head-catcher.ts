@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 
-import { Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import {
+  Observable, Subscription, mergeAll, zip, share, mergeMap, from, defer, tap, switchMap, map
+} from 'rxjs';
 import { encode, decode } from 'cbor-x';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
@@ -239,7 +241,6 @@ export class HeadCatcher extends EventEmitter {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
         return from(api.at(hash)).pipe(
-          retryWithTruncatedExpBackoff(),
           switchMap(at =>
            from(
              at.query.parachainSystem.hrmpOutboundMessages()
@@ -271,7 +272,6 @@ export class HeadCatcher extends EventEmitter {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
         return from(api.at(hash)).pipe(
-          retryWithTruncatedExpBackoff(),
           switchMap(at =>
            from(
              at.query.parachainSystem.upwardMessages()
@@ -352,7 +352,7 @@ export class HeadCatcher extends EventEmitter {
     return (source: Observable<Header>)
     : Observable<Header> => {
       return source.pipe(
-        mergeMap(head => from(this.#doCatchUp(chainId, api, head))),
+        mergeMap(head => defer(() => this.#doCatchUp(chainId, api, head))),
         retryWithTruncatedExpBackoff(),
         mergeMap(head => head)
       );
