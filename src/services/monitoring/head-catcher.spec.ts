@@ -14,7 +14,7 @@ import { mockConfigMixed } from '../../test/configs.js';
 import { interlayBlocks, polkadotBlocks } from '../../test/blocks.js';
 import { DB } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
-import { HeadCatcher as HC } from './head-catcher.js';
+import type { HeadCatcher as HC } from './head-catcher.js';
 
 jest.unstable_mockModule('@polkadot/api-derive', () => {
   // const originalModule = await import('@polkadot/api-derive');
