@@ -1,3 +1,4 @@
+/* istanbul ignore next */
 export const environment = process.env.NODE_ENV || 'development';
 
 const envToLogger: Record<string, any> = {

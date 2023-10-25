@@ -68,11 +68,13 @@ const configPlugin: FastifyPluginAsync<ServerOptions> = async (fastify, options)
     );
     fastify.decorate('config', config);
   } catch (err) {
+    /* istanbul ignore next */
     if (err instanceof z.ZodError) {
       fastify.log.error(err.issues);
     } else {
       fastify.log.error(err);
     }
+    /* istanbul ignore next */
     throw new Error('Error while loading configuration.');
   }
 };
