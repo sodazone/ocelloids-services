@@ -76,7 +76,7 @@ export class Scheduler extends Stream.EventEmitter {
   }
 
   async allTaskTimes() {
-    return await this.#tasks.keys().all();
+    return await this.#tasks.keys({ limit: 15_000 }).all();
   }
 
   async getById(key: string) {
