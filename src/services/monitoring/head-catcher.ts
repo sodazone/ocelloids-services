@@ -224,6 +224,7 @@ export class HeadCatcher extends EventEmitter {
           await this.#blockCache(chainId).del(blockHash);
           // TODO: clean up storage related to the block?
           // will require additional indexing
+          // same applies for scheduleds
         }),
         share()
       );

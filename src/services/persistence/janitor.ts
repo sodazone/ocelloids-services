@@ -48,7 +48,7 @@ export class Janitor {
     }));
   }
 
-  async #sweep({task: {sublevel, key}}: Scheduled<JanitorTask>) {
+  async #sweep({task: { sublevel, key }}: Scheduled<JanitorTask>) {
     await this.#db.sublevel(sublevel).del(key);
   }
 }
