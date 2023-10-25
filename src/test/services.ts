@@ -82,7 +82,7 @@ export const _connector = {
 export const _services = {
   log: _log,
   config: _config,
-  connector: {} as unknown as Connector,
+  connector: _connector,
   storage: {
     root: new MemoryLevel(),
     subs: {} as unknown as SubsStore
