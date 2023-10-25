@@ -78,7 +78,6 @@ export class HeadCatcher extends EventEmitter {
         const db = this.#blockCache(chainId);
 
         this.#log.info('[%s] Register head catcher', chainId);
-        console.log('register chain', chainId);
 
         const blockPipe = api.pipe(
           blocks(),
@@ -92,11 +91,9 @@ export class HeadCatcher extends EventEmitter {
           retryWithTruncatedExpBackoff()
         );
         const paraPipe = blockPipe.pipe(
-          tap(b => console.log('block', b.block.header.toHuman())),
           mergeMap(block => {
             return api.pipe(
               switchMap(_api => _api.at(block.block.header.hash)),
-              tap(at => console.log('ATATATAT', at)),
               mergeMap(at =>
                 zip([
                   from(
@@ -139,11 +136,9 @@ export class HeadCatcher extends EventEmitter {
 
               const hash = block.block.header.hash.toHex();
               if (hrmpMessages.length > 0) {
-                console.log('putting hrmp messages');
                 ops.push(from(db.put('hrmp-messages:' + hash, hrmpMessages.toU8a())));
               }
               if (umpMessages.length > 0) {
-                console.log('putting ump messages');
                 ops.push(from(db.put('ump-messages:' + hash, umpMessages.toU8a())));
               }
               return ops;
@@ -352,7 +347,9 @@ export class HeadCatcher extends EventEmitter {
     return (source: Observable<Header>)
     : Observable<Header> => {
       return source.pipe(
-        mergeMap(head => defer(() => this.#doCatchUp(chainId, api, head))),
+        mergeMap(head => defer(
+          () => this.#doCatchUp(chainId, api, head)
+        )),
         retryWithTruncatedExpBackoff(),
         mergeMap(head => head)
       );
@@ -435,7 +432,6 @@ export class HeadCatcher extends EventEmitter {
   }
 
   async #putBlock(chainId: string, block: SignedBlockExtended) {
-    console.log('putting block', this.#blockCache(chainId).put);
     const hash = block.block.header.hash.toHex();
 
     // TODO: review to use SCALE instead of CBOR
@@ -448,18 +444,19 @@ export class HeadCatcher extends EventEmitter {
 
   #updateJanitorTasks(chainId: string) {
     return ({ block: { header } }: SignedBlockExtended) => {
+      const blockHash = header.hash.toHex();
       this.#janitor.schedule(
         {
           sublevel: chainId + ':blocks',
-          key: 'hrmp-messages:' + header.hash.toHex()
+          key: 'hrmp-messages:' + blockHash
         },
         {
           sublevel: chainId + ':blocks',
-          key: 'ump-messages:' + header.hash.toHex()
+          key: 'ump-messages:' + blockHash
         },
         {
           sublevel: chainId + ':blocks',
-          key: header.hash.toHex()
+          key: blockHash
         }
       );
     };
