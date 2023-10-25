@@ -4,7 +4,6 @@ import '../../test/network.js';
 
 import { MemoryLevel } from 'memory-level';
 import { of } from 'rxjs';
-import { ApiRx, ApiPromise } from '@polkadot/api';
 
 import { _config, _services } from '../../test/services.js';
 import { Scheduler } from '../persistence/scheduler';
@@ -14,8 +13,7 @@ import {
   XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from './types';
-import Connector from '../networking/connector.js';
-import type { Switchboard as ST } from './switchboard.js';
+import type { Switchboard } from './switchboard.js';
 
 jest.unstable_mockModule('./ops/xcmp.js', () => {
   return {
@@ -46,7 +44,7 @@ jest.unstable_mockModule('./ops/xcmp.js', () => {
   };
 });
 
-const Switchboard = (await import('./switchboard.js')).Switchboard;
+const SwitchboardImpl = (await import('./switchboard.js')).Switchboard;
 
 const testSub : QuerySubscription = {
   id: '1000:2000:0',
@@ -63,7 +61,7 @@ const testSub : QuerySubscription = {
 };
 
 describe('switchboard service', () => {
-  let switchboard : ST;
+  let switchboard : Switchboard;
   let subs : SubsStore;
   let spy;
 
@@ -82,68 +80,9 @@ describe('switchboard service', () => {
       _services.log, db, _config
     );
 
-    switchboard = new Switchboard(
+    switchboard = new SwitchboardImpl(
       {
         ..._services,
-        connector: {
-          connect: () => ({
-            promise: {
-              '0': {
-                derive: {
-                  chain: {
-                    getBlock: () => {
-
-                    }
-                  }
-                }
-              } as unknown as ApiPromise,
-              '1000': {
-                derive: {
-                  chain: {
-                    getBlock: () => {
-                    }
-                  }
-                },
-                at: () => {
-                  return Promise.resolve({
-                    query: { }
-                  });
-                }
-              } as unknown as ApiPromise,
-              '2000': {
-                derive: {
-                  chain: {
-                    getBlock: () => {
-                    }
-                  }
-                }
-              } as unknown as ApiPromise
-            },
-            rx: {
-              '0': of({
-                rpc: {
-                  chain: {
-                    subscribeFinalizedHeads: () => of({})
-                  },
-                }
-              } as unknown as ApiRx),
-              '1000': of({
-                rpc: {
-                  chain: {
-                    subscribeFinalizedHeads: () => of({})
-                  },
-                }
-              }),
-              '2000': of({
-                rpc: {
-                  chain: {
-                    subscribeFinalizedHeads: () => of({})
-                  },
-                }
-              } as unknown as ApiRx)
-            }
-          })
-        } as unknown as Connector,
         scheduler,
         storage: {
           ..._services.storage,
