@@ -95,7 +95,7 @@ program
       '--scheduler-frequency <milliseconds>',
       'milliseconds to wait before each tick',
       'XCMON_DB_SCHEDULER_FREQUENCY'
-    ).default(30000).argParser(positiveInt) // 30 secs
+    ).default(5000).argParser(positiveInt) // 5 secs
   )
   .addOption(
     optionOf(
