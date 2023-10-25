@@ -1,6 +1,7 @@
 import Stream from 'node:stream';
 
 import { DB, Family, Logger } from '../types.js';
+import { NotFound } from '../../errors.js';
 
 export type Scheduled<T = any> = {
   key?: string
@@ -76,6 +77,14 @@ export class Scheduler extends Stream.EventEmitter {
 
   async allTaskTimes() {
     return await this.#tasks.keys().all();
+  }
+
+  async getById(key: string) {
+    try {
+      return await this.#tasks.get(key);
+    } catch (error) {
+      throw new NotFound('Task no found');
+    }
   }
 
   async #run() {

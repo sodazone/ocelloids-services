@@ -2,7 +2,9 @@ import { FastifyInstance } from 'fastify';
 
 import version from '../version.js';
 
-export default async function Root(fastify: FastifyInstance) {
+export default async function Root(
+  fastify: FastifyInstance
+) {
   fastify.get('/',{
     schema: {
       hide: true,

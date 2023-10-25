@@ -13,6 +13,8 @@ import { logger } from './environment.js';
 import { ServerOptions } from './types.js';
 import {
   Root,
+  Auth,
+  Administration,
   Persistence,
   Configuration,
   Monitoring,
@@ -71,10 +73,12 @@ export async function createServer(
   });
 
   await server.register(Root);
+  await server.register(Auth);
   await server.register(Configuration, opts);
   await server.register(Persistence, opts);
   await server.register(Connector);
   await server.register(Monitoring);
+  await server.register(Administration);
 
   return server;
 }

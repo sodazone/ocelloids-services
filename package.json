@@ -64,6 +64,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@fastify/jwt": "^7.2.2",
     "@fastify/swagger": "^8.11.0",
     "@fastify/swagger-ui": "^1.10.0",
     "@sodazone/ocelloids": "^1.1.8",

@@ -81,14 +81,21 @@ export class HeadCatcher extends EventEmitter {
 
         const blockPipe = api.pipe(
           blocks(),
-          tap(b => {
+          retryWithTruncatedExpBackoff(),
+          tap(async ({ block: {header} }) => {
             this.#log.info(
               '[%s] SEEN block #%s %s',
               chainId,
-              b.block.header.number.toString(),
-              b.block.header.hash.toHex()
-            );}),
-          retryWithTruncatedExpBackoff()
+              header.number.toString(),
+              header.hash.toHex()
+            );
+            // TODO: revisit janitor tasks in side effects
+            const blockHash = header.hash.toHex();
+            await this.#janitor.schedule({
+              sublevel: chainId + ':blocks',
+              key: blockHash
+            });
+          })
         );
         const paraPipe = blockPipe.pipe(
           mergeMap(block => {
@@ -111,6 +118,19 @@ export class HeadCatcher extends EventEmitter {
                   hrmpMessages,
                   umpMessages
                 };
+              }),
+              // TODO: see other taps
+              tap(async ({ block: { block: { header }} }) => {
+                // TODO: revisit janitor tasks in side effects
+                const blockHash = header.hash.toHex();
+                await this.#janitor.schedule({
+                  sublevel: chainId + ':blocks',
+                  key: 'hrmp-messages:' + blockHash
+                },
+                {
+                  sublevel: chainId + ':blocks',
+                  key: 'ump-messages:' + blockHash
+                });
               })
             );
           })
@@ -197,9 +217,14 @@ export class HeadCatcher extends EventEmitter {
         mergeMap(head => from(this.#getBlock(
           chainId, api, head.hash.toHex()
         ))),
-        // retryWithTruncatedExpBackoff(),
+        retryWithTruncatedExpBackoff(),
         // Revisit: clean up as a side effect?
-        tap(this.#updateJanitorTasks(chainId)),
+        tap(async ({ block: { header } }) => {
+          const blockHash = header.hash.toHex();
+          await this.#blockCache(chainId).del(blockHash);
+          // TODO: clean up storage related to the block?
+          // will require additional indexing
+        }),
         share()
       );
     } else {
@@ -350,7 +375,7 @@ export class HeadCatcher extends EventEmitter {
         mergeMap(head => defer(
           () => this.#doCatchUp(chainId, api, head)
         )),
-        // retryWithTruncatedExpBackoff(),
+        retryWithTruncatedExpBackoff(),
         mergeMap(head => head)
       );
     };
@@ -440,25 +465,5 @@ export class HeadCatcher extends EventEmitter {
       events: block.events.map(ev => ev.toU8a()),
       author: block.author?.toU8a()
     }));
-  }
-
-  #updateJanitorTasks(chainId: string) {
-    return ({ block: { header } }: SignedBlockExtended) => {
-      const blockHash = header.hash.toHex();
-      this.#janitor.schedule(
-        {
-          sublevel: chainId + ':blocks',
-          key: 'hrmp-messages:' + blockHash
-        },
-        {
-          sublevel: chainId + ':blocks',
-          key: 'ump-messages:' + blockHash
-        },
-        {
-          sublevel: chainId + ':blocks',
-          key: blockHash
-        }
-      );
-    };
   }
 }
