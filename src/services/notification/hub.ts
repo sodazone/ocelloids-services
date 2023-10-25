@@ -23,9 +23,9 @@ export class NotifierHub implements Notifier {
     };
   }
 
-  notify(sub: QuerySubscription, msg: XcmMessageNotify) {
+  async notify(sub: QuerySubscription, msg: XcmMessageNotify) {
     try {
-      this.#notifiers[sub.notify.type].notify(sub, msg);
+      await this.#notifiers[sub.notify.type].notify(sub, msg);
     } catch (error) {
       this.#log.error(error);
     }

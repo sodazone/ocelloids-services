@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel as Level } from 'memory-level';
 
-import { MatchingEngine, XcmNotification } from './matching.js';
+import { MatchingEngine } from './matching.js';
 import { XcmMessageReceived, XcmMessageSent } from './types.js';
 import { _services } from '../../test/services.js';
 
@@ -46,30 +46,28 @@ describe('message matching engine', () => {
   });
 
   it('should match inbound and outbound', async () => {
-    const cb = jest.fn();
-    engine.on(XcmNotification, cb);
+    const cb = jest.fn(() => {});
+    engine.onNotification(cb);
 
     await engine.onOutboundMessage(outboundMessage);
-
     await engine.onInboundMessage(inboundMessage);
 
     expect(cb).toBeCalledTimes(1);
   });
 
   it('should match outbound and inbound', async () => {
-    const cb = jest.fn();
-    engine.on(XcmNotification, cb);
+    const cb = jest.fn(() => {});
+    engine.onNotification(cb);
 
     await engine.onInboundMessage(inboundMessage);
-
     await engine.onOutboundMessage(outboundMessage);
 
     expect(cb).toBeCalledTimes(1);
   });
 
   it('should work async concurrently', async () => {
-    const cb = jest.fn();
-    engine.on(XcmNotification, cb);
+    const cb = jest.fn(() => {});
+    engine.onNotification(cb);
 
     await Promise.all([
       engine.onOutboundMessage(outboundMessage),

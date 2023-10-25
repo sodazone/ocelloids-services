@@ -17,7 +17,7 @@ import {
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../configuration.js';
-import { MatchingEngine, XcmNotification } from './matching.js';
+import { MatchingEngine } from './matching.js';
 import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';
 
@@ -71,7 +71,7 @@ export class Switchboard {
   async onNotification(msg: XcmMessageNotify) {
     const { subscriptionId } = msg;
     const sub = await this.#db.getById(subscriptionId);
-    this.#notifier.notify(sub, msg);
+    await this.#notifier.notify(sub, msg);
   }
 
   /**
@@ -122,7 +122,7 @@ export class Switchboard {
 
   async start() {
     await this.#startNetworkMonitors();
-    this.#engine.on(XcmNotification, this.onNotification.bind(this));
+    this.#engine.onNotification(this.onNotification.bind(this));
     this.#catcher.start();
   }
 
@@ -130,7 +130,7 @@ export class Switchboard {
    * Stops the switchboard and unsubscribes from the underlying
    * reactive subscriptions.
    */
-  stop() {
+  async stop() {
     this.#log.info('Stopping switchboard');
 
     for (const {
@@ -144,6 +144,14 @@ export class Switchboard {
     }
 
     this.#catcher.stop();
+    await this.#engine.stop();
+  }
+
+  /**
+   * Gets a subscription handler by id.
+   */
+  getSubscriptionHandler(id: string) {
+    return this.#subs[id];
   }
 
   /**
@@ -173,10 +181,6 @@ export class Switchboard {
     const { descriptor } = this.#subs[sub.id];
     await this.#db.updateUniquePaths(descriptor, sub);
     this.#subs[sub.id].descriptor = sub;
-  }
-
-  getById(id: string) {
-    return this.#subs[id];
   }
 
   /**

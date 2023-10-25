@@ -9,10 +9,10 @@ export class LogNotifier implements Notifier {
     this.#log = log;
   }
 
-  notify(
+  async notify(
     sub: QuerySubscription,
     msg: XcmMessageNotify
-  ) : Promise<boolean> {
+  ) {
     this.#log.info(
       '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
       msg.origin.chainId,
@@ -23,6 +23,6 @@ export class LogNotifier implements Notifier {
       msg.origin.blockNumber,
       msg.destination.blockNumber
     );
-    return Promise.resolve(true);
+    return Promise.resolve();
   }
 }
