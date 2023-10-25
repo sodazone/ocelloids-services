@@ -14,7 +14,7 @@ import { interlayBlocks, polkadotBlocks } from '../../test/blocks.js';
 import { DB } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
 import type { HeadCatcher as HC } from './head-catcher.js';
-import { ChainHead } from './types.js';
+import { ChainHead, HexString } from './types.js';
 
 jest.unstable_mockModule('@polkadot/api-derive', () => {
   return {
@@ -371,6 +371,236 @@ describe('head catcher', () => {
           });
         }
       });
+    });
+  });
+
+  describe('outboundUmpMessages', () => {
+    it('should construct outbound UMP messages from cached buffers if using smoldot', done => {
+      const mockRegistry = {
+        createType: jest.fn()
+      };
+      const blocksSource = from(interlayBlocks);
+
+      catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigMixed,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({} as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({
+                at: () => of({
+                  query: {
+                    parachainSystem: {
+                      hrmpOutboundMessages: () => [
+                        {
+                          length: 0,
+                          toU8a: jest.fn()
+                        }
+                      ],
+                      upwardMessages: () => [
+                        {
+                          length: 1,
+                          toU8a: () => new Uint8Array([8, 31, 6])
+                        }
+                      ]
+                    }
+                  }
+                } as unknown as ApiDecoration<'rxjs'>),
+                derive: {
+                  chain: {
+                    subscribeNewBlocks: () => blocksSource
+                  },
+                }
+              } as unknown as ApiRx)
+            },
+            promise: {
+              '2032': {
+                registry: mockRegistry
+              } as unknown as ApiPromise
+            }
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      catcher.start();
+
+      blocksSource.subscribe({
+        complete: () => {
+          const hash: HexString = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
+          catcher
+            .outboundUmpMessages('2032')(hash)
+            .subscribe({
+              complete: () => {
+                expect(mockRegistry.createType).toBeCalledTimes(1);
+                done();
+              }
+            });
+        }
+      });
+
+      catcher.stop();
+    });
+
+    it('should get outbound UMP messages from chain storage if using rpc', done => {
+      const mockUpwardMessagesQuery = jest.fn(() => Promise.resolve({}));
+      catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigMixed,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({} as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({} as unknown as ApiRx)
+            },
+            promise: {
+              '1000': {
+                at: () => Promise.resolve({
+                  query: {
+                    parachainSystem: {
+                      upwardMessages: mockUpwardMessagesQuery
+                    }
+                  }
+                } as unknown as ApiDecoration<'promise'>)
+              } as unknown as ApiPromise
+            }
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      catcher
+        .outboundUmpMessages('1000')('0x4B1D')
+        .subscribe({
+          complete: () => {
+            expect(mockUpwardMessagesQuery).toBeCalledTimes(1);
+            done();
+          }
+        });
+    });
+  });
+
+  describe('outboundHrmpMessages', () => {
+    it('should construct outbound HRMP messages from cached buffers if using smoldot', done => {
+      const mockRegistry = {
+        createType: jest.fn()
+      };
+      const blocksSource = from(interlayBlocks);
+
+      catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigMixed,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({} as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({
+                at: () => of({
+                  query: {
+                    parachainSystem: {
+                      hrmpOutboundMessages: () => [
+                        {
+                          length: 1,
+                          toU8a: () => new Uint8Array([8, 31, 6])
+                        }
+                      ],
+                      upwardMessages: () => [
+                        {
+                          length: 0,
+                          toU8a: jest.fn()
+                        }
+                      ]
+                    }
+                  }
+                } as unknown as ApiDecoration<'rxjs'>),
+                derive: {
+                  chain: {
+                    subscribeNewBlocks: () => blocksSource
+                  },
+                }
+              } as unknown as ApiRx)
+            },
+            promise: {
+              '2032': {
+                registry: mockRegistry
+              } as unknown as ApiPromise
+            }
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      catcher.start();
+
+      blocksSource.subscribe({
+        complete: () => {
+          const hash: HexString = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
+          catcher
+            .outboundHrmpMessages('2032')(hash)
+            .subscribe({
+              complete: () => {
+                expect(mockRegistry.createType).toBeCalledTimes(1);
+                done();
+              }
+            });
+        }
+      });
+
+      catcher.stop();
+    });
+
+    it('should get outbound HRMP messages from chain storage if using rpc', done => {
+      const mockHrmpOutboundMessagesQuery = jest.fn(() => Promise.resolve({}));
+      catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigMixed,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({} as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({} as unknown as ApiRx)
+            },
+            promise: {
+              '1000': {
+                at: () => Promise.resolve({
+                  query: {
+                    parachainSystem: {
+                      hrmpOutboundMessages: mockHrmpOutboundMessagesQuery
+                    }
+                  }
+                } as unknown as ApiDecoration<'promise'>)
+              } as unknown as ApiPromise
+            }
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      catcher
+        .outboundHrmpMessages('1000')('0x4B1D')
+        .subscribe({
+          complete: () => {
+            expect(mockHrmpOutboundMessagesQuery).toBeCalledTimes(1);
+            done();
+          }
+        });
     });
   });
 });

@@ -362,13 +362,10 @@ export class HeadCatcher extends EventEmitter {
     let currentHeight: bigint;
     try {
       const  currentHead = await this.#chainHeads.get(chainId);
-      console.log('got head in db', currentHead);
       currentHeight = max(BigInt(currentHead.blockNumber), memHeight);
     } catch (error) {
-      console.log('no head in db');
       currentHeight = bnHeadNum;
     }
-    console.log('head from source', head.toHuman());
 
     const heads : Header[] = [];
 
