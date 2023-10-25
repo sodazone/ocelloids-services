@@ -33,6 +33,7 @@ export async function createServer(
 
   server.setErrorHandler(errorHandler);
 
+  /* istanbul ignore next */
   const closeListeners = closeWithGrace({
     delay: opts.grace
   }, async function ({ err }) {
@@ -42,6 +43,7 @@ export async function createServer(
     await server.close();
   });
 
+  /* istanbul ignore next */
   process.once('SIGUSR2', async function () {
     await server.close();
   });
