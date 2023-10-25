@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import '../../test/network.js';
 
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { _config, _services } from '../../test/services.js';
 import { SubsStore } from '../persistence/subs';
@@ -15,34 +15,21 @@ import type { Switchboard } from './switchboard.js';
 
 jest.unstable_mockModule('./ops/xcmp.js', () => {
   return {
-    extractXcmpSend: () => {
-      return () => {
-        return of({
-          recipient: 2000,
-          blockNumber: 1,
-          blockHash: '0x0',
-          messageHash: '0x0',
-          messageData: {
-            toHex: () => '0x0'
-          }
-        } as unknown as XcmMessageSentWithContext);
-      };
-    },
-    extractXcmpReceive: () => {
-      return () => {
-        return of({
-          recipient: 2000,
-          blockNumber: 1,
-          blockHash: '0x0',
-          messageHash: '0x0',
-          outcome: 'Success'
-        } as unknown as XcmMessageReceivedWithContext);
-      };
-    }
+    extractXcmpSend: jest.fn(),
+    extractXcmpReceive: jest.fn()
+  };
+});
+
+jest.unstable_mockModule('./ops/ump.js', () => {
+  return {
+    extractUmpReceive: jest.fn(),
+    extractUmpSend: jest.fn()
   };
 });
 
 const SwitchboardImpl = (await import('./switchboard.js')).Switchboard;
+const { extractXcmpReceive, extractXcmpSend } = (await import('./ops/xcmp.js'));
+const { extractUmpReceive, extractUmpSend } = (await import('./ops/ump.js'));
 
 const testSub : QuerySubscription = {
   id: '1000:2000:0',
@@ -64,6 +51,37 @@ describe('switchboard service', () => {
   let spy;
 
   beforeEach(() => {
+    (extractXcmpSend as jest.Mock).mockImplementation(() => {
+      return () => {
+        return of({
+          recipient: 2000,
+          blockNumber: 1,
+          blockHash: '0x0',
+          messageHash: '0x0',
+          messageData: {
+            toHex: () => '0x0'
+          }
+        } as unknown as XcmMessageSentWithContext);
+      };
+    });
+    (extractXcmpReceive as jest.Mock).mockImplementation(() => {
+      return () => {
+        return of({
+          recipient: 2000,
+          blockNumber: 1,
+          blockHash: '0x0',
+          messageHash: '0x0',
+          outcome: 'Success'
+        } as unknown as XcmMessageReceivedWithContext);
+      };
+    });
+    (extractUmpSend as jest.Mock).mockImplementation(() => {
+      return () => of({});
+    });
+    (extractUmpReceive as jest.Mock).mockImplementation(() => {
+      return () => of({});
+    });
+
     subs = _services.storage.subs;
     switchboard = new SwitchboardImpl(_services);
     spy = jest.spyOn(switchboard, 'onNotification');
@@ -72,6 +90,19 @@ describe('switchboard service', () => {
   afterEach(async () => {
     await _services.storage.root.clear();
     return switchboard.stop();
+  });
+
+  it('should unsubscribe', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe(testSub);
+
+    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(await subs.getById(testSub.id)).toBeDefined();
+
+    await switchboard.unsubscribe(testSub.id);
+
+    expect(switchboard.getSubscriptionHandler(testSub.id)).not.toBeDefined();
   });
 
   it('should notify on matched HRMP', async () => {
@@ -84,21 +115,64 @@ describe('switchboard service', () => {
     expect(spy).toBeCalledTimes(1);
   });
 
-  it('should unsubscribe', async () => {
-    await switchboard.subscribe(testSub);
-
-    expect((await subs.getAll()).length).toBe(1);
-
-    await switchboard.unsubscribe(testSub.id);
-
-    expect((await subs.getAll()).length).toBe(0);
-  });
-
   it('should subscribe to persisted subscriptions on start', async () => {
     await subs.insert(testSub);
 
     await switchboard.start();
 
     expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+  });
+
+  it('should handle relay subscriptions', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      origin: 0
+    });
+
+    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+  });
+
+  it('should throw unexpected errors', async () => {
+    (extractUmpSend as jest.Mock).mockImplementation(() => {
+      throw new Error('unexpected');
+    });
+    (extractUmpReceive as jest.Mock).mockImplementation(() => {
+      throw new Error('unexpected');
+    });
+
+    await switchboard.start();
+
+    await expect(async () => {
+      await switchboard.subscribe(testSub);
+    }).rejects.toThrowError();
+
+    expect(switchboard.getSubscriptionHandler(testSub.id)).not.toBeDefined();
+
+    await switchboard.stop();
+  });
+
+  it('should handle pipe errors', async () => {
+    (extractUmpSend as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'));
+    });
+    (extractUmpReceive as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'));
+    });
+    (extractXcmpSend as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'));
+    });
+    (extractXcmpReceive as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'));
+    });
+
+    await switchboard.start();
+
+    await switchboard.subscribe(testSub);
+
+    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+
+    await switchboard.stop();
   });
 });
