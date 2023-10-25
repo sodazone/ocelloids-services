@@ -6,7 +6,7 @@ import {
 
 import { SubsStore } from './persistence/subs.js';
 import { Janitor } from './persistence/janitor.js';
-import { ServiceConfiguration } from './configuration.js';
+import { ServiceConfiguration } from './config.js';
 import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
 import { Scheduler } from './persistence/scheduler.js';

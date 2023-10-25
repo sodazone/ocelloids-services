@@ -16,7 +16,7 @@ import {
   XcmMessageSentWithContext
 } from './types.js';
 
-import { ServiceConfiguration, isRelay } from '../configuration.js';
+import { ServiceConfiguration, isRelay } from '../config.js';
 import { MatchingEngine } from './matching.js';
 import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';

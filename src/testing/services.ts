@@ -6,7 +6,7 @@ import { ApiRx, ApiPromise } from '@polkadot/api';
 
 import { SubsStore } from '../services/persistence/subs.js';
 import { Janitor } from '../services/persistence/janitor.js';
-import { $ServiceConfiguration } from '../services/configuration.js';
+import { $ServiceConfiguration } from '../services/config.js';
 import Connector from '../services/networking/connector.js';
 import { _configToml } from './data.js';
 import { Scheduler } from '../services/persistence/scheduler.js';

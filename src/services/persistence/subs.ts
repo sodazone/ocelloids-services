@@ -1,7 +1,7 @@
 import { NotFound, ValidationError } from '../../errors.js';
 import { QuerySubscription } from '../monitoring/types.js';
 import { BatchOperation, DB, Family, Logger } from '../types.js';
-import { ServiceConfiguration, isNetworkDefined } from '../configuration.js';
+import { ServiceConfiguration, isNetworkDefined } from '../config.js';
 
 /**
  * Subscriptions persistence.

@@ -22,8 +22,8 @@ import {
 
 import { DB, Logger, Services } from '../types.js';
 import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
-import { Janitor } from 'services/persistence/janitor.js';
-import { ServiceConfiguration } from 'services/configuration.js';
+import { Janitor } from '../../services/persistence/janitor.js';
+import { ServiceConfiguration } from '../../services/config.js';
 
 function max(...args: bigint[]) {
   return args.reduce((m, e) => e > m ? e : m);
