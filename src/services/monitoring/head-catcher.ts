@@ -197,7 +197,7 @@ export class HeadCatcher extends EventEmitter {
         mergeMap(head => from(this.#getBlock(
           chainId, api, head.hash.toHex()
         ))),
-        retryWithTruncatedExpBackoff(),
+        // retryWithTruncatedExpBackoff(),
         // Revisit: clean up as a side effect?
         tap(this.#updateJanitorTasks(chainId)),
         share()
@@ -350,7 +350,7 @@ export class HeadCatcher extends EventEmitter {
         mergeMap(head => defer(
           () => this.#doCatchUp(chainId, api, head)
         )),
-        retryWithTruncatedExpBackoff(),
+        // retryWithTruncatedExpBackoff(),
         mergeMap(head => head)
       );
     };
@@ -362,10 +362,13 @@ export class HeadCatcher extends EventEmitter {
     let currentHeight: bigint;
     try {
       const  currentHead = await this.#chainHeads.get(chainId);
+      console.log('got head in db', currentHead);
       currentHeight = max(BigInt(currentHead.blockNumber), memHeight);
     } catch (error) {
+      console.log('no head in db');
       currentHeight = bnHeadNum;
     }
+    console.log('head from source', head.toHuman());
 
     const heads : Header[] = [];
 

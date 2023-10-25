@@ -3,7 +3,6 @@ import { jest } from '@jest/globals';
 import { MemoryLevel } from 'memory-level';
 import { from, of } from 'rxjs';
 import { ApiRx, ApiPromise } from '@polkadot/api';
-// import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import { ApiDecoration } from '@polkadot/api/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import * as P from '@polkadot/api-derive';
@@ -15,9 +14,9 @@ import { interlayBlocks, polkadotBlocks } from '../../test/blocks.js';
 import { DB } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
 import type { HeadCatcher as HC } from './head-catcher.js';
+import { ChainHead } from './types.js';
 
 jest.unstable_mockModule('@polkadot/api-derive', () => {
-  // const originalModule = await import('@polkadot/api-derive');
   return {
     __esModule: true,
     ...P,
@@ -186,12 +185,7 @@ describe('head catcher', () => {
               '0': of({
                 derive: {
                   chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                    getBlock: (hash) => of(
-                      polkadotBlocks.find(
-                        b => b.block.hash.toHex() === hash.toHex()
-                      )
-                    )
+                    subscribeNewBlocks: () => blocksSource
                   },
                 },
                 rpc: {
@@ -207,9 +201,9 @@ describe('head catcher', () => {
               '0': {
                 derive: {
                   chain: {
-                    getBlock: (hash: Uint8Array | string) => of(
+                    getBlock: (hash) => of(
                       polkadotBlocks.find(
-                        b => b.block.hash.eq(hash)
+                        b => b.block.hash.toHex() === hash.toHex()
                       )
                     )
                   },
@@ -263,6 +257,114 @@ describe('head catcher', () => {
               const blockCacheAfter = await sl('0').keys().all();
               expect(blockCacheAfter.length).toBe(0);
               expect(janitorSpy).toBeCalledTimes(3);
+              catcher.stop();
+              done();
+            }
+          });
+        }
+      });
+    });
+
+    it('should catch up blocks', (done) => {
+      // Pretend that we left off at block #17844551
+      db.sublevel<string, ChainHead>(
+        'finalized-heads', { valueEncoding: 'json'}
+      ).put(
+        '0',
+        {
+          chainId: '0',
+          blockNumber: '17844551'
+        } as unknown as ChainHead
+      );
+
+      const polkadotHeaders = polkadotBlocks.map(tb => tb.block.header);
+      // We will only emit header of block #17844554 to force enter catch-up logic
+      const headersSource = from(polkadotHeaders.slice(-1));
+      const blocksSource = from(polkadotBlocks);
+
+      const mockGetHeader = jest.fn(
+        (hash: any) => Promise.resolve(
+          polkadotHeaders.find(
+            h => h.hash.toHex() === hash.toHex()
+          )
+        )
+      );
+
+      catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigMixed,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({
+                derive: {
+                  chain: {
+                    subscribeNewBlocks: () => blocksSource
+                  },
+                },
+                rpc: {
+                  chain: {
+                    subscribeFinalizedHeads: () => headersSource
+                  },
+                },
+              } as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({} as unknown as ApiRx)
+            },
+            promise: {
+              '0': {
+                rpc: {
+                  chain: {
+                    getHeader: mockGetHeader
+                  }
+                },
+                derive: {
+                  chain: {
+                    getBlock: (hash) => of(
+                      polkadotBlocks.find(
+                        b => b.block.hash.toHex() === hash.toHex()
+                      )
+                    )
+                  },
+                },
+                registry: {
+                  createType: () => ({})
+                }
+              } as unknown as ApiPromise
+            }
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      const expectedBlocks = [
+        '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f', // #17844552
+        '0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb', // #17844553
+        '0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'  // #17844554
+      ];
+
+      const cb = jest.fn();
+
+      catcher.start();
+
+      blocksSource.subscribe({
+        complete: async () => {
+          // Blocks should be put in cache
+          const blockCache = await sl('0').keys().all();
+          expect(expectedBlocks.every(k => blockCache.includes(k))).toBe(true);
+
+          catcher.finalizedBlocks('0').subscribe({
+            next: _ => {
+              cb();
+            },
+            complete: async () => {
+              // Blocks should be deleted from cache
+              const blockCacheAfter = await sl('0').keys().all();
+              expect(blockCacheAfter.length).toBe(0);
+              expect(cb).toBeCalledTimes(3);
               catcher.stop();
               done();
             }
