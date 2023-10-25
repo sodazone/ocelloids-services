@@ -79,15 +79,22 @@ export const _connector = {
   })
 } as unknown as Connector;
 
+export const _rootDB = new MemoryLevel();
+export const _subsDB = new SubsStore(
+  _log, _rootDB, _config
+);
+
 export const _services = {
   log: _log,
   config: _config,
   connector: _connector,
   storage: {
-    root: new MemoryLevel(),
-    subs: {} as unknown as SubsStore
+    root: _rootDB,
+    subs: _subsDB
   },
-  scheduler: {} as unknown as Scheduler,
+  scheduler: {
+    on: () => {}
+  } as unknown as Scheduler,
   janitor: {
     schedule: () => {}
   } as unknown as Janitor

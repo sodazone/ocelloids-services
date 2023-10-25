@@ -2,11 +2,9 @@ import { jest } from '@jest/globals';
 
 import '../../test/network.js';
 
-import { MemoryLevel } from 'memory-level';
 import { of } from 'rxjs';
 
 import { _config, _services } from '../../test/services.js';
-import { Scheduler } from '../persistence/scheduler';
 import { SubsStore } from '../persistence/subs';
 import {
   QuerySubscription,
@@ -66,36 +64,15 @@ describe('switchboard service', () => {
   let spy;
 
   beforeEach(() => {
-    const db = new MemoryLevel();
-    const scheduler = new Scheduler(
-      _services.log,
-      db,
-      {
-        scheduler: true,
-        schedulerFrequency: 500
-      }
-    );
-
-    subs = new SubsStore(
-      _services.log, db, _config
-    );
-
-    switchboard = new SwitchboardImpl(
-      {
-        ..._services,
-        scheduler,
-        storage: {
-          ..._services.storage,
-          root: db,
-          subs
-        }
-      }
-    );
-
+    subs = _services.storage.subs;
+    switchboard = new SwitchboardImpl(_services);
     spy = jest.spyOn(switchboard, 'onNotification');
   });
 
-  afterEach(() => switchboard.stop());
+  afterEach(async () => {
+    await _services.storage.root.clear();
+    return switchboard.stop();
+  });
 
   it('should notify on matched HRMP', async () => {
     await switchboard.start();
