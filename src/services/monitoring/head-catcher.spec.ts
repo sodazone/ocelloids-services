@@ -11,9 +11,8 @@ import { _services } from '../../testing/services.js';
 import Connector from '../networking/connector.js';
 import { mockConfigMixed } from '../../testing/configs.js';
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../testing/blocks.js';
-import { DB } from '../types.js';
+import { DB, jsonEncoded, prefixes } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
-import type { HeadCatcher as HC } from './head-catcher.js';
 import { ChainHead, HexString } from './types.js';
 
 jest.unstable_mockModule('@polkadot/api-derive', () => {
@@ -38,12 +37,11 @@ jest.unstable_mockModule('@polkadot/api-derive', () => {
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher;
 
 describe('head catcher', () => {
-  let catcher: HC;
   let db: DB;
 
   function sl(chainId: string) {
     return db.sublevel<string, Uint8Array>(
-      chainId + ':blocks',
+      prefixes.cache.blocks(chainId),
       {
         valueEncoding: 'buffer'
       }
@@ -63,7 +61,7 @@ describe('head catcher', () => {
     it(
       'should store new blocks in db for relay chain if using smoldot provider',
       async () => {
-        catcher = new HeadCatcher({
+        const catcher = new HeadCatcher({
           ..._services,
           config: mockConfigMixed,
           connector: {
@@ -104,7 +102,7 @@ describe('head catcher', () => {
     it(
       'should store new blocks and outbound xcm messages in db for parachain if using smoldot provider',
       async () => {
-        catcher = new HeadCatcher({
+        const catcher = new HeadCatcher({
           ..._services,
           config: mockConfigMixed,
           connector: {
@@ -176,7 +174,7 @@ describe('head catcher', () => {
       const headersSource = from(polkadotBlocks.map(tb => tb.block.header));
       const blocksSource = from(polkadotBlocks);
 
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
@@ -256,7 +254,7 @@ describe('head catcher', () => {
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
       // Pretend that we left off at block #17844551
       db.sublevel<string, ChainHead>(
-        'finalized-heads', { valueEncoding: 'json'}
+        prefixes.cache.finalizedHeads, jsonEncoded
       ).put(
         '0',
         {
@@ -278,7 +276,7 @@ describe('head catcher', () => {
         )
       );
 
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
@@ -386,7 +384,7 @@ describe('head catcher', () => {
       };
       const blocksSource = from(interlayBlocks);
 
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
@@ -454,7 +452,7 @@ describe('head catcher', () => {
 
     it('should get outbound UMP messages from chain storage if using rpc', done => {
       const mockUpwardMessagesQuery = jest.fn(() => Promise.resolve({}));
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
@@ -501,7 +499,7 @@ describe('head catcher', () => {
       };
       const blocksSource = from(interlayBlocks);
 
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
@@ -569,7 +567,7 @@ describe('head catcher', () => {
 
     it('should get outbound HRMP messages from chain storage if using rpc', done => {
       const mockHrmpOutboundMessagesQuery = jest.fn(() => Promise.resolve({}));
-      catcher = new HeadCatcher({
+      const catcher = new HeadCatcher({
         ..._services,
         config: mockConfigMixed,
         connector: {
