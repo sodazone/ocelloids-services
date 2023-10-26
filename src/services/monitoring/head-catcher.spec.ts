@@ -41,7 +41,7 @@ describe('head catcher', () => {
 
   function sl(chainId: string) {
     return db.sublevel<string, Uint8Array>(
-      prefixes.cache.blocks(chainId),
+      prefixes.cache.family(chainId),
       {
         valueEncoding: 'buffer'
       }

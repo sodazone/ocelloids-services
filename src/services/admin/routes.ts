@@ -40,7 +40,7 @@ export default async function Administration(
 
   fastify.get<keyParam>('/admin/cache/blocks/:key', opts, async (request, reply) => {
     const db = root.sublevel<string, any>(
-      prefixes.cache.blocks(request.params.key), jsonEncoded
+      prefixes.cache.family(request.params.key), jsonEncoded
     );
     reply.send(await db.iterator(itOps).all());
   });

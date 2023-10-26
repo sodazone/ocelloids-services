@@ -27,8 +27,8 @@ export const prefixes = {
     tasks: 'sc:tasks'
   },
   cache: {
-    blocks: (chainId: string | number) => `bl:${chainId}`,
-    finalizedHeads: 'he:fi'
+    family: (chainId: string | number) => `ch:${chainId}`,
+    finalizedHeads: 'ch:fi'
   },
   matching: {
     outbound: 'ma:out',

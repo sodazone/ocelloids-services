@@ -90,7 +90,7 @@ export class HeadCatcher extends EventEmitter {
             // TODO: revisit janitor tasks in side effects
             const blockHash = header.hash.toHex();
             await this.#janitor.schedule({
-              sublevel: prefixes.cache.blocks(chainId),
+              sublevel: prefixes.cache.family(chainId),
               key: blockHash
             });
           })
@@ -121,7 +121,7 @@ export class HeadCatcher extends EventEmitter {
               tap(async ({ block: { block: { header }} }) => {
                 // TODO: revisit janitor tasks in side effects
                 const blockHash = header.hash.toHex();
-                const sublevel = prefixes.cache.blocks(chainId);
+                const sublevel = prefixes.cache.family(chainId);
                 await this.#janitor.schedule({
                   sublevel,
                   key: 'hrmp-messages:' + blockHash
@@ -454,7 +454,7 @@ export class HeadCatcher extends EventEmitter {
 
   #blockCache(chainId: string) {
     return this.#db.sublevel<string, Uint8Array>(
-      prefixes.cache.blocks(chainId),
+      prefixes.cache.family(chainId),
       {
         valueEncoding: 'buffer'
       }
