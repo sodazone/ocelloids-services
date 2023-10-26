@@ -10,7 +10,7 @@ import * as P from '@polkadot/api-derive';
 import { _services } from '../../testing/services.js';
 import Connector from '../networking/connector.js';
 import { mockConfigMixed } from '../../testing/configs.js';
-import { interlayBlocks, polkadotBlocks } from '../../testing/blocks.js';
+import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../testing/blocks.js';
 import { DB } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
 import type { HeadCatcher as HC } from './head-catcher.js';
@@ -238,20 +238,6 @@ describe('head catcher', () => {
           expect(expectedBlocks.every(k => blockCache.includes(k))).toBe(true);
 
           catcher.finalizedBlocks('0').subscribe({
-            /*next: _ => {
-              expect(janitorSpy).toBeCalledWith({
-                sublevel: '0:blocks',
-                key: 'hrmp-messages:0xFEEDC0DE'
-              },
-              {
-                sublevel: '0:blocks',
-                key: 'ump-messages:0xFEEDC0DE'
-              },
-              {
-                sublevel: '0:blocks',
-                key: '0xFEEDC0DE'
-              });
-            },*/
             complete: async () => {
               // Blocks should be deleted from cache
               const blockCacheAfter = await sl('0').keys().all();
@@ -266,6 +252,8 @@ describe('head catcher', () => {
     });
 
     it('should catch up blocks', (done) => {
+      // Load 20 blocks starting from #17844552
+      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
       // Pretend that we left off at block #17844551
       db.sublevel<string, ChainHead>(
         'finalized-heads', { valueEncoding: 'json'}
@@ -277,14 +265,14 @@ describe('head catcher', () => {
         } as unknown as ChainHead
       );
 
-      const polkadotHeaders = polkadotBlocks.map(tb => tb.block.header);
-      // We will only emit header of block #17844554 to force enter catch-up logic
-      const headersSource = from(polkadotHeaders.slice(-1));
-      const blocksSource = from(polkadotBlocks);
+      const testHeaders = testBlocks.map(tb => tb.block.header);
+      // We will emit finalized headers with gaps to force enter catch-up logic multiple times
+      const headersSource = from([testHeaders[3], testHeaders[9], testHeaders[19]]);
+      const blocksSource = from(testBlocks);
 
       const mockGetHeader = jest.fn(
         (hash: any) => Promise.resolve(
-          polkadotHeaders.find(
+          testHeaders.find(
             h => h.hash.toHex() === hash.toHex()
           )
         )
@@ -320,7 +308,7 @@ describe('head catcher', () => {
                 },
                 derive: {
                   chain: {
-                    getBlock: (hash) => of(
+                    getBlock: (hash) => Promise.resolve(
                       polkadotBlocks.find(
                         b => b.block.hash.toHex() === hash.toHex()
                       )
@@ -340,13 +328,7 @@ describe('head catcher', () => {
         }
       });
 
-      const expectedBlocks = [
-        '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f', // #17844552
-        '0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb', // #17844553
-        '0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'  // #17844554
-      ];
-
-      const cb = jest.fn();
+      const cb = [jest.fn(), jest.fn()];
 
       catcher.start();
 
@@ -354,19 +336,42 @@ describe('head catcher', () => {
         complete: async () => {
           // Blocks should be put in cache
           const blockCache = await sl('0').keys().all();
-          expect(expectedBlocks.every(k => blockCache.includes(k))).toBe(true);
+          expect(blockCache.length).toBe(20);
 
+          let completes = 0;
           catcher.finalizedBlocks('0').subscribe({
             next: _ => {
-              cb();
+              cb[0]();
             },
             complete: async () => {
               // Blocks should be deleted from cache
               const blockCacheAfter = await sl('0').keys().all();
               expect(blockCacheAfter.length).toBe(0);
-              expect(cb).toBeCalledTimes(3);
-              catcher.stop();
-              done();
+              expect(cb[0]).toBeCalledTimes(20);
+
+              completes++;
+              if (completes === 2) {
+                catcher.stop();
+                done();
+              }
+            }
+          });
+
+          catcher.finalizedBlocks('0').subscribe({
+            next: _ => {
+              cb[1]();
+            },
+            complete: async () => {
+              // Blocks should be deleted from cache
+              const blockCacheAfter = await sl('0').keys().all();
+              expect(blockCacheAfter.length).toBe(0);
+              expect(cb[1]).toBeCalledTimes(20);
+
+              completes++;
+              if (completes === 2) {
+                catcher.stop();
+                done();
+              }
             }
           });
         }

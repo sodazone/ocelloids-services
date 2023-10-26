@@ -421,7 +421,9 @@ export class HeadCatcher extends EventEmitter {
       }
 
       let parentHead = head;
-
+      const delay = this.#config.networks.find(
+        n => n.id === parseInt(chainId)
+      )?.throttle ?? 500;
       while (parentHead.number.toBigInt() - currentHeight > 1) {
         parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
         heads.push(parentHead);
@@ -435,8 +437,7 @@ export class HeadCatcher extends EventEmitter {
         );
 
         // Throttle
-        // TODO: configurable
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
       // Update the head in storage
