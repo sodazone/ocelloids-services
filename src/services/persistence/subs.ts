@@ -233,7 +233,7 @@ export class SubsStore {
 
   #subsFamily(chainId: string | number) {
     return this.#db.sublevel<string, QuerySubscription>(
-      prefixes.subs.family + chainId, jsonEncoded
+      prefixes.subs.family(chainId), jsonEncoded
     );
   }
 

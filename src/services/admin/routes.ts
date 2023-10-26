@@ -30,6 +30,20 @@ export default async function Administration(
   const outDB = root.sublevel<string, any>(
     prefixes.matching.inbound, jsonEncoded
   );
+  const headDB = root.sublevel<string, any>(
+    prefixes.cache.finalizedHeads, jsonEncoded
+  );
+
+  fastify.get('/admin/cache/heads', opts, async (_, reply) => {
+    reply.send(await headDB.iterator(itOps).all());
+  });
+
+  fastify.get<keyParam>('/admin/cache/blocks/:key', opts, async (request, reply) => {
+    const db = root.sublevel<string, any>(
+      prefixes.cache.blocks(request.params.key), jsonEncoded
+    );
+    reply.send(await db.iterator(itOps).all());
+  });
 
   fastify.delete('/admin/storage/root', opts, async (_, reply) => {
     log.warn('Clearing root database');

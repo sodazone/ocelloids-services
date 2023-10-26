@@ -21,7 +21,7 @@ import {
   SubstrateApis
 } from '@sodazone/ocelloids';
 
-import { DB, Logger, Services } from '../types.js';
+import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
 import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
@@ -90,7 +90,7 @@ export class HeadCatcher extends EventEmitter {
             // TODO: revisit janitor tasks in side effects
             const blockHash = header.hash.toHex();
             await this.#janitor.schedule({
-              sublevel: chainId + ':blocks',
+              sublevel: prefixes.cache.blocks(chainId),
               key: blockHash
             });
           })
@@ -121,12 +121,13 @@ export class HeadCatcher extends EventEmitter {
               tap(async ({ block: { block: { header }} }) => {
                 // TODO: revisit janitor tasks in side effects
                 const blockHash = header.hash.toHex();
+                const sublevel = prefixes.cache.blocks(chainId);
                 await this.#janitor.schedule({
-                  sublevel: chainId + ':blocks',
+                  sublevel,
                   key: 'hrmp-messages:' + blockHash
                 },
                 {
-                  sublevel: chainId + ':blocks',
+                  sublevel,
                   key: 'ump-messages:' + blockHash
                 });
               })
@@ -353,7 +354,7 @@ export class HeadCatcher extends EventEmitter {
 
   get #chainHeads() {
     return this.#db.sublevel<string, ChainHead>(
-      'finalized-heads', { valueEncoding: 'json'}
+      prefixes.cache.finalizedHeads, jsonEncoded
     );
   }
 
@@ -453,7 +454,7 @@ export class HeadCatcher extends EventEmitter {
 
   #blockCache(chainId: string) {
     return this.#db.sublevel<string, Uint8Array>(
-      chainId + ':blocks',
+      prefixes.cache.blocks(chainId),
       {
         valueEncoding: 'buffer'
       }
