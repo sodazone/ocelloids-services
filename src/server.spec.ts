@@ -23,9 +23,9 @@ describe('monitoring server API', () => {
     server = await createServer({
       config: 'config/test.toml',
       db: '',
-      janitor: false,
+      scheduler: false,
       sweepExpiry: 0,
-      sweepInterval: 0,
+      schedulerFrequency: 0,
       grace: 1000,
       host: 'localhost',
       port: 0
@@ -64,6 +64,30 @@ describe('monitoring server API', () => {
         done();
       });
     });
+
+    it('should create a multiple subscriptions', done => {
+      server.inject({
+        method: 'POST',
+        url: '/subs',
+        body: [
+          {
+            ...testSubContent,
+            id: 'm1',
+            senders: ['M1']
+          },
+          {
+            ...testSubContent,
+            id: 'm2',
+            senders: ['M2']
+          },
+        ]
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(201);
+
+        done();
+      });
+    });
   });
 
   describe('modify resources', () => {
@@ -75,6 +99,50 @@ describe('monitoring server API', () => {
       }, (_err, response) => {
         expect(response.statusCode)
           .toStrictEqual(400);
+
+        done();
+      });
+    });
+
+    it('should revert if a subscription fails in a batch create', done => {
+      server.inject({
+        method: 'POST',
+        url: '/subs',
+        body: [
+          {
+            ...testSubContent,
+            id: 'm3',
+            senders: ['M3']
+          },
+          {
+            ...testSubContent,
+            id: 'm1',
+            senders: ['M1']
+          },
+        ]
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(400);
+
+        server.inject({
+          method: 'GET',
+          url: '/subs/m3'
+        }, (_, r) => {
+          expect(r.statusCode)
+            .toStrictEqual(404);
+
+          done();
+        });
+      });
+    });
+
+    it('should delete an existing subscription', done => {
+      server.inject({
+        method: 'DELETE',
+        url: '/subs/m2'
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(200);
 
         done();
       });

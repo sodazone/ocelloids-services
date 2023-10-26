@@ -65,12 +65,22 @@ export function SubscriptionApi(
   });
 
   fastify.post <{
-    Body: QuerySubscription
+    Body: QuerySubscription | QuerySubscription[]
   }>('/subs', {
     schema: {
-      body: zodToJsonSchema(
-        $QuerySubscription
-      ),
+      body: {
+        oneOf: [
+          zodToJsonSchema(
+            $QuerySubscription
+          ),
+          {
+            type: 'array',
+            items: zodToJsonSchema(
+              $QuerySubscription
+            )
+          }
+        ]
+      },
       response: {
         201: {
           type: 'null',
@@ -79,7 +89,23 @@ export function SubscriptionApi(
       }
     }
   }, async (request, reply) => {
-    await switchboard.subscribe(request.body);
+    const qs = request.body;
+    if (Array.isArray(qs)) {
+      const ids = [];
+      try {
+        for (const q of qs) {
+          await switchboard.subscribe(q);
+          ids.push(q.id);
+        }
+      } catch (error) {
+        for (const id of ids) {
+          await switchboard.unsubscribe(id);
+        }
+        throw error;
+      }
+    } else {
+      await switchboard.subscribe(qs);
+    }
 
     reply.status(201).send();
   });
