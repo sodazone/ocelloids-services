@@ -41,8 +41,8 @@ export class HeadCatcher extends EventEmitter {
   #config: ServiceConfiguration;
   #db: DB;
   #janitor: Janitor;
-  #mutex: Mutex;
 
+  #mutex: Record<string, Mutex> = {};
   #subs: Record<string, Subscription> = {};
   #pipes: Record<string, Observable<any>> = {};
 
@@ -62,7 +62,6 @@ export class HeadCatcher extends EventEmitter {
     this.#apis = connector.connect();
     this.#db = db;
     this.#janitor = janitor;
-    this.#mutex = new Mutex();
   }
 
   start() {
@@ -382,7 +381,10 @@ export class HeadCatcher extends EventEmitter {
   }
 
   async #doCatchUp(chainId: string, api: ApiPromise, head: Header) {
-    const release = await this.#mutex.acquire();
+    if (this.#mutex[chainId] === undefined) {
+      this.#mutex[chainId] = new Mutex();
+    }
+    const release = await this.#mutex[chainId].acquire();
     try {
       const bnHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
