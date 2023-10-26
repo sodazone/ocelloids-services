@@ -14,6 +14,12 @@ export type SchedulerOptions = {
   schedulerFrequency: number
 }
 
+/**
+ * Simple database persistent scheduler.
+ *
+ * This class is designed to schedule tasks with low time resolution, at least minutes.
+ * It uses keys with an ISO 8601 UTC formatted date and time for lexicographic ordering.
+ */
 export class Scheduler extends Stream.EventEmitter {
   #log: Logger;
   #tasks: Family;
