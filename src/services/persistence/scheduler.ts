@@ -1,6 +1,6 @@
 import Stream from 'node:stream';
 
-import { DB, Family, Logger } from '../types.js';
+import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
 import { NotFound } from '../../errors.js';
 
 export type Scheduled<T = any> = {
@@ -33,8 +33,8 @@ export class Scheduler extends Stream.EventEmitter {
 
     this.#log = log;
     this.#tasks = db.sublevel<string, Scheduled>(
-      'sched:tasks',
-      { valueEncoding: 'json' }
+      prefixes.sched.tasks,
+      jsonEncoded
     );
     this.#enabled = opts.scheduler;
     this.#frequency = opts.schedulerFrequency;

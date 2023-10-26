@@ -1,6 +1,6 @@
 import { NotFound, ValidationError } from '../../errors.js';
 import { QuerySubscription } from '../monitoring/types.js';
-import { BatchOperation, DB, Family, Logger } from '../types.js';
+import { BatchOperation, DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
 import { ServiceConfiguration, isNetworkDefined } from '../config.js';
 
 /**
@@ -25,7 +25,9 @@ export class SubsStore {
     this.#log = log;
     this.#db = db;
     this.#config = config;
-    this.#uniques = db.sublevel<string, string>('ukeys', {});
+    this.#uniques = db.sublevel<string, string>(
+      prefixes.subs.uniques, {}
+    );
   }
 
   /**
@@ -231,7 +233,7 @@ export class SubsStore {
 
   #subsFamily(chainId: string | number) {
     return this.#db.sublevel<string, QuerySubscription>(
-      chainId + ':subs', { valueEncoding: 'json'}
+      prefixes.subs.family + chainId, jsonEncoded
     );
   }
 

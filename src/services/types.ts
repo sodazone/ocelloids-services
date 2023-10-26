@@ -15,6 +15,24 @@ export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = Abstract
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
 export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, V>;
 
+/**
+ * Sublevel prefixes.
+ */
+export const prefixes = {
+  subs: {
+    family: 'su:',
+    uniques: 'su:ukeys'
+  },
+  sched: {
+    tasks: 'sc:tasks'
+  },
+  matching: {
+    outbound: 'ma:out',
+    inbound: 'ma:in'
+  }
+};
+export const jsonEncoded = { valueEncoding: 'json' };
+
 export type Logger = FastifyBaseLogger
 export type Services = {
   log: Logger,

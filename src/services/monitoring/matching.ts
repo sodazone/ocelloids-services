@@ -1,7 +1,7 @@
 import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
-import { DB, Logger, Services } from '../types.js';
+import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
 import {
   XcmMessageNotify,
   XcmMessageReceived,
@@ -17,8 +17,6 @@ export type ChainBlock = {
   blockHash: string,
   blockNumber: string
 }
-
-const sublevelOpts = { valueEncoding: 'json' };
 
 /**
  * Matches sent XCM messages on the destination.
@@ -52,8 +50,8 @@ export class MatchingEngine {
     this.#janitor = janitor;
     this.#mutex = new Mutex();
 
-    this.#outbound = this.#sl('out');
-    this.#inbound = this.#sl('in');
+    this.#outbound = this.#sl(prefixes.matching.outbound);
+    this.#inbound = this.#sl(prefixes.matching.inbound);
   }
 
   async onOutboundMessage(outMsg: XcmMessageSent) {
@@ -64,7 +62,8 @@ export class MatchingEngine {
       const hashKey = `${outMsg.messageHash}:${outMsg.recipient}`;
 
       if (outMsg.messageId) {
-        // Still we don't know if the inbound is upgraded, i.e. uses message ids
+        // Still we don't know if the inbound is upgraded,
+        // i.e. uses message ids
         const idKey = `${outMsg.messageId}:${outMsg.recipient}`;
         try {
           const inMsg = await Promise.any([
@@ -145,7 +144,7 @@ export class MatchingEngine {
           );
           await this.#inbound.put(hashKey, inMsg);
           await this.#janitor.schedule({
-            sublevel: 'in',
+            sublevel: prefixes.matching.inbound,
             key: hashKey
           });
         }
@@ -180,11 +179,11 @@ export class MatchingEngine {
             .write();
           await this.#janitor.schedule(
             {
-              sublevel: 'in',
+              sublevel: prefixes.matching.inbound,
               key: hashKey
             },
             {
-              sublevel: 'in',
+              sublevel: prefixes.matching.inbound,
               key: idKey
             }
           );
@@ -214,6 +213,6 @@ export class MatchingEngine {
   }
 
   #sl<TV>(prefix: string) {
-    return this.#db.sublevel<string, TV>(prefix, sublevelOpts);
+    return this.#db.sublevel<string, TV>(prefix, jsonEncoded);
   }
 }
