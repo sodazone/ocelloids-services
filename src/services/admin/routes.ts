@@ -15,7 +15,7 @@ const itOps = {
 export default async function Administration(
   fastify: FastifyInstance
 ) {
-  const { log, storage: { root }, scheduler } = fastify;
+  const { storage: { root }, scheduler } = fastify;
 
   const opts = {
     onRequest: [fastify.auth],
@@ -43,12 +43,6 @@ export default async function Administration(
       prefixes.cache.family(request.params.key), jsonEncoded
     );
     reply.send(await db.iterator(itOps).all());
-  });
-
-  fastify.delete('/admin/storage/root', opts, async (_, reply) => {
-    log.warn('Clearing root database');
-    await root.clear();
-    reply.send();
   });
 
   fastify.get('/admin/subs', opts, async (_, reply) => {
