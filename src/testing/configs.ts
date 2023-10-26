@@ -1,4 +1,4 @@
-import { ServiceConfiguration } from '../services/configuration.js';
+import { ServiceConfiguration } from '../services/config.js';
 
 export const mockConfigProviderMismatch: ServiceConfiguration = {
   networks: [
@@ -114,7 +114,8 @@ export const mockConfigMixed: ServiceConfiguration = {
       provider: {
         type: 'smoldot',
         spec: './chain-specs/polkadot.json'
-      }
+      },
+      throttle: 0
     },
     {
       name: 'asset-hub',

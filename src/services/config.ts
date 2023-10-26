@@ -27,7 +27,8 @@ const $NetworkConfiguration = z.object({
   }).min(1),
   id: z.number().int(),
   relay: z.string().min(1).optional(),
-  provider: $NetworkProvider
+  provider: $NetworkProvider,
+  throttle: z.optional(z.number().int().default(500))
 });
 
 export const $ServiceConfiguration = z.object({
