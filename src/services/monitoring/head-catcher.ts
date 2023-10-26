@@ -4,6 +4,7 @@ import {
   Observable, Subscription, mergeAll, zip, share, mergeMap, from, defer, tap, switchMap, map
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
+import { Mutex } from 'async-mutex';
 
 import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
 import type { Vec, Bytes } from '@polkadot/types';
@@ -25,10 +26,6 @@ import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, H
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 
-function max(...args: bigint[]) {
-  return args.reduce((m, e) => e > m ? e : m);
-}
-
 /**
  * The HeadCatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
@@ -44,6 +41,7 @@ export class HeadCatcher extends EventEmitter {
   #config: ServiceConfiguration;
   #db: DB;
   #janitor: Janitor;
+  #mutex: Mutex;
 
   #subs: Record<string, Subscription> = {};
   #pipes: Record<string, Observable<any>> = {};
@@ -64,6 +62,7 @@ export class HeadCatcher extends EventEmitter {
     this.#apis = connector.connect();
     this.#db = db;
     this.#janitor = janitor;
+    this.#mutex = new Mutex();
   }
 
   start() {
@@ -383,69 +382,70 @@ export class HeadCatcher extends EventEmitter {
   }
 
   async #doCatchUp(chainId: string, api: ApiPromise, head: Header) {
-    let memHeight : bigint = BigInt(0);
-    const bnHeadNum = head.number.toBigInt();
-    let currentHeight: bigint;
+    const release = await this.#mutex.acquire();
     try {
-      const  currentHead = await this.#chainHeads.get(chainId);
-      currentHeight = max(BigInt(currentHead.blockNumber), memHeight);
-    } catch (error) {
-      currentHeight = bnHeadNum;
-    }
+      const bnHeadNum = head.number.toBigInt();
+      let currentHeight: bigint;
+      try {
+        const  currentHead = await this.#chainHeads.get(chainId);
+        currentHeight = BigInt(currentHead.blockNumber);
+      } catch (error) {
+        currentHeight = bnHeadNum;
+      }
 
-    const heads : Header[] = [];
+      const heads : Header[] = [];
 
-    heads.push(head);
+      heads.push(head);
 
-    this.#log.info('[%s] FINALIZED block #%s %s',
-      chainId,
-      bnHeadNum,
-      head.hash.toHex()
-    );
-
-    const chainHead: ChainHead = {
-      chainId,
-      blockNumber: head.number.toString(),
-      blockHash: head.hash.toHex(),
-      parentHash: head.parentHash.toHex(),
-      receivedAt: new Date()
-    };
-
-    // avoid re-entrant overlaps
-    memHeight = max(memHeight, bnHeadNum);
-
-    if (memHeight - currentHeight > 1) {
-      this.#log.info(
-        '[%s] FINALIZED catching up from #%s to #%s',
+      this.#log.info('[%s] FINALIZED block #%s %s',
         chainId,
-        currentHeight,
-        memHeight
-      );
-    }
-
-    let parentHead = head;
-
-    while (parentHead.number.toBigInt() - currentHeight > 1) {
-      parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
-      heads.push(parentHead);
-
-      // TODO: log every n blocks
-      this.#log.info(
-        '[%s] FINALIZED CATCH-UP block #%s %s',
-        chainId,
-        parentHead.number.toBigInt(),
-        parentHead.hash.toHex()
+        bnHeadNum,
+        head.hash.toHex()
       );
 
-      // Throttle
-      // TODO: configurable
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const chainHead: ChainHead = {
+        chainId,
+        blockNumber: head.number.toString(),
+        blockHash: head.hash.toHex(),
+        parentHash: head.parentHash.toHex(),
+        receivedAt: new Date()
+      };
+
+      if (bnHeadNum - currentHeight > 1) {
+        this.#log.info(
+          '[%s] FINALIZED catching up from #%s to #%s',
+          chainId,
+          currentHeight,
+          bnHeadNum
+        );
+      }
+
+      let parentHead = head;
+
+      while (parentHead.number.toBigInt() - currentHeight > 1) {
+        parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
+        heads.push(parentHead);
+
+        // TODO: log every n blocks?
+        this.#log.info(
+          '[%s] FINALIZED CATCH-UP block #%s %s',
+          chainId,
+          parentHead.number.toBigInt(),
+          parentHead.hash.toHex()
+        );
+
+        // Throttle
+        // TODO: configurable
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Update the head in storage
+      await this.#chainHeads.put(chainId, chainHead);
+
+      return heads;
+    } finally {
+      release();
     }
-
-    // Update the head in storage
-    await this.#chainHeads.put(chainId, chainHead);
-
-    return heads;
   }
 
   #blockCache(chainId: string) {
