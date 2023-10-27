@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import {
-  Observable, Subscription, mergeAll, mergeWith, zip, share, mergeMap, from, tap, switchMap, map
+  Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
@@ -341,13 +341,6 @@ export class HeadCatcher extends EventEmitter {
   ) {
     return (source: Observable<Header>)
     : Observable<Header> => {
-      const catchUp$ = source.pipe(
-        mergeMap(head => from(
-          this.#doCatchUp(chainId, api, head)
-        )),
-        retryWithTruncatedExpBackoff(),
-        mergeAll(10)
-      );
       return source.pipe(
         tap(head => {
           this.#log.info('[%s] FINALIZED block #%s %s',
@@ -356,7 +349,11 @@ export class HeadCatcher extends EventEmitter {
             head.hash.toHex()
           );
         }),
-        mergeWith(catchUp$)
+        mergeMap(head => from(
+          this.#doCatchUp(chainId, api, head)
+        )),
+        retryWithTruncatedExpBackoff(),
+        mergeAll(10)
       );
     };
   }
@@ -368,7 +365,7 @@ export class HeadCatcher extends EventEmitter {
     const release = await this.#mutex[chainId].acquire();
 
     try {
-      const heads : Header[] = [];
+      const heads : Header[] = [head];
       const newHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
 
