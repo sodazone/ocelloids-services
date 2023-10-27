@@ -177,9 +177,8 @@ export class Switchboard {
 
     messageControl.change(messageCriteria(descriptor.destinations));
 
-    const { subs } = this.#monitorDestinations(descriptor);
-    this.#subs[id].destinationSubs.push(...subs);
-    // TODO: handle remove dest
+    const updatedSubs = this.#updateDestinationSubscriptions(id);
+    this.#subs[id].destinationSubs = updatedSubs;
   }
 
   /**
@@ -423,6 +422,18 @@ export class Switchboard {
         sendersControl, messageControl
       }
     };
+  }
+
+  #updateDestinationSubscriptions(id: string) {
+    const { descriptor, destinationSubs } = this.#subs[id];
+    // Subscribe to new destinations, if any
+    const { subs } = this.#monitorDestinations(descriptor);
+    const updatedSubs = destinationSubs.concat(subs);
+    // Unsubscribe removed destinations, if any
+    const removed = updatedSubs.filter(s => !descriptor.destinations.includes(parseInt(s.chainId)));
+    removed.forEach(({ sub }) => sub.unsubscribe());
+    // Return list of updated subscriptions
+    return updatedSubs.filter(s => !removed.includes(s));
   }
 
   /**

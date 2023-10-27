@@ -51,6 +51,14 @@ export const _connector = {
             }
           }
         }
+      } as unknown as ApiPromise,
+      '3000': {
+        derive: {
+          chain: {
+            getBlock: () => {
+            }
+          }
+        }
       } as unknown as ApiPromise
     },
     rx: {
@@ -69,6 +77,13 @@ export const _connector = {
         }
       }),
       '2000': of({
+        rpc: {
+          chain: {
+            subscribeFinalizedHeads: () => of({})
+          },
+        }
+      } as unknown as ApiRx),
+      '3000': of({
         rpc: {
           chain: {
             subscribeFinalizedHeads: () => of({})
