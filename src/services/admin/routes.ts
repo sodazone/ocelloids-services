@@ -13,12 +13,12 @@ const itOps = {
 };
 
 export default async function Administration(
-  fastify: FastifyInstance
+  api: FastifyInstance
 ) {
-  const { storage: { root }, scheduler } = fastify;
+  const { storage: { root }, scheduler } = api;
 
   const opts = {
-    onRequest: [fastify.auth],
+    onRequest: [api.auth],
     schema: {
       hide: true
     }
@@ -34,18 +34,31 @@ export default async function Administration(
     prefixes.cache.tips, jsonEncoded
   );
 
-  fastify.get('/admin/cache/tips', opts, async (_, reply) => {
+  api.get('/admin/cache/tips', opts, async (_, reply) => {
     reply.send(await tipsDB.iterator(itOps).all());
   });
 
-  fastify.get<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
+  api.delete('/admin/cache/tips', opts, async (_, reply) => {
+    await tipsDB.clear();
+    reply.send();
+  });
+
+  api.get<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
     const db = root.sublevel<string, any>(
       prefixes.cache.family(request.params.key), jsonEncoded
     );
     reply.send(await db.iterator(itOps).all());
   });
 
-  fastify.get('/admin/subs', opts, async (_, reply) => {
+  api.delete<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
+    const db = root.sublevel<string, any>(
+      prefixes.cache.family(request.params.key), jsonEncoded
+    );
+    await db.clear();
+    reply.send();
+  });
+
+  api.get('/admin/subs', opts, async (_, reply) => {
     const uniques = await root.sublevel<string, any>(
       prefixes.subs.uniques, jsonEncoded
     ).iterator(itOps).all();
@@ -54,7 +67,7 @@ export default async function Administration(
     });
   });
 
-  fastify.get('/admin/xcm', opts, async (_, reply) => {
+  api.get('/admin/xcm', opts, async (_, reply) => {
     const outbound = await inDB.iterator(itOps).all();
     const inbound = await outDB.iterator(itOps).all();
     reply.send({
@@ -63,25 +76,25 @@ export default async function Administration(
     });
   });
 
-  fastify.delete<keyParam>(
+  api.delete<keyParam>(
     '/admin/xcm/inbound/:key', opts, async (request, reply) => {
       await inDB.del(request.params.key);
       reply.send();
     }
   );
 
-  fastify.delete<keyParam>(
+  api.delete<keyParam>(
     '/admin/xcm/outbound/:key', opts, async (request, reply) => {
       await outDB.del(request.params.key);
       reply.send();
     }
   );
 
-  fastify.get('/admin/sched', opts , async (_, reply) => {
+  api.get('/admin/sched', opts , async (_, reply) => {
     reply.send(await scheduler.allTaskTimes());
   });
 
-  fastify.get<keyParam>(
+  api.get<keyParam>(
     '/admin/sched/:key', opts, async (request, reply) => {
       reply.send(
         await scheduler.getById(request.params.key)
@@ -89,7 +102,7 @@ export default async function Administration(
     }
   );
 
-  fastify.delete<keyParam>(
+  api.delete<keyParam>(
     '/admin/sched/:key', opts, async (request, reply) => {
       await scheduler.remove(request.params.key);
       reply.send();

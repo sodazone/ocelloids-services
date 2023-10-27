@@ -18,7 +18,7 @@ function hasOp(patch: Operation[], path: string) {
  * Subscriptions HTTP API.
  */
 export function SubscriptionApi(
-  fastify: FastifyInstance,
+  api: FastifyInstance,
   {
     switchboard
   }:
@@ -27,9 +27,9 @@ export function SubscriptionApi(
   },
   done: (err?: Error) => void
 ) {
-  const { storage: { subs } } = fastify;
+  const { storage: { subs } } = api;
 
-  fastify.get('/subs', {
+  api.get('/subs', {
     schema: {
       response: {
         200: {
@@ -44,7 +44,7 @@ export function SubscriptionApi(
     reply.send(await subs.getAll());
   });
 
-  fastify.get<{
+  api.get<{
     Params: {
       id: string
     }
@@ -64,7 +64,7 @@ export function SubscriptionApi(
     ));
   });
 
-  fastify.post <{
+  api.post <{
     Body: QuerySubscription | QuerySubscription[]
   }>('/subs', {
     schema: {
@@ -110,7 +110,7 @@ export function SubscriptionApi(
     reply.status(201).send();
   });
 
-  fastify.patch <{
+  api.patch <{
     Params: {
       id: string
     },
@@ -161,7 +161,7 @@ export function SubscriptionApi(
     }
   });
 
-  fastify.delete<{
+  api.delete<{
     Params: {
       id: string
     }
