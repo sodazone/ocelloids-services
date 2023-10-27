@@ -301,14 +301,14 @@ export class HeadCatcher extends EventEmitter {
     try {
       const cache = this.#blockCache(chainId);
       const buffer = await cache.get(hash);
-      const b: BinBlock = decode(buffer);
+      const binBlock: BinBlock = decode(buffer);
 
       const registry = api.registry;
-      const block = registry.createType('SignedBlock', b.block);
-      const records = registry.createType('Vec<EventRecord>', b.events, true);
-      const author = registry.createType('AccountId', b.author);
+      const block = registry.createType('SignedBlock', binBlock.block);
+      const records = registry.createType('Vec<EventRecord>', binBlock.events, true);
+      const author = registry.createType('AccountId', binBlock.author);
 
-      const sBlock = createSignedBlockExtended(
+      const signedBlock = createSignedBlockExtended(
         registry,
         block as SignedBlockExtended,
         records as unknown as EventRecord[],
@@ -316,7 +316,7 @@ export class HeadCatcher extends EventEmitter {
         author as AccountId
       );
 
-      return sBlock;
+      return signedBlock;
     } catch (error) {
       return await api.derive.chain.getBlock(hash);
     }
