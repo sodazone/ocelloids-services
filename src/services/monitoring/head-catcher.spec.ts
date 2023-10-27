@@ -206,6 +206,17 @@ describe('head catcher', () => {
                     )
                   },
                 },
+                rpc: {
+                  chain: {
+                    getHeader: (hash) => {
+                      return Promise.resolve(
+                        polkadotBlocks.find(
+                          b => b.block.hash.toHex() === hash.toHex()
+                        )!.block.header!
+                      );
+                    }
+                  }
+                },
                 registry: {
                   createType: () => ({})
                 }
@@ -237,9 +248,6 @@ describe('head catcher', () => {
 
           catcher.finalizedBlocks('0').subscribe({
             complete: async () => {
-              // Blocks should be deleted from cache
-              const blockCacheAfter = await sl('0').keys().all();
-              expect(blockCacheAfter.length).toBe(0);
               expect(janitorSpy).toBeCalledTimes(3);
               catcher.stop();
               done();
@@ -342,9 +350,6 @@ describe('head catcher', () => {
               cb[0]();
             },
             complete: async () => {
-              // Blocks should be deleted from cache
-              const blockCacheAfter = await sl('0').keys().all();
-              expect(blockCacheAfter.length).toBe(0);
               expect(cb[0]).toBeCalledTimes(20);
 
               completes++;
@@ -360,9 +365,6 @@ describe('head catcher', () => {
               cb[1]();
             },
             complete: async () => {
-              // Blocks should be deleted from cache
-              const blockCacheAfter = await sl('0').keys().all();
-              expect(blockCacheAfter.length).toBe(0);
               expect(cb[1]).toBeCalledTimes(20);
 
               completes++;

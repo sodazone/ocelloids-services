@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import {
-  Observable, Subscription, mergeWith, mergeAll, zip, share, mergeMap, from, defer, tap, switchMap, map
+  Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
@@ -359,13 +359,6 @@ export class HeadCatcher extends EventEmitter {
   ) {
     return (source: Observable<Header>)
     : Observable<Header> => {
-      const catchUp$ = source.pipe(
-        mergeMap(head => defer(
-          () => this.#doCatchUp(chainId, api, head)
-        )),
-        retryWithTruncatedExpBackoff(),
-        mergeAll(10)
-      );
       return source.pipe(
         tap(head => {
           this.#log.info('[%s] FINALIZED block #%s %s',
@@ -374,9 +367,9 @@ export class HeadCatcher extends EventEmitter {
             head.hash.toHex()
           );
         }),
-        mergeWith(
-          catchUp$
-        )
+        mergeMap(head => from(this.#doCatchUp(chainId, api, head))),
+        retryWithTruncatedExpBackoff(),
+        mergeAll(10)
       );
     };
   }
@@ -386,9 +379,10 @@ export class HeadCatcher extends EventEmitter {
       this.#mutex[chainId] = new Mutex();
     }
     const release = await this.#mutex[chainId].acquire();
+
     try {
-      const heads : Header[] = [];
-      const bnHeadNum = head.number.toBigInt();
+      const heads : Header[] = [head];
+      const newHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
 
       const chainHead: ChainHead = {
@@ -403,12 +397,13 @@ export class HeadCatcher extends EventEmitter {
         const  currentHead = await this.#chainHeads.get(chainId);
         currentHeight = BigInt(currentHead.blockNumber);
       } catch (error) {
-        currentHeight = bnHeadNum;
+        currentHeight = newHeadNum;
         await this.#chainHeads.put(chainId, chainHead);
       }
 
-      if (bnHeadNum - currentHeight < 2) {
+      if (newHeadNum - currentHeight < 2) {
         // Nothing to catch
+        await this.#chainHeads.put(chainId, chainHead);
         return heads;
       }
 
@@ -416,7 +411,7 @@ export class HeadCatcher extends EventEmitter {
         '[%s] CATCHING UP from #%s to #%s',
         chainId,
         currentHeight,
-        bnHeadNum
+        newHeadNum
       );
 
       let parentHead = head;
@@ -426,19 +421,24 @@ export class HeadCatcher extends EventEmitter {
       )?.throttle ?? 500;
 
       while (parentHead.number.toBigInt() - currentHeight > 1) {
-        parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
-        heads.push(parentHead);
+        try {
+          parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
 
-        // TODO: log every n blocks?
-        this.#log.info(
-          '[%s] CATCH-UP FINALIZED block #%s %s',
-          chainId,
-          parentHead.number.toBigInt(),
-          parentHead.hash.toHex()
-        );
+          heads.push(parentHead);
 
-        // Throttle
-        await new Promise(resolve => setTimeout(resolve, delay));
+          // TODO: log every n blocks?
+          this.#log.info(
+            '[%s] CATCH-UP FINALIZED block #%s %s',
+            chainId,
+            parentHead.number.toBigInt(),
+            parentHead.hash.toHex()
+          );
+
+          // Throttle
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } catch (err) {
+          console.log(err);
+        }
       }
 
       // Update the head in storage
