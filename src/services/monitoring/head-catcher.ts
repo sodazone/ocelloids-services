@@ -26,6 +26,9 @@ import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, H
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 
+const MAX_BLOCK_DIST = 150n; // maximum distance in #blocks
+const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
+
 /**
  * The HeadCatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
@@ -384,16 +387,21 @@ export class HeadCatcher extends EventEmitter {
         currentHeight = newHeadNum;
       }
 
-      if (newHeadNum - currentHeight < 2) {
+      const blockDistance = newHeadNum - currentHeight;
+
+      if (blockDistance < 2) {
         // Nothing to catch
         await this.#chainHeads.put(chainId, chainHead);
         return heads;
       }
 
+      const targetHeight = max(newHeadNum - MAX_BLOCK_DIST, currentHeight);
+
       this.#log.info(
-        '[%s] CATCHING UP from #%s to #%s',
+        '[%s] CATCHING UP from #%s to #%s (d=%s)',
         chainId,
-        currentHeight,
+        targetHeight,
+        targetHeight - currentHeight,
         newHeadNum
       );
 
@@ -403,7 +411,7 @@ export class HeadCatcher extends EventEmitter {
         n => n.id === parseInt(chainId)
       )?.throttle ?? 500;
 
-      while (parentHead.number.toBigInt() - currentHeight > 1) {
+      while (parentHead.number.toBigInt() - targetHeight > 1) {
         try {
           parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
 
