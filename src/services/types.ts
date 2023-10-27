@@ -10,6 +10,7 @@ import { ServiceConfiguration } from './config.js';
 import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
 import { Scheduler } from './persistence/scheduler.js';
+import { HexString } from './monitoring/types.js';
 
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>;
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
@@ -28,6 +29,11 @@ export const prefixes = {
   },
   cache: {
     family: (chainId: string | number) => `ch:${chainId}`,
+    keys: {
+      block: (hash: HexString) => `blk:${hash}`,
+      ump: (hash: HexString) => `ump:${hash}`,
+      hrmp: (hash: HexString) => `hrm:${hash}`
+    },
     tips: 'ch:fi'
   },
   matching: {

@@ -38,7 +38,7 @@ export default async function Administration(
     reply.send(await tipsDB.iterator(itOps).all());
   });
 
-  fastify.get<keyParam>('/admin/cache/blocks/:key', opts, async (request, reply) => {
+  fastify.get<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
     const db = root.sublevel<string, any>(
       prefixes.cache.family(request.params.key), jsonEncoded
     );

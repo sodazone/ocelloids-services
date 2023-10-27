@@ -140,12 +140,12 @@ export class HeadCatcher extends EventEmitter {
 
               if (hrmpMessages.length > 0) {
                 ops.push(from(this.#putBuffer(
-                  chainId, 'hrmp-messages:' + hash, hrmpMessages.toU8a()
+                  chainId, prefixes.cache.keys.hrmp(hash), hrmpMessages.toU8a()
                 )));
               }
               if (umpMessages.length > 0) {
                 ops.push(from(this.#putBuffer(
-                  chainId, 'ump-messages:' + hash, umpMessages.toU8a()
+                  chainId, prefixes.cache.keys.ump(hash), umpMessages.toU8a()
                 )));
               }
               return ops;
@@ -229,7 +229,7 @@ export class HeadCatcher extends EventEmitter {
     if (this.hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        return from(cache.get('hrmp-messages:' + hash)).pipe(
+        return from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
           map(buffer => {
             return api.registry.createType(
               'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
@@ -259,7 +259,7 @@ export class HeadCatcher extends EventEmitter {
     if (this.hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
-        return from(cache.get('ump-messages:' + hash)).pipe(
+        return from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
           map(buffer => {
             return api.registry.createType(
               'Vec<Bytes>', buffer
@@ -301,11 +301,12 @@ export class HeadCatcher extends EventEmitter {
   async #getBlock(
     chainId: string,
     api: ApiPromise,
-    hash: string
+    hash: HexString
   ) {
     try {
-      const cache = this.#cache(chainId);
-      const buffer = await cache.get(hash);
+      const buffer = await this.#cache(chainId).get(
+        prefixes.cache.keys.block(hash)
+      );
       const binBlock: BinBlock = decode(buffer);
 
       const registry = api.registry;
@@ -408,8 +409,8 @@ export class HeadCatcher extends EventEmitter {
         '[%s] CATCHING UP from #%s to #%s (d=%s)',
         chainId,
         targetHeight,
-        targetHeight - currentHeight,
-        newHeadNum
+        newHeadNum,
+        targetHeight - currentHeight
       );
 
       let parentHead = head;
@@ -468,17 +469,21 @@ export class HeadCatcher extends EventEmitter {
 
   async #putBlock(chainId: string, block: SignedBlockExtended) {
     const hash = block.block.header.hash.toHex();
+    const key = prefixes.cache.keys.block(hash);
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#cache(chainId).put(hash, encode({
-      block: block.toU8a(),
-      events: block.events.map(ev => ev.toU8a()),
-      author: block.author?.toU8a()
-    }));
+    await this.#cache(chainId).put(
+      key,
+      encode({
+        block: block.toU8a(),
+        events: block.events.map(ev => ev.toU8a()),
+        author: block.author?.toU8a()
+      })
+    );
 
     await this.#janitor.schedule({
       sublevel: prefixes.cache.family(chainId),
-      key: hash
+      key
     });
   }
 }

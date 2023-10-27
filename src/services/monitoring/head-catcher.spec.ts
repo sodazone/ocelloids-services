@@ -86,9 +86,9 @@ describe('head catcher', () => {
         });
 
         const expectedKeys = [
-          '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f',
-          '0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb',
-          '0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'
+          prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
+          prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
+          prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875')
         ];
 
         catcher.start();
@@ -145,15 +145,15 @@ describe('head catcher', () => {
         });
 
         const expectedKeys = [
-          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
-          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
-          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
-          'hrmp-messages:0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
-          'hrmp-messages:0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
-          'hrmp-messages:0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
-          'ump-messages:0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
-          'ump-messages:0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
-          'ump-messages:0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'
+          prefixes.cache.keys.block('0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'),
+          prefixes.cache.keys.block('0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'),
+          prefixes.cache.keys.block('0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'),
+          prefixes.cache.keys.hrmp('0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'),
+          prefixes.cache.keys.hrmp('0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'),
+          prefixes.cache.keys.hrmp('0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'),
+          prefixes.cache.keys.ump('0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'),
+          prefixes.cache.keys.ump('0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'),
+          prefixes.cache.keys.ump('0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b')
         ];
 
         catcher.start();
@@ -233,9 +233,9 @@ describe('head catcher', () => {
 
       const janitorSpy = jest.spyOn(janitor, 'schedule');
       const expectedBlocks = [
-        '0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f',
-        '0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb',
-        '0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'
+        prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
+        prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
+        prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875')
       ];
 
       catcher.start();
