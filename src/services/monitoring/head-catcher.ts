@@ -196,7 +196,7 @@ export class HeadCatcher extends EventEmitter {
       return pipe;
     }
 
-    if (this.hasCache(chainId)) {
+    if (this.#hasCache(chainId)) {
       pipe = this.#apis.rx[chainId].pipe(
         finalizedHeads(),
         retryWithTruncatedExpBackoff(),
@@ -226,7 +226,7 @@ export class HeadCatcher extends EventEmitter {
     const api = this.#apis.promise[chainId];
     const cache = this.#cache(chainId);
 
-    if (this.hasCache(chainId)) {
+    if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
         return from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
@@ -256,7 +256,7 @@ export class HeadCatcher extends EventEmitter {
     const api = this.#apis.promise[chainId];
     const cache = this.#cache(chainId);
 
-    if (this.hasCache(chainId)) {
+    if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
         return from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
@@ -288,7 +288,7 @@ export class HeadCatcher extends EventEmitter {
    *
    * @private
    */
-  hasCache(chainId: string) {
+  #hasCache(chainId: string) {
     return this.#subs[chainId] !== undefined;
   }
 
