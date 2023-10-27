@@ -30,12 +30,12 @@ export default async function Administration(
   const outDB = root.sublevel<string, any>(
     prefixes.matching.inbound, jsonEncoded
   );
-  const headDB = root.sublevel<string, any>(
-    prefixes.cache.heads, jsonEncoded
+  const tipsDB = root.sublevel<string, any>(
+    prefixes.cache.tips, jsonEncoded
   );
 
-  fastify.get('/admin/cache/heads', opts, async (_, reply) => {
-    reply.send(await headDB.iterator(itOps).all());
+  fastify.get('/admin/cache/tips', opts, async (_, reply) => {
+    reply.send(await tipsDB.iterator(itOps).all());
   });
 
   fastify.get<keyParam>('/admin/cache/blocks/:key', opts, async (request, reply) => {

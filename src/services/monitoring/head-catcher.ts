@@ -22,7 +22,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
-import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
+import { ChainHead as ChainTip, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 
@@ -224,12 +224,12 @@ export class HeadCatcher extends EventEmitter {
 
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
     const api = this.#apis.promise[chainId];
-    const db = this.#blockCache(chainId);
+    const cache = this.#cache(chainId);
 
     if (this.hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        return from(db.get('hrmp-messages:' + hash)).pipe(
+        return from(cache.get('hrmp-messages:' + hash)).pipe(
           map(buffer => {
             return api.registry.createType(
               'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
@@ -254,12 +254,12 @@ export class HeadCatcher extends EventEmitter {
 
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
     const api = this.#apis.promise[chainId];
-    const db = this.#blockCache(chainId);
+    const cache = this.#cache(chainId);
 
     if (this.hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
-        return from(db.get('ump-messages:' + hash)).pipe(
+        return from(cache.get('ump-messages:' + hash)).pipe(
           map(buffer => {
             return api.registry.createType(
               'Vec<Bytes>', buffer
@@ -304,7 +304,7 @@ export class HeadCatcher extends EventEmitter {
     hash: string
   ) {
     try {
-      const cache = this.#blockCache(chainId);
+      const cache = this.#cache(chainId);
       const buffer = await cache.get(hash);
       const binBlock: BinBlock = decode(buffer);
 
@@ -327,15 +327,19 @@ export class HeadCatcher extends EventEmitter {
     }
   }
 
-  get #chainHeads() {
-    return this.#db.sublevel<string, ChainHead>(
-      prefixes.cache.heads, jsonEncoded
+  get #chainTips() {
+    return this.#db.sublevel<string, ChainTip>(
+      prefixes.cache.tips, jsonEncoded
     );
   }
 
   /**
    * Catches up the blockchain heads by fetching missing blocks between the current stored
-   * head and the new incoming head, and updates the storage with the latest head information.
+   * head and the new incoming head, and updates the storage with the highest head information.
+   *
+   * Returns an array of heads containing the current head from the source along the heads
+   * of the block range gap.
+   *
    * This function throttles the requests to avoid overwhelming the network.
    *
    * @private
@@ -358,7 +362,7 @@ export class HeadCatcher extends EventEmitter {
           this.#doCatchUp(chainId, api, head)
         )),
         retryWithTruncatedExpBackoff(),
-        mergeAll(10)
+        mergeAll(10) // limit concurrency
       );
     };
   }
@@ -367,6 +371,7 @@ export class HeadCatcher extends EventEmitter {
     if (this.#mutex[chainId] === undefined) {
       this.#mutex[chainId] = new Mutex();
     }
+
     const release = await this.#mutex[chainId].acquire();
 
     try {
@@ -374,7 +379,7 @@ export class HeadCatcher extends EventEmitter {
       const newHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
 
-      const chainHead: ChainHead = {
+      const chainTip: ChainTip = {
         chainId,
         blockNumber: head.number.toString(),
         blockHash: head.hash.toHex(),
@@ -383,8 +388,8 @@ export class HeadCatcher extends EventEmitter {
       };
 
       try {
-        const currentHead = await this.#chainHeads.get(chainId);
-        currentHeight = BigInt(currentHead.blockNumber);
+        const currentTip = await this.#chainTips.get(chainId);
+        currentHeight = BigInt(currentTip.blockNumber);
       } catch (error) {
         currentHeight = newHeadNum;
       }
@@ -392,8 +397,8 @@ export class HeadCatcher extends EventEmitter {
       const blockDistance = newHeadNum - currentHeight;
 
       if (blockDistance < 2) {
-        // Nothing to catch
-        await this.#chainHeads.put(chainId, chainHead);
+        // nothing to catch
+        await this.#chainTips.put(chainId, chainTip);
         return heads;
       }
 
@@ -427,15 +432,14 @@ export class HeadCatcher extends EventEmitter {
             parentHead.hash.toHex()
           );
 
-          // Throttle
+          // throttle
           await new Promise(resolve => setTimeout(resolve, delay));
         } catch (err) {
           console.log(err);
         }
       }
 
-      // Update the head in storage
-      await this.#chainHeads.put(chainId, chainHead);
+      await this.#chainTips.put(chainId, chainTip);
 
       return heads;
     } finally {
@@ -443,7 +447,7 @@ export class HeadCatcher extends EventEmitter {
     }
   }
 
-  #blockCache(chainId: string) {
+  #cache(chainId: string) {
     return this.#db.sublevel<string, Uint8Array>(
       prefixes.cache.family(chainId),
       {
@@ -453,7 +457,7 @@ export class HeadCatcher extends EventEmitter {
   }
 
   async #putBuffer(chainId: string, key: string, buffer: Uint8Array) {
-    const db = this.#blockCache(chainId);
+    const db = this.#cache(chainId);
     await db.put(key, buffer);
 
     await this.#janitor.schedule({
@@ -466,7 +470,7 @@ export class HeadCatcher extends EventEmitter {
     const hash = block.block.header.hash.toHex();
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#blockCache(chainId).put(hash, encode({
+    await this.#cache(chainId).put(hash, encode({
       block: block.toU8a(),
       events: block.events.map(ev => ev.toU8a()),
       author: block.author?.toU8a()
