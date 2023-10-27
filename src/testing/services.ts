@@ -12,7 +12,7 @@ import { _configToml } from './data.js';
 import { Scheduler } from '../services/persistence/scheduler.js';
 
 export const _log = pino({
-  enabled: false
+  enabled: true
 });
 
 export const _config = $ServiceConfiguration.parse(

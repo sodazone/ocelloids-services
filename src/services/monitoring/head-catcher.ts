@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import {
-  Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map
+  Observable, Subscription, mergeAll, mergeWith, zip, share, mergeMap, from, tap, switchMap, map
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
@@ -341,6 +341,13 @@ export class HeadCatcher extends EventEmitter {
   ) {
     return (source: Observable<Header>)
     : Observable<Header> => {
+      const catchUp$ = source.pipe(
+        mergeMap(head => from(
+          this.#doCatchUp(chainId, api, head)
+        )),
+        retryWithTruncatedExpBackoff(),
+        mergeAll(10)
+      );
       return source.pipe(
         tap(head => {
           this.#log.info('[%s] FINALIZED block #%s %s',
@@ -349,9 +356,7 @@ export class HeadCatcher extends EventEmitter {
             head.hash.toHex()
           );
         }),
-        mergeMap(head => from(this.#doCatchUp(chainId, api, head))),
-        retryWithTruncatedExpBackoff(),
-        mergeAll(10)
+        mergeWith(catchUp$)
       );
     };
   }
@@ -363,7 +368,7 @@ export class HeadCatcher extends EventEmitter {
     const release = await this.#mutex[chainId].acquire();
 
     try {
-      const heads : Header[] = [head];
+      const heads : Header[] = [];
       const newHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
 
@@ -376,11 +381,10 @@ export class HeadCatcher extends EventEmitter {
       };
 
       try {
-        const  currentHead = await this.#chainHeads.get(chainId);
+        const currentHead = await this.#chainHeads.get(chainId);
         currentHeight = BigInt(currentHead.blockNumber);
       } catch (error) {
         currentHeight = newHeadNum;
-        await this.#chainHeads.put(chainId, chainHead);
       }
 
       if (newHeadNum - currentHeight < 2) {
