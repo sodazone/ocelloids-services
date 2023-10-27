@@ -26,7 +26,9 @@ import { ChainHead, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, H
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 
-const MAX_BLOCK_DIST = 150n; // maximum distance in #blocks
+const MAX_BLOCK_DIST : bigint = process.env.XCMON_MAX_BLOCK_DIST ?
+  BigInt(process.env.XCMON_MAX_BLOCK_DIST)
+  : 150n; // maximum distance in #blocks
 const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
 
 /**
