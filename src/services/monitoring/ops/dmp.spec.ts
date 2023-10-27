@@ -15,7 +15,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractDmpSend(
+      const test$ = extractDmpSend(
         apiPromise,
         {
           sendersControl,
@@ -23,7 +23,7 @@ describe('dmp operator', () => {
         }
       )(blocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -51,7 +51,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractDmpSend(
+      const test$ = extractDmpSend(
         apiPromise,
         {
           sendersControl,
@@ -59,7 +59,7 @@ describe('dmp operator', () => {
         }
       )(blocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -84,9 +84,9 @@ describe('dmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractDmpReceive()(successBlocks);
+      const test$ = extractDmpReceive()(successBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -109,9 +109,9 @@ describe('dmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractDmpReceive()(failBlocks);
+      const test$ = extractDmpReceive()(failBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();

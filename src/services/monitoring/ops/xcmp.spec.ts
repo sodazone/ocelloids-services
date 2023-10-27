@@ -17,7 +17,7 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpSend(
+      const test$ = extractXcmpSend(
         apiPromise,
         {
           sendersControl,
@@ -26,7 +26,7 @@ describe('xcmp operator', () => {
         getHrmp
       )(blocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -51,9 +51,9 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(successBlocks);
+      const test$ = extractXcmpReceive()(successBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -76,9 +76,9 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractXcmpReceive()(failBlocks);
+      const test$ = extractXcmpReceive()(failBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();

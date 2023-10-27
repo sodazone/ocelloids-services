@@ -251,7 +251,7 @@ export class Switchboard {
           continue;
         }
 
-        const inboundPipe = () => (
+        const inbound$ = () => (
           source: Observable<XcmMessageReceivedWithContext>
         ) => source.pipe(
           map(msg => from(this.#engine.onInboundMessage(
@@ -276,7 +276,7 @@ export class Switchboard {
             .pipe(
               extractXcmpReceive(),
               retryWithTruncatedExpBackoff(),
-              inboundPipe()
+              inbound$()
             ).subscribe(inboundHandler)
         });
 
@@ -289,7 +289,7 @@ export class Switchboard {
             .pipe(
               extractDmpReceive(),
               retryWithTruncatedExpBackoff(),
-              inboundPipe()
+              inbound$()
             ).subscribe(inboundHandler)
         });
         // UMP
@@ -299,7 +299,7 @@ export class Switchboard {
             .pipe(
               extractUmpReceive(origin),
               retryWithTruncatedExpBackoff(),
-              inboundPipe()
+              inbound$()
             ).subscribe(inboundHandler)
         });
       }
@@ -333,7 +333,7 @@ export class Switchboard {
       messageCriteria(destinations)
     );
 
-    const outboundPipe =  () => (
+    const outbound$ =  () => (
       source: Observable<XcmMessageSentWithContext>
     ) => source.pipe(
       map(msg => from(this.#engine.onOutboundMessage(
@@ -366,7 +366,7 @@ export class Switchboard {
               getHrmp
             ),
             retryWithTruncatedExpBackoff(),
-            outboundPipe()
+            outbound$()
           ).subscribe(outboundHandler)
       });
 
@@ -385,7 +385,7 @@ export class Switchboard {
                 }
               ),
               retryWithTruncatedExpBackoff(),
-              outboundPipe()
+              outbound$()
             ).subscribe(outboundHandler)
         });
       } else {
@@ -404,7 +404,7 @@ export class Switchboard {
                 getUmp
               ),
               retryWithTruncatedExpBackoff(),
-              outboundPipe()
+              outbound$()
             ).subscribe(outboundHandler)
         });
       }

@@ -17,7 +17,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractUmpSend(
+      const test$ = extractUmpSend(
         apiPromise,
         {
           sendersControl,
@@ -26,7 +26,7 @@ describe('ump operator', () => {
         getUmp
       )(blocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -51,9 +51,9 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractUmpReceive(1000)(successBlocks);
+      const test$ = extractUmpReceive(1000)(successBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
@@ -76,9 +76,9 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const testPipe = extractUmpReceive(1000)(failBlocks);
+      const test$ = extractUmpReceive(1000)(failBlocks);
 
-      testPipe.subscribe({
+      test$.subscribe({
         next: msg => {
           calls();
           expect(msg).toBeDefined();
