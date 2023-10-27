@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 
 import {
-  Observable, Subscription, mergeAll, zip, share, mergeMap, from, defer, tap, switchMap, map
+  Observable, Subscription, mergeWith, mergeAll, zip, share, mergeMap, from, defer, tap, switchMap, map
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
@@ -217,14 +217,6 @@ export class HeadCatcher extends EventEmitter {
           chainId, api, head.hash.toHex()
         ))),
         retryWithTruncatedExpBackoff(),
-        // Revisit: clean up as a side effect?
-        tap(async ({ block: { header } }) => {
-          const blockHash = header.hash.toHex();
-          await this.#blockCache(chainId).del(blockHash);
-          // TODO: clean up storage related to the block?
-          // will require additional indexing
-          // same applies for scheduleds
-        }),
         share()
       );
     } else {
@@ -342,10 +334,6 @@ export class HeadCatcher extends EventEmitter {
         author as AccountId
       );
 
-      cache.del(hash).catch(err => {
-        this.#log.error(err, 'Error deleting cached block');
-      });
-
       return sBlock;
     } catch (error) {
       return await api.derive.chain.getBlock(hash);
@@ -371,12 +359,24 @@ export class HeadCatcher extends EventEmitter {
   ) {
     return (source: Observable<Header>)
     : Observable<Header> => {
-      return source.pipe(
+      const catchUp$ = source.pipe(
         mergeMap(head => defer(
           () => this.#doCatchUp(chainId, api, head)
         )),
         retryWithTruncatedExpBackoff(),
-        mergeMap(head => head)
+        mergeAll(10)
+      );
+      return source.pipe(
+        tap(head => {
+          this.#log.info('[%s] FINALIZED block #%s %s',
+            chainId,
+            head.number.toBigInt(),
+            head.hash.toHex()
+          );
+        }),
+        mergeWith(
+          catchUp$
+        )
       );
     };
   }
@@ -387,24 +387,9 @@ export class HeadCatcher extends EventEmitter {
     }
     const release = await this.#mutex[chainId].acquire();
     try {
+      const heads : Header[] = [];
       const bnHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
-      try {
-        const  currentHead = await this.#chainHeads.get(chainId);
-        currentHeight = BigInt(currentHead.blockNumber);
-      } catch (error) {
-        currentHeight = bnHeadNum;
-      }
-
-      const heads : Header[] = [];
-
-      heads.push(head);
-
-      this.#log.info('[%s] FINALIZED block #%s %s',
-        chainId,
-        bnHeadNum,
-        head.hash.toHex()
-      );
 
       const chainHead: ChainHead = {
         chainId,
@@ -414,26 +399,39 @@ export class HeadCatcher extends EventEmitter {
         receivedAt: new Date()
       };
 
-      if (bnHeadNum - currentHeight > 1) {
-        this.#log.info(
-          '[%s] FINALIZED catching up from #%s to #%s',
-          chainId,
-          currentHeight,
-          bnHeadNum
-        );
+      try {
+        const  currentHead = await this.#chainHeads.get(chainId);
+        currentHeight = BigInt(currentHead.blockNumber);
+      } catch (error) {
+        currentHeight = bnHeadNum;
+        await this.#chainHeads.put(chainId, chainHead);
       }
 
+      if (bnHeadNum - currentHeight < 2) {
+        // Nothing to catch
+        return heads;
+      }
+
+      this.#log.info(
+        '[%s] CATCHING UP from #%s to #%s',
+        chainId,
+        currentHeight,
+        bnHeadNum
+      );
+
       let parentHead = head;
+
       const delay = this.#config.networks.find(
         n => n.id === parseInt(chainId)
       )?.throttle ?? 500;
+
       while (parentHead.number.toBigInt() - currentHeight > 1) {
         parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
         heads.push(parentHead);
 
         // TODO: log every n blocks?
         this.#log.info(
-          '[%s] FINALIZED CATCH-UP block #%s %s',
+          '[%s] CATCH-UP FINALIZED block #%s %s',
           chainId,
           parentHead.number.toBigInt(),
           parentHead.hash.toHex()
