@@ -222,6 +222,10 @@ export class HeadCatcher extends EventEmitter {
     return pipe;
   }
 
+  /**
+   * Returns outbound HRMP messages either from data cached in previously seen blocks,
+   * or from a query storage request to the network.
+   */
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
     const api = this.#apis.promise[chainId];
     const cache = this.#cache(chainId);
@@ -252,6 +256,10 @@ export class HeadCatcher extends EventEmitter {
     }
   }
 
+  /**
+   * Returns outbound UMP messages either from data cached in previously seen blocks,
+   * or from a query storage request to the network.
+   */
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
     const api = this.#apis.promise[chainId];
     const cache = this.#cache(chainId);
