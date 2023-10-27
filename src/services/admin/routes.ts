@@ -31,7 +31,7 @@ export default async function Administration(
     prefixes.matching.inbound, jsonEncoded
   );
   const headDB = root.sublevel<string, any>(
-    prefixes.cache.finalizedHeads, jsonEncoded
+    prefixes.cache.heads, jsonEncoded
   );
 
   fastify.get('/admin/cache/heads', opts, async (_, reply) => {

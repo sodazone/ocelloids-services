@@ -28,7 +28,7 @@ export const prefixes = {
   },
   cache: {
     family: (chainId: string | number) => `ch:${chainId}`,
-    finalizedHeads: 'ch:fi'
+    heads: 'ch:fi'
   },
   matching: {
     outbound: 'ma:out',

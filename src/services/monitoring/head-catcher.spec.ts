@@ -262,7 +262,7 @@ describe('head catcher', () => {
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
       // Pretend that we left off at block #17844551
       db.sublevel<string, ChainHead>(
-        prefixes.cache.finalizedHeads, jsonEncoded
+        prefixes.cache.heads, jsonEncoded
       ).put(
         '0',
         {

@@ -329,7 +329,7 @@ export class HeadCatcher extends EventEmitter {
 
   get #chainHeads() {
     return this.#db.sublevel<string, ChainHead>(
-      prefixes.cache.finalizedHeads, jsonEncoded
+      prefixes.cache.heads, jsonEncoded
     );
   }
 
