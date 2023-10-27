@@ -19,7 +19,7 @@ const authPlugin: FastifyPluginAsync
   }
 
   fastify.register(jwt, {
-    secret: process.env.XCMON_SECRET || 'IAOAbraxasSabaoth'
+    secret: process.env.XCMON_SECRET ?? 'IAO Abraxas Sabaoth'
   });
   fastify.decorate('auth',
     async function (
