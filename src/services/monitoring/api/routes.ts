@@ -143,15 +143,15 @@ export function SubscriptionApi(
 
       await subs.save(sub);
 
+      await switchboard.updateSubscription(sub);
+
       if (hasOp(patch, '/senders')) {
-        switchboard.updateSenders(id, sub.senders);
+        switchboard.updateSenders(id);
       }
 
       if (hasOp(patch, '/destinations')) {
-        switchboard.updateDestinations(id, sub.destinations);
+        switchboard.updateDestinations(id);
       }
-
-      switchboard.updateSubscription(sub);
 
       reply.status(200).send(sub);
     } else {

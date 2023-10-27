@@ -264,9 +264,14 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>;
  */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
 
+export type SubscriptionWithId = {
+  chainId: string
+  sub: Subscription
+}
+
 export type SubscriptionHandler = {
-  originSubs: Subscription[],
-  destinationSubs: Subscription[],
+  originSubs: SubscriptionWithId[],
+  destinationSubs: SubscriptionWithId[],
   sendersControl: ControlQuery,
   messageControl: ControlQuery,
   descriptor: QuerySubscription

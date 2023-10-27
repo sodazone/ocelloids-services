@@ -1,4 +1,4 @@
-import { Subscription, Observable, from, map } from 'rxjs';
+import { Observable, from, map } from 'rxjs';
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
@@ -13,7 +13,8 @@ import {
   XcmMessageNotify,
   SubscriptionHandler,
   XcmMessageReceivedWithContext,
-  XcmMessageSentWithContext
+  XcmMessageSentWithContext,
+  SubscriptionWithId
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -26,7 +27,7 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend } from './ops/dmp.js';
 
 type Monitor = {
-  subs: Subscription[]
+  subs: SubscriptionWithId[]
   controls: Record<string, ControlQuery>
 }
 
@@ -110,8 +111,8 @@ export class Switchboard {
         id
       );
 
-      originSubs.forEach(sub => sub.unsubscribe());
-      destinationSubs.forEach(sub => sub.unsubscribe());
+      originSubs.forEach(({ sub }) => sub.unsubscribe());
+      destinationSubs.forEach(({ sub }) => sub.unsubscribe());
       delete this.#subs[id];
 
       await this.#db.remove(id);
@@ -121,9 +122,10 @@ export class Switchboard {
   }
 
   async start() {
-    await this.#startNetworkMonitors();
-    this.#engine.onNotification(this.onNotification.bind(this));
     this.#catcher.start();
+    this.#engine.onNotification(this.onNotification.bind(this));
+
+    await this.#startNetworkMonitors();
   }
 
   /**
@@ -139,8 +141,8 @@ export class Switchboard {
       destinationSubs
     } of Object.values(this.#subs)) {
       this.#log.info(`Unsubscribe ${id}`);
-      originSubs.forEach(sub => sub.unsubscribe());
-      destinationSubs.forEach(sub => sub.unsubscribe());
+      originSubs.forEach(({ sub }) => sub.unsubscribe());
+      destinationSubs.forEach(({ sub }) => sub.unsubscribe());
     }
 
     this.#catcher.stop();
@@ -159,8 +161,9 @@ export class Switchboard {
    *
    * Applies to the outbound extrinsic signers.
    */
-  updateSenders(id: string, senders: string[]) {
-    const { sendersControl } = this.#subs[id];
+  updateSenders(id: string) {
+    const { descriptor: { senders }, sendersControl } = this.#subs[id];
+
     sendersControl.change(sendersCriteria(senders));
   }
 
@@ -169,9 +172,14 @@ export class Switchboard {
    *
    * Applies to the outbound XCM message.
    */
-  updateDestinations(id: string, recipients: number[]) {
-    const { messageControl } = this.#subs[id];
-    messageControl.change(messageCriteria(recipients));
+  updateDestinations(id: string) {
+    const { descriptor, messageControl } = this.#subs[id];
+
+    messageControl.change(messageCriteria(descriptor.destinations));
+
+    const { subs } = this.#monitorDestinations(descriptor);
+    this.#subs[id].destinationSubs.push(...subs);
+    // TODO: handle remove dest
   }
 
   /**
@@ -205,8 +213,8 @@ export class Switchboard {
       destMonitor = this.#monitorDestinations(qs);
     } catch (error) {
       // Clean up origin subscriptions.
-      origMonitor.subs.forEach(s => {
-        s.unsubscribe();
+      origMonitor.subs.forEach(({ sub }) => {
+        sub.unsubscribe();
       });
       throw error;
     }
@@ -232,10 +240,18 @@ export class Switchboard {
   #monitorDestinations({
     id, destinations, origin
   }: QuerySubscription) : Monitor {
-    const subs : Subscription[] = [];
+    const subs : SubscriptionWithId[] = [];
     try {
-      destinations.forEach(c => {
-        const chainId = c.toString();
+      for (const dest of destinations) {
+        const chainId = dest.toString();
+        if (this.#subs[id]?.destinationSubs.find(
+          s => s.chainId === chainId)
+        ) {
+          // Skip existing subscriptions
+          // for the same destination chain
+          continue;
+        }
+
         const inboundPipe = () => (
           source: Observable<XcmMessageReceivedWithContext>
         ) => source.pipe(
@@ -255,39 +271,43 @@ export class Switchboard {
         };
 
         // Inbound HRMP / XCMP transport
-        subs.push(
-          this.#catcher.finalizedBlocks(chainId)
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractXcmpReceive(),
               retryWithTruncatedExpBackoff(),
               inboundPipe()
             ).subscribe(inboundHandler)
-        );
+        });
 
         // Inbound VMP
         // DMP
-        subs.push(
+        subs.push({
+          chainId,
+          sub:
           this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractDmpReceive(),
               retryWithTruncatedExpBackoff(),
               inboundPipe()
             ).subscribe(inboundHandler)
-        );
+        });
         // UMP
-        subs.push(
-          this.#catcher.finalizedBlocks(chainId)
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractUmpReceive(origin),
               retryWithTruncatedExpBackoff(),
               inboundPipe()
             ).subscribe(inboundHandler)
-        );
-      });
+        });
+      }
     } catch (error) {
       // Clean up subscriptions.
-      subs.forEach(s => {
-        s.unsubscribe();
+      subs.forEach(({ sub }) => {
+        sub.unsubscribe();
       });
       throw error;
     }
@@ -303,9 +323,9 @@ export class Switchboard {
   #monitorOrigins({
     id, origin, senders, destinations
   }: QuerySubscription) : Monitor {
-    const subs : Subscription[] = [];
-    const origChainId = origin.toString();
-    const api = this.#apis.promise[origChainId];
+    const subs : SubscriptionWithId[] = [];
+    const chainId = origin.toString();
+    const api = this.#apis.promise[chainId];
 
     const sendersControl = ControlQuery.from(
       sendersCriteria(senders)
@@ -333,9 +353,10 @@ export class Switchboard {
 
     try {
       // Outbound HRMP / XCMP transport
-      const getHrmp = this.#catcher.outboundHrmpMessages(origChainId);
-      subs.push(
-        this.#catcher.finalizedBlocks(origChainId)
+      const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
+      subs.push({
+        chainId,
+        sub: this.#catcher.finalizedBlocks(chainId)
           .pipe(
             extractXcmpSend(
               api,
@@ -348,13 +369,14 @@ export class Switchboard {
             retryWithTruncatedExpBackoff(),
             outboundPipe()
           ).subscribe(outboundHandler)
-      );
+      });
 
       // Outbound VMP
       if (isRelay(this.#config, origin)) {
         // DMP
-        subs.push(
-          this.#catcher.finalizedBlocks(origChainId)
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractDmpSend(
                 api,
@@ -366,12 +388,13 @@ export class Switchboard {
               retryWithTruncatedExpBackoff(),
               outboundPipe()
             ).subscribe(outboundHandler)
-        );
+        });
       } else {
         // UMP
-        const getUmp = this.#catcher.outboundUmpMessages(origChainId);
-        subs.push(
-          this.#catcher.finalizedBlocks(origChainId)
+        const getUmp = this.#catcher.outboundUmpMessages(chainId);
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractUmpSend(
                 api,
@@ -384,12 +407,12 @@ export class Switchboard {
               retryWithTruncatedExpBackoff(),
               outboundPipe()
             ).subscribe(outboundHandler)
-        );
+        });
       }
     } catch (error) {
       // Clean up subscriptions.
-      subs.forEach(s => {
-        s.unsubscribe();
+      subs.forEach(({ sub }) => {
+        sub.unsubscribe();
       });
       throw error;
     }
