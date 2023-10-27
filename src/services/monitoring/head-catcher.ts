@@ -73,29 +73,22 @@ export class HeadCatcher extends EventEmitter {
         const chainId = network.id.toString();
         const isRelayChain = network.relay === undefined;
         const api = this.#apis.rx[chainId];
-        const db = this.#blockCache(chainId);
 
         this.#log.info('[%s] Register head catcher', chainId);
 
-        const blockPipe = api.pipe(
+        const block$ = api.pipe(
           blocks(),
           retryWithTruncatedExpBackoff(),
-          tap(async ({ block: {header} }) => {
+          tap(({ block: {header} }) => {
             this.#log.info(
               '[%s] SEEN block #%s %s',
               chainId,
               header.number.toString(),
               header.hash.toHex()
             );
-            // TODO: revisit janitor tasks in side effects
-            const blockHash = header.hash.toHex();
-            await this.#janitor.schedule({
-              sublevel: prefixes.cache.family(chainId),
-              key: blockHash
-            });
           })
         );
-        const paraPipe = blockPipe.pipe(
+        const msgs$ = block$.pipe(
           mergeMap(block => {
             return api.pipe(
               switchMap(_api => _api.at(block.block.header.hash)),
@@ -116,27 +109,13 @@ export class HeadCatcher extends EventEmitter {
                   hrmpMessages,
                   umpMessages
                 };
-              }),
-              // TODO: see other taps
-              tap(async ({ block: { block: { header }} }) => {
-                // TODO: revisit janitor tasks in side effects
-                const blockHash = header.hash.toHex();
-                const sublevel = prefixes.cache.family(chainId);
-                await this.#janitor.schedule({
-                  sublevel,
-                  key: 'hrmp-messages:' + blockHash
-                },
-                {
-                  sublevel,
-                  key: 'ump-messages:' + blockHash
-                });
               })
             );
           })
         );
 
         if (isRelayChain) {
-          this.#subs[chainId] = blockPipe.pipe(
+          this.#subs[chainId] = block$.pipe(
             map(block => from(this.#putBlock(chainId, block))),
             mergeAll()
           ).subscribe(
@@ -149,16 +128,20 @@ export class HeadCatcher extends EventEmitter {
             }
           );
         } else {
-          this.#subs[chainId] = paraPipe.pipe(
+          this.#subs[chainId] = msgs$.pipe(
             map(({ block, hrmpMessages, umpMessages }) => {
               const ops = [from(this.#putBlock(chainId, block))];
-
               const hash = block.block.header.hash.toHex();
+
               if (hrmpMessages.length > 0) {
-                ops.push(from(db.put('hrmp-messages:' + hash, hrmpMessages.toU8a())));
+                ops.push(from(this.#putBuffer(
+                  chainId, 'hrmp-messages:' + hash, hrmpMessages.toU8a()
+                )));
               }
               if (umpMessages.length > 0) {
-                ops.push(from(db.put('ump-messages:' + hash, umpMessages.toU8a())));
+                ops.push(from(this.#putBuffer(
+                  chainId, 'ump-messages:' + hash, umpMessages.toU8a()
+                )));
               }
               return ops;
             }),
@@ -264,7 +247,6 @@ export class HeadCatcher extends EventEmitter {
     }
   }
 
-  // TODO: refactor outbound cached together with hrmp
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
     const api = this.#apis.promise[chainId];
     const db = this.#blockCache(chainId);
@@ -459,6 +441,16 @@ export class HeadCatcher extends EventEmitter {
     );
   }
 
+  async #putBuffer(chainId: string, key: string, buffer: Uint8Array) {
+    const db = this.#blockCache(chainId);
+    await db.put(key, buffer);
+
+    await this.#janitor.schedule({
+      sublevel: prefixes.cache.family(chainId),
+      key
+    });
+  }
+
   async #putBlock(chainId: string, block: SignedBlockExtended) {
     const hash = block.block.header.hash.toHex();
 
@@ -468,5 +460,10 @@ export class HeadCatcher extends EventEmitter {
       events: block.events.map(ev => ev.toU8a()),
       author: block.author?.toU8a()
     }));
+
+    await this.#janitor.schedule({
+      sublevel: prefixes.cache.family(chainId),
+      key: hash
+    });
   }
 }
