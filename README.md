@@ -55,7 +55,7 @@ Example configurations are available in the `config/` directory of this reposito
 
 Interact with the server using the exposed APIs.
 
-See examples/postman for collections.
+Explore the `examples/` folder for postman collections.
 
 ## Subscription API
 
