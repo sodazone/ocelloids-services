@@ -7,7 +7,7 @@ program executions across consensus systems.
 
 - Execution Monitoring: The server tracks and monitors XCM program executions across networks.
 - Subscription Management: With a flexible subscription API, users define specific criteria for notifications. Customizable parameters include origin, senders, destinations, and notification methods (webhook, log, etc.), providing tailored alerts.
-- Resilience: Ensures uninterrupted operation with persistent data storage between restarts, graceful shutdown, retries with truncated exponential backoff, reliable webhook delivery, continuous block tip catch-up, and caching for light clients.
+- Resilience and Reliability: Ensures uninterrupted operation with persistent data storage between restarts, graceful shutdown, retries with truncated exponential backoff, reliable webhook delivery, continuous block tip catch-up, and caching for light clients.
 
 ## Server
 
