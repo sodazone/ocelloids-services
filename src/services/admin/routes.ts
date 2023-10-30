@@ -58,9 +58,9 @@ export default async function Administration(
     reply.send();
   });
 
-  api.get('/admin/subs', opts, async (_, reply) => {
-    const uniques = await root.sublevel<string, any>(
-      prefixes.subs.uniques, jsonEncoded
+  api.get('/admin/subs/paths', opts, async (_, reply) => {
+    const uniques = await root.sublevel<string, string>(
+      prefixes.subs.uniques, { valueEncoding: 'utf-8' }
     ).iterator(itOps).all();
     reply.send({
       uniques
