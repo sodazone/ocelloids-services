@@ -1,0 +1,310 @@
+{
+	"info": {
+		"_postman_id": "fe1752c1-84ce-459a-a87d-f07d89a7eb98",
+		"name": "XCM Monitoring",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Subscriptions",
+			"item": [
+				{
+					"name": "Create Subscription",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"log\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:3000/subs",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "3000",
+							"path": [
+								"subs"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Create Subscription S1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"webhook\",\n      \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:3000/subs",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "3000",
+									"path": [
+										"subs"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "content-length",
+									"value": "0"
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 30 Oct 2023 09:11:18 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=72"
+								}
+							],
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "Get Subscription",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:3000/subs/S1",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "3000",
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Get Subscription S1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:3000/subs/S1",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "3000",
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "content-type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "content-length",
+									"value": "200"
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 30 Oct 2023 09:11:49 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=72"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\n        \"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"\n    ],\n    \"destinations\": [\n        1000\n    ],\n    \"notify\": {\n        \"type\": \"webhook\",\n        \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Senders",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00001\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00002\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00003\" }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:3000/subs/S1",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "3000",
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Administration",
+			"item": [
+				{
+					"name": "Get Pending Messages",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{XCMON_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:3000/admin/xcm",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "3000",
+							"path": [
+								"admin",
+								"xcm"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Unique Subscription Paths",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{XCMON_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:3000/admin/subs",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "3000",
+							"path": [
+								"admin",
+								"subs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Scheduled Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": null
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "XCMON_TOKEN",
+			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.TUkHePbst2jnFffIGHbn-fFnZz36DfBjxsfptqFypaA"
+		}
+	]
+}
