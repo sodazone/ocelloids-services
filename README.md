@@ -3,9 +3,9 @@
 The XCM Monitoring Server is a software application designed to monitor Cross-Consensus Message Format (XCM)
 program executions across consensus systems.
 
-Key features:
+**Key Features**
 
-- Monitoring Executions: The server tracks and monitors XCM program executions across networks.
+- Execution Monitoring: The server tracks and monitors XCM program executions across networks.
 - Subscription Management: With a flexible subscription API, users define specific criteria for notifications. Customizable parameters include origin, senders, destinations, and notification methods (webhook, log, etc.), providing tailored alerts.
 - Resilience: Ensures uninterrupted operation with a graceful shutdown, persistent data storage between restarts, retries via truncated exponential backoff, reliable webhook delivery, continuous block tip catch-up, and caching for light clients.
 
