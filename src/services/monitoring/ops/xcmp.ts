@@ -62,6 +62,7 @@ function xcmpMessagesSent() {
         const xcmMessage = event.data as any;
         return {
           event: event.toHuman(),
+          sender: event.extrinsic.signer.toHuman(),
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toString(),
           extrinsicId: event.extrinsicId,

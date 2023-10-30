@@ -76,7 +76,8 @@ function umpMessagesSent() {
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toString(),
           extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash.toHex()
+          messageHash: xcmMessage.messageHash.toHex(),
+          sender: event.extrinsic.signer.toHuman()
         } as XcmMessageSentWithContext;
       })
     ));

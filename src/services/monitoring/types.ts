@@ -41,6 +41,7 @@ export type XcmMessageWithContext = {
 export interface XcmMessageSentWithContext extends XcmMessageWithContext {
   messageData: Bytes,
   recipient: number,
+  sender: AnyJson,
   instructions: AnyJson,
 }
 
@@ -122,6 +123,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   event: AnyJson;
   blockHash: HexString;
   blockNumber: string;
+  sender: AnyJson;
   extrinsicId?: string;
   messageId?: HexString;
 
@@ -135,6 +137,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
     this.blockNumber = msg.blockNumber;
     this.extrinsicId = msg.extrinsicId;
     this.messageId = msg.messageId;
+    this.sender = msg.sender;
   }
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
@@ -147,7 +150,8 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
       extrinsicId: this.extrinsicId,
-      messageId: this.messageId
+      messageId: this.messageId,
+      sender: this.sender
     };
   }
 }
@@ -162,6 +166,7 @@ export class XcmMessageSent {
   event: AnyJson;
   blockHash: HexString;
   blockNumber: string;
+  sender: AnyJson;
   messageId?: HexString;
   extrinsicId?: string;
 
@@ -181,6 +186,7 @@ export class XcmMessageSent {
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber;
     this.extrinsicId = msg.extrinsicId;
+    this.sender = msg.sender;
   }
 }
 
@@ -200,6 +206,7 @@ export class XcmMessageNotify {
   messageData: string;
   instructions: AnyJson;
   outcome: 'Success' | 'Fail';
+  sender: AnyJson;
   error: AnyJson;
 
   constructor(
@@ -221,6 +228,7 @@ export class XcmMessageNotify {
       extrinsicId: outMsg.extrinsicId,
       event: outMsg.event
     };
+    this.sender = outMsg.sender;
     this.instructions = outMsg.instructions;
     this.messageData = outMsg.messageData;
     this.messageHash = inMsg.messageHash;

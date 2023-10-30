@@ -28,7 +28,10 @@ const outboundMessage : XcmMessageSent = {
   messageData: '0x0',
   subscriptionId: '1',
   blockHash: '0xBEEF',
-  blockNumber: '2'
+  blockNumber: '2',
+  sender: {
+    id: '0x123'
+  }
 };
 
 describe('message matching engine', () => {

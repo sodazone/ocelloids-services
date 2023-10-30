@@ -94,7 +94,8 @@ function createXcmMessageSent(
     instructions: xcmProgram.toHuman(),
     messageData: data,
     messageHash: xcmProgram.hash.toHex(),
-    messageId: getMessageId(xcmProgram)
+    messageId: getMessageId(xcmProgram),
+    sender: extrinsic.signer.toHuman()
   });
 }
 
