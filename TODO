@@ -18,6 +18,7 @@ TODO
 [x] change status code for subs API errors
 [x] Complete unique key deletions
 [x] Test coverage
+[x] Throttle config
 [] General review, adjust logging etc.
 [] docs (e.g. unique paths logic)
 [] Handle modifications in network configuration (?)
@@ -36,4 +37,3 @@ FUTURE
 [] Smoldot DB checkpointing
 [] Use SCALE instead of CBOR
 [] Filtering of instructions
-[] Throttle config
