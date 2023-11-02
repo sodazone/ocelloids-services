@@ -1,10 +1,8 @@
 # Testing Guide
 
-This guide provides instructions for testing the XCM Monitoring Service on both local and live networks.
+This guide provides instructions for testing the XCM Monitoring Server on a Zombienet.
 
-## Testing With Local Network
-
-### Setup Zombienet
+## Setup Zombienet
 
 We have a separate project repository called [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to assist with setting up a Zombienet ready for cross-chain asset transfers.
 
@@ -20,9 +18,9 @@ cd xcm-testing-tools/
 
 2. Follow the instruction in the project README to set up Zombienet and assets.
 
-### Run XCM Monitoring Server
+## Run XCM Monitoring Server
 
-#### Running with NPM
+### Command Line
 
 1. In a separate terminal, clone the XCM Monitoring Server project.
 
@@ -48,10 +46,10 @@ npm i && npm run build
 4. Run the server
 
 ```shell
-npm run start -- -c ./config/<YOUR_CONFIG>.toml
+npx xcm-mon -c ./config/<YOUR_CONFIG>.toml
 ```
 
-#### Running with Docker
+### Running with Docker
 
 1. Download the Docker image.
 
@@ -81,7 +79,7 @@ docker run --name xcm-mon -e XCMON_CONFIG_FILE=./config/<YOUR_CONFIG>.toml -p 30
 > [!NOTE] 
 > If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
 
-### Add Subscriptions
+## Add Subscriptions
 
 Use the subscription API to subscribe to cross-chain messages.
 
@@ -101,7 +99,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }]'
 ```
 
-### Make an Asset Transfer
+## Make an Asset Transfer
 
 Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#testing-asset-transfers) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
 
@@ -113,12 +111,12 @@ After the extrinsic is finalized, you will receive similar logs in the console t
 [12:07:07 UTC] INFO: [1000 ➜ 2000] NOTIFICATION subscription=asset-hub-transfers, messageHash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce, outcome=Success (o: #217, d: #216)
 ```
 
-In this example, the message on the destination chain was captured first. This is not a problem since the XCM Monitoring Service supports matching messages out-of-order.
+In this example, the message on the destination chain was captured first. This is not a problem since the XCM Monitoring Server supports matching messages out-of-order.
 
 > [!NOTE] 
 > Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
-### Update the Notification Method
+## Update the Notification Method
 
 The subscription API allows you to update your notification method. In this example, we will update the notification from type `log` to type `webhook`.
 
@@ -270,13 +268,16 @@ Now, if you make another transfer, the notification should be delivered to your 
       }
     ]
   },
+  "sender": {
+    "Id": "HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F"
+  },
   "outcome":"Success",
   "error":null
 }
 ```
 </details>
 
-### Update Senders and Destinations
+## Update Senders and Destinations
 
 You can easily modify the list of senders and destinations through the subscription API using a JSON PATCH request. The monitor dynamically adjusts its matching criteria to incorporate these changes.
 
@@ -292,21 +293,3 @@ curl --location --request PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers'
 ```
 
 After making these changes, any cross-chain transfers from parachain 1000 initiated with Bob's or Ferdie's account will trigger a notification, while transfers from Alice's account will not prompt any notifications.
-
-## Testing on Public Networks
-
-Testing on public networks follows a process similar to the steps outlined above, with the exception of not having to spin up a Zombienet. Simply create a configuration file in `<project-root>/config/` for the set of chains you wish to monitor and run the server using the following command:
-
-```shell
-npm run start -- -c ./config/<YOUR_CONFIG>.toml
-```
-
-OR
-
-```shell
-docker ...
-```
-
-We provide a sample configuration file `<project-root>/config/polkadot.toml` for Polkadot and parachains (Asset Hub, Acala, Astar, Moonbeam) that you can use or modify according to your requirements.
-
-Subscribe to cross-chain transfers as detailed in the section [Add Subscriptions](#add-subscriptions), and you will start receiving notifications when transfers occur.
