@@ -20,16 +20,15 @@ TODO
 [x] Test coverage
 [x] Throttle config
 [x] Admin APIs
+[x] Publish Docker image
 [] General review, adjust logging etc.
-[] docs (e.g. unique paths logic)
-[] publish Docker image
+[] Release
 
 TO TEST
 ===
-[] Handle smoldot panics
 [x] Running with RPCs
 [x] DMP (smoldot)
-[] UMP (smoldot)
+[x] UMP (smoldot)
 [x] batched transfers
 [x] Handle subscription exploding on network config change
 
