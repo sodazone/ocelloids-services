@@ -62,7 +62,38 @@ Example configurations are available in the `config/` directory of this reposito
 
 ### Docker
 
-TBD
+1. Download the Docker image from Docker Hub.
+
+```
+docker pull sodazone/xcm-monitoring
+```
+
+Or build locally.
+ 
+```
+docker build . -t xcm-monitoring:develop
+```
+
+1. Run.
+
+Example running the local image with pre-packaged Polkadot network configuration.
+```
+docker run -d \
+  -e XCMON_CONFIG_FILE=./config/polkadot.toml \
+  -p 3000:3000 \
+  xcm-monitoring:develop
+```
+
+To add your custom configuration, mount the configuration and chain specs as volumes:
+
+```
+docker run -d \
+  -e XCMON_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
+  -p 3000:3000 \
+  -v <PATH_TO_CHAIN_SPECS>:/opt/xcmon/chain-specs \
+  -v <PATH_TO_CONFIG>:/opt/xcmon/config \
+  sodazone/xcm-monitoring
+```
 
 ### Command Line
 
