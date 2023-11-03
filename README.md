@@ -74,7 +74,7 @@ Or build locally.
 docker build . -t xcm-monitoring:develop
 ```
 
-1. Run.
+2. Run.
 
 Example running the local image with pre-packaged Polkadot network configuration.
 ```
@@ -97,13 +97,13 @@ docker run -d \
 
 ### Command Line
 
-Install and build:
+1. Install and build:
 
 ```shell
 npm i && npm run build
 ```
 
-Run:
+2. Run:
 
 ```shell
 npx xcm-mon --help
@@ -169,3 +169,9 @@ npm run test
 ```
 
 For end-to-end testing with either local networks or public networks, please refer to our [Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md).
+
+## Notes
+
+### Chain Head Catch-up
+
+When subscribing to finalized block headers using the light client, it's possible to skip blocks occasionally. To ensure we don't miss any finalized blocks, we've implemented a chain head catch-up mechanism. This mechanism requests the missing block headers, ensuring no gaps in our data. The same approach is applied during server restarts to recover missed blocks from server downtime. Currently, we've set an upper limit of 150 blocks and a default throttle of 1 second to prevent overloading the peers connected to the light client. In the future, we plan to develop a more robust catch-up mechanism to handle historical chain head catch-up scenarios effectively.
