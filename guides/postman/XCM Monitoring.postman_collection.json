@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "fe1752c1-84ce-459a-a87d-f07d89a7eb98",
+		"_postman_id": "a2ecddfb-8ddc-4425-a81f-b38c92680edd",
 		"name": "XCM Monitoring",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "430779"
 	},
 	"item": [
 		{
@@ -15,27 +16,14 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"log\"\n    }\n}",
+							"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"webhook\",\n      \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"url": {
-							"raw": "http://127.0.0.1:3000/subs",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "3000",
-							"path": [
-								"subs"
-							]
-						}
+						"url": "http://127.0.0.1:3000/subs"
 					},
 					"response": [
 						{
@@ -45,27 +33,14 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"webhook\",\n      \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}",
+									"raw": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"webhook\",\n      \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}",
 									"options": {
 										"raw": {
 											"language": "json"
 										}
 									}
 								},
-								"url": {
-									"raw": "http://127.0.0.1:3000/subs",
-									"protocol": "http",
-									"host": [
-										"127",
-										"0",
-										"0",
-										"1"
-									],
-									"port": "3000",
-									"path": [
-										"subs"
-									]
-								}
+								"url": "http://127.0.0.1:3000/subs"
 							},
 							"status": "Created",
 							"code": 201,
@@ -89,7 +64,62 @@
 								}
 							],
 							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "Create Subscription S2",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n    {\n        \"id\": \"S1\",\n        \"origin\": 0,\n        \"senders\": [\"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"],\n        \"destinations\": [1000],\n        \"notify\": {\n            \"type\": \"log\"\n        }\n    },\n    {\n        \"id\": \"S2\",\n        \"origin\": 1000,\n        \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\", \"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP\"],\n        \"destinations\": [0, 2000],\n        \"notify\": {\n            \"type\": \"webhook\",\n            \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n        }\n    }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "http://127.0.0.1:3000/subs"
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
 							"body": null
+						}
+					]
+				},
+				{
+					"name": "List Subscriptions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://127.0.0.1:3000/subs"
+					},
+					"response": [
+						{
+							"name": "List Subscriptions S2",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": "http://127.0.0.1:3000/subs"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"S1\",\n        \"origin\": 0,\n        \"senders\": [\"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"],\n        \"destinations\": [1000],\n        \"notify\": {\n            \"type\": \"log\"\n        }\n    },\n    {\n        \"id\": \"S2\",\n        \"origin\": 1000,\n        \"senders\": [\"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\", \"FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP\"],\n        \"destinations\": [0, 2000],\n        \"notify\": {\n            \"type\": \"webhook\",\n            \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n        }\n    }\n]"
 						}
 					]
 				},
@@ -98,21 +128,7 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:3000/subs/S1",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "3000",
-							"path": [
-								"subs",
-								"S1"
-							]
-						}
+						"url": "http://127.0.0.1:3000/subs/S1"
 					},
 					"response": [
 						{
@@ -120,21 +136,7 @@
 							"originalRequest": {
 								"method": "GET",
 								"header": [],
-								"url": {
-									"raw": "http://127.0.0.1:3000/subs/S1",
-									"protocol": "http",
-									"host": [
-										"127",
-										"0",
-										"0",
-										"1"
-									],
-									"port": "3000",
-									"path": [
-										"subs",
-										"S1"
-									]
-								}
+								"url": "http://127.0.0.1:3000/subs/S1"
 							},
 							"status": "OK",
 							"code": 200,
@@ -162,7 +164,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\n        \"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F\"\n    ],\n    \"destinations\": [\n        1000\n    ],\n    \"notify\": {\n        \"type\": \"webhook\",\n        \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}"
+							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\n        \"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"\n    ],\n    \"destinations\": [\n        1000\n    ],\n    \"notify\": {\n        \"type\": \"webhook\",\n        \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}"
 						}
 					]
 				},
@@ -173,30 +175,172 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "[\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00001\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00002\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"btc00003\" }\n]",
+							"raw": "[\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw\" },\n  { \"op\": \"remove\", \"path\": \"/senders/0\" }\n]",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"url": {
-							"raw": "http://127.0.0.1:3000/subs/S1",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "3000",
-							"path": [
-								"subs",
-								"S1"
-							]
-						}
+						"url": "http://127.0.0.1:3000/subs/S1"
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Update Senders S1",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy\" },\n  { \"op\": \"add\", \"path\": \"/senders/-\", \"value\": \"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw\" },\n  { \"op\": \"remove\", \"path\": \"/senders/0\" }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "http://127.0.0.1:3000/subs/S1"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\n        \"5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y\",\n        \"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy\",\n        \"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw\"\n    ],\n    \"destinations\": [\n        1000\n    ],\n    \"notify\": {\n        \"type\": \"webhook\",\n        \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Destinations",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  { \"op\": \"add\", \"path\": \"/destinations/-\", \"value\": 2000 },\n  { \"op\": \"replace\", \"path\": \"/destinations/0\", \"value\": 2004 }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://127.0.0.1:3000/subs/S1"
+					},
+					"response": [
+						{
+							"name": "Update Destinations S1",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n  { \"op\": \"add\", \"path\": \"/destinations/-\", \"value\": 2000 },\n  { \"op\": \"replace\", \"path\": \"/destinations/0\", \"value\": 2004 }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "http://127.0.0.1:3000/subs/S1"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\n        \"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"\n    ],\n    \"destinations\": [\n        2004,\n        2000\n    ],\n    \"notify\": {\n        \"type\": \"webhook\",\n        \"url\": \"https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Notification",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/notify\",\n    \"value\": {\n      \"type\": \"log\"\n    }\n  }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://127.0.0.1:3000/subs/S1"
+					},
+					"response": [
+						{
+							"name": "Update Notification S1",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/notify\",\n    \"value\": {\n      \"type\": \"log\"\n    }\n  }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "http://127.0.0.1:3000/subs/S1"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"S1\",\n    \"origin\": 0,\n    \"senders\": [\"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY\"],\n    \"destinations\": [1000],\n    \"notify\": {\n      \"type\": \"log\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Subscription",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "http://127.0.0.1:3000/subs/S1"
+					},
+					"response": [
+						{
+							"name": "Delete Subscription S1",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": "http://127.0.0.1:3000/subs/S1"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
 				}
 			]
 		},
@@ -208,31 +352,13 @@
 					"request": {
 						"auth": {
 							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{XCMON_TOKEN}}",
-									"type": "string"
-								}
-							]
+							"bearer": {
+								"token": "{{XCMON_TOKEN}}"
+							}
 						},
 						"method": "GET",
 						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:3000/admin/xcm",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "3000",
-							"path": [
-								"admin",
-								"xcm"
-							]
-						}
+						"url": "http://127.0.0.1:3000/admin/xcm"
 					},
 					"response": []
 				},
@@ -241,31 +367,13 @@
 					"request": {
 						"auth": {
 							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{XCMON_TOKEN}}",
-									"type": "string"
-								}
-							]
+							"bearer": {
+								"token": "{{XCMON_TOKEN}}"
+							}
 						},
 						"method": "GET",
 						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:3000/admin/subs",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "3000",
-							"path": [
-								"admin",
-								"subs"
-							]
-						}
+						"url": "http://127.0.0.1:3000/admin/subs"
 					},
 					"response": []
 				},
@@ -274,7 +382,7 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": null
+						"url": ""
 					},
 					"response": []
 				}
