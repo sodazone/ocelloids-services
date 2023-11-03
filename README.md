@@ -4,7 +4,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/sodazone/xcm-monitoring/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/xcm-monitoring/actions/workflows/ci.yml)
 
 The XCM Monitoring Server is a software application designed to monitor Cross-Consensus Message Format (XCM)
-program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions.
+program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
 
 ## Key Features
 
@@ -137,23 +137,60 @@ npm run dev
 
 ## HTTP APIs
 
-Interact with the server using the exposed APIs.
+The XCM Monitoring Server offers convenient APIs for seamless interaction.
 
-Explore the `guides/postman` directory for Postman collections.
+Explore the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree/main/guides/postman) for comprehensive usage examples.
 
 ### Subscription API
 
-This is the API used to create and manage subscriptions for the XCM interactions of your interest.
+This API allows you to create and manage subscriptions to XCM interactions of your interest.
 
-You can find the OpenAPI documentation at
+Access the OpenAPI documentation at
 [http://{{your_host}}/documentation](http://localhost:3000/documentation).
+
+The available API methods are:
+
+1. Create Subscription:
+```shell
+curl --location 'http://127.0.0.1:3000/subs' \
+--data '{
+    "id": "S1",
+    "origin": 0,
+    "senders": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
+    "destinations": [1000],
+    "notify": {
+      "type": "webhook",
+      "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
+    }
+}'
+```
+1. List Subscriptions
+```shell
+curl --location 'http://127.0.0.1:3000/subs'
+```
+1. Get Subscription
+```shell
+curl --location 'http://127.0.0.1:3000/subs/S1'
+```
+1. Update Subscription
+```shell
+curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
+--data '[
+  { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
+  { "op": "add", "path": "/destinations/-", "value": 2000 },
+  { "op": "replace", "path": "/notify", "value": { "type": "log" } }
+]'
+```
+1. Delete Subscription
+```shell
+curl --location --request DELETE 'http://127.0.0.1:3000/subs/S1'
+```
 
 ### Administration API
 
-The server provides an API for administration, enabling reading and purging of cached data, pending XCM messages, and scheduled tasks.
-Additionally, it allows consultation of the current chain tip of a network.
+The server provides an API for administration purposes. It facilitates tasks such as reading and purging cached data, pending XCM messages and scheduled tasks. You can also consult the current chain tip of a network through this API.
 
-Please, check the [Administration Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/ADMINISTRATION.md) for further details.
+For more details, refer to our [Administration Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/ADMINISTRATION.md). 
 
 ### Healthcheck
 
