@@ -206,7 +206,7 @@ To run unit tests:
 npm run test
 ```
 
-For end-to-end testing with either local networks or public networks, please refer to our [Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md).
+For end-to-end testing with Zombienet please refer to our [Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md).
 
 ## Notes
 
