@@ -8,7 +8,7 @@ RUN npm install -g typescript patch-package && \
 npm ci --omit=dev
 
 COPY src/ ./src
-RUN mkdir -p /etc/xcmon/chain-specs /etc/xcmon/config && \
+RUN mkdir -p chain-specs config && \
 npm run build
 
 ENV NODE_ENV=production
