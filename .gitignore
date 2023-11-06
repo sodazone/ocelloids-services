@@ -3,6 +3,7 @@ coverage/
 dist/
 docs/
 db/
+chain-specs/
 **/.yarn/cache
 **/.yarn/versions
 **/.yarn/*.gz
