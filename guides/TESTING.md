@@ -16,9 +16,16 @@ git clone https://github.com/sodazone/xcm-testing-tools.git
 cd xcm-testing-tools/
 ```
 
-2. Follow the instruction in the project README to set up Zombienet and assets.
+2. Follow the instruction in the project [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to [set up a Zombienet](https://github.com/sodazone/xcm-testing-tools#asset-set-up).
+
+3. Follow the instructions in the same project to [set up the test assets](https://github.com/sodazone/xcm-testing-tools#asset-set-up).
+
+At this point you should have running a Zombienet with the default testing configuration: Rococo local relay chain, Asset Hub local parachain and Shibuya local parachain, and you should have configured the assets and sovereign accounts required for testing XCM transfers.
 
 ## Run XCM Monitoring Server
+
+> [!NOTE]
+> Make sure that you followed the Setup Zombinet and Setup Assets instructions above.
 
 ### Command Line
 
@@ -38,10 +45,23 @@ cd xcm-monitoring
 npm i && npm run build
 ```
 
-3. Create the configuration file for your network in `<root>/config/`. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into `<project-root>/chain-specs/`.
+3. Create the configuration file for your network, you can use `<root>/config/dev.toml` for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into an accesible `chain-specs/` location.
 
 > [!IMPORTANT]
 > If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
+
+For example, with the provided configuration you can copy the chain-specs as below, pointing to the proper tmp directory created by Zombienet:
+
+```shell
+# Relay chain Alice node chain-spec
+cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/rococo-local.json chain-specs/rococo-local-relay.json
+
+# Astar collator
+cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
+
+# Asset Hub collator
+cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
+```
 
 4. Run the server
 
