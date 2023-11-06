@@ -62,29 +62,21 @@ Example configurations are available in the `config/` directory of this reposito
 
 ### Docker
 
-1. Download the Docker image from Docker Hub.
+Alternatively you can run the server using Docker.
+
+Download the Docker image:
 
 ```
 docker pull sodazone/xcm-monitoring
 ```
 
-Or build locally.
+Or build locally:
  
 ```
 docker build . -t xcm-monitoring:develop
 ```
 
-2. Run.
-
-Example running the local image with pre-packaged Polkadot network configuration.
-```
-docker run -d \
-  -e XCMON_CONFIG_FILE=./config/polkadot.toml \
-  -p 3000:3000 \
-  xcm-monitoring:develop
-```
-
-To add your custom configuration, mount the configuration and chain specs as volumes:
+Run the image mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
@@ -97,13 +89,13 @@ docker run -d \
 
 ### Command Line
 
-1. Install and build:
+Install and build:
 
 ```shell
 npm i && npm run build
 ```
 
-2. Run:
+Run:
 
 ```shell
 npx xcm-mon --help
@@ -148,9 +140,10 @@ This API allows you to create and manage subscriptions to XCM interactions of yo
 Access the OpenAPI documentation at
 [http://{{your_host}}/documentation](http://localhost:3000/documentation).
 
-The available API methods are:
+The available API methods are listed below.
 
-1. Create Subscription:
+Create subscription:
+
 ```shell
 curl --location 'http://127.0.0.1:3000/subs' \
 --data '{
@@ -164,15 +157,21 @@ curl --location 'http://127.0.0.1:3000/subs' \
     }
 }'
 ```
-1. List Subscriptions
+
+List subscriptions:
+
 ```shell
 curl --location 'http://127.0.0.1:3000/subs'
 ```
-1. Get Subscription
+
+Get subscription:
+
 ```shell
 curl --location 'http://127.0.0.1:3000/subs/S1'
 ```
-1. Update Subscription
+
+Update subscription:
+
 ```shell
 curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
 --data '[
@@ -181,7 +180,9 @@ curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
   { "op": "replace", "path": "/notify", "value": { "type": "log" } }
 ]'
 ```
-1. Delete Subscription
+
+Delete subscription:
+
 ```shell
 curl --location --request DELETE 'http://127.0.0.1:3000/subs/S1'
 ```
