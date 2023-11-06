@@ -134,6 +134,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
+> Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
 Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#assets-tranfser) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
 
@@ -156,9 +157,6 @@ You can search in the log file using grep:
 ```shell
 grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
 ```
-
-> [!NOTE]
-> Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
 ## Update the Notification Method
 
