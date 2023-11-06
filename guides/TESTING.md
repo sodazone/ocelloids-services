@@ -16,16 +16,21 @@ git clone https://github.com/sodazone/xcm-testing-tools.git
 cd xcm-testing-tools/
 ```
 
-2. Follow the instruction in the project [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to [set up a Zombienet](https://github.com/sodazone/xcm-testing-tools#asset-set-up).
+2. Follow the instruction in the project [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to [set up a Zombienet](https://github.com/sodazone/xcm-testing-tools#zombienet-setup).
 
-3. Follow the instructions in the same project to [set up the test assets](https://github.com/sodazone/xcm-testing-tools#asset-set-up).
+3. Follow the instructions in the same project to [set up the test assets](https://github.com/sodazone/xcm-testing-tools#assets-configuration).
 
 At this point you should have running a Zombienet with the default testing configuration: Rococo local relay chain, Asset Hub local parachain and Shibuya local parachain, and you should have configured the assets and sovereign accounts required for testing XCM transfers.
 
 ## Run XCM Monitoring Server
 
-> [!NOTE]
+> [!IMPORTANT]
+> If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
 > Make sure that you followed the Setup Zombinet and Setup Assets instructions above.
+
+> [!NOTE]
+> If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
+
 
 ### Command Line
 
@@ -45,19 +50,22 @@ cd xcm-monitoring
 npm i && npm run build
 ```
 
-3. Create the configuration file for your network, you can use `<root>/config/dev.toml` for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into an accesible `chain-specs/` location.
+3. Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
 
-> [!IMPORTANT]
-> If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
-
-For example, with the provided configuration you can copy the chain-specs as below, pointing to the proper tmp directory created by Zombienet:
+For example, with the provided configuration you can copy the chain specs as below, pointing to the temporary directory created by Zombienet:
 
 ```shell
+# Create chain-specs directory
+mkdir chain-specs
+
 # Relay chain Alice node chain-spec
 cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/rococo-local.json chain-specs/rococo-local-relay.json
 
 # Astar collator
 cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
+
+## Replace tokyo for rococo_local_testnet
+sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
 
 # Asset Hub collator
 cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
@@ -65,11 +73,21 @@ cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-
 
 4. Run the server
 
+Use npx to run the server and pipe the output to stdout and a file for later searching:
+
 ```shell
-npx xcm-mon -c ./config/<YOUR_CONFIG>.toml
+npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
+```
+
+You can search for the match using grep:
+
+```shell
+grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
 ```
 
 ### Running with Docker
+
+Alternatively you can run the server using Docker.
 
 1. Download the Docker image.
 
@@ -104,9 +122,6 @@ docker run -d \
   sodazone/xcm-monitoring
 ```
 
-> [!NOTE] 
-> If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
-
 ## Add Subscriptions
 
 Use the subscription API to subscribe to cross-chain messages.
@@ -129,24 +144,33 @@ curl --location 'http://127.0.0.1:3000/subs' \
 
 ## Make an Asset Transfer
 
-Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#testing-asset-transfers) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
+> [!NOTE]
+> The following instructions refer to the XCM Testing Tools repository.
+
+Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#assets-tranfser) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
+
+```shell
+just transfer ws://127.0.0.1:9910 -s //Alice -d 2000 -r 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -a 1984 -m 1500000000000
+```
 
 After the extrinsic is finalized, you will receive similar logs in the console to indicate a notification:
 
 ```
-[12:07:07 UTC] INFO: [2000:in] STORED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000 (subId=asset-hub-transfers)
-[12:07:07 UTC] INFO: [1000:out] MATCHED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000
+[12:07:07 UTC] INFO: [2000:i] STORED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000 (subId=asset-hub-transfers)
+[12:07:07 UTC] INFO: [1000:o] MATCHED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000
 [12:07:07 UTC] INFO: [1000 ➜ 2000] NOTIFICATION subscription=asset-hub-transfers, messageHash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce, outcome=Success (o: #217, d: #216)
 ```
 
 In this example, the message on the destination chain was captured first. This is not a problem since the XCM Monitoring Server supports matching messages out-of-order.
 
-> [!NOTE] 
+> [!NOTE]
 > Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
 ## Update the Notification Method
 
 The subscription API allows you to update your notification method. In this example, we will update the notification from type `log` to type `webhook`.
+
+You can use any web hook testing service, in the example below we are using [https://webhook.site](https://webhook.site).
 
 Example request:
 
