@@ -6,7 +6,7 @@ This guide provides instructions for testing the XCM Monitoring Server on a Zomb
 
 We have a separate project repository called [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to assist with setting up a Zombienet ready for cross-chain asset transfers.
 
-1. Clone the testing repo and navigate to its directory:
+Clone the testing repo and navigate to its directory:
 
 ```
 git clone https://github.com/sodazone/xcm-testing-tools.git
@@ -16,13 +16,13 @@ git clone https://github.com/sodazone/xcm-testing-tools.git
 cd xcm-testing-tools/
 ```
 
-2. Follow the instruction in the project [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to [set up a Zombienet](https://github.com/sodazone/xcm-testing-tools#zombienet-setup).
+Follow the instruction in the project [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to [set up a Zombienet](https://github.com/sodazone/xcm-testing-tools#zombienet-setup).
 
-3. Follow the instructions in the same project to [set up the test assets](https://github.com/sodazone/xcm-testing-tools#assets-configuration).
+Follow the instructions in the same project to [set up the test assets](https://github.com/sodazone/xcm-testing-tools#assets-configuration).
 
 At this point you should have running a Zombienet with the default testing configuration: Rococo local relay chain, Asset Hub local parachain and Shibuya local parachain, and you should have configured the assets and sovereign accounts required for testing XCM transfers.
 
-## Run XCM Monitoring Server
+## Running the XCM Monitoring Server
 
 > [!IMPORTANT]
 > If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
@@ -34,7 +34,7 @@ At this point you should have running a Zombienet with the default testing confi
 
 ### Command Line
 
-1. In a separate terminal, clone the project repository:
+In a separate terminal, clone the project repository:
 
 ```
 git clone https://github.com/sodazone/xcm-monitoring.git
@@ -44,13 +44,13 @@ git clone https://github.com/sodazone/xcm-monitoring.git
 cd xcm-monitoring
 ```
 
-2. Install and build the project:
+Install and build the project:
 
 ```
 npm i && npm run build
 ```
 
-3. Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
+Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
 
 For example, with the provided configuration you can copy the chain specs as below, pointing to the temporary directory created by Zombienet:
 
@@ -71,19 +71,19 @@ sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
 cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
 ```
 
-4. Run the server using npx and pipe the output to stdout and a file for searching in later:
+Run the server using npx and pipe the output to stdout and a file for searching in later:
 
 ```shell
 npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
-:star: Now you can proceed to [Add Subscriptions](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#add-subscriptions) and [Transfer Assets](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#transfer-assets).
+:star2: Now you can proceed to [Add Subscriptions](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#add-subscriptions) and [Transfer Assets](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#transfer-assets).
 
-### Running with Docker
+### Docker
 
 Alternatively you can run the server using Docker.
 
-1. Download the Docker image:
+Download the Docker image:
 
 ```
 docker pull sodazone/xcm-monitoring
@@ -95,7 +95,7 @@ Or build locally:
 docker build . -t xcm-monitoring:develop
 ```
 
-2. Run the image mounting the configuration and chain specs as volumes:
+Run the image mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
