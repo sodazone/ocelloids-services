@@ -34,7 +34,7 @@ At this point you should have running a Zombienet with the default testing confi
 
 ### Command Line
 
-1. In a separate terminal, clone the XCM Monitoring Server project.
+1. In a separate terminal, clone the project repository:
 
 ```
 git clone https://github.com/sodazone/xcm-monitoring.git
@@ -44,7 +44,7 @@ git clone https://github.com/sodazone/xcm-monitoring.git
 cd xcm-monitoring
 ```
 
-2. Install and build the project
+2. Install and build the project:
 
 ```
 npm i && npm run build
@@ -71,9 +71,7 @@ sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
 cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
 ```
 
-4. Run the server
-
-Use npx to run the server and pipe the output to stdout and a file for searching in later:
+4. Run the server using npx and pipe the output to stdout and a file for searching in later:
 
 ```shell
 npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
@@ -85,21 +83,19 @@ npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 
 Alternatively you can run the server using Docker.
 
-1. Download the Docker image.
+1. Download the Docker image:
 
 ```
 docker pull sodazone/xcm-monitoring
 ```
 
-Or build locally.
+Or build locally:
  
 ```
 docker build . -t xcm-monitoring:develop
 ```
 
-2. Run.
-
-Run the image mounting the configuration and chain specs as volumes:
+2. Run the image mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
