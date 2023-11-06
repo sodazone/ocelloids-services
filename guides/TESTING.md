@@ -73,17 +73,13 @@ cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-
 
 4. Run the server
 
-Use npx to run the server and pipe the output to stdout and a file for later searching:
+Use npx to run the server and pipe the output to stdout and a file for searching in later:
 
 ```shell
 npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
-You can search for the match using grep:
-
-```shell
-grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
-```
+:star: Now you can proceed to [Add Subscriptions](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#add-subscriptions) and [Transfer Assets](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#transfer-assets).
 
 ### Running with Docker
 
@@ -103,15 +99,7 @@ docker build . -t xcm-monitoring:develop
 
 2. Run.
 
-Example running the local image with pre-packaged Polkadot network configuration.
-```
-docker run -d \
-  -e XCMON_CONFIG_FILE=./config/polkadot.toml \
-  -p 3000:3000 \
-  xcm-monitoring:develop
-```
-
-To add your custom configuration, mount the configuration and chain specs as volumes:
+Run the image mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
@@ -142,7 +130,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }]'
 ```
 
-## Make an Asset Transfer
+## Transfer Assets
 
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
@@ -162,6 +150,12 @@ After the extrinsic is finalized, you will receive similar logs in the console t
 ```
 
 In this example, the message on the destination chain was captured first. This is not a problem since the XCM Monitoring Server supports matching messages out-of-order.
+
+You can search in the log file using grep:
+
+```shell
+grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
+```
 
 > [!NOTE]
 > Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
