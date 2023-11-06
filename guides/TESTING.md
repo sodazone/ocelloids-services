@@ -59,16 +59,16 @@ For example, with the provided configuration you can copy the chain specs as bel
 mkdir chain-specs
 
 # Relay chain Alice node chain-spec
-cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/rococo-local.json chain-specs/rococo-local-relay.json
+cp /tmp/zombie-<RANDOM>/rococo-local.json chain-specs/rococo-local-relay.json
 
 # Astar collator
-cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
+cp /tmp/zombie-<RANDOM>/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
 
 ## Replace tokyo for rococo_local_testnet
 sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
 
 # Asset Hub collator
-cp /tmp/zombie-ec047b89ae432a54bb97ff1401168c68_-2918468-ZmVs2g32nrLJ/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
+cp /tmp/zombie-<RANDOM>/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
 ```
 
 Run the server using npx and pipe the output to stdout and a file for searching in later:
@@ -152,6 +152,12 @@ You can search in the log file using grep:
 
 ```shell
 grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
+```
+
+Or tail and grep:
+
+```shell
+tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 ```
 
 ## Update the Notification Method
