@@ -72,7 +72,7 @@ export class MatchingEngine {
           ]);
 
           log.info(
-            '[%s:out] MATCHED hash=%s id=%s',
+            '[%s:o] MATCHED hash=%s id=%s',
             outMsg.chainId,
             hashKey,
             idKey
@@ -84,7 +84,7 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:out] STORED hash=%s id=%s (subId=%s)',
+            '[%s:o] STORED hash=%s id=%s (subId=%s)',
             outMsg.chainId,
             hashKey,
             idKey,
@@ -99,7 +99,7 @@ export class MatchingEngine {
         try {
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
-            '[%s:out] MATCHED hash=%s',
+            '[%s:o] MATCHED hash=%s',
             outMsg.chainId,
             hashKey
           );
@@ -107,7 +107,7 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:out] STORED hash=%s (subId=%s)',
+            '[%s:o] STORED hash=%s (subId=%s)',
             outMsg.chainId,
             hashKey,
             outMsg.subscriptionId
@@ -129,7 +129,7 @@ export class MatchingEngine {
         try {
           const outMsg = await this.#outbound.get(hashKey);
           log.info(
-            '[%s:in] MATCHED hash=%s',
+            '[%s:i] MATCHED hash=%s',
             inMsg.chainId,
             hashKey
           );
@@ -137,7 +137,7 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:in] STORED hash=%s (subId=%s)',
+            '[%s:i] STORED hash=%s (subId=%s)',
             inMsg.chainId,
             hashKey,
             inMsg.subscriptionId
@@ -155,7 +155,7 @@ export class MatchingEngine {
             this.#outbound.get(hashKey)
           ]);
           log.info(
-            '[%s:in] MATCHED hash=%s id=%s',
+            '[%s:i] MATCHED hash=%s id=%s',
             inMsg.chainId,
             hashKey,
             idKey
@@ -167,7 +167,7 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:in] STORED hash=%s id=%s (subId=%s)',
+            '[%s:i] STORED hash=%s id=%s (subId=%s)',
             inMsg.chainId,
             hashKey,
             idKey,
