@@ -85,7 +85,7 @@ export class HeadCatcher extends EventEmitter {
           blocks(),
           retryWithTruncatedExpBackoff(),
           tap(({ block: {header} }) => {
-            this.#log.info(
+            this.#log.debug(
               '[%s] SEEN block #%s %s',
               chainId,
               header.number.toString(),
@@ -371,7 +371,7 @@ export class HeadCatcher extends EventEmitter {
           this.#doCatchUp(chainId, api, head)
         )),
         retryWithTruncatedExpBackoff(),
-        mergeAll(10) // limit concurrency
+        mergeAll()
       );
     };
   }
@@ -435,10 +435,11 @@ export class HeadCatcher extends EventEmitter {
 
           // TODO: log every n blocks?
           this.#log.info(
-            '[%s] CATCH-UP FINALIZED block #%s %s',
+            '[%s] CATCH-UP FINALIZED block #%s %s (t=#%s)',
             chainId,
             parentHead.number.toBigInt(),
-            parentHead.hash.toHex()
+            parentHead.hash.toHex(),
+            targetHeight.toString()
           );
 
           // throttle
