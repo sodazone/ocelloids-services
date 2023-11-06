@@ -130,7 +130,6 @@ curl --location 'http://127.0.0.1:3000/subs' \
 
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
-> Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
 Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#assets-tranfser) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
 
@@ -159,6 +158,9 @@ Or tail and grep:
 ```shell
 tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 ```
+
+> [!NOTE]
+> Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
 ## Update the Notification Method
 
@@ -339,3 +341,37 @@ curl --location --request PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers'
 ```
 
 After making these changes, any cross-chain transfers from parachain 1000 initiated with Bob's or Ferdie's account will trigger a notification, while transfers from Alice's account will not prompt any notifications.
+
+## Troubleshooting
+
+While testing on Zombienet, you might encounter a network error in smoldot,  `[sync-service-rococo_local_testnet] Error while verifying justification: There exists a block in-between the latest finalized block and the block targeted by the justification that must first be finalized` which can flood the server. If this occurs, please restart the server to resolve the issue.
+
+
+Additionally, if you come across a smoldot panic like the one shown below, it is advisable to restart both Zombienet and the server:
+
+```shell
+[smoldot] Smoldot v1.0.4. Current memory usage: 57.7 MiB. Average download: 446 kiB/s. Average upload: 251 kiB/s.
+Smoldot has panicked while executing task `network-service`. This is a bug in smoldot. Please open an issue at https://github.com/smol-dot/smoldot/issues with the following message:
+panicked at 'called `Option::unwrap()` on a `None` value', /__w/smoldot/smoldot/lib/src/network/service/notifications.rs:320:88
+[16:09:46 UTC] ERROR: 
+    err: {
+      "type": "Error",
+      "message": "",
+      "stack":
+          Error
+              at Object.onPanic (file:///home/xueying/dev/sodazone/xcm-monitoring/node_modules/smoldot/dist/mjs/instance/raw-instance.js:36:23)
+              at panic (file:///home/xueying/dev/sodazone/xcm-monitoring/node_modules/smoldot/dist/mjs/instance/bindings-smoldot-light.js:52:20)
+              at wasm://wasm/00fc8eb6:wasm-function[2764]:0xa0317
+              at wasm://wasm/00fc8eb6:wasm-function[12523]:0x282f48
+              at wasm://wasm/00fc8eb6:wasm-function[12513]:0x2823a7
+              at wasm://wasm/00fc8eb6:wasm-function[12518]:0x282a47
+              at wasm://wasm/00fc8eb6:wasm-function[12590]:0x2888ed
+              at wasm://wasm/00fc8eb6:wasm-function[12597]:0x288e15
+              at wasm://wasm/00fc8eb6:wasm-function[3312]:0xa8e9c
+              at wasm://wasm/00fc8eb6:wasm-function[5292]:0x10f4ae
+    }
+```
+
+Moreover, after Zombienet has been operational for some time, there may be instances where the parachains become stalled. In such cases, restarting Zombienet will refresh the network.
+
+It's worth noting that the issues described above appear to be unique to Zombienet, as similar behavior has not been observed when running the monitoring server on public networks like Polkadot and its parachains.
