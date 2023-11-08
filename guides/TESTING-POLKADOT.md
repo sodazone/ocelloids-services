@@ -98,10 +98,10 @@ In the example below we are using [https://webhook.site](https://webhook.site) a
 curl --location 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
-    "id": "asset-hub-transfers",
-    "origin": 1000,
+    "id": "acala-transfers",
+    "origin": 2000,
     "senders": "*",
-    "destinations": [0, 2000, 2004, 2006],
+    "destinations": [0, 1000, 2004, 2006],
     "notify": {
         "type": "webhook",
         "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
