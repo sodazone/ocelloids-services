@@ -193,6 +193,7 @@ export class HeadCatcher extends EventEmitter {
     let pipe = this.#pipes[chainId];
 
     if (pipe) {
+      this.#log.debug('[%s] returning cached pipe', chainId);
       return pipe;
     }
 
@@ -219,6 +220,9 @@ export class HeadCatcher extends EventEmitter {
     }
 
     this.#pipes[chainId] = pipe;
+
+    this.#log.debug('[%s] created pipe', chainId);
+
     return pipe;
   }
 
