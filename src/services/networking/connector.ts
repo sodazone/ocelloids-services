@@ -63,6 +63,8 @@ export default class Connector {
       return this.#substrateApis;
     }
 
+    this.#log.info('Connect providers');
+
     const providers: oconfig.Configuration = {};
 
     for (const key of Object.keys(this.#relays)) {
@@ -106,6 +108,8 @@ export default class Connector {
     );
 
     if (key) {
+      this.#log.info('Loading well known spec for provider: %s', key);
+
       this.#relays[name] = new ScProvider(
         Sc, Sc.WellKnownChain[key]
       );
