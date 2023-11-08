@@ -185,9 +185,9 @@ describe('switchboard service', () => {
     });
 
     const { destinationSubs } = switchboard.getSubscriptionHandler(testSub.id);
-    expect(destinationSubs.length).toBe(6);
-    expect(destinationSubs.filter(s => s.chainId === '0').length).toBe(3);
-    expect(destinationSubs.filter(s => s.chainId === '2000').length).toBe(3);
+    expect(destinationSubs.length).toBe(2);
+    expect(destinationSubs.filter(s => s.chainId === '0').length).toBe(1);
+    expect(destinationSubs.filter(s => s.chainId === '2000').length).toBe(1);
 
     // Remove 2000 and add 3000 to destinations
     const newSub = {
@@ -199,9 +199,9 @@ describe('switchboard service', () => {
     await switchboard.updateSubscription(newSub);
     await switchboard.updateDestinations(newSub.id);
     const { destinationSubs: newDestinationSubs } = switchboard.getSubscriptionHandler(testSub.id);
-    expect(newDestinationSubs.length).toBe(6);
-    expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(3);
-    expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(3);
+    expect(newDestinationSubs.length).toBe(2);
+    expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(1);
+    expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '2000').length).toBe(0);
   });
 });
