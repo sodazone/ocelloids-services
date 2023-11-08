@@ -1,8 +1,8 @@
-# Testing Guide
+# Zombienet Testing Guide
 
 This guide provides instructions for testing the XCM Monitoring Server on a Zombienet.
 
-## Setup Zombienet
+## Set Up Zombienet
 
 We have a separate project repository called [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to assist with setting up a Zombienet ready for cross-chain asset transfers.
 
@@ -52,24 +52,7 @@ npm i && npm run build
 
 Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
 
-For example, with the provided configuration you can copy the chain specs as below, pointing to the temporary directory created by Zombienet:
-
-```shell
-# Create chain-specs directory
-mkdir chain-specs
-
-# Relay chain Alice node chain-spec
-cp /tmp/zombie-<RANDOM>/rococo-local.json chain-specs/rococo-local-relay.json
-
-# Astar collator
-cp /tmp/zombie-<RANDOM>/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
-
-## Replace tokyo for rococo_local_testnet
-sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
-
-# Asset Hub collator
-cp /tmp/zombie-<RANDOM>/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
-```
+For example, with the provided configuration you can copy the chain specs as shown in [Annex: Chain Specs](#annex-chain-specs).
 
 Run the server using npx and pipe the output to stdout and a file for searching in later:
 
@@ -77,7 +60,7 @@ Run the server using npx and pipe the output to stdout and a file for searching 
 npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
-:star2: Now you can proceed to [Add Subscriptions](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#add-subscriptions) and [Transfer Assets](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md#transfer-assets).
+:star2: Now you can proceed to [Add Subscriptions](#add-subscriptions) and [Transfer Assets](#transfer-assets).
 
 ### Docker
 
@@ -94,6 +77,10 @@ Or build locally:
 ```
 docker build . -t xcm-monitoring:develop
 ```
+
+If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into a directory to be mounted later. Refer to [Annex: Chain Specs](#annex-chain-specs) for the commands to copy the spec files.
+
+Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet.
 
 Run the image mounting the configuration and chain specs as volumes:
 
@@ -166,7 +153,7 @@ tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 
 The subscription API allows you to update your notification method. In this example, we will update the notification from type `log` to type `webhook`.
 
-You can use any web hook testing service, in the example below we are using [https://webhook.site](https://webhook.site).
+You can use any webhook testing service, in the example below we are using [https://webhook.site](https://webhook.site).
 
 Example request:
 
@@ -375,3 +362,24 @@ panicked at 'called `Option::unwrap()` on a `None` value', /__w/smoldot/smoldot/
 Moreover, after Zombienet has been operational for some time, there may be instances where the parachains become stalled. In such cases, restarting Zombienet will refresh the network.
 
 It's worth noting that the issues described above appear to be unique to Zombienet, as similar behavior has not been observed when running the monitoring server on public networks like Polkadot and its parachains.
+
+## Annex: Chain Specs
+
+Please, replace `zombie-<RANDOM>` with the temporary directory created by Zombienet.
+
+```shell
+# Create chain-specs directory
+mkdir chain-specs
+
+# Relay chain Alice node chain-spec
+cp /tmp/zombie-<RANDOM>/rococo-local.json chain-specs/rococo-local-relay.json
+
+# Astar collator
+cp /tmp/zombie-<RANDOM>/shibuya-dev-2000-rococo-local.json chain-specs/shibuya-local.json
+
+## Replace tokyo for rococo_local_testnet
+sed -i 's/tokyo/rococo_local_testnet/g' chain-specs/shibuya-local.json
+
+# Asset Hub collator
+cp /tmp/zombie-<RANDOM>/asset-hub-kusama-local-1000-rococo-local.json chain-specs/assethub-local.json
+```

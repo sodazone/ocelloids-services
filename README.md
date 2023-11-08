@@ -159,7 +159,9 @@ To run unit tests:
 npm run test
 ```
 
-For end-to-end testing with Zombienet please refer to our [Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING.md).
+For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING-POLKADOT.md).
+
+For end-to-end testing with Zombienet please refer to our [Zombienet Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING-ZOMBIENET.md).
 
 ## Notes
 
