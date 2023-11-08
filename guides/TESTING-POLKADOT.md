@@ -131,7 +131,11 @@ When utilizing light client connections, we've observed occasional issues where,
 
 For the moment, we have not been able to deterministically reproduce and pinpoint the cause of these problems. We anticipate that these and similar issues will be resolved as light client implementations become more stable.
 
-To check the current blockchain tip, you can use the admin API, as shown below:
+In the future, our plan is to implement Prometheus monitoring, providing better insights into the server's performance and allowing for proactive issue detection and resolution.
+
+In the meantime, you can use the admin API to monitor the blockchain tip and automate a restart if the tip doesn't progress for a specified duration, like 30 minutes.
+
+To check the current blockchain tip with the admin API:
 
 ```shell
 curl --silent 'http://127.0.0.1:3000/admin/cache/tips' \
@@ -169,10 +173,6 @@ The response will include details about various chain IDs, such as block number,
 ]
 ```
 </details>
-
-You can use the admin API to monitor the blockchain tip and automate a restart if the tip doesn't progress for a specified duration, like 30 minutes.
-
-In the future, our plan is to implement Prometheus monitoring, providing better insights into the server's performance and allowing for proactive issue detection and resolution.
 
 ## Annex: Chain Specs
 
