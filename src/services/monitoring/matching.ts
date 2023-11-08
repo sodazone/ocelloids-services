@@ -72,10 +72,13 @@ export class MatchingEngine {
           ]);
 
           log.info(
-            '[%s:o] MATCHED hash=%s id=%s',
+            '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
             outMsg.chainId,
             hashKey,
-            idKey
+            idKey,
+            outMsg.subscriptionId,
+            outMsg.blockHash,
+            outMsg.blockNumber
           );
           await this.#inbound.batch()
             .del(idKey)
@@ -84,11 +87,13 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:o] STORED hash=%s id=%s (subId=%s)',
+            '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
             outMsg.chainId,
             hashKey,
             idKey,
-            outMsg.subscriptionId
+            outMsg.subscriptionId,
+            outMsg.blockHash,
+            outMsg.blockNumber
           );
           await this.#outbound.batch()
             .put(idKey, outMsg)
@@ -99,18 +104,23 @@ export class MatchingEngine {
         try {
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
-            '[%s:o] MATCHED hash=%s',
+            '[%s:o] MATCHED hash=%s (subId=%s, block=%s #%s)',
             outMsg.chainId,
-            hashKey
+            hashKey,
+            outMsg.subscriptionId,
+            outMsg.blockHash,
+            outMsg.blockNumber
           );
           await this.#inbound.del(hashKey);
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:o] STORED hash=%s (subId=%s)',
+            '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
             outMsg.chainId,
             hashKey,
-            outMsg.subscriptionId
+            outMsg.subscriptionId,
+            outMsg.blockHash,
+            outMsg.blockNumber
           );
           await this.#outbound.put(hashKey, outMsg);
         }
@@ -129,18 +139,23 @@ export class MatchingEngine {
         try {
           const outMsg = await this.#outbound.get(hashKey);
           log.info(
-            '[%s:i] MATCHED hash=%s',
+            '[%s:i] MATCHED hash=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,
-            hashKey
+            hashKey,
+            inMsg.subscriptionId,
+            inMsg.blockHash,
+            inMsg.blockNumber
           );
           await this.#outbound.del(hashKey);
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:i] STORED hash=%s (subId=%s)',
+            '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,
             hashKey,
-            inMsg.subscriptionId
+            inMsg.subscriptionId,
+            inMsg.blockHash,
+            inMsg.blockNumber
           );
           await this.#inbound.put(hashKey, inMsg);
           await this.#janitor.schedule({
@@ -155,10 +170,13 @@ export class MatchingEngine {
             this.#outbound.get(hashKey)
           ]);
           log.info(
-            '[%s:i] MATCHED hash=%s id=%s',
+            '[%s:i] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,
             hashKey,
-            idKey
+            idKey,
+            inMsg.subscriptionId,
+            inMsg.blockHash,
+            inMsg.blockNumber
           );
           await this.#outbound.batch()
             .del(idKey)
@@ -167,11 +185,13 @@ export class MatchingEngine {
           await this.#notify(outMsg, inMsg);
         } catch {
           log.info(
-            '[%s:i] STORED hash=%s id=%s (subId=%s)',
+            '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,
             hashKey,
             idKey,
-            inMsg.subscriptionId
+            inMsg.subscriptionId,
+            inMsg.blockHash,
+            inMsg.blockNumber
           );
           await this.#inbound.batch()
             .put(idKey, inMsg)
