@@ -37,7 +37,7 @@ Run the server using npx and pipe the output to stdout and a file for searching 
 npx xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
 ```
 
-:star2: Now you can proceed to [Add Subscriptions](#add-subscriptions).
+:star2: Now you can proceed to [2. Add Subscriptions](#2-add-subscriptions).
 
 ### 1.2. Docker
 

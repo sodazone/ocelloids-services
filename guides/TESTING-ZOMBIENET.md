@@ -61,7 +61,7 @@ Run the server using npx and pipe the output to stdout and a file for searching 
 npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
-:star2: Now you can proceed to [Add Subscriptions](#add-subscriptions) and [Transfer Assets](#transfer-assets).
+:star2: Now you can proceed to [3. Add Subscriptions](#3-add-subscriptions) and [4. Transfer Assets](#4-transfer-assets).
 
 ### 2.2. Docker
 
@@ -115,6 +115,9 @@ curl --location 'http://127.0.0.1:3000/subs' \
 ```
 
 ## 4. Transfer Assets
+
+> [!IMPORTANT]
+> Before transferring assets you must configure the assets as specified in [1. Set Up Zombienet](#1-set-up-zombienet).
 
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
