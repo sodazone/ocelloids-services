@@ -67,6 +67,29 @@ describe('monitoring server API', () => {
       });
     });
 
+    it('should create a wildcard subscription', done => {
+      server.inject({
+        method: 'POST',
+        url: '/subs',
+        body: {
+          id: 'wild',
+          origin: 1000,
+          senders: '*',
+          destinations: [
+            2000
+          ],
+          notify: {
+            type: 'log'
+          }
+        }
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(201);
+
+        done();
+      });
+    });
+
     it('should create a multiple subscriptions', done => {
       server.inject({
         method: 'POST',
@@ -159,6 +182,20 @@ describe('monitoring server API', () => {
           .toStrictEqual(200);
         expect(JSON.parse(response.body))
           .toEqual(testSubContent);
+
+        done();
+      });
+    });
+
+    it('should retrieve an existing wildcard subscription', done => {
+      server.inject({
+        method: 'GET',
+        url: '/subs/wild'
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(200);
+        expect(JSON.parse(response.body).senders)
+          .toEqual('*');
 
         done();
       });
@@ -425,7 +462,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           expect(response.statusCode)
             .toStrictEqual(200);
-          expect(JSON.parse(response.body).uniques.length).toBe(5);
+          expect(JSON.parse(response.body).uniques.length).toBe(6);
 
           done();
         });

@@ -253,9 +253,9 @@ export const $QuerySubscription = z.object({
   origin: z.number({
     required_error: 'origin id is required',
   }).min(0),
-  senders: z.array(z.string()).min(
+  senders: z.literal('*').or(z.array(z.string()).min(
     1, 'at least 1 sender address is required'
-  ).or(z.literal('*')),
+  )),
   destinations: z.array(z.number({
     required_error: 'destination id is required'
   }).min(0)),
