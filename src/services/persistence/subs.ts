@@ -150,6 +150,7 @@ export class SubsStore {
   ) {
     const delKeys: string[] = [];
 
+    // delete updated destinations
     source.destinations.filter(
       d => modified.destinations.indexOf(d) < 0
     ).forEach(d => {
@@ -159,15 +160,26 @@ export class SubsStore {
         );
       }
     });
-    source.senders.filter(
-      s => modified.senders.indexOf(s) < 0
-    ).forEach(s => {
-      for (const d of source.destinations) {
-        delKeys.push(
-          this.#uniquePathKey(source.origin, d, s)
-        );
+
+    // delete updated senders
+    const { senders } = source;
+
+    if (Array.isArray(senders)) { // existing []
+      const newSenders = modified.senders;
+      if (Array.isArray(newSenders)) { // new []
+        senders.filter(
+          s => newSenders.indexOf(s) < 0
+        ).forEach(s => {
+          delKeys.push(...this.#expandUniqueDestKeys(source, s));
+        });
+      } else { // new '*'
+        senders.forEach(s => {
+          delKeys.push(...this.#expandUniqueDestKeys(source, s));
+        });
       }
-    });
+    } else { // existing '*'
+      delKeys.push(...this.#expandUniqueDestKeys(source, '*'));
+    }
 
     if (delKeys.length > 0) {
       const batch = this.#uniques.batch();
@@ -183,6 +195,16 @@ export class SubsStore {
 
       await batch.write();
     }
+  }
+
+  #expandUniqueDestKeys(source: QuerySubscription, sender: string) {
+    const keys = [];
+    for (const d of source.destinations) {
+      keys.push(
+        this.#uniquePathKey(source.origin, d, sender)
+      );
+    }
+    return keys;
   }
 
   #uniquePathKey(networkId: number, destination: number, sender: string) {

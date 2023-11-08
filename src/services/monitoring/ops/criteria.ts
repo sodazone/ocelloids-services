@@ -1,9 +1,15 @@
 import { Criteria } from '@sodazone/ocelloids';
 
-export function sendersCriteria(senders: string[]) : Criteria {
-  return {
-    'extrinsic.signer.id': { $in: senders }
-  };
+export function sendersCriteria(senders: string[] | '*') : Criteria {
+  if (Array.isArray(senders)) {
+    return {
+      'extrinsic.signer.id': { $in: senders }
+    };
+  } else {
+    return {
+      'extrinsic.signer': { $exists: true }
+    };
+  }
 }
 
 export function messageCriteria(recipients: number[]) : Criteria {

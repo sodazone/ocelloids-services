@@ -255,11 +255,11 @@ export const $QuerySubscription = z.object({
   }).min(0),
   senders: z.array(z.string()).min(
     1, 'at least 1 sender address is required'
-  ),
+  ).or(z.literal('*')),
   destinations: z.array(z.number({
     required_error: 'destination id is required'
   }).min(0)),
-  notify: z.union([
+  notify: z.discriminatedUnion('type', [
     $WebhookNotification,
     $LogNotification
   ])
