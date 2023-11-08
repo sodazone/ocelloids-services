@@ -269,39 +269,55 @@ export class Switchboard {
           }
         };
 
-        // Inbound HRMP / XCMP transport
-        subs.push({
-          chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
-            .pipe(
-              extractXcmpReceive(),
-              retryWithTruncatedExpBackoff(),
-              inbound$()
-            ).subscribe(inboundHandler)
-        });
-
-        // Inbound VMP
-        // DMP
-        subs.push({
-          chainId,
-          sub:
-          this.#catcher.finalizedBlocks(chainId)
-            .pipe(
-              extractDmpReceive(),
-              retryWithTruncatedExpBackoff(),
-              inbound$()
-            ).subscribe(inboundHandler)
-        });
-        // UMP
-        subs.push({
-          chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
-            .pipe(
-              extractUmpReceive(origin),
-              retryWithTruncatedExpBackoff(),
-              inbound$()
-            ).subscribe(inboundHandler)
-        });
+        if (isRelay(this.#config, dest)) {
+          // VMP UMP
+          this.#log.info(
+            '[%s] subscribe inbound UMP (%s)',
+            chainId,
+            id
+          );
+          subs.push({
+            chainId,
+            sub: this.#catcher.finalizedBlocks(chainId)
+              .pipe(
+                extractUmpReceive(origin),
+                retryWithTruncatedExpBackoff(),
+                inbound$()
+              ).subscribe(inboundHandler)
+          });
+        } else if (isRelay(this.#config, origin)) {
+          // VMP DMP
+          this.#log.info(
+            '[%s] subscribe inbound DMP (%s)',
+            chainId,
+            id
+          );
+          subs.push({
+            chainId,
+            sub: this.#catcher.finalizedBlocks(chainId)
+              .pipe(
+                extractDmpReceive(),
+                retryWithTruncatedExpBackoff(),
+                inbound$()
+              ).subscribe(inboundHandler)
+          });
+        } else {
+          // Inbound HRMP / XCMP transport
+          this.#log.info(
+            '[%s] subscribe inbound HRMP (%s)',
+            chainId,
+            id
+          );
+          subs.push({
+            chainId,
+            sub: this.#catcher.finalizedBlocks(chainId)
+              .pipe(
+                extractXcmpReceive(),
+                retryWithTruncatedExpBackoff(),
+                inbound$()
+              ).subscribe(inboundHandler)
+          });
+        }
       }
     } catch (error) {
       // Clean up subscriptions.
@@ -351,28 +367,13 @@ export class Switchboard {
     };
 
     try {
-      // Outbound HRMP / XCMP transport
-      const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
-      subs.push({
-        chainId,
-        sub: this.#catcher.finalizedBlocks(chainId)
-          .pipe(
-            extractXcmpSend(
-              api,
-              {
-                sendersControl,
-                messageControl
-              },
-              getHrmp
-            ),
-            retryWithTruncatedExpBackoff(),
-            outbound$()
-          ).subscribe(outboundHandler)
-      });
-
-      // Outbound VMP
       if (isRelay(this.#config, origin)) {
-        // DMP
+        // VMP DMP
+        this.#log.info(
+          '[%s] subscribe outbound DMP (%s)',
+          chainId,
+          id
+        );
         subs.push({
           chainId,
           sub: this.#catcher.finalizedBlocks(chainId)
@@ -389,7 +390,36 @@ export class Switchboard {
             ).subscribe(outboundHandler)
         });
       } else {
-        // UMP
+        // Outbound HRMP / XCMP transport
+        this.#log.info(
+          '[%s] subscribe outbound HRMP (%s)',
+          chainId,
+          id
+        );
+        const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractXcmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                },
+                getHrmp
+              ),
+              retryWithTruncatedExpBackoff(),
+              outbound$()
+            ).subscribe(outboundHandler)
+        });
+
+        // VMP UMP
+        this.#log.info(
+          '[%s] subscribe outbound UMP (%s)',
+          chainId,
+          id
+        );
         const getUmp = this.#catcher.outboundUmpMessages(chainId);
         subs.push({
           chainId,
