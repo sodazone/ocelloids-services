@@ -15,7 +15,7 @@ You can check the [Postman collection](https://github.com/sodazone/xcm-monitorin
 `POST /subs`
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs' \
+curl 'http://127.0.0.1:3000/subs' \
 --data '{
     "id": "S1",
     "origin": 0,
@@ -33,7 +33,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 `GET /subs`
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs'
+curl 'http://127.0.0.1:3000/subs'
 ```
 
 **Get a Subscription**
@@ -41,7 +41,7 @@ curl --location 'http://127.0.0.1:3000/subs'
 `GET /subs/:id`
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs/S1'
+curl 'http://127.0.0.1:3000/subs/S1'
 ```
 
 **Update Subscription**
@@ -51,7 +51,7 @@ curl --location 'http://127.0.0.1:3000/subs/S1'
 The request expects an [RFC 6902 JSON patch](https://www.rfc-editor.org/rfc/rfc6902.html) payload.
 
 ```shell
-curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
+curl --request PATCH 'http://127.0.0.1:3000/subs/S1' \
 --data '[
   { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
   { "op": "add", "path": "/destinations/-", "value": 2000 },
@@ -64,5 +64,5 @@ curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
 `DELETE /subs/:id`
 
 ```shell
-curl --location --request DELETE 'http://127.0.0.1:3000/subs/S1'
+curl --request DELETE 'http://127.0.0.1:3000/subs/S1'
 ```
