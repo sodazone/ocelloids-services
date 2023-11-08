@@ -1,6 +1,6 @@
 {
   "name": "xcm-monitoring",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "description": "XCM monitoring service",
   "main": "dist/main.js",
