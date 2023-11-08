@@ -5,7 +5,6 @@ throttle = 1_000
 
   [networks.provider]
   type = "smoldot"
-  spec = "./chain-specs/polkadot.json"
 
 [[networks]]
 name = "asset_hub"

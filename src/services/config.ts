@@ -14,7 +14,7 @@ const $RpcProvider = z.object({
 
 const $SmoldotProvider = z.object({
   type: z.literal('smoldot'),
-  spec: z.string().min(1)
+  spec: z.string().min(1).optional()
 });
 
 const $NetworkProvider = z.discriminatedUnion('type', [

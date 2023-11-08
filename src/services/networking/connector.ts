@@ -100,7 +100,7 @@ export default class Connector {
     return fs.readFileSync(spec, 'utf-8');
   }
 
-  #registerSmoldotRelay(name: string, spec: string) {
+  #registerSmoldotRelay(name: string, spec?: string) {
     this.#log.info(`Register relay smoldot provider: ${name}`);
 
     const key = Object.values(Sc.WellKnownChain).find(
@@ -113,10 +113,12 @@ export default class Connector {
       this.#relays[name] = new ScProvider(
         Sc, Sc.WellKnownChain[key]
       );
-    } else {
+    } else if (spec) {
       this.#relays[name] = new ScProvider(Sc,
         this.#loadSpec(spec)
       );
+    } else {
+      throw new Error(`Spec not provided for relay chain: ${name}`);
     }
   }
 
@@ -129,8 +131,12 @@ export default class Connector {
     return conf;
   }
 
-  #registerSmoldotParachain(name: string, relay: string, spec: string) {
+  #registerSmoldotParachain(name: string, relay: string, spec?: string) {
     this.#log.info(`Register parachain smoldot provider: ${name}`);
+
+    if (!spec) {
+      throw new Error(`Spec not provided for parachain: ${name}`);
+    }
 
     // Make sure relay client is registered first
     if (this.#relays[relay] === undefined) {
