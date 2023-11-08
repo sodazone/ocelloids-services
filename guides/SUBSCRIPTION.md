@@ -2,12 +2,17 @@
 
 This API allows you to create and manage subscriptions to XCM interactions of your interest.
 
-Access the OpenAPI documentation at
-[http://{{your_host}}/documentation](http://localhost:3000/documentation).
+The OpenAPI documentation is published at [http://{{your_host}}/documentation](http://localhost:3000/documentation).
 
-The available API methods are listed below.
+Examples of request for the available API methods are listed below.
+You can check the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree/main/guides/postman) for usage examples.
 
-Create subscription:
+**Create a Subscription**
+
+> [!NOTE]
+> You can specify '*' as the value of senders to receive all the messages regardless of the sender address.
+
+`POST /subs`
 
 ```shell
 curl --location 'http://127.0.0.1:3000/subs' \
@@ -23,19 +28,27 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }'
 ```
 
-List subscriptions:
+**List Subscriptions**
+
+`GET /subs`
 
 ```shell
 curl --location 'http://127.0.0.1:3000/subs'
 ```
 
-Get subscription:
+**Get a Subscription**
+
+`GET /subs/:id`
 
 ```shell
 curl --location 'http://127.0.0.1:3000/subs/S1'
 ```
 
-Update subscription:
+**Update Subscription**
+
+`PATCH /subs/:id`
+
+The request expects an [RFC 6902 JSON patch](https://www.rfc-editor.org/rfc/rfc6902.html) payload.
 
 ```shell
 curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
@@ -46,7 +59,9 @@ curl --location --request PATCH 'http://127.0.0.1:3000/subs/S1' \
 ]'
 ```
 
-Delete subscription:
+**Delete Subscription**
+
+`DELETE /subs/:id`
 
 ```shell
 curl --location --request DELETE 'http://127.0.0.1:3000/subs/S1'

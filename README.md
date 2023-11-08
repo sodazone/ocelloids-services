@@ -137,6 +137,8 @@ Explore the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree
 
 The subscription HTTP API allows you to create and manage subscriptions to XCM interactions of your interest.
 
+The OpenAPI documentation is published at [http://{{your_host}}/documentation](http://localhost:3000/documentation).
+
 Fore more details, refer to [Subscription HTTP API Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/SUBSCRIPTION.md)
 
 ### Administration API
