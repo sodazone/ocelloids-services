@@ -1,13 +1,13 @@
 # Polkadot Testing Guide
 
-This guide provides instructions for testing the XCM Monitoring Server on Polkadot and some parachains.
+This guide provides detailed instructions for testing the XCM Monitoring Server on Polkadot and several parachains.
 
 ## 1. Running the Server
 
 > [!NOTE]
-> If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
+> If you're using light clients, you will only start receiving new or finalized blocks when warp sync is complete.
 
-You can run the server either from command line or with Docker.
+You have two options for running the server: through the command line or using Docker.
 
 ### 1.1. Command Line
 
@@ -27,11 +27,11 @@ Install and build the project:
 npm i && npm run build
 ```
 
-Create the configuration file for your network, you can just use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
+Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
 
-Download the chain specs required for the chains using light client as shown in [Annex: Chain Specs](#annex-chain-specs).
+Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs).
 
-Run the server using npx and pipe the output to stdout and a file for searching in later:
+Run the server using `npx` and pipe the output to both stdout and a file for future searching:
 
 ```shell
 npx xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
@@ -55,11 +55,11 @@ Or build locally:
 docker build . -t xcm-monitoring:develop
 ```
 
-Download the chain specs required for the chains using light client as shown in [Annex: Chain Specs](#annex-chain-specs) into a directory to be mounted later.
+Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs). Store them in a directory to be mounted later.
 
-Create the configuration file for your network, you can just use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
+Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
 
-Run the image mounting the configuration and chain specs as volumes:
+Run the Docker image, mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
@@ -74,7 +74,7 @@ docker run -d \
 
 Use the subscription API to subscribe to cross-chain messages.
 
-You can monitor for transfers done by any account from Asset Hub to Polkadot Relay, Acala, Astar or Moonbeam with the following request:
+To monitor transfers from any account in Asset Hub to Polkadot Relay, Acala, Astar, or Moonbeam, use the following request:
 
 ```shell
 curl --location 'http://127.0.0.1:3000/subs' \
@@ -90,7 +90,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }]'
 ```
 
-The above request will log the notifications in the console. If you want to test with a webhook endpoint, simply configure the parameter `notify` to point to your endpoint.
+This request will log the notifications in the console. If you want to test with a webhook endpoint, simply configure the `notify` parameter to point to your endpoint.
 
 In the example below we are using [https://webhook.site](https://webhook.site) as a webhook testing service.
 
@@ -111,9 +111,9 @@ curl --location 'http://127.0.0.1:3000/subs' \
 
 ## 3. Watch for Notifications
 
-When eventually a cross-chain transfer is  made, you should receive a notification.
+Once a cross-chain transfer is made, you should receive a notification.
 
-If you are using notify type=`log`, you can search in the log file using grep:
+If you are using notify type=`log`, you can search in the log file using `grep`:
 
 ```shell
 grep -E "STORED|MATCHED|NOTIFICATION" /tmp/xcm.log
