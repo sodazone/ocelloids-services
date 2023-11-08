@@ -2,7 +2,7 @@
 
 This API allows you to create and manage subscriptions to XCM interactions of your interest.
 
-The OpenAPI documentation is published at [http://{{your_host}}/documentation](http://localhost:3000/documentation).
+The OpenAPI documentation is published at the path [/documentation](http://localhost:3000/documentation) in your running server.
 
 Examples of request for the available API methods are listed below.
 You can check the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree/main/guides/postman) for usage examples.

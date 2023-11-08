@@ -137,7 +137,7 @@ Explore the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree
 
 The subscription HTTP API allows you to create and manage subscriptions to XCM interactions of your interest.
 
-The OpenAPI documentation is published at [http://{{your_host}}/documentation](http://localhost:3000/documentation).
+The OpenAPI documentation is published at the path [/documentation](http://localhost:3000/documentation) in your running server.
 
 Fore more details, refer to [Subscription HTTP API Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/SUBSCRIPTION.md)
 
@@ -149,8 +149,7 @@ For more details, refer to our [Administration Guide](https://github.com/sodazon
 
 ### Healthcheck
 
-The server exposes a healthchek endpoint at
-[http://{{your_host}}/health](http://localhost:3000/health).
+The server exposes a healthchek endpoint at [/health](http://localhost:3000/health).
 
 ## Testing
 
