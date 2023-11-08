@@ -34,7 +34,7 @@ The configuration values can be overridden using command line arguments.
 | XCMON_DB_JANITOR_SWEEP_EXPIRY | Milliseconds before a task is swept.           | 1500000   |
 | XCMON_CLOSE_GRACE_DELAY       | Milliseconds for the graceful close to finish. | 500       |
 | XCMON_SECRET                  | Secret passphrase for administration auth.     | -         |
-| XCMON_MAX_BLOCK_DIST          | Maximum distance in blocks for the catch-up.   | 50       |
+| XCMON_MAX_BLOCK_DIST          | Maximum distance in blocks for the catch-up.   | 50        |
 
 ### Network Configuration
 
