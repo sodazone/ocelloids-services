@@ -24,7 +24,7 @@ throttle = 1_000
 
   [networks.provider]
   type = "smoldot"
-  spec = "./chain-specs/polkadot-acala.json"
+  spec = "./chain-specs/acala.json"
 
 [[networks]]
 name = "astar"
@@ -34,7 +34,7 @@ throttle = 1_000
 
   [networks.provider]
   type = "smoldot"
-  spec = "./chain-specs/polkadot-astar.json"
+  spec = "./chain-specs/astar.json"
 
 [[networks]]
 name = "moonbeam"
