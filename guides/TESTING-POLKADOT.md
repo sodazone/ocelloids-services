@@ -2,7 +2,9 @@
 
 This guide provides instructions for testing the XCM Monitoring Server on Polkadot and some parachains.
 
-## Running from Command Line
+## Running the Server
+
+### Command Line
 
 Clone the project repository:
 

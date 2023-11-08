@@ -22,7 +22,7 @@ Follow the instructions in the same project to [set up the test assets](https://
 
 At this point you should have running a Zombienet with the default testing configuration: Rococo local relay chain, Asset Hub local parachain and Shibuya local parachain, and you should have configured the assets and sovereign accounts required for testing XCM transfers.
 
-## Running the XCM Monitoring Server
+## Running the Server
 
 > [!IMPORTANT]
 > If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
