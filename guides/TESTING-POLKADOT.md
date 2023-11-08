@@ -132,9 +132,6 @@ tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 mkdir -p ./chain-specs
 
 # Download chain specs
-curl -o ./chain-specs/polkadot.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/polkadot.json
-
 curl -o ./chain-specs/acala.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/acala.json
-
 curl -o ./chain-specs/astar.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/astar.json
 ```
