@@ -2,7 +2,7 @@
 
 This guide provides instructions for testing the XCM Monitoring Server on a Zombienet.
 
-## Set Up Zombienet
+## 1. Set Up Zombienet
 
 We have a separate project repository called [XCM Testing Tools](https://github.com/sodazone/xcm-testing-tools) to assist with setting up a Zombienet ready for cross-chain asset transfers.
 
@@ -22,7 +22,7 @@ Follow the instructions in the same project to [set up the test assets](https://
 
 At this point you should have running a Zombienet with the default testing configuration: Rococo local relay chain, Asset Hub local parachain and Shibuya local parachain, and you should have configured the assets and sovereign accounts required for testing XCM transfers.
 
-## Running the Server
+## 2. Running the Server
 
 > [!IMPORTANT]
 > If any parachain is configured to use smoldot, the relay chain will also need to be configured with smoldot, as the smoldot client requires access to the relay chain to check for para-block inclusion and finality.
@@ -33,7 +33,7 @@ At this point you should have running a Zombienet with the default testing confi
 
 You can run the server either from command line or with Docker.
 
-### Command Line
+### 2.1. Command Line
 
 In a separate terminal, clone the project repository:
 
@@ -63,7 +63,7 @@ npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 
 :star2: Now you can proceed to [Add Subscriptions](#add-subscriptions) and [Transfer Assets](#transfer-assets).
 
-### Docker
+### 2.2. Docker
 
 Alternatively you can run the server using Docker.
 
@@ -94,7 +94,7 @@ docker run -d \
   sodazone/xcm-monitoring
 ```
 
-## Add Subscriptions
+## 3. Add Subscriptions
 
 Use the subscription API to subscribe to cross-chain messages.
 
@@ -114,7 +114,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }]'
 ```
 
-## Transfer Assets
+## 4. Transfer Assets
 
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
@@ -150,7 +150,7 @@ tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 > [!NOTE]
 > Connecting with light clients may result in a slightly longer wait for finalized blocks compared to RPC connections. Consequently, you might notice a short delay in notifications when using light clients.
 
-## Update the Notification Method
+## 5. Update the Notification Method
 
 The subscription API allows you to update your notification method. In this example, we will update the notification from type `log` to type `webhook`.
 
@@ -313,7 +313,7 @@ Now, if you make another transfer, the notification should be delivered to your 
 ```
 </details>
 
-## Update Senders and Destinations
+## 6. Update Senders and Destinations
 
 You can easily modify the list of senders and destinations through the subscription API using a JSON PATCH request. The monitor dynamically adjusts its matching criteria to incorporate these changes.
 

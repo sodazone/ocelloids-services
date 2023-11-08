@@ -2,14 +2,14 @@
 
 This guide provides instructions for testing the XCM Monitoring Server on Polkadot and some parachains.
 
-## Running the Server
+## 1. Running the Server
 
 > [!NOTE]
 > If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
 
 You can run the server either from command line or with Docker.
 
-### Command Line
+### 1.1. Command Line
 
 Clone the project repository:
 
@@ -39,7 +39,7 @@ npx xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
 
 :star2: Now you can proceed to [Add Subscriptions](#add-subscriptions).
 
-### Docker
+### 1.2. Docker
 
 Alternatively you can run the server using Docker.
 
@@ -70,7 +70,7 @@ docker run -d \
   sodazone/xcm-monitoring
 ```
 
-## Add Subscriptions
+## 2. Add Subscriptions
 
 Use the subscription API to subscribe to cross-chain messages.
 
@@ -109,7 +109,7 @@ curl --location 'http://127.0.0.1:3000/subs' \
 }]'
 ```
 
-## Watch for Notifications
+## 3. Watch for Notifications
 
 When eventually a cross-chain transfer is  made, you should receive a notification.
 
