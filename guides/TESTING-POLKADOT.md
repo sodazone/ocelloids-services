@@ -1,6 +1,6 @@
 # Polkadot Testing Guide
 
-This guide provides instructions for testing the XCM Monitoring Server on Polkadot and its parachains.
+This guide provides instructions for testing the XCM Monitoring Server on Polkadot and some parachains.
 
 ## Running from Command Line
 
