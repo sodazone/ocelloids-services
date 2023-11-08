@@ -31,6 +31,7 @@ At this point you should have running a Zombienet with the default testing confi
 > [!NOTE]
 > If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
 
+You can run the server either from command line or with Docker.
 
 ### Command Line
 

@@ -4,6 +4,11 @@ This guide provides instructions for testing the XCM Monitoring Server on Polkad
 
 ## Running the Server
 
+> [!NOTE]
+> If you're using light clients, you will only start receiving new or finalized blocks when warp sync is finished.
+
+You can run the server either from command line or with Docker.
+
 ### Command Line
 
 Clone the project repository:
