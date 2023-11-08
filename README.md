@@ -42,11 +42,11 @@ To configure network connections, you need to provide a configuration file in TO
 
 | Field    | Description                                                                                        | Optional   |
 | ---------| -------------------------------------------------------------------------------------------------- | ---------- |
-| name     | The name of the network.                                                                           | No      |
-| id       | The ID of the network.                                                                             | No      |
-| relay    | For parachains, the name of the relay chain it connects to.                                        | Yes       |
-| throttle | The throttle interval, in milliseconds, for requesting historic headers during chain tip catch-up. | Yes       |
-| provider | Provider configuration, detailed below.                                                            | No      |
+| name     | The name of the network.                                                                           | No         |
+| id       | The ID of the network.                                                                             | No         |
+| relay    | For parachains, the name of the relay chain it connects to.                                        | Yes        |
+| throttle | The throttle interval, in milliseconds, for requesting historic headers during chain tip catch-up. | Yes        |
+| provider | Provider configuration, detailed below.                                                            | No         |
 
 Provider configuration fields:
 
@@ -54,7 +54,7 @@ Provider configuration fields:
 | ---------| --------------------------------------------------- |
 | type     | Network type, either `rpc` or `smoldot`.            |
 | url      | WebSocket endpoint URL, applicable when type=`rpc`. |
-| spec     | Path to the chain specs, used when type=`smoldot`.  |
+| spec     | Path to the chain specs, used when type=`smoldot`. Required when **not** using [well-known chain](https://github.com/paritytech/substrate-connect/blob/main/packages/connect/src/WellKnownChain.ts) names. |
 
 Example configurations are available in the `config/` directory of this repository for reference.
 
