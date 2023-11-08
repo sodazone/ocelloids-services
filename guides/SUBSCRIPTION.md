@@ -51,7 +51,7 @@ curl 'http://127.0.0.1:3000/subs/S1'
 The request expects an [RFC 6902 JSON patch](https://www.rfc-editor.org/rfc/rfc6902.html) payload.
 
 ```shell
-curl --request PATCH 'http://127.0.0.1:3000/subs/S1' \
+curl -X PATCH 'http://127.0.0.1:3000/subs/S1' \
 --data '[
   { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
   { "op": "add", "path": "/destinations/-", "value": 2000 },
@@ -64,5 +64,5 @@ curl --request PATCH 'http://127.0.0.1:3000/subs/S1' \
 `DELETE /subs/:id`
 
 ```shell
-curl --request DELETE 'http://127.0.0.1:3000/subs/S1'
+curl -X DELETE 'http://127.0.0.1:3000/subs/S1'
 ```

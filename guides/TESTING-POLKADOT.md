@@ -77,7 +77,7 @@ Use the subscription API to subscribe to cross-chain messages.
 To monitor transfers from any account in Asset Hub to Polkadot Relay, Acala, Astar, or Moonbeam, use the following request:
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs' \
+curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "asset-hub-transfers",
@@ -95,7 +95,7 @@ This request will log the notifications in the console. If you want to test with
 In the example below we are using [https://webhook.site](https://webhook.site) as a webhook testing service.
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs' \
+curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "acala-transfers",

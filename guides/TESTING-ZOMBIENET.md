@@ -101,7 +101,7 @@ Use the subscription API to subscribe to cross-chain messages.
 Below is an example request to subscribe to cross-chain messages between parachain 1000 and either relay chain or parachain 2000, sent from `//Alice` or `//Bob` account. The notification type is set to `log` to view notifications in the console:
 
 ```shell
-curl --location 'http://127.0.0.1:3000/subs' \
+curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "asset-hub-transfers",
@@ -162,7 +162,7 @@ You can use any webhook testing service, in the example below we are using [http
 Example request:
 
 ```shell
-curl --location --request PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
+curl -X PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
 --header 'Content-Type: application/json' \
 --data '[
   { "op": "replace", "path": "/notify", "value": {
@@ -323,7 +323,7 @@ You can easily modify the list of senders and destinations through the subscript
 For instance, to add Ferdie and remove Alice from the list of senders being monitored, use the following request:
 
 ```shell
-curl --location --request PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
+curl -X PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
 --header 'Content-Type: application/json' \
 --data '[
   { "op": "add", "path": "/senders/-", "value": "DE14BzQ1bDXWPKeLoAqdLAm1GpyAWaWF1knF74cEZeomTBM"},
