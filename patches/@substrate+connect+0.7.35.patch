@@ -1,8 +1,8 @@
 diff --git a/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js b/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
-index 5bd8ebb..e1e1fc9 100644
+index 059adb6..2b61b5a 100644
 --- a/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
 +++ b/node_modules/@substrate/connect/dist/mjs/connector/smoldot-light.js
-@@ -40,8 +40,8 @@ const getClientAndIncRef = (config) => {
+@@ -44,8 +44,8 @@ const getClientAndIncRef = (config) => {
      }
      const clientOptions = {
          portToWorker,
