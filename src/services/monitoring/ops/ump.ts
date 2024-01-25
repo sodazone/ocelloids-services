@@ -4,13 +4,12 @@ import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { EventRecord } from '@polkadot/types/interfaces';
-import type { VersionedXcm } from '@polkadot/types/interfaces/xcm';
 import { ApiPromise } from '@polkadot/api';
 
 import {
   ControlQuery,
-  extractEventsWithTx, extractTxWithEvents, filterNonNull,
-  flattenBatch, mongoFilter, types
+  filterEvents, filterNonNull,
+  mongoFilter, types
 } from '@sodazone/ocelloids';
 
 import {
@@ -21,7 +20,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
-import { getMessageId } from './util.js';
+import { asVersionedXcm, getMessageId } from './util.js';
 
 type EventRecordWithContext = {
   record: EventRecord,
@@ -98,9 +97,7 @@ function findOutboundUmpMessage(
           map(messages =>  {
             return messages
               .map(data => {
-                const xcmProgram : VersionedXcm = api.registry.createType(
-                  'XcmVersionedXcm', data
-                );
+                const xcmProgram = asVersionedXcm(api, data);
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data,
@@ -131,14 +128,17 @@ export function extractUmpSend(
   return (source: Observable<SignedBlockExtended>)
       : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
+      filterEvents(
+        {
+          'section': 'parachainSystem',
+          'method': 'UpwardMessageSent'
+        },
+        // TODO should pass combined sendersControl + dispatchError criteria here
+        {
+          'dispatchError': { $eq: undefined }
+        }
+      ),
       mongoFilter(sendersControl),
-      extractEventsWithTx(),
-      mongoFilter({
-        'section': 'parachainSystem',
-        'method': 'UpwardMessageSent'
-      }),
       umpMessagesSent(),
       findOutboundUmpMessage(
         api,

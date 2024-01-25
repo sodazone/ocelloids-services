@@ -7,8 +7,10 @@ import type { Outcome, VersionedMultiLocation, VersionedMultiAssets, VersionedXc
 import { ApiPromise } from '@polkadot/api';
 
 import {
-  extractEventsWithTx, extractTxWithEvents, filterNonNull,
-  flattenBatch, mongoFilter, retryWithTruncatedExpBackoff, types
+  filterEvents,
+  filterExtrinsics,
+  filterNonNull,
+  mongoFilter, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
 import {
@@ -17,7 +19,7 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
-import { getMessageId } from './util.js';
+import { asVersionedXcm, getMessageId } from './util.js';
 
 /*
  ==================================================================================
@@ -81,9 +83,7 @@ function createXcmMessageSent(
   data: Bytes,
   tx: types.TxWithIdAndEvent
 }) : GenericXcmMessageSentWithContext {
-  const xcmProgram : VersionedXcm = api.registry.createType(
-    'XcmVersionedXcm', data
-  );
+  const xcmProgram = asVersionedXcm(api, data);
   const blockHash = extrinsic.blockHash.toHex();
   const blockNumber = extrinsic.blockNumber.toString();
   return new GenericXcmMessageSentWithContext({
@@ -143,9 +143,7 @@ function findDmpMessages(api: ApiPromise) {
               // XXX Temporary matching heuristics until DMP message
               // sent event is implemented.
               const filteredMessages = messages.filter(message => {
-                const xcmProgram : VersionedXcm = api.registry.createType(
-                  'XcmVersionedXcm', message.msg
-                );
+                const xcmProgram = asVersionedXcm(api, message.msg);
                 return matchInstructions(
                   xcmProgram,
                   assets,
@@ -190,9 +188,7 @@ export function extractDmpSend(
   return (source: Observable<SignedBlockExtended>)
       : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
-      mongoFilter({
+      filterExtrinsics({
         'extrinsic.call.section': 'xcmPallet',
         'extrinsic.call.method': { $in: [
           'limitedReserveTransferAssets',
@@ -223,10 +219,6 @@ function mapDmpQueueMessage() {
   return (source: Observable<types.EventWithIdAndTx>):
       Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
-      mongoFilter({
-        'section': 'dmpQueue',
-        'method': 'ExecutedDownward'
-      }),
       map(event => {
         const xcmMessage = event.data as any;
         const outcome = xcmMessage.outcome as Outcome;
@@ -253,9 +245,10 @@ export function extractDmpReceive() {
   return (source: Observable<SignedBlockExtended>)
       : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
-      extractEventsWithTx(),
+      filterEvents({
+        'section': 'dmpQueue',
+        'method': 'ExecutedDownward'
+      }),
       mapDmpQueueMessage()
     ));
   };

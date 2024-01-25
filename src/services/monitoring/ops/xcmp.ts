@@ -2,13 +2,13 @@ import type { } from '@polkadot/api-augment';
 
 import { map, Observable, mergeMap } from 'rxjs';
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import { ApiPromise } from '@polkadot/api';
+import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 
 import {
   ControlQuery,
-  extractEventsWithTx, extractTxWithEvents, filterNonNull,
-  flattenBatch, mongoFilter, types
+  filterEvents, filterNonNull,
+  mongoFilter, types
 } from '@sodazone/ocelloids';
 
 import {
@@ -17,6 +17,7 @@ import {
   XcmMessageSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
+import { asVersionedXcm } from './util.js';
 
 function findOutboundHrmpMessage(
   api: ApiPromise,
@@ -33,9 +34,7 @@ function findOutboundHrmpMessage(
             return messages
               .map(msg => {
                 const {data, recipient} = msg;
-                const xcmProgram = api.registry.createType(
-                  'XcmVersionedXcm', data.slice(1)
-                );
+                const xcmProgram = asVersionedXcm(api, data);
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data,
@@ -84,14 +83,17 @@ export function extractXcmpSend(
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
+      filterEvents(
+        {
+          'section': 'xcmpQueue',
+          'method': 'XcmpMessageSent'
+        },
+        // only pass successful extrinsics
+        {
+          'dispatchError': { $eq: undefined }
+        }
+      ),
       mongoFilter(sendersControl),
-      extractEventsWithTx(),
-      mongoFilter({
-        'section': 'xcmpQueue',
-        'method': 'XcmpMessageSent'
-      }),
       xcmpMessagesSent(),
       findOutboundHrmpMessage(api, messageControl, getOutboundHrmpMessages),
     );
@@ -102,10 +104,6 @@ function mapXcmpQueueMessage() {
   return (source: Observable<types.EventWithIdAndTx>):
   Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
-      mongoFilter({
-        'section': 'xcmpQueue',
-        'method': { $in: ['Success', 'Fail'] }
-      }),
       map(event => {
         if (event.method === 'Success') {
           const xcmMessage = event.data as any;
@@ -144,9 +142,13 @@ export function extractXcmpReceive() {
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
-      extractTxWithEvents(),
-      flattenBatch(),
-      extractEventsWithTx(),
+      filterEvents(
+        // event filter criteria
+        {
+          'section': 'xcmpQueue',
+          'method': { $in: ['Success', 'Fail'] }
+        }
+      ),
       mapXcmpQueueMessage()
     ));
   };
