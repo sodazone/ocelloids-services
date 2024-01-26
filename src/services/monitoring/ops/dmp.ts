@@ -189,6 +189,7 @@ export function extractDmpSend(
       : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       filterExtrinsics({
+        'dispatchError': { $eq: undefined },
         'extrinsic.call.section': 'xcmPallet',
         'extrinsic.call.method': { $in: [
           'limitedReserveTransferAssets',
