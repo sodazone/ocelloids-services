@@ -129,11 +129,14 @@ export function extractUmpSend(
       : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       filterEvents(
+        // events filter criteria
         {
           'section': 'parachainSystem',
           'method': 'UpwardMessageSent'
         },
-        // TODO should pass combined sendersControl + dispatchError criteria here
+        // extrinsics filter criteria
+        // NOTE: we are not flattening extrinsics here
+        // since we are filtering by events
         {
           'dispatchError': { $eq: undefined }
         }

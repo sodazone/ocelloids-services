@@ -84,11 +84,14 @@ export function extractXcmpSend(
   : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       filterEvents(
+        // events filter criteria
         {
           'section': 'xcmpQueue',
           'method': 'XcmpMessageSent'
         },
-        // only pass successful extrinsics
+        // extrinsics filter criteria
+        // NOTE: we are not flattening extrinsics here
+        // since we are filtering by events
         {
           'dispatchError': { $eq: undefined }
         }
