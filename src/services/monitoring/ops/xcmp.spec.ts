@@ -38,7 +38,7 @@ describe('xcmp operator', () => {
           expect(msg.recipient).toBeDefined();
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -65,7 +65,7 @@ describe('xcmp operator', () => {
           expect(msg.outcome).toBe('Success');
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -91,7 +91,7 @@ describe('xcmp operator', () => {
           expect(msg.error).toBeDefined();
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });

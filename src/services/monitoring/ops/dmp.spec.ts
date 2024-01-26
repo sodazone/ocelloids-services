@@ -35,7 +35,7 @@ describe('dmp operator', () => {
           expect(msg.recipient).toBeDefined();
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -71,7 +71,7 @@ describe('dmp operator', () => {
           expect(msg.recipient).toBeDefined();
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -98,7 +98,7 @@ describe('dmp operator', () => {
           expect(msg.outcome).toBe('Success');
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -125,7 +125,7 @@ describe('dmp operator', () => {
           expect(msg.error).toBe('UntrustedReserveLocation');
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });

@@ -95,6 +95,6 @@ describe('scheduler service', () => {
 
     await scheduler.stop();
 
-    expect(ok).toBeCalledTimes(2);
+    expect(ok).toHaveBeenCalledTimes(2);
   });
 });

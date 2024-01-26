@@ -112,7 +112,7 @@ describe('switchboard service', () => {
 
     await switchboard.stop();
 
-    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should subscribe to persisted subscriptions on start', async () => {

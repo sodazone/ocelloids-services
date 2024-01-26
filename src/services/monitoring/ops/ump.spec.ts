@@ -38,7 +38,7 @@ describe('ump operator', () => {
           expect(msg.recipient).toBeDefined();
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -65,7 +65,7 @@ describe('ump operator', () => {
           expect(msg.outcome).toBe('Success');
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
@@ -90,7 +90,7 @@ describe('ump operator', () => {
           expect(msg.outcome).toBe('Fail');
         },
         complete: () => {
-          expect(calls).toBeCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });

@@ -248,7 +248,7 @@ describe('head catcher', () => {
 
           catcher.finalizedBlocks('0').subscribe({
             complete: async () => {
-              expect(janitorSpy).toBeCalledTimes(3);
+              expect(janitorSpy).toHaveBeenCalledTimes(3);
               catcher.stop();
               done();
             }
@@ -350,7 +350,7 @@ describe('head catcher', () => {
               cb[0]();
             },
             complete: async () => {
-              expect(cb[0]).toBeCalledTimes(20);
+              expect(cb[0]).toHaveBeenCalledTimes(20);
 
               completes++;
               if (completes === 2) {
@@ -365,7 +365,7 @@ describe('head catcher', () => {
               cb[1]();
             },
             complete: async () => {
-              expect(cb[1]).toBeCalledTimes(20);
+              expect(cb[1]).toHaveBeenCalledTimes(20);
 
               completes++;
               if (completes === 2) {
@@ -442,7 +442,7 @@ describe('head catcher', () => {
             .outboundUmpMessages('2032')(hash)
             .subscribe({
               complete: () => {
-                expect(mockRegistry.createType).toBeCalledTimes(1);
+                expect(mockRegistry.createType).toHaveBeenCalledTimes(1);
                 done();
               }
             });
@@ -487,7 +487,7 @@ describe('head catcher', () => {
         .outboundUmpMessages('1000')('0x4B1D')
         .subscribe({
           complete: () => {
-            expect(mockUpwardMessagesQuery).toBeCalledTimes(1);
+            expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1);
             done();
           }
         });
@@ -557,7 +557,7 @@ describe('head catcher', () => {
             .outboundHrmpMessages('2032')(hash)
             .subscribe({
               complete: () => {
-                expect(mockRegistry.createType).toBeCalledTimes(1);
+                expect(mockRegistry.createType).toHaveBeenCalledTimes(1);
                 done();
               }
             });
@@ -602,7 +602,7 @@ describe('head catcher', () => {
         .outboundHrmpMessages('1000')('0x4B1D')
         .subscribe({
           complete: () => {
-            expect(mockHrmpOutboundMessagesQuery).toBeCalledTimes(1);
+            expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1);
             done();
           }
         });

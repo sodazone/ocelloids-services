@@ -55,7 +55,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(outboundMessage);
     await engine.onInboundMessage(inboundMessage);
 
-    expect(cb).toBeCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 
   it('should match outbound and inbound', async () => {
@@ -65,7 +65,7 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(inboundMessage);
     await engine.onOutboundMessage(outboundMessage);
 
-    expect(cb).toBeCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 
   it('should work async concurrently', async () => {
@@ -77,6 +77,6 @@ describe('message matching engine', () => {
       engine.onInboundMessage(inboundMessage)
     ]);
 
-    expect(cb).toBeCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 });

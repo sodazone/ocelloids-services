@@ -85,7 +85,7 @@ describe('connector', () => {
 
       const disconnectSpy = jest.spyOn(apis, 'disconnect');
       connector.disconnect();
-      expect(disconnectSpy).toBeCalledTimes(1);
+      expect(disconnectSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
