@@ -3,7 +3,7 @@ import z from 'zod';
 import { Subscription, Observable } from 'rxjs';
 
 import type { AnyJson } from '@polkadot/types-codec/types';
-import type { Bytes, Vec } from '@polkadot/types';
+import type { Vec, Bytes } from '@polkadot/types';
 import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 
 import { ControlQuery } from '@sodazone/ocelloids';
@@ -24,6 +24,10 @@ export const $SafeId = z.string({
 
 export type HexString = `0x${string}`;
 
+function toHexString(buf: Uint8Array) : HexString {
+  return `0x${Buffer.from(buf).toString('hex')}`;
+}
+
 export type XcmCriteria = {
   sendersControl: ControlQuery,
   messageControl: ControlQuery
@@ -32,14 +36,14 @@ export type XcmCriteria = {
 export type XcmMessageWithContext = {
   event: AnyJson,
   extrinsicId?: string,
-  blockNumber: string,
+  blockNumber: string | number,
   blockHash: HexString,
   messageHash: HexString,
   messageId?: HexString
 }
 
 export interface XcmMessageSentWithContext extends XcmMessageWithContext {
-  messageData: Bytes,
+  messageData: Uint8Array,
   recipient: number,
   sender: AnyJson,
   instructions: AnyJson,
@@ -67,7 +71,7 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
     this.outcome = msg.outcome;
     this.error = msg.error;
     this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber;
+    this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
   }
 
@@ -110,13 +114,13 @@ export class XcmMessageReceived {
     this.outcome = msg.outcome;
     this.error = msg.error;
     this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber;
+    this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
   }
 }
 
 export class GenericXcmMessageSentWithContext implements XcmMessageSentWithContext {
-  messageData: Bytes;
+  messageData: Uint8Array;
   recipient: number;
   instructions: AnyJson;
   messageHash: HexString;
@@ -134,7 +138,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
     this.instructions = msg.instructions;
     this.messageHash = msg.messageHash;
     this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber;
+    this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
     this.messageId = msg.messageId;
     this.sender = msg.sender;
@@ -142,7 +146,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
     return {
-      messageData: this.messageData.toHex(),
+      messageData: toHexString(this.messageData),
       recipient: this.recipient,
       instructions: this.instructions,
       messageHash: this.messageHash,
@@ -178,13 +182,13 @@ export class XcmMessageSent {
     this.chainId = chainId;
     this.subscriptionId = subscriptionId;
     this.event = msg.event;
-    this.messageData = msg.messageData.toHex();
+    this.messageData = toHexString(msg.messageData);
     this.recipient = msg.recipient;
     this.instructions = msg.instructions;
     this.messageHash = msg.messageHash;
     this.messageId = msg.messageId;
     this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber;
+    this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
     this.sender = msg.sender;
   }

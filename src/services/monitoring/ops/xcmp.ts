@@ -38,7 +38,7 @@ function findOutboundHrmpMessage(
                 return xcms.map(xcmProgram =>
                   new GenericXcmMessageSentWithContext({
                     ...sentMsg,
-                    messageData: data,
+                    messageData: xcmProgram.toU8a(),
                     recipient: recipient.toNumber(),
                     messageHash: xcmProgram.hash.toHex(),
                     instructions: xcmProgram.toHuman(),
@@ -65,7 +65,7 @@ function xcmpMessagesSent() {
           event: event.toHuman(),
           sender: event.extrinsic.signer.toHuman(),
           blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toString(),
+          blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash.toHex()
         } as XcmMessageSentWithContext;
@@ -114,7 +114,7 @@ function mapXcmpQueueMessage() {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
+            blockNumber: event.blockNumber.toPrimitive(),
             extrinsicId: event.extrinsicId,
             messageHash: xcmMessage.messageHash.toHex(),
             outcome: event.method,
@@ -126,7 +126,7 @@ function mapXcmpQueueMessage() {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toString(),
+            blockNumber: event.blockNumber.toPrimitive(),
             extrinsicId: event.extrinsicId,
             messageHash: xcmMessage.messageHash.toHex(),
             outcome: event.method,

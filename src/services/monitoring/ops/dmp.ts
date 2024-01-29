@@ -85,14 +85,14 @@ function createXcmMessageSent(
 }) : GenericXcmMessageSentWithContext {
   const xcmProgram = asVersionedXcm(data);
   const blockHash = extrinsic.blockHash.toHex();
-  const blockNumber = extrinsic.blockNumber.toString();
+  const blockNumber = extrinsic.blockNumber.toPrimitive();
   return new GenericXcmMessageSentWithContext({
     blockHash,
     blockNumber,
     event: {},
     recipient: paraId,
     instructions: xcmProgram.toHuman(),
-    messageData: data,
+    messageData: data.toU8a(),
     messageHash: xcmProgram.hash.toHex(),
     messageId: getMessageId(xcmProgram),
     sender: extrinsic.signer.toHuman()
@@ -114,7 +114,7 @@ function findDmpMessages(api: ApiPromise) {
         if (paraIdStr) {
           return {
             tx,
-            paraId: parseInt(paraIdStr.replace(/,/g, '')),
+            paraId: parseInt(paraIdStr.replaceAll(',', '')),
             beneficiary,
             assets
           };
@@ -227,7 +227,7 @@ function mapDmpQueueMessage() {
         return new GenericXcmMessageReceivedWithContext({
           event: event.toHuman(),
           blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toString(),
+          blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
           messageHash,
           messageId,

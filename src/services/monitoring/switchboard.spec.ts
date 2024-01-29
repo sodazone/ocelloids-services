@@ -58,9 +58,7 @@ describe('switchboard service', () => {
           blockNumber: 1,
           blockHash: '0x0',
           messageHash: '0x0',
-          messageData: {
-            toHex: () => '0x0'
-          }
+          messageData: new Uint8Array([0x00])
         } as unknown as XcmMessageSentWithContext);
       };
     });
@@ -146,7 +144,7 @@ describe('switchboard service', () => {
 
     await expect(async () => {
       await switchboard.subscribe(testSub);
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
 
     expect(switchboard.getSubscriptionHandler(testSub.id)).not.toBeDefined();
 
@@ -198,7 +196,9 @@ describe('switchboard service', () => {
 
     await switchboard.updateSubscription(newSub);
     await switchboard.updateDestinations(newSub.id);
-    const { destinationSubs: newDestinationSubs } = switchboard.getSubscriptionHandler(testSub.id);
+    const {
+      destinationSubs: newDestinationSubs
+    } = switchboard.getSubscriptionHandler(testSub.id);
     expect(newDestinationSubs.length).toBe(2);
     expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);

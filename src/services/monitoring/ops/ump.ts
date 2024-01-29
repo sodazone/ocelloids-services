@@ -43,10 +43,10 @@ function mapUmpQueueMessage(origin: number) {
         const messageId = xcmMessage.id.toHex();
         const messageHash = messageId;
         const messageOrigin = xcmMessage.origin.toHuman();
-        const originId = messageOrigin?.Ump?.Para?.replace(/,/g, '');
+        const originId = messageOrigin?.Ump?.Para?.replaceAll(',', '');
         // If we can get origin ID, only return message if origin matches with subscription origin
         // If no origin ID, we will return the message without matching with subscription origin
-        if ((originId && originId === origin.toString()) || !originId) {
+        if (originId === undefined || parseInt(originId) === origin) {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash,
@@ -73,7 +73,7 @@ function umpMessagesSent() {
         return {
           event: event.toHuman(),
           blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toString(),
+          blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash.toHex(),
           sender: event.extrinsic.signer.toHuman()
@@ -99,7 +99,7 @@ function findOutboundUmpMessage(
                 const xcmProgram = asVersionedXcm(data);
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
-                  messageData: data,
+                  messageData: data.toU8a(),
                   recipient: 0, // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
@@ -158,7 +158,7 @@ export function extractUmpReceive(origin: number) {
           record,
           method: record.event.method,
           section: record.event.section,
-          blockNumber: header.number.toString(),
+          blockNumber: header.number.toPrimitive(),
           blockHash: header.hash.toHex()
         } as EventRecordWithContext)
         )),
