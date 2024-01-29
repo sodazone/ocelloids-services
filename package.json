@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "description": "XCM monitoring service",
+  "author": "SO/DA <projects@soda.zone>",
+  "contributors": [
+    "Marc Fornós <marc@soda.zone>",
+    "Xueying Wang <xueying@soda.zone>"
+  ],
   "main": "dist/main.js",
   "bin": {
     "xcm-mon": "./dist/main.js"
@@ -15,14 +20,9 @@
     "start": "node ./dist/main.js",
     "dev": "XCMON_CONFIG_FILE=config/dev.toml nodemon --exec ts-node-esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
-    "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" npx jest",
-    "postinstall": "patch-package"
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" npx jest"
   },
-  "author": "soda <projects@soda.zone>",
-  "contributors": [
-    "Marc Fornós <marc@soda.zone>",
-    "Xueying Wang <xueying@soda.zone>"
-  ],
+  "//": "\"postinstall\": \"patch-package\"",
   "license": "Apache-2.0",
   "private": true,
   "jest": {
@@ -67,7 +67,7 @@
     "@fastify/jwt": "^7.2.4",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^1.10.2",
-    "@sodazone/ocelloids": "^1.1.15-dev.0",
+    "@sodazone/ocelloids": "1.1.15-0",
     "async-mutex": "^0.4.1",
     "cbor-x": "^1.5.8",
     "close-with-grace": "^1.2.0",
