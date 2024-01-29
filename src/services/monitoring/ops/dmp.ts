@@ -76,14 +76,13 @@ function matchInstructions(
 
 function createXcmMessageSent(
   {
-    api, paraId, data, tx: {extrinsic}
+    paraId, data, tx: {extrinsic}
   } : {
-  api: ApiPromise,
   paraId: number,
   data: Bytes,
   tx: types.TxWithIdAndEvent
 }) : GenericXcmMessageSentWithContext {
-  const xcmProgram = asVersionedXcm(api, data);
+  const xcmProgram = asVersionedXcm(data);
   const blockHash = extrinsic.blockHash.toHex();
   const blockNumber = extrinsic.blockNumber.toString();
   return new GenericXcmMessageSentWithContext({
@@ -134,7 +133,6 @@ function findDmpMessages(api: ApiPromise) {
           map(messages => {
             if (messages.length === 1) {
               return createXcmMessageSent({
-                api,
                 tx,
                 paraId,
                 data: messages[0].msg
@@ -143,7 +141,7 @@ function findDmpMessages(api: ApiPromise) {
               // XXX Temporary matching heuristics until DMP message
               // sent event is implemented.
               const filteredMessages = messages.filter(message => {
-                const xcmProgram = asVersionedXcm(api, message.msg);
+                const xcmProgram = asVersionedXcm(message.msg);
                 return matchInstructions(
                   xcmProgram,
                   assets,
@@ -153,7 +151,6 @@ function findDmpMessages(api: ApiPromise) {
 
               if (filteredMessages.length === 1) {
                 return createXcmMessageSent({
-                  api,
                   tx,
                   paraId,
                   data: filteredMessages[0].msg
@@ -189,7 +186,7 @@ export function extractDmpSend(
       : Observable<XcmMessageSentWithContext> => {
     return source.pipe(
       filterExtrinsics({
-        'dispatchError': { $eq: undefined },
+        // 'dispatchError': { $eq: undefined },
         'extrinsic.call.section': 'xcmPallet',
         'extrinsic.call.method': { $in: [
           'limitedReserveTransferAssets',

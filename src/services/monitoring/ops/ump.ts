@@ -4,7 +4,6 @@ import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { EventRecord } from '@polkadot/types/interfaces';
-import { ApiPromise } from '@polkadot/api';
 
 import {
   ControlQuery,
@@ -84,7 +83,6 @@ function umpMessagesSent() {
 }
 
 function findOutboundUmpMessage(
-  api: ApiPromise,
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
@@ -97,7 +95,7 @@ function findOutboundUmpMessage(
           map(messages =>  {
             return messages
               .map(data => {
-                const xcmProgram = asVersionedXcm(api, data);
+                const xcmProgram = asVersionedXcm(data);
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data,
@@ -118,7 +116,6 @@ function findOutboundUmpMessage(
 }
 
 export function extractUmpSend(
-  api: ApiPromise,
   {
     sendersControl,
     messageControl
@@ -144,7 +141,6 @@ export function extractUmpSend(
       mongoFilter(sendersControl),
       umpMessagesSent(),
       findOutboundUmpMessage(
-        api,
         messageControl,
         getOutboundUmpMessages
       )

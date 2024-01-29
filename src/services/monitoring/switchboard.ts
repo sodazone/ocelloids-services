@@ -402,7 +402,6 @@ export class Switchboard {
           sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractXcmpSend(
-                api,
                 {
                   sendersControl,
                   messageControl
@@ -426,7 +425,6 @@ export class Switchboard {
           sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractUmpSend(
-                api,
                 {
                   sendersControl,
                   messageControl

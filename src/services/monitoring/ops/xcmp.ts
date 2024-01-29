@@ -2,7 +2,6 @@ import type { } from '@polkadot/api-augment';
 
 import { map, Observable, mergeMap } from 'rxjs';
 
-import { ApiPromise } from '@polkadot/api';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 
 import {
@@ -17,10 +16,9 @@ import {
   XcmMessageSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
-import { asVersionedXcm } from './util.js';
+import { asVersionedXcm, getMessageId } from './util.js';
 
 function findOutboundHrmpMessage(
-  api: ApiPromise,
   messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
@@ -34,13 +32,14 @@ function findOutboundHrmpMessage(
             return messages
               .map(msg => {
                 const {data, recipient} = msg;
-                const xcmProgram = asVersionedXcm(api, data);
+                const xcmProgram = asVersionedXcm(data);
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data,
                   recipient: recipient.toNumber(),
                   messageHash: xcmProgram.hash.toHex(),
-                  instructions: xcmProgram.toHuman()
+                  instructions: xcmProgram.toHuman(),
+                  messageId: getMessageId(xcmProgram)
                 });
               }).find(msg => {
                 return msg.messageHash === messageHash;
@@ -73,7 +72,6 @@ function xcmpMessagesSent() {
 }
 
 export function extractXcmpSend(
-  api: ApiPromise,
   {
     sendersControl,
     messageControl
@@ -98,7 +96,7 @@ export function extractXcmpSend(
       ),
       mongoFilter(sendersControl),
       xcmpMessagesSent(),
-      findOutboundHrmpMessage(api, messageControl, getOutboundHrmpMessages),
+      findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages),
     );
   };
 }
