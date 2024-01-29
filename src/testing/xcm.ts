@@ -4,7 +4,8 @@ import { jest } from '@jest/globals';
 import { from } from 'rxjs';
 import { ApiPromise } from '@polkadot/api';
 import { ApiDecoration } from '@polkadot/api/types';
-import type { Bytes, Vec } from '@polkadot/types';
+import { TypeRegistry } from '@polkadot/types';
+import type { Vec, Bytes } from '@polkadot/types';
 import type {
   PolkadotCorePrimitivesOutboundHrmpMessage,
   PolkadotCorePrimitivesInboundDownwardMessage
@@ -13,8 +14,10 @@ import { ControlQuery } from '@sodazone/ocelloids';
 
 import { testBlocksFrom } from './blocks.js';
 
-// XCMP testing mocks
+const registry = new TypeRegistry();
 
+// XCMP testing mocks
+const xcmpData = '0x000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368';
 export const xcmpSend = {
   blocks: from(testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery({
@@ -23,28 +26,13 @@ export const xcmpSend = {
   messageControl: new ControlQuery({
     'recipient': { $in: [2032] }
   }),
-  apiPromise: {
-    registry: {
-      createType: jest.fn().mockImplementation(() => ({
-        hash: {
-          toHex: () => '0x19f82753eb9718974dd2d6dfc5e3b238625d012c1a8de5e3347f56079f143867'
-        },
-        toHuman: () => ({
-          'V3': []
-        })
-      }))
-    }
-  } as unknown as ApiPromise,
   getHrmp: () => from([
     [
       {
         recipient: {
           toNumber: () => 2032
         },
-        data: {
-          slice: jest.fn(),
-          toHex: () => '0x01'
-        }
+        data: registry.createType('Bytes', xcmpData)
       }
     ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
   ])
@@ -56,7 +44,7 @@ export const xcmpReceive = {
 };
 
 // UMP testing mocks
-
+const umpData = '0x03100204000000000700fcf9d8080a13000000000700fcf9d808000d01020400010100a0ce523c0e0ce46845d3fe6258d0e314e029bbcdd96e19646cc4ffd395ff0e5e';
 export const umpSend = {
   blocks: from(testBlocksFrom('ump-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery({
@@ -65,27 +53,8 @@ export const umpSend = {
   messageControl: new ControlQuery({
     'recipient': { $in: [0] }
   }),
-  apiPromise: {
-    registry: {
-      createType: jest.fn().mockImplementation(() => ({
-        value: {
-          toHuman: () => []
-        },
-        hash: {
-          toHex: () => '0xfbc0ad07a5d82bfb829330eb25dbf93280e00fe602d5e0b93d57c0293926b041'
-        },
-        toHuman: () => ({
-          'V3': []
-        })
-      }))
-    }
-  } as unknown as ApiPromise,
   getUmp: () => from([
-    [
-      {
-        toHex: () => '0x01'
-      }
-    ] as unknown as Vec<Bytes>
+    [registry.createType('Bytes', umpData)] as Vec<Bytes>
   ])
 };
 
@@ -151,6 +120,8 @@ const dmpSendInstructions = [
   }
 ];
 
+const dmpData = '0x031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257';
+const dmpData2 = '0x03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c';
 export const dmpSendSingleMessageInQueue = {
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
   sendersControl: new ControlQuery({
@@ -170,9 +141,7 @@ export const dmpSendSingleMessageInQueue = {
                   sentAt: {
                     toNumber: () => 17844552
                   },
-                  msg: {
-                    toHex: () => '0x031'
-                  }
+                  msg: registry.createType('Bytes', dmpData)
                 }
               ] as unknown as Vec<PolkadotCorePrimitivesInboundDownwardMessage>
             ]
@@ -216,17 +185,13 @@ export const dmpSendMultipleMessagesInQueue = {
                   sentAt: {
                     toNumber: () => 17844552
                   },
-                  msg: {
-                    toHex: () => '0x031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257'
-                  }
+                  msg: registry.createType('Bytes', dmpData)
                 },
                 {
                   sentAt: {
                     toNumber: () => 17844552
                   },
-                  msg: {
-                    toHex: () => '0x03101'
-                  }
+                  msg: registry.createType('Bytes', dmpData2)
                 }
               ] as unknown as Vec<PolkadotCorePrimitivesInboundDownwardMessage>
             ]

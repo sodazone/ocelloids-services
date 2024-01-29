@@ -19,7 +19,8 @@ import {
   XcmCriteria, XcmMessageReceivedWithContext,
   XcmMessageSentWithContext
 } from '../types.js';
-import { asVersionedXcm, getMessageId } from './util.js';
+import { getMessageId } from './util.js';
+import { asVersionedXcm } from './xcm-format.js';
 
 type EventRecordWithContext = {
   record: EventRecord,

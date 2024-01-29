@@ -16,7 +16,8 @@ import {
   XcmMessageSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
-import { asVersionedXcm, getMessageId } from './util.js';
+import { getMessageId } from './util.js';
+import { fromXcmpFormat } from './xcm-format.js';
 
 function findOutboundHrmpMessage(
   messageControl: ControlQuery,
@@ -30,17 +31,19 @@ function findOutboundHrmpMessage(
         return getOutboundHrmpMessages(blockHash).pipe(
           map(messages =>  {
             return messages
-              .map(msg => {
+              .flatMap(msg => {
                 const {data, recipient} = msg;
-                const xcmProgram = asVersionedXcm(data);
-                return new GenericXcmMessageSentWithContext({
-                  ...sentMsg,
-                  messageData: data,
-                  recipient: recipient.toNumber(),
-                  messageHash: xcmProgram.hash.toHex(),
-                  instructions: xcmProgram.toHuman(),
-                  messageId: getMessageId(xcmProgram)
-                });
+                // TODO: caching strategy
+                const xcms = fromXcmpFormat(data);
+                return xcms.map(xcmProgram =>
+                  new GenericXcmMessageSentWithContext({
+                    ...sentMsg,
+                    messageData: data,
+                    recipient: recipient.toNumber(),
+                    messageHash: xcmProgram.hash.toHex(),
+                    instructions: xcmProgram.toHuman(),
+                    messageId: getMessageId(xcmProgram)
+                  }));
               }).find(msg => {
                 return msg.messageHash === messageHash;
               });
