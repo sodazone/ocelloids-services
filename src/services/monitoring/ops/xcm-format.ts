@@ -1,4 +1,4 @@
-import {createRequire} from 'node:module';
+import { createRequire } from 'node:module';
 
 import type { Bytes } from '@polkadot/types';
 import type { VersionedXcm } from '@polkadot/types/interfaces/xcm';
