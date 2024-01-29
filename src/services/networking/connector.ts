@@ -3,8 +3,7 @@ import fs from 'node:fs';
 
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { WsProvider, ScProvider } from '@polkadot/api';
-import * as Sc from '@substrate/connect';
-import { config as oconfig, SubstrateApis } from '@sodazone/ocelloids';
+import { config as oconfig, SubstrateApis, Smoldot } from '@sodazone/ocelloids';
 
 import { NetworkConfiguration, ServiceConfiguration } from '../config.js';
 import { Logger } from '../types.js';
@@ -78,11 +77,6 @@ export default class Connector {
     for (const key of Object.keys(this.#chains)) {
       const provider = this.#chains[key];
       providers[this.#chainIdMap[key]] = {provider};
-      if (provider instanceof ScProvider) {
-        provider.connect().catch(
-          this.#log.error.bind(this.#log)
-        );
-      }
     }
 
     // Providers are exposed by chain id.
@@ -103,7 +97,7 @@ export default class Connector {
   #registerSmoldotRelay(name: string, spec?: string) {
     this.#log.info(`Register relay smoldot provider: ${name}`);
 
-    const key = Object.values(Sc.WellKnownChain).find(
+    const key = Object.values(Smoldot.WellKnownChain).find(
       c => c === name
     );
 
@@ -111,10 +105,10 @@ export default class Connector {
       this.#log.info('Loading well known spec for provider: %s', key);
 
       this.#relays[name] = new ScProvider(
-        Sc, Sc.WellKnownChain[key]
+        Smoldot, Smoldot.WellKnownChain[key]
       );
     } else if (spec) {
-      this.#relays[name] = new ScProvider(Sc,
+      this.#relays[name] = new ScProvider(Smoldot,
         this.#loadSpec(spec)
       );
     } else {
@@ -147,7 +141,7 @@ export default class Connector {
       this.#registerSmoldotRelay(relayConfig.name, relayConfig.provider.spec);
     }
 
-    this.#chains[name] = new ScProvider(Sc,
+    this.#chains[name] = new ScProvider(Smoldot,
       this.#loadSpec(spec),
       this.#relays[relay]
     );
