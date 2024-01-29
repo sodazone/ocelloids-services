@@ -337,7 +337,7 @@ describe('monitoring server API', () => {
         .write();
       for (let i = 0; i < 3; i++) {
         await root.sublevel<string, any>(
-          prefixes.cache.family(i), jsonEncoded
+          prefixes.cache.family(i.toString()), jsonEncoded
         ).put('0x0', {});
       }
     });

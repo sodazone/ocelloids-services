@@ -21,14 +21,14 @@ export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, 
  */
 export const prefixes = {
   subs: {
-    family: (chainId: string | number) => `su:${chainId}`,
+    family: (chainId: string) => `su:${chainId}`,
     uniques: 'su:ukeys'
   },
   sched: {
     tasks: 'sc:tasks'
   },
   cache: {
-    family: (chainId: string | number) => `ch:${chainId}`,
+    family: (chainId: string) => `ch:${chainId}`,
     keys: {
       block: (hash: HexString) => `blk:${hash}`,
       ump: (hash: HexString) => `ump:${hash}`,

@@ -17,7 +17,7 @@ export default class Connector {
   #config: ServiceConfiguration;
   #relays: Record<string, ScProvider> = {};
   #chains: Record<string, ProviderInterface> = {};
-  #chainIdMap: Record<string, number> = {};
+  #chainIdMap: Record<string, string> = {};
 
   #substrateApis?: SubstrateApis;
 

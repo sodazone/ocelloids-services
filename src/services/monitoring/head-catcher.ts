@@ -428,7 +428,7 @@ export class HeadCatcher extends EventEmitter {
       let parentHead = head;
 
       const delay = this.#config.networks.find(
-        n => n.id === parseInt(chainId)
+        n => n.id === chainId
       )?.throttle ?? 1000;
 
       while (parentHead.number.toBigInt() - targetHeight > 1) {
