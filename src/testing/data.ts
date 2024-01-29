@@ -3,9 +3,9 @@ import { QuerySubscription } from '../services/monitoring/types.js';
 export const _subsFix : QuerySubscription[] = [
   {
     id: '0:1000:1',
-    origin: 0,
+    origin: '0',
     destinations: [
-      1000
+      '1000'
     ],
     senders: ['a', 'b', 'c'],
     notify: {
@@ -14,9 +14,9 @@ export const _subsFix : QuerySubscription[] = [
   },
   {
     id: '0:1000:2',
-    origin: 0,
+    origin: '0',
     destinations: [
-      1000
+      '1000'
     ],
     senders: ['d', 'e', 'f'],
     notify: {
@@ -25,9 +25,9 @@ export const _subsFix : QuerySubscription[] = [
   },
   {
     id: '0:2000:1',
-    origin: 0,
+    origin: '0',
     destinations: [
-      2000
+      '2000'
     ],
     senders: ['a', 'b', 'c'],
     notify: {
@@ -36,9 +36,9 @@ export const _subsFix : QuerySubscription[] = [
   },
   {
     id: '100:0-2000:1',
-    origin: 1000,
+    origin: '1000',
     destinations: [
-      0, 2000
+      '0', '2000'
     ],
     senders: ['a', 'b', 'c'],
     notify: {
@@ -47,9 +47,9 @@ export const _subsFix : QuerySubscription[] = [
   },
   {
     id: '100:0-2000:2',
-    origin: 1000,
+    origin: '1000',
     destinations: [
-      0, 2000
+      '0', '2000'
     ],
     senders: ['d', 'e', 'f'],
     notify: {

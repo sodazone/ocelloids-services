@@ -30,7 +30,7 @@ type EventRecordWithContext = {
   blockHash: HexString
 }
 
-function mapUmpQueueMessage(origin: number) {
+function mapUmpQueueMessage(origin: string) {
   return (source: Observable<EventRecordWithContext>):
     Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(
@@ -46,7 +46,7 @@ function mapUmpQueueMessage(origin: number) {
         const originId = messageOrigin?.Ump?.Para?.replaceAll(',', '');
         // If we can get origin ID, only return message if origin matches with subscription origin
         // If no origin ID, we will return the message without matching with subscription origin
-        if (originId === undefined || parseInt(originId) === origin) {
+        if (originId === undefined || originId === origin) {
           return new GenericXcmMessageReceivedWithContext({
             event: event.toHuman(),
             blockHash,
@@ -149,7 +149,7 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(origin: number) {
+export function extractUmpReceive(origin: string) {
   return (source: Observable<SignedBlockExtended>)
     : Observable<XcmMessageReceivedWithContext>  => {
     return (source.pipe(

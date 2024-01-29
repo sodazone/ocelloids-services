@@ -242,7 +242,7 @@ export class Switchboard {
     const subs : SubscriptionWithId[] = [];
     try {
       for (const dest of destinations) {
-        const chainId = dest.toString();
+        const chainId = dest;
         if (this.#subs[id]?.destinationSubs.find(
           s => s.chainId === chainId)
         ) {
@@ -339,7 +339,7 @@ export class Switchboard {
     id, origin, senders, destinations
   }: QuerySubscription) : Monitor {
     const subs : SubscriptionWithId[] = [];
-    const chainId = origin.toString();
+    const chainId = origin;
     const api = this.#apis.promise[chainId];
 
     const sendersControl = ControlQuery.from(
@@ -458,7 +458,7 @@ export class Switchboard {
     const { subs } = this.#monitorDestinations(descriptor);
     const updatedSubs = destinationSubs.concat(subs);
     // Unsubscribe removed destinations, if any
-    const removed = updatedSubs.filter(s => !descriptor.destinations.includes(parseInt(s.chainId)));
+    const removed = updatedSubs.filter(s => !descriptor.destinations.includes(s.chainId));
     removed.forEach(({ sub }) => sub.unsubscribe());
     // Return list of updated subscriptions
     return updatedSubs.filter(s => !removed.includes(s));

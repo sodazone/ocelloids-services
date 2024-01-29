@@ -5,10 +5,10 @@ import { FastifyInstance, InjectOptions } from 'fastify';
 
 const testSubContent = {
   id: 'macatron',
-  origin: 1000,
+  origin: '1000',
   senders: ['ALICE'],
   destinations: [
-    2000
+    '2000'
   ],
   notify: {
     type: 'log'
@@ -282,14 +282,14 @@ describe('monitoring server API', () => {
           {
             op: 'add',
             path: '/destinations/-',
-            value: 3000
+            value: '3000'
           }
         ]
       }, (_err, response) => {
         expect(response.statusCode)
           .toStrictEqual(200);
         expect(JSON.parse(response.body).destinations)
-          .toEqual([2000, 3000]);
+          .toEqual(['2000', '3000']);
 
         done();
       });

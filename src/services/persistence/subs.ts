@@ -207,7 +207,7 @@ export class SubsStore {
     return keys;
   }
 
-  #uniquePathKey(networkId: number, destination: number, sender: string) {
+  #uniquePathKey(networkId: string, destination: string, sender: string) {
     return `${networkId}:${destination}:${sender}`;
   }
 
@@ -253,13 +253,13 @@ export class SubsStore {
     await batch.write();
   }
 
-  #subsFamily(chainId: string | number) {
+  #subsFamily(chainId: string) {
     return this.#db.sublevel<string, QuerySubscription>(
       prefixes.subs.family(chainId), jsonEncoded
     );
   }
 
-  #validateChainIds(chainIds: number[]) {
+  #validateChainIds(chainIds: string[]) {
     chainIds.forEach(chainId => {
       if (!isNetworkDefined(this.#config, chainId)) {
         throw new ValidationError('Invalid chain id:' +  chainId);

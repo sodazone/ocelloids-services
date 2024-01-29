@@ -254,15 +254,15 @@ const $LogNotification = z.object({
 
 export const $QuerySubscription = z.object({
   id: $SafeId,
-  origin: z.number({
+  origin: z.string({
     required_error: 'origin id is required',
-  }).min(0),
+  }).min(1),
   senders: z.literal('*').or(z.array(z.string()).min(
     1, 'at least 1 sender address is required'
   )),
-  destinations: z.array(z.number({
+  destinations: z.array(z.string({
     required_error: 'destination id is required'
-  }).min(0)),
+  }).min(1)),
   notify: z.discriminatedUnion('type', [
     $WebhookNotification,
     $LogNotification

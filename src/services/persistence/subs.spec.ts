@@ -25,7 +25,7 @@ describe('subscriptions persistence', () => {
 
     await expect(async () => {
       await db.save(prevWithNewId);
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
 
     await db.updateUniquePaths(original, modified);
     await db.save(prevWithNewId);
@@ -55,7 +55,7 @@ describe('subscriptions persistence', () => {
     it('should prevent duplicate ids', async () => {
       await expect(async () => {
         await db.insert(_subsFix[0]);
-      }).rejects.toThrowError();
+      }).rejects.toThrow();
     });
     it('should remove subsciption by id', async () => {
       const subs = await db.getAll();
@@ -66,28 +66,28 @@ describe('subscriptions persistence', () => {
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          origin: 1337
+          origin: '1337'
         });
-      }).rejects.toThrowError();
+      }).rejects.toThrow();
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          destinations: [1337]
+          destinations: ['1337']
         });
-      }).rejects.toThrowError();
+      }).rejects.toThrow();
     });
     it('should enforce unique paths', async () => {
       await expect(async () => {
         await db.insert({
           ..._subsFix[0],
           id: 'Z-0:1000:1',
-          origin: 0,
+          origin: '0',
           destinations: [
-            1000
+            '1000'
           ],
           senders: ['a']
         });
-      }).rejects.toThrowError();
+      }).rejects.toThrow();
     });
 
     it('should update uniques on senders modification', async () => {
@@ -104,7 +104,7 @@ describe('subscriptions persistence', () => {
         _subsFix[1],
         {
           destinations: [
-            3000
+            '3000'
           ]
         }
       );
@@ -116,7 +116,7 @@ describe('subscriptions persistence', () => {
         {
           senders: ['ALICE', 'BOB'],
           destinations: [
-            3000
+            '3000'
           ]
         }
       );

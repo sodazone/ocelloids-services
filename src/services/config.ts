@@ -25,7 +25,7 @@ const $NetworkConfiguration = z.object({
   name: z.string({
     required_error: 'Network name is required'
   }).min(1),
-  id: z.number().int(),
+  id: z.number().int().pipe(z.coerce.string()),
   relay: z.string().min(1).optional(),
   provider: $NetworkProvider,
   throttle: z.optional(z.number().int().default(1000))
@@ -38,13 +38,13 @@ export const $ServiceConfiguration = z.object({
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 
-export function isRelay({networks}: ServiceConfiguration, chainId: number) {
+export function isRelay({networks}: ServiceConfiguration, chainId: string) {
   return networks.findIndex(
     n => n.relay === undefined && n.id === chainId
   ) >= 0;
 }
 
-export function isNetworkDefined({networks}: ServiceConfiguration, chainId: number) {
+export function isNetworkDefined({networks}: ServiceConfiguration, chainId: string) {
   return networks.findIndex(
     n => n.id === chainId
   ) >= 0;

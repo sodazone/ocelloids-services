@@ -12,7 +12,7 @@ export function sendersCriteria(senders: string[] | '*') : Criteria {
   }
 }
 
-export function messageCriteria(recipients: number[]) : Criteria {
+export function messageCriteria(recipients: string[]) : Criteria {
   return {
     'recipient': { $in: recipients }
   };

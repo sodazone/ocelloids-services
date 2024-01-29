@@ -33,12 +33,12 @@ const { extractUmpReceive, extractUmpSend } = (await import('./ops/ump.js'));
 
 const testSub : QuerySubscription = {
   id: '1000:2000:0',
-  origin: 1000,
+  origin: '1000',
   senders: [
     '14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'
   ],
   destinations: [
-    2000
+    '2000'
   ],
   notify: {
     type: 'log'
@@ -126,7 +126,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      origin: 0
+      origin: '0'
     });
 
     expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
@@ -179,7 +179,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      destinations: [0, 2000]
+      destinations: ['0', '2000']
     });
 
     const { destinationSubs } = switchboard.getSubscriptionHandler(testSub.id);
@@ -190,7 +190,7 @@ describe('switchboard service', () => {
     // Remove 2000 and add 3000 to destinations
     const newSub = {
       ...testSub,
-      destinations: [0, 3000]
+      destinations: ['0', '3000']
     };
     await subs.save(newSub);
 
