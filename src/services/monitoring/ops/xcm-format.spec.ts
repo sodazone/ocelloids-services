@@ -11,4 +11,10 @@ describe('xcm formats', () => {
     expect(xcms.length).toBe(2);
     expect(xcms[0].hash.toHex()).toBe('0x256f9f3e5f89ced85d4253af0bd4fc6a47d069c7cd2c17723b87dda78a2e2b49');
   });
+
+  it('should fail on unknown format', () => {
+    const buf = new Uint8Array(Buffer.from('BAD', 'hex'));
+
+    expect(() => fromXcmpFormat(buf)).toThrow(Error);
+  });
 });
