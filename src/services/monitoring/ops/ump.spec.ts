@@ -9,7 +9,6 @@ describe('ump operator', () => {
     it('should extract UMP sent message', done => {
       const {
         blocks,
-        apiPromise,
         sendersControl,
         messageControl,
         getUmp
@@ -18,7 +17,6 @@ describe('ump operator', () => {
       const calls = jest.fn();
 
       const test$ = extractUmpSend(
-        apiPromise,
         {
           sendersControl,
           messageControl

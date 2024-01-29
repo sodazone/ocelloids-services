@@ -9,7 +9,6 @@ describe('xcmp operator', () => {
     it('should extract XCMP sent message', done => {
       const {
         blocks,
-        apiPromise,
         sendersControl,
         messageControl,
         getHrmp
@@ -18,7 +17,6 @@ describe('xcmp operator', () => {
       const calls = jest.fn();
 
       const test$ = extractXcmpSend(
-        apiPromise,
         {
           sendersControl,
           messageControl
