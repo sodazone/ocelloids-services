@@ -67,7 +67,7 @@
     "@fastify/jwt": "^7.2.4",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^1.10.2",
-    "@sodazone/ocelloids": "1.1.15-0",
+    "@sodazone/ocelloids": "^1.1.15",
     "async-mutex": "^0.4.1",
     "cbor-x": "^1.5.8",
     "close-with-grace": "^1.2.0",
