@@ -2,10 +2,11 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { Histogram } from 'prom-client';
 
+// TODO: configuration to exclude routes
 export function replyHook() {
   const reqHist = new Histogram({
     name: 'xcmon_fastify_response_time_ms',
-    help: 'Response time in milliseconds.',
+    help: 'HTTP response time in milliseconds.',
     labelNames: ['status', 'method', 'route']
   });
   return async (request: FastifyRequest, reply: FastifyReply) => {

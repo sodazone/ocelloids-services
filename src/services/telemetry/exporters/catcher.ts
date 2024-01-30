@@ -1,38 +1,10 @@
 import { Counter, Histogram } from 'prom-client';
 
 import {
-  TelementryCatcherEvents,
-  TelementryEngineEvents, TelemetryObserver, TelemetrySources
-} from '../types.js';
-import { XcmMessageNotify } from 'services/monitoring/types.js';
+  TelementryCatcherEvents, TelemetryObserver
+} from '../../types.js';
 
-function engineExports(
-  { source }: TelemetryObserver
-) {
-  const notifyCount = new Counter({
-    name: 'xcmon_engine_notify_total',
-    help: 'Matching engine notifications.',
-    labelNames: ['destination', 'origin', 'outcome']
-  });
-  const notifyErrorCount = new Counter({
-    name: 'xcmon_engine_notify_error_total',
-    help: 'Matching engine notification errors.'
-  });
-  const events = TelementryEngineEvents;
-  source.on(events.Notify,
-    (message: XcmMessageNotify) => {
-      notifyCount.labels(
-        message.destination.chainId,
-        message.origin.chainId,
-        message.outcome.toString()
-      ).inc();
-    });
-  source.on(events.NotifyError, () => {
-    notifyErrorCount.inc();
-  });
-}
-
-function catcherExports(
+export function catcherExports(
   { source }: TelemetryObserver
 ) {
   const timers : Record<string, () => void> = {};
@@ -103,14 +75,3 @@ function catcherExports(
   });
 }
 
-const exporters = {
-  [TelemetrySources.engine]: engineExports,
-  [TelemetrySources.catcher]: catcherExports
-};
-
-export function collect(observer: TelemetryObserver) {
-  const exporter = exporters[observer.id];
-  if (exporter) {
-    exporter(observer);
-  }
-}

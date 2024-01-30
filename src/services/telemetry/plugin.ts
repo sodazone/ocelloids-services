@@ -2,12 +2,13 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { register, collectDefaultMetrics } from 'prom-client';
-import { collect } from './exporter.js';
+import { collect } from './exporters/index.js';
 import { replyHook as createReplyHook } from './reply-hook.js';
 
 const telemetryPlugin: FastifyPluginAsync = async api => {
   const { log, switchboard } = api;
 
+  // TODO enable/disable metrics configuration
   log.info('Enable default metrics');
   collectDefaultMetrics();
 
