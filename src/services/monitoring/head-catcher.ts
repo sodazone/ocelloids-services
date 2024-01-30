@@ -21,7 +21,7 @@ import {
   SubstrateApis
 } from '@sodazone/ocelloids';
 
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
+import { DB, Logger, Services, TelementryCatcherEvents as telemetry, jsonEncoded, prefixes } from '../types.js';
 import { ChainHead as ChainTip, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
@@ -91,6 +91,11 @@ export class HeadCatcher extends EventEmitter {
               header.number.toString(),
               header.hash.toHex()
             );
+
+            this.emit(telemetry.BlockSeen, {
+              chainId,
+              header
+            });
           })
         );
         const msgs$ = block$.pipe(
@@ -334,6 +339,10 @@ export class HeadCatcher extends EventEmitter {
         author as AccountId
       );
 
+      this.emit(telemetry.BlockCacheHit, {
+        chainId
+      });
+
       return signedBlock;
     } catch (error) {
       return await api.derive.chain.getBlock(hash);
@@ -364,12 +373,17 @@ export class HeadCatcher extends EventEmitter {
     return (source: Observable<Header>)
     : Observable<Header> => {
       return source.pipe(
-        tap(head => {
+        tap(header => {
           this.#log.info('[%s] FINALIZED block #%s %s',
             chainId,
-            head.number.toBigInt(),
-            head.hash.toHex()
+            header.number.toBigInt(),
+            header.hash.toHex()
           );
+
+          this.emit(telemetry.BlockFinalized, {
+            chainId,
+            header
+          });
         }),
         mergeMap(head => from(
           this.#doCatchUp(chainId, api, head)

@@ -14,6 +14,7 @@ import { ServerOptions } from './types.js';
 import {
   Root,
   Auth,
+  Telemetry,
   Administration,
   Persistence,
   Configuration,
@@ -79,6 +80,7 @@ export async function createServer(
   await server.register(Connector);
   await server.register(Monitoring);
   await server.register(Administration);
+  await server.register(Telemetry);
 
   return server;
 }

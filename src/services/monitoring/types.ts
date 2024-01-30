@@ -91,7 +91,7 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
 
 export class XcmMessageReceived {
   subscriptionId: string;
-  chainId: string | number;
+  chainId: string;
   event: AnyJson;
   messageHash: HexString;
   messageId: HexString;
@@ -103,7 +103,7 @@ export class XcmMessageReceived {
 
   constructor(
     subscriptionId: string,
-    chainId: string | number,
+    chainId: string,
     msg: XcmMessageReceivedWithContext
   ) {
     this.subscriptionId = subscriptionId;
@@ -162,7 +162,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
 
 export class XcmMessageSent {
   subscriptionId: string;
-  chainId: string | number;
+  chainId: string;
   messageData: string;
   recipient: number;
   instructions: AnyJson;
@@ -176,7 +176,7 @@ export class XcmMessageSent {
 
   constructor(
     subscriptionId: string,
-    chainId: string | number,
+    chainId: string,
     msg: XcmMessageSentWithContext
   ) {
     this.chainId = chainId;
@@ -195,7 +195,7 @@ export class XcmMessageSent {
 }
 
 type XcmMessageNofityContext = {
-  chainId: string | number,
+  chainId: string,
   blockNumber: string,
   blockHash: HexString,
   extrinsicId?: string,

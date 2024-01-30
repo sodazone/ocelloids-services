@@ -1,10 +1,11 @@
 import { Observable, from, map } from 'rxjs';
+
 import {
   SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
-import { Logger, Services } from '../types.js';
+import { Logger, Services, TelemetryObserver, TelemetrySources } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
   XcmMessageSent,
@@ -188,6 +189,11 @@ export class Switchboard {
     const { descriptor } = this.#subs[sub.id];
     await this.#db.updateUniquePaths(descriptor, sub);
     this.#subs[sub.id].descriptor = sub;
+  }
+
+  collectTelemetry(collect: (observer: TelemetryObserver) => void) {
+    collect({ id: TelemetrySources.engine, source: this.#engine});
+    collect({ id: TelemetrySources.catcher, source: this.#catcher});
   }
 
   /**

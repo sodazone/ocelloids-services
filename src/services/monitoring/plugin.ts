@@ -1,7 +1,14 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 
 import { Switchboard } from  './switchboard.js';
 import { SubscriptionApi } from './api/index.js';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    switchboard: Switchboard
+  }
+}
 
 /**
  * Monitoring service Fastify plugin.
@@ -10,12 +17,11 @@ import { SubscriptionApi } from './api/index.js';
  *
  * @param {FastifyInstance} fastify The Fastify instance.
  */
-async function Monitoring(
-  fastify: FastifyInstance
-) {
+const monitoringPlugin: FastifyPluginAsync = async fastify => {
   const { log } = fastify;
 
   const switchboard = new Switchboard(fastify);
+  fastify.decorate('switchboard', switchboard);
   await switchboard.start();
 
   fastify.addHook('onClose', async () => {
@@ -27,6 +33,7 @@ async function Monitoring(
   await fastify.register(SubscriptionApi, {
     switchboard,
   });
-}
+};
 
-export default Monitoring;
+export default fp(monitoringPlugin, { fastify: '>=4.x', name: 'monitoring' });
+

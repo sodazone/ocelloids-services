@@ -1,13 +1,18 @@
+import EventEmitter from 'node:events';
+
 import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
+import {
+  DB, Logger, Services, TelementryEngineEvents as telemetry, jsonEncoded, prefixes
+} from '../types.js';
 import {
   XcmMessageNotify,
   XcmMessageReceived,
   XcmMessageSent
 } from './types.js';
-import { Janitor } from 'services/persistence/janitor.js';
+
+import { Janitor } from '../persistence/janitor.js';
 
 export type NotificationReceiver = (message: XcmMessageNotify) => Promise<void> | void;
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -30,7 +35,7 @@ export type ChainBlock = {
  * - simplify logic to match only by message ID
  * - check notification storage by message ID and do not store for matching if already matched
  */
-export class MatchingEngine {
+export class MatchingEngine extends EventEmitter {
   #db: DB;
   #log: Logger;
   #janitor: Janitor;
@@ -45,6 +50,8 @@ export class MatchingEngine {
       log, storage: { root: db }, janitor
     }: Services
   ) {
+    super();
+
     this.#db = db;
     this.#log = log;
     this.#janitor = janitor;
@@ -227,8 +234,12 @@ export class MatchingEngine {
     try {
       const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
       await this.#noticationReceiver(message);
+
+      this.emit(telemetry.Notify, message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
+
+      this.emit(telemetry.NotifyError, e);
     }
   }
 

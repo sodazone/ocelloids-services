@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events';
+
 import {
   AbstractLevel,
   AbstractSublevel,
@@ -42,6 +44,26 @@ export const prefixes = {
   }
 };
 export const jsonEncoded = { valueEncoding: 'json' };
+
+export type TelemetryObserver = {
+  id: symbol,
+  source: EventEmitter
+}
+
+export const TelemetrySources = {
+  engine: Symbol('engine'),
+  catcher: Symbol('catcher')
+};
+
+export const TelementryEngineEvents = {
+  Notify: Symbol('engine:notify'),
+  NotifyError: Symbol('engine:notify-error')
+};
+export const TelementryCatcherEvents = {
+  BlockSeen: Symbol('catcher:block-seen'),
+  BlockFinalized: Symbol('catcher:block-finalized'),
+  BlockCacheHit: Symbol('catcher:blocks-cache')
+};
 
 export type Logger = FastifyBaseLogger
 export type Services = {
