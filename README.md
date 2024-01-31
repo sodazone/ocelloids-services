@@ -92,13 +92,17 @@ docker run -d \
 Install and build:
 
 ```shell
-npm i && npm run build
+corepack enable
+```
+
+```shell
+yarn && yarn build
 ```
 
 Run:
 
 ```shell
-npx xcm-mon --help
+yarn xcm-mon --help
 ```
 
 ```shell
@@ -124,7 +128,7 @@ Options:
 Uses nodemon to automatically restart the application on file changes.
 
 ```shell
-npm run dev
+yarn dev
 ```
 
 ## HTTP APIs
