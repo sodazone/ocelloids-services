@@ -1,10 +1,10 @@
 import { Counter, Histogram } from 'prom-client';
 
 import {
-  TelementryCatcherEvents, TelemetryObserver
+  TelementryCatcherEvents as events, TelemetryObserver
 } from '../../types.js';
 
-export function catcherExports(
+export function catcherMetrics(
   { source }: TelemetryObserver
 ) {
   const timers : Record<string, () => void> = {};
@@ -35,8 +35,6 @@ export function catcherExports(
     help: 'Block cache hits.',
     labelNames: ['origin']
   });
-
-  const events = TelementryCatcherEvents;
 
   source.on(events.BlockCacheHit, ({ chainId }) => {
     blockCacheHitsCount.labels(chainId).inc();

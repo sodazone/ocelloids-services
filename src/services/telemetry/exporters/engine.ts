@@ -1,32 +1,54 @@
 import { Counter } from 'prom-client';
 
 import {
-  TelementryEngineEvents, TelemetryObserver
+  TelementryEngineEvents as events, TelemetryObserver
 } from '../../types.js';
-import { XcmMessageNotify } from '../../monitoring/types.js';
+import { XcmMessageReceived, XcmMessageSent } from '../../monitoring/types.js';
 
-export function engineExports(
+export function engineMetrics(
   { source }: TelemetryObserver
 ) {
-  const notifyCount = new Counter({
-    name: 'xcmon_engine_notify_total',
-    help: 'Matching engine notifications.',
-    labelNames: ['destination', 'origin', 'outcome']
+  const inCount = new Counter({
+    name: 'xcmon_engine_in_total',
+    help: 'Matching engine inbound messages.',
+    labelNames: ['subscription', 'origin', 'outcome']
   });
-  const notifyErrorCount = new Counter({
-    name: 'xcmon_engine_notify_error_total',
-    help: 'Matching engine notification errors.'
+  const outCount = new Counter({
+    name: 'xcmon_engine_out_total',
+    help: 'Matching engine outbound messages.',
+    labelNames: ['subscription', 'origin', 'destination']
   });
-  const events = TelementryEngineEvents;
-  source.on(events.Notify,
-    (message: XcmMessageNotify) => {
-      notifyCount.labels(
-        message.destination.chainId,
-        message.origin.chainId,
-        message.outcome.toString()
+  const matchCount = new Counter({
+    name: 'xcmon_engine_matched_total',
+    help: 'Matching engine matched messages.',
+    labelNames: ['subscription', 'origin', 'destination', 'outcome']
+  });
+
+  source.on(events.Inbound,
+    (message: XcmMessageReceived) => {
+      inCount.labels(
+        message.subscriptionId,
+        message.chainId,
+        message.outcome?.toString() ?? 'unknown'
       ).inc();
     });
-  source.on(events.NotifyError, () => {
-    notifyErrorCount.inc();
-  });
+
+  source.on(events.Outbound,
+    (message: XcmMessageSent) => {
+      outCount.labels(
+        message.subscriptionId,
+        message.chainId,
+        message.recipient
+      ).inc();
+    });
+
+  source.on(events.Matched,
+    (inMsg: XcmMessageReceived, outMsg: XcmMessageSent) => {
+      matchCount.labels(
+        outMsg.subscriptionId,
+        outMsg.chainId,
+        outMsg.recipient,
+        inMsg.outcome?.toString() ?? 'unknown'
+      ).inc();
+    });
 }

@@ -44,7 +44,7 @@ export type XcmMessageWithContext = {
 
 export interface XcmMessageSentWithContext extends XcmMessageWithContext {
   messageData: Uint8Array,
-  recipient: number,
+  recipient: string,
   sender: AnyJson,
   instructions: AnyJson,
 }
@@ -121,7 +121,7 @@ export class XcmMessageReceived {
 
 export class GenericXcmMessageSentWithContext implements XcmMessageSentWithContext {
   messageData: Uint8Array;
-  recipient: number;
+  recipient: string;
   instructions: AnyJson;
   messageHash: HexString;
   event: AnyJson;
@@ -164,7 +164,7 @@ export class XcmMessageSent {
   subscriptionId: string;
   chainId: string;
   messageData: string;
-  recipient: number;
+  recipient: string;
   instructions: AnyJson;
   messageHash: HexString;
   event: AnyJson;

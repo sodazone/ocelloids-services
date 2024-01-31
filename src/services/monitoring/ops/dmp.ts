@@ -79,7 +79,7 @@ function createXcmMessageSent(
   {
     paraId, data, tx: {extrinsic}
   } : {
-  paraId: number,
+  paraId: string,
   data: Bytes,
   tx: types.TxWithIdAndEvent
 }) : GenericXcmMessageSentWithContext {
@@ -114,7 +114,7 @@ function findDmpMessages(api: ApiPromise) {
         if (paraIdStr) {
           return {
             tx,
-            paraId: parseInt(paraIdStr.replaceAll(',', '')),
+            paraId: paraIdStr.replaceAll(',', ''),
             beneficiary,
             assets
           };

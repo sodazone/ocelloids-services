@@ -18,7 +18,7 @@ export type NotificationReceiver = (message: XcmMessageNotify) => Promise<void> 
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
 export type ChainBlock = {
-  chainId: string | number,
+  chainId: string,
   blockHash: string,
   blockNumber: string
 }
@@ -64,6 +64,8 @@ export class MatchingEngine extends EventEmitter {
   async onOutboundMessage(outMsg: XcmMessageSent) {
     const log = this.#log;
 
+    this.emit(telemetry.Inbound, outMsg);
+
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
       const hashKey = `${outMsg.messageHash}:${outMsg.recipient}`;
@@ -91,7 +93,7 @@ export class MatchingEngine extends EventEmitter {
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#notify(outMsg, inMsg);
+          await this.#notifyMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -119,7 +121,7 @@ export class MatchingEngine extends EventEmitter {
             outMsg.blockNumber
           );
           await this.#inbound.del(hashKey);
-          await this.#notify(outMsg, inMsg);
+          await this.#notifyMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -138,6 +140,8 @@ export class MatchingEngine extends EventEmitter {
   async onInboundMessage(inMsg: XcmMessageReceived)  {
     const log = this.#log;
 
+    this.emit(telemetry.Inbound, inMsg);
+
     await this.#mutex.runExclusive(async () => {
       const hashKey = `${inMsg.messageHash}:${inMsg.chainId}`;
       const idKey = `${inMsg.messageId}:${inMsg.chainId}`;
@@ -154,7 +158,7 @@ export class MatchingEngine extends EventEmitter {
             inMsg.blockNumber
           );
           await this.#outbound.del(hashKey);
-          await this.#notify(outMsg, inMsg);
+          await this.#notifyMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -189,7 +193,7 @@ export class MatchingEngine extends EventEmitter {
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#notify(outMsg, inMsg);
+          await this.#notifyMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -227,19 +231,17 @@ export class MatchingEngine extends EventEmitter {
     await this.#mutex.waitForUnlock();
   }
 
-  async #notify(
+  async #notifyMatched(
     outMsg: XcmMessageSent,
     inMsg: XcmMessageReceived
   ) {
+    this.emit(telemetry.Matched, inMsg, outMsg);
+
     try {
       const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
       await this.#noticationReceiver(message);
-
-      this.emit(telemetry.Notify, message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
-
-      this.emit(telemetry.NotifyError, e);
     }
   }
 

@@ -1,17 +1,19 @@
 import {
   TelemetryObserver, TelemetrySources
 } from '../../types.js';
-import { catcherExports } from './catcher.js';
 
-import { engineExports } from './engine.js';
+import { catcherMetrics } from './catcher.js';
+import { engineMetrics } from './engine.js';
+import { notifierMetrics } from './notifiers.js';
 
-const exporters = {
-  [TelemetrySources.engine]: engineExports,
-  [TelemetrySources.catcher]: catcherExports
+const metrics = {
+  [TelemetrySources.engine]: engineMetrics,
+  [TelemetrySources.catcher]: catcherMetrics,
+  [TelemetrySources.notifier]: notifierMetrics
 };
 
 export function collect(observer: TelemetryObserver) {
-  const exporter = exporters[observer.id];
+  const exporter = metrics[observer.id];
   if (exporter) {
     exporter(observer);
   }

@@ -1,11 +1,15 @@
+import EventEmitter from 'node:events';
+
 import { Logger, Services } from '../../services/types.js';
 import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
 import { Notifier } from './types.js';
 
-export class LogNotifier implements Notifier {
+export class LogNotifier extends EventEmitter implements Notifier {
   #log: Logger;
 
   constructor({ log }: Services) {
+    super();
+
     this.#log = log;
   }
 

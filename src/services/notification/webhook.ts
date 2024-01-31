@@ -1,14 +1,14 @@
-import Stream from 'node:stream';
+import { EventEmitter } from 'node:events';
 
 import got from 'got';
 import { ulid } from 'ulidx';
 
 import version from '../../version.js';
 import { QuerySubscription, WebhookNotification, XcmMessageNotify } from '../monitoring/types.js';
-import { Logger, Services } from 'services/types.js';
+import { Logger, Services, TelementryNotifierEvents as telemetry } from '../types.js';
 
 import { Notifier } from './types.js';
-import { Scheduled, Scheduler } from 'services/persistence/scheduler.js';
+import { Scheduled, Scheduler } from '../persistence/scheduler.js';
 
 const DEFAULT_DELAY = 300000; // 5 minutes
 
@@ -22,7 +22,7 @@ const WebhookTaskType = 'task:webhook';
 
 export const Delivered = Symbol('delivered');
 
-export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
+export class WebhookNotifier extends EventEmitter implements Notifier {
   #log: Logger;
   #scheduler: Scheduler;
 
@@ -106,17 +106,27 @@ export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
           msg.origin.blockNumber,
           msg.destination.blockNumber
         );
+
         this.emit(Delivered, {
           id,
           msg
         });
+
+        this.emit(telemetry.Notify, {
+          type: config.type,
+          subscription: msg.subscriptionId,
+          origin: msg.origin.chainId,
+          destination: msg.destination.chainId,
+          outcome: msg.outcome,
+          sink: config.url
+        });
       } else {
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
-        // is of retries is reached.
+        // of retries is reached.
         this.#log.error(
           'Not deliverable webhook %s %s',
-          config.url,
+          url,
           id
         );
       }
@@ -138,6 +148,16 @@ export class WebhookNotifier extends Stream.EventEmitter implements Notifier {
         'Scheduled webhook delivery %s',
         key
       );
+
+      this.emit(telemetry.NotifyError, {
+        type: config.type,
+        subscription: msg.subscriptionId,
+        origin: msg.origin.chainId,
+        destination: msg.destination.chainId,
+        outcome: msg.outcome,
+        sink: config.url,
+        error: 'max_retries'
+      });
     }
   }
 }

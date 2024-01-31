@@ -52,17 +52,25 @@ export type TelemetryObserver = {
 
 export const TelemetrySources = {
   engine: Symbol('engine'),
-  catcher: Symbol('catcher')
+  catcher: Symbol('catcher'),
+  notifier: Symbol('notifier')
 };
 
 export const TelementryEngineEvents = {
-  Notify: Symbol('engine:notify'),
-  NotifyError: Symbol('engine:notify-error')
+  Inbound: Symbol('engine:inbound'),
+  Outbound: Symbol('engine:outbound'),
+  Matched: Symbol('eninge:matched')
 };
+
 export const TelementryCatcherEvents = {
   BlockSeen: Symbol('catcher:block-seen'),
   BlockFinalized: Symbol('catcher:block-finalized'),
   BlockCacheHit: Symbol('catcher:blocks-cache')
+};
+
+export const TelementryNotifierEvents = {
+  Notify: Symbol('notifier:notify'),
+  NotifyError: Symbol('notifier:notify-error')
 };
 
 export type Logger = FastifyBaseLogger

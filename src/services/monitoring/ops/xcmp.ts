@@ -26,7 +26,7 @@ function findOutboundHrmpMessage(
   return (source: Observable<XcmMessageSentWithContext>)
   : Observable<GenericXcmMessageSentWithContext> => {
     return source.pipe(
-      mergeMap(sentMsg => {
+      mergeMap((sentMsg): Observable<GenericXcmMessageSentWithContext> => {
         const { blockHash, messageHash } = sentMsg;
         return getOutboundHrmpMessages(blockHash).pipe(
           map(messages =>  {
@@ -39,7 +39,7 @@ function findOutboundHrmpMessage(
                   new GenericXcmMessageSentWithContext({
                     ...sentMsg,
                     messageData: xcmProgram.toU8a(),
-                    recipient: recipient.toNumber(),
+                    recipient: recipient.toNumber().toString(),
                     messageHash: xcmProgram.hash.toHex(),
                     instructions: xcmProgram.toHuman(),
                     messageId: getMessageId(xcmProgram)

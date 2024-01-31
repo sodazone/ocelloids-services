@@ -194,6 +194,7 @@ export class Switchboard {
   collectTelemetry(collect: (observer: TelemetryObserver) => void) {
     collect({ id: TelemetrySources.engine, source: this.#engine});
     collect({ id: TelemetrySources.catcher, source: this.#catcher});
+    collect({ id: TelemetrySources.notifier, source: this.#notifier});
   }
 
   /**

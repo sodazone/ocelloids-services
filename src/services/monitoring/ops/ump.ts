@@ -100,7 +100,7 @@ function findOutboundUmpMessage(
                 return new GenericXcmMessageSentWithContext({
                   ...sentMsg,
                   messageData: data.toU8a(),
-                  recipient: 0, // always relay
+                  recipient: '0', // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   instructions: xcmProgram.toHuman()
