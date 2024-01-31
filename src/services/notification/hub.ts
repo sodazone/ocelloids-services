@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Logger, Services, TelementryNotifierEvents } from '../types.js';
-import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
+import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
 import { LogNotifier } from './log.js';
 import { Notifier } from './types.js';
 import { WebhookNotifier } from './webhook.js';
@@ -36,7 +36,7 @@ export class NotifierHub extends EventEmitter implements Notifier {
     }
   }
 
-  async notify(sub: QuerySubscription, msg: XcmMessageNotify) {
+  async notify(sub: QuerySubscription, msg: XcmMatched) {
     try {
       await this.#notifiers[sub.notify.type].notify(sub, msg);
     } catch (error) {

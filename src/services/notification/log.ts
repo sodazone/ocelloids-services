@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Logger, Services } from '../../services/types.js';
-import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
+import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
 import { Notifier } from './types.js';
 
 export class LogNotifier extends EventEmitter implements Notifier {
@@ -15,7 +15,7 @@ export class LogNotifier extends EventEmitter implements Notifier {
 
   async notify(
     sub: QuerySubscription,
-    msg: XcmMessageNotify
+    msg: XcmMatched
   ) {
     this.#log.info(
       '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',

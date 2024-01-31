@@ -8,13 +8,13 @@ import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services, TelemetryObserver, TelemetrySources } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
-  XcmMessageSent,
+  XcmSent,
   QuerySubscription,
-  XcmMessageReceived,
-  XcmMessageNotify,
+  XcmReceived,
+  XcmMatched,
   SubscriptionHandler,
-  XcmMessageReceivedWithContext,
-  XcmMessageSentWithContext,
+  XcmReceivedWithContext,
+  XcmSentWithContext,
   SubscriptionWithId
 } from './types.js';
 
@@ -65,15 +65,9 @@ export class Switchboard {
     this.#log = log;
     this.#config = config;
 
-    this.#engine = new MatchingEngine(ctx);
+    this.#engine = new MatchingEngine(ctx, this.#onXcmMatched.bind(this));
     this.#catcher = new HeadCatcher(ctx);
     this.#notifier = new NotifierHub(ctx);
-  }
-
-  async onNotification(msg: XcmMessageNotify) {
-    const { subscriptionId } = msg;
-    const sub = await this.#db.getById(subscriptionId);
-    await this.#notifier.notify(sub, msg);
   }
 
   /**
@@ -124,7 +118,6 @@ export class Switchboard {
 
   async start() {
     this.#catcher.start();
-    this.#engine.onNotification(this.onNotification.bind(this));
 
     await this.#startNetworkMonitors();
   }
@@ -259,10 +252,10 @@ export class Switchboard {
         }
 
         const inbound$ = () => (
-          source: Observable<XcmMessageReceivedWithContext>
+          source: Observable<XcmReceivedWithContext>
         ) => source.pipe(
           map(msg => from(this.#engine.onInboundMessage(
-            new XcmMessageReceived(id, chainId, msg)
+            new XcmReceived(id, chainId, msg)
           )))
         );
         const inboundHandler = {
@@ -357,10 +350,10 @@ export class Switchboard {
     );
 
     const outbound$ =  () => (
-      source: Observable<XcmMessageSentWithContext>
+      source: Observable<XcmSentWithContext>
     ) => source.pipe(
       map(msg => from(this.#engine.onOutboundMessage(
-        new XcmMessageSent(id, origin, msg)
+        new XcmSent(id, origin, msg)
       )))
     );
     const outboundHandler = {
@@ -502,5 +495,11 @@ export class Switchboard {
         }
       }
     }
+  }
+
+  async #onXcmMatched(msg: XcmMatched) {
+    const { subscriptionId } = msg;
+    const sub = await this.#db.getById(subscriptionId);
+    await this.#notifier.notify(sub, msg);
   }
 }

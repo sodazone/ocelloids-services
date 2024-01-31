@@ -3,7 +3,7 @@ import { Counter } from 'prom-client';
 import {
   TelementryEngineEvents as events, TelemetryObserver
 } from '../../types.js';
-import { XcmMessageReceived, XcmMessageSent } from '../../monitoring/types.js';
+import { XcmReceived, XcmSent } from '../../monitoring/types.js';
 
 export function engineMetrics(
   { source }: TelemetryObserver
@@ -25,7 +25,7 @@ export function engineMetrics(
   });
 
   source.on(events.Inbound,
-    (message: XcmMessageReceived) => {
+    (message: XcmReceived) => {
       inCount.labels(
         message.subscriptionId,
         message.chainId,
@@ -34,7 +34,7 @@ export function engineMetrics(
     });
 
   source.on(events.Outbound,
-    (message: XcmMessageSent) => {
+    (message: XcmSent) => {
       outCount.labels(
         message.subscriptionId,
         message.chainId,
@@ -43,7 +43,7 @@ export function engineMetrics(
     });
 
   source.on(events.Matched,
-    (inMsg: XcmMessageReceived, outMsg: XcmMessageSent) => {
+    (inMsg: XcmReceived, outMsg: XcmSent) => {
       matchCount.labels(
         outMsg.subscriptionId,
         outMsg.chainId,

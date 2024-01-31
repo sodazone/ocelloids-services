@@ -33,7 +33,7 @@ export type XcmCriteria = {
   messageControl: ControlQuery
 }
 
-export type XcmMessageWithContext = {
+export type XcmWithContext = {
   event: AnyJson,
   extrinsicId?: string,
   blockNumber: string | number,
@@ -42,19 +42,19 @@ export type XcmMessageWithContext = {
   messageId?: HexString
 }
 
-export interface XcmMessageSentWithContext extends XcmMessageWithContext {
+export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array,
   recipient: string,
   sender: AnyJson,
   instructions: AnyJson,
 }
 
-export interface XcmMessageReceivedWithContext extends XcmMessageWithContext {
+export interface XcmReceivedWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail',
   error: AnyJson
 }
 
-export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedWithContext {
+export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
   event: AnyJson;
   extrinsicId?: string | undefined;
   blockNumber: string;
@@ -64,7 +64,7 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
   outcome: 'Success' | 'Fail';
   error: AnyJson;
 
-  constructor(msg: XcmMessageReceivedWithContext) {
+  constructor(msg: XcmReceivedWithContext) {
     this.event = msg.event;
     this.messageHash = msg.messageHash;
     this.messageId = msg.messageId ?? msg.messageHash;
@@ -89,7 +89,7 @@ export class GenericXcmMessageReceivedWithContext implements XcmMessageReceivedW
   }
 }
 
-export class XcmMessageReceived {
+export class XcmReceived {
   subscriptionId: string;
   chainId: string;
   event: AnyJson;
@@ -104,7 +104,7 @@ export class XcmMessageReceived {
   constructor(
     subscriptionId: string,
     chainId: string,
-    msg: XcmMessageReceivedWithContext
+    msg: XcmReceivedWithContext
   ) {
     this.subscriptionId = subscriptionId;
     this.chainId = chainId;
@@ -119,7 +119,7 @@ export class XcmMessageReceived {
   }
 }
 
-export class GenericXcmMessageSentWithContext implements XcmMessageSentWithContext {
+export class GenericXcmSentWithContext implements XcmSentWithContext {
   messageData: Uint8Array;
   recipient: string;
   instructions: AnyJson;
@@ -131,7 +131,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   extrinsicId?: string;
   messageId?: HexString;
 
-  constructor(msg: XcmMessageSentWithContext) {
+  constructor(msg: XcmSentWithContext) {
     this.event = msg.event;
     this.messageData = msg.messageData;
     this.recipient = msg.recipient;
@@ -160,7 +160,7 @@ export class GenericXcmMessageSentWithContext implements XcmMessageSentWithConte
   }
 }
 
-export class XcmMessageSent {
+export class XcmSent {
   subscriptionId: string;
   chainId: string;
   messageData: string;
@@ -177,7 +177,7 @@ export class XcmMessageSent {
   constructor(
     subscriptionId: string,
     chainId: string,
-    msg: XcmMessageSentWithContext
+    msg: XcmSentWithContext
   ) {
     this.chainId = chainId;
     this.subscriptionId = subscriptionId;
@@ -194,7 +194,7 @@ export class XcmMessageSent {
   }
 }
 
-type XcmMessageNofityContext = {
+type XcmMatchedContext = {
   chainId: string,
   blockNumber: string,
   blockHash: HexString,
@@ -202,10 +202,10 @@ type XcmMessageNofityContext = {
   event: AnyJson
 }
 
-export class XcmMessageNotify {
+export class XcmMatched {
   subscriptionId: string;
-  origin: XcmMessageNofityContext;
-  destination: XcmMessageNofityContext;
+  origin: XcmMatchedContext;
+  destination: XcmMatchedContext;
   messageHash: HexString;
   messageData: string;
   instructions: AnyJson;
@@ -214,8 +214,8 @@ export class XcmMessageNotify {
   error: AnyJson;
 
   constructor(
-    outMsg: XcmMessageSent,
-    inMsg: XcmMessageReceived
+    outMsg: XcmSent,
+    inMsg: XcmReceived
   ) {
     this.subscriptionId = outMsg.subscriptionId;
     this.destination = {

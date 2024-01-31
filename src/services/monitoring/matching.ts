@@ -7,14 +7,14 @@ import {
   DB, Logger, Services, TelementryEngineEvents as telemetry, jsonEncoded, prefixes
 } from '../types.js';
 import {
-  XcmMessageNotify,
-  XcmMessageReceived,
-  XcmMessageSent
+  XcmMatched,
+  XcmReceived,
+  XcmSent
 } from './types.js';
 
 import { Janitor } from '../persistence/janitor.js';
 
-export type NotificationReceiver = (message: XcmMessageNotify) => Promise<void> | void;
+export type XcmMatchedReceiver = (message: XcmMatched) => Promise<void> | void;
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
 export type ChainBlock = {
@@ -40,15 +40,16 @@ export class MatchingEngine extends EventEmitter {
   #log: Logger;
   #janitor: Janitor;
 
-  #outbound: SubLevel<XcmMessageSent>;
-  #inbound: SubLevel<XcmMessageReceived>;
+  #outbound: SubLevel<XcmSent>;
+  #inbound: SubLevel<XcmReceived>;
   #mutex: Mutex;
-  #noticationReceiver: any;
+  #xcmMatchedReceiver: XcmMatchedReceiver;
 
   constructor(
     {
       log, storage: { root: db }, janitor
-    }: Services
+    }: Services,
+    xcmMatchedReceiver: XcmMatchedReceiver
   ) {
     super();
 
@@ -56,12 +57,13 @@ export class MatchingEngine extends EventEmitter {
     this.#log = log;
     this.#janitor = janitor;
     this.#mutex = new Mutex();
+    this.#xcmMatchedReceiver = xcmMatchedReceiver;
 
     this.#outbound = this.#sl(prefixes.matching.outbound);
     this.#inbound = this.#sl(prefixes.matching.inbound);
   }
 
-  async onOutboundMessage(outMsg: XcmMessageSent) {
+  async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
     this.emit(telemetry.Outbound, outMsg);
@@ -93,7 +95,7 @@ export class MatchingEngine extends EventEmitter {
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#notifyMatched(outMsg, inMsg);
+          await this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -121,7 +123,7 @@ export class MatchingEngine extends EventEmitter {
             outMsg.blockNumber
           );
           await this.#inbound.del(hashKey);
-          await this.#notifyMatched(outMsg, inMsg);
+          await this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -137,7 +139,7 @@ export class MatchingEngine extends EventEmitter {
     });
   }
 
-  async onInboundMessage(inMsg: XcmMessageReceived)  {
+  async onInboundMessage(inMsg: XcmReceived)  {
     const log = this.#log;
 
     this.emit(telemetry.Inbound, inMsg);
@@ -158,7 +160,7 @@ export class MatchingEngine extends EventEmitter {
             inMsg.blockNumber
           );
           await this.#outbound.del(hashKey);
-          await this.#notifyMatched(outMsg, inMsg);
+          await this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -193,7 +195,7 @@ export class MatchingEngine extends EventEmitter {
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#notifyMatched(outMsg, inMsg);
+          await this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -223,23 +225,19 @@ export class MatchingEngine extends EventEmitter {
     });
   }
 
-  onNotification(receiver: NotificationReceiver) {
-    this.#noticationReceiver = receiver;
-  }
-
   async stop() {
     await this.#mutex.waitForUnlock();
   }
 
-  async #notifyMatched(
-    outMsg: XcmMessageSent,
-    inMsg: XcmMessageReceived
+  async #onXcmMatched(
+    outMsg: XcmSent,
+    inMsg: XcmReceived
   ) {
     this.emit(telemetry.Matched, inMsg, outMsg);
 
     try {
-      const message: XcmMessageNotify = new XcmMessageNotify(outMsg, inMsg);
-      await this.#noticationReceiver(message);
+      const message: XcmMatched = new XcmMatched(outMsg, inMsg);
+      await this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
     }

@@ -3,10 +3,10 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmMessageReceived, XcmMessageSent } from './types.js';
+import { XcmReceived, XcmSent } from './types.js';
 import { _services } from '../../testing/services.js';
 
-const inboundMessage : XcmMessageReceived = {
+const inboundMessage : XcmReceived = {
   messageHash: '0xCAFE',
   messageId: '0xB000',
   chainId: '1',
@@ -18,10 +18,10 @@ const inboundMessage : XcmMessageReceived = {
   blockNumber: '2'
 };
 
-const outboundMessage : XcmMessageSent = {
+const outboundMessage : XcmSent = {
   messageHash: '0xCAFE',
   messageId: '0xB000',
-  recipient: 1,
+  recipient: '1',
   chainId: '0',
   event: {},
   instructions: {},
@@ -36,8 +36,11 @@ const outboundMessage : XcmMessageSent = {
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
+  const cb = jest.fn(() => {});
 
   beforeEach(() => {
+    cb.mockReset();
+
     const db = new Level();
     engine = new MatchingEngine({
       ..._services,
@@ -45,13 +48,10 @@ describe('message matching engine', () => {
         ..._services.storage,
         root: db
       }
-    });
+    }, cb);
   });
 
   it('should match inbound and outbound', async () => {
-    const cb = jest.fn(() => {});
-    engine.onNotification(cb);
-
     await engine.onOutboundMessage(outboundMessage);
     await engine.onInboundMessage(inboundMessage);
 
@@ -59,9 +59,6 @@ describe('message matching engine', () => {
   });
 
   it('should match outbound and inbound', async () => {
-    const cb = jest.fn(() => {});
-    engine.onNotification(cb);
-
     await engine.onInboundMessage(inboundMessage);
     await engine.onOutboundMessage(outboundMessage);
 
@@ -69,9 +66,6 @@ describe('message matching engine', () => {
   });
 
   it('should work async concurrently', async () => {
-    const cb = jest.fn(() => {});
-    engine.onNotification(cb);
-
     await Promise.all([
       engine.onOutboundMessage(outboundMessage),
       engine.onInboundMessage(inboundMessage)

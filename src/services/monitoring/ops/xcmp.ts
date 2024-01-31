@@ -11,9 +11,9 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmMessageReceivedWithContext,
-  GenericXcmMessageSentWithContext, XcmCriteria, XcmMessageReceivedWithContext,
-  XcmMessageSentWithContext
+  GenericXcmReceivedWithContext,
+  GenericXcmSentWithContext, XcmCriteria, XcmReceivedWithContext,
+  XcmSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
 import { getMessageId } from './util.js';
@@ -23,10 +23,10 @@ function findOutboundHrmpMessage(
   messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
-  return (source: Observable<XcmMessageSentWithContext>)
-  : Observable<GenericXcmMessageSentWithContext> => {
+  return (source: Observable<XcmSentWithContext>)
+  : Observable<GenericXcmSentWithContext> => {
     return source.pipe(
-      mergeMap((sentMsg): Observable<GenericXcmMessageSentWithContext> => {
+      mergeMap((sentMsg): Observable<GenericXcmSentWithContext> => {
         const { blockHash, messageHash } = sentMsg;
         return getOutboundHrmpMessages(blockHash).pipe(
           map(messages =>  {
@@ -36,7 +36,7 @@ function findOutboundHrmpMessage(
                 // TODO: caching strategy
                 const xcms = fromXcmpFormat(data);
                 return xcms.map(xcmProgram =>
-                  new GenericXcmMessageSentWithContext({
+                  new GenericXcmSentWithContext({
                     ...sentMsg,
                     messageData: xcmProgram.toU8a(),
                     recipient: recipient.toNumber().toString(),
@@ -57,7 +57,7 @@ function findOutboundHrmpMessage(
 
 function xcmpMessagesSent() {
   return (source: Observable<types.EventWithIdAndTx>)
-    : Observable<XcmMessageSentWithContext> => {
+    : Observable<XcmSentWithContext> => {
     return (source.pipe(
       map(event => {
         const xcmMessage = event.data as any;
@@ -68,7 +68,7 @@ function xcmpMessagesSent() {
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash.toHex()
-        } as XcmMessageSentWithContext;
+        } as XcmSentWithContext;
       })
     ));
   };
@@ -82,7 +82,7 @@ export function extractXcmpSend(
   getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
   return (source: Observable<SignedBlockExtended>)
-  : Observable<XcmMessageSentWithContext> => {
+  : Observable<XcmSentWithContext> => {
     return source.pipe(
       filterEvents(
         // events filter criteria
@@ -106,12 +106,12 @@ export function extractXcmpSend(
 
 function mapXcmpQueueMessage() {
   return (source: Observable<types.EventWithIdAndTx>):
-  Observable<XcmMessageReceivedWithContext>  => {
+  Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
         if (event.method === 'Success') {
           const xcmMessage = event.data as any;
-          return new GenericXcmMessageReceivedWithContext({
+          return new GenericXcmReceivedWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
             blockNumber: event.blockNumber.toPrimitive(),
@@ -123,7 +123,7 @@ function mapXcmpQueueMessage() {
         } else if (event.method === 'Fail') {
           const xcmMessage = event.data as any;
           const error = xcmMessage.error;
-          return new GenericXcmMessageReceivedWithContext({
+          return new GenericXcmReceivedWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
             blockNumber: event.blockNumber.toPrimitive(),
@@ -144,7 +144,7 @@ function mapXcmpQueueMessage() {
 
 export function extractXcmpReceive() {
   return (source: Observable<SignedBlockExtended>)
-  : Observable<XcmMessageReceivedWithContext>  => {
+  : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       filterEvents(
         // event filter criteria

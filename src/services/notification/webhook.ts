@@ -4,7 +4,7 @@ import got from 'got';
 import { ulid } from 'ulidx';
 
 import version from '../../version.js';
-import { QuerySubscription, WebhookNotification, XcmMessageNotify } from '../monitoring/types.js';
+import { QuerySubscription, WebhookNotification, XcmMatched } from '../monitoring/types.js';
 import { Logger, Services, TelementryNotifierEvents as telemetry } from '../types.js';
 
 import { Notifier } from './types.js';
@@ -15,7 +15,7 @@ const DEFAULT_DELAY = 300000; // 5 minutes
 type WebhookTask = {
   id: string
   url: string
-  msg: XcmMessageNotify
+  msg: XcmMatched
   config: WebhookNotification
 }
 const WebhookTaskType = 'task:webhook';
@@ -37,7 +37,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
 
   async notify(
     sub: QuerySubscription,
-    msg: XcmMessageNotify
+    msg: XcmMatched
   ) {
     const { notify } = sub;
     if (notify.type === 'webhook') {
@@ -62,7 +62,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     const { task: { id, url , msg, config } } = scheduled;
 
     try {
-      const res = await got.post<XcmMessageNotify>(url, {
+      const res = await got.post<XcmMatched>(url, {
         json: msg,
         headers: {
           'user-agent': 'xcmon/' + version

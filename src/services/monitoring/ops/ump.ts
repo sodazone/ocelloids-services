@@ -12,12 +12,12 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmMessageReceivedWithContext,
-  GenericXcmMessageSentWithContext,
+  GenericXcmReceivedWithContext,
+  GenericXcmSentWithContext,
   GetOutboundUmpMessages,
   HexString,
-  XcmCriteria, XcmMessageReceivedWithContext,
-  XcmMessageSentWithContext
+  XcmCriteria, XcmReceivedWithContext,
+  XcmSentWithContext
 } from '../types.js';
 import { getMessageId } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
@@ -32,7 +32,7 @@ type EventRecordWithContext = {
 
 function mapUmpQueueMessage(origin: string) {
   return (source: Observable<EventRecordWithContext>):
-    Observable<XcmMessageReceivedWithContext>  => {
+    Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       mongoFilter({
         'section': 'messageQueue',
@@ -47,7 +47,7 @@ function mapUmpQueueMessage(origin: string) {
         // If we can get origin ID, only return message if origin matches with subscription origin
         // If no origin ID, we will return the message without matching with subscription origin
         if (originId === undefined || originId === origin) {
-          return new GenericXcmMessageReceivedWithContext({
+          return new GenericXcmReceivedWithContext({
             event: event.toHuman(),
             blockHash,
             blockNumber,
@@ -66,7 +66,7 @@ function mapUmpQueueMessage(origin: string) {
 
 function umpMessagesSent() {
   return (source: Observable<types.EventWithIdAndTx>)
-        : Observable<XcmMessageSentWithContext> => {
+        : Observable<XcmSentWithContext> => {
     return (source.pipe(
       map(event => {
         const xcmMessage = event.data as any;
@@ -77,7 +77,7 @@ function umpMessagesSent() {
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash.toHex(),
           sender: event.extrinsic.signer.toHuman()
-        } as XcmMessageSentWithContext;
+        } as XcmSentWithContext;
       })
     ));
   };
@@ -87,8 +87,8 @@ function findOutboundUmpMessage(
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
-  return (source: Observable<XcmMessageSentWithContext>)
-  : Observable<XcmMessageSentWithContext> => {
+  return (source: Observable<XcmSentWithContext>)
+  : Observable<XcmSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
         const { blockHash, messageHash } = sentMsg;
@@ -97,7 +97,7 @@ function findOutboundUmpMessage(
             return messages
               .map(data => {
                 const xcmProgram = asVersionedXcm(data);
-                return new GenericXcmMessageSentWithContext({
+                return new GenericXcmSentWithContext({
                   ...sentMsg,
                   messageData: data.toU8a(),
                   recipient: '0', // always relay
@@ -124,7 +124,7 @@ export function extractUmpSend(
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
   return (source: Observable<SignedBlockExtended>)
-      : Observable<XcmMessageSentWithContext> => {
+      : Observable<XcmSentWithContext> => {
     return source.pipe(
       filterEvents(
         // events filter criteria
@@ -151,7 +151,7 @@ export function extractUmpSend(
 
 export function extractUmpReceive(origin: string) {
   return (source: Observable<SignedBlockExtended>)
-    : Observable<XcmMessageReceivedWithContext>  => {
+    : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       mergeMap(({ block: { header }, events}) =>
         events.map(record => ({

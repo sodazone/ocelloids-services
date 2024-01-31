@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
-import { QuerySubscription, XcmMessageNotify } from '../monitoring/types.js';
+import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
 
 export interface Notifier extends EventEmitter {
-  notify(sub: QuerySubscription, msg: XcmMessageNotify) : Promise<void>
+  notify(sub: QuerySubscription, msg: XcmMatched) : Promise<void>
 }

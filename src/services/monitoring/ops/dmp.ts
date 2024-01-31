@@ -14,10 +14,10 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmMessageReceivedWithContext,
-  GenericXcmMessageSentWithContext,
-  XcmCriteria, XcmMessageReceivedWithContext,
-  XcmMessageSentWithContext
+  GenericXcmReceivedWithContext,
+  GenericXcmSentWithContext,
+  XcmCriteria, XcmReceivedWithContext,
+  XcmSentWithContext
 } from '../types.js';
 import { getMessageId } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
@@ -82,11 +82,11 @@ function createXcmMessageSent(
   paraId: string,
   data: Bytes,
   tx: types.TxWithIdAndEvent
-}) : GenericXcmMessageSentWithContext {
+}) : GenericXcmSentWithContext {
   const xcmProgram = asVersionedXcm(data);
   const blockHash = extrinsic.blockHash.toHex();
   const blockNumber = extrinsic.blockNumber.toPrimitive();
-  return new GenericXcmMessageSentWithContext({
+  return new GenericXcmSentWithContext({
     blockHash,
     blockNumber,
     event: {},
@@ -101,7 +101,7 @@ function createXcmMessageSent(
 
 function findDmpMessages(api: ApiPromise) {
   return (source: Observable<types.TxWithIdAndEvent>)
-        : Observable<XcmMessageSentWithContext> => {
+        : Observable<XcmSentWithContext> => {
     return source.pipe(
       map(tx => {
         const dest = tx.extrinsic.args[0] as VersionedMultiLocation;
@@ -184,7 +184,7 @@ export function extractDmpSend(
   }: XcmCriteria
 ) {
   return (source: Observable<SignedBlockExtended>)
-      : Observable<XcmMessageSentWithContext> => {
+      : Observable<XcmSentWithContext> => {
     return source.pipe(
       filterExtrinsics({
         // 'dispatchError': { $eq: undefined },
@@ -216,7 +216,7 @@ function extractXcmError(outcome: Outcome) {
 
 function mapDmpQueueMessage() {
   return (source: Observable<types.EventWithIdAndTx>):
-      Observable<XcmMessageReceivedWithContext>  => {
+      Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
         const xcmMessage = event.data as any;
@@ -224,7 +224,7 @@ function mapDmpQueueMessage() {
         const messageId = xcmMessage.messageId.toHex();
         const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
 
-        return new GenericXcmMessageReceivedWithContext({
+        return new GenericXcmReceivedWithContext({
           event: event.toHuman(),
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
@@ -242,7 +242,7 @@ function mapDmpQueueMessage() {
 
 export function extractDmpReceive() {
   return (source: Observable<SignedBlockExtended>)
-      : Observable<XcmMessageReceivedWithContext>  => {
+      : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       filterEvents({
         'section': 'dmpQueue',
