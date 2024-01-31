@@ -24,7 +24,7 @@ export const xcmpSend = {
     'extrinsic.signer.id': { $in: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'] }
   }),
   messageControl: new ControlQuery({
-    'recipient': { $in: [2032] }
+    'recipient': { $in: ['2032'] }
   }),
   getHrmp: () => from([
     [
@@ -51,7 +51,7 @@ export const umpSend = {
     'extrinsic.signer.id': { $in: ['14dqxCimfu8PEuneBLgZnxgyxPuMoaVto7xozL6rgSo3hGU9'] }
   }),
   messageControl: new ControlQuery({
-    'recipient': { $in: [0] }
+    'recipient': { $in: ['0'] }
   }),
   getUmp: () => from([
     [registry.createType('Bytes', umpData)] as Vec<Bytes>
@@ -128,7 +128,7 @@ export const dmpSendSingleMessageInQueue = {
     'extrinsic.signer.id': { $in: ['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'] }
   }),
   messageControl: new ControlQuery({
-    'recipient': { $in: [2000] }
+    'recipient': { $in: ['2000'] }
   }),
   apiPromise: {
     at: () => new Promise((resolve) => {
@@ -172,7 +172,7 @@ export const dmpSendMultipleMessagesInQueue = {
     'extrinsic.signer.id': { $in: ['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'] }
   }),
   messageControl: new ControlQuery({
-    'recipient': { $in: [2000] }
+    'recipient': { $in: ['2000'] }
   }),
   apiPromise: {
     at: () => new Promise((resolve) => {
