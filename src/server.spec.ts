@@ -25,6 +25,7 @@ describe('monitoring server API', () => {
       config: 'config/test.toml',
       db: '',
       scheduler: false,
+      telemetry: true,
       sweepExpiry: 0,
       schedulerFrequency: 0,
       grace: 1000,
