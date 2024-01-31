@@ -26,8 +26,8 @@ type DBOptions = JanitorOptions & SchedulerOptions & {
 /**
  * Persistence related services.
  *
- * @param fastify
- * @param options
+ * @param fastify - The fastify instance
+ * @param options - The persistence options
  */
 const persistencePlugin: FastifyPluginAsync<DBOptions>
 = async (fastify, options) => {

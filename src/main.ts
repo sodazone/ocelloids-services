@@ -110,6 +110,12 @@ program
       'XCMON_CLOSE_GRACE_DELAY',
     ).default(700).argParser(positiveInt)
   )
+  .addOption(
+    optionOf('-t --telemetry <boolean>',
+      'enables or disables the telemetry exporter',
+      'XCMON_TELEMETRY_ENABLE'
+    ).default(true)
+  )
   .action(startServer);
 
 program.parse();

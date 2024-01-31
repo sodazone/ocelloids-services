@@ -80,7 +80,7 @@ export async function createServer(
   await server.register(Connector);
   await server.register(Monitoring);
   await server.register(Administration);
-  await server.register(Telemetry);
+  await server.register(Telemetry, opts);
 
   return server;
 }

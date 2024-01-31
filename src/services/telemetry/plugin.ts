@@ -3,27 +3,39 @@ import fp from 'fastify-plugin';
 
 import { register, collectDefaultMetrics } from 'prom-client';
 import { collect } from './exporters/index.js';
-import { replyHook as createReplyHook } from './reply-hook.js';
+import { createReplyHook } from './reply-hook.js';
 
-const telemetryPlugin: FastifyPluginAsync = async api => {
-  const { log, switchboard } = api;
+type TelemetryOptions = {
+  telemetry: boolean
+}
 
-  // TODO enable/disable metrics configuration
-  log.info('Enable default metrics');
-  collectDefaultMetrics();
+/**
+ * Telemetry related services.
+ *
+ * @param fastify - The fastify instance
+ * @param options - The persistence options
+ */
+const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
+= async (fastify, options) => {
+  const { log, switchboard } = fastify;
 
-  log.info('Enable switchboard metrics');
-  switchboard.collectTelemetry(collect);
+  if (options.telemetry) {
+    log.info('Enable default metrics');
+    collectDefaultMetrics();
 
-  api.addHook('onResponse', createReplyHook());
+    log.info('Enable switchboard metrics');
+    switchboard.collectTelemetry(collect);
 
-  api.get('/metrics', {
-    schema: {
-      hide: true
-    }
-  }, async (_, reply) => {
-    reply.send(await register.metrics());
-  });
+    fastify.addHook('onResponse', createReplyHook());
+
+    fastify.get('/metrics', {
+      schema: {
+        hide: true
+      }
+    }, async (_, reply) => {
+      reply.send(await register.metrics());
+    });
+  }
 };
 
 export default fp(telemetryPlugin, {

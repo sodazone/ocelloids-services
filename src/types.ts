@@ -12,7 +12,8 @@ export const $ServerOptions = z.object({
   sweepExpiry: z.number().min(20000),
   port: z.number().min(0),
   host: z.string().min(1),
-  grace: z.number().min(1)
+  grace: z.number().min(1),
+  telemetry: z.boolean().default(true)
 });
 
 export type ServerOptions = z.infer<typeof $ServerOptions>;
