@@ -1,4 +1,3 @@
-
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import { Level } from 'level';

@@ -2,7 +2,6 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { Histogram } from 'prom-client';
 
-// TODO: configuration to exclude routes
 export function createReplyHook() {
   const reqHist = new Histogram({
     name: 'xcmon_fastify_response_time_ms',
@@ -10,6 +9,10 @@ export function createReplyHook() {
     labelNames: ['status', 'method', 'route']
   });
   return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.routeConfig.disableTelemetry) {
+      return;
+    }
+
     const millis = reply.elapsedTime;
     reqHist.labels(
       reply.statusCode.toString(),

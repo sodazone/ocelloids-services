@@ -5,6 +5,12 @@ import { register, collectDefaultMetrics } from 'prom-client';
 import { collect } from './exporters/index.js';
 import { createReplyHook } from './reply-hook.js';
 
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    disableTelemetry?: boolean
+  }
+}
+
 type TelemetryOptions = {
   telemetry: boolean
 }
@@ -31,6 +37,9 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
     fastify.get('/metrics', {
       schema: {
         hide: true
+      },
+      config: {
+        disableTelemetry: true
       }
     }, async (_, reply) => {
       reply.send(await register.metrics());
