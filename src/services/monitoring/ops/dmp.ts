@@ -215,7 +215,7 @@ function extractXcmError(outcome: Outcome) {
 }
 
 function mapDmpQueueMessage() {
-  return (source: Observable<types.EventWithIdAndTx>):
+  return (source: Observable<types.BlockEvent>):
       Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {

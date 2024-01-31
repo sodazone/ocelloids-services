@@ -65,7 +65,7 @@ function mapUmpQueueMessage(origin: string) {
 }
 
 function umpMessagesSent() {
-  return (source: Observable<types.EventWithIdAndTx>)
+  return (source: Observable<types.BlockEvent>)
         : Observable<XcmSentWithContext> => {
     return (source.pipe(
       map(event => {
@@ -76,7 +76,7 @@ function umpMessagesSent() {
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash.toHex(),
-          sender: event.extrinsic.signer.toHuman()
+          sender: event.extrinsic?.signer.toHuman()
         } as XcmSentWithContext;
       })
     ));
@@ -126,19 +126,10 @@ export function extractUmpSend(
   return (source: Observable<SignedBlockExtended>)
       : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filterEvents(
-        // events filter criteria
-        {
-          'section': 'parachainSystem',
-          'method': 'UpwardMessageSent'
-        },
-        // extrinsics filter criteria
-        // NOTE: we are not flattening extrinsics here
-        // since we are filtering by events
-        {
-          'dispatchError': { $eq: undefined }
-        }
-      ),
+      filterEvents({
+        'section': 'parachainSystem',
+        'method': 'UpwardMessageSent'
+      }),
       mongoFilter(sendersControl),
       umpMessagesSent(),
       findOutboundUmpMessage(

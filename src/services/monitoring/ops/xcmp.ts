@@ -56,14 +56,14 @@ function findOutboundHrmpMessage(
 }
 
 function xcmpMessagesSent() {
-  return (source: Observable<types.EventWithIdAndTx>)
+  return (source: Observable<types.BlockEvent>)
     : Observable<XcmSentWithContext> => {
     return (source.pipe(
       map(event => {
         const xcmMessage = event.data as any;
         return {
           event: event.toHuman(),
-          sender: event.extrinsic.signer.toHuman(),
+          sender: event.extrinsic?.signer.toHuman(),
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
@@ -84,19 +84,10 @@ export function extractXcmpSend(
   return (source: Observable<SignedBlockExtended>)
   : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filterEvents(
-        // events filter criteria
-        {
-          'section': 'xcmpQueue',
-          'method': 'XcmpMessageSent'
-        },
-        // extrinsics filter criteria
-        // NOTE: we are not flattening extrinsics here
-        // since we are filtering by events
-        {
-          'dispatchError': { $eq: undefined }
-        }
-      ),
+      filterEvents({
+        'section': 'xcmpQueue',
+        'method': 'XcmpMessageSent'
+      }),
       mongoFilter(sendersControl),
       xcmpMessagesSent(),
       findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages),
@@ -105,7 +96,7 @@ export function extractXcmpSend(
 }
 
 function mapXcmpQueueMessage() {
-  return (source: Observable<types.EventWithIdAndTx>):
+  return (source: Observable<types.BlockEvent>):
   Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
@@ -147,7 +138,6 @@ export function extractXcmpReceive() {
   : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       filterEvents(
-        // event filter criteria
         {
           'section': 'xcmpQueue',
           'method': { $in: ['Success', 'Fail'] }
