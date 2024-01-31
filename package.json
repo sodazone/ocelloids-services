@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/main.js",
-    "dev": "XCMON_CONFIG_FILE=config/dev.toml nodemon --exec node --loader ts-node/esm ./src/main.ts",
+    "dev": "nodemon --exec node --loader ts-node/esm ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" npx jest"
   },

@@ -128,7 +128,7 @@ Options:
 Uses nodemon to automatically restart the application on file changes.
 
 ```shell
-yarn dev
+XCMON_CONFIG_FILE=config/manta.toml yarn dev
 ```
 
 ## HTTP APIs
