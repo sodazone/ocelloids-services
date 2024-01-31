@@ -29,7 +29,7 @@ export function engineMetrics(
       inCount.labels(
         message.subscriptionId,
         message.chainId,
-        message.outcome?.toString() ?? 'unknown'
+        message.outcome.toString()
       ).inc();
     });
 
@@ -48,7 +48,7 @@ export function engineMetrics(
         outMsg.subscriptionId,
         outMsg.chainId,
         outMsg.recipient,
-        inMsg.outcome?.toString() ?? 'unknown'
+        inMsg.outcome.toString()
       ).inc();
     });
 }

@@ -64,7 +64,7 @@ export class MatchingEngine extends EventEmitter {
   async onOutboundMessage(outMsg: XcmMessageSent) {
     const log = this.#log;
 
-    this.emit(telemetry.Inbound, outMsg);
+    this.emit(telemetry.Outbound, outMsg);
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
