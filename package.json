@@ -70,7 +70,7 @@
     "@fastify/jwt": "^8.0.0",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^2.1.0",
-    "@sodazone/ocelloids": "^1.1.15",
+    "@sodazone/ocelloids": "^1.2.0",
     "async-mutex": "^0.4.1",
     "cbor-x": "^1.5.8",
     "close-with-grace": "^1.2.0",

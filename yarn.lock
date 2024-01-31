@@ -1510,15 +1510,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sodazone/ocelloids@npm:^1.1.15":
-  version: 1.1.15
-  resolution: "@sodazone/ocelloids@npm:1.1.15"
+"@sodazone/ocelloids@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@sodazone/ocelloids@npm:1.2.0"
   dependencies:
     "@polkadot/api": "npm:^10.11.2"
     "@substrate/connect-known-chains": "npm:^1.0.6"
     mingo: "npm:^6.4.10"
     rxjs: "npm:^7.8.1"
-  checksum: 10c0/6487b457dc151238ef8afc04acad85e5fe091d621972eb21819b0e04b79c4588383f27ef0d5ac302e55110730a727795a87aa58f474f73ff1ce55cd5bd7de69c
+  checksum: 10c0/92de3478c912afb4ce1a0b0e9969bb81e3818982fd91ac952dc6a990ff9257e83e48c8e889f2de191b0c06e2516f18d79dd7795b1d41eb4105c16636c1a7ea70
   languageName: node
   linkType: hard
 
@@ -6981,7 +6981,7 @@ __metadata:
     "@fastify/jwt": "npm:^8.0.0"
     "@fastify/swagger": "npm:^8.14.0"
     "@fastify/swagger-ui": "npm:^2.1.0"
-    "@sodazone/ocelloids": "npm:^1.1.15"
+    "@sodazone/ocelloids": "npm:^1.2.0"
     "@swc/core": "npm:^1.3.107"
     "@swc/jest": "npm:^0.2.31"
     "@types/babel__core": "npm:^7"
