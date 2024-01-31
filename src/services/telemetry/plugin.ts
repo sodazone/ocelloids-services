@@ -19,7 +19,7 @@ type TelemetryOptions = {
  * Telemetry related services.
  *
  * @param fastify - The fastify instance
- * @param options - The persistence options
+ * @param options - The telemetry options
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 = async (fastify, options) => {
