@@ -160,7 +160,7 @@ The server exposes a healthchek endpoint at [/health](http://localhost:3000/heal
 To run unit tests:
 
 ```shell
-npm run test
+yarn test
 ```
 
 For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/guides/TESTING-POLKADOT.md).
