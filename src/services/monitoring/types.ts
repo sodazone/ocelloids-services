@@ -243,9 +243,13 @@ export class XcmMatched {
 
 const $WebhookNotification = z.object({
   type: z.literal('webhook'),
-  url: z.string().min(5).regex(/https?:\/\/.*/),
-  bearer: z.optional(z.string().min(1)),
-  limit: z.optional(z.number().min(0))
+  url: z.string().min(5).max(2_000).regex(/https?:\/\/.*/),
+  contentType: z.optional(z.string().regex(
+    /(?:application|text)\/[a-z0-9-\+\.]+/i
+  ).max(250)),
+  template: z.optional(z.string().min(5).max(32_000)),
+  bearer: z.optional(z.string().min(1).max(1_000)),
+  limit: z.optional(z.number().min(0).max(Number.MAX_SAFE_INTEGER))
 });
 
 const $LogNotification = z.object({

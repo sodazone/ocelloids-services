@@ -8,6 +8,7 @@ import { QuerySubscription, WebhookNotification, XcmMatched } from '../monitorin
 import { Logger, Services, TelementryNotifierEvents as telemetry } from '../types.js';
 
 import { Notifier } from './types.js';
+import { TemplateRenderer } from './template.js';
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js';
 
 const DEFAULT_DELAY = 300000; // 5 minutes
@@ -29,12 +30,16 @@ function buildPostUrl(url: string, id: string) {
 
 /**
  * WebhookNotifier ensures reliable delivery of webhook notifications.
- * Implements immediate and scheduled retry logic.
+ *
+ * Features:
+ * - Immediate and scheduled retry logic.
+ * - Text templates for the body payload.
  */
 export class WebhookNotifier extends EventEmitter implements Notifier {
   #log: Logger;
   #scheduler: Scheduler;
   #subs: SubsStore;
+  #renderer: TemplateRenderer;
 
   constructor({ log, scheduler, storage: { subs } }: Services) {
     super();
@@ -42,6 +47,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     this.#log = log;
     this.#scheduler = scheduler;
     this.#subs = subs;
+    this.#renderer = new TemplateRenderer();
 
     this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this));
   }
@@ -84,20 +90,24 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     config: WebhookNotification
   ) {
     const { task: { id, msg } } = scheduled;
-    const postUrl = buildPostUrl(config.url, id);
+    const { contentType, url, limit, template } = config;
+    const postUrl = buildPostUrl(url, id);
 
     try {
       const res = await got.post<XcmMatched>(postUrl, {
-        json: msg,
+        body: template === undefined
+          ? JSON.stringify(msg)
+          : this.#renderer.render({ template, data: msg }),
         headers: {
-          'user-agent': 'xcmon/' + version
+          'user-agent': 'xcmon/' + version,
+          'content-type': contentType ?? 'application/json'
         },
         retry: {
-          limit: config.limit ?? 5,
+          limit: limit ?? 5,
           methods: ['POST']
         },
         context: {
-          bearer: config.bearer,
+          bearer: config.bearer
         },
         hooks: {
           init: [

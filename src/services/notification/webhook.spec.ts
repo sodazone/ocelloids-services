@@ -27,7 +27,7 @@ const notification : XcmMatched = {
   outcome: 'Success',
   instructions: '0x',
   messageData: '0x',
-  sender: {},
+  sender: { id: 'w123' },
   error: undefined
 };
 
@@ -39,6 +39,33 @@ const subOk = {
     url: 'http://localhost/ok'
   },
   origin: '0',
+  senders: '*'
+} as QuerySubscription;
+
+const xmlTemplate = `
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN"
+        "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MERCHANTCODE">
+    <notify>
+      <xcmStatusEvent subscriptionId="{{subscriptionId}}" outcome="{{outcome}}">
+        <sender>{{sender.id}}</sender>
+        {{#if error}}
+        <error>{{error}}</error>
+        {{/if}}
+      </xcmStatusEvent>
+    </notify>
+</paymentService>
+`;
+const subOkXml = {
+  destinations: ['0'],
+  id: 'ok:xml',
+  notify: {
+    type: 'webhook',
+    url: 'http://localhost/ok',
+    contentType: 'application/xml',
+    template: xmlTemplate
+  },
+  origin: '1000',
   senders: '*'
 } as QuerySubscription;
 
@@ -75,6 +102,7 @@ describe('webhook notifier', () => {
 
   beforeAll(async () => {
     await subs.insert(subOk);
+    await subs.insert(subOkXml);
     await subs.insert(subFail);
     await subs.insert(subOkAuth);
   });
@@ -99,6 +127,7 @@ describe('webhook notifier', () => {
 
   it('should post a notification', async () => {
     const scope = nock('http://localhost')
+      .matchHeader('content-type', 'application/json')
       .post(/ok\/.+/)
       .reply(200);
 
@@ -111,12 +140,27 @@ describe('webhook notifier', () => {
     scope.done();
   });
 
+  it('should post an XML notification', async () => {
+    const scope = nock('http://localhost')
+      .matchHeader('content-type', 'application/xml')
+      .post(/ok\/.+/, /<sender>w123<\/sender>/gi)
+      .reply(200);
+
+    const ok = jest.fn();
+    notifier.on(Delivered, ok);
+
+    await notifier.notify(subOkXml, {
+      ...notification, subscriptionId: 'ok:xml'
+    });
+
+    expect(ok).toHaveBeenCalled();
+    scope.done();
+  });
+
   it('should post a notification with bearer auth', async () => {
     const scope = nock('http://localhost', {
       reqheaders: { 'Authorization': 'Bearer ' + authToken }
-    })
-      .post(/ok\/.+/)
-      .reply(200);
+    }).post(/ok\/.+/).reply(200);
 
     const ok = jest.fn();
     notifier.on(Delivered, ok);
