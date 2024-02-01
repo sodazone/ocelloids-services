@@ -35,6 +35,7 @@ The configuration values can be overridden using command line arguments.
 | XCMON_CLOSE_GRACE_DELAY       | Milliseconds for the graceful close to finish. | 500       |
 | XCMON_SECRET                  | Secret passphrase for administration auth.     | -         |
 | XCMON_MAX_BLOCK_DIST          | Maximum distance in blocks for the catch-up.   | 50        |
+| XCMON_TELEMETRY_ENABLE        | Enables or disables the telemetry service.     | true      |
 
 ### Network Configuration
 
@@ -119,7 +120,8 @@ Options:
   --scheduler <boolean>                 enables or disables the task scheduler (default: true, env: XCMON_DB_SCHEDULER_ENABLE)
   --scheduler-frequency <milliseconds>  milliseconds to wait before each tick (default: 5000, env: XCMON_DB_SCHEDULER_FREQUENCY)
   --sweep-expiry <milliseconds>         milliseconds before a task is swept (default: 1500000, env: XCMON_DB_JANITOR_SWEEP_EXPIRY)
-  -g, --grace <milliseconds>            milliseconds for the graceful close to finish (env: XCMON_CLOSE_GRACE_DELAY)
+  -g, --grace <milliseconds>            milliseconds for the graceful close to finish (default: 700, env: XCMON_CLOSE_GRACE_DELAY)
+  -t --telemetry <boolean>              enables or disables the telemetry exporter (default: true, env: XCMON_TELEMETRY_ENABLE)
   --help                                display help for command
 ```
 
