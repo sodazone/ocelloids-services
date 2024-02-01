@@ -8,29 +8,40 @@ import { QuerySubscription, WebhookNotification, XcmMatched } from '../monitorin
 import { Logger, Services, TelementryNotifierEvents as telemetry } from '../types.js';
 
 import { Notifier } from './types.js';
-import { Scheduled, Scheduler } from '../persistence/scheduler.js';
+import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js';
 
 const DEFAULT_DELAY = 300000; // 5 minutes
 
 type WebhookTask = {
   id: string
-  url: string
+  subId: string
   msg: XcmMatched
-  config: WebhookNotification
 }
 const WebhookTaskType = 'task:webhook';
 
 export const Delivered = Symbol('delivered');
 
+function buildPostUrl(url: string, id: string) {
+  return [url, id]
+    .join('/')
+    .replace(/([^:]\/)\/+/g, '$1');
+}
+
+/**
+ * WebhookNotifier ensures reliable delivery of webhook notifications.
+ * Implements immediate and scheduled retry logic.
+ */
 export class WebhookNotifier extends EventEmitter implements Notifier {
   #log: Logger;
   #scheduler: Scheduler;
+  #subs: SubsStore;
 
-  constructor({ log, scheduler }: Services) {
+  constructor({ log, scheduler, storage: { subs } }: Services) {
     super();
 
     this.#log = log;
     this.#scheduler = scheduler;
+    this.#subs = subs;
 
     this.#scheduler.on(WebhookTaskType, this.#post.bind(this));
   }
@@ -39,30 +50,44 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     sub: QuerySubscription,
     msg: XcmMatched
   ) {
-    const { notify } = sub;
+    const { id, notify } = sub;
+
     if (notify.type === 'webhook') {
-      const id = ulid();
-      const url = [notify.url, id]
-        .join('/')
-        .replace(/([^:]\/)\/+/g, '$1');
+      const taskId = ulid();
       const scheduled : Scheduled<WebhookTask> = {
         type: WebhookTaskType,
         task: {
-          id,
-          url,
-          msg,
-          config: notify
+          id: taskId,
+          subId: id,
+          msg
         }
       };
-      await this.#post(scheduled);
+      await this.#dispatch(scheduled);
     }
   }
 
-  async #post(scheduled: Scheduled<WebhookTask>) {
-    const { task: { id, url , msg, config } } = scheduled;
+  async #dispatch(scheduled: Scheduled<WebhookTask>) {
+    const { task: { subId } } = scheduled;
 
     try {
-      const res = await got.post<XcmMatched>(url, {
+      const sub = await this.#subs.getById(subId);
+      const config = sub.notify as WebhookNotification;
+      await this.#post(scheduled, config);
+    } catch (error) {
+      // do not re-schedule
+      this.#log.error(error, 'Webhook dispatch error');
+    }
+  }
+
+  async #post(
+    scheduled: Scheduled<WebhookTask>,
+    config: WebhookNotification
+  ) {
+    const { task: { id, msg } } = scheduled;
+    const postUrl = buildPostUrl(config.url, id);
+
+    try {
+      const res = await got.post<XcmMatched>(postUrl, {
         json: msg,
         headers: {
           'user-agent': 'xcmon/' + version
@@ -100,7 +125,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
           msg.origin.chainId,
           msg.destination.chainId,
           msg.subscriptionId,
-          url,
+          postUrl,
           msg.messageHash,
           msg.outcome,
           msg.origin.blockNumber,
@@ -126,7 +151,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
         // of retries is reached.
         this.#log.error(
           'Not deliverable webhook %s %s',
-          url,
+          postUrl,
           id
         );
       }

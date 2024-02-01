@@ -5,34 +5,79 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { XcmMessageNotify } from '../monitoring/types.js';
+import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
 import { Delivered, WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 
-const notification : XcmMessageNotify = {
-  subscriptionId: '1',
+const notification : XcmMatched = {
+  subscriptionId: 'ok',
   messageHash: '0xCAFE',
   destination: {
     blockHash: '0xBEEF',
     blockNumber: '2',
-    chainId: 0,
+    chainId: '0',
     event: {}
   },
   origin: {
     blockHash: '0xBEEF',
     blockNumber: '2',
-    chainId: 0,
+    chainId: '0',
     event: {}
   },
   outcome: 'Success',
   instructions: '0x',
   messageData: '0x',
+  sender: {},
   error: undefined
 };
 
+const subOk = {
+  destinations: ['1000'],
+  id: 'ok',
+  notify: {
+    type: 'webhook',
+    url: 'http://localhost/ok'
+  },
+  origin: '0',
+  senders: '*'
+} as QuerySubscription;
+
+const subFail = {
+  destinations: ['2000'],
+  id: 'fail',
+  notify: {
+    type: 'webhook',
+    url: 'http://localhost/not-found'
+  },
+  origin: '0',
+  senders: '*'
+} as QuerySubscription;
+
+const authToken = 'secret';
+
+const subOkAuth = {
+  destinations: ['3000'],
+  id: 'ok:auth',
+  notify: {
+    type: 'webhook',
+    url: 'http://localhost/ok',
+    bearer: authToken
+  },
+  origin: '0',
+  senders: '*'
+} as QuerySubscription;
+
 describe('webhook notifier', () => {
+  const subs = _services.storage.subs;
+
   let scheduler : Scheduler;
   let notifier : WebhookNotifier;
+
+  beforeAll(async () => {
+    await subs.insert(subOk);
+    await subs.insert(subFail);
+    await subs.insert(subOkAuth);
+  });
 
   afterAll(() => {
     nock.restore();
@@ -60,25 +105,15 @@ describe('webhook notifier', () => {
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
-    await notifier.notify({
-      destinations: [],
-      id: 'xyz',
-      notify: {
-        type: 'webhook',
-        url: 'http://localhost/ok'
-      },
-      origin: 0,
-      senders: []
-    }, notification);
+    await notifier.notify(subOk, notification);
 
-    expect(ok).toBeCalled();
+    expect(ok).toHaveBeenCalled();
     scope.done();
   });
 
   it('should post a notification with bearer auth', async () => {
-    const token = 'secret';
     const scope = nock('http://localhost', {
-      reqheaders: { 'Authorization': 'Bearer ' + token }
+      reqheaders: { 'Authorization': 'Bearer ' + authToken }
     })
       .post(/ok\/.+/)
       .reply(200);
@@ -86,19 +121,9 @@ describe('webhook notifier', () => {
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
-    await notifier.notify({
-      destinations: [],
-      id: 'xyz',
-      notify: {
-        type: 'webhook',
-        url: 'http://localhost/ok',
-        bearer: token
-      },
-      origin: 0,
-      senders: []
-    }, notification);
+    await notifier.notify(subOkAuth, notification);
 
-    expect(ok).toBeCalled();
+    expect(ok).toHaveBeenCalled();
     scope.done();
   });
 
@@ -110,18 +135,9 @@ describe('webhook notifier', () => {
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
-    await notifier.notify({
-      destinations: [],
-      id: 'xyz',
-      notify: {
-        type: 'webhook',
-        url: 'http://localhost/not-found'
-      },
-      origin: 0,
-      senders: []
-    }, notification);
+    await notifier.notify(subFail, notification);
 
-    expect(ok).not.toBeCalled();
+    expect(ok).not.toHaveBeenCalled();
     scope.done();
   });
 
@@ -134,19 +150,9 @@ describe('webhook notifier', () => {
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
-    await notifier.notify({
-      destinations: [],
-      id: 'xyz',
-      notify: {
-        type: 'webhook',
-        url: 'http://localhost/ok',
-        limit: 1
-      },
-      origin: 0,
-      senders: []
-    }, notification);
+    await notifier.notify(subOk, notification);
 
-    expect(ok).not.toBeCalled();
+    expect(ok).not.toHaveBeenCalled();
     expect((await scheduler.allTaskTimes()).length).toBe(1);
 
     scope.done();
@@ -162,18 +168,9 @@ describe('webhook notifier', () => {
     const ok = jest.fn();
     notifier.on(Delivered, ok);
 
-    await notifier.notify({
-      destinations: [],
-      id: 'xyz',
-      notify: {
-        type: 'webhook',
-        url: 'http://localhost/ok'
-      },
-      origin: 0,
-      senders: []
-    }, notification);
+    await notifier.notify(subOk, notification);
 
-    expect(ok).toBeCalled();
+    expect(ok).toHaveBeenCalled();
 
     scope.done();
   });
