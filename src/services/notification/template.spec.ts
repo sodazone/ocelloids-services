@@ -1,29 +1,11 @@
-//import { jest } from '@jest/globals';
-
 import { LRUCache } from 'lru-cache';
-import { XcmMatched } from '../monitoring/types';
 import { TemplateRenderer } from './template.js';
 
-const msg : XcmMatched = {
+const msg = {
   subscriptionId: 'ok',
-  messageHash: '0xCAFE',
-  destination: {
-    blockHash: '0xBEEF',
-    blockNumber: '2',
-    chainId: '0',
-    event: {}
-  },
   origin: {
-    blockHash: '0xBEEF',
-    blockNumber: '2',
-    chainId: '0',
-    event: {}
-  },
-  outcome: 'Success',
-  instructions: '0x',
-  messageData: '0x',
-  sender: {},
-  error: undefined
+    chainId: '0'
+  }
 };
 
 describe('templates', () => {
