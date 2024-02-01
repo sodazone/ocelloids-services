@@ -43,7 +43,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     this.#scheduler = scheduler;
     this.#subs = subs;
 
-    this.#scheduler.on(WebhookTaskType, this.#post.bind(this));
+    this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this));
   }
 
   async notify(
