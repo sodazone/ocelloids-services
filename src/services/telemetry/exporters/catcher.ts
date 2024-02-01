@@ -4,10 +4,6 @@ import {
   TelementryCatcherEvents as events, TelemetryObserver
 } from '../../types.js';
 
-// sum by (job) (
-//  rate(http_requests_total[5m])
-//  )
-// sum without (label1, label2) (rate(...))
 export function catcherMetrics(
   { source }: TelemetryObserver
 ) {
