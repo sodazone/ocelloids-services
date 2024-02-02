@@ -22,6 +22,33 @@ describe('templates', () => {
     )).toBe('hi Moncho');
   });
 
+  it('should render a simple array context', () => {
+    expect(renderer.render(
+      {
+        template: '{{#each .}}{{name}}{{nums.length}}{{/each}}',
+        data: [
+          {
+            name: 'Patricio',
+            nums: [0, 1, 2]
+          },
+          {
+            name: 'Moncho',
+            nums: [3,4,5]
+          }
+        ]
+      }
+    )).toBe('Patricio3Moncho3');
+  });
+
+  it('should throw a renderer exception on unknown properties', () => {
+    expect(() => renderer.render(
+      {
+        template: '{{fail}}',
+        data: { id: 0 }
+      }
+    )).toThrow();
+  });
+
   it('should render using cached templates', () => {
     const cache = new LRUCache<string, any>({
       max: 5

@@ -6,6 +6,31 @@ type RenderContext<T> = {
   data: T
 }
 
+type DataObject = {
+  [key: string] : any
+}
+
+function toDataObject(
+  obj: any
+) : DataObject {
+  let dao : DataObject;
+
+  if (Array.isArray(obj)) {
+    dao = obj.map(it => toDataObject(it));
+  } else if (obj instanceof Object && !(obj instanceof Function)) {
+    dao = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (obj.hasOwnProperty(key)) {
+        dao[key] = toDataObject(value);
+      }
+    }
+  } else {
+    dao = obj;
+  }
+
+  return dao;
+}
+
 /**
  * Renders Handlebars templates.
  *
@@ -17,19 +42,23 @@ export class TemplateRenderer {
   constructor(cache?: LRUCache<string, TemplateDelegate>) {
     this.#cache = cache ?? new LRUCache<string, TemplateDelegate>({
       max: 100,
-      // TODO maxSize...
+      ttl: 3.6e6 // 1 hour
     });
   }
 
   render<T>(context: RenderContext<T>): string {
-    return this.#resolve(context)(context.data, {
-      allowProtoMethodsByDefault: false,
-      allowCallsToHelperMissing: false,
-      allowProtoPropertiesByDefault: false
-    });
+    // TODO: consider try..catch wrapping a RendererError
+    return this.#resolve(context)(
+      toDataObject(context.data),
+      {
+        allowProtoMethodsByDefault: false,
+        allowCallsToHelperMissing: false,
+        allowProtoPropertiesByDefault: false
+      }
+    );
   }
 
-  #resolve<T>({ template }: RenderContext<T>) : TemplateDelegate<T> {
+  #resolve<T>({ template }: RenderContext<T>) : TemplateDelegate<any> {
     if (this.#cache.has(template)) {
       return this.#cache.get(template)!;
     }
