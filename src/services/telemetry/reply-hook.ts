@@ -9,7 +9,7 @@ export function createReplyHook() {
     labelNames: ['status', 'method', 'route']
   });
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (request.routeConfig.disableTelemetry) {
+    if (request.routeOptions.config.disableTelemetry) {
       return;
     }
 
