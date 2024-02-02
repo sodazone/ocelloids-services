@@ -212,6 +212,7 @@ export class XcmMatched {
   outcome: 'Success' | 'Fail';
   sender: AnyJson;
   error: AnyJson;
+  messageId?: HexString;
 
   constructor(
     outMsg: XcmSent,
@@ -235,6 +236,7 @@ export class XcmMatched {
     this.sender = outMsg.sender;
     this.instructions = outMsg.instructions;
     this.messageData = outMsg.messageData;
+    this.messageId = outMsg.messageId;
     this.messageHash = inMsg.messageHash;
     this.outcome = inMsg.outcome;
     this.error = inMsg.error;
