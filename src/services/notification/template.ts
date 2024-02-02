@@ -49,7 +49,7 @@ export class TemplateRenderer {
   render<T>(context: RenderContext<T>): string {
     // TODO: consider try..catch wrapping a RendererError
     return this.#resolve(context)(
-      toDataObject(context.data),
+      Object.freeze(toDataObject(context.data)),
       {
         allowProtoMethodsByDefault: false,
         allowCallsToHelperMissing: false,
