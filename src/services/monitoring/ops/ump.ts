@@ -1,5 +1,3 @@
-import type { } from '@polkadot/api-augment';
-
 import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';

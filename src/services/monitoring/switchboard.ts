@@ -1,3 +1,5 @@
+import '@polkadot/api-augment/polkadot'
+
 import { Observable, from, map } from 'rxjs';
 
 import {
@@ -25,7 +27,7 @@ import { NotifierHub } from '../notification/hub.js';
 
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
-import { extractDmpReceive, extractDmpSend } from './ops/dmp.js';
+import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 
 type Monitor = {
   subs: SubscriptionWithId[]
@@ -379,6 +381,28 @@ export class Switchboard {
           sub: this.#catcher.finalizedBlocks(chainId)
             .pipe(
               extractDmpSend(
+                api,
+                {
+                  sendersControl,
+                  messageControl
+                }
+              ),
+              retryWithTruncatedExpBackoff(),
+              outbound$()
+            ).subscribe(outboundHandler)
+        });
+
+        // VMP DMP
+        this.#log.info(
+          '[%s] subscribe outbound DMP - by event (%s)',
+          chainId,
+          id
+        );
+        subs.push({
+          chainId,
+          sub: this.#catcher.finalizedBlocks(chainId)
+            .pipe(
+              extractDmpSendByEvent(
                 api,
                 {
                   sendersControl,
