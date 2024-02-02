@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 
 import type { Bytes } from '@polkadot/types';
-import type { VersionedXcm } from '@polkadot/types/interfaces/xcm';
+import type { XcmVersionedXcm } from '@polkadot/types/lookup';
 
 import { TypeRegistry, Metadata } from '@polkadot/types';
 
@@ -29,7 +29,7 @@ function polkadotRegistry() : TypeRegistry {
 export function asVersionedXcm(
   data: Bytes | Uint8Array,
   registry = polkadotRegistry()
-): VersionedXcm {
+): XcmVersionedXcm {
   return registry.createType(
     'XcmVersionedXcm', data
   );
@@ -38,9 +38,9 @@ export function asVersionedXcm(
 function asXcmpVersionedXcms(
   buffer: Uint8Array,
   registry = polkadotRegistry()
-) : VersionedXcm[] {
+) : XcmVersionedXcm[] {
   const len = buffer.length;
-  const xcms : VersionedXcm[] = [];
+  const xcms : XcmVersionedXcm[] = [];
   let ptr = 1;
 
   while (ptr < len) {
@@ -68,7 +68,7 @@ function asXcmpVersionedXcms(
 export function fromXcmpFormat(
   buf: Uint8Array,
   registry = polkadotRegistry()
-) : VersionedXcm[] {
+) : XcmVersionedXcm[] {
   switch (buf[0]) {
   case 0x00: { // Concatenated XCM fragments
     return asXcmpVersionedXcms(buf, registry);

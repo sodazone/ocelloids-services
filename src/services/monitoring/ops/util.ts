@@ -1,4 +1,4 @@
-import type { VersionedXcm } from '@polkadot/types/interfaces/xcm';
+import type { XcmVersionedXcm } from '@polkadot/types/lookup';
 
 import {
   HexString,
@@ -7,9 +7,18 @@ import {
 /**
  * Gets message id from setTopic.
  */
-export function getMessageId(program: VersionedXcm) {
-  const instructions = program.value.toHuman() as any[];
-  const setTopic = instructions.find((i: any) => i['SetTopic'] !== undefined);
-  return setTopic ? setTopic['SetTopic'] as HexString : undefined;
+export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
+  switch (program.type) {
+    // For the moment only XCM V3 supports topic ID
+    case 'V3':
+      for(const instruction of program.asV3) {
+        if (instruction.isSetTopic) {
+          return instruction.asSetTopic.toHex()
+        }
+      }
+      return undefined;
+    default:
+      return undefined;
+  }
 }
 
