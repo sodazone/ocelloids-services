@@ -1,9 +1,11 @@
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-
+import { Level } from 'level';
 import { register, collectDefaultMetrics } from 'prom-client';
-import { collect } from './exporters/index.js';
+
+import { collect } from './metrics/index.js';
 import { createReplyHook } from './reply-hook.js';
+import { collectDiskStats } from './metrics/disk.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -15,6 +17,8 @@ type TelemetryOptions = {
   telemetry: boolean
 }
 
+type PullCollect = () => Promise<void>;
+
 /**
  * Telemetry related services.
  *
@@ -23,11 +27,18 @@ type TelemetryOptions = {
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 = async (fastify, options) => {
-  const { log, switchboard } = fastify;
+  const { log, switchboard, storage: { root } } = fastify;
 
   if (options.telemetry) {
     log.info('Enable default metrics');
     collectDefaultMetrics();
+
+    const pullCollectors : PullCollect[] = [];
+
+    if (root instanceof Level) {
+      log.info('Enable level DB metrics');
+      pullCollectors.push(collectDiskStats(root.location));
+    }
 
     log.info('Enable switchboard metrics');
     switchboard.collectTelemetry(collect);
@@ -42,6 +53,12 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
         disableTelemetry: true
       }
     }, async (_, reply) => {
+      if (pullCollectors.length > 0) {
+        await Promise.all(
+          pullCollectors.map(c => c())
+        );
+      }
+
       reply.send(await register.metrics());
     });
   }
