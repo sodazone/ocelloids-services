@@ -1,9 +1,8 @@
 {
 	"info": {
-		"_postman_id": "a2ecddfb-8ddc-4425-a81f-b38c92680edd",
+		"_postman_id": "ddaba4ec-5dfa-40d8-9a99-945c38d897a5",
 		"name": "XCM Monitoring",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
-		"_exporter_id": "430779"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -23,7 +22,15 @@
 								}
 							}
 						},
-						"url": "http://127.0.0.1:3000/subs"
+						"url": {
+							"raw": "{{base_url}}/subs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs"
+							]
+						}
 					},
 					"response": [
 						{
@@ -40,7 +47,15 @@
 										}
 									}
 								},
-								"url": "http://127.0.0.1:3000/subs"
+								"url": {
+									"raw": "{{base_url}}/subs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs"
+									]
+								}
 							},
 							"status": "Created",
 							"code": 201,
@@ -80,14 +95,22 @@
 										}
 									}
 								},
-								"url": "http://127.0.0.1:3000/subs"
+								"url": {
+									"raw": "{{base_url}}/subs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs"
+									]
+								}
 							},
 							"status": "Created",
 							"code": 201,
-							"_postman_previewlanguage": null,
-							"header": null,
+							"_postman_previewlanguage": "Text",
+							"header": [],
 							"cookie": [],
-							"body": null
+							"body": ""
 						}
 					]
 				},
@@ -96,7 +119,15 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": "http://127.0.0.1:3000/subs"
+						"url": {
+							"raw": "{{base_url}}/subs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs"
+							]
+						}
 					},
 					"response": [
 						{
@@ -104,7 +135,15 @@
 							"originalRequest": {
 								"method": "GET",
 								"header": [],
-								"url": "http://127.0.0.1:3000/subs"
+								"url": {
+									"raw": "{{base_url}}/subs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
@@ -128,7 +167,16 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": "http://127.0.0.1:3000/subs/S1"
+						"url": {
+							"raw": "{{base_url}}/subs/S1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
 					},
 					"response": [
 						{
@@ -136,7 +184,16 @@
 							"originalRequest": {
 								"method": "GET",
 								"header": [],
-								"url": "http://127.0.0.1:3000/subs/S1"
+								"url": {
+									"raw": "{{base_url}}/subs/S1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
@@ -182,7 +239,16 @@
 								}
 							}
 						},
-						"url": "http://127.0.0.1:3000/subs/S1"
+						"url": {
+							"raw": "{{base_url}}/subs/S1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
 					},
 					"response": [
 						{
@@ -199,7 +265,16 @@
 										}
 									}
 								},
-								"url": "http://127.0.0.1:3000/subs/S1"
+								"url": {
+									"raw": "{{base_url}}/subs/S1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
@@ -232,7 +307,16 @@
 								}
 							}
 						},
-						"url": "http://127.0.0.1:3000/subs/S1"
+						"url": {
+							"raw": "{{base_url}}/subs/S1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
 					},
 					"response": [
 						{
@@ -249,7 +333,16 @@
 										}
 									}
 								},
-								"url": "http://127.0.0.1:3000/subs/S1"
+								"url": {
+									"raw": "{{base_url}}/subs/S1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
@@ -282,7 +375,16 @@
 								}
 							}
 						},
-						"url": "http://127.0.0.1:3000/subs/S1"
+						"url": {
+							"raw": "{{base_url}}/subs/S1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
 					},
 					"response": [
 						{
@@ -299,7 +401,16 @@
 										}
 									}
 								},
-								"url": "http://127.0.0.1:3000/subs/S1"
+								"url": {
+									"raw": "{{base_url}}/subs/S1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
@@ -323,7 +434,16 @@
 					"request": {
 						"method": "DELETE",
 						"header": [],
-						"url": "http://127.0.0.1:3000/subs/S1"
+						"url": {
+							"raw": "{{base_url}}/subs/S1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subs",
+								"S1"
+							]
+						}
 					},
 					"response": [
 						{
@@ -331,14 +451,23 @@
 							"originalRequest": {
 								"method": "DELETE",
 								"header": [],
-								"url": "http://127.0.0.1:3000/subs/S1"
+								"url": {
+									"raw": "{{base_url}}/subs/S1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"subs",
+										"S1"
+									]
+								}
 							},
 							"status": "OK",
 							"code": 200,
-							"_postman_previewlanguage": null,
-							"header": null,
+							"_postman_previewlanguage": "Text",
+							"header": [],
 							"cookie": [],
-							"body": null
+							"body": ""
 						}
 					]
 				}
@@ -352,13 +481,26 @@
 					"request": {
 						"auth": {
 							"type": "bearer",
-							"bearer": {
-								"token": "{{XCMON_TOKEN}}"
-							}
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{XCMON_TOKEN}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [],
-						"url": "http://127.0.0.1:3000/admin/xcm"
+						"url": {
+							"raw": "{{base_url}}/admin/xcm",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"xcm"
+							]
+						}
 					},
 					"response": []
 				},
@@ -367,22 +509,76 @@
 					"request": {
 						"auth": {
 							"type": "bearer",
-							"bearer": {
-								"token": "{{XCMON_TOKEN}}"
-							}
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{XCMON_TOKEN}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [],
-						"url": "http://127.0.0.1:3000/admin/subs"
+						"url": {
+							"raw": "{{base_url}}/admin/subs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"subs"
+							]
+						}
 					},
 					"response": []
 				},
 				{
 					"name": "Get Scheduled Tasks",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{XCMON_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
 						"header": [],
-						"url": ""
+						"url": {
+							"raw": "{{base_url}}/admin/sched",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"sched"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Telemetry",
+			"item": [
+				{
+					"name": "Get Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/metrics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"metrics"
+							]
+						}
 					},
 					"response": []
 				}
