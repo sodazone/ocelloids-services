@@ -25,7 +25,7 @@ function findOutboundHrmpMessage(
   : Observable<GenericXcmSentWithContext> => {
     return source.pipe(
       mergeMap((sentMsg): Observable<GenericXcmSentWithContext> => {
-        const { blockHash, messageHash } = sentMsg;
+        const { blockHash, messageHash, messageId } = sentMsg;
         return getOutboundHrmpMessages(blockHash).pipe(
           map(messages =>  {
             return messages
@@ -43,7 +43,7 @@ function findOutboundHrmpMessage(
                     messageId: getMessageId(xcmProgram)
                   }));
               }).find(msg => {
-                return msg.messageHash === messageHash;
+                return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
               });
           }),
           filterNonNull(),
@@ -53,6 +53,7 @@ function findOutboundHrmpMessage(
   };
 }
 
+// TODO: duplicate in UMP, extract and reuse?
 function xcmpMessagesSent() {
   return (source: Observable<types.BlockEvent>)
     : Observable<XcmSentWithContext> => {
@@ -65,7 +66,8 @@ function xcmpMessagesSent() {
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash.toHex()
+          messageHash: xcmMessage.messageHash?.toHex(),
+          messageId: xcmMessage.messageId?.toHex(),
         } as XcmSentWithContext;
       })
     ));
@@ -83,50 +85,20 @@ export function extractXcmpSend(
   : Observable<XcmSentWithContext> => {
     return source.pipe(
       filterEvents({
-        'section': 'xcmpQueue',
-        'method': 'XcmpMessageSent'
+        $or: [
+          {
+            'section': 'xcmpQueue',
+            'method': 'XcmpMessageSent'
+          },
+          {
+            'section': 'polkadotXcm',
+            'method': 'Sent'
+          }
+        ]
       }),
       mongoFilter(sendersControl),
       xcmpMessagesSent(),
       findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages),
-    );
-  };
-}
-
-function mapXcmpQueueMessage() {
-  return (source: Observable<types.BlockEvent>):
-  Observable<XcmReceivedWithContext>  => {
-    return (source.pipe(
-      map(event => {
-        if (event.method === 'Success') {
-          const xcmMessage = event.data as any;
-          return new GenericXcmReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toPrimitive(),
-            extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageHash.toHex(),
-            outcome: event.method,
-            error: null
-          });
-        } else if (event.method === 'Fail') {
-          const xcmMessage = event.data as any;
-          const error = xcmMessage.error;
-          return new GenericXcmReceivedWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toPrimitive(),
-            extrinsicId: event.extrinsicId,
-            messageHash: xcmMessage.messageHash.toHex(),
-            outcome: event.method,
-            error: error
-          });
-        } else {
-          return null;
-        }
-      }),
-      filterNonNull()
-    )
     );
   };
 }
@@ -141,7 +113,19 @@ export function extractXcmpReceive() {
           'method': { $in: ['Success', 'Fail'] }
         }
       ),
-      mapXcmpQueueMessage()
+      map(event => {
+        const xcmMessage = event.data as any;
+        
+        return new GenericXcmReceivedWithContext({
+          event: event.toHuman(),
+          blockHash: event.blockHash.toHex(),
+          blockNumber: event.blockNumber.toPrimitive(),
+          extrinsicId: event.extrinsicId,
+          messageHash: xcmMessage.messageHash.toHex(),
+          outcome: event.method === 'Success' ? 'Success' : 'Fail',
+          error: xcmMessage.error
+        });
+      })
     ));
   };
 }
