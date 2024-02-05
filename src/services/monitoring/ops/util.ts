@@ -16,16 +16,16 @@ import {
  */
 export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
   switch (program.type) {
-    // For the moment only XCM V3 supports topic ID
-    case 'V3':
-      for(const instruction of program.asV3) {
-        if (instruction.isSetTopic) {
-          return instruction.asSetTopic.toHex()
-        }
+  // For the moment only XCM V3 supports topic ID
+  case 'V3':
+    for (const instruction of program.asV3) {
+      if (instruction.isSetTopic) {
+        return instruction.asSetTopic.toHex();
       }
-      return undefined;
-    default:
-      return undefined;
+    }
+    return undefined;
+  default:
+    return undefined;
   }
 }
 
@@ -42,30 +42,31 @@ export function getParaIdFromOrigin(
   return undefined;
 }
 
+// eslint-disable-next-line complexity
 export function getParaIdFromMultiLocation(
   loc: XcmV2MultiLocation | XcmV3MultiLocation
 ): string | undefined {
   const junctions = loc.interior;
   switch (junctions.type) {
-    case 'Here':
-      return undefined;
-    case 'X1':
-      return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined;
-    case 'X2':
-    case 'X3':
-    case 'X4':
-    case 'X5':
-    case 'X6':
-    case 'X7':
-    case 'X8':
-      for (const j of junctions[`as${junctions.type}`]) {
-        if (j.isParachain) {
-          return j.asParachain.toString();
-        }
+  case 'Here':
+    return undefined;
+  case 'X1':
+    return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined;
+  case 'X2':
+  case 'X3':
+  case 'X4':
+  case 'X5':
+  case 'X6':
+  case 'X7':
+  case 'X8':
+    for (const j of junctions[`as${junctions.type}`]) {
+      if (j.isParachain) {
+        return j.asParachain.toString();
       }
-      return undefined;
-    default:
-      return undefined;
+    }
+    return undefined;
+  default:
+    return undefined;
   }
 }
 
@@ -81,16 +82,16 @@ export function getParaIdFromVersionedMultiLocation(loc: XcmVersionedMultiLocati
 
 export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed): boolean {
   switch (message.type) {
-    case 'V2':
-      throw new Error('Not able to match by topic for XCM V2 program.')
-    case 'V3':
-      for(const instruction of message.asV3) {
-        if (instruction.isSetTopic) {
-          return instruction.asSetTopic.eq(topicId)
-        }
+  case 'V2':
+    throw new Error('Not able to match by topic for XCM V2 program.');
+  case 'V3':
+    for (const instruction of message.asV3) {
+      if (instruction.isSetTopic) {
+        return instruction.asSetTopic.eq(topicId);
       }
-      return false;
-    default:
-      throw new Error('XCM version not supported');
+    }
+    return false;
+  default:
+    throw new Error('XCM version not supported');
   }
 }

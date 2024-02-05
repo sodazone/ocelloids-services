@@ -145,7 +145,7 @@ function findDmpMessagesFromTx(api: ApiPromise) {
           ),
           retryWithTruncatedExpBackoff(),
           map(messages => {
-            const { blockHash, blockNumber, signer } = tx.extrinsic
+            const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
               return createXcmMessageSent({
                 blockHash,
@@ -224,7 +224,7 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
           ),
           retryWithTruncatedExpBackoff(),
           map(messages => {
-            const { blockHash, blockNumber } = event
+            const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
               return createXcmMessageSent({
                 blockHash,
