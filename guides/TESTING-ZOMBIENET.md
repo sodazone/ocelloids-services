@@ -70,10 +70,10 @@ cp /tmp/zombie-<RANDOM>/asset-hub-kusama-local-1000-rococo-local.json chain-spec
 
 Please, replace `zombie-<RANDOM>` with the temporary directory created by Zombienet.
 
-Run the server using npx and pipe the output to stdout and a file for searching in later:
+Run the server using `yarn` and pipe the output to stdout and a file for searching in later:
 
 ```shell
-npx xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
+yarn xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
 ## 3. Add Subscriptions

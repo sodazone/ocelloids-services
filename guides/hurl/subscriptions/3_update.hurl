@@ -1,0 +1,43 @@
+# Update Senders
+PATCH {{base-url}}/subs/test-1
+```json
+[
+  { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
+  { "op": "add", "path": "/senders/-", "value": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy" },
+  { "op": "add", "path": "/senders/-", "value": "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw" },
+  { "op": "remove", "path": "/senders/0" }
+]
+```
+HTTP 200
+
+# Update Destinations
+PATCH {{base-url}}/subs/test-1
+```json
+[
+  { "op": "add", "path": "/destinations/-", "value": "2000" },
+  { "op": "replace", "path": "/destinations/0", "value": "2004" }
+]
+```
+HTTP 200
+
+# Update Notify
+PATCH {{base-url}}/subs/test-1
+```json
+[
+  {
+    "op": "replace",
+    "path": "/notify",
+    "value": {
+      "type": "log"
+    }
+  }
+]
+```
+
+# Check Updates
+GET {{base-url}}/subs/test-1
+HTTP 200
+[Asserts]
+jsonpath "$.destinations" count == 2
+jsonpath "$.senders" count == 3
+jsonpath "$.notify.type" == "log"

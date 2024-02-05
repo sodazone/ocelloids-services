@@ -31,10 +31,10 @@ Create a configuration file for your network. You can use [config/polkadot.toml]
 
 Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs).
 
-Run the server using `npx` and pipe the output to both stdout and a file for future searching:
+Run the server using `yarn` and pipe the output to both stdout and a file for future searching:
 
 ```shell
-npx xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
+yarn xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
 ```
 
 :star2: Now you can proceed to [2. Add Subscriptions](#2-add-subscriptions).

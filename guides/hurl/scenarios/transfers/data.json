@@ -1,0 +1,98 @@
+[
+  {
+    "id": "acala-transfers",
+    "origin": 2000,
+    "senders": "*",
+    "destinations": [
+      0,
+      1000,
+      2004,
+      2034,
+      2104
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  },
+  {
+    "id": "moonbeam-transfers",
+    "origin": 2004,
+    "senders": "*",
+    "destinations": [
+      0,
+      1000,
+      2000,
+      2034,
+      2104
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  },
+  {
+    "id": "polkadot-transfers",
+    "origin": 0,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      2034,
+      2104
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  },
+  {
+    "id": "asset-hub-transfers",
+    "origin": 1000,
+    "senders": "*",
+    "destinations": [
+      2000,
+      0,
+      2004,
+      2034,
+      2104
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  },
+  {
+    "id": "hydra-transfers",
+    "origin": 2034,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      0,
+      2104
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  },
+  {
+    "id": "manta-transfers",
+    "origin": 2104,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      2034,
+      0
+    ],
+    "notify": {
+      "type": "webhook",
+      "url": "https://en785006d7bvj.x.pipedream.net"
+    }
+  }
+]
