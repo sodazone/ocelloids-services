@@ -282,7 +282,7 @@ export class Switchboard {
             chainId,
             sub: this.#catcher.finalizedBlocks(chainId)
               .pipe(
-                extractUmpReceive(origin),
+                extractUmpReceive(this.#apis.promise[chainId], origin),
                 retryWithTruncatedExpBackoff(),
                 inbound$()
               ).subscribe(inboundHandler)

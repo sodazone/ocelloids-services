@@ -1,10 +1,16 @@
 import { mergeMap, map, Observable } from 'rxjs';
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { EventRecord } from '@polkadot/types/interfaces';
+import type { U8aFixed, bool } from '@polkadot/types-codec';
+import type {
+  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
+  FrameSupportMessagesProcessMessageError
+} from '@polkadot/types/lookup';
+import type { ApiPromise } from '@polkadot/api';
 
 import {
   ControlQuery,
+  extractEvents,
   filterEvents, filterNonNull,
   mongoFilter, types
 } from '@sodazone/ocelloids';
@@ -13,53 +19,48 @@ import {
   GenericXcmReceivedWithContext,
   GenericXcmSentWithContext,
   GetOutboundUmpMessages,
-  HexString,
   XcmCriteria, XcmReceivedWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { getMessageId } from './util.js';
+import { getMessageId, getParaIdFromOrigin } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 
-type EventRecordWithContext = {
-  record: EventRecord,
-  method: string,
-  section: string,
-  blockNumber: string,
-  blockHash: HexString
-}
+type UmpReceivedContext = {
+  id: U8aFixed,
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
+  success?: bool,
+  error?: FrameSupportMessagesProcessMessageError
+};
 
-function mapUmpQueueMessage(origin: string) {
-  return (source: Observable<EventRecordWithContext>):
-    Observable<XcmReceivedWithContext>  => {
-    return (source.pipe(
-      mongoFilter({
-        'section': 'messageQueue',
-        'method': 'Processed'
-      }),
-      map(({ record: { event }, blockHash, blockNumber }) => {
-        const xcmMessage = event.data as any;
-        const messageId = xcmMessage.id.toHex();
-        const messageHash = messageId;
-        const messageOrigin = xcmMessage.origin.toHuman();
-        const originId = messageOrigin?.Ump?.Para?.replaceAll(',', '');
-        // If we can get origin ID, only return message if origin matches with subscription origin
-        // If no origin ID, we will return the message without matching with subscription origin
-        if (originId === undefined || originId === origin) {
-          return new GenericXcmReceivedWithContext({
-            event: event.toHuman(),
-            blockHash,
-            blockNumber,
-            messageHash,
-            messageId,
-            outcome: xcmMessage.success.toPrimitive() ? 'Success' : 'Fail',
-            error: null
-          });
-        }
-        return null;
-      }),
-      filterNonNull()
-    ));
-  };
+function createUmpReceivedWithContext(
+  event: types.BlockEvent,
+  subOrigin: string,
+  {
+    id,
+    origin,
+    success,
+    error
+  }: UmpReceivedContext
+): XcmReceivedWithContext | null {
+  // Received event only emits field `message_id`,
+  // which is actually the message hash in the current runtime.
+  const messageId = id.toHex();
+  const messageHash = messageId;
+  const messageOrigin = getParaIdFromOrigin(origin);
+  // If we can get message origin, only return message if origin matches with subscription origin
+  // If no origin, we will return the message without matching with subscription origin
+  if (messageOrigin === undefined || messageOrigin === subOrigin) {
+    return new GenericXcmReceivedWithContext({
+      event: event.toHuman(),
+      blockHash: event.blockHash.toHex(),
+      blockNumber: event.blockNumber.toPrimitive(),
+      messageHash,
+      messageId,
+      outcome: success?.isTrue ? 'Success' : 'Fail',
+      error: error ? error.toHuman() : null
+    });
+  }
+  return null;
 }
 
 function umpMessagesSent() {
@@ -73,7 +74,8 @@ function umpMessagesSent() {
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash.toHex(),
+          messageHash: xcmMessage.messageHash?.toHex(),
+          messageId: xcmMessage.messageId?.toHex(),
           sender: event.extrinsic?.signer.toHuman()
         } as XcmSentWithContext;
       })
@@ -89,7 +91,7 @@ function findOutboundUmpMessage(
   : Observable<XcmSentWithContext> => {
     return source.pipe(
       mergeMap(sentMsg => {
-        const { blockHash, messageHash } = sentMsg;
+        const { blockHash, messageHash, messageId } = sentMsg;
         return getOutboundUmpMessages(blockHash).pipe(
           map(messages =>  {
             return messages
@@ -104,7 +106,7 @@ function findOutboundUmpMessage(
                   instructions: xcmProgram.toHuman()
                 });
               }).find(msg => {
-                return msg.messageHash === messageHash;
+                return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
               });
           }),
           filterNonNull(),
@@ -125,8 +127,16 @@ export function extractUmpSend(
       : Observable<XcmSentWithContext> => {
     return source.pipe(
       filterEvents({
-        'section': 'parachainSystem',
-        'method': 'UpwardMessageSent'
+        $or: [
+          {
+            'section': 'parachainSystem',
+            'method': 'UpwardMessageSent'
+          },
+          {
+            'section': 'polkadotXcm',
+            'method': 'Sent'
+          }
+        ]
       }),
       mongoFilter(sendersControl),
       umpMessagesSent(),
@@ -138,20 +148,21 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(origin: string) {
+export function extractUmpReceive(api: ApiPromise, originId: string) {
   return (source: Observable<SignedBlockExtended>)
     : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
-      mergeMap(({ block: { header }, events}) =>
-        events.map(record => ({
-          record,
-          method: record.event.method,
-          section: record.event.section,
-          blockNumber: header.number.toPrimitive(),
-          blockHash: header.hash.toHex()
-        } as EventRecordWithContext)
-        )),
-      mapUmpQueueMessage(origin)
+      extractEvents(),
+      map(event => {
+        if (
+          api.events.messageQueue.Processed.is(event) ||
+          api.events.messageQueue.ProcessingFailed.is(event)
+        ) {
+          return createUmpReceivedWithContext(event, originId, event.data)
+        }
+        return null;
+      }),
+      filterNonNull()
     ));
   };
 }

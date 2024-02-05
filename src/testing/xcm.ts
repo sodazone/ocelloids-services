@@ -1,4 +1,6 @@
 /* eslint-disable max-len */
+import '@polkadot/api-augment/polkadot'
+
 import { jest } from '@jest/globals';
 
 import { from } from 'rxjs';
@@ -60,7 +62,19 @@ export const umpSend = {
 
 export const umpReceive = {
   successBlocks: from(testBlocksFrom('ump-in-success.cbor.bin', 'polkadot.json')),
-  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json'))
+  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json')),
+  api: {
+    events: {
+      messageQueue: {
+        Processed: {
+          is: (event) => event.method === 'Processed' && event.section === 'messageQueue'
+        },
+        ProcessingFailed: {
+          is: (event) => event.method === 'ProcessingFailed' && event.section === 'messageQueue'
+        }
+      }
+    }
+  } as unknown as ApiPromise
 };
 
 // DMP testing mocks
