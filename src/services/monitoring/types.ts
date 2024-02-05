@@ -237,7 +237,7 @@ export class XcmMatched {
     this.instructions = outMsg.instructions;
     this.messageData = outMsg.messageData;
     this.messageId = outMsg.messageId;
-    this.messageHash = inMsg.messageHash;
+    this.messageHash = outMsg.messageHash;
     this.outcome = inMsg.outcome;
     this.error = inMsg.error;
   }
