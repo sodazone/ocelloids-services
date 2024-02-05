@@ -140,7 +140,7 @@ XCMON_CONFIG_FILE=config/manta.toml yarn dev
 
 The XCM Monitoring Server offers convenient APIs for seamless interaction.
 
-Explore the [Postman collection](https://github.com/sodazone/xcm-monitoring/tree/main/guides/postman) for comprehensive usage examples.
+Explore the [Hurl requests](https://github.com/sodazone/xcm-monitoring/tree/main/guides/hurl) for comprehensive usage examples.
 
 ### Subscription API
 
