@@ -28,7 +28,7 @@ import {
   XcmCriteria, XcmReceivedWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { getMessageId, getParaId, getParaIdVersioned, matchProgramByTopic } from './util.js';
+import { getMessageId, getParaIdFromMultiLocation, getParaIdFromVersionedMultiLocation, matchProgramByTopic } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 
 /*
@@ -122,7 +122,7 @@ function findDmpMessagesFromTx(api: ApiPromise) {
         const beneficiary = tx.extrinsic.args[1] as XcmVersionedMultiLocation;
         const assets = tx.extrinsic.args[2] as XcmVersionedMultiAssets;
 
-        const paraId = getParaIdVersioned(dest);
+        const paraId = getParaIdFromVersionedMultiLocation(dest);
 
         if (paraId) {
           return {
@@ -201,7 +201,7 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
       map(event => {
         if (api.events.xcmPallet.Sent.is(event)) {
           const { destination, messageId } = event.data;
-          const paraId = getParaId(destination);
+          const paraId = getParaIdFromMultiLocation(destination);
 
           if (paraId) {
             return {

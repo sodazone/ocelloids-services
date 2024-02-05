@@ -2,7 +2,8 @@ import type {
   XcmVersionedXcm,
   XcmVersionedMultiLocation,
   XcmV3MultiLocation,
-  XcmV2MultiLocation
+  XcmV2MultiLocation,
+  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
 } from '@polkadot/types/lookup';
 import type { U8aFixed } from '@polkadot/types-codec';
 
@@ -28,7 +29,22 @@ export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
   }
 }
 
-export function getParaId(loc: XcmV2MultiLocation | XcmV3MultiLocation): string | undefined {
+export function getParaIdFromOrigin(
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
+): string | undefined {
+  if (origin.isUmp) {
+    const umpOrigin = origin.asUmp;
+    if (umpOrigin.isPara) {
+      return umpOrigin.asPara.toString();
+    }
+  }
+  
+  return undefined;
+}
+
+export function getParaIdFromMultiLocation(
+  loc: XcmV2MultiLocation | XcmV3MultiLocation
+): string | undefined {
   const junctions = loc.interior;
   switch (junctions.type) {
     case 'Here':
@@ -53,11 +69,11 @@ export function getParaId(loc: XcmV2MultiLocation | XcmV3MultiLocation): string 
   }
 }
 
-export function getParaIdVersioned(loc: XcmVersionedMultiLocation): string | undefined {
+export function getParaIdFromVersionedMultiLocation(loc: XcmVersionedMultiLocation): string | undefined {
   switch (loc.type) {
     case 'V2':
     case 'V3':
-      return getParaId(loc[`as${loc.type}`]);
+      return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
     default:
       return undefined;
   }
