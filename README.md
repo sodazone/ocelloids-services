@@ -91,7 +91,7 @@ docker run -d \
 ### Command Line
 
 > [!IMPORTANT]
-> The XCM Monitoring Server requires `node.js >=20` to run.
+> The XCM Monitoring Server requires `node.js >= 20`.
 
 Install and build:
 
