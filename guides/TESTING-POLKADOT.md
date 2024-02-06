@@ -84,9 +84,9 @@ curl 'http://127.0.0.1:3000/subs' \
     "origin": 1000,
     "senders": "*",
     "destinations": [0, 2000, 2004, 2006],
-    "notify": {
+    "channels": [{
         "type": "log"
-    }
+    }]
 }]'
 ```
 
@@ -102,10 +102,10 @@ curl 'http://127.0.0.1:3000/subs' \
     "origin": 2000,
     "senders": "*",
     "destinations": [0, 1000, 2004, 2006],
-    "notify": {
+    "channels": [{
         "type": "webhook",
         "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
-    }
+    }]
 }]'
 ```
 

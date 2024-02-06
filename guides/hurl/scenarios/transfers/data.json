@@ -10,10 +10,10 @@
       2034,
       2104
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   },
   {
     "id": "moonbeam-transfers",
@@ -26,10 +26,10 @@
       2034,
       2104
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   },
   {
     "id": "polkadot-transfers",
@@ -42,10 +42,10 @@
       2034,
       2104
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   },
   {
     "id": "asset-hub-transfers",
@@ -58,10 +58,10 @@
       2034,
       2104
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   },
   {
     "id": "hydra-transfers",
@@ -74,10 +74,10 @@
       0,
       2104
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   },
   {
     "id": "manta-transfers",
@@ -90,9 +90,9 @@
       2034,
       0
     ],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
-    }
+    }]
   }
 ]

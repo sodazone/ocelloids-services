@@ -17,14 +17,14 @@ You can check the [Hurl requests](https://github.com/sodazone/xcm-monitoring/tre
 ```shell
 curl 'http://127.0.0.1:3000/subs' \
 --data '{
-    "id": "S1",
+    "id": "test-sub",
     "origin": 0,
     "senders": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
     "destinations": [1000],
-    "notify": {
+    "channels": [{
       "type": "webhook",
       "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
-    }
+    }]
 }'
 ```
 
@@ -41,7 +41,7 @@ curl 'http://127.0.0.1:3000/subs'
 `GET /subs/:id`
 
 ```shell
-curl 'http://127.0.0.1:3000/subs/S1'
+curl 'http://127.0.0.1:3000/subs/test-sub'
 ```
 
 **Update Subscription**
@@ -51,11 +51,11 @@ curl 'http://127.0.0.1:3000/subs/S1'
 The request expects an [RFC 6902 JSON patch](https://www.rfc-editor.org/rfc/rfc6902.html) payload.
 
 ```shell
-curl -X PATCH 'http://127.0.0.1:3000/subs/S1' \
+curl -X PATCH 'http://127.0.0.1:3000/subs/test-sub' \
 --data '[
   { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
   { "op": "add", "path": "/destinations/-", "value": 2000 },
-  { "op": "replace", "path": "/notify", "value": { "type": "log" } }
+  { "op": "replace", "path": "/channels/0", "value": { "type": "log" } }
 ]'
 ```
 
@@ -64,5 +64,5 @@ curl -X PATCH 'http://127.0.0.1:3000/subs/S1' \
 `DELETE /subs/:id`
 
 ```shell
-curl -X DELETE 'http://127.0.0.1:3000/subs/S1'
+curl -X DELETE 'http://127.0.0.1:3000/subs/test-sub'
 ```

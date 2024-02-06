@@ -90,9 +90,9 @@ curl 'http://127.0.0.1:3000/subs' \
     "origin": 1000,
     "senders": ["HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F", "FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP"],
     "destinations": [0, 2000],
-    "notify": {
+    "channels": [{
         "type": "log"
-    }
+    }]
 }]'
 ```
 
@@ -147,7 +147,7 @@ Example request:
 curl -X PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
 --header 'Content-Type: application/json' \
 --data '[
-  { "op": "replace", "path": "/notify", "value": {
+  { "op": "replace", "path": "/channels/0", "value": {
       "type": "webhook",
       "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
   } }

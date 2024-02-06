@@ -26,7 +26,7 @@ PATCH {{base-url}}/subs/test-1
 [
   {
     "op": "replace",
-    "path": "/notify",
+    "path": "/channels/0",
     "value": {
       "type": "log"
     }
@@ -40,4 +40,4 @@ HTTP 200
 [Asserts]
 jsonpath "$.destinations" count == 2
 jsonpath "$.senders" count == 3
-jsonpath "$.notify.type" == "log"
+jsonpath "$.channels[0].type" == "log"
