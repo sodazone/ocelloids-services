@@ -44,13 +44,16 @@ const connections = new WeakMap<SocketStream, SubWithListener>();
 export async function wsSubscriptionHandler(
   log: Logger,
   switchboard: Switchboard,
-  connection: SocketStream
+  connection: SocketStream,
+  subscription?: QuerySubscription
 ) {
   connection.socket.once('close', async () => {
     if (connections.has(connection)) {
       try {
-        const { sub: { id }, listener } = connections.get(connection)!;
-        await switchboard.unsubscribe(id);
+        const { sub: { id, ephemeral }, listener } = connections.get(connection)!;
+        if (ephemeral) {
+          await switchboard.unsubscribe(id);
+        }
         switchboard.removeNotificationListener('websocket', listener);
       } catch (error) {
         log.error(error);
@@ -60,33 +63,44 @@ export async function wsSubscriptionHandler(
     }
   });
 
-  connection.on('data', async (data: Buffer) => {
-    if (connections.has(connection)) {
-      connection.write(
-        JSON.stringify({ id: connections.get(connection)?.sub.id })
-      );
-    } else {
-      const parsed = jsonSchema.safeParse(data.toString());
-      if (parsed.success) {
-        const sub = parsed.data;
-        try {
-          await switchboard.subscribe(sub);
-          const listener = (target: QuerySubscription, xcm: XcmMatched) => {
-            if (sub.id === target.id) {
-              connection.write(JSON.stringify(xcm));
-            }
-          };
-          switchboard.addNotificationListener('websocket', listener);
-          connections.set(connection, {sub, listener});
-          connection.write(JSON.stringify(sub));
-        } catch (error) {
-          log.error(error);
-        }
-      } else {
-        connection.write(JSON.stringify(parsed.error));
+  // the listener writes the notified messages
+  const createListener = (sub: QuerySubscription) => {
+    const listener = (target: QuerySubscription, xcm: XcmMatched) => {
+      if (sub.id === target.id) {
+        connection.write(JSON.stringify(xcm));
       }
-    }
-  });
+    };
+    switchboard.addNotificationListener('websocket', listener);
+    connections.set(connection, { sub, listener });
+  };
+
+  if (subscription) {
+    // persistent subscriptions
+    createListener(subscription);
+  } else {
+    // ephemeral subscriptions
+    connection.on('data', async (data: Buffer) => {
+      if (connections.has(connection)) {
+        connection.write(
+          JSON.stringify({ id: connections.get(connection)?.sub.id })
+        );
+      } else {
+        const parsed = jsonSchema.safeParse(data.toString());
+        if (parsed.success) {
+          const sub = parsed.data;
+          try {
+            await switchboard.subscribe(sub);
+            createListener(sub);
+            connection.write(JSON.stringify(sub));
+          } catch (error) {
+            log.error(error);
+          }
+        } else {
+          connection.write(JSON.stringify(parsed.error));
+        }
+      }
+    });
+  }
 
   connection.write(v1);
 }
