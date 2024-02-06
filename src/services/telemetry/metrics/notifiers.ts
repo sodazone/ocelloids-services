@@ -13,12 +13,12 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
     labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'sink', 'error']
   });
 
-  source.on('notify', message => {
+  source.on('telemetryNotify', message => {
     notifyCount.labels(
       ...Object.values<string>(message)
     ).inc();
   });
-  source.on('notifyError',  message => {
+  source.on('telemetryNotifyError',  message => {
     notifyErrorCount.labels(
       ...Object.values<string>(message)
     ).inc();

@@ -14,19 +14,19 @@ export type NotifyTelemetryMessage = {
   }
 
 export type TelemetryNotifierEvents = {
-  notify: (msg: NotifyTelemetryMessage) => void,
-  notifyError: (msg: NotifyTelemetryMessage) => void
+  telemetryNotify: (msg: NotifyTelemetryMessage) => void,
+  telemetryNotifyError: (msg: NotifyTelemetryMessage) => void
 };
 
-export const TelemetryNotifierEventKeys: Array<keyof TelemetryNotifierEvents> = ['notify', 'notifyError'];
+export const TelemetryNotifierEventKeys: Array<keyof TelemetryNotifierEvents> = ['telemetryNotify', 'telemetryNotifyError'];
 
 export type TelemetryEvents = {
-  inbound: (message: XcmReceived) => void,
-  outbound: (message: XcmSent) => void,
-  matched: (inMsg: XcmReceived, outMsg: XcmSent) => void,
-  blockSeen: (msg: {chainId: string, header: Header}) => void,
-  blockFinalized: (msg: {chainId: string, header: Header}) => void,
-  blockCacheHit: (msg: {chainId: string}) => void
+  telemetryInbound: (message: XcmReceived) => void,
+  telemetryOutbound: (message: XcmSent) => void,
+  telemetryMatched: (inMsg: XcmReceived, outMsg: XcmSent) => void,
+  telemetryBlockSeen: (msg: {chainId: string, header: Header}) => void,
+  telemetryBlockFinalized: (msg: {chainId: string, header: Header}) => void,
+  telemetryBlockCacheHit: (msg: {chainId: string}) => void
 } & TelemetryNotifierEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;

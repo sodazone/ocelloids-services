@@ -146,7 +146,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           msg.destination.blockNumber
         );
 
-        this.emit('notify', {
+        this.emit('telemetryNotify', {
           type: config.type,
           subscription: msg.subscriptionId,
           origin: msg.origin.chainId,
@@ -183,7 +183,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         key
       );
 
-      this.emit('notifyError', {
+      this.emit('telemetryNotifyError', {
         type: config.type,
         subscription: msg.subscriptionId,
         origin: msg.origin.chainId,

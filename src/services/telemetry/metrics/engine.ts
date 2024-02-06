@@ -20,7 +20,7 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     labelNames: ['subscription', 'origin', 'destination', 'outcome']
   });
 
-  source.on('inbound',
+  source.on('telemetryInbound',
     (message: XcmReceived) => {
       inCount.labels(
         message.subscriptionId,
@@ -29,7 +29,7 @@ export function engineMetrics(source: TelemetryEventEmitter) {
       ).inc();
     });
 
-  source.on('outbound',
+  source.on('telemetryOutbound',
     (message: XcmSent) => {
       outCount.labels(
         message.subscriptionId,
@@ -38,7 +38,7 @@ export function engineMetrics(source: TelemetryEventEmitter) {
       ).inc();
     });
 
-  source.on('matched',
+  source.on('telemetryMatched',
     (inMsg: XcmReceived, outMsg: XcmSent) => {
       matchCount.labels(
         outMsg.subscriptionId,

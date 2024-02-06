@@ -93,7 +93,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
               header.hash.toHex()
             );
 
-            this.emit('blockSeen', {
+            this.emit('telemetryBlockSeen', {
               chainId,
               header
             });
@@ -340,7 +340,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         author as AccountId
       );
 
-      this.emit('blockCacheHit', {
+      this.emit('telemetryBlockCacheHit', {
         chainId
       });
 
@@ -381,7 +381,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             header.hash.toHex()
           );
 
-          this.emit('blockFinalized', {
+          this.emit('telemetryBlockFinalized', {
             chainId,
             header
           });

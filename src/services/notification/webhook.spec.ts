@@ -139,7 +139,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOk, notification);
 
@@ -154,7 +154,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOkXml, {
       ...notification, subscriptionId: 'ok:xml'
@@ -170,7 +170,7 @@ describe('webhook notifier', () => {
     }).post(/ok\/.+/).reply(200);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOkAuth, notification);
 
@@ -184,7 +184,7 @@ describe('webhook notifier', () => {
       .reply(404);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subFail, notification);
 
@@ -199,7 +199,7 @@ describe('webhook notifier', () => {
       .reply(500);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOk, notification);
 
@@ -217,7 +217,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on('notify', ok);
+    notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOk, notification);
 

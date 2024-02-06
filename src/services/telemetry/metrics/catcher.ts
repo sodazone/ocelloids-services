@@ -31,11 +31,11 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     labelNames: ['origin']
   });
 
-  source.on('blockCacheHit', ({ chainId }) => {
+  source.on('telemetryBlockCacheHit', ({ chainId }) => {
     blockCacheHitsCount.labels(chainId).inc();
   });
 
-  source.on('blockSeen', ({ chainId }) => {
+  source.on('telemetryBlockSeen', ({ chainId }) => {
     blockSeenCount.labels(
       chainId
     ).inc();
@@ -50,7 +50,7 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
       chainId
     ).startTimer();
   });
-  source.on('blockFinalized', ({ chainId }) => {
+  source.on('telemetryBlockFinalized', ({ chainId }) => {
     blockFinCount.labels(
       chainId
     ).inc();

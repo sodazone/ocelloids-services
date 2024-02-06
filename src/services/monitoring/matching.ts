@@ -67,7 +67,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
-    this.emit('outbound', outMsg);
+    this.emit('telemetryOutbound', outMsg);
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
@@ -143,7 +143,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   async onInboundMessage(inMsg: XcmReceived)  {
     const log = this.#log;
 
-    this.emit('inbound', inMsg);
+    this.emit('telemetryInbound', inMsg);
 
     await this.#mutex.runExclusive(async () => {
       const hashKey = `${inMsg.messageHash}:${inMsg.chainId}`;
@@ -234,7 +234,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     outMsg: XcmSent,
     inMsg: XcmReceived
   ) {
-    this.emit('matched', inMsg, outMsg);
+    this.emit('telemetryMatched', inMsg, outMsg);
 
     try {
       const message: XcmMatched = new XcmMatched(outMsg, inMsg);
