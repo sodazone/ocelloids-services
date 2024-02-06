@@ -258,6 +258,14 @@ const $LogNotification = z.object({
   type: z.literal('log'),
 });
 
+const $WebsocketNotification = z.object({
+  type: z.literal('websocket')
+});
+
+function distinct(a: Array<string>) {
+  return Array.from(new Set(a));
+}
+
 export const $QuerySubscription = z.object({
   id: $SafeId,
   origin: z.string({
@@ -265,15 +273,21 @@ export const $QuerySubscription = z.object({
   }).min(1),
   senders: z.literal('*').or(z.array(z.string()).min(
     1, 'at least 1 sender address is required'
-  )),
+  ).transform(distinct)),
   destinations: z.array(z.string({
     required_error: 'destination id is required'
-  }).min(1)),
+  }).min(1)).transform(distinct),
+  ephemeral: z.optional(
+    z.boolean()
+  ),
   notify: z.discriminatedUnion('type', [
     $WebhookNotification,
-    $LogNotification
+    $LogNotification,
+    $WebsocketNotification
   ])
-});
+}).refine(schema =>
+  !schema.ephemeral || schema.notify.type === 'websocket'
+, 'ephemeral subscriptions only supports websocket notifications');
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>;
 
@@ -281,6 +295,8 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>;
  * Parameters for a query subscriptions.
  */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
+
+export type XcmMatchedListener = (sub: QuerySubscription, xcm: XcmMatched) => void;
 
 export type SubscriptionWithId = {
   chainId: string

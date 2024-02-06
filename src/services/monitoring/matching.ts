@@ -4,7 +4,7 @@ import { AbstractSublevel } from 'abstract-level';
 import { Mutex } from 'async-mutex';
 
 import {
-  DB, Logger, Services, TelementryEngineEvents as telemetry, jsonEncoded, prefixes
+  DB, Logger, Services, jsonEncoded, prefixes
 } from '../types.js';
 import {
   XcmMatched,
@@ -13,6 +13,7 @@ import {
 } from './types.js';
 
 import { Janitor } from '../persistence/janitor.js';
+import { TelemetryEventEmitter } from '../telemetry/types.js';
 
 export type XcmMatchedReceiver = (message: XcmMatched) => Promise<void> | void;
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -35,7 +36,7 @@ export type ChainBlock = {
  * - simplify logic to match only by message ID
  * - check notification storage by message ID and do not store for matching if already matched
  */
-export class MatchingEngine extends EventEmitter {
+export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmitter) {
   #db: DB;
   #log: Logger;
   #janitor: Janitor;
@@ -66,7 +67,7 @@ export class MatchingEngine extends EventEmitter {
   async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
-    this.emit(telemetry.Outbound, outMsg);
+    this.emit('outbound', outMsg);
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
@@ -142,7 +143,7 @@ export class MatchingEngine extends EventEmitter {
   async onInboundMessage(inMsg: XcmReceived)  {
     const log = this.#log;
 
-    this.emit(telemetry.Inbound, inMsg);
+    this.emit('inbound', inMsg);
 
     await this.#mutex.runExclusive(async () => {
       const hashKey = `${inMsg.messageHash}:${inMsg.chainId}`;
@@ -233,7 +234,7 @@ export class MatchingEngine extends EventEmitter {
     outMsg: XcmSent,
     inMsg: XcmReceived
   ) {
-    this.emit(telemetry.Matched, inMsg, outMsg);
+    this.emit('matched', inMsg, outMsg);
 
     try {
       const message: XcmMatched = new XcmMatched(outMsg, inMsg);

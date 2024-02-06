@@ -1,20 +1,17 @@
-import {
-  TelemetryObserver, TelemetrySources
-} from '../../types.js';
-
+import { TelemetryEventEmitter } from '../types.js';
 import { catcherMetrics } from './catcher.js';
 import { engineMetrics } from './engine.js';
 import { notifierMetrics } from './notifiers.js';
+import { HeadCatcher } from '../../monitoring/head-catcher.js';
+import { NotifierHub } from '../../notification/hub.js';
+import { MatchingEngine } from '../../monitoring/matching.js';
 
-const metrics = {
-  [TelemetrySources.engine]: engineMetrics,
-  [TelemetrySources.catcher]: catcherMetrics,
-  [TelemetrySources.notifier]: notifierMetrics
-};
-
-export function collect(observer: TelemetryObserver) {
-  const exporter = metrics[observer.id];
-  if (exporter) {
-    exporter(observer);
+export function collect(observer: TelemetryEventEmitter) {
+  if (observer instanceof MatchingEngine) {
+    engineMetrics(observer);
+  } else if (observer instanceof HeadCatcher) {
+    catcherMetrics(observer);
+  } else if (observer instanceof NotifierHub) {
+    notifierMetrics(observer);
   }
 }

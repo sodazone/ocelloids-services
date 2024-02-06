@@ -1,4 +1,4 @@
-import '@polkadot/api-augment/polkadot'
+import '@polkadot/api-augment/polkadot';
 
 import { Observable, from, map } from 'rxjs';
 
@@ -7,7 +7,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
-import { Logger, Services, TelemetryObserver, TelemetrySources } from '../types.js';
+import { Logger, Services } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
   XcmSent,
@@ -17,13 +17,16 @@ import {
   SubscriptionHandler,
   XcmReceivedWithContext,
   XcmSentWithContext,
-  SubscriptionWithId
+  SubscriptionWithId,
+  XcmMatchedListener
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
 import { MatchingEngine } from './matching.js';
 import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';
+import { NotifierEvents } from '../notification/types.js';
+import { TelemetryEventEmitter } from '../telemetry/types.js';
 
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
@@ -79,7 +82,10 @@ export class Switchboard {
    * @throws {Error} If there is an error during the subscription setup process.
    */
   async subscribe(qs: QuerySubscription) {
-    await this.#db.insert(qs);
+    if (!qs.ephemeral) {
+      await this.#db.insert(qs);
+    }
+
     this.#monitor(qs);
 
     this.#log.info(
@@ -90,6 +96,24 @@ export class Switchboard {
   }
 
   /**
+   *
+   * @param eventName
+   * @param listener
+   */
+  addNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
+    this.#notifier.on(eventName, listener);
+  }
+
+  /**
+   *
+   * @param eventName
+   * @param listener
+   */
+  removeNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
+    this.#notifier.off(eventName, listener);
+  }
+
+  /**
    * Unsubscribes by subsciption identifier.
    *
    * If the subscription does not exists just ignores it.
@@ -97,9 +121,13 @@ export class Switchboard {
    * @param {string} id The subscription identifier.
    */
   async unsubscribe(id: string) {
+    if (this.#subs[id] === undefined) {
+      return;
+    }
+
     try {
       const {
-        descriptor: { origin }, originSubs, destinationSubs
+        descriptor: { origin, ephemeral }, originSubs, destinationSubs
       } = this.#subs[id];
 
       this.#log.info(
@@ -112,7 +140,9 @@ export class Switchboard {
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
       delete this.#subs[id];
 
-      await this.#db.remove(id);
+      if (!ephemeral) {
+        await this.#db.remove(id);
+      }
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id);
     }
@@ -186,10 +216,10 @@ export class Switchboard {
     this.#subs[sub.id].descriptor = sub;
   }
 
-  collectTelemetry(collect: (observer: TelemetryObserver) => void) {
-    collect({ id: TelemetrySources.engine, source: this.#engine});
-    collect({ id: TelemetrySources.catcher, source: this.#catcher});
-    collect({ id: TelemetrySources.notifier, source: this.#notifier});
+  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
+    collect(this.#engine);
+    collect(this.#catcher);
+    collect(this.#notifier);
   }
 
   /**
@@ -523,7 +553,15 @@ export class Switchboard {
 
   async #onXcmMatched(msg: XcmMatched) {
     const { subscriptionId } = msg;
-    const sub = await this.#db.getById(subscriptionId);
-    await this.#notifier.notify(sub, msg);
+    if (this.#subs[subscriptionId]) {
+      const { descriptor } = this.#subs[subscriptionId];
+      await this.#notifier.notify(descriptor, msg);
+    } else {
+      // this could happen with closed ephemeral subscriptions
+      this.#log.warn(
+        'Unable to find descriptor for subscription %s',
+        subscriptionId
+      );
+    }
   }
 }

@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
+import { wsSubscriptionHandler } from './ws/protocol.js';
 import { Switchboard } from '../switchboard.js';
 import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
@@ -27,8 +28,11 @@ export function SubscriptionApi(
   },
   done: (err?: Error) => void
 ) {
-  const { storage: { subs } } = api;
+  const { log, storage: { subs } } = api;
 
+  /**
+   * GET subs
+   */
   api.get('/subs', {
     schema: {
       response: {
@@ -44,6 +48,9 @@ export function SubscriptionApi(
     reply.send(await subs.getAll());
   });
 
+  /**
+   * GET subs/:id
+   */
   api.get<{
     Params: {
       id: string
@@ -64,6 +71,9 @@ export function SubscriptionApi(
     ));
   });
 
+  /**
+   * POST subs
+   */
   api.post <{
     Body: QuerySubscription | QuerySubscription[]
   }>('/subs', {
@@ -110,6 +120,9 @@ export function SubscriptionApi(
     reply.status(201).send();
   });
 
+  /**
+   * PATCH subs/:id
+   */
   api.patch <{
     Params: {
       id: string
@@ -161,6 +174,9 @@ export function SubscriptionApi(
     }
   });
 
+  /**
+   * DELETE subs/:id
+   */
   api.delete<{
     Params: {
       id: string
@@ -182,6 +198,15 @@ export function SubscriptionApi(
 
     reply.send();
   });
+
+  /**
+   * GET ws/subs
+   */
+  api.get('/ws/subs', { websocket: true },
+    async (connection, _request) => {
+      await wsSubscriptionHandler(log, switchboard, connection);
+    }
+  );
 
   done();
 }

@@ -1,13 +1,9 @@
 import { Counter } from 'prom-client';
 
-import {
-  TelementryEngineEvents as events, TelemetryObserver
-} from '../../types.js';
 import { XcmReceived, XcmSent } from '../../monitoring/types.js';
+import { TelemetryEventEmitter } from '../types.js';
 
-export function engineMetrics(
-  { source }: TelemetryObserver
-) {
+export function engineMetrics(source: TelemetryEventEmitter) {
   const inCount = new Counter({
     name: 'xcmon_engine_in_total',
     help: 'Matching engine inbound messages.',
@@ -24,7 +20,7 @@ export function engineMetrics(
     labelNames: ['subscription', 'origin', 'destination', 'outcome']
   });
 
-  source.on(events.Inbound,
+  source.on('inbound',
     (message: XcmReceived) => {
       inCount.labels(
         message.subscriptionId,
@@ -33,7 +29,7 @@ export function engineMetrics(
       ).inc();
     });
 
-  source.on(events.Outbound,
+  source.on('outbound',
     (message: XcmSent) => {
       outCount.labels(
         message.subscriptionId,
@@ -42,7 +38,7 @@ export function engineMetrics(
       ).inc();
     });
 
-  source.on(events.Matched,
+  source.on('matched',
     (inMsg: XcmReceived, outMsg: XcmSent) => {
       matchCount.labels(
         outMsg.subscriptionId,

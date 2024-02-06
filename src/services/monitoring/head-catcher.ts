@@ -21,10 +21,11 @@ import {
   SubstrateApis
 } from '@sodazone/ocelloids';
 
-import { DB, Logger, Services, TelementryCatcherEvents as telemetry, jsonEncoded, prefixes } from '../types.js';
+import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
 import { ChainHead as ChainTip, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
+import { TelemetryEventEmitter } from '../telemetry/types.js';
 
 const MAX_BLOCK_DIST : bigint = process.env.XCMON_MAX_BLOCK_DIST ?
   BigInt(process.env.XCMON_MAX_BLOCK_DIST)
@@ -40,7 +41,7 @@ const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
  * @see {HeadCatcher.finalizedBlocks}
  * @see {HeadCatcher.#catchUpHeads}
  */
-export class HeadCatcher extends EventEmitter {
+export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter)  {
   #apis: SubstrateApis;
   #log: Logger;
   #config: ServiceConfiguration;
@@ -92,7 +93,7 @@ export class HeadCatcher extends EventEmitter {
               header.hash.toHex()
             );
 
-            this.emit(telemetry.BlockSeen, {
+            this.emit('blockSeen', {
               chainId,
               header
             });
@@ -339,7 +340,7 @@ export class HeadCatcher extends EventEmitter {
         author as AccountId
       );
 
-      this.emit(telemetry.BlockCacheHit, {
+      this.emit('blockCacheHit', {
         chainId
       });
 
@@ -380,7 +381,7 @@ export class HeadCatcher extends EventEmitter {
             header.hash.toHex()
           );
 
-          this.emit(telemetry.BlockFinalized, {
+          this.emit('blockFinalized', {
             chainId,
             header
           });

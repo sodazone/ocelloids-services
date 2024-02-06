@@ -1,12 +1,7 @@
 import { Counter, Histogram } from 'prom-client';
+import { TelemetryEventEmitter } from '../types.js';
 
-import {
-  TelementryCatcherEvents as events, TelemetryObserver
-} from '../../types.js';
-
-export function catcherMetrics(
-  { source }: TelemetryObserver
-) {
+export function catcherMetrics(source: TelemetryEventEmitter) {
   const timers : Record<string, () => void> = {};
 
   const blockSeenHist = new Histogram({
@@ -36,11 +31,11 @@ export function catcherMetrics(
     labelNames: ['origin']
   });
 
-  source.on(events.BlockCacheHit, ({ chainId }) => {
+  source.on('blockCacheHit', ({ chainId }) => {
     blockCacheHitsCount.labels(chainId).inc();
   });
 
-  source.on(events.BlockSeen, ({ chainId }) => {
+  source.on('blockSeen', ({ chainId }) => {
     blockSeenCount.labels(
       chainId
     ).inc();
@@ -55,8 +50,7 @@ export function catcherMetrics(
       chainId
     ).startTimer();
   });
-  source.on(events.BlockFinalized, ({ chainId, header }) => {
-    header;
+  source.on('blockFinalized', ({ chainId }) => {
     blockFinCount.labels(
       chainId
     ).inc();

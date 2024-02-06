@@ -6,8 +6,9 @@ import { MemoryLevel } from 'memory-level';
 import { _log, _services } from '../../testing/services.js';
 
 import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
-import { Delivered, WebhookNotifier } from './webhook.js';
+import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
+import { NotifierHub } from './hub.js';
 
 const notification : XcmMatched = {
   subscriptionId: 'ok',
@@ -99,6 +100,7 @@ describe('webhook notifier', () => {
 
   let scheduler : Scheduler;
   let notifier : WebhookNotifier;
+  let hub: NotifierHub;
 
   beforeAll(async () => {
     await subs.insert(subOk);
@@ -119,10 +121,15 @@ describe('webhook notifier', () => {
         scheduler: true,
         schedulerFrequency: 500
       });
-    notifier = new WebhookNotifier({
-      ..._services,
-      scheduler
-    });
+    hub = new NotifierHub(
+      _services
+    );
+    notifier = new WebhookNotifier(
+      hub,
+      {
+        ..._services,
+        scheduler
+      });
   });
 
   it('should post a notification', async () => {
@@ -132,7 +139,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subOk, notification);
 
@@ -147,7 +154,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subOkXml, {
       ...notification, subscriptionId: 'ok:xml'
@@ -163,7 +170,7 @@ describe('webhook notifier', () => {
     }).post(/ok\/.+/).reply(200);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subOkAuth, notification);
 
@@ -177,7 +184,7 @@ describe('webhook notifier', () => {
       .reply(404);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subFail, notification);
 
@@ -192,7 +199,7 @@ describe('webhook notifier', () => {
       .reply(500);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subOk, notification);
 
@@ -210,7 +217,7 @@ describe('webhook notifier', () => {
       .reply(200);
 
     const ok = jest.fn();
-    notifier.on(Delivered, ok);
+    notifier.on('notify', ok);
 
     await notifier.notify(subOk, notification);
 

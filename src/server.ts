@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 
 import FastifySwagger from '@fastify/swagger';
 import FastifySwaggerUI from '@fastify/swagger-ui';
+import FastifyWebsocket from '@fastify/websocket';
 import FastifyHealthcheck from 'fastify-healthcheck';
 
 import version from './version.js';
@@ -71,6 +72,10 @@ export async function createServer(
 
   await server.register(FastifyHealthcheck, {
     exposeUptime: true
+  });
+
+  await server.register(FastifyWebsocket, {
+    options: { maxPayload: 1048576 }
   });
 
   await server.register(Root);

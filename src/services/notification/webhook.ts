@@ -5,11 +5,12 @@ import { ulid } from 'ulidx';
 
 import version from '../../version.js';
 import { QuerySubscription, WebhookNotification, XcmMatched } from '../monitoring/types.js';
-import { Logger, Services, TelementryNotifierEvents as telemetry } from '../types.js';
+import { Logger, Services } from '../types.js';
 
-import { Notifier } from './types.js';
+import { Notifier, NotifierEmitter } from './types.js';
 import { TemplateRenderer } from './template.js';
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js';
+import { NotifierHub } from './hub.js';
 
 const DEFAULT_DELAY = 300000; // 5 minutes
 
@@ -19,8 +20,6 @@ type WebhookTask = {
   msg: XcmMatched
 }
 const WebhookTaskType = 'task:webhook';
-
-export const Delivered = Symbol('delivered');
 
 function buildPostUrl(url: string, id: string) {
   return [url, id]
@@ -35,13 +34,16 @@ function buildPostUrl(url: string, id: string) {
  * - Immediate and scheduled retry logic.
  * - Text templates for the body payload.
  */
-export class WebhookNotifier extends EventEmitter implements Notifier {
+export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
   #log: Logger;
   #scheduler: Scheduler;
   #subs: SubsStore;
   #renderer: TemplateRenderer;
 
-  constructor({ log, scheduler, storage: { subs } }: Services) {
+  constructor(
+    hub: NotifierHub,
+    { log, scheduler, storage: { subs } }: Services
+  ) {
     super();
 
     this.#log = log;
@@ -50,6 +52,8 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
     this.#renderer = new TemplateRenderer();
 
     this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this));
+
+    hub.on('webhook', this.notify.bind(this));
   }
 
   async notify(
@@ -142,12 +146,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
           msg.destination.blockNumber
         );
 
-        this.emit(Delivered, {
-          id,
-          msg
-        });
-
-        this.emit(telemetry.Notify, {
+        this.emit('notify', {
           type: config.type,
           subscription: msg.subscriptionId,
           origin: msg.origin.chainId,
@@ -184,7 +183,7 @@ export class WebhookNotifier extends EventEmitter implements Notifier {
         key
       );
 
-      this.emit(telemetry.NotifyError, {
+      this.emit('notifyError', {
         type: config.type,
         subscription: msg.subscriptionId,
         origin: msg.origin.chainId,

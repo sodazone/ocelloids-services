@@ -2,18 +2,21 @@ import EventEmitter from 'node:events';
 
 import { Logger, Services } from '../../services/types.js';
 import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
-import { Notifier } from './types.js';
+import { Notifier, NotifierEmitter } from './types.js';
+import { NotifierHub } from './hub.js';
 
-export class LogNotifier extends EventEmitter implements Notifier {
+export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
   #log: Logger;
 
-  constructor({ log }: Services) {
+  constructor(hub: NotifierHub, { log }: Services) {
     super();
 
     this.#log = log;
+
+    hub.on('log', this.notify.bind(this));
   }
 
-  async notify(
+  notify(
     sub: QuerySubscription,
     msg: XcmMatched
   ) {
@@ -27,6 +30,5 @@ export class LogNotifier extends EventEmitter implements Notifier {
       msg.origin.blockNumber,
       msg.destination.blockNumber
     );
-    return Promise.resolve();
   }
 }
