@@ -38,7 +38,7 @@ export function getParaIdFromOrigin(
       return umpOrigin.asPara.toString();
     }
   }
-  
+
   return undefined;
 }
 
@@ -72,11 +72,11 @@ export function getParaIdFromMultiLocation(
 
 export function getParaIdFromVersionedMultiLocation(loc: XcmVersionedMultiLocation): string | undefined {
   switch (loc.type) {
-    case 'V2':
-    case 'V3':
-      return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
-    default:
-      return undefined;
+  case 'V2':
+  case 'V3':
+    return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
+  default:
+    return undefined;
   }
 }
 

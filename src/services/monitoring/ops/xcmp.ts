@@ -115,7 +115,7 @@ export function extractXcmpReceive() {
       ),
       map(event => {
         const xcmMessage = event.data as any;
-        
+
         return new GenericXcmReceivedWithContext({
           event: event.toHuman(),
           blockHash: event.blockHash.toHex(),

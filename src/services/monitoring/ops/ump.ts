@@ -158,7 +158,7 @@ export function extractUmpReceive(api: ApiPromise, originId: string) {
           api.events.messageQueue.Processed.is(event) ||
           api.events.messageQueue.ProcessingFailed.is(event)
         ) {
-          return createUmpReceivedWithContext(event, originId, event.data)
+          return createUmpReceivedWithContext(event, originId, event.data);
         }
         return null;
       }),
