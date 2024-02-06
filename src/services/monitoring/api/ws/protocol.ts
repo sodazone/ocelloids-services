@@ -17,9 +17,9 @@ const jsonSchema = z.string().transform( ( str, ctx ) => {
       ...JSON.parse( str ),
       id: ulid(),
       ephemeral: true,
-      notify: {
+      channels: [{
         type: 'websocket'
-      }
+      }]
     };
   } catch ( e ) {
     ctx.addIssue( { code: 'custom', message: 'Invalid JSON' } );
