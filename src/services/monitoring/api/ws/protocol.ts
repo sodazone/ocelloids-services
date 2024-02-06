@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { SocketStream } from '@fastify/websocket';
 import { ulid } from 'ulidx';
 
+import { Logger } from '../../../types.js';
 import { $QuerySubscription, QuerySubscription, XcmMatched, XcmMatchedListener } from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
-import { Logger } from 'services/types.js';
 
 const v1 = JSON.stringify({
   protocol: 'xcmon/subs',
