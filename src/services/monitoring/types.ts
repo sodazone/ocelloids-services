@@ -280,13 +280,14 @@ export const $QuerySubscription = z.object({
   ephemeral: z.optional(
     z.boolean()
   ),
-  notify: z.discriminatedUnion('type', [
+  channels: z.array(z.discriminatedUnion('type', [
     $WebhookNotification,
     $LogNotification,
     $WebsocketNotification
-  ])
+  ])).min(1)
 }).refine(schema =>
-  !schema.ephemeral || schema.notify.type === 'websocket'
+  !schema.ephemeral
+  || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')
 , 'ephemeral subscriptions only supports websocket notifications');
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>;

@@ -8,9 +8,9 @@ export const _subsFix : QuerySubscription[] = [
       '1000'
     ],
     senders: ['a', 'b', 'c'],
-    notify: {
+    channels: [{
       type: 'log'
-    }
+    }]
   },
   {
     id: '0:1000:2',
@@ -19,9 +19,9 @@ export const _subsFix : QuerySubscription[] = [
       '1000'
     ],
     senders: ['d', 'e', 'f'],
-    notify: {
+    channels: [{
       type: 'log'
-    }
+    }]
   },
   {
     id: '0:2000:1',
@@ -30,9 +30,9 @@ export const _subsFix : QuerySubscription[] = [
       '2000'
     ],
     senders: ['a', 'b', 'c'],
-    notify: {
+    channels: [{
       type: 'log'
-    }
+    }]
   },
   {
     id: '100:0-2000:1',
@@ -41,9 +41,9 @@ export const _subsFix : QuerySubscription[] = [
       '0', '2000'
     ],
     senders: ['a', 'b', 'c'],
-    notify: {
+    channels: [{
       type: 'log'
-    }
+    }]
   },
   {
     id: '100:0-2000:2',
@@ -52,9 +52,9 @@ export const _subsFix : QuerySubscription[] = [
       '0', '2000'
     ],
     senders: ['d', 'e', 'f'],
-    notify: {
+    channels: [{
       type: 'log'
-    }
+    }]
   },
 ];
 

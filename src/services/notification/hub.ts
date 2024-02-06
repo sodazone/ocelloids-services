@@ -44,6 +44,12 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
    * @param msg The message.
    */
   notify(sub: QuerySubscription, msg: XcmMatched) {
-    this.emit(sub.notify.type, sub, msg);
+    const types: any[] = [];
+    for (const { type } of sub.channels) {
+      if (types.indexOf(type) === -1) {
+        types.push(type);
+        this.emit(type, sub, msg);
+      }
+    }
   }
 }

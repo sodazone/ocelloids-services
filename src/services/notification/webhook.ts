@@ -60,19 +60,21 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     sub: QuerySubscription,
     msg: XcmMatched
   ) {
-    const { id, notify } = sub;
+    const { id, channels } = sub;
 
-    if (notify.type === 'webhook') {
-      const taskId = ulid();
-      const scheduled : Scheduled<WebhookTask> = {
-        type: WebhookTaskType,
-        task: {
-          id: taskId,
-          subId: id,
-          msg
-        }
-      };
-      await this.#dispatch(scheduled);
+    for (const chan of channels) {
+      if (chan.type === 'webhook') {
+        const taskId = ulid();
+        const scheduled : Scheduled<WebhookTask> = {
+          type: WebhookTaskType,
+          task: {
+            id: taskId,
+            subId: id,
+            msg
+          }
+        };
+        await this.#dispatch(scheduled);
+      }
     }
   }
 
@@ -80,9 +82,13 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     const { task: { subId } } = scheduled;
 
     try {
-      const sub = await this.#subs.getById(subId);
-      const config = sub.notify as WebhookNotification;
-      await this.#post(scheduled, config);
+      const { channels } = await this.#subs.getById(subId);
+      for (const chan of channels) {
+        if (chan.type === 'webhook') {
+          const config = chan as WebhookNotification;
+          await this.#post(scheduled, config);
+        }
+      }
     } catch (error) {
       // do not re-schedule
       this.#log.error(error, 'Webhook dispatch error');
@@ -152,7 +158,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           origin: msg.origin.chainId,
           destination: msg.destination.chainId,
           outcome: msg.outcome,
-          sink: config.url
+          channel: config.url
         });
       } else {
         // Should not enter here, since the non success status codes
@@ -189,7 +195,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         origin: msg.origin.chainId,
         destination: msg.destination.chainId,
         outcome: msg.outcome,
-        sink: config.url,
+        channel: config.url,
         error: 'max_retries'
       });
     }

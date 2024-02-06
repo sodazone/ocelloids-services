@@ -8,7 +8,7 @@ import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
 const allowedPaths = [
-  '/senders', '/destinations', '/notify'
+  '/senders', '/destinations', '/channels'
 ];
 
 function hasOp(patch: Operation[], path: string) {

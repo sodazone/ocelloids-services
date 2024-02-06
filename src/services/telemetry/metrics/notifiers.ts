@@ -5,12 +5,12 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
   const notifyCount = new Counter({
     name: 'xcmon_notifier_notification_total',
     help: 'Notifier notifications.',
-    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'sink']
+    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel']
   });
   const notifyErrorCount = new Counter({
     name: 'xcmon_notifier_notification_error_total',
     help: 'Notifier notification errors.',
-    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'sink', 'error']
+    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel', 'error']
   });
 
   source.on('telemetryNotify', message => {

@@ -40,9 +40,9 @@ const testSub : QuerySubscription = {
   destinations: [
     '2000'
   ],
-  notify: {
+  channels: [{
     type: 'log'
-  }
+  }]
 };
 
 describe('switchboard service', () => {

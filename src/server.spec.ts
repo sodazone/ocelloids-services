@@ -1,3 +1,4 @@
+import { QuerySubscription } from './services/monitoring/types.js';
 import { jsonEncoded, prefixes } from './services/types.js';
 import './testing/network.js';
 
@@ -10,10 +11,10 @@ const testSubContent = {
   destinations: [
     '2000'
   ],
-  notify: {
+  channels: [{
     type: 'log'
-  }
-};
+  }]
+} as QuerySubscription;
 
 const { createServer } = await import('./server.js');
 
@@ -74,15 +75,15 @@ describe('monitoring server API', () => {
         url: '/subs',
         body: {
           id: 'wild',
-          origin: 1000,
+          origin: '1000',
           senders: '*',
           destinations: [
-            2000
+            '2000'
           ],
-          notify: {
+          channels: [{
             type: 'log'
-          }
-        }
+          }]
+        } as QuerySubscription
       }, (_err, response) => {
         expect(response.statusCode)
           .toStrictEqual(201);
@@ -303,7 +304,7 @@ describe('monitoring server API', () => {
         body: [
           {
             op: 'replace',
-            path: '/notify',
+            path: '/channels/0',
             value: {
               type: 'webhook',
               url: 'http://localhost:4444/path'
@@ -313,7 +314,7 @@ describe('monitoring server API', () => {
       }, (_err, response) => {
         expect(response.statusCode)
           .toStrictEqual(200);
-        expect(JSON.parse(response.body).notify.type)
+        expect(JSON.parse(response.body).channels[0].type)
           .toEqual('webhook');
 
         done();

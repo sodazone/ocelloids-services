@@ -9,7 +9,7 @@ export type NotifyTelemetryMessage = {
     origin: string,
     destination: string,
     outcome: string,
-    sink: string,
+    channel: string,
     error?: string
   }
 

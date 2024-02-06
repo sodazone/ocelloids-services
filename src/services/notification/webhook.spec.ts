@@ -35,10 +35,10 @@ const notification : XcmMatched = {
 const subOk = {
   destinations: ['1000'],
   id: 'ok',
-  notify: {
+  channels: [{
     type: 'webhook',
     url: 'http://localhost/ok'
-  },
+  }],
   origin: '0',
   senders: '*'
 } as QuerySubscription;
@@ -60,12 +60,12 @@ const xmlTemplate = `
 const subOkXml = {
   destinations: ['0'],
   id: 'ok:xml',
-  notify: {
+  channels: [{
     type: 'webhook',
     url: 'http://localhost/ok',
     contentType: 'application/xml',
     template: xmlTemplate
-  },
+  }],
   origin: '1000',
   senders: '*'
 } as QuerySubscription;
@@ -73,10 +73,10 @@ const subOkXml = {
 const subFail = {
   destinations: ['2000'],
   id: 'fail',
-  notify: {
+  channels: [{
     type: 'webhook',
     url: 'http://localhost/not-found'
-  },
+  }],
   origin: '0',
   senders: '*'
 } as QuerySubscription;
@@ -86,11 +86,11 @@ const authToken = 'secret';
 const subOkAuth = {
   destinations: ['3000'],
   id: 'ok:auth',
-  notify: {
+  channels: [{
     type: 'webhook',
     url: 'http://localhost/ok',
     bearer: authToken
-  },
+  }],
   origin: '0',
   senders: '*'
 } as QuerySubscription;
