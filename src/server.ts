@@ -44,6 +44,19 @@ export async function createServer(
     if (err) {
       server.log.error(err);
     }
+
+    const { websocketServer } = server;
+    if (websocketServer.clients) {
+      server.log.info('Terminating websockets');
+
+      for (const client of websocketServer.clients) {
+        // TODO: try to find out a cleaner way
+        // close and terminate
+        client.close(1001, 'server shutdown');
+        client.terminate();
+      }
+    }
+
     await server.close();
   });
 
@@ -75,7 +88,10 @@ export async function createServer(
   });
 
   await server.register(FastifyWebsocket, {
-    options: { maxPayload: 1048576 }
+    options: { maxPayload: 1048576 },
+    // override default pre-close
+    // we explicitly handle it with terminate
+    preClose: () => {}
   });
 
   await server.register(Root);
