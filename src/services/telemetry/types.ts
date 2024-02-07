@@ -44,7 +44,7 @@ export type TelemetryEvents = {
   telemetryBlockSeen: (msg: {chainId: string, header: Header}) => void,
   telemetryBlockFinalized: (msg: {chainId: string, header: Header}) => void,
   telemetryBlockCacheHit: (msg: {chainId: string}) => void,
-  telemetrySocketListener: (ip: string, sub: QuerySubscription) => void
+  telemetrySocketListener: (ip: string, sub: QuerySubscription, close?: boolean) => void,
 } & TelemetryNotifierEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;

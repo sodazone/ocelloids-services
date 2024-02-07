@@ -1,4 +1,4 @@
-import { Counter } from 'prom-client';
+import { Gauge } from 'prom-client';
 
 import { TelemetryEventEmitter } from '../types.js';
 import { notifierMetrics } from './notifiers.js';
@@ -6,16 +6,21 @@ import { notifierMetrics } from './notifiers.js';
 export function wsMetrics(source: TelemetryEventEmitter) {
   notifierMetrics(source);
 
-  const socketListenerCount = new Counter({
-    name: 'xcmon_socket_listener_total',
+  const socketListenerCount = new Gauge({
+    name: 'xcmon_socket_listener_count',
     help: 'Socket listeners.',
     labelNames: ['type', 'subscription', 'origin', 'destinations', 'channel']
   });
 
-  source.on('telemetrySocketListener', (ip, sub) => {
-    socketListenerCount.labels(
+  source.on('telemetrySocketListener', (ip, sub, close = false) => {
+    const gauge = socketListenerCount.labels(
       'websocket',
       sub.id, sub.origin, sub.destinations.join(','), ip
-    ).inc();
+    );
+    if (close) {
+      gauge.dec();
+    } else {
+      gauge.inc();
+    }
   });
 }
