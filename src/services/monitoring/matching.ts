@@ -71,12 +71,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
-      const hashKey = `${outMsg.messageHash}:${outMsg.recipient}`;
+      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.recipient, outMsg.messageHash);
 
       if (outMsg.messageId) {
         // Still we don't know if the inbound is upgraded,
-        // i.e. uses message ids
-        const idKey = `${outMsg.messageId}:${outMsg.recipient}`;
+        // i.e. if uses message ids
+        const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.recipient, outMsg.messageId);
         try {
           const inMsg = await Promise.any([
             this.#inbound.get(idKey),
@@ -146,8 +146,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.emit('telemetryInbound', inMsg);
 
     await this.#mutex.runExclusive(async () => {
-      const hashKey = `${inMsg.messageHash}:${inMsg.chainId}`;
-      const idKey = `${inMsg.messageId}:${inMsg.chainId}`;
+      const hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash);
+      const idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId);
 
       if (hashKey === idKey) {
         try {
@@ -228,6 +228,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   async stop() {
     await this.#mutex.waitForUnlock();
+  }
+
+  #matchingKey(subscriptionId: string, chainId: string, messageId: string) {
+    // We add the subscription id as a discriminator
+    // to allow multiple subscriptions to the same messages
+    return `${subscriptionId}:${messageId}:${chainId}`;
   }
 
   async #onXcmMatched(
