@@ -25,6 +25,12 @@ const websocketProtocolPlugin: FastifyPluginAsync = async fastify => {
       await protocol.handle(connection, request);
     }
   );
+
+  fastify.addHook('onClose', async () => {
+    log.info('Shutting down websockets protocol');
+
+    await protocol.stop();
+  });
 };
 
 export default fp(websocketProtocolPlugin, { fastify: '>=4.x', name: 'ws-protocol' });

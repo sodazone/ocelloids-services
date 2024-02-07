@@ -137,7 +137,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     stream.write(v1);
   }
 
-  close() {
+  stop() {
     this.#switchboard.removeNotificationListener('websocket', this.#broadcaster);
   }
 
