@@ -32,8 +32,9 @@ const jsonSchema = z.string().transform( ( str, ctx ) => {
 } ).pipe($QuerySubscription);
 
 type Connection = {
-  stream: SocketStream,
-  ip: string
+  id: string,
+  ip: string,
+  stream: SocketStream
 }
 
 /**
@@ -43,7 +44,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   #log: Logger;
   #switchboard: Switchboard;
   #broadcaster: XcmMatchedListener;
-  #connections: Map<string, Connection>;
+  #connections: Map<string, Connection[]>;
 
   constructor(
     log: Logger,
@@ -56,27 +57,24 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     this.#connections = new Map();
     this.#broadcaster = (sub, xcm) => {
-      const connection = this.#connections.get(sub.id);
-      if (connection) {
-        const {stream, ip} = connection;
-        try {
-          stream.write(JSON.stringify(xcm));
+      const connections = this.#connections.get(sub.id);
+      if (connections) {
+        for (const connection of connections) {
+          const {stream, ip} = connection;
+          try {
+            stream.write(JSON.stringify(xcm));
 
-          this.emit('telemetryNotify', notifyTelemetryFrom(
-            'websocket',
-            ip,
-            xcm
-          ));
-        } catch (error) {
-          this.#log.error(error);
+            this.emit('telemetryNotify', notifyTelemetryFrom(
+              'websocket', ip, xcm
+            ));
+          } catch (error) {
+            this.#log.error(error);
 
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.emit('telemetryNotifyError', notifyTelemetryFrom(
-            'websocket',
-            ip,
-            xcm,
-            errorMessage
-          ));
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.emit('telemetryNotifyError', notifyTelemetryFrom(
+              'websocket', ip, xcm, errorMessage
+            ));
+          }
         }
       }
     };
@@ -138,7 +136,9 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   stop() {
-    this.#switchboard.removeNotificationListener('websocket', this.#broadcaster);
+    this.#switchboard.removeNotificationListener(
+      'websocket', this.#broadcaster
+    );
   }
 
   #addSubscriber(
@@ -146,15 +146,21 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     stream: SocketStream,
     request: FastifyRequest
   ) {
-    this.#connections.set(subscription.id, {
-      stream,
-      ip: request.ip
-    });
+    const subId = subscription.id;
+    const connection = {
+      id: request.id, ip: request.ip, stream
+    };
+
+    if (this.#connections.has(subId)) {
+      this.#connections.get(subId)?.push(connection);
+    } else {
+      this.#connections.set(subId, [connection]);
+    }
 
     stream.socket.once('close', async () => {
-      try {
-        const { id, ephemeral } = subscription;
+      const { id, ephemeral } = subscription;
 
+      try {
         if (ephemeral) {
           await this.#switchboard.unsubscribe(id);
         }
@@ -163,8 +169,17 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       } catch (error) {
         this.#log.error(error);
       } finally {
-        // TODO: check if is enough to free memory
-        this.#connections.delete(subscription.id);
+        // TODO: check if frees memory
+        const connections = this.#connections.get(id);
+        if (connections) {
+          const index = connections.findIndex(c => c.id === request.id);
+          if (index > -1) {
+            connections.splice(index, 1);
+          }
+          if (connections.length === 0) {
+            this.#connections.delete(id);
+          }
+        }
       }
     }
     );
