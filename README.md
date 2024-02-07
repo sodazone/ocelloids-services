@@ -32,7 +32,7 @@ The configuration values can be overridden using command line arguments.
 | XCMON_DB_SCHEDULER_ENABLE     | Enables or disables the task scheduler.        | true      |
 | XCMON_DB_SCHEDULER_FREQUENCY  | Milliseconds to wait before each tick.         | 5000      |
 | XCMON_DB_JANITOR_SWEEP_EXPIRY | Milliseconds before a task is swept.           | 1500000   |
-| XCMON_CLOSE_GRACE_DELAY       | Milliseconds for the graceful close to finish. | 500       |
+| XCMON_CLOSE_GRACE_DELAY       | Milliseconds for the graceful close to finish. | 5000      |
 | XCMON_SECRET                  | Secret passphrase for administration auth.     | -         |
 | XCMON_MAX_BLOCK_DIST          | Maximum distance in blocks for the catch-up.   | 50        |
 | XCMON_TELEMETRY_ENABLE        | Enables or disables the telemetry service.     | true      |
