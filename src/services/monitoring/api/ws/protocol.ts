@@ -1,14 +1,14 @@
 import { EventEmitter } from 'node:events';
 
 import { z } from 'zod';
+import { FastifyRequest } from 'fastify';
 import { SocketStream } from '@fastify/websocket';
 import { ulid } from 'ulidx';
 
 import { Logger } from '../../../types.js';
-import { $QuerySubscription, QuerySubscription, XcmMatched, XcmMatchedListener } from '../../types.js';
+import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
-import { FastifyRequest } from 'fastify';
 
 const v1 = JSON.stringify({
   protocol: 'xcmon/subs',
@@ -31,10 +31,10 @@ const jsonSchema = z.string().transform( ( str, ctx ) => {
   }
 } ).pipe($QuerySubscription);
 
-type SubWithListener = {
-  sub: QuerySubscription,
-  listener: XcmMatchedListener
-};
+type Connection = {
+  stream: SocketStream,
+  ip: string
+}
 
 /**
  * Websockets subscription protocol.
@@ -42,7 +42,8 @@ type SubWithListener = {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   #log: Logger;
   #switchboard: Switchboard;
-  #connections: WeakMap<SocketStream, SubWithListener>;
+  #broadcaster: XcmMatchedListener;
+  #connections: Map<string, Connection>;
 
   constructor(
     log: Logger,
@@ -53,7 +54,34 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#log = log;
     this.#switchboard = switchboard;
 
-    this.#connections = new WeakMap<SocketStream, SubWithListener>();
+    this.#connections = new Map();
+    this.#broadcaster = (sub, xcm) => {
+      const connection = this.#connections.get(sub.id);
+      if (connection) {
+        const {stream, ip} = connection;
+        try {
+          stream.write(JSON.stringify(xcm));
+
+          this.emit('telemetryNotify', notifyTelemetryFrom(
+            'websocket',
+            ip,
+            xcm
+          ));
+        } catch (error) {
+          this.#log.error(error);
+
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.emit('telemetryNotifyError', notifyTelemetryFrom(
+            'websocket',
+            ip,
+            xcm,
+            errorMessage
+          ));
+        }
+      }
+    };
+
+    this.#switchboard.addNotificationListener('websocket', this.#broadcaster);
   }
 
   /**
@@ -61,90 +89,84 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * If no subscription is given creates an ephemeral through the websocket.
    *
-   * @param connection The websocket connection
+   * @param stream The websocket stream
    * @param request The Fastify request
    * @param subscription The query subscription
    */
   async handle(
-    connection: SocketStream,
+    stream: SocketStream,
     request: FastifyRequest,
     subscription?: QuerySubscription
   ) {
-    connection.socket.once('close', async () => {
-      if (this.#connections.has(connection)) {
-        try {
-          const { sub: { id, ephemeral }, listener } = this.#connections.get(connection)!;
-          if (ephemeral) {
-            await this.#switchboard.unsubscribe(id);
-          }
-          this.#switchboard.removeNotificationListener('websocket', listener);
-        } catch (error) {
-          this.#log.error(error);
-        } finally {
-          this.#connections.delete(connection);
-        }
-      }
-    });
-
-    // the listener writes the notified messages
-    const createListener = (sub: QuerySubscription) => {
-      this.emit('telemetrySocketListener', request.ip, sub);
-
-      const listener = (target: QuerySubscription, xcm: XcmMatched) => {
-        if (sub.id === target.id) {
-          try {
-            connection.write(JSON.stringify(xcm));
-
-            this.emit('telemetryNotify', notifyTelemetryFrom(
-              'websocket',
-              request.ip,
-              xcm
-            ));
-          } catch (error) {
-            this.#log.error(error);
-
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            this.emit('telemetryNotifyError', notifyTelemetryFrom(
-              'websocket',
-              request.ip,
-              xcm,
-              errorMessage
-            ));
-          }
-        }
-      };
-      this.#switchboard.addNotificationListener('websocket', listener);
-      this.#connections.set(connection, { sub, listener });
-    };
+    let subId : string;
 
     if (subscription) {
-      // persistent subscriptions
-      createListener(subscription);
+      // existing subscriptions
+      subId = subscription.id;
+      if (this.#connections.has(subId)) {
+        this.#log.warn('trying duplicated subscription %s', subId);
+      } else {
+        this.#addSubscriber(subscription, stream, request);
+      }
     } else {
-      // ephemeral subscriptions
-      connection.on('data', async (data: Buffer) => {
-        if (this.#connections.has(connection)) {
-          connection.write(
-            JSON.stringify({ id: this.#connections.get(connection)?.sub.id })
+      // on-demand ephemeral subscriptions
+      stream.on('data', async (data: Buffer) => {
+        if (subId) {
+          stream.write(
+            JSON.stringify({ id: subId })
           );
         } else {
           const parsed = jsonSchema.safeParse(data.toString());
           if (parsed.success) {
-            const sub = parsed.data;
+            const onDemandSub = parsed.data;
             try {
-              await this.#switchboard.subscribe(sub);
-              createListener(sub);
-              connection.write(JSON.stringify(sub));
+              await this.#switchboard.subscribe(onDemandSub);
+              subId = onDemandSub.id;
+              this.#addSubscriber(onDemandSub, stream, request);
+              stream.write(JSON.stringify(onDemandSub));
             } catch (error) {
               this.#log.error(error);
             }
           } else {
-            connection.write(JSON.stringify(parsed.error));
+            stream.write(JSON.stringify(parsed.error));
           }
         }
       });
     }
 
-    connection.write(v1);
+    stream.write(v1);
+  }
+
+  close() {
+    this.#switchboard.removeNotificationListener('websocket', this.#broadcaster);
+  }
+
+  #addSubscriber(
+    subscription: QuerySubscription,
+    stream: SocketStream,
+    request: FastifyRequest
+  ) {
+    this.#connections.set(subscription.id, {
+      stream,
+      ip: request.ip
+    });
+
+    stream.socket.once('close', async () => {
+      try {
+        const { id, ephemeral } = subscription;
+
+        if (ephemeral) {
+          await this.#switchboard.unsubscribe(id);
+        }
+
+        this.emit('telemetrySocketListener', request.ip, subscription, true);
+      } catch (error) {
+        this.#log.error(error);
+      } finally {
+        // TODO: check if is enough to free memory
+        this.#connections.delete(subscription.id);
+      }
+    }
+    );
   }
 }
