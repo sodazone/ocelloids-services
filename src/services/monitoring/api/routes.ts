@@ -2,8 +2,6 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
-import { wsSubscriptionHandler } from './ws/protocol.js';
-import { Switchboard } from '../switchboard.js';
 import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
@@ -18,17 +16,10 @@ function hasOp(patch: Operation[], path: string) {
 /**
  * Subscriptions HTTP API.
  */
-export function SubscriptionApi(
-  api: FastifyInstance,
-  {
-    switchboard
-  }:
-  {
-    switchboard: Switchboard
-  },
-  done: (err?: Error) => void
+export async function SubscriptionApi(
+  api: FastifyInstance
 ) {
-  const { log, storage: { subs } } = api;
+  const { switchboard, storage: { subs } } = api;
 
   /**
    * GET subs
@@ -198,15 +189,4 @@ export function SubscriptionApi(
 
     reply.send();
   });
-
-  /**
-   * GET ws/subs
-   */
-  api.get('/ws/subs', { websocket: true },
-    async (connection, _request) => {
-      await wsSubscriptionHandler(log, switchboard, connection);
-    }
-  );
-
-  done();
 }

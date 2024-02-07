@@ -1,13 +1,13 @@
-import { Counter } from 'prom-client';
 import { TelemetryEventEmitter } from '../types.js';
+import { getOrCreateCounter } from './util.js';
 
 export function notifierMetrics(source: TelemetryEventEmitter) {
-  const notifyCount = new Counter({
+  const notifyCount = getOrCreateCounter({
     name: 'xcmon_notifier_notification_total',
     help: 'Notifier notifications.',
     labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel']
   });
-  const notifyErrorCount = new Counter({
+  const notifyErrorCount = getOrCreateCounter({
     name: 'xcmon_notifier_notification_error_total',
     help: 'Notifier notification errors.',
     labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel', 'error']
@@ -15,12 +15,23 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
 
   source.on('telemetryNotify', message => {
     notifyCount.labels(
-      ...Object.values<string>(message)
+      message.type,
+      message.subscription,
+      message.origin,
+      message.destination,
+      message.outcome,
+      message.channel
     ).inc();
   });
   source.on('telemetryNotifyError',  message => {
     notifyErrorCount.labels(
-      ...Object.values<string>(message)
+      message.type,
+      message.subscription,
+      message.origin,
+      message.destination,
+      message.outcome,
+      message.channel,
+      message.error ?? 'unknown'
     ).inc();
   });
 }

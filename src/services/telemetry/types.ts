@@ -1,17 +1,34 @@
 import type { Header } from '@polkadot/types/interfaces';
 
-import { XcmReceived, XcmSent } from 'services/monitoring/types.js';
+import { QuerySubscription, XcmMatched, XcmReceived, XcmSent } from 'services/monitoring/types.js';
 import { TypedEventEmitter } from 'services/types.js';
 
 export type NotifyTelemetryMessage = {
-    type: string,
-    subscription: string,
-    origin: string,
-    destination: string,
-    outcome: string,
-    channel: string,
-    error?: string
-  }
+  type: string,
+  subscription: string,
+  origin: string,
+  destination: string,
+  outcome: string,
+  channel: string,
+  error?: string
+}
+
+export function notifyTelemetryFrom(
+  type: string,
+  channel: string,
+  msg: XcmMatched,
+  error?: string
+) : NotifyTelemetryMessage {
+  return {
+    type,
+    subscription: msg.subscriptionId,
+    origin: msg.origin.chainId,
+    destination: msg.destination.chainId,
+    outcome: msg.outcome,
+    channel,
+    error
+  };
+}
 
 export type TelemetryNotifierEvents = {
   telemetryNotify: (msg: NotifyTelemetryMessage) => void,
@@ -26,7 +43,8 @@ export type TelemetryEvents = {
   telemetryMatched: (inMsg: XcmReceived, outMsg: XcmSent) => void,
   telemetryBlockSeen: (msg: {chainId: string, header: Header}) => void,
   telemetryBlockFinalized: (msg: {chainId: string, header: Header}) => void,
-  telemetryBlockCacheHit: (msg: {chainId: string}) => void
+  telemetryBlockCacheHit: (msg: {chainId: string}) => void,
+  telemetrySocketListener: (ip: string, sub: QuerySubscription) => void
 } & TelemetryNotifierEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;

@@ -10,6 +10,7 @@ import { Logger, Services } from '../types.js';
 import { Notifier, NotifierEmitter } from './types.js';
 import { TemplateRenderer } from './template.js';
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js';
+import { notifyTelemetryFrom } from '../telemetry/types.js';
 import { NotifierHub } from './hub.js';
 
 const DEFAULT_DELAY = 300000; // 5 minutes
@@ -152,14 +153,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           msg.destination.blockNumber
         );
 
-        this.emit('telemetryNotify', {
-          type: config.type,
-          subscription: msg.subscriptionId,
-          origin: msg.origin.chainId,
-          destination: msg.destination.chainId,
-          outcome: msg.outcome,
-          channel: config.url
-        });
+        this.emit('telemetryNotify', notifyTelemetryFrom(
+          config.type,
+          config.url,
+          msg
+        ));
       } else {
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
@@ -189,15 +187,12 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         key
       );
 
-      this.emit('telemetryNotifyError', {
-        type: config.type,
-        subscription: msg.subscriptionId,
-        origin: msg.origin.chainId,
-        destination: msg.destination.chainId,
-        outcome: msg.outcome,
-        channel: config.url,
-        error: 'max_retries'
-      });
+      this.emit('telemetryNotifyError', notifyTelemetryFrom(
+        config.type,
+        config.url,
+        msg,
+        'max_retries'
+      ));
     }
   }
 }

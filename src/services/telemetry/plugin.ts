@@ -6,6 +6,7 @@ import { register, collectDefaultMetrics } from 'prom-client';
 import { collect } from './metrics/index.js';
 import { createReplyHook } from './reply-hook.js';
 import { collectDiskStats } from './metrics/disk.js';
+import { wsMetrics } from './metrics/ws.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -27,7 +28,9 @@ type PullCollect = () => Promise<void>;
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 = async (fastify, options) => {
-  const { log, switchboard, storage: { root } } = fastify;
+  const {
+    log, switchboard, wsProtocol, storage: { root }
+  } = fastify;
 
   if (options.telemetry) {
     log.info('Enable default metrics');
@@ -42,6 +45,9 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 
     log.info('Enable switchboard metrics');
     switchboard.collectTelemetry(collect);
+
+    log.info('Enable websocket subscription metrics');
+    wsMetrics(wsProtocol);
 
     fastify.addHook('onResponse', createReplyHook());
 
