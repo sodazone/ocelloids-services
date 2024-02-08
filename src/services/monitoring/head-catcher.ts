@@ -463,8 +463,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
           // throttle
           await new Promise(resolve => setTimeout(resolve, delay));
-        } catch (err) {
-          console.log(err);
+        } catch (error) {
+          this.#log.error(error, 'during catch-up headers');
+          // TODO: check if needs further handling
+          break;
         }
       }
 
