@@ -47,13 +47,16 @@ export async function createServer(
 
     const { websocketServer } = server;
     if (websocketServer.clients) {
-      server.log.info('Terminating websockets');
+      server.log.info('Closing websockets');
 
       for (const client of websocketServer.clients) {
-        // TODO: try to find out a cleaner way
-        // close and terminate
         client.close(1001, 'server shutdown');
-        client.terminate();
+        if (client.readyState !== client.CLOSED) {
+        // Websocket clients could ignore the close handshake
+        // breaking the clean shutdown of the server.
+        // To prevent it we terminate the socket.
+          client.terminate();
+        }
       }
     }
 
