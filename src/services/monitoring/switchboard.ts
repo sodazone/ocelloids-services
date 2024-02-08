@@ -166,7 +166,8 @@ export class Switchboard {
       originSubs,
       destinationSubs
     } of Object.values(this.#subs)) {
-      this.#log.info(`Unsubscribe ${id}`);
+      this.#log.info('Unsubscribe %s', id);
+
       originSubs.forEach(({ sub }) => sub.unsubscribe());
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
     }

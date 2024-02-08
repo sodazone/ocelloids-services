@@ -35,7 +35,7 @@ export default class Connector {
         continue;
       }
 
-      log.info(`Register network: ${network.name} [chainId=${network.id}]`);
+      log.info('Register network: %s [chainId=%s]', network.name, network.id);
 
       this.#chainIdMap[network.name] = network.id;
       this.registerNetwork(network);
@@ -52,7 +52,7 @@ export default class Connector {
         this.#registerSmoldotRelay(name, provider.spec);
       }
     } else {
-      this.#log.info(`Register WS provider: ${name}`);
+      this.#log.info('Register WS provider: %s', name);
       this.#chains[name] = new WsProvider(provider.url);
     }
   }
@@ -69,9 +69,7 @@ export default class Connector {
     for (const key of Object.keys(this.#relays)) {
       const provider = this.#relays[key];
       providers[this.#chainIdMap[key]] = {provider};
-      provider.connect().catch(
-        this.#log.error.bind(this.#log)
-      );
+      provider.connect().catch(error => this.#log.error(error));
     }
 
     for (const key of Object.keys(this.#chains)) {
@@ -97,7 +95,7 @@ export default class Connector {
   }
 
   #registerSmoldotRelay(name: string, spec?: string) {
-    this.#log.info(`Register relay smoldot provider: ${name}`);
+    this.#log.info('Register relay smoldot provider: %s', name);
 
     const key = Object.values(Smoldot.WellKnownChain).find(
       c => c === name
@@ -128,7 +126,7 @@ export default class Connector {
   }
 
   #registerSmoldotParachain(name: string, relay: string, spec?: string) {
-    this.#log.info(`Register parachain smoldot provider: ${name}`);
+    this.#log.info('Register parachain smoldot provider: %s', name);
 
     if (!spec) {
       throw new Error(`Spec not provided for parachain: ${name}`);
