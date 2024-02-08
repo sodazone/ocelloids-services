@@ -23,6 +23,8 @@ import {
   Connector
 } from './services/index.js';
 
+const WS_MAX_PAYLOAD = 1048576; // 1MB
+
 /**
  * Creates and starts the server process with specified options.
  *
@@ -91,8 +93,14 @@ export async function createServer(
   });
 
   await server.register(FastifyWebsocket, {
-    // TODO: handle subprotocol
-    options: { maxPayload: 1048576, backlog: 10 },
+    options: {
+      // we don't need to negotiate subprotocols
+      handleProtocols: undefined,
+      maxPayload: WS_MAX_PAYLOAD,
+      perMessageDeflate: false
+      // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
+      // backlog: 511 // # default
+    },
     // override default pre-close
     // we explicitly handle it with terminate
     preClose: () => {}
