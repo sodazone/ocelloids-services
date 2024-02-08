@@ -211,9 +211,11 @@ export class Switchboard {
    * Updates a subscription descriptor.
    */
   async updateSubscription(sub: QuerySubscription) {
-    const { descriptor } = this.#subs[sub.id];
-    await this.#db.updateUniquePaths(descriptor, sub);
-    this.#subs[sub.id].descriptor = sub;
+    if (this.#subs[sub.id]) {
+      this.#subs[sub.id].descriptor = sub;
+    } else {
+      this.#log.warn('trying to update an unknown subscription %s', sub.id);
+    }
   }
 
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {

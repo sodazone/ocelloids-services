@@ -58,15 +58,6 @@ export default async function Administration(
     reply.send();
   });
 
-  api.get('/admin/subs/paths', opts, async (_, reply) => {
-    const uniques = await root.sublevel<string, string>(
-      prefixes.subs.uniques, { valueEncoding: 'utf-8' }
-    ).iterator(itOps).all();
-    reply.send({
-      uniques
-    });
-  });
-
   api.get('/admin/xcm', opts, async (_, reply) => {
     const outbound = await inDB.iterator(itOps).all();
     const inbound = await outDB.iterator(itOps).all();

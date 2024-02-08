@@ -457,17 +457,5 @@ describe('monitoring server API', () => {
           done();
         });
     });
-
-    it('should get subscription uniques', done => {
-      server.inject(
-        adminRq('/admin/subs/paths'),
-        (_err, response) => {
-          expect(response.statusCode)
-            .toStrictEqual(200);
-          expect(JSON.parse(response.body).uniques.length).toBe(6);
-
-          done();
-        });
-    });
   });
 });

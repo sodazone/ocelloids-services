@@ -1,21 +1,17 @@
 import { NotFound, ValidationError } from '../../errors.js';
 import { QuerySubscription } from '../monitoring/types.js';
-import { BatchOperation, DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
+import { BatchOperation, DB, Logger, jsonEncoded, prefixes } from '../types.js';
 import { ServiceConfiguration, isNetworkDefined } from '../config.js';
 
 /**
  * Subscriptions persistence.
  *
- * A subscription is expected to
- * - Have a unique id in the database.
- * - Have a set of unique paths, being each path a combination of
- *   '<origin id>:<destination id>:<sender address>'
+ * A subscription is expected to have a unique id in the database.
  */
 export class SubsStore {
   #log: Logger;
   #db: DB;
   #config: ServiceConfiguration;
-  #uniques: Family;
 
   constructor(
     log: Logger,
@@ -25,9 +21,6 @@ export class SubsStore {
     this.#log = log;
     this.#db = db;
     this.#config = config;
-    this.#uniques = db.sublevel<string, string>(
-      prefixes.subs.uniques, {}
-    );
   }
 
   /**
@@ -110,8 +103,6 @@ export class SubsStore {
     this.#validateChainIds([
       qs.origin, ...qs.destinations
     ]);
-    await this.#validateSubscriptionPaths(qs);
-
     const db = await this.#subsFamily(qs.origin);
     await db.put(qs.id, qs);
   }
@@ -122,135 +113,12 @@ export class SubsStore {
   async remove(id: string) {
     const qs = await this.getById(id);
     const ops : BatchOperation[] = [];
-    this.#getUniquePaths(qs).forEach(key => {
-      ops.push({
-        type: 'del',
-        sublevel: this.#uniques,
-        key
-      });
-    });
     ops.push({
       type: 'del',
       sublevel: this.#subsFamily(qs.origin),
       key: id
     });
     await this.#db.batch(ops);
-  }
-
-  /**
-   * Removes the unique paths in the database for the
-   * difference between the source and modified subscriptions.
-   *
-   * @param source The original subscription
-   * @param modified The modified subscription
-   */
-  async updateUniquePaths(
-    source: QuerySubscription,
-    modified: QuerySubscription
-  ) {
-    const delKeys: string[] = [];
-
-    // delete updated destinations
-    source.destinations.filter(
-      d => modified.destinations.indexOf(d) < 0
-    ).forEach(d => {
-      for (const s of source.senders) {
-        delKeys.push(
-          this.#uniquePathKey(source.origin, d, s)
-        );
-      }
-    });
-
-    // delete updated senders
-    const { senders } = source;
-
-    if (Array.isArray(senders)) { // existing []
-      const newSenders = modified.senders;
-      if (Array.isArray(newSenders)) { // new []
-        senders.filter(
-          s => newSenders.indexOf(s) < 0
-        ).forEach(s => {
-          delKeys.push(...this.#expandUniqueDestKeys(source, s));
-        });
-      } else { // new '*'
-        senders.forEach(s => {
-          delKeys.push(...this.#expandUniqueDestKeys(source, s));
-        });
-      }
-    } else { // existing '*'
-      delKeys.push(...this.#expandUniqueDestKeys(source, '*'));
-    }
-
-    if (delKeys.length > 0) {
-      const batch = this.#uniques.batch();
-      const newPaths = this.#getUniquePaths(modified);
-
-      delKeys.filter(
-        k => newPaths.indexOf(k) < 0
-      ).forEach(
-        k => {
-          batch.del(k);
-        }
-      );
-
-      await batch.write();
-    }
-  }
-
-  #expandUniqueDestKeys(source: QuerySubscription, sender: string) {
-    const keys = [];
-    for (const d of source.destinations) {
-      keys.push(
-        this.#uniquePathKey(source.origin, d, sender)
-      );
-    }
-    return keys;
-  }
-
-  #uniquePathKey(networkId: string, destination: string, sender: string) {
-    return `${networkId}:${destination}:${sender}`;
-  }
-
-  #getUniquePaths(qs: QuerySubscription) {
-    const paths = [];
-    for (const d of qs.destinations) {
-      for (const s of qs.senders) {
-        paths.push(this.#uniquePathKey(qs.origin, d, s));
-      }
-    }
-    return paths;
-  }
-
-  async #validateSubscriptionPaths(qs: QuerySubscription) {
-    const batch = this.#uniques.batch();
-
-    let existingKey = false;
-    let subId: string;
-    let key: string;
-
-    for (const d of qs.destinations) {
-      // Senders
-      for (const s of qs.senders) {
-        key = this.#uniquePathKey(qs.origin, d, s);
-        try {
-          subId = await this.#uniques.get(key);
-          existingKey = subId !== qs.id;
-          if (existingKey) {
-            break;
-          }
-        } catch (error) {
-          batch.put(key, qs.id);
-        }
-      }
-      // Throw
-      if (existingKey) {
-        batch.clear();
-        batch.close();
-        throw new ValidationError(`Path ${key!} already defined in ${subId!}`);
-      }
-    }
-
-    await batch.write();
   }
 
   #subsFamily(chainId: string) {
