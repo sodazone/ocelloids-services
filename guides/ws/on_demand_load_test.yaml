@@ -1,0 +1,17 @@
+config:
+  target: ws://127.0.0.1:3000
+  phases:
+    - duration: 300
+      arrivalRate: 10
+      name: run
+  ws:
+    subprotocols:
+      - json
+scenarios:
+  - engine: ws
+    name: create a subscription
+    flow:
+      - connect: "{{ target }}/ws/subs"
+      - send: > 
+          { "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2104" ] }
+      - think: 600
