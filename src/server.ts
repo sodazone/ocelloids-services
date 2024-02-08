@@ -52,7 +52,7 @@ export async function createServer(
       for (const client of websocketServer.clients) {
         client.close(1001, 'server shutdown');
         if (client.readyState !== client.CLOSED) {
-        // Websocket clients could ignore the close handshake
+        // Websocket clients could ignore the close acknowledge
         // breaking the clean shutdown of the server.
         // To prevent it we terminate the socket.
           client.terminate();
