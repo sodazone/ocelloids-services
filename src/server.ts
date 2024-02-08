@@ -91,7 +91,8 @@ export async function createServer(
   });
 
   await server.register(FastifyWebsocket, {
-    options: { maxPayload: 1048576 },
+    // TODO: handle subprotocol
+    options: { maxPayload: 1048576, backlog: 10 },
     // override default pre-close
     // we explicitly handle it with terminate
     preClose: () => {}
