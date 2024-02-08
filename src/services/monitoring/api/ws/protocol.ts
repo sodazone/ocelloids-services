@@ -10,11 +10,6 @@ import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../..
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
 
-const v1 = JSON.stringify({
-  protocol: 'xcmon/subs',
-  version: 1
-});
-
 const jsonSchema = z.string().transform( ( str, ctx ) => {
   try {
     return {
@@ -35,6 +30,12 @@ type Connection = {
   id: string,
   ip: string,
   stream: SocketStream
+}
+
+function safeWrite(stream: SocketStream, content: Object) {
+  return stream.writable
+    ? stream.write(JSON.stringify(content))
+    : false;
 }
 
 /**
@@ -62,7 +63,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         for (const connection of connections) {
           const {stream, ip} = connection;
           try {
-            stream.write(JSON.stringify(xcm));
+            safeWrite(stream, xcm);
 
             this.emit('telemetryNotify', notifyTelemetryFrom(
               'websocket', ip, xcm
@@ -110,9 +111,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       // on-demand ephemeral subscriptions
       stream.on('data', async (data: Buffer) => {
         if (subId) {
-          stream.write(
-            JSON.stringify({ id: subId })
-          );
+          safeWrite(stream, { id: subId });
         } else {
           const parsed = jsonSchema.safeParse(data.toString());
           if (parsed.success) {
@@ -121,18 +120,16 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
               await this.#switchboard.subscribe(onDemandSub);
               subId = onDemandSub.id;
               this.#addSubscriber(onDemandSub, stream, request);
-              stream.write(JSON.stringify(onDemandSub));
+              safeWrite(stream, onDemandSub);
             } catch (error) {
               this.#log.error(error);
             }
           } else {
-            stream.write(JSON.stringify(parsed.error));
+            safeWrite(stream, parsed.error);
           }
         }
       });
     }
-
-    stream.write(v1);
   }
 
   stop() {
@@ -162,6 +159,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
       try {
         if (ephemeral) {
+          // TODO clean up pending matches
           await this.#switchboard.unsubscribe(id);
         }
 
