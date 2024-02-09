@@ -86,7 +86,7 @@ export function extractXcmpSend(
   : Observable<XcmSentWithContext> => {
     return source.pipe(
       filter(event => (
-        ((event.section === 'xcmpQeueue'
+        ((event.section === 'xcmpQueue'
         && event.method === 'XcmpMessageSent')
         || (event.section === 'polkadotXcm'
         && event.method === 'Sent'))
