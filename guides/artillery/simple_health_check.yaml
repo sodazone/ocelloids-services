@@ -9,9 +9,9 @@ config:
       arrivalRate: 5
       rampTo: 10
       name: Ramp up load
-    - duration: 30
-      arrivalRate: 10
-      rampTo: 30
+    - duration: 50
+      arrivalRate: 20
+      rampTo: 100
       name: Spike phase
   plugins:
     ensure: {}
