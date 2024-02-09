@@ -42,19 +42,7 @@ export const xcmpSend = {
 
 export const xcmpReceive = {
   successBlocks: from(testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')),
-  failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json')),
-  api: {
-    events: {
-      xcmpQueue: {
-        Success: {
-          is: (event) => event.method === 'Success' && event.section === 'xcmpQueue'
-        },
-        Fail: {
-          is: (event) => event.method === 'Fail' && event.section === 'xcmpQueue'
-        }
-      }
-    }
-  } as unknown as ApiPromise
+  failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json'))
 };
 
 // UMP testing mocks
@@ -266,11 +254,6 @@ export const dmpReceive = {
       xcmPallet: {
         Sent: {
           is: (event) => event.method === 'Sent' && event.section === 'xcmPallet'
-        }
-      },
-      dmpQueue: {
-        ExecutedDownward: {
-          is: (event) => event.method === 'ExecutedDownward' && event.section === 'dmpQueue'
         }
       }
     }

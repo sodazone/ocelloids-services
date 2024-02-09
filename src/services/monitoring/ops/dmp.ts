@@ -1,17 +1,19 @@
 import { switchMap, mergeMap, map, filter, from, Observable } from 'rxjs';
 
-import type { Vec, Bytes, Compact } from '@polkadot/types';
-import type { BlockNumber } from '@polkadot/types/interfaces';
-import type { IU8a } from '@polkadot/types-codec/types';
+// NOTE: we use Polkadot augmented types
+import '@polkadot/api-augment/polkadot';
 import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
   XcmVersionedMultiLocation,
   XcmVersionedXcm,
   XcmVersionedMultiAssets
 } from '@polkadot/types/lookup';
+
+import type { Vec, Bytes, Compact } from '@polkadot/types';
+import type { BlockNumber } from '@polkadot/types/interfaces';
+import type { IU8a } from '@polkadot/types-codec/types';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
-import type { DecoratedEvents } from '@polkadot/api-base/types';
 import { ApiPromise } from '@polkadot/api';
 
 import {
@@ -197,7 +199,7 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
     return source.pipe(
       map(event => {
         if (api.events.xcmPallet.Sent.is(event)) {
-          const { destination, messageId } = event.data;
+          const { destination, messageId } = event.data as any;
           const paraId = getParaIdFromMultiLocation(destination);
 
           if (paraId) {
@@ -339,13 +341,14 @@ function createDmpReceivedWithContext(event: types.BlockEvent) {
   });
 }
 
-export function extractDmpReceive(events: DecoratedEvents<'promise'>) {
+export function extractDmpReceive() {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
         if (
-          events.dmpQueue.ExecutedDownward.is(event)
+          event.section === 'dmpQueue'
+          && event.method === 'ExecutedDownward'
         ) {
           return createDmpReceivedWithContext(event);
         }

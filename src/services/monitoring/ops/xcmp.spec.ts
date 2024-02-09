@@ -46,11 +46,11 @@ describe('xcmp operator', () => {
 
   describe('extractXcmpReceive', () => {
     it('should extract XCMP receive with outcome success', done => {
-      const { successBlocks, api } = xcmpReceive;
+      const { successBlocks } = xcmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpReceive(api.events)(successBlocks.pipe(extractEvents()));
+      const test$ = extractXcmpReceive()(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -71,11 +71,11 @@ describe('xcmp operator', () => {
     });
 
     it('should extract failed XCMP received message with error', done => {
-      const { failBlocks, api } = xcmpReceive;
+      const { failBlocks } = xcmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpReceive(api.events)(failBlocks.pipe(extractEvents()));
+      const test$ = extractXcmpReceive()(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {

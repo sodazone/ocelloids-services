@@ -1,10 +1,13 @@
 import { mergeMap, map, Observable, filter } from 'rxjs';
 
-import type { U8aFixed, bool } from '@polkadot/types-codec';
+// NOTE: we use Polkadot augmented types
+import '@polkadot/api-augment/polkadot';
 import type {
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
   FrameSupportMessagesProcessMessageError
 } from '@polkadot/types/lookup';
+
+import type { U8aFixed, bool } from '@polkadot/types-codec';
 import type { DecoratedEvents } from '@polkadot/api-base/types';
 
 import {

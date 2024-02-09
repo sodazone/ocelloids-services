@@ -1,5 +1,3 @@
-import '@polkadot/api-augment/polkadot';
-
 import { Observable, from, map, share } from 'rxjs';
 
 import {
@@ -401,7 +399,7 @@ export class Switchboard {
             chainId,
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractDmpReceive(events),
+                extractDmpReceive(),
                 inbound$()
               ).subscribe(inboundHandler)
           });
@@ -413,7 +411,7 @@ export class Switchboard {
             chainId,
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractXcmpReceive(events),
+                extractXcmpReceive(),
                 inbound$()
               ).subscribe(inboundHandler)
           });

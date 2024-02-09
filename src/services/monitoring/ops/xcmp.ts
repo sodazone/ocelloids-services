@@ -1,7 +1,5 @@
 import { map, Observable, mergeMap, filter } from 'rxjs';
 
-import type { DecoratedEvents } from '@polkadot/api-base/types';
-
 import {
   ControlQuery,
   filterNonNull,
@@ -98,14 +96,15 @@ export function extractXcmpSend(
   };
 }
 
-export function extractXcmpReceive(events: DecoratedEvents<'promise'>) {
+export function extractXcmpReceive() {
   return (source: Observable<types.BlockEvent>)
   : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
-        if (
-          events.xcmpQueue.Success.is(event) ||
-          events.xcmpQueue.Fail.is(event)
+        if ((event.section === 'xcmpQueue'
+        && event.method === 'Success')
+        || (event.section === 'xcmpQueue'
+        && event.method === 'Fail')
         ) {
           const xcmMessage = event.data as any;
 
