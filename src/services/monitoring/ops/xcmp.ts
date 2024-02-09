@@ -104,7 +104,7 @@ export function extractXcmpReceive(events: DecoratedEvents<'promise'>) {
     return (source.pipe(
       map(event => {
         if (
-          events.xcmpQueue.Succes.is(event) ||
+          events.xcmpQueue.Success.is(event) ||
           events.xcmpQueue.Fail.is(event)
         ) {
           const xcmMessage = event.data as any;
