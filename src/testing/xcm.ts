@@ -46,7 +46,7 @@ export const xcmpReceive = {
   api: {
     events: {
       xcmpQueue: {
-        Succes: {
+        Success: {
           is: (event) => event.method === 'Success' && event.section === 'xcmpQueue'
         },
         Fail: {
