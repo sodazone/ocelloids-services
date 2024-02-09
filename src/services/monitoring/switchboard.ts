@@ -1,9 +1,15 @@
 import '@polkadot/api-augment/polkadot';
 
-import { Observable, from, map } from 'rxjs';
+import { Observable, from, map, share } from 'rxjs';
 
 import {
-  SubstrateApis, ControlQuery, retryWithTruncatedExpBackoff
+  SubstrateApis,
+  ControlQuery,
+  extractEvents,
+  retryWithTruncatedExpBackoff,
+  types,
+  extractTxWithEvents,
+  flattenCalls
 } from '@sodazone/ocelloids';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
@@ -32,9 +38,32 @@ import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 
+const MAX_SUBS_EPHEMERAL = 1000;
+
 type Monitor = {
   subs: SubscriptionWithId[]
   controls: Record<string, ControlQuery>
+}
+
+type SubscriptionStats = {
+  persistent: number,
+  ephemeral: number
+}
+
+// eslint-disable-next-line no-shadow
+export enum SubscribeErrorCodes {
+  TOO_MANY_SUBSCRIBERS
+}
+
+export class SubscribeError extends Error {
+  code: SubscribeErrorCodes;
+
+  constructor(code: SubscribeErrorCodes, message: string) {
+    super(message);
+
+    Object.setPrototypeOf(this, SubscribeError.prototype);
+    this.code = code;
+  }
 }
 
 /**
@@ -47,15 +76,20 @@ type Monitor = {
  * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard {
-  #apis: SubstrateApis;
-  #config: ServiceConfiguration;
-  #log: Logger;
-  #db: SubsStore;
+  readonly #apis: SubstrateApis;
+  readonly #config: ServiceConfiguration;
+  readonly #log: Logger;
+  readonly #db: SubsStore;
+  readonly #engine: MatchingEngine;
+  readonly #catcher: HeadCatcher;
+  readonly #notifier: NotifierHub;
 
   #subs: Record<string, SubscriptionHandler> = {};
-  #engine: MatchingEngine;
-  #catcher: HeadCatcher;
-  #notifier: NotifierHub;
+  #shared: {
+    blockEvents: Record<string, Observable<types.BlockEvent>>
+    blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
+  };
+  #stats: SubscriptionStats;
 
   constructor(
     ctx: Services
@@ -73,6 +107,14 @@ export class Switchboard {
     this.#engine = new MatchingEngine(ctx, this.#onXcmMatched.bind(this));
     this.#catcher = new HeadCatcher(ctx);
     this.#notifier = new NotifierHub(ctx);
+    this.#stats = {
+      ephemeral: 0,
+      persistent: 0
+    };
+    this.#shared = {
+      blockEvents: {},
+      blockExtrinsics: {}
+    };
   }
 
   /**
@@ -82,6 +124,13 @@ export class Switchboard {
    * @throws {Error} If there is an error during the subscription setup process.
    */
   async subscribe(qs: QuerySubscription) {
+    if (this.#stats.ephemeral >= MAX_SUBS_EPHEMERAL) {
+      throw new SubscribeError(
+        SubscribeErrorCodes.TOO_MANY_SUBSCRIBERS,
+        'too many subscriptions'
+      );
+    }
+
     if (!qs.ephemeral) {
       await this.#db.insert(qs);
     }
@@ -140,7 +189,10 @@ export class Switchboard {
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
       delete this.#subs[id];
 
-      if (!ephemeral) {
+      if (ephemeral) {
+        this.#stats.ephemeral--;
+      } else {
+        this.#stats.persistent--;
         await this.#db.remove(id);
       }
     } catch (error) {
@@ -264,6 +316,12 @@ export class Switchboard {
       originSubs: origMonitor.subs,
       destinationSubs: destMonitor.subs
     };
+
+    if (qs.ephemeral) {
+      this.#stats.ephemeral++;
+    } else {
+      this.#stats.persistent++;
+    }
   }
 
   /**
@@ -304,51 +362,41 @@ export class Switchboard {
           }
         };
 
+        const { events } = this.#apis.promise[chainId];
+
         if (isRelay(this.#config, dest)) {
           // VMP UMP
-          this.#log.info(
-            '[%s] subscribe inbound UMP (%s)',
-            chainId,
-            id
-          );
+          this.#log.info('[%s] subscribe inbound UMP (%s)', chainId, id);
+
           subs.push({
             chainId,
-            sub: this.#catcher.finalizedBlocks(chainId)
+            sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractUmpReceive(this.#apis.promise[chainId], origin),
-                retryWithTruncatedExpBackoff(),
+                extractUmpReceive(events, origin),
                 inbound$()
               ).subscribe(inboundHandler)
           });
         } else if (isRelay(this.#config, origin)) {
           // VMP DMP
-          this.#log.info(
-            '[%s] subscribe inbound DMP (%s)',
-            chainId,
-            id
-          );
+          this.#log.info('[%s] subscribe inbound DMP (%s)', chainId, id);
+
           subs.push({
             chainId,
-            sub: this.#catcher.finalizedBlocks(chainId)
+            sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractDmpReceive(),
-                retryWithTruncatedExpBackoff(),
+                extractDmpReceive(events),
                 inbound$()
               ).subscribe(inboundHandler)
           });
         } else {
           // Inbound HRMP / XCMP transport
-          this.#log.info(
-            '[%s] subscribe inbound HRMP (%s)',
-            chainId,
-            id
-          );
+          this.#log.info('[%s] subscribe inbound HRMP (%s)', chainId, id);
+
           subs.push({
             chainId,
-            sub: this.#catcher.finalizedBlocks(chainId)
+            sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractXcmpReceive(),
-                retryWithTruncatedExpBackoff(),
+                extractXcmpReceive(events),
                 inbound$()
               ).subscribe(inboundHandler)
           });
@@ -404,14 +452,11 @@ export class Switchboard {
     try {
       if (isRelay(this.#config, origin)) {
         // VMP DMP
-        this.#log.info(
-          '[%s] subscribe outbound DMP (%s)',
-          chainId,
-          id
-        );
+        this.#log.info('[%s] subscribe outbound DMP (%s)', chainId, id);
+
         subs.push({
           chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
+          sub: this.#sharedBlockExtrinsics(chainId)
             .pipe(
               extractDmpSend(
                 api,
@@ -420,20 +465,16 @@ export class Switchboard {
                   messageControl
                 }
               ),
-              retryWithTruncatedExpBackoff(),
               outbound$()
             ).subscribe(outboundHandler)
         });
 
         // VMP DMP
-        this.#log.info(
-          '[%s] subscribe outbound DMP - by event (%s)',
-          chainId,
-          id
-        );
+        this.#log.info('[%s] subscribe outbound DMP - by event (%s)', chainId, id);
+
         subs.push({
           chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
+          sub: this.#sharedBlockEvents(chainId)
             .pipe(
               extractDmpSendByEvent(
                 api,
@@ -442,44 +483,35 @@ export class Switchboard {
                   messageControl
                 }
               ),
-              retryWithTruncatedExpBackoff(),
               outbound$()
             ).subscribe(outboundHandler)
         });
       } else {
         // Outbound HRMP / XCMP transport
-        this.#log.info(
-          '[%s] subscribe outbound HRMP (%s)',
-          chainId,
-          id
-        );
+        this.#log.info('[%s] subscribe outbound HRMP (%s)', chainId, id);
+
         const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
         subs.push({
           chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
-            .pipe(
-              extractXcmpSend(
-                {
-                  sendersControl,
-                  messageControl
-                },
-                getHrmp
-              ),
-              retryWithTruncatedExpBackoff(),
-              outbound$()
-            ).subscribe(outboundHandler)
+          sub: this.#sharedBlockEvents(chainId).pipe(
+            extractXcmpSend(
+              {
+                sendersControl,
+                messageControl
+              },
+              getHrmp
+            ),
+            outbound$()
+          ).subscribe(outboundHandler)
         });
 
         // VMP UMP
-        this.#log.info(
-          '[%s] subscribe outbound UMP (%s)',
-          chainId,
-          id
-        );
+        this.#log.info('[%s] subscribe outbound UMP (%s)', chainId, id);
+
         const getUmp = this.#catcher.outboundUmpMessages(chainId);
         subs.push({
           chainId,
-          sub: this.#catcher.finalizedBlocks(chainId)
+          sub: this.#sharedBlockEvents(chainId)
             .pipe(
               extractUmpSend(
                 {
@@ -566,5 +598,30 @@ export class Switchboard {
         subscriptionId
       );
     }
+  }
+
+  #sharedBlockEvents(chainId: string) : Observable<types.BlockEvent> {
+    if (!this.#shared.blockEvents[chainId]) {
+      this.#shared.blockEvents[chainId] = this.#catcher.finalizedBlocks(chainId)
+        .pipe(
+          extractEvents(),
+          retryWithTruncatedExpBackoff(),
+          share()
+        );
+    }
+    return this.#shared.blockEvents[chainId];
+  }
+
+  #sharedBlockExtrinsics(chainId: string) : Observable<types.TxWithIdAndEvent> {
+    if (!this.#shared.blockExtrinsics[chainId]) {
+      this.#shared.blockExtrinsics[chainId] = this.#catcher.finalizedBlocks(chainId)
+        .pipe(
+          extractTxWithEvents(),
+          retryWithTruncatedExpBackoff(),
+          flattenCalls(),
+          share()
+        );
+    }
+    return this.#shared.blockExtrinsics[chainId];
   }
 }

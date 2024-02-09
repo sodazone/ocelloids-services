@@ -21,8 +21,8 @@ const websocketProtocolPlugin: FastifyPluginAsync = async fastify => {
   fastify.decorate('wsProtocol', protocol);
 
   fastify.get('/ws/subs', { websocket: true },
-    async (connection, request) => {
-      await protocol.handle(connection, request);
+    (connection, request) : void => {
+      setImmediate(() => protocol.handle(connection, request));
     }
   );
 

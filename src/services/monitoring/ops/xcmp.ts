@@ -1,11 +1,11 @@
-import { map, Observable, mergeMap } from 'rxjs';
+import { map, Observable, mergeMap, filter } from 'rxjs';
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
+import type { DecoratedEvents } from '@polkadot/api-base/types';
 
 import {
   ControlQuery,
-  filterEvents, filterNonNull,
-  mongoFilter, types
+  filterNonNull,
+  types
 } from '@sodazone/ocelloids';
 
 import {
@@ -16,6 +16,7 @@ import {
 import { GetOutboundHrmpMessages } from '../types.js';
 import { getMessageId } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
+import { matchMessage, matchSenders } from './criteria.js';
 
 function findOutboundHrmpMessage(
   messageControl: ControlQuery,
@@ -47,7 +48,7 @@ function findOutboundHrmpMessage(
               });
           }),
           filterNonNull(),
-          mongoFilter(messageControl)
+          filter(xcm => matchMessage(messageControl, xcm))
         );
       }));
   };
@@ -81,51 +82,47 @@ export function extractXcmpSend(
   }: XcmCriteria,
   getOutboundHrmpMessages: GetOutboundHrmpMessages
 ) {
-  return (source: Observable<SignedBlockExtended>)
+  return (source: Observable<types.BlockEvent>)
   : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filterEvents({
-        $or: [
-          {
-            'section': 'xcmpQueue',
-            'method': 'XcmpMessageSent'
-          },
-          {
-            'section': 'polkadotXcm',
-            'method': 'Sent'
-          }
-        ]
-      }),
-      mongoFilter(sendersControl),
+      filter(event => (
+        ((event.section === 'xcmpQeueue'
+        && event.method === 'XcmpMessageSent')
+        || (event.section === 'polkadotXcm'
+        && event.method === 'Sent'))
+        && matchSenders(sendersControl, event.extrinsic)
+      )),
       xcmpMessagesSent(),
       findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages),
     );
   };
 }
 
-export function extractXcmpReceive() {
-  return (source: Observable<SignedBlockExtended>)
+export function extractXcmpReceive(events: DecoratedEvents<'promise'>) {
+  return (source: Observable<types.BlockEvent>)
   : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
-      filterEvents(
-        {
-          'section': 'xcmpQueue',
-          'method': { $in: ['Success', 'Fail'] }
-        }
-      ),
       map(event => {
-        const xcmMessage = event.data as any;
+        if (
+          events.xcmpQueue.Succes.is(event) ||
+          events.xcmpQueue.Fail.is(event)
+        ) {
+          const xcmMessage = event.data as any;
 
-        return new GenericXcmReceivedWithContext({
-          event: event.toHuman(),
-          blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toPrimitive(),
-          extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash.toHex(),
-          outcome: event.method === 'Success' ? 'Success' : 'Fail',
-          error: xcmMessage.error
-        });
-      })
+          return new GenericXcmReceivedWithContext({
+            event: event.toHuman(),
+            blockHash: event.blockHash.toHex(),
+            blockNumber: event.blockNumber.toPrimitive(),
+            extrinsicId: event.extrinsicId,
+            messageHash: xcmMessage.messageHash.toHex(),
+            outcome: event.method === 'Success' ? 'Success' : 'Fail',
+            error: xcmMessage.error
+          });
+        } else {
+          return null;
+        }
+      }),
+      filterNonNull()
     ));
   };
 }

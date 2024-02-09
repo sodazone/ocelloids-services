@@ -1,6 +1,5 @@
-import { switchMap, mergeMap, map, from, Observable } from 'rxjs';
+import { switchMap, mergeMap, map, filter, from, Observable } from 'rxjs';
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { Vec, Bytes, Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
 import type { IU8a } from '@polkadot/types-codec/types';
@@ -12,14 +11,11 @@ import type {
 } from '@polkadot/types/lookup';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
+import type { DecoratedEvents } from '@polkadot/api-base/types';
 import { ApiPromise } from '@polkadot/api';
 
 import {
-  extractEvents,
-  filterEvents,
-  filterExtrinsics,
-  filterNonNull,
-  mongoFilter, retryWithTruncatedExpBackoff, types
+  filterNonNull, retryWithTruncatedExpBackoff, types
 } from '@sodazone/ocelloids';
 
 import {
@@ -30,6 +26,7 @@ import {
 } from '../types.js';
 import { getMessageId, getParaIdFromMultiLocation, getParaIdFromVersionedMultiLocation, matchProgramByTopic } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
+import { matchMessage, matchSenders } from './criteria.js';
 
 /*
  ==================================================================================
@@ -264,6 +261,13 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
   };
 }
 
+const DmpMethods = [
+  'limitedReserveTransferAssets',
+  'reserveTransferAssets',
+  'limitedTeleportAssets',
+  'teleportAssets'
+];
+
 export function extractDmpSend(
   api: ApiPromise,
   {
@@ -271,22 +275,18 @@ export function extractDmpSend(
     messageControl
   }: XcmCriteria
 ) {
-  return (source: Observable<SignedBlockExtended>)
+  return (source: Observable<types.TxWithIdAndEvent>)
       : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filterExtrinsics({
-        'dispatchError': { $eq: undefined },
-        'extrinsic.call.section': 'xcmPallet',
-        'extrinsic.call.method': { $in: [
-          'limitedReserveTransferAssets',
-          'reserveTransferAssets',
-          'limitedTeleportAssets',
-          'teleportAssets'
-        ]}
+      filter(tx => {
+        const {extrinsic} = tx;
+        return tx.dispatchError === undefined
+          && extrinsic.method.section === 'xcmPallet'
+          && DmpMethods.includes(extrinsic.method.method)
+          && matchSenders(sendersControl, extrinsic);
       }),
-      mongoFilter(sendersControl),
       findDmpMessagesFromTx(api),
-      mongoFilter(messageControl)
+      filter(xcm => matchMessage(messageControl, xcm))
     );
   };
 }
@@ -298,15 +298,14 @@ export function extractDmpSendByEvent(
     messageControl
   }: XcmCriteria
 ) {
-  return (source: Observable<SignedBlockExtended>)
+  return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
     return source.pipe(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
-      extractEvents(),
-      mongoFilter(sendersControl),
+      filter(event => matchSenders(sendersControl, event.extrinsic)),
       findDmpMessagesFromEvent(api),
-      mongoFilter(messageControl)
+      filter(xcm => matchMessage(messageControl, xcm))
     );
   };
 }
@@ -322,41 +321,37 @@ function extractXcmError(outcome: Outcome) {
   return undefined;
 }
 
-function mapDmpQueueMessage() {
-  return (source: Observable<types.BlockEvent>):
-      Observable<XcmReceivedWithContext>  => {
-    return (source.pipe(
-      map(event => {
-        const xcmMessage = event.data as any;
-        const outcome = xcmMessage.outcome as Outcome;
-        const messageId = xcmMessage.messageId.toHex();
-        const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
+function createDmpReceivedWithContext(event: types.BlockEvent) {
+  const xcmMessage = event.data as any;
+  const outcome = xcmMessage.outcome as Outcome;
+  const messageId = xcmMessage.messageId.toHex();
+  const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
 
-        return new GenericXcmReceivedWithContext({
-          event: event.toHuman(),
-          blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toPrimitive(),
-          extrinsicId: event.extrinsicId,
-          messageHash,
-          messageId,
-          outcome: outcome.isComplete ? 'Success' : 'Fail',
-          error: outcome.isComplete ? null : extractXcmError(outcome)
-        });
-      }),
-    )
-    );
-  };
+  return new GenericXcmReceivedWithContext({
+    event: event.toHuman(),
+    blockHash: event.blockHash.toHex(),
+    blockNumber: event.blockNumber.toPrimitive(),
+    extrinsicId: event.extrinsicId,
+    messageHash,
+    messageId,
+    outcome: outcome.isComplete ? 'Success' : 'Fail',
+    error: outcome.isComplete ? null : extractXcmError(outcome)
+  });
 }
 
-export function extractDmpReceive() {
-  return (source: Observable<SignedBlockExtended>)
+export function extractDmpReceive(events: DecoratedEvents<'promise'>) {
+  return (source: Observable<types.BlockEvent>)
       : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
-      filterEvents({
-        'section': 'dmpQueue',
-        'method': 'ExecutedDownward'
+      map(event => {
+        if (
+          events.dmpQueue.ExecutedDownward.is(event)
+        ) {
+          return createDmpReceivedWithContext(event);
+        }
+        return null;
       }),
-      mapDmpQueueMessage()
+      filterNonNull()
     ));
   };
 }

@@ -1,18 +1,16 @@
-import { mergeMap, map, Observable } from 'rxjs';
+import { mergeMap, map, Observable, filter } from 'rxjs';
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import type { U8aFixed, bool } from '@polkadot/types-codec';
 import type {
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
   FrameSupportMessagesProcessMessageError
 } from '@polkadot/types/lookup';
-import type { ApiPromise } from '@polkadot/api';
+import type { DecoratedEvents } from '@polkadot/api-base/types';
 
 import {
   ControlQuery,
-  extractEvents,
-  filterEvents, filterNonNull,
-  mongoFilter, types
+  filterNonNull,
+  types
 } from '@sodazone/ocelloids';
 
 import {
@@ -24,6 +22,7 @@ import {
 } from '../types.js';
 import { getMessageId, getParaIdFromOrigin } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
+import { matchMessage, matchSenders } from './criteria.js';
 
 type UmpReceivedContext = {
   id: U8aFixed,
@@ -110,7 +109,7 @@ function findOutboundUmpMessage(
               });
           }),
           filterNonNull(),
-          mongoFilter(messageControl)
+          filter(xcm => matchMessage(messageControl, xcm))
         );
       }));
   };
@@ -123,22 +122,16 @@ export function extractUmpSend(
   }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages
 ) {
-  return (source: Observable<SignedBlockExtended>)
+  return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filterEvents({
-        $or: [
-          {
-            'section': 'parachainSystem',
-            'method': 'UpwardMessageSent'
-          },
-          {
-            'section': 'polkadotXcm',
-            'method': 'Sent'
-          }
-        ]
-      }),
-      mongoFilter(sendersControl),
+      filter(event => (
+        ((event.section === 'parachainSystem'
+        && event.method === 'UpwardMessageSent')
+        || (event.section === 'polkadotXcm'
+        && event.method === 'Sent'))
+        && matchSenders(sendersControl, event.extrinsic)
+      )),
       umpMessagesSent(),
       findOutboundUmpMessage(
         messageControl,
@@ -148,15 +141,14 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(api: ApiPromise, originId: string) {
-  return (source: Observable<SignedBlockExtended>)
+export function extractUmpReceive(events: DecoratedEvents<'promise'>, originId: string) {
+  return (source: Observable<types.BlockEvent>)
     : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
-      extractEvents(),
       map(event => {
         if (
-          api.events.messageQueue.Processed.is(event) ||
-          api.events.messageQueue.ProcessingFailed.is(event)
+          events.messageQueue.Processed.is(event) ||
+          events.messageQueue.ProcessingFailed.is(event)
         ) {
           return createUmpReceivedWithContext(event, originId, event.data);
         }

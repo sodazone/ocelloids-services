@@ -10,6 +10,8 @@ import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../..
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
 
+const MAX_WS_CLIENTS = 1000;
+
 const jsonSchema = z.string().transform( ( str, ctx ) => {
   try {
     return {
@@ -42,10 +44,12 @@ function safeWrite(stream: SocketStream, content: Object) {
  * Websockets subscription protocol.
  */
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
-  #log: Logger;
-  #switchboard: Switchboard;
-  #broadcaster: XcmMatchedListener;
+  readonly #log: Logger;
+  readonly #switchboard: Switchboard;
+  readonly #broadcaster: XcmMatchedListener;
+
   #connections: Map<string, Connection[]>;
+  #clientsNum: number;
 
   constructor(
     log: Logger,
@@ -57,6 +61,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#switchboard = switchboard;
 
     this.#connections = new Map();
+    this.#clientsNum = 0;
     this.#broadcaster = (sub, xcm) => {
       const connections = this.#connections.get(sub.id);
       if (connections) {
@@ -97,6 +102,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     request: FastifyRequest,
     subscription?: QuerySubscription
   ) {
+    if (this.#clientsNum >= MAX_WS_CLIENTS) {
+      stream.socket.close(1013, 'server too busy');
+      return;
+    }
+
     let subId : string;
 
     if (subscription) {
@@ -109,25 +119,27 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       }
     } else {
       // on-demand ephemeral subscriptions
-      stream.on('data', async (data: Buffer) => {
-        if (subId) {
-          safeWrite(stream, { id: subId });
-        } else {
-          const parsed = jsonSchema.safeParse(data.toString());
-          if (parsed.success) {
-            const onDemandSub = parsed.data;
-            try {
-              await this.#switchboard.subscribe(onDemandSub);
-              subId = onDemandSub.id;
-              this.#addSubscriber(onDemandSub, stream, request);
-              safeWrite(stream, onDemandSub);
-            } catch (error) {
-              this.#log.error(error);
-            }
+      stream.on('data', (data: Buffer) => {
+        setImmediate(async () => {
+          if (subId) {
+            safeWrite(stream, { id: subId });
           } else {
-            safeWrite(stream, parsed.error);
-          }
-        }
+            const parsed = jsonSchema.safeParse(data.toString());
+            if (parsed.success) {
+              const onDemandSub = parsed.data;
+              try {
+                this.#addSubscriber(onDemandSub, stream, request);
+                subId = onDemandSub.id;
+                await this.#switchboard.subscribe(onDemandSub);
+                safeWrite(stream, onDemandSub);
+              } catch (error) {
+                stream.socket.close(1013, 'server too busy');
+                this.#log.error(error);
+              }
+            } else {
+              safeWrite(stream, parsed.error);
+            }
+          }});
       });
     }
   }
@@ -143,6 +155,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     stream: SocketStream,
     request: FastifyRequest
   ) {
+    this.#clientsNum++;
+
     const subId = subscription.id;
     const connection = {
       id: request.id, ip: request.ip, stream
@@ -155,6 +169,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     }
 
     stream.socket.once('close', async () => {
+      this.#clientsNum--;
+
       const { id, ephemeral } = subscription;
 
       try {
