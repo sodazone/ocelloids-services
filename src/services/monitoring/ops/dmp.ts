@@ -198,7 +198,8 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
         : Observable<XcmSentWithContext> => {
     return source.pipe(
       map(event => {
-        if (api.events.xcmPallet.Sent.is(event)) {
+        if (event.section === 'xcmPallet'
+        && event.method === 'Sent') {
           const { destination, messageId } = event.data as any;
           const paraId = getParaIdFromMultiLocation(destination);
 

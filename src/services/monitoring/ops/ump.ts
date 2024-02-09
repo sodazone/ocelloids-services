@@ -8,7 +8,6 @@ import type {
 } from '@polkadot/types/lookup';
 
 import type { U8aFixed, bool } from '@polkadot/types-codec';
-import type { DecoratedEvents } from '@polkadot/api-base/types';
 
 import {
   ControlQuery,
@@ -144,16 +143,19 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(events: DecoratedEvents<'promise'>, originId: string) {
+export function extractUmpReceive(originId: string) {
   return (source: Observable<types.BlockEvent>)
     : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
-        if (
-          events.messageQueue.Processed.is(event) ||
-          events.messageQueue.ProcessingFailed.is(event)
-        ) {
-          return createUmpReceivedWithContext(event, originId, event.data);
+        if (event.section === 'messageQueue'
+        && (event.method === 'Processed' || event.method === 'ProcessingFailed'))
+        {
+          return createUmpReceivedWithContext(
+            event,
+            originId,
+            event.data as unknown as UmpReceivedContext
+          );
         }
         return null;
       }),

@@ -62,19 +62,7 @@ export const umpSend = {
 
 export const umpReceive = {
   successBlocks: from(testBlocksFrom('ump-in-success.cbor.bin', 'polkadot.json')),
-  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json')),
-  api: {
-    events: {
-      messageQueue: {
-        Processed: {
-          is: (event) => event.method === 'Processed' && event.section === 'messageQueue'
-        },
-        ProcessingFailed: {
-          is: (event) => event.method === 'ProcessingFailed' && event.section === 'messageQueue'
-        }
-      }
-    }
-  } as unknown as ApiPromise
+  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json'))
 };
 
 // DMP testing mocks
@@ -249,13 +237,6 @@ export const dmpReceive = {
   successBlocks: from(testBlocksFrom('dmp-in-1000-success.cbor.bin', 'asset-hub.json')),
   failBlocks: from(testBlocksFrom('dmp-in-1000-fail.cbor.bin', 'asset-hub.json')),
   api: {
-    at: () => jest.fn(),
-    events: {
-      xcmPallet: {
-        Sent: {
-          is: (event) => event.method === 'Sent' && event.section === 'xcmPallet'
-        }
-      }
-    }
+    at: () => jest.fn()
   } as unknown as ApiPromise
 };

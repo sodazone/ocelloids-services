@@ -46,11 +46,11 @@ describe('ump operator', () => {
 
   describe('extractUmpReceive', () => {
     it('should extract failed UMP received message', done => {
-      const { successBlocks, api } = umpReceive;
+      const { successBlocks } = umpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive(api.events, '1000')(successBlocks.pipe(extractEvents()));
+      const test$ = extractUmpReceive('1000')(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -71,11 +71,11 @@ describe('ump operator', () => {
     });
 
     it('should extract UMP receive with outcome fail', done => {
-      const { failBlocks, api } = umpReceive;
+      const { failBlocks } = umpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive(api.events, '1000')(failBlocks.pipe(extractEvents()));
+      const test$ = extractUmpReceive('1000')(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {

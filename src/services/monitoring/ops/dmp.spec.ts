@@ -81,11 +81,11 @@ describe('dmp operator', () => {
 
   describe('extractDmpReceive', () => {
     it('should extract DMP received message with outcome success', done => {
-      const { successBlocks, api } = dmpReceive;
+      const { successBlocks } = dmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpReceive(api.events)(successBlocks.pipe(extractEvents()));
+      const test$ = extractDmpReceive()(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -106,11 +106,11 @@ describe('dmp operator', () => {
     });
 
     it('should extract failed DMP received message with error', done => {
-      const { failBlocks, api } = dmpReceive;
+      const { failBlocks } = dmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpReceive(api.events)(failBlocks.pipe(extractEvents()));
+      const test$ = extractDmpReceive()(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {

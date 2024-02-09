@@ -377,8 +377,6 @@ export class Switchboard {
           }
         };
 
-        const { events } = this.#apis.promise[chainId];
-
         if (isRelay(this.#config, dest)) {
           // VMP UMP
           this.#log.info('[%s] subscribe inbound UMP (%s)', chainId, id);
@@ -387,7 +385,7 @@ export class Switchboard {
             chainId,
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
-                extractUmpReceive(events, origin),
+                extractUmpReceive(origin),
                 inbound$()
               ).subscribe(inboundHandler)
           });
