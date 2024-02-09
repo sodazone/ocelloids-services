@@ -39,6 +39,7 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 
 const MAX_SUBS_EPHEMERAL = 1000;
+const MAX_SUBS_PERSISTENT = 1000;
 
 type Monitor = {
   subs: SubscriptionWithId[]
@@ -121,10 +122,12 @@ export class Switchboard {
    * Subscribes according to the given query subscription.
    *
    * @param {QuerySubscription} qs The query subscription.
-   * @throws {Error} If there is an error during the subscription setup process.
+   * @throws {SubscribeError} If there is an error creating the subscription.
    */
   async subscribe(qs: QuerySubscription) {
-    if (this.#stats.ephemeral >= MAX_SUBS_EPHEMERAL) {
+    if (this.#stats.ephemeral >= MAX_SUBS_EPHEMERAL
+      || this.#stats.persistent >= MAX_SUBS_PERSISTENT
+    ) {
       throw new SubscribeError(
         SubscribeErrorCodes.TOO_MANY_SUBSCRIBERS,
         'too many subscriptions'
@@ -145,18 +148,20 @@ export class Switchboard {
   }
 
   /**
+   * Adds a listener function to the underlying notifier.
    *
-   * @param eventName
-   * @param listener
+   * @param eventName The notifier event name.
+   * @param listener The listener function.
    */
   addNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
     this.#notifier.on(eventName, listener);
   }
 
   /**
+   * Removes a listener function from the underlying notifier.
    *
-   * @param eventName
-   * @param listener
+   * @param eventName The notifier event name.
+   * @param listener The listener function.
    */
   removeNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
     this.#notifier.off(eventName, listener);
@@ -271,10 +276,22 @@ export class Switchboard {
     }
   }
 
+  /**
+   * Calls the given collect function for each private observable component.
+   *
+   * @param collect The collect callback function.
+   */
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
     collect(this.#engine);
     collect(this.#catcher);
     collect(this.#notifier);
+  }
+
+  /**
+   * Returns the in-memory subscription statistics.
+   */
+  get stats() {
+    return this.#stats;
   }
 
   /**
