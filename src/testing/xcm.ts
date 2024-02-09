@@ -42,7 +42,19 @@ export const xcmpSend = {
 
 export const xcmpReceive = {
   successBlocks: from(testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')),
-  failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json'))
+  failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json')),
+  api: {
+    events: {
+      xcmpQueue: {
+        Succes: {
+          is: (event) => event.method === 'Success' && event.section === 'xcmpQueue'
+        },
+        Fail: {
+          is: (event) => event.method === 'Fail' && event.section === 'xcmpQueue'
+        }
+      }
+    }
+  } as unknown as ApiPromise
 };
 
 // UMP testing mocks
@@ -247,5 +259,20 @@ export const dmpSendMultipleMessagesInQueue = {
 
 export const dmpReceive = {
   successBlocks: from(testBlocksFrom('dmp-in-1000-success.cbor.bin', 'asset-hub.json')),
-  failBlocks: from(testBlocksFrom('dmp-in-1000-fail.cbor.bin', 'asset-hub.json'))
+  failBlocks: from(testBlocksFrom('dmp-in-1000-fail.cbor.bin', 'asset-hub.json')),
+  api: {
+    at: () => jest.fn(),
+    events: {
+      xcmPallet: {
+        Sent: {
+          is: (event) => event.method === 'Sent' && event.section === 'xcmPallet'
+        }
+      },
+      dmpQueue: {
+        ExecutedDownward: {
+          is: (event) => event.method === 'ExecutedDownward' && event.section === 'dmpQueue'
+        }
+      }
+    }
+  } as unknown as ApiPromise
 };

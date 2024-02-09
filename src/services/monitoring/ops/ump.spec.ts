@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { extractEvents } from '@sodazone/ocelloids';
 
 import { umpReceive, umpSend } from '../../../testing/xcm.js';
 
@@ -22,7 +23,7 @@ describe('ump operator', () => {
           messageControl
         },
         getUmp
-      )(blocks);
+      )(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -49,7 +50,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive(api, '1000')(successBlocks);
+      const test$ = extractUmpReceive(api.events, '1000')(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -74,7 +75,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive(api, '1000')(failBlocks);
+      const test$ = extractUmpReceive(api.events, '1000')(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {

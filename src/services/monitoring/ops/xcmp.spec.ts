@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { extractEvents } from '@sodazone/ocelloids';
 
 import { xcmpSend, xcmpReceive } from '../../../testing/xcm.js';
 
@@ -22,7 +23,7 @@ describe('xcmp operator', () => {
           messageControl
         },
         getHrmp
-      )(blocks);
+      )(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -45,11 +46,11 @@ describe('xcmp operator', () => {
 
   describe('extractXcmpReceive', () => {
     it('should extract XCMP receive with outcome success', done => {
-      const { successBlocks } = xcmpReceive;
+      const { successBlocks, api } = xcmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpReceive()(successBlocks);
+      const test$ = extractXcmpReceive(api.events)(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -70,11 +71,11 @@ describe('xcmp operator', () => {
     });
 
     it('should extract failed XCMP received message with error', done => {
-      const { failBlocks } = xcmpReceive;
+      const { failBlocks, api } = xcmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpReceive()(failBlocks);
+      const test$ = extractXcmpReceive(api.events)(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {

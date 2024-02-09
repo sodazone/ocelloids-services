@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 
 import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue } from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend } from './dmp.js';
+import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
 
 describe('dmp operator', () => {
   describe('extractDmpSend', () => {
@@ -21,7 +22,7 @@ describe('dmp operator', () => {
           sendersControl,
           messageControl
         }
-      )(blocks);
+      )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -57,7 +58,7 @@ describe('dmp operator', () => {
           sendersControl,
           messageControl
         }
-      )(blocks);
+      )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -80,11 +81,11 @@ describe('dmp operator', () => {
 
   describe('extractDmpReceive', () => {
     it('should extract DMP received message with outcome success', done => {
-      const { successBlocks } = dmpReceive;
+      const { successBlocks, api } = dmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpReceive()(successBlocks);
+      const test$ = extractDmpReceive(api.events)(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -105,11 +106,11 @@ describe('dmp operator', () => {
     });
 
     it('should extract failed DMP received message with error', done => {
-      const { failBlocks } = dmpReceive;
+      const { failBlocks, api } = dmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpReceive()(failBlocks);
+      const test$ = extractDmpReceive(api.events)(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
