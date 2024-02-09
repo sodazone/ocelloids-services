@@ -7,6 +7,7 @@ import { collect } from './metrics/index.js';
 import { createReplyHook } from './reply-hook.js';
 import { collectDiskStats } from './metrics/disk.js';
 import { wsMetrics } from './metrics/ws.js';
+import { collectSwitchboardStats } from './metrics/switchboard.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -45,6 +46,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 
     log.info('Enable switchboard metrics');
     switchboard.collectTelemetry(collect);
+    pullCollectors.push(collectSwitchboardStats(switchboard));
 
     log.info('Enable websocket subscription metrics');
     wsMetrics(wsProtocol);

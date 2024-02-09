@@ -168,6 +168,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       this.#connections.set(subId, [connection]);
     }
 
+    this.emit('telemetrySocketListener', request.ip, subscription);
+
     stream.socket.once('close', async () => {
       this.#clientsNum--;
 
