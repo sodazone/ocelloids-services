@@ -72,5 +72,5 @@ npm install -g artillery@latest
 ````
 
 ```shell
-artillery run on_demand_load_test.yaml
+artillery run <some_load_test.yaml>
 ```
