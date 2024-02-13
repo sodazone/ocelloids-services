@@ -312,6 +312,11 @@ export type SubscriptionHandler = {
   descriptor: QuerySubscription
 }
 
+export type SubscriptionStats = {
+  persistent: number,
+  ephemeral: number
+}
+
 export type BinBlock = {
   block: Uint8Array;
   events: Uint8Array[];

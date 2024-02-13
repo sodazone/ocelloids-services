@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events';
+
 import { Observable, from, map, share } from 'rxjs';
 
 import {
@@ -22,7 +24,8 @@ import {
   XcmReceivedWithContext,
   XcmSentWithContext,
   SubscriptionWithId,
-  XcmMatchedListener
+  XcmMatchedListener,
+  SubscriptionStats
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -42,11 +45,6 @@ const MAX_SUBS_PERSISTENT = 1000;
 type Monitor = {
   subs: SubscriptionWithId[]
   controls: Record<string, ControlQuery>
-}
-
-type SubscriptionStats = {
-  persistent: number,
-  ephemeral: number
 }
 
 // eslint-disable-next-line no-shadow
@@ -74,7 +72,7 @@ export class SubscribeError extends Error {
  * Monitors active subscriptions, processes incoming 'matched' notifications,
  * and dynamically updates selection criteria of the subscriptions.
  */
-export class Switchboard {
+export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #apis: SubstrateApis;
   readonly #config: ServiceConfiguration;
   readonly #log: Logger;
@@ -93,6 +91,8 @@ export class Switchboard {
   constructor(
     ctx: Services
   ) {
+    super();
+
     const {
       log , storage: { subs }, config, connector
     } = ctx;
@@ -280,6 +280,7 @@ export class Switchboard {
    * @param collect The collect callback function.
    */
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
+    collect(this);
     collect(this.#engine);
     collect(this.#catcher);
     collect(this.#notifier);
@@ -374,6 +375,9 @@ export class Switchboard {
               id,
               chainId
             );
+            this.emit('telemetrySubscriptionError', {
+              subscriptionId: id, chainId, direction: 'in'
+            });
           }
         };
 
@@ -459,6 +463,9 @@ export class Switchboard {
           'Error on subscription %s at origin %s',
           id, origin
         );
+        this.emit('telemetrySubscriptionError', {
+          subscriptionId: id, chainId: origin, direction: 'out'
+        });
       }
     };
 
