@@ -39,9 +39,6 @@ import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 
-const MAX_SUBS_EPHEMERAL = 1000;
-const MAX_SUBS_PERSISTENT = 1000;
-
 type Monitor = {
   subs: SubscriptionWithId[]
   controls: Record<string, ControlQuery>
@@ -63,6 +60,11 @@ export class SubscribeError extends Error {
   }
 }
 
+export type SwitchboardOptions = {
+  subscriptionMaxPersistent: number,
+  subscriptionMaxEphemeral: number
+}
+
 /**
  * XCM Subscriptions Switchboard.
  *
@@ -80,16 +82,19 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #engine: MatchingEngine;
   readonly #catcher: HeadCatcher;
   readonly #notifier: NotifierHub;
+  readonly #stats: SubscriptionStats;
+  readonly #maxEphemeral: number;
+  readonly #maxPersistent: number;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #shared: {
     blockEvents: Record<string, Observable<types.BlockEvent>>
     blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
   };
-  #stats: SubscriptionStats;
 
   constructor(
-    ctx: Services
+    ctx: Services,
+    options: SwitchboardOptions
   ) {
     super();
 
@@ -110,6 +115,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       ephemeral: 0,
       persistent: 0
     };
+    this.#maxEphemeral = options.subscriptionMaxEphemeral;
+    this.#maxPersistent = options.subscriptionMaxPersistent;
     this.#shared = {
       blockEvents: {},
       blockExtrinsics: {}
@@ -123,8 +130,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @throws {SubscribeError} If there is an error creating the subscription.
    */
   async subscribe(qs: QuerySubscription) {
-    if (this.#stats.ephemeral >= MAX_SUBS_EPHEMERAL
-      || this.#stats.persistent >= MAX_SUBS_PERSISTENT
+    if (this.#stats.ephemeral >= this.#maxEphemeral
+      || this.#stats.persistent >= this.#maxPersistent
     ) {
       throw new SubscribeError(
         SubscribeErrorCodes.TOO_MANY_SUBSCRIBERS,

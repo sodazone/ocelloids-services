@@ -81,7 +81,10 @@ describe('switchboard service', () => {
     });
 
     subs = _services.storage.subs;
-    switchboard = new SwitchboardImpl(_services);
+    switchboard = new SwitchboardImpl(_services, {
+      subscriptionMaxEphemeral: 10_00,
+      subscriptionMaxPersistent: 10_000
+    });
     //spy = jest.spyOn(switchboard, '#onXcmMatched');
   });
 

@@ -111,7 +111,7 @@ export async function createServer(
   await server.register(Configuration, opts);
   await server.register(Persistence, opts);
   await server.register(Connector);
-  await server.register(Monitoring);
+  await server.register(Monitoring, opts);
   await server.register(Administration);
   await server.register(Telemetry, opts);
 

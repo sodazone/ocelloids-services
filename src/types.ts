@@ -14,7 +14,9 @@ export const $ServerOptions = z.object({
   host: z.string().min(1),
   grace: z.number().min(1),
   telemetry: z.boolean().default(true),
-  wsMaxClients: z.number().min(1)
+  wsMaxClients: z.number().min(0),
+  subscriptionMaxEphemeral: z.number().min(0),
+  subscriptionMaxPersistent: z.number().min(0)
 });
 
 export type ServerOptions = z.infer<typeof $ServerOptions>;
