@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Logger, Services } from '../types.js';
-import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
+import { QuerySubscription, XcmNotifyMessage } from '../monitoring/types.js';
 import { Notifier, NotifierEmitter } from './types.js';
 import { LogNotifier } from './log.js';
 import { WebhookNotifier } from './webhook.js';
@@ -43,7 +43,7 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
    * @param sub The subscription.
    * @param msg The message.
    */
-  notify(sub: QuerySubscription, msg: XcmMatched) {
+  notify(sub: QuerySubscription, msg: XcmNotifyMessage) {
     const types: any[] = [];
     for (const { type } of sub.channels) {
       if (types.indexOf(type) === -1) {

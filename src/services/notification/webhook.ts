@@ -4,7 +4,7 @@ import got from 'got';
 import { ulid } from 'ulidx';
 
 import version from '../../version.js';
-import { QuerySubscription, WebhookNotification, XcmMatched } from '../monitoring/types.js';
+import { QuerySubscription, WebhookNotification, XcmNotifyMessage, isXcmMatched, isXcmSent } from '../monitoring/types.js';
 import { Logger, Services } from '../types.js';
 
 import { Notifier, NotifierEmitter } from './types.js';
@@ -18,7 +18,7 @@ const DEFAULT_DELAY = 300000; // 5 minutes
 type WebhookTask = {
   id: string
   subId: string
-  msg: XcmMatched
+  msg: XcmNotifyMessage
 }
 const WebhookTaskType = 'task:webhook';
 
@@ -59,7 +59,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
   async notify(
     sub: QuerySubscription,
-    msg: XcmMatched
+    msg: XcmNotifyMessage
   ) {
     const { id, channels } = sub;
 
@@ -105,7 +105,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     const postUrl = buildPostUrl(url, id);
 
     try {
-      const res = await got.post<XcmMatched>(postUrl, {
+      const res = await got.post<XcmNotifyMessage>(postUrl, {
         body: template === undefined
           ? JSON.stringify(msg)
           : this.#renderer.render({ template, data: msg }),
@@ -142,22 +142,13 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.#log.info(
-          '[%s ➜ %s] NOTIFICATION subscription=%s, endpoint=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
-          msg.origin.chainId,
-          msg.destination.chainId,
+          'NOTIFICATION %s subscription=%s, endpoint=%s, messageHash=%s',
+          msg.eventType,
           msg.subscriptionId,
           postUrl,
-          msg.messageHash,
-          msg.outcome,
-          msg.origin.blockNumber,
-          msg.destination.blockNumber
+          msg.messageHash
         );
-
-        this.emit('telemetryNotify', notifyTelemetryFrom(
-          config.type,
-          config.url,
-          msg
-        ));
+        this.#telemetryNotify(config, msg);
       } else {
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
@@ -174,7 +165,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         'Error while posting to webhook %s',
         config.url
       );
-
+  
       // Re-schedule in 5 minutes
       const time = new Date(Date.now() + DEFAULT_DELAY);
       const key = time.toISOString() + id;
@@ -186,13 +177,38 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         'Scheduled webhook delivery %s',
         key
       );
+      this.#telemetryNotifyError(config, msg);
+    }
+  }
 
+  #telemetryNotify(
+    config: WebhookNotification,
+    msg: XcmNotifyMessage
+  ) {
+    if(isXcmMatched(msg)) {
+      this.emit('telemetryNotify', notifyTelemetryFrom(
+        config.type,
+        config.url,
+        msg
+      ));
+    } else if(isXcmSent(msg)) {
+      console.log('XCM SENT telemetryNotify not implemented!!');
+    }
+  }
+
+  #telemetryNotifyError(
+    config: WebhookNotification,
+    msg: XcmNotifyMessage
+  ) {
+    if(isXcmMatched(msg)) {
       this.emit('telemetryNotifyError', notifyTelemetryFrom(
         config.type,
         config.url,
         msg,
         'max_retries'
       ));
+    } else if(isXcmSent(msg)) {
+      console.log('XCM SENT telemetryNotifyError not implemented!!');
     }
   }
 }

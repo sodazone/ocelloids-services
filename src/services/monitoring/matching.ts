@@ -138,6 +138,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         }
       }
     });
+
+    return outMsg;
   }
 
   async onInboundMessage(inMsg: XcmReceived)  {

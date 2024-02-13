@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Logger, Services } from '../../services/types.js';
-import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
+import { QuerySubscription, XcmNotifyMessage, isXcmMatched, isXcmSent } from '../monitoring/types.js';
 import { Notifier, NotifierEmitter } from './types.js';
 import { NotifierHub } from './hub.js';
 
@@ -18,17 +18,29 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
 
   notify(
     sub: QuerySubscription,
-    msg: XcmMatched
+    msg: XcmNotifyMessage
   ) {
-    this.#log.info(
-      '[%s ➜ %s] NOTIFICATION subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
-      msg.origin.chainId,
-      msg.destination.chainId,
-      sub.id,
-      msg.messageHash,
-      msg.outcome,
-      msg.origin.blockNumber,
-      msg.destination.blockNumber
-    );
+    if (isXcmMatched(msg)) {
+      this.#log.info(
+        '[%s ➜ %s] NOTIFICATION %s subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
+        msg.origin.chainId,
+        msg.destination.chainId,
+        msg.eventType,
+        sub.id,
+        msg.messageHash,
+        msg.outcome,
+        msg.origin.blockNumber,
+        msg.destination.blockNumber
+      );
+    } else if (isXcmSent(msg)) {
+      this.#log.info(
+        '[%s ➜] NOTIFICATION %s subscription=%s, messageHash=%s, block=%s',
+        msg.chainId,
+        msg.eventType,
+        sub.id,
+        msg.messageHash,
+        msg.blockNumber
+      );
+    }
   }
 }

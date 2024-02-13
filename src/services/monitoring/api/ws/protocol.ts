@@ -6,7 +6,14 @@ import { SocketStream } from '@fastify/websocket';
 import { ulid } from 'ulidx';
 
 import { Logger } from '../../../types.js';
-import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../../types.js';
+import {
+  $QuerySubscription,
+  QuerySubscription,
+  XcmEventListener,
+  XcmNotifyMessage,
+  isXcmMatched,
+  isXcmSent
+} from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
 
@@ -46,7 +53,7 @@ function safeWrite(stream: SocketStream, content: Object) {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger;
   readonly #switchboard: Switchboard;
-  readonly #broadcaster: XcmMatchedListener;
+  readonly #broadcaster: XcmEventListener;
 
   #connections: Map<string, Connection[]>;
   #clientsNum: number;
@@ -70,16 +77,12 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           try {
             safeWrite(stream, xcm);
 
-            this.emit('telemetryNotify', notifyTelemetryFrom(
-              'websocket', ip, xcm
-            ));
+            this.#telemetryNotify(ip, xcm)
           } catch (error) {
             this.#log.error(error);
 
             const errorMessage = error instanceof Error ? error.message : String(error);
-            this.emit('telemetryNotifyError', notifyTelemetryFrom(
-              'websocket', ip, xcm, errorMessage
-            ));
+            this.#telemetryNotifyError(ip, xcm, errorMessage);
           }
         }
       }
@@ -199,5 +202,32 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       }
     }
     );
+  }
+
+  #telemetryNotify(
+    ip: string,
+    xcm: XcmNotifyMessage
+  ) {
+    if(isXcmMatched(xcm)) {
+      this.emit('telemetryNotify', notifyTelemetryFrom(
+        'websocket', ip, xcm
+      ));
+    } else {
+      console.log(`XCM ${xcm.eventType} telemetryNotify not implemented.`);
+    }
+  }
+
+  #telemetryNotifyError(
+    ip: string,
+    xcm: XcmNotifyMessage,
+    errorMessage: string
+  ) {
+    if(isXcmMatched(xcm)) {
+      this.emit('telemetryNotifyError', notifyTelemetryFrom(
+        'websocket', ip, xcm, errorMessage
+      ));
+    } else {
+      console.log(`XCM ${xcm.eventType} telemetryNotifyError not implemented.`);
+    }
   }
 }

@@ -160,7 +160,15 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
+export enum XcmEventType {
+  Sent = 'SENT',
+  Matched = 'MATCHED',
+  Relayed = 'RELAYED',
+  Hop = 'HOP'
+}
+
 export class XcmSent {
+  eventType: XcmEventType = XcmEventType.Sent;
   subscriptionId: string;
   chainId: string;
   messageData: string;
@@ -203,6 +211,7 @@ type XcmMatchedContext = {
 }
 
 export class XcmMatched {
+  eventType: XcmEventType = XcmEventType.Matched;
   subscriptionId: string;
   origin: XcmMatchedContext;
   destination: XcmMatchedContext;
@@ -241,6 +250,16 @@ export class XcmMatched {
     this.outcome = inMsg.outcome;
     this.error = inMsg.error;
   }
+}
+
+export type XcmNotifyMessage = XcmSent | XcmMatched;
+
+export function isXcmSent(object: any): object is XcmSent {
+  return object.eventType !== undefined && object.eventType === XcmEventType.Sent;
+}
+
+export function isXcmMatched(object: any): object is XcmMatched {
+  return object.eventType !== undefined && object.eventType === XcmEventType.Matched;
 }
 
 const $WebhookNotification = z.object({
@@ -297,7 +316,7 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>;
  */
 export type QuerySubscription = z.infer<typeof $QuerySubscription>;
 
-export type XcmMatchedListener = (sub: QuerySubscription, xcm: XcmMatched) => void;
+export type XcmEventListener = (sub: QuerySubscription, xcm: XcmNotifyMessage) => void;
 
 export type SubscriptionWithId = {
   chainId: string

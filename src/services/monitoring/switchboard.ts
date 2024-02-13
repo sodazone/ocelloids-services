@@ -1,4 +1,4 @@
-import { Observable, from, map, share } from 'rxjs';
+import { Observable, from, switchMap, share } from 'rxjs';
 
 import {
   SubstrateApis,
@@ -22,7 +22,7 @@ import {
   XcmReceivedWithContext,
   XcmSentWithContext,
   SubscriptionWithId,
-  XcmMatchedListener
+  XcmEventListener
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -151,7 +151,7 @@ export class Switchboard {
    * @param eventName The notifier event name.
    * @param listener The listener function.
    */
-  addNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
+  addNotificationListener(eventName: keyof NotifierEvents, listener: XcmEventListener) {
     this.#notifier.on(eventName, listener);
   }
 
@@ -161,7 +161,7 @@ export class Switchboard {
    * @param eventName The notifier event name.
    * @param listener The listener function.
    */
-  removeNotificationListener(eventName: keyof NotifierEvents, listener: XcmMatchedListener) {
+  removeNotificationListener(eventName: keyof NotifierEvents, listener: XcmEventListener) {
     this.#notifier.off(eventName, listener);
   }
 
@@ -362,7 +362,7 @@ export class Switchboard {
         const inbound$ = () => (
           source: Observable<XcmReceivedWithContext>
         ) => source.pipe(
-          map(msg => from(this.#engine.onInboundMessage(
+          switchMap(msg => from(this.#engine.onInboundMessage(
             new XcmReceived(id, chainId, msg)
           )))
         );
@@ -448,11 +448,16 @@ export class Switchboard {
     const outbound$ =  () => (
       source: Observable<XcmSentWithContext>
     ) => source.pipe(
-      map(msg => from(this.#engine.onOutboundMessage(
+      switchMap(msg => from(this.#engine.onOutboundMessage(
         new XcmSent(id, origin, msg)
       )))
     );
+    // TODO: feasible to subscribe next without passing through matching engine?
+    // do we want to ensure order of notification?
     const outboundHandler = {
+      next: (msg: XcmSent) => {
+        this.#onXcmSent(msg)
+      },
       error: (error: any) => {
         this.#log.error(
           error,
@@ -600,6 +605,20 @@ export class Switchboard {
   }
 
   async #onXcmMatched(msg: XcmMatched) {
+    const { subscriptionId } = msg;
+    if (this.#subs[subscriptionId]) {
+      const { descriptor } = this.#subs[subscriptionId];
+      await this.#notifier.notify(descriptor, msg);
+    } else {
+      // this could happen with closed ephemeral subscriptions
+      this.#log.warn(
+        'Unable to find descriptor for subscription %s',
+        subscriptionId
+      );
+    }
+  }
+
+  async #onXcmSent(msg: XcmSent) {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
