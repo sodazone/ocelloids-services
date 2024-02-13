@@ -59,43 +59,49 @@ export default async function Administration(
   });
 
   api.get('/admin/xcm', opts, async (_, reply) => {
-    const outbound = await inDB.iterator(itOps).all();
-    const inbound = await outDB.iterator(itOps).all();
+    const outbound = await inDB.keys(itOps).all();
+    const inbound = await outDB.keys(itOps).all();
     reply.send({
       outbound,
       inbound
     });
   });
 
-  api.delete<keyParam>(
-    '/admin/xcm/inbound/:key', opts, async (request, reply) => {
-      await inDB.del(request.params.key);
+  api.delete<{
+    Querystring: { key: string }
+  }>(
+    '/admin/xcm/inbound', opts, async (request, reply) => {
+      await inDB.del(request.query.key);
       reply.send();
     }
   );
 
-  api.delete<keyParam>(
-    '/admin/xcm/outbound/:key', opts, async (request, reply) => {
-      await outDB.del(request.params.key);
+  api.delete<{
+    Querystring: { key: string }
+  }>(
+    '/admin/xcm/outbound', opts, async (request, reply) => {
+      await outDB.del(request.query.key);
       reply.send();
     }
   );
 
-  api.get('/admin/sched', opts , async (_, reply) => {
-    reply.send(await scheduler.allTaskTimes());
-  });
-
-  api.get<keyParam>(
-    '/admin/sched/:key', opts, async (request, reply) => {
-      reply.send(
-        await scheduler.getById(request.params.key)
+  api.get<{
+    Querystring: { key?: string }
+  }>(
+    '/admin/sched', opts, async (request, reply) => {
+      const {key} = request.query;
+      reply.send(key === undefined
+        ? await scheduler.allTaskTimes()
+        : await scheduler.getById(key)
       );
     }
   );
 
-  api.delete<keyParam>(
-    '/admin/sched/:key', opts, async (request, reply) => {
-      await scheduler.remove(request.params.key);
+  api.delete<{
+    Querystring: { key: string }
+  }>(
+    '/admin/sched', opts, async (request, reply) => {
+      await scheduler.remove(request.query.key);
       reply.send();
     }
   );
