@@ -244,7 +244,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Gets a subscription handler by id.
    */
-  getSubscriptionHandler(id: string) {
+  findSubscriptionHandler(id: string) {
     return this.#subs[id];
   }
 

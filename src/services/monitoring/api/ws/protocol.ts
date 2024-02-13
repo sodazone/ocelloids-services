@@ -33,6 +33,10 @@ type Connection = {
   stream: SocketStream
 }
 
+function errorMessage(error: any) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function safeWrite(stream: SocketStream, content: Object) {
   return stream.writable
     ? stream.write(JSON.stringify(content))
@@ -78,9 +82,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           } catch (error) {
             this.#log.error(error);
 
-            const errorMessage = error instanceof Error ? error.message : String(error);
             this.emit('telemetryNotifyError', notifyTelemetryFrom(
-              'websocket', ip, xcm, errorMessage
+              'websocket', ip, xcm, errorMessage(error)
             ));
           }
         }
@@ -97,52 +100,57 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * @param stream The websocket stream
    * @param request The Fastify request
-   * @param subscription The query subscription
+   * @param subscriptionId The subscription identifier
    */
   async handle(
     stream: SocketStream,
     request: FastifyRequest,
-    subscription?: QuerySubscription
+    subscriptionId?: string
   ) {
     if (this.#clientsNum >= this.#maxClients) {
       stream.socket.close(1013, 'server too busy');
       return;
     }
 
-    let subId : string;
+    try {
+      if (subscriptionId === undefined) {
+        let resolvedId : string;
 
-    if (subscription) {
-      // existing subscriptions
-      subId = subscription.id;
-      if (this.#connections.has(subId)) {
-        this.#log.warn('trying duplicated subscription %s', subId);
+        // on-demand ephemeral subscriptions
+        stream.on('data', (data: Buffer) => {
+          setImmediate(async () => {
+            if (resolvedId) {
+              safeWrite(stream, { id: resolvedId });
+            } else {
+              const parsed = jsonSchema.safeParse(data.toString());
+              if (parsed.success) {
+                const onDemandSub = parsed.data;
+                try {
+                  this.#addSubscriber(onDemandSub, stream, request);
+                  resolvedId = onDemandSub.id;
+                  await this.#switchboard.subscribe(onDemandSub);
+                  safeWrite(stream, onDemandSub);
+                } catch (error) {
+                  stream.socket.close(1013, 'server too busy');
+                  this.#log.error(error);
+                }
+              } else {
+                safeWrite(stream, parsed.error);
+              }
+            }});
+        });
       } else {
+        // existing subscriptions
+        const handler = this.#switchboard.findSubscriptionHandler(subscriptionId);
+        if (handler === undefined) {
+          throw new Error('subscription not found');
+        }
+
+        const subscription = handler.descriptor;
         this.#addSubscriber(subscription, stream, request);
       }
-    } else {
-      // on-demand ephemeral subscriptions
-      stream.on('data', (data: Buffer) => {
-        setImmediate(async () => {
-          if (subId) {
-            safeWrite(stream, { id: subId });
-          } else {
-            const parsed = jsonSchema.safeParse(data.toString());
-            if (parsed.success) {
-              const onDemandSub = parsed.data;
-              try {
-                this.#addSubscriber(onDemandSub, stream, request);
-                subId = onDemandSub.id;
-                await this.#switchboard.subscribe(onDemandSub);
-                safeWrite(stream, onDemandSub);
-              } catch (error) {
-                stream.socket.close(1013, 'server too busy');
-                this.#log.error(error);
-              }
-            } else {
-              safeWrite(stream, parsed.error);
-            }
-          }});
-      });
+    } catch (error) {
+      stream.socket.close(1007, errorMessage(error));
     }
   }
 
@@ -157,6 +165,14 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     stream: SocketStream,
     request: FastifyRequest
   ) {
+    if (subscription.channels.findIndex(
+      chan => chan.type === 'websocket'
+    ) === -1) {
+      throw new Error(
+        'websocket channel not enabled in subscription'
+      );
+    }
+
     this.#clientsNum++;
 
     const subId = subscription.id;
@@ -199,7 +215,6 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           }
         }
       }
-    }
-    );
+    });
   }
 }

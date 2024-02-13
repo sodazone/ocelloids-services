@@ -97,12 +97,12 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe(testSub);
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
     expect(await subs.getById(testSub.id)).toBeDefined();
 
     await switchboard.unsubscribe(testSub.id);
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).not.toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined();
   });
 
   it('should notify on matched HRMP', async () => {
@@ -121,7 +121,7 @@ describe('switchboard service', () => {
 
     await switchboard.start();
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
   });
 
   it('should handle relay subscriptions', async () => {
@@ -132,7 +132,7 @@ describe('switchboard service', () => {
       origin: '0'
     });
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
   });
 
   it('should throw unexpected errors', async () => {
@@ -149,7 +149,7 @@ describe('switchboard service', () => {
       await switchboard.subscribe(testSub);
     }).rejects.toThrow();
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).not.toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined();
 
     await switchboard.stop();
   });
@@ -172,7 +172,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe(testSub);
 
-    expect(switchboard.getSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
 
     await switchboard.stop();
   });
@@ -185,7 +185,7 @@ describe('switchboard service', () => {
       destinations: ['0', '2000']
     });
 
-    const { destinationSubs } = switchboard.getSubscriptionHandler(testSub.id);
+    const { destinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
     expect(destinationSubs.length).toBe(2);
     expect(destinationSubs.filter(s => s.chainId === '0').length).toBe(1);
     expect(destinationSubs.filter(s => s.chainId === '2000').length).toBe(1);
@@ -201,7 +201,7 @@ describe('switchboard service', () => {
     await switchboard.updateDestinations(newSub.id);
     const {
       destinationSubs: newDestinationSubs
-    } = switchboard.getSubscriptionHandler(testSub.id);
+    } = switchboard.findSubscriptionHandler(testSub.id);
     expect(newDestinationSubs.length).toBe(2);
     expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);
