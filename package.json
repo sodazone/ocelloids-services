@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/main.js",
-    "dev": "nodemon --exec node --import tsx ./src/main.ts",
+    "dev": "nodemon --exec tsx ./src/main.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" npx jest"
   },
