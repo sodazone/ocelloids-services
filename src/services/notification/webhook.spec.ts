@@ -5,12 +5,13 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { QuerySubscription, XcmMatched } from '../monitoring/types.js';
+import { QuerySubscription, XcmEventType, XcmNotifyMessage } from '../monitoring/types.js';
 import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 import { NotifierHub } from './hub.js';
 
-const notification : XcmMatched = {
+const notification : XcmNotifyMessage = {
+  eventType: XcmEventType.Matched,
   subscriptionId: 'ok',
   messageHash: '0xCAFE',
   destination: {
