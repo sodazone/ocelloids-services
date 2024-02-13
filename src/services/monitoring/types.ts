@@ -160,7 +160,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
-export enum XcmEventType {
+export enum XcmWaypoint {
   Sent = 'SENT',
   Matched = 'MATCHED',
   Relayed = 'RELAYED',
@@ -168,7 +168,7 @@ export enum XcmEventType {
 }
 
 export class XcmSent {
-  eventType: XcmEventType = XcmEventType.Sent;
+  waypoint: XcmWaypoint = XcmWaypoint.Sent;
   subscriptionId: string;
   chainId: string;
   messageData: string;
@@ -211,7 +211,7 @@ type XcmMatchedContext = {
 }
 
 export class XcmMatched {
-  eventType: XcmEventType = XcmEventType.Matched;
+  waypoint: XcmWaypoint = XcmWaypoint.Matched;
   subscriptionId: string;
   origin: XcmMatchedContext;
   destination: XcmMatchedContext;
@@ -255,11 +255,11 @@ export class XcmMatched {
 export type XcmNotifyMessage = XcmSent | XcmMatched;
 
 export function isXcmSent(object: any): object is XcmSent {
-  return object.eventType !== undefined && object.eventType === XcmEventType.Sent;
+  return object.eventType !== undefined && object.eventType === XcmWaypoint.Sent;
 }
 
 export function isXcmMatched(object: any): object is XcmMatched {
-  return object.eventType !== undefined && object.eventType === XcmEventType.Matched;
+  return object.eventType !== undefined && object.eventType === XcmWaypoint.Matched;
 }
 
 const $WebhookNotification = z.object({
@@ -303,7 +303,8 @@ export const $QuerySubscription = z.object({
     $WebhookNotification,
     $LogNotification,
     $WebsocketNotification
-  ])).min(1)
+  ])).min(1),
+
 }).refine(schema =>
   !schema.ephemeral
   || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')

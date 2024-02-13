@@ -25,7 +25,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
         '[%s ➜ %s] NOTIFICATION %s subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
         msg.origin.chainId,
         msg.destination.chainId,
-        msg.eventType,
+        msg.waypoint,
         sub.id,
         msg.messageHash,
         msg.outcome,
@@ -36,7 +36,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
       this.#log.info(
         '[%s ➜] NOTIFICATION %s subscription=%s, messageHash=%s, block=%s',
         msg.chainId,
-        msg.eventType,
+        msg.waypoint,
         sub.id,
         msg.messageHash,
         msg.blockNumber
