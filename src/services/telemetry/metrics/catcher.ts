@@ -1,4 +1,4 @@
-import { Counter, Histogram } from 'prom-client';
+import { Counter, Gauge, Histogram } from 'prom-client';
 import { TelemetryEventEmitter } from '../types.js';
 
 export function catcherMetrics(source: TelemetryEventEmitter) {
@@ -31,6 +31,12 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     labelNames: ['origin']
   });
 
+  const blockHeightGauge = new Gauge({
+    name: 'xcmon_catcher_block_height',
+    help: 'Block height.',
+    labelNames: ['origin']
+  });
+
   source.on('telemetryBlockCacheHit', ({ chainId }) => {
     blockCacheHitsCount.labels(chainId).inc();
   });
@@ -50,10 +56,14 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
       chainId
     ).startTimer();
   });
-  source.on('telemetryBlockFinalized', ({ chainId }) => {
+  source.on('telemetryBlockFinalized', ({ chainId, header }) => {
     blockFinCount.labels(
       chainId
     ).inc();
+
+    blockHeightGauge.labels(
+      chainId
+    ).set(header.number.toNumber());
 
     const timerId = chainId + ':block-fin';
     const timer = timers[timerId];
