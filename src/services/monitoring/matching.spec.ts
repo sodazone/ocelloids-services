@@ -36,12 +36,13 @@ const outboundMessage : XcmSent = {
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
+  let db: Level;
   const cb = jest.fn(() => {});
 
   beforeEach(() => {
     cb.mockReset();
 
-    const db = new Level();
+    db = new Level();
     engine = new MatchingEngine({
       ..._services,
       storage: {
@@ -72,5 +73,36 @@ describe('message matching engine', () => {
     ]);
 
     expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('should clean up stale data', async () => {
+    async function count() {
+      const iterator = db.iterator();
+      await iterator.all();
+      return iterator.count;
+    }
+
+    for (let i = 0; i < 100; i++) {
+      await engine.onInboundMessage({
+        ...inboundMessage,
+        subscriptionId: 'z.transfers:' + i
+      });
+      await engine.onOutboundMessage({
+        ...outboundMessage,
+        subscriptionId: 'baba-yaga-1:' + i
+      });
+      const r = (Math.random() + 1).toString(36).substring(7);
+      await engine.onOutboundMessage({
+        ...outboundMessage,
+        subscriptionId: r + i
+      });
+    }
+    expect(await count()).toBe(600);
+
+    for (let i = 0; i < 100; i++) {
+      await engine.clearPendingStates('z.transfers:' + i);
+      await engine.clearPendingStates('baba-yaga-1:' + i);
+    }
+    expect(await count()).toBe(200);
   });
 });

@@ -9,9 +9,9 @@ import { ServiceConfiguration, isNetworkDefined } from '../config.js';
  * A subscription is expected to have a unique id in the database.
  */
 export class SubsStore {
-  #log: Logger;
-  #db: DB;
-  #config: ServiceConfiguration;
+  readonly #log: Logger;
+  readonly#db: DB;
+  readonly#config: ServiceConfiguration;
 
   constructor(
     log: Logger,

@@ -85,7 +85,6 @@ describe('switchboard service', () => {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000
     });
-    //spy = jest.spyOn(switchboard, '#onXcmMatched');
   });
 
   afterEach(async () => {

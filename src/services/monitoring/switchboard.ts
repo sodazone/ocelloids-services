@@ -181,6 +181,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   async unsubscribe(id: string) {
     if (this.#subs[id] === undefined) {
+      this.#log.warn('unsubscribe from a non-existent subscription %s', id);
       return;
     }
 
@@ -198,6 +199,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       originSubs.forEach(({ sub }) => sub.unsubscribe());
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
       delete this.#subs[id];
+
+      await this.#engine.clearPendingStates(id);
 
       if (ephemeral) {
         this.#stats.ephemeral--;
