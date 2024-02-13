@@ -116,6 +116,12 @@ program
       'XCMON_TELEMETRY_ENABLE'
     ).default(true)
   )
+  .addOption(
+    optionOf('--ws-max-clients <number>',
+      'maximum number of websocket clients',
+      'XCMON_WS_MAX_CLIENTS'
+    ).default(5000).argParser(positiveInt)
+  )
   .action(startServer);
 
 program.parse();

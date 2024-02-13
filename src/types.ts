@@ -13,7 +13,8 @@ export const $ServerOptions = z.object({
   port: z.number().min(0),
   host: z.string().min(1),
   grace: z.number().min(1),
-  telemetry: z.boolean().default(true)
+  telemetry: z.boolean().default(true),
+  wsMaxClients: z.number().min(1)
 });
 
 export type ServerOptions = z.infer<typeof $ServerOptions>;

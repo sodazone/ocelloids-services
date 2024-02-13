@@ -9,8 +9,7 @@ import { Logger } from '../../../types.js';
 import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
-
-const MAX_WS_CLIENTS = 1000;
+import { WebsocketProtocolOptions } from './plugin.js';
 
 const jsonSchema = z.string().transform( ( str, ctx ) => {
   try {
@@ -47,13 +46,15 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   readonly #log: Logger;
   readonly #switchboard: Switchboard;
   readonly #broadcaster: XcmMatchedListener;
+  readonly #maxClients: number;
 
   #connections: Map<string, Connection[]>;
   #clientsNum: number;
 
   constructor(
     log: Logger,
-    switchboard: Switchboard
+    switchboard: Switchboard,
+    options: WebsocketProtocolOptions
   ) {
     super();
 
@@ -61,6 +62,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#switchboard = switchboard;
 
     this.#connections = new Map();
+    this.#maxClients = options.wsMaxClients;
     this.#clientsNum = 0;
     this.#broadcaster = (sub, xcm) => {
       const connections = this.#connections.get(sub.id);
@@ -102,7 +104,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     request: FastifyRequest,
     subscription?: QuerySubscription
   ) {
-    if (this.#clientsNum >= MAX_WS_CLIENTS) {
+    if (this.#clientsNum >= this.#maxClients) {
       stream.socket.close(1013, 'server too busy');
       return;
     }

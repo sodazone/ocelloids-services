@@ -9,14 +9,20 @@ declare module 'fastify' {
   }
 }
 
+export type WebsocketProtocolOptions = {
+  wsMaxClients: number
+}
+
 /**
  * Websocket subscription protocol plug-in.
  *
  * @param fastify The fastify instance
  */
-const websocketProtocolPlugin: FastifyPluginAsync = async fastify => {
+const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions>
+= async (fastify, options) => {
   const { log, switchboard } = fastify;
-  const protocol = new WebsocketProtocol(log, switchboard);
+
+  const protocol = new WebsocketProtocol(log, switchboard, options);
 
   fastify.decorate('wsProtocol', protocol);
 
