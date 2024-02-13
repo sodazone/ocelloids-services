@@ -204,6 +204,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
 
     if (this.#hasCache(chainId)) {
+      // only applies to light clients
       pipe = this.#apis.rx[chainId].pipe(
         finalizedHeads(),
         retryWithTruncatedExpBackoff(),
