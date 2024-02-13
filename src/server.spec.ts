@@ -31,7 +31,10 @@ describe('monitoring server API', () => {
       schedulerFrequency: 0,
       grace: 1000,
       host: 'localhost',
-      port: 0
+      port: 0,
+      subscriptionMaxEphemeral: 10_000,
+      subscriptionMaxPersistent: 10_000,
+      wsMaxClients: 10_000
     });
 
     return server.ready();
@@ -438,7 +441,7 @@ describe('monitoring server API', () => {
 
     it('should get an scheduled task', done => {
       server.inject(
-        adminRq('/admin/sched/0000')
+        adminRq('/admin/sched?key=0000')
         , (_err, response) => {
           expect(response.statusCode)
             .toStrictEqual(200);
@@ -449,7 +452,7 @@ describe('monitoring server API', () => {
 
     it('should delete an scheduled task', done => {
       server.inject(
-        adminRq('/admin/sched/0001', 'DELETE')
+        adminRq('/admin/sched?key=0001', 'DELETE')
         , (_err, response) => {
           expect(response.statusCode)
             .toStrictEqual(200);
