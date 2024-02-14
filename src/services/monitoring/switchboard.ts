@@ -611,7 +611,7 @@ export class Switchboard {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
-      if (descriptor.waypoints === '*' || descriptor.waypoints.includes(msg.type)) {
+      if (descriptor.notificationTypes === '*' || descriptor.notificationTypes.includes(msg.type)) {
         await this.#notifier.notify(descriptor, msg);
       }
     } else {

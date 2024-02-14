@@ -50,7 +50,7 @@ const subOk = {
   }],
   origin: '0',
   senders: '*',
-  waypoints: '*'
+  notificationTypes: '*'
 } as QuerySubscription;
 
 const xmlTemplate = `
@@ -78,7 +78,7 @@ const subOkXml = {
   }],
   origin: '1000',
   senders: '*',
-  waypoints: '*'
+  notificationTypes: '*'
 } as QuerySubscription;
 
 const subFail = {
@@ -90,7 +90,7 @@ const subFail = {
   }],
   origin: '0',
   senders: '*',
-  waypoints: '*'
+  notificationTypes: '*'
 } as QuerySubscription;
 
 const authToken = 'secret';
@@ -105,7 +105,7 @@ const subOkAuth = {
   }],
   origin: '0',
   senders: '*',
-  waypoints: '*'
+  notificationTypes: '*'
 } as QuerySubscription;
 
 describe('webhook notifier', () => {

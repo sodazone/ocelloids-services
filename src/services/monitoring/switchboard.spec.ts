@@ -44,7 +44,7 @@ const testSub : QuerySubscription = {
   channels: [{
     type: 'log'
   }],
-  waypoints: [XcmNotificationType.Received]
+  notificationTypes: [XcmNotificationType.Received]
 };
 
 describe('switchboard service', () => {
