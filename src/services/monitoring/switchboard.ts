@@ -38,6 +38,7 @@ import { TelemetryEventEmitter } from '../telemetry/types.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
+import { errorMessage } from '../../errors.js';
 
 type Monitor = {
   subs: SubscriptionWithId[]
@@ -64,6 +65,8 @@ export type SwitchboardOptions = {
   subscriptionMaxPersistent: number,
   subscriptionMaxEphemeral: number
 }
+
+const SUB_ERROR_RETRY_MS = 5000;
 
 /**
  * XCM Subscriptions Switchboard.
@@ -381,13 +384,32 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           error: (error: any) => {
             this.#log.error(
               error,
-              'Error on subscription %s at destination %s',
-              id,
-              chainId
+              '[%s] error on destination subscription %s',
+              chainId,
+              id
             );
             this.emit('telemetrySubscriptionError', {
               subscriptionId: id, chainId, direction: 'in'
             });
+
+            // try recover inbound subscription
+            if (this.#subs[id]) {
+              const {destinationSubs} = this.#subs[id];
+              const index = destinationSubs.findIndex(s => s.chainId === chainId);
+              if (index > -1) {
+                destinationSubs.splice(index, 1);
+                setTimeout(() => {
+                  this.#log.info(
+                    '[%s] UPDATE destination subscription %s due error %s',
+                    chainId,
+                    id,
+                    errorMessage(error)
+                  );
+                  const updated = this.#updateDestinationSubscriptions(id);
+                  this.#subs[id].destinationSubs = updated;
+                }, SUB_ERROR_RETRY_MS);
+              }
+            }
           }
         };
 
@@ -452,6 +474,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const chainId = origin;
     const api = this.#apis.promise[chainId];
 
+    if (this.#subs[id]?.originSubs.find(
+      s => s.chainId === chainId)
+    ) {
+      throw new Error(
+        `Fatal: duplicated origin monitor ${id} for chain ${chainId}`
+      );
+    }
+
     const sendersControl = ControlQuery.from(
       sendersCriteria(senders)
     );
@@ -470,12 +500,34 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       error: (error: any) => {
         this.#log.error(
           error,
-          'Error on subscription %s at origin %s',
-          id, origin
+          '[%s] error on origin subscription %s',
+          chainId, id
         );
         this.emit('telemetrySubscriptionError', {
-          subscriptionId: id, chainId: origin, direction: 'out'
+          subscriptionId: id, chainId, direction: 'out'
         });
+
+        // try recover outbound subscription
+        // note: there is a single origin per outbound
+        if (this.#subs[id]) {
+          const {originSubs, descriptor} = this.#subs[id];
+          const index = originSubs.findIndex(s => s.chainId === chainId);
+          if (index > -1) {
+            this.#subs[id].originSubs = [];
+            setTimeout(() => {
+              this.#log.info(
+                '[%s] UPDATE origin subscription %s due error %s',
+                chainId,
+                id,
+                errorMessage(error)
+              );
+              const {subs: updated, controls} = this.#monitorOrigins(descriptor);
+              this.#subs[id].sendersControl = controls.sendersControl;
+              this.#subs[id].messageControl = controls.messageControl;
+              this.#subs[id].originSubs = updated;
+            }, SUB_ERROR_RETRY_MS);
+          }
+        }
       }
     };
 

@@ -25,3 +25,7 @@ export function errorHandler(error: any, _: any, reply: FastifyReply) {
     reply.send(error);
   }
 }
+
+export function errorMessage(error: any) {
+  return error instanceof Error ? error.message : String(error);
+}

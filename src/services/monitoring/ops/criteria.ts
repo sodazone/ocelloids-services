@@ -33,8 +33,8 @@ export function matchSenders(
     return false;
   }
 
-  return query.value.test({
-    extrinsic: {
+  const signersData = xt.isSigned
+    ? {
       signer: Object.assign({},
         xt.signer.toPrimitive(),
         { publicKey: xt.signer.value.toHex() }
@@ -50,6 +50,10 @@ export function matchSenders(
         )
       )
     }
+    : {};
+
+  return query.value.test({
+    extrinsic: signersData
   });
 }
 

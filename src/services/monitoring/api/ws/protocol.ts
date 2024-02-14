@@ -10,6 +10,7 @@ import { $QuerySubscription, QuerySubscription, XcmMatchedListener } from '../..
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
 import { WebsocketProtocolOptions } from './plugin.js';
+import { errorMessage } from '../../../../errors.js';
 
 const jsonSchema = z.string().transform( ( str, ctx ) => {
   try {
@@ -31,10 +32,6 @@ type Connection = {
   id: string,
   ip: string,
   stream: SocketStream
-}
-
-function errorMessage(error: any) {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function safeWrite(stream: SocketStream, content: Object) {
