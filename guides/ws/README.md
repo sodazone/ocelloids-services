@@ -1,13 +1,11 @@
 # Development
 
-1) Install websocat to interact with the service:
-
+1) Install `websocat` to interact with the service
 ```shell
 cargo install --features=ssl websocat
 ```
 
-2) Run the server with the following configuration:
-
+2) Run the server with the following configuration
 ```toml
 [[networks]]
 name = "polkadot"
@@ -55,22 +53,38 @@ relay = "polkadot"
   url = "wss://ws.manta.systems"
 ```
 
-3) Open a connection with socat:
+# On-demand Subscriptions
+
+1) Open a connection with `websocat`
 ```shell
 websocat -E ws://127.0.0.1:3000/ws/subs | jq .
 ```
 
-4) Send this payload:
+2) Send this payload
 ```json
 { "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2104" ] }
 ```
 
+# Persistent Subscriptions
+
+1) Create some subscriptions
+```shell
+hurl --variables-file ./dev.env -v scenarios/transfers/0_create.hurl
+```
+
+2) Open websocket listeners
+```shell
+websocat -E ws://127.0.0.1:3000/ws/subs/polkadot-transfers | jq .
+```
+
 # Load Testing
 
+1) Install artilley
 ```shell
 npm install -g artillery@latest
-````
+```
 
+2) Run some load test
 ```shell
 artillery run <some_load_test.yaml>
 ```

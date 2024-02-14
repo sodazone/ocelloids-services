@@ -10,7 +10,7 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
   const notifyErrorCount = getOrCreateCounter({
     name: 'xcmon_notifier_notification_error_total',
     help: 'Notifier notification errors.',
-    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel', 'error']
+    labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel']
   });
 
   source.on('telemetryNotify', message => {
@@ -30,8 +30,7 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
       message.origin,
       message.destination,
       message.outcome,
-      message.channel,
-      message.error ?? 'unknown'
+      message.channel
     ).inc();
   });
 }

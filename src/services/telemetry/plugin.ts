@@ -45,8 +45,8 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
     }
 
     log.info('Enable switchboard metrics');
-    switchboard.collectTelemetry(collect);
     pullCollectors.push(collectSwitchboardStats(switchboard));
+    switchboard.collectTelemetry(collect);
 
     log.info('Enable websocket subscription metrics');
     wsMetrics(wsProtocol);

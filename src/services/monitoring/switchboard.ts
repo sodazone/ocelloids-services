@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events';
+
 import { Observable, from, switchMap, share } from 'rxjs';
 
 import {
@@ -23,7 +25,8 @@ import {
   SubscriptionWithId,
   XcmEventListener,
   XcmNotifyMessage,
-  XcmSent
+  XcmSent,
+  SubscriptionStats
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -37,18 +40,11 @@ import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 import { extractXcmWaypoints } from './ops/common.js';
-
-const MAX_SUBS_EPHEMERAL = 1000;
-const MAX_SUBS_PERSISTENT = 1000;
+import { errorMessage } from '../../errors.js';
 
 type Monitor = {
   subs: SubscriptionWithId[]
   controls: Record<string, ControlQuery>
-}
-
-type SubscriptionStats = {
-  persistent: number,
-  ephemeral: number
 }
 
 // eslint-disable-next-line no-shadow
@@ -67,6 +63,13 @@ export class SubscribeError extends Error {
   }
 }
 
+export type SwitchboardOptions = {
+  subscriptionMaxPersistent: number,
+  subscriptionMaxEphemeral: number
+}
+
+const SUB_ERROR_RETRY_MS = 5000;
+
 /**
  * XCM Subscriptions Switchboard.
  *
@@ -76,7 +79,7 @@ export class SubscribeError extends Error {
  * Monitors active subscriptions, processes incoming 'matched' notifications,
  * and dynamically updates selection criteria of the subscriptions.
  */
-export class Switchboard {
+export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #apis: SubstrateApis;
   readonly #config: ServiceConfiguration;
   readonly #log: Logger;
@@ -84,17 +87,22 @@ export class Switchboard {
   readonly #engine: MatchingEngine;
   readonly #catcher: HeadCatcher;
   readonly #notifier: NotifierHub;
+  readonly #stats: SubscriptionStats;
+  readonly #maxEphemeral: number;
+  readonly #maxPersistent: number;
 
   #subs: Record<string, SubscriptionHandler> = {};
   #shared: {
     blockEvents: Record<string, Observable<types.BlockEvent>>
     blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
   };
-  #stats: SubscriptionStats;
 
   constructor(
-    ctx: Services
+    ctx: Services,
+    options: SwitchboardOptions
   ) {
+    super();
+
     const {
       log , storage: { subs }, config, connector
     } = ctx;
@@ -112,6 +120,8 @@ export class Switchboard {
       ephemeral: 0,
       persistent: 0
     };
+    this.#maxEphemeral = options.subscriptionMaxEphemeral;
+    this.#maxPersistent = options.subscriptionMaxPersistent;
     this.#shared = {
       blockEvents: {},
       blockExtrinsics: {}
@@ -125,8 +135,8 @@ export class Switchboard {
    * @throws {SubscribeError} If there is an error creating the subscription.
    */
   async subscribe(qs: QuerySubscription) {
-    if (this.#stats.ephemeral >= MAX_SUBS_EPHEMERAL
-      || this.#stats.persistent >= MAX_SUBS_PERSISTENT
+    if (this.#stats.ephemeral >= this.#maxEphemeral
+      || this.#stats.persistent >= this.#maxPersistent
     ) {
       throw new SubscribeError(
         SubscribeErrorCodes.TOO_MANY_SUBSCRIBERS,
@@ -176,6 +186,7 @@ export class Switchboard {
    */
   async unsubscribe(id: string) {
     if (this.#subs[id] === undefined) {
+      this.#log.warn('unsubscribe from a non-existent subscription %s', id);
       return;
     }
 
@@ -193,6 +204,8 @@ export class Switchboard {
       originSubs.forEach(({ sub }) => sub.unsubscribe());
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
       delete this.#subs[id];
+
+      await this.#engine.clearPendingStates(id);
 
       if (ephemeral) {
         this.#stats.ephemeral--;
@@ -236,7 +249,7 @@ export class Switchboard {
   /**
    * Gets a subscription handler by id.
    */
-  getSubscriptionHandler(id: string) {
+  findSubscriptionHandler(id: string) {
     return this.#subs[id];
   }
 
@@ -282,6 +295,7 @@ export class Switchboard {
    * @param collect The collect callback function.
    */
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
+    collect(this);
     collect(this.#engine);
     collect(this.#catcher);
     collect(this.#notifier);
@@ -361,21 +375,43 @@ export class Switchboard {
           continue;
         }
 
-        const inbound$ = () => (
+        const emitInbound = () => (
           source: Observable<XcmReceivedWithContext>
         ) => source.pipe(
           switchMap(msg => from(this.#engine.onInboundMessage(
             new XcmReceived(id, chainId, msg)
           )))
         );
-        const inboundHandler = {
+        const inboundObserver = {
           error: (error: any) => {
             this.#log.error(
               error,
-              'Error on subscription %s at destination %s',
-              id,
-              chainId
+              '[%s] error on destination subscription %s',
+              chainId,
+              id
             );
+            this.emit('telemetrySubscriptionError', {
+              subscriptionId: id, chainId, direction: 'in'
+            });
+
+            // try recover inbound subscription
+            if (this.#subs[id]) {
+              const {destinationSubs} = this.#subs[id];
+              const index = destinationSubs.findIndex(s => s.chainId === chainId);
+              if (index > -1) {
+                destinationSubs.splice(index, 1);
+                setTimeout(() => {
+                  this.#log.info(
+                    '[%s] UPDATE destination subscription %s due error %s',
+                    chainId,
+                    id,
+                    errorMessage(error)
+                  );
+                  const updated = this.#updateDestinationSubscriptions(id);
+                  this.#subs[id].destinationSubs = updated;
+                }, SUB_ERROR_RETRY_MS);
+              }
+            }
           }
         };
 
@@ -388,8 +424,8 @@ export class Switchboard {
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractUmpReceive(origin),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         } else if (isRelay(this.#config, origin)) {
           // VMP DMP
@@ -400,8 +436,8 @@ export class Switchboard {
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractDmpReceive(),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         } else {
           // Inbound HRMP / XCMP transport
@@ -412,8 +448,8 @@ export class Switchboard {
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractXcmpReceive(),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         }
       }
@@ -440,6 +476,14 @@ export class Switchboard {
     const chainId = origin;
     const api = this.#apis.promise[chainId];
 
+    if (this.#subs[id]?.originSubs.find(
+      s => s.chainId === chainId)
+    ) {
+      throw new Error(
+        `Fatal: duplicated origin monitor ${id} for chain ${chainId}`
+      );
+    }
+
     const sendersControl = ControlQuery.from(
       sendersCriteria(senders)
     );
@@ -447,7 +491,7 @@ export class Switchboard {
       messageCriteria(destinations)
     );
 
-    const outbound$ =  () => (
+    const emitOutbound =  () => (
       source: Observable<XcmSentWithContext>
     ) => source.pipe(
       extractXcmWaypoints(),
@@ -457,16 +501,41 @@ export class Switchboard {
     );
     // TODO: feasible to subscribe next without passing through matching engine?
     // do we want to ensure order of notification?
-    const outboundHandler = {
+    const outboundObserver = {
       next: (msg: XcmSent) => {
         this.#onXcmWaypointReached(msg)
       },
       error: (error: any) => {
         this.#log.error(
           error,
-          'Error on subscription %s at origin %s',
-          id, origin
+          '[%s] error on origin subscription %s',
+          chainId, id
         );
+        this.emit('telemetrySubscriptionError', {
+          subscriptionId: id, chainId, direction: 'out'
+        });
+
+        // try recover outbound subscription
+        // note: there is a single origin per outbound
+        if (this.#subs[id]) {
+          const {originSubs, descriptor} = this.#subs[id];
+          const index = originSubs.findIndex(s => s.chainId === chainId);
+          if (index > -1) {
+            this.#subs[id].originSubs = [];
+            setTimeout(() => {
+              this.#log.info(
+                '[%s] UPDATE origin subscription %s due error %s',
+                chainId,
+                id,
+                errorMessage(error)
+              );
+              const {subs: updated, controls} = this.#monitorOrigins(descriptor);
+              this.#subs[id].sendersControl = controls.sendersControl;
+              this.#subs[id].messageControl = controls.messageControl;
+              this.#subs[id].originSubs = updated;
+            }, SUB_ERROR_RETRY_MS);
+          }
+        }
       }
     };
 
@@ -486,8 +555,8 @@ export class Switchboard {
                   messageControl
                 }
               ),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
 
         // VMP DMP
@@ -504,8 +573,8 @@ export class Switchboard {
                   messageControl
                 }
               ),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
       } else {
         // Outbound HRMP / XCMP transport
@@ -522,8 +591,8 @@ export class Switchboard {
               },
               getHrmp
             ),
-            outbound$()
-          ).subscribe(outboundHandler)
+            emitOutbound()
+          ).subscribe(outboundObserver)
         });
 
         // VMP UMP
@@ -542,8 +611,8 @@ export class Switchboard {
                 getUmp
               ),
               retryWithTruncatedExpBackoff(),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
       }
     } catch (error) {

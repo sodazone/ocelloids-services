@@ -39,7 +39,7 @@ async function startServer(this: Command) {
 
 function positiveInt(v: string) {
   const parsedValue = parseInt(v, 10);
-  if (isNaN(parsedValue) || parsedValue < 0) {
+  if (isNaN(parsedValue) || parsedValue < 0) { // includes 0
     throw new InvalidArgumentError('Must be a positive integer');
   }
   return parsedValue;
@@ -115,6 +115,24 @@ program
       'enables or disables the telemetry exporter',
       'XCMON_TELEMETRY_ENABLE'
     ).default(true)
+  )
+  .addOption(
+    optionOf('--ws-max-clients <number>',
+      'maximum number of websocket clients',
+      'XCMON_WS_MAX_CLIENTS'
+    ).default(10_000).argParser(positiveInt)
+  )
+  .addOption(
+    optionOf('--subscription-max-persistent <number>',
+      'maximum number of persistent subscriptions',
+      'XCMON_SUBSCRIPTION_MAX_PERSISTENT'
+    ).default(5_000).argParser(positiveInt)
+  )
+  .addOption(
+    optionOf('--subscription-max-ephemeral <number>',
+      'maximum number of ephemeral subscriptions',
+      'XCMON_SUBSCRIPTION_MAX_EPHEMERAL'
+    ).default(5_000).argParser(positiveInt)
   )
   .action(startServer);
 

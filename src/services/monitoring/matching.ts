@@ -37,14 +37,13 @@ export type ChainBlock = {
  * - check notification storage by message ID and do not store for matching if already matched
  */
 export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmitter) {
-  #db: DB;
-  #log: Logger;
-  #janitor: Janitor;
+  readonly #log: Logger;
+  readonly #janitor: Janitor;
 
-  #outbound: SubLevel<XcmSent>;
-  #inbound: SubLevel<XcmReceived>;
-  #mutex: Mutex;
-  #xcmMatchedReceiver: XcmMatchedReceiver;
+  readonly #outbound: SubLevel<XcmSent>;
+  readonly #inbound: SubLevel<XcmReceived>;
+  readonly #mutex: Mutex;
+  readonly #xcmMatchedReceiver: XcmMatchedReceiver;
 
   constructor(
     {
@@ -54,14 +53,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   ) {
     super();
 
-    this.#db = db;
     this.#log = log;
     this.#janitor = janitor;
     this.#mutex = new Mutex();
     this.#xcmMatchedReceiver = xcmMatchedReceiver;
 
-    this.#outbound = this.#sl(prefixes.matching.outbound);
-    this.#inbound = this.#sl(prefixes.matching.inbound);
+    this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
+    this.#inbound = db.sublevel<string, XcmReceived>(prefixes.matching.inbound, jsonEncoded);
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
@@ -232,6 +230,33 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     await this.#mutex.waitForUnlock();
   }
 
+  /**
+   * Clears the pending states for a subcription.
+   *
+   * @param subscriptionId The subscription id.
+   */
+  async clearPendingStates(subscriptionId: string) {
+    const prefix = subscriptionId + ':';
+    await this.#clearByPrefix(this.#inbound, prefix);
+    await this.#clearByPrefix(this.#outbound, prefix);
+  }
+
+  async #clearByPrefix(sublevel: SubLevel<any>, prefix: string) {
+    try {
+      const batch = sublevel.batch();
+      for await (const key of sublevel.keys({gt: prefix})) {
+        if (key.startsWith(prefix)) {
+          batch.del(key);
+        } else {
+          break;
+        }
+      }
+      await batch.write();
+    } catch (error) {
+      this.#log.error(error, 'while clearing prefix %s', prefix);
+    }
+  }
+
   #matchingKey(subscriptionId: string, chainId: string, messageId: string) {
     // We add the subscription id as a discriminator
     // to allow multiple subscriptions to the same messages
@@ -250,9 +275,5 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     } catch (e) {
       this.#log.error(e, 'Error on notification');
     }
-  }
-
-  #sl<TV>(prefix: string) {
-    return this.#db.sublevel<string, TV>(prefix, jsonEncoded);
   }
 }

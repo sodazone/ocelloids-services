@@ -17,7 +17,7 @@ export function createReplyHook() {
     reqHist.labels(
       reply.statusCode.toString(),
       request.method,
-      request.routeOptions.url
+      request.originalUrl
     ).observe(millis);
   };
 }

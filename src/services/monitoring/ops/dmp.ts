@@ -26,7 +26,14 @@ import {
   XcmCriteria, XcmReceivedWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { getMessageId, getParaIdFromMultiLocation, getParaIdFromVersionedMultiLocation, matchProgramByTopic } from './util.js';
+import {
+  getMessageId,
+  getParaIdFromMultiLocation,
+  getParaIdFromVersionedMultiLocation,
+  matchEvent,
+  matchExtrinsic,
+  matchProgramByTopic
+} from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 
@@ -198,8 +205,7 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
         : Observable<XcmSentWithContext> => {
     return source.pipe(
       map(event => {
-        if (event.section === 'xcmPallet'
-        && event.method === 'Sent') {
+        if (matchEvent(event, 'xcmPallet', 'Sent')) {
           const { destination, messageId } = event.data as any;
           const paraId = getParaIdFromMultiLocation(destination);
 
@@ -264,7 +270,7 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
   };
 }
 
-const DmpMethods = [
+const METHODS_DMP = [
   'limitedReserveTransferAssets',
   'reserveTransferAssets',
   'limitedTeleportAssets',
@@ -284,8 +290,7 @@ export function extractDmpSend(
       filter(tx => {
         const {extrinsic} = tx;
         return tx.dispatchError === undefined
-          && extrinsic.method.section === 'xcmPallet'
-          && DmpMethods.includes(extrinsic.method.method)
+          && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP)
           && matchSenders(sendersControl, extrinsic);
       }),
       findDmpMessagesFromTx(api),
@@ -347,10 +352,7 @@ export function extractDmpReceive() {
       : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
-        if (
-          event.section === 'dmpQueue'
-          && event.method === 'ExecutedDownward'
-        ) {
+        if (matchEvent(event, 'dmpQueue', 'ExecutedDownward')) {
           return createDmpReceivedWithContext(event);
         }
         return null;
