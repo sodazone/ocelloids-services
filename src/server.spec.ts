@@ -14,7 +14,7 @@ const testSubContent = {
   channels: [{
     type: 'log'
   }],
-  notificationTypes: '*'
+  events: '*'
 } as QuerySubscription;
 
 const { createServer } = await import('./server.js');
@@ -87,7 +87,7 @@ describe('monitoring server API', () => {
           channels: [{
             type: 'log'
           }],
-          notificationTypes: '*'
+          events: '*'
         } as QuerySubscription
       }, (_err, response) => {
         expect(response.statusCode)

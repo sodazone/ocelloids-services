@@ -44,7 +44,7 @@ const testSub : QuerySubscription = {
   channels: [{
     type: 'log'
   }],
-  notificationTypes: [XcmNotificationType.Received]
+  events: [XcmNotificationType.Received]
 };
 
 describe('switchboard service', () => {

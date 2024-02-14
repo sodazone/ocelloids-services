@@ -372,8 +372,8 @@ export const $QuerySubscription = z.object({
     $LogNotification,
     $WebsocketNotification
   ])).min(1),
-  notificationTypes: z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(
-    1, 'at least 1 waypoint is required'
+  events: z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(
+    1, 'at least 1 event type is required'
   ))
 }).refine(schema =>
   !schema.ephemeral
