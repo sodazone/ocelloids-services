@@ -20,7 +20,7 @@ export type ChainHead = z.infer<typeof $ChainHead>;
 
 export const $SafeId = z.string({
   required_error: 'id is required'
-}).min(1).max(1024).regex(/[A-Za-z0-9:\.\-_]+/);
+}).min(1).max(100).regex(/[A-Za-z0-9:\.\-_]+/);
 
 export type HexString = `0x${string}`;
 
