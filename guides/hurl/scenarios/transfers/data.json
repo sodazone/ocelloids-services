@@ -10,6 +10,7 @@
       2034,
       2104
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
@@ -26,6 +27,7 @@
       2034,
       2104
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
@@ -44,6 +46,7 @@
       2034,
       2104
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
@@ -62,6 +65,7 @@
       2034,
       2104
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
@@ -80,6 +84,7 @@
       0,
       2104
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
@@ -98,6 +103,7 @@
       2034,
       0
     ],
+    "events": "*",
     "channels": [{
       "type": "webhook",
       "url": "https://en785006d7bvj.x.pipedream.net"
