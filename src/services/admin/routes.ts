@@ -2,9 +2,9 @@ import { FastifyInstance } from 'fastify';
 
 import { jsonEncoded, prefixes } from '../types.js';
 
-type keyParam = {
+type chainIdParam = {
   Params: {
-    key: string
+    chainId: string
   }
 };
 
@@ -43,16 +43,16 @@ export default async function Administration(
     reply.send();
   });
 
-  api.get<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
+  api.get<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = root.sublevel<string, any>(
-      prefixes.cache.family(request.params.key), jsonEncoded
+      prefixes.cache.family(request.params.chainId), jsonEncoded
     );
     reply.send(await db.iterator(itOps).all());
   });
 
-  api.delete<keyParam>('/admin/cache/:key', opts, async (request, reply) => {
+  api.delete<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = root.sublevel<string, any>(
-      prefixes.cache.family(request.params.key), jsonEncoded
+      prefixes.cache.family(request.params.chainId), jsonEncoded
     );
     await db.clear();
     reply.send();
