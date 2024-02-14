@@ -11,8 +11,7 @@ import {
   QuerySubscription,
   XcmEventListener,
   XcmNotifyMessage,
-  isXcmMatched,
-  isXcmSent
+  isXcmMatched
 } from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
@@ -80,7 +79,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           try {
             safeWrite(stream, xcm);
 
-            this.#telemetryNotify(ip, xcm)
+            this.#telemetryNotify(ip, xcm);
           } catch (error) {
             this.#log.error(error);
 
@@ -222,7 +221,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     ip: string,
     xcm: XcmNotifyMessage
   ) {
-    if(isXcmMatched(xcm)) {
+    if (isXcmMatched(xcm)) {
       this.emit('telemetryNotify', notifyTelemetryFrom(
         'websocket', ip, xcm
       ));
@@ -234,11 +233,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   #telemetryNotifyError(
     ip: string,
     xcm: XcmNotifyMessage,
-    errorMessage: string
+    error: string
   ) {
-    if(isXcmMatched(xcm)) {
+    if (isXcmMatched(xcm)) {
       this.emit('telemetryNotifyError', notifyTelemetryFrom(
-        'websocket', ip, xcm, errorMessage
+        'websocket', ip, xcm, error
       ));
     } else {
       console.log(`XCM ${xcm.type} telemetryNotifyError not implemented.`);

@@ -160,6 +160,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
+// eslint-disable-next-line no-shadow
 export enum XcmNotificationType {
   Sent = 'xcm.sent',
   Received = 'xcm.received',
@@ -178,7 +179,7 @@ export interface XcmTerminiContext extends XcmTermini {
   event: AnyJson,
   outcome: 'Success' | 'Fail';
   error: AnyJson;
-};
+}
 
 interface XcmWaypointContext extends XcmTerminiContext {
   legIndex: number
@@ -252,7 +253,7 @@ export class GenericXcmSent implements XcmSent {
     const nodes = [origin].concat(stops);
     for (let i = 0; i < nodes.length - 1; i++) {
       const from = nodes[i];
-      const to = nodes[i + 1]
+      const to = nodes[i + 1];
       // If OD are parachains, add intermediate path through relay.
       // TODO: revisit when XCMP is launched.
       if (from !== '0' && to !== '0') {
@@ -265,7 +266,7 @@ export class GenericXcmSent implements XcmSent {
             from: '0',
             to
           }
-        )
+        );
       } else {
         legs.push({
           from,

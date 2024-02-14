@@ -17,7 +17,7 @@ const destinationContext: XcmTerminiContext = {
   event: {},
   outcome: 'Success',
   error: null
-}
+};
 const notification : XcmNotifyMessage = {
   type: XcmNotificationType.Received,
   subscriptionId: 'ok',

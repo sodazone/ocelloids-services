@@ -20,7 +20,7 @@ function updateStops(
   if (paraId) {
     stops.push(paraId);
   }
-
+  // eslint-disable-next-line no-use-before-define
   recursiveExtractStops(xcm, stops);
 }
 
@@ -65,7 +65,7 @@ export function extractXcmWaypoints() {
     map(message => {
       const { instructions, recipient } = message;
       const stops = extractStops(instructions, recipient);
-      return { message, stops }
+      return { message, stops };
     })
   );
 }

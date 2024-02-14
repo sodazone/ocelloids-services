@@ -165,7 +165,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         'Error while posting to webhook %s',
         config.url
       );
-  
+
       // Re-schedule in 5 minutes
       const time = new Date(Date.now() + DEFAULT_DELAY);
       const key = time.toISOString() + id;
@@ -185,13 +185,13 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     config: WebhookNotification,
     msg: XcmNotifyMessage
   ) {
-    if(isXcmMatched(msg)) {
+    if (isXcmMatched(msg)) {
       this.emit('telemetryNotify', notifyTelemetryFrom(
         config.type,
         config.url,
         msg
       ));
-    } else if(isXcmSent(msg)) {
+    } else if (isXcmSent(msg)) {
       console.log('XCM SENT telemetryNotify not implemented!!');
     }
   }
@@ -200,14 +200,14 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     config: WebhookNotification,
     msg: XcmNotifyMessage
   ) {
-    if(isXcmMatched(msg)) {
+    if (isXcmMatched(msg)) {
       this.emit('telemetryNotifyError', notifyTelemetryFrom(
         config.type,
         config.url,
         msg,
         'max_retries'
       ));
-    } else if(isXcmSent(msg)) {
+    } else if (isXcmSent(msg)) {
       console.log('XCM SENT telemetryNotifyError not implemented!!');
     }
   }

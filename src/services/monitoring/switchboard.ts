@@ -503,7 +503,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     // do we want to ensure order of notification?
     const outboundObserver = {
       next: (msg: XcmSent) => {
-        this.#onXcmWaypointReached(msg)
+        this.#onXcmWaypointReached(msg);
       },
       error: (error: any) => {
         this.#log.error(

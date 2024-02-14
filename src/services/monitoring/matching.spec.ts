@@ -25,7 +25,7 @@ const originContext: XcmTerminiContext = {
   blockNumber: '2',
   outcome: 'Success',
   error: null
-}
+};
 
 const outboundMessage : XcmSent = {
   type: XcmNotificationType.Sent,
