@@ -162,7 +162,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
 
 export enum XcmWaypoint {
   Sent = 'SENT',
-  Matched = 'MATCHED',
+  Matched = 'RECEIVED',
   Relayed = 'RELAYED',
   Hop = 'HOP'
 }
