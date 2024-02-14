@@ -22,9 +22,11 @@ import {
   XcmCriteria, XcmReceivedWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { getMessageId, getParaIdFromOrigin } from './util.js';
+import { getMessageId, getParaIdFromOrigin, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
+
+const METHODS_MQ_PROCESSED = ['Processed','ProcessingFailed'];
 
 type UmpReceivedContext = {
   id: U8aFixed,
@@ -127,12 +129,10 @@ export function extractUmpSend(
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
     return source.pipe(
-      filter(event => (
-        ((event.section === 'parachainSystem'
-        && event.method === 'UpwardMessageSent')
-        || (event.section === 'polkadotXcm'
-        && event.method === 'Sent'))
-        && matchSenders(sendersControl, event.extrinsic)
+      filter(event => ((
+        matchEvent(event, 'parachainSystem', 'UpwardMessageSent')
+        || matchEvent(event, 'polkadotXcm', 'Sent')
+      ) && matchSenders(sendersControl, event.extrinsic)
       )),
       umpMessagesSent(),
       findOutboundUmpMessage(
@@ -148,8 +148,7 @@ export function extractUmpReceive(originId: string) {
     : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
-        if (event.section === 'messageQueue'
-        && (event.method === 'Processed' || event.method === 'ProcessingFailed'))
+        if (matchEvent(event, 'messageQueue', METHODS_MQ_PROCESSED))
         {
           return createUmpReceivedWithContext(
             event,

@@ -27,7 +27,8 @@ export function messageCriteria(recipients: string[]) : Criteria {
  * Matches sender account address and public keys, including extra senders.
  */
 export function matchSenders(
-  query: ControlQuery, xt?: types.ExtrinsicWithId
+  query: ControlQuery,
+  xt?: types.ExtrinsicWithId
 ): boolean {
   if (xt === undefined) {
     return false;

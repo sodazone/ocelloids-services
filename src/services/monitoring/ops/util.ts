@@ -7,6 +7,8 @@ import type {
 } from '@polkadot/types/lookup';
 import type { U8aFixed } from '@polkadot/types-codec';
 
+import { types } from '@sodazone/ocelloids';
+
 import {
   HexString,
 } from '../types.js';
@@ -94,4 +96,26 @@ export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed)
   default:
     throw new Error('XCM version not supported');
   }
+}
+
+export function matchEvent(
+  event: types.BlockEvent,
+  section: string,
+  method: string | string[]
+) {
+  return section === event.section
+  && Array.isArray(method)
+    ? method.includes(event.method)
+    : method === event.method;
+}
+
+export function matchExtrinsic(
+  extrinsic: types.ExtrinsicWithId,
+  section: string,
+  method: string | string[]
+): boolean {
+  return section === extrinsic.method.section
+  && Array.isArray(method)
+    ? method.includes(extrinsic.method.method)
+    : method === extrinsic.method.method;
 }

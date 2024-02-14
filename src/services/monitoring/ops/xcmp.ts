@@ -8,13 +8,17 @@ import {
 
 import {
   GenericXcmReceivedWithContext,
-  GenericXcmSentWithContext, XcmCriteria, XcmReceivedWithContext,
+  GenericXcmSentWithContext,
+  XcmCriteria,
+  XcmReceivedWithContext,
   XcmSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
-import { getMessageId } from './util.js';
+import { getMessageId, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
+
+const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
 function findOutboundHrmpMessage(
   messageControl: ControlQuery,
@@ -84,10 +88,8 @@ export function extractXcmpSend(
   : Observable<XcmSentWithContext> => {
     return source.pipe(
       filter(event => (
-        ((event.section === 'xcmpQueue'
-        && event.method === 'XcmpMessageSent')
-        || (event.section === 'polkadotXcm'
-        && event.method === 'Sent'))
+        (matchEvent(event, 'xcmpQueue', 'XcmpMessageSent')
+        || matchEvent(event, 'polkadotXcm', 'Sent'))
         && matchSenders(sendersControl, event.extrinsic)
       )),
       xcmpMessagesSent(),
@@ -101,11 +103,7 @@ export function extractXcmpReceive() {
   : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
       map(event => {
-        if ((event.section === 'xcmpQueue'
-        && event.method === 'Success')
-        || (event.section === 'xcmpQueue'
-        && event.method === 'Fail')
-        ) {
+        if (matchEvent(event, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
           const xcmMessage = event.data as any;
 
           return new GenericXcmReceivedWithContext({
