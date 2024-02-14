@@ -28,18 +28,18 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
         msg.type,
         sub.id,
         msg.messageHash,
-        msg.outcome,
+        msg.waypoint.outcome,
         msg.origin.blockNumber,
         msg.destination.blockNumber
       );
     } else if (isXcmSent(msg)) {
       this.#log.info(
         '[%s ➜] NOTIFICATION %s subscription=%s, messageHash=%s, block=%s',
-        msg.chainId,
+        msg.origin.chainId,
         msg.type,
         sub.id,
         msg.messageHash,
-        msg.blockNumber
+        msg.origin.blockNumber
       );
     }
   }
