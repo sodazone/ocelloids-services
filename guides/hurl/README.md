@@ -6,6 +6,12 @@ To get started, you need to install Hurl. Visit [hurl.dev](https://hurl.dev) for
 
 ## Example Usage
 
+To run a scenario:
+
+```shell
+hurl --variables-file ./dev.env scenarios/transfers/0_create.hurl
+```
+
 You can run the tests using the following command:
 
 ```shell
