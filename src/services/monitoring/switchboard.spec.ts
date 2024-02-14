@@ -10,7 +10,7 @@ import {
   QuerySubscription,
   XcmReceivedWithContext,
   XcmSentWithContext,
-  XcmWaypoint
+  XcmNotificationType
 } from './types';
 import type { Switchboard } from './switchboard.js';
 
@@ -44,7 +44,7 @@ const testSub : QuerySubscription = {
   channels: [{
     type: 'log'
   }],
-  waypoints: [XcmWaypoint.Matched]
+  waypoints: [XcmNotificationType.Received]
 };
 
 describe('switchboard service', () => {

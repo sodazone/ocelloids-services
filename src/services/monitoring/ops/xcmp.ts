@@ -38,7 +38,7 @@ function findOutboundHrmpMessage(
                     messageData: xcmProgram.toU8a(),
                     recipient: recipient.toNumber().toString(),
                     messageHash: xcmProgram.hash.toHex(),
-                    instructions: xcmProgram.toHuman(),
+                    instructions: xcmProgram,
                     messageId: getMessageId(xcmProgram)
                   }));
               }).find(msg => {

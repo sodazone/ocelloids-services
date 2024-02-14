@@ -71,12 +71,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
-      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.recipient, outMsg.messageHash);
+      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
 
       if (outMsg.messageId) {
         // Still we don't know if the inbound is upgraded,
         // i.e. if uses message ids
-        const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.recipient, outMsg.messageId);
+        const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageId);
         try {
           const inMsg = await Promise.any([
             this.#inbound.get(idKey),
@@ -85,12 +85,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
           log.info(
             '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
-            outMsg.chainId,
+            outMsg.origin.chainId,
             hashKey,
             idKey,
             outMsg.subscriptionId,
-            outMsg.blockHash,
-            outMsg.blockNumber
+            outMsg.origin.blockHash,
+            outMsg.origin.blockNumber
           );
           await this.#inbound.batch()
             .del(idKey)
@@ -100,12 +100,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         } catch {
           log.info(
             '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
-            outMsg.chainId,
+            outMsg.origin.chainId,
             hashKey,
             idKey,
             outMsg.subscriptionId,
-            outMsg.blockHash,
-            outMsg.blockNumber
+            outMsg.origin.blockHash,
+            outMsg.origin.blockNumber
           );
           await this.#outbound.batch()
             .put(idKey, outMsg)
@@ -117,22 +117,22 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
             '[%s:o] MATCHED hash=%s (subId=%s, block=%s #%s)',
-            outMsg.chainId,
+            outMsg.origin.chainId,
             hashKey,
             outMsg.subscriptionId,
-            outMsg.blockHash,
-            outMsg.blockNumber
+            outMsg.origin.blockHash,
+            outMsg.origin.blockNumber
           );
           await this.#inbound.del(hashKey);
           await this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
-            outMsg.chainId,
+            outMsg.origin.chainId,
             hashKey,
             outMsg.subscriptionId,
-            outMsg.blockHash,
-            outMsg.blockNumber
+            outMsg.origin.blockHash,
+            outMsg.origin.blockNumber
           );
           await this.#outbound.put(hashKey, outMsg);
         }

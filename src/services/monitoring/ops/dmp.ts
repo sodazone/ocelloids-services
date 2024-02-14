@@ -104,7 +104,7 @@ function createXcmMessageSent(
     blockNumber: blockNumber.toPrimitive(),
     event: event ? event.toHuman() : {},
     recipient: paraId,
-    instructions: xcmProgram.toHuman(),
+    instructions: xcmProgram,
     messageData: data.toU8a(),
     messageHash: xcmProgram.hash.toHex(),
     messageId,

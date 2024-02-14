@@ -24,7 +24,7 @@ export function notifyTelemetryFrom(
     subscription: msg.subscriptionId,
     origin: msg.origin.chainId,
     destination: msg.destination.chainId,
-    outcome: msg.outcome,
+    outcome: msg.destination.outcome,
     channel,
     error
   };

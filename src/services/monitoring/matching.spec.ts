@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmReceived, XcmSent } from './types.js';
+import { XcmNotificationType, XcmReceived, XcmSent, XcmTerminiContext } from './types.js';
 import { _services } from '../../testing/services.js';
 
 const inboundMessage : XcmReceived = {
@@ -18,17 +18,34 @@ const inboundMessage : XcmReceived = {
   blockNumber: '2'
 };
 
-const outboundMessage : XcmSent = {
-  messageHash: '0xCAFE',
-  messageId: '0xB000',
-  recipient: '1',
+const originContext: XcmTerminiContext = {
   chainId: '0',
   event: {},
+  blockHash: '0xBEEF',
+  blockNumber: '2',
+  outcome: 'Success',
+  error: null
+}
+
+const outboundMessage : XcmSent = {
+  type: XcmNotificationType.Sent,
+  messageHash: '0xCAFE',
+  messageId: '0xB000',
+  legs: [{
+    from: '0',
+    to: '1'
+  }],
+  destination: {
+    chainId: '1'
+  },
+  origin: originContext,
+  waypoint: {
+    ...originContext,
+    legIndex: 0
+  },
   instructions: {},
   messageData: '0x0',
   subscriptionId: '1',
-  blockHash: '0xBEEF',
-  blockNumber: '2',
   sender: {
     id: '0x123'
   }

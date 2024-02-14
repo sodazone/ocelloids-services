@@ -33,8 +33,8 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     (message: XcmSent) => {
       outCount.labels(
         message.subscriptionId,
-        message.chainId,
-        message.recipient
+        message.origin.chainId,
+        message.destination.chainId
       ).inc();
     });
 
@@ -42,8 +42,8 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     (inMsg: XcmReceived, outMsg: XcmSent) => {
       matchCount.labels(
         outMsg.subscriptionId,
-        outMsg.chainId,
-        outMsg.recipient,
+        outMsg.origin.chainId,
+        outMsg.destination.chainId,
         inMsg.outcome.toString()
       ).inc();
     });

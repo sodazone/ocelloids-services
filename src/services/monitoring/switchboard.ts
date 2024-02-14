@@ -14,16 +14,16 @@ import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
-  XcmSent,
+  GenericXcmSent,
   QuerySubscription,
   XcmReceived,
-  XcmMatched,
   SubscriptionHandler,
   XcmReceivedWithContext,
   XcmSentWithContext,
   SubscriptionWithId,
   XcmEventListener,
-  XcmNotifyMessage
+  XcmNotifyMessage,
+  XcmSent
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -36,6 +36,7 @@ import { TelemetryEventEmitter } from '../telemetry/types.js';
 import { sendersCriteria, messageCriteria } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
+import { extractXcmWaypoints } from './ops/common.js';
 
 const MAX_SUBS_EPHEMERAL = 1000;
 const MAX_SUBS_PERSISTENT = 1000;
@@ -449,8 +450,9 @@ export class Switchboard {
     const outbound$ =  () => (
       source: Observable<XcmSentWithContext>
     ) => source.pipe(
-      switchMap(msg => from(this.#engine.onOutboundMessage(
-        new XcmSent(id, origin, msg)
+      extractXcmWaypoints(),
+      switchMap(({ message, stops }) => from(this.#engine.onOutboundMessage(
+        new GenericXcmSent(id, origin, message, stops)
       )))
     );
     // TODO: feasible to subscribe next without passing through matching engine?
@@ -609,7 +611,7 @@ export class Switchboard {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
-      if (descriptor.waypoints === '*' || descriptor.waypoints.includes(msg.waypoint)) {
+      if (descriptor.waypoints === '*' || descriptor.waypoints.includes(msg.type)) {
         await this.#notifier.notify(descriptor, msg);
       }
     } else {

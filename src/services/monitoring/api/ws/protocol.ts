@@ -213,7 +213,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         'websocket', ip, xcm
       ));
     } else {
-      console.log(`XCM ${xcm.waypoint} telemetryNotify not implemented.`);
+      console.log(`XCM ${xcm.type} telemetryNotify not implemented.`);
     }
   }
 
@@ -227,7 +227,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         'websocket', ip, xcm, errorMessage
       ));
     } else {
-      console.log(`XCM ${xcm.waypoint} telemetryNotifyError not implemented.`);
+      console.log(`XCM ${xcm.type} telemetryNotifyError not implemented.`);
     }
   }
 }

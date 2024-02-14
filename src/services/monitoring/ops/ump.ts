@@ -104,7 +104,7 @@ function findOutboundUmpMessage(
                   recipient: '0', // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
-                  instructions: xcmProgram.toHuman()
+                  instructions: xcmProgram
                 });
               }).find(msg => {
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;

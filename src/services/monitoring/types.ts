@@ -4,7 +4,7 @@ import { Subscription, Observable } from 'rxjs';
 
 import type { AnyJson } from '@polkadot/types-codec/types';
 import type { Vec, Bytes } from '@polkadot/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
+import type { PolkadotCorePrimitivesOutboundHrmpMessage, XcmVersionedXcm } from '@polkadot/types/lookup';
 
 import { ControlQuery } from '@sodazone/ocelloids';
 
@@ -46,7 +46,7 @@ export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array,
   recipient: string,
   sender: AnyJson,
-  instructions: AnyJson,
+  instructions: XcmVersionedXcm,
 }
 
 export interface XcmReceivedWithContext extends XcmWithContext {
@@ -122,7 +122,7 @@ export class XcmReceived {
 export class GenericXcmSentWithContext implements XcmSentWithContext {
   messageData: Uint8Array;
   recipient: string;
-  instructions: AnyJson;
+  instructions: XcmVersionedXcm;
   messageHash: HexString;
   event: AnyJson;
   blockHash: HexString;
@@ -148,7 +148,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
     return {
       messageData: toHexString(this.messageData),
       recipient: this.recipient,
-      instructions: this.instructions,
+      instructions: this.instructions.toHuman(),
       messageHash: this.messageHash,
       event: this.event,
       blockHash: this.blockHash,
@@ -160,67 +160,135 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
-export enum XcmWaypoint {
-  Sent = 'SENT',
-  Matched = 'RECEIVED',
-  Relayed = 'RELAYED',
-  Hop = 'HOP'
+export enum XcmNotificationType {
+  Sent = 'xcm.sent',
+  Received = 'xcm.received',
+  Relayed = 'xcm.relayed',
+  Hop = 'xcm.hop'
 }
 
-export class XcmSent {
-  waypoint: XcmWaypoint = XcmWaypoint.Sent;
+type XcmTermini = {
+  chainId: string
+};
+
+export interface XcmTerminiContext extends XcmTermini {
+  blockNumber: string,
+  blockHash: HexString,
+  extrinsicId?: string,
+  event: AnyJson,
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+};
+
+interface XcmWaypointContext extends XcmTerminiContext {
+  legIndex: number
+}
+
+type Leg = {
+  from:  string,
+  to: string
+};
+
+export interface XcmSent {
+  type: XcmNotificationType;
   subscriptionId: string;
-  chainId: string;
-  messageData: string;
-  recipient: string;
-  instructions: AnyJson;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
   messageHash: HexString;
-  event: AnyJson;
-  blockHash: HexString;
-  blockNumber: string;
+  messageData: string;
+  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
-  extrinsicId?: string;
+}
+
+export class GenericXcmSent implements XcmSent {
+  type: XcmNotificationType = XcmNotificationType.Sent;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  messageId?: HexString;
 
   constructor(
     subscriptionId: string,
     chainId: string,
-    msg: XcmSentWithContext
+    msg: XcmSentWithContext,
+    stops: string[]
   ) {
-    this.chainId = chainId;
     this.subscriptionId = subscriptionId;
-    this.event = msg.event;
+    this.legs = this.constructLegs(chainId, stops);
+    this.origin = {
+      chainId,
+      blockHash: msg.blockHash,
+      blockNumber: msg.blockNumber.toString(),
+      extrinsicId: msg.extrinsicId,
+      event: msg.event,
+      outcome: 'Success',
+      error: null
+    };
+    this.destination = {
+      chainId: stops[stops.length - 1] // last stop is the destination
+    };
+    this.waypoint = {
+      ...this.origin,
+      legIndex: 0
+    };
     this.messageData = toHexString(msg.messageData);
-    this.recipient = msg.recipient;
-    this.instructions = msg.instructions;
+    this.instructions = msg.instructions.toHuman();
     this.messageHash = msg.messageHash;
     this.messageId = msg.messageId;
-    this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber.toString();
-    this.extrinsicId = msg.extrinsicId;
     this.sender = msg.sender;
+  }
+
+  constructLegs(origin: string, stops: string[]) {
+    const legs: Leg[] = [];
+    const nodes = [origin].concat(stops);
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const from = nodes[i];
+      const to = nodes[i + 1]
+      // If OD are parachains, add intermediate path through relay.
+      // TODO: revisit when XCMP is launched.
+      if (from !== '0' && to !== '0') {
+        legs.push(
+          {
+            from,
+            to: '0'
+          },
+          {
+            from: '0',
+            to
+          }
+        )
+      } else {
+        legs.push({
+          from,
+          to
+        });
+      }
+    }
+
+    return legs;
   }
 }
 
-type XcmMatchedContext = {
-  chainId: string,
-  blockNumber: string,
-  blockHash: HexString,
-  extrinsicId?: string,
-  event: AnyJson
-}
-
 export class XcmMatched {
-  waypoint: XcmWaypoint = XcmWaypoint.Matched;
+  type: XcmNotificationType = XcmNotificationType.Received;
   subscriptionId: string;
-  origin: XcmMatchedContext;
-  destination: XcmMatchedContext;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTerminiContext;
   messageHash: HexString;
   messageData: string;
   instructions: AnyJson;
-  outcome: 'Success' | 'Fail';
   sender: AnyJson;
-  error: AnyJson;
   messageId?: HexString;
 
   constructor(
@@ -228,38 +296,37 @@ export class XcmMatched {
     inMsg: XcmReceived
   ) {
     this.subscriptionId = outMsg.subscriptionId;
+    this.legs = outMsg.legs;
     this.destination = {
       chainId: inMsg.chainId,
       blockNumber: inMsg.blockNumber,
       blockHash: inMsg.blockHash,
       extrinsicId: inMsg.extrinsicId,
-      event: inMsg.event
+      event: inMsg.event,
+      outcome: inMsg.outcome,
+      error: inMsg.error
     };
-    this.origin = {
-      chainId: outMsg.chainId,
-      blockNumber: outMsg.blockNumber,
-      blockHash: outMsg.blockHash,
-      extrinsicId: outMsg.extrinsicId,
-      event: outMsg.event
+    this.origin = outMsg.origin;
+    this.waypoint = {
+      ...this.destination,
+      legIndex: this.legs.length - 1
     };
     this.sender = outMsg.sender;
     this.instructions = outMsg.instructions;
     this.messageData = outMsg.messageData;
     this.messageId = outMsg.messageId;
     this.messageHash = outMsg.messageHash;
-    this.outcome = inMsg.outcome;
-    this.error = inMsg.error;
   }
 }
 
 export type XcmNotifyMessage = XcmSent | XcmMatched;
 
 export function isXcmSent(object: any): object is XcmSent {
-  return object.waypoint !== undefined && object.waypoint === XcmWaypoint.Sent;
+  return object.type !== undefined && object.type === XcmNotificationType.Sent;
 }
 
 export function isXcmMatched(object: any): object is XcmMatched {
-  return object.waypoint !== undefined && object.waypoint === XcmWaypoint.Matched;
+  return object.type !== undefined && object.type === XcmNotificationType.Received;
 }
 
 const $WebhookNotification = z.object({
@@ -304,7 +371,7 @@ export const $QuerySubscription = z.object({
     $LogNotification,
     $WebsocketNotification
   ])).min(1),
-  waypoints: z.literal('*').or(z.array(z.nativeEnum(XcmWaypoint)).min(
+  waypoints: z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(
     1, 'at least 1 waypoint is required'
   ))
 }).refine(schema =>

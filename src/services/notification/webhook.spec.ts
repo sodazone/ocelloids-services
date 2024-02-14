@@ -5,32 +5,40 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { QuerySubscription, XcmWaypoint, XcmNotifyMessage } from '../monitoring/types.js';
+import { QuerySubscription, XcmNotificationType, XcmNotifyMessage, XcmTerminiContext } from '../monitoring/types.js';
 import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 import { NotifierHub } from './hub.js';
 
+const destinationContext: XcmTerminiContext = {
+  blockHash: '0xBEEF',
+  blockNumber: '2',
+  chainId: '1',
+  event: {},
+  outcome: 'Success',
+  error: null
+}
 const notification : XcmNotifyMessage = {
-  waypoint: XcmWaypoint.Matched,
+  type: XcmNotificationType.Received,
   subscriptionId: 'ok',
   messageHash: '0xCAFE',
-  destination: {
-    blockHash: '0xBEEF',
-    blockNumber: '2',
-    chainId: '0',
-    event: {}
+  legs: [{ from: '0', to: '1' }],
+  waypoint: {
+    ...destinationContext,
+    legIndex: 0
   },
+  destination: destinationContext,
   origin: {
     blockHash: '0xBEEF',
     blockNumber: '2',
     chainId: '0',
-    event: {}
+    event: {},
+    outcome: 'Success',
+    error: null
   },
-  outcome: 'Success',
   instructions: '0x',
   messageData: '0x',
   sender: { id: 'w123' },
-  error: undefined
 };
 
 const subOk = {
@@ -50,10 +58,10 @@ const xmlTemplate = `
         "http://dtd.worldpay.com/paymentService_v1.dtd">
 <paymentService version="1.4" merchantCode="MERCHANTCODE">
     <notify>
-      <xcmStatusEvent subscriptionId="{{subscriptionId}}" outcome="{{outcome}}">
+      <xcmStatusEvent subscriptionId="{{subscriptionId}}" outcome="{{waypoint.outcome}}">
         <sender>{{sender.id}}</sender>
-        {{#if error}}
-        <error>{{error}}</error>
+        {{#if waypoint.error}}
+        <error>{{waypoint.error}}</error>
         {{/if}}
       </xcmStatusEvent>
     </notify>
