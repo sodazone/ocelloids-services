@@ -170,7 +170,23 @@
           "unit": "short",
           "unitScale": true
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -210,6 +226,23 @@
           "legendFormat": "{{type}}",
           "range": true,
           "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "sum by (__name__) (xcmon_subscription_errors_count)",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "error",
+          "range": true,
+          "refId": "B",
           "useBackend": false
         }
       ],
@@ -395,7 +428,7 @@
         "defaults": {
           "color": {
             "fixedColor": "green",
-            "mode": "shades"
+            "mode": "fixed"
           },
           "mappings": [],
           "noValue": "0",
@@ -425,10 +458,10 @@
       },
       "id": 5,
       "options": {
-        "displayMode": "basic",
+        "displayMode": "gradient",
         "maxVizHeight": 300,
         "minVizHeight": 16,
-        "minVizWidth": 8,
+        "minVizWidth": 5,
         "namePlacement": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -440,7 +473,7 @@
         },
         "showUnfilled": true,
         "sizing": "auto",
-        "valueMode": "color"
+        "valueMode": "text"
       },
       "pluginVersion": "10.3.1",
       "targets": [
@@ -679,13 +712,13 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "XCM Monitoring Server",
   "uid": "f127df32-837f-4adf-acf5-c944cadc9dc5",
-  "version": 89,
+  "version": 92,
   "weekStart": ""
 }
