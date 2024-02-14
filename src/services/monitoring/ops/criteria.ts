@@ -33,6 +33,8 @@ export function matchSenders(
     return false;
   }
 
+  // TODO: this is not needed if the query is '*'
+  // but no easy way to know it.
   const signersData = xt.isSigned
     ? {
       signer: Object.assign({},
