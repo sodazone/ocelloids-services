@@ -370,14 +370,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           continue;
         }
 
-        const inbound$ = () => (
+        const emitInbound = () => (
           source: Observable<XcmReceivedWithContext>
         ) => source.pipe(
           map(msg => from(this.#engine.onInboundMessage(
             new XcmReceived(id, chainId, msg)
           )))
         );
-        const inboundHandler = {
+        const inboundObserver = {
           error: (error: any) => {
             this.#log.error(
               error,
@@ -400,8 +400,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractUmpReceive(origin),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         } else if (isRelay(this.#config, origin)) {
           // VMP DMP
@@ -412,8 +412,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractDmpReceive(),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         } else {
           // Inbound HRMP / XCMP transport
@@ -424,8 +424,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             sub: this.#sharedBlockEvents(chainId)
               .pipe(
                 extractXcmpReceive(),
-                inbound$()
-              ).subscribe(inboundHandler)
+                emitInbound()
+              ).subscribe(inboundObserver)
           });
         }
       }
@@ -459,14 +459,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       messageCriteria(destinations)
     );
 
-    const outbound$ =  () => (
+    const emitOutbound =  () => (
       source: Observable<XcmSentWithContext>
     ) => source.pipe(
       map(msg => from(this.#engine.onOutboundMessage(
         new XcmSent(id, origin, msg)
       )))
     );
-    const outboundHandler = {
+    const outboundObserver = {
       error: (error: any) => {
         this.#log.error(
           error,
@@ -495,8 +495,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   messageControl
                 }
               ),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
 
         // VMP DMP
@@ -513,8 +513,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   messageControl
                 }
               ),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
       } else {
         // Outbound HRMP / XCMP transport
@@ -531,8 +531,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               },
               getHrmp
             ),
-            outbound$()
-          ).subscribe(outboundHandler)
+            emitOutbound()
+          ).subscribe(outboundObserver)
         });
 
         // VMP UMP
@@ -551,8 +551,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                 getUmp
               ),
               retryWithTruncatedExpBackoff(),
-              outbound$()
-            ).subscribe(outboundHandler)
+              emitOutbound()
+            ).subscribe(outboundObserver)
         });
       }
     } catch (error) {
