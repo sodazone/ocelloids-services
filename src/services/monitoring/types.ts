@@ -255,11 +255,11 @@ export class XcmMatched {
 export type XcmNotifyMessage = XcmSent | XcmMatched;
 
 export function isXcmSent(object: any): object is XcmSent {
-  return object.eventType !== undefined && object.eventType === XcmWaypoint.Sent;
+  return object.waypoint !== undefined && object.waypoint === XcmWaypoint.Sent;
 }
 
 export function isXcmMatched(object: any): object is XcmMatched {
-  return object.eventType !== undefined && object.eventType === XcmWaypoint.Matched;
+  return object.waypoint !== undefined && object.waypoint === XcmWaypoint.Matched;
 }
 
 const $WebhookNotification = z.object({
@@ -304,7 +304,9 @@ export const $QuerySubscription = z.object({
     $LogNotification,
     $WebsocketNotification
   ])).min(1),
-
+  waypoints: z.literal('*').or(z.array(z.nativeEnum(XcmWaypoint)).min(
+    1, 'at least 1 waypoint is required'
+  ))
 }).refine(schema =>
   !schema.ephemeral
   || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')

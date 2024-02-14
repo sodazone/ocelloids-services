@@ -5,13 +5,13 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { QuerySubscription, XcmEventType, XcmNotifyMessage } from '../monitoring/types.js';
+import { QuerySubscription, XcmWaypoint, XcmNotifyMessage } from '../monitoring/types.js';
 import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 import { NotifierHub } from './hub.js';
 
 const notification : XcmNotifyMessage = {
-  eventType: XcmEventType.Matched,
+  waypoint: XcmWaypoint.Matched,
   subscriptionId: 'ok',
   messageHash: '0xCAFE',
   destination: {
@@ -41,7 +41,8 @@ const subOk = {
     url: 'http://localhost/ok'
   }],
   origin: '0',
-  senders: '*'
+  senders: '*',
+  waypoints: '*'
 } as QuerySubscription;
 
 const xmlTemplate = `
@@ -68,7 +69,8 @@ const subOkXml = {
     template: xmlTemplate
   }],
   origin: '1000',
-  senders: '*'
+  senders: '*',
+  waypoints: '*'
 } as QuerySubscription;
 
 const subFail = {
@@ -79,7 +81,8 @@ const subFail = {
     url: 'http://localhost/not-found'
   }],
   origin: '0',
-  senders: '*'
+  senders: '*',
+  waypoints: '*'
 } as QuerySubscription;
 
 const authToken = 'secret';
@@ -93,7 +96,8 @@ const subOkAuth = {
     bearer: authToken
   }],
   origin: '0',
-  senders: '*'
+  senders: '*',
+  waypoints: '*'
 } as QuerySubscription;
 
 describe('webhook notifier', () => {

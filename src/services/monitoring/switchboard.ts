@@ -22,7 +22,8 @@ import {
   XcmReceivedWithContext,
   XcmSentWithContext,
   SubscriptionWithId,
-  XcmEventListener
+  XcmEventListener,
+  XcmNotifyMessage
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -103,7 +104,7 @@ export class Switchboard {
     this.#log = log;
     this.#config = config;
 
-    this.#engine = new MatchingEngine(ctx, this.#onXcmMatched.bind(this));
+    this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this));
     this.#catcher = new HeadCatcher(ctx);
     this.#notifier = new NotifierHub(ctx);
     this.#stats = {
@@ -456,7 +457,7 @@ export class Switchboard {
     // do we want to ensure order of notification?
     const outboundHandler = {
       next: (msg: XcmSent) => {
-        this.#onXcmSent(msg)
+        this.#onXcmWaypointReached(msg)
       },
       error: (error: any) => {
         this.#log.error(
@@ -604,25 +605,13 @@ export class Switchboard {
     }
   }
 
-  async #onXcmMatched(msg: XcmMatched) {
+  async #onXcmWaypointReached(msg: XcmNotifyMessage) {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
-      await this.#notifier.notify(descriptor, msg);
-    } else {
-      // this could happen with closed ephemeral subscriptions
-      this.#log.warn(
-        'Unable to find descriptor for subscription %s',
-        subscriptionId
-      );
-    }
-  }
-
-  async #onXcmSent(msg: XcmSent) {
-    const { subscriptionId } = msg;
-    if (this.#subs[subscriptionId]) {
-      const { descriptor } = this.#subs[subscriptionId];
-      await this.#notifier.notify(descriptor, msg);
+      if (descriptor.waypoints === '*' || descriptor.waypoints.includes(msg.waypoint)) {
+        await this.#notifier.notify(descriptor, msg);
+      }
     } else {
       // this could happen with closed ephemeral subscriptions
       this.#log.warn(

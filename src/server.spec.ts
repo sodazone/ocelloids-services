@@ -13,7 +13,8 @@ const testSubContent = {
   ],
   channels: [{
     type: 'log'
-  }]
+  }],
+  waypoints: '*'
 } as QuerySubscription;
 
 const { createServer } = await import('./server.js');
@@ -82,7 +83,8 @@ describe('monitoring server API', () => {
           ],
           channels: [{
             type: 'log'
-          }]
+          }],
+          waypoints: '*'
         } as QuerySubscription
       }, (_err, response) => {
         expect(response.statusCode)

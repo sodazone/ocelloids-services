@@ -9,7 +9,8 @@ import { SubsStore } from '../persistence/subs';
 import {
   QuerySubscription,
   XcmReceivedWithContext,
-  XcmSentWithContext
+  XcmSentWithContext,
+  XcmWaypoint
 } from './types';
 import type { Switchboard } from './switchboard.js';
 
@@ -42,7 +43,8 @@ const testSub : QuerySubscription = {
   ],
   channels: [{
     type: 'log'
-  }]
+  }],
+  waypoints: [XcmWaypoint.Matched]
 };
 
 describe('switchboard service', () => {
