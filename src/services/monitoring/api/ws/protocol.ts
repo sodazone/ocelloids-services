@@ -244,31 +244,4 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       console.log(`XCM ${xcm.type} telemetryNotifyError not implemented.`);
     }
   }
-
-  #telemetryNotify(
-    ip: string,
-    xcm: XcmNotifyMessage
-  ) {
-    if(isXcmMatched(xcm)) {
-      this.emit('telemetryNotify', notifyTelemetryFrom(
-        'websocket', ip, xcm
-      ));
-    } else {
-      console.log(`XCM ${xcm.type} telemetryNotify not implemented.`);
-    }
-  }
-
-  #telemetryNotifyError(
-    ip: string,
-    xcm: XcmNotifyMessage,
-    errorMessage: string
-  ) {
-    if(isXcmMatched(xcm)) {
-      this.emit('telemetryNotifyError', notifyTelemetryFrom(
-        'websocket', ip, xcm, errorMessage
-      ));
-    } else {
-      console.log(`XCM ${xcm.type} telemetryNotifyError not implemented.`);
-    }
-  }
 }
