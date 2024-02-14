@@ -113,6 +113,9 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                   ) as Observable<Vec<Bytes>>
                 ])
               ),
+              this.#tapError(chainId,
+                'zip(hrmpOutboundMessages & upwardMessages)'
+              ),
               retryWithTruncatedExpBackoff(),
               map(([hrmpMessages, umpMessages]) =>  {
                 return {
@@ -207,20 +210,24 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       // only applies to light clients
       pipe = this.#apis.rx[chainId].pipe(
         finalizedHeads(),
+        this.#tapError(chainId, 'finalizedHeads()'),
         retryWithTruncatedExpBackoff(),
         this.#catchUpHeads(chainId, api),
         mergeMap(head => from(this.#getBlock(
           chainId, api, head.hash.toHex()
         ))),
+        this.#tapError(chainId, '#getBlock()'),
         retryWithTruncatedExpBackoff(),
         share()
       );
     } else {
       pipe = this.#apis.rx[chainId].pipe(
         finalizedHeads(),
+        this.#tapError(chainId, 'finalizedHeads()'),
         retryWithTruncatedExpBackoff(),
         this.#catchUpHeads(chainId, api),
         blockFromHeader(api),
+        this.#tapError(chainId, 'blockFromHeader()'),
         retryWithTruncatedExpBackoff(),
         share()
       );
@@ -244,6 +251,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
+        // TODO: handle error not found in cache
         return from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
           map(buffer => {
             return api.registry.createType(
@@ -261,6 +269,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
              at.query.parachainSystem.hrmpOutboundMessages()
            ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
           ),
+          this.#tapError(chainId, 'at.query.parachainSystem.hrmpOutboundMessages()'),
           retryWithTruncatedExpBackoff()
         );
       };
@@ -278,6 +287,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
+        // TODO: handle error not found in cache
         return from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
           map(buffer => {
             return api.registry.createType(
@@ -295,6 +305,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
              at.query.parachainSystem.upwardMessages()
            ) as Observable<Vec<Bytes>>
           ),
+          this.#tapError(chainId, 'at.query.parachainSystem.upwardMessages()'),
           retryWithTruncatedExpBackoff()
         );
       };
@@ -390,6 +401,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         mergeMap(head => from(
           this.#doCatchUp(chainId, api, head)
         )),
+        this.#tapError(chainId, '#doCatchUp()'),
         retryWithTruncatedExpBackoff(),
         mergeAll()
       );
@@ -515,6 +527,18 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     await this.#janitor.schedule({
       sublevel: prefixes.cache.family(chainId),
       key
+    });
+  }
+
+  #tapError<T>(chainId: string, method: string) {
+    return tap<T>({
+      error: (e) => {
+        this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId);
+        this.emit('telemetryHeadCatcherError', {
+          chainId,
+          method
+        });
+      }
     });
   }
 }

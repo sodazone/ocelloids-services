@@ -46,6 +46,7 @@ export type TelemetryEvents = {
   telemetryBlockCacheHit: (msg: {chainId: string}) => void,
   telemetrySocketListener: (ip: string, sub: QuerySubscription, close?: boolean) => void,
   telemetrySubscriptionError: (msg: {subscriptionId: string, chainId: string, direction: 'in'|'out'}) => void,
+  telemetryHeadCatcherError: (msg: {chainId: string, method: string}) => void
 } & TelemetryNotifierEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;
