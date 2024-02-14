@@ -48,7 +48,7 @@ function extractStops(message: XcmVersionedXcm, nextStop: string): string[] {
 
   switch (message.type) {
   case 'V2':
-    recursiveExtractStops(message.asV3, stops);
+    recursiveExtractStops(message.asV2, stops);
     return stops;
   case 'V3':
     recursiveExtractStops(message.asV3, stops);
