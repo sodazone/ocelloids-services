@@ -3,23 +3,14 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmNotificationType, XcmReceived, XcmSent, XcmTerminiContext } from './types.js';
+import { XcmNotificationType, XcmReceived, XcmRelayedWithContext, XcmSent, XcmTerminiContext } from './types.js';
 import { _services } from '../../testing/services.js';
+import { Janitor } from '../persistence/janitor.js';
 
-const inboundMessage : XcmReceived = {
-  messageHash: '0xCAFE',
-  messageId: '0xB000',
-  chainId: '1',
-  outcome: 'Success',
-  error: null,
-  event: {},
-  subscriptionId: '1',
-  blockHash: '0xBEEF',
-  blockNumber: '2'
-};
+const SUBSCRIPTION_ID = '1';
 
 const originContext: XcmTerminiContext = {
-  chainId: '0',
+  chainId: '1000',
   event: {},
   blockHash: '0xBEEF',
   blockNumber: '2',
@@ -31,12 +22,18 @@ const outboundMessage : XcmSent = {
   type: XcmNotificationType.Sent,
   messageHash: '0xCAFE',
   messageId: '0xB000',
-  legs: [{
-    from: '0',
-    to: '1'
-  }],
+  legs: [
+    {
+      from: '1000',
+      to: '0'
+    },
+    {
+      from: '0',
+      to: '2000'
+    }
+  ],
   destination: {
-    chainId: '1'
+    chainId: '2000'
   },
   origin: originContext,
   waypoint: {
@@ -45,19 +42,45 @@ const outboundMessage : XcmSent = {
   },
   instructions: {},
   messageData: '0x0',
-  subscriptionId: '1',
+  subscriptionId: SUBSCRIPTION_ID,
   sender: {
     id: '0x123'
   }
+};
+
+const inboundMessage : XcmReceived = {
+  messageHash: '0xCAFE',
+  messageId: '0xB000',
+  chainId: '2000',
+  outcome: 'Success',
+  error: null,
+  event: {},
+  subscriptionId: SUBSCRIPTION_ID,
+  blockHash: '0xBEEF',
+  blockNumber: '2'
+};
+
+const relayMessage: XcmRelayedWithContext = {
+  messageHash: '0xCAFE',
+  messageId: '0xB000',
+  extrinsicId: '5-1',
+  blockHash: '0x828',
+  blockNumber: '5',
+  recipient: '2000',
+  origin: '1000',
+  outcome: 'Success',
+  error: null
 };
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
   let db: Level;
   const cb = jest.fn(() => {});
+  const schedule = jest.fn(() => {});
 
   beforeEach(() => {
     cb.mockReset();
+    schedule.mockReset();
 
     db = new Level();
     engine = new MatchingEngine({
@@ -65,7 +88,10 @@ describe('message matching engine', () => {
       storage: {
         ..._services.storage,
         root: db
-      }
+      },
+      janitor: {
+        schedule
+      } as unknown as Janitor
     }, cb);
   });
 
@@ -88,6 +114,41 @@ describe('message matching engine', () => {
       engine.onOutboundMessage(outboundMessage),
       engine.onInboundMessage(inboundMessage)
     ]);
+
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('should match outbound and relay', async () => {
+    await engine.onOutboundMessage(outboundMessage);
+    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
+
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('should match relay and outbound', async () => {
+    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
+    await engine.onOutboundMessage(outboundMessage);
+    expect(schedule).toHaveBeenCalledTimes(1);
+
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('should match relay and outbound and inbound', async () => {
+    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
+    await engine.onOutboundMessage(outboundMessage);
+    await engine.onInboundMessage(inboundMessage);
+    expect(schedule).toHaveBeenCalledTimes(1);
+
+    expect(cb).toHaveBeenCalledTimes(2);
+  });
+
+  it('should match outbound and inbound by message hash', async () => {
+    const imsg: XcmReceived = {
+      ...inboundMessage,
+      messageId: inboundMessage.messageHash
+    };
+    await engine.onOutboundMessage(outboundMessage);
+    await engine.onInboundMessage(imsg);
 
     expect(cb).toHaveBeenCalledTimes(1);
   });
