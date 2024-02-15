@@ -30,11 +30,20 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     help: 'Block cache hits.',
     labelNames: ['origin']
   });
+  const catcherErrorsCount = new Counter({
+    name: 'xcmon_catcher_errors_total',
+    help: 'Head catcher errors.',
+    labelNames: ['origin', 'step']
+  });
 
   const blockHeightGauge = new Gauge({
     name: 'xcmon_catcher_block_height',
     help: 'Block height.',
     labelNames: ['origin']
+  });
+
+  source.on('telemetryHeadCatcherError', ({ chainId, method }) => {
+    catcherErrorsCount.labels(chainId, method).inc();
   });
 
   source.on('telemetryBlockCacheHit', ({ chainId }) => {
