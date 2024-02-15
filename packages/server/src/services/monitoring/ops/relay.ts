@@ -31,17 +31,16 @@ export function extractRelayReceive(
           for (const { recipient, data } of horizontalMessages) {
             if (messageControl.value.test({ recipient: recipient.toString() })) {
               const xcms = fromXcmpFormat(data);
-              const { blockHash, blockNumber } = extrinsic;
+              const { blockHash, blockNumber, extrinsicId } = extrinsic;
               return xcms.map(xcmProgram =>
                 new GenericXcmRelayedWithContext({
                   blockHash: blockHash.toHex(),
                   blockNumber: blockNumber.toPrimitive(),
                   recipient: recipient.toString(),
-                  instructions: xcmProgram,
-                  messageData: data.toU8a(),
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   origin,
+                  extrinsicId,
                   outcome: dispatchError ? 'Fail' : 'Success',
                   error: dispatchError ? dispatchError.toHuman() : null
                 })

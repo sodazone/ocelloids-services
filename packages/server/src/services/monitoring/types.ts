@@ -55,10 +55,8 @@ export interface XcmReceivedWithContext extends XcmWithContext {
 }
 
 export interface XcmRelayedWithContext extends XcmReceivedWithContext {
-  messageData: Uint8Array,
   recipient: string,
   origin: string,
-  instructions: XcmVersionedXcm
 }
 
 export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
@@ -68,10 +66,8 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
   blockHash: HexString;
   messageHash: HexString;
   messageId?: HexString;
-  messageData: Uint8Array;
   recipient: string;
   origin: string;
-  instructions: XcmVersionedXcm;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
 
@@ -82,10 +78,8 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
-    this.messageData = msg.messageData;
     this.recipient = msg.recipient;
     this.origin = msg.origin;
-    this.instructions = msg.instructions;
     this.outcome = msg.outcome;
     this.error = msg.error;
   }
@@ -98,10 +92,8 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
       event: this.event,
-      messageData: toHexString(this.messageData),
       recipient: this.recipient,
       origin: this.origin,
-      instructions: this.instructions.toHuman(),
       outcome: this.outcome,
       error: this.error
     };
