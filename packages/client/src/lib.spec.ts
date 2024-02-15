@@ -1,4 +1,4 @@
-import { hello } from './main';
+import { hello } from './lib';
 
 describe('Hello', () => {
   it('should return a greeting', () => {

@@ -29,7 +29,7 @@
     "testEnvironment": "node",
     "collectCoverage": true,
     "testPathIgnorePatterns": [
-      "./src/__browser__"
+      "./deno_dist"
     ],
     "coveragePathIgnorePatterns": [
       ".*/dist",
