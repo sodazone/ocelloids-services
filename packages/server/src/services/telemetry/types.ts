@@ -1,6 +1,6 @@
 import type { Header } from '@polkadot/types/interfaces';
 
-import { QuerySubscription, XcmMatched, XcmReceived, XcmSent } from '../monitoring/types.js';
+import { QuerySubscription, XcmNotifyMessage, XcmReceived, XcmSent } from '../monitoring/types.js';
 import { TypedEventEmitter } from '../types.js';
 
 export type NotifyTelemetryMessage = {
@@ -8,6 +8,7 @@ export type NotifyTelemetryMessage = {
   subscription: string,
   origin: string,
   destination: string,
+  waypoint: string,
   outcome: string,
   channel: string,
   error?: string
@@ -16,7 +17,7 @@ export type NotifyTelemetryMessage = {
 export function notifyTelemetryFrom(
   type: string,
   channel: string,
-  msg: XcmMatched,
+  msg: XcmNotifyMessage,
   error?: string
 ) : NotifyTelemetryMessage {
   return {
@@ -24,7 +25,8 @@ export function notifyTelemetryFrom(
     subscription: msg.subscriptionId,
     origin: msg.origin.chainId,
     destination: msg.destination.chainId,
-    outcome: msg.destination.outcome,
+    waypoint: msg.waypoint.chainId,
+    outcome: msg.waypoint.outcome,
     channel,
     error
   };

@@ -4,7 +4,7 @@ import got from 'got';
 import { ulid } from 'ulidx';
 
 import version from '../../version.js';
-import { QuerySubscription, WebhookNotification, XcmNotifyMessage, isXcmMatched, isXcmSent } from '../monitoring/types.js';
+import { QuerySubscription, WebhookNotification, XcmNotifyMessage } from '../monitoring/types.js';
 import { Logger, Services } from '../types.js';
 
 import { Notifier, NotifierEmitter } from './types.js';
@@ -185,30 +185,22 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     config: WebhookNotification,
     msg: XcmNotifyMessage
   ) {
-    if (isXcmMatched(msg)) {
-      this.emit('telemetryNotify', notifyTelemetryFrom(
-        config.type,
-        config.url,
-        msg
-      ));
-    } else if (isXcmSent(msg)) {
-      console.log('XCM SENT telemetryNotify not implemented!!');
-    }
+    this.emit('telemetryNotify', notifyTelemetryFrom(
+      config.type,
+      config.url,
+      msg
+    ));
   }
 
   #telemetryNotifyError(
     config: WebhookNotification,
     msg: XcmNotifyMessage
   ) {
-    if (isXcmMatched(msg)) {
-      this.emit('telemetryNotifyError', notifyTelemetryFrom(
-        config.type,
-        config.url,
-        msg,
-        'max_retries'
-      ));
-    } else if (isXcmSent(msg)) {
-      console.log('XCM SENT telemetryNotifyError not implemented!!');
-    }
+    this.emit('telemetryNotifyError', notifyTelemetryFrom(
+      config.type,
+      config.url,
+      msg,
+      'max_retries'
+    ));
   }
 }
