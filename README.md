@@ -4,7 +4,7 @@ This repository hosts the codebase of both the XCM Monitoring Server and its cli
 
 ## Monitoring Server
 
-The XCM Monitoring Server is a software application designed to monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. With real-time notifications, flexible subscription management, and light client support, users can stay informed about relevant interactions effortlessly.
+The XCM Monitoring Server is a software application designed to monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. With real-time notifications, flexible subscription management, and light client support, users can reliably stay informed about relevant interactions.
 
 Please find the server package: https://github.com/sodazone/xcm-monitoring/blob/main/packages/server/
 
