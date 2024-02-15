@@ -37,7 +37,8 @@ export const prefixes = {
   },
   matching: {
     outbound: 'ma:out',
-    inbound: 'ma:in'
+    inbound: 'ma:in',
+    relay: 'ma:relay'
   }
 };
 export const jsonEncoded = { valueEncoding: 'json' };

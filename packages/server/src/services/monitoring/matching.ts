@@ -8,14 +8,17 @@ import {
 } from '../types.js';
 import {
   XcmMatched,
+  XcmNotifyMessage,
   XcmReceived,
+  XcmRelayed,
+  XcmRelayedWithContext,
   XcmSent
 } from './types.js';
 
 import { Janitor } from '../persistence/janitor.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
 
-export type XcmMatchedReceiver = (message: XcmMatched) => Promise<void> | void;
+export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void;
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
 
 export type ChainBlock = {
@@ -42,6 +45,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   readonly #outbound: SubLevel<XcmSent>;
   readonly #inbound: SubLevel<XcmReceived>;
+  readonly #relay: SubLevel<XcmRelayedWithContext>;
   readonly #mutex: Mutex;
   readonly #xcmMatchedReceiver: XcmMatchedReceiver;
 
@@ -60,6 +64,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
     this.#inbound = db.sublevel<string, XcmReceived>(prefixes.matching.inbound, jsonEncoded);
+    this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
@@ -75,6 +80,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         // Still we don't know if the inbound is upgraded,
         // i.e. if uses message ids
         const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageId);
+        // try to get any stored relay messages and notify if found.
+        // do not clean up outbound in case inbound has not arrived yet.
+        await this.#findRelayInbound(idKey, outMsg);
+        // try to get stored inbound messages and notify if any
+        // if inbound messages are found, clean up outbound.
+        // if relay messages arrive after outbound and inbound, it will not match.
         try {
           const inMsg = await Promise.any([
             this.#inbound.get(idKey),
@@ -111,6 +122,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             .write();
         }
       } else {
+        // try to get any stored relay messages and notify if found.
+        // do not clean up outbound in case inbound has not arrived yet.
+        await this.#findRelayInbound(hashKey, outMsg);
+        // try to get stored inbound messages and notify if any
         try {
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
@@ -160,6 +175,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             inMsg.blockHash,
             inMsg.blockNumber
           );
+          // TODO: check if should delete idKey as well
           await this.#outbound.del(hashKey);
           await this.#onXcmMatched(outMsg, inMsg);
         } catch {
@@ -226,6 +242,63 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     });
   }
 
+  async onRelayedMessage(id: string, relayMsg: XcmRelayedWithContext) {
+    await this.#mutex.runExclusive(async () => {
+      if (relayMsg.messageId) {
+        // If there is messageId in relay, there must be messageId on outbound
+        const idKey = this.#matchingKey(id, relayMsg.recipient, relayMsg.messageId);
+        await this.#findRelayOutbound(idKey, id, relayMsg);
+      } else {
+        const hashKey = this.#matchingKey(id, relayMsg.recipient, relayMsg.messageHash);
+        await this.#findRelayOutbound(hashKey, id, relayMsg);
+      }
+    });
+  }
+
+  async #findRelayOutbound(key: string, id: string, relayMsg: XcmRelayedWithContext) {
+    const log = this.#log;
+    try {
+      const outMsg = await this.#outbound.get(key);
+      log.info(
+        '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
+        outMsg.origin.chainId,
+        key,
+        id,
+        relayMsg.blockHash,
+        relayMsg.blockNumber
+      );
+      await this.#onXcmRelayed(outMsg, relayMsg);
+    } catch {
+      log.info(
+        '[%s:r] STORED key=%s (subId=%s, block=%s #%s)',
+        relayMsg.origin,
+        key,
+        id,
+        relayMsg.blockHash,
+        relayMsg.blockNumber
+      );
+      await this.#relay.put(key, relayMsg);
+    }
+  }
+
+  async #findRelayInbound(key: string, outMsg: XcmSent) {
+    const log = this.#log;
+    try {
+      const relayMsg = await this.#relay.get(key);
+      log.info(
+        '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
+        outMsg.origin.chainId,
+        key,
+        outMsg.subscriptionId,
+        outMsg.origin.blockHash,
+        outMsg.origin.blockNumber
+      );
+      await this.#onXcmRelayed(outMsg, relayMsg);
+    } catch {
+      // noop, it's possible that there are no relay subscriptions for an origin.
+    }
+  }
+
   async stop() {
     await this.#mutex.waitForUnlock();
   }
@@ -271,6 +344,20 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     try {
       const message: XcmMatched = new XcmMatched(outMsg, inMsg);
+      await this.#xcmMatchedReceiver(message);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
+  }
+
+  async #onXcmRelayed(
+    outMsg: XcmSent,
+    relayMsg: XcmRelayedWithContext
+  ) {
+    const message: XcmRelayed = new XcmRelayed(outMsg, relayMsg);
+    this.emit('telemetryRelayed', message);
+
+    try {
       await this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');

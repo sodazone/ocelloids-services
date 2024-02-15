@@ -34,7 +34,7 @@ export type XcmCriteria = {
 }
 
 export type XcmWithContext = {
-  event: AnyJson,
+  event?: AnyJson,
   extrinsicId?: string,
   blockNumber: string | number,
   blockHash: HexString,
@@ -46,12 +46,66 @@ export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array,
   recipient: string,
   sender: AnyJson,
-  instructions: XcmVersionedXcm,
+  instructions: XcmVersionedXcm
 }
 
 export interface XcmReceivedWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail',
   error: AnyJson
+}
+
+export interface XcmRelayedWithContext extends XcmReceivedWithContext {
+  messageData: Uint8Array,
+  recipient: string,
+  origin: string,
+  instructions: XcmVersionedXcm
+}
+
+export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
+  event: AnyJson;
+  extrinsicId?: string;
+  blockNumber: string | number;
+  blockHash: HexString;
+  messageHash: HexString;
+  messageId?: HexString;
+  messageData: Uint8Array;
+  recipient: string;
+  origin: string;
+  instructions: XcmVersionedXcm;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+
+  constructor(msg: XcmRelayedWithContext) {
+    this.event = msg.event;
+    this.messageHash = msg.messageHash;
+    this.messageId = msg.messageId ?? msg.messageHash;
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber.toString();
+    this.extrinsicId = msg.extrinsicId;
+    this.messageData = msg.messageData;
+    this.recipient = msg.recipient;
+    this.origin = msg.origin;
+    this.instructions = msg.instructions;
+    this.outcome = msg.outcome;
+    this.error = msg.error;
+  }
+
+  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
+    return {
+      messageHash: this.messageHash,
+      messageId: this.messageId,
+      extrinsicId: this.extrinsicId,
+      blockHash: this.blockHash,
+      blockNumber: this.blockNumber,
+      event: this.event,
+      messageData: toHexString(this.messageData),
+      recipient: this.recipient,
+      origin: this.origin,
+      instructions: this.instructions.toHuman(),
+      outcome: this.outcome,
+      error: this.error
+    };
+  }
 }
 
 export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
@@ -322,7 +376,51 @@ export class XcmMatched {
   }
 }
 
-export type XcmNotifyMessage = XcmSent | XcmMatched;
+export class XcmRelayed {
+  type: XcmNotificationType = XcmNotificationType.Relayed;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  messageId?: HexString;
+
+  constructor(
+    outMsg: XcmSent,
+    relayMsg: XcmRelayedWithContext
+  ) {
+    this.subscriptionId = outMsg.subscriptionId;
+    this.legs = outMsg.legs;
+    this.destination = outMsg.destination;
+    this.origin = outMsg.origin;
+    this.waypoint = this.constructWaypoint(relayMsg, outMsg.legs);
+    this.sender = outMsg.sender;
+    this.instructions = outMsg.instructions;
+    this.messageData = outMsg.messageData;
+    this.messageId = outMsg.messageId;
+    this.messageHash = outMsg.messageHash;
+  }
+
+  constructWaypoint(relayMsg: XcmRelayedWithContext, legs: Leg[]) {
+    const legIndex = legs.findIndex(l => l.from === relayMsg.origin && l.to === '0');
+    return {
+      legIndex,
+      chainId: '0', // relay waypoint always at relay chain
+      blockNumber: relayMsg.blockNumber.toString(),
+      blockHash: relayMsg.blockHash,
+      extrinsicId: relayMsg.extrinsicId,
+      event: relayMsg.event,
+      outcome: relayMsg.outcome,
+      error: relayMsg.error
+    };
+  }
+}
+
+export type XcmNotifyMessage = XcmSent | XcmMatched | XcmRelayed;
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent;
@@ -406,7 +504,8 @@ export type SubscriptionHandler = {
   destinationSubs: SubscriptionWithId[],
   sendersControl: ControlQuery,
   messageControl: ControlQuery,
-  descriptor: QuerySubscription
+  descriptor: QuerySubscription,
+  relaySub?: SubscriptionWithId
 }
 
 export type SubscriptionStats = {

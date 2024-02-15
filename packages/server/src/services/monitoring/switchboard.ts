@@ -26,7 +26,9 @@ import {
   XcmEventListener,
   XcmNotifyMessage,
   XcmSent,
-  SubscriptionStats
+  SubscriptionStats,
+  XcmNotificationType,
+  XcmRelayedWithContext
 } from './types.js';
 
 import { ServiceConfiguration, isRelay } from '../config.js';
@@ -41,6 +43,7 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 import { extractXcmWaypoints } from './ops/common.js';
 import { errorMessage } from '../../errors.js';
+import { extractRelayReceive } from './ops/relay.js';
 
 type Monitor = {
   subs: SubscriptionWithId[]
@@ -192,7 +195,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     try {
       const {
-        descriptor: { origin, ephemeral }, originSubs, destinationSubs
+        descriptor: { origin, ephemeral }, originSubs, destinationSubs, relaySub
       } = this.#subs[id];
 
       this.#log.info(
@@ -203,6 +206,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
       originSubs.forEach(({ sub }) => sub.unsubscribe());
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
+      if (relaySub) {
+        relaySub.sub.unsubscribe();
+      }
       delete this.#subs[id];
 
       await this.#engine.clearPendingStates(id);
@@ -234,12 +240,16 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     for (const {
       descriptor: { id },
       originSubs,
-      destinationSubs
+      destinationSubs,
+      relaySub
     } of Object.values(this.#subs)) {
       this.#log.info('Unsubscribe %s', id);
 
       originSubs.forEach(({ sub }) => sub.unsubscribe());
       destinationSubs.forEach(({ sub }) => sub.unsubscribe());
+      if (relaySub) {
+        relaySub.sub.unsubscribe();
+      }
     }
 
     this.#catcher.stop();
@@ -276,6 +286,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     const updatedSubs = this.#updateDestinationSubscriptions(id);
     this.#subs[id].destinationSubs = updatedSubs;
+    // TODO: update relay sub if exists
   }
 
   /**
@@ -320,10 +331,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @private
    */
   #monitor(qs: QuerySubscription) {
-    const { id } = qs;
+    const { id, events } = qs;
 
     let origMonitor : Monitor = { subs: [], controls: {} };
     let destMonitor : Monitor = { subs: [], controls: {} };
+    let relaySub: SubscriptionWithId | undefined;
 
     try {
       origMonitor = this.#monitorOrigins(qs);
@@ -336,6 +348,19 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       throw error;
     }
 
+    // Only subscribe to relay events if required by subscription.
+    // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
+    // TODO: extract this condition
+    if (events === '*' || events.includes(XcmNotificationType.Relayed)) {
+      try {
+        relaySub = this.#monitorRelay(qs);
+      } catch (error) {
+        // Clean up relay subscription, if already created.
+        relaySub?.sub.unsubscribe();
+        throw error;
+      }
+    }
+
     const {
       sendersControl, messageControl
     } = origMonitor.controls;
@@ -345,7 +370,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       sendersControl,
       messageControl,
       originSubs: origMonitor.subs,
-      destinationSubs: destMonitor.subs
+      destinationSubs: destMonitor.subs,
+      relaySub
     };
 
     if (qs.ephemeral) {
@@ -628,6 +654,66 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       controls: {
         sendersControl, messageControl
       }
+    };
+  }
+
+  #monitorRelay({ id, destinations, origin }: QuerySubscription) {
+    const chainId = origin;
+    if (this.#subs[id]?.relaySub) {
+      this.#log.debug('Relay subscription already');
+    }
+
+    const messageControl = ControlQuery.from(
+      messageCriteria(destinations)
+    );
+
+    const emitRelayInbound =  () => (
+      source: Observable<XcmRelayedWithContext>
+    ) => source.pipe(
+      switchMap(message => from(this.#engine.onRelayedMessage(
+        id, message
+      )))
+    );
+
+    const relayObserver = {
+      error: (error: any) => {
+        this.#log.error(
+          error,
+          '[%s] error on relay subscription %s',
+          chainId,
+          id
+        );
+        this.emit('telemetrySubscriptionError', {
+          subscriptionId: id, chainId, direction: 'relay'
+        });
+
+        // try recover relay subscription
+        // there is only one subscription per subscription ID for relay
+        if (this.#subs[id]) {
+          setTimeout(() => {
+            this.#log.info(
+              '[%s] UPDATE relay subscription %s due error %s',
+              chainId,
+              id,
+              errorMessage(error)
+            );
+            const updatedSub = this.#monitorRelay(this.#subs[id].descriptor);
+            this.#subs[id].relaySub = updatedSub;
+          }, SUB_ERROR_RETRY_MS);
+        }
+      }
+    };
+
+    this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
+    return {
+      chainId,
+      sub: this.#sharedBlockExtrinsics(chainId).pipe(
+        extractRelayReceive(
+          origin,
+          messageControl
+        ),
+        emitRelayInbound()
+      ).subscribe(relayObserver)
     };
   }
 

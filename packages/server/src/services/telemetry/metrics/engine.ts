@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client';
 
-import { XcmReceived, XcmSent } from '../../monitoring/types.js';
+import { XcmReceived, XcmRelayed, XcmSent } from '../../monitoring/types.js';
 import { TelemetryEventEmitter } from '../types.js';
 
 export function engineMetrics(source: TelemetryEventEmitter) {
@@ -18,6 +18,11 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     name: 'xcmon_engine_matched_total',
     help: 'Matching engine matched messages.',
     labelNames: ['subscription', 'origin', 'destination', 'outcome']
+  });
+  const relayCount = new Counter({
+    name: 'xcmon_engine_relayed_total',
+    help: 'Matching engine relayed messages.',
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'outcome']
   });
 
   source.on('telemetryInbound',
@@ -45,6 +50,17 @@ export function engineMetrics(source: TelemetryEventEmitter) {
         outMsg.origin.chainId,
         outMsg.destination.chainId,
         inMsg.outcome.toString()
+      ).inc();
+    });
+
+  source.on('telemetryRelayed',
+    (relayMsg: XcmRelayed) => {
+      relayCount.labels(
+        relayMsg.subscriptionId,
+        relayMsg.origin.chainId,
+        relayMsg.destination.chainId,
+        relayMsg.waypoint.legIndex.toString(),
+        relayMsg.waypoint.outcome.toString()
       ).inc();
     });
 }
