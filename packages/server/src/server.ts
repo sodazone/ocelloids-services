@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import FastifySwagger from '@fastify/swagger';
 import FastifySwaggerUI from '@fastify/swagger-ui';
 import FastifyWebsocket from '@fastify/websocket';
+import FastifyCors from '@fastify/cors';
 import FastifyHealthcheck from 'fastify-healthcheck';
 
 import version from './version.js';
@@ -104,6 +105,11 @@ export async function createServer(
     // override default pre-close
     // we explicitly handle it with terminate
     preClose: () => {}
+  });
+
+  await server.register(FastifyCors, {
+    // TODO: extract config
+    origin: true // allow all
   });
 
   await server.register(Root);
