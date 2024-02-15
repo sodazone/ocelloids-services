@@ -218,8 +218,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "xcmon_active_subscriptions_count",
+          "editorMode": "code",
+          "expr": "sum_over_time(xcmon_active_subscriptions_count[$__interval])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -235,7 +235,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by (__name__) (xcmon_subscription_errors_count)",
+          "expr": "sum by (__name__) (sum_over_time(xcmon_subscription_errors_count[$__interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -719,6 +719,6 @@
   "timezone": "",
   "title": "XCM Monitoring Server",
   "uid": "f127df32-837f-4adf-acf5-c944cadc9dc5",
-  "version": 92,
+  "version": 93,
   "weekStart": ""
 }
