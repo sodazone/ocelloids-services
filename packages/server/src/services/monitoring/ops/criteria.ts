@@ -23,6 +23,35 @@ export function messageCriteria(recipients: string[]) : Criteria {
   };
 }
 
+function createSignersData(xt: types.ExtrinsicWithId) {
+  try {
+    if (xt.isSigned) {
+      // Signer could be Address, AccountId, or Index
+      const accountId = xt.signer.value ?? xt.signer;
+      return {
+        signer: {
+          id: accountId.toPrimitive(),
+          publicKey: accountId.toHex()
+        },
+        extraSigners: xt.extraSigners.map(
+          signer => ({
+            type: signer.type,
+            id: signer.address.value.toPrimitive(),
+            publicKey: signer.address.value.toHex()
+          })
+        )
+      };
+    }
+  } catch (error) {
+    throw new Error(
+      `creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`,
+      {cause: error}
+    );
+  }
+
+  return {};
+}
+
 /**
  * Matches sender account address and public keys, including extra senders.
  */
@@ -36,24 +65,7 @@ export function matchSenders(
 
   // TODO: this is not needed if the query is '*'
   // but no easy way to know it.
-  const signersData = xt.isSigned
-    ? {
-      signer: Object.assign({},
-        xt.signer.toPrimitive(),
-        { publicKey: xt.signer.value.toHex() }
-      ),
-      extraSigners: xt.extraSigners.map(
-        signer => Object.assign(
-          {},
-          signer.address.toPrimitive(),
-          {
-            type: signer.type,
-            publicKey: signer.address.value.toHex()
-          }
-        )
-      )
-    }
-    : {};
+  const signersData = createSignersData(xt);
 
   return query.value.test({
     extrinsic: signersData
