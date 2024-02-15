@@ -278,6 +278,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         relayMsg.blockNumber
       );
       await this.#relay.put(key, relayMsg);
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.relay,
+        key
+      });
     }
   }
 
