@@ -1,7 +1,7 @@
 import { Observable, map, concatMap, filter } from 'rxjs';
 
 import type {
-  PolkadotPrimitivesV5InherentData
+  PolkadotPrimitivesV5InherentData,
 } from '@polkadot/types/lookup';
 
 import {
@@ -24,12 +24,12 @@ export function extractRelayReceive(
         matchExtrinsic(extrinsic, 'parainherent', 'enter')
       )),
       map(({ extrinsic, dispatchError }) => {
-        const { backedCandidates } = extrinsic.data as unknown as PolkadotPrimitivesV5InherentData;
-        const backed = backedCandidates.find(c => c.candidate.descriptor.paraId.toString() === origin);
+        const inherentData = extrinsic.args[0] as unknown as PolkadotPrimitivesV5InherentData;
+        const backed = inherentData.backedCandidates.find(c => c.candidate.descriptor.paraId.toString() === origin);
         if (backed) {
           const { horizontalMessages } = backed.candidate.commitments;
           for (const { recipient, data } of horizontalMessages) {
-            if (messageControl.value.test({ recipient })) {
+            if (messageControl.value.test({ recipient: recipient.toString() })) {
               const xcms = fromXcmpFormat(data);
               const { blockHash, blockNumber } = extrinsic;
               return xcms.map(xcmProgram =>

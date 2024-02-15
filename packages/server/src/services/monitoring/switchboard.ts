@@ -707,7 +707,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
     return {
       chainId,
-      sub: this.#sharedBlockExtrinsics(chainId).pipe(
+      sub: this.#sharedBlockExtrinsics('0').pipe(
         extractRelayReceive(
           origin,
           messageControl
