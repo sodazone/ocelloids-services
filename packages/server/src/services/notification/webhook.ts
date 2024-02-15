@@ -87,7 +87,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
       for (const chan of channels) {
         if (chan.type === 'webhook') {
           const config = chan as WebhookNotification;
-          await this.#post(scheduled, config);
+          if (config.events === undefined
+            || config.events === '*'
+            || config.events.includes(scheduled.task.msg.type)) {
+            await this.#post(scheduled, config);
+          }
         }
       }
     } catch (error) {

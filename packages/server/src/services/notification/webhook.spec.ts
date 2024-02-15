@@ -58,7 +58,9 @@ const xmlTemplate = `
         "http://dtd.worldpay.com/paymentService_v1.dtd">
 <paymentService version="1.4" merchantCode="MERCHANTCODE">
     <notify>
-      <xcmStatusEvent subscriptionId="{{subscriptionId}}" outcome="{{waypoint.outcome}}">
+      <xcmStatusEvent type="{{type}}" subscriptionId="{{subscriptionId}}" outcome="{{waypoint.outcome}}">
+        <origin block="{{origin.blockHash}}">{{origin.chainId}}</origin>
+        <destination>{{destination.chainId}}</destination>
         <sender>{{sender.id}}</sender>
         {{#if waypoint.error}}
         <error>{{waypoint.error}}</error>

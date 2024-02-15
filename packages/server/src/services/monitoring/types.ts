@@ -168,6 +168,8 @@ export enum XcmNotificationType {
   Hop = 'xcm.hop'
 }
 
+const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
+
 type XcmTermini = {
   chainId: string
 };
@@ -336,13 +338,17 @@ const $WebhookNotification = z.object({
   contentType: z.optional(z.string().regex(
     /(?:application|text)\/[a-z0-9-\+\.]+/i
   ).max(250)),
+  // prevent using $refs
+  events: z.optional(z.literal('*').or(z.array(
+    z.nativeEnum(XcmNotificationType)
+  ).min(1, XCM_NOTIFICATION_TYPE_ERROR))),
   template: z.optional(z.string().min(5).max(32_000)),
   bearer: z.optional(z.string().min(1).max(1_000)),
   limit: z.optional(z.number().min(0).max(Number.MAX_SAFE_INTEGER))
 });
 
 const $LogNotification = z.object({
-  type: z.literal('log'),
+  type: z.literal('log')
 });
 
 const $WebsocketNotification = z.object({
@@ -372,9 +378,10 @@ export const $QuerySubscription = z.object({
     $LogNotification,
     $WebsocketNotification
   ])).min(1),
-  events: z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(
-    1, 'at least 1 event type is required'
-  ))
+  // prevent using $refs
+  events: z.literal('*').or(z.array(
+    z.nativeEnum(XcmNotificationType)
+  ).min(1, XCM_NOTIFICATION_TYPE_ERROR))
 }).refine(schema =>
   !schema.ephemeral
   || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')
