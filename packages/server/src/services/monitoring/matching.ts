@@ -267,6 +267,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         relayMsg.blockHash,
         relayMsg.blockNumber
       );
+      await this.#relay.del(key);
       await this.#onXcmRelayed(outMsg, relayMsg);
     } catch {
       log.info(
@@ -297,6 +298,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         outMsg.origin.blockHash,
         outMsg.origin.blockNumber
       );
+      await this.#relay.del(key);
       await this.#onXcmRelayed(outMsg, relayMsg);
     } catch {
       // noop, it's possible that there are no relay subscriptions for an origin.
