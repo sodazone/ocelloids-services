@@ -26,7 +26,7 @@ export function messageCriteria(recipients: string[]) : Criteria {
 function createSignersData(xt: types.ExtrinsicWithId) {
   try {
     if (xt.isSigned) {
-      // Signer could be Address, AccountId, or Index
+      // Signer could be Address or AccountId
       const accountId = xt.signer.value ?? xt.signer;
       return {
         signer: {
