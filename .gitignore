@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 dist/
+deno_dist/
 docs/
 db/
 chain-specs/

@@ -11,7 +11,8 @@
     "packages/*"
   ],
   "scripts": {
-    "server": "yarn workspace xcmon-server"
+    "server": "yarn workspace xcmon-server",
+    "client": "yarn workspace xcmon-client"
   },
   "license": "Apache-2.0",
   "private": true,
