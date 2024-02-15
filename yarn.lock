@@ -7184,9 +7184,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"xcm-monitoring@workspace:.":
+"xcmon-root@workspace:.":
   version: 0.0.0-use.local
-  resolution: "xcm-monitoring@workspace:."
+  resolution: "xcmon-root@workspace:."
+  languageName: unknown
+  linkType: soft
+
+"xcmon-server@workspace:packages/server":
+  version: 0.0.0-use.local
+  resolution: "xcmon-server@workspace:packages/server"
   dependencies:
     "@babel/core": "npm:^7.23.9"
     "@fastify/jwt": "npm:^8.0.0"
