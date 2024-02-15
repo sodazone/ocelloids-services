@@ -1,0 +1,203 @@
+[
+  {
+    "id": "acala-transfers",
+    "origin": 2000,
+    "senders": "*",
+    "destinations": [
+      0,
+      1000,
+      2004,
+      2034,
+      2104
+    ],
+    "events": [
+      "xcm.received"
+    ],
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      }
+    ]
+  },
+  {
+    "id": "moonbeam-transfers",
+    "origin": 2004,
+    "senders": "*",
+    "destinations": [
+      0,
+      1000,
+      2000,
+      2034,
+      2104
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.sent"
+        ],
+        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.received"
+        ],
+        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "polkadot-transfers",
+    "origin": 0,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      2034,
+      2104
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.sent"
+        ],
+        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.received"
+        ],
+        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "asset-hub-transfers",
+    "origin": 1000,
+    "senders": "*",
+    "destinations": [
+      2000,
+      0,
+      2004,
+      2034,
+      2104
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.sent"
+        ],
+        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.received"
+        ],
+        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "hydra-transfers",
+    "origin": 2034,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      0,
+      2104
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.sent"
+        ],
+        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.received"
+        ],
+        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "manta-transfers",
+    "origin": 2104,
+    "senders": "*",
+    "destinations": [
+      2000,
+      1000,
+      2004,
+      2034,
+      0
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.sent"
+        ],
+        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "webhook",
+        "contentType": "text/plain",
+        "events": [
+          "xcm.received"
+        ],
+        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  }
+]

@@ -11,10 +11,12 @@
       2104
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      }
+    ]
   },
   {
     "id": "moonbeam-transfers",
@@ -28,12 +30,15 @@
       2104
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }, {
-      "type": "websocket"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
   },
   {
     "id": "polkadot-transfers",
@@ -47,12 +52,15 @@
       2104
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }, {
-      "type": "websocket"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
   },
   {
     "id": "asset-hub-transfers",
@@ -66,12 +74,15 @@
       2104
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }, {
-      "type": "websocket"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
   },
   {
     "id": "hydra-transfers",
@@ -85,12 +96,15 @@
       2104
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }, {
-      "type": "websocket"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
   },
   {
     "id": "manta-transfers",
@@ -104,11 +118,14 @@
       0
     ],
     "events": "*",
-    "channels": [{
-      "type": "webhook",
-      "url": "https://en785006d7bvj.x.pipedream.net"
-    }, {
-      "type": "websocket"
-    }]
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
   }
 ]
