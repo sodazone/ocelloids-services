@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 
-import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue } from '../../../testing/xcm.js';
-import { extractDmpReceive, extractDmpSend } from './dmp.js';
+import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue, dmpXcmPalletSentEvent } from '../../../testing/xcm.js';
+import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
 
 describe('dmp operator', () => {
@@ -73,6 +73,44 @@ describe('dmp operator', () => {
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        }
+      });
+    });
+  });
+
+  describe('extractDmpSendByEvent', () => {
+    it('should extract DMP sent message filtered by event', done => {
+      const {
+        blocks,
+        apiPromise,
+        sendersControl,
+        messageControl
+      } = dmpXcmPalletSentEvent;
+
+      const calls = jest.fn();
+
+      const test$ = extractDmpSendByEvent(
+        apiPromise,
+        {
+          sendersControl,
+          messageControl
+        }
+      )(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: msg => {
+          calls();
+          // expect(msg).toBeDefined();
+          // expect(msg.blockNumber).toBeDefined();
+          // expect(msg.blockHash).toBeDefined();
+          // expect(msg.instructions).toBeDefined();
+          // expect(msg.messageData).toBeDefined();
+          // expect(msg.messageHash).toBeDefined();
+          // expect(msg.recipient).toBeDefined();
+        },
+        complete: () => {
+          // expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });

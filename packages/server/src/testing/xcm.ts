@@ -68,7 +68,7 @@ export const umpReceive = {
 
 // DMP testing mocks
 
-const dmpSendInstructions = [
+const dmpSendInstructions: any = [
   {
     'ReserveAssetDeposited': [
       {
@@ -230,6 +230,49 @@ export const dmpSendMultipleMessagesInQueue = {
           };
         }
       })
+    }
+  } as unknown as ApiPromise
+};
+
+export const dmpXcmPalletSentEvent = {
+  blocks: from(testBlocksFrom('dmp-out-event-19505060.cbor.bin', 'polkadot-1000001.json')),
+  sendersControl: new ControlQuery(
+    sendersCriteria('*')
+  ),
+  messageControl: new ControlQuery(
+    messageCriteria(['2034'])
+  ),
+  apiPromise: {
+    at: () => new Promise((resolve) => {
+      resolve({
+        query: {
+          dmp: {
+            downwardMessageQueues: () => [
+              [
+                {
+                  sentAt: {
+                    toNumber: () => 17844552
+                  },
+                  msg: registry.createType('Bytes', dmpData)
+                }
+              ] as unknown as Vec<PolkadotCorePrimitivesInboundDownwardMessage>
+            ]
+          }
+        }
+      } as unknown as ApiDecoration<'promise'>);
+    }),
+    registry: {
+      createType: jest.fn().mockImplementation(() => ({
+        value: {
+          toHuman: () => dmpSendInstructions.concat([{SetTopic: "0x8e75728b841da22d8337ff5fadd1264f13addcdee755b01ce1a3afb9ef629b9a"}])
+        },
+        hash: {
+          toHex: () => '0xb86bce21a8dcaadfdf6ac3c82e0c48644515ce978d2f6f37766126575fc4fe6b'
+        },
+        toHuman: () => ({
+          'V3': dmpSendInstructions.concat([{SetTopic: "0x8e75728b841da22d8337ff5fadd1264f13addcdee755b01ce1a3afb9ef629b9a"}])
+        })
+      }))
     }
   } as unknown as ApiPromise
 };
