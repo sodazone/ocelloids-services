@@ -11,6 +11,7 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "yarn server build && yarn client build",
     "server": "yarn workspace xcmon-server",
     "client": "yarn workspace xcmon-client"
   },
