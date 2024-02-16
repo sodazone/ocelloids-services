@@ -4546,15 +4546,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"global-jsdom@npm:^24.0.0":
-  version: 24.0.0
-  resolution: "global-jsdom@npm:24.0.0"
-  peerDependencies:
-    jsdom: ">=24 <25"
-  checksum: 10c0/85b9cffa040627d8fc10f3fc1ceeb44b147d8cffe543c9a2bcfdb24390e38bc46b9150deb20dccc6e665bb86bef0b4c6630bb944aaf6c7d2ee168a7975ebfdd0
-  languageName: node
-  linkType: hard
-
 "globals@npm:^11.1.0":
   version: 11.12.0
   resolution: "globals@npm:11.12.0"
@@ -5024,6 +5015,15 @@ __metadata:
   version: 3.1.1
   resolution: "isexe@npm:3.1.1"
   checksum: 10c0/9ec257654093443eb0a528a9c8cbba9c0ca7616ccb40abd6dde7202734d96bb86e4ac0d764f0f8cd965856aacbff2f4ce23e730dc19dfb41e3b0d865ca6fdcc7
+  languageName: node
+  linkType: hard
+
+"isows@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "isows@npm:1.0.3"
+  peerDependencies:
+    ws: "*"
+  checksum: 10c0/adec15db704bb66615dd8ef33f889d41ae2a70866b21fa629855da98cc82a628ae072ee221fe9779a9a19866cad2a3e72593f2d161a0ce0e168b4484c7df9cd2
   languageName: node
   linkType: hard
 
@@ -8078,13 +8078,15 @@ __metadata:
     denoify: "npm:^1.6.9"
     eslint: "npm:^8.56.0"
     finalhandler: "npm:^1.2.0"
-    global-jsdom: "npm:^24.0.0"
+    isows: "npm:^1.0.3"
     jest: "npm:^29.7.0"
     rollup: "npm:^4.11.0"
     rollup-plugin-typescript2: "npm:^0.36.0"
     serve-static: "npm:^1.15.0"
     tsx: "npm:^4.7.1"
     typescript: "npm:^5.3.3"
+  peerDependencies:
+    ws: "*"
   languageName: unknown
   linkType: soft
 
