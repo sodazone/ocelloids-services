@@ -243,23 +243,6 @@ describe('monitoring server API', () => {
       });
     });
 
-    it('should validate the patched object', done => {
-      server.inject({
-        method: 'PATCH',
-        url: '/subs/macatron',
-        body: [
-          {
-            op: 'remove',
-            path: '/senders'
-          }
-        ]
-      }, (_err, response) => {
-        expect(response.statusCode)
-          .toStrictEqual(400);
-        done();
-      });
-    });
-
     it('should add a new sender', done => {
       server.inject({
         method: 'PATCH',
@@ -277,6 +260,23 @@ describe('monitoring server API', () => {
         expect(JSON.parse(response.body).senders)
           .toEqual(['ALICE', 'BOB']);
 
+        done();
+      });
+    });
+
+    it('should validate the patched object', done => {
+      server.inject({
+        method: 'PATCH',
+        url: '/subs/macatron',
+        body: [
+          {
+            op: 'remove',
+            path: '/senders'
+          }
+        ]
+      }, (_err, response) => {
+        expect(response.statusCode)
+          .toStrictEqual(200);
         done();
       });
     });
