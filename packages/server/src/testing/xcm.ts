@@ -241,3 +241,12 @@ export const dmpReceive = {
     at: () => jest.fn()
   } as unknown as ApiPromise
 };
+
+export const relayHrmpReceive = {
+  blocks: from(testBlocksFrom('relay-hrmp-19507696.cbor.bin', 'polkadot.json')),
+  messageControl: new ControlQuery(
+    messageCriteria(['2000', '2006', '2104'])
+  ),
+  origin: '2004',
+  destination: '2104'
+};

@@ -1,4 +1,4 @@
-import { Observable, map, concatMap, filter } from 'rxjs';
+import { Observable, map, mergeMap, filter } from 'rxjs';
 
 import type {
   PolkadotPrimitivesV5InherentData,
@@ -24,34 +24,35 @@ export function extractRelayReceive(
         matchExtrinsic(extrinsic, 'parainherent', 'enter')
       )),
       map(({ extrinsic, dispatchError }) => {
-        const inherentData = extrinsic.args[0] as unknown as PolkadotPrimitivesV5InherentData;
-        const backed = inherentData.backedCandidates.find(c => c.candidate.descriptor.paraId.toString() === origin);
+        const { backedCandidates } = extrinsic.args[0] as unknown as PolkadotPrimitivesV5InherentData;
+        const backed = backedCandidates.find(c => c.candidate.descriptor.paraId.toString() === origin);
         if (backed) {
           const { horizontalMessages } = backed.candidate.commitments;
-          for (const { recipient, data } of horizontalMessages) {
-            if (messageControl.value.test({ recipient: recipient.toString() })) {
-              const xcms = fromXcmpFormat(data);
-              const { blockHash, blockNumber, extrinsicId } = extrinsic;
-              return xcms.map(xcmProgram =>
-                new GenericXcmRelayedWithContext({
-                  blockHash: blockHash.toHex(),
-                  blockNumber: blockNumber.toPrimitive(),
-                  recipient: recipient.toString(),
-                  messageHash: xcmProgram.hash.toHex(),
-                  messageId: getMessageId(xcmProgram),
-                  origin,
-                  extrinsicId,
-                  outcome: dispatchError ? 'Fail' : 'Success',
-                  error: dispatchError ? dispatchError.toHuman() : null
-                })
-              );
-            }
+          const message = horizontalMessages.find(
+            ({ recipient }) => messageControl.value.test({ recipient: recipient.toString() })
+          );
+          if (message) {
+            const xcms = fromXcmpFormat(message.data);
+            const { blockHash, blockNumber, extrinsicId } = extrinsic;
+            return xcms.map(xcmProgram =>
+              new GenericXcmRelayedWithContext({
+                blockHash: blockHash.toHex(),
+                blockNumber: blockNumber.toPrimitive(),
+                recipient: message.recipient.toString(),
+                messageHash: xcmProgram.hash.toHex(),
+                messageId: getMessageId(xcmProgram),
+                origin,
+                extrinsicId,
+                outcome: dispatchError ? 'Fail' : 'Success',
+                error: dispatchError ? dispatchError.toHuman() : null
+              })
+            );
           }
         }
         return null;
       }),
       filterNonNull(),
-      concatMap(x => x),
+      mergeMap(x => x)
     );
   };
 }
