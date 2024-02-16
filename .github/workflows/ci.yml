@@ -26,5 +26,5 @@ jobs:
     - name: Enable Corepack
       run: corepack enable
     - run: yarn install --immutable
-    - run: yarn workspaces foreach -Apt run build
+    - run: yarn build
     - run: yarn workspaces foreach -Apt run test
