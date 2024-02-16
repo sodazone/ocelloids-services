@@ -6,7 +6,7 @@ import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
 const allowedPaths = [
-  '/senders', '/destinations', '/channels'
+  '/senders', '/destinations', '/channels', '/events'
 ];
 
 function hasOp(patch: Operation[], path: string) {
@@ -155,6 +155,10 @@ export async function SubscriptionApi(
 
       if (hasOp(patch, '/destinations')) {
         switchboard.updateDestinations(id);
+      }
+
+      if (hasOp(patch, '/events')) {
+        switchboard.updateEvents(id);
       }
 
       reply.status(200).send(sub);

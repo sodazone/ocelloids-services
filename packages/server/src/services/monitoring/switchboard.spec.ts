@@ -209,4 +209,56 @@ describe('switchboard service', () => {
     expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '2000').length).toBe(0);
   });
+
+  it('should create relay hrmp subscription if relayed event is added', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      events: [XcmNotificationType.Received]
+    });
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).not.toBeDefined();
+
+    // add relayed event to subscription
+    const newSub = {
+      ...testSub,
+      events: [XcmNotificationType.Received, XcmNotificationType.Relayed]
+    };
+    await subs.save(newSub);
+
+    await switchboard.updateSubscription(newSub);
+    await switchboard.updateEvents(newSub.id);
+    const {
+      relaySub: newRelaySub
+    } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(newRelaySub).toBeDefined();
+  });
+
+  it('should remove relay hrmp subscription if relayed event is removed', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      events: '*'
+    });
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).toBeDefined();
+
+    // remove relayed event
+    const newSub = {
+      ...testSub,
+      events: [XcmNotificationType.Received, XcmNotificationType.Sent]
+    };
+    await subs.save(newSub);
+
+    await switchboard.updateSubscription(newSub);
+    await switchboard.updateEvents(newSub.id);
+    const {
+      relaySub: newRelaySub
+    } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(newRelaySub).not.toBeDefined();
+  });
 });

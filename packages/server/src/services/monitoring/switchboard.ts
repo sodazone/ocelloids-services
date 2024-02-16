@@ -277,7 +277,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates the message control handler.
    *
-   * Applies to the outbound XCM message.
+   * Updates the destination subscriptions.
    */
   updateDestinations(id: string) {
     const { descriptor, messageControl } = this.#subs[id];
@@ -286,6 +286,29 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     const updatedSubs = this.#updateDestinationSubscriptions(id);
     this.#subs[id].destinationSubs = updatedSubs;
+  }
+
+  /**
+   * Updates the subscription to relayed HRMP messages in the relay chain.
+   */
+  updateEvents(id: string) {
+    const { descriptor, relaySub } = this.#subs[id];
+
+    if (this.#shouldMonitorRelay(descriptor) && relaySub === undefined){
+      try {
+        this.#subs[id].relaySub = this.#monitorRelay(descriptor);
+      } catch (error) {
+        // log instead of throw to not block OD subscriptions
+        this.#log.error(
+          error,
+          'Error on relay subscription (%s)',
+          id
+        );
+      }
+    } else if (!this.#shouldMonitorRelay(descriptor) && relaySub !== undefined) {
+      relaySub.sub.unsubscribe();
+      delete this.#subs[id].relaySub;
+    }
   }
 
   /**
@@ -330,7 +353,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @private
    */
   #monitor(qs: QuerySubscription) {
-    const { id, events } = qs;
+    const { id } = qs;
 
     let origMonitor : Monitor = { subs: [], controls: {} };
     let destMonitor : Monitor = { subs: [], controls: {} };
@@ -349,13 +372,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     // Only subscribe to relay events if required by subscription.
     // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
-    // TODO: extract this condition
-    if (events === '*' || events.includes(XcmNotificationType.Relayed)) {
+    if (this.#shouldMonitorRelay(qs)) {
       try {
         relaySub = this.#monitorRelay(qs);
       } catch (error) {
-        // Clean up relay subscription, if already created.
-        relaySub?.sub.unsubscribe();
         // log instead of throw to not block OD subscriptions
         this.#log.error(
           error,
@@ -805,5 +825,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         );
     }
     return this.#shared.blockExtrinsics[chainId];
+  }
+
+  #shouldMonitorRelay({ events }: QuerySubscription) {
+    return events === '*' || events.includes(XcmNotificationType.Relayed);
   }
 }
