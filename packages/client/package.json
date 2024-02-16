@@ -19,9 +19,6 @@
     "build:browser": "rollup -c --bundleConfigAsCjs",
     "build:deno": "denoify",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
-    "test:deno": "deno run --reload --unstable --no-check deno_dist/run.ts",
-    "test:node": "tsx src/run.ts",
-    "test:browser": "yarn build:browser && node serve.mjs",
     "lint": "eslint --cache --fix \"src/**/*.ts\""
   },
   "jest": {
@@ -48,6 +45,9 @@
     }
   },
   "packageManager": "yarn@4.1.0",
+  "peerDependencies": {
+    "ws": "*"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -56,12 +56,14 @@
     "denoify": "^1.6.9",
     "eslint": "^8.56.0",
     "finalhandler": "^1.2.0",
-    "global-jsdom": "^24.0.0",
     "jest": "^29.7.0",
     "rollup": "^4.11.0",
     "rollup-plugin-typescript2": "^0.36.0",
     "serve-static": "^1.15.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "isows": "^1.0.3"
   }
 }

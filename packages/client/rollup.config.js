@@ -21,7 +21,6 @@ const plugins = [
 
 // Note: add here any additional dependency that should not be included in the bundle.
 const external = [
-  ...Object.keys(pkg.dependencies || {}),
   ...Object.keys(pkg.peerDependencies || {}),
 ];
 
@@ -49,7 +48,10 @@ export default [
     output: {
       file: pkg.browser,
       name: 'xcmon',
-      format: 'umd'
+      format: 'umd',
+      globals: {
+        'ws': 'WebSocket_'
+      }
     },
     plugins,
     external,

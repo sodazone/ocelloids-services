@@ -1,9 +1,14 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import http from 'http';
 import flah from 'finalhandler';
 import serveStatic from 'serve-static';
 
-const home = serveStatic('./__browser__');
-const bundle = serveStatic('./dist');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const home = serveStatic(__dirname);
+const bundle = serveStatic(__dirname + '/../../dist');
 
 const server = http.createServer((req, res) => {
   const done = flah(req, res);
