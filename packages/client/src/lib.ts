@@ -6,6 +6,8 @@ export type {
   QuerySubscription, XcmNotifyMessage
 } from 'xcmon-server';
 
+export type OnDemandQuerySubscription = Omit<QuerySubscription, 'id'|'channels'>;
+
 /**
  * The Ocelloids client configuration.
  */
@@ -34,24 +36,29 @@ function isBlob(value: any) {
   return value instanceof Blob || Object.prototype.toString.call(value) === '[object Blob]';
 }
 
-function handleMessage<T>(
-  handler: (message: T) => void
-) {
-  return (event: MessageEvent) => {
-    if (isBlob(event.data)) {
-      (event.data as Blob).text().then(
-        blob => handler(JSON.parse(blob))
-      );
-    } else {
-      handler(JSON.parse(event.data.toString()));
-    }
-  };
-}
+type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
+type CloseHandler = (event: CloseEvent) => void;
+type ErrorHandler = (error: Event) => void;
 
 export type WebSocketHandlers<T> = {
-  onMessage: (message: T) => void,
-  onClose?: (event: CloseEvent) => void,
-  onError?: (error: Event) => void
+  onMessage: MessageHandler<T>,
+  onClose?: CloseHandler,
+  onError?: ErrorHandler
+}
+
+function handleMessage<T>(
+  handler: MessageHandler<T>
+) {
+  return (event: MessageEvent) => {
+    const ws = event.target as WebSocket;
+    if (isBlob(event.data)) {
+      (event.data as Blob).text().then(
+        blob => handler(JSON.parse(blob), ws, event)
+      );
+    } else {
+      handler(JSON.parse(event.data.toString()), ws, event);
+    }
+  };
 }
 
 /**
@@ -98,21 +105,32 @@ export class OcelloidsClient {
     });
   }
 
+  async health() {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(this.#httpUrl + '/health');
+      if (res.ok) {
+        resolve(await res.json());
+      } else {
+        reject(await res.text());
+      }
+    });
+  }
+
   async subscribe<T>(
-    subscription: string | QuerySubscription,
+    subscription: string | OnDemandQuerySubscription,
     handlers: WebSocketHandlers<T>
   ): Promise<WebSocket> {
-    const url = this.#wsUrl + '/ws/subs/';
+    const url = this.#wsUrl + '/ws/subs';
 
     return typeof subscription === 'string'
-      ? this.#openWebSocket<T>(url + subscription, handlers)
+      ? this.#openWebSocket<T>(`${url}/${subscription}`, handlers)
       : this.#openWebSocket<T>(url, handlers, subscription);
   }
 
   #openWebSocket<T>(
     url: string,
     { onMessage, onError, onClose }: WebSocketHandlers<T>,
-    sub?: QuerySubscription
+    sub?: OnDemandQuerySubscription
   ) {
     return new Promise<WebSocket>((resolve, reject) => {
       const ws = new WebSocket(url);

@@ -1,4 +1,4 @@
-import { OcelloidsClient, QuerySubscription, XcmNotifyMessage } from 'xcmon-client';
+import { OcelloidsClient } from 'xcmon-client';
 
 const client = new OcelloidsClient({
   host: '127.0.0.1:3000',
@@ -7,7 +7,7 @@ const client = new OcelloidsClient({
 
 client.health().then(console.log).catch(console.error)
 
-client.subscribe<XcmNotifyMessage | QuerySubscription>(
+client.subscribe(
   { 
     origin: "2004",
     senders: "*",

@@ -1,0 +1,54 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #111;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+#status {
+  padding: 0.5rem 1rem;
+  background-color: #BADA55BB;
+  color: #111;
+  font-size: x-small;
+  text-transform: uppercase;
+  border-bottom: 1px solid #111;
+}
+
+#messages {
+  background-color: rgba(60, 60, 60, 0.5);
+  overflow: auto;
+  width: 80rem;
+  max-height: 90vh;
+}
+
+#messages pre {
+  border-bottom: 1px solid #111;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+#messages pre:last-child {
+  border-bottom: 0;
+}
+
