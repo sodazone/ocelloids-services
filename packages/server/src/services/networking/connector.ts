@@ -58,7 +58,7 @@ export default class Connector {
     }
   }
 
-  connect() {
+  connect() : SubstrateApis<oconfig.Configuration, string> {
     if (this.#substrateApis) {
       return this.#substrateApis;
     }
