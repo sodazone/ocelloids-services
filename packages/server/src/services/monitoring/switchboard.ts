@@ -286,7 +286,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     const updatedSubs = this.#updateDestinationSubscriptions(id);
     this.#subs[id].destinationSubs = updatedSubs;
-    // TODO: update relay sub if exists
   }
 
   /**
@@ -357,7 +356,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       } catch (error) {
         // Clean up relay subscription, if already created.
         relaySub?.sub.unsubscribe();
-        throw error;
+        // log instead of throw to not block OD subscriptions
+        this.#log.error(
+          error,
+          'Error on relay subscription (%s)',
+          id
+        );
       }
     }
 
