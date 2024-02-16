@@ -101,16 +101,16 @@ describe('dmp operator', () => {
       test$.subscribe({
         next: msg => {
           calls();
-          // expect(msg).toBeDefined();
-          // expect(msg.blockNumber).toBeDefined();
-          // expect(msg.blockHash).toBeDefined();
-          // expect(msg.instructions).toBeDefined();
-          // expect(msg.messageData).toBeDefined();
-          // expect(msg.messageHash).toBeDefined();
-          // expect(msg.recipient).toBeDefined();
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.instructions).toBeDefined();
+          expect(msg.messageData).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.recipient).toBeDefined();
         },
         complete: () => {
-          // expect(calls).toHaveBeenCalledTimes(1);
+          expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
