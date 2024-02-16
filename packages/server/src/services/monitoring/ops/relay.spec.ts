@@ -56,9 +56,9 @@ describe('relay operator', () => {
         origin,
         messageControl
       )(blocks.pipe(extractTxWithEvents()));
-      
+
       // remove destination from criteria
-      messageControl.change(messageCriteria(['2000', '2006']))
+      messageControl.change(messageCriteria(['2000', '2006']));
 
       test$.subscribe({
         next: _ => {
