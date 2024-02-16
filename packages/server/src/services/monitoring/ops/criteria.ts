@@ -1,8 +1,11 @@
 import { ControlQuery, Criteria, types } from '@sodazone/ocelloids';
 import { XcmSentWithContext } from '../types.js';
 
-export function sendersCriteria(senders: string[] | '*') : Criteria {
-  if (Array.isArray(senders)) {
+export function sendersCriteria(senders?: string[] | '*') : Criteria {
+  if (senders === undefined || senders === '*') {
+    // match any
+    return {};
+  } else {
     return {
       $or: [
         { 'extrinsic.signer.id': { $in: senders } },
@@ -11,9 +14,6 @@ export function sendersCriteria(senders: string[] | '*') : Criteria {
         { 'extrinsic.extraSigners.publicKey': { $in: senders } }
       ]
     };
-  } else {
-    // match any
-    return {};
   }
 }
 

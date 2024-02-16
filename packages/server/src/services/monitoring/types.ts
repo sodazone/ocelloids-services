@@ -454,9 +454,11 @@ export const $QuerySubscription = z.object({
   origin: z.string({
     required_error: 'origin id is required',
   }).min(1),
-  senders: z.literal('*').or(z.array(z.string()).min(
-    1, 'at least 1 sender address is required'
-  ).transform(distinct)),
+  senders: z.optional(
+    z.literal('*').or(z.array(z.string()).min(
+      1, 'at least 1 sender address is required'
+    ).transform(distinct))
+  ),
   destinations: z.array(z.string({
     required_error: 'destination id is required'
   }).min(1)).transform(distinct),
@@ -469,9 +471,11 @@ export const $QuerySubscription = z.object({
     $WebsocketNotification
   ])).min(1),
   // prevent using $refs
-  events: z.literal('*').or(z.array(
-    z.nativeEnum(XcmNotificationType)
-  ).min(1, XCM_NOTIFICATION_TYPE_ERROR))
+  events: z.optional(
+    z.literal('*').or(z.array(
+      z.nativeEnum(XcmNotificationType)
+    ).min(1, XCM_NOTIFICATION_TYPE_ERROR))
+  )
 }).refine(schema =>
   !schema.ephemeral
   || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')

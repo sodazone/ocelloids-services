@@ -294,7 +294,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   updateEvents(id: string) {
     const { descriptor, relaySub } = this.#subs[id];
 
-    if (this.#shouldMonitorRelay(descriptor) && relaySub === undefined){
+    if (this.#shouldMonitorRelay(descriptor) && relaySub === undefined) {
       try {
         this.#subs[id].relaySub = this.#monitorRelay(descriptor);
       } catch (error) {
@@ -790,7 +790,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
-      if (descriptor.events === '*' || descriptor.events.includes(msg.type)) {
+      if (this.#shouldMonitorRelay(descriptor)) {
         await this.#notifier.notify(descriptor, msg);
       }
     } else {
@@ -828,6 +828,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #shouldMonitorRelay({ events }: QuerySubscription) {
-    return events === '*' || events.includes(XcmNotificationType.Relayed);
+    return events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed);
   }
 }
