@@ -60,7 +60,9 @@ export function matchSenders(
   xt?: types.ExtrinsicWithId
 ): boolean {
   if (xt === undefined) {
-    return false;
+    return query.value.test({
+      extrinsic: undefined
+    });
   }
 
   // TODO: this is not needed if the query is '*'
