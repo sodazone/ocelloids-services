@@ -285,6 +285,13 @@ export const dmpReceive = {
   } as unknown as ApiPromise
 };
 
+export const dmpReceiveWithTrap = {
+  blocks: from(testBlocksFrom('dmp-2034-trapped-4159643.cbor.bin', 'hydra-201.json')),
+  api: {
+    at: () => jest.fn()
+  } as unknown as ApiPromise
+};
+
 export const relayHrmpReceive = {
   blocks: from(testBlocksFrom('relay-hrmp-19507696.cbor.bin', 'polkadot.json')),
   messageControl: new ControlQuery(

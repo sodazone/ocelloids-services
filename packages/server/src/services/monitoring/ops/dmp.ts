@@ -1,4 +1,4 @@
-import { switchMap, mergeMap, map, filter, from, Observable } from 'rxjs';
+import { bufferCount, switchMap, mergeMap, map, filter, from, Observable } from 'rxjs';
 
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
@@ -8,6 +8,7 @@ import type {
   XcmVersionedXcm,
   XcmVersionedMultiAssets
 } from '@polkadot/types/lookup';
+import type { H256 } from '@polkadot/types/interfaces/runtime';
 
 import type { Vec, Bytes, Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
@@ -21,6 +22,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
+  AssetTrapped,
   GenericXcmReceivedWithContext,
   GenericXcmSentWithContext,
   XcmCriteria, XcmReceivedWithContext,
@@ -329,11 +331,25 @@ function extractXcmError(outcome: Outcome) {
   return undefined;
 }
 
-function createDmpReceivedWithContext(event: types.BlockEvent) {
+function createDmpReceivedWithContext(event: types.BlockEvent, assetTappedEvent?: types.BlockEvent) {
   const xcmMessage = event.data as any;
   const outcome = xcmMessage.outcome as Outcome;
   const messageId = xcmMessage.messageId.toHex();
   const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
+  let assetTrapped: AssetTrapped | undefined;
+
+  if (assetTappedEvent) {
+    const [ hash_, _, assets ] = assetTappedEvent.data as unknown as [
+      hash_: H256,
+      _origin: any,
+      assets: XcmVersionedMultiAssets
+    ];
+    assetTrapped = {
+      event: assetTappedEvent.toHuman(),
+      assets: assets.toHuman(),
+      hash: hash_.toHex()
+    }
+  }
 
   return new GenericXcmReceivedWithContext({
     event: event.toHuman(),
@@ -343,7 +359,8 @@ function createDmpReceivedWithContext(event: types.BlockEvent) {
     messageHash,
     messageId,
     outcome: outcome.isComplete ? 'Success' : 'Fail',
-    error: outcome.isComplete ? null : extractXcmError(outcome)
+    error: outcome.isComplete ? null : extractXcmError(outcome),
+    assetTrapped 
   });
 }
 
@@ -351,9 +368,16 @@ export function extractDmpReceive() {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmReceivedWithContext>  => {
     return (source.pipe(
-      map(event => {
-        if (matchEvent(event, 'dmpQueue', 'ExecutedDownward')) {
-          return createDmpReceivedWithContext(event);
+      bufferCount(2,1),
+      map(([maybeAssetTrapEvent, maybeDmpEvent]) => {
+        // in reality we expect a continuous stream of events but
+        // in tests, maybeDmpEvent could be undefined if there are odd number of events
+        if (
+          maybeDmpEvent &&
+          matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')
+        ) {
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent);
         }
         return null;
       }),
