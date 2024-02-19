@@ -1,4 +1,4 @@
-import { map, Observable, mergeMap, filter } from 'rxjs';
+import { map, Observable, mergeMap, filter, bufferCount } from 'rxjs';
 
 import {
   ControlQuery,
@@ -13,7 +13,7 @@ import {
   XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { getMessageId, matchEvent } from './util.js';
+import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
@@ -105,22 +105,32 @@ export function extractXcmpReceive() {
   return (source: Observable<types.BlockEvent>)
   : Observable<XcmInboundWithContext>  => {
     return (source.pipe(
-      map(event => {
-        if (matchEvent(event, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
-          const xcmMessage = event.data as any;
+      bufferCount(2,1),
+      map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
+        if (
+          maybeXcmpEvent &&
+          matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)
+        ) {
+          const xcmMessage = maybeXcmpEvent.data as any;
+          const assetTrapEvent =
+            matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ?
+              maybeAssetTrapEvent :
+              undefined;
+          const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
 
           return new GenericXcmInboundWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toPrimitive(),
-            extrinsicId: event.extrinsicId,
+            event: maybeXcmpEvent.toHuman(),
+            blockHash: maybeXcmpEvent.blockHash.toHex(),
+            blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
+            extrinsicId: maybeXcmpEvent.extrinsicId,
             messageHash: xcmMessage.messageHash.toHex(),
-            outcome: event.method === 'Success' ? 'Success' : 'Fail',
-            error: xcmMessage.error
+            outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
+            error: xcmMessage.error,
+            assetsTrapped
           });
-        } else {
-          return null;
         }
+
+        return null;
       }),
       filterNonNull()
     ));

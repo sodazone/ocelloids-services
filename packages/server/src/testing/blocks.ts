@@ -33,7 +33,7 @@ export function testBlocksFrom(file: string, metadataFile: string) {
   const registry = new TypeRegistry() as any;
   const metadata = new Metadata(registry, r.result);
 
-  registry.setMetadata(metadata);
+  registry.setMetadata(metadata, undefined, undefined, true);
 
   return blocks.map(b => {
     const block = registry.createType('SignedBlock', b.block);

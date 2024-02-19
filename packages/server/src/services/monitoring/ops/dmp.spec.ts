@@ -169,5 +169,33 @@ describe('dmp operator', () => {
         }
       });
     });
+
+    it('should extract dmp receive with asset trap', done => {
+      const { trappedBlocks } = dmpReceive;
+
+      const calls = jest.fn();
+
+      const test$ = extractDmpReceive()(trappedBlocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: msg => {
+          calls();
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.event).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.outcome).toBeDefined();
+          expect(msg.outcome).toBe('Fail');
+          expect(msg.error).toBeDefined();
+          expect(msg.error).toBe('FailedToTransactAsset');
+          expect(msg.assetsTrapped).toBeDefined();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        }
+      });
+    });
   });
 });

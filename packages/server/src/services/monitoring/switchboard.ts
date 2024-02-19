@@ -790,7 +790,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
-      if (this.#shouldMonitorRelay(descriptor)) {
+      if (
+        descriptor.events === undefined ||
+        descriptor.events === '*' ||
+        descriptor.events.includes(msg.type)
+      ) {
         await this.#notifier.notify(descriptor, msg);
       }
     } else {

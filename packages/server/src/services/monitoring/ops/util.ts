@@ -3,13 +3,16 @@ import type {
   XcmVersionedMultiLocation,
   XcmV3MultiLocation,
   XcmV2MultiLocation,
+  XcmVersionedMultiAssets,
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
 } from '@polkadot/types/lookup';
 import type { U8aFixed } from '@polkadot/types-codec';
+import type { H256 } from '@polkadot/types/interfaces/runtime';
 
 import { types } from '@sodazone/ocelloids';
 
 import {
+  AssetsTrapped,
   HexString,
 } from '../types.js';
 
@@ -118,4 +121,20 @@ export function matchExtrinsic(
   && Array.isArray(method)
     ? method.includes(extrinsic.method.method)
     : method === extrinsic.method.method;
+}
+
+export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsTrapped | undefined {
+  if (assetsTrappedEvent === undefined) {
+    return undefined;
+  }
+  const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
+    hash_: H256,
+    _origin: any,
+    assets: XcmVersionedMultiAssets
+  ];
+  return {
+    event: assetsTrappedEvent.toHuman(),
+    assets: assets.toHuman(),
+    hash: hash_.toHex()
+  };
 }

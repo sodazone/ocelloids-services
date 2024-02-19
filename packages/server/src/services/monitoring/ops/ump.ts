@@ -1,4 +1,4 @@
-import { mergeMap, map, Observable, filter } from 'rxjs';
+import { mergeMap, map, Observable, filter, bufferCount } from 'rxjs';
 
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
@@ -23,7 +23,7 @@ import {
   XcmSentWithContext
 } from '../types.js';
 import { GetOutboundUmpMessages } from '../types-augmented.js';
-import { getMessageId, getParaIdFromOrigin, matchEvent } from './util.js';
+import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 
@@ -37,20 +37,17 @@ type UmpReceivedContext = {
 };
 
 function createUmpReceivedWithContext(
-  event: types.BlockEvent,
   subOrigin: string,
-  {
-    id,
-    origin,
-    success,
-    error
-  }: UmpReceivedContext
+  event: types.BlockEvent,
+  assetsTrappedEvent?: types.BlockEvent
 ): XcmInboundWithContext | null {
+  const { id, origin, success, error } = event.data as unknown as UmpReceivedContext;
   // Received event only emits field `message_id`,
   // which is actually the message hash in the current runtime.
   const messageId = id.toHex();
   const messageHash = messageId;
   const messageOrigin = getParaIdFromOrigin(origin);
+  const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
   // If we can get message origin, only return message if origin matches with subscription origin
   // If no origin, we will return the message without matching with subscription origin
   if (messageOrigin === undefined || messageOrigin === subOrigin) {
@@ -61,7 +58,8 @@ function createUmpReceivedWithContext(
       messageHash,
       messageId,
       outcome: success?.isTrue ? 'Success' : 'Fail',
-      error: error ? error.toHuman() : null
+      error: error ? error.toHuman() : null,
+      assetsTrapped
     });
   }
   return null;
@@ -151,13 +149,20 @@ export function extractUmpReceive(originId: string) {
   return (source: Observable<types.BlockEvent>)
     : Observable<XcmInboundWithContext>  => {
     return (source.pipe(
-      map(event => {
-        if (matchEvent(event, 'messageQueue', METHODS_MQ_PROCESSED))
+      bufferCount(2,1),
+      map(([maybeAssetTrapEvent, maybeUmpEvent]) => {
+        if (
+          maybeUmpEvent &&
+          matchEvent(maybeUmpEvent, 'messageQueue', METHODS_MQ_PROCESSED))
         {
+          const assetTrapEvent =
+            matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ?
+              maybeAssetTrapEvent :
+              undefined;
           return createUmpReceivedWithContext(
-            event,
             originId,
-            event.data as unknown as UmpReceivedContext
+            maybeUmpEvent,
+            assetTrapEvent
           );
         }
         return null;
