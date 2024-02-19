@@ -127,7 +127,7 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
   if (assetsTrappedEvent === undefined) {
     return undefined;
   }
-  const [ hash_, _, assets ] = assetsTrappedEvent.data as unknown as [
+  const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
     hash_: H256,
     _origin: any,
     assets: XcmVersionedMultiAssets
@@ -136,5 +136,5 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
     event: assetsTrappedEvent.toHuman(),
     assets: assets.toHuman(),
     hash: hash_.toHex()
-  }
+  };
 }

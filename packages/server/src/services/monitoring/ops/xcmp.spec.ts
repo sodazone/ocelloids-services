@@ -28,7 +28,6 @@ describe('xcmp operator', () => {
 
       test$.subscribe({
         next: msg => {
-          calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
           expect(msg.blockHash).toBeDefined();
@@ -36,6 +35,7 @@ describe('xcmp operator', () => {
           expect(msg.messageData).toBeDefined();
           expect(msg.messageHash).toBeDefined();
           expect(msg.recipient).toBeDefined();
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
@@ -66,7 +66,6 @@ describe('xcmp operator', () => {
 
     test$.subscribe({
       next: msg => {
-        calls();
         expect(msg).toBeDefined();
         expect(msg.blockNumber).toBeDefined();
         expect(msg.blockHash).toBeDefined();
@@ -74,6 +73,7 @@ describe('xcmp operator', () => {
         expect(msg.messageData).toBeDefined();
         expect(msg.messageHash).toBeDefined();
         expect(msg.recipient).toBeDefined();
+        calls();
       },
       complete: () => {
         expect(calls).toHaveBeenCalledTimes(1);
@@ -92,7 +92,6 @@ describe('xcmp operator', () => {
 
       test$.subscribe({
         next: msg => {
-          calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
           expect(msg.blockHash).toBeDefined();
@@ -100,6 +99,7 @@ describe('xcmp operator', () => {
           expect(msg.messageHash).toBeDefined();
           expect(msg.outcome).toBeDefined();
           expect(msg.outcome).toBe('Success');
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
@@ -117,7 +117,6 @@ describe('xcmp operator', () => {
 
       test$.subscribe({
         next: msg => {
-          calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
           expect(msg.blockHash).toBeDefined();
@@ -126,6 +125,34 @@ describe('xcmp operator', () => {
           expect(msg.outcome).toBeDefined();
           expect(msg.outcome).toBe('Fail');
           expect(msg.error).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        }
+      });
+    });
+
+    it('should extract assets trapped info on XCMP received message', done => {
+      const { trappedBlocks } = xcmpReceive;
+
+      const calls = jest.fn();
+
+      const test$ = extractXcmpReceive()(trappedBlocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: msg => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.event).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.outcome).toBeDefined();
+          expect(msg.outcome).toBe('Fail');
+          expect(msg.error).toBeDefined();
+          expect(msg.assetsTrapped).toBeDefined();
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);

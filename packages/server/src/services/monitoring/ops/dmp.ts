@@ -8,7 +8,6 @@ import type {
   XcmVersionedXcm,
   XcmVersionedMultiAssets
 } from '@polkadot/types/lookup';
-import type { H256 } from '@polkadot/types/interfaces/runtime';
 
 import type { Vec, Bytes, Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
@@ -22,7 +21,6 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  AssetsTrapped,
   GenericXcmReceivedWithContext,
   GenericXcmSentWithContext,
   XcmCriteria, XcmReceivedWithContext,
@@ -348,7 +346,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
     messageId,
     outcome: outcome.isComplete ? 'Success' : 'Fail',
     error: outcome.isComplete ? null : extractXcmError(outcome),
-    assetsTrapped 
+    assetsTrapped
   });
 }
 
