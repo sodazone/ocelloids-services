@@ -7,10 +7,10 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmReceivedWithContext,
+  GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   XcmCriteria,
-  XcmReceivedWithContext,
+  XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
 import { GetOutboundHrmpMessages } from '../types.js';
@@ -100,13 +100,13 @@ export function extractXcmpSend(
 
 export function extractXcmpReceive() {
   return (source: Observable<types.BlockEvent>)
-  : Observable<XcmReceivedWithContext>  => {
+  : Observable<XcmInboundWithContext>  => {
     return (source.pipe(
       map(event => {
         if (matchEvent(event, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
           const xcmMessage = event.data as any;
 
-          return new GenericXcmReceivedWithContext({
+          return new GenericXcmInboundWithContext({
             event: event.toHuman(),
             blockHash: event.blockHash.toHex(),
             blockNumber: event.blockNumber.toPrimitive(),

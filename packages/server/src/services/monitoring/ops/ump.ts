@@ -16,10 +16,10 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmReceivedWithContext,
+  GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   GetOutboundUmpMessages,
-  XcmCriteria, XcmReceivedWithContext,
+  XcmCriteria, XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
 import { getMessageId, getParaIdFromOrigin, matchEvent } from './util.js';
@@ -44,7 +44,7 @@ function createUmpReceivedWithContext(
     success,
     error
   }: UmpReceivedContext
-): XcmReceivedWithContext | null {
+): XcmInboundWithContext | null {
   // Received event only emits field `message_id`,
   // which is actually the message hash in the current runtime.
   const messageId = id.toHex();
@@ -53,7 +53,7 @@ function createUmpReceivedWithContext(
   // If we can get message origin, only return message if origin matches with subscription origin
   // If no origin, we will return the message without matching with subscription origin
   if (messageOrigin === undefined || messageOrigin === subOrigin) {
-    return new GenericXcmReceivedWithContext({
+    return new GenericXcmInboundWithContext({
       event: event.toHuman(),
       blockHash: event.blockHash.toHex(),
       blockNumber: event.blockNumber.toPrimitive(),
@@ -145,7 +145,7 @@ export function extractUmpSend(
 
 export function extractUmpReceive(originId: string) {
   return (source: Observable<types.BlockEvent>)
-    : Observable<XcmReceivedWithContext>  => {
+    : Observable<XcmInboundWithContext>  => {
     return (source.pipe(
       map(event => {
         if (matchEvent(event, 'messageQueue', METHODS_MQ_PROCESSED))
