@@ -1,12 +1,13 @@
 import z from 'zod';
 
-import { Subscription, Observable } from 'rxjs';
-
-import type { AnyJson } from '@polkadot/types-codec/types';
-import type { Vec, Bytes } from '@polkadot/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage, XcmVersionedXcm } from '@polkadot/types/lookup';
+import { Subscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids';
+
+type AnyJson = string | number | boolean | null | undefined | AnyJson[] | {
+  [index: string]: AnyJson;
+};
+
 
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
@@ -42,11 +43,16 @@ export type XcmWithContext = {
   messageId?: HexString
 }
 
+export type XcmProgram = {
+  bytes: Uint8Array,
+  json: AnyJson
+}
+
 export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array,
   recipient: string,
   sender: AnyJson,
-  instructions: XcmVersionedXcm
+  instructions: XcmProgram
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
@@ -168,7 +174,7 @@ export class XcmInbound {
 export class GenericXcmSentWithContext implements XcmSentWithContext {
   messageData: Uint8Array;
   recipient: string;
-  instructions: XcmVersionedXcm;
+  instructions: XcmProgram;
   messageHash: HexString;
   event: AnyJson;
   blockHash: HexString;
@@ -194,7 +200,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
     return {
       messageData: toHexString(this.messageData),
       recipient: this.recipient,
-      instructions: this.instructions.toHuman(),
+      instructions: this.instructions.json,
       messageHash: this.messageHash,
       event: this.event,
       blockHash: this.blockHash,
@@ -290,7 +296,7 @@ export class GenericXcmSent implements XcmSent {
       legIndex: 0
     };
     this.messageData = toHexString(msg.messageData);
-    this.instructions = msg.instructions.toHuman();
+    this.instructions = msg.instructions.json;
     this.messageHash = msg.messageHash;
     this.messageId = msg.messageId;
     this.sender = msg.sender;
@@ -518,9 +524,3 @@ export type BinBlock = {
   events: Uint8Array[];
   author?: Uint8Array;
 }
-
-export type GetOutboundHrmpMessages = (hash: `0x${string}`)
-=> Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
-
-export type GetOutboundUmpMessages = (hash: `0x${string}`)
-=> Observable<Vec<Bytes>>

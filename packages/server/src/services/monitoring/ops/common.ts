@@ -10,6 +10,7 @@ import type {
 
 import { XcmSentWithContext } from '../types.js';
 import { getParaIdFromMultiLocation } from './util.js';
+import { asVersionedXcm } from './xcm-format.js';
 
 function updateStops(
   stops: string[],
@@ -64,7 +65,7 @@ export function extractXcmWaypoints() {
   ) => source.pipe(
     map(message => {
       const { instructions, recipient } = message;
-      const stops = extractStops(instructions, recipient);
+      const stops = extractStops(asVersionedXcm(instructions.bytes), recipient);
       return { message, stops };
     })
   );

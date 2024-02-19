@@ -22,7 +22,8 @@ import {
 } from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
-import { ChainHead as ChainTip, BinBlock, GetOutboundHrmpMessages, GetOutboundUmpMessages, HexString } from './types.js';
+import { ChainHead as ChainTip, BinBlock, HexString } from './types.js';
+import { GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';

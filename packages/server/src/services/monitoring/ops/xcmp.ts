@@ -13,10 +13,10 @@ import {
   XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
-import { GetOutboundHrmpMessages } from '../types.js';
 import { getMessageId, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
+import { GetOutboundHrmpMessages } from '../types-augmented.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
@@ -42,7 +42,10 @@ function findOutboundHrmpMessage(
                     messageData: xcmProgram.toU8a(),
                     recipient: recipient.toNumber().toString(),
                     messageHash: xcmProgram.hash.toHex(),
-                    instructions: xcmProgram,
+                    instructions: {
+                      bytes: xcmProgram.toU8a(),
+                      json: xcmProgram.toHuman()
+                    },
                     messageId: getMessageId(xcmProgram)
                   }));
               }).find(msg => {

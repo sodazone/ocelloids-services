@@ -18,10 +18,11 @@ import {
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  GetOutboundUmpMessages,
-  XcmCriteria, XcmInboundWithContext,
+  XcmCriteria,
+  XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
+import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
@@ -106,7 +107,10 @@ function findOutboundUmpMessage(
                   recipient: '0', // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
-                  instructions: xcmProgram
+                  instructions: {
+                    bytes: xcmProgram.toU8a(),
+                    json: xcmProgram.toHuman()
+                  }
                 });
               }).find(msg => {
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;

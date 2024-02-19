@@ -30,7 +30,10 @@ describe('extract waypoints operator', () => {
               messageData: buf,
               messageHash: x.hash.toHex(),
               messageId: getMessageId(x),
-              instructions: x
+              instructions: {
+                bytes: x.toU8a(),
+                json: x.toHuman()
+              }
             }))
         )
       );
@@ -68,7 +71,10 @@ describe('extract waypoints operator', () => {
             messageData: buf,
             messageHash: xcm.hash.toHex(),
             messageId: getMessageId(xcm),
-            instructions: xcm
+            instructions: {
+              bytes: xcm.toU8a(),
+              json: xcm.toHuman()
+            }
           })
         )
       );
@@ -108,7 +114,10 @@ describe('extract waypoints operator', () => {
               messageData: buf,
               messageHash: x.hash.toHex(),
               messageId: getMessageId(x),
-              instructions: x
+              instructions: {
+                bytes: x.toU8a(),
+                json: x.toHuman()
+              }
             }))
         )
       );
