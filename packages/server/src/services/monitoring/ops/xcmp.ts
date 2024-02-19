@@ -115,19 +115,11 @@ export function extractXcmpReceive() {
               undefined;
           const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
 
-<<<<<<< HEAD
-          return new GenericXcmReceivedWithContext({
+          return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent.toHuman(),
             blockHash: maybeXcmpEvent.blockHash.toHex(),
             blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
             extrinsicId: maybeXcmpEvent.extrinsicId,
-=======
-          return new GenericXcmInboundWithContext({
-            event: event.toHuman(),
-            blockHash: event.blockHash.toHex(),
-            blockNumber: event.blockNumber.toPrimitive(),
-            extrinsicId: event.extrinsicId,
->>>>>>> 4a7f8ca6bee1b900ee43e7647038e324103ab8d9
             messageHash: xcmMessage.messageHash.toHex(),
             outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
             error: xcmMessage.error,
