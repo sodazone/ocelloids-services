@@ -12,21 +12,8 @@ export type OnDemandQuerySubscription = Omit<QuerySubscription, 'id'|'channels'>
  * The Ocelloids client configuration.
  */
 export type OcelloidsClientConfig = {
-  /**
-   * A string containing the hostname
-   * followed by (if a port was specified) a ':' and the port.
-   * Could also contain a path prefix without ending slash.
-   *
-   * Examples:
-   * localhost:3000
-   * some.where
-   * some.where:8080/path-prefix
-   */
-  host: string,
-  /**
-   * Indicates if the connection should use a secure protocol or not.
-   */
-  secure: boolean
+  wsUrl: string;
+  httpUrl: string;
 }
 
 function isBlob(value: any) {
@@ -69,8 +56,8 @@ export class OcelloidsClient {
   #wsUrl: string;
 
   constructor(config: OcelloidsClientConfig) {
-    this.#wsUrl = `${config.secure ? 'wss' : 'ws'}://${config.host}`;
-    this.#httpUrl = `${config.secure ? 'https' : 'http'}://${config.host}`;
+    this.#wsUrl = config.wsUrl;
+    this.#httpUrl = config.httpUrl;
     // TODO default headers for auth etc
   }
 
