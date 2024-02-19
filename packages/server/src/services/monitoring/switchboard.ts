@@ -18,9 +18,9 @@ import { HeadCatcher } from './head-catcher.js';
 import {
   GenericXcmSent,
   QuerySubscription,
-  XcmReceived,
+  XcmInbound,
   SubscriptionHandler,
-  XcmReceivedWithContext,
+  XcmInboundWithContext,
   XcmSentWithContext,
   SubscriptionWithId,
   XcmEventListener,
@@ -426,10 +426,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         }
 
         const emitInbound = () => (
-          source: Observable<XcmReceivedWithContext>
+          source: Observable<XcmInboundWithContext>
         ) => source.pipe(
           switchMap(msg => from(this.#engine.onInboundMessage(
-            new XcmReceived(id, chainId, msg)
+            new XcmInbound(id, chainId, msg)
           )))
         );
         const inboundObserver = {

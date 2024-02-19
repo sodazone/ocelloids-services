@@ -7,9 +7,9 @@ import {
   DB, Logger, Services, jsonEncoded, prefixes
 } from '../types.js';
 import {
-  XcmMatched,
-  XcmNotifyMessage,
   XcmReceived,
+  XcmNotifyMessage,
+  XcmInbound,
   XcmRelayed,
   XcmRelayedWithContext,
   XcmSent
@@ -44,7 +44,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #janitor: Janitor;
 
   readonly #outbound: SubLevel<XcmSent>;
-  readonly #inbound: SubLevel<XcmReceived>;
+  readonly #inbound: SubLevel<XcmInbound>;
   readonly #relay: SubLevel<XcmRelayedWithContext>;
   readonly #mutex: Mutex;
   readonly #xcmMatchedReceiver: XcmMatchedReceiver;
@@ -63,7 +63,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#xcmMatchedReceiver = xcmMatchedReceiver;
 
     this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
-    this.#inbound = db.sublevel<string, XcmReceived>(prefixes.matching.inbound, jsonEncoded);
+    this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
     this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
   }
 
@@ -155,7 +155,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     return outMsg;
   }
 
-  async onInboundMessage(inMsg: XcmReceived)  {
+  async onInboundMessage(inMsg: XcmInbound)  {
     const log = this.#log;
 
     this.emit('telemetryInbound', inMsg);
@@ -344,12 +344,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   async #onXcmMatched(
     outMsg: XcmSent,
-    inMsg: XcmReceived
+    inMsg: XcmInbound
   ) {
     this.emit('telemetryMatched', inMsg, outMsg);
 
     try {
-      const message: XcmMatched = new XcmMatched(outMsg, inMsg);
+      const message: XcmReceived = new XcmReceived(outMsg, inMsg);
       await this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');

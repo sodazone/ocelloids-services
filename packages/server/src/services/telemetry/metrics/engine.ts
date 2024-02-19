@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client';
 
-import { XcmReceived, XcmRelayed, XcmSent } from '../../monitoring/types.js';
+import { XcmInbound, XcmRelayed, XcmSent } from '../../monitoring/types.js';
 import { TelemetryEventEmitter } from '../types.js';
 
 export function engineMetrics(source: TelemetryEventEmitter) {
@@ -26,7 +26,7 @@ export function engineMetrics(source: TelemetryEventEmitter) {
   });
 
   source.on('telemetryInbound',
-    (message: XcmReceived) => {
+    (message: XcmInbound) => {
       inCount.labels(
         message.subscriptionId,
         message.chainId,
@@ -44,7 +44,7 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     });
 
   source.on('telemetryMatched',
-    (inMsg: XcmReceived, outMsg: XcmSent) => {
+    (inMsg: XcmInbound, outMsg: XcmSent) => {
       matchCount.labels(
         outMsg.subscriptionId,
         outMsg.origin.chainId,

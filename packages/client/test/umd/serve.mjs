@@ -22,4 +22,12 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(8000);
+server.listen(0, '127.0.0.1', () => {
+  const {port, address} = server.address();
+  console.log(server.address())
+  console.log(
+    'Listening on:',
+    `http://${address}:${port}/`
+  );
+});
+

@@ -1,0 +1,13 @@
+{
+  "name": "test-node",
+  "private": true,
+  "scripts": {
+    "test": "tsx run.ts && node run.js && node run.mjs"
+  },
+  "dependencies": {
+    "xcmon-client": "file:../../"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1"
+  }
+}

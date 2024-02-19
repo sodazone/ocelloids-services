@@ -55,13 +55,13 @@ export interface XcmSentWithContext extends XcmWithContext {
   instructions: XcmVersionedXcm
 }
 
-export interface XcmReceivedWithContext extends XcmWithContext {
+export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail',
   error: AnyJson,
   assetsTrapped?: AssetsTrapped
 }
 
-export interface XcmRelayedWithContext extends XcmReceivedWithContext {
+export interface XcmRelayedWithContext extends XcmInboundWithContext {
   recipient: string,
   origin: string,
 }
@@ -107,7 +107,7 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
   }
 }
 
-export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
+export class GenericXcmInboundWithContext implements XcmInboundWithContext {
   event: AnyJson;
   extrinsicId?: string | undefined;
   blockNumber: string;
@@ -118,7 +118,7 @@ export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
   error: AnyJson;
   assetsTrapped?: AssetsTrapped | undefined;
 
-  constructor(msg: XcmReceivedWithContext) {
+  constructor(msg: XcmInboundWithContext) {
     this.event = msg.event;
     this.messageHash = msg.messageHash;
     this.messageId = msg.messageId ?? msg.messageHash;
@@ -145,7 +145,7 @@ export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
   }
 }
 
-export class XcmReceived {
+export class XcmInbound {
   subscriptionId: string;
   chainId: string;
   event: AnyJson;
@@ -161,7 +161,7 @@ export class XcmReceived {
   constructor(
     subscriptionId: string,
     chainId: string,
-    msg: XcmReceivedWithContext
+    msg: XcmInboundWithContext
   ) {
     this.subscriptionId = subscriptionId;
     this.chainId = chainId;
@@ -340,7 +340,7 @@ export class GenericXcmSent implements XcmSent {
   }
 }
 
-export class XcmMatched {
+export class XcmReceived {
   type: XcmNotificationType = XcmNotificationType.Received;
   subscriptionId: string;
   legs: Leg[];
@@ -355,7 +355,7 @@ export class XcmMatched {
 
   constructor(
     outMsg: XcmSent,
-    inMsg: XcmReceived
+    inMsg: XcmInbound
   ) {
     this.subscriptionId = outMsg.subscriptionId;
     this.legs = outMsg.legs;
@@ -426,14 +426,18 @@ export class XcmRelayed {
   }
 }
 
-export type XcmNotifyMessage = XcmSent | XcmMatched | XcmRelayed;
+export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed;
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent;
 }
 
-export function isXcmMatched(object: any): object is XcmMatched {
+export function isXcmReceived(object: any): object is XcmReceived {
   return object.type !== undefined && object.type === XcmNotificationType.Received;
+}
+
+export function isXcmRelayed(object: any): object is XcmRelayed {
+  return object.type !== undefined && object.type === XcmNotificationType.Relayed;
 }
 
 const $WebhookNotification = z.object({

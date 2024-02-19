@@ -21,9 +21,9 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  GenericXcmReceivedWithContext,
+  GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  XcmCriteria, XcmReceivedWithContext,
+  XcmCriteria, XcmInboundWithContext,
   XcmSentWithContext
 } from '../types.js';
 import {
@@ -337,7 +337,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
   const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
 
-  return new GenericXcmReceivedWithContext({
+  return new GenericXcmInboundWithContext({
     event: event.toHuman(),
     blockHash: event.blockHash.toHex(),
     blockNumber: event.blockNumber.toPrimitive(),
@@ -352,7 +352,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
 
 export function extractDmpReceive() {
   return (source: Observable<types.BlockEvent>)
-      : Observable<XcmReceivedWithContext>  => {
+      : Observable<XcmInboundWithContext>  => {
     return (source.pipe(
       bufferCount(2,1),
       map(([maybeAssetTrapEvent, maybeDmpEvent]) => {
