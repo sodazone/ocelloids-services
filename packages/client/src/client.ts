@@ -14,7 +14,13 @@ export type OcelloidsClientConfig = {
   wsAuthToken?: string;
 }
 
-function isBlob(value: any) {
+/**
+ * Type guard to check if a value is a Blob.
+ *
+ * @param value - The value to check.
+ * @returns whether the value is a Blob.
+ */
+function isBlob(value: any): value is Blob {
   if (typeof Blob === 'undefined') {
     return false;
   }
@@ -25,26 +31,45 @@ type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => voi
 type CloseHandler = (event: CloseEvent) => void;
 type ErrorHandler = (error: Event) => void;
 
+/**
+ * Type definition for WebSocket event handlers.
+ */
 export type WebSocketHandlers = {
   onMessage: MessageHandler<XcmNotifyMessage>,
   onClose?: CloseHandler,
   onError?: ErrorHandler
 }
 
+/**
+ * Protocol class to chain request response until reach streaming state.
+ */
 class Protocol {
-  #queue : MessageHandler<any>[] = new Array();
-  #stream: MessageHandler<XcmNotifyMessage>;
+  readonly #queue : MessageHandler<any>[] = new Array();
+  readonly #stream: MessageHandler<XcmNotifyMessage>;
   #isStreaming: boolean;
 
+  /**
+   * Constructs a Protocol instance.
+   * @param stream - The message handler for streaming state.
+   */
   constructor(stream: MessageHandler<XcmNotifyMessage>) {
     this.#stream = stream;
     this.#isStreaming = false;
   }
 
+  /**
+   * Adds a handler to the message queue.
+   * @template T - The type of the message.
+   * @param handler - The message handler to add.
+   */
   next<T>(handler: MessageHandler<T>) {
     this.#queue.push(handler);
   }
 
+  /**
+   * Handles a WebSocket message event.
+   * @param event - The message event to handle.
+   */
   handle(event: MessageEvent) {
     const ws = event.target as WebSocket;
     let current: MessageHandler<any>;
@@ -78,6 +103,11 @@ export class OcelloidsClient {
   readonly #config: OcelloidsClientConfig;
   readonly #headers: {};
 
+  /**
+   * Constructs an OcelloidsClient instance.
+   *
+   * @param config - The configuration for the client.
+   */
   constructor(config: OcelloidsClientConfig) {
     this.#config = config;
 
@@ -92,6 +122,12 @@ export class OcelloidsClient {
     this.#headers = headers;
   }
 
+  /**
+   * Creates a subscription.
+   *
+   * @param subscription - The subscription to create.
+   * @returns A promise that resolves when the subscription is created.
+   */
   async create(subscription: QuerySubscription) {
     return new Promise<void>(async (resolve, reject) => {
       const res = await fetch(this.#config.httpUrl + '/subs', {
@@ -108,6 +144,12 @@ export class OcelloidsClient {
     });
   }
 
+  /**
+   * Gets a subscription by its identifier.
+   *
+   * @param subscriptionId - The subscription identifier.
+   * @returns A promise that resolves with the subscription or rejects if not found.
+   */
   async get(subscriptionId: string)
   : Promise<QuerySubscription> {
     return new Promise<QuerySubscription>(async (resolve, reject) => {
@@ -120,6 +162,11 @@ export class OcelloidsClient {
     });
   }
 
+  /**
+   * Checks the health of the service.
+   *
+   * @returns A promise that resolves with the health status.
+   */
   async health() {
     return new Promise(async (resolve, reject) => {
       const res = await fetch(this.#config.httpUrl + '/health');
@@ -131,6 +178,13 @@ export class OcelloidsClient {
     });
   }
 
+  /**
+   * Creates an on-demand subscription or connects to an existing one.
+   *
+   * @param subscription - The subscription id or the subscription object to create.
+   * @param handlers - The WebSocket event handlers.
+   * @returns A promise that resolves with the WebSocket instance.
+   */
   async subscribe(
     subscription: string | OnDemandQuerySubscription,
     handlers: WebSocketHandlers
