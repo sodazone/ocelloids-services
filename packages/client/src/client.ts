@@ -1,6 +1,8 @@
-import { WebSocket, MessageEvent } from 'isows';
+import { WebSocket, type MessageEvent } from 'isows';
 
-import { OnDemandQuerySubscription, QuerySubscription } from './types';
+import type { OnDemandQuerySubscription } from './types';
+
+import type { QuerySubscription, XcmNotifyMessage } from './server-types';
 
 /**
  * The Ocelloids client configuration.
@@ -8,6 +10,8 @@ import { OnDemandQuerySubscription, QuerySubscription } from './types';
 export type OcelloidsClientConfig = {
   wsUrl: string;
   httpUrl: string;
+  httpAuthToken?: string;
+  wsAuthToken?: string;
 }
 
 function isBlob(value: any) {
@@ -21,48 +25,78 @@ type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => voi
 type CloseHandler = (event: CloseEvent) => void;
 type ErrorHandler = (error: Event) => void;
 
-export type WebSocketHandlers<T> = {
-  onMessage: MessageHandler<T>,
+export type WebSocketHandlers = {
+  onMessage: MessageHandler<XcmNotifyMessage>,
   onClose?: CloseHandler,
   onError?: ErrorHandler
 }
 
-function handleMessage<T>(
-  handler: MessageHandler<T>
-) {
-  return (event: MessageEvent) => {
+class Protocol {
+  #queue : MessageHandler<any>[] = new Array();
+  #stream: MessageHandler<XcmNotifyMessage>;
+  #isStreaming: boolean;
+
+  constructor(stream: MessageHandler<XcmNotifyMessage>) {
+    this.#stream = stream;
+    this.#isStreaming = false;
+  }
+
+  next<T>(handler: MessageHandler<T>) {
+    this.#queue.push(handler);
+  }
+
+  handle(event: MessageEvent) {
     const ws = event.target as WebSocket;
+    let current: MessageHandler<any>;
+
+    if (this.#isStreaming) {
+      current = this.#stream;
+    } else {
+      const next = this.#queue.pop();
+      if (next) {
+        current = next;
+      } else {
+        current = this.#stream;
+        this.#isStreaming = true;
+      }
+    }
+
     if (isBlob(event.data)) {
       (event.data as Blob).text().then(
-        blob => handler(JSON.parse(blob), ws, event)
+        blob => current(JSON.parse(blob), ws, event)
       );
     } else {
-      handler(JSON.parse(event.data.toString()), ws, event);
+      current(JSON.parse(event.data.toString()), ws, event);
     }
-  };
+  }
 }
 
 /**
  * The Ocelloids client.
  */
 export class OcelloidsClient {
-  #httpUrl: string;
-  #wsUrl: string;
+  readonly #config: OcelloidsClientConfig;
+  readonly #headers: {};
 
   constructor(config: OcelloidsClientConfig) {
-    this.#wsUrl = config.wsUrl;
-    this.#httpUrl = config.httpUrl;
-    // TODO default headers for auth etc
+    this.#config = config;
+
+    const headers : Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    };
+    if (config.httpAuthToken) {
+      headers['Authorization'] = `Bearer ${config.httpAuthToken}`;
+    }
+
+    this.#headers = headers;
   }
 
   async create(subscription: QuerySubscription) {
     return new Promise<void>(async (resolve, reject) => {
-      const res = await fetch(this.#httpUrl + '/subs', {
+      const res = await fetch(this.#config.httpUrl + '/subs', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // authentication...
-        },
+        headers: this.#headers,
         body: JSON.stringify(subscription),
       });
 
@@ -77,7 +111,7 @@ export class OcelloidsClient {
   async get(subscriptionId: string)
   : Promise<QuerySubscription> {
     return new Promise<QuerySubscription>(async (resolve, reject) => {
-      const res = await fetch(this.#httpUrl + '/subs/' + subscriptionId);
+      const res = await fetch(this.#config.httpUrl + '/subs/' + subscriptionId);
       if (res.ok) {
         resolve((await res.json()) as QuerySubscription);
       } else {
@@ -88,7 +122,7 @@ export class OcelloidsClient {
 
   async health() {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(this.#httpUrl + '/health');
+      const res = await fetch(this.#config.httpUrl + '/health');
       if (res.ok) {
         resolve(await res.json());
       } else {
@@ -97,27 +131,27 @@ export class OcelloidsClient {
     });
   }
 
-  async subscribe<T>(
+  async subscribe(
     subscription: string | OnDemandQuerySubscription,
-    handlers: WebSocketHandlers<T>
+    handlers: WebSocketHandlers
   ): Promise<WebSocket> {
-    const url = this.#wsUrl + '/ws/subs';
+    const url = this.#config.wsUrl + '/ws/subs';
 
     return typeof subscription === 'string'
-      ? this.#openWebSocket<T>(`${url}/${subscription}`, handlers)
-      : this.#openWebSocket<T>(url, handlers, subscription);
+      ? this.#openWebSocket(`${url}/${subscription}`, handlers)
+      : this.#openWebSocket(url, handlers, subscription);
   }
 
-  #openWebSocket<T>(
+  #openWebSocket(
     url: string,
-    { onMessage, onError, onClose }: WebSocketHandlers<T>,
+    { onMessage, onError, onClose }: WebSocketHandlers,
     sub?: OnDemandQuerySubscription
   ) {
     return new Promise<WebSocket>((resolve, reject) => {
+      const protocol = new Protocol(onMessage);
       const ws = new WebSocket(url);
-      ws.binaryType = 'blob';
 
-      ws.onmessage = handleMessage(onMessage);
+      ws.onmessage = protocol.handle.bind(protocol);
 
       if (onError) {
         ws.onerror = onError;
@@ -127,11 +161,29 @@ export class OcelloidsClient {
         ws.onclose = onClose;
       }
 
+      function requestOnDemandSub() {
+        ws.send(JSON.stringify(sub));
+        protocol.next<QuerySubscription>(msg => {
+          // TODO add callback?
+          // TODO handle failure...
+          console.log('> subscription', msg);
+        });
+      }
+
       ws.onopen = () => {
         if (ws.readyState === 1) {
-          if (sub) {
-            ws.send(JSON.stringify(sub));
+          if (this.#config.wsAuthToken) {
+            ws.send(this.#config.wsAuthToken);
+            protocol.next(() => {
+              // note that will error if auth fails
+              if (sub) {
+                requestOnDemandSub();
+              }
+            });
+          } else if (sub) {
+            requestOnDemandSub();
           }
+
           resolve(ws);
         } else {
           reject('ws ready state: ' + ws.readyState);

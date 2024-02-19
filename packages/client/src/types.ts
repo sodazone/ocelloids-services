@@ -1,19 +1,4 @@
-import {
-  QuerySubscription,
-  XcmNotifyMessage
-} from 'xcmon-server';
-
-export type {
-  QuerySubscription,
-  XcmNotifyMessage,
-  XcmNotificationType,
-  XcmSent,
-  XcmReceived,
-  XcmRelayed,
-  isXcmSent,
-  isXcmReceived,
-  isXcmRelayed
-} from 'xcmon-server';
+import type { QuerySubscription, XcmNotifyMessage } from './server-types';
 
 export type OnDemandQuerySubscription = Omit<QuerySubscription, 'id'|'channels'>;
 
