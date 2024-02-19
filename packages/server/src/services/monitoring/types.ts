@@ -8,7 +8,6 @@ type AnyJson = string | number | boolean | null | undefined | AnyJson[] | {
   [index: string]: AnyJson;
 };
 
-
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
   blockNumber: z.string().min(1),
