@@ -28,7 +28,7 @@ const nodeSrcRoot = join(projectRoot, "src");
 const denoLibRoot = join(projectRoot, "dist", "deno", "lib");
 
 const replacements = {
-  "xcmon-server": "export * from './lib-types';",
+  "xcmon-server": "export * from './types-bundle';",
   "isows": "// native ws"
 };
 

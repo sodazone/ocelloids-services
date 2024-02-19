@@ -18,8 +18,8 @@
   "scripts": {
     "build": "yarn build:browser && yarn build:deno",
     "build:browser": "rollup -c --bundleConfigAsCjs",
-    "build:deno": "node deno-build.mjs && yarn gen:dts",
-    "gen:dts": "yarn dts-bundle-generator -o ./dist/deno/lib/lib-types/index.d.ts ./src/server-types.ts",
+    "build:deno": "node deno-build.mjs && yarn bundle:types",
+    "bundle:types": "yarn dts-bundle-generator -o ./dist/deno/lib/types-bundle/index.d.ts ./src/server-types.ts",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "lint": "eslint --cache --fix \"src/**/*.ts\""
   },
