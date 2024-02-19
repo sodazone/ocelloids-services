@@ -8,8 +8,9 @@
     "Xueying Wang <xueying@soda.zone>"
   ],
   "main": "dist/lib.js",
-  "module": "dist/lib.esm.js",
+  "module": "dist/lib.mjs",
   "browser": "dist/lib.umd.js",
+  "types": "dist/lib.d.ts",
   "files": [
     "/dist"
   ],
@@ -17,7 +18,8 @@
   "scripts": {
     "build": "yarn build:browser && yarn build:deno",
     "build:browser": "rollup -c --bundleConfigAsCjs",
-    "build:deno": "denoify",
+    "build:deno": "node deno-build.mjs && yarn gen:dts",
+    "gen:dts": "yarn dts-bundle-generator -o ./dist/deno/lib/lib-types/index.d.ts ./src/server-types.ts",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "lint": "eslint --cache --fix \"src/**/*.ts\""
   },
@@ -53,7 +55,7 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@swc/core": "^1.4.1",
     "@swc/jest": "^0.2.36",
-    "denoify": "^1.6.9",
+    "dts-bundle-generator": "^9.3.1",
     "eslint": "^8.56.0",
     "finalhandler": "^1.2.0",
     "jest": "^29.7.0",

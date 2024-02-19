@@ -5,8 +5,8 @@ export function setup() {
   const status = document.querySelector('#status')
 
   const client = new OcelloidsClient({
-    host: 'localhost:3000',
-    secure: false
+    httpUrl: 'http://127.0.0.1:3000',
+    wsUrl: 'ws://127.0.0.1:3000'
   });
 
   client.subscribe({

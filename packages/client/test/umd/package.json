@@ -1,0 +1,7 @@
+{
+  "name": "test-umd",
+  "private": true,
+  "scripts": {
+    "test": "node serve.mjs"
+  }
+}

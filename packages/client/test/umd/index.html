@@ -28,8 +28,8 @@
     <script>
       const css = "background-image: linear-gradient( 58.2deg,  rgba(40,91,212,0.73) -3%, rgba(171,53,163,0.45) 49.3%, rgba(255,204,112,0.37) 97.7% ); color: #BADA55";
       const oc = new xcmon.OcelloidsClient({
-        host: '127.0.0.1:3000',
-        secure: false
+        httpUrl: 'http://127.0.0.1:3000',
+        wsUrl: 'ws://127.0.0.1:3000',
       });
       oc.get('moonbeam-transfers')
         .then(s => console.log("%c" + JSON.stringify(s), css))

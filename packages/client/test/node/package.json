@@ -2,10 +2,10 @@
   "name": "test-node",
   "private": true,
   "scripts": {
-    "test": "tsx run.ts && node run.js && node run.mjs"
-  },
-  "dependencies": {
-    "xcmon-client": "file:../../"
+    "test": "yarn test:ts && yarn test:cjs && yarn test:esm",
+    "test:ts": "tsx run.ts",
+    "test:cjs": "node run.js",
+    "test:esm": "node run.mjs"
   },
   "devDependencies": {
     "tsx": "^4.7.1"

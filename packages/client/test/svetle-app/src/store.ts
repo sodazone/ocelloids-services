@@ -1,15 +1,15 @@
 import { writable } from 'svelte/store';
-import { OcelloidsClient, type QuerySubscription, type XcmNotifyMessage } from 'xcmon-client';
+import { OcelloidsClient } from 'xcmon-client';
 
 export const createSubscriptionStore = async () => {
     const { subscribe, set, update } = writable<string[]>([]);
 
     const client = new OcelloidsClient({
-        host: 'localhost:3000',
-        secure: false
+        wsUrl: 'ws://localhost:3000',
+        httpUrl: 'http://localhost:3000'
       });
     
-    const ws = await client.subscribe<QuerySubscription | XcmNotifyMessage>({
+    const ws = await client.subscribe({
         origin: "2004",
         senders: "*",
         events: "*",

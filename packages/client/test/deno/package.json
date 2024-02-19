@@ -1,0 +1,7 @@
+{
+  "name": "test-deno",
+  "private": true,
+  "scripts": {
+    "test": "deno run --allow-net run.ts"
+  }
+}

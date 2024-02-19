@@ -1,8 +1,8 @@
-const { OcelloidsClient } = require('xcmon-client');
+const { OcelloidsClient } = require('../../dist/lib');
 
 const client = new OcelloidsClient({
-  host: '127.0.0.1:3000',
-  secure: false
+  httpUrl: 'http://127.0.0.1:3000',
+  wsUrl: 'ws://127.0.0.1:3000'
 });
 
 client.health().then(console.log).catch(console.error)

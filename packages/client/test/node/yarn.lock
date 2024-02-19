@@ -651,15 +651,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"isows@npm:^1.0.3":
-  version: 1.0.3
-  resolution: "isows@npm:1.0.3"
-  peerDependencies:
-    ws: "*"
-  checksum: 10c0/adec15db704bb66615dd8ef33f889d41ae2a70866b21fa629855da98cc82a628ae072ee221fe9779a9a19866cad2a3e72593f2d161a0ce0e168b4484c7df9cd2
-  languageName: node
-  linkType: hard
-
 "jackspeak@npm:^2.3.5":
   version: 2.3.6
   resolution: "jackspeak@npm:2.3.6"
@@ -1063,7 +1054,6 @@ __metadata:
   resolution: "test-node@workspace:."
   dependencies:
     tsx: "npm:^4.7.1"
-    xcmon-client: "file:../../"
   languageName: unknown
   linkType: soft
 
@@ -1142,17 +1132,6 @@ __metadata:
     string-width: "npm:^5.0.1"
     strip-ansi: "npm:^7.0.1"
   checksum: 10c0/138ff58a41d2f877eae87e3282c0630fc2789012fc1af4d6bd626eeb9a2f9a65ca92005e6e69a75c7b85a68479fe7443c7dbe1eb8fbaa681a4491364b7c55c60
-  languageName: node
-  linkType: hard
-
-"xcmon-client@file:../../::locator=test-node%40workspace%3A.":
-  version: 1.0.0
-  resolution: "xcmon-client@file:../../#../../::hash=db0ba3&locator=test-node%40workspace%3A."
-  dependencies:
-    isows: "npm:^1.0.3"
-  peerDependencies:
-    ws: "*"
-  checksum: 10c0/4b0dbfbbc760facca77f1d5fe7661ea65d038963cd57e66677e8782c2ad0df229fa56a286aebfe07a23af19fd8875fdc5dd4fc905f6891a0ae18439440932db4
   languageName: node
   linkType: hard
 
