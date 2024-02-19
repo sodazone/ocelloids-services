@@ -1,4 +1,4 @@
-import { OcelloidsClient } from '../../dist/deno/lib/mod.ts';
+import { OcelloidsClient } from '../../dist/deno/mod.ts';
 
 const client = new OcelloidsClient({
   httpUrl: 'http://127.0.0.1:3000',

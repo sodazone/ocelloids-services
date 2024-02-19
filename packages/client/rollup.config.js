@@ -15,7 +15,7 @@ const plugins = [
     include: '../../node_modules/**',
   }),
   typescript({
-    typescript: require('typescript'), // eslint-disable-line no-undef
+    typescript: require('typescript'),
   }),
 ];
 

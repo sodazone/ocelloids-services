@@ -25,7 +25,7 @@ const join = (/** @type string[] */ ...parts) =>
 
 const projectRoot = process.cwd();
 const nodeSrcRoot = join(projectRoot, "src");
-const denoLibRoot = join(projectRoot, "dist", "deno", "lib");
+const denoLibRoot = join(projectRoot, "dist", "deno");
 
 const replacements = {
   "xcmon-server": "export * from './types-bundle';",
@@ -94,6 +94,9 @@ const walkAndBuild = (/** @type string */ dir) => {
 console.log("Deno build...");
 
 walkAndBuild("");
+
+// TODO add copy bundle dir
+// and replace server-types import here to avoid using sed
 
 console.log("Done.");
 

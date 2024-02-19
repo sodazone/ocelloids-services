@@ -1,1 +1,1 @@
-export type { QuerySubscription, XcmNotifyMessage }  from 'xcmon-server';
+export type { QuerySubscription, XcmNotifyMessage } from 'xcmon-server';
