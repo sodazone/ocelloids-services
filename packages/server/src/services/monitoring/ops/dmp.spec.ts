@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { dmpReceive, dmpReceiveWithTrap, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue, dmpXcmPalletSentEvent } from '../../../testing/xcm.js';
+import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue, dmpXcmPalletSentEvent } from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
 
@@ -171,11 +171,11 @@ describe('dmp operator', () => {
     });
 
     it('should extract dmp receive with asset trap', done => {
-      const { blocks } = dmpReceiveWithTrap;
+      const { trappedBlocks } = dmpReceive;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpReceive()(blocks.pipe(extractEvents()));
+      const test$ = extractDmpReceive()(trappedBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: msg => {
@@ -189,13 +189,13 @@ describe('dmp operator', () => {
           expect(msg.outcome).toBe('Fail');
           expect(msg.error).toBeDefined();
           expect(msg.error).toBe('FailedToTransactAsset');
-          expect(msg.assetTrapped).toBeDefined();
+          expect(msg.assetsTrapped).toBeDefined();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
         }
       });
-    })
+    });
   });
 });

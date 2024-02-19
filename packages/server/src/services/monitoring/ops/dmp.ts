@@ -22,7 +22,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import {
-  AssetTrapped,
+  AssetsTrapped,
   GenericXcmReceivedWithContext,
   GenericXcmSentWithContext,
   XcmCriteria, XcmReceivedWithContext,
@@ -32,6 +32,7 @@ import {
   getMessageId,
   getParaIdFromMultiLocation,
   getParaIdFromVersionedMultiLocation,
+  mapAssetsTrapped,
   matchEvent,
   matchExtrinsic,
   matchProgramByTopic
@@ -331,25 +332,12 @@ function extractXcmError(outcome: Outcome) {
   return undefined;
 }
 
-function createDmpReceivedWithContext(event: types.BlockEvent, assetTappedEvent?: types.BlockEvent) {
+function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEvent?: types.BlockEvent) {
   const xcmMessage = event.data as any;
   const outcome = xcmMessage.outcome as Outcome;
   const messageId = xcmMessage.messageId.toHex();
   const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
-  let assetTrapped: AssetTrapped | undefined;
-
-  if (assetTappedEvent) {
-    const [ hash_, _, assets ] = assetTappedEvent.data as unknown as [
-      hash_: H256,
-      _origin: any,
-      assets: XcmVersionedMultiAssets
-    ];
-    assetTrapped = {
-      event: assetTappedEvent.toHuman(),
-      assets: assets.toHuman(),
-      hash: hash_.toHex()
-    }
-  }
+  const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
 
   return new GenericXcmReceivedWithContext({
     event: event.toHuman(),
@@ -360,7 +348,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetTappedEvent?
     messageId,
     outcome: outcome.isComplete ? 'Success' : 'Fail',
     error: outcome.isComplete ? null : extractXcmError(outcome),
-    assetTrapped 
+    assetsTrapped 
   });
 }
 
@@ -376,7 +364,10 @@ export function extractDmpReceive() {
           maybeDmpEvent &&
           matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')
         ) {
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          const assetTrapEvent =
+            matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ?
+              maybeAssetTrapEvent :
+              undefined;
           return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent);
         }
         return null;

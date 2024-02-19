@@ -42,7 +42,7 @@ export type XcmWithContext = {
   messageId?: HexString
 }
 
-export type AssetTrapped = {
+export type AssetsTrapped = {
   assets: AnyJson,
   hash: HexString,
   event: AnyJson
@@ -58,7 +58,7 @@ export interface XcmSentWithContext extends XcmWithContext {
 export interface XcmReceivedWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail',
   error: AnyJson,
-  assetTrapped?: AssetTrapped
+  assetsTrapped?: AssetsTrapped
 }
 
 export interface XcmRelayedWithContext extends XcmReceivedWithContext {
@@ -116,7 +116,7 @@ export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
   messageId: HexString;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
-  assetTrapped?: AssetTrapped | undefined;
+  assetsTrapped?: AssetsTrapped | undefined;
 
   constructor(msg: XcmReceivedWithContext) {
     this.event = msg.event;
@@ -127,7 +127,7 @@ export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
-    this.assetTrapped = msg.assetTrapped;
+    this.assetsTrapped = msg.assetsTrapped;
   }
 
   toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
@@ -140,7 +140,7 @@ export class GenericXcmReceivedWithContext implements XcmReceivedWithContext {
       event: this.event,
       outcome: this.outcome,
       error: this.error,
-      assetTrapped: this.assetTrapped
+      assetsTrapped: this.assetsTrapped
     };
   }
 }
@@ -156,7 +156,7 @@ export class XcmReceived {
   blockHash: HexString;
   blockNumber: string;
   extrinsicId?: string;
-  assetTrapped?: AssetTrapped;
+  assetsTrapped?: AssetsTrapped;
 
   constructor(
     subscriptionId: string,
@@ -173,7 +173,7 @@ export class XcmReceived {
     this.blockHash = msg.blockHash;
     this.blockNumber = msg.blockNumber.toString();
     this.extrinsicId = msg.extrinsicId;
-    this.assetTrapped = msg.assetTrapped;
+    this.assetsTrapped = msg.assetsTrapped;
   }
 }
 
@@ -239,7 +239,7 @@ export interface XcmTerminiContext extends XcmTermini {
   event: AnyJson,
   outcome: 'Success' | 'Fail';
   error: AnyJson;
-  assetTrapped?: AnyJson;
+  assetsTrapped?: AnyJson;
 }
 
 interface XcmWaypointContext extends XcmTerminiContext {
@@ -367,7 +367,7 @@ export class XcmMatched {
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
-      assetTrapped: inMsg.assetTrapped
+      assetsTrapped: inMsg.assetsTrapped
     };
     this.origin = outMsg.origin;
     this.waypoint = {

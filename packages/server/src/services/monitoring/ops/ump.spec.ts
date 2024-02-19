@@ -94,5 +94,32 @@ describe('ump operator', () => {
         }
       });
     });
+
+    it('should extract ump receive with asset trap', done => {
+      const { trappedBlocks } = umpReceive;
+
+      const calls = jest.fn();
+
+      const test$ = extractUmpReceive('2004')(trappedBlocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: msg => {
+          calls();
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.event).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.outcome).toBeDefined();
+          expect(msg.outcome).toBe('Success');
+          expect(msg.error).toBeNull();
+          expect(msg.assetsTrapped).toBeDefined();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(2);
+          done();
+        }
+      });
+    });
   });
 });

@@ -63,7 +63,8 @@ export const umpSend = {
 
 export const umpReceive = {
   successBlocks: from(testBlocksFrom('ump-in-success.cbor.bin', 'polkadot.json')),
-  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json'))
+  failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json')),
+  trappedBlocks: from(testBlocksFrom('ump-0-trapped-19511591.cbor.bin', 'polkadot-1000001.json'))
 };
 
 // DMP testing mocks
@@ -280,13 +281,7 @@ export const dmpXcmPalletSentEvent = {
 export const dmpReceive = {
   successBlocks: from(testBlocksFrom('dmp-in-1000-success.cbor.bin', 'asset-hub.json')),
   failBlocks: from(testBlocksFrom('dmp-in-1000-fail.cbor.bin', 'asset-hub.json')),
-  api: {
-    at: () => jest.fn()
-  } as unknown as ApiPromise
-};
-
-export const dmpReceiveWithTrap = {
-  blocks: from(testBlocksFrom('dmp-2034-trapped-4159643.cbor.bin', 'hydra-201.json')),
+  trappedBlocks: from(testBlocksFrom('dmp-2034-trapped-4159643.cbor.bin', 'hydra-201.json')),
   api: {
     at: () => jest.fn()
   } as unknown as ApiPromise
