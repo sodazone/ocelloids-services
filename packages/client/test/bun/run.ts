@@ -1,4 +1,4 @@
-import { OcelloidsClient, isXcmReceived, isXcmSent } from '../../dist/lib';
+import { OcelloidsClient, isXcmReceived, isXcmSent } from '../..';
 
 const client = new OcelloidsClient({
   httpUrl: 'http://127.0.0.1:3000',

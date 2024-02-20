@@ -4,7 +4,10 @@ import { Subscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids';
 
-type AnyJson = string | number | boolean | null | undefined | AnyJson[] | {
+/**
+ * @public
+ */
+export type AnyJson = string | number | boolean | null | undefined | AnyJson[] | {
   [index: string]: AnyJson;
 };
 
@@ -223,7 +226,6 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
-// eslint-disable-next-line no-shadow
 export enum XcmNotificationType {
   Sent = 'xcm.sent',
   Received = 'xcm.received',
@@ -233,10 +235,16 @@ export enum XcmNotificationType {
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
 
-type XcmTermini = {
+/**
+ * @public
+ */
+export type XcmTermini = {
   chainId: string
 };
 
+/**
+ * @public
+ */
 export interface XcmTerminiContext extends XcmTermini {
   blockNumber: string,
   blockHash: HexString,
@@ -247,15 +255,24 @@ export interface XcmTerminiContext extends XcmTermini {
   assetsTrapped?: AnyJson;
 }
 
-interface XcmWaypointContext extends XcmTerminiContext {
+/**
+ * @public
+ */
+export interface XcmWaypointContext extends XcmTerminiContext {
   legIndex: number
 }
 
-type Leg = {
+/**
+ * @public
+ */
+export type Leg = {
   from:  string,
   to: string
 };
 
+/**
+ * @public
+ */
 export interface XcmSent {
   type: XcmNotificationType;
   subscriptionId: string;
@@ -345,7 +362,24 @@ export class GenericXcmSent implements XcmSent {
   }
 }
 
-export class XcmReceived {
+/**
+ * @public
+ */
+export interface XcmReceived {
+  type: XcmNotificationType;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTerminiContext;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  messageId?: HexString;
+}
+
+export class GenericXcmReceived implements XcmReceived {
   type: XcmNotificationType = XcmNotificationType.Received;
   subscriptionId: string;
   legs: Leg[];
@@ -387,7 +421,24 @@ export class XcmReceived {
   }
 }
 
-export class XcmRelayed {
+/**
+ * @public
+ */
+export interface XcmRelayed {
+  type: XcmNotificationType;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  messageId?: HexString;
+}
+
+export class GenericXcmRelayed implements XcmRelayed {
   type: XcmNotificationType = XcmNotificationType.Relayed;
   subscriptionId: string;
   legs: Leg[];
@@ -431,6 +482,9 @@ export class XcmRelayed {
   }
 }
 
+/**
+ * @public
+ */
 export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed;
 
 export function isXcmSent(object: any): object is XcmSent {

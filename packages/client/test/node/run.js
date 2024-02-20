@@ -1,4 +1,4 @@
-const { OcelloidsClient } = require('../../dist/lib');
+const { OcelloidsClient } = require('../..');
 
 const client = new OcelloidsClient({
   httpUrl: 'http://127.0.0.1:3000',

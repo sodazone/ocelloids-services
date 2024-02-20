@@ -15,12 +15,9 @@ import {
   readFileSync,
   statSync,
   writeFileSync,
-  cp,
-  mkdir
+  cpSync
 } from "fs";
 import { dirname } from "path";
-
-import { generateDtsBundle } from 'dts-bundle-generator';
 
 // Node's path.join() normalize explicitly-relative paths like "./index.ts" to
 // paths like "index.ts" which don't work as relative ES imports, so we do this.
@@ -30,12 +27,11 @@ const join = (/** @type string[] */ ...parts) =>
 const projectRoot = process.cwd();
 const nodeSrcRoot = join(projectRoot, "src");
 const distRoot = join(projectRoot, "dist");
-const typesRoot = join(distRoot);
-const typesBundleRoot = join(typesRoot, "types-bundle");
 const denoLibRoot = join(distRoot, "deno");
 
 const replacements = {
-  "isows": "// native ws"
+  "isows": "// native",
+  "xcmon-server": "export type * from './xcmon-client.d.ts';\n"
 };
 
 const walkAndBuild = (/** @type string */ dir) => {
@@ -97,34 +93,12 @@ const walkAndBuild = (/** @type string */ dir) => {
   }
 };
 
-function replaceTypesImport() {
-  const serverTypesFile = join(typesRoot, "server-types.d.ts");
-  writeFileSync(serverTypesFile, "export * from './types-bundle';\n", "utf-8");
-}
-
-console.log("\nGenerate dts bundle...");
-
-mkdir(typesBundleRoot, { recursive: true }, (err) => {
-  if (err) throw err;
-});
-
-writeFileSync(join(typesBundleRoot, "index.d.ts"), generateDtsBundle([{
-  filePath: join(nodeSrcRoot, "server-types.ts")
-}]).join("\n"), "utf-8");
-
-console.log("Replace types import...");
-
-replaceTypesImport();
-
-cp(typesBundleRoot, join(denoLibRoot, "types-bundle"), { recursive:true, force:true }, (err) => {
-  if (err) {
-    console.error(err);
-  }
-});
-
 console.log("Deno build...");
 
 walkAndBuild("");
+
+const xcmonTypes = join(denoLibRoot, "xcmon-client.d.ts");
+cpSync(join(distRoot, 'xcmon-client.d.ts'), xcmonTypes);
 
 console.log("Done.");
 

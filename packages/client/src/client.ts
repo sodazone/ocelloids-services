@@ -5,6 +5,8 @@ import type { QuerySubscription, XcmNotifyMessage } from './server-types';
 
 /**
  * The Ocelloids client configuration.
+ *
+ * @public
  */
 export type OcelloidsClientConfig = {
   wsUrl: string;
@@ -26,12 +28,25 @@ function isBlob(value: any): value is Blob {
   return value instanceof Blob || Object.prototype.toString.call(value) === '[object Blob]';
 }
 
-type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
-type CloseHandler = (event: CloseEvent) => void;
-type ErrorHandler = (error: Event) => void;
+/**
+ * @public
+ */
+export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
+
+/**
+ * @public
+ */
+export type CloseHandler = (event: CloseEvent) => void;
+
+/**
+ * @public
+ */
+export type ErrorHandler = (error: Event) => void;
 
 /**
  * Type definition for WebSocket event handlers.
+ *
+ * @public
  */
 export type WebSocketHandlers = {
   onMessage: MessageHandler<XcmNotifyMessage>,
@@ -97,6 +112,8 @@ class Protocol {
 
 /**
  * The Ocelloids client.
+ *
+ * @public
  */
 export class OcelloidsClient {
   readonly #config: OcelloidsClientConfig;

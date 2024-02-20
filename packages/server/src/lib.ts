@@ -3,21 +3,23 @@
  */
 
 export type {
+  AnyJson,
   XcmReceived,
   XcmRelayed,
   XcmSent,
-  XcmNotifyMessage
-} from './services/monitoring/types.js';
-
-export {
-  XcmNotificationType,
-  isXcmReceived,
-  isXcmSent,
-  isXcmRelayed
+  AssetsTrapped,
+  XcmNotifyMessage,
+  Leg,
+  XcmTermini,
+  XcmTerminiContext,
+  XcmWaypointContext
 } from './services/monitoring/types.js';
 
 // @warn this needs to be manually updated
 // avoid zod dependency in clients
+/**
+ * @public
+ */
 export type QuerySubscription = {
   id: string;
   origin: string;

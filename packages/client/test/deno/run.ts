@@ -21,7 +21,7 @@ client.subscribe(
       console.log("SENT", msg.subscriptionId)
     }
     console.log(msg);
-    ws.close(1001, 'bye!');
+    ws.close(1000, 'bye!');
   },
   onError: error => console.log(error),
   onClose: event => console.log(event.reason)

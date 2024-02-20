@@ -1,11 +1,12 @@
-export {
+export type {
   QuerySubscription,
+  AnyJson,
   XcmNotifyMessage,
   XcmSent,
   XcmReceived,
   XcmRelayed,
-  XcmNotificationType,
-  isXcmSent,
-  isXcmReceived,
-  isXcmRelayed
+  XcmTermini,
+  XcmTerminiContext,
+  XcmWaypointContext,
+  Leg
 } from 'xcmon-server';

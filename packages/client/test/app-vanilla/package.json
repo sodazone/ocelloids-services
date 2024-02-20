@@ -8,9 +8,6 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "xcmon-client": "file:../../"
-  },
   "devDependencies": {
     "vite": "^5.1.0"
   }

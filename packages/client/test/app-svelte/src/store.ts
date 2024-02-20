@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { OcelloidsClient, isXcmSent, type XcmSent } from 'xcmon-client';
+import { OcelloidsClient, isXcmSent, type XcmSent } from '../../../dist/lib';
 
 export const createSubscriptionStore = async () => {
     const { subscribe, set, update } = writable<string[]>([]);

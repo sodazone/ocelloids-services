@@ -12,7 +12,9 @@ import {
   XcmInbound,
   XcmRelayed,
   XcmRelayedWithContext,
-  XcmSent
+  XcmSent,
+  GenericXcmRelayed,
+  GenericXcmReceived
 } from './types.js';
 
 import { Janitor } from '../persistence/janitor.js';
@@ -349,7 +351,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.emit('telemetryMatched', inMsg, outMsg);
 
     try {
-      const message: XcmReceived = new XcmReceived(outMsg, inMsg);
+      const message: XcmReceived = new GenericXcmReceived(outMsg, inMsg);
       await this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
@@ -360,7 +362,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     outMsg: XcmSent,
     relayMsg: XcmRelayedWithContext
   ) {
-    const message: XcmRelayed = new XcmRelayed(outMsg, relayMsg);
+    const message: XcmRelayed = new GenericXcmRelayed(outMsg, relayMsg);
     this.emit('telemetryRelayed', message);
 
     try {

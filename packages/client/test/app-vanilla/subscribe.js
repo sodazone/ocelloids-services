@@ -1,4 +1,4 @@
-import { OcelloidsClient } from "xcmon-client";
+import { OcelloidsClient, isXcmSent } from "../../";
 
 export function setup() {
   const messages = document.querySelector('#messages')
@@ -16,6 +16,9 @@ export function setup() {
     destinations: ["0", "1000", "2000", "2034", "2104"]
   }, {
     onMessage: msg => {
+      if(isXcmSent(msg)) {
+        console.log('SENT', msg.subscriptionId);
+      }
       const pre = document.createElement('pre')
       pre.innerHTML = JSON.stringify(msg, null, 2)
       messages.prepend(pre)
