@@ -21,5 +21,8 @@
   "devDependencies": {
     "@parcel/transformer-typescript-types": "2.11.0",
     "typescript": ">=3.0.0"
+  },
+  "resolutions": {
+    "@substrate/connect": "0.8.4"
   }
 }

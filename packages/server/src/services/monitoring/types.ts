@@ -45,8 +45,19 @@ export type XcmWithContext = {
   messageId?: HexString
 }
 
+export type TrappedAsset = {
+  version: number,
+  id: {
+    type: string,
+    value: AnyJson
+  },
+  fungible: boolean,
+  amount: string | number,
+  assetInstance?: AnyJson
+}
+
 export type AssetsTrapped = {
-  assets: AnyJson,
+  assets: TrappedAsset[],
   hash: HexString,
   event: AnyJson
 }
