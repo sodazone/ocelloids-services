@@ -7,7 +7,7 @@ import {
 /**
  * @public
  */
-export type QuerySubscription = {
+export type Subscription = {
   id: string;
   origin: string;
   senders?: ('*' | string[]);
@@ -42,15 +42,15 @@ export enum XcmNotificationType {
 /**
  * @public
  */
-export type OnDemandQuerySubscription = Omit<QuerySubscription, 'id'|'channels'>;
+export type OnDemandSubscription = Omit<Subscription, 'id'|'channels'>;
 
 /**
  * @public
  */
-export function isQuerySubscription(
-  obj: QuerySubscription | XcmNotifyMessage
-): obj is QuerySubscription {
-  const maybeSub = (obj as QuerySubscription);
+export function isSubscription(
+  obj: Subscription | XcmNotifyMessage
+): obj is Subscription {
+  const maybeSub = (obj as Subscription);
   return maybeSub.origin !== undefined
   && maybeSub.destinations !== undefined
   && maybeSub.id !== undefined

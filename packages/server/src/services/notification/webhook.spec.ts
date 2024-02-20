@@ -5,7 +5,7 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { QuerySubscription, XcmNotificationType, XcmNotifyMessage, XcmTerminiContext } from '../monitoring/types.js';
+import { Subscription, XcmNotificationType, XcmNotifyMessage, XcmTerminiContext } from '../monitoring/types.js';
 import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 import { NotifierHub } from './hub.js';
@@ -51,7 +51,7 @@ const subOk = {
   origin: '0',
   senders: '*',
   events: '*'
-} as QuerySubscription;
+} as Subscription;
 
 const xmlTemplate = `
 <!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN"
@@ -81,7 +81,7 @@ const subOkXml = {
   origin: '1000',
   senders: '*',
   events: '*'
-} as QuerySubscription;
+} as Subscription;
 
 const subFail = {
   destinations: ['2000'],
@@ -93,7 +93,7 @@ const subFail = {
   origin: '0',
   senders: '*',
   events: '*'
-} as QuerySubscription;
+} as Subscription;
 
 const authToken = 'secret';
 
@@ -108,7 +108,7 @@ const subOkAuth = {
   origin: '0',
   senders: '*',
   events: '*'
-} as QuerySubscription;
+} as Subscription;
 
 describe('webhook notifier', () => {
   const subs = _services.storage.subs;

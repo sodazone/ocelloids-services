@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Logger, Services } from '../../services/types.js';
-import { QuerySubscription, XcmNotifyMessage, isXcmReceived, isXcmSent } from '../monitoring/types.js';
+import { Subscription, XcmNotifyMessage, isXcmReceived, isXcmSent } from '../monitoring/types.js';
 import { Notifier, NotifierEmitter } from './types.js';
 import { NotifierHub } from './hub.js';
 
@@ -17,7 +17,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
   }
 
   notify(
-    sub: QuerySubscription,
+    sub: Subscription,
     msg: XcmNotifyMessage
   ) {
     if (isXcmReceived(msg)) {

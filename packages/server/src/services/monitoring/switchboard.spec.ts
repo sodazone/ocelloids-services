@@ -7,7 +7,7 @@ import { of, throwError } from 'rxjs';
 import { _config, _services } from '../../testing/services.js';
 import { SubsStore } from '../persistence/subs';
 import {
-  QuerySubscription,
+  Subscription,
   XcmReceivedWithContext,
   XcmSentWithContext,
   XcmNotificationType
@@ -32,7 +32,7 @@ const SwitchboardImpl = (await import('./switchboard.js')).Switchboard;
 const { extractXcmpReceive, extractXcmpSend } = (await import('./ops/xcmp.js'));
 const { extractUmpReceive, extractUmpSend } = (await import('./ops/ump.js'));
 
-const testSub : QuerySubscription = {
+const testSub : Subscription = {
   id: '1000:2000:0',
   origin: '1000',
   senders: [

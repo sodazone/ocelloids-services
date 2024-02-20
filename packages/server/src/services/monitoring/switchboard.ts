@@ -17,12 +17,12 @@ import { Logger, Services } from '../types.js';
 import { HeadCatcher } from './head-catcher.js';
 import {
   GenericXcmSent,
-  QuerySubscription,
+  Subscription,
   XcmInbound,
-  SubscriptionHandler,
+  RxSubscriptionHandler,
   XcmInboundWithContext,
   XcmSentWithContext,
-  SubscriptionWithId,
+  RxSubscriptionWithId,
   XcmEventListener,
   XcmNotifyMessage,
   XcmSent,
@@ -46,7 +46,7 @@ import { errorMessage } from '../../errors.js';
 import { extractRelayReceive } from './ops/relay.js';
 
 type Monitor = {
-  subs: SubscriptionWithId[]
+  subs: RxSubscriptionWithId[]
   controls: Record<string, ControlQuery>
 }
 
@@ -94,7 +94,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #maxEphemeral: number;
   readonly #maxPersistent: number;
 
-  #subs: Record<string, SubscriptionHandler> = {};
+  #subs: Record<string, RxSubscriptionHandler> = {};
   #shared: {
     blockEvents: Record<string, Observable<types.BlockEvent>>
     blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
@@ -134,10 +134,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Subscribes according to the given query subscription.
    *
-   * @param {QuerySubscription} qs The query subscription.
+   * @param {Subscription} qs The query subscription.
    * @throws {SubscribeError} If there is an error creating the subscription.
    */
-  async subscribe(qs: QuerySubscription) {
+  async subscribe(qs: Subscription) {
     if (this.#stats.ephemeral >= this.#maxEphemeral
       || this.#stats.persistent >= this.#maxPersistent
     ) {
@@ -314,7 +314,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates a subscription descriptor.
    */
-  async updateSubscription(sub: QuerySubscription) {
+  async updateSubscription(sub: Subscription) {
     if (this.#subs[sub.id]) {
       this.#subs[sub.id].descriptor = sub;
     } else {
@@ -348,16 +348,16 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * query subscription information. It creates subscriptions for both the origin and destination
    * networks, monitors XCM message transfers, and emits events accordingly.
    *
-   * @param {QuerySubscription} qs - The query subscription.
+   * @param {Subscription} qs - The query subscription.
    * @throws {Error} If there is an error during the subscription setup process.
    * @private
    */
-  #monitor(qs: QuerySubscription) {
+  #monitor(qs: Subscription) {
     const { id } = qs;
 
     let origMonitor : Monitor = { subs: [], controls: {} };
     let destMonitor : Monitor = { subs: [], controls: {} };
-    let relaySub: SubscriptionWithId | undefined;
+    let relaySub: RxSubscriptionWithId | undefined;
 
     try {
       origMonitor = this.#monitorOrigins(qs);
@@ -412,8 +412,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorDestinations({
     id, destinations, origin
-  }: QuerySubscription) : Monitor {
-    const subs : SubscriptionWithId[] = [];
+  }: Subscription) : Monitor {
+    const subs : RxSubscriptionWithId[] = [];
     try {
       for (const dest of destinations) {
         const chainId = dest;
@@ -521,8 +521,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorOrigins({
     id, origin, senders, destinations
-  }: QuerySubscription) : Monitor {
-    const subs : SubscriptionWithId[] = [];
+  }: Subscription) : Monitor {
+    const subs : RxSubscriptionWithId[] = [];
     const chainId = origin;
     const api = this.#apis.promise[chainId];
 
@@ -681,7 +681,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #monitorRelay({ id, destinations, origin }: QuerySubscription) {
+  #monitorRelay({ id, destinations, origin }: Subscription) {
     const chainId = origin;
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already');
@@ -831,7 +831,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     return this.#shared.blockExtrinsics[chainId];
   }
 
-  #shouldMonitorRelay({ events }: QuerySubscription) {
+  #shouldMonitorRelay({ events }: Subscription) {
     return events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed);
   }
 }

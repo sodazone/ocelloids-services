@@ -7,8 +7,8 @@ import { ulid } from 'ulidx';
 
 import { Logger } from '../../../types.js';
 import {
-  $QuerySubscription,
-  QuerySubscription,
+  $Subscription,
+  Subscription,
   XcmEventListener,
   XcmNotifyMessage
 } from '../../types.js';
@@ -31,7 +31,7 @@ const jsonSchema = z.string().transform( ( str, ctx ) => {
     ctx.addIssue( { code: 'custom', message: 'Invalid JSON' } );
     return z.NEVER;
   }
-} ).pipe($QuerySubscription);
+} ).pipe($Subscription);
 
 type Connection = {
   id: string,
@@ -159,7 +159,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   #addSubscriber(
-    subscription: QuerySubscription,
+    subscription: Subscription,
     stream: SocketStream,
     request: FastifyRequest
   ) {

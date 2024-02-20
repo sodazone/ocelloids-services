@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Operation, applyPatch } from 'rfc6902';
 
-import { $QuerySubscription, $SafeId, QuerySubscription } from '../types.js';
+import { $Subscription, $SafeId, Subscription } from '../types.js';
 import $JSONPatch from './json-patch.js';
 
 const allowedPaths = [
@@ -30,7 +30,7 @@ export async function SubscriptionApi(
         200: {
           type: 'array',
           items: zodToJsonSchema(
-            $QuerySubscription
+            $Subscription
           )
         }
       }
@@ -52,7 +52,7 @@ export async function SubscriptionApi(
         id: zodToJsonSchema($SafeId)
       },
       response: {
-        200: zodToJsonSchema($QuerySubscription),
+        200: zodToJsonSchema($Subscription),
         404: { type: 'string' }
       }
     }
@@ -66,18 +66,18 @@ export async function SubscriptionApi(
    * POST subs
    */
   api.post <{
-    Body: QuerySubscription | QuerySubscription[]
+    Body: Subscription | Subscription[]
   }>('/subs', {
     schema: {
       body: {
         oneOf: [
           zodToJsonSchema(
-            $QuerySubscription
+            $Subscription
           ),
           {
             type: 'array',
             items: zodToJsonSchema(
-              $QuerySubscription
+              $Subscription
             )
           }
         ]
@@ -126,7 +126,7 @@ export async function SubscriptionApi(
       },
       body: $JSONPatch,
       response: {
-        200: zodToJsonSchema($QuerySubscription),
+        200: zodToJsonSchema($Subscription),
         400: { type: 'string' },
         404: { type: 'string' }
       }
@@ -143,7 +143,7 @@ export async function SubscriptionApi(
 
     if (allowedOps) {
       applyPatch(sub, patch);
-      $QuerySubscription.parse(sub);
+      $Subscription.parse(sub);
 
       await subs.save(sub);
 

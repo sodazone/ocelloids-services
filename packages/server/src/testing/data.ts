@@ -1,6 +1,6 @@
-import { QuerySubscription } from '../services/monitoring/types.js';
+import { Subscription } from '../services/monitoring/types.js';
 
-export const _subsFix : QuerySubscription[] = [
+export const _subsFix : Subscription[] = [
   {
     id: '0:1000:1',
     origin: '0',

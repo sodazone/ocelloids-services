@@ -1,5 +1,5 @@
 import { NotFound, ValidationError } from '../../errors.js';
-import { QuerySubscription } from '../monitoring/types.js';
+import { Subscription } from '../monitoring/types.js';
 import { BatchOperation, DB, Logger, jsonEncoded, prefixes } from '../types.js';
 import { ServiceConfiguration, isNetworkDefined } from '../config.js';
 
@@ -40,10 +40,10 @@ export class SubsStore {
    * Retrieves the registered subscriptions in the database
    * for all the configured networks.
    *
-   * @returns {QuerySubscription[]} an array with the subscriptions
+   * @returns {Subscription[]} an array with the subscriptions
    */
   async getAll() {
-    let subscriptions: QuerySubscription[] = [];
+    let subscriptions: Subscription[] = [];
     for (const network of this.#config.networks) {
       const subs = await this.getByNetworkId(network.id);
       subscriptions = subscriptions.concat(subs);
@@ -55,7 +55,7 @@ export class SubsStore {
   /**
    * Retrieves all the subscriptions for a given network.
    *
-   * @returns {QuerySubscription[]} an array with the subscriptions
+   * @returns {Subscription[]} an array with the subscriptions
    */
   async getByNetworkId(chainId: string | number) {
     return await this.#subsFamily(chainId.toString()).values().all();
@@ -65,7 +65,7 @@ export class SubsStore {
    * Retrieves a subscription by identifier.
    *
    * @param {string} id The subscription identifier
-   * @returns {QuerySubscription} the subscription information
+   * @returns {Subscription} the subscription information
    * @throws {NotFound} if the subscription does not exist
    */
   async getById(id: string) {
@@ -87,7 +87,7 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async insert(qs: QuerySubscription) {
+  async insert(qs: Subscription) {
     if (await this.exists(qs.id)) {
       throw new ValidationError(`Subscription with ID ${qs.id} already exists`);
     }
@@ -99,7 +99,7 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async save(qs: QuerySubscription) {
+  async save(qs: Subscription) {
     this.#validateChainIds([
       qs.origin, ...qs.destinations
     ]);
@@ -122,7 +122,7 @@ export class SubsStore {
   }
 
   #subsFamily(chainId: string) {
-    return this.#db.sublevel<string, QuerySubscription>(
+    return this.#db.sublevel<string, Subscription>(
       prefixes.subs.family(chainId), jsonEncoded
     );
   }

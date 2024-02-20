@@ -1,6 +1,6 @@
 import { WebSocket, type MessageEvent } from 'isows';
 
-import type { QuerySubscription, OnDemandQuerySubscription } from './types';
+import type { Subscription, OnDemandSubscription } from './types';
 import type { XcmNotifyMessage } from './server-types';
 
 /**
@@ -144,7 +144,7 @@ export class OcelloidsClient {
    * @param subscription - The subscription to create.
    * @returns A promise that resolves when the subscription is created.
    */
-  async create(subscription: QuerySubscription) {
+  async create(subscription: Subscription) {
     return new Promise<void>(async (resolve, reject) => {
       const res = await fetch(this.#config.httpUrl + '/subs', {
         method: 'POST',
@@ -167,11 +167,11 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
   async get(subscriptionId: string)
-  : Promise<QuerySubscription> {
-    return new Promise<QuerySubscription>(async (resolve, reject) => {
+  : Promise<Subscription> {
+    return new Promise<Subscription>(async (resolve, reject) => {
       const res = await fetch(this.#config.httpUrl + '/subs/' + subscriptionId);
       if (res.ok) {
-        resolve((await res.json()) as QuerySubscription);
+        resolve((await res.json()) as Subscription);
       } else {
         reject(await res.json());
       }
@@ -202,7 +202,7 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the WebSocket instance.
    */
   async subscribe(
-    subscription: string | OnDemandQuerySubscription,
+    subscription: string | OnDemandSubscription,
     handlers: WebSocketHandlers
   ): Promise<WebSocket> {
     const url = this.#config.wsUrl + '/ws/subs';
@@ -215,7 +215,7 @@ export class OcelloidsClient {
   #openWebSocket(
     url: string,
     { onMessage, onError, onClose }: WebSocketHandlers,
-    sub?: OnDemandQuerySubscription
+    sub?: OnDemandSubscription
   ) {
     return new Promise<WebSocket>((resolve, reject) => {
       const protocol = new Protocol(onMessage);
@@ -233,7 +233,7 @@ export class OcelloidsClient {
 
       function requestOnDemandSub() {
         ws.send(JSON.stringify(sub));
-        protocol.next<QuerySubscription>(msg => {
+        protocol.next<Subscription>(msg => {
           // TODO add callback?
           // TODO handle failure...
           console.log('> subscription', msg);

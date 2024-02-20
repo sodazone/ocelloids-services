@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { Subscription } from 'rxjs';
+import { Subscription as RxSubscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids';
 
@@ -546,7 +546,7 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a));
 }
 
-export const $QuerySubscription = z.object({
+export const $Subscription = z.object({
   id: $SafeId,
   origin: z.string({
     required_error: 'origin id is required',
@@ -580,25 +580,22 @@ export const $QuerySubscription = z.object({
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>;
 
-/**
- * Parameters for a query subscriptions.
- */
-export type QuerySubscription = z.infer<typeof $QuerySubscription>;
+export type Subscription = z.infer<typeof $Subscription>;
 
-export type XcmEventListener = (sub: QuerySubscription, xcm: XcmNotifyMessage) => void;
+export type XcmEventListener = (sub: Subscription, xcm: XcmNotifyMessage) => void;
 
-export type SubscriptionWithId = {
+export type RxSubscriptionWithId = {
   chainId: string
-  sub: Subscription
+  sub: RxSubscription
 }
 
-export type SubscriptionHandler = {
-  originSubs: SubscriptionWithId[],
-  destinationSubs: SubscriptionWithId[],
+export type RxSubscriptionHandler = {
+  originSubs: RxSubscriptionWithId[],
+  destinationSubs: RxSubscriptionWithId[],
   sendersControl: ControlQuery,
   messageControl: ControlQuery,
-  descriptor: QuerySubscription,
-  relaySub?: SubscriptionWithId
+  descriptor: Subscription,
+  relaySub?: RxSubscriptionWithId
 }
 
 export type SubscriptionStats = {

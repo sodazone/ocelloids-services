@@ -4,7 +4,7 @@ import got from 'got';
 import { ulid } from 'ulidx';
 
 import version from '../../version.js';
-import { QuerySubscription, WebhookNotification, XcmNotifyMessage } from '../monitoring/types.js';
+import { Subscription, WebhookNotification, XcmNotifyMessage } from '../monitoring/types.js';
 import { Logger, Services } from '../types.js';
 
 import { Notifier, NotifierEmitter } from './types.js';
@@ -58,7 +58,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   }
 
   async notify(
-    sub: QuerySubscription,
+    sub: Subscription,
     msg: XcmNotifyMessage
   ) {
     const { id, channels } = sub;

@@ -1,4 +1,4 @@
-import { QuerySubscription } from './services/monitoring/types.js';
+import { Subscription } from './services/monitoring/types.js';
 import { jsonEncoded, prefixes } from './services/types.js';
 import './testing/network.js';
 
@@ -15,7 +15,7 @@ const testSubContent = {
     type: 'log'
   }],
   events: '*'
-} as QuerySubscription;
+} as Subscription;
 
 const { createServer } = await import('./server.js');
 
@@ -88,7 +88,7 @@ describe('monitoring server API', () => {
             type: 'log'
           }],
           events: '*'
-        } as QuerySubscription
+        } as Subscription
       }, (_err, response) => {
         expect(response.statusCode)
           .toStrictEqual(201);
