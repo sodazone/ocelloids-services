@@ -1,6 +1,7 @@
 export type {
   QuerySubscription,
   AnyJson,
+  HexString,
   XcmNotifyMessage,
   XcmSent,
   XcmReceived,
@@ -8,5 +9,7 @@ export type {
   XcmTermini,
   XcmTerminiContext,
   XcmWaypointContext,
+  AssetsTrapped,
+  TrappedAsset,
   Leg
 } from 'xcmon-server';

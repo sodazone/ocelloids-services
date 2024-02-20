@@ -4,6 +4,7 @@
 
 export type {
   AnyJson,
+  HexString,
   XcmReceived,
   XcmRelayed,
   XcmSent,
