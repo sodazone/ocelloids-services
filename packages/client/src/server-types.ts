@@ -1,5 +1,4 @@
 export type {
-  QuerySubscription,
   AnyJson,
   HexString,
   XcmNotifyMessage,
