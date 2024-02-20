@@ -1,4 +1,4 @@
-import { 
+import {
   QuerySubscription,
   XcmNotifyMessage
 } from './server-types';

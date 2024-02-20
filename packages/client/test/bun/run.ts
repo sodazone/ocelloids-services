@@ -1,4 +1,4 @@
-import { OcelloidsClient } from '../../dist/lib';
+import { OcelloidsClient, isXcmReceived, isXcmSent } from '../../dist/lib';
 
 const client = new OcelloidsClient({
   httpUrl: 'http://127.0.0.1:3000',
@@ -15,6 +15,11 @@ client.subscribe(
     destinations: [ "0","1000", "2000", "2034", "2104" ]
   }, {
   onMessage: (msg, ws) => {
+    if(isXcmReceived(msg)) {
+      console.log("RECV", msg.subscriptionId);
+    } else if(isXcmSent(msg)) {
+      console.log("SENT", msg.subscriptionId)
+    }
     console.log(msg);
     ws.close(1001, 'bye!');
   },

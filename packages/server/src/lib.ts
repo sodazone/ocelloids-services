@@ -14,7 +14,7 @@ export {
   isXcmReceived,
   isXcmSent,
   isXcmRelayed
-} from './services/monitoring/types.js'; 
+} from './services/monitoring/types.js';
 
 // @warn this needs to be manually updated
 // avoid zod dependency in clients
