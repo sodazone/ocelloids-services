@@ -1,4 +1,7 @@
-import type { QuerySubscription, XcmNotifyMessage } from './server-types';
+import { 
+  QuerySubscription,
+  XcmNotifyMessage
+} from './server-types';
 
 export type OnDemandQuerySubscription = Omit<QuerySubscription, 'id'|'channels'>;
 

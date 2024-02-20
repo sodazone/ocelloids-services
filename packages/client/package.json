@@ -7,20 +7,20 @@
     "Marc Fornós <marc@soda.zone>",
     "Xueying Wang <xueying@soda.zone>"
   ],
+  "source": "src/lib.ts",
   "main": "dist/lib.js",
   "module": "dist/lib.mjs",
   "browser": "dist/lib.umd.js",
   "types": "dist/lib.d.ts",
   "files": [
-    "/dist"
+    "/dist",
+    "/src"
   ],
   "license": "Apache-2.0",
   "scripts": {
-    "build": "yarn build:browser && yarn bundle:types && yarn build:deno",
-    "build:browser": "rollup -c --bundleConfigAsCjs",
-    "bundle:types": "yarn dts-bundle-generator -o ./dist/types-bundle/index.d.ts ./src/server-types.ts && sed -i 's/xcmon-server/.\\/types-bundle/g' dist/server-types.d.ts",
-    "build:deno": "node deno-build.mjs && yarn bundle:copy",
-    "bundle:copy": "cp -r ./dist/types-bundle  ./dist/deno",
+    "build": "yarn build:rollup && yarn build:bundle",
+    "build:rollup": "rollup -c --bundleConfigAsCjs",
+    "build:bundle": "node build.mjs",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "lint": "eslint --cache --fix \"src/**/*.ts\""
   },

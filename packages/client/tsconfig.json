@@ -12,7 +12,7 @@
       "jest"
     ],
     "outDir": "./dist",
-    "isolatedModules": true,
+    "isolatedModules": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,

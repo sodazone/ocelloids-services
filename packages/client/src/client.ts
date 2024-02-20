@@ -1,7 +1,6 @@
 import { WebSocket, type MessageEvent } from 'isows';
 
 import type { OnDemandQuerySubscription } from './types';
-
 import type { QuerySubscription, XcmNotifyMessage } from './server-types';
 
 /**

@@ -27,19 +27,16 @@ const external = [
 export default [
   {
     input,
-    output: {
-      file: pkg.module,
-      format: 'esm',
-    },
-    plugins,
-    external,
-  },
-  {
-    input,
-    output: {
-      file: pkg.main,
-      format: 'cjs',
-    },
+    output: [
+      {
+        file: pkg.main,
+        format: 'cjs',
+      },
+      {
+        file: pkg.module,
+        format: 'esm',
+      }
+    ],
     plugins,
     external,
   },
