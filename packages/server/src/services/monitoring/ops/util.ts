@@ -138,7 +138,7 @@ function createTrappedAssets(
     },
     fungible: a.fun.isFungible,
     amount: a.fun.isFungible ? a.fun.asFungible.toPrimitive() : 1,
-    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman(): undefined
+    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman() : undefined
   }));
 }
 
