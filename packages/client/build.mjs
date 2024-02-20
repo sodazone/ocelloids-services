@@ -98,7 +98,7 @@ const walkAndBuild = (/** @type string */ dir) => {
 };
 
 function replaceTypesImport() {
-  const serverTypesFile = join(typesRoot, 'server-types.d.ts');
+  const serverTypesFile = join(typesRoot, "server-types.d.ts");
   writeFileSync(serverTypesFile, "export * from './types-bundle';\n", "utf-8");
 }
 
@@ -109,14 +109,14 @@ mkdir(typesBundleRoot, { recursive: true }, (err) => {
 });
 
 writeFileSync(join(typesBundleRoot, "index.d.ts"), generateDtsBundle([{
-  filePath: join(nodeSrcRoot, 'server-types.ts')
+  filePath: join(nodeSrcRoot, "server-types.ts")
 }]).join("\n"), "utf-8");
 
 console.log("Replace types import...");
 
 replaceTypesImport();
 
-cp(typesBundleRoot, join(denoLibRoot, 'types-bundle'), { recursive:true, force:true }, (err) => {
+cp(typesBundleRoot, join(denoLibRoot, "types-bundle"), { recursive:true, force:true }, (err) => {
   if (err) {
     console.error(err);
   }
@@ -130,7 +130,7 @@ console.log("Done.");
 
 writeFileSync(
   join(denoLibRoot, "mod.ts"),
-  `export * from './lib.ts';\n`,
+  "export * from './lib.ts';\n",
   {
     encoding: "utf-8",
   }
