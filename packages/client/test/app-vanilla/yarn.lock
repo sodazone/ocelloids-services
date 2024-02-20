@@ -1341,12 +1341,12 @@ __metadata:
 
 "xcmon-client@file:../../::locator=basic-app%40workspace%3A.":
   version: 1.0.0
-  resolution: "xcmon-client@file:../../#../../::hash=ecae1a&locator=basic-app%40workspace%3A."
+  resolution: "xcmon-client@file:../../#../../::hash=721301&locator=basic-app%40workspace%3A."
   dependencies:
     isows: "npm:^1.0.3"
   peerDependencies:
     ws: "*"
-  checksum: 10c0/d56eb0f48ca63c42f7eeee482c35f181a8bbb2d67e39df2a176bc922df6144c7fbe8b7e0e8dcf6bcb5b109f2ae25626cd5cdefbf6ce1a5c922902a98fff988d6
+  checksum: 10c0/e7e4b36cdb1873ad2b3895f72f1c05a3da2d5e56cf34d4e688a23e927926ab4ee70d1ba0cdf05219da849f8532c834e33c455f419bccebb49b4a08acee66dc39
   languageName: node
   linkType: hard
 
