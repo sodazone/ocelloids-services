@@ -4,6 +4,8 @@ import type {
   XcmV3MultiLocation,
   XcmV2MultiLocation,
   XcmVersionedMultiAssets,
+  XcmV2MultiassetMultiAssets,
+  XcmV3MultiassetMultiAssets,
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
 } from '@polkadot/types/lookup';
 import type { U8aFixed } from '@polkadot/types-codec';
@@ -14,6 +16,7 @@ import { types } from '@sodazone/ocelloids';
 import {
   AssetsTrapped,
   HexString,
+  TrappedAsset,
 } from '../types.js';
 
 /**
@@ -123,6 +126,33 @@ export function matchExtrinsic(
     : method === extrinsic.method.method;
 }
 
+function createTrappedAssets(
+  version: number,
+  assets: XcmV2MultiassetMultiAssets | XcmV3MultiassetMultiAssets
+): TrappedAsset[] {
+  return assets.map(a => ({
+    version,
+    id: {
+      type: a.id.type,
+      value: a.id.isConcrete ? a.id.asConcrete.toHuman() : a.id.asAbstract.toHex()
+    },
+    fungible: a.fun.isFungible,
+    amount: a.fun.isFungible ? a.fun.asFungible.toPrimitive() : 1,
+    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman(): undefined
+  }));
+}
+
+function mapVersionedAssets(assets: XcmVersionedMultiAssets): TrappedAsset[] {
+  switch (assets.type) {
+  case 'V2':
+    return createTrappedAssets(2, assets.asV2);
+  case 'V3':
+    return createTrappedAssets(3, assets.asV3);
+  default:
+    throw new Error('XCM version not supported');
+  }
+}
+
 export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsTrapped | undefined {
   if (assetsTrappedEvent === undefined) {
     return undefined;
@@ -133,8 +163,14 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
     assets: XcmVersionedMultiAssets
   ];
   return {
-    event: assetsTrappedEvent.toHuman(),
-    assets: assets.toHuman(),
+    event: {
+      eventId: assetsTrappedEvent.eventId,
+      blockNumber: assetsTrappedEvent.blockNumber.toPrimitive(),
+      blockHash: assetsTrappedEvent.blockHash.toHex(),
+      section: assetsTrappedEvent.section,
+      method: assetsTrappedEvent.method
+    },
+    assets: mapVersionedAssets(assets),
     hash: hash_.toHex()
   };
 }
