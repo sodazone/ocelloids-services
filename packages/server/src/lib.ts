@@ -8,6 +8,7 @@ export type {
   XcmRelayed,
   XcmSent,
   AssetsTrapped,
+  TrappedAsset,
   XcmNotifyMessage,
   Leg,
   XcmTermini,

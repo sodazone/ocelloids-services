@@ -25,6 +25,9 @@ export const $SafeId = z.string({
   required_error: 'id is required'
 }).min(1).max(100).regex(/[A-Za-z0-9:\.\-_]+/);
 
+/**
+ * @public
+ */
 export type HexString = `0x${string}`;
 
 function toHexString(buf: Uint8Array) : HexString {
@@ -45,6 +48,9 @@ export type XcmWithContext = {
   messageId?: HexString
 }
 
+/**
+ * @public
+ */
 export type TrappedAsset = {
   version: number,
   id: {
@@ -56,6 +62,9 @@ export type TrappedAsset = {
   assetInstance?: AnyJson
 }
 
+/**
+ * @public
+ */
 export type AssetsTrapped = {
   assets: TrappedAsset[],
   hash: HexString,
