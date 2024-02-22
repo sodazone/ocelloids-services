@@ -142,21 +142,15 @@ export class OcelloidsClient {
    * Creates a subscription.
    *
    * @param subscription - The subscription to create.
+   * @param init - The fetch request init.
    * @returns A promise that resolves when the subscription is created.
    */
-  async create(subscription: Subscription) {
-    return new Promise<void>(async (resolve, reject) => {
-      const res = await fetch(this.#config.httpUrl + '/subs', {
-        method: 'POST',
-        headers: this.#headers,
-        body: JSON.stringify(subscription),
-      });
-
-      if (res.ok) {
-        resolve();
-      } else {
-        reject(await res.json());
-      }
+  async create(subscription: Subscription, init: RequestInit = {}) {
+    return this.#fetch(this.#config.httpUrl + '/subs', {
+      ...init,
+      method: 'POST',
+      headers: this.#headers,
+      body: JSON.stringify(subscription),
     });
   }
 
@@ -164,18 +158,22 @@ export class OcelloidsClient {
    * Gets a subscription by its identifier.
    *
    * @param subscriptionId - The subscription identifier.
+   * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async get(subscriptionId: string)
+  async getSubscription(subscriptionId: string, init?: RequestInit)
   : Promise<Subscription> {
-    return new Promise<Subscription>(async (resolve, reject) => {
-      const res = await fetch(this.#config.httpUrl + '/subs/' + subscriptionId);
-      if (res.ok) {
-        resolve((await res.json()) as Subscription);
-      } else {
-        reject(await res.json());
-      }
-    });
+    return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init);
+  }
+
+  /**
+   * Lists all subscriptions.
+   *
+   * @param init - The fetch request init.
+   */
+  async allSubscriptions(init?: RequestInit)
+    : Promise<Subscription[]> {
+    return this.#fetch(this.#config.httpUrl + '/subs', init);
   }
 
   /**
@@ -183,15 +181,8 @@ export class OcelloidsClient {
    *
    * @returns A promise that resolves with the health status.
    */
-  async health() {
-    return new Promise(async (resolve, reject) => {
-      const res = await fetch(this.#config.httpUrl + '/health');
-      if (res.ok) {
-        resolve(await res.json());
-      } else {
-        reject(await res.text());
-      }
-    });
+  async health(init?: RequestInit) : Promise<any> {
+    return this.#fetch(this.#config.httpUrl + '/health', init);
   }
 
   /**
@@ -201,10 +192,10 @@ export class OcelloidsClient {
    * @param handlers - The WebSocket event handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  async subscribe(
+  subscribe(
     subscription: string | OnDemandSubscription,
     handlers: WebSocketHandlers
-  ): Promise<WebSocket> {
+  ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs';
 
     return typeof subscription === 'string'
@@ -212,53 +203,70 @@ export class OcelloidsClient {
       : this.#openWebSocket(url, handlers, subscription);
   }
 
+  #fetch<T>(url: string, init?: RequestInit) {
+    return new Promise<T>(async (resolve, reject) => {
+      try {
+        const res = await fetch(url, init);
+        if (res.ok) {
+          resolve((await res.json()) as T);
+        } else {
+          try {
+            reject(await res.json());
+          } catch {
+            reject(await res.text());
+          }
+        }
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   #openWebSocket(
     url: string,
     { onMessage, onError, onClose }: WebSocketHandlers,
     sub?: OnDemandSubscription
   ) {
-    return new Promise<WebSocket>((resolve, reject) => {
-      const protocol = new Protocol(onMessage);
-      const ws = new WebSocket(url);
+    const protocol = new Protocol(onMessage);
+    const ws = new WebSocket(url);
 
-      ws.onmessage = protocol.handle.bind(protocol);
+    ws.onmessage = protocol.handle.bind(protocol);
 
-      if (onError) {
-        ws.onerror = onError;
-      }
+    if (onError) {
+      ws.onerror = onError;
+    }
 
-      if (onClose) {
-        ws.onclose = onClose;
-      }
+    if (onClose) {
+      ws.onclose = onClose;
+    }
 
-      function requestOnDemandSub() {
-        ws.send(JSON.stringify(sub));
-        protocol.next<Subscription>(msg => {
-          // TODO add callback?
-          // TODO handle failure...
-          console.log('> subscription', msg);
-        });
-      }
+    function requestOnDemandSub() {
+      ws.send(JSON.stringify(sub));
+      protocol.next<Subscription>(msg => {
+        // TODO add callback?
+        // TODO handle failure...
+        console.log('> subscription', msg);
+      });
+    }
 
-      ws.onopen = () => {
-        if (ws.readyState === 1) {
-          if (this.#config.wsAuthToken) {
-            ws.send(this.#config.wsAuthToken);
-            protocol.next(() => {
-              // note that will error if auth fails
-              if (sub) {
-                requestOnDemandSub();
-              }
-            });
-          } else if (sub) {
-            requestOnDemandSub();
-          }
-
-          resolve(ws);
-        } else {
-          reject('ws ready state: ' + ws.readyState);
+    ws.onopen = () => {
+      if (ws.readyState === 1) {
+        if (this.#config.wsAuthToken) {
+          ws.send(this.#config.wsAuthToken);
+          protocol.next(() => {
+            // note that will error if auth fails
+            if (sub) {
+              requestOnDemandSub();
+            }
+          });
+        } else if (sub) {
+          requestOnDemandSub();
         }
-      };
-    });
+      } else {
+        throw new Error('ws ready state: ' + ws.readyState);
+      }
+    };
+
+    return ws;
   }
 }
