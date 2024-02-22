@@ -170,6 +170,7 @@ export class OcelloidsClient {
    * Lists all subscriptions.
    *
    * @param init - The fetch request init.
+   * @returns A promise that resolves with an array of subscriptions.
    */
   async allSubscriptions(init?: RequestInit)
     : Promise<Subscription[]> {
@@ -179,6 +180,7 @@ export class OcelloidsClient {
   /**
    * Checks the health of the service.
    *
+   * @param init - The fetch request init.
    * @returns A promise that resolves with the health status.
    */
   async health(init?: RequestInit) : Promise<any> {
