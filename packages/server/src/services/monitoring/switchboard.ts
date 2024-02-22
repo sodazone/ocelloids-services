@@ -831,7 +831,24 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     return this.#shared.blockExtrinsics[chainId];
   }
 
-  #shouldMonitorRelay({ events }: Subscription) {
-    return events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed);
+  /**
+   * Checks if relayed HRMP messages should be monitored.
+   *
+   * All of the following conditions needs to be met:
+   * 1. `xcm.relayed` notification event is requested in the subscription
+   * 2. Origin chain is not a relay chain
+   * 3. At least one destination chain is a parachain
+   *
+   * @param Subscription
+   * @returns boolean
+   */
+  #shouldMonitorRelay({ origin, destinations, events }: Subscription) {
+    return (
+      events === undefined ||
+      events === '*' ||
+      events.includes(XcmNotificationType.Relayed)
+    ) &&
+    origin !== '0' &&
+    destinations.some(d => d !== '0');
   }
 }

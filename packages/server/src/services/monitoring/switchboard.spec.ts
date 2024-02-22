@@ -8,7 +8,7 @@ import { _config, _services } from '../../testing/services.js';
 import { SubsStore } from '../persistence/subs';
 import {
   Subscription,
-  XcmReceivedWithContext,
+  XcmInboundWithContext,
   XcmSentWithContext,
   XcmNotificationType
 } from './types';
@@ -44,7 +44,7 @@ const testSub : Subscription = {
   channels: [{
     type: 'log'
   }],
-  events: [XcmNotificationType.Received]
+  events: '*'
 };
 
 describe('switchboard service', () => {
@@ -72,7 +72,7 @@ describe('switchboard service', () => {
           blockHash: '0x0',
           messageHash: '0x0',
           outcome: 'Success'
-        } as unknown as XcmReceivedWithContext);
+        } as unknown as XcmInboundWithContext);
       };
     });
     (extractUmpSend as jest.Mock).mockImplementation(() => {
@@ -208,6 +208,51 @@ describe('switchboard service', () => {
     expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);
     expect(newDestinationSubs.filter(s => s.chainId === '2000').length).toBe(0);
+  });
+
+  it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe(testSub); // origin: '1000', destinations: ['2000']
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).toBeDefined();
+  });
+
+  it('should not create relay hrmp subscription when the origin is a relay chain', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      origin: '0' // origin: '0', destinations: ['2000']
+    });
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).not.toBeDefined();
+  });
+
+  it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      destinations: ['0'] // origin: '1000', destinations: ['0']
+    });
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).not.toBeDefined();
+  });
+
+  it('should not create relay hrmp subscription when relayed events are not requested', async () => {
+    await switchboard.start();
+
+    await switchboard.subscribe({
+      ...testSub,
+      events: [XcmNotificationType.Received]
+    });
+
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
+    expect(relaySub).not.toBeDefined();
   });
 
   it('should create relay hrmp subscription if relayed event is added', async () => {
