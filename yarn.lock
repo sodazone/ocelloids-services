@@ -1204,25 +1204,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@microsoft/api-extractor-model@npm:7.28.11":
-  version: 7.28.11
-  resolution: "@microsoft/api-extractor-model@npm:7.28.11"
+"@microsoft/api-extractor-model@npm:7.28.12":
+  version: 7.28.12
+  resolution: "@microsoft/api-extractor-model@npm:7.28.12"
   dependencies:
     "@microsoft/tsdoc": "npm:0.14.2"
     "@microsoft/tsdoc-config": "npm:~0.16.1"
-    "@rushstack/node-core-library": "npm:4.0.0"
-  checksum: 10c0/c2af6f0010194729354326c3010541c15358630a94abe6033b1b7bb793d6ddebf9ffe2814083e74d131c6cc3eebca3527067ba67c5ea4b41df1c03fd706c047c
+    "@rushstack/node-core-library": "npm:4.0.1"
+  checksum: 10c0/03de89226d24a46197355c62a6299ca81c9837814e755605c10d18d5d63921a467f0908c2b80eee06d0f1c1b6ad0c748b693131818ec1334d730f92191495139
   languageName: node
   linkType: hard
 
 "@microsoft/api-extractor@npm:^7.40.3":
-  version: 7.40.3
-  resolution: "@microsoft/api-extractor@npm:7.40.3"
+  version: 7.40.5
+  resolution: "@microsoft/api-extractor@npm:7.40.5"
   dependencies:
-    "@microsoft/api-extractor-model": "npm:7.28.11"
+    "@microsoft/api-extractor-model": "npm:7.28.12"
     "@microsoft/tsdoc": "npm:0.14.2"
     "@microsoft/tsdoc-config": "npm:~0.16.1"
-    "@rushstack/node-core-library": "npm:4.0.0"
+    "@rushstack/node-core-library": "npm:4.0.1"
     "@rushstack/rig-package": "npm:0.5.2"
     "@rushstack/ts-command-line": "npm:4.17.2"
     colors: "npm:~1.2.1"
@@ -1233,7 +1233,7 @@ __metadata:
     typescript: "npm:5.3.3"
   bin:
     api-extractor: bin/api-extractor
-  checksum: 10c0/9d8fe4fcf313cf5e1432c2f9d9372e4b38ed095c6edb8da8bbb7aeacef18efd4a13c05ba81a59a41f59ebeded200753f2ab884d8d9bedd1bc79fb86b4d49a284
+  checksum: 10c0/1d9ed8f3d5a2987fab5cd119a275e7e30ccbf580975af6972839dcc2202a0bb8ff562dcdf7299daa9908a7dc6bfed6939b4a3f1535071f511fb05151673492d4
   languageName: node
   linkType: hard
 
@@ -2321,11 +2321,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rushstack/node-core-library@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@rushstack/node-core-library@npm:4.0.0"
+"@rushstack/node-core-library@npm:4.0.1":
+  version: 4.0.1
+  resolution: "@rushstack/node-core-library@npm:4.0.1"
   dependencies:
-    colors: "npm:~1.2.1"
     fs-extra: "npm:~7.0.1"
     import-lazy: "npm:~4.0.0"
     jju: "npm:~1.4.0"
@@ -2337,7 +2336,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/node":
       optional: true
-  checksum: 10c0/97c3b02c3fea097f2f2020b47953981376381f5883cedb1ae278c6fe0d984ba7843840d0d20e0d436efc1b0ae8f6dbbb70ec17e0c195e9e885eed0e3f1541258
+  checksum: 10c0/cad183a35e5cc07e7aa1b09c5b13dc20b2c2c12022bb4f83ffc37a238f957d77abe2f01acd67ed5d42cb320d5310694b53e74cff8c65859b08f00bcbd28746ae
   languageName: node
   linkType: hard
 
@@ -3974,9 +3973,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.676
-  resolution: "electron-to-chromium@npm:1.4.676"
-  checksum: 10c0/f135dab8b3aab360cfdf63a2fba42faf149b5ca9dbe1688c4a4245c9a2a93b388e0e47644359977726d89f5cb9bf5c0a3b95ad30f5bf0889d49e576d148c2dfb
+  version: 1.4.677
+  resolution: "electron-to-chromium@npm:1.4.677"
+  checksum: 10c0/be209776ea4cfa0343cf1e7e9758f650c6ca8f6261cc7956b690698421c75fcbf68cf7c4f1b3ac0bb612a01834f7c93cb1c94e9d7221ddd3048c0e9ffbb08311
   languageName: node
   linkType: hard
 
@@ -4664,9 +4663,9 @@ __metadata:
   linkType: hard
 
 "flatted@npm:^3.2.9":
-  version: 3.2.9
-  resolution: "flatted@npm:3.2.9"
-  checksum: 10c0/5c91c5a0a21bbc0b07b272231e5b4efe6b822bcb4ad317caf6bb06984be4042a9e9045026307da0fdb4583f1f545e317a67ef1231a59e71f7fced3cc429cfc53
+  version: 3.3.0
+  resolution: "flatted@npm:3.3.0"
+  checksum: 10c0/e9e57ba1e82abce34064f71eb0923f19cc3a83d2499fca6260c9bfc7567eec042a8065b40b0fc27cf1d01435a50d577d29cdf1876204714151f6a50a1738b3bc
   languageName: node
   linkType: hard
 
