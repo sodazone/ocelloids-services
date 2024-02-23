@@ -15,6 +15,9 @@
       {
         "type": "webhook",
         "url": "https://en785006d7bvj.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
       }
     ]
   },
