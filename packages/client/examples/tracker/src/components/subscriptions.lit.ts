@@ -2,6 +2,8 @@ import { html } from 'lit';
 import {Task} from '@lit/task';
 import { customElement, state } from 'lit/decorators.js';
 
+import { Subscription } from '../../../..';
+
 import './subscription.lit.js';
 import { OcelloidsElement } from '../base/ocelloids.lit.js';
 import { tw } from '../style.js';
@@ -12,9 +14,15 @@ export class Subscriptions extends OcelloidsElement {
   @state()
   private subscriptionId? : string;
 
+  @state({
+    hasChanged: () => false
+  })
+  private subscriptions: Subscription[] = []
+
   private _getSubscriptions = new Task(this, {
     task: async ([], {signal}) => {
-      return await this.client.allSubscriptions({signal});
+      this.subscriptions = await this.client.allSubscriptions({signal})
+      return this.subscriptions;
     },
     args: () => []
   });
@@ -43,7 +51,8 @@ export class Subscriptions extends OcelloidsElement {
     return html`<div class=${tw`flex flex-col`}>
     ${this.renderSelect(subscriptions)}
     ${this.subscriptionId && html`
-      <oc-subscription class=${tw`flex flex-col space-y-4 divide-y divide-gray-800`} id=${this.subscriptionId}>
+      <oc-subscription class=${tw`flex flex-col space-y-4 divide-y divide-gray-800`}
+        .subscription=${this.subscriptions.find(s => s.id === this.subscriptionId)}>
       </oc-subscription>
     `}</div>`;
   }

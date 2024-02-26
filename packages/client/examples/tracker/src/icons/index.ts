@@ -153,7 +153,7 @@ function getIconByChainId(id) {
 export function IconChain(id) {
   return html`
   <div class=${tw`flex items-center`}>
-  <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-gray-800 ring-2 ring-gray-800`}>
+  <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-gray-800 ring-1 ring-gray-800`}>
     ${getIconByChainId(id)}
   </div>
   </div>

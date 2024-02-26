@@ -3,17 +3,20 @@ import { repeat } from 'lit/directives/repeat.js';
 import { customElement, property, state } from 'lit/decorators.js';
 import { animate, fadeIn, fadeOut } from '@lit-labs/motion';
 
-import { XcmNotifyMessage } from '../../../../dist/xcmon-client.js';
+import { XcmNotifyMessage, Subscription } from '../../../..';
 
 import './journey.lit.js';
 import { OcelloidsElement } from '../base/ocelloids.lit.js';
 import { XcmJourney, mergeJourney, toJourneyId } from '../lib/journey.js';
 import { tw } from '../style.js';
-import { IconPulse } from '../icons/index.js';
+import { IconChain, IconPulse } from '../icons/index.js';
+import { trunc } from '../lib/utils.js';
 
 @customElement('oc-subscription')
-export class Subscription extends OcelloidsElement {
-  @property() id: string;
+export class SubscriptionElement extends OcelloidsElement {
+  @property({
+    type: Object
+  }) subscription: Subscription;
 
   @state()
   private journeys : Record<string, XcmJourney> = {};
@@ -36,10 +39,36 @@ export class Subscription extends OcelloidsElement {
     this.requestUpdate();
   }
 
+  renderSubscriptionDetails() {
+    return html`
+      <div class=${tw`flex w-full items-center space-x-3 text-sm text-gray-500 px-4 border-b border-gray-800 divide-x divide-gray-800`}>
+        <div class=${tw`flex flex-col space-y-2 pb-3 items-center`}>
+          <span>Origin</span>
+          <span>${IconChain(this.subscription.origin)}</span>
+        </div>
+        <div class=${tw`flex flex-col space-y-2 pl-3 pb-3 items-center`}>
+          <span>Destinations</span>
+          <span class=${tw`flex -space-x-1`}>
+            ${this.subscription.destinations.map(d => IconChain(d))}
+          </span>
+        </div>
+        <div class=${tw`flex flex-col space-y-2 pl-3 pb-4`}>
+          <span>Senders</span>
+          <span class=${tw`text-gray-200`}>
+            ${Array.isArray(this.subscription.senders)
+            ? this.subscription.senders.map(s => trunc(s)).join(',')
+            : this.subscription.senders}
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
   renderJourneys() {
     const journeys = Object.values(this.journeys).reverse();
     return journeys.length > 0
       ? html`
+        ${this.renderSubscriptionDetails()}
         <ul>
         ${repeat(journeys, j => j.id, j => html`
           <li ${animate({
@@ -56,8 +85,11 @@ export class Subscription extends OcelloidsElement {
           </li>
         `)}
         </ul>`
-      : html`<div class=${tw`flex items-center space-x-2 p-4`}>
-          ${IconPulse()} <span class=${tw`text-sm text-gray-500`}>waiting for events…</span>
+      : html`<div class=${tw`flex flex-col space-y-3`}>
+          ${this.renderSubscriptionDetails()}
+          <div class=${tw`flex items-center space-x-2 p-4`}>
+            ${IconPulse()} <span class=${tw`text-sm text-gray-500`}>waiting for events…</span>
+          </div>
         </div>`;
   }
 
@@ -67,7 +99,10 @@ export class Subscription extends OcelloidsElement {
   }
 
   shouldUpdate(props: PropertyValues<this>) {
-    if (props.get('id') !== undefined && props.get('id') !== this.id) {
+    if (
+      props.get('subscription') !== undefined 
+      && props.get('subscription').id !== this.subscription.id
+    ) {
       this.#reset();
     }
     return true;
@@ -78,7 +113,7 @@ export class Subscription extends OcelloidsElement {
       console.log('open ws');
 
       this.journeys = {};
-      this.ws = this.client.subscribe(this.id, {
+      this.ws = this.client.subscribe(this.subscription.id, {
         onMessage: this.onMessage.bind(this)
       });
     }

@@ -7,17 +7,9 @@ import { XcmJourney, XcmJourneyWaypoint } from '../lib/journey.js';
 import { tw } from '../style.js';
 import { TwElement } from '../base/tw.lit.js';
 import { IconSuccess, IconChainFail, IconChainWait, IconArrow, IconChainSuccess, IconWait, IconFail } from '../icons/index.js';
+import { trunc } from '../lib/utils.js';
 
 import './code.lit.js';
-
-function trunc(str, len = 11, sep = '…') {
-  if (str.length <= len) {return str;}
-  const chars = len - sep.length;
-  const frontChars = Math.ceil(chars / 2);
-  const backChars = Math.floor(chars / 2);
-
-  return str.substr(0, frontChars) + sep + str.substr(str.length - backChars);
-}
 
 function inferType({sender, origin, instructions}: XcmJourney) {
   const versioned = Object.values(instructions)[0] as any[];
@@ -92,7 +84,7 @@ export class Journey extends TwElement {
     const j = this.data;
 
     return html`<div class=${tw`w-full`}>
-    <div class=${tw`w-full flex p-4 justify-between items-center space-x-3 bg-gray-900`}>
+    <div class=${tw`w-full flex px-4 justify-between items-center space-x-3 bg-gray-900`}>
       <div class=${tw`flex items-center space-x-2`}>
         <span class=${tw`pr-4 text-sm text-gray-500`}>${inferType(j)}</span>
         ${this.iconForOutcome(j.origin)}
