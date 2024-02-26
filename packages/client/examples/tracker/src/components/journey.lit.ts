@@ -116,10 +116,10 @@ export class Journey extends TwElement {
     }
     <div class=${tw`flex flex-col divide-y divide-gray-900`}>
       ${repeat(
-    [j.origin, ...j.stops, j.destination],
-    p => j.id + p.chainId + p.outcome,
-    p => this.renderStatusRow(p)
-  )}
+        [j.origin, ...j.stops, j.destination],
+        p => j.id + p.chainId + p.outcome,
+        p => this.renderStatusRow(p)
+      )}
     </div>
     </div>`;
   }

@@ -43,14 +43,14 @@ export class Subscription extends OcelloidsElement {
         <ul>
         ${repeat(journeys, j => j.id, j => html`
           <li ${animate({
-    keyframeOptions: {
-      duration: 500,
-      delay: 100,
-      fill: 'both',
-    },
-    in: fadeIn,
-    out: fadeOut
-  })}>
+            keyframeOptions: {
+              duration: 500,
+              delay: 100,
+              fill: 'both',
+            },
+            in: fadeIn,
+            out: fadeOut
+          })}>
             <oc-journey class=${tw`flex w-full`} .data=${j}>
             </oc-journey>
           </li>
