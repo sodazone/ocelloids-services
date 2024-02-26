@@ -8,8 +8,8 @@ import './components/subscriptions.lit.js';
 import { ocelloidsContext } from './base/ocelloids.ctx.js';
 import { TwElement } from './base/tw.lit';
 
-@customElement('cockpit-app')
-export class CockpitApp extends TwElement {
+@customElement('tracker-app')
+export class TrackerApp extends TwElement {
   @provide({context: ocelloidsContext}) client;
 
   constructor() {
