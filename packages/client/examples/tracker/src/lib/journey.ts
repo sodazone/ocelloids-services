@@ -37,8 +37,8 @@ export async function toJourneyId({
   messageId,
   messageHash
 }: XcmNotifyMessage) {
-  return await blake3(
-    `${origin.chainId}:${origin.blockNumber}|${destination.chainId}|${messageId ?? messageHash}`
+  return Promise.resolve(messageId) ?? await blake3(
+    `${origin.chainId}:${origin.blockNumber}|${destination.chainId}|${messageHash}`
   );
 }
 
