@@ -1102,6 +1102,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-config-prettier@npm:^9.1.0":
+  version: 9.1.0
+  resolution: "eslint-config-prettier@npm:9.1.0"
+  peerDependencies:
+    eslint: ">=7.0.0"
+  bin:
+    eslint-config-prettier: bin/cli.js
+  checksum: 10c0/6d332694b36bc9ac6fdb18d3ca2f6ac42afa2ad61f0493e89226950a7091e38981b66bac2b47ba39d15b73fff2cd32c78b850a9cf9eed9ca9a96bfb2f3a2f10d
+  languageName: node
+  linkType: hard
+
 "eslint-plugin-lit@npm:^1.11.0":
   version: 1.11.0
   resolution: "eslint-plugin-lit@npm:1.11.0"
@@ -2995,6 +3006,7 @@ __metadata:
     "@types/prismjs": "npm:^1"
     autoprefixer: "npm:^10.4.17"
     eslint: "npm:^8.56.0"
+    eslint-config-prettier: "npm:^9.1.0"
     eslint-plugin-lit: "npm:^1.11.0"
     hash-wasm: "npm:^4.11.0"
     lit: "npm:^3.1.2"

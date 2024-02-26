@@ -108,12 +108,12 @@ export class Journey extends TwElement {
     ${this.selected ? html`
       <div @click=${this.clickHandler}
         ${animate({
-    in: fadeInSlow,
-  })}
+          in: fadeInSlow,
+        })}
       >
         <code-block code=${JSON.stringify(this.selected, null, 2)}></code-block>
       </div>` : ''
-}
+    }
     <div class=${tw`flex flex-col divide-y divide-gray-900`}>
       ${repeat(
     [j.origin, ...j.stops, j.destination],
