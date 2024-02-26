@@ -25,6 +25,4 @@ client.subscribe(
   },
   onError: error => console.log(error),
   onClose: event => console.log(event.reason)
-}).then(ws => {
-  console.log('subscribed', ws.readyState);
 });

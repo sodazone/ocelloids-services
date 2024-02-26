@@ -9,7 +9,7 @@ export const createSubscriptionStore = async () => {
         httpUrl: 'http://localhost:3000'
       });
     
-    const ws = await client.subscribe({
+    const ws = client.subscribe({
         origin: "2004",
         senders: "*",
         events: "*",

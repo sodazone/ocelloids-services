@@ -9,7 +9,7 @@ export function setup() {
     wsUrl: 'ws://127.0.0.1:3000'
   });
 
-  client.subscribe({
+  const ws = client.subscribe({
     origin: "2004",
     senders: "*",
     events: "*",
@@ -29,7 +29,7 @@ export function setup() {
     onClose: event => {
       status.innerHTML = `disconnected: socket closed ${event.reason} (${event.code})`
     }
-  }).then(() => {
-    status.innerHTML = 'connected'
   })
+
+  status.innerHTML = 'connected ' + ws.readyState
 }
