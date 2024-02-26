@@ -8,43 +8,37 @@ const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
-  second: '2-digit'
+  second: '2-digit',
 });
 
 export type XcmJourneyWaypoint = {
-  chainId: string
-  blockNumber?: string
-  outcome?: string,
-  error?: AnyJson,
-  event?: any,
-  extrinsic?: any
-}
+  chainId: string;
+  blockNumber?: string;
+  outcome?: string;
+  error?: AnyJson;
+  event?: any;
+  extrinsic?: any;
+};
 
 export type XcmJourney = {
-  id: string
-  sender: AnyJson
-  updated: number
-  created: string
-  instructions: any
-  origin: XcmJourneyWaypoint
-  destination: XcmJourneyWaypoint
-  stops: XcmJourneyWaypoint[]
+  id: string;
+  sender: AnyJson;
+  updated: number;
+  created: string;
+  instructions: any;
+  origin: XcmJourneyWaypoint;
+  destination: XcmJourneyWaypoint;
+  stops: XcmJourneyWaypoint[];
+};
+
+export async function toJourneyId({ origin, destination, messageId, messageHash }: XcmNotifyMessage) {
+  return messageId === undefined
+    ? await blake3(`${origin.chainId}:${origin.blockNumber}|${destination.chainId}|${messageHash}`)
+    : Promise.resolve(messageId);
 }
 
-export async function toJourneyId({
-  origin,
-  destination,
-  messageId,
-  messageHash
-}: XcmNotifyMessage) {
-  return Promise.resolve(messageId) ?? await blake3(
-    `${origin.chainId}:${origin.blockNumber}|${destination.chainId}|${messageHash}`
-  );
-}
-
-function updateFailures(journey: XcmJourney)
-: XcmJourney {
-  const failureIndex = journey.stops.findIndex(s => s.outcome === 'Fail');
+function updateFailures(journey: XcmJourney): XcmJourney {
+  const failureIndex = journey.stops.findIndex((s) => s.outcome === 'Fail');
   if (failureIndex === -1) {
     return journey;
   }
@@ -54,7 +48,7 @@ function updateFailures(journey: XcmJourney)
   if (failureIndex < journey.stops.length - 1) {
     journey.stops = journey.stops.map((s, i) => {
       if (i > failureIndex) {
-        return {...s, outcome: 'Fail'};
+        return { ...s, outcome: 'Fail' };
       } else {
         return s;
       }
@@ -63,15 +57,13 @@ function updateFailures(journey: XcmJourney)
   return journey;
 }
 
-async function toJourney(
-  xcm: XcmNotifyMessage
-) : Promise<XcmJourney> {
-  const stops = xcm.legs.length > 1
-    ? xcm.legs.slice(0, -1).map(({to: chainId}) =>
-      chainId === xcm.waypoint.chainId
-        ? { ...xcm.waypoint }
-        : { chainId }
-    ) : [];
+async function toJourney(xcm: XcmNotifyMessage): Promise<XcmJourney> {
+  const stops =
+    xcm.legs.length > 1
+      ? xcm.legs
+          .slice(0, -1)
+          .map(({ to: chainId }) => (chainId === xcm.waypoint.chainId ? { ...xcm.waypoint } : { chainId }))
+      : [];
 
   const now = Date.now();
 
@@ -82,19 +74,16 @@ async function toJourney(
     created: dateTimeFormat.format(now),
     instructions: xcm.instructions,
     origin: {
-      ...xcm.origin
+      ...xcm.origin,
     },
     destination: {
-      ...xcm.destination
+      ...xcm.destination,
     },
-    stops
+    stops,
   });
 }
 
-export async function mergeJourney(
-  xcm: XcmNotifyMessage,
-  journey?: XcmJourney
-) : Promise<XcmJourney> {
+export async function mergeJourney(xcm: XcmNotifyMessage, journey?: XcmJourney): Promise<XcmJourney> {
   if (journey === undefined) {
     return await toJourney(xcm);
   }
@@ -107,21 +96,19 @@ export async function mergeJourney(
     if (xcm.waypoint.outcome) {
       journey.updated = Date.now();
       journey.destination = xcm.waypoint;
-      return {...journey};
+      return { ...journey };
     }
     return journey;
   }
 
-  const stopIndex = journey.stops.findIndex(
-    s => s.chainId === xcm.waypoint.chainId
-  );
+  const stopIndex = journey.stops.findIndex((s) => s.chainId === xcm.waypoint.chainId);
 
   journey.updated = Date.now();
 
   if (stopIndex === -1) {
     // Shuld not happen :P
-    journey.stops.push({...xcm.waypoint});
-    return {...journey};
+    journey.stops.push({ ...xcm.waypoint });
+    return { ...journey };
   } else {
     const stop = journey.stops[stopIndex];
 
@@ -131,8 +118,8 @@ export async function mergeJourney(
 
     journey.stops[stopIndex] = {
       ...stop,
-      ...xcm.waypoint
+      ...xcm.waypoint,
     };
-    return {...updateFailures(journey)};
+    return { ...updateFailures(journey) };
   }
 }

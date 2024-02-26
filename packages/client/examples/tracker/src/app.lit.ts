@@ -10,14 +10,14 @@ import { TwElement } from './base/tw.lit';
 
 @customElement('tracker-app')
 export class TrackerApp extends TwElement {
-  @provide({context: ocelloidsContext}) client;
+  @provide({ context: ocelloidsContext }) client;
 
   constructor() {
     super();
 
     this.client = new OcelloidsClient({
       httpUrl: 'http://127.0.0.1:3000',
-      wsUrl: 'ws://127.0.0.1:3000'
+      wsUrl: 'ws://127.0.0.1:3000',
     });
   }
 

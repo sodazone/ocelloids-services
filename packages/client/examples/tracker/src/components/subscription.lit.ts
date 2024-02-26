@@ -11,18 +11,25 @@ import { XcmJourney, mergeJourney, toJourneyId } from '../lib/journey.js';
 import { tw } from '../style.js';
 import { IconChain, IconPulse } from '../icons/index.js';
 import { trunc } from '../lib/utils.js';
+import { sender } from '../lib/mock.js';
 
 @customElement('oc-subscription')
 export class SubscriptionElement extends OcelloidsElement {
   @property({
-    type: Object
-  }) subscription: Subscription;
+    type: Object,
+  })
+  subscription: Subscription;
 
   @state()
-  private journeys : Record<string, XcmJourney> = {};
+  private journeys: Record<string, XcmJourney> = {};
 
   @state()
   private ws?: WebSocket;
+
+  @property({
+    type: Boolean,
+  })
+  mocked: boolean = false;
 
   constructor() {
     super();
@@ -41,23 +48,23 @@ export class SubscriptionElement extends OcelloidsElement {
 
   renderSubscriptionDetails() {
     return html`
-      <div class=${tw`flex w-full items-center space-x-3 text-sm text-gray-500 px-4 border-b border-gray-800 divide-x divide-gray-800`}>
+      <div
+        class=${tw`flex w-full items-center space-x-3 text-sm text-gray-500 px-4 border-b border-gray-800 divide-x divide-gray-800`}
+      >
         <div class=${tw`flex flex-col space-y-2 pb-3 items-center`}>
           <span>Origin</span>
           <span>${IconChain(this.subscription.origin)}</span>
         </div>
         <div class=${tw`flex flex-col space-y-2 pl-3 pb-3 items-center`}>
           <span>Destinations</span>
-          <span class=${tw`flex -space-x-1`}>
-            ${this.subscription.destinations.map(d => IconChain(d))}
-          </span>
+          <span class=${tw`flex -space-x-1`}> ${this.subscription.destinations.map((d) => IconChain(d))} </span>
         </div>
         <div class=${tw`flex flex-col space-y-2 pl-3 pb-4`}>
           <span>Senders</span>
           <span class=${tw`text-gray-200`}>
             ${Array.isArray(this.subscription.senders)
-            ? this.subscription.senders.map(s => trunc(s)).join(',')
-            : this.subscription.senders}
+              ? this.subscription.senders.map((s) => trunc(s)).join(',')
+              : this.subscription.senders}
           </span>
         </div>
       </div>
@@ -67,29 +74,29 @@ export class SubscriptionElement extends OcelloidsElement {
   renderJourneys() {
     const journeys = Object.values(this.journeys).reverse();
     return journeys.length > 0
-      ? html`
-        ${this.renderSubscriptionDetails()}
-        <ul>
-        ${repeat(journeys, j => j.id, j => html`
-          <li ${animate({
-            keyframeOptions: {
-              duration: 500,
-              delay: 100,
-              fill: 'both',
-            },
-            in: fadeIn,
-            out: fadeOut
-          })}>
-            <oc-journey class=${tw`flex w-full`} .data=${j}>
-            </oc-journey>
-          </li>
-        `)}
+      ? html` <ul>
+          ${repeat(
+            journeys,
+            (j) => j.id,
+            (j) => html`
+              <li
+                ${animate({
+                  keyframeOptions: {
+                    duration: 500,
+                    delay: 100,
+                    fill: 'both',
+                  },
+                  in: fadeIn,
+                  out: fadeOut,
+                })}
+              >
+                <oc-journey class=${tw`flex w-full`} .data=${j}> </oc-journey>
+              </li>
+            `,
+          )}
         </ul>`
-      : html`<div class=${tw`flex flex-col space-y-3`}>
-          ${this.renderSubscriptionDetails()}
-          <div class=${tw`flex items-center space-x-2 p-4`}>
-            ${IconPulse()} <span class=${tw`text-sm text-gray-500`}>waiting for events…</span>
-          </div>
+      : html` <div class=${tw`flex items-center space-x-2 p-4`}>
+          <span class=${tw`text-sm text-gray-200`}>Waiting for events…</span> ${IconPulse()}
         </div>`;
   }
 
@@ -99,10 +106,7 @@ export class SubscriptionElement extends OcelloidsElement {
   }
 
   shouldUpdate(props: PropertyValues<this>) {
-    if (
-      props.get('subscription') !== undefined 
-      && props.get('subscription').id !== this.subscription.id
-    ) {
+    if (props.get('subscription') !== undefined && props.get('subscription').id !== this.subscription.id) {
       this.#reset();
     }
     return true;
@@ -114,13 +118,19 @@ export class SubscriptionElement extends OcelloidsElement {
 
       this.journeys = {};
       this.ws = this.client.subscribe(this.subscription.id, {
-        onMessage: this.onMessage.bind(this)
+        onMessage: this.onMessage.bind(this),
       });
+
+      if (this.mocked) {
+        sender(this.onMessage.bind(this));
+      }
     }
 
-    return html`
-    <div class=${tw`flex flex-col w-full space-y-4 divide-y divide-gray-800 border-x border-gray-900`}>
-      ${this.renderJourneys()}
+    return html` <div class=${tw`flex flex-col`}>
+      ${this.renderSubscriptionDetails()}
+      <div class=${tw`flex flex-col w-full space-y-4 divide-y divide-gray-800 border-x border-gray-900`}>
+        ${this.renderJourneys()}
+      </div>
     </div>`;
   }
 
