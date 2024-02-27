@@ -3,7 +3,6 @@ import EventEmitter from 'node:events';
 import { Observable, from, switchMap, share } from 'rxjs';
 
 import {
-  SubstrateApis,
   ControlQuery,
   extractEvents,
   retryWithTruncatedExpBackoff,

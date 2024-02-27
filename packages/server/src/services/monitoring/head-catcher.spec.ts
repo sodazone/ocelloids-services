@@ -219,7 +219,7 @@ describe('head catcher', () => {
               registry: {
                 createType: () => ({})
               }
-            } as unknown as ApiPromise) 
+            } as unknown as ApiPromise)
           })
         } as unknown as Connector,
         storage: {
