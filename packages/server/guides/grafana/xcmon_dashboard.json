@@ -430,6 +430,7 @@
             "fixedColor": "green",
             "mode": "fixed"
           },
+          "fieldMinMax": false,
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -466,7 +467,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "max"
           ],
           "fields": "",
           "values": false
@@ -719,6 +720,6 @@
   "timezone": "",
   "title": "XCM Monitoring Server",
   "uid": "f127df32-837f-4adf-acf5-c944cadc9dc5",
-  "version": 94,
+  "version": 95,
   "weekStart": ""
 }
