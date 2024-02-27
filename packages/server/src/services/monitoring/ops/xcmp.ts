@@ -24,7 +24,7 @@ const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 function findOutboundHrmpMessage(
   messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<XcmSentWithContext>)
   : Observable<GenericXcmSentWithContext> => {
@@ -88,7 +88,7 @@ export function extractXcmpSend(
     messageControl
   }: XcmCriteria,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
   : Observable<XcmSentWithContext> => {

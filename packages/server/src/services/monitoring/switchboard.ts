@@ -525,7 +525,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const subs : RxSubscriptionWithId[] = [];
     const chainId = origin;
     const api = await this.#apis.getReadyApiPromise(chainId);
-    const registry = api.registry.hasType('XcmVersionedXcm') ? api.registry : undefined;
+    const registry = api.registry;
 
     if (this.#subs[id]?.originSubs.find(
       s => s.chainId === chainId)
@@ -692,7 +692,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       this.#log.debug('Relay subscription already exists.');
     }
     const api = await this.#apis.getReadyApiPromise('0');
-    const registry = api.registry.hasType('XcmVersionedXcm') ? api.registry : undefined;
+    const registry = api.registry;
 
     const messageControl = ControlQuery.from(
       messageCriteria(destinations)

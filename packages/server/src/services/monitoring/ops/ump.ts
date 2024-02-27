@@ -89,7 +89,7 @@ function umpMessagesSent() {
 function findOutboundUmpMessage(
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<XcmSentWithContext>)
   : Observable<XcmSentWithContext> => {
@@ -129,7 +129,7 @@ export function extractUmpSend(
     messageControl
   }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {

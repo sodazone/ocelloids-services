@@ -1,10 +1,11 @@
-import { createRequire } from 'node:module';
-
 import type { Bytes } from '@polkadot/types';
 
 import type { Registry } from '@polkadot/types/types';
-import { TypeRegistry, Metadata } from '@polkadot/types';
 import { XcmVersionedXcm } from './xcm-types.js';
+
+/* // Polkadot registry hack, remove me when decided
+import { createRequire } from 'node:module';
+import { TypeRegistry, Metadata } from '@polkadot/types';
 
 let _registry : Registry;
 
@@ -19,6 +20,7 @@ function polkadotRegistry() : Registry {
   _registry.setMetadata(metadata);
   return _registry;
 }
+*/
 
 /**
  * Creates a versioned XCM program from bytes.
@@ -29,16 +31,31 @@ function polkadotRegistry() : Registry {
  */
 export function asVersionedXcm(
   data: Bytes | Uint8Array,
-  registry: Registry = polkadotRegistry()
+  registry: Registry
 ): XcmVersionedXcm {
-  return registry.createType(
+  if (registry.hasType('XcmVersionedXcm')) {
+    return registry.createType(
+      'XcmVersionedXcm', data
+    ) as XcmVersionedXcm;
+  } else if (registry.hasType('StagingXcmVersionedXcm')) {
+    return registry.createType(
+      'StagingXcmVersionedXcm', data
+    ) as XcmVersionedXcm;
+  }
+
+  throw new Error('Versioned XCM type not found in chain registry');
+  
+  // TODO:does it make sense to default to Polka Reg?
+  /*
+  return polkadotRegistry().createType(
     'XcmVersionedXcm', data
   ) as XcmVersionedXcm;
+  */
 }
 
 function asXcmpVersionedXcms(
   buffer: Uint8Array,
-  registry: Registry = polkadotRegistry()
+  registry: Registry
 ) : XcmVersionedXcm[] {
   const len = buffer.length;
   const xcms : XcmVersionedXcm[] = [];
@@ -68,7 +85,7 @@ function asXcmpVersionedXcms(
  */
 export function fromXcmpFormat(
   buf: Uint8Array,
-  registry: Registry = polkadotRegistry()
+  registry: Registry
 ) : XcmVersionedXcm[] {
   switch (buf[0]) {
   case 0x00: { // Concatenated XCM fragments

@@ -125,7 +125,7 @@ function createXcmMessageSent(
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
-function findDmpMessagesFromTx(api: ApiPromise, registry?: Registry) {
+function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>)
         : Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -203,7 +203,7 @@ function findDmpMessagesFromTx(api: ApiPromise, registry?: Registry) {
   };
 }
 
-function findDmpMessagesFromEvent(api: ApiPromise, registry?: Registry) {
+function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
   return (source: Observable<types.BlockEvent>)
         : Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -291,7 +291,7 @@ export function extractDmpSend(
     sendersControl,
     messageControl
   }: XcmCriteria,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<types.TxWithIdAndEvent>)
       : Observable<XcmSentWithContext> => {
@@ -314,7 +314,7 @@ export function extractDmpSendByEvent(
     sendersControl,
     messageControl
   }: XcmCriteria,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
