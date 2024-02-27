@@ -9,10 +9,11 @@ program executions across consensus systems. Users can configure specific blockc
 ## Key Features
 
 - **Execution Monitoring:** The server tracks XCM program executions across various networks.
-- **Subscription Management:** The server offers a flexible subscription API for users to define specific criteria for notifications. Customizable parameters include origin, senders, destinations, and notification methods.
+- **Subscription Management:** The server provides a flexible API for users to specify subscription criteria, including origin, destinations, senders, and delivery channels. It supports long-lived and on-demand subscriptions, delivering notifications via webhooks and websockets.
 - **Dynamic Subscription Updates:** The subscription API allows users to modify subscription parameters, such as list of senders and destinations. The monitor seamlessly updates its matching criteria in real-time, without need for restarts.
 - **Light client support:** The server supports connecting to chains through smoldot, in addition to RPC endpoints, thereby reducing infrastructure needs by eliminating the necessity of running full nodes or relying on RPC providers.
 - **Resilience and Reliability:** The server ensures uninterrupted operation with persistent data storage between restarts. It supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
+- **Observability:** The server exposes telemetry metrics in a Prometheus-compatible exporter.
 
 The XCM Monitoring Server utilizes the [Ocelloids Monitoring SDK](https://github.com/sodazone/ocelloids) for the implementation of its monitoring logic.
 
