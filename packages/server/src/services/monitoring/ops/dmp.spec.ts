@@ -1,6 +1,12 @@
 import { jest } from '@jest/globals';
 
-import { dmpReceive, dmpSendMultipleMessagesInQueue, dmpSendSingleMessageInQueue, dmpXcmPalletSentEvent } from '../../../testing/xcm.js';
+import {
+  dmpReceive,
+  dmpSendMultipleMessagesInQueue,
+  dmpSendSingleMessageInQueue,
+  dmpXcmPalletSentEvent,
+  registry
+} from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
 
@@ -21,7 +27,8 @@ describe('dmp operator', () => {
         {
           sendersControl,
           messageControl
-        }
+        },
+        registry
       )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
@@ -57,7 +64,8 @@ describe('dmp operator', () => {
         {
           sendersControl,
           messageControl
-        }
+        },
+        registry
       )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
@@ -95,7 +103,8 @@ describe('dmp operator', () => {
         {
           sendersControl,
           messageControl
-        }
+        },
+        registry
       )(blocks.pipe(extractEvents()));
 
       test$.subscribe({

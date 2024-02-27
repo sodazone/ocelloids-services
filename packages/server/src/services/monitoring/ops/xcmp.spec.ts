@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { ControlQuery, extractEvents } from '@sodazone/ocelloids';
 
-import { xcmpSend, xcmpReceive } from '../../../testing/xcm.js';
+import { xcmpSend, xcmpReceive, registry } from '../../../testing/xcm.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 import { sendersCriteria } from './criteria.js';
@@ -23,7 +23,8 @@ describe('xcmp operator', () => {
           sendersControl,
           messageControl
         },
-        getHrmp
+        getHrmp,
+        registry
       )(blocks.pipe(extractEvents()));
 
       test$.subscribe({
@@ -61,7 +62,8 @@ describe('xcmp operator', () => {
         ),
         messageControl
       },
-      getHrmp
+      getHrmp,
+      registry
     )(blocks.pipe(extractEvents()));
 
     test$.subscribe({

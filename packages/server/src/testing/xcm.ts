@@ -6,18 +6,22 @@ import { jest } from '@jest/globals';
 import { from } from 'rxjs';
 import { ApiPromise } from '@polkadot/api';
 import { ApiDecoration } from '@polkadot/api/types';
-import { TypeRegistry } from '@polkadot/types';
+import { TypeRegistry, Metadata } from '@polkadot/types';
 import type { Vec, Bytes } from '@polkadot/types';
 import type {
   PolkadotCorePrimitivesOutboundHrmpMessage,
   PolkadotCorePrimitivesInboundDownwardMessage
 } from '@polkadot/types/lookup';
+import spec from '@polkadot/types-support/metadata/static-polkadot';
 import { ControlQuery } from '@sodazone/ocelloids';
 
 import { testBlocksFrom } from './blocks.js';
 import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js';
 
-const registry = new TypeRegistry();
+const _registry = new TypeRegistry();
+const metadata = new Metadata(_registry, spec);
+_registry.setMetadata(metadata);
+export const registry = _registry;
 
 // XCMP testing mocks
 const xcmpData = '0x000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368';

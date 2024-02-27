@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { extractEvents } from '@sodazone/ocelloids';
 
-import { umpReceive, umpSend } from '../../../testing/xcm.js';
+import { umpReceive, umpSend, registry } from '../../../testing/xcm.js';
 
 import { extractUmpReceive, extractUmpSend } from './ump.js';
 
@@ -22,7 +22,8 @@ describe('ump operator', () => {
           sendersControl,
           messageControl
         },
-        getUmp
+        getUmp,
+        registry
       )(blocks.pipe(extractEvents()));
 
       test$.subscribe({

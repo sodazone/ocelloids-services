@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { relayHrmpReceive } from '../../../testing/xcm.js';
+import { relayHrmpReceive, registry } from '../../../testing/xcm.js';
 import { extractRelayReceive } from './relay.js';
 import { extractTxWithEvents } from '@sodazone/ocelloids';
 import { messageCriteria } from './criteria.js';
@@ -19,7 +19,8 @@ describe('relay operator', () => {
 
       const test$ = extractRelayReceive(
         origin,
-        messageControl
+        messageControl,
+        registry
       )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
@@ -54,7 +55,8 @@ describe('relay operator', () => {
 
       const test$ = extractRelayReceive(
         origin,
-        messageControl
+        messageControl,
+        registry
       )(blocks.pipe(extractTxWithEvents()));
 
       // remove destination from criteria
