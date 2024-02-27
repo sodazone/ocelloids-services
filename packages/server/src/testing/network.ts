@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel } from 'memory-level';
 import * as P from '@polkadot/api';
+import * as C from '@sodazone/ocelloids';
 
 import { _configToml } from './data.js';
 
@@ -49,5 +50,21 @@ jest.unstable_mockModule('@polkadot/api', () => {
         unsubscribe: jest.fn()
       };
     })
+  };
+});
+
+jest.unstable_mockModule('@sodazone/ocelloids', () => {
+  return {
+    __esModule: true,
+    ...C,
+    SubstrateApis: class extends C.SubstrateApis {
+      get promise() {
+        const records : Record<string, P.ApiPromise> = {};
+        for (const k of Object.keys(super.promise)) {
+          records[k] = {} as unknown as P.ApiPromise;
+        }
+        return records;
+      }
+    }
   };
 });
