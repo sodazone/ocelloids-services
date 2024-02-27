@@ -44,7 +44,7 @@ export function asVersionedXcm(
   }
 
   throw new Error('Versioned XCM type not found in chain registry');
-  
+
   // TODO:does it make sense to default to Polka Reg?
   /*
   return polkadotRegistry().createType(
