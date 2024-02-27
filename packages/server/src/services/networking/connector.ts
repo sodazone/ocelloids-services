@@ -16,11 +16,11 @@ export class XcMonSubstrateApis extends SubstrateApis {
 
   async getReadyApiPromise(chain: string): Promise<ApiPromise> {
     if (this.#readyApis[chain]) {
-      return Promise.resolve(this.#readyApis[chain]);
+      return this.#readyApis[chain];
     }
 
     this.#readyApis[chain] = await this.promise[chain].isReady;
-    return Promise.resolve(this.#readyApis[chain]);
+    return this.#readyApis[chain];
   }
 }
 

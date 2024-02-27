@@ -59,9 +59,16 @@ jest.unstable_mockModule('@sodazone/ocelloids', () => {
     ...C,
     SubstrateApis: class extends C.SubstrateApis {
       get promise() {
+        const p = Promise.resolve({
+          registry: {
+            hasType: () => true
+          }
+        } as unknown as P.ApiPromise);
         const records : Record<string, P.ApiPromise> = {};
-        for (const k of Object.keys(super.promise)) {
-          records[k] = {} as unknown as P.ApiPromise;
+        for (const k of this.chains) {
+          records[k] = {
+            isReady: p
+          } as unknown as P.ApiPromise;
         }
         return records;
       }
