@@ -26,6 +26,8 @@ export const $SafeId = z.string({
 }).min(1).max(100).regex(/[A-Za-z0-9:\.\-_]+/);
 
 /**
+ * A hex string starting with '0x'.
+ *
  * @public
  */
 export type HexString = `0x${string}`;
@@ -49,6 +51,8 @@ export type XcmWithContext = {
 }
 
 /**
+ * Represents the asset that has been trapped.
+ *
  * @public
  */
 export type TrappedAsset = {
@@ -63,6 +67,8 @@ export type TrappedAsset = {
 }
 
 /**
+ * Event emitted when assets are trapped.
+ *
  * @public
  */
 export type AssetsTrapped = {
@@ -71,6 +77,9 @@ export type AssetsTrapped = {
   event: AnyJson
 }
 
+/**
+ * Represents an XCM program bytes and human JSON.
+ */
 export type XcmProgram = {
   bytes: Uint8Array,
   json: AnyJson
@@ -256,6 +265,8 @@ export enum XcmNotificationType {
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
 
 /**
+ * The terminal point of an XCM journey.
+ *
  * @public
  */
 export type XcmTermini = {
@@ -263,6 +274,8 @@ export type XcmTermini = {
 };
 
 /**
+ * The terminal point of an XCM journey with contextual information.
+ *
  * @public
  */
 export interface XcmTerminiContext extends XcmTermini {
@@ -276,6 +289,8 @@ export interface XcmTerminiContext extends XcmTermini {
 }
 
 /**
+ * The contextual information of an XCM journey waypoint.
+ *
  * @public
  */
 export interface XcmWaypointContext extends XcmTerminiContext {
@@ -283,6 +298,8 @@ export interface XcmWaypointContext extends XcmTerminiContext {
 }
 
 /**
+ * A leg of an XCM journey.
+ *
  * @public
  */
 export type Leg = {
@@ -291,6 +308,8 @@ export type Leg = {
 };
 
 /**
+ * Event emitted when an XCM is sent.
+ *
  * @public
  */
 export interface XcmSent {
@@ -383,6 +402,8 @@ export class GenericXcmSent implements XcmSent {
 }
 
 /**
+ * Event emitted when an XCM is received.
+ *
  * @public
  */
 export interface XcmReceived {
@@ -442,6 +463,9 @@ export class GenericXcmReceived implements XcmReceived {
 }
 
 /**
+ * Event emitted when an XCM is received on the relay chain
+ * for an HRMP message.
+ *
  * @public
  */
 export interface XcmRelayed {
@@ -503,6 +527,8 @@ export class GenericXcmRelayed implements XcmRelayed {
 }
 
 /**
+ * The XCM event types.
+ *
  * @public
  */
 export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed;

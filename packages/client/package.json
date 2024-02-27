@@ -36,6 +36,7 @@
     "build:api": "tsc  && api-extractor run --local --verbose",
     "build:deno": "node deno-build.mjs",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
+    "docs": "yarn typedoc src/lib.ts",
     "lint": "eslint --cache --fix \"src/**/*.ts\""
   },
   "jest": {
@@ -74,6 +75,7 @@
     "jest": "^29.7.0",
     "tsup": "^8.0.2",
     "tsx": "^4.7.1",
+    "typedoc": "^0.25.9",
     "typescript": "^5.3.3"
   },
   "dependencies": {
