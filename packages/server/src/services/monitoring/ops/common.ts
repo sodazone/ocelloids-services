@@ -1,7 +1,7 @@
 import { map, Observable } from 'rxjs';
 
+import type { Registry } from '@polkadot/types/types';
 import type {
-  XcmVersionedXcm,
   XcmV2Xcm,
   XcmV3Xcm,
   XcmV2MultiLocation,
@@ -9,63 +9,57 @@ import type {
 } from '@polkadot/types/lookup';
 
 import { XcmSentWithContext } from '../types.js';
-import { getParaIdFromMultiLocation } from './util.js';
+import { getParaIdFromLocation, getParaIdFromMultiLocation, isV4Location } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
+import { XcmV4Xcm, XcmV4Location } from './xcm-types.js';
 
 function updateStops(
   stops: string[],
-  destination: XcmV3MultiLocation | XcmV2MultiLocation,
-  xcm: XcmV3Xcm | XcmV2Xcm
+  destination: XcmV3MultiLocation | XcmV2MultiLocation | XcmV4Location,
 ) {
-  const paraId = getParaIdFromMultiLocation(destination);
+  let paraId: string | undefined;
+  if (isV4Location(destination)) {
+    paraId = getParaIdFromLocation(destination);
+  } else {
+    paraId = getParaIdFromMultiLocation(destination);
+  }
   if (paraId) {
     stops.push(paraId);
   }
-  // eslint-disable-next-line no-use-before-define
-  recursiveExtractStops(xcm, stops);
 }
 
-function recursiveExtractStops(message: XcmV3Xcm | XcmV2Xcm, stops: string[]) {
+function recursiveExtractStops(message: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: string[]) {
   for (const instruction of message) {
     if (instruction.isDepositReserveAsset) {
       const { dest, xcm } = instruction.asDepositReserveAsset;
-      updateStops(stops, dest, xcm);
+      updateStops(stops, dest);
+      recursiveExtractStops(xcm, stops);
     } else if (instruction.isInitiateReserveWithdraw) {
       const { reserve, xcm } = instruction.asInitiateReserveWithdraw;
-      updateStops(stops, reserve, xcm);
+      updateStops(stops, reserve);
+      recursiveExtractStops(xcm, stops);
     } else if (instruction.isInitiateTeleport) {
       const { dest, xcm } = instruction.asInitiateTeleport;
-      updateStops(stops, dest, xcm);
+      updateStops(stops, dest);
+      recursiveExtractStops(xcm, stops);
     } else if (instruction.isTransferReserveAsset) {
       const { dest, xcm } = instruction.asTransferReserveAsset;
-      updateStops(stops, dest, xcm);
+      updateStops(stops, dest);
+      recursiveExtractStops(xcm, stops);
     }
   }
   return stops;
 }
 
-function extractStops(message: XcmVersionedXcm, nextStop: string): string[] {
-  const stops = [nextStop];
-
-  switch (message.type) {
-  case 'V2':
-    recursiveExtractStops(message.asV2, stops);
-    return stops;
-  case 'V3':
-    recursiveExtractStops(message.asV3, stops);
-    return stops;
-  default:
-    throw new Error('XCM version not supported');
-  }
-}
-
-export function extractXcmWaypoints() {
+export function extractXcmWaypoints(registry?: Registry) {
   return (
     source: Observable<XcmSentWithContext>
   ) => source.pipe(
     map(message => {
       const { instructions, recipient } = message;
-      const stops = extractStops(asVersionedXcm(instructions.bytes), recipient);
+      const stops = [recipient];
+      const versionedXcm = asVersionedXcm(instructions.bytes, registry);
+      recursiveExtractStops(versionedXcm[`as${versionedXcm.type}`], stops);
       return { message, stops };
     })
   );

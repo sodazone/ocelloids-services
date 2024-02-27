@@ -2,6 +2,7 @@ import { mergeMap, map, Observable, filter, bufferCount } from 'rxjs';
 
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
+import type { Registry } from '@polkadot/types/types';
 import type {
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
   FrameSupportMessagesProcessMessageError
@@ -87,7 +88,8 @@ function umpMessagesSent() {
 
 function findOutboundUmpMessage(
   messageControl: ControlQuery,
-  getOutboundUmpMessages: GetOutboundUmpMessages
+  getOutboundUmpMessages: GetOutboundUmpMessages,
+  registry?: Registry
 ) {
   return (source: Observable<XcmSentWithContext>)
   : Observable<XcmSentWithContext> => {
@@ -98,7 +100,7 @@ function findOutboundUmpMessage(
           map(messages =>  {
             return messages
               .map(data => {
-                const xcmProgram = asVersionedXcm(data);
+                const xcmProgram = asVersionedXcm(data, registry);
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
                   messageData: data.toU8a(),
@@ -126,7 +128,8 @@ export function extractUmpSend(
     sendersControl,
     messageControl
   }: XcmCriteria,
-  getOutboundUmpMessages: GetOutboundUmpMessages
+  getOutboundUmpMessages: GetOutboundUmpMessages,
+  registry?: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
@@ -139,7 +142,8 @@ export function extractUmpSend(
       umpMessagesSent(),
       findOutboundUmpMessage(
         messageControl,
-        getOutboundUmpMessages
+        getOutboundUmpMessages,
+        registry
       )
     );
   };

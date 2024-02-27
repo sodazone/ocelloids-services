@@ -1,5 +1,4 @@
 import type {
-  XcmVersionedXcm,
   XcmVersionedMultiLocation,
   XcmV3MultiLocation,
   XcmV2MultiLocation,
@@ -18,15 +17,17 @@ import {
   HexString,
   TrappedAsset,
 } from '../types.js';
+import { XcmVersionedXcm, XcmVersionedLocation, XcmVersionedAssets, XcmV4Location, XcmV4AssetAssets } from './xcm-types.js';
 
 /**
  * Gets message id from setTopic.
  */
 export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
   switch (program.type) {
-  // For the moment only XCM V3 supports topic ID
+  // Only XCM V3+ supports topic ID
   case 'V3':
-    for (const instruction of program.asV3) {
+  case 'V4':
+    for (const instruction of program[`as${program.type}`]) {
       if (instruction.isSetTopic) {
         return instruction.asSetTopic.toHex();
       }
@@ -78,11 +79,37 @@ export function getParaIdFromMultiLocation(
   }
 }
 
-export function getParaIdFromVersionedMultiLocation(loc: XcmVersionedMultiLocation): string | undefined {
+export function getParaIdFromLocation(
+  loc: XcmV4Location
+): string | undefined {
+  const junctions = loc.interior;
+  if (junctions.type === 'Here') {
+    return undefined;
+  }
+  for (const j of junctions[`as${junctions.type}`]) {
+    if (j.isParachain) {
+      return j.asParachain.toString();
+    }
+  }
+  return undefined;
+}
+
+export function isV4Location(object: any): object is XcmV4Location {
+  return object.parent !== undefined &&
+    object.interior !== undefined &&
+    object.interior.asX1 !== undefined &&
+    typeof object.interior.asX1[Symbol.iterator] === 'function';
+}
+
+export function getParaIdFromVersionedMultiLocation(
+  loc: XcmVersionedMultiLocation | XcmVersionedLocation
+): string | undefined {
   switch (loc.type) {
   case 'V2':
   case 'V3':
     return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
+  case 'V4':
+    return getParaIdFromLocation(loc.asV4);
   default:
     return undefined;
   }
@@ -93,7 +120,8 @@ export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed)
   case 'V2':
     throw new Error('Not able to match by topic for XCM V2 program.');
   case 'V3':
-    for (const instruction of message.asV3) {
+  case 'V4':
+    for (const instruction of message[`as${message.type}`]) {
       if (instruction.isSetTopic) {
         return instruction.asSetTopic.eq(topicId);
       }
@@ -126,7 +154,7 @@ export function matchExtrinsic(
     : method === extrinsic.method.method;
 }
 
-function createTrappedAssets(
+function createTrappedAssetsFromMultiAssets(
   version: number,
   assets: XcmV2MultiassetMultiAssets | XcmV3MultiassetMultiAssets
 ): TrappedAsset[] {
@@ -142,12 +170,29 @@ function createTrappedAssets(
   }));
 }
 
-function mapVersionedAssets(assets: XcmVersionedMultiAssets): TrappedAsset[] {
+function createTrappedAssetsFromAssets(
+  version: number,
+  assets: XcmV4AssetAssets
+): TrappedAsset[] {
+  return assets.map(a => ({
+    version,
+    id: {
+      type: 'Concrete',
+      value: a.id.toHuman()
+    },
+    fungible: a.fun.isFungible,
+    amount: a.fun.isFungible ? a.fun.asFungible.toPrimitive() : 1,
+    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman() : undefined
+  }));
+}
+
+function mapVersionedAssets(assets: XcmVersionedMultiAssets | XcmVersionedAssets): TrappedAsset[] {
   switch (assets.type) {
   case 'V2':
-    return createTrappedAssets(2, assets.asV2);
   case 'V3':
-    return createTrappedAssets(3, assets.asV3);
+    return createTrappedAssetsFromMultiAssets(2, assets[`as${assets.type}`]);
+  case 'V4':
+    return createTrappedAssetsFromAssets(4, assets.asV4);
   default:
     throw new Error('XCM version not supported');
   }
@@ -160,7 +205,7 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
   const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
     hash_: H256,
     _origin: any,
-    assets: XcmVersionedMultiAssets
+    assets: XcmVersionedMultiAssets | XcmVersionedAssets
   ];
   return {
     event: {

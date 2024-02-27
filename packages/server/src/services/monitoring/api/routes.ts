@@ -158,7 +158,7 @@ export async function SubscriptionApi(
       }
 
       if (hasOp(patch, '/events')) {
-        switchboard.updateEvents(id);
+        await switchboard.updateEvents(id);
       }
 
       reply.status(200).send(sub);

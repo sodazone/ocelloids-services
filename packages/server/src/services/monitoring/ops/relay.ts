@@ -3,6 +3,7 @@ import { Observable, map, mergeMap, filter } from 'rxjs';
 import type {
   PolkadotPrimitivesV5InherentData,
 } from '@polkadot/types/lookup';
+import type { Registry } from '@polkadot/types/types';
 
 import {
   ControlQuery,
@@ -15,7 +16,8 @@ import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js
 
 export function extractRelayReceive(
   origin: string,
-  messageControl: ControlQuery
+  messageControl: ControlQuery,
+  registry?: Registry
 ) {
   return (source: Observable<types.TxWithIdAndEvent>)
   : Observable<XcmRelayedWithContext> => {
@@ -32,7 +34,7 @@ export function extractRelayReceive(
             ({ recipient }) => messageControl.value.test({ recipient: recipient.toString() })
           );
           if (message) {
-            const xcms = fromXcmpFormat(message.data);
+            const xcms = fromXcmpFormat(message.data, registry);
             const { blockHash, blockNumber, extrinsicId } = extrinsic;
             return xcms.map(xcmProgram =>
               new GenericXcmRelayedWithContext({

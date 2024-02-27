@@ -17,8 +17,7 @@ import {
   blocks,
   finalizedHeads,
   blockFromHeader,
-  retryWithTruncatedExpBackoff,
-  SubstrateApis
+  retryWithTruncatedExpBackoff
 } from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
@@ -27,6 +26,7 @@ import { GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augment
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
+import { XcMonSubstrateApis } from '../networking/connector.js';
 
 const MAX_BLOCK_DIST : bigint = process.env.XCMON_MAX_BLOCK_DIST ?
   BigInt(process.env.XCMON_MAX_BLOCK_DIST)
@@ -43,7 +43,7 @@ const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter)  {
-  #apis: SubstrateApis;
+  #apis: XcMonSubstrateApis;
   #log: Logger;
   #config: ServiceConfiguration;
   #db: DB;
@@ -199,7 +199,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   finalizedBlocks(
     chainId: string
   ) : Observable<SignedBlockExtended> {
-    const api = this.#apis.promise[chainId];
+    const apiRx = this.#apis.rx[chainId];
+    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
     let pipe = this.#pipes[chainId];
 
     if (pipe) {
@@ -209,27 +210,31 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     if (this.#hasCache(chainId)) {
       // only applies to light clients
-      pipe = this.#apis.rx[chainId].pipe(
-        finalizedHeads(),
-        this.#tapError(chainId, 'finalizedHeads()'),
-        retryWithTruncatedExpBackoff(),
-        this.#catchUpHeads(chainId, api),
-        mergeMap(head => from(this.#getBlock(
-          chainId, api, head.hash.toHex()
-        ))),
-        this.#tapError(chainId, '#getBlock()'),
-        retryWithTruncatedExpBackoff(),
+      pipe = apiPromiseObs.pipe(
+        switchMap(api => apiRx.pipe(
+          finalizedHeads(),
+          this.#tapError(chainId, 'finalizedHeads()'),
+          retryWithTruncatedExpBackoff(),
+          this.#catchUpHeads(chainId, api),
+          mergeMap(head => from(this.#getBlock(
+            chainId, api, head.hash.toHex()
+          ))),
+          this.#tapError(chainId, '#getBlock()'),
+          retryWithTruncatedExpBackoff()
+        )),
         share()
       );
     } else {
-      pipe = this.#apis.rx[chainId].pipe(
-        finalizedHeads(),
-        this.#tapError(chainId, 'finalizedHeads()'),
-        retryWithTruncatedExpBackoff(),
-        this.#catchUpHeads(chainId, api),
-        blockFromHeader(api),
-        this.#tapError(chainId, 'blockFromHeader()'),
-        retryWithTruncatedExpBackoff(),
+      pipe = apiPromiseObs.pipe(
+        switchMap(api => apiRx.pipe(
+          finalizedHeads(),
+          this.#tapError(chainId, 'finalizedHeads()'),
+          retryWithTruncatedExpBackoff(),
+          this.#catchUpHeads(chainId, api),
+          blockFromHeader(api),
+          this.#tapError(chainId, 'blockFromHeader()'),
+          retryWithTruncatedExpBackoff()
+        )),
         share()
       );
     }
@@ -246,32 +251,40 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * or from a query storage request to the network.
    */
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
-    const api = this.#apis.promise[chainId];
+    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
     const cache = this.#cache(chainId);
 
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
         // TODO: handle error not found in cache
-        return from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
-          map(buffer => {
-            return api.registry.createType(
-              'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
-            ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
-          })
+        return apiPromiseObs.pipe(
+          switchMap(api =>
+            from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
+              map(buffer => {
+                return api.registry.createType(
+                  'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer
+                ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
+              })
+            )
+          )
         );
       };
     } else {
       return (hash: HexString)
       : Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        return from(api.at(hash)).pipe(
-          switchMap(at =>
-           from(
-             at.query.parachainSystem.hrmpOutboundMessages()
-           ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
-          ),
-          this.#tapError(chainId, 'at.query.parachainSystem.hrmpOutboundMessages()'),
-          retryWithTruncatedExpBackoff()
+        return apiPromiseObs.pipe(
+          switchMap(api =>
+            from(api.at(hash)).pipe(
+              switchMap(at =>
+                from(
+                  at.query.parachainSystem.hrmpOutboundMessages()
+                ) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+              ),
+              this.#tapError(chainId, 'at.query.parachainSystem.hrmpOutboundMessages()'),
+              retryWithTruncatedExpBackoff()
+            )
+          )
         );
       };
     }
@@ -282,32 +295,40 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * or from a query storage request to the network.
    */
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
-    const api = this.#apis.promise[chainId];
+    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
     const cache = this.#cache(chainId);
 
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
         // TODO: handle error not found in cache
-        return from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
-          map(buffer => {
-            return api.registry.createType(
-              'Vec<Bytes>', buffer
-            ) as Vec<Bytes>;
-          })
+        return apiPromiseObs.pipe(
+          switchMap(api =>
+            from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
+              map(buffer => {
+                return api.registry.createType(
+                  'Vec<Bytes>', buffer
+                ) as Vec<Bytes>;
+              })
+            )
+          )
         );
       };
     } else {
       return (hash: HexString)
       : Observable<Vec<Bytes>> => {
-        return from(api.at(hash)).pipe(
-          switchMap(at =>
-           from(
-             at.query.parachainSystem.upwardMessages()
-           ) as Observable<Vec<Bytes>>
-          ),
-          this.#tapError(chainId, 'at.query.parachainSystem.upwardMessages()'),
-          retryWithTruncatedExpBackoff()
+        return apiPromiseObs.pipe(
+          switchMap(api =>
+            from(api.at(hash)).pipe(
+              switchMap(at =>
+              from(
+                at.query.parachainSystem.upwardMessages()
+              ) as Observable<Vec<Bytes>>
+              ),
+              this.#tapError(chainId, 'at.query.parachainSystem.upwardMessages()'),
+              retryWithTruncatedExpBackoff()
+            )
+          )
         );
       };
     }

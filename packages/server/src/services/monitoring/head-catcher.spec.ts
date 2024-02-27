@@ -195,33 +195,31 @@ describe('head catcher', () => {
               '1000': of({} as unknown as ApiRx),
               '2032': of({} as unknown as ApiRx)
             },
-            promise: {
-              '0': {
-                derive: {
-                  chain: {
-                    getBlock: (hash) => of(
+            getReadyApiPromise: () => Promise.resolve({
+              derive: {
+                chain: {
+                  getBlock: (hash) => of(
+                    polkadotBlocks.find(
+                      b => b.block.hash.toHex() === hash.toHex()
+                    )
+                  )
+                },
+              },
+              rpc: {
+                chain: {
+                  getHeader: (hash) => {
+                    return Promise.resolve(
                       polkadotBlocks.find(
                         b => b.block.hash.toHex() === hash.toHex()
-                      )
-                    )
-                  },
-                },
-                rpc: {
-                  chain: {
-                    getHeader: (hash) => {
-                      return Promise.resolve(
-                        polkadotBlocks.find(
-                          b => b.block.hash.toHex() === hash.toHex()
-                        )!.block.header!
-                      );
-                    }
+                      )!.block.header!
+                    );
                   }
-                },
-                registry: {
-                  createType: () => ({})
                 }
-              } as unknown as ApiPromise
-            }
+              },
+              registry: {
+                createType: () => ({})
+              }
+            } as unknown as ApiPromise) 
           })
         } as unknown as Connector,
         storage: {
@@ -305,27 +303,25 @@ describe('head catcher', () => {
               '1000': of({} as unknown as ApiRx),
               '2032': of({} as unknown as ApiRx)
             },
-            promise: {
-              '0': {
-                rpc: {
-                  chain: {
-                    getHeader: mockGetHeader
-                  }
-                },
-                derive: {
-                  chain: {
-                    getBlock: (hash) => Promise.resolve(
-                      polkadotBlocks.find(
-                        b => b.block.hash.toHex() === hash.toHex()
-                      )
-                    )
-                  },
-                },
-                registry: {
-                  createType: () => ({})
+            getReadyApiPromise: () => Promise.resolve({
+              rpc: {
+                chain: {
+                  getHeader: mockGetHeader
                 }
-              } as unknown as ApiPromise
-            }
+              },
+              derive: {
+                chain: {
+                  getBlock: (hash) => Promise.resolve(
+                    polkadotBlocks.find(
+                      b => b.block.hash.toHex() === hash.toHex()
+                    )
+                  )
+                },
+              },
+              registry: {
+                createType: () => ({})
+              }
+            } as unknown as ApiPromise)
           })
         } as unknown as Connector,
         storage: {
@@ -420,11 +416,11 @@ describe('head catcher', () => {
                 }
               } as unknown as ApiRx)
             },
-            promise: {
-              '2032': {
+            getReadyApiPromise: () => Promise.resolve(
+              {
                 registry: mockRegistry
               } as unknown as ApiPromise
-            }
+            )
           })
         } as unknown as Connector,
         storage: {
@@ -464,8 +460,8 @@ describe('head catcher', () => {
               '1000': of({} as unknown as ApiRx),
               '2032': of({} as unknown as ApiRx)
             },
-            promise: {
-              '1000': {
+            getReadyApiPromise: () => Promise.resolve(
+              {
                 at: () => Promise.resolve({
                   query: {
                     parachainSystem: {
@@ -474,7 +470,7 @@ describe('head catcher', () => {
                   }
                 } as unknown as ApiDecoration<'promise'>)
               } as unknown as ApiPromise
-            }
+            )
           })
         } as unknown as Connector,
         storage: {
@@ -535,11 +531,11 @@ describe('head catcher', () => {
                 }
               } as unknown as ApiRx)
             },
-            promise: {
-              '2032': {
+            getReadyApiPromise: () => Promise.resolve(
+              {
                 registry: mockRegistry
               } as unknown as ApiPromise
-            }
+            )
           })
         } as unknown as Connector,
         storage: {
@@ -579,8 +575,8 @@ describe('head catcher', () => {
               '1000': of({} as unknown as ApiRx),
               '2032': of({} as unknown as ApiRx)
             },
-            promise: {
-              '1000': {
+            getReadyApiPromise: () => Promise.resolve(
+              {
                 at: () => Promise.resolve({
                   query: {
                     parachainSystem: {
@@ -589,7 +585,7 @@ describe('head catcher', () => {
                   }
                 } as unknown as ApiDecoration<'promise'>)
               } as unknown as ApiPromise
-            }
+            )
           })
         } as unknown as Connector,
         storage: {

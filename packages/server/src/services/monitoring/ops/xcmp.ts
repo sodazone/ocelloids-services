@@ -1,4 +1,5 @@
 import { map, Observable, mergeMap, filter, bufferCount } from 'rxjs';
+import type { Registry } from '@polkadot/types/types';
 
 import {
   ControlQuery,
@@ -22,7 +23,8 @@ const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
 function findOutboundHrmpMessage(
   messageControl: ControlQuery,
-  getOutboundHrmpMessages: GetOutboundHrmpMessages
+  getOutboundHrmpMessages: GetOutboundHrmpMessages,
+  registry?: Registry
 ) {
   return (source: Observable<XcmSentWithContext>)
   : Observable<GenericXcmSentWithContext> => {
@@ -35,7 +37,7 @@ function findOutboundHrmpMessage(
               .flatMap(msg => {
                 const {data, recipient} = msg;
                 // TODO: caching strategy
-                const xcms = fromXcmpFormat(data);
+                const xcms = fromXcmpFormat(data, registry);
                 return xcms.map(xcmProgram =>
                   new GenericXcmSentWithContext({
                     ...sentMsg,
@@ -85,7 +87,8 @@ export function extractXcmpSend(
     sendersControl,
     messageControl
   }: XcmCriteria,
-  getOutboundHrmpMessages: GetOutboundHrmpMessages
+  getOutboundHrmpMessages: GetOutboundHrmpMessages,
+  registry?: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
   : Observable<XcmSentWithContext> => {
@@ -96,7 +99,7 @@ export function extractXcmpSend(
         && matchSenders(sendersControl, event.extrinsic)
       )),
       xcmpMessagesSent(),
-      findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages),
+      findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages, registry),
     );
   };
 }

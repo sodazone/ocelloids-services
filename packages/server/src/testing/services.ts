@@ -19,78 +19,95 @@ export const _config = $ServiceConfiguration.parse(
   toml.parse(_configToml)
 );
 
+export const _mockApiPromises = {
+  '0': {
+    registry: {
+      hasType: () => true
+    },
+    derive: {
+      chain: {
+        getBlock: () => {
+
+        }
+      }
+    }
+  } as unknown as ApiPromise,
+  '1000': {
+    registry: {
+      hasType: () => true
+    },
+    derive: {
+      chain: {
+        getBlock: () => {
+        }
+      }
+    },
+    at: () => {
+      return Promise.resolve({
+        query: { }
+      });
+    }
+  } as unknown as ApiPromise,
+  '2000': {
+    registry: {
+      hasType: () => true
+    },
+    derive: {
+      chain: {
+        getBlock: () => {
+        }
+      }
+    }
+  } as unknown as ApiPromise,
+  '3000': {
+    registry: {
+      hasType: () => true
+    },
+    derive: {
+      chain: {
+        getBlock: () => {
+        }
+      }
+    }
+  } as unknown as ApiPromise
+};
+
+export const _mockApiRxs = {
+  '0': of({
+    rpc: {
+      chain: {
+        subscribeFinalizedHeads: () => of({})
+      },
+    }
+  } as unknown as ApiRx),
+  '1000': of({
+    rpc: {
+      chain: {
+        subscribeFinalizedHeads: () => of({})
+      },
+    }
+  }),
+  '2000': of({
+    rpc: {
+      chain: {
+        subscribeFinalizedHeads: () => of({})
+      },
+    }
+  } as unknown as ApiRx),
+  '3000': of({
+    rpc: {
+      chain: {
+        subscribeFinalizedHeads: () => of({})
+      },
+    }
+  } as unknown as ApiRx)
+};
+
 export const _connector = {
   connect: () => ({
-    promise: {
-      '0': {
-        derive: {
-          chain: {
-            getBlock: () => {
-
-            }
-          }
-        }
-      } as unknown as ApiPromise,
-      '1000': {
-        derive: {
-          chain: {
-            getBlock: () => {
-            }
-          }
-        },
-        at: () => {
-          return Promise.resolve({
-            query: { }
-          });
-        }
-      } as unknown as ApiPromise,
-      '2000': {
-        derive: {
-          chain: {
-            getBlock: () => {
-            }
-          }
-        }
-      } as unknown as ApiPromise,
-      '3000': {
-        derive: {
-          chain: {
-            getBlock: () => {
-            }
-          }
-        }
-      } as unknown as ApiPromise
-    },
-    rx: {
-      '0': of({
-        rpc: {
-          chain: {
-            subscribeFinalizedHeads: () => of({})
-          },
-        }
-      } as unknown as ApiRx),
-      '1000': of({
-        rpc: {
-          chain: {
-            subscribeFinalizedHeads: () => of({})
-          },
-        }
-      }),
-      '2000': of({
-        rpc: {
-          chain: {
-            subscribeFinalizedHeads: () => of({})
-          },
-        }
-      } as unknown as ApiRx),
-      '3000': of({
-        rpc: {
-          chain: {
-            subscribeFinalizedHeads: () => of({})
-          },
-        }
-      } as unknown as ApiRx)
-    }
+    getReadyApiPromise: (chain: string) => Promise.resolve(_mockApiPromises[chain]),
+    promise: _mockApiPromises,
+    rx: _mockApiRxs
   })
 } as unknown as Connector;
 

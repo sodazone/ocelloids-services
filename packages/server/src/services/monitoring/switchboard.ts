@@ -44,6 +44,7 @@ import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/
 import { extractXcmWaypoints } from './ops/common.js';
 import { errorMessage } from '../../errors.js';
 import { extractRelayReceive } from './ops/relay.js';
+import { XcMonSubstrateApis } from '../networking/connector.js';
 
 type Monitor = {
   subs: RxSubscriptionWithId[]
@@ -83,7 +84,7 @@ const SUB_ERROR_RETRY_MS = 5000;
  * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: SubstrateApis;
+  readonly #apis: XcMonSubstrateApis;
   readonly #config: ServiceConfiguration;
   readonly #log: Logger;
   readonly #db: SubsStore;
@@ -151,7 +152,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       await this.#db.insert(qs);
     }
 
-    this.#monitor(qs);
+    await this.#monitor(qs);
 
     this.#log.info(
       '[%s] new subscription: %j',
@@ -291,12 +292,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates the subscription to relayed HRMP messages in the relay chain.
    */
-  updateEvents(id: string) {
+  async updateEvents(id: string) {
     const { descriptor, relaySub } = this.#subs[id];
 
     if (this.#shouldMonitorRelay(descriptor) && relaySub === undefined) {
       try {
-        this.#subs[id].relaySub = this.#monitorRelay(descriptor);
+        this.#subs[id].relaySub = await this.#monitorRelay(descriptor);
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(
@@ -352,7 +353,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @throws {Error} If there is an error during the subscription setup process.
    * @private
    */
-  #monitor(qs: Subscription) {
+  async #monitor(qs: Subscription) {
     const { id } = qs;
 
     let origMonitor : Monitor = { subs: [], controls: {} };
@@ -360,7 +361,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     let relaySub: RxSubscriptionWithId | undefined;
 
     try {
-      origMonitor = this.#monitorOrigins(qs);
+      origMonitor = await this.#monitorOrigins(qs);
       destMonitor = this.#monitorDestinations(qs);
     } catch (error) {
       // Clean up origin subscriptions.
@@ -374,7 +375,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
     if (this.#shouldMonitorRelay(qs)) {
       try {
-        relaySub = this.#monitorRelay(qs);
+        relaySub = await this.#monitorRelay(qs);
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(
@@ -519,12 +520,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  #monitorOrigins({
+  async #monitorOrigins({
     id, origin, senders, destinations
-  }: Subscription) : Monitor {
+  }: Subscription) : Promise<Monitor> {
     const subs : RxSubscriptionWithId[] = [];
     const chainId = origin;
-    const api = this.#apis.promise[chainId];
+    const api = await this.#apis.getReadyApiPromise(chainId);
+    const registry = api.registry.hasType('XcmVersionedXcm') ? api.registry : undefined;
 
     if (this.#subs[id]?.originSubs.find(
       s => s.chainId === chainId)
@@ -544,7 +546,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const emitOutbound =  () => (
       source: Observable<XcmSentWithContext>
     ) => source.pipe(
-      extractXcmWaypoints(),
+      extractXcmWaypoints(registry),
       switchMap(({ message, stops }) => from(this.#engine.onOutboundMessage(
         new GenericXcmSent(id, origin, message, stops)
       )))
@@ -572,14 +574,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           const index = originSubs.findIndex(s => s.chainId === chainId);
           if (index > -1) {
             this.#subs[id].originSubs = [];
-            setTimeout(() => {
+            setTimeout(async () => {
               this.#log.info(
                 '[%s] UPDATE origin subscription %s due error %s',
                 chainId,
                 id,
                 errorMessage(error)
               );
-              const {subs: updated, controls} = this.#monitorOrigins(descriptor);
+              const {subs: updated, controls} = await this.#monitorOrigins(descriptor);
               this.#subs[id].sendersControl = controls.sendersControl;
               this.#subs[id].messageControl = controls.messageControl;
               this.#subs[id].originSubs = updated;
@@ -603,7 +605,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                 {
                   sendersControl,
                   messageControl
-                }
+                },
+                registry
               ),
               emitOutbound()
             ).subscribe(outboundObserver)
@@ -621,7 +624,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                 {
                   sendersControl,
                   messageControl
-                }
+                },
+                registry
               ),
               emitOutbound()
             ).subscribe(outboundObserver)
@@ -639,7 +643,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                 sendersControl,
                 messageControl
               },
-              getHrmp
+              getHrmp,
+              registry
             ),
             emitOutbound()
           ).subscribe(outboundObserver)
@@ -658,7 +663,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   sendersControl,
                   messageControl
                 },
-                getUmp
+                getUmp,
+                registry
               ),
               retryWithTruncatedExpBackoff(),
               emitOutbound()
@@ -681,11 +687,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #monitorRelay({ id, destinations, origin }: Subscription) {
+  async #monitorRelay({ id, destinations, origin }: Subscription) {
     const chainId = origin;
     if (this.#subs[id]?.relaySub) {
-      this.#log.debug('Relay subscription already');
+      this.#log.debug('Relay subscription already exists.');
     }
+    const api = await this.#apis.getReadyApiPromise('0');
+    const registry = api.registry.hasType('XcmVersionedXcm') ? api.registry : undefined;
 
     const messageControl = ControlQuery.from(
       messageCriteria(destinations)
@@ -714,14 +722,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // try recover relay subscription
         // there is only one subscription per subscription ID for relay
         if (this.#subs[id]) {
-          setTimeout(() => {
+          setTimeout(async () => {
             this.#log.info(
               '[%s] UPDATE relay subscription %s due error %s',
               chainId,
               id,
               errorMessage(error)
             );
-            const updatedSub = this.#monitorRelay(this.#subs[id].descriptor);
+            const updatedSub = await this.#monitorRelay(this.#subs[id].descriptor);
             this.#subs[id].relaySub = updatedSub;
           }, SUB_ERROR_RETRY_MS);
         }
@@ -734,7 +742,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       sub: this.#sharedBlockExtrinsics('0').pipe(
         extractRelayReceive(
           origin,
-          messageControl
+          messageControl,
+          registry
         ),
         emitRelayInbound()
       ).subscribe(relayObserver)
@@ -774,7 +783,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
       for (const sub of subs) {
         try {
-          this.#monitor(sub);
+          await this.#monitor(sub);
         } catch (err) {
           this.#log.error(
             err,

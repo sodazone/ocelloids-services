@@ -5,10 +5,9 @@ import '@polkadot/api-augment/polkadot';
 import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
   XcmVersionedMultiLocation,
-  XcmVersionedXcm,
   XcmVersionedMultiAssets
 } from '@polkadot/types/lookup';
-
+import type { Registry } from '@polkadot/types/types';
 import type { Vec, Bytes, Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
 import type { IU8a } from '@polkadot/types-codec/types';
@@ -37,6 +36,7 @@ import {
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
+import { XcmVersionedXcm } from './xcm-types.js';
 
 /*
  ==================================================================================
@@ -53,6 +53,7 @@ type Json = { [property: string]: Json };
 type XcmContext = {
   paraId: string,
   data: Bytes,
+  program: XcmVersionedXcm,
   blockHash: IU8a,
   blockNumber: Compact<BlockNumber>,
   signer?: Address,
@@ -101,11 +102,10 @@ function matchInstructions(
 
 function createXcmMessageSent(
   {
-    paraId, data, blockHash, blockNumber, signer, event
+    paraId, data, program, blockHash, blockNumber, signer, event
   } : XcmContext
 ) : GenericXcmSentWithContext {
-  const xcmProgram = asVersionedXcm(data);
-  const messageId = getMessageId(xcmProgram);
+  const messageId = getMessageId(program);
 
   return new GenericXcmSentWithContext({
     blockHash: blockHash.toHex(),
@@ -113,17 +113,19 @@ function createXcmMessageSent(
     event: event ? event.toHuman() : {},
     recipient: paraId,
     instructions: {
-      bytes: xcmProgram.toU8a(),
-      json: xcmProgram.toHuman()
+      bytes: program.toU8a(),
+      json: program.toHuman()
     },
     messageData: data.toU8a(),
-    messageHash: xcmProgram.hash.toHex(),
+    messageHash: program.hash.toHex(),
     messageId,
     sender: signer?.toHuman()
   });
 }
 
-function findDmpMessagesFromTx(api: ApiPromise) {
+// Will be obsolete after DMP refactor:
+// https://github.com/paritytech/polkadot-sdk/pull/1246
+function findDmpMessagesFromTx(api: ApiPromise, registry?: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>)
         : Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -157,41 +159,38 @@ function findDmpMessagesFromTx(api: ApiPromise) {
           map(messages => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
+              const data = messages[0].msg;
+              const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
                 signer,
                 paraId,
-                data: messages[0].msg
+                data,
+                program
               });
             } else {
               // XXX Temporary matching heuristics until DMP message
               // sent event is implemented.
-              const filteredMessages = messages.filter(message => {
-                const xcmProgram = asVersionedXcm(message.msg);
-                return matchInstructions(
-                  xcmProgram,
-                  assets,
-                  beneficiary
-                );
-              });
-
-              if (filteredMessages.length === 1) {
-                return createXcmMessageSent({
-                  blockHash,
-                  blockNumber,
-                  signer,
-                  paraId,
-                  data: filteredMessages[0].msg
-                });
-              }
-
-              if (filteredMessages.length > 1) {
-                // XXX See note at the start of this file
-                console.error(
-                  'Undecidable message set:',
-                  filteredMessages.map(m => m.toHuman())
-                );
+              // Only matches the first message found.
+              for (const message of messages) {
+                const program = asVersionedXcm(message.msg, registry);
+                if (
+                  matchInstructions(
+                    program,
+                    assets,
+                    beneficiary
+                  )
+                ) {
+                  return createXcmMessageSent({
+                    blockHash,
+                    blockNumber,
+                    signer,
+                    paraId,
+                    data: message.msg,
+                    program
+                  });
+                }
               }
 
               return null;
@@ -204,7 +203,7 @@ function findDmpMessagesFromTx(api: ApiPromise) {
   };
 }
 
-function findDmpMessagesFromEvent(api: ApiPromise) {
+function findDmpMessagesFromEvent(api: ApiPromise, registry?: Registry) {
   return (source: Observable<types.BlockEvent>)
         : Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -236,32 +235,37 @@ function findDmpMessagesFromEvent(api: ApiPromise) {
           map(messages => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
+              const program = asVersionedXcm(messages[0].msg, registry);
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
                 paraId,
                 event,
                 signer: event.extrinsic?.signer,
-                data: messages[0].msg
+                data: messages[0].msg,
+                program
               });
             } else {
-              const matching = messages.find(message => {
-                const xcmProgram = asVersionedXcm(message.msg);
-                return matchProgramByTopic(
-                  xcmProgram,
-                  messageId
-                );
-              });
-
-              if (matching) {
-                return createXcmMessageSent({
-                  blockHash,
-                  blockNumber,
-                  paraId,
-                  event,
-                  signer: event.extrinsic?.signer,
-                  data: matching.msg
-                });
+              // Since we are matching by topic and it is assumed that the TopicId is unique
+              // we can break out of the loop on first matching message found.
+              for (const message of messages) {
+                const program = asVersionedXcm(message.msg, registry);
+                if (
+                  matchProgramByTopic(
+                    program,
+                    messageId
+                  )
+                ) {
+                  return createXcmMessageSent({
+                    blockHash,
+                    blockNumber,
+                    paraId,
+                    event,
+                    signer: event.extrinsic?.signer,
+                    data: message.msg,
+                    program
+                  });
+                }
               }
 
               return null;
@@ -286,7 +290,8 @@ export function extractDmpSend(
   {
     sendersControl,
     messageControl
-  }: XcmCriteria
+  }: XcmCriteria,
+  registry?: Registry
 ) {
   return (source: Observable<types.TxWithIdAndEvent>)
       : Observable<XcmSentWithContext> => {
@@ -297,7 +302,7 @@ export function extractDmpSend(
           && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP)
           && matchSenders(sendersControl, extrinsic);
       }),
-      findDmpMessagesFromTx(api),
+      findDmpMessagesFromTx(api, registry),
       filter(xcm => matchMessage(messageControl, xcm))
     );
   };
@@ -308,7 +313,8 @@ export function extractDmpSendByEvent(
   {
     sendersControl,
     messageControl
-  }: XcmCriteria
+  }: XcmCriteria,
+  registry?: Registry
 ) {
   return (source: Observable<types.BlockEvent>)
       : Observable<XcmSentWithContext> => {
@@ -316,7 +322,7 @@ export function extractDmpSendByEvent(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
       filter(event => matchSenders(sendersControl, event.extrinsic)),
-      findDmpMessagesFromEvent(api),
+      findDmpMessagesFromEvent(api, registry),
       filter(xcm => matchMessage(messageControl, xcm))
     );
   };

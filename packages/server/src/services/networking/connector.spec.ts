@@ -16,12 +16,12 @@ const Connector = (await import('./connector.js')).default;
 describe('connector', () => {
   it('should fail if relay is configured with RPC and parachain is configured with Smoldot', () => {
     expect(() => new Connector(_log, mockConfigProviderMismatch))
-      .toThrowError('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
+      .toThrow('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
   });
 
   it('should fail if `relay` field in parachain config does not match WellKnown chain or relay chain config name', () => {
     expect(() => new Connector(_log, mockConfigRelayMismatch))
-      .toThrowError('Configuration for network rococo not found.');
+      .toThrow('Configuration for network rococo not found.');
   });
 
   describe('connect', () => {
