@@ -267,7 +267,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                 ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
               })
             )
-          )
+          ),
+          this.#tapError(chainId, 'at.cache.parachainSystem.hrmpOutboundMessages()')
         );
       };
     } else {
@@ -311,7 +312,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                 ) as Vec<Bytes>;
               })
             )
-          )
+          ),
+          this.#tapError(chainId, 'at.cache.parachainSystem.upwardMessages()')
         );
       };
     } else {
@@ -501,6 +503,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           await new Promise(resolve => setTimeout(resolve, delay));
         } catch (error) {
           this.#log.error(error, 'during catch-up headers');
+          this.emit('telemetryHeadCatcherError', {
+            chainId,
+            method: '#doCatchUp()'
+          });
           // TODO: check if needs further handling
           break;
         }
