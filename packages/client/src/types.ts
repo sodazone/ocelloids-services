@@ -1,10 +1,13 @@
 import {
   XcmNotifyMessage,
   XcmReceived,
+  XcmRelayed,
   XcmSent
 } from './lib';
 
 /**
+ * Represents a persistent subscription.
+ *
  * @public
  */
 export type Subscription = {
@@ -30,6 +33,8 @@ export type Subscription = {
 }
 
 /**
+ * The XCM event types.
+ *
  * @public
  */
 export enum XcmNotificationType {
@@ -40,11 +45,15 @@ export enum XcmNotificationType {
 }
 
 /**
+ * Represents an on-demand subscription.
+ *
  * @public
  */
 export type OnDemandSubscription = Omit<Subscription, 'id'|'channels'>;
 
 /**
+ * Guard condition for {@link Subscription}.
+ *
  * @public
  */
 export function isSubscription(
@@ -58,6 +67,8 @@ export function isSubscription(
 }
 
 /**
+ * Guard condition for {@link XcmSent}.
+ *
  * @public
  */
 export function isXcmSent(object: any): object is XcmSent {
@@ -65,8 +76,19 @@ export function isXcmSent(object: any): object is XcmSent {
 }
 
 /**
+ * Guard condition for {@link XcmReceived}.
+ *
  * @public
  */
 export function isXcmReceived(object: any): object is XcmReceived {
   return object.type !== undefined && object.type === XcmNotificationType.Received;
+}
+
+/**
+ * Guard condition for {@link XcmRelayed}.
+ *
+ * @public
+ */
+export function isXcmRelayed(object: any): object is XcmRelayed {
+  return object.type !== undefined && object.type === XcmNotificationType.Relayed;
 }
