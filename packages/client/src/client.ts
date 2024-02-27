@@ -29,16 +29,22 @@ function isBlob(value: any): value is Blob {
 }
 
 /**
+ * Handler for messages delivered by the subscription.
+ *
  * @public
  */
 export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
 
 /**
+ * Handler for WebSocket close event.
+ *
  * @public
  */
 export type CloseHandler = (event: CloseEvent) => void;
 
 /**
+ * Handler for WebSocket errors.
+ *
  * @public
  */
 export type ErrorHandler = (error: Event) => void;
