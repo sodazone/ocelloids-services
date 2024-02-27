@@ -142,7 +142,7 @@ class Protocol {
  *   }]
  * });
  *
- * // subscribe to it
+ * // subscribe to the previously created subscription
  * const ws = client.subscribe("my-subscription", {
  *  onMessage: msg => {
  *    if(isXcmReceived(msg)) {
