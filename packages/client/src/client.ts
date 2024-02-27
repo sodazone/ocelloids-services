@@ -55,8 +55,18 @@ export type ErrorHandler = (error: Event) => void;
  * @public
  */
 export type WebSocketHandlers = {
+  /**
+   * Called on every {@link XcmNotifyMessage}.
+   * This is the main message handling callback.
+   */
   onMessage: MessageHandler<XcmNotifyMessage>,
+  /**
+   * Called on WebSocket close.
+   */
   onClose?: CloseHandler,
+  /**
+   * Called on WebSocket error.
+   */
   onError?: ErrorHandler
 }
 
