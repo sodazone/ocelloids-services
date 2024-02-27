@@ -6,29 +6,89 @@ import {
 } from './lib';
 
 /**
+ * Represents a {@link Subscription} delivery channel.
+ *
+ * @public
+ */
+export type DeliveryChannel = {
+  type: 'webhook';
+  url: string;
+  contentType?: string;
+  events?: ('*' | string[]);
+  template?: string;
+  bearer?: string;
+  limit?: number;
+} | {
+  type: 'log';
+} | {
+  type: 'websocket';
+};
+
+/**
  * Represents a persistent subscription.
+ *
+ * @example
+ * ```typescript
+ * {
+ *   id: "polkadot-transfers",
+ *   origin: "0",
+ *   senders: "*",
+ *   destinations: [
+ *     "2000",
+ *     "1000"
+ *   ],
+ *   events: "*",
+ *   channels: [
+ *     {
+ *       type: "webhook",
+ *       url: "https://some.webhook"
+ *     },
+ *     {
+ *       type: "websocket"
+ *     }
+ *   ]
+ * }
+ * ```
  *
  * @public
  */
 export type Subscription = {
+  /**
+   * The subscription id.
+   * Must be unique.
+   */
   id: string;
+
+  /**
+   * The origin chain id.
+   */
   origin: string;
+
+  /**
+   * An array of sender addresses or '*' for all.
+   */
   senders?: ('*' | string[]);
+
+  /**
+   * An array of destination chain ids.
+   */
   destinations: string[];
+
+  /**
+   * Indicates the persistence preference.
+   */
   ephemeral?: boolean;
-  channels: ({
-    type: 'webhook';
-    url: string;
-    contentType?: string;
-    events?: ('*' | string[]);
-    template?: string;
-    bearer?: string;
-    limit?: number;
-  } | {
-    type: 'log';
-  } | {
-    type: 'websocket';
-  })[];
+
+  /**
+   * An array of delivery channels.
+   */
+  channels: DeliveryChannel[];
+
+  /**
+   * An optional array with the events to deliver.
+   * Use '*' for all.
+   * @see {@link XcmNotificationType} for supported event names.
+   */
   events?: ('*' | string[]);
 }
 
