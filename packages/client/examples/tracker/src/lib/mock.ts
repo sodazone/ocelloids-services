@@ -1,4 +1,4 @@
-import samples from '../../__data__/samples.json';
+import samples from '../../.misc/data/samples.json';
 
 export function sender(cb) {
   let index = 0;
