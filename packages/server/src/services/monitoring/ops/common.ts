@@ -51,7 +51,7 @@ function recursiveExtractStops(message: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: s
   return stops;
 }
 
-export function extractXcmWaypoints(registry?: Registry) {
+export function extractXcmWaypoints(registry: Registry) {
   return (
     source: Observable<XcmSentWithContext>
   ) => source.pipe(

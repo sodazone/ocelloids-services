@@ -17,7 +17,7 @@ import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js
 export function extractRelayReceive(
   origin: string,
   messageControl: ControlQuery,
-  registry?: Registry
+  registry: Registry
 ) {
   return (source: Observable<types.TxWithIdAndEvent>)
   : Observable<XcmRelayedWithContext> => {
