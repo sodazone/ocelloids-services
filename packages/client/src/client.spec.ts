@@ -4,7 +4,7 @@ import nock from 'nock';
 import { Server, WebSocket } from 'mock-socket';
 
 import samples from '../test/.data/samples.json';
-import { Subscription } from './lib';
+import type { Subscription, WsAuthErrorEvent } from './lib';
 
 jest.unstable_mockModule('isows', () => {
   return {
@@ -15,6 +15,12 @@ jest.unstable_mockModule('isows', () => {
 
 //[!] important: requires dynamic imports
 const { OcelloidsClient } = await import('./client');
+const {
+  isXcmRelayed,
+  isSubscriptionError,
+  isXcmSent,
+  isXcmReceived
+} = await import('./lib');
 
 describe('OcelloidsClient', () => {
   it('should create a client instance', () => {
@@ -48,13 +54,23 @@ describe('OcelloidsClient', () => {
       });
 
       let called = 0;
-
       const ws = client.subscribe('subid', {
         onMessage: msg => {
           expect(ws.readyState).toBe(1);
           expect(msg).toBeDefined();
-          called++;
-          if (called === samplesNum) {
+
+          switch (called) {
+          case 1:
+            expect(isXcmSent(msg)).toBeTruthy();
+            break;
+          case 2:
+            expect(isXcmReceived(msg)).toBeTruthy();
+            break;
+          default:
+              //
+          }
+
+          if (++called === samplesNum) {
             done();
           }
         }
@@ -86,7 +102,7 @@ describe('OcelloidsClient', () => {
         onMessage: msg => {
           expect(ws.readyState).toBe(1);
           expect(msg).toBeDefined();
-          expect(msg.type).toBe('xcm.relayed');
+          expect(isXcmRelayed(msg)).toBeTruthy();
           done();
         }
       }, {
@@ -134,7 +150,7 @@ describe('OcelloidsClient', () => {
         onSubscriptionError: err => {
           expect(ws.readyState).toBe(1);
           expect(err).toBeDefined();
-          expect(err.name).toBe('ZodError');
+          expect(isSubscriptionError(err)).toBeTruthy();
           done();
         },
       }
@@ -172,32 +188,93 @@ describe('OcelloidsClient', () => {
       });
     });
 
-    it('should use ws auth', done => {
+    it('should authentitcate', done => {
       const wsUrl = 'ws://mock/ws/subs/subid';
       mockServer = new Server(wsUrl, { mock: false });
 
       mockServer.on('connection', socket => {
-        socket.close({
-          code: 3004,
-          reason: 'ouch',
-          wasClean: false
+        socket.on('message', data => {
+          expect(data).toBe('abracadabra');
+          socket.send('{ "code": 1000, "error": false }');
+          socket.send(JSON.stringify(samples[0]));
         });
       });
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
+        wsAuthToken: 'abracadabra',
         httpUrl: 'https://rpc.abc'
       });
 
       client.subscribe('subid', {
         onMessage: _ => {
-          fail('should not receive messages');
+          done();
         },
         onError: _ => {
           fail('should not receive error');
         },
-        onClose: e => {
-          expect(e).toBeDefined();
+        onClose: _ => {
+          fail('should not receive close');
+        }
+      });
+    });
+
+    it('should handle auth error', done => {
+      const wsUrl = 'ws://mock/ws/subs/subid';
+      mockServer = new Server(wsUrl, { mock: false });
+
+      mockServer.on('connection', socket => {
+        socket.on('message', _ => {
+          socket.send('{ "code": 3001, "error": true, "reason": "none" }');
+        });
+      });
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        wsAuthToken: 'abracadabra',
+        httpUrl: 'https://rpc.abc'
+      });
+
+      client.subscribe('subid', {
+        onMessage: _ => {
+          fail('should not receive message');
+        },
+        onAuthError: r => {
+          expect(r.error).toBeTruthy();
+          done();
+        },
+        onError: _ => {
+          fail('should not receive error');
+        },
+        onClose: _ => {
+          fail('should not receive close');
+        }
+      });
+    });
+
+    it('should throw auth error event', done => {
+      const wsUrl = 'ws://mock/ws/subs/subid';
+      mockServer = new Server(wsUrl, { mock: false });
+
+      mockServer.on('connection', socket => {
+        socket.on('message', _ => {
+          socket.send('{ "code": 3001, "error": true, "reason": "none" }');
+        });
+      });
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        wsAuthToken: 'abracadabra',
+        httpUrl: 'https://rpc.abc'
+      });
+
+      client.subscribe('subid', {
+        onMessage: _ => {
+          fail('should not receive message');
+        },
+        onError: error => {
+          const authError = error as WsAuthErrorEvent;
+          expect(authError.name).toBe('WsAuthError');
           done();
         }
       });
@@ -257,6 +334,42 @@ describe('OcelloidsClient', () => {
       await client.health();
       await client.allSubscriptions();
       await client.getSubscription('id');
+
+      scope.done();
+    });
+
+    it('should use bearer auth', async () => {
+      const scope = nock('http://mock')
+        .matchHeader('Authorization', 'Bearer abracadabra')
+        .get('/health')
+        .reply(200, '{}');
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+        httpAuthToken: 'abracadabra'
+      });
+
+      await client.health();
+
+      scope.done();
+    });
+
+    it('should handle auth error', async () => {
+      const scope = nock('http://mock')
+        .get('/health')
+        .reply(401);
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+        httpAuthToken: 'abracadabra'
+      });
+
+      await expect(client.health()).rejects
+        .toStrictEqual(
+          {'status': 401, 'statusText': 'Unauthorized'}
+        );
 
       scope.done();
     });
