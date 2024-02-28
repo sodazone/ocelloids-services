@@ -81,7 +81,7 @@ export type WebSocketHandlers = {
  *
  * @public
  */
-export type OnDemandSbscriptionHandlers = {
+export type OnDemandSubscriptionHandlers = {
   onSubscriptionCreated?: (sub: Subscription) => void,
   onSubscriptionError?: (err: SubscriptionError) => void,
   onError?: (err: any) => void
@@ -297,7 +297,7 @@ export class OcelloidsClient {
   subscribe(
     subscription: string | OnDemandSubscription,
     handlers: WebSocketHandlers,
-    onDemandHandlers?: OnDemandSbscriptionHandlers
+    onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs';
 
@@ -333,7 +333,7 @@ export class OcelloidsClient {
     { onMessage, onError, onClose }: WebSocketHandlers,
     onDemandSub?: {
       sub: OnDemandSubscription,
-      onDemandHandlers?: OnDemandSbscriptionHandlers
+      onDemandHandlers?: OnDemandSubscriptionHandlers
     }
   ) {
     const protocol = new Protocol(onMessage);
