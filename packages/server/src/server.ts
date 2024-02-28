@@ -23,6 +23,7 @@ import {
   Monitoring,
   Connector
 } from './services/index.js';
+import { toCorsOpts } from './args.js';
 
 const WS_MAX_PAYLOAD = 1048576; // 1MB
 
@@ -107,10 +108,15 @@ export async function createServer(
     preClose: () => {}
   });
 
-  await server.register(FastifyCors, {
-    // TODO: extract config
-    origin: true // allow all
-  });
+  if (opts.cors) {
+    server.log.info('Enable CORS');
+
+    const corsOpts = toCorsOpts(opts);
+    server.log.info('- origin: %s', corsOpts.origin);
+    server.log.info('- credentials: %s', corsOpts.credentials);
+
+    await server.register(FastifyCors, corsOpts);
+  }
 
   await server.register(Root);
   await server.register(Auth);
