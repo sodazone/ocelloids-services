@@ -1,6 +1,6 @@
 import { blake3 } from 'hash-wasm';
 
-import { XcmNotifyMessage, AnyJson } from '../../../../dist/xcmon-client';
+import { XcmNotifyMessage, AnyJson } from '../../../..';
 
 const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',

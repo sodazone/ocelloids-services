@@ -31,7 +31,7 @@ const denoLibRoot = join(distRoot, "deno");
 
 const replacements = {
   "isows": "// native",
-  "xcmon-server": "export type * from './xcmon-client.d.ts';\n"
+  "xcmon-server": "export type * from './ocelloids-client.d.ts';\n"
 };
 
 const walkAndBuild = (/** @type string */ dir) => {
@@ -97,8 +97,8 @@ console.log("Deno build...");
 
 walkAndBuild("");
 
-const xcmonTypes = join(denoLibRoot, "xcmon-client.d.ts");
-cpSync(join(distRoot, 'xcmon-client.d.ts'), xcmonTypes);
+const xcmonTypes = join(denoLibRoot, "ocelloids-client.d.ts");
+cpSync(join(distRoot, 'ocelloids-client.d.ts'), xcmonTypes);
 
 console.log("Done.");
 

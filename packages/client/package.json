@@ -1,5 +1,5 @@
 {
-  "name": "xcmon-client",
+  "name": "@sodazone/ocelloids-client",
   "version": "1.0.0",
   "type": "module",
   "description": "XCM monitoring client library",

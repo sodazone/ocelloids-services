@@ -13,13 +13,12 @@
   "scripts": {
     "build": "yarn server build && yarn client build",
     "server": "yarn workspace xcmon-server",
-    "client": "yarn workspace xcmon-client"
+    "client": "yarn workspace @sodazone/ocelloids-client"
   },
   "license": "Apache-2.0",
   "private": true,
   "packageManager": "yarn@4.1.0",
   "devDependencies": {
-    "@parcel/transformer-typescript-types": "2.11.0",
     "typescript": ">=3.0.0"
   },
   "resolutions": {
