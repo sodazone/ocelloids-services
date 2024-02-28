@@ -93,6 +93,8 @@ export type Subscription = {
 }
 
 /**
+ * Represents a subscription error.
+ * 
  * @public
  */
 export type SubscriptionError = {
