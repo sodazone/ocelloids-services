@@ -30,7 +30,7 @@ jobs:
           run: corepack enable
         - run: yarn install --immutable
         - run: yarn build
-        - run: yarn @sodazone/ocelloids-client docs
+        - run: yarn client docs
         - name: Upload artifact
           uses: actions/upload-pages-artifact@v1
           with:
