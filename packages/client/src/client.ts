@@ -35,6 +35,30 @@ function isBlob(value: any): value is Blob {
 }
 
 /**
+ * Authentication reply.
+ */
+export type AuthReply = {
+  code: number,
+  error: boolean,
+  reason?: string
+}
+
+/**
+ * WebSockets auth error event.
+ */
+export class WsAuthErrorEvent extends Event {
+  name = 'WsAuthError';
+
+  reply: AuthReply;
+
+  constructor(reply: AuthReply) {
+    super('error');
+
+    this.reply = reply;
+  }
+}
+
+/**
  * Handler for messages delivered by the subscription.
  *
  * @public
@@ -65,11 +89,18 @@ export type WebSocketHandlers = {
    * Called on every {@link XcmNotifyMessage}.
    * This is the main message handling callback.
    */
-  onMessage: MessageHandler<XcmNotifyMessage>,
+  onMessage: MessageHandler<XcmNotifyMessage>
+
+  /**
+   * Called if the authentication fails.
+   */
+  onAuthError?: MessageHandler<AuthReply>
+
   /**
    * Called on WebSocket close.
    */
-  onClose?: CloseHandler,
+  onClose?: CloseHandler
+
   /**
    * Called on WebSocket error.
    */
@@ -248,8 +279,7 @@ export class OcelloidsClient {
     return this.#fetch(this.#config.httpUrl + '/subs', {
       ...init,
       method: 'POST',
-      headers: this.#headers,
-      body: JSON.stringify(subscription),
+      body: JSON.stringify(subscription)
     });
   }
 
@@ -312,14 +342,24 @@ export class OcelloidsClient {
   #fetch<T>(url: string, init?: RequestInit) {
     return new Promise<T>(async (resolve, reject) => {
       try {
-        const res = await fetch(url, init);
+        const res = await fetch(url, {
+          headers: this.#headers,
+          ...init
+        });
         if (res.ok) {
           resolve((await res.json()) as T);
         } else {
           try {
             reject(await res.json());
           } catch {
-            reject(await res.text());
+            if (res.body === null || res.body.locked) {
+              reject({
+                status: res.status,
+                statusText: res.statusText
+              });
+            } else {
+              reject(await res.text());
+            }
           }
         }
       } catch (error) {
@@ -330,7 +370,12 @@ export class OcelloidsClient {
 
   #openWebSocket(
     url: string,
-    { onMessage, onError, onClose }: WebSocketHandlers,
+    {
+      onMessage,
+      onAuthError,
+      onError,
+      onClose
+    }: WebSocketHandlers,
     onDemandSub?: {
       sub: OnDemandSubscription,
       onDemandHandlers?: OnDemandSubscriptionHandlers
@@ -370,20 +415,26 @@ export class OcelloidsClient {
     }
 
     ws.onopen = () => {
-      if (ws.readyState === 1) {
-        if (this.#config.wsAuthToken) {
-          ws.send(this.#config.wsAuthToken);
-          protocol.next(() => {
-            // note that will error if auth fails
-            if (onDemandSub) {
-              requestOnDemandSub();
+      if (ws.readyState !== 1) {
+        ws.dispatchEvent(new Event('error'));
+        return;
+      }
+
+      if (this.#config.wsAuthToken) {
+        ws.send(this.#config.wsAuthToken);
+        protocol.next<AuthReply>((reply, _ws, event) => {
+          if (reply.error) {
+            if (onAuthError) {
+              onAuthError(reply, _ws, event);
+            } else {
+              _ws.dispatchEvent(new WsAuthErrorEvent(reply));
             }
-          });
-        } else if (onDemandSub) {
-          requestOnDemandSub();
-        }
-      } else {
-        throw new Error('ws ready state: ' + ws.readyState);
+          } else if (onDemandSub) {
+            requestOnDemandSub();
+          }
+        });
+      } else if (onDemandSub) {
+        requestOnDemandSub();
       }
     };
 
