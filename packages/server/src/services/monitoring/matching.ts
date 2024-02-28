@@ -14,10 +14,12 @@ import {
   XcmRelayedWithContext,
   XcmSent,
   GenericXcmRelayed,
-  GenericXcmReceived
+  GenericXcmReceived,
+  XcmTimeout,
+  GenericXcmTimeout
 } from './types.js';
 
-import { Janitor } from '../persistence/janitor.js';
+import { Janitor, JanitorTask } from '../persistence/janitor.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
 
 export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void;
@@ -29,6 +31,7 @@ export type ChainBlock = {
   blockNumber: string
 }
 
+const DEFAULT_TIMEOUT = 2 * 60000;
 /**
  * Matches sent XCM messages on the destination.
  * It does not assume any ordering.
@@ -67,6 +70,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
     this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
     this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
+
+    this.#janitor.on(
+      'sweep',
+      this.#onXcmSwept.bind(this)
+    );
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
@@ -107,7 +115,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#onXcmMatched(outMsg, inMsg);
+          this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -122,6 +130,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             .put(idKey, outMsg)
             .put(hashKey, outMsg)
             .write();
+          await this.#janitor.schedule(
+            {
+              sublevel: prefixes.matching.outbound,
+              key: hashKey,
+              expiry: DEFAULT_TIMEOUT
+            },
+            {
+              sublevel: prefixes.matching.outbound,
+              key: idKey,
+              expiry: DEFAULT_TIMEOUT
+            }
+          );
         }
       } else {
         // try to get any stored relay messages and notify if found.
@@ -139,7 +159,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             outMsg.origin.blockNumber
           );
           await this.#inbound.del(hashKey);
-          await this.#onXcmMatched(outMsg, inMsg);
+          this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -150,6 +170,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             outMsg.origin.blockNumber
           );
           await this.#outbound.put(hashKey, outMsg);
+          await this.#janitor.schedule({
+            sublevel: prefixes.matching.outbound,
+            key: hashKey,
+            expiry: DEFAULT_TIMEOUT
+          });
         }
       }
     });
@@ -179,7 +204,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           );
           // TODO: check if should delete idKey as well
           await this.#outbound.del(hashKey);
-          await this.#onXcmMatched(outMsg, inMsg);
+          this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
@@ -214,7 +239,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             .del(idKey)
             .del(hashKey)
             .write();
-          await this.#onXcmMatched(outMsg, inMsg);
+          this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
             '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -344,7 +369,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     return `${subscriptionId}:${messageId}:${chainId}`;
   }
 
-  async #onXcmMatched(
+  #onXcmMatched(
     outMsg: XcmSent,
     inMsg: XcmInbound
   ) {
@@ -352,13 +377,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     try {
       const message: XcmReceived = new GenericXcmReceived(outMsg, inMsg);
-      await this.#xcmMatchedReceiver(message);
+      this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');
     }
   }
 
-  async #onXcmRelayed(
+  #onXcmRelayed(
     outMsg: XcmSent,
     relayMsg: XcmRelayedWithContext
   ) {
@@ -366,7 +391,23 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.emit('telemetryRelayed', message);
 
     try {
-      await this.#xcmMatchedReceiver(message);
+      this.#xcmMatchedReceiver(message);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
+  }
+
+  #onXcmSwept(
+    task: JanitorTask,
+    msg: string
+  ) {
+    try {
+      if (task.sublevel === prefixes.matching.outbound) {
+        const outMsg = JSON.parse(msg) as XcmSent;
+        const message: XcmTimeout = new GenericXcmTimeout(outMsg);
+        this.emit('telemetryTimeout', message);
+        this.#xcmMatchedReceiver(message);
+      }
     } catch (e) {
       this.#log.error(e, 'Error on notification');
     }

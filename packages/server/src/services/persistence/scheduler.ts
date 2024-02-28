@@ -1,4 +1,4 @@
-import Stream from 'node:stream';
+import { EventEmitter } from 'node:events';
 
 import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
 import { NotFound } from '../../errors.js';
@@ -20,7 +20,7 @@ export type SchedulerOptions = {
  * This class is designed to schedule tasks with low time resolution, at least minutes.
  * It uses keys with an ISO 8601 UTC formatted date and time for lexicographic ordering.
  */
-export class Scheduler extends Stream.EventEmitter {
+export class Scheduler extends EventEmitter {
   #log: Logger;
   #tasks: Family;
   #frequency: number;

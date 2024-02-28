@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client';
 
-import { XcmInbound, XcmRelayed, XcmSent } from '../../monitoring/types.js';
+import { XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../../monitoring/types.js';
 import { TelemetryEventEmitter } from '../types.js';
 
 export function engineMetrics(source: TelemetryEventEmitter) {
@@ -23,6 +23,11 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     name: 'xcmon_engine_relayed_total',
     help: 'Matching engine relayed messages.',
     labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'outcome']
+  });
+  const timeoutCount = new Counter({
+    name: 'xcmon_engine_timeout_total',
+    help: 'Matching engine sent timeout messages.',
+    labelNames: ['subscription', 'origin', 'destination']
   });
 
   source.on('telemetryInbound',
@@ -61,6 +66,15 @@ export function engineMetrics(source: TelemetryEventEmitter) {
         relayMsg.destination.chainId,
         relayMsg.waypoint.legIndex.toString(),
         relayMsg.waypoint.outcome.toString()
+      ).inc();
+    });
+
+  source.on('telemetryTimeout',
+    (msg: XcmTimeout) => {
+      timeoutCount.labels(
+        msg.subscriptionId,
+        msg.origin.chainId,
+        msg.destination.chainId
       ).inc();
     });
 }

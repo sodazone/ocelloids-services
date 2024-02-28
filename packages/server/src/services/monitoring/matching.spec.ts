@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmNotificationType, XcmReceived, XcmRelayedWithContext, XcmSent, XcmTerminiContext } from './types.js';
+import { XcmInbound, XcmNotificationType, XcmRelayedWithContext, XcmSent, XcmTerminiContext } from './types.js';
 import { _services } from '../../testing/services.js';
 import { Janitor } from '../persistence/janitor.js';
 
@@ -48,7 +48,7 @@ const outboundMessage : XcmSent = {
   }
 };
 
-const inboundMessage : XcmReceived = {
+const inboundMessage : XcmInbound = {
   messageHash: '0xCAFE',
   messageId: '0xB000',
   chainId: '2000',
@@ -90,6 +90,7 @@ describe('message matching engine', () => {
         root: db
       },
       janitor: {
+        on: jest.fn(),
         schedule
       } as unknown as Janitor
     }, cb);
@@ -143,7 +144,7 @@ describe('message matching engine', () => {
   });
 
   it('should match outbound and inbound by message hash', async () => {
-    const imsg: XcmReceived = {
+    const imsg: XcmInbound = {
       ...inboundMessage,
       messageId: inboundMessage.messageHash
     };

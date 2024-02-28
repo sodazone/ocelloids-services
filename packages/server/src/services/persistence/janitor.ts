@@ -1,5 +1,7 @@
+import EventEmitter from 'node:events';
+
 import { Scheduled, Scheduler } from './scheduler.js';
-import { DB, Logger } from '../../services/types.js';
+import { DB, Logger, TypedEventEmitter } from '../../services/types.js';
 
 export type JanitorTask = {
   sublevel: string,
@@ -13,10 +15,14 @@ export type JanitorOptions = {
 
 const JanitorTaskType = 'task:janitor';
 
+export type JanitorEvents = {
+  sweep: (task: JanitorTask, item: string) => void
+};
+
 /**
  * Database clean up tasks.
  */
-export class Janitor {
+export class Janitor extends (EventEmitter as new () => TypedEventEmitter<JanitorEvents>) {
   #log: Logger;
   #db: DB;
   #sched: Scheduler;
@@ -28,6 +34,7 @@ export class Janitor {
     sched: Scheduler,
     options: JanitorOptions
   ) {
+    super();
     this.#log = log;
     this.#db = db;
     this.#expiry = options.sweepExpiry;
@@ -48,7 +55,15 @@ export class Janitor {
     }));
   }
 
-  async #sweep({task: { sublevel, key }}: Scheduled<JanitorTask>) {
-    await this.#db.sublevel(sublevel).del(key);
+  async #sweep({task}: Scheduled<JanitorTask>) {
+    const { sublevel, key } = task;
+
+    try {
+      const item = await this.#db.sublevel(sublevel).get(key);
+      await this.#db.sublevel(sublevel).del(key);
+      this.emit('sweep', task, item);
+    } catch {
+      //
+    }
   }
 }

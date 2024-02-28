@@ -128,6 +128,7 @@ export const _services = {
     on: () => {}
   } as unknown as Scheduler,
   janitor: {
+    on: () => {},
     schedule: () => {}
   } as unknown as Janitor
 };

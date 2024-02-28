@@ -8,6 +8,10 @@ import { Scheduler } from './scheduler';
 
 jest.useFakeTimers();
 
+const flushPromises = () => new Promise(
+  resolve => jest.requireActual<any>('timers').setImmediate(resolve)
+);
+
 describe('janitor service', () => {
   let janitor : Janitor;
   let scheduler: Scheduler;
@@ -51,18 +55,20 @@ describe('janitor service', () => {
     });
 
     expect((await scheduler.allTaskTimes()).length).toBe(1);
-    expect(await s1.get('k1')).toBeDefined();
+    await expect(s1.get('k1')).resolves.toBeDefined();
 
     now.mockImplementation(() => 1000);
     jest.advanceTimersByTime(1000);
 
     await scheduler.stop();
 
+    await flushPromises();
+
     await expect(async () => {
       await s1.get('k1');
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
 
-    expect(await s1.get('k2')).toBeDefined();
+    await expect(s1.get('k2')).resolves.toBeDefined();
   });
 
   it('should skip future tasks', async () => {
@@ -95,9 +101,11 @@ describe('janitor service', () => {
 
     await scheduler.stop();
 
+    await flushPromises();
+
     await expect(async () => {
       await s1.get('k1');
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
 
     expect((await scheduler.allTaskTimes()).length).toBe(1);
     expect(await s1.get('k3')).toBeDefined();
@@ -108,9 +116,11 @@ describe('janitor service', () => {
 
     await scheduler.stop();
 
+    await flushPromises();
+
     await expect(async () => {
       await s1.get('k3');
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
   });
 
   it('should avoid key collisions', async () => {

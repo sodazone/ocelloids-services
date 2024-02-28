@@ -794,7 +794,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  async #onXcmWaypointReached(msg: XcmNotifyMessage) {
+  #onXcmWaypointReached(msg: XcmNotifyMessage) {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
       const { descriptor } = this.#subs[subscriptionId];
@@ -803,7 +803,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         descriptor.events === '*' ||
         descriptor.events.includes(msg.type)
       ) {
-        await this.#notifier.notify(descriptor, msg);
+        this.#notifier.notify(descriptor, msg);
       }
     } else {
       // this could happen with closed ephemeral subscriptions

@@ -259,6 +259,7 @@ export enum XcmNotificationType {
   Sent = 'xcm.sent',
   Received = 'xcm.received',
   Relayed = 'xcm.relayed',
+  Timeout = 'xcm.timeout',
   Hop = 'xcm.hop'
 }
 
@@ -418,6 +419,37 @@ export interface XcmReceived {
   instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
+}
+
+export type XcmTimeout = XcmSent;
+
+export class GenericXcmTimeout implements XcmTimeout {
+  type: XcmNotificationType = XcmNotificationType.Timeout;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  messageId?: HexString;
+
+  constructor(
+    msg: XcmSent
+  ) {
+    this.subscriptionId = msg.subscriptionId;
+    this.legs = msg.legs;
+    this.origin = msg.origin;
+    this.destination = msg.destination;
+    this.waypoint = msg.waypoint;
+    this.messageData = msg.messageData;
+    this.instructions = msg.instructions;
+    this.messageHash = msg.messageHash;
+    this.messageId = msg.messageId;
+    this.sender = msg.sender;
+  }
 }
 
 export class GenericXcmReceived implements XcmReceived {
