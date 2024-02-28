@@ -38,6 +38,9 @@ The configuration values can be overridden using command line arguments.
 | XCMON_MAX_BLOCK_DIST              | Maximum distance in blocks for the catch-up.   | 50        |
 | XCMON_TELEMETRY_ENABLE            | Enables or disables the telemetry service.     | true      |
 | XCMON_WS_MAX_CLIENTS              | Maximum number of websocket clients.           | 10000     |
+| XCMON_CORS_ENABLE                 | Enables or disables CORS support.              | false     |
+| XCMON_CORS_CREDENTIALS            | Access-Control-Allow-Credentials CORS header.  | true      |
+| XCMON_CORS_ORIGIN                 | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
 | XCMON_SUBSCRIPTION_MAX_PERSISTENT | Maximum number of persistent subscriptions.    | 5000      |
 | XCMON_SUBSCRIPTION_MAX_EPHEMERAL  | Maximum number of ephemeral subscriptions.     | 5000      |
 
@@ -132,6 +135,13 @@ Options:
   --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: XCMON_WS_MAX_CLIENTS)
   --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: XCMON_SUBSCRIPTION_MAX_PERSISTENT)
   --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: XCMON_SUBSCRIPTION_MAX_EPHEMERAL)
+  --cors <boolean>                        enables or disables CORS support (default: false, env: XCMON_CORS_ENABLE)
+  --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env:
+                                          XCMON_CORS_CREDENTIALS)
+  --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
+                                          "true" for wildcard, "string" or "/regexp/"
+                                          repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env:
+                                          XCMON_CORS_ORIGIN)
   --help                                  display help for command
 ```
 
