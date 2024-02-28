@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import nock from 'nock';
 import { Server, WebSocket } from 'mock-socket';
 
-import samples from '../.data/samples.json';
+import samples from '../test/.data/samples.json';
 import { Subscription } from './lib';
 
 jest.unstable_mockModule('isows', () => {
