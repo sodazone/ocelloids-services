@@ -8,7 +8,8 @@ import {
   retryWithTruncatedExpBackoff,
   types,
   extractTxWithEvents,
-  flattenCalls
+  flattenCalls,
+  SubstrateApis
 } from '@sodazone/ocelloids';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
@@ -43,7 +44,6 @@ import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/
 import { extractXcmWaypoints } from './ops/common.js';
 import { errorMessage } from '../../errors.js';
 import { extractRelayReceive } from './ops/relay.js';
-import { XcMonSubstrateApis } from '../networking/connector.js';
 
 type Monitor = {
   subs: RxSubscriptionWithId[]
@@ -83,7 +83,7 @@ const SUB_ERROR_RETRY_MS = 5000;
  * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: XcMonSubstrateApis;
+  readonly #apis: SubstrateApis;
   readonly #config: ServiceConfiguration;
   readonly #log: Logger;
   readonly #db: SubsStore;
@@ -352,7 +352,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @throws {Error} If there is an error during the subscription setup process.
    * @private
    */
-  async #monitor(qs: Subscription) {
+  #monitor(qs: Subscription) {
     const { id } = qs;
 
     let origMonitor : Monitor = { subs: [], controls: {} };
@@ -360,7 +360,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     let relaySub: RxSubscriptionWithId | undefined;
 
     try {
-      origMonitor = await this.#monitorOrigins(qs);
+      origMonitor = this.#monitorOrigins(qs);
       destMonitor = this.#monitorDestinations(qs);
     } catch (error) {
       // Clean up origin subscriptions.
@@ -374,7 +374,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
     if (this.#shouldMonitorRelay(qs)) {
       try {
-        relaySub = await this.#monitorRelay(qs);
+        relaySub = this.#monitorRelay(qs);
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(
@@ -519,13 +519,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  async #monitorOrigins({
+  #monitorOrigins({
     id, origin, senders, destinations
-  }: Subscription) : Promise<Monitor> {
+  }: Subscription) : Monitor {
     const subs : RxSubscriptionWithId[] = [];
     const chainId = origin;
-    const api = await this.#apis.getReadyApiPromise(chainId);
-    const registry = api.registry;
+    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
 
     if (this.#subs[id]?.originSubs.find(
       s => s.chainId === chainId)
@@ -544,11 +543,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     const emitOutbound =  () => (
       source: Observable<XcmSentWithContext>
-    ) => source.pipe(
-      extractXcmWaypoints(registry),
+    ) => apiPromiseObs.pipe(switchMap(api => source.pipe(
+      extractXcmWaypoints(api.registry),
       switchMap(({ message, stops }) => from(this.#engine.onOutboundMessage(
         new GenericXcmSent(id, origin, message, stops)
-      )))
+      )))))
     );
     // TODO: feasible to subscribe next without passing through matching engine?
     // do we want to ensure order of notification?
@@ -597,7 +596,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: this.#sharedBlockExtrinsics(chainId)
+          sub: apiPromiseObs.pipe(switchMap(api => this.#sharedBlockExtrinsics(chainId)
             .pipe(
               extractDmpSend(
                 api,
@@ -605,10 +604,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   sendersControl,
                   messageControl
                 },
-                registry
+                api.registry
               ),
               emitOutbound()
-            ).subscribe(outboundObserver)
+            ))).subscribe(outboundObserver)
         });
 
         // VMP DMP
@@ -616,7 +615,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: this.#sharedBlockEvents(chainId)
+          sub: apiPromiseObs.pipe(switchMap(api => this.#sharedBlockEvents(chainId)
             .pipe(
               extractDmpSendByEvent(
                 api,
@@ -624,10 +623,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   sendersControl,
                   messageControl
                 },
-                registry
+                api.registry
               ),
               emitOutbound()
-            ).subscribe(outboundObserver)
+            ))).subscribe(outboundObserver)
         });
       } else {
         // Outbound HRMP / XCMP transport
@@ -636,17 +635,17 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
         subs.push({
           chainId,
-          sub: this.#sharedBlockEvents(chainId).pipe(
+          sub: apiPromiseObs.pipe(switchMap(api => this.#sharedBlockEvents(chainId).pipe(
             extractXcmpSend(
               {
                 sendersControl,
                 messageControl
               },
               getHrmp,
-              registry
+              api.registry
             ),
             emitOutbound()
-          ).subscribe(outboundObserver)
+          ))).subscribe(outboundObserver)
         });
 
         // VMP UMP
@@ -655,7 +654,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         const getUmp = this.#catcher.outboundUmpMessages(chainId);
         subs.push({
           chainId,
-          sub: this.#sharedBlockEvents(chainId)
+          sub: apiPromiseObs.pipe(switchMap(api => this.#sharedBlockEvents(chainId)
             .pipe(
               extractUmpSend(
                 {
@@ -663,11 +662,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   messageControl
                 },
                 getUmp,
-                registry
+                api.registry
               ),
               retryWithTruncatedExpBackoff(),
               emitOutbound()
-            ).subscribe(outboundObserver)
+            ))).subscribe(outboundObserver)
         });
       }
     } catch (error) {
@@ -686,14 +685,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  async #monitorRelay({ id, destinations, origin }: Subscription) {
+  #monitorRelay({ id, destinations, origin }: Subscription) {
     const chainId = origin;
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already exists.');
     }
-    const api = await this.#apis.getReadyApiPromise('0');
-    const registry = api.registry;
-
+    const apiPromiseObs = from(this.#apis.promise['0'].isReady);
     const messageControl = ControlQuery.from(
       messageCriteria(destinations)
     );
@@ -738,14 +735,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
     return {
       chainId,
-      sub: this.#sharedBlockExtrinsics('0').pipe(
+      sub: apiPromiseObs.pipe(switchMap(api => this.#sharedBlockExtrinsics('0').pipe(
         extractRelayReceive(
           origin,
           messageControl,
-          registry
+          api.registry
         ),
         emitRelayInbound()
-      ).subscribe(relayObserver)
+      ))).subscribe(relayObserver)
     };
   }
 

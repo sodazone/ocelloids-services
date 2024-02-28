@@ -17,7 +17,8 @@ import {
   blocks,
   finalizedHeads,
   blockFromHeader,
-  retryWithTruncatedExpBackoff
+  retryWithTruncatedExpBackoff,
+  SubstrateApis
 } from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
@@ -26,7 +27,6 @@ import { GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augment
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
-import { XcMonSubstrateApis } from '../networking/connector.js';
 
 const MAX_BLOCK_DIST : bigint = process.env.XCMON_MAX_BLOCK_DIST ?
   BigInt(process.env.XCMON_MAX_BLOCK_DIST)
@@ -43,7 +43,7 @@ const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter)  {
-  #apis: XcMonSubstrateApis;
+  #apis: SubstrateApis;
   #log: Logger;
   #config: ServiceConfiguration;
   #db: DB;
@@ -200,7 +200,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     chainId: string
   ) : Observable<SignedBlockExtended> {
     const apiRx = this.#apis.rx[chainId];
-    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
+    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
     let pipe = this.#pipes[chainId];
 
     if (pipe) {
@@ -251,7 +251,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * or from a query storage request to the network.
    */
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
-    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
+    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
     const cache = this.#cache(chainId);
 
     if (this.#hasCache(chainId)) {
@@ -296,7 +296,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * or from a query storage request to the network.
    */
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
-    const apiPromiseObs = from(this.#apis.getReadyApiPromise(chainId));
+    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
     const cache = this.#cache(chainId);
 
     if (this.#hasCache(chainId)) {

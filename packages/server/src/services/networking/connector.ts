@@ -1,41 +1,24 @@
 import fs from 'node:fs';
 
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
-import { WsProvider, ScProvider, ApiPromise } from '@polkadot/api';
+import { WsProvider, ScProvider } from '@polkadot/api';
 import { config as oconfig, SubstrateApis, Smoldot } from '@sodazone/ocelloids';
 
 import { NetworkConfiguration, ServiceConfiguration } from '../config.js';
 import { Logger } from '../types.js';
-
-export class XcMonSubstrateApis extends SubstrateApis {
-  #readyApis: Record<string, ApiPromise> = {};
-
-  constructor(providers: oconfig.Configuration) {
-    super(providers);
-  }
-
-  async getReadyApiPromise(chain: string): Promise<ApiPromise> {
-    if (this.#readyApis[chain]) {
-      return this.#readyApis[chain];
-    }
-
-    this.#readyApis[chain] = await this.promise[chain].isReady;
-    return this.#readyApis[chain];
-  }
-}
 
 /**
  * Handles substrate network connections,
  * with support for light clients.
  */
 export default class Connector {
-  #log: Logger;
-  #config: ServiceConfiguration;
-  #relays: Record<string, ScProvider> = {};
-  #chains: Record<string, ProviderInterface> = {};
-  #chainIdMap: Record<string, string> = {};
+  readonly #log: Logger;
+  readonly #config: ServiceConfiguration;
+  readonly #relays: Record<string, ScProvider> = {};
+  readonly #chains: Record<string, ProviderInterface> = {};
+  readonly #chainIdMap: Record<string, string> = {};
 
-  #substrateApis?: XcMonSubstrateApis;
+  #substrateApis?: SubstrateApis;
 
   constructor(
     log: Logger,
@@ -75,7 +58,7 @@ export default class Connector {
     }
   }
 
-  connect() : XcMonSubstrateApis {
+  connect() : SubstrateApis {
     if (this.#substrateApis) {
       return this.#substrateApis;
     }
@@ -96,7 +79,7 @@ export default class Connector {
     }
 
     // Providers are exposed by chain id.
-    this.#substrateApis = new XcMonSubstrateApis(providers);
+    this.#substrateApis = new SubstrateApis(providers);
     return this.#substrateApis;
   }
 

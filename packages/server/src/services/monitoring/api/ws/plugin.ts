@@ -50,4 +50,6 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions>
   );
 };
 
-export default fp(websocketProtocolPlugin, { fastify: '>=4.x', name: 'ws-protocol' });
+export default fp(websocketProtocolPlugin, {
+  fastify: '>=4.x', name: 'ws-protocol'
+});
