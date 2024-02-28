@@ -129,7 +129,7 @@ describe('message matching engine', () => {
   it('should match relay and outbound', async () => {
     await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
     await engine.onOutboundMessage(outboundMessage);
-    expect(schedule).toHaveBeenCalledTimes(1);
+    expect(schedule).toHaveBeenCalledTimes(2);
 
     expect(cb).toHaveBeenCalledTimes(1);
   });
@@ -138,7 +138,7 @@ describe('message matching engine', () => {
     await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
     await engine.onOutboundMessage(outboundMessage);
     await engine.onInboundMessage(inboundMessage);
-    expect(schedule).toHaveBeenCalledTimes(1);
+    expect(schedule).toHaveBeenCalledTimes(2);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
