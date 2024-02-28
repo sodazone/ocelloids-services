@@ -557,9 +557,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     // TODO: feasible to subscribe next without passing through matching engine?
     // do we want to ensure order of notification?
     const outboundObserver = {
-      next: (msg: XcmSent) => {
-        this.#onXcmWaypointReached(msg);
-      },
       error: (error: any) => {
         this.#log.error(
           error,

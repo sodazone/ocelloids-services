@@ -535,18 +535,8 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.legs = outMsg.legs;
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
-    this.waypoint = this.constructWaypoint(relayMsg, outMsg.legs);
-    this.sender = outMsg.sender;
-    this.instructions = outMsg.instructions;
-    this.messageData = outMsg.messageData;
-    this.messageId = outMsg.messageId;
-    this.messageHash = outMsg.messageHash;
-  }
-
-  constructWaypoint(relayMsg: XcmRelayedWithContext, legs: Leg[]) {
-    const legIndex = legs.findIndex(l => l.from === relayMsg.origin && l.to === '0');
-    return {
-      legIndex,
+    this.waypoint = {
+      legIndex: outMsg.legs.findIndex(l => l.from === relayMsg.origin && l.to === '0'),
       chainId: '0', // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
@@ -555,6 +545,11 @@ export class GenericXcmRelayed implements XcmRelayed {
       outcome: relayMsg.outcome,
       error: relayMsg.error
     };
+    this.sender = outMsg.sender;
+    this.instructions = outMsg.instructions;
+    this.messageData = outMsg.messageData;
+    this.messageId = outMsg.messageId;
+    this.messageHash = outMsg.messageHash;
   }
 }
 

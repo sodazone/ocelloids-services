@@ -80,8 +80,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
-    this.emit('telemetryOutbound', outMsg);
-
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
       const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
@@ -142,6 +140,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
               expiry: DEFAULT_TIMEOUT
             }
           );
+          this.#onXcmOutbound(outMsg);
         }
       } else {
         // try to get any stored relay messages and notify if found.
@@ -175,6 +174,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             key: hashKey,
             expiry: DEFAULT_TIMEOUT
           });
+          this.#onXcmOutbound(outMsg);
         }
       }
     });
@@ -184,8 +184,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   async onInboundMessage(inMsg: XcmInbound)  {
     const log = this.#log;
-
-    this.emit('telemetryInbound', inMsg);
 
     await this.#mutex.runExclusive(async () => {
       const hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash);
@@ -367,6 +365,20 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     // We add the subscription id as a discriminator
     // to allow multiple subscriptions to the same messages
     return `${subscriptionId}:${messageId}:${chainId}`;
+  }
+
+
+
+  #onXcmOutbound(
+    outMsg: XcmSent
+  ) {
+    this.emit('telemetryOutbound', outMsg);
+    
+    try {
+      this.#xcmMatchedReceiver(outMsg);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
   }
 
   #onXcmMatched(
