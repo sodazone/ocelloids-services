@@ -1,6 +1,12 @@
 import { WebSocket, type MessageEvent } from 'isows';
 
-import type { Subscription, OnDemandSubscription } from './types';
+import {
+  type Subscription,
+  type OnDemandSubscription,
+  type SubscriptionError,
+  isSubscriptionError,
+  isSubscription
+} from './types';
 import type { XcmNotifyMessage } from './server-types';
 
 /**
@@ -68,6 +74,17 @@ export type WebSocketHandlers = {
    * Called on WebSocket error.
    */
   onError?: ErrorHandler
+}
+
+/**
+ * Handlers for on-demand subscription creation.
+ *
+ * @public
+ */
+export type OnDemandSbscriptionHandlers = {
+  onSubscriptionCreated?: (sub: Subscription) => void,
+  onSubscriptionError?: (err: SubscriptionError) => void,
+  onError?: (err: any) => void
 }
 
 /**
@@ -144,7 +161,7 @@ class Protocol {
  * ```typescript
  * // create a 'long-lived' subscription
  * const reply = await client.create({
- *   id: "my-subscription"
+ *   id: "my-subscription",
  *   origin: "2004",
  *   senders: "*",
  *   events: "*",
@@ -274,17 +291,22 @@ export class OcelloidsClient {
    *
    * @param subscription - The subscription id or the subscription object to create.
    * @param handlers - The WebSocket event handlers.
+   * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
   subscribe(
     subscription: string | OnDemandSubscription,
-    handlers: WebSocketHandlers
+    handlers: WebSocketHandlers,
+    onDemandHandlers?: OnDemandSbscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs';
 
     return typeof subscription === 'string'
       ? this.#openWebSocket(`${url}/${subscription}`, handlers)
-      : this.#openWebSocket(url, handlers, subscription);
+      : this.#openWebSocket(url, handlers, {
+        sub: subscription,
+        onDemandHandlers
+      });
   }
 
   #fetch<T>(url: string, init?: RequestInit) {
@@ -309,7 +331,10 @@ export class OcelloidsClient {
   #openWebSocket(
     url: string,
     { onMessage, onError, onClose }: WebSocketHandlers,
-    sub?: OnDemandSubscription
+    onDemandSub?: {
+      sub: OnDemandSubscription,
+      onDemandHandlers?: OnDemandSbscriptionHandlers
+    }
   ) {
     const protocol = new Protocol(onMessage);
     const ws = new WebSocket(url);
@@ -325,11 +350,22 @@ export class OcelloidsClient {
     }
 
     function requestOnDemandSub() {
+      if (onDemandSub === undefined) {
+        throw new Error('on demand subscription must be defined');
+      }
+      const { sub, onDemandHandlers } = onDemandSub;
+
       ws.send(JSON.stringify(sub));
-      protocol.next<Subscription>(msg => {
-        // TODO add callback?
-        // TODO handle failure...
-        console.log('> subscription', msg);
+      protocol.next<Subscription | SubscriptionError>(msg => {
+        if (onDemandHandlers?.onSubscriptionCreated
+          && isSubscription(msg)) {
+          onDemandHandlers.onSubscriptionCreated(msg);
+        } else if (onDemandHandlers?.onSubscriptionError
+          && isSubscriptionError(msg)) {
+          onDemandHandlers.onSubscriptionError(msg);
+        } else if (onDemandHandlers?.onError) {
+          onDemandHandlers.onError(msg);
+        }
       });
     }
 
@@ -339,11 +375,11 @@ export class OcelloidsClient {
           ws.send(this.#config.wsAuthToken);
           protocol.next(() => {
             // note that will error if auth fails
-            if (sub) {
+            if (onDemandSub) {
               requestOnDemandSub();
             }
           });
-        } else if (sub) {
+        } else if (onDemandSub) {
           requestOnDemandSub();
         }
       } else {

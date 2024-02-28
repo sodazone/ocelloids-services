@@ -93,6 +93,19 @@ export type Subscription = {
 }
 
 /**
+ * @public
+ */
+export type SubscriptionError = {
+  name: string,
+  issues: {
+    code: string,
+    expected: string,
+    path: string[],
+    message: string
+  }[]
+}
+
+/**
  * The XCM event types.
  *
  * @public
@@ -117,13 +130,26 @@ export type OnDemandSubscription = Omit<Subscription, 'id'|'channels'>;
  * @public
  */
 export function isSubscription(
-  obj: Subscription | XcmNotifyMessage
+  obj: Subscription | SubscriptionError | XcmNotifyMessage
 ): obj is Subscription {
   const maybeSub = (obj as Subscription);
   return maybeSub.origin !== undefined
   && maybeSub.destinations !== undefined
   && maybeSub.id !== undefined
   && maybeSub.channels !== undefined;
+}
+
+/**
+ * Guard condition for {@link SubscriptionError}.
+ *
+ * @public
+ */
+export function isSubscriptionError(
+  obj: Subscription | SubscriptionError
+): obj is SubscriptionError {
+  const maybeError = (obj as SubscriptionError);
+  return maybeError.issues !== undefined
+  && maybeError.name !== undefined;
 }
 
 /**

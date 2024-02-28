@@ -1,0 +1,320 @@
+[
+  {
+    "type": "xcm.relayed",
+    "subscriptionId": "manta-transfers",
+    "legs": [
+      {
+        "from": "2104",
+        "to": "0"
+      },
+      {
+        "from": "0",
+        "to": "2004"
+      }
+    ],
+    "waypoint": {
+      "legIndex": 0,
+      "chainId": "0",
+      "blockNumber": "19609855",
+      "blockHash": "0x099929191abfdce314b6cbcf844d89a7ce0b6472cf6f883f156664c8aa83c6a0",
+      "extrinsicId": "19609855-1",
+      "outcome": "Success",
+      "error": null
+    },
+    "origin": {
+      "chainId": "2104",
+      "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+      "blockNumber": "2395005",
+      "extrinsicId": "2395005-4",
+      "event": {
+        "extrinsicId": "2395005-4",
+        "extrinsicPosition": 3,
+        "extrinsic": {
+          "extrinsicId": "2395005-4",
+          "blockNumber": "2,395,005",
+          "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+          "position": 4,
+          "extraSigners": [],
+          "isSigned": true,
+          "method": {
+            "args": {
+              "currency_id": {
+                "MantaCurrency": "1"
+              },
+              "amount": "290,000,000,000,000,000,000",
+              "dest": {
+                "V3": {
+                  "parents": "1",
+                  "interior": {
+                    "X2": [
+                      {
+                        "Parachain": "2,004"
+                      },
+                      {
+                        "AccountKey20": {
+                          "network": null,
+                          "key": "0xf9a03f00e0779d14ebdafa684cfccc4ba077692b"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "dest_weight_limit": "Unlimited"
+            },
+            "method": "transfer",
+            "section": "xTokens"
+          },
+          "era": {
+            "MortalEra": {
+              "period": "32",
+              "phase": "26"
+            }
+          },
+          "nonce": "5",
+          "signature": "0x3831b03d1d38fa47dc4467d0d361a7545e25630812b61cbd3649cbf54bfcf8414fe0dd1f4132402fd82319673cb89fe9bd1f14dce03015c000c0339915b6b08d",
+          "signer": {
+            "Id": "dfZnGErQ9iqGkMpLbezqg1diym8dBcch6QtrwZJ6Ce2488F3z"
+          },
+          "tip": "0"
+        },
+        "eventId": "2395005-11",
+        "blockPosition": 11,
+        "blockNumber": "2,395,005",
+        "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+        "method": "XcmpMessageSent",
+        "section": "xcmpQueue",
+        "index": "0x1e04",
+        "data": {
+          "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a"
+        }
+      },
+      "outcome": "Success",
+      "error": null
+    },
+    "destination": {
+      "chainId": "2004"
+    },
+    "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a",
+    "messageData": "0x0310010400010100e12000170000489f83f78eb80f0a1300010100e12000170000489f83f78eb80f000d01020400010300f9a03f00e0779d14ebdafa684cfccc4ba077692b",
+    "instructions": {
+      "V3": [
+        {
+          "ReserveAssetDeposited": [
+            {
+              "id": {
+                "Concrete": {
+                  "parents": "1",
+                  "interior": {
+                    "X1": {
+                      "Parachain": "2,104"
+                    }
+                  }
+                }
+              },
+              "fun": {
+                "Fungible": "290,000,000,000,000,000,000"
+              }
+            }
+          ]
+        },
+        "ClearOrigin",
+        {
+          "BuyExecution": {
+            "fees": {
+              "id": {
+                "Concrete": {
+                  "parents": "1",
+                  "interior": {
+                    "X1": {
+                      "Parachain": "2,104"
+                    }
+                  }
+                }
+              },
+              "fun": {
+                "Fungible": "290,000,000,000,000,000,000"
+              }
+            },
+            "weightLimit": "Unlimited"
+          }
+        },
+        {
+          "DepositAsset": {
+            "assets": {
+              "Wild": {
+                "AllCounted": "1"
+              }
+            },
+            "beneficiary": {
+              "parents": "0",
+              "interior": {
+                "X1": {
+                  "AccountKey20": {
+                    "network": null,
+                    "key": "0xf9a03f00e0779d14ebdafa684cfccc4ba077692b"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sender": {
+      "Id": "dfZnGErQ9iqGkMpLbezqg1diym8dBcch6QtrwZJ6Ce2488F3z"
+    }
+  },
+  {
+    "type": "xcm.sent",
+    "subscriptionId": "manta-transfers",
+    "legs": [
+      { "from": "2104", "to": "0" },
+      { "from": "0", "to": "2004" }
+    ],
+    "waypoint": {
+      "chainId": "2104",
+      "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+      "blockNumber": "2395005",
+      "extrinsicId": "2395005-4",
+      "event": {
+        "extrinsicId": "2395005-4",
+        "extrinsicPosition": 3,
+        "extrinsic": {
+          "extrinsicId": "2395005-4",
+          "blockNumber": "2,395,005",
+          "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+          "position": 4,
+          "extraSigners": [],
+          "isSigned": true,
+          "method": {
+            "args": {
+              "currency_id": { "MantaCurrency": "1" },
+              "amount": "290,000,000,000,000,000,000",
+              "dest": {
+                "V3": {
+                  "parents": "1",
+                  "interior": {
+                    "X2": [
+                      { "Parachain": "2,004" },
+                      { "AccountKey20": { "network": null, "key": "0xf9a03f00e0779d14ebdafa684cfccc4ba077692b" } }
+                    ]
+                  }
+                }
+              },
+              "dest_weight_limit": "Unlimited"
+            },
+            "method": "transfer",
+            "section": "xTokens"
+          },
+          "era": { "MortalEra": { "period": "32", "phase": "26" } },
+          "nonce": "5",
+          "signature": "0x3831b03d1d38fa47dc4467d0d361a7545e25630812b61cbd3649cbf54bfcf8414fe0dd1f4132402fd82319673cb89fe9bd1f14dce03015c000c0339915b6b08d",
+          "signer": { "Id": "dfZnGErQ9iqGkMpLbezqg1diym8dBcch6QtrwZJ6Ce2488F3z" },
+          "tip": "0"
+        },
+        "eventId": "2395005-11",
+        "blockPosition": 11,
+        "blockNumber": "2,395,005",
+        "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+        "method": "XcmpMessageSent",
+        "section": "xcmpQueue",
+        "index": "0x1e04",
+        "data": { "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a" }
+      },
+      "outcome": "Success",
+      "error": null,
+      "legIndex": 0
+    },
+    "origin": {
+      "chainId": "2104",
+      "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+      "blockNumber": "2395005",
+      "extrinsicId": "2395005-4",
+      "event": {
+        "extrinsicId": "2395005-4",
+        "extrinsicPosition": 3,
+        "extrinsic": {
+          "extrinsicId": "2395005-4",
+          "blockNumber": "2,395,005",
+          "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+          "position": 4,
+          "extraSigners": [],
+          "isSigned": true,
+          "method": {
+            "args": {
+              "currency_id": { "MantaCurrency": "1" },
+              "amount": "290,000,000,000,000,000,000",
+              "dest": {
+                "V3": {
+                  "parents": "1",
+                  "interior": {
+                    "X2": [
+                      { "Parachain": "2,004" },
+                      { "AccountKey20": { "network": null, "key": "0xf9a03f00e0779d14ebdafa684cfccc4ba077692b" } }
+                    ]
+                  }
+                }
+              },
+              "dest_weight_limit": "Unlimited"
+            },
+            "method": "transfer",
+            "section": "xTokens"
+          },
+          "era": { "MortalEra": { "period": "32", "phase": "26" } },
+          "nonce": "5",
+          "signature": "0x3831b03d1d38fa47dc4467d0d361a7545e25630812b61cbd3649cbf54bfcf8414fe0dd1f4132402fd82319673cb89fe9bd1f14dce03015c000c0339915b6b08d",
+          "signer": { "Id": "dfZnGErQ9iqGkMpLbezqg1diym8dBcch6QtrwZJ6Ce2488F3z" },
+          "tip": "0"
+        },
+        "eventId": "2395005-11",
+        "blockPosition": 11,
+        "blockNumber": "2,395,005",
+        "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
+        "method": "XcmpMessageSent",
+        "section": "xcmpQueue",
+        "index": "0x1e04",
+        "data": { "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a" }
+      },
+      "outcome": "Success",
+      "error": null
+    },
+    "destination": { "chainId": "2004" },
+    "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a",
+    "messageData": "0x0310010400010100e12000170000489f83f78eb80f0a1300010100e12000170000489f83f78eb80f000d01020400010300f9a03f00e0779d14ebdafa684cfccc4ba077692b",
+    "instructions": {
+      "V3": [
+        {
+          "ReserveAssetDeposited": [
+            {
+              "id": { "Concrete": { "parents": "1", "interior": { "X1": { "Parachain": "2,104" } } } },
+              "fun": { "Fungible": "290,000,000,000,000,000,000" }
+            }
+          ]
+        },
+        "ClearOrigin",
+        {
+          "BuyExecution": {
+            "fees": {
+              "id": { "Concrete": { "parents": "1", "interior": { "X1": { "Parachain": "2,104" } } } },
+              "fun": { "Fungible": "290,000,000,000,000,000,000" }
+            },
+            "weightLimit": "Unlimited"
+          }
+        },
+        {
+          "DepositAsset": {
+            "assets": { "Wild": { "AllCounted": "1" } },
+            "beneficiary": {
+              "parents": "0",
+              "interior": {
+                "X1": { "AccountKey20": { "network": null, "key": "0xf9a03f00e0779d14ebdafa684cfccc4ba077692b" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sender": { "Id": "dfZnGErQ9iqGkMpLbezqg1diym8dBcch6QtrwZJ6Ce2488F3z" }
+  }
+]

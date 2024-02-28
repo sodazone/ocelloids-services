@@ -1965,6 +1965,8 @@ __metadata:
     finalhandler: "npm:^1.2.0"
     isows: "npm:^1.0.3"
     jest: "npm:^29.7.0"
+    mock-socket: "npm:^9.3.1"
+    nock: "npm:^14.0.0-beta.5"
     tsup: "npm:^8.0.2"
     tsx: "npm:^4.7.1"
     typedoc: "npm:^0.25.9"
@@ -6139,6 +6141,16 @@ __metadata:
     json-stringify-safe: "npm:^5.0.1"
     propagate: "npm:^2.0.0"
   checksum: 10c0/97276316a2d94b4abca685a09526ce030d83f68c3aaf8c9ff4bbab38468ac3446a239574c9e1f2ec62968e1a7ce79e4a3f5e1d016994bed17a26a1a799512ec8
+  languageName: node
+  linkType: hard
+
+"nock@npm:^14.0.0-beta.5":
+  version: 14.0.0-beta.5
+  resolution: "nock@npm:14.0.0-beta.5"
+  dependencies:
+    json-stringify-safe: "npm:^5.0.1"
+    propagate: "npm:^2.0.0"
+  checksum: 10c0/858019067f060090a66e0ef08d5a96bf5fec2b05ce1eb06fc5f7776d050024779c9067109c6a96ad6605a08ee0f3119507b77fddfcd1520501a284f588a18335
   languageName: node
   linkType: hard
 
