@@ -20,7 +20,7 @@ export const _config = $ServiceConfiguration.parse(
 );
 
 export const _mockApiPromises = {
-  '0': {
+  '0': {isReady: Promise.resolve({
     registry: {
       hasType: () => true
     },
@@ -31,8 +31,8 @@ export const _mockApiPromises = {
         }
       }
     }
-  } as unknown as ApiPromise,
-  '1000': {
+  } as unknown as ApiPromise)},
+  '1000': {isReady: Promise.resolve({
     registry: {
       hasType: () => true
     },
@@ -47,8 +47,8 @@ export const _mockApiPromises = {
         query: { }
       });
     }
-  } as unknown as ApiPromise,
-  '2000': {
+  } as unknown as ApiPromise)},
+  '2000': {isReady: Promise.resolve({
     registry: {
       hasType: () => true
     },
@@ -58,8 +58,8 @@ export const _mockApiPromises = {
         }
       }
     }
-  } as unknown as ApiPromise,
-  '3000': {
+  } as unknown as ApiPromise)},
+  '3000': {isReady: Promise.resolve({
     registry: {
       hasType: () => true
     },
@@ -69,7 +69,7 @@ export const _mockApiPromises = {
         }
       }
     }
-  } as unknown as ApiPromise
+  } as unknown as ApiPromise)}
 };
 
 export const _mockApiRxs = {
@@ -105,7 +105,6 @@ export const _mockApiRxs = {
 
 export const _connector = {
   connect: () => ({
-    getReadyApiPromise: (chain: string) => Promise.resolve(_mockApiPromises[chain]),
     promise: _mockApiPromises,
     rx: _mockApiRxs
   })

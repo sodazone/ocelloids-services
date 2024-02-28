@@ -93,6 +93,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #stats: SubscriptionStats;
   readonly #maxEphemeral: number;
   readonly #maxPersistent: number;
+  readonly #timeouts: NodeJS.Timeout[] = [];
 
   #subs: Record<string, RxSubscriptionHandler> = {};
   #shared: {
@@ -151,7 +152,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       await this.#db.insert(qs);
     }
 
-    await this.#monitor(qs);
+    this.#monitor(qs);
 
     this.#log.info(
       '[%s] new subscription: %j',
@@ -252,6 +253,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       }
     }
 
+    for (const t of this.#timeouts) {
+      t.unref();
+    }
+
     this.#catcher.stop();
     await this.#engine.stop();
   }
@@ -291,12 +296,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates the subscription to relayed HRMP messages in the relay chain.
    */
-  async updateEvents(id: string) {
+  updateEvents(id: string) {
     const { descriptor, relaySub } = this.#subs[id];
 
     if (this.#shouldMonitorRelay(descriptor) && relaySub === undefined) {
       try {
-        this.#subs[id].relaySub = await this.#monitorRelay(descriptor);
+        this.#subs[id].relaySub = this.#monitorRelay(descriptor);
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(
@@ -314,7 +319,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates a subscription descriptor.
    */
-  async updateSubscription(sub: Subscription) {
+  updateSubscription(sub: Subscription) {
     if (this.#subs[sub.id]) {
       this.#subs[sub.id].descriptor = sub;
     } else {
@@ -450,7 +455,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               const index = destinationSubs.findIndex(s => s.chainId === chainId);
               if (index > -1) {
                 destinationSubs.splice(index, 1);
-                setTimeout(() => {
+                this.#timeouts.push(setTimeout(() => {
                   this.#log.info(
                     '[%s] UPDATE destination subscription %s due error %s',
                     chainId,
@@ -459,7 +464,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                   );
                   const updated = this.#updateDestinationSubscriptions(id);
                   this.#subs[id].destinationSubs = updated;
-                }, SUB_ERROR_RETRY_MS);
+                }, SUB_ERROR_RETRY_MS));
               }
             }
           }
@@ -572,18 +577,20 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           const index = originSubs.findIndex(s => s.chainId === chainId);
           if (index > -1) {
             this.#subs[id].originSubs = [];
-            setTimeout(async () => {
-              this.#log.info(
-                '[%s] UPDATE origin subscription %s due error %s',
-                chainId,
-                id,
-                errorMessage(error)
-              );
-              const {subs: updated, controls} = await this.#monitorOrigins(descriptor);
-              this.#subs[id].sendersControl = controls.sendersControl;
-              this.#subs[id].messageControl = controls.messageControl;
-              this.#subs[id].originSubs = updated;
-            }, SUB_ERROR_RETRY_MS);
+            this.#timeouts.push(setTimeout(() => {
+              if (this.#subs[id]) {
+                this.#log.info(
+                  '[%s] UPDATE origin subscription %s due error %s',
+                  chainId,
+                  id,
+                  errorMessage(error)
+                );
+                const {subs: updated, controls} = this.#monitorOrigins(descriptor);
+                this.#subs[id].sendersControl = controls.sendersControl;
+                this.#subs[id].messageControl = controls.messageControl;
+                this.#subs[id].originSubs = updated;
+              }
+            }, SUB_ERROR_RETRY_MS));
           }
         }
       }
@@ -718,7 +725,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // try recover relay subscription
         // there is only one subscription per subscription ID for relay
         if (this.#subs[id]) {
-          setTimeout(async () => {
+          this.#timeouts.push(setTimeout(async () => {
             this.#log.info(
               '[%s] UPDATE relay subscription %s due error %s',
               chainId,
@@ -727,7 +734,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             );
             const updatedSub = await this.#monitorRelay(this.#subs[id].descriptor);
             this.#subs[id].relaySub = updatedSub;
-          }, SUB_ERROR_RETRY_MS);
+          }, SUB_ERROR_RETRY_MS));
         }
       }
     };
@@ -779,7 +786,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
       for (const sub of subs) {
         try {
-          await this.#monitor(sub);
+          this.#monitor(sub);
         } catch (err) {
           this.#log.error(
             err,

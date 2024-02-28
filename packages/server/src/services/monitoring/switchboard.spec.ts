@@ -137,25 +137,6 @@ describe('switchboard service', () => {
     expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
   });
 
-  it('should throw unexpected errors', async () => {
-    (extractUmpSend as jest.Mock).mockImplementation(() => {
-      throw new Error('unexpected');
-    });
-    (extractUmpReceive as jest.Mock).mockImplementation(() => {
-      throw new Error('unexpected');
-    });
-
-    await switchboard.start();
-
-    await expect(async () => {
-      await switchboard.subscribe(testSub);
-    }).rejects.toThrow();
-
-    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined();
-
-    await switchboard.stop();
-  });
-
   it('should handle pipe errors', async () => {
     (extractUmpSend as jest.Mock).mockImplementation(() => () => {
       return throwError(() => new Error('errored'));
@@ -199,8 +180,8 @@ describe('switchboard service', () => {
     };
     await subs.save(newSub);
 
-    await switchboard.updateSubscription(newSub);
-    await switchboard.updateDestinations(newSub.id);
+    switchboard.updateSubscription(newSub);
+    switchboard.updateDestinations(newSub.id);
     const {
       destinationSubs: newDestinationSubs
     } = switchboard.findSubscriptionHandler(testSub.id);
@@ -273,8 +254,8 @@ describe('switchboard service', () => {
     };
     await subs.save(newSub);
 
-    await switchboard.updateSubscription(newSub);
-    await switchboard.updateEvents(newSub.id);
+    switchboard.updateSubscription(newSub);
+    switchboard.updateEvents(newSub.id);
     const {
       relaySub: newRelaySub
     } = switchboard.findSubscriptionHandler(testSub.id);
@@ -299,8 +280,8 @@ describe('switchboard service', () => {
     };
     await subs.save(newSub);
 
-    await switchboard.updateSubscription(newSub);
-    await switchboard.updateEvents(newSub.id);
+    switchboard.updateSubscription(newSub);
+    switchboard.updateEvents(newSub.id);
     const {
       relaySub: newRelaySub
     } = switchboard.findSubscriptionHandler(testSub.id);
