@@ -80,6 +80,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
+    this.#onXcmOutbound(outMsg);
+
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
       const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
@@ -140,7 +142,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
               expiry: DEFAULT_TIMEOUT
             }
           );
-          this.#onXcmOutbound(outMsg);
         }
       } else {
         // try to get any stored relay messages and notify if found.
@@ -174,7 +175,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             key: hashKey,
             expiry: DEFAULT_TIMEOUT
           });
-          this.#onXcmOutbound(outMsg);
         }
       }
     });
@@ -373,7 +373,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     outMsg: XcmSent
   ) {
     this.emit('telemetryOutbound', outMsg);
-    
+
     try {
       this.#xcmMatchedReceiver(outMsg);
     } catch (e) {

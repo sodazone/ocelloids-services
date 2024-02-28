@@ -100,14 +100,14 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(outboundMessage);
     await engine.onInboundMessage(inboundMessage);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match outbound and inbound', async () => {
     await engine.onInboundMessage(inboundMessage);
     await engine.onOutboundMessage(outboundMessage);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should work async concurrently', async () => {
@@ -116,14 +116,14 @@ describe('message matching engine', () => {
       engine.onInboundMessage(inboundMessage)
     ]);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match outbound and relay', async () => {
     await engine.onOutboundMessage(outboundMessage);
     await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match relay and outbound', async () => {
@@ -131,7 +131,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(outboundMessage);
     expect(schedule).toHaveBeenCalledTimes(2);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match relay and outbound and inbound', async () => {
@@ -140,7 +140,7 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(inboundMessage);
     expect(schedule).toHaveBeenCalledTimes(2);
 
-    expect(cb).toHaveBeenCalledTimes(2);
+    expect(cb).toHaveBeenCalledTimes(3);
   });
 
   it('should match outbound and inbound by message hash', async () => {
@@ -151,7 +151,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(outboundMessage);
     await engine.onInboundMessage(imsg);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should clean up stale data', async () => {
