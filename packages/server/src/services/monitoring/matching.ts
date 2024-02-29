@@ -200,8 +200,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             inMsg.blockHash,
             inMsg.blockNumber
           );
-          // TODO: check if should delete idKey as well
-          await this.#outbound.del(hashKey);
+          await this.#outbound.batch()
+            .del(idKey)
+            .del(hashKey)
+            .write();
           this.#onXcmMatched(outMsg, inMsg);
         } catch {
           log.info(
