@@ -16,7 +16,10 @@ import {
   GenericXcmRelayed,
   GenericXcmReceived,
   XcmTimeout,
-  GenericXcmTimeout
+  GenericXcmTimeout,
+  GenericXcmHop,
+  XcmHop,
+  XcmWaypointContext
 } from './types.js';
 
 import { Janitor, JanitorTask } from '../persistence/janitor.js';
@@ -51,6 +54,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #outbound: SubLevel<XcmSent>;
   readonly #inbound: SubLevel<XcmInbound>;
   readonly #relay: SubLevel<XcmRelayedWithContext>;
+  readonly #hop: SubLevel<XcmSent>;
   readonly #mutex: Mutex;
   readonly #xcmMatchedReceiver: XcmMatchedReceiver;
 
@@ -70,6 +74,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
     this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
     this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
+    this.#hop = db.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
 
     this.#janitor.on(
       'sweep',
@@ -80,73 +85,35 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   async onOutboundMessage(outMsg: XcmSent) {
     const log = this.#log;
 
-    this.#onXcmOutbound(outMsg);
-
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
       const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
+      // try to get any stored relay messages and notify if found.
+      // do not clean up outbound in case inbound has not arrived yet.
+      await this.#findRelayInbound(outMsg);
 
       if (outMsg.messageId) {
-        // Still we don't know if the inbound is upgraded,
-        // i.e. if uses message ids
-        const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageId);
-        // try to get any stored relay messages and notify if found.
-        // do not clean up outbound in case inbound has not arrived yet.
-        await this.#findRelayInbound(idKey, outMsg);
         // try to get stored inbound messages and notify if any
         // if inbound messages are found, clean up outbound.
         // if relay messages arrive after outbound and inbound, it will not match.
         try {
-          const inMsg = await Promise.any([
-            this.#inbound.get(idKey),
-            this.#inbound.get(hashKey)
-          ]);
-
+          const hopKey = this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageId);
+          const originMsg = await this.#hop.get(hopKey);
           log.info(
-            '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
+            '[%s:h] MATCHED HOP OUT origin=%s id=%s (subId=%s, block=%s #%s)',
             outMsg.origin.chainId,
-            hashKey,
-            idKey,
+            originMsg.origin.chainId,
+            hopKey,
             outMsg.subscriptionId,
             outMsg.origin.blockHash,
             outMsg.origin.blockNumber
           );
-          await this.#inbound.batch()
-            .del(idKey)
-            .del(hashKey)
-            .write();
-          this.#onXcmMatched(outMsg, inMsg);
+          // do not delete hop key because maybe hop stop inbound hasn't arrived yet
+          this.#onXcmHopOut(originMsg, outMsg);
         } catch {
-          log.info(
-            '[%s:o] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
-            outMsg.origin.chainId,
-            hashKey,
-            idKey,
-            outMsg.subscriptionId,
-            outMsg.origin.blockHash,
-            outMsg.origin.blockNumber
-          );
-          await this.#outbound.batch()
-            .put(idKey, outMsg)
-            .put(hashKey, outMsg)
-            .write();
-          await this.#janitor.schedule(
-            {
-              sublevel: prefixes.matching.outbound,
-              key: hashKey,
-              expiry: DEFAULT_TIMEOUT
-            },
-            {
-              sublevel: prefixes.matching.outbound,
-              key: idKey,
-              expiry: DEFAULT_TIMEOUT
-            }
-          );
+          await this.#tryHopMatchOnOutbound(outMsg);
         }
       } else {
-        // try to get any stored relay messages and notify if found.
-        // do not clean up outbound in case inbound has not arrived yet.
-        await this.#findRelayInbound(hashKey, outMsg);
         // try to get stored inbound messages and notify if any
         try {
           const inMsg = await this.#inbound.get(hashKey);
@@ -241,29 +208,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             .write();
           this.#onXcmMatched(outMsg, inMsg);
         } catch {
-          log.info(
-            '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
-            inMsg.chainId,
-            hashKey,
-            idKey,
-            inMsg.subscriptionId,
-            inMsg.blockHash,
-            inMsg.blockNumber
-          );
-          await this.#inbound.batch()
-            .put(idKey, inMsg)
-            .put(hashKey, inMsg)
-            .write();
-          await this.#janitor.schedule(
-            {
-              sublevel: prefixes.matching.inbound,
-              key: hashKey
-            },
-            {
-              sublevel: prefixes.matching.inbound,
-              key: idKey
-            }
-          );
+          await this.#tryHopMatchOnInbound(inMsg);
         }
       }
     });
@@ -282,10 +227,177 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     });
   }
 
+  // try to find in DB by hop key
+  // if found, emit hop, and do not store anything
+  // if no matching hop key, assume is destination inbound and store.
+  // We assume that the original origin message is ALWAYS received first.
+  // NOTE: hops can only use idKey since message hash will be different on each hop
+  async #tryHopMatchOnInbound(msg: XcmInbound) {
+    if (msg.messageId === undefined) {
+      return;
+    }
+
+    const log = this.#log;
+    try {
+      const hopKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId);
+      const originMsg = await this.#hop.get(hopKey);
+      log.info(
+        '[%s:h] MATCHED HOP IN origin=%s id=%s (subId=%s, block=%s #%s)',
+        msg.chainId,
+        originMsg.origin.chainId,
+        hopKey,
+        msg.subscriptionId,
+        msg.blockHash,
+        msg.blockNumber
+      );
+      // do not delete hop key because maybe hop stop outbound hasn't arrived yet
+      // TO THINK: store in different keys?
+      this.#onXcmHopIn(originMsg, msg);
+    } catch {
+      const hashKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageHash);
+      const idKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId);
+
+      log.info(
+        '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
+        msg.chainId,
+        hashKey,
+        idKey,
+        msg.subscriptionId,
+        msg.blockHash,
+        msg.blockNumber
+      );
+      await this.#inbound.batch()
+        .put(idKey, msg)
+        .put(hashKey, msg)
+        .write();
+      await this.#janitor.schedule(
+        {
+          sublevel: prefixes.matching.inbound,
+          key: hashKey
+        },
+        {
+          sublevel: prefixes.matching.inbound,
+          key: idKey
+        }
+      );
+    }
+  }
+
+  // try to find in DB by hop key
+  // if found, emit hop, and do not store anything
+  // if no matching hop key, is origin message -> store dest + hop keys if there are intermediate stops
+  // We assume that the original origin message is ALWAYS received first.
+  // NOTE: hops can only use idKey since message hash will be different on each hop
+  // ************* REVIEW ****************
+  // Right now we're also storing relay stops in the hop keys, these will never be matched.
+  // But unless we enrich legs info we don't know if '0' is a relay or hop stopover.
+  // Option 1: emit relay as hops and remove 'relay' concept
+  // Option 2: allow potentially unneccessary message to be stored and leave it for janitor to clean up (XXX not working)
+  // Option 3: enrich legs info or new field stops to know if relay or not...
+  async #tryHopMatchOnOutbound(msg: XcmSent) {
+    if (msg.messageId === undefined) {
+      return;
+    }
+    this.#onXcmOutbound(msg);
+
+    // Still we don't know if the inbound is upgraded,
+    // i.e. if uses message ids
+    const idKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageId);
+    const hashKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageHash);
+
+    const log = this.#log;
+    try {
+      const inMsg = await Promise.any([
+        this.#inbound.get(idKey),
+        this.#inbound.get(hashKey)
+      ]);
+
+      log.info(
+        '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
+        msg.origin.chainId,
+        hashKey,
+        idKey,
+        msg.subscriptionId,
+        msg.origin.blockHash,
+        msg.origin.blockNumber
+      );
+      await this.#inbound.batch()
+        .del(idKey)
+        .del(hashKey)
+        .write();
+      this.#onXcmMatched(msg, inMsg);
+    } catch {
+      const stops = msg.legs.map(l => l.to);
+
+      for (const [i, stop] of stops.entries()) {
+        const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId);
+        const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageHash);
+        if (i === stops.length - 1) {
+          log.info(
+            '[%s:o] STORED dest=%s hash=%s id=%s (subId=%s, block=%s #%s)',
+            msg.origin.chainId,
+            stop,
+            hKey,
+            iKey,
+            msg.subscriptionId,
+            msg.origin.blockHash,
+            msg.origin.blockNumber
+          );
+          await this.#outbound.batch()
+            .put(iKey, msg)
+            .put(hKey, msg)
+            .write();
+          await this.#janitor.schedule(
+            {
+              sublevel: prefixes.matching.outbound,
+              key: hKey,
+              expiry: DEFAULT_TIMEOUT
+            },
+            {
+              sublevel: prefixes.matching.outbound,
+              key: iKey,
+              expiry: DEFAULT_TIMEOUT
+            }
+          );
+        } else {
+          log.info(
+            '[%s:h] STORED stop=%s hash=%s id=%s (subId=%s, block=%s #%s)',
+            msg.origin.chainId,
+            stop,
+            hKey,
+            iKey,
+            msg.subscriptionId,
+            msg.origin.blockHash,
+            msg.origin.blockNumber
+          );
+          await this.#hop.batch()
+            .put(iKey, msg)
+            .put(hKey, msg)
+            .write();
+          await this.#janitor.schedule(
+            {
+              sublevel: prefixes.matching.hop,
+              key: hKey,
+              expiry: DEFAULT_TIMEOUT
+            },
+            {
+              sublevel: prefixes.matching.hop,
+              key: iKey,
+              expiry: DEFAULT_TIMEOUT
+            }
+          );
+        }
+      }
+    }
+  }
+
   async #findRelayOutbound(key: string, id: string, relayMsg: XcmRelayedWithContext) {
     const log = this.#log;
     try {
-      const outMsg = await this.#outbound.get(key);
+      const outMsg = await Promise.any([
+        this.#outbound.get(key),
+        this.#hop.get(key)
+      ]);
       log.info(
         '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
         outMsg.origin.chainId,
@@ -313,22 +425,42 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
-  async #findRelayInbound(key: string, outMsg: XcmSent) {
+  async #findRelayInbound(outMsg: XcmSent) {
     const log = this.#log;
-    try {
-      const relayMsg = await this.#relay.get(key);
-      log.info(
-        '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
-        outMsg.origin.chainId,
-        key,
-        outMsg.subscriptionId,
-        outMsg.origin.blockHash,
-        outMsg.origin.blockNumber
-      );
-      await this.#relay.del(key);
-      await this.#onXcmRelayed(outMsg, relayMsg);
-    } catch {
-      // noop, it's possible that there are no relay subscriptions for an origin.
+    if (outMsg.messageId) {
+      const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageId);
+      try {
+        const relayMsg = await this.#relay.get(idKey);
+        log.info(
+          '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
+          outMsg.origin.chainId,
+          idKey,
+          outMsg.subscriptionId,
+          outMsg.origin.blockHash,
+          outMsg.origin.blockNumber
+        );
+        await this.#relay.del(idKey);
+        await this.#onXcmRelayed(outMsg, relayMsg);
+      } catch {
+        // noop, it's possible that there are no relay subscriptions for an origin.
+      }
+    } else {
+      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
+      try {
+        const relayMsg = await this.#relay.get(hashKey);
+        log.info(
+          '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
+          outMsg.origin.chainId,
+          hashKey,
+          outMsg.subscriptionId,
+          outMsg.origin.blockHash,
+          outMsg.origin.blockNumber
+        );
+        await this.#relay.del(hashKey);
+        await this.#onXcmRelayed(outMsg, relayMsg);
+      } catch {
+        // noop, it's possible that there are no relay subscriptions for an origin.
+      }
     }
   }
 
@@ -345,6 +477,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     const prefix = subscriptionId + ':';
     await this.#clearByPrefix(this.#inbound, prefix);
     await this.#clearByPrefix(this.#outbound, prefix);
+    await this.#clearByPrefix(this.#relay, prefix);
+    await this.#clearByPrefix(this.#hop, prefix);
   }
 
   async #clearByPrefix(sublevel: SubLevel<any>, prefix: string) {
@@ -368,8 +502,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     // to allow multiple subscriptions to the same messages
     return `${subscriptionId}:${messageId}:${chainId}`;
   }
-
-
 
   #onXcmOutbound(
     outMsg: XcmSent
@@ -405,6 +537,59 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.emit('telemetryRelayed', message);
 
     try {
+      this.#xcmMatchedReceiver(message);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
+  }
+
+  #onXcmHopOut(
+    originMsg: XcmSent,
+    hopMsg: XcmSent
+  ) {
+    try {
+      const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg.origin;
+      const currentLeg = hopMsg.legs[0];
+      const legIndex = originMsg.legs.findIndex(l => l.from === currentLeg.from && l.to === currentLeg.to);
+      const waypointContext: XcmWaypointContext = {
+        legIndex,
+        chainId,
+        blockHash,
+        blockNumber,
+        event,
+        outcome,
+        error
+      };
+      const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out');
+
+      this.emit('telemetryHop', message);
+
+      this.#xcmMatchedReceiver(message);
+    } catch (e) {
+      this.#log.error(e, 'Error on notification');
+    }
+  }
+
+  #onXcmHopIn(
+    originMsg: XcmSent,
+    hopMsg: XcmInbound
+  ) {
+    try {
+      const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg;
+      const legIndex = originMsg.legs.findIndex(l => l.to === chainId);
+      const waypointContext: XcmWaypointContext = {
+        legIndex,
+        chainId,
+        blockHash,
+        blockNumber,
+        event,
+        outcome,
+        error
+      };
+      const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in');
+
+      this.emit('telemetryHop', message);
+
       this.#xcmMatchedReceiver(message);
     } catch (e) {
       this.#log.error(e, 'Error on notification');

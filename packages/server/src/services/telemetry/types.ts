@@ -1,6 +1,6 @@
 import type { Header } from '@polkadot/types/interfaces';
 
-import { Subscription, XcmNotifyMessage, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../monitoring/types.js';
+import { Subscription, XcmNotifyMessage, XcmInbound, XcmRelayed, XcmSent, XcmTimeout, XcmHop } from '../monitoring/types.js';
 import { TypedEventEmitter } from '../types.js';
 
 export type NotifyTelemetryMessage = {
@@ -45,6 +45,7 @@ export type TelemetryEvents = {
   telemetryRelayed: (relayMsg: XcmRelayed) => void,
   telemetryMatched: (inMsg: XcmInbound, outMsg: XcmSent) => void,
   telemetryTimeout: (message: XcmTimeout) => void,
+  telemetryHop: (message: XcmHop) => void,
   telemetryBlockSeen: (msg: {chainId: string, header: Header}) => void,
   telemetryBlockFinalized: (msg: {chainId: string, header: Header}) => void,
   telemetryBlockCacheHit: (msg: {chainId: string}) => void,

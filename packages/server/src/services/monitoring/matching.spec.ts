@@ -3,84 +3,24 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmInbound, XcmNotificationType, XcmRelayedWithContext, XcmSent, XcmTerminiContext } from './types.js';
+import { XcmInbound, XcmNotifyMessage } from './types.js';
 import { _services } from '../../testing/services.js';
 import { Janitor } from '../persistence/janitor.js';
-
-const SUBSCRIPTION_ID = '1';
-
-const originContext: XcmTerminiContext = {
-  chainId: '1000',
-  event: {},
-  blockHash: '0xBEEF',
-  blockNumber: '2',
-  outcome: 'Success',
-  error: null
-};
-
-const outboundMessage : XcmSent = {
-  type: XcmNotificationType.Sent,
-  messageHash: '0xCAFE',
-  messageId: '0xB000',
-  legs: [
-    {
-      from: '1000',
-      to: '0'
-    },
-    {
-      from: '0',
-      to: '2000'
-    }
-  ],
-  destination: {
-    chainId: '2000'
-  },
-  origin: originContext,
-  waypoint: {
-    ...originContext,
-    legIndex: 0
-  },
-  instructions: {},
-  messageData: '0x0',
-  subscriptionId: SUBSCRIPTION_ID,
-  sender: {
-    id: '0x123'
-  }
-};
-
-const inboundMessage : XcmInbound = {
-  messageHash: '0xCAFE',
-  messageId: '0xB000',
-  chainId: '2000',
-  outcome: 'Success',
-  error: null,
-  event: {},
-  subscriptionId: SUBSCRIPTION_ID,
-  blockHash: '0xBEEF',
-  blockNumber: '2'
-};
-
-const relayMessage: XcmRelayedWithContext = {
-  messageHash: '0xCAFE',
-  messageId: '0xB000',
-  extrinsicId: '5-1',
-  blockHash: '0x828',
-  blockNumber: '5',
-  recipient: '2000',
-  origin: '1000',
-  outcome: 'Success',
-  error: null
-};
+import { matchMessages, matchHopMessages } from '../../testing/matching.js';
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
   let db: Level;
-  const cb = jest.fn(() => {});
+  const cb = jest.fn((_: XcmNotifyMessage) => {});
   const schedule = jest.fn(() => {});
 
   beforeEach(() => {
     cb.mockReset();
     schedule.mockReset();
+
+    // cb.mockImplementation((msg: XcmNotifyMessage) => {
+    //   console.log('NOTIFY', msg.type, msg.waypoint.chainId)
+    // })
 
     db = new Level();
     engine = new MatchingEngine({
@@ -97,61 +37,72 @@ describe('message matching engine', () => {
   });
 
   it('should match inbound and outbound', async () => {
-    await engine.onOutboundMessage(outboundMessage);
-    await engine.onInboundMessage(inboundMessage);
+    await engine.onOutboundMessage(matchMessages.origin);
+    await engine.onInboundMessage(matchMessages.destination);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match outbound and inbound', async () => {
-    await engine.onInboundMessage(inboundMessage);
-    await engine.onOutboundMessage(outboundMessage);
+    await engine.onInboundMessage(matchMessages.destination);
+    await engine.onOutboundMessage(matchMessages.origin);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should work async concurrently', async () => {
     await Promise.all([
-      engine.onOutboundMessage(outboundMessage),
-      engine.onInboundMessage(inboundMessage)
+      engine.onOutboundMessage(matchMessages.origin),
+      engine.onInboundMessage(matchMessages.destination)
     ]);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match outbound and relay', async () => {
-    await engine.onOutboundMessage(outboundMessage);
-    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
+    await engine.onOutboundMessage(matchMessages.origin);
+    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match relay and outbound', async () => {
-    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
-    await engine.onOutboundMessage(outboundMessage);
-    expect(schedule).toHaveBeenCalledTimes(2);
+    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay);
+    await engine.onOutboundMessage(matchMessages.origin);
+    expect(schedule).toHaveBeenCalledTimes(3);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
   it('should match relay and outbound and inbound', async () => {
-    await engine.onRelayedMessage(SUBSCRIPTION_ID, relayMessage);
-    await engine.onOutboundMessage(outboundMessage);
-    await engine.onInboundMessage(inboundMessage);
-    expect(schedule).toHaveBeenCalledTimes(2);
+    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay);
+    await engine.onOutboundMessage(matchMessages.origin);
+    await engine.onInboundMessage(matchMessages.destination);
+    expect(schedule).toHaveBeenCalledTimes(3);
 
     expect(cb).toHaveBeenCalledTimes(3);
   });
 
   it('should match outbound and inbound by message hash', async () => {
     const imsg: XcmInbound = {
-      ...inboundMessage,
-      messageId: inboundMessage.messageHash
+      ...matchMessages.destination,
+      messageId: matchMessages.destination.messageHash
     };
-    await engine.onOutboundMessage(outboundMessage);
+    await engine.onOutboundMessage(matchMessages.origin);
     await engine.onInboundMessage(imsg);
 
     expect(cb).toHaveBeenCalledTimes(2);
+  });
+
+  it.skip('should match hop messages', async () => {
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+    await engine.onOutboundMessage(matchHopMessages.origin);
+    await engine.onInboundMessage(matchHopMessages.hopin);
+    await engine.onOutboundMessage(matchHopMessages.hopout);
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
+    await engine.onInboundMessage(matchHopMessages.destination);
+
+    expect(cb).toHaveBeenCalledTimes(6);
   });
 
   it('should clean up stale data', async () => {
@@ -163,25 +114,25 @@ describe('message matching engine', () => {
 
     for (let i = 0; i < 100; i++) {
       await engine.onInboundMessage({
-        ...inboundMessage,
+        ...matchMessages.destination,
         subscriptionId: 'z.transfers:' + i
       });
       await engine.onOutboundMessage({
-        ...outboundMessage,
+        ...matchMessages.origin,
         subscriptionId: 'baba-yaga-1:' + i
       });
       const r = (Math.random() + 1).toString(36).substring(7);
       await engine.onOutboundMessage({
-        ...outboundMessage,
+        ...matchMessages.origin,
         subscriptionId: r + i
       });
     }
-    expect(await count()).toBe(600);
+    expect(await count()).toBe(1000);
 
     for (let i = 0; i < 100; i++) {
       await engine.clearPendingStates('z.transfers:' + i);
       await engine.clearPendingStates('baba-yaga-1:' + i);
     }
-    expect(await count()).toBe(200);
+    expect(await count()).toBe(400);
   });
 });

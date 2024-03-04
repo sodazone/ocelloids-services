@@ -25,7 +25,6 @@ import {
   RxSubscriptionWithId,
   XcmEventListener,
   XcmNotifyMessage,
-  XcmSent,
   SubscriptionStats,
   XcmNotificationType,
   XcmRelayedWithContext
@@ -554,8 +553,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         new GenericXcmSent(id, origin, message, stops)
       )))))
     );
-    // TODO: feasible to subscribe next without passing through matching engine?
-    // do we want to ensure order of notification?
+
     const outboundObserver = {
       error: (error: any) => {
         this.#log.error(

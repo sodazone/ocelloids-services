@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client';
 
-import { XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../../monitoring/types.js';
+import { XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../../monitoring/types.js';
 import { TelemetryEventEmitter } from '../types.js';
 
 export function engineMetrics(source: TelemetryEventEmitter) {
@@ -28,6 +28,11 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     name: 'xcmon_engine_timeout_total',
     help: 'Matching engine sent timeout messages.',
     labelNames: ['subscription', 'origin', 'destination']
+  });
+  const hopCount = new Counter({
+    name: 'xcmon_engine_hop_total',
+    help: 'Matching engine hop messages.',
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome']
   });
 
   source.on('telemetryInbound',
@@ -75,6 +80,18 @@ export function engineMetrics(source: TelemetryEventEmitter) {
         msg.subscriptionId,
         msg.origin.chainId,
         msg.destination.chainId
+      ).inc();
+    });
+
+  source.on('telemetryHop',
+    (msg: XcmHop) => {
+      hopCount.labels(
+        msg.subscriptionId,
+        msg.origin.chainId,
+        msg.destination.chainId,
+        msg.waypoint.legIndex.toString(),
+        msg.waypoint.chainId,
+        msg.waypoint.outcome.toString()
       ).inc();
     });
 }

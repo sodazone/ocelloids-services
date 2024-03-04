@@ -500,19 +500,7 @@ export class GenericXcmReceived implements XcmReceived {
  *
  * @public
  */
-export interface XcmRelayed {
-  type: XcmNotificationType;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
-  sender: AnyJson;
-  messageId?: HexString;
-}
+export type XcmRelayed = XcmSent;
 
 export class GenericXcmRelayed implements XcmRelayed {
   type: XcmNotificationType = XcmNotificationType.Relayed;
@@ -554,11 +542,52 @@ export class GenericXcmRelayed implements XcmRelayed {
 }
 
 /**
+ *
+ * @public
+ */
+export interface XcmHop extends XcmSent {
+  direction: 'out' | 'in'
+}
+
+export class GenericXcmHop implements XcmHop {
+  type: XcmNotificationType = XcmNotificationType.Hop;
+  subscriptionId: string;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminiContext;
+  destination: XcmTermini;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
+  sender: AnyJson;
+  direction: 'out' | 'in';
+  messageId?: HexString;
+
+  constructor(
+    originMsg: XcmSent,
+    hopWaypoint: XcmWaypointContext,
+    direction: 'out' | 'in'
+  ) {
+    this.subscriptionId = originMsg.subscriptionId;
+    this.legs = originMsg.legs;
+    this.origin = originMsg.origin;
+    this.destination = originMsg.destination;
+    this.waypoint = hopWaypoint;
+    this.messageData = originMsg.messageData;
+    this.instructions = originMsg.instructions;
+    this.messageHash = originMsg.messageHash;
+    this.messageId = originMsg.messageId;
+    this.sender = originMsg.sender;
+    this.direction = direction;
+  }
+}
+
+/**
  * The XCM event types.
  *
  * @public
  */
-export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed;
+export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop;
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent;
