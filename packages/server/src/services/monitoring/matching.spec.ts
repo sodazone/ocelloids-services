@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmInbound, XcmNotifyMessage } from './types.js';
+import { XcmInbound, XcmNotifyMessage, XcmSent } from './types.js';
 import { _services } from '../../testing/services.js';
 import { Janitor } from '../persistence/janitor.js';
 import { matchMessages, matchHopMessages } from '../../testing/matching.js';
@@ -84,22 +84,55 @@ describe('message matching engine', () => {
   });
 
   it('should match outbound and inbound by message hash', async () => {
+    const omsg: XcmSent = {
+      ...matchMessages.origin,
+      messageId: undefined
+    };
     const imsg: XcmInbound = {
       ...matchMessages.destination,
       messageId: matchMessages.destination.messageHash
     };
-    await engine.onOutboundMessage(matchMessages.origin);
+    await engine.onOutboundMessage(omsg);
     await engine.onInboundMessage(imsg);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
 
-  it.skip('should match hop messages', async () => {
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+  it('should match hop messages', async () => {
     await engine.onOutboundMessage(matchHopMessages.origin);
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+
     await engine.onInboundMessage(matchHopMessages.hopin);
     await engine.onOutboundMessage(matchHopMessages.hopout);
     await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
+    await engine.onInboundMessage(matchHopMessages.destination);
+
+    expect(cb).toHaveBeenCalledTimes(6);
+  });
+
+  it('should match hop messages with concurrent message on hop stop', async () => {
+    await engine.onOutboundMessage(matchHopMessages.origin);
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+    await Promise.all([
+      engine.onInboundMessage(matchHopMessages.hopin),
+      engine.onOutboundMessage(matchHopMessages.hopout)
+    ]);
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
+    await engine.onInboundMessage(matchHopMessages.destination);
+
+    expect(cb).toHaveBeenCalledTimes(6);
+  });
+
+  it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+    await engine.onOutboundMessage(matchHopMessages.origin);
+    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
+
+    await Promise.all([
+      engine.onInboundMessage(matchHopMessages.hopin),
+      engine.onOutboundMessage(matchHopMessages.hopout)
+    ]);
+
     await engine.onInboundMessage(matchHopMessages.destination);
 
     expect(cb).toHaveBeenCalledTimes(6);

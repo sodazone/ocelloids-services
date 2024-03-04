@@ -111,10 +111,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           // do not delete hop key because maybe hop stop inbound hasn't arrived yet
           this.#onXcmHopOut(originMsg, outMsg);
         } catch {
-          await this.#tryHopMatchOnOutbound(outMsg);
+          this.#onXcmOutbound(outMsg);
+          await this.#tryMatchOnOutbound(outMsg);
         }
       } else {
-        // try to get stored inbound messages and notify if any
+        this.#onXcmOutbound(outMsg);
+        // try to get stored inbound messages by message hash and notify if any
         try {
           const inMsg = await this.#inbound.get(hashKey);
           log.info(
@@ -214,15 +216,53 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     });
   }
 
-  async onRelayedMessage(id: string, relayMsg: XcmRelayedWithContext) {
+  async onRelayedMessage(subscriptionId: string, relayMsg: XcmRelayedWithContext) {
+    const log = this.#log;
+    const idKey = relayMsg.messageId ?
+      this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageId) :
+      this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageHash);
+    const hopKey = relayMsg.messageId ?
+      this.#matchingKey(subscriptionId, '0', relayMsg.messageId) :
+      this.#matchingKey(subscriptionId, '0', relayMsg.messageHash);
     await this.#mutex.runExclusive(async () => {
-      if (relayMsg.messageId) {
-        // If there is messageId in relay, there must be messageId on outbound
-        const idKey = this.#matchingKey(id, relayMsg.recipient, relayMsg.messageId);
-        await this.#findRelayOutbound(idKey, id, relayMsg);
-      } else {
-        const hashKey = this.#matchingKey(id, relayMsg.recipient, relayMsg.messageHash);
-        await this.#findRelayOutbound(hashKey, id, relayMsg);
+      try {
+        const outMsg = await Promise.any([
+          this.#outbound.get(idKey),
+          this.#hop.get(hopKey)
+        ]);
+        log.info(
+          '[%s:r] RELAYED origin=%s recipient=%s (subId=%s, block=%s #%s)',
+          '0',
+          relayMsg.origin,
+          relayMsg.recipient,
+          subscriptionId,
+          relayMsg.blockHash,
+          relayMsg.blockNumber
+        );
+        await this.#relay.batch()
+          .del(idKey)
+          .del(hopKey)
+          .write();
+        await this.#onXcmRelayed(outMsg, relayMsg);
+      } catch {
+        const relayKey = relayMsg.messageId ?
+          this.#matchingKey(subscriptionId, relayMsg.origin, relayMsg.messageId) :
+          this.#matchingKey(subscriptionId, relayMsg.origin, relayMsg.messageHash);
+        log.info(
+          '[%s:r] STORED relayKey=%s origin=%s recipient=%s (subId=%s, block=%s #%s)',
+          '0',
+          relayKey,
+          relayMsg.origin,
+          relayMsg.recipient,
+          subscriptionId,
+          relayMsg.blockHash,
+          relayMsg.blockNumber
+        );
+        await this.#relay.put(relayKey, relayMsg);
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.relay,
+          key: relayKey
+        });
       }
     });
   }
@@ -292,13 +332,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // Right now we're also storing relay stops in the hop keys, these will never be matched.
   // But unless we enrich legs info we don't know if '0' is a relay or hop stopover.
   // Option 1: emit relay as hops and remove 'relay' concept
-  // Option 2: allow potentially unneccessary message to be stored and leave it for janitor to clean up (XXX not working)
+  // Option 2: allow potentially unneccessary message to be stored and leave it for janitor to clean up
   // Option 3: enrich legs info or new field stops to know if relay or not...
-  async #tryHopMatchOnOutbound(msg: XcmSent) {
+  async #tryMatchOnOutbound(msg: XcmSent) {
     if (msg.messageId === undefined) {
       return;
     }
-    this.#onXcmOutbound(msg);
 
     // Still we don't know if the inbound is upgraded,
     // i.e. if uses message ids
@@ -391,76 +430,26 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
-  async #findRelayOutbound(key: string, id: string, relayMsg: XcmRelayedWithContext) {
+  async #findRelayInbound(outMsg: XcmSent) {
     const log = this.#log;
+    const relayKey = outMsg.messageId ?
+      this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageId) :
+      this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageHash);
+
     try {
-      const outMsg = await Promise.any([
-        this.#outbound.get(key),
-        this.#hop.get(key)
-      ]);
+      const relayMsg = await this.#relay.get(relayKey);
       log.info(
         '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
         outMsg.origin.chainId,
-        key,
-        id,
-        relayMsg.blockHash,
-        relayMsg.blockNumber
+        relayKey,
+        outMsg.subscriptionId,
+        outMsg.origin.blockHash,
+        outMsg.origin.blockNumber
       );
-      await this.#relay.del(key);
+      await this.#relay.del(relayKey);
       await this.#onXcmRelayed(outMsg, relayMsg);
     } catch {
-      log.info(
-        '[%s:r] STORED key=%s (subId=%s, block=%s #%s)',
-        relayMsg.origin,
-        key,
-        id,
-        relayMsg.blockHash,
-        relayMsg.blockNumber
-      );
-      await this.#relay.put(key, relayMsg);
-      await this.#janitor.schedule({
-        sublevel: prefixes.matching.relay,
-        key
-      });
-    }
-  }
-
-  async #findRelayInbound(outMsg: XcmSent) {
-    const log = this.#log;
-    if (outMsg.messageId) {
-      const idKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageId);
-      try {
-        const relayMsg = await this.#relay.get(idKey);
-        log.info(
-          '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
-          outMsg.origin.chainId,
-          idKey,
-          outMsg.subscriptionId,
-          outMsg.origin.blockHash,
-          outMsg.origin.blockNumber
-        );
-        await this.#relay.del(idKey);
-        await this.#onXcmRelayed(outMsg, relayMsg);
-      } catch {
-        // noop, it's possible that there are no relay subscriptions for an origin.
-      }
-    } else {
-      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
-      try {
-        const relayMsg = await this.#relay.get(hashKey);
-        log.info(
-          '[%s:r] RELAYED key=%s (subId=%s, block=%s #%s)',
-          outMsg.origin.chainId,
-          hashKey,
-          outMsg.subscriptionId,
-          outMsg.origin.blockHash,
-          outMsg.origin.blockNumber
-        );
-        await this.#relay.del(hashKey);
-        await this.#onXcmRelayed(outMsg, relayMsg);
-      } catch {
-        // noop, it's possible that there are no relay subscriptions for an origin.
-      }
+      // noop, it's possible that there are no relay subscriptions for an origin.
     }
   }
 
