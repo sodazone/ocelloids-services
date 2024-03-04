@@ -71,9 +71,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#mutex = new Mutex();
     this.#xcmMatchedReceiver = xcmMatchedReceiver;
 
+    // Key format: [subscription-id]:[destination-chain-id]:[message-id/hash]
     this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
+    // Key format: [subscription-id]:[current-chain-id]:[message-id/hash]
     this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
+    // Key format: [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
     this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
+    // Key format: [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
     this.#hop = db.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
 
     this.#janitor.on(
@@ -93,9 +97,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       await this.#findRelayInbound(outMsg);
 
       if (outMsg.messageId) {
-        // try to get stored inbound messages and notify if any
-        // if inbound messages are found, clean up outbound.
-        // if relay messages arrive after outbound and inbound, it will not match.
+        // First try to match by hop key
+        // If found, emit hop, and do not store anything
+        // If no matching hop key, assume is origin outbound message -> try to match inbound
+        // We assume that the original origin message is ALWAYS received first.
+        // NOTE: hops can only use idKey since message hash will be different on each hop
         try {
           const hopKey = this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageId);
           const originMsg = await this.#hop.get(hopKey);
@@ -112,6 +118,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           this.#onXcmHopOut(originMsg, outMsg);
         } catch {
           this.#onXcmOutbound(outMsg);
+          // Try to get stored inbound messages and notify if any
+          // If inbound messages are found, clean up outbound.
+          // If not found, store outbound message in #outbound to match destination inbound
+          // and #hop to match hop outbounds and inbounds.
+          // Note: if relay messages arrive after outbound and inbound, it will not match.
           await this.#tryMatchOnOutbound(outMsg);
         }
       } else {
@@ -323,11 +334,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
-  // try to find in DB by hop key
-  // if found, emit hop, and do not store anything
-  // if no matching hop key, is origin message -> store dest + hop keys if there are intermediate stops
-  // We assume that the original origin message is ALWAYS received first.
-  // NOTE: hops can only use idKey since message hash will be different on each hop
   // ************* REVIEW ****************
   // Right now we're also storing relay stops in the hop keys, these will never be matched.
   // But unless we enrich legs info we don't know if '0' is a relay or hop stopover.
