@@ -49,18 +49,18 @@ export class SubscriptionElement extends OcelloidsElement {
   renderSubscriptionDetails() {
     return html`
       <div
-        class=${tw`flex w-full items-center space-x-3 text-sm text-gray-500 px-4 border-b border-gray-800 divide-x divide-gray-800`}
+        class=${tw`flex w-full text-sm items-center space-x-3 text-gray-500 px-4 border-b border-gray-900 divide-x divide-gray-900 bg-gray-900 bg-opacity-80`}
       >
         <div class=${tw`flex flex-col space-y-2 pb-3 items-center`}>
-          <span>Origin</span>
+          <span class=${tw`uppercase font-semibold`}>Origin</span>
           <span>${IconChain(this.subscription.origin)}</span>
         </div>
         <div class=${tw`flex flex-col space-y-2 pl-3 pb-3 items-center`}>
-          <span>Destinations</span>
+          <span class=${tw`uppercase font-semibold`}>Destinations</span>
           <span class=${tw`flex -space-x-1`}> ${this.subscription.destinations.map((d) => IconChain(d))} </span>
         </div>
         <div class=${tw`flex flex-col space-y-2 pl-3 pb-4`}>
-          <span>Senders</span>
+          <span class=${tw`uppercase font-semibold`}>Senders</span>
           <span class=${tw`text-gray-200`}>
             ${Array.isArray(this.subscription.senders)
               ? this.subscription.senders.map((s) => trunc(s)).join(',')
@@ -96,7 +96,7 @@ export class SubscriptionElement extends OcelloidsElement {
           )}
         </ul>`
       : html` <div class=${tw`flex items-center space-x-2 p-4`}>
-          <span class=${tw`text-sm text-gray-200`}>Waiting for events…</span> ${IconPulse()}
+          <span class=${tw`text-gray-200 uppercase`}>Waiting for events…</span> ${IconPulse()}
         </div>`;
   }
 
@@ -128,7 +128,7 @@ export class SubscriptionElement extends OcelloidsElement {
 
     return html` <div class=${tw`flex flex-col`}>
       ${this.renderSubscriptionDetails()}
-      <div class=${tw`flex flex-col w-full space-y-4 divide-y divide-gray-800 border-x border-gray-900`}>
+      <div class=${tw`flex flex-col w-full space-y-4 divide-y divide-gray-900`}>
         ${this.renderJourneys()}
       </div>
     </div>`;

@@ -62,7 +62,7 @@ export function IconPulse() {
 export function IconWait() {
   return html`
     <div class=${tw`flex items-center h-8`}>
-      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full ring-2 bg-gray-900 ring-gray-900`}>
+      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full ring-2 bg-transparent ring-gray-900`}>
         <span class=${tw`inline-block animate-pulse w-3 h-3 bg-yellow-600 rounded-full`}></span>
       </div>
     </div>
@@ -72,7 +72,7 @@ export function IconWait() {
 export function IconSuccess() {
   return html`
     <div class=${tw`flex items-center h-8`}>
-      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-gray-900 ring-2 ring-green-600`}>
+      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-green-600`}>
         <svg
           class=${tw`w-2.5 h-2.5 text-green-300`}
           aria-hidden="true"
@@ -95,7 +95,7 @@ export function IconSuccess() {
 
 export function IconFail() {
   return html` <div class=${tw`flex items-center h-8`}>
-    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-gray-900 ring-2 ring-red-600`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-red-600`}>
       <svg
         class=${tw` h-4 w-4 fill-current text-red-500`}
         role="status"

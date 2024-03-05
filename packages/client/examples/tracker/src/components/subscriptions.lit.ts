@@ -36,7 +36,7 @@ export class Subscriptions extends OcelloidsElement {
   }
 
   renderSelect(subscriptions) {
-    return html` <div class=${tw`flex flex-col border-b border-gray-800`}>
+    return html` <div class=${tw`flex flex-col border-b border-gray-900 bg-gray-900 bg-opacity-80`}>
       <div class=${tw`grid`}>
         ${IconChevron()}
         <select id="select-subscription" class=${tw`select-big`} @change=${this.onSelected}>
@@ -53,7 +53,7 @@ export class Subscriptions extends OcelloidsElement {
       ${this.subscriptionId &&
       html`
         <oc-subscription
-          .mocked=${false}
+          .mocked=${true}
           class=${tw`flex flex-col`}
           .subscription=${this.subscriptions.find((s) => s.id === this.subscriptionId)}
         >
