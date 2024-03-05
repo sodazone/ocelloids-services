@@ -203,7 +203,9 @@ describe('head catcher', () => {
                   rpc: {
                     chain: {
                       getHeader: (hash) => {
-                        return Promise.resolve(polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!);
+                        return Promise.resolve(
+                          polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!
+                        );
                       },
                     },
                   },
@@ -298,7 +300,8 @@ describe('head catcher', () => {
                   },
                   derive: {
                     chain: {
-                      getBlock: (hash) => Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
+                      getBlock: (hash) =>
+                        Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
                     },
                   },
                   registry: {
@@ -372,7 +375,10 @@ describe('head catcher', () => {
         fromBlockNum: '17844569',
         toBlockNum: '17844551',
       };
-      db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('0'), jsonEncoded).put(prefixes.cache.keys.range(range), range);
+      db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('0'), jsonEncoded).put(
+        prefixes.cache.keys.range(range),
+        range
+      );
       const testHeaders = testBlocks.map((tb) => tb.block.header);
       // We will emit the last finalized headers
       const headersSource = from([testHeaders[18], testHeaders[19]]);

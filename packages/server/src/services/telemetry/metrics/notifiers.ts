@@ -14,7 +14,9 @@ export function notifierMetrics(source: TelemetryEventEmitter) {
   });
 
   source.on('telemetryNotify', (message) => {
-    notifyCount.labels(message.type, message.subscription, message.origin, message.destination, message.outcome, message.channel).inc();
+    notifyCount
+      .labels(message.type, message.subscription, message.origin, message.destination, message.outcome, message.channel)
+      .inc();
   });
   source.on('telemetryNotifyError', (message) => {
     notifyErrorCount

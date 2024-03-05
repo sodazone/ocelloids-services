@@ -17,7 +17,9 @@ export function extractRelayReceive(origin: string, messageControl: ControlQuery
         const backed = backedCandidates.find((c) => c.candidate.descriptor.paraId.toString() === origin);
         if (backed) {
           const { horizontalMessages } = backed.candidate.commitments;
-          const message = horizontalMessages.find(({ recipient }) => messageControl.value.test({ recipient: recipient.toString() }));
+          const message = horizontalMessages.find(({ recipient }) =>
+            messageControl.value.test({ recipient: recipient.toString() })
+          );
           if (message) {
             const xcms = fromXcmpFormat(message.data, registry);
             const { blockHash, blockNumber, extrinsicId } = extrinsic;

@@ -59,7 +59,11 @@ type XcmContext = {
   event?: types.BlockEvent;
 };
 
-function matchInstructions(xcmProgram: XcmVersionedXcm, assets: XcmVersionedMultiAssets, beneficiary: XcmVersionedMultiLocation): boolean {
+function matchInstructions(
+  xcmProgram: XcmVersionedXcm,
+  assets: XcmVersionedMultiAssets,
+  beneficiary: XcmVersionedMultiLocation
+): boolean {
   const program = xcmProgram.value.toHuman() as Json[];
   let sameAssetFun = false;
   let sameBeneficiary = false;
@@ -85,7 +89,15 @@ function matchInstructions(xcmProgram: XcmVersionedXcm, assets: XcmVersionedMult
   return sameAssetFun && sameBeneficiary;
 }
 
-function createXcmMessageSent({ paraId, data, program, blockHash, blockNumber, signer, event }: XcmContext): GenericXcmSentWithContext {
+function createXcmMessageSent({
+  paraId,
+  data,
+  program,
+  blockHash,
+  blockNumber,
+  signer,
+  event,
+}: XcmContext): GenericXcmSentWithContext {
   const messageId = getMessageId(program);
 
   return new GenericXcmSentWithContext({
@@ -131,7 +143,10 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
         return from(api.at(tx.extrinsic.blockHash)).pipe(
           switchMap(
-            (at) => from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
+            (at) =>
+              from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<
+                Vec<PolkadotCorePrimitivesInboundDownwardMessage>
+              >
           ),
           retryWithTruncatedExpBackoff(),
           map((messages) => {
@@ -198,7 +213,10 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
       mergeMap(({ paraId, messageId, event }) => {
         return from(api.at(event.blockHash)).pipe(
           switchMap(
-            (at) => from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
+            (at) =>
+              from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<
+                Vec<PolkadotCorePrimitivesInboundDownwardMessage>
+              >
           ),
           retryWithTruncatedExpBackoff(),
           map((messages) => {
@@ -242,7 +260,12 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
   };
 }
 
-const METHODS_DMP = ['limitedReserveTransferAssets', 'reserveTransferAssets', 'limitedTeleportAssets', 'teleportAssets'];
+const METHODS_DMP = [
+  'limitedReserveTransferAssets',
+  'reserveTransferAssets',
+  'limitedTeleportAssets',
+  'teleportAssets',
+];
 
 export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl }: XcmCriteria, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
@@ -250,7 +273,9 @@ export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl
       filter((tx) => {
         const { extrinsic } = tx;
         return (
-          tx.dispatchError === undefined && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP) && matchSenders(sendersControl, extrinsic)
+          tx.dispatchError === undefined &&
+          matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP) &&
+          matchSenders(sendersControl, extrinsic)
         );
       }),
       findDmpMessagesFromTx(api, registry),
@@ -259,7 +284,11 @@ export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl
   };
 }
 
-export function extractDmpSendByEvent(api: ApiPromise, { sendersControl, messageControl }: XcmCriteria, registry: Registry) {
+export function extractDmpSendByEvent(
+  api: ApiPromise,
+  { sendersControl, messageControl }: XcmCriteria,
+  registry: Registry
+) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       // filtering of events is done in findDmpMessagesFromEvent
@@ -310,7 +339,9 @@ export function extractDmpReceive() {
         // in reality we expect a continuous stream of events but
         // in tests, maybeDmpEvent could be undefined if there are odd number of events
         if (maybeDmpEvent && matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')) {
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped')
+            ? maybeAssetTrapEvent
+            : undefined;
           return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent);
         }
         return null;

@@ -1,5 +1,18 @@
 /* eslint-disable no-use-before-define, max-len */
-import type { Bytes, Compact, Enum, Option, Struct, U8aFixed, Vec, bool, u128, u32, u64, u8 } from '@polkadot/types-codec';
+import type {
+  Bytes,
+  Compact,
+  Enum,
+  Option,
+  Struct,
+  U8aFixed,
+  Vec,
+  bool,
+  u128,
+  u32,
+  u64,
+  u8,
+} from '@polkadot/types-codec';
 import type { ITuple } from '@polkadot/types-codec/types';
 
 import type {

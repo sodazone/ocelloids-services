@@ -1,4 +1,10 @@
-import { XcmInbound, XcmNotificationType, XcmRelayedWithContext, XcmSent, XcmTerminiContext } from '../services/monitoring/types';
+import {
+  XcmInbound,
+  XcmNotificationType,
+  XcmRelayedWithContext,
+  XcmSent,
+  XcmTerminiContext,
+} from '../services/monitoring/types';
 
 const subscriptionId = 'manamana-1';
 

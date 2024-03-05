@@ -8,7 +8,10 @@ import { ApiPromise } from '@polkadot/api';
 import { ApiDecoration } from '@polkadot/api/types';
 import { TypeRegistry, Metadata } from '@polkadot/types';
 import type { Vec, Bytes } from '@polkadot/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage, PolkadotCorePrimitivesInboundDownwardMessage } from '@polkadot/types/lookup';
+import type {
+  PolkadotCorePrimitivesOutboundHrmpMessage,
+  PolkadotCorePrimitivesInboundDownwardMessage,
+} from '@polkadot/types/lookup';
 import spec from '@polkadot/types-support/metadata/static-polkadot';
 import { ControlQuery } from '@sodazone/ocelloids';
 

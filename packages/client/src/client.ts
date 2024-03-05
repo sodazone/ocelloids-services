@@ -1,6 +1,12 @@
 import { WebSocket, type MessageEvent } from 'isows';
 
-import { type Subscription, type OnDemandSubscription, type SubscriptionError, isSubscriptionError, isSubscription } from './types';
+import {
+  type Subscription,
+  type OnDemandSubscription,
+  type SubscriptionError,
+  isSubscriptionError,
+  isSubscription,
+} from './types';
 import type { XcmNotifyMessage } from './server-types';
 
 /**

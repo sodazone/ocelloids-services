@@ -13,7 +13,13 @@ import type { H256 } from '@polkadot/types/interfaces/runtime';
 import { types } from '@sodazone/ocelloids';
 
 import { AssetsTrapped, HexString, TrappedAsset } from '../types.js';
-import { XcmVersionedXcm, XcmVersionedLocation, XcmVersionedAssets, XcmV4Location, XcmV4AssetAssets } from './xcm-types.js';
+import {
+  XcmVersionedXcm,
+  XcmVersionedLocation,
+  XcmVersionedAssets,
+  XcmV4Location,
+  XcmV4AssetAssets,
+} from './xcm-types.js';
 
 /**
  * Gets message id from setTopic.
@@ -34,7 +40,9 @@ export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
   }
 }
 
-export function getParaIdFromOrigin(origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin): string | undefined {
+export function getParaIdFromOrigin(
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
+): string | undefined {
   if (origin.isUmp) {
     const umpOrigin = origin.asUmp;
     if (umpOrigin.isPara) {
@@ -93,7 +101,9 @@ export function isV4Location(object: any): object is XcmV4Location {
   );
 }
 
-export function getParaIdFromVersionedMultiLocation(loc: XcmVersionedMultiLocation | XcmVersionedLocation): string | undefined {
+export function getParaIdFromVersionedMultiLocation(
+  loc: XcmVersionedMultiLocation | XcmVersionedLocation
+): string | undefined {
   switch (loc.type) {
     case 'V2':
     case 'V3':

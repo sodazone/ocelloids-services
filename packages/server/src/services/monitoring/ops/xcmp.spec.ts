@@ -48,7 +48,9 @@ describe('xcmp operator', () => {
 
     const test$ = extractXcmpSend(
       {
-        sendersControl: new ControlQuery(sendersCriteria(['0x8e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'])),
+        sendersControl: new ControlQuery(
+          sendersCriteria(['0x8e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'])
+        ),
         messageControl,
       },
       getHrmp,

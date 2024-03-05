@@ -81,7 +81,11 @@ function umpMessagesSent() {
   };
 }
 
-function findOutboundUmpMessage(messageControl: ControlQuery, getOutboundUmpMessages: GetOutboundUmpMessages, registry: Registry) {
+function findOutboundUmpMessage(
+  messageControl: ControlQuery,
+  getOutboundUmpMessages: GetOutboundUmpMessages,
+  registry: Registry
+) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSentWithContext> => {
     return source.pipe(
       mergeMap((sentMsg) => {
@@ -139,7 +143,9 @@ export function extractUmpReceive(originId: string) {
       bufferCount(2, 1),
       map(([maybeAssetTrapEvent, maybeUmpEvent]) => {
         if (maybeUmpEvent && matchEvent(maybeUmpEvent, 'messageQueue', METHODS_MQ_PROCESSED)) {
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped')
+            ? maybeAssetTrapEvent
+            : undefined;
           return createUmpReceivedWithContext(originId, maybeUmpEvent, assetTrapEvent);
         }
         return null;

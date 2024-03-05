@@ -311,7 +311,10 @@ describe('OcelloidsClient', () => {
         ],
       } as Subscription;
 
-      const scope = nock('http://mock').matchHeader('content-type', 'application/json').post('/subs').reply(201, JSON.stringify(sub));
+      const scope = nock('http://mock')
+        .matchHeader('content-type', 'application/json')
+        .post('/subs')
+        .reply(201, JSON.stringify(sub));
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
@@ -324,7 +327,13 @@ describe('OcelloidsClient', () => {
     });
 
     it('should fetch data', async () => {
-      const scope = nock('http://mock').get('/health').reply(200, '{}').get('/subs').reply(200, '[]').get('/subs/id').reply(200, '{}');
+      const scope = nock('http://mock')
+        .get('/health')
+        .reply(200, '{}')
+        .get('/subs')
+        .reply(200, '[]')
+        .get('/subs/id')
+        .reply(200, '{}');
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
@@ -339,7 +348,10 @@ describe('OcelloidsClient', () => {
     });
 
     it('should use bearer auth', async () => {
-      const scope = nock('http://mock').matchHeader('Authorization', 'Bearer abracadabra').get('/health').reply(200, '{}');
+      const scope = nock('http://mock')
+        .matchHeader('Authorization', 'Bearer abracadabra')
+        .get('/health')
+        .reply(200, '{}');
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',

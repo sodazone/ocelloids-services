@@ -44,7 +44,9 @@ export function engineMetrics(source: TelemetryEventEmitter) {
   });
 
   source.on('telemetryMatched', (inMsg: XcmInbound, outMsg: XcmSent) => {
-    matchCount.labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString()).inc();
+    matchCount
+      .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
+      .inc();
   });
 
   source.on('telemetryRelayed', (relayMsg: XcmRelayed) => {

@@ -133,7 +133,10 @@ export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>;
 export function isSubscription(obj: Subscription | SubscriptionError | XcmNotifyMessage): obj is Subscription {
   const maybeSub = obj as Subscription;
   return (
-    maybeSub.origin !== undefined && maybeSub.destinations !== undefined && maybeSub.id !== undefined && maybeSub.channels !== undefined
+    maybeSub.origin !== undefined &&
+    maybeSub.destinations !== undefined &&
+    maybeSub.id !== undefined &&
+    maybeSub.channels !== undefined
   );
 }
 

@@ -7,7 +7,6 @@ const tseslint = require('typescript-eslint');
 module.exports = [
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  prettierlint,
   {
     "rules": {
       "no-cond-assign": [2, "always"],
@@ -97,5 +96,6 @@ module.exports = [
       "comma-style": [2, "last"],
       "no-lonely-if": 2
     }
-  }
+  },
+  prettierlint
 ];

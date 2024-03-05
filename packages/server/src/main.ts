@@ -49,16 +49,40 @@ program
   .addOption(optInt('-p, --port <number>', 'port number to listen on', 'XCMON_PORT').default(3000))
   .addOption(opt('-c, --config <file>', 'service configuration file', 'XCMON_CONFIG_FILE').makeOptionMandatory(true))
   .addOption(opt('-d, --db <dir>', 'database directory', 'XCMON_DB_DIR').default('./db'))
-  .addOption(optBool('--scheduler <boolean>', 'enables or disables the task scheduler', 'XCMON_DB_SCHEDULER_ENABLE').default(true))
   .addOption(
-    optInt('--scheduler-frequency <milliseconds>', 'milliseconds to wait before each tick', 'XCMON_DB_SCHEDULER_FREQUENCY').default(5000) // 5 secs
+    optBool('--scheduler <boolean>', 'enables or disables the task scheduler', 'XCMON_DB_SCHEDULER_ENABLE').default(
+      true
+    )
   )
   .addOption(
-    optInt('--sweep-expiry <milliseconds>', 'milliseconds before a task is swept', 'XCMON_DB_JANITOR_SWEEP_EXPIRY').default(25 * 60000) // 25 minutes
+    optInt(
+      '--scheduler-frequency <milliseconds>',
+      'milliseconds to wait before each tick',
+      'XCMON_DB_SCHEDULER_FREQUENCY'
+    ).default(5000) // 5 secs
   )
-  .addOption(optInt('-g, --grace <milliseconds>', 'milliseconds for the graceful close to finish', 'XCMON_CLOSE_GRACE_DELAY').default(5000))
-  .addOption(optBool('-t --telemetry <boolean>', 'enables or disables the telemetry exporter', 'XCMON_TELEMETRY_ENABLE').default(true))
-  .addOption(optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'XCMON_WS_MAX_CLIENTS').default(10_000))
+  .addOption(
+    optInt(
+      '--sweep-expiry <milliseconds>',
+      'milliseconds before a task is swept',
+      'XCMON_DB_JANITOR_SWEEP_EXPIRY'
+    ).default(25 * 60000) // 25 minutes
+  )
+  .addOption(
+    optInt(
+      '-g, --grace <milliseconds>',
+      'milliseconds for the graceful close to finish',
+      'XCMON_CLOSE_GRACE_DELAY'
+    ).default(5000)
+  )
+  .addOption(
+    optBool('-t --telemetry <boolean>', 'enables or disables the telemetry exporter', 'XCMON_TELEMETRY_ENABLE').default(
+      true
+    )
+  )
+  .addOption(
+    optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'XCMON_WS_MAX_CLIENTS').default(10_000)
+  )
   .addOption(
     optInt(
       '--subscription-max-persistent <number>',

@@ -126,7 +126,9 @@ export default class Connector {
     if (this.#relays[relay] === undefined) {
       const relayConfig = this.#getNetworkConfig(relay);
       if (relayConfig.provider.type === 'rpc') {
-        throw new Error('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
+        throw new Error(
+          'RPC provider cannot be used for relay chain if light client provider is being used for parachain.'
+        );
       }
       this.#registerSmoldotRelay(relayConfig.name, relayConfig.provider.spec);
     }

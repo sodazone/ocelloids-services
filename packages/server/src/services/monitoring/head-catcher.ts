@@ -28,7 +28,13 @@ import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/
 import { ApiPromise } from '@polkadot/api';
 import { createSignedBlockExtended } from '@polkadot/api-derive';
 
-import { blocks, finalizedHeads, blockFromHeader, retryWithTruncatedExpBackoff, SubstrateApis } from '@sodazone/ocelloids';
+import {
+  blocks,
+  finalizedHeads,
+  blockFromHeader,
+  retryWithTruncatedExpBackoff,
+  SubstrateApis,
+} from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
 import { ChainHead as ChainTip, BinBlock, HexString, BlockNumberRange } from './types.js';
@@ -116,7 +122,9 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((_api) => _api.at(block.block.header.hash)),
               mergeMap((at) =>
                 zip([
-                  from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>,
+                  from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<
+                    Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
+                  >,
                   from(at.query.parachainSystem.upwardMessages()) as Observable<Vec<Bytes>>,
                 ])
               ),
@@ -160,7 +168,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
               mergeAll()
             )
             .subscribe({
-              error: (error) => this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId),
+              error: (error) =>
+                this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId),
             });
         }
       }
@@ -271,7 +280,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           switchMap((api) =>
             from(api.at(hash)).pipe(
               switchMap(
-                (at) => from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+                (at) =>
+                  from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<
+                    Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
+                  >
               ),
               this.#tapError(chainId, 'at.query.parachainSystem.hrmpOutboundMessages()'),
               retryWithTruncatedExpBackoff()
@@ -395,7 +407,9 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             header,
           });
         }),
-        mergeMap((header) => from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header))),
+        mergeMap((header) =>
+          from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header))
+        ),
         this.#tapError(chainId, '#catchUpHeads()'),
         retryWithTruncatedExpBackoff()
       );
@@ -410,7 +424,13 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         mergeMap((range) =>
           from(api.rpc.chain.getBlockHash(range.fromBlockNum).then((hash) => api.rpc.chain.getHeader(hash))).pipe(
             catchError((error) => {
-              this.#log.warn('[%s] in #recoverBlockRanges(%s-%s) %s', chainId, range.fromBlockNum, range.toBlockNum, error);
+              this.#log.warn(
+                '[%s] in #recoverBlockRanges(%s-%s) %s',
+                chainId,
+                range.fromBlockNum,
+                range.toBlockNum,
+                error
+              );
               return EMPTY;
             }),
             mergeMap((head) =>
@@ -497,7 +517,9 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   #headers(api: ApiPromise, newHead: Header, targetHeight: bigint, prev: Header[]): Observable<Header[]> {
     return from(api.rpc.chain.getHeader(newHead.parentHash)).pipe(
       switchMap((header) =>
-        header.number.toBigInt() - 1n <= targetHeight ? of([header, ...prev]) : this.#headers(api, header, targetHeight, [header, ...prev])
+        header.number.toBigInt() - 1n <= targetHeight
+          ? of([header, ...prev])
+          : this.#headers(api, header, targetHeight, [header, ...prev])
       )
     );
   }

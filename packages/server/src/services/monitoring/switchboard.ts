@@ -427,7 +427,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                 destinationSubs.splice(index, 1);
                 this.#timeouts.push(
                   setTimeout(() => {
-                    this.#log.info('[%s] UPDATE destination subscription %s due error %s', chainId, id, errorMessage(error));
+                    this.#log.info(
+                      '[%s] UPDATE destination subscription %s due error %s',
+                      chainId,
+                      id,
+                      errorMessage(error)
+                    );
                     const updated = this.#updateDestinationSubscriptions(id);
                     this.#subs[id].destinationSubs = updated;
                   }, SUB_ERROR_RETRY_MS)
@@ -443,7 +448,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
           subs.push({
             chainId,
-            sub: this.#sharedBlockEvents(chainId).pipe(extractUmpReceive(origin), emitInbound()).subscribe(inboundObserver),
+            sub: this.#sharedBlockEvents(chainId)
+              .pipe(extractUmpReceive(origin), emitInbound())
+              .subscribe(inboundObserver),
           });
         } else if (isRelay(this.#config, origin)) {
           // VMP DMP
@@ -496,7 +503,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         switchMap((api) =>
           source.pipe(
             extractXcmWaypoints(api.registry),
-            switchMap(({ message, stops }) => from(this.#engine.onOutboundMessage(new GenericXcmSent(id, origin, message, stops))))
+            switchMap(({ message, stops }) =>
+              from(this.#engine.onOutboundMessage(new GenericXcmSent(id, origin, message, stops)))
+            )
           )
         )
       );
@@ -691,7 +700,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       sub: apiPromiseObs
         .pipe(
           switchMap((api) =>
-            this.#sharedBlockExtrinsics('0').pipe(extractRelayReceive(origin, messageControl, api.registry), emitRelayInbound())
+            this.#sharedBlockExtrinsics('0').pipe(
+              extractRelayReceive(origin, messageControl, api.registry),
+              emitRelayInbound()
+            )
           )
         )
         .subscribe(relayObserver),

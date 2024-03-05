@@ -13,7 +13,16 @@ import version from './version.js';
 import { errorHandler } from './errors.js';
 import { logger } from './environment.js';
 import { ServerOptions } from './types.js';
-import { Root, Auth, Telemetry, Administration, Persistence, Configuration, Monitoring, Connector } from './services/index.js';
+import {
+  Root,
+  Auth,
+  Telemetry,
+  Administration,
+  Persistence,
+  Configuration,
+  Monitoring,
+  Connector,
+} from './services/index.js';
 import { toCorsOpts } from './args.js';
 
 const WS_MAX_PAYLOAD = 1048576; // 1MB

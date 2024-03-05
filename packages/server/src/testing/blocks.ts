@@ -40,7 +40,13 @@ export function testBlocksFrom(file: string, metadataFile: string) {
     const records = registry.createType('Vec<EventRecord>', b.events, true);
     const author = registry.createType('AccountId', b.author);
 
-    return createSignedBlockExtended(registry, block as SignedBlock, records as unknown as EventRecord[], null, author as AccountId);
+    return createSignedBlockExtended(
+      registry,
+      block as SignedBlock,
+      records as unknown as EventRecord[],
+      null,
+      author as AccountId
+    );
   });
 }
 

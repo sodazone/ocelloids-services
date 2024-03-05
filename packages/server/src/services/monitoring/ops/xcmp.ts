@@ -17,7 +17,11 @@ import { GetOutboundHrmpMessages } from '../types-augmented.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
-function findOutboundHrmpMessage(messageControl: ControlQuery, getOutboundHrmpMessages: GetOutboundHrmpMessages, registry: Registry) {
+function findOutboundHrmpMessage(
+  messageControl: ControlQuery,
+  getOutboundHrmpMessages: GetOutboundHrmpMessages,
+  registry: Registry
+) {
   return (source: Observable<XcmSentWithContext>): Observable<GenericXcmSentWithContext> => {
     return source.pipe(
       mergeMap((sentMsg): Observable<GenericXcmSentWithContext> => {
@@ -101,7 +105,9 @@ export function extractXcmpReceive() {
       map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
         if (maybeXcmpEvent && matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
           const xcmMessage = maybeXcmpEvent.data as any;
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped')
+            ? maybeAssetTrapEvent
+            : undefined;
           const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
 
           return new GenericXcmInboundWithContext({
