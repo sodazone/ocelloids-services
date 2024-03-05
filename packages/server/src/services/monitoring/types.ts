@@ -426,6 +426,11 @@ export interface XcmReceived {
   messageId?: HexString;
 }
 
+/**
+ * Event emitted when an XCM is not received within a specified timeframe.
+ *
+ * @public
+ */
 export type XcmTimeout = XcmSent;
 
 export class GenericXcmTimeout implements XcmTimeout {
@@ -547,6 +552,7 @@ export class GenericXcmRelayed implements XcmRelayed {
 }
 
 /**
+ * Event emitted when an XCM is sent or received on an intermediate stop.
  *
  * @public
  */

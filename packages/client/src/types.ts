@@ -116,6 +116,7 @@ export enum XcmNotificationType {
   Sent = 'xcm.sent',
   Received = 'xcm.received',
   Relayed = 'xcm.relayed',
+  Timeout = 'xcm.timeout',
   Hop = 'xcm.hop'
 }
 

@@ -5,6 +5,8 @@ export type {
   XcmSent,
   XcmReceived,
   XcmRelayed,
+  XcmTimeout,
+  XcmHop,
   XcmTermini,
   XcmTerminiContext,
   XcmWaypointContext,

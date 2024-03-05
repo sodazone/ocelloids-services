@@ -8,6 +8,8 @@ export type {
   XcmReceived,
   XcmRelayed,
   XcmSent,
+  XcmTimeout,
+  XcmHop,
   AssetsTrapped,
   TrappedAsset,
   XcmNotifyMessage,
