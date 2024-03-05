@@ -9,11 +9,11 @@ import * as P from '@polkadot/api-derive';
 
 import { _services } from '../../testing/services.js';
 import Connector from '../networking/connector.js';
-import { mockConfigMixed } from '../../testing/configs.js';
+import { mockConfigMixed, mockConfigWS } from '../../testing/configs.js';
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../testing/blocks.js';
 import { DB, jsonEncoded, prefixes } from '../types.js';
 import { Janitor } from '../persistence/janitor.js';
-import { ChainHead, HexString } from './types.js';
+import { BlockNumberRange, ChainHead, HexString } from './types.js';
 
 jest.unstable_mockModule('@polkadot/api-derive', () => {
   return {
@@ -318,7 +318,7 @@ describe('head catcher', () => {
               derive: {
                 chain: {
                   getBlock: (hash) => Promise.resolve(
-                    polkadotBlocks.find(
+                    testBlocks.find(
                       b => b.block.hash.toHex() === hash.toHex()
                     )
                   )
@@ -374,6 +374,118 @@ describe('head catcher', () => {
                 catcher.stop();
                 done();
               }
+            }
+          });
+        }
+      });
+    });
+
+    it('should recover block ranges', done => {
+      // Load 20 blocks starting from #17844552
+      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
+      // Pretend that we left off at block #17844570
+      db.sublevel<string, ChainHead>(
+        prefixes.cache.tips, jsonEncoded
+      ).put('0', {
+        chainId: '0',
+        blockNumber: '17844570'
+      } as unknown as ChainHead
+      );
+      // Pretend that we got interrupted
+      const range : BlockNumberRange = {
+        fromBlockNum: '17844569',
+        toBlockNum: '17844551'
+      };
+      db.sublevel<string, BlockNumberRange>(
+        prefixes.cache.ranges('0'), jsonEncoded
+      ).put(
+        prefixes.cache.keys.range(range), range
+      );
+      const testHeaders = testBlocks.map(tb => tb.block.header);
+      // We will emit the last finalized headers
+      const headersSource = from([testHeaders[18], testHeaders[19]]);
+      const blocksSource = from(testBlocks);
+
+      const mockGetHeader = jest.fn(
+        (hash: any) => {
+          const found = testHeaders.find(
+            h => h.hash.toHex() === hash.toHex()
+          );
+          return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`);}
+      );
+
+      const mockGetHash = jest.fn(
+        (blockNumber: any) => {
+          const found = testHeaders.find(
+            h => h.number.toString() === blockNumber.toString()
+          );
+          return found ? Promise.resolve(found.hash) : Promise.reject(`No hash for ${blockNumber}`);}
+      );
+
+      const catcher = new HeadCatcher({
+        ..._services,
+        config: mockConfigWS,
+        connector: {
+          connect: () => ({
+            rx: {
+              '0': of({
+                derive: {
+                  chain: {
+                    subscribeNewBlocks: () => blocksSource
+                  },
+                },
+                rpc: {
+                  chain: {
+                    subscribeFinalizedHeads: () => headersSource
+                  },
+                },
+              } as unknown as ApiRx),
+              '1000': of({} as unknown as ApiRx),
+              '2032': of({} as unknown as ApiRx)
+            },
+            promise: { '0': { isReady: Promise.resolve({
+              rpc: {
+                chain: {
+                  getBlockHash: mockGetHash,
+                  getHeader: mockGetHeader
+                }
+              },
+              derive: {
+                chain: {
+                  getBlock: (hash) => {
+                    return Promise.resolve(
+                      testBlocks.find(
+                        b => b.block.hash.toHex() === hash.toHex()
+                      )
+                    );
+                  }},
+              },
+              registry: {
+                createType: () => ({})
+              }
+            } as unknown as ApiPromise) }}
+          })
+        } as unknown as Connector,
+        storage: {
+          ..._services.storage,
+          root: db
+        }
+      });
+
+      const cb = jest.fn();
+
+      catcher.start();
+
+      blocksSource.subscribe({
+        complete: async () => {
+          catcher.finalizedBlocks('0').subscribe({
+            next: _ => {
+              cb();
+            },
+            complete: async () => {
+              expect(cb).toHaveBeenCalledTimes(20);
+              catcher.stop();
+              done();
             }
           });
         }

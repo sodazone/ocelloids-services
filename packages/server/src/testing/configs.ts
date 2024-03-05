@@ -83,7 +83,9 @@ export const mockConfigWS: ServiceConfiguration = {
       provider: {
         type: 'rpc',
         url: 'wss://polkadot.io'
-      }
+      },
+      recovery: true,
+      batchSize: 5
     },
     {
       name: 'asset-hub',
@@ -114,8 +116,7 @@ export const mockConfigMixed: ServiceConfiguration = {
       provider: {
         type: 'smoldot',
         spec: './chain-specs/polkadot.json'
-      },
-      recovery: false
+      }
     },
     {
       name: 'asset-hub',

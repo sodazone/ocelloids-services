@@ -445,7 +445,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * Returns an array of heads containing the current head from the source along the heads
    * of the block range gap.
-   * 
+   *
    * It supports block range batching and interruption recovery. Both options are configurable
    * at the network level.
    *
@@ -491,15 +491,14 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         mergeMap(range => from(
           api.rpc.chain.getBlockHash(range.fromBlockNum).then(
             hash => api.rpc.chain.getHeader(hash)
-          )).pipe(mergeMap(
-          head => of(arrayOfTargetHeights(
+          )).pipe(
+          mergeMap(head => of(arrayOfTargetHeights(
             BigInt(range.fromBlockNum),
             BigInt(range.toBlockNum),
             batchSize
           )).pipe(
             this.#catchUpToHeight(chainId, api, head)
-          )
-        )
+          ))
         ))
       );
     };
