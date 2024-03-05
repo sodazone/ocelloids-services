@@ -166,8 +166,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     const log = this.#log;
 
     await this.#mutex.runExclusive(async () => {
-      const hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash);
-      const idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId);
+      let hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash);
+      let idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId);
 
       if (hashKey === idKey) {
         try {
@@ -180,6 +180,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             inMsg.blockHash,
             inMsg.blockNumber
           );
+          // If outbound has messageId, we need to reconstruct idKey
+          if (outMsg.messageId !== undefined) {
+            idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageId);
+          }
           await this.#outbound.batch()
             .del(idKey)
             .del(hashKey)
@@ -206,6 +210,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             this.#outbound.get(idKey),
             this.#outbound.get(hashKey)
           ]);
+          // Reconstruct hashKey with outbound message hash in case of hopped messages
+          hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageHash);
           log.info(
             '[%s:i] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,

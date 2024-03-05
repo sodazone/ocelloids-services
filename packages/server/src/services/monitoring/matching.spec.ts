@@ -7,10 +7,13 @@ import { XcmInbound, XcmNotifyMessage, XcmSent } from './types.js';
 import { _services } from '../../testing/services.js';
 import { Janitor } from '../persistence/janitor.js';
 import { matchMessages, matchHopMessages } from '../../testing/matching.js';
+import { jsonEncoded, prefixes } from '../types.js';
+import { AbstractSublevel } from 'abstract-level';
 
 describe('message matching engine', () => {
   let engine: MatchingEngine;
   let db: Level;
+  let outbound: AbstractSublevel<Level, Buffer | Uint8Array | string, string, XcmSent>;
   const cb = jest.fn((_: XcmNotifyMessage) => {});
   const schedule = jest.fn(() => {});
 
@@ -34,29 +37,49 @@ describe('message matching engine', () => {
         schedule
       } as unknown as Janitor
     }, cb);
+
+    outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
   });
 
   it('should match inbound and outbound', async () => {
-    await engine.onOutboundMessage(matchMessages.origin);
-    await engine.onInboundMessage(matchMessages.destination);
+    const { origin, destination, subscriptionId } = matchMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
+    await engine.onOutboundMessage(origin);
+    await engine.onInboundMessage(destination);
 
     expect(cb).toHaveBeenCalledTimes(2);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match outbound and inbound', async () => {
-    await engine.onInboundMessage(matchMessages.destination);
-    await engine.onOutboundMessage(matchMessages.origin);
+    const { origin, destination, subscriptionId } = matchMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
+    await engine.onInboundMessage(destination);
+    await engine.onOutboundMessage(origin);
 
     expect(cb).toHaveBeenCalledTimes(2);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should work async concurrently', async () => {
+    const { origin, destination, subscriptionId } = matchMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
     await Promise.all([
-      engine.onOutboundMessage(matchMessages.origin),
-      engine.onInboundMessage(matchMessages.destination)
+      engine.onOutboundMessage(origin),
+      engine.onInboundMessage(destination)
     ]);
 
     expect(cb).toHaveBeenCalledTimes(2);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match outbound and relay', async () => {
@@ -75,67 +98,114 @@ describe('message matching engine', () => {
   });
 
   it('should match relay and outbound and inbound', async () => {
-    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay);
-    await engine.onOutboundMessage(matchMessages.origin);
-    await engine.onInboundMessage(matchMessages.destination);
-    expect(schedule).toHaveBeenCalledTimes(3);
+    const { origin, relay, destination, subscriptionId } = matchMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
 
+    await engine.onRelayedMessage(subscriptionId, relay);
+    await engine.onOutboundMessage(origin);
+    await engine.onInboundMessage(destination);
+
+    expect(schedule).toHaveBeenCalledTimes(3);
     expect(cb).toHaveBeenCalledTimes(3);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match outbound and inbound by message hash', async () => {
+    const { origin, destination, subscriptionId } = matchMessages;
     const omsg: XcmSent = {
-      ...matchMessages.origin,
+      ...origin,
       messageId: undefined
     };
     const imsg: XcmInbound = {
-      ...matchMessages.destination,
-      messageId: matchMessages.destination.messageHash
+      ...destination,
+      messageId: destination.messageHash
     };
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
     await engine.onOutboundMessage(omsg);
     await engine.onInboundMessage(imsg);
 
     expect(cb).toHaveBeenCalledTimes(2);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
+  });
+
+  it('should match with messageId on outbound and only message hash on inbound', async () => {
+    const { origin, destination, subscriptionId } = matchMessages;
+    const imsg: XcmInbound = {
+      ...destination,
+      messageId: destination.messageHash
+    };
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
+    await engine.onOutboundMessage(origin);
+    await engine.onInboundMessage(imsg);
+
+    expect(cb).toHaveBeenCalledTimes(2);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match hop messages', async () => {
-    await engine.onOutboundMessage(matchHopMessages.origin);
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
 
-    await engine.onInboundMessage(matchHopMessages.hopin);
-    await engine.onOutboundMessage(matchHopMessages.hopout);
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
-    await engine.onInboundMessage(matchHopMessages.destination);
+    await engine.onOutboundMessage(origin);
+    await engine.onRelayedMessage(subscriptionId, relay0);
+
+    await engine.onInboundMessage(hopin);
+    await engine.onOutboundMessage(hopout);
+    await engine.onRelayedMessage(subscriptionId, relay2);
+    await engine.onInboundMessage(destination);
 
     expect(cb).toHaveBeenCalledTimes(6);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match hop messages with concurrent message on hop stop', async () => {
-    await engine.onOutboundMessage(matchHopMessages.origin);
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
+    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
+    await engine.onOutboundMessage(origin);
+    await engine.onRelayedMessage(subscriptionId, relay0);
     await Promise.all([
-      engine.onInboundMessage(matchHopMessages.hopin),
-      engine.onOutboundMessage(matchHopMessages.hopout)
+      engine.onInboundMessage(hopin),
+      engine.onOutboundMessage(hopout)
     ]);
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
-    await engine.onInboundMessage(matchHopMessages.destination);
+    await engine.onRelayedMessage(subscriptionId, relay2);
+    await engine.onInboundMessage(destination);
 
     expect(cb).toHaveBeenCalledTimes(6);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay0);
-    await engine.onOutboundMessage(matchHopMessages.origin);
-    await engine.onRelayedMessage(matchHopMessages.subscriptionId, matchHopMessages.relay2);
+    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+
+    await engine.onRelayedMessage(subscriptionId, relay0);
+    await engine.onOutboundMessage(origin);
+    await engine.onRelayedMessage(subscriptionId, relay2);
 
     await Promise.all([
-      engine.onInboundMessage(matchHopMessages.hopin),
-      engine.onOutboundMessage(matchHopMessages.hopout)
+      engine.onInboundMessage(hopin),
+      engine.onOutboundMessage(hopout)
     ]);
 
-    await engine.onInboundMessage(matchHopMessages.destination);
+    await engine.onInboundMessage(destination);
 
     expect(cb).toHaveBeenCalledTimes(6);
+    await expect(outbound.get(idKey)).rejects.toBeDefined();
+    await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });
 
   it('should clean up stale data', async () => {
