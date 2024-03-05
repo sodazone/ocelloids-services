@@ -19,13 +19,23 @@ export type HumanizedXcm = {
 export function humanize(journey: XcmJourney) {
   const { instructions, sender, origin, destination } = journey;
   const versioned = Object.values(instructions)[0] as any[];
+  const hopTransfer = versioned.find(
+    (op) =>
+      op.InitiateReserveWithdraw ||
+      op.InitiateTeleport ||
+      op.DepositReserveAsset ||
+      op.TransferReserveAsset
+  );
 
   let type = XcmJourneyType.Unknown;
   if (versioned.find((op) => op.Transact)) {
     type = XcmJourneyType.Transact;
   } else if (
-    versioned.find((op) => op.WithdrawAsset || op.ReserveAssetDeposited) &&
-    versioned.find((op) => op.DepositAsset)
+    (
+      versioned.find((op) => op.WithdrawAsset || op.ReserveAssetDeposited) &&
+      versioned.find((op) => op.DepositAsset)
+    ) ||
+    hopTransfer
   ) {
     type = XcmJourneyType.Transfer;
   } else if (versioned.find((op) => op.ReceiveTeleportedAsset)) {
@@ -33,7 +43,10 @@ export function humanize(journey: XcmJourney) {
   }
 
   // Extract beneficiary
-  const deposit = versioned.find((op) => op.DepositAsset !== undefined);
+  let deposit = versioned.find((op) => op.DepositAsset !== undefined);
+  if (hopTransfer) {
+    deposit = hopTransfer.xcm.DepositAsset;
+  }
   const X1 = deposit.DepositAsset.beneficiary.interior.X1;
   let beneficiary = 'unknown';
   if (X1?.AccountId32) {
