@@ -411,7 +411,9 @@ describe('head catcher', () => {
           const found = testHeaders.find(
             h => h.hash.toHex() === hash.toHex()
           );
-          return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`);}
+          return found
+            ? Promise.resolve(found)
+            : Promise.reject(new Error(`No header for ${hash.toHex()}`));}
       );
 
       const mockGetHash = jest.fn(
@@ -419,7 +421,9 @@ describe('head catcher', () => {
           const found = testHeaders.find(
             h => h.number.toString() === blockNumber.toString()
           );
-          return found ? Promise.resolve(found.hash) : Promise.reject(`No hash for ${blockNumber}`);}
+          return found
+            ? Promise.resolve(found.hash)
+            : Promise.reject(new Error(`No hash for ${blockNumber}`));}
       );
 
       const catcher = new HeadCatcher({

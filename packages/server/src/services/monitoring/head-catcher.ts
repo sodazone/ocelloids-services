@@ -12,6 +12,8 @@ import {
   tap,
   switchMap,
   map,
+  catchError,
+  EMPTY,
   BehaviorSubject,
   finalize,
   of
@@ -492,6 +494,13 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           api.rpc.chain.getBlockHash(range.fromBlockNum).then(
             hash => api.rpc.chain.getHeader(hash)
           )).pipe(
+          catchError(error => {
+            this.#log.warn(
+              '[%s] in #recoverBlockRanges(%s-%s) %s',
+              chainId, range.fromBlockNum, range.toBlockNum, error
+            );
+            return EMPTY;
+          }),
           mergeMap(head => of(arrayOfTargetHeights(
             BigInt(range.fromBlockNum),
             BigInt(range.toBlockNum),
@@ -585,7 +594,6 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           ? of([header, ...prev])
           : this.#headers(api, header, targetHeight, [header, ...prev])
       )
-      // TODO on error just warn and empty[]
     );
   }
 
@@ -628,6 +636,13 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                 mergeAll()
               )
             ),
+            catchError(error => {
+              this.#log.warn(
+                '[%s] in #catchUpToHeight(%s) %s',
+                chainId, targets, error
+              );
+              return EMPTY;
+            }),
             tap({
               complete: async () => {
                 // on complete we will clear the pending range
