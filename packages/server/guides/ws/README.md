@@ -10,7 +10,6 @@ cargo install --features=ssl websocat
 [[networks]]
 name = "polkadot"
 id = 0
-throttle = 1_000
   [networks.provider]
   type = "rpc"
   url = "wss://dot-rpc.stakeworld.io"
@@ -25,7 +24,6 @@ relay = "polkadot"
 name = "acala"
 id = 2_000
 relay = "polkadot"
-throttle = 1_000
   [networks.provider]
   type = "rpc"
   url = "wss://acala-rpc-0.aca-api.network"
@@ -33,7 +31,6 @@ throttle = 1_000
 name = "hydra"
 id = 2_034
 relay = "polkadot"
-throttle = 1_000
   [networks.provider]
   type = "rpc"
   url = "wss://rpc.hydradx.cloud"

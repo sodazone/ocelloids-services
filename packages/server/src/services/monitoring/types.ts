@@ -21,6 +21,11 @@ export const $ChainHead = z.object({
 
 export type ChainHead = z.infer<typeof $ChainHead>;
 
+export type BlockNumberRange = {
+  fromBlockNum: string
+  toBlockNum: string
+}
+
 export const $SafeId = z.string({
   required_error: 'id is required'
 }).min(1).max(100).regex(/[A-Za-z0-9:\.\-_]+/);

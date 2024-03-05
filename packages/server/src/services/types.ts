@@ -10,7 +10,7 @@ import { ServiceConfiguration } from './config.js';
 import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
 import { Scheduler } from './persistence/scheduler.js';
-import { HexString } from './monitoring/types.js';
+import { BlockNumberRange, HexString } from './monitoring/types.js';
 
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>;
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
@@ -31,8 +31,10 @@ export const prefixes = {
     keys: {
       block: (hash: HexString) => `blk:${hash}`,
       ump: (hash: HexString) => `ump:${hash}`,
-      hrmp: (hash: HexString) => `hrm:${hash}`
+      hrmp: (hash: HexString) => `hrm:${hash}`,
+      range: (range: BlockNumberRange) => `${range.fromBlockNum}-${range.toBlockNum}`
     },
+    ranges: (chainId: string) => `ch:rg:${chainId}`,
     tips: 'ch:fi'
   },
   matching: {

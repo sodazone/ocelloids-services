@@ -1,7 +1,20 @@
 import { EventEmitter } from 'node:events';
 
 import {
-  Observable, Subscription, mergeAll, zip, share, mergeMap, from, tap, switchMap, map
+  Observable,
+  Subscription,
+  mergeAll,
+  zip,
+  share,
+  mergeMap,
+  mergeWith,
+  from,
+  tap,
+  switchMap,
+  map,
+  BehaviorSubject,
+  finalize,
+  of
 } from 'rxjs';
 import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
@@ -22,7 +35,7 @@ import {
 } from '@sodazone/ocelloids';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
-import { ChainHead as ChainTip, BinBlock, HexString } from './types.js';
+import { ChainHead as ChainTip, BinBlock, HexString, BlockNumberRange } from './types.js';
 import { GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js';
 import { Janitor } from '../../services/persistence/janitor.js';
 import { ServiceConfiguration } from '../../services/config.js';
@@ -32,6 +45,26 @@ const MAX_BLOCK_DIST : bigint = process.env.XCMON_MAX_BLOCK_DIST ?
   BigInt(process.env.XCMON_MAX_BLOCK_DIST)
   : 50n; // maximum distance in #blocks
 const max = (...args : bigint[]) => args.reduce((m, e) => e > m ? e : m);
+
+function arrayOfTargetHeights(
+  newHeight: bigint,
+  targetHeight: bigint,
+  batchSize: bigint
+) {
+  const targets = [];
+  let n: bigint = newHeight;
+
+  while (n > targetHeight) {
+    if (n - targetHeight >= batchSize) {
+      n -= batchSize;
+    } else {
+      n = targetHeight;
+    }
+    targets.push(n);
+  }
+
+  return targets;
+}
 
 /**
  * The HeadCatcher performs the following tasks ("moo" 🐮):
@@ -131,7 +164,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
         if (isRelayChain) {
           this.#subs[chainId] = block$.pipe(
-            map(block => from(this.#putBlock(chainId, block))),
+            map(block => from(this.#putBlockBuffer(chainId, block))),
             mergeAll()
           ).subscribe(
             {
@@ -145,7 +178,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         } else {
           this.#subs[chainId] = msgs$.pipe(
             map(({ block, hrmpMessages, umpMessages }) => {
-              const ops = [from(this.#putBlock(chainId, block))];
+              const ops = [from(this.#putBlockBuffer(chainId, block))];
               const hash = block.block.header.hash.toHex();
 
               if (hrmpMessages.length > 0) {
@@ -210,6 +243,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     if (this.#hasCache(chainId)) {
       // only applies to light clients
+      // TODO: check if can recover ranges
       pipe = apiPromiseObs.pipe(
         switchMap(api => apiRx.pipe(
           finalizedHeads(),
@@ -226,15 +260,21 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       );
     } else {
       pipe = apiPromiseObs.pipe(
-        switchMap(api => apiRx.pipe(
-          finalizedHeads(),
-          this.#tapError(chainId, 'finalizedHeads()'),
-          retryWithTruncatedExpBackoff(),
-          this.#catchUpHeads(chainId, api),
-          blockFromHeader(api),
-          this.#tapError(chainId, 'blockFromHeader()'),
-          retryWithTruncatedExpBackoff()
-        )),
+        switchMap(api =>
+          apiRx.pipe(
+            finalizedHeads(),
+            mergeWith(
+              from(this.#recoverRanges(chainId)).pipe(
+                this.#recoverBlockRanges(chainId, api)
+              )
+            ),
+            this.#tapError(chainId, 'finalizedHeads()'),
+            retryWithTruncatedExpBackoff(),
+            this.#catchUpHeads(chainId, api),
+            blockFromHeader(api),
+            this.#tapError(chainId, 'blockFromHeader()'),
+            retryWithTruncatedExpBackoff()
+          )),
         share()
       );
     }
@@ -252,7 +292,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    */
   outboundHrmpMessages(chainId: string) : GetOutboundHrmpMessages {
     const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
-    const cache = this.#cache(chainId);
+    const cache = this.#bufferCache(chainId);
 
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
@@ -297,7 +337,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    */
   outboundUmpMessages(chainId: string) : GetOutboundUmpMessages {
     const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
-    const cache = this.#cache(chainId);
+    const cache = this.#bufferCache(chainId);
 
     if (this.#hasCache(chainId)) {
       return (hash: HexString)
@@ -358,7 +398,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     hash: HexString
   ) {
     try {
-      const buffer = await this.#cache(chainId).get(
+      const buffer = await this.#bufferCache(chainId).get(
         prefixes.cache.keys.block(hash)
       );
       const binBlock: BinBlock = decode(buffer);
@@ -393,14 +433,18 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     );
   }
 
+  #pendingRanges(chainId: string) {
+    return this.#db.sublevel<string, BlockNumberRange>(
+      prefixes.cache.ranges(chainId), jsonEncoded
+    );
+  }
+
   /**
    * Catches up the blockchain heads by fetching missing blocks between the current stored
    * head and the new incoming head, and updates the storage with the highest head information.
    *
    * Returns an array of heads containing the current head from the source along the heads
    * of the block range gap.
-   *
-   * This function throttles the requests to avoid overwhelming the network.
    *
    * @private
    */
@@ -423,17 +467,51 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             header
           });
         }),
-        mergeMap(head => from(
-          this.#doCatchUp(chainId, api, head)
-        )),
-        this.#tapError(chainId, '#doCatchUp()'),
-        retryWithTruncatedExpBackoff(),
-        mergeAll()
+        mergeMap(header => from(
+          this.#targetHeights(chainId, header)
+        ).pipe(
+          this.#catchUpToHeight(chainId, api, header)
+        )
+        ),
+        this.#tapError(chainId, '#catchUpHeads()'),
+        retryWithTruncatedExpBackoff()
       );
     };
   }
 
-  async #doCatchUp(chainId: string, api: ApiPromise, head: Header) {
+  #recoverBlockRanges(chainId: string, api: ApiPromise) {
+    return (source: Observable<BlockNumberRange[]>)
+    : Observable<Header> => {
+      const batchSize =  this.#batchSize(chainId);
+      return source.pipe(
+        mergeAll(),
+        mergeMap(range => from(
+          api.rpc.chain.getBlockHash(range.fromBlockNum).then(
+            hash => api.rpc.chain.getHeader(hash)
+          )).pipe(mergeMap(
+          head => of(arrayOfTargetHeights(
+            BigInt(range.fromBlockNum),
+            BigInt(range.toBlockNum),
+            batchSize
+          )).pipe(
+            this.#catchUpToHeight(chainId, api, head)
+          )
+        )
+        ))
+      );
+    };
+  }
+
+  async #recoverRanges(chainId: string) {
+    const networkConfig = this.#config.networks.find(n => n.id === chainId);
+    if (networkConfig && networkConfig.recovery) {
+      return await (await this.#pendingRanges(chainId).values()).all();
+    } else {
+      return [];
+    }
+  }
+
+  async #targetHeights(chainId: string, head: Header) {
     if (this.#mutex[chainId] === undefined) {
       this.#mutex[chainId] = new Mutex();
     }
@@ -441,7 +519,6 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     const release = await this.#mutex[chainId].acquire();
 
     try {
-      const heads : Header[] = [head];
       const newHeadNum = head.number.toBigInt();
       let currentHeight: bigint;
 
@@ -462,65 +539,149 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
       const blockDistance = newHeadNum - currentHeight;
 
-      if (blockDistance < 2) {
+      if (blockDistance < 2n) {
         // nothing to catch
         await this.#chainTips.put(chainId, chainTip);
-        return heads;
+        return [];
       }
 
+      const batchSize =  this.#batchSize(chainId);
+
+      // cap by distance
       const targetHeight = max(newHeadNum - MAX_BLOCK_DIST, currentHeight);
 
-      this.#log.info(
-        '[%s] CATCHING UP from #%s to #%s (trunc=%s)',
-        chainId,
-        targetHeight,
-        newHeadNum,
-        targetHeight - currentHeight
+      const range : BlockNumberRange = {
+        fromBlockNum: newHeadNum.toString(),
+        toBlockNum: targetHeight.toString()
+      };
+      const rangeKey = prefixes.cache.keys.range(range);
+
+      // signal the range as pending
+      // should be removed on complete
+      await this.#pendingRanges(chainId).put(
+        rangeKey,
+        range
       );
 
-      let parentHead = head;
+      this.#log.info('[%s] BEGIN RANGE %s', chainId, rangeKey);
 
-      const delay = this.#config.networks.find(
-        n => n.id === chainId
-      )?.throttle ?? 1000;
-
-      while (parentHead.number.toBigInt() - targetHeight > 1) {
-        try {
-          parentHead = await api.rpc.chain.getHeader(parentHead.parentHash);
-
-          heads.push(parentHead);
-
-          // TODO: log every n blocks?
-          this.#log.info(
-            '[%s] CATCH-UP FINALIZED block #%s %s (t=#%s)',
-            chainId,
-            parentHead.number.toBigInt(),
-            parentHead.hash.toHex(),
-            targetHeight.toString()
-          );
-
-          // throttle
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } catch (error) {
-          this.#log.error(error, 'during catch-up headers');
-          this.emit('telemetryHeadCatcherError', {
-            chainId,
-            method: '#doCatchUp()'
-          });
-          // TODO: check if needs further handling
-          break;
-        }
+      if (currentHeight < newHeadNum) {
+        await this.#chainTips.put(chainId, chainTip);
       }
 
-      await this.#chainTips.put(chainId, chainTip);
-
-      return heads;
+      return arrayOfTargetHeights(newHeadNum, targetHeight, batchSize);
     } finally {
       release();
     }
   }
 
-  #cache(chainId: string) {
+  #headers(api: ApiPromise, newHead: Header, targetHeight: bigint, prev: Header[])
+  : Observable<Header[]> {
+    return from(api.rpc.chain.getHeader(newHead.parentHash)).pipe(
+      switchMap((header) =>
+        header.number.toBigInt() - 1n <= targetHeight
+          ? of([header, ...prev])
+          : this.#headers(api, header, targetHeight, [header, ...prev])
+      )
+      // TODO on error just warn and empty[]
+    );
+  }
+
+  #catchUpToHeight(chainId: string, api: ApiPromise, newHead: Header) {
+    return (source: Observable<bigint[]>)
+    : Observable<Header> => {
+      return source.pipe(
+        mergeMap(targets => {
+          if (targets.length === 0) {
+            return of(newHead);
+          }
+
+          const batchControl = new BehaviorSubject({
+            index: 0,
+            target: targets[0],
+            head: newHead,
+            collect: [newHead]
+          });
+
+          return  batchControl.pipe(
+            mergeMap(({target, head, collect}) =>
+              (head.number.toBigInt() - 1n === target
+                ? of([head])
+                : this.#headers(api, head, target, collect)).pipe(
+                map(heads => {
+                  if (batchControl.value.index === targets.length - 1) {
+                    batchControl.complete();
+                  } else {
+                    const batch = batchControl.value;
+                    const index = batch.index + 1;
+                    batchControl.next({
+                      index,
+                      target: targets[index],
+                      head: heads[0],
+                      collect: []
+                    });
+                  }
+                  return heads;
+                }),
+                mergeAll()
+              )
+            ),
+            tap({
+              complete: async () => {
+                // on complete we will clear the pending range
+                const range : BlockNumberRange = {
+                  fromBlockNum: newHead.number.toString(),
+                  toBlockNum: batchControl.value.target.toString()
+                };
+                const rangeKey = prefixes.cache.keys.range(range);
+
+                await this.#pendingRanges(chainId).del(
+                  rangeKey
+                );
+
+                this.#log.info('[%s] COMPLETE RANGE %s', chainId, rangeKey);
+              }
+            }),
+            finalize(async () => {
+              const fullRange : BlockNumberRange = {
+                fromBlockNum: newHead.number.toString(),
+                toBlockNum: targets[targets.length - 1].toString()
+              };
+              const currentRange : BlockNumberRange = {
+                fromBlockNum: batchControl.value.head.number.toString(),
+                toBlockNum: batchControl.value.target.toString()
+              };
+
+              const fullRangeKey = prefixes.cache.keys.range(fullRange);
+              const currentRangeKey = prefixes.cache.keys.range(currentRange);
+
+              try {
+                if (fullRange.toBlockNum !== currentRange.toBlockNum) {
+                  const dbBatch = this.#pendingRanges(chainId).batch();
+                  await dbBatch
+                    .del(fullRangeKey)
+                    .put(currentRangeKey, currentRange)
+                    .write();
+
+                  this.#log.info(
+                    '[%s] stale range to recover %s',
+                    chainId,
+                    prefixes.cache.keys.range(currentRange)
+                  );
+                }
+              } catch (err) {
+                this.#log.warn('Error while writing stale ranges', err);
+              }
+            })
+          );
+        }));
+    };
+  }
+
+  /**
+   * Binary cache by chain id.
+   */
+  #bufferCache(chainId: string) {
     return this.#db.sublevel<string, Uint8Array>(
       prefixes.cache.family(chainId),
       {
@@ -529,8 +690,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     );
   }
 
+  /**
+   * Puts into the binary cache.
+   */
   async #putBuffer(chainId: string, key: string, buffer: Uint8Array) {
-    const db = this.#cache(chainId);
+    const db = this.#bufferCache(chainId);
     await db.put(key, buffer);
 
     await this.#janitor.schedule({
@@ -539,12 +703,12 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     });
   }
 
-  async #putBlock(chainId: string, block: SignedBlockExtended) {
+  async #putBlockBuffer(chainId: string, block: SignedBlockExtended) {
     const hash = block.block.header.hash.toHex();
     const key = prefixes.cache.keys.block(hash);
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#cache(chainId).put(
+    await this.#bufferCache(chainId).put(
       key,
       encode({
         block: block.toU8a(),
@@ -557,6 +721,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       sublevel: prefixes.cache.family(chainId),
       key
     });
+  }
+
+  #batchSize(chainId: string) {
+    const networkConfig = this.#config.networks.find(n => n.id === chainId);
+    return BigInt(networkConfig?.batchSize ?? 25);
   }
 
   #tapError<T>(chainId: string, method: string) {

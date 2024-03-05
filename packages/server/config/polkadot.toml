@@ -1,7 +1,6 @@
 [[networks]]
 name = "polkadot"
 id = 0
-throttle = 1_000
 
   [networks.provider]
   type = "smoldot"
@@ -19,7 +18,6 @@ relay = "polkadot"
 name = "acala"
 id = 2_000
 relay = "polkadot"
-throttle = 1_000
 
   [networks.provider]
   type = "smoldot"
@@ -29,7 +27,6 @@ throttle = 1_000
 name = "astar"
 id = 2_006
 relay = "polkadot"
-throttle = 1_000
 
   [networks.provider]
   type = "smoldot"

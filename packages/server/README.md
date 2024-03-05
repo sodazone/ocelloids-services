@@ -52,13 +52,14 @@ The configuration values can be overridden using command line arguments.
 
 To configure network connections, you need to provide a configuration file in TOML format. The accepted configuration fields are as follows:
 
-| Field    | Description                                                                                        | Optional   |
-| ---------| -------------------------------------------------------------------------------------------------- | ---------- |
-| name     | The name of the network.                                                                           | No         |
-| id       | The ID of the network.                                                                             | No         |
-| relay    | For parachains, the name of the relay chain it connects to.                                        | Yes        |
-| throttle | The throttle interval, in milliseconds, for requesting historic headers during chain tip catch-up. | Yes        |
-| provider | Provider configuration, detailed below.                                                            | No         |
+| Field      | Description                                                                                        | Required   | Default |
+| ---------  | -------------------------------------------------------------------------------------------------- | ---------- | ------- |
+| name       | The name of the network.                                                                           | Yes        | n/a     |
+| id         | The ID of the network.                                                                             | Yes        | n/a     |
+| provider   | Provider configuration, detailed below.                                                            | Yes        | n/a     |
+| relay      | For parachains, the name of the relay chain it connects to.                                        | No         | n/a     |
+| recovery   | Enbles or disables the recovery of interrupted catch-ups.                                          | No         | false   |
+| batch-size | The batch size for catching up heads.                                                              | No         | 25      |
 
 Provider configuration fields:
 

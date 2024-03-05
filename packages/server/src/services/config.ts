@@ -28,7 +28,8 @@ const $NetworkConfiguration = z.object({
   id: z.number().int().pipe(z.coerce.string()),
   relay: z.string().min(1).optional(),
   provider: $NetworkProvider,
-  throttle: z.optional(z.number().int().default(1000))
+  recovery: z.boolean().optional(),
+  batchSize: z.number().int().min(1).optional()
 });
 
 export const $ServiceConfiguration = z.object({

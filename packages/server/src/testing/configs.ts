@@ -115,7 +115,7 @@ export const mockConfigMixed: ServiceConfiguration = {
         type: 'smoldot',
         spec: './chain-specs/polkadot.json'
       },
-      throttle: 0
+      recovery: false
     },
     {
       name: 'asset-hub',

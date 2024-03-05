@@ -48,13 +48,16 @@ describe('head catcher', () => {
     );
   }
 
-  beforeEach(() => {
+  beforeAll(() => {
     db = new MemoryLevel();
   });
 
-  afterEach(done => {
-    db.close();
-    done();
+  afterEach(async () => {
+    await db.clear();
+  });
+
+  afterAll(async () => {
+    await db.close();
   });
 
   describe('start', () => {
@@ -278,11 +281,11 @@ describe('head catcher', () => {
       const blocksSource = from(testBlocks);
 
       const mockGetHeader = jest.fn(
-        (hash: any) => Promise.resolve(
-          testHeaders.find(
+        (hash: any) => {
+          const found = testHeaders.find(
             h => h.hash.toHex() === hash.toHex()
-          )
-        )
+          );
+          return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`);}
       );
 
       const catcher = new HeadCatcher({
