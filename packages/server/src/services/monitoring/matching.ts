@@ -512,7 +512,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         error,
         messageData,
         messageHash,
-        instructions
+        instructions,
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out');
 
@@ -542,7 +542,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         error,
         messageData,
         messageHash,
-        instructions
+        instructions,
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in');
 

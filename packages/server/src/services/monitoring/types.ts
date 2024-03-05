@@ -369,9 +369,9 @@ export class GenericXcmSent implements XcmSent {
       legIndex: 0,
       messageData: toHexString(msg.messageData),
       instructions: msg.instructions.json,
-      messageHash: msg.messageHash
+      messageHash: msg.messageHash,
     };
-    
+
     this.messageId = msg.messageId;
     this.sender = msg.sender;
   }
@@ -480,7 +480,7 @@ export class GenericXcmReceived implements XcmReceived {
       legIndex: this.legs.length - 1,
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
-      messageHash: outMsg.waypoint.messageHash
+      messageHash: outMsg.waypoint.messageHash,
     };
     this.sender = outMsg.sender;
     this.messageId = outMsg.messageId;
@@ -521,7 +521,7 @@ export class GenericXcmRelayed implements XcmRelayed {
       error: relayMsg.error,
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
-      messageHash: outMsg.waypoint.messageHash
+      messageHash: outMsg.waypoint.messageHash,
     };
     this.sender = outMsg.sender;
     this.messageId = outMsg.messageId;

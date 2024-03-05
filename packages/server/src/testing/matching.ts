@@ -39,7 +39,7 @@ const outboundMessage: XcmSent = {
     legIndex: 0,
     instructions: {},
     messageData: '0x0',
-    messageHash: '0xCAFE'
+    messageHash: '0xCAFE',
   },
   subscriptionId: subscriptionId,
   sender: {
@@ -167,7 +167,7 @@ export const matchHopMessages: MatchHopMessages = {
       legIndex: 0,
       instructions: {},
       messageData: '0x0',
-      messageHash: '0xDEAD'
+      messageHash: '0xDEAD',
     },
     subscriptionId: subscriptionId,
     sender: undefined,
