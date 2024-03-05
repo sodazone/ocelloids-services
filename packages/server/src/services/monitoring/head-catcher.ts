@@ -445,6 +445,9 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * Returns an array of heads containing the current head from the source along the heads
    * of the block range gap.
+   * 
+   * It supports block range batching and interruption recovery. Both options are configurable
+   * at the network level.
    *
    * @private
    */
