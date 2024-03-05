@@ -25,7 +25,7 @@ function jsonError(error: any) {
   return JSON.stringify({
     error: true,
     statusCode: error.statusCode,
-    reason: errorMessage(error)
+    reason: errorMessage(error),
   });
 }
 
@@ -39,4 +39,3 @@ export function errorHandler(error: any, _: any, reply: FastifyReply) {
     reply.status(500).send(jsonError(error));
   }
 }
-

@@ -9,27 +9,27 @@ import { ServerOptions } from '../types.js';
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),
-  url: z.string().min(1)
+  url: z.string().min(1),
 });
 
 const $SmoldotProvider = z.object({
   type: z.literal('smoldot'),
-  spec: z.string().min(1).optional()
+  spec: z.string().min(1).optional(),
 });
 
-const $NetworkProvider = z.discriminatedUnion('type', [
-  $RpcProvider, $SmoldotProvider
-]);
+const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
 const $NetworkConfiguration = z.object({
-  name: z.string({
-    required_error: 'Network name is required'
-  }).min(1),
+  name: z
+    .string({
+      required_error: 'Network name is required',
+    })
+    .min(1),
   id: z.number().int().pipe(z.coerce.string()),
   relay: z.string().min(1).optional(),
   provider: $NetworkProvider,
   recovery: z.boolean().optional(),
-  batchSize: z.number().int().min(1).optional()
+  batchSize: z.number().int().min(1).optional(),
 });
 
 export const $ServiceConfiguration = z.object({
@@ -39,21 +39,17 @@ export const $ServiceConfiguration = z.object({
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 
-export function isRelay({networks}: ServiceConfiguration, chainId: string) {
-  return networks.findIndex(
-    n => n.relay === undefined && n.id === chainId
-  ) >= 0;
+export function isRelay({ networks }: ServiceConfiguration, chainId: string) {
+  return networks.findIndex((n) => n.relay === undefined && n.id === chainId) >= 0;
 }
 
-export function isNetworkDefined({networks}: ServiceConfiguration, chainId: string) {
-  return networks.findIndex(
-    n => n.id === chainId
-  ) >= 0;
+export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: string) {
+  return networks.findIndex((n) => n.id === chainId) >= 0;
 }
 
 declare module 'fastify' {
   interface FastifyInstance {
-    config: ServiceConfiguration
+    config: ServiceConfiguration;
   }
 }
 
@@ -63,11 +59,7 @@ const configPlugin: FastifyPluginAsync<ServerOptions> = async (fastify, options)
   fastify.log.info(`Loading configuration from ${configPath}`);
 
   try {
-    const config = $ServiceConfiguration.parse(
-      toml.parse(
-        fs.readFileSync(configPath, 'utf-8')
-      )
-    );
+    const config = $ServiceConfiguration.parse(toml.parse(fs.readFileSync(configPath, 'utf-8')));
     fastify.decorate('config', config);
   } catch (err) {
     /* istanbul ignore next */

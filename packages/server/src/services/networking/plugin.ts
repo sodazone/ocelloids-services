@@ -5,11 +5,11 @@ import Connector from './connector.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    connector: Connector
+    connector: Connector;
   }
 }
 
-const connectorPlugin: FastifyPluginAsync = async fastify => {
+const connectorPlugin: FastifyPluginAsync = async (fastify) => {
   const connector = new Connector(fastify.log, fastify.config);
   fastify.decorate('connector', connector);
 

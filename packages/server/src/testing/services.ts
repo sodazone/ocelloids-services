@@ -12,108 +12,107 @@ import { _configToml } from './data.js';
 import { Scheduler } from '../services/persistence/scheduler.js';
 
 export const _log = pino({
-  enabled: false
+  enabled: false,
 });
 
-export const _config = $ServiceConfiguration.parse(
-  toml.parse(_configToml)
-);
+export const _config = $ServiceConfiguration.parse(toml.parse(_configToml));
 
 export const _mockApiPromises = {
-  '0': {isReady: Promise.resolve({
-    registry: {
-      hasType: () => true
-    },
-    derive: {
-      chain: {
-        getBlock: () => {
-
-        }
-      }
-    }
-  } as unknown as ApiPromise)},
-  '1000': {isReady: Promise.resolve({
-    registry: {
-      hasType: () => true
-    },
-    derive: {
-      chain: {
-        getBlock: () => {
-        }
-      }
-    },
-    at: () => {
-      return Promise.resolve({
-        query: { }
-      });
-    }
-  } as unknown as ApiPromise)},
-  '2000': {isReady: Promise.resolve({
-    registry: {
-      hasType: () => true
-    },
-    derive: {
-      chain: {
-        getBlock: () => {
-        }
-      }
-    }
-  } as unknown as ApiPromise)},
-  '3000': {isReady: Promise.resolve({
-    registry: {
-      hasType: () => true
-    },
-    derive: {
-      chain: {
-        getBlock: () => {
-        }
-      }
-    }
-  } as unknown as ApiPromise)}
+  '0': {
+    isReady: Promise.resolve({
+      registry: {
+        hasType: () => true,
+      },
+      derive: {
+        chain: {
+          getBlock: () => {},
+        },
+      },
+    } as unknown as ApiPromise),
+  },
+  '1000': {
+    isReady: Promise.resolve({
+      registry: {
+        hasType: () => true,
+      },
+      derive: {
+        chain: {
+          getBlock: () => {},
+        },
+      },
+      at: () => {
+        return Promise.resolve({
+          query: {},
+        });
+      },
+    } as unknown as ApiPromise),
+  },
+  '2000': {
+    isReady: Promise.resolve({
+      registry: {
+        hasType: () => true,
+      },
+      derive: {
+        chain: {
+          getBlock: () => {},
+        },
+      },
+    } as unknown as ApiPromise),
+  },
+  '3000': {
+    isReady: Promise.resolve({
+      registry: {
+        hasType: () => true,
+      },
+      derive: {
+        chain: {
+          getBlock: () => {},
+        },
+      },
+    } as unknown as ApiPromise),
+  },
 };
 
 export const _mockApiRxs = {
   '0': of({
     rpc: {
       chain: {
-        subscribeFinalizedHeads: () => of({})
+        subscribeFinalizedHeads: () => of({}),
       },
-    }
+    },
   } as unknown as ApiRx),
   '1000': of({
     rpc: {
       chain: {
-        subscribeFinalizedHeads: () => of({})
+        subscribeFinalizedHeads: () => of({}),
       },
-    }
+    },
   }),
   '2000': of({
     rpc: {
       chain: {
-        subscribeFinalizedHeads: () => of({})
+        subscribeFinalizedHeads: () => of({}),
       },
-    }
+    },
   } as unknown as ApiRx),
   '3000': of({
     rpc: {
       chain: {
-        subscribeFinalizedHeads: () => of({})
+        subscribeFinalizedHeads: () => of({}),
       },
-    }
-  } as unknown as ApiRx)
+    },
+  } as unknown as ApiRx),
 };
 
 export const _connector = {
   connect: () => ({
     promise: _mockApiPromises,
-    rx: _mockApiRxs
-  })
+    rx: _mockApiRxs,
+  }),
 } as unknown as Connector;
 
 export const _rootDB = new MemoryLevel();
-export const _subsDB = new SubsStore(
-  _log, _rootDB, _config
-);
+export const _subsDB = new SubsStore(_log, _rootDB, _config);
 
 export const _services = {
   log: _log,
@@ -121,13 +120,13 @@ export const _services = {
   connector: _connector,
   storage: {
     root: _rootDB,
-    subs: _subsDB
+    subs: _subsDB,
   },
   scheduler: {
-    on: () => {}
+    on: () => {},
   } as unknown as Scheduler,
   janitor: {
     on: () => {},
-    schedule: () => {}
-  } as unknown as Janitor
+    schedule: () => {},
+  } as unknown as Janitor,
 };

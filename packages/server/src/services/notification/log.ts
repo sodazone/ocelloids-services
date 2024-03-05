@@ -16,10 +16,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
     hub.on('log', this.notify.bind(this));
   }
 
-  notify(
-    sub: Subscription,
-    msg: XcmNotifyMessage
-  ) {
+  notify(sub: Subscription, msg: XcmNotifyMessage) {
     if (isXcmReceived(msg)) {
       this.#log.info(
         '[%s ➜ %s] NOTIFICATION %s subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',

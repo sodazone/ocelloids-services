@@ -7,8 +7,8 @@ export const mockConfigProviderMismatch: ServiceConfiguration = {
       id: '0',
       provider: {
         type: 'rpc',
-        url: 'wss://kusama.io'
-      }
+        url: 'wss://kusama.io',
+      },
     },
     {
       name: 'shiden',
@@ -16,10 +16,10 @@ export const mockConfigProviderMismatch: ServiceConfiguration = {
       relay: 'kusama',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/shiden.json'
-      }
-    }
-  ]
+        spec: './chain-specs/shiden.json',
+      },
+    },
+  ],
 };
 
 export const mockConfigRelayMismatch: ServiceConfiguration = {
@@ -29,8 +29,8 @@ export const mockConfigRelayMismatch: ServiceConfiguration = {
       id: '0',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/polkadot.json'
-      }
+        spec: './chain-specs/polkadot.json',
+      },
     },
     {
       name: 'asset-hub',
@@ -38,10 +38,10 @@ export const mockConfigRelayMismatch: ServiceConfiguration = {
       relay: 'rococo',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/ah.json'
-      }
-    }
-  ]
+        spec: './chain-specs/ah.json',
+      },
+    },
+  ],
 };
 
 export const mockConfigLC: ServiceConfiguration = {
@@ -51,8 +51,8 @@ export const mockConfigLC: ServiceConfiguration = {
       id: '0',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/polkadot.json'
-      }
+        spec: './chain-specs/polkadot.json',
+      },
     },
     {
       name: 'asset-hub',
@@ -60,8 +60,8 @@ export const mockConfigLC: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/ah.json'
-      }
+        spec: './chain-specs/ah.json',
+      },
     },
     {
       name: 'astar',
@@ -69,10 +69,10 @@ export const mockConfigLC: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/astar.json'
-      }
-    }
-  ]
+        spec: './chain-specs/astar.json',
+      },
+    },
+  ],
 };
 
 export const mockConfigWS: ServiceConfiguration = {
@@ -82,10 +82,10 @@ export const mockConfigWS: ServiceConfiguration = {
       id: '0',
       provider: {
         type: 'rpc',
-        url: 'wss://polkadot.io'
+        url: 'wss://polkadot.io',
       },
       recovery: true,
-      batchSize: 5
+      batchSize: 5,
     },
     {
       name: 'asset-hub',
@@ -93,8 +93,8 @@ export const mockConfigWS: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'rpc',
-        url: 'wss://asset-hub.io'
-      }
+        url: 'wss://asset-hub.io',
+      },
     },
     {
       name: 'astar',
@@ -102,10 +102,10 @@ export const mockConfigWS: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'rpc',
-        url: 'wss://astar.io'
-      }
-    }
-  ]
+        url: 'wss://astar.io',
+      },
+    },
+  ],
 };
 
 export const mockConfigMixed: ServiceConfiguration = {
@@ -115,8 +115,8 @@ export const mockConfigMixed: ServiceConfiguration = {
       id: '0',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/polkadot.json'
-      }
+        spec: './chain-specs/polkadot.json',
+      },
     },
     {
       name: 'asset-hub',
@@ -124,8 +124,8 @@ export const mockConfigMixed: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'rpc',
-        url: 'wss://asset-hub.io'
-      }
+        url: 'wss://asset-hub.io',
+      },
     },
     {
       name: 'interlay',
@@ -133,10 +133,10 @@ export const mockConfigMixed: ServiceConfiguration = {
       relay: 'polkadot',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/interlay.json'
-      }
-    }
-  ]
+        spec: './chain-specs/interlay.json',
+      },
+    },
+  ],
 };
 
 export const mockConfigRelayLast: ServiceConfiguration = {
@@ -147,8 +147,8 @@ export const mockConfigRelayLast: ServiceConfiguration = {
       relay: 'kusama',
       provider: {
         type: 'rpc',
-        url: 'wss://asset-hub.io'
-      }
+        url: 'wss://asset-hub.io',
+      },
     },
     {
       name: 'shiden',
@@ -156,17 +156,16 @@ export const mockConfigRelayLast: ServiceConfiguration = {
       relay: 'kusama',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/shiden.json'
-      }
+        spec: './chain-specs/shiden.json',
+      },
     },
     {
       name: 'kusama',
       id: '0',
       provider: {
         type: 'smoldot',
-        spec: './chain-specs/kusama.json'
-      }
-    }
-  ]
+        spec: './chain-specs/kusama.json',
+      },
+    },
+  ],
 };
-

@@ -1,60 +1,60 @@
 import { Subscription } from '../services/monitoring/types.js';
 
-export const _subsFix : Subscription[] = [
+export const _subsFix: Subscription[] = [
   {
     id: '0:1000:1',
     origin: '0',
-    destinations: [
-      '1000'
-    ],
+    destinations: ['1000'],
     senders: ['a', 'b', 'c'],
-    channels: [{
-      type: 'log'
-    }]
+    channels: [
+      {
+        type: 'log',
+      },
+    ],
   },
   {
     id: '0:1000:2',
     origin: '0',
-    destinations: [
-      '1000'
-    ],
+    destinations: ['1000'],
     senders: ['d', 'e', 'f'],
-    channels: [{
-      type: 'log'
-    }]
+    channels: [
+      {
+        type: 'log',
+      },
+    ],
   },
   {
     id: '0:2000:1',
     origin: '0',
-    destinations: [
-      '2000'
-    ],
+    destinations: ['2000'],
     senders: ['a', 'b', 'c'],
-    channels: [{
-      type: 'log'
-    }]
+    channels: [
+      {
+        type: 'log',
+      },
+    ],
   },
   {
     id: '100:0-2000:1',
     origin: '1000',
-    destinations: [
-      '0', '2000'
-    ],
+    destinations: ['0', '2000'],
     senders: ['a', 'b', 'c'],
-    channels: [{
-      type: 'log'
-    }]
+    channels: [
+      {
+        type: 'log',
+      },
+    ],
   },
   {
     id: '100:0-2000:2',
     origin: '1000',
-    destinations: [
-      '0', '2000'
-    ],
+    destinations: ['0', '2000'],
     senders: ['d', 'e', 'f'],
-    channels: [{
-      type: 'log'
-    }]
+    channels: [
+      {
+        type: 'log',
+      },
+    ],
   },
 ];
 

@@ -16,7 +16,7 @@ import type {
   XcmV2MultiLocation,
   XcmV3MultiLocation,
   XcmV2MultiassetMultiAssets,
-  XcmV3MultiassetMultiAssets
+  XcmV3MultiassetMultiAssets,
 } from '@polkadot/types/lookup';
 
 /** @name XcmVersionedXcm (296) */
@@ -234,7 +234,55 @@ interface XcmV4Instruction extends Enum {
     readonly weightLimit: XcmV3WeightLimit;
     readonly checkOrigin: Option<XcmV4Location>;
   } & Struct;
-  readonly type: 'WithdrawAsset' | 'ReserveAssetDeposited' | 'ReceiveTeleportedAsset' | 'QueryResponse' | 'TransferAsset' | 'TransferReserveAsset' | 'Transact' | 'HrmpNewChannelOpenRequest' | 'HrmpChannelAccepted' | 'HrmpChannelClosing' | 'ClearOrigin' | 'DescendOrigin' | 'ReportError' | 'DepositAsset' | 'DepositReserveAsset' | 'ExchangeAsset' | 'InitiateReserveWithdraw' | 'InitiateTeleport' | 'ReportHolding' | 'BuyExecution' | 'RefundSurplus' | 'SetErrorHandler' | 'SetAppendix' | 'ClearError' | 'ClaimAsset' | 'Trap' | 'SubscribeVersion' | 'UnsubscribeVersion' | 'BurnAsset' | 'ExpectAsset' | 'ExpectOrigin' | 'ExpectError' | 'ExpectTransactStatus' | 'QueryPallet' | 'ExpectPallet' | 'ReportTransactStatus' | 'ClearTransactStatus' | 'UniversalOrigin' | 'ExportMessage' | 'LockAsset' | 'UnlockAsset' | 'NoteUnlockable' | 'RequestUnlock' | 'SetFeesMode' | 'SetTopic' | 'ClearTopic' | 'AliasOrigin' | 'UnpaidExecution';
+  readonly type:
+    | 'WithdrawAsset'
+    | 'ReserveAssetDeposited'
+    | 'ReceiveTeleportedAsset'
+    | 'QueryResponse'
+    | 'TransferAsset'
+    | 'TransferReserveAsset'
+    | 'Transact'
+    | 'HrmpNewChannelOpenRequest'
+    | 'HrmpChannelAccepted'
+    | 'HrmpChannelClosing'
+    | 'ClearOrigin'
+    | 'DescendOrigin'
+    | 'ReportError'
+    | 'DepositAsset'
+    | 'DepositReserveAsset'
+    | 'ExchangeAsset'
+    | 'InitiateReserveWithdraw'
+    | 'InitiateTeleport'
+    | 'ReportHolding'
+    | 'BuyExecution'
+    | 'RefundSurplus'
+    | 'SetErrorHandler'
+    | 'SetAppendix'
+    | 'ClearError'
+    | 'ClaimAsset'
+    | 'Trap'
+    | 'SubscribeVersion'
+    | 'UnsubscribeVersion'
+    | 'BurnAsset'
+    | 'ExpectAsset'
+    | 'ExpectOrigin'
+    | 'ExpectError'
+    | 'ExpectTransactStatus'
+    | 'QueryPallet'
+    | 'ExpectPallet'
+    | 'ReportTransactStatus'
+    | 'ClearTransactStatus'
+    | 'UniversalOrigin'
+    | 'ExportMessage'
+    | 'LockAsset'
+    | 'UnlockAsset'
+    | 'NoteUnlockable'
+    | 'RequestUnlock'
+    | 'SetFeesMode'
+    | 'SetTopic'
+    | 'ClearTopic'
+    | 'AliasOrigin'
+    | 'UnpaidExecution';
 }
 
 /** @name XcmV4AssetAssets (343) */
@@ -403,7 +451,17 @@ interface XcmV4Junction extends Enum {
   } & Struct;
   readonly isGlobalConsensus: boolean;
   readonly asGlobalConsensus: XcmV4JunctionNetworkId;
-  readonly type: 'Parachain' | 'AccountId32' | 'AccountIndex64' | 'AccountKey20' | 'PalletInstance' | 'GeneralIndex' | 'GeneralKey' | 'OnlyChild' | 'Plurality' | 'GlobalConsensus';
+  readonly type:
+    | 'Parachain'
+    | 'AccountId32'
+    | 'AccountIndex64'
+    | 'AccountKey20'
+    | 'PalletInstance'
+    | 'GeneralIndex'
+    | 'GeneralKey'
+    | 'OnlyChild'
+    | 'Plurality'
+    | 'GlobalConsensus';
 }
 
 /** @name XcmV4JunctionNetworkId (61) */
@@ -427,7 +485,18 @@ interface XcmV4JunctionNetworkId extends Enum {
   readonly isBitcoinCore: boolean;
   readonly isBitcoinCash: boolean;
   readonly isPolkadotBulletin: boolean;
-  readonly type: 'ByGenesis' | 'ByFork' | 'Polkadot' | 'Kusama' | 'Westend' | 'Rococo' | 'Wococo' | 'Ethereum' | 'BitcoinCore' | 'BitcoinCash' | 'PolkadotBulletin';
+  readonly type:
+    | 'ByGenesis'
+    | 'ByFork'
+    | 'Polkadot'
+    | 'Kusama'
+    | 'Westend'
+    | 'Rococo'
+    | 'Wococo'
+    | 'Ethereum'
+    | 'BitcoinCore'
+    | 'BitcoinCash'
+    | 'PolkadotBulletin';
 }
 
 /** @name XcmV4AssetAssetId (69) */

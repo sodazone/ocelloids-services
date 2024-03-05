@@ -16,16 +16,16 @@ const destinationContext: XcmTerminiContext = {
   chainId: '1',
   event: {},
   outcome: 'Success',
-  error: null
+  error: null,
 };
-const notification : XcmNotifyMessage = {
+const notification: XcmNotifyMessage = {
   type: XcmNotificationType.Received,
   subscriptionId: 'ok',
   messageHash: '0xCAFE',
   legs: [{ from: '0', to: '1' }],
   waypoint: {
     ...destinationContext,
-    legIndex: 0
+    legIndex: 0,
   },
   destination: destinationContext,
   origin: {
@@ -34,7 +34,7 @@ const notification : XcmNotifyMessage = {
     chainId: '0',
     event: {},
     outcome: 'Success',
-    error: null
+    error: null,
   },
   instructions: '0x',
   messageData: '0x',
@@ -44,13 +44,15 @@ const notification : XcmNotifyMessage = {
 const subOk = {
   destinations: ['1000'],
   id: 'ok',
-  channels: [{
-    type: 'webhook',
-    url: 'http://localhost/ok'
-  }],
+  channels: [
+    {
+      type: 'webhook',
+      url: 'http://localhost/ok',
+    },
+  ],
   origin: '0',
   senders: '*',
-  events: '*'
+  events: '*',
 } as Subscription;
 
 const xmlTemplate = `
@@ -72,27 +74,31 @@ const xmlTemplate = `
 const subOkXml = {
   destinations: ['0'],
   id: 'ok:xml',
-  channels: [{
-    type: 'webhook',
-    url: 'http://localhost/ok',
-    contentType: 'application/xml',
-    template: xmlTemplate
-  }],
+  channels: [
+    {
+      type: 'webhook',
+      url: 'http://localhost/ok',
+      contentType: 'application/xml',
+      template: xmlTemplate,
+    },
+  ],
   origin: '1000',
   senders: '*',
-  events: '*'
+  events: '*',
 } as Subscription;
 
 const subFail = {
   destinations: ['2000'],
   id: 'fail',
-  channels: [{
-    type: 'webhook',
-    url: 'http://localhost/not-found'
-  }],
+  channels: [
+    {
+      type: 'webhook',
+      url: 'http://localhost/not-found',
+    },
+  ],
   origin: '0',
   senders: '*',
-  events: '*'
+  events: '*',
 } as Subscription;
 
 const authToken = 'secret';
@@ -100,21 +106,23 @@ const authToken = 'secret';
 const subOkAuth = {
   destinations: ['3000'],
   id: 'ok:auth',
-  channels: [{
-    type: 'webhook',
-    url: 'http://localhost/ok',
-    bearer: authToken
-  }],
+  channels: [
+    {
+      type: 'webhook',
+      url: 'http://localhost/ok',
+      bearer: authToken,
+    },
+  ],
   origin: '0',
   senders: '*',
-  events: '*'
+  events: '*',
 } as Subscription;
 
 describe('webhook notifier', () => {
   const subs = _services.storage.subs;
 
-  let scheduler : Scheduler;
-  let notifier : WebhookNotifier;
+  let scheduler: Scheduler;
+  let notifier: WebhookNotifier;
   let hub: NotifierHub;
 
   beforeAll(async () => {
@@ -129,22 +137,15 @@ describe('webhook notifier', () => {
   });
 
   beforeEach(() => {
-    scheduler = new Scheduler(
-      _services.log,
-      new MemoryLevel(),
-      {
-        scheduler: true,
-        schedulerFrequency: 500
-      });
-    hub = new NotifierHub(
-      _services
-    );
-    notifier = new WebhookNotifier(
-      hub,
-      {
-        ..._services,
-        scheduler
-      });
+    scheduler = new Scheduler(_services.log, new MemoryLevel(), {
+      scheduler: true,
+      schedulerFrequency: 500,
+    });
+    hub = new NotifierHub(_services);
+    notifier = new WebhookNotifier(hub, {
+      ..._services,
+      scheduler,
+    });
   });
 
   it('should post a notification', async () => {
@@ -172,7 +173,8 @@ describe('webhook notifier', () => {
     notifier.on('telemetryNotify', ok);
 
     await notifier.notify(subOkXml, {
-      ...notification, subscriptionId: 'ok:xml'
+      ...notification,
+      subscriptionId: 'ok:xml',
     });
 
     expect(ok).toHaveBeenCalled();
@@ -181,8 +183,10 @@ describe('webhook notifier', () => {
 
   it('should post a notification with bearer auth', async () => {
     const scope = nock('http://localhost', {
-      reqheaders: { 'Authorization': 'Bearer ' + authToken }
-    }).post(/ok\/.+/).reply(200);
+      reqheaders: { Authorization: 'Bearer ' + authToken },
+    })
+      .post(/ok\/.+/)
+      .reply(200);
 
     const ok = jest.fn();
     notifier.on('telemetryNotify', ok);
@@ -194,9 +198,7 @@ describe('webhook notifier', () => {
   });
 
   it('should fail posting to the wrong path', async () => {
-    const scope = nock('http://localhost')
-      .post(/.+/)
-      .reply(404);
+    const scope = nock('http://localhost').post(/.+/).reply(404);
 
     const ok = jest.fn();
     notifier.on('telemetryNotify', ok);

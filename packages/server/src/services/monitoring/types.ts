@@ -7,28 +7,39 @@ import { ControlQuery } from '@sodazone/ocelloids';
 /**
  * @public
  */
-export type AnyJson = string | number | boolean | null | undefined | AnyJson[] | {
-  [index: string]: AnyJson;
-};
+export type AnyJson =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | AnyJson[]
+  | {
+      [index: string]: AnyJson;
+    };
 
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
   blockNumber: z.string().min(1),
   blockHash: z.string().min(1),
   parentHash: z.string().min(1),
-  receivedAt: z.date()
+  receivedAt: z.date(),
 });
 
 export type ChainHead = z.infer<typeof $ChainHead>;
 
 export type BlockNumberRange = {
-  fromBlockNum: string
-  toBlockNum: string
-}
+  fromBlockNum: string;
+  toBlockNum: string;
+};
 
-export const $SafeId = z.string({
-  required_error: 'id is required'
-}).min(1).max(100).regex(/[A-Za-z0-9:\.\-_]+/);
+export const $SafeId = z
+  .string({
+    required_error: 'id is required',
+  })
+  .min(1)
+  .max(100)
+  .regex(/[A-Za-z0-9:.\-_]+/);
 
 /**
  * A hex string starting with '0x'.
@@ -37,23 +48,23 @@ export const $SafeId = z.string({
  */
 export type HexString = `0x${string}`;
 
-function toHexString(buf: Uint8Array) : HexString {
+function toHexString(buf: Uint8Array): HexString {
   return `0x${Buffer.from(buf).toString('hex')}`;
 }
 
 export type XcmCriteria = {
-  sendersControl: ControlQuery,
-  messageControl: ControlQuery
-}
+  sendersControl: ControlQuery;
+  messageControl: ControlQuery;
+};
 
 export type XcmWithContext = {
-  event?: AnyJson,
-  extrinsicId?: string,
-  blockNumber: string | number,
-  blockHash: HexString,
-  messageHash: HexString,
-  messageId?: HexString
-}
+  event?: AnyJson;
+  extrinsicId?: string;
+  blockNumber: string | number;
+  blockHash: HexString;
+  messageHash: HexString;
+  messageId?: HexString;
+};
 
 /**
  * Represents the asset that has been trapped.
@@ -61,15 +72,15 @@ export type XcmWithContext = {
  * @public
  */
 export type TrappedAsset = {
-  version: number,
+  version: number;
   id: {
-    type: string,
-    value: AnyJson
-  },
-  fungible: boolean,
-  amount: string | number,
-  assetInstance?: AnyJson
-}
+    type: string;
+    value: AnyJson;
+  };
+  fungible: boolean;
+  amount: string | number;
+  assetInstance?: AnyJson;
+};
 
 /**
  * Event emitted when assets are trapped.
@@ -77,35 +88,35 @@ export type TrappedAsset = {
  * @public
  */
 export type AssetsTrapped = {
-  assets: TrappedAsset[],
-  hash: HexString,
-  event: AnyJson
-}
+  assets: TrappedAsset[];
+  hash: HexString;
+  event: AnyJson;
+};
 
 /**
  * Represents an XCM program bytes and human JSON.
  */
 export type XcmProgram = {
-  bytes: Uint8Array,
-  json: AnyJson
-}
+  bytes: Uint8Array;
+  json: AnyJson;
+};
 
 export interface XcmSentWithContext extends XcmWithContext {
-  messageData: Uint8Array,
-  recipient: string,
-  sender: AnyJson,
-  instructions: XcmProgram
+  messageData: Uint8Array;
+  recipient: string;
+  sender: AnyJson;
+  instructions: XcmProgram;
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
-  outcome: 'Success' | 'Fail',
-  error: AnyJson,
-  assetsTrapped?: AssetsTrapped
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+  assetsTrapped?: AssetsTrapped;
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
-  recipient: string,
-  origin: string,
+  recipient: string;
+  origin: string;
 }
 
 export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
@@ -144,7 +155,7 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
       recipient: this.recipient,
       origin: this.origin,
       outcome: this.outcome,
-      error: this.error
+      error: this.error,
     };
   }
 }
@@ -182,7 +193,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
       event: this.event,
       outcome: this.outcome,
       error: this.error,
-      assetsTrapped: this.assetsTrapped
+      assetsTrapped: this.assetsTrapped,
     };
   }
 }
@@ -200,11 +211,7 @@ export class XcmInbound {
   extrinsicId?: string;
   assetsTrapped?: AssetsTrapped;
 
-  constructor(
-    subscriptionId: string,
-    chainId: string,
-    msg: XcmInboundWithContext
-  ) {
+  constructor(subscriptionId: string, chainId: string, msg: XcmInboundWithContext) {
     this.subscriptionId = subscriptionId;
     this.chainId = chainId;
     this.event = msg.event;
@@ -255,7 +262,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
       blockNumber: this.blockNumber,
       extrinsicId: this.extrinsicId,
       messageId: this.messageId,
-      sender: this.sender
+      sender: this.sender,
     };
   }
 }
@@ -265,7 +272,7 @@ export enum XcmNotificationType {
   Received = 'xcm.received',
   Relayed = 'xcm.relayed',
   Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop'
+  Hop = 'xcm.hop',
 }
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
@@ -276,7 +283,7 @@ const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object
  * @public
  */
 export type XcmTermini = {
-  chainId: string
+  chainId: string;
 };
 
 /**
@@ -285,10 +292,10 @@ export type XcmTermini = {
  * @public
  */
 export interface XcmTerminiContext extends XcmTermini {
-  blockNumber: string,
-  blockHash: HexString,
-  extrinsicId?: string,
-  event: AnyJson,
+  blockNumber: string;
+  blockHash: HexString;
+  extrinsicId?: string;
+  event: AnyJson;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
   assetsTrapped?: AnyJson;
@@ -300,7 +307,7 @@ export interface XcmTerminiContext extends XcmTermini {
  * @public
  */
 export interface XcmWaypointContext extends XcmTerminiContext {
-  legIndex: number
+  legIndex: number;
 }
 
 /**
@@ -309,8 +316,8 @@ export interface XcmWaypointContext extends XcmTerminiContext {
  * @public
  */
 export type Leg = {
-  from:  string,
-  to: string
+  from: string;
+  to: string;
 };
 
 /**
@@ -345,12 +352,7 @@ export class GenericXcmSent implements XcmSent {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(
-    subscriptionId: string,
-    chainId: string,
-    msg: XcmSentWithContext,
-    stops: string[]
-  ) {
+  constructor(subscriptionId: string, chainId: string, msg: XcmSentWithContext, stops: string[]) {
     this.subscriptionId = subscriptionId;
     this.legs = this.constructLegs(chainId, stops);
     this.origin = {
@@ -360,14 +362,14 @@ export class GenericXcmSent implements XcmSent {
       extrinsicId: msg.extrinsicId,
       event: msg.event,
       outcome: 'Success',
-      error: null
+      error: null,
     };
     this.destination = {
-      chainId: stops[stops.length - 1] // last stop is the destination
+      chainId: stops[stops.length - 1], // last stop is the destination
     };
     this.waypoint = {
       ...this.origin,
-      legIndex: 0
+      legIndex: 0,
     };
     this.messageData = toHexString(msg.messageData);
     this.instructions = msg.instructions.json;
@@ -388,17 +390,17 @@ export class GenericXcmSent implements XcmSent {
         legs.push(
           {
             from,
-            to: '0'
+            to: '0',
           },
           {
             from: '0',
-            to
+            to,
           }
         );
       } else {
         legs.push({
           from,
-          to
+          to,
         });
       }
     }
@@ -446,9 +448,7 @@ export class GenericXcmTimeout implements XcmTimeout {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(
-    msg: XcmSent
-  ) {
+  constructor(msg: XcmSent) {
     this.subscriptionId = msg.subscriptionId;
     this.legs = msg.legs;
     this.origin = msg.origin;
@@ -475,10 +475,7 @@ export class GenericXcmReceived implements XcmReceived {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(
-    outMsg: XcmSent,
-    inMsg: XcmInbound
-  ) {
+  constructor(outMsg: XcmSent, inMsg: XcmInbound) {
     this.subscriptionId = outMsg.subscriptionId;
     this.legs = outMsg.legs;
     this.destination = {
@@ -489,12 +486,12 @@ export class GenericXcmReceived implements XcmReceived {
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
-      assetsTrapped: inMsg.assetsTrapped
+      assetsTrapped: inMsg.assetsTrapped,
     };
     this.origin = outMsg.origin;
     this.waypoint = {
       ...this.destination,
-      legIndex: this.legs.length - 1
+      legIndex: this.legs.length - 1,
     };
     this.sender = outMsg.sender;
     this.instructions = outMsg.instructions;
@@ -525,23 +522,20 @@ export class GenericXcmRelayed implements XcmRelayed {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(
-    outMsg: XcmSent,
-    relayMsg: XcmRelayedWithContext
-  ) {
+  constructor(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
     this.subscriptionId = outMsg.subscriptionId;
     this.legs = outMsg.legs;
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
     this.waypoint = {
-      legIndex: outMsg.legs.findIndex(l => l.from === relayMsg.origin && l.to === '0'),
+      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.to === '0'),
       chainId: '0', // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
       extrinsicId: relayMsg.extrinsicId,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
-      error: relayMsg.error
+      error: relayMsg.error,
     };
     this.sender = outMsg.sender;
     this.instructions = outMsg.instructions;
@@ -557,7 +551,7 @@ export class GenericXcmRelayed implements XcmRelayed {
  * @public
  */
 export interface XcmHop extends XcmSent {
-  direction: 'out' | 'in'
+  direction: 'out' | 'in';
 }
 
 export class GenericXcmHop implements XcmHop {
@@ -574,11 +568,7 @@ export class GenericXcmHop implements XcmHop {
   direction: 'out' | 'in';
   messageId?: HexString;
 
-  constructor(
-    originMsg: XcmSent,
-    hopWaypoint: XcmWaypointContext,
-    direction: 'out' | 'in'
-  ) {
+  constructor(originMsg: XcmSent, hopWaypoint: XcmWaypointContext, direction: 'out' | 'in') {
     this.subscriptionId = originMsg.subscriptionId;
     this.legs = originMsg.legs;
     this.origin = originMsg.origin;
@@ -614,62 +604,63 @@ export function isXcmRelayed(object: any): object is XcmRelayed {
 
 const $WebhookNotification = z.object({
   type: z.literal('webhook'),
-  url: z.string().min(5).max(2_000).regex(/https?:\/\/.*/),
-  contentType: z.optional(z.string().regex(
-    /(?:application|text)\/[a-z0-9-\+\.]+/i
-  ).max(250)),
+  url: z
+    .string()
+    .min(5)
+    .max(2_000)
+    .regex(/https?:\/\/.*/),
+  contentType: z.optional(
+    z
+      .string()
+      .regex(/(?:application|text)\/[a-z0-9-+.]+/i)
+      .max(250)
+  ),
   // prevent using $refs
-  events: z.optional(z.literal('*').or(z.array(
-    z.nativeEnum(XcmNotificationType)
-  ).min(1, XCM_NOTIFICATION_TYPE_ERROR))),
+  events: z.optional(z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR))),
   template: z.optional(z.string().min(5).max(32_000)),
   bearer: z.optional(z.string().min(1).max(1_000)),
-  limit: z.optional(z.number().min(0).max(Number.MAX_SAFE_INTEGER))
+  limit: z.optional(z.number().min(0).max(Number.MAX_SAFE_INTEGER)),
 });
 
 const $LogNotification = z.object({
-  type: z.literal('log')
+  type: z.literal('log'),
 });
 
 const $WebsocketNotification = z.object({
-  type: z.literal('websocket')
+  type: z.literal('websocket'),
 });
 
 function distinct(a: Array<string>) {
   return Array.from(new Set(a));
 }
 
-export const $Subscription = z.object({
-  id: $SafeId,
-  origin: z.string({
-    required_error: 'origin id is required',
-  }).min(1),
-  senders: z.optional(
-    z.literal('*').or(z.array(z.string()).min(
-      1, 'at least 1 sender address is required'
-    ).transform(distinct))
-  ),
-  destinations: z.array(z.string({
-    required_error: 'destination id is required'
-  }).min(1)).transform(distinct),
-  ephemeral: z.optional(
-    z.boolean()
-  ),
-  channels: z.array(z.discriminatedUnion('type', [
-    $WebhookNotification,
-    $LogNotification,
-    $WebsocketNotification
-  ])).min(1),
-  // prevent using $refs
-  events: z.optional(
-    z.literal('*').or(z.array(
-      z.nativeEnum(XcmNotificationType)
-    ).min(1, XCM_NOTIFICATION_TYPE_ERROR))
-  )
-}).refine(schema =>
-  !schema.ephemeral
-  || (schema.channels.length === 1 && schema.channels[0].type === 'websocket')
-, 'ephemeral subscriptions only supports websocket notifications');
+export const $Subscription = z
+  .object({
+    id: $SafeId,
+    origin: z
+      .string({
+        required_error: 'origin id is required',
+      })
+      .min(1),
+    senders: z.optional(z.literal('*').or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct))),
+    destinations: z
+      .array(
+        z
+          .string({
+            required_error: 'destination id is required',
+          })
+          .min(1)
+      )
+      .transform(distinct),
+    ephemeral: z.optional(z.boolean()),
+    channels: z.array(z.discriminatedUnion('type', [$WebhookNotification, $LogNotification, $WebsocketNotification])).min(1),
+    // prevent using $refs
+    events: z.optional(z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR))),
+  })
+  .refine(
+    (schema) => !schema.ephemeral || (schema.channels.length === 1 && schema.channels[0].type === 'websocket'),
+    'ephemeral subscriptions only supports websocket notifications'
+  );
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>;
 
@@ -678,26 +669,26 @@ export type Subscription = z.infer<typeof $Subscription>;
 export type XcmEventListener = (sub: Subscription, xcm: XcmNotifyMessage) => void;
 
 export type RxSubscriptionWithId = {
-  chainId: string
-  sub: RxSubscription
-}
+  chainId: string;
+  sub: RxSubscription;
+};
 
 export type RxSubscriptionHandler = {
-  originSubs: RxSubscriptionWithId[],
-  destinationSubs: RxSubscriptionWithId[],
-  sendersControl: ControlQuery,
-  messageControl: ControlQuery,
-  descriptor: Subscription,
-  relaySub?: RxSubscriptionWithId
-}
+  originSubs: RxSubscriptionWithId[];
+  destinationSubs: RxSubscriptionWithId[];
+  sendersControl: ControlQuery;
+  messageControl: ControlQuery;
+  descriptor: Subscription;
+  relaySub?: RxSubscriptionWithId;
+};
 
 export type SubscriptionStats = {
-  persistent: number,
-  ephemeral: number
-}
+  persistent: number;
+  ephemeral: number;
+};
 
 export type BinBlock = {
   block: Uint8Array;
   events: Uint8Array[];
   author?: Uint8Array;
-}
+};

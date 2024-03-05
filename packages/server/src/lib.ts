@@ -16,6 +16,5 @@ export type {
   Leg,
   XcmTermini,
   XcmTerminiContext,
-  XcmWaypointContext
+  XcmWaypointContext,
 } from './services/monitoring/types.js';
-

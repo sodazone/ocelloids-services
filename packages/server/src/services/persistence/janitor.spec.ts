@@ -8,32 +8,24 @@ import { Scheduler } from './scheduler';
 
 jest.useFakeTimers();
 
-const flushPromises = () => new Promise(
-  resolve => jest.requireActual<any>('timers').setImmediate(resolve)
-);
+const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve));
 
 describe('janitor service', () => {
-  let janitor : Janitor;
+  let janitor: Janitor;
   let scheduler: Scheduler;
-  let db : Level;
+  let db: Level;
   let now: any;
 
   beforeEach(() => {
     db = new Level();
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
-      scheduler: true
+      scheduler: true,
     });
-    janitor = new Janitor(
-      _log,
-      db,
-      scheduler,
-      {
-        sweepExpiry: 500
-      }
-    );
-    now = jest.spyOn(Date, 'now')
-      .mockImplementation(() => 0);
+    janitor = new Janitor(_log, db, scheduler, {
+      sweepExpiry: 500,
+    });
+    now = jest.spyOn(Date, 'now').mockImplementation(() => 0);
   });
 
   afterEach(() => {
@@ -42,16 +34,13 @@ describe('janitor service', () => {
 
   it('should schedule and execute a task', async () => {
     const s1 = db.sublevel('s1');
-    await s1.batch()
-      .put('k1', '')
-      .put('k2', '')
-      .write();
+    await s1.batch().put('k1', '').put('k2', '').write();
 
     scheduler.start();
 
     await janitor.schedule({
       key: 'k1',
-      sublevel: 's1'
+      sublevel: 's1',
     });
 
     expect((await scheduler.allTaskTimes()).length).toBe(1);
@@ -73,25 +62,25 @@ describe('janitor service', () => {
 
   it('should skip future tasks', async () => {
     const s1 = db.sublevel('s1');
-    await s1.batch()
-      .put('k1', '')
-      .put('k2', '')
-      .put('k3', '')
-      .write();
+    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write();
 
     scheduler.start();
 
-    await janitor.schedule({
-      key: 'k1',
-      sublevel: 's1'
-    }, {
-      key: 'k2',
-      sublevel: 's1'
-    }, {
-      key: 'k3',
-      sublevel: 's1',
-      expiry: 2000
-    });
+    await janitor.schedule(
+      {
+        key: 'k1',
+        sublevel: 's1',
+      },
+      {
+        key: 'k2',
+        sublevel: 's1',
+      },
+      {
+        key: 'k3',
+        sublevel: 's1',
+        expiry: 2000,
+      }
+    );
 
     expect((await scheduler.allTaskTimes()).length).toBe(3);
     expect(await s1.get('k1')).toBeDefined();
@@ -124,12 +113,14 @@ describe('janitor service', () => {
   });
 
   it('should avoid key collisions', async () => {
-    const p : Promise<void>[] = [];
+    const p: Promise<void>[] = [];
     for (let i = 0; i < 10; i++) {
-      p.push(janitor.schedule({
-        key: 'k' + i,
-        sublevel: 's'
-      }));
+      p.push(
+        janitor.schedule({
+          key: 'k' + i,
+          sublevel: 's',
+        })
+      );
     }
     await Promise.all(p);
     expect((await scheduler.allTaskTimes()).length).toBe(10);
@@ -137,23 +128,24 @@ describe('janitor service', () => {
 
   it('should continue if the tasks fails', async () => {
     const s1 = db.sublevel('s1');
-    await s1.batch()
-      .put('k1', '')
-      .put('k2', '')
-      .put('k3', '')
-      .write();
+    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write();
 
     scheduler.start();
 
-    await janitor.schedule({
-      key: 'k2', sublevel: 's1'
-    },
-    {
-      key: 'no', sublevel: 'no'
-    },
-    {
-      key: 'k1', sublevel: 's1'
-    });
+    await janitor.schedule(
+      {
+        key: 'k2',
+        sublevel: 's1',
+      },
+      {
+        key: 'no',
+        sublevel: 'no',
+      },
+      {
+        key: 'k1',
+        sublevel: 's1',
+      }
+    );
 
     expect((await scheduler.allTaskTimes()).length).toBe(3);
 

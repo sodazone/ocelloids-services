@@ -6,50 +6,43 @@ import { of, throwError } from 'rxjs';
 
 import { _config, _services } from '../../testing/services.js';
 import { SubsStore } from '../persistence/subs';
-import {
-  Subscription,
-  XcmInboundWithContext,
-  XcmSentWithContext,
-  XcmNotificationType
-} from './types';
+import { Subscription, XcmInboundWithContext, XcmSentWithContext, XcmNotificationType } from './types';
 import type { Switchboard } from './switchboard.js';
 
 jest.unstable_mockModule('./ops/xcmp.js', () => {
   return {
     extractXcmpSend: jest.fn(),
-    extractXcmpReceive: jest.fn()
+    extractXcmpReceive: jest.fn(),
   };
 });
 
 jest.unstable_mockModule('./ops/ump.js', () => {
   return {
     extractUmpReceive: jest.fn(),
-    extractUmpSend: jest.fn()
+    extractUmpSend: jest.fn(),
   };
 });
 
 const SwitchboardImpl = (await import('./switchboard.js')).Switchboard;
-const { extractXcmpReceive, extractXcmpSend } = (await import('./ops/xcmp.js'));
-const { extractUmpReceive, extractUmpSend } = (await import('./ops/ump.js'));
+const { extractXcmpReceive, extractXcmpSend } = await import('./ops/xcmp.js');
+const { extractUmpReceive, extractUmpSend } = await import('./ops/ump.js');
 
-const testSub : Subscription = {
+const testSub: Subscription = {
   id: '1000:2000:0',
   origin: '1000',
-  senders: [
-    '14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'
+  senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
+  destinations: ['2000'],
+  channels: [
+    {
+      type: 'log',
+    },
   ],
-  destinations: [
-    '2000'
-  ],
-  channels: [{
-    type: 'log'
-  }],
-  events: '*'
+  events: '*',
 };
 
 describe('switchboard service', () => {
-  let switchboard : Switchboard;
-  let subs : SubsStore;
+  let switchboard: Switchboard;
+  let subs: SubsStore;
   //let spy;
 
   beforeEach(() => {
@@ -60,7 +53,7 @@ describe('switchboard service', () => {
           blockNumber: 1,
           blockHash: '0x0',
           messageHash: '0x0',
-          messageData: new Uint8Array([0x00])
+          messageData: new Uint8Array([0x00]),
         } as unknown as XcmSentWithContext);
       };
     });
@@ -71,7 +64,7 @@ describe('switchboard service', () => {
           blockNumber: 1,
           blockHash: '0x0',
           messageHash: '0x0',
-          outcome: 'Success'
+          outcome: 'Success',
         } as unknown as XcmInboundWithContext);
       };
     });
@@ -85,7 +78,7 @@ describe('switchboard service', () => {
     subs = _services.storage.subs;
     switchboard = new SwitchboardImpl(_services, {
       subscriptionMaxEphemeral: 10_00,
-      subscriptionMaxPersistent: 10_000
+      subscriptionMaxPersistent: 10_000,
     });
   });
 
@@ -131,7 +124,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      origin: '0'
+      origin: '0',
     });
 
     expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
@@ -165,30 +158,28 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      destinations: ['0', '2000']
+      destinations: ['0', '2000'],
     });
 
     const { destinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
     expect(destinationSubs.length).toBe(2);
-    expect(destinationSubs.filter(s => s.chainId === '0').length).toBe(1);
-    expect(destinationSubs.filter(s => s.chainId === '2000').length).toBe(1);
+    expect(destinationSubs.filter((s) => s.chainId === '0').length).toBe(1);
+    expect(destinationSubs.filter((s) => s.chainId === '2000').length).toBe(1);
 
     // Remove 2000 and add 3000 to destinations
     const newSub = {
       ...testSub,
-      destinations: ['0', '3000']
+      destinations: ['0', '3000'],
     };
     await subs.save(newSub);
 
     switchboard.updateSubscription(newSub);
     switchboard.updateDestinations(newSub.id);
-    const {
-      destinationSubs: newDestinationSubs
-    } = switchboard.findSubscriptionHandler(testSub.id);
+    const { destinationSubs: newDestinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
     expect(newDestinationSubs.length).toBe(2);
-    expect(newDestinationSubs.filter(s => s.chainId === '0').length).toBe(1);
-    expect(newDestinationSubs.filter(s => s.chainId === '3000').length).toBe(1);
-    expect(newDestinationSubs.filter(s => s.chainId === '2000').length).toBe(0);
+    expect(newDestinationSubs.filter((s) => s.chainId === '0').length).toBe(1);
+    expect(newDestinationSubs.filter((s) => s.chainId === '3000').length).toBe(1);
+    expect(newDestinationSubs.filter((s) => s.chainId === '2000').length).toBe(0);
   });
 
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
@@ -205,7 +196,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      origin: '0' // origin: '0', destinations: ['2000']
+      origin: '0', // origin: '0', destinations: ['2000']
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -217,7 +208,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      destinations: ['0'] // origin: '1000', destinations: ['0']
+      destinations: ['0'], // origin: '1000', destinations: ['0']
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -229,7 +220,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      events: [XcmNotificationType.Received]
+      events: [XcmNotificationType.Received],
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -241,7 +232,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      events: [XcmNotificationType.Received]
+      events: [XcmNotificationType.Received],
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -250,15 +241,13 @@ describe('switchboard service', () => {
     // add relayed event to subscription
     const newSub = {
       ...testSub,
-      events: [XcmNotificationType.Received, XcmNotificationType.Relayed]
+      events: [XcmNotificationType.Received, XcmNotificationType.Relayed],
     };
     await subs.save(newSub);
 
     switchboard.updateSubscription(newSub);
     switchboard.updateEvents(newSub.id);
-    const {
-      relaySub: newRelaySub
-    } = switchboard.findSubscriptionHandler(testSub.id);
+    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id);
     expect(newRelaySub).toBeDefined();
   });
 
@@ -267,7 +256,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      events: '*'
+      events: '*',
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -276,15 +265,13 @@ describe('switchboard service', () => {
     // remove relayed event
     const newSub = {
       ...testSub,
-      events: [XcmNotificationType.Received, XcmNotificationType.Sent]
+      events: [XcmNotificationType.Received, XcmNotificationType.Sent],
     };
     await subs.save(newSub);
 
     switchboard.updateSubscription(newSub);
     switchboard.updateEvents(newSub.id);
-    const {
-      relaySub: newRelaySub
-    } = switchboard.findSubscriptionHandler(testSub.id);
+    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id);
     expect(newRelaySub).not.toBeDefined();
   });
 });

@@ -5,7 +5,7 @@ import '@polkadot/api-augment/polkadot';
 import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
   XcmVersionedMultiLocation,
-  XcmVersionedMultiAssets
+  XcmVersionedMultiAssets,
 } from '@polkadot/types/lookup';
 import type { Registry } from '@polkadot/types/types';
 import type { Vec, Bytes, Compact } from '@polkadot/types';
@@ -15,15 +15,14 @@ import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 import { ApiPromise } from '@polkadot/api';
 
-import {
-  filterNonNull, retryWithTruncatedExpBackoff, types
-} from '@sodazone/ocelloids';
+import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids';
 
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  XcmCriteria, XcmInboundWithContext,
-  XcmSentWithContext
+  XcmCriteria,
+  XcmInboundWithContext,
+  XcmSentWithContext,
 } from '../types.js';
 import {
   getMessageId,
@@ -32,7 +31,7 @@ import {
   mapAssetsTrapped,
   matchEvent,
   matchExtrinsic,
-  matchProgramByTopic
+  matchProgramByTopic,
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
@@ -51,48 +50,34 @@ import { XcmVersionedXcm } from './xcm-types.js';
 
 type Json = { [property: string]: Json };
 type XcmContext = {
-  paraId: string,
-  data: Bytes,
-  program: XcmVersionedXcm,
-  blockHash: IU8a,
-  blockNumber: Compact<BlockNumber>,
-  signer?: Address,
-  event?: types.BlockEvent
-}
+  paraId: string;
+  data: Bytes;
+  program: XcmVersionedXcm;
+  blockHash: IU8a;
+  blockNumber: Compact<BlockNumber>;
+  signer?: Address;
+  event?: types.BlockEvent;
+};
 
-function matchInstructions(
-  xcmProgram: XcmVersionedXcm,
-  assets: XcmVersionedMultiAssets,
-  beneficiary: XcmVersionedMultiLocation
-): boolean {
+function matchInstructions(xcmProgram: XcmVersionedXcm, assets: XcmVersionedMultiAssets, beneficiary: XcmVersionedMultiLocation): boolean {
   const program = xcmProgram.value.toHuman() as Json[];
   let sameAssetFun = false;
   let sameBeneficiary = false;
 
   for (const instruction of program) {
-    const {
-      DepositAsset, ReceiveTeleportedAsset, ReserveAssetDeposited
-    } = instruction;
+    const { DepositAsset, ReceiveTeleportedAsset, ReserveAssetDeposited } = instruction;
 
     if (ReceiveTeleportedAsset || ReserveAssetDeposited) {
       const fun = ReceiveTeleportedAsset?.[0]?.fun ?? ReserveAssetDeposited[0]?.fun;
       if (fun) {
         const asset = assets.value.toHuman() as Json;
-        sameAssetFun = (
-          JSON.stringify(fun) === JSON.stringify(asset[0]?.fun)
-        );
+        sameAssetFun = JSON.stringify(fun) === JSON.stringify(asset[0]?.fun);
       }
       continue;
     }
 
     if (DepositAsset) {
-      sameBeneficiary = (
-        JSON.stringify(
-          DepositAsset.beneficiary
-        ) === JSON.stringify(
-          beneficiary.value.toHuman()
-        )
-      );
+      sameBeneficiary = JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman());
       break;
     }
   }
@@ -100,11 +85,7 @@ function matchInstructions(
   return sameAssetFun && sameBeneficiary;
 }
 
-function createXcmMessageSent(
-  {
-    paraId, data, program, blockHash, blockNumber, signer, event
-  } : XcmContext
-) : GenericXcmSentWithContext {
+function createXcmMessageSent({ paraId, data, program, blockHash, blockNumber, signer, event }: XcmContext): GenericXcmSentWithContext {
   const messageId = getMessageId(program);
 
   return new GenericXcmSentWithContext({
@@ -114,22 +95,21 @@ function createXcmMessageSent(
     recipient: paraId,
     instructions: {
       bytes: program.toU8a(),
-      json: program.toHuman()
+      json: program.toHuman(),
     },
     messageData: data.toU8a(),
     messageHash: program.hash.toHex(),
     messageId,
-    sender: signer?.toHuman()
+    sender: signer?.toHuman(),
   });
 }
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
 function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
-  return (source: Observable<types.TxWithIdAndEvent>)
-        : Observable<XcmSentWithContext> => {
+  return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      map(tx => {
+      map((tx) => {
         const dest = tx.extrinsic.args[0] as XcmVersionedMultiLocation;
         const beneficiary = tx.extrinsic.args[1] as XcmVersionedMultiLocation;
         const assets = tx.extrinsic.args[2] as XcmVersionedMultiAssets;
@@ -141,7 +121,7 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
             tx,
             paraId,
             beneficiary,
-            assets
+            assets,
           };
         }
 
@@ -150,13 +130,11 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
         return from(api.at(tx.extrinsic.blockHash)).pipe(
-          switchMap(at =>
-              from(
-                at.query.dmp.downwardMessageQueues(paraId)
-              ) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
+          switchMap(
+            (at) => from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
           ),
           retryWithTruncatedExpBackoff(),
-          map(messages => {
+          map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
               const data = messages[0].msg;
@@ -167,7 +145,7 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
                 signer,
                 paraId,
                 data,
-                program
+                program,
               });
             } else {
               // XXX Temporary matching heuristics until DMP message
@@ -175,20 +153,14 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
               // Only matches the first message found.
               for (const message of messages) {
                 const program = asVersionedXcm(message.msg, registry);
-                if (
-                  matchInstructions(
-                    program,
-                    assets,
-                    beneficiary
-                  )
-                ) {
+                if (matchInstructions(program, assets, beneficiary)) {
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
                     signer,
                     paraId,
                     data: message.msg,
-                    program
+                    program,
                   });
                 }
               }
@@ -204,10 +176,9 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
 }
 
 function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
-  return (source: Observable<types.BlockEvent>)
-        : Observable<XcmSentWithContext> => {
+  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      map(event => {
+      map((event) => {
         if (matchEvent(event, 'xcmPallet', 'Sent')) {
           const { destination, messageId } = event.data as any;
           const paraId = getParaIdFromMultiLocation(destination);
@@ -216,7 +187,7 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
             return {
               paraId,
               messageId,
-              event
+              event,
             };
           }
         }
@@ -226,13 +197,11 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
       filterNonNull(),
       mergeMap(({ paraId, messageId, event }) => {
         return from(api.at(event.blockHash)).pipe(
-          switchMap(at =>
-              from(
-                at.query.dmp.downwardMessageQueues(paraId)
-              ) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
+          switchMap(
+            (at) => from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
           ),
           retryWithTruncatedExpBackoff(),
-          map(messages => {
+          map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
               const program = asVersionedXcm(messages[0].msg, registry);
@@ -243,19 +212,14 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
                 event,
                 signer: event.extrinsic?.signer,
                 data: messages[0].msg,
-                program
+                program,
               });
             } else {
               // Since we are matching by topic and it is assumed that the TopicId is unique
               // we can break out of the loop on first matching message found.
               for (const message of messages) {
                 const program = asVersionedXcm(message.msg, registry);
-                if (
-                  matchProgramByTopic(
-                    program,
-                    messageId
-                  )
-                ) {
+                if (matchProgramByTopic(program, messageId)) {
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
@@ -263,7 +227,7 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
                     event,
                     signer: event.extrinsic?.signer,
                     data: message.msg,
-                    program
+                    program,
                   });
                 }
               }
@@ -278,52 +242,31 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
   };
 }
 
-const METHODS_DMP = [
-  'limitedReserveTransferAssets',
-  'reserveTransferAssets',
-  'limitedTeleportAssets',
-  'teleportAssets'
-];
+const METHODS_DMP = ['limitedReserveTransferAssets', 'reserveTransferAssets', 'limitedTeleportAssets', 'teleportAssets'];
 
-export function extractDmpSend(
-  api: ApiPromise,
-  {
-    sendersControl,
-    messageControl
-  }: XcmCriteria,
-  registry: Registry
-) {
-  return (source: Observable<types.TxWithIdAndEvent>)
-      : Observable<XcmSentWithContext> => {
+export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl }: XcmCriteria, registry: Registry) {
+  return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      filter(tx => {
-        const {extrinsic} = tx;
-        return tx.dispatchError === undefined
-          && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP)
-          && matchSenders(sendersControl, extrinsic);
+      filter((tx) => {
+        const { extrinsic } = tx;
+        return (
+          tx.dispatchError === undefined && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP) && matchSenders(sendersControl, extrinsic)
+        );
       }),
       findDmpMessagesFromTx(api, registry),
-      filter(xcm => matchMessage(messageControl, xcm))
+      filter((xcm) => matchMessage(messageControl, xcm))
     );
   };
 }
 
-export function extractDmpSendByEvent(
-  api: ApiPromise,
-  {
-    sendersControl,
-    messageControl
-  }: XcmCriteria,
-  registry: Registry
-) {
-  return (source: Observable<types.BlockEvent>)
-      : Observable<XcmSentWithContext> => {
+export function extractDmpSendByEvent(api: ApiPromise, { sendersControl, messageControl }: XcmCriteria, registry: Registry) {
+  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
-      filter(event => matchSenders(sendersControl, event.extrinsic)),
+      filter((event) => matchSenders(sendersControl, event.extrinsic)),
       findDmpMessagesFromEvent(api, registry),
-      filter(xcm => matchMessage(messageControl, xcm))
+      filter((xcm) => matchMessage(messageControl, xcm))
     );
   };
 }
@@ -355,31 +298,24 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
     messageId,
     outcome: outcome.isComplete ? 'Success' : 'Fail',
     error: outcome.isComplete ? null : extractXcmError(outcome),
-    assetsTrapped
+    assetsTrapped,
   });
 }
 
 export function extractDmpReceive() {
-  return (source: Observable<types.BlockEvent>)
-      : Observable<XcmInboundWithContext>  => {
-    return (source.pipe(
-      bufferCount(2,1),
+  return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
+    return source.pipe(
+      bufferCount(2, 1),
       map(([maybeAssetTrapEvent, maybeDmpEvent]) => {
         // in reality we expect a continuous stream of events but
         // in tests, maybeDmpEvent could be undefined if there are odd number of events
-        if (
-          maybeDmpEvent &&
-          matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')
-        ) {
-          const assetTrapEvent =
-            matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ?
-              maybeAssetTrapEvent :
-              undefined;
+        if (maybeDmpEvent && matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')) {
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
           return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent);
         }
         return null;
       }),
       filterNonNull()
-    ));
+    );
   };
 }

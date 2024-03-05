@@ -9,17 +9,16 @@ jest.useFakeTimers();
 
 describe('scheduler service', () => {
   let scheduler: Scheduler;
-  let db : Level;
+  let db: Level;
   let now: any;
 
   beforeEach(() => {
     db = new Level();
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
-      scheduler: true
+      scheduler: true,
     });
-    now = jest.spyOn(Date, 'now')
-      .mockImplementation(() => 0);
+    now = jest.spyOn(Date, 'now').mockImplementation(() => 0);
   });
 
   afterEach(() => {
@@ -34,7 +33,7 @@ describe('scheduler service', () => {
     await scheduler.schedule({
       key: new Date(Date.now()).toISOString() + 'a',
       type: 'task',
-      task: {}
+      task: {},
     });
 
     expect((await scheduler.allTaskTimes()).length).toBe(1);
@@ -53,7 +52,7 @@ describe('scheduler service', () => {
     await scheduler.schedule({
       key,
       type: 'task',
-      task: {}
+      task: {},
     });
 
     expect((await scheduler.allTaskTimes()).length).toBe(1);
@@ -74,17 +73,17 @@ describe('scheduler service', () => {
       {
         key: new Date(time).toISOString() + 'a',
         type: 'task',
-        task: {}
+        task: {},
       },
       {
         key: new Date(time + 100).toISOString() + 'b',
         type: 'task',
-        task: {}
+        task: {},
       },
       {
         key: new Date(time + 2000).toISOString() + 'c',
         type: 'task',
-        task: {}
+        task: {},
       }
     );
 

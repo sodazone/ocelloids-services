@@ -16,16 +16,14 @@ import { NotifierHub } from './hub.js';
 const DEFAULT_DELAY = 300000; // 5 minutes
 
 type WebhookTask = {
-  id: string
-  subId: string
-  msg: XcmNotifyMessage
-}
+  id: string;
+  subId: string;
+  msg: XcmNotifyMessage;
+};
 const WebhookTaskType = 'task:webhook';
 
 function buildPostUrl(url: string, id: string) {
-  return [url, id]
-    .join('/')
-    .replace(/([^:]\/)\/+/g, '$1');
+  return [url, id].join('/').replace(/([^:]\/)\/+/g, '$1');
 }
 
 /**
@@ -41,10 +39,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   #subs: SubsStore;
   #renderer: TemplateRenderer;
 
-  constructor(
-    hub: NotifierHub,
-    { log, scheduler, storage: { subs } }: Services
-  ) {
+  constructor(hub: NotifierHub, { log, scheduler, storage: { subs } }: Services) {
     super();
 
     this.#log = log;
@@ -57,22 +52,19 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     hub.on('webhook', this.notify.bind(this));
   }
 
-  async notify(
-    sub: Subscription,
-    msg: XcmNotifyMessage
-  ) {
+  async notify(sub: Subscription, msg: XcmNotifyMessage) {
     const { id, channels } = sub;
 
     for (const chan of channels) {
       if (chan.type === 'webhook') {
         const taskId = ulid();
-        const scheduled : Scheduled<WebhookTask> = {
+        const scheduled: Scheduled<WebhookTask> = {
           type: WebhookTaskType,
           task: {
             id: taskId,
             subId: id,
-            msg
-          }
+            msg,
+          },
         };
         await this.#dispatch(scheduled);
       }
@@ -80,16 +72,16 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   }
 
   async #dispatch(scheduled: Scheduled<WebhookTask>) {
-    const { task: { subId } } = scheduled;
+    const {
+      task: { subId },
+    } = scheduled;
 
     try {
       const { channels } = await this.#subs.getById(subId);
       for (const chan of channels) {
         if (chan.type === 'webhook') {
           const config = chan as WebhookNotification;
-          if (config.events === undefined
-            || config.events === '*'
-            || config.events.includes(scheduled.task.msg.type)) {
+          if (config.events === undefined || config.events === '*' || config.events.includes(scheduled.task.msg.type)) {
             await this.#post(scheduled, config);
           }
         }
@@ -100,29 +92,26 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     }
   }
 
-  async #post(
-    scheduled: Scheduled<WebhookTask>,
-    config: WebhookNotification
-  ) {
-    const { task: { id, msg } } = scheduled;
+  async #post(scheduled: Scheduled<WebhookTask>, config: WebhookNotification) {
+    const {
+      task: { id, msg },
+    } = scheduled;
     const { contentType, url, limit, template } = config;
     const postUrl = buildPostUrl(url, id);
 
     try {
       const res = await got.post<XcmNotifyMessage>(postUrl, {
-        body: template === undefined
-          ? JSON.stringify(msg)
-          : this.#renderer.render({ template, data: msg }),
+        body: template === undefined ? JSON.stringify(msg) : this.#renderer.render({ template, data: msg }),
         headers: {
           'user-agent': 'xcmon/' + version,
-          'content-type': contentType ?? 'application/json'
+          'content-type': contentType ?? 'application/json',
         },
         retry: {
           limit: limit ?? 5,
-          methods: ['POST']
+          methods: ['POST'],
         },
         context: {
-          bearer: config.bearer
+          bearer: config.bearer,
         },
         hooks: {
           init: [
@@ -131,16 +120,16 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
                 options.context.bearer = raw.bearer;
                 delete raw.bearer;
               }
-            }
+            },
           ],
           beforeRequest: [
-            options => {
+            (options) => {
               const { bearer } = options.context;
               if (bearer && !options.headers.authorization) {
                 options.headers.authorization = `Bearer ${bearer}`;
               }
-            }
-          ]
+            },
+          ],
         },
       });
 
@@ -157,54 +146,28 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
         // of retries is reached.
-        this.#log.error(
-          'Not deliverable webhook %s %s',
-          postUrl,
-          id
-        );
+        this.#log.error('Not deliverable webhook %s %s', postUrl, id);
       }
     } catch (error) {
-      this.#log.warn(
-        error,
-        'Error while posting to webhook %s',
-        config.url
-      );
+      this.#log.warn(error, 'Error while posting to webhook %s', config.url);
 
       // Re-schedule in 5 minutes
       const time = new Date(Date.now() + DEFAULT_DELAY);
       const key = time.toISOString() + id;
       await this.#scheduler.schedule({
         ...scheduled,
-        key
+        key,
       });
-      this.#log.info(
-        'Scheduled webhook delivery %s',
-        key
-      );
+      this.#log.info('Scheduled webhook delivery %s', key);
       this.#telemetryNotifyError(config, msg);
     }
   }
 
-  #telemetryNotify(
-    config: WebhookNotification,
-    msg: XcmNotifyMessage
-  ) {
-    this.emit('telemetryNotify', notifyTelemetryFrom(
-      config.type,
-      config.url,
-      msg
-    ));
+  #telemetryNotify(config: WebhookNotification, msg: XcmNotifyMessage) {
+    this.emit('telemetryNotify', notifyTelemetryFrom(config.type, config.url, msg));
   }
 
-  #telemetryNotifyError(
-    config: WebhookNotification,
-    msg: XcmNotifyMessage
-  ) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom(
-      config.type,
-      config.url,
-      msg,
-      'max_retries'
-    ));
+  #telemetryNotifyError(config: WebhookNotification, msg: XcmNotifyMessage) {
+    this.emit('telemetryNotifyError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'));
   }
 }

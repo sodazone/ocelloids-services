@@ -1,7 +1,7 @@
 import { ControlQuery, Criteria, types } from '@sodazone/ocelloids';
 import { XcmSentWithContext } from '../types.js';
 
-export function sendersCriteria(senders?: string[] | '*') : Criteria {
+export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {
     // match any
     return {};
@@ -11,15 +11,15 @@ export function sendersCriteria(senders?: string[] | '*') : Criteria {
         { 'extrinsic.signer.id': { $in: senders } },
         { 'extrinsic.signer.publicKey': { $in: senders } },
         { 'extrinsic.extraSigners.id': { $in: senders } },
-        { 'extrinsic.extraSigners.publicKey': { $in: senders } }
-      ]
+        { 'extrinsic.extraSigners.publicKey': { $in: senders } },
+      ],
     };
   }
 }
 
-export function messageCriteria(recipients: string[]) : Criteria {
+export function messageCriteria(recipients: string[]): Criteria {
   return {
-    'recipient': { $in: recipients }
+    recipient: { $in: recipients },
   };
 }
 
@@ -31,22 +31,17 @@ function createSignersData(xt: types.ExtrinsicWithId) {
       return {
         signer: {
           id: accountId.toPrimitive(),
-          publicKey: accountId.toHex()
+          publicKey: accountId.toHex(),
         },
-        extraSigners: xt.extraSigners.map(
-          signer => ({
-            type: signer.type,
-            id: signer.address.value.toPrimitive(),
-            publicKey: signer.address.value.toHex()
-          })
-        )
+        extraSigners: xt.extraSigners.map((signer) => ({
+          type: signer.type,
+          id: signer.address.value.toPrimitive(),
+          publicKey: signer.address.value.toHex(),
+        })),
       };
     }
   } catch (error) {
-    throw new Error(
-      `creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`,
-      {cause: error}
-    );
+    throw new Error(`creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`, { cause: error });
   }
 
   return {};
@@ -55,13 +50,10 @@ function createSignersData(xt: types.ExtrinsicWithId) {
 /**
  * Matches sender account address and public keys, including extra senders.
  */
-export function matchSenders(
-  query: ControlQuery,
-  xt?: types.ExtrinsicWithId
-): boolean {
+export function matchSenders(query: ControlQuery, xt?: types.ExtrinsicWithId): boolean {
   if (xt === undefined) {
     return query.value.test({
-      extrinsic: undefined
+      extrinsic: undefined,
     });
   }
 
@@ -70,15 +62,13 @@ export function matchSenders(
   const signersData = createSignersData(xt);
 
   return query.value.test({
-    extrinsic: signersData
+    extrinsic: signersData,
   });
 }
 
 /**
  * Matches outbound XCM recipients.
  */
-export function matchMessage(
-  query: ControlQuery, xcm: XcmSentWithContext
-): boolean {
+export function matchMessage(query: ControlQuery, xcm: XcmSentWithContext): boolean {
   return query.value.test({ recipient: xcm.recipient });
 }

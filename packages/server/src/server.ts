@@ -13,16 +13,7 @@ import version from './version.js';
 import { errorHandler } from './errors.js';
 import { logger } from './environment.js';
 import { ServerOptions } from './types.js';
-import {
-  Root,
-  Auth,
-  Telemetry,
-  Administration,
-  Persistence,
-  Configuration,
-  Monitoring,
-  Connector
-} from './services/index.js';
+import { Root, Auth, Telemetry, Administration, Persistence, Configuration, Monitoring, Connector } from './services/index.js';
 import { toCorsOpts } from './args.js';
 
 const WS_MAX_PAYLOAD = 1048576; // 1MB
@@ -32,40 +23,41 @@ const WS_MAX_PAYLOAD = 1048576; // 1MB
  *
  * @param {ServerOptions} opts - Options for configuring the server.
  */
-export async function createServer(
-  opts: ServerOptions
-) {
+export async function createServer(opts: ServerOptions) {
   const server = Fastify({
-    logger
+    logger,
   });
 
   server.setErrorHandler(errorHandler);
 
   /* istanbul ignore next */
-  const closeListeners = closeWithGrace({
-    delay: opts.grace
-  }, async function ({ err }) {
-    if (err) {
-      server.log.error(err);
-    }
+  const closeListeners = closeWithGrace(
+    {
+      delay: opts.grace,
+    },
+    async function ({ err }) {
+      if (err) {
+        server.log.error(err);
+      }
 
-    const { websocketServer } = server;
-    if (websocketServer.clients) {
-      server.log.info('Closing websockets');
+      const { websocketServer } = server;
+      if (websocketServer.clients) {
+        server.log.info('Closing websockets');
 
-      for (const client of websocketServer.clients) {
-        client.close(1001, 'server shutdown');
-        if (client.readyState !== client.CLOSED) {
-        // Websocket clients could ignore the close acknowledge
-        // breaking the clean shutdown of the server.
-        // To prevent it we terminate the socket.
-          client.terminate();
+        for (const client of websocketServer.clients) {
+          client.close(1001, 'server shutdown');
+          if (client.readyState !== client.CLOSED) {
+            // Websocket clients could ignore the close acknowledge
+            // breaking the clean shutdown of the server.
+            // To prevent it we terminate the socket.
+            client.terminate();
+          }
         }
       }
-    }
 
-    await server.close();
-  });
+      await server.close();
+    }
+  );
 
   /* istanbul ignore next */
   process.once('SIGUSR2', async function () {
@@ -84,17 +76,17 @@ export async function createServer(
     openapi: {
       info: {
         title: 'XCM Monitoring Service',
-        version
-      }
-    }
+        version,
+      },
+    },
   });
 
   await server.register(FastifySwaggerUI, {
-    routePrefix: '/documentation'
+    routePrefix: '/documentation',
   });
 
   await server.register(FastifyHealthcheck, {
-    exposeUptime: true
+    exposeUptime: true,
   });
 
   await server.register(FastifyWebsocket, {
@@ -102,13 +94,13 @@ export async function createServer(
       // we don't need to negotiate subprotocols
       handleProtocols: undefined,
       maxPayload: WS_MAX_PAYLOAD,
-      perMessageDeflate: false
+      perMessageDeflate: false,
       // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
       // backlog: 511 // # default
     },
     // override default pre-close
     // we explicitly handle it with terminate
-    preClose: () => {}
+    preClose: () => {},
   });
 
   if (opts.cors) {

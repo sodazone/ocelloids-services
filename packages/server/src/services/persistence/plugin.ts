@@ -10,17 +10,18 @@ import { Scheduler, SchedulerOptions } from './scheduler.js';
 declare module 'fastify' {
   interface FastifyInstance {
     storage: {
-      root: DB,
-      subs: SubsStore
-    }
-    scheduler: Scheduler
-    janitor: Janitor
+      root: DB;
+      subs: SubsStore;
+    };
+    scheduler: Scheduler;
+    janitor: Janitor;
   }
 }
 
-type DBOptions = JanitorOptions & SchedulerOptions & {
-  db: string;
-}
+type DBOptions = JanitorOptions &
+  SchedulerOptions & {
+    db: string;
+  };
 
 /**
  * Persistence related services.
@@ -28,8 +29,7 @@ type DBOptions = JanitorOptions & SchedulerOptions & {
  * @param fastify - The fastify instance
  * @param options - The persistence options
  */
-const persistencePlugin: FastifyPluginAsync<DBOptions>
-= async (fastify, options) => {
+const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
   const dbPath = options.db || './db';
 
   fastify.log.info(`Open database at ${dbPath}`);
@@ -41,28 +41,30 @@ const persistencePlugin: FastifyPluginAsync<DBOptions>
 
   fastify.decorate('storage', {
     root,
-    subs
+    subs,
   });
   fastify.decorate('janitor', janitor);
   fastify.decorate('scheduler', scheduler);
 
   fastify.addHook('onClose', (instance, done) => {
-    scheduler.stop().catch(error => {
-      instance.log.error(error, 'Error while stopping the scheduler');
-    }).finally(() => {
-      instance.storage.root.close(error => {
-        instance.log.info('Closing database');
-        /* istanbul ignore if */
-        if (error) {
-          instance.log.error(error, 'Error while closing the database');
-        }
-        done();
+    scheduler
+      .stop()
+      .catch((error) => {
+        instance.log.error(error, 'Error while stopping the scheduler');
+      })
+      .finally(() => {
+        instance.storage.root.close((error) => {
+          instance.log.info('Closing database');
+          /* istanbul ignore if */
+          if (error) {
+            instance.log.error(error, 'Error while closing the database');
+          }
+          done();
+        });
       });
-    });
   });
 
   scheduler.start();
 };
 
 export default fp(persistencePlugin, { fastify: '>=4.x', name: 'persistence' });
-

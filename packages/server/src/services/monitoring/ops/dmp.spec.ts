@@ -5,20 +5,15 @@ import {
   dmpSendMultipleMessagesInQueue,
   dmpSendSingleMessageInQueue,
   dmpXcmPalletSentEvent,
-  registry
+  registry,
 } from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
 
 describe('dmp operator', () => {
   describe('extractDmpSend', () => {
-    it('should extract DMP sent message', done => {
-      const {
-        blocks,
-        apiPromise,
-        sendersControl,
-        messageControl
-      } = dmpSendSingleMessageInQueue;
+    it('should extract DMP sent message', (done) => {
+      const { blocks, apiPromise, sendersControl, messageControl } = dmpSendSingleMessageInQueue;
 
       const calls = jest.fn();
 
@@ -26,13 +21,13 @@ describe('dmp operator', () => {
         apiPromise,
         {
           sendersControl,
-          messageControl
+          messageControl,
         },
         registry
       )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -45,17 +40,12 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
 
-    it('should extract DMP sent message with multiple messages in the queue', done => {
-      const {
-        blocks,
-        apiPromise,
-        sendersControl,
-        messageControl
-      } = dmpSendMultipleMessagesInQueue;
+    it('should extract DMP sent message with multiple messages in the queue', (done) => {
+      const { blocks, apiPromise, sendersControl, messageControl } = dmpSendMultipleMessagesInQueue;
 
       const calls = jest.fn();
 
@@ -63,13 +53,13 @@ describe('dmp operator', () => {
         apiPromise,
         {
           sendersControl,
-          messageControl
+          messageControl,
         },
         registry
       )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -82,19 +72,14 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
   });
 
   describe('extractDmpSendByEvent', () => {
-    it('should extract DMP sent message filtered by event', done => {
-      const {
-        blocks,
-        apiPromise,
-        sendersControl,
-        messageControl
-      } = dmpXcmPalletSentEvent;
+    it('should extract DMP sent message filtered by event', (done) => {
+      const { blocks, apiPromise, sendersControl, messageControl } = dmpXcmPalletSentEvent;
 
       const calls = jest.fn();
 
@@ -102,13 +87,13 @@ describe('dmp operator', () => {
         apiPromise,
         {
           sendersControl,
-          messageControl
+          messageControl,
         },
         registry
       )(blocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -121,13 +106,13 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
   });
 
   describe('extractDmpReceive', () => {
-    it('should extract DMP received message with outcome success', done => {
+    it('should extract DMP received message with outcome success', (done) => {
       const { successBlocks } = dmpReceive;
 
       const calls = jest.fn();
@@ -135,7 +120,7 @@ describe('dmp operator', () => {
       const test$ = extractDmpReceive()(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -148,11 +133,11 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
 
-    it('should extract failed DMP received message with error', done => {
+    it('should extract failed DMP received message with error', (done) => {
       const { failBlocks } = dmpReceive;
 
       const calls = jest.fn();
@@ -160,7 +145,7 @@ describe('dmp operator', () => {
       const test$ = extractDmpReceive()(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -175,11 +160,11 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
 
-    it('should extract dmp receive with asset trap', done => {
+    it('should extract dmp receive with asset trap', (done) => {
       const { trappedBlocks } = dmpReceive;
 
       const calls = jest.fn();
@@ -187,7 +172,7 @@ describe('dmp operator', () => {
       const test$ = extractDmpReceive()(trappedBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -203,7 +188,7 @@ describe('dmp operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
   });

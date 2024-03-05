@@ -7,27 +7,22 @@ import { extractUmpReceive, extractUmpSend } from './ump.js';
 
 describe('ump operator', () => {
   describe('extractUmpSend', () => {
-    it('should extract UMP sent message', done => {
-      const {
-        blocks,
-        sendersControl,
-        messageControl,
-        getUmp
-      } = umpSend;
+    it('should extract UMP sent message', (done) => {
+      const { blocks, sendersControl, messageControl, getUmp } = umpSend;
 
       const calls = jest.fn();
 
       const test$ = extractUmpSend(
         {
           sendersControl,
-          messageControl
+          messageControl,
         },
         getUmp,
         registry
       )(blocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -40,13 +35,13 @@ describe('ump operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
   });
 
   describe('extractUmpReceive', () => {
-    it('should extract failed UMP received message', done => {
+    it('should extract failed UMP received message', (done) => {
       const { successBlocks } = umpReceive;
 
       const calls = jest.fn();
@@ -54,7 +49,7 @@ describe('ump operator', () => {
       const test$ = extractUmpReceive('1000')(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -67,11 +62,11 @@ describe('ump operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
 
-    it('should extract UMP receive with outcome fail', done => {
+    it('should extract UMP receive with outcome fail', (done) => {
       const { failBlocks } = umpReceive;
 
       const calls = jest.fn();
@@ -79,7 +74,7 @@ describe('ump operator', () => {
       const test$ = extractUmpReceive('1000')(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -92,11 +87,11 @@ describe('ump operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
           done();
-        }
+        },
       });
     });
 
-    it('should extract ump receive with asset trap', done => {
+    it('should extract ump receive with asset trap', (done) => {
       const { trappedBlocks } = umpReceive;
 
       const calls = jest.fn();
@@ -104,7 +99,7 @@ describe('ump operator', () => {
       const test$ = extractUmpReceive('2004')(trappedBlocks.pipe(extractEvents()));
 
       test$.subscribe({
-        next: msg => {
+        next: (msg) => {
           calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
@@ -119,7 +114,7 @@ describe('ump operator', () => {
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(2);
           done();
-        }
+        },
       });
     });
   });

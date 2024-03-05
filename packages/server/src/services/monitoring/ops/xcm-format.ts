@@ -29,18 +29,11 @@ function polkadotRegistry() : Registry {
  * @param registry Optional - The registry to decode types.
  * @returns a versioned XCM program
  */
-export function asVersionedXcm(
-  data: Bytes | Uint8Array,
-  registry: Registry
-): XcmVersionedXcm {
+export function asVersionedXcm(data: Bytes | Uint8Array, registry: Registry): XcmVersionedXcm {
   if (registry.hasType('XcmVersionedXcm')) {
-    return registry.createType(
-      'XcmVersionedXcm', data
-    ) as XcmVersionedXcm;
+    return registry.createType('XcmVersionedXcm', data) as XcmVersionedXcm;
   } else if (registry.hasType('StagingXcmVersionedXcm')) {
-    return registry.createType(
-      'StagingXcmVersionedXcm', data
-    ) as XcmVersionedXcm;
+    return registry.createType('StagingXcmVersionedXcm', data) as XcmVersionedXcm;
   }
 
   throw new Error('Versioned XCM type not found in chain registry');
@@ -53,12 +46,9 @@ export function asVersionedXcm(
   */
 }
 
-function asXcmpVersionedXcms(
-  buffer: Uint8Array,
-  registry: Registry
-) : XcmVersionedXcm[] {
+function asXcmpVersionedXcms(buffer: Uint8Array, registry: Registry): XcmVersionedXcm[] {
   const len = buffer.length;
-  const xcms : XcmVersionedXcm[] = [];
+  const xcms: XcmVersionedXcm[] = [];
   let ptr = 1;
 
   while (ptr < len) {
@@ -83,25 +73,25 @@ function asXcmpVersionedXcms(
  * @param registry Optional - The registry to decode types.
  * @returns an array of {@link VersionedXcm} programs.
  */
-export function fromXcmpFormat(
-  buf: Uint8Array,
-  registry: Registry
-) : XcmVersionedXcm[] {
+export function fromXcmpFormat(buf: Uint8Array, registry: Registry): XcmVersionedXcm[] {
   switch (buf[0]) {
-  case 0x00: { // Concatenated XCM fragments
-    return asXcmpVersionedXcms(buf, registry);
-  }
-  case 0x01: { // XCM blobs
-    // XCM blobs not supported, ignore
-    break;
-  }
-  case 0x02: { // Signals
-    // TODO handle signals
-    break;
-  }
-  default: {
-    throw new Error('Unknown XCMP format');
-  }
+    case 0x00: {
+      // Concatenated XCM fragments
+      return asXcmpVersionedXcms(buf, registry);
+    }
+    case 0x01: {
+      // XCM blobs
+      // XCM blobs not supported, ignore
+      break;
+    }
+    case 0x02: {
+      // Signals
+      // TODO handle signals
+      break;
+    }
+    default: {
+      throw new Error('Unknown XCMP format');
+    }
   }
   return [];
 }

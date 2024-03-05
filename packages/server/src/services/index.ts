@@ -9,13 +9,4 @@ import Telemetry from './telemetry/plugin.js';
 
 export * from './types.js';
 
-export {
-  Root,
-  Auth,
-  Administration,
-  Persistence,
-  Configuration,
-  Monitoring,
-  Connector,
-  Telemetry
-};
+export { Root, Auth, Administration, Persistence, Configuration, Monitoring, Connector, Telemetry };

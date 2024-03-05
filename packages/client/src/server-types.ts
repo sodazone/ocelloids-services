@@ -12,5 +12,5 @@ export type {
   XcmWaypointContext,
   AssetsTrapped,
   TrappedAsset,
-  Leg
+  Leg,
 } from 'xcmon-server';

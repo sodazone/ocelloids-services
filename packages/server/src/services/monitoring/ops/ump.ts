@@ -5,36 +5,32 @@ import '@polkadot/api-augment/polkadot';
 import type { Registry } from '@polkadot/types/types';
 import type {
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-  FrameSupportMessagesProcessMessageError
+  FrameSupportMessagesProcessMessageError,
 } from '@polkadot/types/lookup';
 
 import type { U8aFixed, bool } from '@polkadot/types-codec';
 
-import {
-  ControlQuery,
-  filterNonNull,
-  types
-} from '@sodazone/ocelloids';
+import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids';
 
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   XcmCriteria,
   XcmInboundWithContext,
-  XcmSentWithContext
+  XcmSentWithContext,
 } from '../types.js';
 import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 
-const METHODS_MQ_PROCESSED = ['Processed','ProcessingFailed'];
+const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
 type UmpReceivedContext = {
-  id: U8aFixed,
-  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-  success?: bool,
-  error?: FrameSupportMessagesProcessMessageError
+  id: U8aFixed;
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin;
+  success?: bool;
+  error?: FrameSupportMessagesProcessMessageError;
 };
 
 function createUmpReceivedWithContext(
@@ -60,17 +56,16 @@ function createUmpReceivedWithContext(
       messageId,
       outcome: success?.isTrue ? 'Success' : 'Fail',
       error: error ? error.toHuman() : null,
-      assetsTrapped
+      assetsTrapped,
     });
   }
   return null;
 }
 
 function umpMessagesSent() {
-  return (source: Observable<types.BlockEvent>)
-        : Observable<XcmSentWithContext> => {
-    return (source.pipe(
-      map(event => {
+  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
+    return source.pipe(
+      map((event) => {
         const xcmMessage = event.data as any;
         return {
           event: event.toHuman(),
@@ -79,27 +74,22 @@ function umpMessagesSent() {
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash?.toHex(),
           messageId: xcmMessage.messageId?.toHex(),
-          sender: event.extrinsic?.signer.toHuman()
+          sender: event.extrinsic?.signer.toHuman(),
         } as XcmSentWithContext;
       })
-    ));
+    );
   };
 }
 
-function findOutboundUmpMessage(
-  messageControl: ControlQuery,
-  getOutboundUmpMessages: GetOutboundUmpMessages,
-  registry: Registry
-) {
-  return (source: Observable<XcmSentWithContext>)
-  : Observable<XcmSentWithContext> => {
+function findOutboundUmpMessage(messageControl: ControlQuery, getOutboundUmpMessages: GetOutboundUmpMessages, registry: Registry) {
+  return (source: Observable<XcmSentWithContext>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      mergeMap(sentMsg => {
+      mergeMap((sentMsg) => {
         const { blockHash, messageHash, messageId } = sentMsg;
         return getOutboundUmpMessages(blockHash).pipe(
-          map(messages =>  {
+          map((messages) => {
             return messages
-              .map(data => {
+              .map((data) => {
                 const xcmProgram = asVersionedXcm(data, registry);
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
@@ -109,70 +99,52 @@ function findOutboundUmpMessage(
                   messageId: getMessageId(xcmProgram),
                   instructions: {
                     bytes: xcmProgram.toU8a(),
-                    json: xcmProgram.toHuman()
-                  }
+                    json: xcmProgram.toHuman(),
+                  },
                 });
-              }).find(msg => {
+              })
+              .find((msg) => {
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
               });
           }),
           filterNonNull(),
-          filter(xcm => matchMessage(messageControl, xcm))
+          filter((xcm) => matchMessage(messageControl, xcm))
         );
-      }));
+      })
+    );
   };
 }
 
 export function extractUmpSend(
-  {
-    sendersControl,
-    messageControl
-  }: XcmCriteria,
+  { sendersControl, messageControl }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
 ) {
-  return (source: Observable<types.BlockEvent>)
-      : Observable<XcmSentWithContext> => {
+  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      filter(event => ((
-        matchEvent(event, 'parachainSystem', 'UpwardMessageSent')
-        || matchEvent(event, 'polkadotXcm', 'Sent')
-      ) && matchSenders(sendersControl, event.extrinsic)
-      )),
+      filter(
+        (event) =>
+          (matchEvent(event, 'parachainSystem', 'UpwardMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')) &&
+          matchSenders(sendersControl, event.extrinsic)
+      ),
       umpMessagesSent(),
-      findOutboundUmpMessage(
-        messageControl,
-        getOutboundUmpMessages,
-        registry
-      )
+      findOutboundUmpMessage(messageControl, getOutboundUmpMessages, registry)
     );
   };
 }
 
 export function extractUmpReceive(originId: string) {
-  return (source: Observable<types.BlockEvent>)
-    : Observable<XcmInboundWithContext>  => {
-    return (source.pipe(
-      bufferCount(2,1),
+  return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
+    return source.pipe(
+      bufferCount(2, 1),
       map(([maybeAssetTrapEvent, maybeUmpEvent]) => {
-        if (
-          maybeUmpEvent &&
-          matchEvent(maybeUmpEvent, 'messageQueue', METHODS_MQ_PROCESSED))
-        {
-          const assetTrapEvent =
-            matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ?
-              maybeAssetTrapEvent :
-              undefined;
-          return createUmpReceivedWithContext(
-            originId,
-            maybeUmpEvent,
-            assetTrapEvent
-          );
+        if (maybeUmpEvent && matchEvent(maybeUmpEvent, 'messageQueue', METHODS_MQ_PROCESSED)) {
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped') ? maybeAssetTrapEvent : undefined;
+          return createUmpReceivedWithContext(originId, maybeUmpEvent, assetTrapEvent);
         }
         return null;
       }),
       filterNonNull()
-    ));
+    );
   };
 }
-

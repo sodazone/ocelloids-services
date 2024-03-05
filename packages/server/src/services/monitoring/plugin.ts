@@ -1,13 +1,13 @@
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { Switchboard, SwitchboardOptions } from  './switchboard.js';
+import { Switchboard, SwitchboardOptions } from './switchboard.js';
 import { SubscriptionApi } from './api/index.js';
 import WebsocketProtocolPlugin, { WebsocketProtocolOptions } from './api/ws/plugin.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    switchboard: Switchboard
+    switchboard: Switchboard;
   }
 }
 
@@ -20,8 +20,7 @@ type MonitoringOptions = SwitchboardOptions & WebsocketProtocolOptions;
  *
  * @param {FastifyInstance} fastify The Fastify instance.
  */
-const monitoringPlugin: FastifyPluginAsync<MonitoringOptions>
-= async (fastify, options) => {
+const monitoringPlugin: FastifyPluginAsync<MonitoringOptions> = async (fastify, options) => {
   const { log } = fastify;
 
   const switchboard = new Switchboard(fastify, options);
@@ -39,4 +38,3 @@ const monitoringPlugin: FastifyPluginAsync<MonitoringOptions>
 };
 
 export default fp(monitoringPlugin, { fastify: '>=4.x', name: 'monitoring' });
-

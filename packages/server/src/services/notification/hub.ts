@@ -15,7 +15,7 @@ import { TelemetryNotifierEventKeys } from '../telemetry/types.js';
 export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
   #log: Logger;
   #notifiers: {
-    [property: string]: Notifier
+    [property: string]: Notifier;
   };
 
   constructor(services: Services) {
@@ -30,7 +30,7 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
     // delegate telemetry events
     for (const n of Object.values(this.#notifiers)) {
       for (const t of TelemetryNotifierEventKeys) {
-        n.on(t, msg => {
+        n.on(t, (msg) => {
           this.emit(t, msg);
         });
       }

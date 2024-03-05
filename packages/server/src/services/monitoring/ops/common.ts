@@ -1,22 +1,14 @@
 import { map, Observable } from 'rxjs';
 
 import type { Registry } from '@polkadot/types/types';
-import type {
-  XcmV2Xcm,
-  XcmV3Xcm,
-  XcmV2MultiLocation,
-  XcmV3MultiLocation
-} from '@polkadot/types/lookup';
+import type { XcmV2Xcm, XcmV3Xcm, XcmV2MultiLocation, XcmV3MultiLocation } from '@polkadot/types/lookup';
 
 import { XcmSentWithContext } from '../types.js';
 import { getParaIdFromLocation, getParaIdFromMultiLocation, isV4Location } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm, XcmV4Location } from './xcm-types.js';
 
-function updateStops(
-  stops: string[],
-  destination: XcmV3MultiLocation | XcmV2MultiLocation | XcmV4Location,
-) {
+function updateStops(stops: string[], destination: XcmV3MultiLocation | XcmV2MultiLocation | XcmV4Location) {
   let paraId: string | undefined;
   if (isV4Location(destination)) {
     paraId = getParaIdFromLocation(destination);
@@ -52,15 +44,14 @@ function recursiveExtractStops(message: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: s
 }
 
 export function extractXcmWaypoints(registry: Registry) {
-  return (
-    source: Observable<XcmSentWithContext>
-  ) => source.pipe(
-    map(message => {
-      const { instructions, recipient } = message;
-      const stops = [recipient];
-      const versionedXcm = asVersionedXcm(instructions.bytes, registry);
-      recursiveExtractStops(versionedXcm[`as${versionedXcm.type}`], stops);
-      return { message, stops };
-    })
-  );
+  return (source: Observable<XcmSentWithContext>) =>
+    source.pipe(
+      map((message) => {
+        const { instructions, recipient } = message;
+        const stops = [recipient];
+        const versionedXcm = asVersionedXcm(instructions.bytes, registry);
+        recursiveExtractStops(versionedXcm[`as${versionedXcm.type}`], stops);
+        return { message, stops };
+      })
+    );
 }

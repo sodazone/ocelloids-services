@@ -26,17 +26,20 @@ describe('message matching engine', () => {
     // })
 
     db = new Level();
-    engine = new MatchingEngine({
-      ..._services,
-      storage: {
-        ..._services.storage,
-        root: db
+    engine = new MatchingEngine(
+      {
+        ..._services,
+        storage: {
+          ..._services.storage,
+          root: db,
+        },
+        janitor: {
+          on: jest.fn(),
+          schedule,
+        } as unknown as Janitor,
       },
-      janitor: {
-        on: jest.fn(),
-        schedule
-      } as unknown as Janitor
-    }, cb);
+      cb
+    );
 
     outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
   });
@@ -72,10 +75,7 @@ describe('message matching engine', () => {
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
     const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
 
-    await Promise.all([
-      engine.onOutboundMessage(origin),
-      engine.onInboundMessage(destination)
-    ]);
+    await Promise.all([engine.onOutboundMessage(origin), engine.onInboundMessage(destination)]);
 
     expect(cb).toHaveBeenCalledTimes(2);
     await expect(outbound.get(idKey)).rejects.toBeDefined();
@@ -116,11 +116,11 @@ describe('message matching engine', () => {
     const { origin, destination, subscriptionId } = matchMessages;
     const omsg: XcmSent = {
       ...origin,
-      messageId: undefined
+      messageId: undefined,
     };
     const imsg: XcmInbound = {
       ...destination,
-      messageId: destination.messageHash
+      messageId: destination.messageHash,
     };
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
     const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
@@ -137,7 +137,7 @@ describe('message matching engine', () => {
     const { origin, destination, subscriptionId } = matchMessages;
     const imsg: XcmInbound = {
       ...destination,
-      messageId: destination.messageHash
+      messageId: destination.messageHash,
     };
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
     const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
@@ -175,10 +175,7 @@ describe('message matching engine', () => {
 
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay0);
-    await Promise.all([
-      engine.onInboundMessage(hopin),
-      engine.onOutboundMessage(hopout)
-    ]);
+    await Promise.all([engine.onInboundMessage(hopin), engine.onOutboundMessage(hopout)]);
     await engine.onRelayedMessage(subscriptionId, relay2);
     await engine.onInboundMessage(destination);
 
@@ -196,10 +193,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay2);
 
-    await Promise.all([
-      engine.onInboundMessage(hopin),
-      engine.onOutboundMessage(hopout)
-    ]);
+    await Promise.all([engine.onInboundMessage(hopin), engine.onOutboundMessage(hopout)]);
 
     await engine.onInboundMessage(destination);
 
@@ -218,16 +212,16 @@ describe('message matching engine', () => {
     for (let i = 0; i < 100; i++) {
       await engine.onInboundMessage({
         ...matchMessages.destination,
-        subscriptionId: 'z.transfers:' + i
+        subscriptionId: 'z.transfers:' + i,
       });
       await engine.onOutboundMessage({
         ...matchMessages.origin,
-        subscriptionId: 'baba-yaga-1:' + i
+        subscriptionId: 'baba-yaga-1:' + i,
       });
       const r = (Math.random() + 1).toString(36).substring(7);
       await engine.onOutboundMessage({
         ...matchMessages.origin,
-        subscriptionId: r + i
+        subscriptionId: r + i,
       });
     }
     expect(await count()).toBe(1000);

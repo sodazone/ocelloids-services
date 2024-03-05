@@ -4,10 +4,10 @@ import { Scheduled, Scheduler } from './scheduler.js';
 import { DB, Logger, TypedEventEmitter } from '../../services/types.js';
 
 export type JanitorTask = {
-  sublevel: string,
-  key: string,
-  expiry?: number
-}
+  sublevel: string;
+  key: string;
+  expiry?: number;
+};
 
 export type JanitorOptions = {
   sweepExpiry: number;
@@ -16,7 +16,7 @@ export type JanitorOptions = {
 const JanitorTaskType = 'task:janitor';
 
 export type JanitorEvents = {
-  sweep: (task: JanitorTask, item: string) => void
+  sweep: (task: JanitorTask, item: string) => void;
 };
 
 /**
@@ -28,12 +28,7 @@ export class Janitor extends (EventEmitter as new () => TypedEventEmitter<Janito
   #sched: Scheduler;
   #expiry: number;
 
-  constructor(
-    log: Logger,
-    db: DB,
-    sched: Scheduler,
-    options: JanitorOptions
-  ) {
+  constructor(log: Logger, db: DB, sched: Scheduler, options: JanitorOptions) {
     super();
     this.#log = log;
     this.#db = db;
@@ -44,18 +39,20 @@ export class Janitor extends (EventEmitter as new () => TypedEventEmitter<Janito
   }
 
   async schedule(...tasks: JanitorTask[]) {
-    await this.#sched.schedule<JanitorTask>(...tasks.map(task => {
-      const time = new Date(Date.now() + (task.expiry ?? this.#expiry));
-      const key = time.toISOString() + task.sublevel + task.key;
-      return {
-        key,
-        type: JanitorTaskType,
-        task
-      } as Scheduled<JanitorTask>;
-    }));
+    await this.#sched.schedule<JanitorTask>(
+      ...tasks.map((task) => {
+        const time = new Date(Date.now() + (task.expiry ?? this.#expiry));
+        const key = time.toISOString() + task.sublevel + task.key;
+        return {
+          key,
+          type: JanitorTaskType,
+          task,
+        } as Scheduled<JanitorTask>;
+      })
+    );
   }
 
-  async #sweep({task}: Scheduled<JanitorTask>) {
+  async #sweep({ task }: Scheduled<JanitorTask>) {
     const { sublevel, key } = task;
 
     try {

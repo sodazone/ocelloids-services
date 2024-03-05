@@ -4,15 +4,15 @@ import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
 import { NotFound } from '../../errors.js';
 
 export type Scheduled<T = any> = {
-  key?: string
-  type: string
-  task: T
-}
+  key?: string;
+  type: string;
+  task: T;
+};
 
 export type SchedulerOptions = {
-  scheduler: boolean,
-  schedulerFrequency: number
-}
+  scheduler: boolean;
+  schedulerFrequency: number;
+};
 
 /**
  * Simple database persistent scheduler.
@@ -30,18 +30,11 @@ export class Scheduler extends EventEmitter {
   #while: Promise<void> = Promise.resolve();
   #cancel = (_?: unknown) => {};
 
-  constructor(
-    log: Logger,
-    db: DB,
-    opts: SchedulerOptions
-  ) {
+  constructor(log: Logger, db: DB, opts: SchedulerOptions) {
     super();
 
     this.#log = log;
-    this.#tasks = db.sublevel<string, Scheduled>(
-      prefixes.sched.tasks,
-      jsonEncoded
-    );
+    this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded);
     this.#enabled = opts.scheduler;
     this.#frequency = opts.schedulerFrequency;
 
@@ -50,10 +43,7 @@ export class Scheduler extends EventEmitter {
 
   start() {
     if (this.#enabled) {
-      this.#log.info(
-        'Starting scheduler (frequency=%dms)',
-        this.#frequency
-      );
+      this.#log.info('Starting scheduler (frequency=%dms)', this.#frequency);
       this.#while = this.#run();
     }
   }
@@ -94,18 +84,10 @@ export class Scheduler extends EventEmitter {
   }
 
   async #run() {
-    const cancellable = new Promise(resolve => {
+    const cancellable = new Promise((resolve) => {
       this.#cancel = resolve;
     });
-    const delay = () => Promise.race([
-      new Promise(
-        resolve => setTimeout(
-          resolve,
-          this.#frequency
-        )
-      ),
-      cancellable
-    ]);
+    const delay = () => Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable]);
 
     this.#running = true;
 

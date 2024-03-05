@@ -9,14 +9,11 @@ export function wsMetrics(source: TelemetryEventEmitter) {
   const socketListenerCount = new Gauge({
     name: 'xcmon_socket_listener_count',
     help: 'Socket listeners.',
-    labelNames: ['type', 'subscription', 'origin', 'destinations', 'channel']
+    labelNames: ['type', 'subscription', 'origin', 'destinations', 'channel'],
   });
 
   source.on('telemetrySocketListener', (ip, sub, close = false) => {
-    const gauge = socketListenerCount.labels(
-      'websocket',
-      sub.id, sub.origin, sub.destinations.join(','), ip
-    );
+    const gauge = socketListenerCount.labels('websocket', sub.id, sub.origin, sub.destinations.join(','), ip);
     if (close) {
       gauge.dec();
     } else {

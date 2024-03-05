@@ -11,7 +11,7 @@ jest.unstable_mockModule('node:fs', () => {
     default: {
       readFileSync: () => {
         return _configToml;
-      }
+      },
     },
   };
 });
@@ -34,7 +34,7 @@ jest.unstable_mockModule('@polkadot/api', () => {
         disconnect: jest.fn(() => Promise.resolve()),
         send: jest.fn(),
         subscribe: jest.fn(),
-        unsubscribe: jest.fn()
+        unsubscribe: jest.fn(),
       };
     }),
     ScProvider: jest.fn(() => {
@@ -47,9 +47,9 @@ jest.unstable_mockModule('@polkadot/api', () => {
         disconnect: jest.fn(() => Promise.resolve()),
         send: jest.fn(),
         subscribe: jest.fn(),
-        unsubscribe: jest.fn()
+        unsubscribe: jest.fn(),
       };
-    })
+    }),
   };
 });
 
@@ -61,17 +61,17 @@ jest.unstable_mockModule('@sodazone/ocelloids', () => {
       get promise() {
         const p = Promise.resolve({
           registry: {
-            hasType: () => true
-          }
+            hasType: () => true,
+          },
         } as unknown as P.ApiPromise);
-        const records : Record<string, P.ApiPromise> = {};
+        const records: Record<string, P.ApiPromise> = {};
         for (const k of this.chains) {
           records[k] = {
-            isReady: p
+            isReady: p,
           } as unknown as P.ApiPromise;
         }
         return records;
       }
-    }
+    },
   };
 });

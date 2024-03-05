@@ -1,28 +1,26 @@
-import {
-  XcmNotifyMessage,
-  XcmReceived,
-  XcmRelayed,
-  XcmSent
-} from './lib';
+import { XcmNotifyMessage, XcmReceived, XcmRelayed, XcmSent } from './lib';
 
 /**
  * Represents a {@link Subscription} delivery channel.
  *
  * @public
  */
-export type DeliveryChannel = {
-  type: 'webhook';
-  url: string;
-  contentType?: string;
-  events?: ('*' | string[]);
-  template?: string;
-  bearer?: string;
-  limit?: number;
-} | {
-  type: 'log';
-} | {
-  type: 'websocket';
-};
+export type DeliveryChannel =
+  | {
+      type: 'webhook';
+      url: string;
+      contentType?: string;
+      events?: '*' | string[];
+      template?: string;
+      bearer?: string;
+      limit?: number;
+    }
+  | {
+      type: 'log';
+    }
+  | {
+      type: 'websocket';
+    };
 
 /**
  * Represents a persistent subscription.
@@ -67,7 +65,7 @@ export type Subscription = {
   /**
    * An array of sender addresses or '*' for all.
    */
-  senders?: ('*' | string[]);
+  senders?: '*' | string[];
 
   /**
    * An array of destination chain ids.
@@ -89,8 +87,8 @@ export type Subscription = {
    * Use '*' for all.
    * @see {@link XcmNotificationType} for supported event names.
    */
-  events?: ('*' | string[]);
-}
+  events?: '*' | string[];
+};
 
 /**
  * Represents a subscription error.
@@ -98,14 +96,14 @@ export type Subscription = {
  * @public
  */
 export type SubscriptionError = {
-  name: string,
+  name: string;
   issues: {
-    code: string,
-    expected: string,
-    path: string[],
-    message: string
-  }[]
-}
+    code: string;
+    expected: string;
+    path: string[];
+    message: string;
+  }[];
+};
 
 /**
  * The XCM event types.
@@ -117,7 +115,7 @@ export enum XcmNotificationType {
   Received = 'xcm.received',
   Relayed = 'xcm.relayed',
   Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop'
+  Hop = 'xcm.hop',
 }
 
 /**
@@ -125,21 +123,18 @@ export enum XcmNotificationType {
  *
  * @public
  */
-export type OnDemandSubscription = Omit<Subscription, 'id'|'channels'>;
+export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>;
 
 /**
  * Guard condition for {@link Subscription}.
  *
  * @public
  */
-export function isSubscription(
-  obj: Subscription | SubscriptionError | XcmNotifyMessage
-): obj is Subscription {
-  const maybeSub = (obj as Subscription);
-  return maybeSub.origin !== undefined
-  && maybeSub.destinations !== undefined
-  && maybeSub.id !== undefined
-  && maybeSub.channels !== undefined;
+export function isSubscription(obj: Subscription | SubscriptionError | XcmNotifyMessage): obj is Subscription {
+  const maybeSub = obj as Subscription;
+  return (
+    maybeSub.origin !== undefined && maybeSub.destinations !== undefined && maybeSub.id !== undefined && maybeSub.channels !== undefined
+  );
 }
 
 /**
@@ -147,12 +142,9 @@ export function isSubscription(
  *
  * @public
  */
-export function isSubscriptionError(
-  obj: Subscription | SubscriptionError
-): obj is SubscriptionError {
-  const maybeError = (obj as SubscriptionError);
-  return maybeError.issues !== undefined
-  && maybeError.name !== undefined;
+export function isSubscriptionError(obj: Subscription | SubscriptionError): obj is SubscriptionError {
+  const maybeError = obj as SubscriptionError;
+  return maybeError.issues !== undefined && maybeError.name !== undefined;
 }
 
 /**

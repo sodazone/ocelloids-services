@@ -11,13 +11,13 @@ import { collectSwitchboardStats } from './metrics/switchboard.js';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
-    disableTelemetry?: boolean
+    disableTelemetry?: boolean;
   }
 }
 
 type TelemetryOptions = {
-  telemetry: boolean
-}
+  telemetry: boolean;
+};
 
 type PullCollect = () => Promise<void>;
 
@@ -27,17 +27,19 @@ type PullCollect = () => Promise<void>;
  * @param fastify - The fastify instance
  * @param options - The telemetry options
  */
-const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
-= async (fastify, options) => {
+const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, options) => {
   const {
-    log, switchboard, wsProtocol, storage: { root }
+    log,
+    switchboard,
+    wsProtocol,
+    storage: { root },
   } = fastify;
 
   if (options.telemetry) {
     log.info('Enable default metrics');
     collectDefaultMetrics();
 
-    const pullCollectors : PullCollect[] = [];
+    const pullCollectors: PullCollect[] = [];
 
     if (root instanceof Level) {
       log.info('Enable level DB metrics');
@@ -53,25 +55,28 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions>
 
     fastify.addHook('onResponse', createReplyHook());
 
-    fastify.get('/metrics', {
-      schema: {
-        hide: true
+    fastify.get(
+      '/metrics',
+      {
+        schema: {
+          hide: true,
+        },
+        config: {
+          disableTelemetry: true,
+        },
       },
-      config: {
-        disableTelemetry: true
-      }
-    }, async (_, reply) => {
-      if (pullCollectors.length > 0) {
-        await Promise.all(
-          pullCollectors.map(c => c())
-        );
-      }
+      async (_, reply) => {
+        if (pullCollectors.length > 0) {
+          await Promise.all(pullCollectors.map((c) => c()));
+        }
 
-      reply.send(await register.metrics());
-    });
+        reply.send(await register.metrics());
+      }
+    );
   }
 };
 
 export default fp(telemetryPlugin, {
-  fastify: '>=4.26.x', name: 'telemetry'
+  fastify: '>=4.26.x',
+  name: 'telemetry',
 });

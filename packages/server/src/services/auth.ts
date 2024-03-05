@@ -6,33 +6,25 @@ import { environment } from '../environment.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    auth: (
-      request: FastifyRequest, reply: FastifyReply
-    ) => Promise<void>
+    auth: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
-const authPlugin: FastifyPluginAsync
-= async fastify =>  {
+const authPlugin: FastifyPluginAsync = async (fastify) => {
   if (environment !== 'development' && !process.env.XCMON_SECRET) {
     fastify.log.warn('!! Default XCMON_SECRET configured !!');
   }
 
   fastify.register(jwt, {
-    secret: process.env.XCMON_SECRET ?? 'IAO Abraxas Sabaoth'
+    secret: process.env.XCMON_SECRET ?? 'IAO Abraxas Sabaoth',
   });
-  fastify.decorate('auth',
-    async function (
-      request: FastifyRequest, reply: FastifyReply
-    ) : Promise<void> {
-      try {
-        await request.jwtVerify();
-      } catch (err) {
-        reply.status(401).send(err);
-      }
+  fastify.decorate('auth', async function (request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.status(401).send(err);
     }
-  );
+  });
 };
 
 export default fp(authPlugin);
-

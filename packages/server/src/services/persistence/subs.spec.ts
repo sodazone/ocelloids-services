@@ -9,11 +9,7 @@ describe('subscriptions persistence', () => {
 
   beforeAll(() => {
     const mem = new Level();
-    db = new SubsStore(
-      _log,
-      mem,
-      _config
-    );
+    db = new SubsStore(_log, mem, _config);
   });
 
   describe('prepare data', () => {
@@ -42,13 +38,13 @@ describe('subscriptions persistence', () => {
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          origin: '1337'
+          origin: '1337',
         });
       }).rejects.toThrow();
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          destinations: ['1337']
+          destinations: ['1337'],
         });
       }).rejects.toThrow();
     });
@@ -59,10 +55,8 @@ describe('subscriptions persistence', () => {
         ..._subsFix[0],
         id: 'Z-0:1000:1',
         origin: '0',
-        destinations: [
-          '1000'
-        ],
-        senders: ['a']
+        destinations: ['1000'],
+        senders: ['a'],
       });
       expect((await db.getAll()).length).toBe(len + 1);
     });

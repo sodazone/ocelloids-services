@@ -6,43 +6,41 @@ import { SocketStream } from '@fastify/websocket';
 import { ulid } from 'ulidx';
 
 import { Logger } from '../../../types.js';
-import {
-  $Subscription,
-  Subscription,
-  XcmEventListener,
-  XcmNotifyMessage
-} from '../../types.js';
+import { $Subscription, Subscription, XcmEventListener, XcmNotifyMessage } from '../../types.js';
 import { Switchboard } from '../../switchboard.js';
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js';
 import { WebsocketProtocolOptions } from './plugin.js';
 import { errorMessage } from '../../../../errors.js';
 
-const jsonSchema = z.string().transform( ( str, ctx ) => {
-  try {
-    return {
-      ...JSON.parse( str ),
-      id: ulid(),
-      ephemeral: true,
-      channels: [{
-        type: 'websocket'
-      }]
-    };
-  } catch ( e ) {
-    ctx.addIssue( { code: 'custom', message: 'Invalid JSON' } );
-    return z.NEVER;
-  }
-} ).pipe($Subscription);
+const jsonSchema = z
+  .string()
+  .transform((str, ctx) => {
+    try {
+      return {
+        ...JSON.parse(str),
+        id: ulid(),
+        ephemeral: true,
+        channels: [
+          {
+            type: 'websocket',
+          },
+        ],
+      };
+    } catch (e) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid JSON' });
+      return z.NEVER;
+    }
+  })
+  .pipe($Subscription);
 
 type Connection = {
-  id: string,
-  ip: string,
-  stream: SocketStream
-}
+  id: string;
+  ip: string;
+  stream: SocketStream;
+};
 
-function safeWrite(stream: SocketStream, content: Object) {
-  return stream.writable
-    ? stream.write(JSON.stringify(content))
-    : false;
+function safeWrite(stream: SocketStream, content: NonNullable<unknown>) {
+  return stream.writable ? stream.write(JSON.stringify(content)) : false;
 }
 
 /**
@@ -57,11 +55,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   #connections: Map<string, Connection[]>;
   #clientsNum: number;
 
-  constructor(
-    log: Logger,
-    switchboard: Switchboard,
-    options: WebsocketProtocolOptions
-  ) {
+  constructor(log: Logger, switchboard: Switchboard, options: WebsocketProtocolOptions) {
     super();
 
     this.#log = log;
@@ -74,7 +68,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       const connections = this.#connections.get(sub.id);
       if (connections) {
         for (const connection of connections) {
-          const {stream, ip} = connection;
+          const { stream, ip } = connection;
           try {
             safeWrite(stream, xcm);
 
@@ -100,11 +94,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    * @param request The Fastify request
    * @param subscriptionId The subscription identifier
    */
-  async handle(
-    stream: SocketStream,
-    request: FastifyRequest,
-    subscriptionId?: string
-  ) {
+  async handle(stream: SocketStream, request: FastifyRequest, subscriptionId?: string) {
     if (this.#clientsNum >= this.#maxClients) {
       stream.socket.close(1013, 'server too busy');
       return;
@@ -112,7 +102,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     try {
       if (subscriptionId === undefined) {
-        let resolvedId : string;
+        let resolvedId: string;
 
         // on-demand ephemeral subscriptions
         stream.on('data', (data: Buffer) => {
@@ -135,7 +125,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
               } else {
                 safeWrite(stream, parsed.error);
               }
-            }});
+            }
+          });
         });
       } else {
         // existing subscriptions
@@ -153,29 +144,21 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   stop() {
-    this.#switchboard.removeNotificationListener(
-      'websocket', this.#broadcaster
-    );
+    this.#switchboard.removeNotificationListener('websocket', this.#broadcaster);
   }
 
-  #addSubscriber(
-    subscription: Subscription,
-    stream: SocketStream,
-    request: FastifyRequest
-  ) {
-    if (subscription.channels.findIndex(
-      chan => chan.type === 'websocket'
-    ) === -1) {
-      throw new Error(
-        'websocket channel not enabled in subscription'
-      );
+  #addSubscriber(subscription: Subscription, stream: SocketStream, request: FastifyRequest) {
+    if (subscription.channels.findIndex((chan) => chan.type === 'websocket') === -1) {
+      throw new Error('websocket channel not enabled in subscription');
     }
 
     this.#clientsNum++;
 
     const subId = subscription.id;
     const connection = {
-      id: request.id, ip: request.ip, stream
+      id: request.id,
+      ip: request.ip,
+      stream,
     };
 
     if (this.#connections.has(subId)) {
@@ -204,7 +187,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         // TODO: check if frees memory
         const connections = this.#connections.get(id);
         if (connections) {
-          const index = connections.findIndex(c => c.id === request.id);
+          const index = connections.findIndex((c) => c.id === request.id);
           if (index > -1) {
             connections.splice(index, 1);
           }
@@ -216,22 +199,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     });
   }
 
-  #telemetryNotify(
-    ip: string,
-    xcm: XcmNotifyMessage
-  ) {
-    this.emit('telemetryNotify', notifyTelemetryFrom(
-      'websocket', ip, xcm
-    ));
+  #telemetryNotify(ip: string, xcm: XcmNotifyMessage) {
+    this.emit('telemetryNotify', notifyTelemetryFrom('websocket', ip, xcm));
   }
 
-  #telemetryNotifyError(
-    ip: string,
-    xcm: XcmNotifyMessage,
-    error: string
-  ) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom(
-      'websocket', ip, xcm, error
-    ));
+  #telemetryNotifyError(ip: string, xcm: XcmNotifyMessage, error: string) {
+    this.emit('telemetryNotifyError', notifyTelemetryFrom('websocket', ip, xcm, error));
   }
 }

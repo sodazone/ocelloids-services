@@ -6,7 +6,7 @@ export function createReplyHook() {
   const reqHist = new Histogram({
     name: 'xcmon_fastify_response_time_ms',
     help: 'HTTP response time in milliseconds.',
-    labelNames: ['status', 'method', 'route']
+    labelNames: ['status', 'method', 'route'],
   });
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (request.routeOptions.config.disableTelemetry) {
@@ -14,10 +14,6 @@ export function createReplyHook() {
     }
 
     const millis = reply.elapsedTime;
-    reqHist.labels(
-      reply.statusCode.toString(),
-      request.method,
-      request.originalUrl
-    ).observe(millis);
+    reqHist.labels(reply.statusCode.toString(), request.method, request.originalUrl).observe(millis);
   };
 }

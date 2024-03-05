@@ -7,7 +7,7 @@ import {
   mockConfigProviderMismatch,
   mockConfigRelayLast,
   mockConfigRelayMismatch,
-  mockConfigWS
+  mockConfigWS,
 } from '../../testing/configs.js';
 import { _log } from '../../testing/services.js';
 
@@ -15,13 +15,13 @@ const Connector = (await import('./connector.js')).default;
 
 describe('connector', () => {
   it('should fail if relay is configured with RPC and parachain is configured with Smoldot', () => {
-    expect(() => new Connector(_log, mockConfigProviderMismatch))
-      .toThrow('RPC provider cannot be used for relay chain if light client provider is being used for parachain.');
+    expect(() => new Connector(_log, mockConfigProviderMismatch)).toThrow(
+      'RPC provider cannot be used for relay chain if light client provider is being used for parachain.'
+    );
   });
 
   it('should fail if `relay` field in parachain config does not match WellKnown chain or relay chain config name', () => {
-    expect(() => new Connector(_log, mockConfigRelayMismatch))
-      .toThrow('Configuration for network rococo not found.');
+    expect(() => new Connector(_log, mockConfigRelayMismatch)).toThrow('Configuration for network rococo not found.');
   });
 
   describe('connect', () => {

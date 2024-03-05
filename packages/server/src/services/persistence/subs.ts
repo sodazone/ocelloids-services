@@ -10,14 +10,10 @@ import { ServiceConfiguration, isNetworkDefined } from '../config.js';
  */
 export class SubsStore {
   readonly #log: Logger;
-  readonly#db: DB;
-  readonly#config: ServiceConfiguration;
+  readonly #db: DB;
+  readonly #config: ServiceConfiguration;
 
-  constructor(
-    log: Logger,
-    db: DB,
-    config: ServiceConfiguration
-  ) {
+  constructor(log: Logger, db: DB, config: ServiceConfiguration) {
     this.#log = log;
     this.#db = db;
     this.#config = config;
@@ -27,12 +23,12 @@ export class SubsStore {
    * Returns true if a subscription for the given id exists,
    * false otherwise.
    */
-  async exists(id: string) : Promise<boolean> {
+  async exists(id: string): Promise<boolean> {
     try {
       await this.getById(id);
       return true;
     } catch {
-      return  false;
+      return false;
     }
   }
 
@@ -100,9 +96,7 @@ export class SubsStore {
    * @throws {ValidationError} if there is a validation error.
    */
   async save(qs: Subscription) {
-    this.#validateChainIds([
-      qs.origin, ...qs.destinations
-    ]);
+    this.#validateChainIds([qs.origin, ...qs.destinations]);
     const db = await this.#subsFamily(qs.origin);
     await db.put(qs.id, qs);
   }
@@ -112,25 +106,23 @@ export class SubsStore {
    */
   async remove(id: string) {
     const qs = await this.getById(id);
-    const ops : BatchOperation[] = [];
+    const ops: BatchOperation[] = [];
     ops.push({
       type: 'del',
       sublevel: this.#subsFamily(qs.origin),
-      key: id
+      key: id,
     });
     await this.#db.batch(ops);
   }
 
   #subsFamily(chainId: string) {
-    return this.#db.sublevel<string, Subscription>(
-      prefixes.subs.family(chainId), jsonEncoded
-    );
+    return this.#db.sublevel<string, Subscription>(prefixes.subs.family(chainId), jsonEncoded);
   }
 
   #validateChainIds(chainIds: string[]) {
-    chainIds.forEach(chainId => {
+    chainIds.forEach((chainId) => {
       if (!isNetworkDefined(this.#config, chainId)) {
-        throw new ValidationError('Invalid chain id:' +  chainId);
+        throw new ValidationError('Invalid chain id:' + chainId);
       }
     });
   }

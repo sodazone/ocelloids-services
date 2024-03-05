@@ -20,10 +20,7 @@ export default class Connector {
 
   #substrateApis?: SubstrateApis;
 
-  constructor(
-    log: Logger,
-    config: ServiceConfiguration
-  ) {
+  constructor(log: Logger, config: ServiceConfiguration) {
     this.#log = log;
     this.#config = config;
 
@@ -52,13 +49,11 @@ export default class Connector {
       }
     } else {
       this.#log.info('Register WS provider: %s', name);
-      this.#chains[name] = new WsProvider(
-        provider.url, 2_500, undefined, 10_000
-      );
+      this.#chains[name] = new WsProvider(provider.url, 2_500, undefined, 10_000);
     }
   }
 
-  connect() : SubstrateApis {
+  connect(): SubstrateApis {
     if (this.#substrateApis) {
       return this.#substrateApis;
     }
@@ -69,13 +64,13 @@ export default class Connector {
 
     for (const key of Object.keys(this.#relays)) {
       const provider = this.#relays[key];
-      providers[this.#chainIdMap[key]] = {provider};
-      provider.connect().catch(error => this.#log.error(error));
+      providers[this.#chainIdMap[key]] = { provider };
+      provider.connect().catch((error) => this.#log.error(error));
     }
 
     for (const key of Object.keys(this.#chains)) {
       const provider = this.#chains[key];
-      providers[this.#chainIdMap[key]] = {provider};
+      providers[this.#chainIdMap[key]] = { provider };
     }
 
     // Providers are exposed by chain id.
@@ -98,20 +93,14 @@ export default class Connector {
   #registerSmoldotRelay(name: string, spec?: string) {
     this.#log.info('Register relay smoldot provider: %s', name);
 
-    const key = Object.values(Smoldot.WellKnownChain).find(
-      c => c === name
-    );
+    const key = Object.values(Smoldot.WellKnownChain).find((c) => c === name);
 
     if (key) {
       this.#log.info('Loading well known spec for provider: %s', key);
 
-      this.#relays[name] = new ScProvider(
-        Smoldot, Smoldot.WellKnownChain[key]
-      );
+      this.#relays[name] = new ScProvider(Smoldot, Smoldot.WellKnownChain[key]);
     } else if (spec) {
-      this.#relays[name] = new ScProvider(Smoldot,
-        this.#loadSpec(spec)
-      );
+      this.#relays[name] = new ScProvider(Smoldot, this.#loadSpec(spec));
     } else {
       throw new Error(`Spec not provided for relay chain: ${name}`);
     }
@@ -119,7 +108,7 @@ export default class Connector {
 
   #getNetworkConfig(name: string) {
     const { networks } = this.#config;
-    const conf =  networks.find(n => n.name === name);
+    const conf = networks.find((n) => n.name === name);
     if (conf === undefined) {
       throw new Error(`Configuration for network ${name} not found.`);
     }
@@ -142,9 +131,6 @@ export default class Connector {
       this.#registerSmoldotRelay(relayConfig.name, relayConfig.provider.spec);
     }
 
-    this.#chains[name] = new ScProvider(Smoldot,
-      this.#loadSpec(spec),
-      this.#relays[relay]
-    );
+    this.#chains[name] = new ScProvider(Smoldot, this.#loadSpec(spec), this.#relays[relay]);
   }
 }

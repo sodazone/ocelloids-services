@@ -7,91 +7,72 @@ export function engineMetrics(source: TelemetryEventEmitter) {
   const inCount = new Counter({
     name: 'xcmon_engine_in_total',
     help: 'Matching engine inbound messages.',
-    labelNames: ['subscription', 'origin', 'outcome']
+    labelNames: ['subscription', 'origin', 'outcome'],
   });
   const outCount = new Counter({
     name: 'xcmon_engine_out_total',
     help: 'Matching engine outbound messages.',
-    labelNames: ['subscription', 'origin', 'destination']
+    labelNames: ['subscription', 'origin', 'destination'],
   });
   const matchCount = new Counter({
     name: 'xcmon_engine_matched_total',
     help: 'Matching engine matched messages.',
-    labelNames: ['subscription', 'origin', 'destination', 'outcome']
+    labelNames: ['subscription', 'origin', 'destination', 'outcome'],
   });
   const relayCount = new Counter({
     name: 'xcmon_engine_relayed_total',
     help: 'Matching engine relayed messages.',
-    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'outcome']
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'outcome'],
   });
   const timeoutCount = new Counter({
     name: 'xcmon_engine_timeout_total',
     help: 'Matching engine sent timeout messages.',
-    labelNames: ['subscription', 'origin', 'destination']
+    labelNames: ['subscription', 'origin', 'destination'],
   });
   const hopCount = new Counter({
     name: 'xcmon_engine_hop_total',
     help: 'Matching engine hop messages.',
-    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome']
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome'],
   });
 
-  source.on('telemetryInbound',
-    (message: XcmInbound) => {
-      inCount.labels(
-        message.subscriptionId,
-        message.chainId,
-        message.outcome.toString()
-      ).inc();
-    });
+  source.on('telemetryInbound', (message: XcmInbound) => {
+    inCount.labels(message.subscriptionId, message.chainId, message.outcome.toString()).inc();
+  });
 
-  source.on('telemetryOutbound',
-    (message: XcmSent) => {
-      outCount.labels(
-        message.subscriptionId,
-        message.origin.chainId,
-        message.destination.chainId
-      ).inc();
-    });
+  source.on('telemetryOutbound', (message: XcmSent) => {
+    outCount.labels(message.subscriptionId, message.origin.chainId, message.destination.chainId).inc();
+  });
 
-  source.on('telemetryMatched',
-    (inMsg: XcmInbound, outMsg: XcmSent) => {
-      matchCount.labels(
-        outMsg.subscriptionId,
-        outMsg.origin.chainId,
-        outMsg.destination.chainId,
-        inMsg.outcome.toString()
-      ).inc();
-    });
+  source.on('telemetryMatched', (inMsg: XcmInbound, outMsg: XcmSent) => {
+    matchCount.labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString()).inc();
+  });
 
-  source.on('telemetryRelayed',
-    (relayMsg: XcmRelayed) => {
-      relayCount.labels(
+  source.on('telemetryRelayed', (relayMsg: XcmRelayed) => {
+    relayCount
+      .labels(
         relayMsg.subscriptionId,
         relayMsg.origin.chainId,
         relayMsg.destination.chainId,
         relayMsg.waypoint.legIndex.toString(),
         relayMsg.waypoint.outcome.toString()
-      ).inc();
-    });
+      )
+      .inc();
+  });
 
-  source.on('telemetryTimeout',
-    (msg: XcmTimeout) => {
-      timeoutCount.labels(
-        msg.subscriptionId,
-        msg.origin.chainId,
-        msg.destination.chainId
-      ).inc();
-    });
+  source.on('telemetryTimeout', (msg: XcmTimeout) => {
+    timeoutCount.labels(msg.subscriptionId, msg.origin.chainId, msg.destination.chainId).inc();
+  });
 
-  source.on('telemetryHop',
-    (msg: XcmHop) => {
-      hopCount.labels(
+  source.on('telemetryHop', (msg: XcmHop) => {
+    hopCount
+      .labels(
         msg.subscriptionId,
         msg.origin.chainId,
         msg.destination.chainId,
         msg.waypoint.legIndex.toString(),
         msg.waypoint.chainId,
         msg.waypoint.outcome.toString()
-      ).inc();
-    });
+      )
+      .inc();
+  });
 }
