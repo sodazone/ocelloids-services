@@ -70,6 +70,9 @@ export async function createServer(
   /* istanbul ignore next */
   process.once('SIGUSR2', async function () {
     await server.close();
+    // Controlled shutdown for Nodemon
+    // https://github.com/remy/nodemon?tab=readme-ov-file#controlling-shutdown-of-your-script
+    process.kill(process.pid, 'SIGUSR2');
   });
 
   server.addHook('onClose', function (_, done) {
