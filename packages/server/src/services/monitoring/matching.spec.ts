@@ -47,7 +47,7 @@ describe('message matching engine', () => {
   it('should match inbound and outbound', async () => {
     const { origin, destination, subscriptionId } = matchMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onOutboundMessage(origin);
     await engine.onInboundMessage(destination);
@@ -60,7 +60,7 @@ describe('message matching engine', () => {
   it('should match outbound and inbound', async () => {
     const { origin, destination, subscriptionId } = matchMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onInboundMessage(destination);
     await engine.onOutboundMessage(origin);
@@ -73,7 +73,7 @@ describe('message matching engine', () => {
   it('should work async concurrently', async () => {
     const { origin, destination, subscriptionId } = matchMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await Promise.all([engine.onOutboundMessage(origin), engine.onInboundMessage(destination)]);
 
@@ -100,7 +100,7 @@ describe('message matching engine', () => {
   it('should match relay and outbound and inbound', async () => {
     const { origin, relay, destination, subscriptionId } = matchMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onRelayedMessage(subscriptionId, relay);
     await engine.onOutboundMessage(origin);
@@ -123,7 +123,7 @@ describe('message matching engine', () => {
       messageId: destination.messageHash,
     };
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onOutboundMessage(omsg);
     await engine.onInboundMessage(imsg);
@@ -140,7 +140,7 @@ describe('message matching engine', () => {
       messageId: destination.messageHash,
     };
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onOutboundMessage(origin);
     await engine.onInboundMessage(imsg);
@@ -153,7 +153,7 @@ describe('message matching engine', () => {
   it('should match hop messages', async () => {
     const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay0);
@@ -171,7 +171,7 @@ describe('message matching engine', () => {
   it('should match hop messages with concurrent message on hop stop', async () => {
     const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay0);
@@ -187,7 +187,7 @@ describe('message matching engine', () => {
   it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
     const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.messageHash}:${destination.chainId}`;
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
     await engine.onRelayedMessage(subscriptionId, relay0);
     await engine.onOutboundMessage(origin);

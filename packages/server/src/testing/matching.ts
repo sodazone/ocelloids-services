@@ -19,7 +19,6 @@ const originContext: XcmTerminiContext = {
 
 const outboundMessage: XcmSent = {
   type: XcmNotificationType.Sent,
-  messageHash: '0xCAFE',
   messageId: '0xB000',
   legs: [
     {
@@ -38,9 +37,10 @@ const outboundMessage: XcmSent = {
   waypoint: {
     ...originContext,
     legIndex: 0,
+    instructions: {},
+    messageData: '0x0',
+    messageHash: '0xCAFE'
   },
-  instructions: {},
-  messageData: '0x0',
   subscriptionId: subscriptionId,
   sender: {
     id: '0x123',
@@ -135,7 +135,6 @@ export const matchHopMessages: MatchHopMessages = {
   },
   hopout: {
     type: XcmNotificationType.Sent,
-    messageHash: '0xDEAD',
     messageId: '0xB000',
     legs: [
       {
@@ -166,9 +165,10 @@ export const matchHopMessages: MatchHopMessages = {
       outcome: 'Success',
       error: null,
       legIndex: 0,
+      instructions: {},
+      messageData: '0x0',
+      messageHash: '0xDEAD'
     },
-    instructions: {},
-    messageData: '0x0',
     subscriptionId: subscriptionId,
     sender: undefined,
   },

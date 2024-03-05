@@ -139,7 +139,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           msg.type,
           msg.subscriptionId,
           postUrl,
-          msg.messageHash
+          msg.waypoint.messageHash
         );
         this.#telemetryNotify(config, msg);
       } else {

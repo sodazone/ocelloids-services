@@ -81,7 +81,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
-      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.messageHash);
+      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.waypoint.messageHash);
       // try to get any stored relay messages and notify if found.
       // do not clean up outbound in case inbound has not arrived yet.
       await this.#findRelayInbound(outMsg);
@@ -195,7 +195,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         try {
           const outMsg = await Promise.any([this.#outbound.get(idKey), this.#outbound.get(hashKey)]);
           // Reconstruct hashKey with outbound message hash in case of hopped messages
-          hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageHash);
+          hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash);
           log.info(
             '[%s:i] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
             inMsg.chainId,
@@ -326,7 +326,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     // Still we don't know if the inbound is upgraded,
     // i.e. if uses message ids
     const idKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageId);
-    const hashKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageHash);
+    const hashKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.waypoint.messageHash);
 
     const log = this.#log;
     try {
@@ -348,7 +348,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
       for (const [i, stop] of stops.entries()) {
         const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId);
-        const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageHash);
+        const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash);
         if (i === stops.length - 1) {
           log.info(
             '[%s:o] STORED dest=%s hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -406,7 +406,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     const log = this.#log;
     const relayKey = outMsg.messageId
       ? this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageId)
-      : this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageHash);
+      : this.#matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.waypoint.messageHash);
 
     try {
       const relayMsg = await this.#relay.get(relayKey);
@@ -499,6 +499,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   #onXcmHopOut(originMsg: XcmSent, hopMsg: XcmSent) {
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg.origin;
+      const { instructions, messageData, messageHash } = hopMsg.waypoint;
       const currentLeg = hopMsg.legs[0];
       const legIndex = originMsg.legs.findIndex((l) => l.from === currentLeg.from && l.to === currentLeg.to);
       const waypointContext: XcmWaypointContext = {
@@ -509,6 +510,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         event,
         outcome,
         error,
+        messageData,
+        messageHash,
+        instructions
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out');
 
@@ -520,9 +524,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
+  // NOTE: message data, hash and instructions are right for single hop messages
+  // but will be wrong on the second or later hops for multi-hop messages
+  // since we are not storing messages or contexts of intermediate hops
   #onXcmHopIn(originMsg: XcmSent, hopMsg: XcmInbound) {
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg;
+      const { messageData, messageHash, instructions } = originMsg.waypoint;
       const legIndex = originMsg.legs.findIndex((l) => l.to === chainId);
       const waypointContext: XcmWaypointContext = {
         legIndex,
@@ -532,6 +540,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         event,
         outcome,
         error,
+        messageData,
+        messageHash,
+        instructions
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in');
 

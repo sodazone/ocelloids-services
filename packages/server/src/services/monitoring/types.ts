@@ -308,6 +308,9 @@ export interface XcmTerminiContext extends XcmTermini {
  */
 export interface XcmWaypointContext extends XcmTerminiContext {
   legIndex: number;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
 }
 
 /**
@@ -332,9 +335,6 @@ export interface XcmSent {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 }
@@ -346,9 +346,6 @@ export class GenericXcmSent implements XcmSent {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -370,10 +367,11 @@ export class GenericXcmSent implements XcmSent {
     this.waypoint = {
       ...this.origin,
       legIndex: 0,
+      messageData: toHexString(msg.messageData),
+      instructions: msg.instructions.json,
+      messageHash: msg.messageHash
     };
-    this.messageData = toHexString(msg.messageData);
-    this.instructions = msg.instructions.json;
-    this.messageHash = msg.messageHash;
+    
     this.messageId = msg.messageId;
     this.sender = msg.sender;
   }
@@ -421,9 +419,6 @@ export interface XcmReceived {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTerminiContext;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 }
@@ -442,9 +437,6 @@ export class GenericXcmTimeout implements XcmTimeout {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -454,9 +446,6 @@ export class GenericXcmTimeout implements XcmTimeout {
     this.origin = msg.origin;
     this.destination = msg.destination;
     this.waypoint = msg.waypoint;
-    this.messageData = msg.messageData;
-    this.instructions = msg.instructions;
-    this.messageHash = msg.messageHash;
     this.messageId = msg.messageId;
     this.sender = msg.sender;
   }
@@ -469,9 +458,6 @@ export class GenericXcmReceived implements XcmReceived {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTerminiContext;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -492,12 +478,12 @@ export class GenericXcmReceived implements XcmReceived {
     this.waypoint = {
       ...this.destination,
       legIndex: this.legs.length - 1,
+      instructions: outMsg.waypoint.instructions,
+      messageData: outMsg.waypoint.messageData,
+      messageHash: outMsg.waypoint.messageHash
     };
     this.sender = outMsg.sender;
-    this.instructions = outMsg.instructions;
-    this.messageData = outMsg.messageData;
     this.messageId = outMsg.messageId;
-    this.messageHash = outMsg.messageHash;
   }
 }
 
@@ -516,9 +502,6 @@ export class GenericXcmRelayed implements XcmRelayed {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -536,12 +519,12 @@ export class GenericXcmRelayed implements XcmRelayed {
       event: relayMsg.event,
       outcome: relayMsg.outcome,
       error: relayMsg.error,
+      instructions: outMsg.waypoint.instructions,
+      messageData: outMsg.waypoint.messageData,
+      messageHash: outMsg.waypoint.messageHash
     };
     this.sender = outMsg.sender;
-    this.instructions = outMsg.instructions;
-    this.messageData = outMsg.messageData;
     this.messageId = outMsg.messageId;
-    this.messageHash = outMsg.messageHash;
   }
 }
 
@@ -561,9 +544,6 @@ export class GenericXcmHop implements XcmHop {
   waypoint: XcmWaypointContext;
   origin: XcmTerminiContext;
   destination: XcmTermini;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   sender: AnyJson;
   direction: 'out' | 'in';
   messageId?: HexString;
@@ -574,9 +554,6 @@ export class GenericXcmHop implements XcmHop {
     this.origin = originMsg.origin;
     this.destination = originMsg.destination;
     this.waypoint = hopWaypoint;
-    this.messageData = originMsg.messageData;
-    this.instructions = originMsg.instructions;
-    this.messageHash = originMsg.messageHash;
     this.messageId = originMsg.messageId;
     this.sender = originMsg.sender;
     this.direction = direction;
