@@ -126,6 +126,90 @@ export enum XcmNotificationType {
 export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>;
 
 /**
+ * Authentication reply.
+ */
+export type AuthReply = {
+  code: number;
+  error: boolean;
+  reason?: string;
+};
+
+/**
+ * WebSockets auth error event.
+ */
+export class WsAuthErrorEvent extends Event {
+  name = 'WsAuthError';
+
+  reply: AuthReply;
+
+  constructor(reply: AuthReply) {
+    super('error');
+
+    this.reply = reply;
+  }
+}
+
+/**
+ * Handler for messages delivered by the subscription.
+ *
+ * @public
+ */
+export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
+
+/**
+ * Handler for WebSocket close event.
+ *
+ * @public
+ */
+export type CloseHandler = (event: CloseEvent) => void;
+
+/**
+ * Handler for WebSocket errors.
+ *
+ * @public
+ */
+export type ErrorHandler = (error: Event) => void;
+
+/**
+ * Type definition for WebSocket event handlers.
+ *
+ * @public
+ */
+export type WebSocketHandlers = {
+  /**
+   * Called on every {@link XcmNotifyMessage}.
+   * This is the main message handling callback.
+   */
+  onMessage: MessageHandler<XcmNotifyMessage>;
+
+  /**
+   * Called if the authentication fails.
+   */
+  onAuthError?: MessageHandler<AuthReply>;
+
+  /**
+   * Called on WebSocket close.
+   */
+  onClose?: CloseHandler;
+
+  /**
+   * Called on WebSocket error.
+   */
+  onError?: ErrorHandler;
+};
+
+/**
+ * Handlers for on-demand subscription creation.
+ *
+ * @public
+ */
+export type OnDemandSubscriptionHandlers = {
+  onSubscriptionCreated?: (sub: Subscription) => void;
+  onSubscriptionError?: (err: SubscriptionError) => void;
+  onError?: (err: any) => void;
+};
+
+/**
  * Guard condition for {@link Subscription}.
  *
  * @public

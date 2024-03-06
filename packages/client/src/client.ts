@@ -4,8 +4,13 @@ import {
   type Subscription,
   type OnDemandSubscription,
   type SubscriptionError,
+  type MessageHandler,
+  type OnDemandSubscriptionHandlers,
+  type WebSocketHandlers,
+  type AuthReply,
   isSubscriptionError,
   isSubscription,
+  WsAuthErrorEvent,
 } from './types';
 import type { XcmNotifyMessage } from './server-types';
 
@@ -33,90 +38,6 @@ function isBlob(value: any): value is Blob {
   }
   return value instanceof Blob || Object.prototype.toString.call(value) === '[object Blob]';
 }
-
-/**
- * Authentication reply.
- */
-export type AuthReply = {
-  code: number;
-  error: boolean;
-  reason?: string;
-};
-
-/**
- * WebSockets auth error event.
- */
-export class WsAuthErrorEvent extends Event {
-  name = 'WsAuthError';
-
-  reply: AuthReply;
-
-  constructor(reply: AuthReply) {
-    super('error');
-
-    this.reply = reply;
-  }
-}
-
-/**
- * Handler for messages delivered by the subscription.
- *
- * @public
- */
-export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
-
-/**
- * Handler for WebSocket close event.
- *
- * @public
- */
-export type CloseHandler = (event: CloseEvent) => void;
-
-/**
- * Handler for WebSocket errors.
- *
- * @public
- */
-export type ErrorHandler = (error: Event) => void;
-
-/**
- * Type definition for WebSocket event handlers.
- *
- * @public
- */
-export type WebSocketHandlers = {
-  /**
-   * Called on every {@link XcmNotifyMessage}.
-   * This is the main message handling callback.
-   */
-  onMessage: MessageHandler<XcmNotifyMessage>;
-
-  /**
-   * Called if the authentication fails.
-   */
-  onAuthError?: MessageHandler<AuthReply>;
-
-  /**
-   * Called on WebSocket close.
-   */
-  onClose?: CloseHandler;
-
-  /**
-   * Called on WebSocket error.
-   */
-  onError?: ErrorHandler;
-};
-
-/**
- * Handlers for on-demand subscription creation.
- *
- * @public
- */
-export type OnDemandSubscriptionHandlers = {
-  onSubscriptionCreated?: (sub: Subscription) => void;
-  onSubscriptionError?: (err: SubscriptionError) => void;
-  onError?: (err: any) => void;
-};
 
 /**
  * Protocol class to chain request response until reach streaming state.
