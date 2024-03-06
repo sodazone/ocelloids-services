@@ -1,0 +1,15 @@
+{
+	"entryPoints": [
+		"./src/client.ts",
+		"./src/types.ts",
+	],
+  "darkHighlightTheme": "github-dark",
+  "lightHighlightTheme": "github-light",
+  "entryPointStrategy": "expand",
+	"excludeNotDocumented": true,
+	"includeVersion": true,
+	"excludeExternals": true,
+	"excludePrivate": true,
+	"hideGenerator": true,
+	"out": "docs",
+}
