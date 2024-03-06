@@ -3,15 +3,16 @@ export default {
 		'./src/client.ts',
 		'./src/types.ts',
 	],
+  entryPointStrategy: 'Expand',
+  navigationLinks: {
+    Repository: 'https://github.com/sodazone/xcm-monitoring/tree/main/packages/client',
+		'SO/DA zone': 'https://soda.zone/'
+  },
 	exclude: [
 		'**/*spec.ts',
 		'node_modules/**'
 	],
 	excludeNotDocumented: true,
-	navigationLinks: {
-    Repository: 'https://github.com/sodazone/xcm-monitoring/tree/main/packages/client',
-		'SO/DA zone': 'https://soda.zone/'
-    },
 	includeVersion: true,
 	excludeExternals: true,
 	excludePrivate: true,
