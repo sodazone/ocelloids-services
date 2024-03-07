@@ -275,27 +275,26 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           key: hashKey,
         });
       } else {
-
-      log.info(
-        '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
-        msg.chainId,
-        hashKey,
-        idKey,
-        msg.subscriptionId,
-        msg.blockHash,
-        msg.blockNumber
-      );
-      await this.#inbound.batch().put(idKey, msg).put(hashKey, msg).write();
-      await this.#janitor.schedule(
-        {
-          sublevel: prefixes.matching.inbound,
-          key: hashKey,
-        },
-        {
-          sublevel: prefixes.matching.inbound,
-          key: idKey,
-        }
-      );
+        log.info(
+          '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
+          msg.chainId,
+          hashKey,
+          idKey,
+          msg.subscriptionId,
+          msg.blockHash,
+          msg.blockNumber
+        );
+        await this.#inbound.batch().put(idKey, msg).put(hashKey, msg).write();
+        await this.#janitor.schedule(
+          {
+            sublevel: prefixes.matching.inbound,
+            key: hashKey,
+          },
+          {
+            sublevel: prefixes.matching.inbound,
+            key: idKey,
+          }
+        );
       }
     }
   }
@@ -393,44 +392,38 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             }
           );
         }
+      } else if (i === stops.length - 1) {
+        log.info(
+          '[%s:o] STORED dest=%s hash=%s (subId=%s, block=%s #%s)',
+          msg.origin.chainId,
+          stop,
+          hKey,
+          msg.subscriptionId,
+          msg.origin.blockHash,
+          msg.origin.blockNumber
+        );
+        await this.#outbound.put(hKey, msg);
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.outbound,
+          key: hKey,
+          expiry: DEFAULT_TIMEOUT,
+        });
       } else {
-        if (i === stops.length - 1) {
-          log.info(
-            '[%s:o] STORED dest=%s hash=%s (subId=%s, block=%s #%s)',
-            msg.origin.chainId,
-            stop,
-            hKey,
-            msg.subscriptionId,
-            msg.origin.blockHash,
-            msg.origin.blockNumber
-          );
-          await this.#outbound.put(hKey, msg);
-          await this.#janitor.schedule(
-            {
-              sublevel: prefixes.matching.outbound,
-              key: hKey,
-              expiry: DEFAULT_TIMEOUT,
-            }
-          );
-        } else {
-          log.info(
-            '[%s:h] STORED stop=%s hash=%s(subId=%s, block=%s #%s)',
-            msg.origin.chainId,
-            stop,
-            hKey,
-            msg.subscriptionId,
-            msg.origin.blockHash,
-            msg.origin.blockNumber
-          );
-          await this.#hop.put(hKey, msg);
-          await this.#janitor.schedule(
-            {
-              sublevel: prefixes.matching.hop,
-              key: hKey,
-              expiry: DEFAULT_TIMEOUT,
-            }
-          );
-        }
+        log.info(
+          '[%s:h] STORED stop=%s hash=%s(subId=%s, block=%s #%s)',
+          msg.origin.chainId,
+          stop,
+          hKey,
+          msg.subscriptionId,
+          msg.origin.blockHash,
+          msg.origin.blockNumber
+        );
+        await this.#hop.put(hKey, msg);
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.hop,
+          key: hKey,
+          expiry: DEFAULT_TIMEOUT,
+        });
       }
     }
   }
@@ -546,7 +539,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         messageData,
         messageHash,
         instructions,
-        assetsTrapped
+        assetsTrapped,
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out');
 
@@ -577,7 +570,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         messageData,
         messageHash,
         instructions,
-        assetsTrapped
+        assetsTrapped,
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in');
 
