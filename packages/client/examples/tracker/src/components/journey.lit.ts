@@ -95,7 +95,7 @@ export class Journey extends TwElement {
             })}
           >
             <div class=${tw`text-xs px-4 text-gray-500 capitalize bg-gray-700`}>XCM Instructions</div>
-            <code-block code=${JSON.stringify(j.instructions, null, 2)}></code-block>
+            <code-block code=${JSON.stringify(this.selected.instructions, null, 2)}></code-block>
             <div class=${tw`text-xs px-4 text-gray-500 capitalize bg-gray-700 border-gray-600 border-t`}>Waypoint</div>
             <code-block code=${JSON.stringify(this.selected, null, 2)}></code-block>
           </div>`

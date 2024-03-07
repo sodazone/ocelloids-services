@@ -17,8 +17,8 @@ export type HumanizedXcm = {
 // WARN: this should be extracted to production rules kb
 // eslint-disable-next-line complexity
 export function humanize(journey: XcmJourney) {
-  const { instructions, sender, origin, destination } = journey;
-  const versioned = Object.values(instructions)[0] as any[];
+  const { sender, origin, destination } = journey;
+  const versioned = Object.values(origin.instructions)[0] as any[];
   const hopTransfer = versioned.find(
     (op) =>
       op.InitiateReserveWithdraw ||
@@ -45,7 +45,7 @@ export function humanize(journey: XcmJourney) {
   // Extract beneficiary
   let deposit = versioned.find((op) => op.DepositAsset !== undefined);
   if (hopTransfer) {
-    deposit = hopTransfer.xcm.DepositAsset;
+    deposit = ((Object.values(hopTransfer)[0] as any).xcm as any[]).find(op => op.DepositAsset !== undefined);
   }
   const X1 = deposit.DepositAsset.beneficiary.interior.X1;
   let beneficiary = 'unknown';

@@ -18,6 +18,7 @@ export type XcmJourneyWaypoint = {
   error?: AnyJson;
   event?: any;
   extrinsic?: any;
+  instructions?: any;
 };
 
 export type XcmJourney = {
@@ -31,7 +32,7 @@ export type XcmJourney = {
   stops: XcmJourneyWaypoint[];
 };
 
-export async function toJourneyId({ origin, destination, messageId, messageHash }: XcmNotifyMessage) {
+export async function toJourneyId({ origin, destination, messageId, waypoint: { messageHash } }: XcmNotifyMessage) {
   return messageId === undefined
     ? await blake3(`${origin.chainId}:${origin.blockNumber}|${destination.chainId}|${messageHash}`)
     : Promise.resolve(messageId);
@@ -85,11 +86,12 @@ async function toJourney(xcm: XcmNotifyMessage): Promise<XcmJourney> {
 
 export async function mergeJourney(xcm: XcmNotifyMessage, journey?: XcmJourney): Promise<XcmJourney> {
   if (journey === undefined) {
-    return await toJourney(xcm);
+    journey = await toJourney(xcm);
   }
 
   if (journey.origin.chainId === xcm.waypoint.chainId) {
-    return journey;
+    journey.origin = xcm.waypoint;
+    return { ...journey };
   }
 
   if (journey.destination.chainId === xcm.waypoint.chainId) {
