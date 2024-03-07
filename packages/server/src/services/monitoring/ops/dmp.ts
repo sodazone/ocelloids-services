@@ -18,6 +18,7 @@ import { ApiPromise } from '@polkadot/api';
 import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids';
 
 import {
+  AnyJson,
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   XcmCriteria,
@@ -313,8 +314,17 @@ function extractXcmError(outcome: Outcome) {
 
 function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEvent?: types.BlockEvent) {
   const xcmMessage = event.data as any;
-  const outcome = xcmMessage.outcome as Outcome;
-  const messageId = xcmMessage.messageId.toHex();
+  let outcome: 'Success' | 'Fail' = 'Fail';
+  let error: AnyJson;
+  if (xcmMessage.outcome !== undefined) {
+    const o = xcmMessage.outcome as Outcome;
+    outcome = o.isComplete ? 'Success' : 'Fail';
+    error = extractXcmError(o);
+  } else if (xcmMessage.success !== undefined) {
+    outcome = xcmMessage.success ? 'Success' : 'Fail';
+  }
+
+  const messageId = xcmMessage.messageId ? xcmMessage.messageId.toHex() : xcmMessage.id.toHex();
   const messageHash = xcmMessage.messageHash?.toHex() ?? messageId;
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
 
@@ -325,8 +335,8 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
     extrinsicId: event.extrinsicId,
     messageHash,
     messageId,
-    outcome: outcome.isComplete ? 'Success' : 'Fail',
-    error: outcome.isComplete ? null : extractXcmError(outcome),
+    outcome,
+    error,
     assetsTrapped,
   });
 }
@@ -338,7 +348,11 @@ export function extractDmpReceive() {
       map(([maybeAssetTrapEvent, maybeDmpEvent]) => {
         // in reality we expect a continuous stream of events but
         // in tests, maybeDmpEvent could be undefined if there are odd number of events
-        if (maybeDmpEvent && matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward')) {
+        if (
+          maybeDmpEvent &&
+          (matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward') ||
+            matchEvent(maybeDmpEvent, 'messageQueue', 'Processed'))
+        ) {
           const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped')
             ? maybeAssetTrapEvent
             : undefined;
