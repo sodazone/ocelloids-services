@@ -298,7 +298,6 @@ export interface XcmTerminiContext extends XcmTermini {
   event: AnyJson;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
-  assetsTrapped?: AnyJson;
 }
 
 /**
@@ -311,6 +310,7 @@ export interface XcmWaypointContext extends XcmTerminiContext {
   messageHash: HexString;
   messageData: string;
   instructions: AnyJson;
+  assetsTrapped?: AnyJson;
 }
 
 /**
@@ -472,7 +472,6 @@ export class GenericXcmReceived implements XcmReceived {
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
-      assetsTrapped: inMsg.assetsTrapped,
     };
     this.origin = outMsg.origin;
     this.waypoint = {
@@ -481,6 +480,7 @@ export class GenericXcmReceived implements XcmReceived {
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
+      assetsTrapped: inMsg.assetsTrapped,
     };
     this.sender = outMsg.sender;
     this.messageId = outMsg.messageId;
