@@ -54,6 +54,13 @@ export class Journey extends TwElement {
           <span>${point.event && Object.keys(point.event).length > 0 ? point.event.eventId : point.blockNumber}</span>
         </div>
         <div class=${tw`flex justify-end items-center space-x-4`}>
+          ${
+            point.assetsTrapped !== undefined
+            ? html `
+              <span class=${tw`text-xs font-medium px-2.5 py-0.5 rounded bg-yellow-900 text-yellow-300`}>Trapped</span>
+            `
+            : ''
+          }
           <span>${(point.error && point.error) || ''}</span>
           ${this.iconForOutcome(point, false)}
         </div>
@@ -94,6 +101,12 @@ export class Journey extends TwElement {
               in: fadeInSlow,
             })}
           >
+            ${this.selected.assetsTrapped
+              ? html `
+                <div class=${tw`text-xs px-4 text-gray-500 capitalize bg-gray-700 border-gray-600 border-t`}>Asset Trap</div>
+                <code-block code=${JSON.stringify(this.selected.assetsTrapped, null, 2)}></code-block>`
+              : ''
+            }
             <div class=${tw`text-xs px-4 text-gray-500 capitalize bg-gray-700`}>XCM Instructions</div>
             <code-block code=${JSON.stringify(this.selected.instructions, null, 2)}></code-block>
             <div class=${tw`text-xs px-4 text-gray-500 capitalize bg-gray-700 border-gray-600 border-t`}>Waypoint</div>

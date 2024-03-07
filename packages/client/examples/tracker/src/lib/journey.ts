@@ -1,6 +1,6 @@
 import { blake3 } from 'hash-wasm';
 
-import { XcmNotifyMessage, AnyJson } from '../../../..';
+import { XcmNotifyMessage, AnyJson, AssetsTrapped } from '../../../..';
 
 const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -19,6 +19,7 @@ export type XcmJourneyWaypoint = {
   event?: any;
   extrinsic?: any;
   instructions?: any;
+  assetsTrapped?: AssetsTrapped
 };
 
 export type XcmJourney = {
