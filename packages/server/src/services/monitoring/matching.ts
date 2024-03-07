@@ -131,20 +131,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           await this.#inbound.del(hashKey);
           this.#onXcmMatched(outMsg, inMsg);
         } catch {
-          log.info(
-            '[%s:o] STORED hash=%s (subId=%s, block=%s #%s)',
-            outMsg.origin.chainId,
-            hashKey,
-            outMsg.subscriptionId,
-            outMsg.origin.blockHash,
-            outMsg.origin.blockNumber
-          );
-          await this.#outbound.put(hashKey, outMsg);
-          await this.#janitor.schedule({
-            sublevel: prefixes.matching.outbound,
-            key: hashKey,
-            expiry: DEFAULT_TIMEOUT,
-          });
+          await this.#storekeysOnOutbound(outMsg);
         }
       }
     });
@@ -177,19 +164,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           await this.#outbound.batch().del(idKey).del(hashKey).write();
           this.#onXcmMatched(outMsg, inMsg);
         } catch {
-          log.info(
-            '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
-            inMsg.chainId,
-            hashKey,
-            inMsg.subscriptionId,
-            inMsg.blockHash,
-            inMsg.blockNumber
-          );
-          await this.#inbound.put(hashKey, inMsg);
-          await this.#janitor.schedule({
-            sublevel: prefixes.matching.inbound,
-            key: hashKey,
-          });
+          await this.#tryHopMatchOnInbound(inMsg);
         }
       } else {
         try {
@@ -265,10 +240,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // We assume that the original origin message is ALWAYS received first.
   // NOTE: hops can only use idKey since message hash will be different on each hop
   async #tryHopMatchOnInbound(msg: XcmInbound) {
-    if (msg.messageId === undefined) {
-      return;
-    }
-
     const log = this.#log;
     try {
       const hopKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId);
@@ -288,6 +259,22 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     } catch {
       const hashKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageHash);
       const idKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId);
+
+      if (hashKey === idKey) {
+        log.info(
+          '[%s:i] STORED hash=%s (subId=%s, block=%s #%s)',
+          msg.chainId,
+          hashKey,
+          msg.subscriptionId,
+          msg.blockHash,
+          msg.blockNumber
+        );
+        await this.#inbound.put(hashKey, msg);
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.inbound,
+          key: hashKey,
+        });
+      } else {
 
       log.info(
         '[%s:i] STORED hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -309,6 +296,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           key: idKey,
         }
       );
+      }
     }
   }
 
@@ -344,11 +332,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       await this.#inbound.batch().del(idKey).del(hashKey).write();
       this.#onXcmMatched(msg, inMsg);
     } catch {
-      const stops = msg.legs.map((l) => l.to);
+      await this.#storekeysOnOutbound(msg);
+    }
+  }
 
-      for (const [i, stop] of stops.entries()) {
+  async #storekeysOnOutbound(msg: XcmSent) {
+    const log = this.#log;
+    const stops = msg.legs.map((l) => l.to);
+
+    for (const [i, stop] of stops.entries()) {
+      const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash);
+      if (msg.messageId) {
         const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId);
-        const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash);
         if (i === stops.length - 1) {
           log.info(
             '[%s:o] STORED dest=%s hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -394,6 +389,44 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             {
               sublevel: prefixes.matching.hop,
               key: iKey,
+              expiry: DEFAULT_TIMEOUT,
+            }
+          );
+        }
+      } else {
+        if (i === stops.length - 1) {
+          log.info(
+            '[%s:o] STORED dest=%s hash=%s (subId=%s, block=%s #%s)',
+            msg.origin.chainId,
+            stop,
+            hKey,
+            msg.subscriptionId,
+            msg.origin.blockHash,
+            msg.origin.blockNumber
+          );
+          await this.#outbound.put(hKey, msg);
+          await this.#janitor.schedule(
+            {
+              sublevel: prefixes.matching.outbound,
+              key: hKey,
+              expiry: DEFAULT_TIMEOUT,
+            }
+          );
+        } else {
+          log.info(
+            '[%s:h] STORED stop=%s hash=%s(subId=%s, block=%s #%s)',
+            msg.origin.chainId,
+            stop,
+            hKey,
+            msg.subscriptionId,
+            msg.origin.blockHash,
+            msg.origin.blockNumber
+          );
+          await this.#hop.put(hKey, msg);
+          await this.#janitor.schedule(
+            {
+              sublevel: prefixes.matching.hop,
+              key: hKey,
               expiry: DEFAULT_TIMEOUT,
             }
           );
@@ -499,7 +532,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   #onXcmHopOut(originMsg: XcmSent, hopMsg: XcmSent) {
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg.origin;
-      const { instructions, messageData, messageHash } = hopMsg.waypoint;
+      const { instructions, messageData, messageHash, assetsTrapped } = hopMsg.waypoint;
       const currentLeg = hopMsg.legs[0];
       const legIndex = originMsg.legs.findIndex((l) => l.from === currentLeg.from && l.to === currentLeg.to);
       const waypointContext: XcmWaypointContext = {
@@ -513,6 +546,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         messageData,
         messageHash,
         instructions,
+        assetsTrapped
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out');
 
@@ -529,7 +563,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // since we are not storing messages or contexts of intermediate hops
   #onXcmHopIn(originMsg: XcmSent, hopMsg: XcmInbound) {
     try {
-      const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg;
+      const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped } = hopMsg;
       const { messageData, messageHash, instructions } = originMsg.waypoint;
       const legIndex = originMsg.legs.findIndex((l) => l.to === chainId);
       const waypointContext: XcmWaypointContext = {
@@ -543,6 +577,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         messageData,
         messageHash,
         instructions,
+        assetsTrapped
       };
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in');
 
