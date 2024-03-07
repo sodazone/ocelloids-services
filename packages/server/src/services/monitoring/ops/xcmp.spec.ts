@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { ControlQuery, extractEvents } from '@sodazone/ocelloids';
 
-import { xcmpSend, xcmpReceive, registry } from '../../../testing/xcm.js';
+import { xcmpSend, xcmpReceive, registry, xcmHop } from '../../../testing/xcm.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 import { sendersCriteria } from './criteria.js';
@@ -35,6 +35,38 @@ describe('xcmp operator', () => {
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
+    });
+
+    it('should extract XCMP sent on hops', (done) => {
+      const { blocks, sendersControl, messageControl, getHrmp } = xcmHop;
+
+      const calls = jest.fn();
+
+      const test$ = extractXcmpSend(
+        {
+          sendersControl,
+          messageControl,
+        },
+        getHrmp,
+        registry
+      )(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.instructions).toBeDefined();
+          expect(msg.messageData).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.recipient).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(2);
           done();
         },
       });

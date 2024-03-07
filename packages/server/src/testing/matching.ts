@@ -195,3 +195,102 @@ export const matchHopMessages: MatchHopMessages = {
     blockNumber: '23',
   },
 };
+
+const hopOrigin: XcmSent = {
+  type: XcmNotificationType.Sent,
+  subscriptionId: 'xxx-1',
+  legs: [
+    { from: '0', to: '2034' },
+    { from: '2034', to: '0' },
+    { from: '0', to: '1000' },
+  ],
+  waypoint: {
+    chainId: '0',
+    blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
+    blockNumber: '19777220',
+    extrinsicId: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    legIndex: 0,
+    messageData:
+      '0x31020310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+    instructions: {},
+    messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
+  },
+  origin: {
+    chainId: '0',
+    blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
+    blockNumber: '19777220',
+    extrinsicId: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+  },
+  destination: { chainId: '1000' },
+  sender: undefined,
+  messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+};
+
+const hopIB: XcmInbound = {
+  subscriptionId: 'xxx-1',
+  chainId: '2034',
+  event: {},
+  messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
+  messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+  outcome: 'Success',
+  error: null,
+  blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
+  blockNumber: '4624161',
+  extrinsicId: '4624161-1',
+  assetsTrapped: undefined,
+};
+
+const hopOB: XcmSent = {
+  type: XcmNotificationType.Sent,
+  subscriptionId: 'xxx-1',
+  legs: [
+    { from: '2034', to: '0' },
+    { from: '0', to: '1000' },
+  ],
+  waypoint: {
+    chainId: '2034',
+    blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
+    blockNumber: '4624161',
+    extrinsicId: '4624161-1',
+    event: {},
+    outcome: 'Success',
+    error: null,
+    legIndex: 0,
+    messageData:
+      '0x03100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b',
+    instructions: {},
+    messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
+  },
+  origin: {
+    chainId: '2034',
+    blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
+    blockNumber: '4624161',
+    extrinsicId: '4624161-1',
+    event: {},
+    outcome: 'Success',
+    error: null,
+  },
+  destination: { chainId: '1000' },
+  sender: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7',
+  messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+};
+
+type RealHopMessages = {
+  subscriptionId: string;
+  origin: XcmSent;
+  hopin: XcmInbound;
+  hopout: XcmSent;
+};
+
+export const realHopMessages: RealHopMessages = {
+  subscriptionId: 'xxx-1',
+  origin: hopOrigin,
+  hopin: hopIB,
+  hopout: hopOB,
+};

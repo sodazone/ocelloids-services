@@ -6,6 +6,8 @@ import {
   dmpSendSingleMessageInQueue,
   dmpXcmPalletSentEvent,
   registry,
+  xcmHop,
+  xcmHopOrigin,
 } from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
@@ -36,6 +38,38 @@ describe('dmp operator', () => {
           expect(msg.messageData).toBeDefined();
           expect(msg.messageHash).toBeDefined();
           expect(msg.recipient).toBeDefined();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
+    });
+
+    it('should extract DMP sent for multi-leg messages', (done) => {
+      const { blocks, apiPromise, sendersControl, messageControl } = xcmHopOrigin;
+
+      const calls = jest.fn();
+
+      const test$ = extractDmpSendByEvent(
+        apiPromise,
+        {
+          sendersControl,
+          messageControl,
+        },
+        registry
+      )(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.instructions).toBeDefined();
+          expect(msg.messageData).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.recipient).toBeDefined();
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
@@ -173,7 +207,6 @@ describe('dmp operator', () => {
 
       test$.subscribe({
         next: (msg) => {
-          calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
           expect(msg.blockHash).toBeDefined();
@@ -184,6 +217,32 @@ describe('dmp operator', () => {
           expect(msg.error).toBeDefined();
           expect(msg.error).toBe('FailedToTransactAsset');
           expect(msg.assetsTrapped).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
+    });
+
+    it('should extract DMP received for hop message', (done) => {
+      const { blocks } = xcmHop;
+
+      const calls = jest.fn();
+
+      const test$ = extractDmpReceive()(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.event).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.outcome).toBeDefined();
+          expect(msg.outcome).toBe('Success');
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);

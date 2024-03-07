@@ -296,3 +296,141 @@ export const relayHrmpReceive = {
   origin: '2004',
   destination: '2104',
 };
+
+// In: DMP receive
+// Out: HRMP send
+export const xcmHop = {
+  blocks: from(testBlocksFrom('hydra-hop-4624161.cbor.bin', 'hydra-207.json')),
+  sendersControl: new ControlQuery(sendersCriteria('*')),
+  messageControl: new ControlQuery(messageCriteria(['0', '1000', '2104'])),
+  origin: '0',
+  destination: '1000',
+  getHrmp: () =>
+    from([
+      [
+        {
+          recipient: {
+            toNumber: () => 1000,
+          },
+          data: registry.createType(
+            'Bytes',
+            '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34'
+          ),
+        },
+      ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,
+    ]),
+};
+
+const xcmData =
+  '0x0310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf';
+const instructions: any = {
+  WithdrawAsset: [
+    {
+      id: {
+        Concrete: {
+          parents: '1',
+          interior: {
+            X3: [
+              {
+                Parachain: '1,000',
+              },
+              {
+                PalletInstance: '50',
+              },
+              {
+                GeneralIndex: '1,984',
+              },
+            ],
+          },
+        },
+      },
+      fun: {
+        Fungible: '5,000,000,000',
+      },
+    },
+  ],
+  BuyExecution: {
+    fees: {
+      id: {
+        Concrete: {
+          parents: '1',
+          interior: {
+            X3: [
+              {
+                Parachain: '1,000',
+              },
+              {
+                PalletInstance: '50',
+              },
+              {
+                GeneralIndex: '1,984',
+              },
+            ],
+          },
+        },
+      },
+      fun: {
+        Fungible: '5,000,000,000',
+      },
+    },
+    weightLimit: 'Unlimited',
+  },
+  InitiateReserveWithdraw: {
+    assets: {
+      Wild: {
+        AllCounted: '1',
+      },
+    },
+    reserve: {
+      parents: '1',
+      interior: {
+        X1: {
+          Parachain: '1,000',
+        },
+      },
+    },
+    xcm: [],
+  },
+  SetTopic: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+};
+
+// DMP to 2034
+export const xcmHopOrigin = {
+  blocks: from(testBlocksFrom('polkadot-hop-19777220.cbor.bin', 'polkadot-1000001.json')),
+  sendersControl: new ControlQuery(sendersCriteria('*')),
+  messageControl: new ControlQuery(messageCriteria(['1000', '2034'])),
+  apiPromise: {
+    at: () =>
+      new Promise((resolve) => {
+        resolve({
+          query: {
+            dmp: {
+              downwardMessageQueues: () => [
+                [
+                  {
+                    sentAt: {
+                      toNumber: () => 19777220,
+                    },
+                    msg: registry.createType('Bytes', xcmData),
+                  },
+                ] as unknown as Vec<PolkadotCorePrimitivesInboundDownwardMessage>,
+              ],
+            },
+          },
+        } as unknown as ApiDecoration<'promise'>);
+      }),
+    registry: {
+      createType: jest.fn().mockImplementation(() => ({
+        value: {
+          toHuman: () => instructions,
+        },
+        hash: {
+          toHex: () => '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
+        },
+        toHuman: () => ({
+          V3: instructions,
+        }),
+      })),
+    },
+  } as unknown as ApiPromise,
+};

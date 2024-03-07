@@ -3,10 +3,10 @@ import { jest } from '@jest/globals';
 import { MemoryLevel as Level } from 'memory-level';
 
 import { MatchingEngine } from './matching.js';
-import { XcmInbound, XcmNotifyMessage, XcmSent } from './types.js';
+import { XcmInbound, XcmNotificationType, XcmNotifyMessage, XcmSent } from './types.js';
 import { _services } from '../../testing/services.js';
 import { Janitor } from '../persistence/janitor.js';
-import { matchMessages, matchHopMessages } from '../../testing/matching.js';
+import { matchMessages, matchHopMessages, realHopMessages } from '../../testing/matching.js';
 import { jsonEncoded, prefixes } from '../types.js';
 import { AbstractSublevel } from 'abstract-level';
 
@@ -20,10 +20,6 @@ describe('message matching engine', () => {
   beforeEach(() => {
     cb.mockReset();
     schedule.mockReset();
-
-    // cb.mockImplementation((msg: XcmNotifyMessage) => {
-    //   console.log('NOTIFY', msg.type, msg.waypoint.chainId)
-    // })
 
     db = new Level();
     engine = new MatchingEngine(
@@ -166,6 +162,23 @@ describe('message matching engine', () => {
     expect(cb).toHaveBeenCalledTimes(6);
     await expect(outbound.get(idKey)).rejects.toBeDefined();
     await expect(outbound.get(hashKey)).rejects.toBeDefined();
+  });
+
+  it('should match hop messages', async () => {
+    const msgTypeCb = jest.fn((_: XcmNotificationType) => {});
+    cb.mockImplementation((msg) => msgTypeCb(msg.type));
+
+    const { origin, hopin, hopout } = realHopMessages;
+
+    await engine.onOutboundMessage(origin);
+
+    await engine.onInboundMessage(hopin);
+    await engine.onOutboundMessage(hopout);
+
+    expect(cb).toHaveBeenCalledTimes(3);
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(1, XcmNotificationType.Sent);
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(2, XcmNotificationType.Hop);
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(3, XcmNotificationType.Hop);
   });
 
   it('should match hop messages with concurrent message on hop stop', async () => {
