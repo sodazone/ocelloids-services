@@ -85,6 +85,6 @@ export class CodeBlock extends TwElement {
         }
       </style>
       <!-- prettier-ignore -->
-      <pre class="${tw`text-xs bg-gray-700 break-all leading-5 py-4 max-h-96 py-4 px-6`} litcode">${this.renderCode()}</pre>`;
+      <pre class="${tw`text-xs bg-gray-700 break-all leading-5 max-h-96 py-4 px-6`} litcode">${this.renderCode()}</pre>`;
   }
 }
