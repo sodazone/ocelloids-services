@@ -24,7 +24,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
         msg.destination.chainId,
         msg.type,
         sub.id,
-        msg.messageHash,
+        msg.waypoint.messageHash,
         msg.waypoint.outcome,
         msg.origin.blockNumber,
         msg.destination.blockNumber
@@ -35,7 +35,7 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
         msg.origin.chainId,
         msg.type,
         sub.id,
-        msg.messageHash,
+        msg.waypoint.messageHash,
         msg.origin.blockNumber
       );
     }
