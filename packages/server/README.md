@@ -3,10 +3,6 @@
 [![Docker](https://img.shields.io/docker/v/sodazone/xcm-monitoring?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/xcm-monitoring)
 [![CI](https://img.shields.io/github/actions/workflow/status/sodazone/xcm-monitoring/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/xcm-monitoring/actions/workflows/ci.yml)
 
-> [!IMPORTANT]
-> The current public Docker image is **very outdated**, please don't use it.
-> A new public image will be available soon.
-
 The XCM Monitoring Server is a software application designed to monitor Cross-Consensus Message Format (XCM)
 program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
 
