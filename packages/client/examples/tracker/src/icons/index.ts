@@ -62,7 +62,7 @@ export function IconPulse() {
 export function IconWait() {
   return html`
     <div class=${tw`flex items-center h-8`}>
-      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full ring-2 bg-transparent ring-gray-900`}>
+      <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent`}>
         <span class=${tw`inline-block animate-pulse w-3 h-3 bg-yellow-600 rounded-full`}></span>
       </div>
     </div>
@@ -95,7 +95,7 @@ export function IconSuccess() {
 
 export function IconFail() {
   return html` <div class=${tw`flex items-center h-8`}>
-    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-red-600`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-red-500`}>
       <svg
         class=${tw` h-4 w-4 fill-current text-red-500`}
         role="status"
@@ -108,6 +108,44 @@ export function IconFail() {
       </svg>
     </div>
   </div>`;
+}
+
+export function IconSkipped() {
+  return html ` <div class=${tw`flex items-center h-8`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-gray-400`}>
+      <svg
+        class=${tw` h-4 w-4 fill-current text-gray-400`}
+        role="status"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 16 16"
+      >
+        <path d="M2 8a1 1 0 011-1h10a1 1 0 110 2H3a1 1 0 01-1-1z"/>
+      </svg>
+    </div>
+  </div>
+  `
+}
+
+export function IconTimeout() {
+  return html ` <div class=${tw`flex items-center h-8`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full bg-transparent ring-2 ring-yellow-600`}>
+      <svg
+        class=${tw` h-4 w-4 fill-current text-yellow-600`}
+        role="status"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+      >
+      <path
+        stroke="currentColor"
+        fill-opacity="0"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M12 19H12.01M8.21704 7.69689C8.75753 6.12753 10.2471 5 12 5C14.2091 5 16 6.79086 16 9C16 10.6565 14.9931 12.0778 13.558 12.6852C12.8172 12.9988 12.4468 13.1556 12.3172 13.2767C12.1629 13.4209 12.1336 13.4651 12.061 13.6634C12 13.8299 12 14.0866 12 14.6L12 16" />
+      </svg>
+    </div>
+  </div>
+  `
 }
 
 function getIconByChainId(id) {
@@ -519,6 +557,22 @@ export function IconChainSuccess(id) {
 export function IconChainWait(id) {
   return html`<div class=${tw`flex items-center`}>
     <div class=${tw`z-10 animate-pulse flex items-center justify-center w-6 h-6 rounded-full ring-4 ring-yellow-800`}>
+      ${IconChain(id)}
+    </div>
+  </div>`;
+}
+
+export function IconChainSkipped(id) {
+  return html`<div class=${tw`flex items-center`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full ring-4 ring-gray-400`}>
+      ${IconChain(id)}
+    </div>
+  </div>`;
+}
+
+export function IconChainTimeout(id) {
+  return html`<div class=${tw`flex items-center`}>
+    <div class=${tw`z-10 flex items-center justify-center w-6 h-6 rounded-full ring-4 ring-yellow-600`}>
       ${IconChain(id)}
     </div>
   </div>`;

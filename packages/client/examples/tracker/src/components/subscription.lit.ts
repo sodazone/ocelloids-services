@@ -64,7 +64,7 @@ export class SubscriptionElement extends OcelloidsElement {
           <span class=${tw`text-gray-200`}>
             ${Array.isArray(this.subscription.senders)
               ? this.subscription.senders.map((s) => trunc(s)).join(',')
-              : this.subscription.senders}
+              : this.subscription.senders ?? '*'}
           </span>
         </div>
       </div>

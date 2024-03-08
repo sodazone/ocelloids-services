@@ -15,6 +15,10 @@ import {
   IconWait,
   IconFail,
   BadgeType,
+  IconSkipped,
+  IconChainSkipped,
+  IconTimeout,
+  IconChainTimeout,
 } from '../icons/index.js';
 import { HumanizedXcm, humanize } from '../lib/kb.js';
 
@@ -29,12 +33,18 @@ export class Journey extends TwElement {
 
   @state() selected: XcmJourneyWaypoint;
 
-  iconForOutcome({ chainId, outcome }: XcmJourneyWaypoint, withChain = true) {
+  iconForOutcome({ chainId, outcome, skipped, timeout }: XcmJourneyWaypoint, withChain = true) {
     if (outcome === undefined) {
+      if (timeout) {
+        return withChain ? IconChainTimeout(chainId) : IconTimeout();
+      }
       return withChain ? IconChainWait(chainId) : IconWait();
     } else if (outcome === 'Success') {
       return withChain ? IconChainSuccess(chainId) : IconSuccess();
     } else {
+      if (skipped) {
+        return withChain ? IconChainSkipped(chainId) : IconSkipped();
+      }
       return withChain ? IconChainFail(chainId) : IconFail();
     }
   }
@@ -57,11 +67,10 @@ export class Journey extends TwElement {
           ${
             point.assetsTrapped !== undefined
             ? html `
-              <span class=${tw`text-xs font-medium px-2.5 py-0.5 rounded border border-red-500 text-red-500`}>trapped</span>
+              <span class=${tw`text-xs font-medium px-2.5 py-0.5 rounded bg-red-500 text-gray-900`}>trapped</span>
             `
             : ''
           }
-          <span>${(point.error && point.error) || ''}</span>
           ${this.iconForOutcome(point, false)}
         </div>
       </div>

@@ -19,7 +19,9 @@ export type XcmJourneyWaypoint = {
   event?: any;
   extrinsic?: any;
   instructions?: any;
-  assetsTrapped?: AssetsTrapped
+  assetsTrapped?: AssetsTrapped;
+  skipped?: boolean;
+  timeout?: boolean;
 };
 
 export type XcmJourney = {
@@ -46,16 +48,37 @@ function updateFailures(journey: XcmJourney): XcmJourney {
   }
 
   journey.destination.outcome = 'Fail';
+  journey.destination.skipped = true;
 
   if (failureIndex < journey.stops.length - 1) {
     journey.stops = journey.stops.map((s, i) => {
       if (i > failureIndex) {
-        return { ...s, outcome: 'Fail' };
+        return {
+          ...s,
+          outcome: 'Fail',
+          skipped: true
+        };
       } else {
         return s;
       }
     });
   }
+  return journey;
+}
+
+function updateTimeout(journey: XcmJourney) {
+  journey.destination.timeout = true;
+  journey.stops = journey.stops.map(s => {
+    if (s.outcome === undefined) {
+      return {
+        ...s,
+        timeout: true
+      };
+    } else {
+      return s;
+    }
+  });
+
   return journey;
 }
 
@@ -88,6 +111,10 @@ async function toJourney(xcm: XcmNotifyMessage): Promise<XcmJourney> {
 export async function mergeJourney(xcm: XcmNotifyMessage, journey?: XcmJourney): Promise<XcmJourney> {
   if (journey === undefined) {
     journey = await toJourney(xcm);
+  }
+
+  if (xcm.type === 'xcm.timeout') {
+    return { ...updateTimeout(journey) }
   }
 
   if (journey.origin.chainId === xcm.waypoint.chainId) {
