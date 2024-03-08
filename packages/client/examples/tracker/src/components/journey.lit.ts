@@ -57,7 +57,7 @@ export class Journey extends TwElement {
           ${
             point.assetsTrapped !== undefined
             ? html `
-              <span class=${tw`text-xs font-medium px-2.5 py-0.5 rounded bg-yellow-900 text-yellow-300`}>Trapped</span>
+              <span class=${tw`text-xs font-medium px-2.5 py-0.5 rounded border border-red-500 text-red-500`}>trapped</span>
             `
             : ''
           }
