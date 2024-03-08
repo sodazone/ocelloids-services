@@ -19,6 +19,9 @@ yarn workspaces focus --production xcmon-server
 
 FROM node:20-alpine AS runner
 
+LABEL org.opencontainers.image.source=https://github.com/sodazone/xcm-monitoring
+LABEL org.opencontainers.image.description="Ocelloids XCM Monitoring Server"
+
 WORKDIR /opt/xcmon
 
 ENV NODE_ENV=production
