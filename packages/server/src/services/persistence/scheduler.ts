@@ -110,7 +110,7 @@ export class Scheduler extends EventEmitter {
       try {
         if (this.emit(task.type, task)) {
           await this.#tasks.del(key);
-          this.#log.debug(task, 'scheduler: Dispateched %s %j', key, task);
+          this.#log.debug(task, 'scheduler: Dispatched %s %j', key, task);
         }
       } catch (error) {
         this.#log.warn(error, 'scheduler: Error scheduling %s %j', key, task);
