@@ -14,7 +14,7 @@ export type {
   TrappedAsset,
   XcmNotifyMessage,
   Leg,
-  XcmTermini,
-  XcmTerminiContext,
+  XcmTerminus,
+  XcmTerminusContext,
   XcmWaypointContext,
 } from './services/monitoring/types.js';

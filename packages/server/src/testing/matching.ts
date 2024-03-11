@@ -3,12 +3,12 @@ import {
   XcmNotificationType,
   XcmRelayedWithContext,
   XcmSent,
-  XcmTerminiContext,
+  XcmTerminusContext,
 } from '../services/monitoring/types';
 
 const subscriptionId = 'manamana-1';
 
-const originContext: XcmTerminiContext = {
+const originContext: XcmTerminusContext = {
   chainId: '1000',
   event: {},
   blockHash: '0xBEEF',

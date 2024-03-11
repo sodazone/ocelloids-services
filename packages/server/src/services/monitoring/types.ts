@@ -282,7 +282,7 @@ const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object
  *
  * @public
  */
-export type XcmTermini = {
+export type XcmTerminus = {
   chainId: string;
 };
 
@@ -291,7 +291,7 @@ export type XcmTermini = {
  *
  * @public
  */
-export interface XcmTerminiContext extends XcmTermini {
+export interface XcmTerminusContext extends XcmTerminus {
   blockNumber: string;
   blockHash: HexString;
   extrinsicId?: string;
@@ -308,7 +308,7 @@ export interface XcmTerminiContext extends XcmTermini {
  *
  * @public
  */
-export interface XcmWaypointContext extends XcmTerminiContext {
+export interface XcmWaypointContext extends XcmTerminusContext {
   legIndex: number;
   messageHash: HexString;
   messageData: string;
@@ -336,8 +336,8 @@ export interface XcmSent {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
   sender: AnyJson;
   messageId?: HexString;
 }
@@ -347,8 +347,8 @@ export class GenericXcmSent implements XcmSent {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -423,8 +423,8 @@ export interface XcmReceived {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTerminiContext;
+  origin: XcmTerminusContext;
+  destination: XcmTerminusContext;
   sender: AnyJson;
   messageId?: HexString;
 }
@@ -441,8 +441,8 @@ export class GenericXcmTimeout implements XcmTimeout {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -462,8 +462,8 @@ export class GenericXcmReceived implements XcmReceived {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTerminiContext;
+  origin: XcmTerminusContext;
+  destination: XcmTerminusContext;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -509,8 +509,8 @@ export class GenericXcmRelayed implements XcmRelayed {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
   sender: AnyJson;
   messageId?: HexString;
 
@@ -551,8 +551,8 @@ export class GenericXcmHop implements XcmHop {
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
-  origin: XcmTerminiContext;
-  destination: XcmTermini;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
   sender: AnyJson;
   direction: 'out' | 'in';
   messageId?: HexString;

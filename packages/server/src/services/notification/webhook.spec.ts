@@ -5,18 +5,21 @@ import { MemoryLevel } from 'memory-level';
 
 import { _log, _services } from '../../testing/services.js';
 
-import { Subscription, XcmNotificationType, XcmNotifyMessage, XcmTerminiContext } from '../monitoring/types.js';
+import { Subscription, XcmNotificationType, XcmNotifyMessage, XcmTerminusContext } from '../monitoring/types.js';
 import { WebhookNotifier } from './webhook.js';
 import { Scheduler } from '../persistence/scheduler.js';
 import { NotifierHub } from './hub.js';
 
-const destinationContext: XcmTerminiContext = {
+const destinationContext: XcmTerminusContext = {
   blockHash: '0xBEEF',
   blockNumber: '2',
   chainId: '1',
   event: {},
   outcome: 'Success',
   error: null,
+  messageHash: '0xCAFE',
+  instructions: '0x',
+  messageData: '0x',
 };
 const notification: XcmNotifyMessage = {
   type: XcmNotificationType.Received,
@@ -24,10 +27,7 @@ const notification: XcmNotifyMessage = {
   legs: [{ from: '0', to: '1' }],
   waypoint: {
     ...destinationContext,
-    legIndex: 0,
-    messageHash: '0xCAFE',
-    instructions: '0x',
-    messageData: '0x',
+    legIndex: 0
   },
   destination: destinationContext,
   origin: {
@@ -37,6 +37,9 @@ const notification: XcmNotifyMessage = {
     event: {},
     outcome: 'Success',
     error: null,
+    messageHash: '0xCAFE',
+    instructions: '0x',
+    messageData: '0x',
   },
   sender: { id: 'w123' },
 };
