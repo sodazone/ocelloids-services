@@ -36,6 +36,9 @@ describe('monitoring server API', () => {
       subscriptionMaxEphemeral: 10_000,
       subscriptionMaxPersistent: 10_000,
       wsMaxClients: 10_000,
+      cors: true,
+      corsCredentials: true,
+      corsOrigin: true
     });
 
     return server.ready();
