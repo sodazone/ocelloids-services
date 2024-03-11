@@ -298,6 +298,9 @@ export interface XcmTerminiContext extends XcmTermini {
   event: AnyJson;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
+  messageHash: HexString;
+  messageData: string;
+  instructions: AnyJson;
 }
 
 /**
@@ -360,6 +363,9 @@ export class GenericXcmSent implements XcmSent {
       event: msg.event,
       outcome: 'Success',
       error: null,
+      messageData: toHexString(msg.messageData),
+      instructions: msg.instructions.json,
+      messageHash: msg.messageHash,
     };
     this.destination = {
       chainId: stops[stops.length - 1], // last stop is the destination
@@ -472,6 +478,9 @@ export class GenericXcmReceived implements XcmReceived {
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
+      instructions: outMsg.waypoint.instructions,
+      messageData: outMsg.waypoint.messageData,
+      messageHash: outMsg.waypoint.messageHash,
     };
     this.origin = outMsg.origin;
     this.waypoint = {

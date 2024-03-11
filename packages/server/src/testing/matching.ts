@@ -15,6 +15,9 @@ const originContext: XcmTerminiContext = {
   blockNumber: '2',
   outcome: 'Success',
   error: null,
+  instructions: {},
+  messageData: '0x0',
+  messageHash: '0xCAFE',
 };
 
 const outboundMessage: XcmSent = {
@@ -37,9 +40,6 @@ const outboundMessage: XcmSent = {
   waypoint: {
     ...originContext,
     legIndex: 0,
-    instructions: {},
-    messageData: '0x0',
-    messageHash: '0xCAFE',
   },
   subscriptionId: subscriptionId,
   sender: {
@@ -156,6 +156,9 @@ export const matchHopMessages: MatchHopMessages = {
       blockNumber: '2',
       outcome: 'Success',
       error: null,
+      instructions: {},
+      messageData: '0x0',
+      messageHash: '0xDEAD',
     },
     waypoint: {
       chainId: '3000',
@@ -226,6 +229,10 @@ const hopOrigin: XcmSent = {
     event: {},
     outcome: 'Success',
     error: null,
+    messageData:
+      '0x31020310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+    instructions: {},
+    messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   },
   destination: { chainId: '1000' },
   sender: undefined,
@@ -275,6 +282,10 @@ const hopOB: XcmSent = {
     event: {},
     outcome: 'Success',
     error: null,
+    messageData:
+      '0x03100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b',
+    instructions: {},
+    messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
   },
   destination: { chainId: '1000' },
   sender: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7',
