@@ -181,13 +181,9 @@ describe('head catcher', () => {
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
+                    subscribeFinalizedHeads: () => from(headersSource)
                   },
-                },
-                rpc: {
-                  chain: {
-                    subscribeFinalizedHeads: () => from(headersSource),
-                  },
-                },
+                }
               } as unknown as ApiRx),
               '1000': of({} as unknown as ApiRx),
               '2032': of({} as unknown as ApiRx),
@@ -279,10 +275,6 @@ describe('head catcher', () => {
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
-                  },
-                },
-                rpc: {
-                  chain: {
                     subscribeFinalizedHeads: () => headersSource,
                   },
                 },
@@ -404,11 +396,7 @@ describe('head catcher', () => {
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
-                  },
-                },
-                rpc: {
-                  chain: {
-                    subscribeFinalizedHeads: () => headersSource,
+                    subscribeFinalizedHeads: () => headersSource
                   },
                 },
               } as unknown as ApiRx),
