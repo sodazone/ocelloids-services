@@ -27,7 +27,7 @@ const notification: XcmNotifyMessage = {
   legs: [{ from: '0', to: '1' }],
   waypoint: {
     ...destinationContext,
-    legIndex: 0
+    legIndex: 0,
   },
   destination: destinationContext,
   origin: {
