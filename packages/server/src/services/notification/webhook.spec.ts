@@ -21,11 +21,13 @@ const destinationContext: XcmTerminiContext = {
 const notification: XcmNotifyMessage = {
   type: XcmNotificationType.Received,
   subscriptionId: 'ok',
-  messageHash: '0xCAFE',
   legs: [{ from: '0', to: '1' }],
   waypoint: {
     ...destinationContext,
     legIndex: 0,
+    messageHash: '0xCAFE',
+    instructions: '0x',
+    messageData: '0x',
   },
   destination: destinationContext,
   origin: {
@@ -35,9 +37,7 @@ const notification: XcmNotifyMessage = {
     event: {},
     outcome: 'Success',
     error: null,
-  },
-  instructions: '0x',
-  messageData: '0x',
+  }, 
   sender: { id: 'w123' },
 };
 
