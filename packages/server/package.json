@@ -32,7 +32,8 @@
     "collectCoverage": true,
     "coveragePathIgnorePatterns": [
       ".*/dist",
-      "testing"
+      "testing",
+      "src/services/notification/log.ts"
     ],
     "extensionsToTreatAsEsm": [
       ".ts"
