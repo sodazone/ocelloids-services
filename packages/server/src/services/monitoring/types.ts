@@ -575,6 +575,10 @@ export function isXcmReceived(object: any): object is XcmReceived {
   return object.type !== undefined && object.type === XcmNotificationType.Received;
 }
 
+export function isXcmHop(object: any): object is XcmHop {
+  return object.type !== undefined && object.type === XcmNotificationType.Hop;
+}
+
 export function isXcmRelayed(object: any): object is XcmRelayed {
   return object.type !== undefined && object.type === XcmNotificationType.Relayed;
 }
