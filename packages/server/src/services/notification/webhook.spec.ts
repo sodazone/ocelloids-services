@@ -37,7 +37,7 @@ const notification: XcmNotifyMessage = {
     event: {},
     outcome: 'Success',
     error: null,
-  }, 
+  },
   sender: { id: 'w123' },
 };
 

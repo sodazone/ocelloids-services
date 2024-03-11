@@ -67,8 +67,10 @@ describe('WebsocketProtocol', () => {
       const mockStream = {
         socket: { close: jest.fn(), once: jest.fn() },
         writable: true,
-        on: jest.fn((_: string, fn: (data: Buffer) => void) => { fn(mockData) }),
-        write: jest.fn()
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData);
+        }),
+        write: jest.fn(),
       };
       const mockRequest = {
         id: 'mockRequestId',
@@ -85,8 +87,10 @@ describe('WebsocketProtocol', () => {
       const mockStream = {
         socket: { close: jest.fn(), once: jest.fn() },
         writable: true,
-        on: jest.fn((_: string, fn: (data: Buffer) => void) => { fn(mockData) }),
-        write: jest.fn()
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData);
+        }),
+        write: jest.fn(),
       };
       const mockRequest = {
         id: 'mockRequestId',
@@ -107,29 +111,28 @@ describe('WebsocketProtocol', () => {
       const mockData = Buffer.from(
         JSON.stringify({
           ...testSub,
-          channels: [{ type: 'log' }]
+          channels: [{ type: 'log' }],
         })
       );
       const mockStream = {
         socket: { close: jest.fn(), once: jest.fn() },
         writable: true,
-        on: jest.fn((_: string, fn: (data: Buffer) => void) => { fn(mockData) }),
-        write: jest.fn()
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData);
+        }),
+        write: jest.fn(),
       };
       const mockRequest = {
         id: 'mockRequestId',
         ip: 'mockRequestIp',
       } as FastifyRequest;
-      mockSwitchboard.findSubscriptionHandler
-        .mockImplementationOnce(
-          () => ({
-            descriptor: {
-              ...testSub,
-              channels: [{ type: 'log' }]
-            }
-          })
-        );
-      
+      mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => ({
+        descriptor: {
+          ...testSub,
+          channels: [{ type: 'log' }],
+        },
+      }));
+
       await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription');
       await flushPromises();
 
@@ -141,8 +144,10 @@ describe('WebsocketProtocol', () => {
       const mockStream = {
         socket: { close: jest.fn(), once: jest.fn() },
         writable: true,
-        on: jest.fn((_: string, fn: (data: Buffer) => void) => { fn(mockData) }),
-        write: jest.fn()
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData);
+        }),
+        write: jest.fn(),
       };
       const mockRequest = {
         id: 'mockRequestId',
@@ -150,8 +155,10 @@ describe('WebsocketProtocol', () => {
       } as FastifyRequest;
       const mockError = new Error('Test error');
 
-      mockSwitchboard.subscribe.mockImplementationOnce(() => { throw mockError; });
-      
+      mockSwitchboard.subscribe.mockImplementationOnce(() => {
+        throw mockError;
+      });
+
       await websocketProtocol.handle(mockStream, mockRequest);
       await flushPromises();
 
@@ -160,7 +167,9 @@ describe('WebsocketProtocol', () => {
 
     it('should close connection with error code if an error occurs', async () => {
       const mockStream = { socket: { close: jest.fn() }, writable: true };
-      mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => { return undefined; });
+      mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => {
+        return undefined;
+      });
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId');
       expect(mockStream.socket.close).toHaveBeenCalledWith(1007, 'subscription not found');
     });
