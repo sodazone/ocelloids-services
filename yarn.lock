@@ -1691,7 +1691,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot/util@npm:12.6.2, @polkadot/util@npm:^12.6.2":
+"@polkadot/util@npm:12.6.2":
   version: 12.6.2
   resolution: "@polkadot/util@npm:12.6.2"
   dependencies:
@@ -1703,6 +1703,21 @@ __metadata:
     bn.js: "npm:^5.2.1"
     tslib: "npm:^2.6.2"
   checksum: 10c0/e426d31f8a6b8e8c57b86c18b419312906c5a169e5b2d89c15b54a5d6cf297912250d336f81926e07511ce825d36222d9e6387a01240aa6a20b11aa25dc8226a
+  languageName: node
+  linkType: hard
+
+"@polkadot/util@patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch":
+  version: 12.6.2
+  resolution: "@polkadot/util@patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch::version=12.6.2&hash=79224a"
+  dependencies:
+    "@polkadot/x-bigint": "npm:12.6.2"
+    "@polkadot/x-global": "npm:12.6.2"
+    "@polkadot/x-textdecoder": "npm:12.6.2"
+    "@polkadot/x-textencoder": "npm:12.6.2"
+    "@types/bn.js": "npm:^5.1.5"
+    bn.js: "npm:^5.2.1"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/5941fe3a28d54a2ddd81720638c94ed1c74711b8811588a396fb048278badb9ab53cd222231be6ca49723679a3b59648d89666246cfe49858a9d3232dbce03b1
   languageName: node
   linkType: hard
 

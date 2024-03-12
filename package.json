@@ -27,6 +27,8 @@
     "typescript-eslint": "^7.1.1"
   },
   "resolutions": {
-    "@substrate/connect": "0.8.4"
+    "@substrate/connect": "0.8.4",
+    "@polkadot/util@npm:^12.6.2": "patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch",
+    "@polkadot/util@npm:12.6.2": "patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch"
   }
 }
