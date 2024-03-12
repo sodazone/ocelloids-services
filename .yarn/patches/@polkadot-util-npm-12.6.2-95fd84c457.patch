@@ -1,0 +1,21 @@
+diff --git a/memoize.js b/memoize.js
+index 5d4b1afe306673da986ec68276b1c9fa06041c2e..392570003e6e8d37509794427b0e9f1ffe6200ab 100644
+--- a/memoize.js
++++ b/memoize.js
+@@ -9,15 +9,7 @@ function defaultGetId() {
+ export function memoize(fn, { getInstanceId = defaultGetId } = {}) {
+     const cache = {};
+     const memoized = (...args) => {
+-        const stringParams = stringify(args);
+-        const instanceId = getInstanceId();
+-        if (!cache[instanceId]) {
+-            cache[instanceId] = {};
+-        }
+-        if (cache[instanceId][stringParams] === undefined) {
+-            cache[instanceId][stringParams] = fn(...args);
+-        }
+-        return cache[instanceId][stringParams];
++        return fn(...args);
+     };
+     memoized.unmemoize = (...args) => {
+         const stringParams = stringify(args);
