@@ -1,0 +1,13 @@
+diff --git a/bundle.js b/bundle.js
+index 3bde0e893244a5fec855b07039cd5c8bf4c35f5c..3a07a20b4eeef2e08fd433097f3e3c60a0acef92 100644
+--- a/bundle.js
++++ b/bundle.js
+@@ -339,7 +339,7 @@ export class RpcCore {
+     _formatStorageSet(registry, blockHash, keys, changes) {
+         // For StorageChangeSet, the changes has the [key, value] mappings
+         const count = keys.length;
+-        const withCache = count !== 1;
++        const withCache = false;
+         const values = new Array(count);
+         // multiple return values (via state.storage subscription), decode the
+         // values one at a time, all based on the supplied query types
