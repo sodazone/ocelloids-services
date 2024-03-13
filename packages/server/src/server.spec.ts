@@ -38,7 +38,7 @@ describe('monitoring server API', () => {
       wsMaxClients: 10_000,
       cors: true,
       corsCredentials: true,
-      corsOrigin: true
+      corsOrigin: true,
     });
 
     return server.ready();
