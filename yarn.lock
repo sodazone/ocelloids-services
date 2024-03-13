@@ -1573,6 +1573,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@polkadot/rpc-core@patch:@polkadot/rpc-core@npm%3A10.12.2#~/.yarn/patches/@polkadot-rpc-core-npm-10.12.2-455f33ffb2.patch":
+  version: 10.12.2
+  resolution: "@polkadot/rpc-core@patch:@polkadot/rpc-core@npm%3A10.12.2#~/.yarn/patches/@polkadot-rpc-core-npm-10.12.2-455f33ffb2.patch::version=10.12.2&hash=25f735"
+  dependencies:
+    "@polkadot/rpc-augment": "npm:10.12.2"
+    "@polkadot/rpc-provider": "npm:10.12.2"
+    "@polkadot/types": "npm:10.12.2"
+    "@polkadot/util": "npm:^12.6.2"
+    rxjs: "npm:^7.8.1"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/3405d427b3fea3d8394ddc417c5dba36d8bf084eac9dce6b02802fb615de0a89d8f556696d4090e638ab0e5894646185571dd3165fb93a9982dbf0ea4047fcc8
+  languageName: node
+  linkType: hard
+
 "@polkadot/rpc-provider@npm:10.12.2":
   version: 10.12.2
   resolution: "@polkadot/rpc-provider@npm:10.12.2"
