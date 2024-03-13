@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 
-import { Observable, from, switchMap, share } from 'rxjs';
+import { Observable, from, switchMap, share, shareReplay } from 'rxjs';
 
 import {
   ControlQuery,
@@ -489,7 +489,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #monitorOrigins({ id, origin, senders, destinations }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
     const chainId = origin;
-    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
+    const apiPromiseObs = from(this.#apis.promise[chainId].isReady).pipe(
+      shareReplay({ refCount: true })
+    );
 
     if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`);
