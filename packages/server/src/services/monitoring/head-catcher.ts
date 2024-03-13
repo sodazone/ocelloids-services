@@ -371,8 +371,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
       return signedBlock;
     } catch (error) {
-      const apiReady = await api.isReady;
-      return await apiReady.derive.chain.getBlock(hash);
+      return await api.derive.chain.getBlock(hash);
     }
   }
 
