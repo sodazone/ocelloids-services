@@ -1,5 +1,5 @@
 diff --git a/bundle.js b/bundle.js
-index 3bde0e893244a5fec855b07039cd5c8bf4c35f5c..3a07a20b4eeef2e08fd433097f3e3c60a0acef92 100644
+index 3bde0e893244a5fec855b07039cd5c8bf4c35f5c..eb19819cc5ce02c0dc17ddef58fd10aed9a753e7 100644
 --- a/bundle.js
 +++ b/bundle.js
 @@ -339,7 +339,7 @@ export class RpcCore {
@@ -11,3 +11,14 @@ index 3bde0e893244a5fec855b07039cd5c8bf4c35f5c..3a07a20b4eeef2e08fd433097f3e3c60
          const values = new Array(count);
          // multiple return values (via state.storage subscription), decode the
          // values one at a time, all based on the supplied query types
+@@ -374,8 +374,8 @@ export class RpcCore {
+         // store the retrieved result - the only issue with this cache is that there is no
+         // clearing of it, so very long running processes (not just a couple of hours, longer)
+         // will increase memory beyond what is allowed.
+-        this.__internal__storageCache.set(hexKey, codec);
+-        this.__internal__storageCacheSize++;
++        // this.__internal__storageCache.set(hexKey, codec);
++        // this.__internal__storageCacheSize++;
+         return codec;
+     }
+     _newType(registry, blockHash, key, input, isEmpty, entryIndex = -1) {
