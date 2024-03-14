@@ -1,5 +1,6 @@
 import { Subscription } from './services/monitoring/types.js';
 import { jsonEncoded, prefixes } from './services/types.js';
+
 import './testing/network.js';
 
 import { FastifyInstance, InjectOptions } from 'fastify';
@@ -36,9 +37,10 @@ describe('monitoring server API', () => {
       subscriptionMaxEphemeral: 10_000,
       subscriptionMaxPersistent: 10_000,
       wsMaxClients: 10_000,
-      cors: true,
-      corsCredentials: true,
+      cors: false,
+      corsCredentials: false,
       corsOrigin: true,
+      distributed: false,
     });
 
     return server.ready();
@@ -72,9 +74,8 @@ describe('monitoring server API', () => {
           body: testSubContent,
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(201);
-
           done();
+          expect(response.statusCode).toStrictEqual(201);
         }
       );
     });
@@ -98,9 +99,8 @@ describe('monitoring server API', () => {
           } as Subscription,
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(201);
-
           done();
+          expect(response.statusCode).toStrictEqual(201);
         }
       );
     });
@@ -124,9 +124,8 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(201);
-
           done();
+          expect(response.statusCode).toStrictEqual(201);
         }
       );
     });
@@ -141,9 +140,8 @@ describe('monitoring server API', () => {
           body: testSubContent,
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(400);
-
           done();
+          expect(response.statusCode).toStrictEqual(400);
         }
       );
     });
@@ -175,9 +173,8 @@ describe('monitoring server API', () => {
               url: '/subs/m3',
             },
             (_, r) => {
-              expect(r.statusCode).toStrictEqual(404);
-
               done();
+              expect(r.statusCode).toStrictEqual(404);
             }
           );
         }
@@ -191,9 +188,8 @@ describe('monitoring server API', () => {
           url: '/subs/m2',
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200);
-
           done();
+          expect(response.statusCode).toStrictEqual(200);
         }
       );
     });
@@ -205,10 +201,9 @@ describe('monitoring server API', () => {
           url: '/subs/macatron',
         },
         (_err, response) => {
+          done();
           expect(response.statusCode).toStrictEqual(200);
           expect(JSON.parse(response.body)).toEqual(testSubContent);
-
-          done();
         }
       );
     });
@@ -220,10 +215,9 @@ describe('monitoring server API', () => {
           url: '/subs/wild',
         },
         (_err, response) => {
+          done();
           expect(response.statusCode).toStrictEqual(200);
           expect(JSON.parse(response.body).senders).toEqual('*');
-
-          done();
         }
       );
     });
@@ -235,9 +229,8 @@ describe('monitoring server API', () => {
           url: '/subs/non-existent',
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(404);
-
           done();
+          expect(response.statusCode).toStrictEqual(404);
         }
       );
     });
@@ -261,8 +254,8 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(400);
           done();
+          expect(response.statusCode).toStrictEqual(400);
         }
       );
     });
@@ -281,10 +274,9 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
+          done();
           expect(response.statusCode).toStrictEqual(200);
           expect(JSON.parse(response.body).senders).toEqual(['ALICE', 'BOB']);
-
-          done();
         }
       );
     });
@@ -302,8 +294,8 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200);
           done();
+          expect(response.statusCode).toStrictEqual(200);
         }
       );
     });
@@ -322,10 +314,9 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
+          done();
           expect(response.statusCode).toStrictEqual(200);
           expect(JSON.parse(response.body).destinations).toEqual(['2000', '3000']);
-
-          done();
         }
       );
     });
@@ -347,10 +338,9 @@ describe('monitoring server API', () => {
           ],
         },
         (_err, response) => {
+          done();
           expect(response.statusCode).toStrictEqual(200);
           expect(JSON.parse(response.body).channels[0].type).toEqual('webhook');
-
-          done();
         }
       );
     });
@@ -358,9 +348,7 @@ describe('monitoring server API', () => {
 
   describe('admin api', () => {
     beforeAll(async () => {
-      const {
-        storage: { root },
-      } = server;
+      const { rootStore: root } = server;
 
       await root
         .sublevel<string, any>(prefixes.sched.tasks, jsonEncoded)
@@ -395,76 +383,67 @@ describe('monitoring server API', () => {
           },
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(401);
-
           done();
+          expect(response.statusCode).toStrictEqual(401);
         }
       );
     });
 
     it('should query tips cache', (done) => {
       server.inject(adminRq('/admin/cache/tips'), (_err, response) => {
+        done();
         expect(response.statusCode).toStrictEqual(200);
         expect(JSON.parse(response.body).length).toBe(2);
-
-        done();
       });
     });
 
     it('should clear tips cache', (done) => {
       server.inject(adminRq('/admin/cache/tips', 'DELETE'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should get cache data', (done) => {
       server.inject(adminRq('/admin/cache/0'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should delete cache data', (done) => {
       server.inject(adminRq('/admin/cache/1', 'DELETE'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should get pending messages', (done) => {
       server.inject(adminRq('/admin/xcm'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should get scheduled tasks', (done) => {
       server.inject(adminRq('/admin/sched'), (_err, response) => {
+        done();
         expect(response.statusCode).toStrictEqual(200);
         expect(JSON.parse(response.body).length).toBe(2);
-
-        done();
       });
     });
 
     it('should get an scheduled task', (done) => {
       server.inject(adminRq('/admin/sched?key=0000'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should delete an scheduled task', (done) => {
       server.inject(adminRq('/admin/sched?key=0001', 'DELETE'), (_err, response) => {
-        expect(response.statusCode).toStrictEqual(200);
-
         done();
+        expect(response.statusCode).toStrictEqual(200);
       });
     });
   });

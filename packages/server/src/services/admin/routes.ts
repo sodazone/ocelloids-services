@@ -13,10 +13,7 @@ const itOps = {
 };
 
 export default async function Administration(api: FastifyInstance) {
-  const {
-    storage: { root },
-    scheduler,
-  } = api;
+  const { rootStore, scheduler } = api;
 
   const opts = {
     onRequest: [api.auth],
@@ -25,9 +22,9 @@ export default async function Administration(api: FastifyInstance) {
     },
   };
 
-  const inDB = root.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded);
-  const outDB = root.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded);
-  const tipsDB = root.sublevel<string, any>(prefixes.cache.tips, jsonEncoded);
+  const inDB = rootStore.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded);
+  const outDB = rootStore.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded);
+  const tipsDB = rootStore.sublevel<string, any>(prefixes.cache.tips, jsonEncoded);
 
   api.get('/admin/cache/tips', opts, async (_, reply) => {
     reply.send(await tipsDB.iterator(itOps).all());
@@ -39,12 +36,12 @@ export default async function Administration(api: FastifyInstance) {
   });
 
   api.get<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
-    const db = root.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded);
+    const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded);
     reply.send(await db.iterator(itOps).all());
   });
 
   api.delete<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
-    const db = root.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded);
+    const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded);
     await db.clear();
     reply.send();
   });

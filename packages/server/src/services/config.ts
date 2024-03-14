@@ -5,7 +5,7 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import toml from 'toml';
 
-import { ServerOptions } from '../types.js';
+import { ConfigServerOptions } from '../types.js';
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),
@@ -49,18 +49,22 @@ export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: st
 
 declare module 'fastify' {
   interface FastifyInstance {
-    config: ServiceConfiguration;
+    localConfig: ServiceConfiguration;
   }
 }
 
-const configPlugin: FastifyPluginAsync<ServerOptions> = async (fastify, options) => {
+const configPlugin: FastifyPluginAsync<ConfigServerOptions> = async (fastify, options) => {
+  if (options.config === undefined) {
+    throw new Error('Service configuration file was not provided');
+  }
+
   const configPath = options.config;
 
   fastify.log.info(`Loading configuration from ${configPath}`);
 
   try {
     const config = $ServiceConfiguration.parse(toml.parse(fs.readFileSync(configPath, 'utf-8')));
-    fastify.decorate('config', config);
+    fastify.decorate('localConfig', config);
   } catch (err) {
     /* istanbul ignore next */
     if (err instanceof z.ZodError) {

@@ -56,7 +56,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #mutex: Mutex;
   readonly #xcmMatchedReceiver: XcmMatchedReceiver;
 
-  constructor({ log, storage: { root: db }, janitor }: Services, xcmMatchedReceiver: XcmMatchedReceiver) {
+  constructor({ log, rootStore, janitor }: Services, xcmMatchedReceiver: XcmMatchedReceiver) {
     super();
 
     this.#log = log;
@@ -65,13 +65,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#xcmMatchedReceiver = xcmMatchedReceiver;
 
     // Key format: [subscription-id]:[destination-chain-id]:[message-id/hash]
-    this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
+    this.#outbound = rootStore.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded);
     // Key format: [subscription-id]:[current-chain-id]:[message-id/hash]
-    this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
+    this.#inbound = rootStore.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded);
     // Key format: [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
-    this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
+    this.#relay = rootStore.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
     // Key format: [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
-    this.#hop = db.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
+    this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
 
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this));
   }

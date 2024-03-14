@@ -6,7 +6,8 @@ import Monitoring from './monitoring/plugin.js';
 import Persistence from './persistence/plugin.js';
 import Connector from './networking/plugin.js';
 import Telemetry from './telemetry/plugin.js';
+import Ingress from './ingress/consumer/plugin.js';
 
 export * from './types.js';
 
-export { Root, Auth, Administration, Persistence, Configuration, Monitoring, Connector, Telemetry };
+export { Root, Auth, Administration, Persistence, Connector, Configuration, Monitoring, Telemetry, Ingress };

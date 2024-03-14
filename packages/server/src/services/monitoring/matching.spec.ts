@@ -25,10 +25,7 @@ describe('message matching engine', () => {
     engine = new MatchingEngine(
       {
         ..._services,
-        storage: {
-          ..._services.storage,
-          root: db,
-        },
+        rootStore: db,
         janitor: {
           on: jest.fn(),
           schedule,

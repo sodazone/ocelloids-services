@@ -7,7 +7,7 @@ export function wsMetrics(source: TelemetryEventEmitter) {
   notifierMetrics(source);
 
   const socketListenerCount = new Gauge({
-    name: 'xcmon_socket_listener_count',
+    name: 'OC_socket_listener_count',
     help: 'Socket listeners.',
     labelNames: ['type', 'subscription', 'origin', 'destinations', 'channel'],
   });

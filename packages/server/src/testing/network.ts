@@ -63,6 +63,18 @@ jest.unstable_mockModule('@sodazone/ocelloids', () => {
           registry: {
             hasType: () => true,
           },
+          derive: {
+            chain: {
+              getBlock: () => {},
+            },
+          },
+          rpc: {
+            state: {
+              getMetadata: () => ({
+                toU8a: () => new Uint8Array(0),
+              }),
+            },
+          },
         } as unknown as P.ApiPromise);
         const records: Record<string, P.ApiPromise> = {};
         for (const k of this.chains) {

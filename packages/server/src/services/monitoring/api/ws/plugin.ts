@@ -10,7 +10,7 @@ declare module 'fastify' {
 }
 
 export type WebsocketProtocolOptions = {
-  wsMaxClients: number;
+  wsMaxClients?: number;
 };
 
 /**

@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 
-import { Observable, from, switchMap, share, shareReplay } from 'rxjs';
+import { Observable, from, switchMap, map, share, shareReplay } from 'rxjs';
 
 import {
   ControlQuery,
@@ -9,12 +9,10 @@ import {
   types,
   extractTxWithEvents,
   flattenCalls,
-  SubstrateApis,
 } from '@sodazone/ocelloids';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services } from '../types.js';
-import { HeadCatcher } from './head-catcher.js';
 import {
   GenericXcmSent,
   Subscription,
@@ -30,7 +28,6 @@ import {
   XcmRelayedWithContext,
 } from './types.js';
 
-import { ServiceConfiguration, isRelay } from '../config.js';
 import { MatchingEngine } from './matching.js';
 import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';
@@ -43,6 +40,14 @@ import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/
 import { extractXcmWaypoints } from './ops/common.js';
 import { errorMessage } from '../../errors.js';
 import { extractRelayReceive } from './ops/relay.js';
+import { IngressConsumer } from '../ingress/index.js';
+
+import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js';
+import {
+  dmpDownwardMessageQueuesKey,
+  parachainSystemHrmpOutboundMessages,
+  parachainSystemUpwardMessages,
+} from './storage.js';
 
 type Monitor = {
   subs: RxSubscriptionWithId[];
@@ -66,8 +71,8 @@ export class SubscribeError extends Error {
 }
 
 export type SwitchboardOptions = {
-  subscriptionMaxPersistent: number;
-  subscriptionMaxEphemeral: number;
+  subscriptionMaxPersistent?: number;
+  subscriptionMaxEphemeral?: number;
 };
 
 const SUB_ERROR_RETRY_MS = 5000;
@@ -82,12 +87,10 @@ const SUB_ERROR_RETRY_MS = 5000;
  * and dynamically updates selection criteria of the subscriptions.
  */
 export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: SubstrateApis;
-  readonly #config: ServiceConfiguration;
   readonly #log: Logger;
   readonly #db: SubsStore;
   readonly #engine: MatchingEngine;
-  readonly #catcher: HeadCatcher;
+  readonly #ingress: IngressConsumer;
   readonly #notifier: NotifierHub;
   readonly #stats: SubscriptionStats;
   readonly #maxEphemeral: number;
@@ -103,28 +106,20 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   constructor(ctx: Services, options: SwitchboardOptions) {
     super();
 
-    const {
-      log,
-      storage: { subs },
-      config,
-      connector,
-    } = ctx;
+    const { log, subsStore, ingress } = ctx;
 
-    this.#apis = connector.connect();
-
-    this.#db = subs;
+    this.#db = subsStore;
     this.#log = log;
-    this.#config = config;
 
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this));
-    this.#catcher = new HeadCatcher(ctx);
+    this.#ingress = ingress;
     this.#notifier = new NotifierHub(ctx);
     this.#stats = {
       ephemeral: 0,
       persistent: 0,
     };
-    this.#maxEphemeral = options.subscriptionMaxEphemeral;
-    this.#maxPersistent = options.subscriptionMaxPersistent;
+    this.#maxEphemeral = options.subscriptionMaxEphemeral ?? 10_000;
+    this.#maxPersistent = options.subscriptionMaxPersistent ?? 10_000;
     this.#shared = {
       blockEvents: {},
       blockExtrinsics: {},
@@ -145,7 +140,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     if (!qs.ephemeral) {
       await this.#db.insert(qs);
     }
-
     this.#monitor(qs);
 
     this.#log.info('[%s] new subscription: %j', qs.origin, qs);
@@ -215,8 +209,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   async start() {
-    this.#catcher.start();
-
     await this.#startNetworkMonitors();
   }
 
@@ -246,7 +238,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       t.unref();
     }
 
-    this.#catcher.stop();
     await this.#engine.stop();
   }
 
@@ -323,7 +314,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
     collect(this);
     collect(this.#engine);
-    collect(this.#catcher);
+    // TODO
+    //collect(this.#catcher);
     collect(this.#notifier);
   }
 
@@ -442,7 +434,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           },
         };
 
-        if (isRelay(this.#config, dest)) {
+        if (this.#ingress.isRelay(dest)) {
           // VMP UMP
           this.#log.info('[%s] subscribe inbound UMP (%s)', chainId, id);
 
@@ -452,7 +444,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               .pipe(extractUmpReceive(origin), emitInbound())
               .subscribe(inboundObserver),
           });
-        } else if (isRelay(this.#config, origin)) {
+        } else if (this.#ingress.isRelay(origin)) {
           // VMP DMP
           this.#log.info('[%s] subscribe inbound DMP (%s)', chainId, id);
 
@@ -489,7 +481,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #monitorOrigins({ id, origin, senders, destinations }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
     const chainId = origin;
-    const apiPromiseObs = from(this.#apis.promise[chainId].isReady).pipe(shareReplay({ refCount: true }));
+    const registry$ = from(this.#ingress.getRegistry(chainId));
 
     if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`);
@@ -499,10 +491,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const messageControl = ControlQuery.from(messageCriteria(destinations));
 
     const emitOutbound = () => (source: Observable<XcmSentWithContext>) =>
-      apiPromiseObs.pipe(
-        switchMap((api) =>
+      registry$.pipe(
+        switchMap((registry) =>
           source.pipe(
-            extractXcmWaypoints(api.registry),
+            extractXcmWaypoints(registry),
             switchMap(({ message, stops }) =>
               from(this.#engine.onOutboundMessage(new GenericXcmSent(id, origin, message, stops)))
             )
@@ -543,23 +535,31 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
 
     try {
-      if (isRelay(this.#config, origin)) {
+      if (this.#ingress.isRelay(origin)) {
         // VMP DMP
         this.#log.info('[%s] subscribe outbound DMP (%s)', chainId, id);
 
+        const getDmp: GetDownwardMessageQueues = (registry, blockHash, paraId) => {
+          return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
+            map((buffer) => {
+              return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer);
+            })
+          );
+        };
+
         subs.push({
           chainId,
-          sub: apiPromiseObs
+          sub: registry$
             .pipe(
-              switchMap((api) =>
+              switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
                   extractDmpSend(
-                    api,
                     {
                       sendersControl,
                       messageControl,
                     },
-                    api.registry
+                    getDmp,
+                    registry
                   ),
                   emitOutbound()
                 )
@@ -573,17 +573,17 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: apiPromiseObs
+          sub: registry$
             .pipe(
-              switchMap((api) =>
+              switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractDmpSendByEvent(
-                    api,
                     {
                       sendersControl,
                       messageControl,
                     },
-                    api.registry
+                    getDmp,
+                    registry
                   ),
                   emitOutbound()
                 )
@@ -595,12 +595,19 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // Outbound HRMP / XCMP transport
         this.#log.info('[%s] subscribe outbound HRMP (%s)', chainId, id);
 
-        const getHrmp = this.#catcher.outboundHrmpMessages(chainId);
+        const getHrmp: GetOutboundHrmpMessages = (registry, blockHash) => {
+          return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
+            map((buffer) => {
+              return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer);
+            })
+          );
+        };
+
         subs.push({
           chainId,
-          sub: apiPromiseObs
+          sub: registry$
             .pipe(
-              switchMap((api) =>
+              switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractXcmpSend(
                     {
@@ -608,7 +615,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       messageControl,
                     },
                     getHrmp,
-                    api.registry
+                    registry
                   ),
                   emitOutbound()
                 )
@@ -620,12 +627,19 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // VMP UMP
         this.#log.info('[%s] subscribe outbound UMP (%s)', chainId, id);
 
-        const getUmp = this.#catcher.outboundUmpMessages(chainId);
+        const getUmp: GetOutboundUmpMessages = (registry, blockHash) => {
+          return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
+            map((buffer) => {
+              return registry.createType('Vec<Bytes>', buffer);
+            })
+          );
+        };
+
         subs.push({
           chainId,
-          sub: apiPromiseObs
+          sub: registry$
             .pipe(
-              switchMap((api) =>
+              switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractUmpSend(
                     {
@@ -633,7 +647,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       messageControl,
                     },
                     getUmp,
-                    api.registry
+                    registry
                   ),
                   retryWithTruncatedExpBackoff(),
                   emitOutbound()
@@ -665,7 +679,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already exists.');
     }
-    const apiPromiseObs = from(this.#apis.promise['0'].isReady);
     const messageControl = ControlQuery.from(messageCriteria(destinations));
 
     const emitRelayInbound = () => (source: Observable<XcmRelayedWithContext>) =>
@@ -673,7 +686,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     const relayObserver = {
       error: (error: any) => {
-        this.#log.error(error, '[%s] error on relay subscription %s', chainId, id);
+        this.#log.error(error, '[%s] error on relay subscription s', chainId, id);
         this.emit('telemetrySubscriptionError', {
           subscriptionId: id,
           chainId,
@@ -697,11 +710,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
     return {
       chainId,
-      sub: apiPromiseObs
+      sub: from(this.#ingress.getRegistry('0'))
         .pipe(
-          switchMap((api) =>
+          switchMap((registry) =>
             this.#sharedBlockExtrinsics('0').pipe(
-              extractRelayReceive(origin, messageControl, api.registry),
+              extractRelayReceive(origin, messageControl, registry),
               emitRelayInbound()
             )
           )
@@ -730,12 +743,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @private
    */
   async #startNetworkMonitors() {
-    const { networks } = this.#config;
+    const chainIds = this.#ingress.getChainIds();
 
-    for (const network of networks) {
-      const subs = await this.#db.getByNetworkId(network.id);
+    for (const chainId of chainIds) {
+      const subs = await this.#db.getByNetworkId(chainId);
 
-      this.#log.info('[%s] #subscriptions %d', network.id, subs.length);
+      this.#log.info('[%s] #subscriptions %d', chainId, subs.length);
 
       for (const sub of subs) {
         try {
@@ -762,7 +775,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   #sharedBlockEvents(chainId: string): Observable<types.BlockEvent> {
     if (!this.#shared.blockEvents[chainId]) {
-      this.#shared.blockEvents[chainId] = this.#catcher
+      this.#shared.blockEvents[chainId] = this.#ingress
         .finalizedBlocks(chainId)
         .pipe(extractEvents(), retryWithTruncatedExpBackoff(), share());
     }
@@ -771,7 +784,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   #sharedBlockExtrinsics(chainId: string): Observable<types.TxWithIdAndEvent> {
     if (!this.#shared.blockExtrinsics[chainId]) {
-      this.#shared.blockExtrinsics[chainId] = this.#catcher
+      this.#shared.blockExtrinsics[chainId] = this.#ingress
         .finalizedBlocks(chainId)
         .pipe(extractTxWithEvents(), retryWithTruncatedExpBackoff(), flattenCalls(), share());
     }

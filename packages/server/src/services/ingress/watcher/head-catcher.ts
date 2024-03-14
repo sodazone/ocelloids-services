@@ -2,14 +2,13 @@ import { EventEmitter } from 'node:events';
 
 import {
   Observable,
-  Subscription,
   mergeAll,
-  zip,
   share,
   mergeMap,
   mergeWith,
   from,
   tap,
+  race,
   switchMap,
   map,
   catchError,
@@ -18,32 +17,29 @@ import {
   finalize,
   of,
 } from 'rxjs';
-import { encode, decode } from 'cbor-x';
 import { Mutex } from 'async-mutex';
 
-import type { Header, EventRecord, AccountId } from '@polkadot/types/interfaces';
-import type { Vec, Bytes } from '@polkadot/types';
+import type { Header } from '@polkadot/types/interfaces';
+import type { Raw } from '@polkadot/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 import { ApiPromise } from '@polkadot/api';
-import { createSignedBlockExtended } from '@polkadot/api-derive';
 
 import {
-  blocks,
   finalizedHeads,
   blockFromHeader,
   retryWithTruncatedExpBackoff,
   SubstrateApis,
+  filterNonNull,
 } from '@sodazone/ocelloids';
 
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js';
-import { ChainHead as ChainTip, BinBlock, HexString, BlockNumberRange } from './types.js';
-import { GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js';
-import { Janitor } from '../../services/persistence/janitor.js';
-import { ServiceConfiguration } from '../../services/config.js';
-import { TelemetryEventEmitter } from '../telemetry/types.js';
+import { DB, Logger, Services, jsonEncoded, prefixes } from '../../types.js';
+import { ChainHead as ChainTip, HexString, BlockNumberRange } from '../../monitoring/types.js';
+import { ServiceConfiguration } from '../../config.js';
+import { TelemetryEventEmitter } from '../../telemetry/types.js';
 
-const MAX_BLOCK_DIST: bigint = process.env.XCMON_MAX_BLOCK_DIST ? BigInt(process.env.XCMON_MAX_BLOCK_DIST) : 50n; // maximum distance in #blocks
+import { LocalCache } from './local-cache.js';
+
+const MAX_BLOCK_DIST: bigint = process.env.OC_MAX_BLOCK_DIST ? BigInt(process.env.OC_MAX_BLOCK_DIST) : 50n; // maximum distance in #blocks
 const max = (...args: bigint[]) => args.reduce((m, e) => (e > m ? e : m));
 
 function arrayOfTargetHeights(newHeight: bigint, targetHeight: bigint, batchSize: bigint) {
@@ -66,112 +62,40 @@ function arrayOfTargetHeights(newHeight: bigint, targetHeight: bigint, batchSize
  * The HeadCatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
  * - Caches seen extended signed blocks and supplies them when required on finalization.
- * - Caches storage data from XCM queues.
+ * - Caches on-chain storage data.
  *
  * @see {HeadCatcher.finalizedBlocks}
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
-  #apis: SubstrateApis;
-  #log: Logger;
-  #config: ServiceConfiguration;
-  #db: DB;
-  #janitor: Janitor;
+  readonly #apis: SubstrateApis;
+  readonly #log: Logger;
+  readonly #db: DB;
+  readonly #localConfig: ServiceConfiguration;
+  readonly #localCache: LocalCache;
 
-  #mutex: Record<string, Mutex> = {};
-  #subs: Record<string, Subscription> = {};
-  #pipes: Record<string, Observable<any>> = {};
+  readonly #mutex: Record<string, Mutex> = {};
+  readonly #pipes: Record<string, Observable<any>> = {};
 
-  constructor({ log, config, storage: { root: db }, janitor, connector }: Services) {
+  constructor(services: Services) {
     super();
 
+    const { log, localConfig, rootStore, connector } = services;
+
     this.#log = log;
-    this.#config = config;
+    this.#localConfig = localConfig;
     this.#apis = connector.connect();
-    this.#db = db;
-    this.#janitor = janitor;
+    this.#db = rootStore;
+    this.#localCache = new LocalCache(this.#apis, services);
   }
 
   start() {
-    const { networks } = this.#config;
+    const { networks } = this.#localConfig;
 
     for (const network of networks) {
       // We only need to cache for smoldot
       if (network.provider.type === 'smoldot') {
-        const chainId = network.id.toString();
-        const isRelayChain = network.relay === undefined;
-        const api = this.#apis.rx[chainId];
-
-        this.#log.info('[%s] Register head catcher', chainId);
-
-        const block$ = api.pipe(
-          blocks(),
-          retryWithTruncatedExpBackoff(),
-          tap(({ block: { header } }) => {
-            this.#log.debug('[%s] SEEN block #%s %s', chainId, header.number.toString(), header.hash.toHex());
-
-            this.emit('telemetryBlockSeen', {
-              chainId,
-              header,
-            });
-          })
-        );
-        const msgs$ = block$.pipe(
-          mergeMap((block) => {
-            return api.pipe(
-              switchMap((_api) => _api.at(block.block.header.hash)),
-              mergeMap((at) =>
-                zip([
-                  from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<
-                    Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
-                  >,
-                  from(at.query.parachainSystem.upwardMessages()) as Observable<Vec<Bytes>>,
-                ])
-              ),
-              this.#tapError(chainId, 'zip(hrmpOutboundMessages & upwardMessages)'),
-              retryWithTruncatedExpBackoff(),
-              map(([hrmpMessages, umpMessages]) => {
-                return {
-                  block,
-                  hrmpMessages,
-                  umpMessages,
-                };
-              })
-            );
-          })
-        );
-
-        if (isRelayChain) {
-          this.#subs[chainId] = block$
-            .pipe(
-              map((block) => from(this.#putBlockBuffer(chainId, block))),
-              mergeAll()
-            )
-            .subscribe({
-              error: (error) => this.#log.error(error, '[%s] Error on caching block for relay chain', chainId),
-            });
-        } else {
-          this.#subs[chainId] = msgs$
-            .pipe(
-              map(({ block, hrmpMessages, umpMessages }) => {
-                const ops = [from(this.#putBlockBuffer(chainId, block))];
-                const hash = block.block.header.hash.toHex();
-
-                if (hrmpMessages.length > 0) {
-                  ops.push(from(this.#putBuffer(chainId, prefixes.cache.keys.hrmp(hash), hrmpMessages.toU8a())));
-                }
-                if (umpMessages.length > 0) {
-                  ops.push(from(this.#putBuffer(chainId, prefixes.cache.keys.ump(hash), umpMessages.toU8a())));
-                }
-                return ops;
-              }),
-              mergeAll()
-            )
-            .subscribe({
-              error: (error) =>
-                this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId),
-            });
-        }
+        this.#localCache.watch(network);
       }
     }
   }
@@ -179,27 +103,15 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   stop() {
     this.#log.info('Stopping head catcher');
 
-    for (const [chain, sub] of Object.entries(this.#subs)) {
-      this.#log.info(`Unsubscribe head catcher of chain ${chain}`);
-      sub.unsubscribe();
-      delete this.#subs[chain];
-    }
+    this.#localCache.stop();
   }
 
   /**
    * Returns an observable of extended signed blocks, providing cached block content as needed.
-   *
-   * When using Smoldot as a parachain light client, it cannot retrieve finalized block content
-   * after the finalized block height surpasses the "best" number from the initial handshake.
-   * This occurs because the block announcements never contain the "best" flag. As a result, the mapping
-   * of peers to the "best" block is never updated after the initial announcement handshake. Consequently,
-   * the block content cannot be retrieved due to Smoldot's retrieval logic. See:
-   * - https://github.com/smol-dot/smoldot/blob/6f7afdc9d35a1377af1073be6c0791a62a9c7f45/light-base/src/sync_service.rs#L507
-   * - https://github.com/smol-dot/smoldot/blob/6f7afdc9d35a1377af1073be6c0791a62a9c7f45/light-base/src/json_rpc_service/background.rs#L713
    */
   finalizedBlocks(chainId: string): Observable<SignedBlockExtended> {
     const apiRx = this.#apis.rx[chainId];
-    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
+    const apiPromise$ = from(this.#apis.promise[chainId].isReady);
     let pipe = this.#pipes[chainId];
 
     if (pipe) {
@@ -207,17 +119,17 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       return pipe;
     }
 
-    if (this.#hasCache(chainId)) {
+    if (this.#localCache.has(chainId)) {
       // only applies to light clients
       // TODO: check if can recover ranges
-      pipe = apiPromiseObs.pipe(
+      pipe = apiPromise$.pipe(
         switchMap((api) =>
           apiRx.pipe(
             finalizedHeads(),
             this.#tapError(chainId, 'finalizedHeads()'),
             retryWithTruncatedExpBackoff(),
             this.#catchUpHeads(chainId, api),
-            mergeMap((head) => from(this.#getBlock(chainId, api, head.hash.toHex()))),
+            mergeMap((head) => from(this.#localCache.getBlock(chainId, api, head.hash.toHex()))),
             this.#tapError(chainId, '#getBlock()'),
             retryWithTruncatedExpBackoff()
           )
@@ -225,7 +137,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         share()
       );
     } else {
-      pipe = apiPromiseObs.pipe(
+      pipe = apiPromise$.pipe(
         switchMap((api) =>
           apiRx.pipe(
             finalizedHeads(),
@@ -249,130 +161,28 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return pipe;
   }
 
-  /**
-   * Returns outbound HRMP messages either from data cached in previously seen blocks,
-   * or from a query storage request to the network.
-   */
-  outboundHrmpMessages(chainId: string): GetOutboundHrmpMessages {
-    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
-    const cache = this.#bufferCache(chainId);
-
-    if (this.#hasCache(chainId)) {
-      return (hash: HexString): Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        // TODO: handle error not found in cache
-        return apiPromiseObs.pipe(
-          switchMap((api) =>
-            from(cache.get(prefixes.cache.keys.hrmp(hash))).pipe(
-              map((buffer) => {
-                return api.registry.createType(
-                  'Vec<PolkadotCorePrimitivesOutboundHrmpMessage>',
-                  buffer
-                ) as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>;
-              })
-            )
-          ),
-          this.#tapError(chainId, 'at.cache.parachainSystem.hrmpOutboundMessages()')
-        );
-      };
-    } else {
-      return (hash: HexString): Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>> => {
-        return apiPromiseObs.pipe(
-          switchMap((api) =>
-            from(api.at(hash)).pipe(
-              switchMap(
-                (at) =>
-                  from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<
-                    Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
-                  >
-              ),
-              this.#tapError(chainId, 'at.query.parachainSystem.hrmpOutboundMessages()'),
-              retryWithTruncatedExpBackoff()
-            )
-          )
-        );
-      };
-    }
+  getApiPromise(chainId: string) {
+    return this.#apis.promise[chainId];
   }
 
-  /**
-   * Returns outbound UMP messages either from data cached in previously seen blocks,
-   * or from a query storage request to the network.
-   */
-  outboundUmpMessages(chainId: string): GetOutboundUmpMessages {
-    const apiPromiseObs = from(this.#apis.promise[chainId].isReady);
-    const cache = this.#bufferCache(chainId);
+  getStorage(chainId: string, storageKey: HexString, blockHash?: HexString) {
+    const apiPromise$ = from(this.#apis.promise[chainId].isReady);
+    const getStorage$ = apiPromise$.pipe(
+      switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
+      map((data) => data.toU8a(true)),
+      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`),
+      retryWithTruncatedExpBackoff()
+    );
 
-    if (this.#hasCache(chainId)) {
-      return (hash: HexString): Observable<Vec<Bytes>> => {
-        // TODO: handle error not found in cache
-        return apiPromiseObs.pipe(
-          switchMap((api) =>
-            from(cache.get(prefixes.cache.keys.ump(hash))).pipe(
-              map((buffer) => {
-                return api.registry.createType('Vec<Bytes>', buffer) as Vec<Bytes>;
-              })
-            )
-          ),
-          this.#tapError(chainId, 'at.cache.parachainSystem.upwardMessages()')
-        );
-      };
-    } else {
-      return (hash: HexString): Observable<Vec<Bytes>> => {
-        return apiPromiseObs.pipe(
-          switchMap((api) =>
-            from(api.at(hash)).pipe(
-              switchMap((at) => from(at.query.parachainSystem.upwardMessages()) as Observable<Vec<Bytes>>),
-              this.#tapError(chainId, 'at.query.parachainSystem.upwardMessages()'),
-              retryWithTruncatedExpBackoff()
-            )
-          )
-        );
-      };
+    if (this.#localCache.has(chainId)) {
+      return race(from(this.#localCache.getStorage(chainId, storageKey, blockHash)).pipe(filterNonNull()), getStorage$);
     }
+
+    return getStorage$;
   }
 
-  /**
-   * Returns true if there is a subscription for the
-   * "head catcher" logic, i.e. block caching and catch-up.
-   *
-   * @private
-   */
-  #hasCache(chainId: string) {
-    return this.#subs[chainId] !== undefined;
-  }
-
-  /**
-   * Gets a persisted extended signed block from the storage or
-   * tries to get it from the network if not found.
-   *
-   * @private
-   */
-  async #getBlock(chainId: string, api: ApiPromise, hash: HexString) {
-    try {
-      const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.block(hash));
-      const binBlock: BinBlock = decode(buffer);
-
-      const registry = api.registry;
-      const block = registry.createType('SignedBlock', binBlock.block);
-      const records = registry.createType('Vec<EventRecord>', binBlock.events, true);
-      const author = registry.createType('AccountId', binBlock.author);
-
-      const signedBlock = createSignedBlockExtended(
-        registry,
-        block as SignedBlockExtended,
-        records as unknown as EventRecord[],
-        null,
-        author as AccountId
-      );
-
-      this.emit('telemetryBlockCacheHit', {
-        chainId,
-      });
-
-      return signedBlock;
-    } catch (error) {
-      return await api.derive.chain.getBlock(hash);
-    }
+  get chainIds() {
+    return this.#apis.chains;
   }
 
   get #chainTips() {
@@ -444,7 +254,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   async #recoverRanges(chainId: string) {
-    const networkConfig = this.#config.networks.find((n) => n.id === chainId);
+    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId);
     if (networkConfig && networkConfig.recovery) {
       return await (await this.#pendingRanges(chainId).values()).all();
     } else {
@@ -607,50 +417,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  /**
-   * Binary cache by chain id.
-   */
-  #bufferCache(chainId: string) {
-    return this.#db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
-      valueEncoding: 'buffer',
-    });
-  }
-
-  /**
-   * Puts into the binary cache.
-   */
-  async #putBuffer(chainId: string, key: string, buffer: Uint8Array) {
-    const db = this.#bufferCache(chainId);
-    await db.put(key, buffer);
-
-    await this.#janitor.schedule({
-      sublevel: prefixes.cache.family(chainId),
-      key,
-    });
-  }
-
-  async #putBlockBuffer(chainId: string, block: SignedBlockExtended) {
-    const hash = block.block.header.hash.toHex();
-    const key = prefixes.cache.keys.block(hash);
-
-    // TODO: review to use SCALE instead of CBOR
-    await this.#bufferCache(chainId).put(
-      key,
-      encode({
-        block: block.toU8a(),
-        events: block.events.map((ev) => ev.toU8a()),
-        author: block.author?.toU8a(),
-      })
-    );
-
-    await this.#janitor.schedule({
-      sublevel: prefixes.cache.family(chainId),
-      key,
-    });
-  }
-
   #batchSize(chainId: string) {
-    const networkConfig = this.#config.networks.find((n) => n.id === chainId);
+    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId);
     return BigInt(networkConfig?.batchSize ?? 25);
   }
 

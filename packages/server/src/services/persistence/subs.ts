@@ -1,7 +1,7 @@
 import { NotFound, ValidationError } from '../../errors.js';
 import { Subscription } from '../monitoring/types.js';
 import { BatchOperation, DB, Logger, jsonEncoded, prefixes } from '../types.js';
-import { ServiceConfiguration, isNetworkDefined } from '../config.js';
+import { IngressConsumer } from '../ingress/index.js';
 
 /**
  * Subscriptions persistence.
@@ -11,12 +11,12 @@ import { ServiceConfiguration, isNetworkDefined } from '../config.js';
 export class SubsStore {
   readonly #log: Logger;
   readonly #db: DB;
-  readonly #config: ServiceConfiguration;
+  readonly #ingress: IngressConsumer;
 
-  constructor(log: Logger, db: DB, config: ServiceConfiguration) {
+  constructor(log: Logger, db: DB, ingress: IngressConsumer) {
     this.#log = log;
     this.#db = db;
-    this.#config = config;
+    this.#ingress = ingress;
   }
 
   /**
@@ -40,8 +40,8 @@ export class SubsStore {
    */
   async getAll() {
     let subscriptions: Subscription[] = [];
-    for (const network of this.#config.networks) {
-      const subs = await this.getByNetworkId(network.id);
+    for (const chainId of this.#ingress.getChainIds()) {
+      const subs = await this.getByNetworkId(chainId);
       subscriptions = subscriptions.concat(subs);
     }
 
@@ -65,10 +65,9 @@ export class SubsStore {
    * @throws {NotFound} if the subscription does not exist
    */
   async getById(id: string) {
-    // TODO: case if network config changes...
-    for (const network of this.#config.networks) {
+    for (const chainId of this.#ingress.getChainIds()) {
       try {
-        const subscription = await this.#subsFamily(network.id).get(id);
+        const subscription = await this.#subsFamily(chainId).get(id);
         return subscription;
       } catch (error) {
         continue;
@@ -121,7 +120,7 @@ export class SubsStore {
 
   #validateChainIds(chainIds: string[]) {
     chainIds.forEach((chainId) => {
-      if (!isNetworkDefined(this.#config, chainId)) {
+      if (!this.#ingress.isNetworkDefined(chainId)) {
         throw new ValidationError('Invalid chain id:' + chainId);
       }
     });

@@ -4,7 +4,7 @@ import '../../testing/network.js';
 
 import { of, throwError } from 'rxjs';
 
-import { _config, _services } from '../../testing/services.js';
+import { _services } from '../../testing/services.js';
 import { SubsStore } from '../persistence/subs';
 import { Subscription, XcmInboundWithContext, XcmSentWithContext, XcmNotificationType } from './types';
 import type { Switchboard } from './switchboard.js';
@@ -43,7 +43,6 @@ const testSub: Subscription = {
 describe('switchboard service', () => {
   let switchboard: Switchboard;
   let subs: SubsStore;
-  //let spy;
 
   beforeEach(() => {
     (extractXcmpSend as jest.Mock).mockImplementation(() => {
@@ -75,7 +74,7 @@ describe('switchboard service', () => {
       return () => of({});
     });
 
-    subs = _services.storage.subs;
+    subs = _services.subsStore;
     switchboard = new SwitchboardImpl(_services, {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
@@ -83,7 +82,7 @@ describe('switchboard service', () => {
   });
 
   afterEach(async () => {
-    await _services.storage.root.clear();
+    await _services.rootStore.clear();
     return switchboard.stop();
   });
 

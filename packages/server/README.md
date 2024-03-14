@@ -26,23 +26,23 @@ The configuration values can be overridden using command line arguments.
 
 | Variable                          | Description                                    | Default   |
 | --------------------------------- | ---------------------------------------------- | --------- |
-| XCMON_HOST                        | The host to bind to.                           | localhost |
-| XCMON_PORT                        | The TCP port number to listen on.              | 3000      |
-| XCMON_CONFIG_FILE                 | The service configuration file.                | -         |
-| XCMON_DB_DIR                      | The database directory.                        | ./db      |
-| XCMON_DB_SCHEDULER_ENABLE         | Enables or disables the task scheduler.        | true      |
-| XCMON_DB_SCHEDULER_FREQUENCY      | Milliseconds to wait before each tick.         | 5000      |
-| XCMON_DB_JANITOR_SWEEP_EXPIRY     | Milliseconds before a task is swept.           | 1500000   |
-| XCMON_CLOSE_GRACE_DELAY           | Milliseconds for the graceful close to finish. | 5000      |
-| XCMON_SECRET                      | Secret passphrase for administration auth.     | -         |
-| XCMON_MAX_BLOCK_DIST              | Maximum distance in blocks for the catch-up.   | 50        |
-| XCMON_TELEMETRY_ENABLE            | Enables or disables the telemetry service.     | true      |
-| XCMON_WS_MAX_CLIENTS              | Maximum number of websocket clients.           | 10000     |
-| XCMON_CORS_ENABLE                 | Enables or disables CORS support.              | false     |
-| XCMON_CORS_CREDENTIALS            | Access-Control-Allow-Credentials CORS header.  | true      |
-| XCMON_CORS_ORIGIN                 | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
-| XCMON_SUBSCRIPTION_MAX_PERSISTENT | Maximum number of persistent subscriptions.    | 5000      |
-| XCMON_SUBSCRIPTION_MAX_EPHEMERAL  | Maximum number of ephemeral subscriptions.     | 5000      |
+| OC_HOST                           | The host to bind to.                           | localhost |
+| OC_PORT                           | The TCP port number to listen on.              | 3000      |
+| OC_CONFIG_FILE                    | The service configuration file.                | -         |
+| OC_DB_DIR                         | The database directory.                        | ./db      |
+| OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
+| OC_DB_SCHEDULER_FREQUENCY         | Milliseconds to wait before each tick.         | 5000      |
+| OC_DB_JANITOR_SWEEP_EXPIRY        | Milliseconds before a task is swept.           | 1500000   |
+| OC_CLOSE_GRACE_DELAY              | Milliseconds for the graceful close to finish. | 5000      |
+| OC_SECRET                         | Secret passphrase for administration auth.     | -         |
+| OC_MAX_BLOCK_DIST                 | Maximum distance in blocks for the catch-up.   | 50        |
+| OC_TELEMETRY_ENABLE               | Enables or disables the telemetry service.     | true      |
+| OC_WS_MAX_CLIENTS                 | Maximum number of websocket clients.           | 10000     |
+| OC_CORS_ENABLE                    | Enables or disables CORS support.              | false     |
+| OC_CORS_CREDENTIALS               | Access-Control-Allow-Credentials CORS header.  | true      |
+| OC_CORS_ORIGIN                    | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
+| OC_SUBSCRIPTION_MAX_PERSISTENT    | Maximum number of persistent subscriptions.    | 5000      |
+| OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
 
 ### Network Configuration
 
@@ -89,7 +89,7 @@ Run the image mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
-  -e XCMON_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
+  -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
   -v <PATH_TO_CHAIN_SPECS>:/opt/xcmon/chain-specs \
   -v <PATH_TO_CONFIG>:/opt/xcmon/config \
@@ -99,7 +99,7 @@ docker run -d \
 ### Command Line
 
 > [!IMPORTANT]
-> The XCM Monitoring Server requires `node.js >= 20`.
+> The Ocelloids Server requires `node.js >= 20`.
 
 Install and build:
 
@@ -114,35 +114,35 @@ yarn && yarn build
 Run:
 
 ```shell
-yarn xcm-mon --help
+yarn oc-exec --help
 ```
 
 ```shell
-Usage: xcm-mon [options]
+Usage: oc-exec [options]
 
-XCM Monitoring Server
+Ocelloids Execution Server
 
 Options:
   -V, --version                           output the version number
-  -h, --host <address>                    host to bind to (default: "localhost", env: XCMON_HOST)
-  -p, --port <number>                     port number to listen on (default: 3000, env: XCMON_PORT)
-  -c, --config <file>                     service configuration file (env: XCMON_CONFIG_FILE)
-  -d, --db <dir>                          database directory (default: "./db", env: XCMON_DB_DIR)
-  --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: XCMON_DB_SCHEDULER_ENABLE)
-  --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: XCMON_DB_SCHEDULER_FREQUENCY)
-  --sweep-expiry <milliseconds>           milliseconds before a task is swept (default: 1500000, env: XCMON_DB_JANITOR_SWEEP_EXPIRY)
-  -g, --grace <milliseconds>              milliseconds for the graceful close to finish (default: 5000, env: XCMON_CLOSE_GRACE_DELAY)
-  -t --telemetry <boolean>                enables or disables the telemetry exporter (default: true, env: XCMON_TELEMETRY_ENABLE)
-  --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: XCMON_WS_MAX_CLIENTS)
-  --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: XCMON_SUBSCRIPTION_MAX_PERSISTENT)
-  --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: XCMON_SUBSCRIPTION_MAX_EPHEMERAL)
-  --cors <boolean>                        enables or disables CORS support (default: false, env: XCMON_CORS_ENABLE)
+  -h, --host <address>                    host to bind to (default: "localhost", env: OC_HOST)
+  -p, --port <number>                     port number to listen on (default: 3000, env: OC_PORT)
+  -c, --config <file>                     service configuration file (env: OC_CONFIG_FILE)
+  -d, --db <dir>                          database directory (default: "./db", env: OC_DB_DIR)
+  --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
+  --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
+  --sweep-expiry <milliseconds>           milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
+  -g, --grace <milliseconds>              milliseconds for the graceful close to finish (default: 5000, env: OC_CLOSE_GRACE_DELAY)
+  -t --telemetry <boolean>                enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
+  --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
+  --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
+  --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
+  --cors <boolean>                        enables or disables CORS support (default: false, env: OC_CORS_ENABLE)
   --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env:
-                                          XCMON_CORS_CREDENTIALS)
+                                          OC_CORS_CREDENTIALS)
   --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
                                           "true" for wildcard, "string" or "/regexp/"
                                           repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env:
-                                          XCMON_CORS_ORIGIN)
+                                          OC_CORS_ORIGIN)
   --help                                  display help for command
 ```
 
@@ -151,7 +151,7 @@ Options:
 Uses nodemon to automatically restart the application on file changes.
 
 ```shell
-XCMON_CONFIG_FILE=config/manta.toml yarn dev
+OC_CONFIG_FILE=config/manta.toml yarn dev
 ```
 
 ## HTTP APIs
@@ -190,8 +190,3 @@ For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide
 
 For end-to-end testing with Zombienet please refer to our [Zombienet Testing Guide](https://github.com/sodazone/xcm-monitoring/blob/main/packages/server/guides/TESTING-ZOMBIENET.md).
 
-## Notes
-
-### Chain Head Catch-up
-
-When subscribing to finalized block headers using the light client, it's possible to skip blocks occasionally. To ensure we don't miss any finalized blocks, we've implemented a chain head catch-up mechanism. This mechanism requests the missing block headers, ensuring no gaps in our data. The same approach is applied during server restarts to recover missed blocks from server downtime. Currently, we've set an upper limit of 50 blocks and a default throttle of 1 second to prevent overloading the peers connected to the light client. In the future, we plan to develop a more robust catch-up mechanism to handle historical chain head catch-up scenarios effectively.

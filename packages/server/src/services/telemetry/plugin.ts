@@ -28,12 +28,7 @@ type PullCollect = () => Promise<void>;
  * @param options - The telemetry options
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, options) => {
-  const {
-    log,
-    switchboard,
-    wsProtocol,
-    storage: { root },
-  } = fastify;
+  const { log, switchboard, wsProtocol, rootStore } = fastify;
 
   if (options.telemetry) {
     log.info('Enable default metrics');
@@ -41,17 +36,21 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
 
     const pullCollectors: PullCollect[] = [];
 
-    if (root instanceof Level) {
+    if (rootStore instanceof Level) {
       log.info('Enable level DB metrics');
-      pullCollectors.push(collectDiskStats(root.location));
+      pullCollectors.push(collectDiskStats(rootStore.location));
     }
 
-    log.info('Enable switchboard metrics');
-    pullCollectors.push(collectSwitchboardStats(switchboard));
-    switchboard.collectTelemetry(collect);
+    if (switchboard) {
+      log.info('Enable switchboard metrics');
+      pullCollectors.push(collectSwitchboardStats(switchboard));
+      switchboard.collectTelemetry(collect);
+    }
 
-    log.info('Enable websocket subscription metrics');
-    wsMetrics(wsProtocol);
+    if (wsProtocol) {
+      log.info('Enable websocket subscription metrics');
+      wsMetrics(wsProtocol);
+    }
 
     fastify.addHook('onResponse', createReplyHook());
 

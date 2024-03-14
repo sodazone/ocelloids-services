@@ -3,7 +3,7 @@ coverage/
 dist/
 deno_dist/
 docs/
-db/
+db*/
 chain-specs/
 **/.yarn/cache
 **/.yarn/versions

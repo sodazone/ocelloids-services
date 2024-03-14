@@ -10,7 +10,11 @@ declare module 'fastify' {
 }
 
 const connectorPlugin: FastifyPluginAsync = async (fastify) => {
-  const connector = new Connector(fastify.log, fastify.config);
+  if (fastify.localConfig === undefined) {
+    return;
+  }
+
+  const connector = new Connector(fastify.log, fastify.localConfig);
   fastify.decorate('connector', connector);
 
   fastify.addHook('onClose', (_, done) => {

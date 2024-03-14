@@ -4,15 +4,11 @@ import { Level } from 'level';
 
 import { DB } from '../types.js';
 import { Janitor, JanitorOptions } from './janitor.js';
-import { SubsStore } from './subs.js';
 import { Scheduler, SchedulerOptions } from './scheduler.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    storage: {
-      root: DB;
-      subs: SubsStore;
-    };
+    rootStore: DB;
     scheduler: Scheduler;
     janitor: Janitor;
   }
@@ -35,14 +31,10 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
   fastify.log.info(`Open database at ${dbPath}`);
 
   const root = new Level(dbPath);
-  const subs = new SubsStore(fastify.log, root, fastify.config);
   const scheduler = new Scheduler(fastify.log, root, options);
   const janitor = new Janitor(fastify.log, root, scheduler, options);
 
-  fastify.decorate('storage', {
-    root,
-    subs,
-  });
+  fastify.decorate('rootStore', root);
   fastify.decorate('janitor', janitor);
   fastify.decorate('scheduler', scheduler);
 
@@ -53,7 +45,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
         instance.log.error(error, 'Error while stopping the scheduler');
       })
       .finally(() => {
-        instance.storage.root.close((error) => {
+        instance.rootStore.close((error) => {
           instance.log.info('Closing database');
           /* istanbul ignore if */
           if (error) {
@@ -63,6 +55,13 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
         });
       });
   });
+
+  try {
+    await root.open();
+  } catch (err) {
+    fastify.log.error(err, 'Error opening database');
+    throw err;
+  }
 
   scheduler.start();
 };

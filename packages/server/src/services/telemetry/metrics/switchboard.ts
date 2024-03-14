@@ -4,7 +4,7 @@ import { Switchboard } from '../../monitoring/switchboard.js';
 
 export function switchboardMetrics(switchboard: Switchboard) {
   const subsErrors = new Counter({
-    name: 'xcmon_subscription_errors_count',
+    name: 'OC_subscription_errors_count',
     help: 'Subscription errors',
     labelNames: ['id', 'chainId', 'direction'],
   });
@@ -16,7 +16,7 @@ export function switchboardMetrics(switchboard: Switchboard) {
 
 export function collectSwitchboardStats(switchboard: Switchboard) {
   const subsGauge = new Gauge({
-    name: 'xcmon_active_subscriptions_count',
+    name: 'OC_active_subscriptions_count',
     help: 'Active subscriptions.',
     labelNames: ['type'],
   });

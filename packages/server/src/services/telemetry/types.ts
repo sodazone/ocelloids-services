@@ -67,6 +67,7 @@ export type TelemetryEvents = {
     direction: 'in' | 'out' | 'relay';
   }) => void;
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void;
+  telemetryBlockCacheError: (msg: { chainId: string; method: string }) => void;
 } & TelemetryNotifierEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;

@@ -39,12 +39,12 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   #subs: SubsStore;
   #renderer: TemplateRenderer;
 
-  constructor(hub: NotifierHub, { log, scheduler, storage: { subs } }: Services) {
+  constructor(hub: NotifierHub, { log, scheduler, subsStore }: Services) {
     super();
 
     this.#log = log;
     this.#scheduler = scheduler;
-    this.#subs = subs;
+    this.#subs = subsStore;
     this.#renderer = new TemplateRenderer();
 
     this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this));

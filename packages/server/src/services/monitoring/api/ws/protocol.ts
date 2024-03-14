@@ -62,7 +62,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#switchboard = switchboard;
 
     this.#connections = new Map();
-    this.#maxClients = options.wsMaxClients;
+    this.#maxClients = options.wsMaxClients ?? 10_000;
     this.#clientsNum = 0;
     this.#broadcaster = (sub, xcm) => {
       const connections = this.#connections.get(sub.id);

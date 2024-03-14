@@ -26,6 +26,9 @@ const notification: XcmNotifyMessage = {
   subscriptionId: 'ok',
   legs: [{ from: '0', to: '1' }],
   waypoint: {
+    messageHash: '0xCAFE',
+    messageData: '0x00',
+    instructions: '0x00',
     ...destinationContext,
     legIndex: 0,
   },
@@ -122,7 +125,7 @@ const subOkAuth = {
 } as Subscription;
 
 describe('webhook notifier', () => {
-  const subs = _services.storage.subs;
+  const subs = _services.subsStore;
 
   let scheduler: Scheduler;
   let notifier: WebhookNotifier;

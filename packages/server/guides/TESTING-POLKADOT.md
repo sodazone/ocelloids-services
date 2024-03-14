@@ -63,7 +63,7 @@ Run the Docker image, mounting the configuration and chain specs as volumes:
 
 ```
 docker run -d \
-  -e XCMON_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
+  -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
   -v <PATH_TO_CHAIN_SPECS>:/opt/xcmon/chain-specs \
   -v <PATH_TO_CONFIG>:/opt/xcmon/config \

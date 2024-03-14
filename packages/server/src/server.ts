@@ -1,5 +1,7 @@
 import process from 'node:process';
 
+import { z } from 'zod';
+
 import closeWithGrace from 'close-with-grace';
 import Fastify from 'fastify';
 
@@ -12,7 +14,6 @@ import FastifyHealthcheck from 'fastify-healthcheck';
 import version from './version.js';
 import { errorHandler } from './errors.js';
 import { logger } from './environment.js';
-import { ServerOptions } from './types.js';
 import {
   Root,
   Auth,
@@ -22,13 +23,36 @@ import {
   Configuration,
   Monitoring,
   Connector,
+  Ingress,
 } from './services/index.js';
+
 import { toCorsOpts } from './args.js';
+import {
+  $BaseServerOptions,
+  $CorsServerOptions,
+  $SubscriptionServerOptions,
+  $ConfigServerOptions,
+  $LevelServerOptions,
+  $RedisServerOptions,
+} from './types.js';
 
 const WS_MAX_PAYLOAD = 1048576; // 1MB
 
+export const $ServerOptions = z
+  .object({
+    distributed: z.boolean().default(false),
+  })
+  .merge($BaseServerOptions)
+  .merge($CorsServerOptions)
+  .merge($SubscriptionServerOptions)
+  .merge($ConfigServerOptions)
+  .merge($LevelServerOptions)
+  .merge($RedisServerOptions);
+
+type ServerOptions = z.infer<typeof $ServerOptions>;
+
 /**
- * Creates and starts the server process with specified options.
+ * Creates and starts the Ocelloids Execution Server with specified options.
  *
  * @param {ServerOptions} opts - Options for configuring the server.
  */
@@ -84,7 +108,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(FastifySwagger, {
     openapi: {
       info: {
-        title: 'XCM Monitoring Service',
+        title: 'Ocelloids Execution Service',
         version,
       },
     },
@@ -124,9 +148,14 @@ export async function createServer(opts: ServerOptions) {
 
   await server.register(Root);
   await server.register(Auth);
-  await server.register(Configuration, opts);
+
+  if (!opts.distributed) {
+    await server.register(Configuration, opts);
+    await server.register(Connector);
+  }
+
   await server.register(Persistence, opts);
-  await server.register(Connector);
+  await server.register(Ingress, opts);
   await server.register(Monitoring, opts);
   await server.register(Administration);
   await server.register(Telemetry, opts);

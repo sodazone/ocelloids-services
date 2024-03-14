@@ -12,7 +12,7 @@ The server exposes administration functionality through an HTTP API. Generally, 
 
 ### Authorization
 
-The administration API uses bearer token authorization. You must configure the secret value using the `XCMON_SECRET` environment variable; it will be used to verify the hash-based signature of the auth token.
+The administration API uses bearer token authorization. You must configure the secret value using the `OC_SECRET` environment variable; it will be used to verify the hash-based signature of the auth token.
 
 To authenticate with the `admin/` endpoints, you should pass an HTTP authorization header with a valid JWT token signed with the configured secret; the payload of the token is not considered.
 

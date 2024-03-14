@@ -7,6 +7,7 @@ import Connector from './networking/connector.js';
 import { FastifyBaseLogger } from 'fastify';
 import { Scheduler } from './persistence/scheduler.js';
 import { BlockNumberRange, HexString } from './monitoring/types.js';
+import { IngressConsumer } from './ingress/consumer/index.js';
 
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>;
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
@@ -26,8 +27,7 @@ export const prefixes = {
     family: (chainId: string) => `ch:${chainId}`,
     keys: {
       block: (hash: HexString) => `blk:${hash}`,
-      ump: (hash: HexString) => `ump:${hash}`,
-      hrmp: (hash: HexString) => `hrm:${hash}`,
+      storage: (storageKey: HexString, blockHash = '$') => `st:${storageKey}:${blockHash}`,
       range: (range: BlockNumberRange) => `${range.fromBlockNum}-${range.toBlockNum}`,
     },
     ranges: (chainId: string) => `ch:rg:${chainId}`,
@@ -75,12 +75,11 @@ export interface TypedEventEmitter<Events extends EventMap> {
 export type Logger = FastifyBaseLogger;
 export type Services = {
   log: Logger;
-  storage: {
-    root: DB;
-    subs: SubsStore;
-  };
+  rootStore: DB;
+  subsStore: SubsStore;
   janitor: Janitor;
   scheduler: Scheduler;
-  config: ServiceConfiguration;
+  localConfig: ServiceConfiguration;
+  ingress: IngressConsumer;
   connector: Connector;
 };

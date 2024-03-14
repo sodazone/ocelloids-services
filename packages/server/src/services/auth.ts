@@ -11,12 +11,12 @@ declare module 'fastify' {
 }
 
 const authPlugin: FastifyPluginAsync = async (fastify) => {
-  if (environment !== 'development' && !process.env.XCMON_SECRET) {
-    fastify.log.warn('!! Default XCMON_SECRET configured !!');
+  if (environment !== 'development' && !process.env.OC_SECRET) {
+    fastify.log.warn('!! Default OC_SECRET configured !!');
   }
 
   fastify.register(jwt, {
-    secret: process.env.XCMON_SECRET ?? 'IAO Abraxas Sabaoth',
+    secret: process.env.OC_SECRET ?? 'IAO Abraxas Sabaoth',
   });
   fastify.decorate('auth', async function (request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {

@@ -1,19 +1,14 @@
-import { bufferCount, switchMap, mergeMap, map, filter, from, Observable } from 'rxjs';
+import { bufferCount, mergeMap, map, filter, Observable } from 'rxjs';
 
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
-import type {
-  PolkadotCorePrimitivesInboundDownwardMessage,
-  XcmVersionedMultiLocation,
-  XcmVersionedMultiAssets,
-} from '@polkadot/types/lookup';
+import type { XcmVersionedMultiLocation, XcmVersionedMultiAssets } from '@polkadot/types/lookup';
 import type { Registry } from '@polkadot/types/types';
-import type { Vec, Bytes, Compact } from '@polkadot/types';
+import type { Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
 import type { IU8a } from '@polkadot/types-codec/types';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
-import { ApiPromise } from '@polkadot/api';
 
 import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids';
 
@@ -37,6 +32,7 @@ import {
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { XcmVersionedXcm } from './xcm-types.js';
+import { GetDownwardMessageQueues } from '../types-augmented.js';
 
 /*
  ==================================================================================
@@ -52,7 +48,7 @@ import { XcmVersionedXcm } from './xcm-types.js';
 type Json = { [property: string]: Json };
 type XcmContext = {
   paraId: string;
-  data: Bytes;
+  data: Uint8Array;
   program: XcmVersionedXcm;
   blockHash: IU8a;
   blockNumber: Compact<BlockNumber>;
@@ -110,7 +106,7 @@ function createXcmMessageSent({
       bytes: program.toU8a(),
       json: program.toHuman(),
     },
-    messageData: data.toU8a(),
+    messageData: data,
     messageHash: program.hash.toHex(),
     messageId,
     sender: signer?.toHuman(),
@@ -119,7 +115,7 @@ function createXcmMessageSent({
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
-function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
+function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((tx) => {
@@ -142,18 +138,12 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
       }),
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
-        return from(api.at(tx.extrinsic.blockHash)).pipe(
-          switchMap(
-            (at) =>
-              from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<
-                Vec<PolkadotCorePrimitivesInboundDownwardMessage>
-              >
-          ),
+        return getDmp(registry, tx.extrinsic.blockHash.toHex(), paraId).pipe(
           retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
-              const data = messages[0].msg;
+              const data = messages[0].msg.toU8a();
               const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
@@ -168,14 +158,15 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
               // sent event is implemented.
               // Only matches the first message found.
               for (const message of messages) {
-                const program = asVersionedXcm(message.msg, registry);
+                const data = message.msg.toU8a();
+                const program = asVersionedXcm(data, registry);
                 if (matchInstructions(program, assets, beneficiary)) {
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
                     signer,
                     paraId,
-                    data: message.msg,
+                    data,
                     program,
                   });
                 }
@@ -191,7 +182,7 @@ function findDmpMessagesFromTx(api: ApiPromise, registry: Registry) {
   };
 }
 
-function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
+function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
@@ -212,32 +203,28 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
       }),
       filterNonNull(),
       mergeMap(({ paraId, messageId, event }) => {
-        return from(api.at(event.blockHash)).pipe(
-          switchMap(
-            (at) =>
-              from(at.query.dmp.downwardMessageQueues(paraId)) as Observable<
-                Vec<PolkadotCorePrimitivesInboundDownwardMessage>
-              >
-          ),
+        return getDmp(registry, event.blockHash.toHex(), paraId).pipe(
           retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
-              const program = asVersionedXcm(messages[0].msg, registry);
+              const data = messages[0].msg.toU8a();
+              const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
                 paraId,
                 event,
                 signer: event.extrinsic?.signer,
-                data: messages[0].msg,
+                data,
                 program,
               });
             } else {
               // Since we are matching by topic and it is assumed that the TopicId is unique
               // we can break out of the loop on first matching message found.
               for (const message of messages) {
-                const program = asVersionedXcm(message.msg, registry);
+                const data = message.msg.toU8a();
+                const program = asVersionedXcm(data, registry);
                 if (matchProgramByTopic(program, messageId)) {
                   return createXcmMessageSent({
                     blockHash,
@@ -245,7 +232,7 @@ function findDmpMessagesFromEvent(api: ApiPromise, registry: Registry) {
                     paraId,
                     event,
                     signer: event.extrinsic?.signer,
-                    data: message.msg,
+                    data,
                     program,
                   });
                 }
@@ -268,7 +255,11 @@ const METHODS_DMP = [
   'teleportAssets',
 ];
 
-export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl }: XcmCriteria, registry: Registry) {
+export function extractDmpSend(
+  { sendersControl, messageControl }: XcmCriteria,
+  getDmp: GetDownwardMessageQueues,
+  registry: Registry
+) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter((tx) => {
@@ -279,15 +270,15 @@ export function extractDmpSend(api: ApiPromise, { sendersControl, messageControl
           matchSenders(sendersControl, extrinsic)
         );
       }),
-      findDmpMessagesFromTx(api, registry),
+      findDmpMessagesFromTx(getDmp, registry),
       filter((xcm) => matchMessage(messageControl, xcm))
     );
   };
 }
 
 export function extractDmpSendByEvent(
-  api: ApiPromise,
   { sendersControl, messageControl }: XcmCriteria,
+  getDmp: GetDownwardMessageQueues,
   registry: Registry
 ) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
@@ -295,7 +286,7 @@ export function extractDmpSendByEvent(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
       filter((event) => matchSenders(sendersControl, event.extrinsic)),
-      findDmpMessagesFromEvent(api, registry),
+      findDmpMessagesFromEvent(getDmp, registry),
       filter((xcm) => matchMessage(messageControl, xcm))
     );
   };

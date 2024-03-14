@@ -15,10 +15,7 @@ function hasOp(patch: Operation[], path: string) {
  * Subscriptions HTTP API.
  */
 export async function SubscriptionApi(api: FastifyInstance) {
-  const {
-    switchboard,
-    storage: { subs },
-  } = api;
+  const { switchboard, subsStore } = api;
 
   /**
    * GET subs
@@ -36,7 +33,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (_, reply) => {
-      reply.send(await subs.getAll());
+      reply.send(await subsStore.getAll());
     }
   );
 
@@ -61,7 +58,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      reply.send(await subs.getById(request.params.id));
+      reply.send(await subsStore.getById(request.params.id));
     }
   );
 
@@ -140,7 +137,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     async (request, reply) => {
       const patch = request.body;
       const { id } = request.params;
-      const sub = await subs.getById(id);
+      const sub = await subsStore.getById(id);
 
       // Check allowed patch ops
       const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)));
@@ -149,7 +146,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         applyPatch(sub, patch);
         $Subscription.parse(sub);
 
-        await subs.save(sub);
+        await subsStore.save(sub);
 
         switchboard.updateSubscription(sub);
 

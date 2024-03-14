@@ -2,7 +2,7 @@ import { TelemetryEventEmitter } from '../types.js';
 import { catcherMetrics } from './catcher.js';
 import { engineMetrics } from './engine.js';
 import { notifierMetrics } from './notifiers.js';
-import { HeadCatcher } from '../../monitoring/head-catcher.js';
+import { HeadCatcher } from '../../ingress/watcher/head-catcher.js';
 import { NotifierHub } from '../../notification/hub.js';
 import { MatchingEngine } from '../../monitoring/matching.js';
 import { Switchboard } from '../../monitoring/switchboard.js';

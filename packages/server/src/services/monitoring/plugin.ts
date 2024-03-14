@@ -4,10 +4,12 @@ import fp from 'fastify-plugin';
 import { Switchboard, SwitchboardOptions } from './switchboard.js';
 import { SubscriptionApi } from './api/index.js';
 import WebsocketProtocolPlugin, { WebsocketProtocolOptions } from './api/ws/plugin.js';
+import { SubsStore } from '../persistence/index.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     switchboard: Switchboard;
+    subsStore: SubsStore;
   }
 }
 
@@ -23,7 +25,11 @@ type MonitoringOptions = SwitchboardOptions & WebsocketProtocolOptions;
 const monitoringPlugin: FastifyPluginAsync<MonitoringOptions> = async (fastify, options) => {
   const { log } = fastify;
 
+  const subsStore = new SubsStore(fastify.log, fastify.rootStore, fastify.ingress);
+  fastify.decorate('subsStore', subsStore);
+
   const switchboard = new Switchboard(fastify, options);
+
   fastify.decorate('switchboard', switchboard);
   await switchboard.start();
 

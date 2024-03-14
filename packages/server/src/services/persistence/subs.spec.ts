@@ -1,7 +1,7 @@
 import { MemoryLevel as Level } from 'memory-level';
 
 import { SubsStore } from './subs';
-import { _config, _log } from '../../testing/services';
+import { _ingress, _log } from '../../testing/services';
 import { _subsFix } from '../../testing/data';
 
 describe('subscriptions persistence', () => {
@@ -9,7 +9,7 @@ describe('subscriptions persistence', () => {
 
   beforeAll(() => {
     const mem = new Level();
-    db = new SubsStore(_log, mem, _config);
+    db = new SubsStore(_log, mem, _ingress);
   });
 
   describe('prepare data', () => {

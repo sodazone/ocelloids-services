@@ -1,6 +1,6 @@
 import { Option, InvalidArgumentError } from 'commander';
 
-import { ServerOptions } from './types.js';
+import { CorsServerOptions } from './types.js';
 import { FastifyCorsOptions } from '@fastify/cors';
 
 function positiveInt(v: string) {
@@ -24,7 +24,7 @@ function collect(value: string, previous: string[] | boolean = []) {
   return previous.concat([value]);
 }
 
-export function toCorsOpts({ corsOrigin, corsCredentials }: ServerOptions): FastifyCorsOptions {
+export function toCorsOpts({ corsOrigin, corsCredentials }: CorsServerOptions): FastifyCorsOptions {
   return {
     credentials: corsCredentials,
     origin: Array.isArray(corsOrigin)

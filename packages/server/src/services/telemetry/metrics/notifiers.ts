@@ -3,12 +3,12 @@ import { getOrCreateCounter } from './util.js';
 
 export function notifierMetrics(source: TelemetryEventEmitter) {
   const notifyCount = getOrCreateCounter({
-    name: 'xcmon_notifier_notification_total',
+    name: 'OC_notifier_notification_total',
     help: 'Notifier notifications.',
     labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel'],
   });
   const notifyErrorCount = getOrCreateCounter({
-    name: 'xcmon_notifier_notification_error_total',
+    name: 'OC_notifier_notification_error_total',
     help: 'Notifier notification errors.',
     labelNames: ['type', 'subscription', 'origin', 'destination', 'outcome', 'channel'],
   });
