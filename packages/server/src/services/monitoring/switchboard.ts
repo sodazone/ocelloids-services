@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 
-import { Observable, from, switchMap, map, share, shareReplay } from 'rxjs';
+import { Observable, from, switchMap, map, share } from 'rxjs';
 
 import {
   ControlQuery,
