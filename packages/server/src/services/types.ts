@@ -39,6 +39,9 @@ export const prefixes = {
     relay: 'ma:relay',
     hop: 'ma:hop',
   },
+  distributor: {
+    lastBlockStreamId: (chainId: string) => `dis:blocks:lid:${chainId}`,
+  },
 };
 export const jsonEncoded = { valueEncoding: 'json' };
 

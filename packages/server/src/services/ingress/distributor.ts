@@ -3,7 +3,11 @@ import { RedisClientType, createClient, commandOptions } from 'redis';
 import { Services, Logger } from '../types.js';
 import { RedisServerOptions } from '../../types.js';
 
-type StreamHandler<T> = (message: T, client: RedisClientType) => void;
+type StreamContext = {
+  lastId: string;
+  client: RedisClientType;
+};
+type StreamHandler<T> = (message: T, ctx: StreamContext) => void;
 
 /**
  * Redis stream options.
@@ -107,7 +111,10 @@ export class RedisDistributor {
           const { messages } = stream[0];
           const envelope = messages[0];
 
-          handler(envelope.message as T, this.#client);
+          handler(envelope.message as T, {
+            lastId: envelope.id,
+            client: this.#client,
+          });
 
           setImmediate(() => this.read<T>(key, handler, returnBuffers, envelope.id));
         } else {

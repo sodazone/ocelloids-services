@@ -4,7 +4,7 @@ import { TypeRegistry, Metadata } from '@polkadot/types';
 import type { Registry } from '@polkadot/types-codec/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 
-import { Logger, Services } from '../../types.js';
+import { DB, Logger, Services, prefixes } from '../../types.js';
 
 import {
   RedisDistributor,
@@ -62,6 +62,7 @@ export interface IngressConsumer {
  */
 export class DistributedIngressConsumer implements IngressConsumer {
   readonly #log: Logger;
+  readonly #db: DB;
   readonly #blockConsumers: Record<string, Subject<SignedBlockExtended>>;
   readonly #registries$: Record<string, Observable<Registry>>;
   readonly #distributor: RedisDistributor;
@@ -70,6 +71,7 @@ export class DistributedIngressConsumer implements IngressConsumer {
 
   constructor(ctx: Services, opts: IngressOptions) {
     this.#log = ctx.log;
+    this.#db = ctx.rootStore;
     this.#distributor = new RedisDistributor(opts, ctx);
     this.#blockConsumers = {};
     this.#registries$ = {};
@@ -82,7 +84,15 @@ export class DistributedIngressConsumer implements IngressConsumer {
     for (const chainId of this.getChainIds()) {
       this.#blockConsumers[chainId] = new Subject<SignedBlockExtended>();
 
-      this.#log.info('[%s] Distributed block consumer', chainId);
+      let lastId = '$';
+      // TODO option to omit the stream pointer on start (?)
+      try {
+        lastId = await this.#db.get(prefixes.distributor.lastBlockStreamId(chainId));
+      } catch {
+        //
+      }
+      this.#log.info('[%s] Distributed block consumer (lastId=%s)', chainId, lastId);
+
       await this.#blockStreamFromRedis(chainId);
     }
   }
@@ -206,17 +216,26 @@ export class DistributedIngressConsumer implements IngressConsumer {
       bytes: Buffer;
     }>(
       key,
-      (message) => {
+      (message, { lastId }) => {
         const buffer = message['bytes'];
         const signedBlock = decodeSignedBlockExtended(registry, buffer);
         subject.next(signedBlock);
 
         this.#log.info(
-          '[%s] INGRESS block #%s %s',
+          '[%s] INGRESS block #%s %s (%s)',
           chainId,
           signedBlock.block.header.number.toString(),
-          signedBlock.block.header.hash.toHex()
+          signedBlock.block.header.hash.toHex(),
+          lastId
         );
+
+        setImmediate(async () => {
+          try {
+            await this.#db.put(prefixes.distributor.lastBlockStreamId(chainId), lastId);
+          } catch {
+            //
+          }
+        });
       },
       id
     );

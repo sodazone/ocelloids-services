@@ -141,7 +141,7 @@ export default class IngressProducer {
 
   #registerStorageRequestHandler(chainId: string) {
     const key = getStorageReqKey(chainId);
-    this.#distributor.read<StorageRequest>(key, (request, client) => {
+    this.#distributor.read<StorageRequest>(key, (request, { client }) => {
       this.#headCatcher.getStorage(chainId, request.storageKey, request.at).subscribe((data) => {
         client.LPUSH(request.replyTo, Buffer.from(data));
       });
