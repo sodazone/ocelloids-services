@@ -90,7 +90,7 @@ function findOutboundUmpMessage(
     return source.pipe(
       mergeMap((sentMsg) => {
         const { blockHash, messageHash, messageId } = sentMsg;
-        return getOutboundUmpMessages(registry, blockHash).pipe(
+        return getOutboundUmpMessages(blockHash).pipe(
           map((messages) => {
             return messages
               .map((data) => {

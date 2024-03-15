@@ -26,7 +26,7 @@ function findOutboundHrmpMessage(
     return source.pipe(
       mergeMap((sentMsg): Observable<GenericXcmSentWithContext> => {
         const { blockHash, messageHash, messageId } = sentMsg;
-        return getOutboundHrmpMessages(registry, blockHash).pipe(
+        return getOutboundHrmpMessages(blockHash).pipe(
           map((messages) => {
             return messages
               .flatMap((msg) => {

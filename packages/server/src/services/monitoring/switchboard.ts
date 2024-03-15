@@ -26,6 +26,7 @@ import {
   SubscriptionStats,
   XcmNotificationType,
   XcmRelayedWithContext,
+  HexString,
 } from './types.js';
 
 import { MatchingEngine } from './matching.js';
@@ -48,6 +49,7 @@ import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from './storage.js';
+import { Registry } from '@polkadot/types-codec/types';
 
 type Monitor = {
   subs: RxSubscriptionWithId[];
@@ -539,14 +541,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // VMP DMP
         this.#log.info('[%s] subscribe outbound DMP (%s)', chainId, id);
 
-        const getDmp: GetDownwardMessageQueues = (registry, blockHash, paraId) => {
-          return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
-            map((buffer) => {
-              return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer);
-            })
-          );
-        };
-
         subs.push({
           chainId,
           sub: registry$
@@ -558,7 +552,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       sendersControl,
                       messageControl,
                     },
-                    getDmp,
+                    this.#getDmp(chainId, registry),
                     registry
                   ),
                   emitOutbound()
@@ -582,7 +576,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       sendersControl,
                       messageControl,
                     },
-                    getDmp,
+                    this.#getDmp(chainId, registry),
                     registry
                   ),
                   emitOutbound()
@@ -595,14 +589,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // Outbound HRMP / XCMP transport
         this.#log.info('[%s] subscribe outbound HRMP (%s)', chainId, id);
 
-        const getHrmp: GetOutboundHrmpMessages = (registry, blockHash) => {
-          return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
-            map((buffer) => {
-              return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer);
-            })
-          );
-        };
-
         subs.push({
           chainId,
           sub: registry$
@@ -614,7 +600,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       sendersControl,
                       messageControl,
                     },
-                    getHrmp,
+                    this.#getHrmp(chainId, registry),
                     registry
                   ),
                   emitOutbound()
@@ -627,14 +613,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         // VMP UMP
         this.#log.info('[%s] subscribe outbound UMP (%s)', chainId, id);
 
-        const getUmp: GetOutboundUmpMessages = (registry, blockHash) => {
-          return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
-            map((buffer) => {
-              return registry.createType('Vec<Bytes>', buffer);
-            })
-          );
-        };
-
         subs.push({
           chainId,
           sub: registry$
@@ -646,7 +624,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                       sendersControl,
                       messageControl,
                     },
-                    getUmp,
+                    this.#getUmp(chainId, registry),
                     registry
                   ),
                   retryWithTruncatedExpBackoff(),
@@ -808,5 +786,35 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       origin !== '0' &&
       destinations.some((d) => d !== '0')
     );
+  }
+
+  #getDmp(chainId: string, registry: Registry): GetDownwardMessageQueues {
+    return (blockHash: HexString, paraId: string) => {
+      return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
+        map((buffer) => {
+          return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer);
+        })
+      );
+    };
+  }
+
+  #getUmp(chainId: string, registry: Registry): GetOutboundUmpMessages {
+    return (blockHash: HexString) => {
+      return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
+        map((buffer) => {
+          return registry.createType('Vec<Bytes>', buffer);
+        })
+      );
+    };
+  }
+
+  #getHrmp(chainId: string, registry: Registry): GetOutboundHrmpMessages {
+    return (blockHash: HexString) => {
+      return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
+        map((buffer) => {
+          return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer);
+        })
+      );
+    };
   }
 }

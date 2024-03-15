@@ -138,7 +138,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
       }),
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
-        return getDmp(registry, tx.extrinsic.blockHash.toHex(), paraId).pipe(
+        return getDmp(tx.extrinsic.blockHash.toHex(), paraId).pipe(
           retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
@@ -203,7 +203,7 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
       }),
       filterNonNull(),
       mergeMap(({ paraId, messageId, event }) => {
-        return getDmp(registry, event.blockHash.toHex(), paraId).pipe(
+        return getDmp(event.blockHash.toHex(), paraId).pipe(
           retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber } = event;
