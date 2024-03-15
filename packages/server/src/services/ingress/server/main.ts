@@ -77,6 +77,7 @@ program
       true
     )
   )
+  .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
   .action(startServer);
 
 program.parse();

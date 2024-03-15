@@ -1,7 +1,7 @@
 import { RedisClientType, createClient, commandOptions } from 'redis';
 
 import { Services, Logger } from '../types.js';
-import { IngressOptions } from '../../types.js';
+import { RedisServerOptions } from '../../types.js';
 
 type StreamHandler<T> = (message: T, client: RedisClientType) => void;
 
@@ -63,11 +63,11 @@ export class RedisDistributor {
   readonly #log: Logger;
   readonly #client: RedisClientType;
 
-  constructor(opts: IngressOptions = {}, ctx: Services) {
+  constructor(opts: RedisServerOptions = {}, ctx: Services) {
     this.#log = ctx.log;
 
     this.#client = createClient({
-      url: opts.redis,
+      url: opts.redisUrl,
       isolationPoolOptions: {
         autostart: true,
         max: 100,

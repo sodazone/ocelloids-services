@@ -123,6 +123,7 @@ program
     ).default(['/https?://localhost.*/'])
   )
   .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
+  .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
   .action(startServer);
 
 program.parse();

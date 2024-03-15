@@ -1,13 +1,5 @@
 import { z } from 'zod';
 
-export type IngressOptions = {
-  distributed?: boolean;
-  redis?: string;
-  redisUsername?: string;
-  redisPassword?: string;
-  redisDatabase?: string;
-};
-
 export const $BaseServerOptions = z.object({
   port: z.number().min(0),
   host: z.string().min(1),
@@ -16,10 +8,7 @@ export const $BaseServerOptions = z.object({
 });
 
 export const $RedisServerOptions = z.object({
-  redis: z.string().optional(),
-  redisDatabase: z.string().optional(),
-  redisUsername: z.string().optional(),
-  redisPassword: z.string().optional(),
+  redisUrl: z.string().optional(),
 });
 
 export const $LevelServerOptions = z.object({
@@ -51,3 +40,7 @@ export const $SubscriptionServerOptions = z.object({
 
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>;
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>;
+export type RedisServerOptions = z.infer<typeof $RedisServerOptions>;
+export type IngressOptions = {
+  distributed?: boolean;
+} & RedisServerOptions;
