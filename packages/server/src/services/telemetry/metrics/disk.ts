@@ -16,7 +16,7 @@ export async function dirSize(directory: string) {
 
 export function collectDiskStats(directory: string) {
   const diskGauge = new Gauge({
-    name: 'OC_root_db_disk_bytes',
+    name: 'oc_root_db_disk_bytes',
     help: 'The size in bytes of the root database.',
   });
 

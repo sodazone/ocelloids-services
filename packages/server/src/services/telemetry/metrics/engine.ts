@@ -5,32 +5,32 @@ import { TelemetryEventEmitter } from '../types.js';
 
 export function engineMetrics(source: TelemetryEventEmitter) {
   const inCount = new Counter({
-    name: 'OC_engine_in_total',
+    name: 'oc_engine_in_total',
     help: 'Matching engine inbound messages.',
     labelNames: ['subscription', 'origin', 'outcome'],
   });
   const outCount = new Counter({
-    name: 'OC_engine_out_total',
+    name: 'oc_engine_out_total',
     help: 'Matching engine outbound messages.',
     labelNames: ['subscription', 'origin', 'destination'],
   });
   const matchCount = new Counter({
-    name: 'OC_engine_matched_total',
+    name: 'oc_engine_matched_total',
     help: 'Matching engine matched messages.',
     labelNames: ['subscription', 'origin', 'destination', 'outcome'],
   });
   const relayCount = new Counter({
-    name: 'OC_engine_relayed_total',
+    name: 'oc_engine_relayed_total',
     help: 'Matching engine relayed messages.',
     labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'outcome'],
   });
   const timeoutCount = new Counter({
-    name: 'OC_engine_timeout_total',
+    name: 'oc_engine_timeout_total',
     help: 'Matching engine sent timeout messages.',
     labelNames: ['subscription', 'origin', 'destination'],
   });
   const hopCount = new Counter({
-    name: 'OC_engine_hop_total',
+    name: 'oc_engine_hop_total',
     help: 'Matching engine hop messages.',
     labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome'],
   });

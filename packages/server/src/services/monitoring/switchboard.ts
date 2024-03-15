@@ -314,9 +314,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
     collect(this);
     collect(this.#engine);
-    // TODO
-    //collect(this.#catcher);
     collect(this.#notifier);
+
+    this.#ingress.collectTelemetry(collect);
   }
 
   /**

@@ -21,6 +21,7 @@
     "build": "tsc",
     "start": "node ./dist/main.js",
     "dev": "nodemon --exec tsx ./src/main.ts",
+    "dev:inspect": "nodemon --exec tsx --inspect ./src/main.ts",
     "dev:ingress": "nodemon --exec tsx ./src/services/ingress/server/main.ts",
     "dev:exec": "nodemon --exec tsx ./src/main.ts --distributed",
     "lint": "eslint --cache --fix \"src/**/*.ts\"",

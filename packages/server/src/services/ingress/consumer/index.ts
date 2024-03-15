@@ -1,3 +1,5 @@
+import { EventEmitter } from 'node:events';
+
 import { Observable, Subject, map, from, shareReplay, firstValueFrom } from 'rxjs';
 
 import { TypeRegistry, Metadata } from '@polkadot/types';
@@ -22,6 +24,7 @@ import { HeadCatcher } from '../watcher/head-catcher.js';
 import { decodeSignedBlockExtended } from '../watcher/codec.js';
 import { HexString } from '../../monitoring/types.js';
 import { ServiceConfiguration, isRelay, isNetworkDefined } from '../../config.js';
+import { TelemetryEventEmitter } from 'services/telemetry/types.js';
 
 /**
  * Creates a type registry with metadata.
@@ -43,7 +46,7 @@ function createRegistry(bytes: Buffer | Uint8Array) {
  * This interface provides a contract for components functioning both locally
  * and in a distributed environment.
  */
-export interface IngressConsumer {
+export interface IngressConsumer extends TelemetryEventEmitter {
   finalizedBlocks(chainId: string): Observable<SignedBlockExtended>;
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>;
   getRegistry(chainId: string): Observable<Registry>;
@@ -52,6 +55,7 @@ export interface IngressConsumer {
   getChainIds(): string[];
   start(): Promise<void>;
   stop(): Promise<void>;
+  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void;
 }
 
 /**
@@ -60,7 +64,10 @@ export interface IngressConsumer {
  * This class is responsible for managing block consumption and storage retrieval logic,
  * communicating through a distributed middleware.
  */
-export class DistributedIngressConsumer implements IngressConsumer {
+export class DistributedIngressConsumer
+  extends (EventEmitter as new () => TelemetryEventEmitter)
+  implements IngressConsumer
+{
   readonly #log: Logger;
   readonly #db: DB;
   readonly #blockConsumers: Record<string, Subject<SignedBlockExtended>>;
@@ -70,6 +77,8 @@ export class DistributedIngressConsumer implements IngressConsumer {
   #networks: NetworkRecord = {};
 
   constructor(ctx: Services, opts: IngressOptions) {
+    super();
+
     this.#log = ctx.log;
     this.#db = ctx.rootStore;
     this.#distributor = new RedisDistributor(opts, ctx);
@@ -141,6 +150,10 @@ export class DistributedIngressConsumer implements IngressConsumer {
 
   isNetworkDefined(chainId: string) {
     return this.#networks[chainId] !== undefined;
+  }
+
+  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void {
+    collect(this);
   }
 
   async #networksFromRedis() {
@@ -249,13 +262,15 @@ export class DistributedIngressConsumer implements IngressConsumer {
  * This class is responsible for managing block consumption and storage retrieval logic
  * within a local or integrated environment.
  */
-export class LocalIngressConsumer implements IngressConsumer {
+export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEventEmitter) implements IngressConsumer {
   readonly #log: Logger;
   readonly #headCatcher: HeadCatcher;
   readonly #config: ServiceConfiguration;
   readonly #registries$: Record<string, Observable<Registry>>;
 
   constructor(ctx: Services) {
+    super();
+
     this.#log = ctx.log;
     this.#config = ctx.localConfig;
     this.#headCatcher = new HeadCatcher(ctx);
@@ -301,5 +316,11 @@ export class LocalIngressConsumer implements IngressConsumer {
 
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     return this.#headCatcher.getStorage(chainId, storageKey, blockHash);
+  }
+
+  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void {
+    collect(this);
+    collect(this.#headCatcher);
+    // TODO collect distributor
   }
 }

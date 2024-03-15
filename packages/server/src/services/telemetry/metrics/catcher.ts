@@ -5,39 +5,39 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
   const timers: Record<string, () => void> = {};
 
   const blockSeenHist = new Histogram({
-    name: 'OC_catcher_blocks_seen_seconds',
+    name: 'oc_catcher_blocks_seen_seconds',
     help: 'Blocks seen frequencies in seconds.',
     labelNames: ['origin'],
   });
   const blockFinHist = new Histogram({
-    name: 'OC_catcher_block_finalized_seconds',
+    name: 'oc_catcher_block_finalized_seconds',
     help: 'Blocks finalized frequencies in seconds.',
     labelNames: ['origin'],
   });
 
   const blockFinCount = new Counter({
-    name: 'OC_catcher_blocks_finalized_total',
+    name: 'oc_catcher_blocks_finalized_total',
     help: 'Blocks finalized.',
     labelNames: ['origin'],
   });
   const blockSeenCount = new Counter({
-    name: 'OC_catcher_blocks_seen_total',
+    name: 'oc_catcher_blocks_seen_total',
     help: 'Blocks seen.',
     labelNames: ['origin'],
   });
   const blockCacheHitsCount = new Counter({
-    name: 'OC_catcher_blocks_cache_hits_total',
+    name: 'oc_catcher_blocks_cache_hits_total',
     help: 'Block cache hits.',
     labelNames: ['origin'],
   });
   const catcherErrorsCount = new Counter({
-    name: 'OC_catcher_errors_total',
+    name: 'oc_catcher_errors_total',
     help: 'Head catcher errors.',
     labelNames: ['origin', 'step'],
   });
 
   const blockHeightGauge = new Gauge({
-    name: 'OC_catcher_block_height',
+    name: 'oc_catcher_block_height',
     help: 'Block height.',
     labelNames: ['origin'],
   });
