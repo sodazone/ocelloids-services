@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 
 import { Observable, from, switchMap, map, share } from 'rxjs';
-
+import { Registry } from '@polkadot/types-codec/types';
 import {
   ControlQuery,
   extractEvents,
@@ -49,7 +49,6 @@ import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from './storage.js';
-import { Registry } from '@polkadot/types-codec/types';
 
 type Monitor = {
   subs: RxSubscriptionWithId[];
