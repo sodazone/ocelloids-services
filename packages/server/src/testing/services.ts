@@ -25,7 +25,7 @@ export const _mockApiPromises = {
       registry: {
         createType: () => ({
           type: 'V3',
-          asV3: []
+          asV3: [],
         }),
         hasType: () => true,
       },
@@ -48,7 +48,7 @@ export const _mockApiPromises = {
       registry: {
         createType: () => ({
           type: 'V3',
-          asV3: []
+          asV3: [],
         }),
         hasType: () => true,
       },
@@ -76,7 +76,7 @@ export const _mockApiPromises = {
       registry: {
         createType: () => ({
           type: 'V3',
-          asV3: []
+          asV3: [],
         }),
         hasType: () => true,
       },
@@ -99,7 +99,7 @@ export const _mockApiPromises = {
       registry: {
         createType: () => ({
           type: 'V3',
-          asV3: []
+          asV3: [],
         }),
         hasType: () => true,
       },
