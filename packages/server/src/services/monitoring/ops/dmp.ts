@@ -143,7 +143,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
           map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
-              const data = messages[0].msg.toU8a();
+              const data = messages[0].msg;
               const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
@@ -158,7 +158,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
               // sent event is implemented.
               // Only matches the first message found.
               for (const message of messages) {
-                const data = message.msg.toU8a();
+                const data = message.msg;
                 const program = asVersionedXcm(data, registry);
                 if (matchInstructions(program, assets, beneficiary)) {
                   return createXcmMessageSent({
@@ -208,7 +208,7 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
           map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
-              const data = messages[0].msg.toU8a();
+              const data = messages[0].msg;
               const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
@@ -223,7 +223,7 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
               // Since we are matching by topic and it is assumed that the TopicId is unique
               // we can break out of the loop on first matching message found.
               for (const message of messages) {
-                const data = message.msg.toU8a();
+                const data = message.msg;
                 const program = asVersionedXcm(data, registry);
                 if (matchProgramByTopic(program, messageId)) {
                   return createXcmMessageSent({
