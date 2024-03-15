@@ -3,7 +3,6 @@ import { jest } from '@jest/globals';
 import { MemoryLevel } from 'memory-level';
 import { from, of } from 'rxjs';
 import { ApiRx, ApiPromise } from '@polkadot/api';
-import { ApiDecoration } from '@polkadot/api/types';
 
 import { _services } from '../../../testing/services.js';
 import Connector from '../../networking/connector.js';
@@ -15,6 +14,8 @@ import { BlockNumberRange, ChainHead } from '../../monitoring/types.js';
 import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js';
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher;
+
+const flushPromises = () => new Promise((res) => process.nextTick(res));
 
 describe('head catcher', () => {
   let db: DB;
@@ -84,25 +85,15 @@ describe('head catcher', () => {
               '0': of({} as unknown as ApiRx),
               '1000': of({} as unknown as ApiRx),
               '2032': of({
-                at: () =>
-                  of({
-                    query: {
-                      parachainSystem: {
-                        hrmpOutboundMessages: () => [
-                          {
-                            length: 1,
-                            toU8a: () => new Uint8Array([2, 42]),
-                          },
-                        ],
-                        upwardMessages: () => [
-                          {
-                            length: 1,
-                            toU8a: () => new Uint8Array([8, 31, 6]),
-                          },
-                        ],
-                      },
+                rpc: {
+                  state: {
+                    getStorage: () => {
+                      return Promise.resolve({
+                        toU8a: () => new Uint8Array(0),
+                      });
                     },
-                  } as unknown as ApiDecoration<'rxjs'>),
+                  },
+                },
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => from(interlayBlocks),
@@ -147,10 +138,17 @@ describe('head catcher', () => {
 
       catcher.start();
 
+      await flushPromises();
+
       const slkeys = await sl('2032').keys().all();
-      expect(expectedKeys.every((k) => slkeys.includes(k))).toBe(true);
 
       catcher.stop();
+
+      expect(
+        expectedKeys.every((k) => {
+          return slkeys.includes(k);
+        })
+      ).toBe(true);
     });
   });
 

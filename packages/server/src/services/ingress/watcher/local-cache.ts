@@ -2,12 +2,12 @@ import { EventEmitter } from 'node:events';
 
 import { SubstrateApis, blocks, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk';
 
-import { Subscription, Observable, mergeAll, zip, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import { Subscription, mergeAll, zip, mergeMap, from, tap, switchMap, map } from 'rxjs';
 
-import type { Vec, Bytes } from '@polkadot/types';
+import type { Raw } from '@polkadot/types';
+import type { Hash } from '@polkadot/types/interfaces';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
-import { ApiPromise } from '@polkadot/api';
+import { ApiPromise, ApiRx } from '@polkadot/api';
 
 import { Services, DB, Logger, prefixes } from '../../types.js';
 import { HexString } from '../../monitoring/types.js';
@@ -17,6 +17,11 @@ import { Janitor } from '../../persistence/janitor.js';
 import { TelemetryEventEmitter } from '../../telemetry/types.js';
 
 import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js';
+
+/**
+ * Storage keys to be cached.
+ */
+const captureStorageKeys: HexString[] = [parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages];
 
 /**
  * A local cache for seen blocks and storage items.
@@ -71,27 +76,26 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
       })
     );
 
-    // TODO configurable storage items by storage key to keep
-    // XXX this should not be hardcoded
+    const fromStorage = (_api: ApiRx, hash: Hash) =>
+      zip(captureStorageKeys.map((key) => from(_api.rpc.state.getStorage<Raw>(key, hash)))).pipe(
+        map((items) => {
+          return items.map((value, index) => ({
+            key: captureStorageKeys[index],
+            value,
+          }));
+        })
+      );
+
     const msgs$ = block$.pipe(
       mergeMap((block) => {
         return api.pipe(
-          switchMap((_api) => _api.at(block.block.header.hash)),
-          mergeMap((at) =>
-            zip([
-              from(at.query.parachainSystem.hrmpOutboundMessages()) as Observable<
-                Vec<PolkadotCorePrimitivesOutboundHrmpMessage>
-              >,
-              from(at.query.parachainSystem.upwardMessages()) as Observable<Vec<Bytes>>,
-            ])
-          ),
-          this.#tapError(chainId, 'zip(hrmpOutboundMessages & upwardMessages)'),
+          switchMap((_api) => fromStorage(_api, block.block.header.hash)),
+          this.#tapError(chainId, `captureStorage(${captureStorageKeys.join(',')})`),
           retryWithTruncatedExpBackoff(),
-          map(([hrmpMessages, umpMessages]) => {
+          map((storageItems) => {
             return {
               block,
-              hrmpMessages,
-              umpMessages,
+              storageItems,
             };
           })
         );
@@ -110,39 +114,30 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     } else {
       this.#subs[chainId] = msgs$
         .pipe(
-          map(({ block, hrmpMessages, umpMessages }) => {
+          map(({ block, storageItems }) => {
             const ops = [from(this.#putBlockBuffer(chainId, block))];
             const hash = block.block.header.hash.toHex();
 
-            if (hrmpMessages.length > 0) {
+            for (const storageItem of storageItems) {
               ops.push(
                 from(
                   this.#putBuffer(
                     chainId,
-                    prefixes.cache.keys.storage(parachainSystemHrmpOutboundMessages, hash),
-                    hrmpMessages.toU8a()
+                    prefixes.cache.keys.storage(storageItem.key, hash),
+                    storageItem.value.toU8a(true)
                   )
                 )
               );
             }
-            if (umpMessages.length > 0) {
-              ops.push(
-                from(
-                  this.#putBuffer(
-                    chainId,
-                    prefixes.cache.keys.storage(parachainSystemUpwardMessages, hash),
-                    umpMessages.toU8a()
-                  )
-                )
-              );
-            }
+
             return ops;
           }),
           mergeAll()
         )
         .subscribe({
-          error: (error) =>
-            this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId),
+          error: (error: unknown) => {
+            this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId);
+          },
         });
     }
   }
