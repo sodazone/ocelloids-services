@@ -53,7 +53,7 @@ jest.unstable_mockModule('@polkadot/api', () => {
   };
 });
 
-jest.unstable_mockModule('@sodazone/ocelloids', () => {
+jest.unstable_mockModule('@sodazone/ocelloids-sdk', () => {
   return {
     __esModule: true,
     ...C,
