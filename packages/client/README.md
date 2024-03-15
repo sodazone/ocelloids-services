@@ -1,6 +1,6 @@
-# XCM Monitoring Client Library
+# Ocelloids Client Library
 
-Client library for the XCM Monitoring Server.
+Client library for the Ocelloids Server.
 
 ## Usage
 
@@ -32,7 +32,7 @@ const ws = client.subscribe({
 });
 ```
 
-Please, browse the [documentation site](https://sodazone.github.io/xcm-monitoring/) for details.
+Please, browse the [documentation site](https://sodazone.github.io/ocelloids-server/) for details.
 
 ## Development
 

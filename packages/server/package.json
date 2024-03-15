@@ -1,8 +1,8 @@
 {
-  "name": "xcmon-server",
+  "name": "@sodazone/ocelloids-server",
   "version": "1.0.0",
   "type": "module",
-  "description": "XCM monitoring server",
+  "description": "Ocelloids server",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
     "Marc Fornós <marc@soda.zone>",

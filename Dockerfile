@@ -1,6 +1,6 @@
 FROM node:20-alpine AS builder
 
-WORKDIR /opt/xcmon
+WORKDIR /opt/oc
 
 RUN corepack enable
 
@@ -15,20 +15,20 @@ RUN mkdir -p chain-specs config && \
 yarn run server build && \
 yarn cache clear && \
 rm -rf node_modules/ && \
-yarn workspaces focus --production xcmon-server
+yarn workspaces focus --production @sodazone/ocelloids-server
 
 FROM node:20-alpine AS runner
 
-LABEL org.opencontainers.image.source=https://github.com/sodazone/xcm-monitoring
-LABEL org.opencontainers.image.description="Ocelloids XCM Monitoring Server"
+LABEL org.opencontainers.image.source=https://github.com/sodazone/ocelloids-server
+LABEL org.opencontainers.image.description="Ocelloids Integrated Server"
 
-WORKDIR /opt/xcmon
+WORKDIR /opt/oc
 
 ENV NODE_ENV=production
-ENV XCMON_HOST=0.0.0.0
+ENV OC_HOST=0.0.0.0
 EXPOSE 3000
 
-COPY --from=builder /opt/xcmon/node_modules ./node_modules
-COPY --from=builder /opt/xcmon/packages/server/package.json /opt/xcmon/packages/server/dist ./
+COPY --from=builder /opt/oc/node_modules ./node_modules
+COPY --from=builder /opt/oc/packages/server/package.json /opt/oc/packages/server/dist ./
 
 ENTRYPOINT ["node", "main.js"]

@@ -2,7 +2,7 @@
   "name": "@sodazone/ocelloids-client",
   "version": "1.0.0",
   "type": "module",
-  "description": "XCM monitoring client library",
+  "description": "Ocelloids client library",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
     "Marc Fornós <marc@soda.zone>",

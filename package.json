@@ -1,7 +1,7 @@
 {
-  "name": "xcmon-root",
+  "name": "@sodazone/ocelloids-server-root",
   "version": "1.0.0",
-  "description": "XCM monitoring repo",
+  "description": "Ocelloids Server",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
     "Marc Fornós <marc@soda.zone>",
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "yarn server build && yarn client build",
-    "server": "yarn workspace xcmon-server",
+    "server": "yarn workspace @sodazone/ocelloids-server",
     "client": "yarn workspace @sodazone/ocelloids-client"
   },
   "license": "Apache-2.0",
