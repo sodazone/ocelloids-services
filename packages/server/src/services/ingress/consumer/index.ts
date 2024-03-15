@@ -1,4 +1,4 @@
-import { Observable, Subject, from } from 'rxjs';
+import { Observable, Subject, map, from, shareReplay, firstValueFrom } from 'rxjs';
 
 import { TypeRegistry, Metadata } from '@polkadot/types';
 import type { Registry } from '@polkadot/types-codec/types';
@@ -46,7 +46,7 @@ function createRegistry(bytes: Buffer | Uint8Array) {
 export interface IngressConsumer {
   finalizedBlocks(chainId: string): Observable<SignedBlockExtended>;
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>;
-  getRegistry(chainId: string): Promise<Registry>;
+  getRegistry(chainId: string): Observable<Registry>;
   isRelay(chainId: string): boolean;
   isNetworkDefined(chainId: string): boolean;
   getChainIds(): string[];
@@ -62,8 +62,8 @@ export interface IngressConsumer {
  */
 export class DistributedIngressConsumer implements IngressConsumer {
   readonly #log: Logger;
-  readonly #blockConsumers: Record<string, Subject<SignedBlockExtended>> = {};
-  readonly #registries: Record<string, Registry> = {};
+  readonly #blockConsumers: Record<string, Subject<SignedBlockExtended>>;
+  readonly #registries$: Record<string, Observable<Registry>>;
   readonly #distributor: RedisDistributor;
 
   #networks: NetworkRecord = {};
@@ -71,6 +71,8 @@ export class DistributedIngressConsumer implements IngressConsumer {
   constructor(ctx: Services, opts: IngressOptions) {
     this.#log = ctx.log;
     this.#distributor = new RedisDistributor(opts, ctx);
+    this.#blockConsumers = {};
+    this.#registries$ = {};
   }
 
   async start() {
@@ -80,13 +82,8 @@ export class DistributedIngressConsumer implements IngressConsumer {
     for (const chainId of this.getChainIds()) {
       this.#blockConsumers[chainId] = new Subject<SignedBlockExtended>();
 
-      // TODO this would be a stream of one (?) element
-      // so we don't depend on the start order of services
-      // + it can be updated on runtime upgrades
-      const registry = await this.getRegistry(chainId);
-
       this.#log.info('[%s] Distributed block consumer', chainId);
-      this.#blockStreamFromRedis(registry, chainId);
+      await this.#blockStreamFromRedis(chainId);
     }
   }
 
@@ -102,18 +99,22 @@ export class DistributedIngressConsumer implements IngressConsumer {
     return consumer.asObservable();
   }
 
-  async getRegistry(chainId: string): Promise<Registry> {
-    if (this.#registries[chainId]) {
-      return this.#registries[chainId];
+  getRegistry(chainId: string): Observable<Registry> {
+    if (this.#registries$[chainId] === undefined) {
+      this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
+        map((metadata) => {
+          if (metadata === null) {
+            throw new Error(`No metadata found for ${chainId}`);
+          }
+          return createRegistry(metadata);
+        }),
+        // TODO retry
+        shareReplay({
+          refCount: true,
+        })
+      );
     }
-    const bytes = await this.#distributor.getBuffers(getMetadataKey(chainId));
-    if (bytes) {
-      const registry = createRegistry(bytes);
-      this.#registries[chainId] = registry;
-      return registry;
-    } else {
-      throw new Error(`[${chainId}] runtime metadata not found`);
-    }
+    return this.#registries$[chainId];
   }
 
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
@@ -196,9 +197,10 @@ export class DistributedIngressConsumer implements IngressConsumer {
     );
   }
 
-  #blockStreamFromRedis(registry: Registry, chainId: string, id: string = '$') {
+  async #blockStreamFromRedis(chainId: string, id: string = '$') {
     const subject = this.#blockConsumers[chainId];
     const key = getBlockStreamKey(chainId);
+    const registry = await firstValueFrom(this.getRegistry(chainId));
 
     this.#distributor.readBuffers<{
       bytes: Buffer;
@@ -232,12 +234,13 @@ export class LocalIngressConsumer implements IngressConsumer {
   readonly #log: Logger;
   readonly #headCatcher: HeadCatcher;
   readonly #config: ServiceConfiguration;
-  readonly #registries: Record<string, Registry> = {};
+  readonly #registries$: Record<string, Observable<Registry>>;
 
   constructor(ctx: Services) {
     this.#log = ctx.log;
     this.#config = ctx.localConfig;
     this.#headCatcher = new HeadCatcher(ctx);
+    this.#registries$ = {};
   }
 
   async start() {
@@ -264,15 +267,17 @@ export class LocalIngressConsumer implements IngressConsumer {
     return this.#headCatcher.finalizedBlocks(chainId);
   }
 
-  async getRegistry(chainId: string): Promise<Registry> {
-    if (this.#registries[chainId]) {
-      return this.#registries[chainId];
+  getRegistry(chainId: string): Observable<Registry> {
+    if (this.#registries$[chainId] === undefined) {
+      this.#registries$[chainId] = from(this.#headCatcher.getApiPromise(chainId).isReady).pipe(
+        map((api) => api.registry),
+        // TODO retry
+        shareReplay({
+          refCount: true,
+        })
+      );
     }
-    const api = await this.#headCatcher.getApiPromise(chainId).isReady;
-    const metadata = await api.rpc.state.getMetadata();
-    const registry = createRegistry(metadata.toU8a());
-    this.#registries[chainId] = registry;
-    return registry;
+    return this.#registries$[chainId];
   }
 
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
