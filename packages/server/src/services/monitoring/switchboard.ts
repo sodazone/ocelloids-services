@@ -544,7 +544,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                     this.#getDmp(chainId, registry),
                     registry
                   ),
-                  this.#emitOutbound(id, registry)
+                  this.#emitOutbound(id, chainId, registry)
                 )
               )
             )
@@ -569,7 +569,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                     this.#getDmp(chainId, registry),
                     registry
                   ),
-                  this.#emitOutbound(id, registry)
+                  this.#emitOutbound(id, chainId, registry)
                 )
               )
             )
@@ -594,7 +594,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                     this.#getHrmp(chainId, registry),
                     registry
                   ),
-                  this.#emitOutbound(id, registry)
+                  this.#emitOutbound(id, chainId, registry)
                 )
               )
             )
@@ -620,7 +620,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                     registry
                   ),
                   retryWithTruncatedExpBackoff(),
-                  this.#emitOutbound(id, registry)
+                  this.#emitOutbound(id, chainId, registry)
                 )
               )
             )
@@ -786,7 +786,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       source.pipe(switchMap((msg) => from(this.#engine.onInboundMessage(new XcmInbound(id, chainId, msg)))));
   }
 
-  #emitOutbound(id: string, registry: Registry) {
+  #emitOutbound(id: string, origin: string, registry: Registry) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
         extractXcmWaypoints(registry),
