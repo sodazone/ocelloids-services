@@ -2165,6 +2165,74 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sodazone/ocelloids-server-root@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@sodazone/ocelloids-server-root@workspace:."
+  dependencies:
+    eslint: "npm:^8.57.0"
+    eslint-config-prettier: "npm:^9.1.0"
+    eslint-plugin-prettier: "npm:^5.1.3"
+    prettier: "npm:3.2.5"
+    typescript: "npm:^5.4.2"
+    typescript-eslint: "npm:^7.1.1"
+  languageName: unknown
+  linkType: soft
+
+"@sodazone/ocelloids-server@workspace:packages/server":
+  version: 0.0.0-use.local
+  resolution: "@sodazone/ocelloids-server@workspace:packages/server"
+  dependencies:
+    "@babel/core": "npm:^7.24.0"
+    "@fastify/cors": "npm:^9.0.1"
+    "@fastify/jwt": "npm:^8.0.0"
+    "@fastify/swagger": "npm:^8.14.0"
+    "@fastify/swagger-ui": "npm:^3.0.0"
+    "@fastify/websocket": "npm:^9.0.0"
+    "@sodazone/ocelloids-sdk": "npm:^1.2.2"
+    "@swc/core": "npm:^1.4.6"
+    "@swc/jest": "npm:^0.2.36"
+    "@types/babel__core": "npm:^7.20.5"
+    "@types/jest": "npm:^29.5.12"
+    "@types/node": "npm:^20.11.25"
+    "@types/ws": "npm:^8.5.10"
+    "@typescript-eslint/eslint-plugin": "npm:^7.1.1"
+    "@typescript-eslint/parser": "npm:^7.1.1"
+    async-mutex: "npm:^0.4.1"
+    babel-jest: "npm:^29.7.0"
+    cbor-x: "npm:^1.5.8"
+    close-with-grace: "npm:^1.3.0"
+    commander: "npm:^12.0.0"
+    dotenv: "npm:^16.4.5"
+    eslint: "npm:^8.57.0"
+    fastify: "npm:^4.26.2"
+    fastify-healthcheck: "npm:^4.4.0"
+    fastify-plugin: "npm:^4.5.1"
+    got: "npm:^14.2.1"
+    handlebars: "npm:^4.7.8"
+    jest: "npm:^29.7.0"
+    level: "npm:^8.0.1"
+    lru-cache: "npm:^10.2.0"
+    memory-level: "npm:^1.0.0"
+    nock: "npm:^13.5.4"
+    nodemon: "npm:^3.1.0"
+    patch-package: "npm:^8.0.0"
+    pino-pretty: "npm:^10.3.1"
+    prom-client: "npm:^15.1.0"
+    redis: "npm:^4.6.13"
+    rfc6902: "npm:^5.1.1"
+    toml: "npm:^3.0.0"
+    ts-jest: "npm:^29.1.2"
+    tsx: "npm:^4.7.1"
+    typescript: "npm:^5.4.2"
+    ulidx: "npm:^2.3.0"
+    zod: "npm:^3.22.4"
+    zod-to-json-schema: "npm:^3.22.4"
+  bin:
+    oc-exec: ./dist/main.js
+    oc-ingress: ./dist/services/ingress/server/main.js
+  languageName: unknown
+  linkType: soft
+
 "@substrate/connect-extension-protocol@npm:^1.0.1":
   version: 1.0.1
   resolution: "@substrate/connect-extension-protocol@npm:1.0.1"
@@ -8462,74 +8530,6 @@ __metadata:
   checksum: 10c0/a7783bb421c648b1e622b423409cb2a58ac5839521d2f689e84bc9dc41d59379c692dd405b15a997ea1d4c0c2e5314ad707332d0c558f15232d2bc07c0b4618a
   languageName: node
   linkType: hard
-
-"xcmon-root@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "xcmon-root@workspace:."
-  dependencies:
-    eslint: "npm:^8.57.0"
-    eslint-config-prettier: "npm:^9.1.0"
-    eslint-plugin-prettier: "npm:^5.1.3"
-    prettier: "npm:3.2.5"
-    typescript: "npm:^5.4.2"
-    typescript-eslint: "npm:^7.1.1"
-  languageName: unknown
-  linkType: soft
-
-"xcmon-server@workspace:packages/server":
-  version: 0.0.0-use.local
-  resolution: "xcmon-server@workspace:packages/server"
-  dependencies:
-    "@babel/core": "npm:^7.24.0"
-    "@fastify/cors": "npm:^9.0.1"
-    "@fastify/jwt": "npm:^8.0.0"
-    "@fastify/swagger": "npm:^8.14.0"
-    "@fastify/swagger-ui": "npm:^3.0.0"
-    "@fastify/websocket": "npm:^9.0.0"
-    "@sodazone/ocelloids-sdk": "npm:^1.2.2"
-    "@swc/core": "npm:^1.4.6"
-    "@swc/jest": "npm:^0.2.36"
-    "@types/babel__core": "npm:^7.20.5"
-    "@types/jest": "npm:^29.5.12"
-    "@types/node": "npm:^20.11.25"
-    "@types/ws": "npm:^8.5.10"
-    "@typescript-eslint/eslint-plugin": "npm:^7.1.1"
-    "@typescript-eslint/parser": "npm:^7.1.1"
-    async-mutex: "npm:^0.4.1"
-    babel-jest: "npm:^29.7.0"
-    cbor-x: "npm:^1.5.8"
-    close-with-grace: "npm:^1.3.0"
-    commander: "npm:^12.0.0"
-    dotenv: "npm:^16.4.5"
-    eslint: "npm:^8.57.0"
-    fastify: "npm:^4.26.2"
-    fastify-healthcheck: "npm:^4.4.0"
-    fastify-plugin: "npm:^4.5.1"
-    got: "npm:^14.2.1"
-    handlebars: "npm:^4.7.8"
-    jest: "npm:^29.7.0"
-    level: "npm:^8.0.1"
-    lru-cache: "npm:^10.2.0"
-    memory-level: "npm:^1.0.0"
-    nock: "npm:^13.5.4"
-    nodemon: "npm:^3.1.0"
-    patch-package: "npm:^8.0.0"
-    pino-pretty: "npm:^10.3.1"
-    prom-client: "npm:^15.1.0"
-    redis: "npm:^4.6.13"
-    rfc6902: "npm:^5.1.1"
-    toml: "npm:^3.0.0"
-    ts-jest: "npm:^29.1.2"
-    tsx: "npm:^4.7.1"
-    typescript: "npm:^5.4.2"
-    ulidx: "npm:^2.3.0"
-    zod: "npm:^3.22.4"
-    zod-to-json-schema: "npm:^3.22.4"
-  bin:
-    oc-exec: ./dist/main.js
-    oc-ingress: ./dist/services/ingress/server/main.js
-  languageName: unknown
-  linkType: soft
 
 "xtend@npm:^4.0.0, xtend@npm:^4.0.2":
   version: 4.0.2

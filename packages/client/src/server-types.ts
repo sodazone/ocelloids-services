@@ -13,4 +13,4 @@ export type {
   AssetsTrapped,
   TrappedAsset,
   Leg,
-} from 'xcmon-server';
+} from '@sodazone/ocelloids-server';

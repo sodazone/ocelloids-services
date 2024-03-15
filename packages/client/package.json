@@ -11,7 +11,7 @@
   "source": "./src/lib.ts",
   "main": "./dist/lib.cjs",
   "module": "./dist/lib.js",
-  "types": "./dist/xcmon-client.d.ts",
+  "types": "./dist/ocelloids-client.d.ts",
   "files": [
     "/dist",
     "/src"
