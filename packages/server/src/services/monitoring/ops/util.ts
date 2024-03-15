@@ -10,7 +10,7 @@ import type {
 import type { U8aFixed } from '@polkadot/types-codec';
 import type { H256 } from '@polkadot/types/interfaces/runtime';
 
-import { types } from '@sodazone/ocelloids';
+import { types } from '@sodazone/ocelloids-sdk';
 
 import { AssetsTrapped, HexString, TrappedAsset } from '../types.js';
 import {

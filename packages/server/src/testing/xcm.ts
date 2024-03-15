@@ -13,7 +13,7 @@ import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
 } from '@polkadot/types/lookup';
 import spec from '@polkadot/types-support/metadata/static-polkadot';
-import { ControlQuery } from '@sodazone/ocelloids';
+import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 import { testBlocksFrom } from './blocks.js';
 import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js';

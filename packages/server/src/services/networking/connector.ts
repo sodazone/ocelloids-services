@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { WsProvider, ScProvider } from '@polkadot/api';
-import { config as oconfig, SubstrateApis, Smoldot } from '@sodazone/ocelloids';
+import { config as oconfig, SubstrateApis, Smoldot } from '@sodazone/ocelloids-sdk';
 
 import { NetworkConfiguration, ServiceConfiguration } from '../config.js';
 import { Logger } from '../types.js';

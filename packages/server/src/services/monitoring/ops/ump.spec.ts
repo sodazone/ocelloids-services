@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { extractEvents } from '@sodazone/ocelloids';
+import { extractEvents } from '@sodazone/ocelloids-sdk';
 
 import { umpReceive, umpSend, registry } from '../../../testing/xcm.js';
 

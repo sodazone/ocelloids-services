@@ -10,7 +10,7 @@ import type { IU8a } from '@polkadot/types-codec/types';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 
-import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids';
+import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids-sdk';
 
 import {
   AnyJson,

@@ -1,7 +1,7 @@
 import { map, Observable, mergeMap, filter, bufferCount } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids';
+import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   GenericXcmInboundWithContext,

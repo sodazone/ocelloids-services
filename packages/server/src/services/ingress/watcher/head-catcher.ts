@@ -30,7 +30,7 @@ import {
   retryWithTruncatedExpBackoff,
   SubstrateApis,
   filterNonNull,
-} from '@sodazone/ocelloids';
+} from '@sodazone/ocelloids-sdk';
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../../types.js';
 import { ChainHead as ChainTip, HexString, BlockNumberRange } from '../../monitoring/types.js';

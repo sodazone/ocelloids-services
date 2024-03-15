@@ -3,7 +3,7 @@ import { Observable, map, mergeMap, filter } from 'rxjs';
 import type { PolkadotPrimitivesV5InherentData } from '@polkadot/types/lookup';
 import type { Registry } from '@polkadot/types/types';
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids';
+import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 import { getMessageId, matchExtrinsic } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js';

@@ -78,7 +78,7 @@
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^3.0.0",
     "@fastify/websocket": "^9.0.0",
-    "@sodazone/ocelloids": "^1.2.1",
+    "@sodazone/ocelloids-sdk": "^1.2.2",
     "async-mutex": "^0.4.1",
     "cbor-x": "^1.5.8",
     "close-with-grace": "^1.3.0",

@@ -1496,7 +1496,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot/api@npm:10.12.2":
+"@polkadot/api@npm:10.12.2, @polkadot/api@npm:^10.12.2":
   version: 10.12.2
   resolution: "@polkadot/api@npm:10.12.2"
   dependencies:
@@ -2153,15 +2153,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sodazone/ocelloids@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "@sodazone/ocelloids@npm:1.2.1"
+"@sodazone/ocelloids-sdk@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "@sodazone/ocelloids-sdk@npm:1.2.2"
   dependencies:
-    "@polkadot/api": "npm:^10.11.2"
-    "@substrate/connect-known-chains": "npm:^1.0.6"
-    mingo: "npm:^6.4.10"
+    "@polkadot/api": "npm:^10.12.2"
+    "@substrate/connect-known-chains": "npm:^1.1.1"
+    mingo: "npm:^6.4.12"
     rxjs: "npm:^7.8.1"
-  checksum: 10c0/77ec927bb9bc40690e3740cb73e59a96cc472cd3ad19152db868f705fd92fc442bc8d03debe5252107a0bba2fda25e326648d8452aad4e3cb86ee910a5438b1f
+  checksum: 10c0/274c0076ec46fe9b233cb009958d1046d2802e03a64059d94070337a28ee0cb81816de2ee3c9b11e404d9885c8c03807710c5acbec7449767728c2e7819df4f0
   languageName: node
   linkType: hard
 
@@ -2186,10 +2186,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@substrate/connect-known-chains@npm:^1.0.6":
-  version: 1.0.8
-  resolution: "@substrate/connect-known-chains@npm:1.0.8"
-  checksum: 10c0/5821379d512a5cac34a8b617a97b52775a7adb6b18530f93f6823ddffc5c54f2065e3129e2c4ca637e5c803fd657727e11a64fe813db97dde7a485f4df220200
+"@substrate/connect-known-chains@npm:^1.1.1":
+  version: 1.1.2
+  resolution: "@substrate/connect-known-chains@npm:1.1.2"
+  checksum: 10c0/b5a9f7cef561efcaa9e97b438a34c03279bb7d217aef5fc7ffc20f80f5144f753c2eff84b866521d215fed397caf55d94fe09047aaba777460f31ad5e82cb296
   languageName: node
   linkType: hard
 
@@ -6166,10 +6166,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mingo@npm:^6.4.10":
-  version: 6.4.10
-  resolution: "mingo@npm:6.4.10"
-  checksum: 10c0/7f32b9408b79bfb74d45bb47f458765a0581605f1daf89303acd2581ee890729aad5b21df738c1bc81251cdb9f25b7593990aebe882f878dc4f246f609e05978
+"mingo@npm:^6.4.12":
+  version: 6.4.12
+  resolution: "mingo@npm:6.4.12"
+  checksum: 10c0/6ac8ada0479ad710c3df27a5d7d20b998afe62fa60a6b8a955b0b50d01e066f53fd8273626d85c07fdc58a4f7133ae159388c81ced38067217486027f5076359
   languageName: node
   linkType: hard
 
@@ -8486,7 +8486,7 @@ __metadata:
     "@fastify/swagger": "npm:^8.14.0"
     "@fastify/swagger-ui": "npm:^3.0.0"
     "@fastify/websocket": "npm:^9.0.0"
-    "@sodazone/ocelloids": "npm:^1.2.1"
+    "@sodazone/ocelloids-sdk": "npm:^1.2.2"
     "@swc/core": "npm:^1.4.6"
     "@swc/jest": "npm:^0.2.36"
     "@types/babel__core": "npm:^7.20.5"

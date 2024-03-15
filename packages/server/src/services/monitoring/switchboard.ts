@@ -9,7 +9,7 @@ import {
   types,
   extractTxWithEvents,
   flattenCalls,
-} from '@sodazone/ocelloids';
+} from '@sodazone/ocelloids-sdk';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services } from '../types.js';

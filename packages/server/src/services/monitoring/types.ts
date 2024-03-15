@@ -2,7 +2,7 @@ import z from 'zod';
 
 import { Subscription as RxSubscription } from 'rxjs';
 
-import { ControlQuery } from '@sodazone/ocelloids';
+import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 /**
  * @public

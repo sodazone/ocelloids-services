@@ -1,4 +1,4 @@
-import { ControlQuery, Criteria, types } from '@sodazone/ocelloids';
+import { ControlQuery, Criteria, types } from '@sodazone/ocelloids-sdk';
 import { XcmSentWithContext } from '../types.js';
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {

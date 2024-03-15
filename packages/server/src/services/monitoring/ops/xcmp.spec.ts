@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { ControlQuery, extractEvents } from '@sodazone/ocelloids';
+import { ControlQuery, extractEvents } from '@sodazone/ocelloids-sdk';
 
 import { xcmpSend, xcmpReceive, registry, xcmHop } from '../../../testing/xcm.js';
 

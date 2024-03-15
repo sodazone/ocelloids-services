@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { MemoryLevel } from 'memory-level';
 import * as P from '@polkadot/api';
-import * as C from '@sodazone/ocelloids';
+import * as C from '@sodazone/ocelloids-sdk';
 
 import { _configToml } from './data.js';
 

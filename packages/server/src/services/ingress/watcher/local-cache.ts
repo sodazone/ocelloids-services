@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import { SubstrateApis, blocks, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids';
+import { SubstrateApis, blocks, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk';
 
 import { Subscription, Observable, mergeAll, zip, mergeMap, from, tap, switchMap, map } from 'rxjs';
 

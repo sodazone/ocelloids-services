@@ -10,7 +10,7 @@ import type {
 
 import type { U8aFixed, bool } from '@polkadot/types-codec';
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids';
+import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   GenericXcmInboundWithContext,

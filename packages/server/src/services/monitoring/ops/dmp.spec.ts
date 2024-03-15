@@ -12,7 +12,7 @@ import {
   xcmHopOrigin,
 } from '../../../testing/xcm.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js';
-import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids';
+import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk';
 
 const getDmp = () =>
   of([

@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 import { relayHrmpReceive, registry } from '../../../testing/xcm.js';
 import { extractRelayReceive } from './relay.js';
-import { extractTxWithEvents } from '@sodazone/ocelloids';
+import { extractTxWithEvents } from '@sodazone/ocelloids-sdk';
 import { messageCriteria } from './criteria.js';
 
 describe('relay operator', () => {
