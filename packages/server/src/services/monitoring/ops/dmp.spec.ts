@@ -17,9 +17,7 @@ import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk';
 const getDmp = () =>
   of([
     {
-      msg: {
-        toU8a: () => new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
-      },
+      msg: new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
       toU8a: () => new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
     },
   ] as unknown as any);

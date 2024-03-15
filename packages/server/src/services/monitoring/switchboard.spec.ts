@@ -53,6 +53,9 @@ describe('switchboard service', () => {
           blockHash: '0x0',
           messageHash: '0x0',
           messageData: new Uint8Array([0x00]),
+          instructions: {
+            bytes: '0x0300'
+          }
         } as unknown as XcmSentWithContext);
       };
     });
@@ -60,7 +63,9 @@ describe('switchboard service', () => {
       return () => {
         return of({
           recipient: 2000,
-          blockNumber: 1,
+          blockNumber: {
+            toString: () => 1
+          },
           blockHash: '0x0',
           messageHash: '0x0',
           outcome: 'Success',
@@ -68,10 +73,27 @@ describe('switchboard service', () => {
       };
     });
     (extractUmpSend as jest.Mock).mockImplementation(() => {
-      return () => of({});
+      return () => of({
+        recipient: 0,
+        blockNumber: 1,
+        blockHash: '0x0',
+        messageHash: '0x0',
+        messageData: new Uint8Array([0x00]),
+        instructions: {
+          bytes: '0x0300'
+        }
+      } as unknown as XcmSentWithContext);
     });
     (extractUmpReceive as jest.Mock).mockImplementation(() => {
-      return () => of({});
+      return () => of({
+        recipient: 0,
+        blockNumber: {
+          toString: () => 1
+        },
+        blockHash: '0x0',
+        messageHash: '0x0',
+        outcome: 'Success',
+      } as unknown as XcmInboundWithContext);
     });
 
     subs = _services.subsStore;

@@ -23,6 +23,10 @@ export const _mockApiPromises = {
   '0': {
     isReady: Promise.resolve({
       registry: {
+        createType: () => ({
+          type: 'V3',
+          asV3: []
+        }),
         hasType: () => true,
       },
       derive: {
@@ -42,6 +46,10 @@ export const _mockApiPromises = {
   '1000': {
     isReady: Promise.resolve({
       registry: {
+        createType: () => ({
+          type: 'V3',
+          asV3: []
+        }),
         hasType: () => true,
       },
       derive: {
@@ -66,6 +74,10 @@ export const _mockApiPromises = {
   '2000': {
     isReady: Promise.resolve({
       registry: {
+        createType: () => ({
+          type: 'V3',
+          asV3: []
+        }),
         hasType: () => true,
       },
       derive: {
@@ -85,6 +97,10 @@ export const _mockApiPromises = {
   '3000': {
     isReady: Promise.resolve({
       registry: {
+        createType: () => ({
+          type: 'V3',
+          asV3: []
+        }),
         hasType: () => true,
       },
       derive: {
