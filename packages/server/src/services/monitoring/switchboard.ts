@@ -483,7 +483,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #monitorOrigins({ id, origin, senders, destinations }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
     const chainId = origin;
-    const registry$ = from(this.#ingress.getRegistry(chainId));
 
     if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`);
@@ -493,7 +492,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     const messageControl = ControlQuery.from(messageCriteria(destinations));
 
     const emitOutbound = () => (source: Observable<XcmSentWithContext>) =>
-      registry$.pipe(
+    this.#ingress.getRegistry(chainId).pipe(
         switchMap((registry) =>
           source.pipe(
             extractXcmWaypoints(registry),
@@ -543,7 +542,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: registry$
+          sub: this.#ingress.getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
@@ -567,7 +566,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: registry$
+          sub: this.#ingress.getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
@@ -591,7 +590,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: registry$
+          sub: this.#ingress.getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
@@ -615,7 +614,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
         subs.push({
           chainId,
-          sub: registry$
+          sub: this.#ingress.getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
@@ -688,7 +687,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
     return {
       chainId,
-      sub: from(this.#ingress.getRegistry('0'))
+      sub: this.#ingress.getRegistry('0')
         .pipe(
           switchMap((registry) =>
             this.#sharedBlockExtrinsics('0').pipe(
