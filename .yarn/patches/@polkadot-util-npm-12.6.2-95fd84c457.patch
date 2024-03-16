@@ -1,3 +1,24 @@
+diff --git a/cjs/memoize.js b/cjs/memoize.js
+index a7d54cf099cdee0bc6641b08a809c8f1482f1279..9b7917ebf0db9005efbf59efaadbc7ce651fd72f 100644
+--- a/cjs/memoize.js
++++ b/cjs/memoize.js
+@@ -12,15 +12,7 @@ function defaultGetId() {
+ function memoize(fn, { getInstanceId = defaultGetId } = {}) {
+     const cache = {};
+     const memoized = (...args) => {
+-        const stringParams = (0, stringify_js_1.stringify)(args);
+-        const instanceId = getInstanceId();
+-        if (!cache[instanceId]) {
+-            cache[instanceId] = {};
+-        }
+-        if (cache[instanceId][stringParams] === undefined) {
+-            cache[instanceId][stringParams] = fn(...args);
+-        }
+-        return cache[instanceId][stringParams];
++        return fn(...args);
+     };
+     memoized.unmemoize = (...args) => {
+         const stringParams = (0, stringify_js_1.stringify)(args);
 diff --git a/memoize.js b/memoize.js
 index 5d4b1afe306673da986ec68276b1c9fa06041c2e..392570003e6e8d37509794427b0e9f1ffe6200ab 100644
 --- a/memoize.js

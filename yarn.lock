@@ -1722,7 +1722,7 @@ __metadata:
 
 "@polkadot/util@patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch":
   version: 12.6.2
-  resolution: "@polkadot/util@patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch::version=12.6.2&hash=79224a"
+  resolution: "@polkadot/util@patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch::version=12.6.2&hash=a7eeb8"
   dependencies:
     "@polkadot/x-bigint": "npm:12.6.2"
     "@polkadot/x-global": "npm:12.6.2"
@@ -1731,7 +1731,7 @@ __metadata:
     "@types/bn.js": "npm:^5.1.5"
     bn.js: "npm:^5.2.1"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/5941fe3a28d54a2ddd81720638c94ed1c74711b8811588a396fb048278badb9ab53cd222231be6ca49723679a3b59648d89666246cfe49858a9d3232dbce03b1
+  checksum: 10c0/573ab72fdefb63053d06d01064acedf05ffed7afc6313161ae778d2343bdede2308ad38ab87927354e06650b3f48002e7428b2c854f730a98b1a6a7d93492cfd
   languageName: node
   linkType: hard
 
