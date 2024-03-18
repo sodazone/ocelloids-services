@@ -110,6 +110,7 @@ export class DistributedIngressConsumer
     await this.#distributor.stop();
   }
 
+  // TODO: retry??
   finalizedBlocks(chainId: string): Observable<SignedBlockExtended> {
     const consumer = this.#blockConsumers[chainId];
     if (consumer === undefined) {
@@ -136,6 +137,7 @@ export class DistributedIngressConsumer
     return this.#registries$[chainId];
   }
 
+  // TODO: retry??
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     return this.#storageFromRedis(chainId, storageKey, blockHash);
   }

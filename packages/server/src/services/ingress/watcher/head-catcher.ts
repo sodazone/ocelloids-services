@@ -8,7 +8,7 @@ import {
   mergeWith,
   from,
   tap,
-  race,
+  raceWith,
   switchMap,
   map,
   catchError,
@@ -38,6 +38,19 @@ import { ServiceConfiguration } from '../../config.js';
 import { TelemetryEventEmitter } from '../../telemetry/types.js';
 
 import { LocalCache } from './local-cache.js';
+
+// TODO: extract to config
+export const RETRY_INFINITE = {
+  baseDelay: 2000,
+  maxDelay: 900000,
+  maxCount: Infinity
+};
+
+const RETRY_CAPPED = {
+  baseDelay: 2000,
+  maxDelay: 900000,
+  maxCount: 3
+}
 
 const MAX_BLOCK_DIST: bigint = process.env.OC_MAX_BLOCK_DIST ? BigInt(process.env.OC_MAX_BLOCK_DIST) : 50n; // maximum distance in #blocks
 const max = (...args: bigint[]) => args.reduce((m, e) => (e > m ? e : m));
@@ -127,11 +140,25 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           apiRx.pipe(
             finalizedHeads(),
             this.#tapError(chainId, 'finalizedHeads()'),
-            retryWithTruncatedExpBackoff(),
+            retryWithTruncatedExpBackoff(RETRY_INFINITE),
             this.#catchUpHeads(chainId, api),
-            mergeMap((head) => from(this.#localCache.getBlock(chainId, api, head.hash.toHex()))),
-            this.#tapError(chainId, '#getBlock()'),
-            retryWithTruncatedExpBackoff()
+            mergeMap((head) =>
+              from(this.#localCache.getBlock(chainId, api, head.hash.toHex())).pipe(
+                this.#tapError(chainId, '#getBlock()'),
+                // TODO: should be configurable in the server
+                retryWithTruncatedExpBackoff(RETRY_CAPPED),
+                catchError((error) => {
+                  this.#log.error(
+                    '[%s] Unable to get block %s (#%s) %s',
+                    chainId,
+                    head.hash.toHex(),
+                    head.number.toString(),
+                    error
+                  );
+                  return EMPTY;
+                })
+              )
+            )
           )
         ),
         share()
@@ -143,11 +170,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             finalizedHeads(),
             mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
             this.#tapError(chainId, 'finalizedHeads()'),
-            retryWithTruncatedExpBackoff(),
+            retryWithTruncatedExpBackoff(RETRY_INFINITE),
             this.#catchUpHeads(chainId, api),
             blockFromHeader(api),
             this.#tapError(chainId, 'blockFromHeader()'),
-            retryWithTruncatedExpBackoff()
+            retryWithTruncatedExpBackoff(RETRY_INFINITE)
           )
         ),
         share()
@@ -170,15 +197,31 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     const getStorage$ = apiPromise$.pipe(
       switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
       map((data) => data.toU8a(true)),
-      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`),
-      retryWithTruncatedExpBackoff()
+      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`)
     );
 
     if (this.#localCache.has(chainId)) {
-      return race(from(this.#localCache.getStorage(chainId, storageKey, blockHash)).pipe(filterNonNull()), getStorage$);
+      return from(this.#localCache.getStorage(chainId, storageKey, blockHash)).pipe(
+        filterNonNull(),
+        raceWith(getStorage$.pipe(
+          retryWithTruncatedExpBackoff(RETRY_CAPPED),
+          catchError((error) => {
+            this.#log.error(
+              '[%s] Unable to get storage key=%s blockHash=%s',
+              chainId,
+              storageKey,
+              blockHash,
+              error
+            );
+            return EMPTY;
+          })
+        ))
+      );
     }
 
-    return getStorage$;
+    return getStorage$.pipe(
+      retryWithTruncatedExpBackoff(RETRY_INFINITE)
+    );
   }
 
   get chainIds() {
@@ -220,7 +263,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header))
         ),
         this.#tapError(chainId, '#catchUpHeads()'),
-        retryWithTruncatedExpBackoff()
+        retryWithTruncatedExpBackoff(RETRY_INFINITE)
       );
     };
   }

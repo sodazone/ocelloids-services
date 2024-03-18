@@ -17,6 +17,7 @@ import { Janitor } from '../../persistence/janitor.js';
 import { TelemetryEventEmitter } from '../../telemetry/types.js';
 
 import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js';
+import { RETRY_INFINITE } from './head-catcher.js';
 
 /**
  * Storage keys to be cached.
@@ -65,7 +66,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
 
     const block$ = api.pipe(
       blocks(),
-      retryWithTruncatedExpBackoff(),
+      retryWithTruncatedExpBackoff(RETRY_INFINITE),
       tap(({ block: { header } }) => {
         this.#log.debug('[%s] SEEN block #%s %s', chainId, header.number.toString(), header.hash.toHex());
 
@@ -91,7 +92,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
         return api.pipe(
           switchMap((_api) => fromStorage(_api, block.block.header.hash)),
           this.#tapError(chainId, `captureStorage(${captureStorageKeys.join(',')})`),
-          retryWithTruncatedExpBackoff(),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
           map((storageItems) => {
             return {
               block,
