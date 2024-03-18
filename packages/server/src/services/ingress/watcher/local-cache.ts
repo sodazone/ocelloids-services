@@ -159,8 +159,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     } catch (_error) {
       this.#log.warn('[%s] GET block after cache miss (%s)', chainId, hash);
 
-      const apiReady = await api.isReady;
-      return await apiReady.derive.chain.getBlock(hash);
+      return await api.derive.chain.getBlock(hash);
     }
   }
 
