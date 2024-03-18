@@ -5,7 +5,6 @@ import { Registry } from '@polkadot/types-codec/types';
 import {
   ControlQuery,
   extractEvents,
-  retryWithTruncatedExpBackoff,
   types,
   extractTxWithEvents,
   flattenCalls,
@@ -619,7 +618,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
                     this.#getUmp(chainId, registry),
                     registry
                   ),
-                  retryWithTruncatedExpBackoff(),
                   this.#emitOutbound(id, chainId, registry)
                 )
               )
@@ -748,7 +746,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     if (!this.#shared.blockEvents[chainId]) {
       this.#shared.blockEvents[chainId] = this.#ingress
         .finalizedBlocks(chainId)
-        .pipe(extractEvents(), retryWithTruncatedExpBackoff(), share());
+        .pipe(extractEvents(), share());
     }
     return this.#shared.blockEvents[chainId];
   }
@@ -757,7 +755,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     if (!this.#shared.blockExtrinsics[chainId]) {
       this.#shared.blockExtrinsics[chainId] = this.#ingress
         .finalizedBlocks(chainId)
-        .pipe(extractTxWithEvents(), retryWithTruncatedExpBackoff(), flattenCalls(), share());
+        .pipe(extractTxWithEvents(), flattenCalls(), share());
     }
     return this.#shared.blockExtrinsics[chainId];
   }

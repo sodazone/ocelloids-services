@@ -10,7 +10,7 @@ import type { IU8a } from '@polkadot/types-codec/types';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 
-import { filterNonNull, retryWithTruncatedExpBackoff, types } from '@sodazone/ocelloids-sdk';
+import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   AnyJson,
@@ -139,7 +139,6 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
       filterNonNull(),
       mergeMap(({ tx, paraId, beneficiary, assets }) => {
         return getDmp(tx.extrinsic.blockHash.toHex(), paraId).pipe(
-          retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
@@ -204,7 +203,6 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
       filterNonNull(),
       mergeMap(({ paraId, messageId, event }) => {
         return getDmp(event.blockHash.toHex(), paraId).pipe(
-          retryWithTruncatedExpBackoff(),
           map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
