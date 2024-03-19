@@ -19,13 +19,16 @@ const $SmoldotProvider = z.object({
 
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
+const urnRegex = /^urn:ocn:[a-z0-9()+,\-.:=@;$_!*'%/?#]+$/;
+export const $NetworkId = z.string().regex(urnRegex);
+
 const $NetworkConfiguration = z.object({
   name: z
     .string({
       required_error: 'Network name is required',
     })
     .min(1),
-  id: z.number().int().pipe(z.coerce.string()),
+  id: $NetworkId,
   relay: z.string().min(1).optional(),
   provider: $NetworkProvider,
   recovery: z.boolean().optional(),
@@ -36,6 +39,7 @@ export const $ServiceConfiguration = z.object({
   networks: z.array($NetworkConfiguration).min(1),
 });
 
+export type NetworkId = z.infer<typeof $NetworkId>;
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 

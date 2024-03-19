@@ -2,13 +2,7 @@ import EventEmitter from 'node:events';
 
 import { Observable, from, switchMap, map, share } from 'rxjs';
 import { Registry } from '@polkadot/types-codec/types';
-import {
-  ControlQuery,
-  extractEvents,
-  types,
-  extractTxWithEvents,
-  flattenCalls,
-} from '@sodazone/ocelloids-sdk';
+import { ControlQuery, extractEvents, types, extractTxWithEvents, flattenCalls } from '@sodazone/ocelloids-sdk';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services } from '../types.js';
@@ -676,13 +670,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
 
     this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
+    // TODO: should resolve relay id for consensus in context
+    const relayIds = this.#ingress.getRelayIds();
     return {
       chainId,
       sub: this.#ingress
-        .getRegistry('0')
+        .getRegistry(relayIds[0])
         .pipe(
           switchMap((registry) =>
-            this.#sharedBlockExtrinsics('0').pipe(
+            this.#sharedBlockExtrinsics(relayIds[0]).pipe(
               extractRelayReceive(origin, messageControl, registry),
               emitRelayInbound()
             )
@@ -744,9 +740,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   #sharedBlockEvents(chainId: string): Observable<types.BlockEvent> {
     if (!this.#shared.blockEvents[chainId]) {
-      this.#shared.blockEvents[chainId] = this.#ingress
-        .finalizedBlocks(chainId)
-        .pipe(extractEvents(), share());
+      this.#shared.blockEvents[chainId] = this.#ingress.finalizedBlocks(chainId).pipe(extractEvents(), share());
     }
     return this.#shared.blockEvents[chainId];
   }
@@ -774,8 +768,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #shouldMonitorRelay({ origin, destinations, events }: Subscription) {
     return (
       (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
-      origin !== '0' &&
-      destinations.some((d) => d !== '0')
+      !this.#ingress.isRelay(origin) &&
+      destinations.some((d) => !this.#ingress.isRelay(d))
     );
   }
 

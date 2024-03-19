@@ -17,9 +17,11 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
   }
 }
 
+// Assuming we are in the same consensus
 export function messageCriteria(recipients: string[]): Criteria {
+  const paraIds = recipients.map((r) => r.split(':')[3]);
   return {
-    recipient: { $in: recipients },
+    recipient: { $in: paraIds },
   };
 }
 

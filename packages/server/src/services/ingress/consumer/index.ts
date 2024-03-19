@@ -50,6 +50,7 @@ export interface IngressConsumer extends TelemetryEventEmitter {
   finalizedBlocks(chainId: string): Observable<SignedBlockExtended>;
   getStorage(chainId: string, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>;
   getRegistry(chainId: string): Observable<Registry>;
+  getRelayIds(): string[];
   isRelay(chainId: string): boolean;
   isNetworkDefined(chainId: string): boolean;
   getChainIds(): string[];
@@ -144,6 +145,12 @@ export class DistributedIngressConsumer
 
   getChainIds(): string[] {
     return Object.keys(this.#networks);
+  }
+
+  getRelayIds(): string[] {
+    return Object.entries(this.#networks)
+      .filter(([_, value]) => value.isRelay)
+      .map(([key, _]) => key);
   }
 
   isRelay(chainId: string) {
@@ -289,6 +296,10 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
 
   getChainIds(): string[] {
     return this.#headCatcher.chainIds;
+  }
+
+  getRelayIds(): string[] {
+    return this.#config.networks.filter((n) => n.relay === undefined).map((n) => n.id);
   }
 
   isRelay(chainId: string) {

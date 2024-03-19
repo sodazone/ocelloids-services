@@ -43,14 +43,14 @@ import { LocalCache } from './local-cache.js';
 export const RETRY_INFINITE = {
   baseDelay: 2000,
   maxDelay: 900000,
-  maxCount: Infinity
+  maxCount: Infinity,
 };
 
 const RETRY_CAPPED = {
   baseDelay: 2000,
   maxDelay: 900000,
-  maxCount: 3
-}
+  maxCount: 3,
+};
 
 const MAX_BLOCK_DIST: bigint = process.env.OC_MAX_BLOCK_DIST ? BigInt(process.env.OC_MAX_BLOCK_DIST) : 50n; // maximum distance in #blocks
 const max = (...args: bigint[]) => args.reduce((m, e) => (e > m ? e : m));
@@ -203,25 +203,19 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     if (this.#localCache.has(chainId)) {
       return from(this.#localCache.getStorage(chainId, storageKey, blockHash)).pipe(
         filterNonNull(),
-        raceWith(getStorage$.pipe(
-          retryWithTruncatedExpBackoff(RETRY_CAPPED),
-          catchError((error) => {
-            this.#log.error(
-              '[%s] Unable to get storage key=%s blockHash=%s',
-              chainId,
-              storageKey,
-              blockHash,
-              error
-            );
-            return EMPTY;
-          })
-        ))
+        raceWith(
+          getStorage$.pipe(
+            retryWithTruncatedExpBackoff(RETRY_CAPPED),
+            catchError((error) => {
+              this.#log.error('[%s] Unable to get storage key=%s blockHash=%s', chainId, storageKey, blockHash, error);
+              return EMPTY;
+            })
+          )
+        )
       );
     }
 
-    return getStorage$.pipe(
-      retryWithTruncatedExpBackoff(RETRY_INFINITE)
-    );
+    return getStorage$.pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE));
   }
 
   get chainIds() {
