@@ -1,56 +1,59 @@
 import { map, Observable } from 'rxjs';
 
 import type { Registry } from '@polkadot/types/types';
-import type { XcmV2Xcm, XcmV3Xcm, XcmV2MultiLocation, XcmV3MultiLocation } from '@polkadot/types/lookup';
+import type { XcmV2Xcm, XcmV3Xcm } from '@polkadot/types/lookup';
 
 import { XcmSentWithContext } from '../types.js';
-import { getParaIdFromLocation, getParaIdFromMultiLocation, isV4Location } from './util.js';
+import { networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { XcmV4Xcm, XcmV4Location } from './xcm-types.js';
+import { XcmV4Xcm } from './xcm-types.js';
 
-function updateStops(stops: string[], destination: XcmV3MultiLocation | XcmV2MultiLocation | XcmV4Location) {
-  let paraId: string | undefined;
-  if (isV4Location(destination)) {
-    paraId = getParaIdFromLocation(destination);
-  } else {
-    paraId = getParaIdFromMultiLocation(destination);
-  }
-  if (paraId) {
-    stops.push(paraId);
-  }
-}
+// eslint-disable-next-line complexity
+function recursiveExtractStops(origin: string, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: string[]) {
+  for (const instruction of instructions) {
+    let nextStop;
+    let message;
 
-function recursiveExtractStops(message: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: string[]) {
-  for (const instruction of message) {
     if (instruction.isDepositReserveAsset) {
       const { dest, xcm } = instruction.asDepositReserveAsset;
-      updateStops(stops, dest);
-      recursiveExtractStops(xcm, stops);
+      nextStop = dest;
+      message = xcm;
     } else if (instruction.isInitiateReserveWithdraw) {
       const { reserve, xcm } = instruction.asInitiateReserveWithdraw;
-      updateStops(stops, reserve);
-      recursiveExtractStops(xcm, stops);
+      nextStop = reserve;
+      message = xcm;
     } else if (instruction.isInitiateTeleport) {
       const { dest, xcm } = instruction.asInitiateTeleport;
-      updateStops(stops, dest);
-      recursiveExtractStops(xcm, stops);
+      nextStop = dest;
+      message = xcm;
     } else if (instruction.isTransferReserveAsset) {
       const { dest, xcm } = instruction.asTransferReserveAsset;
-      updateStops(stops, dest);
-      recursiveExtractStops(xcm, stops);
+      nextStop = dest;
+      message = xcm;
+    }
+    // TODO: support ExportMessage for bridges
+
+    if (nextStop !== undefined && message !== undefined) {
+      const networkId = networkIdFromMultiLocation(nextStop, origin);
+
+      if (networkId) {
+        stops.push(networkId);
+        recursiveExtractStops(networkId, message, stops);
+      }
     }
   }
+
   return stops;
 }
 
-export function extractXcmWaypoints(registry: Registry) {
+export function extractXcmWaypoints(registry: Registry, origin: string) {
   return (source: Observable<XcmSentWithContext>) =>
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message;
-        const stops = [recipient];
+        const stops = [`urn:ocn:${origin.split(':')[2]}:${recipient}`];
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
-        recursiveExtractStops(versionedXcm[`as${versionedXcm.type}`], stops);
+        recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
         return { message, stops };
       })
     );

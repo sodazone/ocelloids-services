@@ -407,7 +407,7 @@ export interface XcmV4Location extends Struct {
 }
 
 /** @name XcmV4Junctions (57) */
-interface XcmV4Junctions extends Enum {
+export interface XcmV4Junctions extends Enum {
   readonly isHere: boolean;
   readonly isX1: boolean;
   readonly asX1: Vec<XcmV4Junction>;
@@ -429,7 +429,7 @@ interface XcmV4Junctions extends Enum {
 }
 
 /** @name XcmV4Junction (59) */
-interface XcmV4Junction extends Enum {
+export interface XcmV4Junction extends Enum {
   readonly isParachain: boolean;
   readonly asParachain: Compact<u32>;
   readonly isAccountId32: boolean;

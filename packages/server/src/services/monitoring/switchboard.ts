@@ -781,7 +781,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #emitOutbound(id: string, origin: string, registry: Registry) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
-        extractXcmWaypoints(registry),
+        extractXcmWaypoints(registry, origin),
         switchMap(({ message, stops }) =>
           from(this.#engine.onOutboundMessage(new GenericXcmSent(id, origin, message, stops)))
         )

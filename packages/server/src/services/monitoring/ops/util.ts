@@ -2,9 +2,12 @@ import type {
   XcmVersionedMultiLocation,
   XcmV3MultiLocation,
   XcmV2MultiLocation,
+  XcmV3Junctions,
   XcmVersionedMultiAssets,
   XcmV2MultiassetMultiAssets,
   XcmV3MultiassetMultiAssets,
+  XcmV2MultilocationJunctions,
+  XcmV3Junction,
   PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
 } from '@polkadot/types/lookup';
 import type { U8aFixed } from '@polkadot/types-codec';
@@ -19,6 +22,8 @@ import {
   XcmVersionedAssets,
   XcmV4Location,
   XcmV4AssetAssets,
+  XcmV4Junctions,
+  XcmV4Junction,
 } from './xcm-types.js';
 
 /**
@@ -53,43 +58,22 @@ export function getParaIdFromOrigin(
   return undefined;
 }
 
-// eslint-disable-next-line complexity
-export function getParaIdFromMultiLocation(loc: XcmV2MultiLocation | XcmV3MultiLocation): string | undefined {
-  const junctions = loc.interior;
-  switch (junctions.type) {
-    case 'Here':
-      return undefined;
-    case 'X1':
-      return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined;
-    case 'X2':
-    case 'X3':
-    case 'X4':
-    case 'X5':
-    case 'X6':
-    case 'X7':
-    case 'X8':
-      for (const j of junctions[`as${junctions.type}`]) {
-        if (j.isParachain) {
-          return j.asParachain.toString();
-        }
-      }
-      return undefined;
-    default:
-      return undefined;
-  }
+export function isV2Junctions(object: any): object is XcmV2MultilocationJunctions {
+  return (
+    object.asX1 !== undefined &&
+    object.asX1.isGlobalConsensus === undefined &&
+    object.asX1.asGlobalConsensus === undefined
+  );
 }
 
-export function getParaIdFromLocation(loc: XcmV4Location): string | undefined {
-  const junctions = loc.interior;
-  if (junctions.type === 'Here') {
-    return undefined;
-  }
-  for (const j of junctions[`as${junctions.type}`]) {
-    if (j.isParachain) {
-      return j.asParachain.toString();
-    }
-  }
-  return undefined;
+export function isV4Junctions(object: any): object is XcmV4Junctions {
+  return object.asX1 !== undefined && typeof object.asX1[Symbol.iterator] === 'function';
+}
+
+export function isV3Junctions(object: any): object is XcmV3Junctions {
+  return (
+    object.asX1 !== undefined && object.asX1.isGlobalConsensus !== undefined && typeof object.asX1 === 'object'
+  );
 }
 
 export function isV4Location(object: any): object is XcmV4Location {
@@ -101,6 +85,146 @@ export function isV4Location(object: any): object is XcmV4Location {
   );
 }
 
+type NetworkId = {
+  consensus?: string;
+  chainId?: string;
+};
+
+function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
+  const network = j.asGlobalConsensus;
+  if (network.type === 'Ethereum') {
+    n.consensus = network.type.toLowerCase();
+    n.chainId = network.asEthereum.chainId.toString();
+  } else if (network.type !== 'ByFork' && network.type !== 'ByGenesis') {
+    n.consensus = network.type.toLowerCase();
+  }
+}
+
+function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId) {
+  if (junctions.asX1.isGlobalConsensus) {
+    extractConsensusAndId(junctions.asX1, n);
+    if (n.consensus !== undefined && n.chainId !== undefined) {
+      return `urn:ocn:${n.consensus}:${n.chainId}`;
+    }
+  }
+  return undefined;
+}
+
+function networkIdFromV4(junctions: XcmV4Junctions) {
+  if (junctions.type === 'Here') {
+    return undefined;
+  }
+
+  const networkId: NetworkId = {};
+
+  for (const j of junctions[`as${junctions.type}`]) {
+    if (j.isGlobalConsensus) {
+      extractConsensusAndId(j, networkId);
+    }
+
+    if (j.isParachain) {
+      networkId.chainId = j.asParachain.toString();
+    }
+
+    if (networkId.consensus !== undefined && networkId.chainId !== undefined) {
+      return `urn:ocn:${networkId.consensus}:${networkId.chainId}`;
+    }
+  }
+
+  return undefined;
+}
+
+function networkIdFromV3(junctions: XcmV3Junctions) {
+  if (junctions.type === 'Here') {
+    return undefined;
+  }
+
+  const networkId: NetworkId = {};
+
+  if (junctions.type === 'X1') {
+    return extractV3X1GlobalConsensus(junctions, networkId);
+  }
+
+  for (const j of junctions[`as${junctions.type}`]) {
+    if (j.isGlobalConsensus) {
+      extractConsensusAndId(j, networkId);
+    }
+
+    if (j.isParachain) {
+      networkId.chainId = j.asParachain.toString();
+    }
+
+    if (networkId.consensus !== undefined && networkId.chainId !== undefined) {
+      return `urn:ocn:${networkId.consensus}:${networkId.chainId}`;
+    }
+  }
+
+  return undefined;
+}
+
+// eslint-disable-next-line complexity
+export function getParaIdFromMultiLocation(
+  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location
+): string | undefined {
+  const junctions = loc.interior;
+  if (junctions.type === 'Here') {
+    if (loc.parents.toNumber() === 1) {
+      return '0';
+    }
+    return undefined;
+  }
+
+  if (isV4Junctions(junctions)) {
+    for (const j of junctions[`as${junctions.type}`]) {
+      if (j.isParachain) {
+        return j.asParachain.toString();
+      }
+    }
+  } else {
+    if (junctions.type === 'X1') {
+      return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined;
+    }
+    for (const j of junctions[`as${junctions.type}`]) {
+      if (j.isParachain) {
+        return j.asParachain.toString();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export function networkIdFromMultiLocation(
+  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location,
+  currentNetworkId: string
+) {
+  const { parents, interior: junctions } = loc;
+  const consensus = currentNetworkId.split(':')[2];
+
+  if (parents.toNumber() <= 1) {
+    // is within current consensus system
+    const paraId = getParaIdFromMultiLocation(loc);
+
+    if (paraId !== undefined) {
+      return `urn:ocn:${consensus}:${paraId}`;
+    }
+  } else if (parents.toNumber() > 1) {
+    // is in other consensus system
+    if (isV2Junctions(junctions)) {
+      return undefined;
+    }
+
+    if (isV3Junctions(junctions)) {
+      return networkIdFromV3(junctions);
+    }
+
+    if (isV4Junctions(junctions)) {
+      return networkIdFromV4(junctions);
+    }
+  }
+  return undefined;
+}
+
 export function getParaIdFromVersionedMultiLocation(
   loc: XcmVersionedMultiLocation | XcmVersionedLocation
 ): string | undefined {
@@ -109,7 +233,7 @@ export function getParaIdFromVersionedMultiLocation(
     case 'V3':
       return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
     case 'V4':
-      return getParaIdFromLocation(loc.asV4);
+      return getParaIdFromMultiLocation(loc.asV4);
     default:
       return undefined;
   }
