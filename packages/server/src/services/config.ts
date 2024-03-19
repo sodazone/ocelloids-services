@@ -19,9 +19,16 @@ const $SmoldotProvider = z.object({
 
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
-// Network ID = urn:ocn:<GlobalConsensus>:<ChainId>
 const networkIdRegex = /^urn:ocn:([a-zA-Z0-9]+):([a-zA-Z0-9]+)$/;
 
+/**
+ * The network id is a universal resource name with the following format:
+ * ```
+ * Network ID = urn:ocn:<GlobalConsensus>:<ChainId>
+ * ```
+ * Where `GlobalConsensus` is a literal indicating the consensus network, e.g. polkadot, kusama, ethereum,
+ * and `ChainId` is typically a numeric identifier within the consensus system (0 for polkadot relay chain, N parachain id, etc.).
+ */
 export const $NetworkId = z.string().regex(networkIdRegex);
 
 const $NetworkConfiguration = z.object({
