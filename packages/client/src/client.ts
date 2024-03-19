@@ -112,10 +112,16 @@ class Protocol {
  * // create a 'long-lived' subscription
  * const reply = await client.create({
  *   id: "my-subscription",
- *   origin: "2004",
+ *   origin: "urn:ocn:polkadot:2004",
  *   senders: "*",
  *   events: "*",
- *   destinations: [ "0","1000", "2000", "2034", "2104" ],
+ *   destinations: [
+ *     "urn:ocn:polkadot:0",
+ *     "urn:ocn:polkadot:1000",
+ *     "urn:ocn:polkadot:2000",
+ *     "urn:ocn:polkadot:2034",
+ *     "urn:ocn:polkadot:2104"
+ *   ],
  *   channels: [{
  *     type: "webhook",
  *     url: "https://some.webhook"
@@ -145,10 +151,16 @@ class Protocol {
  * ```typescript
  * // subscribe on-demand
  * const ws = client.subscribe({
- *   origin: "2004",
+ *   origin: "urn:ocn:polkadot:2004",
  *   senders: "*",
  *   events: "*",
- *   destinations: [ "0","1000", "2000", "2034", "2104" ]
+ *   destinations: [
+ *     "urn:ocn:polkadot:0",
+ *     "urn:ocn:polkadot:1000",
+ *     "urn:ocn:polkadot:2000",
+ *     "urn:ocn:polkadot:2034",
+ *     "urn:ocn:polkadot:2104"
+ *   ]
  * }, {
  *  onMessage: msg => {
  *    if(isXcmReceived(msg)) {

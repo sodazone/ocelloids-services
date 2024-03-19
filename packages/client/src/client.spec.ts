@@ -92,10 +92,16 @@ describe('OcelloidsClient', () => {
 
       const ws = client.subscribe(
         {
-          origin: '2004',
+          origin: 'urn:ocn:local:2004',
           senders: '*',
           events: '*',
-          destinations: ['0', '1000', '2000', '2034', '2104'],
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
         },
         {
           onMessage: (msg) => {
@@ -107,7 +113,7 @@ describe('OcelloidsClient', () => {
         },
         {
           onSubscriptionCreated: (sub) => {
-            expect(sub.origin).toBe('2004');
+            expect(sub.origin).toBe('urn:ocn:local:2004');
           },
         }
       );
@@ -143,10 +149,16 @@ describe('OcelloidsClient', () => {
 
       const ws = client.subscribe(
         {
-          origin: '2004',
+          origin: 'urn:ocn:local:2004',
           senders: '*',
           events: '*',
-          destinations: ['0', '1000', '2000', '2034', '2104'],
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
         },
         {
           onMessage: (_) => {
@@ -296,10 +308,16 @@ describe('OcelloidsClient', () => {
     it('should create a subscription', async () => {
       const sub = {
         id: 'my-subscription',
-        origin: '2004',
+        origin: 'urn:ocn:local:2004',
         senders: '*',
         events: '*',
-        destinations: ['0', '1000', '2000', '2034', '2104'],
+        destinations: [
+          'urn:ocn:local:0',
+          'urn:ocn:local:1000',
+          'urn:ocn:local:2000',
+          'urn:ocn:local:2034',
+          'urn:ocn:local:2104',
+        ],
         channels: [
           {
             type: 'webhook',
