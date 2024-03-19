@@ -14,10 +14,12 @@ import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
+import { getConsensus } from '../../config.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
 function findOutboundHrmpMessage(
+  origin: string,
   messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
@@ -38,7 +40,7 @@ function findOutboundHrmpMessage(
                     new GenericXcmSentWithContext({
                       ...sentMsg,
                       messageData: xcmProgram.toU8a(),
-                      recipient: recipient.toNumber().toString(),
+                      recipient: `urn:ocn:${getConsensus(origin)}:${recipient.toNumber().toString()}`,
                       messageHash: xcmProgram.hash.toHex(),
                       instructions: {
                         bytes: xcmProgram.toU8a(),
@@ -81,6 +83,7 @@ function xcmpMessagesSent() {
 }
 
 export function extractXcmpSend(
+  origin: string,
   { sendersControl, messageControl }: XcmCriteria,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
@@ -93,7 +96,7 @@ export function extractXcmpSend(
           matchSenders(sendersControl, event.extrinsic)
       ),
       xcmpMessagesSent(),
-      findOutboundHrmpMessage(messageControl, getOutboundHrmpMessages, registry)
+      findOutboundHrmpMessage(origin, messageControl, getOutboundHrmpMessages, registry)
     );
   };
 }

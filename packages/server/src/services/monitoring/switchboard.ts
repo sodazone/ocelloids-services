@@ -42,6 +42,7 @@ import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from './storage.js';
+import { getChainId } from '../config.js';
 
 type Monitor = {
   subs: RxSubscriptionWithId[];
@@ -530,6 +531,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
                   extractDmpSend(
+                    origin,
                     {
                       sendersControl,
                       messageControl,
@@ -555,6 +557,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractDmpSendByEvent(
+                    origin,
                     {
                       sendersControl,
                       messageControl,
@@ -580,6 +583,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractXcmpSend(
+                    origin,
                     {
                       sendersControl,
                       messageControl,
@@ -605,6 +609,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractUmpSend(
+                    origin,
                     {
                       sendersControl,
                       messageControl,
@@ -789,7 +794,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #getDmp(chainId: string, registry: Registry): GetDownwardMessageQueues {
-    return (blockHash: HexString, paraId: string) => {
+    return (blockHash: HexString, networkId: string) => {
+      const paraId = getChainId(networkId);
       return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer);

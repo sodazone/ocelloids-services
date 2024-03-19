@@ -25,6 +25,7 @@ import {
   XcmV4Junctions,
   XcmV4Junction,
 } from './xcm-types.js';
+import { getConsensus } from '../../config.js';
 
 /**
  * Gets message id from setTopic.
@@ -71,9 +72,7 @@ export function isV4Junctions(object: any): object is XcmV4Junctions {
 }
 
 export function isV3Junctions(object: any): object is XcmV3Junctions {
-  return (
-    object.asX1 !== undefined && object.asX1.isGlobalConsensus !== undefined && typeof object.asX1 === 'object'
-  );
+  return object.asX1 !== undefined && object.asX1.isGlobalConsensus !== undefined && typeof object.asX1 === 'object';
 }
 
 export function isV4Location(object: any): object is XcmV4Location {
@@ -199,7 +198,7 @@ export function networkIdFromMultiLocation(
   currentNetworkId: string
 ) {
   const { parents, interior: junctions } = loc;
-  const consensus = currentNetworkId.split(':')[2];
+  const consensus = getConsensus(currentNetworkId);
 
   if (parents.toNumber() <= 1) {
     // is within current consensus system
@@ -225,15 +224,16 @@ export function networkIdFromMultiLocation(
   return undefined;
 }
 
-export function getParaIdFromVersionedMultiLocation(
-  loc: XcmVersionedMultiLocation | XcmVersionedLocation
+export function networkIdFromVersionedMultiLocation(
+  loc: XcmVersionedMultiLocation | XcmVersionedLocation,
+  currentNetworkId: string
 ): string | undefined {
   switch (loc.type) {
     case 'V2':
     case 'V3':
-      return getParaIdFromMultiLocation(loc[`as${loc.type}`]);
+      return networkIdFromMultiLocation(loc[`as${loc.type}`], currentNetworkId);
     case 'V4':
-      return getParaIdFromMultiLocation(loc.asV4);
+      return networkIdFromMultiLocation(loc.asV4, currentNetworkId);
     default:
       return undefined;
   }

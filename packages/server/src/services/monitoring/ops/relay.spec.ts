@@ -16,7 +16,6 @@ describe('relay operator', () => {
 
       test$.subscribe({
         next: (msg) => {
-          calls();
           expect(msg).toBeDefined();
           expect(msg.blockNumber).toBeDefined();
           expect(msg.blockHash).toBeDefined();
@@ -27,6 +26,7 @@ describe('relay operator', () => {
           expect(msg.outcome).toBeDefined();
           expect(msg.outcome).toBe('Success');
           expect(msg.error).toBeNull();
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(2);

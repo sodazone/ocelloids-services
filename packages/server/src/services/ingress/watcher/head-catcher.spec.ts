@@ -345,7 +345,7 @@ describe('head catcher', () => {
           });
 
           catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
-            next: (_) => {
+            next: () => {
               cb[1]();
             },
             complete: async () => {

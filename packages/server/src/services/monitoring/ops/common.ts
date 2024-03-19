@@ -51,7 +51,7 @@ export function extractXcmWaypoints(registry: Registry, origin: string) {
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message;
-        const stops = [`urn:ocn:${origin.split(':')[2]}:${recipient}`];
+        const stops = [recipient];
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
         recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
         return { message, stops };

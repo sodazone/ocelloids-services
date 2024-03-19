@@ -23,6 +23,7 @@ import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
+import { getConsensus } from '../../config.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
@@ -82,6 +83,7 @@ function umpMessagesSent() {
 }
 
 function findOutboundUmpMessage(
+  origin: string,
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
@@ -98,7 +100,7 @@ function findOutboundUmpMessage(
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
                   messageData: data.toU8a(),
-                  recipient: '0', // always relay
+                  recipient: `urn:ocn:${getConsensus(origin)}:0`, // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   instructions: {
@@ -120,6 +122,7 @@ function findOutboundUmpMessage(
 }
 
 export function extractUmpSend(
+  origin: string,
   { sendersControl, messageControl }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
@@ -132,7 +135,7 @@ export function extractUmpSend(
           matchSenders(sendersControl, event.extrinsic)
       ),
       umpMessagesSent(),
-      findOutboundUmpMessage(messageControl, getOutboundUmpMessages, registry)
+      findOutboundUmpMessage(origin, messageControl, getOutboundUmpMessages, registry)
     );
   };
 }

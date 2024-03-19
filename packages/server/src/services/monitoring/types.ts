@@ -4,6 +4,8 @@ import { Subscription as RxSubscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
+import { getChainId, getConsensus } from '../config.js';
+
 /**
  * @public
  */
@@ -382,6 +384,7 @@ export class GenericXcmSent implements XcmSent {
     this.sender = msg.sender;
   }
 
+  // TODO: to be replaced with proper consensus handling
   constructLegs(origin: string, stops: string[]) {
     const legs: Leg[] = [];
     const nodes = [origin].concat(stops);
@@ -390,14 +393,15 @@ export class GenericXcmSent implements XcmSent {
       const to = nodes[i + 1];
       // If OD are parachains, add intermediate path through relay.
       // TODO: revisit when XCMP is launched.
-      if (from !== '0' && to !== '0') {
+      if (getChainId(from) !== '0' && getChainId(to) !== '0') {
+        const relayId = `urn:ocn:${getConsensus(from)}:0`;
         legs.push(
           {
             from,
-            to: '0',
+            to: relayId,
           },
           {
-            from: '0',
+            from: relayId,
             to,
           }
         );

@@ -19,7 +19,10 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:2004')(
+      const test$ = extractXcmWaypoints(
+        registry,
+        'urn:ocn:local:2004'
+      )(
         from(
           xcms.map(
             (x) =>
@@ -29,7 +32,7 @@ describe('extract waypoints operator', () => {
                 blockHash: '0x01',
                 blockNumber: '32',
                 extrinsicId: '32-4',
-                recipient: '2104',
+                recipient: 'urn:ocn:local:2104',
                 messageData: buf,
                 messageHash: x.hash.toHex(),
                 messageId: getMessageId(x),
@@ -43,7 +46,7 @@ describe('extract waypoints operator', () => {
       );
 
       test$.subscribe({
-        next: ({ stops }) => { 
+        next: ({ stops }) => {
           expect(stops).toBeDefined();
           expect(stops.length).toBe(1);
           expect(stops[0]).toBe('urn:ocn:local:2104');
@@ -64,7 +67,10 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(polka19505060, 'hex'));
 
       const xcm = asVersionedXcm(buf, registry);
-      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:0')(
+      const test$ = extractXcmWaypoints(
+        registry,
+        'urn:ocn:local:0'
+      )(
         of(
           new GenericXcmSentWithContext({
             event: {},
@@ -72,7 +78,7 @@ describe('extract waypoints operator', () => {
             blockHash: '0x01',
             blockNumber: '32',
             extrinsicId: '32-4',
-            recipient: '2034',
+            recipient: 'urn:ocn:local:2034',
             messageData: buf,
             messageHash: xcm.hash.toHex(),
             messageId: getMessageId(xcm),
@@ -107,7 +113,10 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(heiko5389341, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:2085')(
+      const test$ = extractXcmWaypoints(
+        registry,
+        'urn:ocn:local:2085'
+      )(
         from(
           xcms.map(
             (x) =>
@@ -117,7 +126,7 @@ describe('extract waypoints operator', () => {
                 blockHash: '0x01',
                 blockNumber: '32',
                 extrinsicId: '32-4',
-                recipient: '2004',
+                recipient: 'urn:ocn:local:2004',
                 messageData: buf,
                 messageHash: x.hash.toHex(),
                 messageId: getMessageId(x),

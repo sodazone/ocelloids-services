@@ -74,6 +74,18 @@ export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: st
   return networks.findIndex((n) => n.id === chainId) >= 0;
 }
 
+export function getConsensus(networkId: string) {
+  return networkId.split(':')[2];
+}
+
+export function getChainId(networkId: string) {
+  return networkId.split(':')[3];
+}
+
+export function constructNetworkId(consensus: string, chainId: string) {
+  return `urn:ocn:${consensus}:${chainId}`;
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     localConfig: ServiceConfiguration;

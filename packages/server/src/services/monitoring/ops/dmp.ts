@@ -22,12 +22,12 @@ import {
 } from '../types.js';
 import {
   getMessageId,
-  getParaIdFromMultiLocation,
-  getParaIdFromVersionedMultiLocation,
+  networkIdFromVersionedMultiLocation,
   mapAssetsTrapped,
   matchEvent,
   matchExtrinsic,
   matchProgramByTopic,
+  networkIdFromMultiLocation,
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
@@ -47,7 +47,7 @@ import { GetDownwardMessageQueues } from '../types-augmented.js';
 
 type Json = { [property: string]: Json };
 type XcmContext = {
-  paraId: string;
+  recipient: string;
   data: Uint8Array;
   program: XcmVersionedXcm;
   blockHash: IU8a;
@@ -87,7 +87,7 @@ function matchInstructions(
 }
 
 function createXcmMessageSent({
-  paraId,
+  recipient,
   data,
   program,
   blockHash,
@@ -101,7 +101,7 @@ function createXcmMessageSent({
     blockHash: blockHash.toHex(),
     blockNumber: blockNumber.toPrimitive(),
     event: event ? event.toHuman() : {},
-    recipient: paraId,
+    recipient,
     instructions: {
       bytes: program.toU8a(),
       json: program.toHuman(),
@@ -115,7 +115,7 @@ function createXcmMessageSent({
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
-function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry) {
+function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry, origin: string) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((tx) => {
@@ -123,12 +123,12 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
         const beneficiary = tx.extrinsic.args[1] as XcmVersionedMultiLocation;
         const assets = tx.extrinsic.args[2] as XcmVersionedMultiAssets;
 
-        const paraId = getParaIdFromVersionedMultiLocation(dest);
+        const recipient = networkIdFromVersionedMultiLocation(dest, origin);
 
-        if (paraId) {
+        if (recipient) {
           return {
             tx,
-            paraId,
+            recipient,
             beneficiary,
             assets,
           };
@@ -137,8 +137,8 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
         return null;
       }),
       filterNonNull(),
-      mergeMap(({ tx, paraId, beneficiary, assets }) => {
-        return getDmp(tx.extrinsic.blockHash.toHex(), paraId).pipe(
+      mergeMap(({ tx, recipient, beneficiary, assets }) => {
+        return getDmp(tx.extrinsic.blockHash.toHex(), recipient).pipe(
           map((messages) => {
             const { blockHash, blockNumber, signer } = tx.extrinsic;
             if (messages.length === 1) {
@@ -148,7 +148,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                 blockHash,
                 blockNumber,
                 signer,
-                paraId,
+                recipient,
                 data,
                 program,
               });
@@ -164,7 +164,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                     blockHash,
                     blockNumber,
                     signer,
-                    paraId,
+                    recipient,
                     data,
                     program,
                   });
@@ -181,17 +181,17 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
   };
 }
 
-function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Registry) {
+function findDmpMessagesFromEvent(origin: string, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
         if (matchEvent(event, 'xcmPallet', 'Sent')) {
           const { destination, messageId } = event.data as any;
-          const paraId = getParaIdFromMultiLocation(destination);
+          const recipient = networkIdFromMultiLocation(destination, origin);
 
-          if (paraId) {
+          if (recipient) {
             return {
-              paraId,
+              recipient,
               messageId,
               event,
             };
@@ -201,8 +201,8 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
         return null;
       }),
       filterNonNull(),
-      mergeMap(({ paraId, messageId, event }) => {
-        return getDmp(event.blockHash.toHex(), paraId).pipe(
+      mergeMap(({ recipient, messageId, event }) => {
+        return getDmp(event.blockHash.toHex(), recipient).pipe(
           map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
@@ -211,7 +211,7 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
-                paraId,
+                recipient,
                 event,
                 signer: event.extrinsic?.signer,
                 data,
@@ -227,7 +227,7 @@ function findDmpMessagesFromEvent(getDmp: GetDownwardMessageQueues, registry: Re
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
-                    paraId,
+                    recipient,
                     event,
                     signer: event.extrinsic?.signer,
                     data,
@@ -254,6 +254,7 @@ const METHODS_DMP = [
 ];
 
 export function extractDmpSend(
+  origin: string,
   { sendersControl, messageControl }: XcmCriteria,
   getDmp: GetDownwardMessageQueues,
   registry: Registry
@@ -268,13 +269,14 @@ export function extractDmpSend(
           matchSenders(sendersControl, extrinsic)
         );
       }),
-      findDmpMessagesFromTx(getDmp, registry),
+      findDmpMessagesFromTx(getDmp, registry, origin),
       filter((xcm) => matchMessage(messageControl, xcm))
     );
   };
 }
 
 export function extractDmpSendByEvent(
+  origin: string,
   { sendersControl, messageControl }: XcmCriteria,
   getDmp: GetDownwardMessageQueues,
   registry: Registry
@@ -284,7 +286,7 @@ export function extractDmpSendByEvent(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
       filter((event) => matchSenders(sendersControl, event.extrinsic)),
-      findDmpMessagesFromEvent(getDmp, registry),
+      findDmpMessagesFromEvent(origin, getDmp, registry),
       filter((xcm) => matchMessage(messageControl, xcm))
     );
   };

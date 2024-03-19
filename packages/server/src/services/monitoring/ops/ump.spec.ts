@@ -8,11 +8,12 @@ import { extractUmpReceive, extractUmpSend } from './ump.js';
 describe('ump operator', () => {
   describe('extractUmpSend', () => {
     it('should extract UMP sent message', (done) => {
-      const { blocks, sendersControl, messageControl, getUmp } = umpSend;
+      const { origin, blocks, sendersControl, messageControl, getUmp } = umpSend;
 
       const calls = jest.fn();
 
       const test$ = extractUmpSend(
+        origin,
         {
           sendersControl,
           messageControl,

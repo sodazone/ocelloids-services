@@ -25,11 +25,12 @@ const getDmp = () =>
 describe('dmp operator', () => {
   describe('extractDmpSend', () => {
     it('should extract DMP sent message', (done) => {
-      const { blocks, sendersControl, messageControl } = dmpSendSingleMessageInQueue;
+      const { origin, blocks, sendersControl, messageControl } = dmpSendSingleMessageInQueue;
 
       const calls = jest.fn();
 
       const test$ = extractDmpSend(
+        origin,
         {
           sendersControl,
           messageControl,
@@ -57,11 +58,12 @@ describe('dmp operator', () => {
     });
 
     it('should extract DMP sent for multi-leg messages', (done) => {
-      const { blocks, sendersControl, messageControl } = xcmHopOrigin;
+      const { origin, blocks, sendersControl, messageControl } = xcmHopOrigin;
 
       const calls = jest.fn();
 
       const test$ = extractDmpSendByEvent(
+        origin,
         {
           sendersControl,
           messageControl,
@@ -89,11 +91,12 @@ describe('dmp operator', () => {
     });
 
     it('should extract DMP sent message with multiple messages in the queue', (done) => {
-      const { blocks, sendersControl, messageControl } = dmpSendMultipleMessagesInQueue;
+      const { origin, blocks, sendersControl, messageControl } = dmpSendMultipleMessagesInQueue;
 
       const calls = jest.fn();
 
       const test$ = extractDmpSend(
+        origin,
         {
           sendersControl,
           messageControl,
@@ -123,11 +126,12 @@ describe('dmp operator', () => {
 
   describe('extractDmpSendByEvent', () => {
     it('should extract DMP sent message filtered by event', (done) => {
-      const { blocks, sendersControl, messageControl } = dmpXcmPalletSentEvent;
+      const { origin, blocks, sendersControl, messageControl } = dmpXcmPalletSentEvent;
 
       const calls = jest.fn();
 
       const test$ = extractDmpSendByEvent(
+        origin,
         {
           sendersControl,
           messageControl,
