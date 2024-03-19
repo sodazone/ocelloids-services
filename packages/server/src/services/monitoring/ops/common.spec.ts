@@ -19,7 +19,7 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(registry)(
+      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:2004')(
         from(
           xcms.map(
             (x) =>
@@ -43,11 +43,11 @@ describe('extract waypoints operator', () => {
       );
 
       test$.subscribe({
-        next: ({ stops }) => {
-          calls();
+        next: ({ stops }) => { 
           expect(stops).toBeDefined();
           expect(stops.length).toBe(1);
-          expect(stops[0]).toBe('2104');
+          expect(stops[0]).toBe('urn:ocn:local:2104');
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(2);
@@ -64,7 +64,7 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(polka19505060, 'hex'));
 
       const xcm = asVersionedXcm(buf, registry);
-      const test$ = extractXcmWaypoints(registry)(
+      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:0')(
         of(
           new GenericXcmSentWithContext({
             event: {},
@@ -86,11 +86,11 @@ describe('extract waypoints operator', () => {
 
       test$.subscribe({
         next: ({ stops }) => {
-          calls();
           expect(stops).toBeDefined();
           expect(stops.length).toBe(2);
-          expect(stops[0]).toBe('2034');
-          expect(stops[1]).toBe('1000');
+          expect(stops[0]).toBe('urn:ocn:local:2034');
+          expect(stops[1]).toBe('urn:ocn:local:1000');
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
@@ -107,7 +107,7 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(heiko5389341, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(registry)(
+      const test$ = extractXcmWaypoints(registry, 'urn:ocn:local:2085')(
         from(
           xcms.map(
             (x) =>
@@ -132,11 +132,11 @@ describe('extract waypoints operator', () => {
 
       test$.subscribe({
         next: ({ stops }) => {
-          calls();
           expect(stops).toBeDefined();
           expect(stops.length).toBe(2);
-          expect(stops[0]).toBe('2004');
-          expect(stops[1]).toBe('2000');
+          expect(stops[0]).toBe('urn:ocn:local:2004');
+          expect(stops[1]).toBe('urn:ocn:local:2000');
+          calls();
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1);
