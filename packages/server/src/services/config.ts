@@ -17,14 +17,30 @@ const $SmoldotProvider = z.object({
   spec: z.string().min(1).optional(),
 });
 
+const globalConsensus = [
+  'local',
+  'polkadot',
+  'kusama',
+  'rococo',
+  'wococo',
+  'westend',
+  'ethereum',
+  'byfork',
+  'bygenesis',
+  'bitcoincore',
+  'bitcoincash',
+] as const;
+
+export type GlobalConsensus = (typeof globalConsensus)[number];
+
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
-const networkIdRegex = /^urn:ocn:([a-zA-Z0-9]+):([a-zA-Z0-9]+)$/;
+const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`);
 
 /**
  * The network ID is a URN with the following format: `urn:ocn:<GlobalConsensus>:<ChainId>`.
- * 
- * - `GlobalConsensus`: A literal representing the consensus network (e.g., Polkadot, Kusama, Ethereum).
+ *
+ * - `GlobalConsensus`: A literal representing the consensus network (e.g., polkadot, kusama, ethereum).
  * - `ChainId`: Typically a numeric identifier within the consensus system (e.g., 0 for Polkadot relay chain, a parachain id).
  */
 export const $NetworkId = z.string().regex(networkIdRegex);
