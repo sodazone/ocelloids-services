@@ -46,15 +46,15 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({
+              'urn:ocn:local:0': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => from(polkadotBlocks),
                   },
                 },
               } as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
           }),
         } as unknown as Connector,
@@ -69,7 +69,7 @@ describe('head catcher', () => {
 
       catcher.start();
 
-      const slkeys = await sl('0').keys().all();
+      const slkeys = await sl('urn:ocn:local:0').keys().all();
       expect(expectedKeys.every((k) => slkeys.includes(k))).toBe(true);
 
       catcher.stop();
@@ -82,9 +82,9 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({} as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({
+              'urn:ocn:local:0': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({
                 rpc: {
                   state: {
                     getStorage: () => {
@@ -140,7 +140,7 @@ describe('head catcher', () => {
 
       await flushPromises();
 
-      const slkeys = await sl('2032').keys().all();
+      const slkeys = await sl('urn:ocn:local:2032').keys().all();
 
       catcher.stop();
 
@@ -167,7 +167,7 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({
+              'urn:ocn:local:0': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
@@ -175,11 +175,11 @@ describe('head catcher', () => {
                   },
                 },
               } as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
             promise: {
-              '0': {
+              'urn:ocn:local:0': {
                 isReady: Promise.resolve({
                   derive: {
                     chain: {
@@ -231,10 +231,10 @@ describe('head catcher', () => {
       blocksSource.subscribe({
         complete: async () => {
           // Blocks should be put in cache
-          const blockCache = await sl('0').keys().all();
+          const blockCache = await sl('urn:ocn:local:0').keys().all();
           expect(expectedBlocks.every((k) => blockCache.includes(k))).toBe(true);
 
-          catcher.finalizedBlocks('0').subscribe({
+          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             complete: async () => {
               catcher.stop();
               done();
@@ -249,8 +249,8 @@ describe('head catcher', () => {
       // Load 20 blocks starting from #17844552
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
       // Pretend that we left off at block #17844551
-      db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('0', {
-        chainId: '0',
+      db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
+        chainId: 'urn:ocn:local:0',
         blockNumber: '17844551',
       } as unknown as ChainHead);
 
@@ -270,7 +270,7 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({
+              'urn:ocn:local:0': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
@@ -278,11 +278,11 @@ describe('head catcher', () => {
                   },
                 },
               } as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
             promise: {
-              '0': {
+              'urn:ocn:local:0': {
                 isReady: Promise.resolve({
                   rpc: {
                     chain: {
@@ -325,11 +325,11 @@ describe('head catcher', () => {
       blocksSource.subscribe({
         complete: async () => {
           // Blocks should be put in cache
-          const blockCache = await sl('0').keys().all();
+          const blockCache = await sl('urn:ocn:local:0').keys().all();
           expect(blockCache.length).toBe(20);
 
           let completes = 0;
-          catcher.finalizedBlocks('0').subscribe({
+          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: (_) => {
               cb[0]();
             },
@@ -344,7 +344,7 @@ describe('head catcher', () => {
             },
           });
 
-          catcher.finalizedBlocks('0').subscribe({
+          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: (_) => {
               cb[1]();
             },
@@ -366,8 +366,8 @@ describe('head catcher', () => {
       // Load 20 blocks starting from #17844552
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
       // Pretend that we left off at block #17844570
-      db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('0', {
-        chainId: '0',
+      db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
+        chainId: 'urn:ocn:local:0',
         blockNumber: '17844570',
       } as unknown as ChainHead);
       // Pretend that we got interrupted
@@ -375,7 +375,7 @@ describe('head catcher', () => {
         fromBlockNum: '17844569',
         toBlockNum: '17844551',
       };
-      db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('0'), jsonEncoded).put(
+      db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
         prefixes.cache.keys.range(range),
         range
       );
@@ -400,7 +400,7 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({
+              'urn:ocn:local:0': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
@@ -408,11 +408,11 @@ describe('head catcher', () => {
                   },
                 },
               } as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
             promise: {
-              '0': {
+              'urn:ocn:local:0': {
                 isReady: Promise.resolve({
                   rpc: {
                     chain: {
@@ -444,7 +444,7 @@ describe('head catcher', () => {
 
       blocksSource.subscribe({
         complete: async () => {
-          catcher.finalizedBlocks('0').subscribe({
+          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: (_) => {
               cb();
             },
@@ -472,9 +472,9 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({} as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({
+              'urn:ocn:local:0': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
@@ -483,7 +483,7 @@ describe('head catcher', () => {
               } as unknown as ApiRx),
             },
             promise: {
-              '2032': {
+              'urn:ocn:local:2032': {
                 isReady: Promise.resolve({
                   registry: mockRegistry,
                   rpc: {
@@ -508,7 +508,7 @@ describe('head catcher', () => {
       blocksSource.subscribe({
         complete: () => {
           const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
-          catcher.getStorage('2032', parachainSystemUpwardMessages, hash).subscribe({
+          catcher.getStorage('urn:ocn:local:2032', parachainSystemUpwardMessages, hash).subscribe({
             next: () => {
               calls++;
             },
@@ -535,12 +535,12 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({} as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:0': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
             promise: {
-              '1000': {
+              'urn:ocn:local:1000': {
                 isReady: Promise.resolve({
                   rpc: {
                     state: {
@@ -555,7 +555,7 @@ describe('head catcher', () => {
         rootStore: db,
       });
 
-      catcher.getStorage('1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
+      catcher.getStorage('urn:ocn:local:1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
         complete: () => {
           expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1);
           done();
@@ -577,9 +577,9 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({} as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({
+              'urn:ocn:local:0': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({
                 derive: {
                   chain: {
                     subscribeNewBlocks: () => blocksSource,
@@ -588,7 +588,7 @@ describe('head catcher', () => {
               } as unknown as ApiRx),
             },
             promise: {
-              '2032': {
+              'urn:ocn:local:2032': {
                 isReady: Promise.resolve({
                   registry: mockRegistry,
                   rpc: {
@@ -613,7 +613,7 @@ describe('head catcher', () => {
       blocksSource.subscribe({
         complete: () => {
           const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
-          catcher.getStorage('2032', parachainSystemHrmpOutboundMessages, hash).subscribe({
+          catcher.getStorage('urn:ocn:local:2032', parachainSystemHrmpOutboundMessages, hash).subscribe({
             next: () => {
               calls++;
             },
@@ -640,12 +640,12 @@ describe('head catcher', () => {
         connector: {
           connect: () => ({
             rx: {
-              '0': of({} as unknown as ApiRx),
-              '1000': of({} as unknown as ApiRx),
-              '2032': of({} as unknown as ApiRx),
+              'urn:ocn:local:0': of({} as unknown as ApiRx),
+              'urn:ocn:local:1000': of({} as unknown as ApiRx),
+              'urn:ocn:local:2032': of({} as unknown as ApiRx),
             },
             promise: {
-              '1000': {
+              'urn:ocn:local:1000': {
                 isReady: Promise.resolve({
                   rpc: {
                     state: {
@@ -660,7 +660,7 @@ describe('head catcher', () => {
         rootStore: db,
       });
 
-      catcher.getStorage('1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({
+      catcher.getStorage('urn:ocn:local:1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({
         complete: () => {
           expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1);
           done();

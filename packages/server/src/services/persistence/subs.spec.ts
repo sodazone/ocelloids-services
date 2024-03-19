@@ -38,13 +38,13 @@ describe('subscriptions persistence', () => {
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          origin: '1337',
+          origin: 'urn:ocn:local:1337',
         });
       }).rejects.toThrow();
       await expect(async () => {
         await db.save({
           ..._subsFix[0],
-          destinations: ['1337'],
+          destinations: ['urn:ocn:local:1337'],
         });
       }).rejects.toThrow();
     });
@@ -54,8 +54,8 @@ describe('subscriptions persistence', () => {
       await db.insert({
         ..._subsFix[0],
         id: 'Z-0:1000:1',
-        origin: '0',
-        destinations: ['1000'],
+        origin: 'urn:ocn:local:0',
+        destinations: ['urn:ocn:local:1000'],
         senders: ['a'],
       });
       expect((await db.getAll()).length).toBe(len + 1);

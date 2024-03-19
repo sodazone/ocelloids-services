@@ -3,8 +3,8 @@ import { Subscription } from '../services/monitoring/types.js';
 export const _subsFix: Subscription[] = [
   {
     id: '0:1000:1',
-    origin: '0',
-    destinations: ['1000'],
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:1000'],
     senders: ['a', 'b', 'c'],
     channels: [
       {
@@ -14,8 +14,8 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '0:1000:2',
-    origin: '0',
-    destinations: ['1000'],
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:1000'],
     senders: ['d', 'e', 'f'],
     channels: [
       {
@@ -25,8 +25,8 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '0:2000:1',
-    origin: '0',
-    destinations: ['2000'],
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:2000'],
     senders: ['a', 'b', 'c'],
     channels: [
       {
@@ -36,8 +36,8 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '100:0-2000:1',
-    origin: '1000',
-    destinations: ['0', '2000'],
+    origin: 'urn:ocn:local:1000',
+    destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
     senders: ['a', 'b', 'c'],
     channels: [
       {
@@ -47,8 +47,8 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '100:0-2000:2',
-    origin: '1000',
-    destinations: ['0', '2000'],
+    origin: 'urn:ocn:local:1000',
+    destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
     senders: ['d', 'e', 'f'],
     channels: [
       {
@@ -60,7 +60,7 @@ export const _subsFix: Subscription[] = [
 
 export const _configToml = `
 [[networks]]
-id = 0
+id = "urn:ocn:local:0"
 name = "local_relay"
 
   [networks.provider]
@@ -68,7 +68,7 @@ name = "local_relay"
   url = "ws://localhost:9000"
 
 [[networks]]
-id = 1_000
+id = "urn:ocn:local:1000"
 name = "local_1"
 relay = "local_reay"
 
@@ -77,7 +77,7 @@ relay = "local_reay"
   url = "ws://localhost:9001"
 
 [[networks]]
-id = 2_000
+id = "urn:ocn:local:2000"
 name = "local_2000"
 relay = "local_reay"
 
@@ -86,7 +86,7 @@ relay = "local_reay"
   url = "ws://localhost:9002"
 
 [[networks]]
-id = 3_000
+id = "urn:ocn:local:3000"
 name = "local_3000"
 relay = "local_reay"
 

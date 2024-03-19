@@ -7,9 +7,9 @@ import { FastifyInstance, InjectOptions } from 'fastify';
 
 const testSubContent = {
   id: 'macatron',
-  origin: '1000',
+  origin: 'urn:ocn:local:1000',
   senders: ['ALICE'],
-  destinations: ['2000'],
+  destinations: ['urn:ocn:local:2000'],
   channels: [
     {
       type: 'log',
@@ -87,9 +87,9 @@ describe('monitoring server API', () => {
           url: '/subs',
           body: {
             id: 'wild',
-            origin: '1000',
+            origin: 'urn:ocn:local:1000',
             senders: '*',
-            destinations: ['2000'],
+            destinations: ['urn:ocn:local:2000'],
             channels: [
               {
                 type: 'log',
@@ -309,14 +309,14 @@ describe('monitoring server API', () => {
             {
               op: 'add',
               path: '/destinations/-',
-              value: '3000',
+              value: 'urn:ocn:local:3000',
             },
           ],
         },
         (_err, response) => {
           done();
           expect(response.statusCode).toStrictEqual(200);
-          expect(JSON.parse(response.body).destinations).toEqual(['2000', '3000']);
+          expect(JSON.parse(response.body).destinations).toEqual(['urn:ocn:local:2000', 'urn:ocn:local:3000']);
         }
       );
     });
@@ -405,14 +405,14 @@ describe('monitoring server API', () => {
     });
 
     it('should get cache data', (done) => {
-      server.inject(adminRq('/admin/cache/0'), (_err, response) => {
+      server.inject(adminRq('/admin/cache/urn:ocn:local:0'), (_err, response) => {
         done();
         expect(response.statusCode).toStrictEqual(200);
       });
     });
 
     it('should delete cache data', (done) => {
-      server.inject(adminRq('/admin/cache/1', 'DELETE'), (_err, response) => {
+      server.inject(adminRq('/admin/cache/urn:ocn:local:1', 'DELETE'), (_err, response) => {
         done();
         expect(response.statusCode).toStrictEqual(200);
       });

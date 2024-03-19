@@ -13,7 +13,7 @@ import { NotifierHub } from './hub.js';
 const destinationContext: XcmTerminusContext = {
   blockHash: '0xBEEF',
   blockNumber: '2',
-  chainId: '1',
+  chainId: 'urn:ocn:local:1',
   event: {},
   outcome: 'Success',
   error: null,
@@ -24,11 +24,8 @@ const destinationContext: XcmTerminusContext = {
 const notification: XcmNotifyMessage = {
   type: XcmNotificationType.Received,
   subscriptionId: 'ok',
-  legs: [{ from: '0', to: '1' }],
+  legs: [{ from: 'urn:ocn:local:0', to: 'urn:ocn:local:1' }],
   waypoint: {
-    messageHash: '0xCAFE',
-    messageData: '0x00',
-    instructions: '0x00',
     ...destinationContext,
     legIndex: 0,
   },
@@ -36,7 +33,7 @@ const notification: XcmNotifyMessage = {
   origin: {
     blockHash: '0xBEEF',
     blockNumber: '2',
-    chainId: '0',
+    chainId: 'urn:ocn:local:0',
     event: {},
     outcome: 'Success',
     error: null,
@@ -48,7 +45,7 @@ const notification: XcmNotifyMessage = {
 };
 
 const subOk = {
-  destinations: ['1000'],
+  destinations: ['urn:ocn:local:1000'],
   id: 'ok',
   channels: [
     {
@@ -56,7 +53,7 @@ const subOk = {
       url: 'http://localhost/ok',
     },
   ],
-  origin: '0',
+  origin: 'urn:ocn:local:0',
   senders: '*',
   events: '*',
 } as Subscription;
@@ -78,7 +75,7 @@ const xmlTemplate = `
 </paymentService>
 `;
 const subOkXml = {
-  destinations: ['0'],
+  destinations: ['urn:ocn:local:0'],
   id: 'ok:xml',
   channels: [
     {
@@ -88,13 +85,13 @@ const subOkXml = {
       template: xmlTemplate,
     },
   ],
-  origin: '1000',
+  origin: 'urn:ocn:local:1000',
   senders: '*',
   events: '*',
 } as Subscription;
 
 const subFail = {
-  destinations: ['2000'],
+  destinations: ['urn:ocn:local:2000'],
   id: 'fail',
   channels: [
     {
@@ -102,7 +99,7 @@ const subFail = {
       url: 'http://localhost/not-found',
     },
   ],
-  origin: '0',
+  origin: 'urn:ocn:local:0',
   senders: '*',
   events: '*',
 } as Subscription;
@@ -110,7 +107,7 @@ const subFail = {
 const authToken = 'secret';
 
 const subOkAuth = {
-  destinations: ['3000'],
+  destinations: ['urn:ocn:local:3000'],
   id: 'ok:auth',
   channels: [
     {
@@ -119,7 +116,7 @@ const subOkAuth = {
       bearer: authToken,
     },
   ],
-  origin: '0',
+  origin: 'urn:ocn:local:0',
   senders: '*',
   events: '*',
 } as Subscription;

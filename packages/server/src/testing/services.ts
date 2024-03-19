@@ -20,7 +20,7 @@ export const _log = pino({
 export const _config = $ServiceConfiguration.parse(toml.parse(_configToml));
 
 export const _mockApiPromises = {
-  '0': {
+  'urn:ocn:local:0': {
     isReady: Promise.resolve({
       registry: {
         createType: () => ({
@@ -43,7 +43,7 @@ export const _mockApiPromises = {
       },
     } as unknown as ApiPromise),
   },
-  '1000': {
+  'urn:ocn:local:1000': {
     isReady: Promise.resolve({
       registry: {
         createType: () => ({
@@ -71,7 +71,7 @@ export const _mockApiPromises = {
       },
     } as unknown as ApiPromise),
   },
-  '2000': {
+  'urn:ocn:local:2000': {
     isReady: Promise.resolve({
       registry: {
         createType: () => ({
@@ -94,7 +94,7 @@ export const _mockApiPromises = {
       },
     } as unknown as ApiPromise),
   },
-  '3000': {
+  'urn:ocn:local:3000': {
     isReady: Promise.resolve({
       registry: {
         createType: () => ({
@@ -120,28 +120,28 @@ export const _mockApiPromises = {
 };
 
 export const _mockApiRxs = {
-  '0': of({
+  'urn:ocn:local:0': of({
     rpc: {
       chain: {
         subscribeFinalizedHeads: () => of({}),
       },
     },
   } as unknown as ApiRx),
-  '1000': of({
+  'urn:ocn:local:1000': of({
     rpc: {
       chain: {
         subscribeFinalizedHeads: () => of({}),
       },
     },
   }),
-  '2000': of({
+  'urn:ocn:local:2000': of({
     rpc: {
       chain: {
         subscribeFinalizedHeads: () => of({}),
       },
     },
   } as unknown as ApiRx),
-  '3000': of({
+  'urn:ocn:local:3000': of({
     rpc: {
       chain: {
         subscribeFinalizedHeads: () => of({}),

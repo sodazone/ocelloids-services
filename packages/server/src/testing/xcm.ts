@@ -29,7 +29,7 @@ const xcmpData =
 export const xcmpSend = {
   blocks: from(testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'])),
-  messageControl: new ControlQuery(messageCriteria(['2032'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2032'])),
   getHrmp: () =>
     from([
       [
@@ -55,7 +55,7 @@ const umpData =
 export const umpSend = {
   blocks: from(testBlocksFrom('ump-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14dqxCimfu8PEuneBLgZnxgyxPuMoaVto7xozL6rgSo3hGU9'])),
-  messageControl: new ControlQuery(messageCriteria(['0'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:0'])),
   getUmp: () => from([[registry.createType('Bytes', umpData)] as Vec<Bytes>]),
 };
 
@@ -129,7 +129,7 @@ const dmpData2 =
 export const dmpSendSingleMessageInQueue = {
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
   sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  messageControl: new ControlQuery(messageCriteria(['2000'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -170,7 +170,7 @@ export const dmpSendSingleMessageInQueue = {
 export const dmpSendMultipleMessagesInQueue = {
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
   sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  messageControl: new ControlQuery(messageCriteria(['2000'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -235,7 +235,7 @@ export const dmpSendMultipleMessagesInQueue = {
 export const dmpXcmPalletSentEvent = {
   blocks: from(testBlocksFrom('dmp-out-event-19505060.cbor.bin', 'polkadot-1000001.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['2034'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2034'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -292,7 +292,7 @@ export const dmpReceive = {
 
 export const relayHrmpReceive = {
   blocks: from(testBlocksFrom('relay-hrmp-19507696.cbor.bin', 'polkadot.json')),
-  messageControl: new ControlQuery(messageCriteria(['2000', '2006', '2104'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006', 'urn:ocn:local:2104'])),
   origin: '2004',
   destination: '2104',
 };
@@ -302,7 +302,7 @@ export const relayHrmpReceive = {
 export const xcmHop = {
   blocks: from(testBlocksFrom('hydra-hop-4624161.cbor.bin', 'hydra-207.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['0', '1000', '2104'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:0', 'urn:ocn:local:1000', 'urn:ocn:local:2104'])),
   origin: '0',
   destination: '1000',
   getHrmp: () =>
@@ -398,7 +398,7 @@ const instructions: any = {
 export const xcmHopOrigin = {
   blocks: from(testBlocksFrom('polkadot-hop-19777220.cbor.bin', 'polkadot-1000001.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['1000', '2034'])),
+  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:1000', 'urn:ocn:local:2034'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {

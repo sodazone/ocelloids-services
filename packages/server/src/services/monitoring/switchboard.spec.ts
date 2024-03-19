@@ -29,9 +29,9 @@ const { extractUmpReceive, extractUmpSend } = await import('./ops/ump.js');
 
 const testSub: Subscription = {
   id: '1000:2000:0',
-  origin: '1000',
+  origin: 'urn:ocn:local:1000',
   senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
-  destinations: ['2000'],
+  destinations: ['urn:ocn:local:2000'],
   channels: [
     {
       type: 'log',
@@ -147,7 +147,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      origin: '0',
+      origin: 'urn:ocn:local:0',
     });
 
     expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
@@ -181,18 +181,18 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      destinations: ['0', '2000'],
+      destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
     });
 
     const { destinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
     expect(destinationSubs.length).toBe(2);
-    expect(destinationSubs.filter((s) => s.chainId === '0').length).toBe(1);
-    expect(destinationSubs.filter((s) => s.chainId === '2000').length).toBe(1);
+    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1);
+    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(1);
 
     // Remove 2000 and add 3000 to destinations
     const newSub = {
       ...testSub,
-      destinations: ['0', '3000'],
+      destinations: ['urn:ocn:local:0', 'urn:ocn:local:3000'],
     };
     await subs.save(newSub);
 
@@ -200,9 +200,9 @@ describe('switchboard service', () => {
     switchboard.updateDestinations(newSub.id);
     const { destinationSubs: newDestinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
     expect(newDestinationSubs.length).toBe(2);
-    expect(newDestinationSubs.filter((s) => s.chainId === '0').length).toBe(1);
-    expect(newDestinationSubs.filter((s) => s.chainId === '3000').length).toBe(1);
-    expect(newDestinationSubs.filter((s) => s.chainId === '2000').length).toBe(0);
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1);
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:3000').length).toBe(1);
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(0);
   });
 
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
@@ -219,7 +219,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      origin: '0', // origin: '0', destinations: ['2000']
+      origin: 'urn:ocn:local:0', // origin: '0', destinations: ['2000']
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
@@ -231,7 +231,7 @@ describe('switchboard service', () => {
 
     await switchboard.subscribe({
       ...testSub,
-      destinations: ['0'], // origin: '1000', destinations: ['0']
+      destinations: ['urn:ocn:local:0'], // origin: '1000', destinations: ['0']
     });
 
     const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
