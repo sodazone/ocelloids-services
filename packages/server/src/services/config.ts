@@ -19,8 +19,10 @@ const $SmoldotProvider = z.object({
 
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
-const urnRegex = /^urn:ocn:[a-z0-9()+,\-.:=@;$_!*'%/?#]+$/;
-export const $NetworkId = z.string().regex(urnRegex);
+// Network ID = urn:ocn:<GlobalConsensus>:<ChainId>
+const networkIdRegex = /^urn:ocn:([a-zA-Z0-9]+):([a-zA-Z0-9]+)$/;
+
+export const $NetworkId = z.string().regex(networkIdRegex);
 
 const $NetworkConfiguration = z.object({
   name: z
