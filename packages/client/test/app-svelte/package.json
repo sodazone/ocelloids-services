@@ -17,5 +17,14 @@
     "tslib": "^2.6.2",
     "typescript": "^5.2.2",
     "vite": "^5.1.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es6": true
+    },
+    "parserOptions": {
+      "sourceType": "module"
+    }
   }
 }
