@@ -25,10 +25,10 @@ Welcome to the Ocelloids Service Layer repository, where you will find software 
 
 ## Packages
 
-| Folder | Release |
-| ------ | ------- |
-| [packages/server](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/) | [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server) |
-| [packages/client](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/) | <a href="https://www.npmjs.com/package/@sodazone/ocelloids-client"><img src="https://img.shields.io/npm/v/@sodazone/ocelloids-client?color=69D2E7&labelColor=69D2E7&logo=npm&logoColor=333333" alt="npm @sodazone/ocelloids-client" /></a> |
+| Folder | Release |   |
+| ------ | ------- | - |
+| [packages/server](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/) | [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server) | Ocelloids services node. |
+| [packages/client](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/) | <a href="https://www.npmjs.com/package/@sodazone/ocelloids-client"><img src="https://img.shields.io/npm/v/@sodazone/ocelloids-client?color=69D2E7&labelColor=69D2E7&logo=npm&logoColor=333333" alt="npm @sodazone/ocelloids-client" /></a> | Ocelloids client library. |
 
 ### Ocelloids Server
 
