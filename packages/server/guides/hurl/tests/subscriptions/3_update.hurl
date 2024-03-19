@@ -14,8 +14,8 @@ HTTP 200
 PATCH {{base-url}}/subs/test-1
 ```json
 [
-  { "op": "add", "path": "/destinations/-", "value": "2000" },
-  { "op": "replace", "path": "/destinations/0", "value": "2004" }
+  { "op": "add", "path": "/destinations/-", "value": "urn:ocn:polkadot:2000" },
+  { "op": "replace", "path": "/destinations/0", "value": "urn:ocn:polkadot:2004" }
 ]
 ```
 HTTP 200

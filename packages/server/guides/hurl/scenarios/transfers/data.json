@@ -1,10 +1,10 @@
 [
   {
     "id": "moonbeam-transfers",
-    "origin": 2004,
+    "origin": "urn:ocn:polkadot:2004",
     "senders": "*",
     "destinations": [
-      2104, 0
+      "urn:ocn:polkadot:2104", "urn:ocn:polkadot:0"
     ],
     "events": "*",
     "channels": [

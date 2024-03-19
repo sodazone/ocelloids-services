@@ -13,5 +13,5 @@ scenarios:
     flow:
       - connect: "{{ target }}/ws/subs"
       - send: > 
-          { "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2104" ] }
+          { "origin": "urn:ocn:polkadot:2004", "senders": "*", "destinations": [ "urn:ocn:polkadot:0", "urn:ocn:polkadot:1000", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2034", "urn:ocn:polkadot:2104" ] }
       - think: 600

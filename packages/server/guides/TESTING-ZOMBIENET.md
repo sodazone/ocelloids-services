@@ -87,9 +87,9 @@ curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "asset-hub-transfers",
-    "origin": 1000,
+    "origin": "urn:ocn:local:1000",
     "senders": ["HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F", "FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP"],
-    "destinations": [0, 2000],
+    "destinations": ["urn:ocn:local:0", "urn:ocn:local:2000"],
     "channels": [{
         "type": "log"
     }]
@@ -163,7 +163,7 @@ Now, if you make another transfer, the notification should be delivered to your 
 {
   "subscriptionId":"asset-hub-transfers",
   "origin":{
-    "chainId":1000,
+    "chainId":"urn:ocn:local:1000",
     "blockNumber":"271",
     "blockHash":"0x2165b67e8ec89291633b6a10fab68a62b868cc69ab5ab2dd1e21372c4e5f3f62",
     "extrinsicId":"271-2",
@@ -182,7 +182,7 @@ Now, if you make another transfer, the notification should be delivered to your 
     }
   },
   "destination":{
-    "chainId":"2000",
+    "chainId":"urn:ocn:local:2000",
     "blockNumber":"268",
     "blockHash":"0x0390ae32561ab87524fb5f0765604a519ca66a3aec64b8ca6c2ab81e455f2a03",
     "extrinsicId":"268-1",

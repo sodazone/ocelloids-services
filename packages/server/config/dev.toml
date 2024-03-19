@@ -1,6 +1,6 @@
 [[networks]]
 name = "rococo_local_testnet"
-id = 0
+id = "urn:ocn:local:0"
 
   [networks.provider]
   type = "smoldot"
@@ -10,7 +10,7 @@ id = 0
 
 [[networks]]
 name = "asset-hub-local"
-id = 1_000
+id = "urn:ocn:local:1000"
 relay = "rococo_local_testnet"
 
   [networks.provider]
@@ -21,7 +21,7 @@ relay = "rococo_local_testnet"
   
 [[networks]]
 name = "shibuya-local"
-id = 2_000
+id = "urn:ocn:local:2000"
 relay = "rococo_local_testnet"
 
   [networks.provider]

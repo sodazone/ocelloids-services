@@ -1,14 +1,14 @@
 [
   {
     "id": "acala-transfers",
-    "origin": 2000,
+    "origin": "urn:ocn:polkadot:2000",
     "senders": "*",
     "destinations": [
-      0,
-      1000,
-      2004,
-      2034,
-      2104
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2004",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
     ],
     "events": [
       "xcm.received"
@@ -22,14 +22,14 @@
   },
   {
     "id": "moonbeam-transfers",
-    "origin": 2004,
+    "origin": "urn:ocn:polkadot:2004",
     "senders": "*",
     "destinations": [
-      0,
-      1000,
-      2000,
-      2034,
-      2104
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
     ],
     "events": "*",
     "channels": [
@@ -58,14 +58,14 @@
   },
   {
     "id": "polkadot-transfers",
-    "origin": 0,
+    "origin": "urn:ocn:polkadot:0",
     "senders": "*",
     "destinations": [
-      2000,
-      1000,
-      2004,
-      2034,
-      2104
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2004",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
     ],
     "events": "*",
     "channels": [
@@ -94,14 +94,14 @@
   },
   {
     "id": "asset-hub-transfers",
-    "origin": 1000,
+    "origin": "urn:ocn:polkadot:1000",
     "senders": "*",
     "destinations": [
-      2000,
-      0,
-      2004,
-      2034,
-      2104
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:2004",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
     ],
     "events": "*",
     "channels": [
@@ -130,14 +130,14 @@
   },
   {
     "id": "hydra-transfers",
-    "origin": 2034,
+    "origin": "urn:ocn:polkadot:2034",
     "senders": "*",
     "destinations": [
-      2000,
-      1000,
-      2004,
-      0,
-      2104
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2004",
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:2104"
     ],
     "events": "*",
     "channels": [
@@ -166,14 +166,14 @@
   },
   {
     "id": "manta-transfers",
-    "origin": 2104,
+    "origin": "urn:ocn:polkadot:2104",
     "senders": "*",
     "destinations": [
-      2000,
-      1000,
-      2004,
-      2034,
-      0
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2004",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:0"
     ],
     "events": "*",
     "channels": [

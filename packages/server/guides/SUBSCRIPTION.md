@@ -18,9 +18,9 @@ You can check the [Hurl requests](https://github.com/sodazone/xcm-monitoring/tre
 curl 'http://127.0.0.1:3000/subs' \
 --data '{
     "id": "test-sub",
-    "origin": 0,
+    "origin": "urn:ocn:polkadot:0",
     "senders": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
-    "destinations": [1000],
+    "destinations": ["urn:ocn:polkadot:1000"],
     "channels": [{
       "type": "webhook",
       "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
@@ -54,7 +54,7 @@ The request expects an [RFC 6902 JSON patch](https://www.rfc-editor.org/rfc/rfc6
 curl -X PATCH 'http://127.0.0.1:3000/subs/test-sub' \
 --data '[
   { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
-  { "op": "add", "path": "/destinations/-", "value": 2000 },
+  { "op": "add", "path": "/destinations/-", "value": "urn:ocn:polkadot:2000" },
   { "op": "replace", "path": "/channels/0", "value": { "type": "log" } }
 ]'
 ```

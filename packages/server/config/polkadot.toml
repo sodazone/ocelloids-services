@@ -1,13 +1,13 @@
 [[networks]]
 name = "polkadot"
-id = 0
+id = "urn:ocn:polkadot:0"
 
   [networks.provider]
   type = "smoldot"
 
 [[networks]]
 name = "asset_hub"
-id = 1_000
+id = "urn:ocn:polkadot:1000"
 relay = "polkadot"
 
   [networks.provider]
@@ -16,7 +16,7 @@ relay = "polkadot"
 
 [[networks]]
 name = "acala"
-id = 2_000
+id = "urn:ocn:polkadot:2000"
 relay = "polkadot"
 
   [networks.provider]
@@ -25,7 +25,7 @@ relay = "polkadot"
 
 [[networks]]
 name = "astar"
-id = 2_006
+id = "urn:ocn:polkadot:2006"
 relay = "polkadot"
 
   [networks.provider]
@@ -34,7 +34,7 @@ relay = "polkadot"
 
 [[networks]]
 name = "moonbeam"
-id = 2_004
+id = "urn:ocn:polkadot:2004"
 relay = "polkadot"
 
   [networks.provider]

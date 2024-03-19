@@ -3,9 +3,9 @@ POST {{base-url}}/subs
 ```json
 {
   "id": "test-1",
-  "origin": 0,
+  "origin": "urn:ocn:polkadot:0",
   "senders": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"],
-  "destinations": [1000],
+  "destinations": ["urn:ocn:polkadot:1000"],
   "events": ["xcm.received"],
   "channels": [{
     "type": "webhook",

@@ -81,9 +81,9 @@ curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "asset-hub-transfers",
-    "origin": 1000,
+    "origin": "urn:ocn:polkadot:1000",
     "senders": "*",
-    "destinations": [0, 2000, 2004, 2006],
+    "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006"],
     "channels": [{
         "type": "log"
     }]
@@ -99,9 +99,9 @@ curl 'http://127.0.0.1:3000/subs' \
 --header 'Content-Type: application/json' \
 --data '[{
     "id": "acala-transfers",
-    "origin": 2000,
+    "origin": "urn:ocn:polkadot:2000",
     "senders": "*",
-    "destinations": [0, 1000, 2004, 2006],
+    "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:1000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006"],
     "channels": [{
         "type": "webhook",
         "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
@@ -150,9 +150,9 @@ The response will include details about various chain IDs, such as block number,
 ```json
 [
   [
-    "0",
+    "urn:ocn:polkadot:0",
     {
-      "chainId": "0",
+      "chainId": "urn:ocn:polkadot:0",
       "blockNumber": "18079863",
       "blockHash": "0x5c028b0f6be54396cb967168d21fbc3e139b5d3abbeab12d94208331de6f2f8c",
       "parentHash": "0x84035c049a8faeb618dacf407019814ed46eee5fc9086fe51d081716e1cae06f",
@@ -160,9 +160,9 @@ The response will include details about various chain IDs, such as block number,
     }
   ],
   [
-    "1000",
+    "urn:ocn:polkadot:1000",
     {
-      "chainId": "1000",
+      "chainId": "urn:ocn:polkadot:1000",
       "blockNumber": "4971764",
       "blockHash": "0x64b65cba0a4f4ce5ef13d07ed16071904bb14b85255d18ff85a49908c7f8b4da",
       "parentHash": "0xd6b042a64abee1e4c1d81e7580c820d203c6564c8e59f753cb15e9cedacd90d2",
