@@ -1,3 +1,4 @@
+/* eslint-env es6 */
 //@ts-check
 
 const eslint = require('@eslint/js');

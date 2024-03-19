@@ -8,6 +8,15 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es6": true
+    },
+    "parserOptions": {
+      "sourceType": "module"
+    }
+  },
   "devDependencies": {
     "vite": "^5.1.0"
   }

@@ -4,17 +4,17 @@
     "subscriptionId": "manta-transfers",
     "legs": [
       {
-        "from": "2104",
-        "to": "0"
+        "from": "urn:ocn:polkadot:2104",
+        "to": "urn:ocn:polkadot:0"
       },
       {
-        "from": "0",
-        "to": "2004"
+        "from": "urn:ocn:polkadot:0",
+        "to": "urn:ocn:polkadot:2004"
       }
     ],
     "waypoint": {
       "legIndex": 0,
-      "chainId": "0",
+      "chainId": "urn:ocn:polkadot:0",
       "blockNumber": "19609855",
       "blockHash": "0x099929191abfdce314b6cbcf844d89a7ce0b6472cf6f883f156664c8aa83c6a0",
       "extrinsicId": "19609855-1",
@@ -22,7 +22,7 @@
       "error": null
     },
     "origin": {
-      "chainId": "2104",
+      "chainId": "urn:ocn:polkadot:2104",
       "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
       "blockNumber": "2395005",
       "extrinsicId": "2395005-4",
@@ -93,7 +93,7 @@
       "error": null
     },
     "destination": {
-      "chainId": "2004"
+      "chainId": "urn:ocn:polkadot:2004"
     },
     "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a",
     "messageData": "0x0310010400010100e12000170000489f83f78eb80f0a1300010100e12000170000489f83f78eb80f000d01020400010300f9a03f00e0779d14ebdafa684cfccc4ba077692b",
@@ -169,11 +169,11 @@
     "type": "xcm.sent",
     "subscriptionId": "manta-transfers",
     "legs": [
-      { "from": "2104", "to": "0" },
-      { "from": "0", "to": "2004" }
+      { "from": "urn:ocn:polkadot:2104", "to": "urn:ocn:polkadot:0" },
+      { "from": "urn:ocn:polkadot:0", "to": "urn:ocn:polkadot:2004" }
     ],
     "waypoint": {
-      "chainId": "2104",
+      "chainId": "urn:ocn:polkadot:2104",
       "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
       "blockNumber": "2395005",
       "extrinsicId": "2395005-4",
@@ -227,7 +227,7 @@
       "legIndex": 0
     },
     "origin": {
-      "chainId": "2104",
+      "chainId": "urn:ocn:polkadot:2104",
       "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
       "blockNumber": "2395005",
       "extrinsicId": "2395005-4",
@@ -279,7 +279,7 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "2004" },
+    "destination": { "chainId": "urn:ocn:polkadot:2004" },
     "messageHash": "0x1865fda7d4f58cd3fbb4ec159fb0b00930dca127b7f86cb15989c6433510ff8a",
     "messageData": "0x0310010400010100e12000170000489f83f78eb80f0a1300010100e12000170000489f83f78eb80f000d01020400010300f9a03f00e0779d14ebdafa684cfccc4ba077692b",
     "instructions": {
@@ -321,11 +321,11 @@
     "type": "xcm.received",
     "subscriptionId": "manta-transfers",
     "legs": [
-      { "from": "2104", "to": "0" },
-      { "from": "0", "to": "2004" }
+      { "from": "urn:ocn:polkadot:2104", "to": "urn:ocn:polkadot:0" },
+      { "from": "urn:ocn:polkadot:0", "to": "urn:ocn:polkadot:2004" }
     ],
     "waypoint": {
-      "chainId": "2004",
+      "chainId": "urn:ocn:polkadot:2004",
       "blockNumber": "5581332",
       "blockHash": "0x14496d475acea5f87ca9ceb6df39a0c4c92f0b49aef3911866e6fce7a702b30b",
       "event": {
@@ -346,7 +346,7 @@
       "legIndex": 1
     },
     "origin": {
-      "chainId": "2104",
+      "chainId": "urn:ocn:polkadot:2104",
       "blockHash": "0x04ebfdb2cf4db3bb965ed3ecc8160d9390ddc0b03f43655ece6e0df216f239f2",
       "blockNumber": "2395005",
       "extrinsicId": "2395005-4",
@@ -399,7 +399,7 @@
       "error": null
     },
     "destination": {
-      "chainId": "2004",
+      "chainId": "urn:ocn:polkadot:2004",
       "blockNumber": "5581332",
       "blockHash": "0x14496d475acea5f87ca9ceb6df39a0c4c92f0b49aef3911866e6fce7a702b30b",
       "event": {

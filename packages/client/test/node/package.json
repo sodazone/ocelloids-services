@@ -7,6 +7,15 @@
     "test:cjs": "node run.js",
     "test:esm": "node run.mjs"
   },
+  "eslintConfig": {
+    "env": {
+      "es6": true,
+      "node": true
+    },
+    "parserOptions": {
+      "sourceType": "module"
+    }
+  },
   "devDependencies": {
     "tsx": "^4.7.1"
   }
