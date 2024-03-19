@@ -21,22 +21,31 @@
 </p>
 </div>
 
-> [!IMPORTANT]
-> This documentation is in transition to the generalized programmable offchain layer.
+Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the [Ocelloids Server](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/) and the [Ocelloids Client library](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/).
 
-The Ocelloids Server provides the software components to run programmable offchain layers.
-It enables observation and reaction to complex onchain events of interest, while also facilitating integration with various other sources of data.
+## Packages
 
-## Ocelloids Server
+| Folder | Release |
+| ------ | ------- |
+| [package/server](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/) | [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server) |
+| [package/client](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/) | <a href="https://www.npmjs.com/package/@sodazone/ocelloids-client"><img src="https://img.shields.io/npm/v/@sodazone/ocelloids-client?color=69D2E7&labelColor=69D2E7&logo=npm&logoColor=333333" alt="npm @sodazone/ocelloids-client" /></a> |
 
-The Ocelloids Server is a software system designed to monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. With real-time notifications, flexible subscription management, and light client support, users can reliably stay informed about relevant interactions.
+### Ocelloids Server
 
-Please find the server package: https://github.com/sodazone/ocelloids-server/blob/main/packages/server/
+The Ocelloids Server provies:
 
-## Ocelloids Client Library
+- Ingress services for sourcing onchain data
+- Program execution environment
+- Subscription management
+- Egress services for data emission and notification
 
-The TypeScript client library enables seamless interaction with the Ocelloids Server.
+Explore the [Ocelloids Server Repository](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/).
 
-Find the client library: https://github.com/sodazone/ocelloids-server/blob/main/packages/client/
+### Ocelloids Client Library
+
+The TypeScript client library to interact with Ocelloids Servers.
+
+Explore the [Ocelloids Client Library Repository](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/).
+
 
 
