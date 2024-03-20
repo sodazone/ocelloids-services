@@ -149,7 +149,11 @@ export function IconTimeout() {
 }
 
 function getIconByChainId(id) {
-  switch (id) {
+  const chain = id.startsWith('urn:ocn')
+  ? id.split(':')[3]
+  : id
+
+  switch (chain) {
     case '0': // polkadot
       return html`
         <svg class=${tw`w-6 h-6`} viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
