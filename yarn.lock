@@ -2154,14 +2154,14 @@ __metadata:
   linkType: soft
 
 "@sodazone/ocelloids-sdk@npm:^1.2.2":
-  version: 1.2.2
-  resolution: "@sodazone/ocelloids-sdk@npm:1.2.2"
+  version: 1.2.3
+  resolution: "@sodazone/ocelloids-sdk@npm:1.2.3"
   dependencies:
     "@polkadot/api": "npm:^10.12.2"
     "@substrate/connect-known-chains": "npm:^1.1.1"
     mingo: "npm:^6.4.12"
     rxjs: "npm:^7.8.1"
-  checksum: 10c0/274c0076ec46fe9b233cb009958d1046d2802e03a64059d94070337a28ee0cb81816de2ee3c9b11e404d9885c8c03807710c5acbec7449767728c2e7819df4f0
+  checksum: 10c0/984f544bad876541de1b06e0af936717eac331efe0d46f6ec19aeb1912e0e7d3fd5232d006d4b8ed18239beb6caffa3b79d58745da288a71e3de079f2bf8cc49
   languageName: node
   linkType: hard
 
