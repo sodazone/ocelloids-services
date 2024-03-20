@@ -20,7 +20,7 @@ yarn workspaces focus --production @sodazone/ocelloids-server
 FROM node:20-alpine AS runner
 
 LABEL org.opencontainers.image.authors="oc@soda.zone"
-LABEL org.opencontainers.image.source=https://github.com/sodazone/ocelloids-server
+LABEL org.opencontainers.image.source=https://github.com/sodazone/ocelloids-services
 LABEL org.opencontainers.image.description="Ocelloids Integrated Server"
 
 WORKDIR /opt/oc
