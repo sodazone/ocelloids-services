@@ -2,9 +2,9 @@
   {
     "type": "xcm.sent",
     "subscriptionId": "hydra-transfers",
-    "legs": [{ "from": "2034", "to": "0" }],
+    "legs": [{ "from": "urn:ocn:polkadot:2034", "to": "urn:ocn:polkadot:0" }],
     "waypoint": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0xac7df8a97d327c767900e7d5e96ef03b74cd3699f43024d449143d2c172f980b",
       "blockNumber": "2142730",
       "extrinsicId": "2142730-2",
@@ -97,7 +97,7 @@
       "messageHash": "0x1d1ae73adf14c3ee4f6bb2566eb183cb5f44747a17e1e637c9562e1cdb828e7a"
     },
     "origin": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0xac7df8a97d327c767900e7d5e96ef03b74cd3699f43024d449143d2c172f980b",
       "blockNumber": "2142730",
       "extrinsicId": "2142730-2",
@@ -151,15 +151,15 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "0" },
+    "destination": { "chainId": "urn:ocn:polkadot:0" },
     "sender": "7Mmj4xHNzdy1eVCqpJz9WFbMezmLyLPzAuS1ebGRq6VRpC34"
   },
   {
     "type": "xcm.timeout",
     "subscriptionId": "hydra-transfers",
-    "legs": [{ "from": "2034", "to": "0" }],
+    "legs": [{ "from": "urn:ocn:polkadot:2034", "to": "urn:ocn:polkadot:0" }],
     "waypoint": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0xac7df8a97d327c767900e7d5e96ef03b74cd3699f43024d449143d2c172f980b",
       "blockNumber": "2142730",
       "extrinsicId": "2142730-2",
@@ -252,7 +252,7 @@
       "messageHash": "0x1d1ae73adf14c3ee4f6bb2566eb183cb5f44747a17e1e637c9562e1cdb828e7a"
     },
     "origin": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0xac7df8a97d327c767900e7d5e96ef03b74cd3699f43024d449143d2c172f980b",
       "blockNumber": "2142730",
       "extrinsicId": "2142730-2",
@@ -306,18 +306,18 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "0" },
+    "destination": { "chainId": "urn:ocn:polkadot:0" },
     "sender": "7Mmj4xHNzdy1eVCqpJz9WFbMezmLyLPzAuS1ebGRq6VRpC34"
   },
   {
     "type": "xcm.sent",
     "subscriptionId": "hydra-transfers",
     "legs": [
-      { "from": "2034", "to": "0" },
-      { "from": "0", "to": "1000" }
+      { "from": "urn:ocn:polkadot:2034", "to": "urn:ocn:polkadot:0" },
+      { "from": "urn:ocn:polkadot:0", "to": "urn:ocn:polkadot:1000" }
     ],
     "waypoint": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0x5419bf513aad61751029b76cf5ea2d6c2a9b3d4d6199db9fc8bea8e266da0bdd",
       "blockNumber": "2139121",
       "extrinsicId": "2139121-2",
@@ -434,7 +434,7 @@
       "messageHash": "0x941f376c4f51b4249780e19d4d1953cea5f1b5ac75f5c8f5b270b419cc053583"
     },
     "origin": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0x5419bf513aad61751029b76cf5ea2d6c2a9b3d4d6199db9fc8bea8e266da0bdd",
       "blockNumber": "2139121",
       "extrinsicId": "2139121-2",
@@ -495,19 +495,19 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "1000" },
+    "destination": { "chainId": "urn:ocn:polkadot:1000" },
     "sender": "7Mmj4xHNzdy1eVCqpJz9WFbMezmLyLPzAuS1ebGRq6VRpC34"
   },
   {
     "type": "xcm.hop",
     "subscriptionId": "hydra-transfers",
     "legs": [
-      { "from": "2034", "to": "0" },
-      { "from": "0", "to": "1000" }
+      { "from": "urn:ocn:polkadot:2034", "to": "urn:ocn:polkadot:0" },
+      { "from": "urn:ocn:polkadot:0", "to": "urn:ocn:polkadot:1000" }
     ],
     "waypoint": {
       "legIndex": 0,
-      "chainId": "0",
+      "chainId": "urn:ocn:polkadot:0",
       "blockHash": "0x7ad88f72d98c25852275b57463b20c2d21078856253f9a0d66612c5b40140240",
       "blockNumber": "9465653",
       "event": {
@@ -601,7 +601,7 @@
       }
     },
     "origin": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0x5419bf513aad61751029b76cf5ea2d6c2a9b3d4d6199db9fc8bea8e266da0bdd",
       "blockNumber": "2139121",
       "extrinsicId": "2139121-2",
@@ -662,7 +662,7 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "1000" },
+    "destination": { "chainId": "urn:ocn:polkadot:1000" },
     "sender": "7Mmj4xHNzdy1eVCqpJz9WFbMezmLyLPzAuS1ebGRq6VRpC34",
     "direction": "in"
   },
@@ -670,11 +670,11 @@
     "type": "xcm.timeout",
     "subscriptionId": "hydra-transfers",
     "legs": [
-      { "from": "2034", "to": "0" },
-      { "from": "0", "to": "1000" }
+      { "from": "urn:ocn:polkadot:2034", "to": "urn:ocn:polkadot:0" },
+      { "from": "urn:ocn:polkadot:0", "to": "urn:ocn:polkadot:1000" }
     ],
     "waypoint": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0x5419bf513aad61751029b76cf5ea2d6c2a9b3d4d6199db9fc8bea8e266da0bdd",
       "blockNumber": "2139121",
       "extrinsicId": "2139121-2",
@@ -791,7 +791,7 @@
       "messageHash": "0x941f376c4f51b4249780e19d4d1953cea5f1b5ac75f5c8f5b270b419cc053583"
     },
     "origin": {
-      "chainId": "2034",
+      "chainId": "urn:ocn:polkadot:2034",
       "blockHash": "0x5419bf513aad61751029b76cf5ea2d6c2a9b3d4d6199db9fc8bea8e266da0bdd",
       "blockNumber": "2139121",
       "extrinsicId": "2139121-2",
@@ -852,7 +852,7 @@
       "outcome": "Success",
       "error": null
     },
-    "destination": { "chainId": "1000" },
+    "destination": { "chainId": "urn:ocn:polkadot:1000" },
     "sender": "7Mmj4xHNzdy1eVCqpJz9WFbMezmLyLPzAuS1ebGRq6VRpC34"
   }
 ]

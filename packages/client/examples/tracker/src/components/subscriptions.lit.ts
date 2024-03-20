@@ -53,7 +53,7 @@ export class Subscriptions extends OcelloidsElement {
       ${this.subscriptionId &&
       html`
         <oc-subscription
-          .mocked=${false}
+          .mocked=${true}
           class=${tw`flex flex-col`}
           .subscription=${this.subscriptions.find((s) => s.id === this.subscriptionId)}
         >

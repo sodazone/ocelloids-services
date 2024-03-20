@@ -19,7 +19,7 @@ export type XcmJourneyWaypoint = {
   event?: any;
   extrinsic?: any;
   instructions?: any;
-  assetsTrapped?: AssetsTrapped;
+  assetsTrapped?: AnyJson;
   skipped?: boolean;
   timeout?: boolean;
 };
@@ -97,7 +97,7 @@ async function toJourney(xcm: XcmNotifyMessage): Promise<XcmJourney> {
     sender: xcm.sender,
     updated: now,
     created: dateTimeFormat.format(now),
-    instructions: xcm.instructions,
+    instructions: xcm.waypoint.instructions,
     origin: {
       ...xcm.origin,
     },
