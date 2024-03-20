@@ -2228,8 +2228,8 @@ __metadata:
     zod: "npm:^3.22.4"
     zod-to-json-schema: "npm:^3.22.4"
   bin:
-    oc-exec: ./dist/main.js
     oc-ingress: ./dist/services/ingress/server/main.js
+    oc-node: ./dist/main.js
   languageName: unknown
   linkType: soft
 
