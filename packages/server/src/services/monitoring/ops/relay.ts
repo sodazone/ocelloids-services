@@ -7,7 +7,7 @@ import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 import { getMessageId, matchExtrinsic } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js';
-import { createNetworkId, getChainId, getConsensus } from '../../config.js';
+import { createNetworkId, getChainId } from '../../config.js';
 import { OcnURN } from '../../types.js';
 
 export function extractRelayReceive(origin: OcnURN, messageControl: ControlQuery, registry: Registry) {
