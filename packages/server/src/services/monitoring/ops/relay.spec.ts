@@ -13,7 +13,11 @@ describe('relay operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractRelayReceive(origin as NetworkURN, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractRelayReceive(
+        origin as NetworkURN,
+        messageControl,
+        registry
+      )(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -41,7 +45,11 @@ describe('relay operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractRelayReceive(origin as NetworkURN, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractRelayReceive(
+        origin as NetworkURN,
+        messageControl,
+        registry
+      )(blocks.pipe(extractTxWithEvents()));
 
       // remove destination from criteria
       messageControl.change(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006']));

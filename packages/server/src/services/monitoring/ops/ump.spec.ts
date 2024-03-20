@@ -4,6 +4,7 @@ import { extractEvents } from '@sodazone/ocelloids-sdk';
 import { umpReceive, umpSend, registry } from '../../../testing/xcm.js';
 
 import { extractUmpReceive, extractUmpSend } from './ump.js';
+import { NetworkURN } from '../../types.js';
 
 describe('ump operator', () => {
   describe('extractUmpSend', () => {
@@ -13,7 +14,7 @@ describe('ump operator', () => {
       const calls = jest.fn();
 
       const test$ = extractUmpSend(
-        origin,
+        origin as NetworkURN,
         {
           sendersControl,
           messageControl,
@@ -47,7 +48,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive('1000')(successBlocks.pipe(extractEvents()));
+      const test$ = extractUmpReceive('urn:ocn:local:1000')(successBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -72,7 +73,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive('1000')(failBlocks.pipe(extractEvents()));
+      const test$ = extractUmpReceive('urn:ocn:local:1000')(failBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -97,7 +98,7 @@ describe('ump operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractUmpReceive('2004')(trappedBlocks.pipe(extractEvents()));
+      const test$ = extractUmpReceive('urn:ocn:local:2004')(trappedBlocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
