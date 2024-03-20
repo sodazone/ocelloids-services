@@ -11,7 +11,7 @@
   "main": "./dist/lib.js",
   "types": "./dist/lib.d.ts",
   "bin": {
-    "oc-exec": "./dist/main.js",
+    "oc-node": "./dist/main.js",
     "oc-ingress": "./dist/services/ingress/server/main.js"
   },
   "engines": {
