@@ -32,7 +32,7 @@ const ws = client.subscribe({
 });
 ```
 
-Please, browse the [documentation site](https://sodazone.github.io/ocelloids-server/) for details.
+Please, browse the [documentation site](https://sodazone.github.io/ocelloids-services/) for details.
 
 ## Development
 
