@@ -35,9 +35,9 @@ Welcome to the Ocelloids Service Layer repository, where you will find software 
 The Ocelloids Services Node provies:
 
 - Ingress services for sourcing onchain data
-- Program execution environment
-- Subscription management
-- Egress services for data emission and notification
+- Program execution environment for offchain automation
+- Persistent and on-demand subscription management
+- Delivery channels including websockets and webhooks
 
 Explore the [Ocelloids Services Node Repository](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/).
 
