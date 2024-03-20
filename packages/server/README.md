@@ -1,7 +1,7 @@
 # Ocelloids Server
 
 [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server)
-[![CI](https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-server/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/ocelloids-server/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-server/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/ocelloids-services/actions/workflows/ci.yml)
 
 The Ocelloids Server is a software application designed to monitor Cross-Consensus Message Format (XCM)
 program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
@@ -158,7 +158,7 @@ OC_CONFIG_FILE=config/manta.toml yarn dev
 
 The XCM Monitoring Server offers convenient APIs for seamless interaction.
 
-Explore the [Hurl requests](https://github.com/sodazone/ocelloids-server/tree/main/packages/server/guides/hurl) for comprehensive usage examples.
+Explore the [Hurl requests](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/hurl) for comprehensive usage examples.
 
 ### Subscription API
 
@@ -166,13 +166,13 @@ The subscription HTTP API allows you to create and manage subscriptions to XCM i
 
 The OpenAPI documentation is published at the path [/documentation](http://localhost:3000/documentation) in your running server.
 
-Fore more details, refer to [Subscription HTTP API Guide](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/guides/SUBSCRIPTION.md)
+Fore more details, refer to [Subscription HTTP API Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/SUBSCRIPTION.md)
 
 ### Administration API
 
 The server provides an API for administration purposes. It facilitates tasks such as reading and purging cached data, pending XCM messages and scheduled tasks. You can also consult the current chain tip of a network through this API.
 
-For more details, refer to our [Administration Guide](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/guides/ADMINISTRATION.md). 
+For more details, refer to our [Administration Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/ADMINISTRATION.md). 
 
 ### Healthcheck
 
@@ -186,7 +186,7 @@ To run unit tests:
 yarn test
 ```
 
-For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/guides/TESTING-POLKADOT.md).
+For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING-POLKADOT.md).
 
-For end-to-end testing with Zombienet please refer to our [Zombienet Testing Guide](https://github.com/sodazone/ocelloids-server/blob/main/packages/server/guides/TESTING-ZOMBIENET.md).
+For end-to-end testing with Zombienet please refer to our [Zombienet Testing Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING-ZOMBIENET.md).
 

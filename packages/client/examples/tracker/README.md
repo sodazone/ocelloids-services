@@ -11,8 +11,8 @@ A demonstration web application for tracking XCM executions over WebSockets.
 
 ## How it looks
 
-![Asset Hub transfer](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/examples/tracker/.misc/assets/ah-transfer.png)
-![Mixed Interactions](https://github.com/sodazone/ocelloids-server/blob/main/packages/client/examples/tracker/.misc/assets/mix-capture.png)
+![Asset Hub transfer](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/examples/tracker/.misc/assets/ah-transfer.png)
+![Mixed Interactions](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/examples/tracker/.misc/assets/mix-capture.png)
 
 ## Running
 
