@@ -4,7 +4,7 @@ import { Subscription as RxSubscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
-import { OcnURN } from '../types.js';
+import { NetworkURN } from '../types.js';
 import { createNetworkId, getChainId } from '../config.js';
 
 /**
@@ -108,7 +108,7 @@ export type XcmProgram = {
 
 export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array;
-  recipient: OcnURN;
+  recipient: NetworkURN;
   sender: AnyJson;
   instructions: XcmProgram;
 }
@@ -205,7 +205,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
 
 export class XcmInbound {
   subscriptionId: string;
-  chainId: OcnURN;
+  chainId: NetworkURN;
   event: AnyJson;
   messageHash: HexString;
   messageId: HexString;
@@ -216,7 +216,7 @@ export class XcmInbound {
   extrinsicId?: string;
   assetsTrapped?: AssetsTrapped;
 
-  constructor(subscriptionId: string, chainId: OcnURN, msg: XcmInboundWithContext) {
+  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
     this.subscriptionId = subscriptionId;
     this.chainId = chainId;
     this.event = msg.event;
@@ -233,7 +233,7 @@ export class XcmInbound {
 
 export class GenericXcmSentWithContext implements XcmSentWithContext {
   messageData: Uint8Array;
-  recipient: OcnURN;
+  recipient: NetworkURN;
   instructions: XcmProgram;
   messageHash: HexString;
   event: AnyJson;
@@ -288,7 +288,7 @@ const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object
  * @public
  */
 export type XcmTerminus = {
-  chainId: OcnURN;
+  chainId: NetworkURN;
 };
 
 /**
@@ -327,8 +327,8 @@ export interface XcmWaypointContext extends XcmTerminusContext {
  * @public
  */
 export type Leg = {
-  from: OcnURN;
-  to: OcnURN;
+  from: NetworkURN;
+  to: NetworkURN;
 };
 
 /**
@@ -357,7 +357,7 @@ export class GenericXcmSent implements XcmSent {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(subscriptionId: string, chainId: OcnURN, msg: XcmSentWithContext, stops: OcnURN[]) {
+  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmSentWithContext, stops: NetworkURN[]) {
     this.subscriptionId = subscriptionId;
     this.legs = this.constructLegs(chainId, stops);
     this.origin = {
@@ -388,7 +388,7 @@ export class GenericXcmSent implements XcmSent {
   }
 
   // TODO: to be replaced with proper consensus handling
-  constructLegs(origin: OcnURN, stops: OcnURN[]) {
+  constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
     const legs: Leg[] = [];
     const nodes = [origin].concat(stops);
     for (let i = 0; i < nodes.length - 1; i++) {

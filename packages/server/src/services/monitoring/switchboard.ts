@@ -5,7 +5,7 @@ import { Registry } from '@polkadot/types-codec/types';
 import { ControlQuery, extractEvents, types, extractTxWithEvents, flattenCalls } from '@sodazone/ocelloids-sdk';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
-import { Logger, Services, OcnURN } from '../types.js';
+import { Logger, Services, NetworkURN } from '../types.js';
 import {
   GenericXcmSent,
   Subscription,
@@ -265,7 +265,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   updateDestinations(id: string) {
     const { descriptor, messageControl } = this.#subs[id];
 
-    messageControl.change(messageCriteria(descriptor.destinations as OcnURN[]));
+    messageControl.change(messageCriteria(descriptor.destinations as NetworkURN[]));
 
     const updatedSubs = this.#updateDestinationSubscriptions(id);
     this.#subs[id].destinationSubs = updatedSubs;
@@ -386,9 +386,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorDestinations({ id, destinations, origin }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
-    const originId = origin as OcnURN;
+    const originId = origin as NetworkURN;
     try {
-      for (const dest of destinations as OcnURN[]) {
+      for (const dest of destinations as NetworkURN[]) {
         const chainId = dest;
         if (this.#subs[id]?.destinationSubs.find((s) => s.chainId === chainId)) {
           // Skip existing subscriptions
@@ -478,14 +478,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorOrigins({ id, origin, senders, destinations }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
-    const chainId = origin as OcnURN;
+    const chainId = origin as NetworkURN;
 
     if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`);
     }
 
     const sendersControl = ControlQuery.from(sendersCriteria(senders));
-    const messageControl = ControlQuery.from(messageCriteria(destinations as OcnURN[]));
+    const messageControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]));
 
     const outboundObserver = {
       error: (error: any) => {
@@ -643,11 +643,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #monitorRelay({ id, destinations, origin }: Subscription) {
-    const chainId = origin as OcnURN;
+    const chainId = origin as NetworkURN;
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already exists.');
     }
-    const messageControl = ControlQuery.from(messageCriteria(destinations as OcnURN[]));
+    const messageControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]));
 
     const emitRelayInbound = () => (source: Observable<XcmRelayedWithContext>) =>
       source.pipe(switchMap((message) => from(this.#engine.onRelayedMessage(id, message))));
@@ -744,14 +744,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  #sharedBlockEvents(chainId: OcnURN): Observable<types.BlockEvent> {
+  #sharedBlockEvents(chainId: NetworkURN): Observable<types.BlockEvent> {
     if (!this.#shared.blockEvents[chainId]) {
       this.#shared.blockEvents[chainId] = this.#ingress.finalizedBlocks(chainId).pipe(extractEvents(), share());
     }
     return this.#shared.blockEvents[chainId];
   }
 
-  #sharedBlockExtrinsics(chainId: OcnURN): Observable<types.TxWithIdAndEvent> {
+  #sharedBlockExtrinsics(chainId: NetworkURN): Observable<types.TxWithIdAndEvent> {
     if (!this.#shared.blockExtrinsics[chainId]) {
       this.#shared.blockExtrinsics[chainId] = this.#ingress
         .finalizedBlocks(chainId)
@@ -774,17 +774,17 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #shouldMonitorRelay({ origin, destinations, events }: Subscription) {
     return (
       (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
-      !this.#ingress.isRelay(origin as OcnURN) &&
-      destinations.some((d) => !this.#ingress.isRelay(d as OcnURN))
+      !this.#ingress.isRelay(origin as NetworkURN) &&
+      destinations.some((d) => !this.#ingress.isRelay(d as NetworkURN))
     );
   }
 
-  #emitInbound(id: string, chainId: OcnURN) {
+  #emitInbound(id: string, chainId: NetworkURN) {
     return (source: Observable<XcmInboundWithContext>) =>
       source.pipe(switchMap((msg) => from(this.#engine.onInboundMessage(new XcmInbound(id, chainId, msg)))));
   }
 
-  #emitOutbound(id: string, origin: OcnURN, registry: Registry) {
+  #emitOutbound(id: string, origin: NetworkURN, registry: Registry) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
         extractXcmWaypoints(registry, origin),
@@ -794,8 +794,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       );
   }
 
-  #getDmp(chainId: OcnURN, registry: Registry): GetDownwardMessageQueues {
-    return (blockHash: HexString, networkId: OcnURN) => {
+  #getDmp(chainId: NetworkURN, registry: Registry): GetDownwardMessageQueues {
+    return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId);
       return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
         map((buffer) => {
@@ -805,7 +805,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #getUmp(chainId: OcnURN, registry: Registry): GetOutboundUmpMessages {
+  #getUmp(chainId: NetworkURN, registry: Registry): GetOutboundUmpMessages {
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
         map((buffer) => {
@@ -815,7 +815,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #getHrmp(chainId: OcnURN, registry: Registry): GetOutboundHrmpMessages {
+  #getHrmp(chainId: NetworkURN, registry: Registry): GetOutboundHrmpMessages {
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
         map((buffer) => {

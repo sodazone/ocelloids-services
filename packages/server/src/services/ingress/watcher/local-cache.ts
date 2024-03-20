@@ -9,7 +9,7 @@ import type { Hash } from '@polkadot/types/interfaces';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import { ApiPromise, ApiRx } from '@polkadot/api';
 
-import { Services, DB, Logger, prefixes, OcnURN } from '../../types.js';
+import { Services, DB, Logger, prefixes, NetworkURN } from '../../types.js';
 import { HexString } from '../../monitoring/types.js';
 import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js';
 import { NetworkConfiguration } from '../../config.js';
@@ -58,7 +58,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
    * @param network The network configuration
    */
   watch(network: NetworkConfiguration) {
-    const chainId = network.id as OcnURN;
+    const chainId = network.id as NetworkURN;
     const isRelayChain = network.relay === undefined;
     const api = this.#apis.rx[chainId];
 
@@ -147,7 +147,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
    * Gets a persisted extended signed block from the storage or
    * tries to get it from the network if not found.
    */
-  async getBlock(chainId: OcnURN, api: ApiPromise, hash: HexString) {
+  async getBlock(chainId: NetworkURN, api: ApiPromise, hash: HexString) {
     try {
       const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.block(hash));
       const signedBlock = decodeSignedBlockExtended(api.registry, buffer);
@@ -164,7 +164,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     }
   }
 
-  async getStorage(chainId: OcnURN, storageKey: HexString, blockHash?: HexString) {
+  async getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     try {
       const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.storage(storageKey, blockHash));
 
@@ -199,7 +199,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
   /**
    * Binary cache by chain id.
    */
-  #bufferCache(chainId: OcnURN) {
+  #bufferCache(chainId: NetworkURN) {
     return this.#db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
       valueEncoding: 'buffer',
     });
@@ -208,7 +208,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
   /**
    * Puts into the binary cache.
    */
-  async #putBuffer(chainId: OcnURN, key: string, buffer: Uint8Array) {
+  async #putBuffer(chainId: NetworkURN, key: string, buffer: Uint8Array) {
     const db = this.#bufferCache(chainId);
     await db.put(key, buffer);
 
@@ -218,7 +218,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     });
   }
 
-  async #putBlockBuffer(chainId: OcnURN, block: SignedBlockExtended) {
+  async #putBlockBuffer(chainId: NetworkURN, block: SignedBlockExtended) {
     const hash = block.block.header.hash.toHex();
     const key = prefixes.cache.keys.block(hash);
 
@@ -231,7 +231,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     });
   }
 
-  #tapError<T>(chainId: OcnURN, method: string) {
+  #tapError<T>(chainId: NetworkURN, method: string) {
     return tap<T>({
       error: (e) => {
         this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId);

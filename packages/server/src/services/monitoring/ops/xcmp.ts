@@ -15,12 +15,12 @@ import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
 import { getConsensus } from '../../config.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
 function findOutboundHrmpMessage(
-  origin: OcnURN,
+  origin: NetworkURN,
   messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
@@ -84,7 +84,7 @@ function xcmpMessagesSent() {
 }
 
 export function extractXcmpSend(
-  origin: OcnURN,
+  origin: NetworkURN,
   { sendersControl, messageControl }: XcmCriteria,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry

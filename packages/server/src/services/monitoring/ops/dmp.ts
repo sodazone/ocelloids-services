@@ -33,7 +33,7 @@ import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { XcmVersionedXcm } from './xcm-types.js';
 import { GetDownwardMessageQueues } from '../types-augmented.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
 /*
  ==================================================================================
@@ -48,7 +48,7 @@ import { OcnURN } from '../../types.js';
 
 type Json = { [property: string]: Json };
 type XcmContext = {
-  recipient: OcnURN;
+  recipient: NetworkURN;
   data: Uint8Array;
   program: XcmVersionedXcm;
   blockHash: IU8a;
@@ -116,7 +116,7 @@ function createXcmMessageSent({
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
-function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry, origin: OcnURN) {
+function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry, origin: NetworkURN) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((tx) => {
@@ -182,7 +182,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
   };
 }
 
-function findDmpMessagesFromEvent(origin: OcnURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
+function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
@@ -203,7 +203,7 @@ function findDmpMessagesFromEvent(origin: OcnURN, getDmp: GetDownwardMessageQueu
       }),
       filterNonNull(),
       mergeMap(({ recipient, messageId, event }) => {
-        return getDmp(event.blockHash.toHex(), recipient as OcnURN).pipe(
+        return getDmp(event.blockHash.toHex(), recipient as NetworkURN).pipe(
           map((messages) => {
             const { blockHash, blockNumber } = event;
             if (messages.length === 1) {
@@ -255,7 +255,7 @@ const METHODS_DMP = [
 ];
 
 export function extractDmpSend(
-  origin: OcnURN,
+  origin: NetworkURN,
   { sendersControl, messageControl }: XcmCriteria,
   getDmp: GetDownwardMessageQueues,
   registry: Registry
@@ -277,7 +277,7 @@ export function extractDmpSend(
 }
 
 export function extractDmpSendByEvent(
-  origin: OcnURN,
+  origin: NetworkURN,
   { sendersControl, messageControl }: XcmCriteria,
   getDmp: GetDownwardMessageQueues,
   registry: Registry

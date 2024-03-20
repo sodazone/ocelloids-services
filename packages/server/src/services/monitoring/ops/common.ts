@@ -7,10 +7,10 @@ import { XcmSentWithContext } from '../types.js';
 import { networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm } from './xcm-types.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
 // eslint-disable-next-line complexity
-function recursiveExtractStops(origin: OcnURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: OcnURN[]) {
+function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
   for (const instruction of instructions) {
     let nextStop;
     let message;
@@ -47,12 +47,12 @@ function recursiveExtractStops(origin: OcnURN, instructions: XcmV2Xcm | XcmV3Xcm
   return stops;
 }
 
-export function extractXcmWaypoints(registry: Registry, origin: OcnURN) {
+export function extractXcmWaypoints(registry: Registry, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>) =>
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message;
-        const stops: OcnURN[] = [recipient];
+        const stops: NetworkURN[] = [recipient];
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
         recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
         return { message, stops };

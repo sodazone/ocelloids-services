@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify';
 
-import { jsonEncoded, prefixes, OcnURN } from '../types.js';
+import { jsonEncoded, prefixes, NetworkURN } from '../types.js';
 
 type chainIdParam = {
   Params: {
-    chainId: OcnURN;
+    chainId: NetworkURN;
   };
 };
 

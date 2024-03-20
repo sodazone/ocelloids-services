@@ -8,9 +8,9 @@ import { getMessageId, matchExtrinsic } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js';
 import { createNetworkId, getChainId } from '../../config.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
-export function extractRelayReceive(origin: OcnURN, messageControl: ControlQuery, registry: Registry) {
+export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQuery, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmRelayedWithContext> => {
     return source.pipe(
       filter(({ extrinsic }) => matchExtrinsic(extrinsic, 'parainherent', 'enter')),

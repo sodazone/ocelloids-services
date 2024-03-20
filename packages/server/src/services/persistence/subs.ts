@@ -1,6 +1,6 @@
 import { NotFound, ValidationError } from '../../errors.js';
 import { Subscription } from '../monitoring/types.js';
-import { BatchOperation, DB, Logger, jsonEncoded, prefixes, OcnURN } from '../types.js';
+import { BatchOperation, DB, Logger, jsonEncoded, prefixes, NetworkURN } from '../types.js';
 import { IngressConsumer } from '../ingress/index.js';
 
 /**
@@ -53,7 +53,7 @@ export class SubsStore {
    *
    * @returns {Subscription[]} an array with the subscriptions
    */
-  async getByNetworkId(chainId: OcnURN) {
+  async getByNetworkId(chainId: NetworkURN) {
     return await this.#subsFamily(chainId).values().all();
   }
 
@@ -95,8 +95,8 @@ export class SubsStore {
    * @throws {ValidationError} if there is a validation error.
    */
   async save(qs: Subscription) {
-    const origin = qs.origin as OcnURN;
-    const dests = qs.destinations as OcnURN[];
+    const origin = qs.origin as NetworkURN;
+    const dests = qs.destinations as NetworkURN[];
     this.#validateChainIds([origin, ...dests]);
     const db = await this.#subsFamily(origin);
     await db.put(qs.id, qs);
@@ -107,7 +107,7 @@ export class SubsStore {
    */
   async remove(id: string) {
     const qs = await this.getById(id);
-    const origin = qs.origin as OcnURN;
+    const origin = qs.origin as NetworkURN;
     const ops: BatchOperation[] = [];
     ops.push({
       type: 'del',
@@ -117,11 +117,11 @@ export class SubsStore {
     await this.#db.batch(ops);
   }
 
-  #subsFamily(chainId: OcnURN) {
+  #subsFamily(chainId: NetworkURN) {
     return this.#db.sublevel<string, Subscription>(prefixes.subs.family(chainId), jsonEncoded);
   }
 
-  #validateChainIds(chainIds: OcnURN[]) {
+  #validateChainIds(chainIds: NetworkURN[]) {
     chainIds.forEach((chainId) => {
       if (!this.#ingress.isNetworkDefined(chainId)) {
         throw new ValidationError('Invalid chain id:' + chainId);

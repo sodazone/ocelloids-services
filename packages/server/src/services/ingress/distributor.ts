@@ -1,6 +1,6 @@
 import { RedisClientType, createClient, commandOptions } from 'redis';
 
-import { Services, Logger, OcnURN } from '../types.js';
+import { Services, Logger, NetworkURN } from '../types.js';
 import { RedisServerOptions } from '../../types.js';
 
 type StreamContext = {
@@ -27,34 +27,34 @@ export type XAddOptions = {
  * This structure is meant to be persisted in the middleware.
  */
 export type NetworkEntry = {
-  id: OcnURN;
+  id: NetworkURN;
   name: string;
   isRelay: boolean;
   // TODO: owner to be able to remove owned entries
   // on configuration changes?
 };
 
-export type NetworkRecord = Record<OcnURN, NetworkEntry>;
+export type NetworkRecord = Record<NetworkURN, NetworkEntry>;
 
 export const NetworksKey = 'NETWORKS';
 
-export function getBlockStreamKey(chainId: OcnURN) {
+export function getBlockStreamKey(chainId: NetworkURN) {
   return 'S:BLOCKS:' + chainId;
 }
 
-export function getMetadataKey(chainId: OcnURN) {
+export function getMetadataKey(chainId: NetworkURN) {
   return 'METADATA:' + chainId;
 }
 
-export function getVersionKey(chainId: OcnURN) {
+export function getVersionKey(chainId: NetworkURN) {
   return 'RUNTIME:VERSION:' + chainId;
 }
 
-export function getStorageReqKey(chainId: OcnURN) {
+export function getStorageReqKey(chainId: NetworkURN) {
   return 'RQ:STORAGE:' + chainId;
 }
 
-export function getReplyToKey(chainId: OcnURN, ...args: string[]) {
+export function getReplyToKey(chainId: NetworkURN, ...args: string[]) {
   return `RP:${chainId}:${args.join(':')}`;
 }
 

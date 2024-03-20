@@ -26,7 +26,7 @@ import {
   XcmV4Junction,
 } from './xcm-types.js';
 import { getConsensus } from '../../config.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
 /**
  * Gets message id from setTopic.
@@ -100,7 +100,7 @@ function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
   }
 }
 
-function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): OcnURN | undefined {
+function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): NetworkURN | undefined {
   if (junctions.asX1.isGlobalConsensus) {
     extractConsensusAndId(junctions.asX1, n);
     if (n.consensus !== undefined && n.chainId !== undefined) {
@@ -110,7 +110,7 @@ function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): Oc
   return undefined;
 }
 
-function networkIdFromV4(junctions: XcmV4Junctions): OcnURN | undefined {
+function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
@@ -134,7 +134,7 @@ function networkIdFromV4(junctions: XcmV4Junctions): OcnURN | undefined {
   return undefined;
 }
 
-function networkIdFromV3(junctions: XcmV3Junctions): OcnURN | undefined {
+function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
@@ -196,8 +196,8 @@ export function getParaIdFromMultiLocation(
 
 export function networkIdFromMultiLocation(
   loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location,
-  currentNetworkId: OcnURN
-): OcnURN | undefined {
+  currentNetworkId: NetworkURN
+): NetworkURN | undefined {
   const { parents, interior: junctions } = loc;
   const consensus = getConsensus(currentNetworkId);
 
@@ -227,8 +227,8 @@ export function networkIdFromMultiLocation(
 
 export function networkIdFromVersionedMultiLocation(
   loc: XcmVersionedMultiLocation | XcmVersionedLocation,
-  currentNetworkId: OcnURN
-): OcnURN | undefined {
+  currentNetworkId: NetworkURN
+): NetworkURN | undefined {
   switch (loc.type) {
     case 'V2':
     case 'V3':

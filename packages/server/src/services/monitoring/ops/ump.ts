@@ -24,7 +24,7 @@ import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from 
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { getChainId, getConsensus } from '../../config.js';
-import { OcnURN } from '../../types.js';
+import { NetworkURN } from '../../types.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
@@ -36,7 +36,7 @@ type UmpReceivedContext = {
 };
 
 function createUmpReceivedWithContext(
-  subOrigin: OcnURN,
+  subOrigin: NetworkURN,
   event: types.BlockEvent,
   assetsTrappedEvent?: types.BlockEvent
 ): XcmInboundWithContext | null {
@@ -84,7 +84,7 @@ function umpMessagesSent() {
 }
 
 function findOutboundUmpMessage(
-  origin: OcnURN,
+  origin: NetworkURN,
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
@@ -123,7 +123,7 @@ function findOutboundUmpMessage(
 }
 
 export function extractUmpSend(
-  origin: OcnURN,
+  origin: NetworkURN,
   { sendersControl, messageControl }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
@@ -141,7 +141,7 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(originId: OcnURN) {
+export function extractUmpReceive(originId: NetworkURN) {
   return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),

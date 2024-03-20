@@ -6,7 +6,7 @@ import { TypeRegistry, Metadata } from '@polkadot/types';
 import type { Registry } from '@polkadot/types-codec/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 
-import { DB, Logger, Services, prefixes, OcnURN } from '../../types.js';
+import { DB, Logger, Services, prefixes, NetworkURN } from '../../types.js';
 
 import {
   RedisDistributor,
@@ -47,13 +47,13 @@ function createRegistry(bytes: Buffer | Uint8Array) {
  * and in a distributed environment.
  */
 export interface IngressConsumer extends TelemetryEventEmitter {
-  finalizedBlocks(chainId: OcnURN): Observable<SignedBlockExtended>;
-  getStorage(chainId: OcnURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>;
-  getRegistry(chainId: OcnURN): Observable<Registry>;
-  getRelayIds(): OcnURN[];
-  isRelay(chainId: OcnURN): boolean;
-  isNetworkDefined(chainId: OcnURN): boolean;
-  getChainIds(): OcnURN[];
+  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended>;
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>;
+  getRegistry(chainId: NetworkURN): Observable<Registry>;
+  getRelayIds(): NetworkURN[];
+  isRelay(chainId: NetworkURN): boolean;
+  isNetworkDefined(chainId: NetworkURN): boolean;
+  getChainIds(): NetworkURN[];
   start(): Promise<void>;
   stop(): Promise<void>;
   collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void;
@@ -71,8 +71,8 @@ export class DistributedIngressConsumer
 {
   readonly #log: Logger;
   readonly #db: DB;
-  readonly #blockConsumers: Record<OcnURN, Subject<SignedBlockExtended>>;
-  readonly #registries$: Record<OcnURN, Observable<Registry>>;
+  readonly #blockConsumers: Record<NetworkURN, Subject<SignedBlockExtended>>;
+  readonly #registries$: Record<NetworkURN, Observable<Registry>>;
   readonly #distributor: RedisDistributor;
 
   #networks: NetworkRecord = {};
@@ -112,7 +112,7 @@ export class DistributedIngressConsumer
   }
 
   // TODO: retry??
-  finalizedBlocks(chainId: OcnURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
     const consumer = this.#blockConsumers[chainId];
     if (consumer === undefined) {
       throw new Error('Missing distributed consumer for chain=' + chainId);
@@ -120,7 +120,7 @@ export class DistributedIngressConsumer
     return consumer.asObservable();
   }
 
-  getRegistry(chainId: OcnURN): Observable<Registry> {
+  getRegistry(chainId: NetworkURN): Observable<Registry> {
     if (this.#registries$[chainId] === undefined) {
       this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
@@ -139,25 +139,25 @@ export class DistributedIngressConsumer
   }
 
   // TODO: retry??
-  getStorage(chainId: OcnURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     return this.#storageFromRedis(chainId, storageKey, blockHash);
   }
 
-  getChainIds(): OcnURN[] {
-    return Object.keys(this.#networks) as OcnURN[];
+  getChainIds(): NetworkURN[] {
+    return Object.keys(this.#networks) as NetworkURN[];
   }
 
-  getRelayIds(): OcnURN[] {
+  getRelayIds(): NetworkURN[] {
     return Object.entries(this.#networks)
       .filter(([_, value]) => value.isRelay)
-      .map(([key, _]) => key) as OcnURN[];
+      .map(([key, _]) => key) as NetworkURN[];
   }
 
-  isRelay(chainId: OcnURN) {
+  isRelay(chainId: NetworkURN) {
     return this.#networks[chainId]?.isRelay;
   }
 
-  isNetworkDefined(chainId: OcnURN) {
+  isNetworkDefined(chainId: NetworkURN) {
     return this.#networks[chainId] !== undefined;
   }
 
@@ -192,7 +192,7 @@ export class DistributedIngressConsumer
     }
   }
 
-  #storageFromRedis(chainId: OcnURN, storageKey: HexString, blockHash?: HexString) {
+  #storageFromRedis(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     return from(
       new Promise<Uint8Array>((resolve, reject) => {
         const distributor = this.#distributor;
@@ -229,7 +229,7 @@ export class DistributedIngressConsumer
     );
   }
 
-  async #blockStreamFromRedis(chainId: OcnURN, id: string = '$') {
+  async #blockStreamFromRedis(chainId: NetworkURN, id: string = '$') {
     const subject = this.#blockConsumers[chainId];
     const key = getBlockStreamKey(chainId);
     const registry = await firstValueFrom(this.getRegistry(chainId));
@@ -275,7 +275,7 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
   readonly #log: Logger;
   readonly #headCatcher: HeadCatcher;
   readonly #config: ServiceConfiguration;
-  readonly #registries$: Record<OcnURN, Observable<Registry>>;
+  readonly #registries$: Record<NetworkURN, Observable<Registry>>;
 
   constructor(ctx: Services) {
     super();
@@ -294,27 +294,27 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
     this.#headCatcher.stop();
   }
 
-  getChainIds(): OcnURN[] {
+  getChainIds(): NetworkURN[] {
     return this.#headCatcher.chainIds;
   }
 
-  getRelayIds(): OcnURN[] {
-    return this.#config.networks.filter((n) => n.relay === undefined).map((n) => n.id) as OcnURN[];
+  getRelayIds(): NetworkURN[] {
+    return this.#config.networks.filter((n) => n.relay === undefined).map((n) => n.id) as NetworkURN[];
   }
 
-  isRelay(chainId: OcnURN) {
+  isRelay(chainId: NetworkURN) {
     return isRelay(this.#config, chainId);
   }
 
-  isNetworkDefined(chainId: OcnURN) {
+  isNetworkDefined(chainId: NetworkURN) {
     return isNetworkDefined(this.#config, chainId);
   }
 
-  finalizedBlocks(chainId: OcnURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
     return this.#headCatcher.finalizedBlocks(chainId);
   }
 
-  getRegistry(chainId: OcnURN): Observable<Registry> {
+  getRegistry(chainId: NetworkURN): Observable<Registry> {
     if (this.#registries$[chainId] === undefined) {
       this.#registries$[chainId] = from(this.#headCatcher.getApiPromise(chainId).isReady).pipe(
         map((api) => api.registry),
@@ -327,7 +327,7 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
     return this.#registries$[chainId];
   }
 
-  getStorage(chainId: OcnURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     return this.#headCatcher.getStorage(chainId, storageKey, blockHash);
   }
 
