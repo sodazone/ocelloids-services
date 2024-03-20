@@ -32,7 +32,7 @@ import {
   filterNonNull,
 } from '@sodazone/ocelloids-sdk';
 
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../../types.js';
+import { DB, Logger, Services, jsonEncoded, prefixes, OcnURN } from '../../types.js';
 import { ChainHead as ChainTip, HexString, BlockNumberRange } from '../../monitoring/types.js';
 import { ServiceConfiguration } from '../../config.js';
 import { TelemetryEventEmitter } from '../../telemetry/types.js';
@@ -87,8 +87,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #localConfig: ServiceConfiguration;
   readonly #localCache: LocalCache;
 
-  readonly #mutex: Record<string, Mutex> = {};
-  readonly #pipes: Record<string, Observable<any>> = {};
+  readonly #mutex: Record<OcnURN, Mutex> = {};
+  readonly #pipes: Record<OcnURN, Observable<any>> = {};
 
   constructor(services: Services) {
     super();
@@ -122,7 +122,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Returns an observable of extended signed blocks, providing cached block content as needed.
    */
-  finalizedBlocks(chainId: string): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: OcnURN): Observable<SignedBlockExtended> {
     const apiRx = this.#apis.rx[chainId];
     const apiPromise$ = from(this.#apis.promise[chainId].isReady);
     let pipe = this.#pipes[chainId];
@@ -188,11 +188,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return pipe;
   }
 
-  getApiPromise(chainId: string) {
+  getApiPromise(chainId: OcnURN) {
     return this.#apis.promise[chainId];
   }
 
-  getStorage(chainId: string, storageKey: HexString, blockHash?: HexString) {
+  getStorage(chainId: OcnURN, storageKey: HexString, blockHash?: HexString) {
     const apiPromise$ = from(this.#apis.promise[chainId].isReady);
     const getStorage$ = apiPromise$.pipe(
       switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
@@ -218,15 +218,15 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return getStorage$.pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE));
   }
 
-  get chainIds() {
-    return this.#apis.chains;
+  get chainIds(): OcnURN[] {
+    return this.#apis.chains as OcnURN[];
   }
 
   get #chainTips() {
     return this.#db.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded);
   }
 
-  #pendingRanges(chainId: string) {
+  #pendingRanges(chainId: OcnURN) {
     return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded);
   }
 
@@ -242,7 +242,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  #catchUpHeads(chainId: string, api: ApiPromise) {
+  #catchUpHeads(chainId: OcnURN, api: ApiPromise) {
     return (source: Observable<Header>): Observable<Header> => {
       return source.pipe(
         tap((header) => {
@@ -262,7 +262,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #recoverBlockRanges(chainId: string, api: ApiPromise) {
+  #recoverBlockRanges(chainId: OcnURN, api: ApiPromise) {
     return (source: Observable<BlockNumberRange[]>): Observable<Header> => {
       const batchSize = this.#batchSize(chainId);
       return source.pipe(
@@ -290,7 +290,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  async #recoverRanges(chainId: string) {
+  async #recoverRanges(chainId: OcnURN) {
     const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId);
     if (networkConfig && networkConfig.recovery) {
       return await (await this.#pendingRanges(chainId).values()).all();
@@ -299,7 +299,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  async #targetHeights(chainId: string, head: Header) {
+  async #targetHeights(chainId: OcnURN, head: Header) {
     if (this.#mutex[chainId] === undefined) {
       this.#mutex[chainId] = new Mutex();
     }
@@ -370,7 +370,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     );
   }
 
-  #catchUpToHeight(chainId: string, api: ApiPromise, newHead: Header) {
+  #catchUpToHeight(chainId: OcnURN, api: ApiPromise, newHead: Header) {
     return (source: Observable<bigint[]>): Observable<Header> => {
       return source.pipe(
         mergeMap((targets) => {
@@ -454,12 +454,12 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #batchSize(chainId: string) {
+  #batchSize(chainId: OcnURN) {
     const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId);
     return BigInt(networkConfig?.batchSize ?? 25);
   }
 
-  #tapError<T>(chainId: string, method: string) {
+  #tapError<T>(chainId: OcnURN, method: string) {
     return tap<T>({
       error: (e) => {
         this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId);

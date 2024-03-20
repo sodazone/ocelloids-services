@@ -5,7 +5,7 @@ import { Registry } from '@polkadot/types-codec/types';
 import { ControlQuery, extractEvents, types, extractTxWithEvents, flattenCalls } from '@sodazone/ocelloids-sdk';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
-import { Logger, Services } from '../types.js';
+import { Logger, Services, OcnURN } from '../types.js';
 import {
   GenericXcmSent,
   Subscription,
@@ -386,8 +386,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorDestinations({ id, destinations, origin }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
+    const originId = origin as OcnURN;
     try {
-      for (const dest of destinations) {
+      for (const dest of destinations as OcnURN[]) {
         const chainId = dest;
         if (this.#subs[id]?.destinationSubs.find((s) => s.chainId === chainId)) {
           // Skip existing subscriptions
@@ -434,10 +435,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
           subs.push({
             chainId,
             sub: this.#sharedBlockEvents(chainId)
-              .pipe(extractUmpReceive(origin), this.#emitInbound(id, chainId))
+              .pipe(extractUmpReceive(originId), this.#emitInbound(id, chainId))
               .subscribe(inboundObserver),
           });
-        } else if (this.#ingress.isRelay(origin)) {
+        } else if (this.#ingress.isRelay(originId)) {
           // VMP DMP
           this.#log.info('[%s] subscribe inbound DMP (%s)', chainId, id);
 
@@ -477,7 +478,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   #monitorOrigins({ id, origin, senders, destinations }: Subscription): Monitor {
     const subs: RxSubscriptionWithId[] = [];
-    const chainId = origin;
+    const chainId = origin as OcnURN;
 
     if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`);
@@ -519,7 +520,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
 
     try {
-      if (this.#ingress.isRelay(origin)) {
+      if (this.#ingress.isRelay(chainId)) {
         // VMP DMP
         this.#log.info('[%s] subscribe outbound DMP (%s)', chainId, id);
 
@@ -642,7 +643,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #monitorRelay({ id, destinations, origin }: Subscription) {
-    const chainId = origin;
+    const chainId = origin as OcnURN;
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already exists.');
     }
@@ -743,14 +744,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  #sharedBlockEvents(chainId: string): Observable<types.BlockEvent> {
+  #sharedBlockEvents(chainId: OcnURN): Observable<types.BlockEvent> {
     if (!this.#shared.blockEvents[chainId]) {
       this.#shared.blockEvents[chainId] = this.#ingress.finalizedBlocks(chainId).pipe(extractEvents(), share());
     }
     return this.#shared.blockEvents[chainId];
   }
 
-  #sharedBlockExtrinsics(chainId: string): Observable<types.TxWithIdAndEvent> {
+  #sharedBlockExtrinsics(chainId: OcnURN): Observable<types.TxWithIdAndEvent> {
     if (!this.#shared.blockExtrinsics[chainId]) {
       this.#shared.blockExtrinsics[chainId] = this.#ingress
         .finalizedBlocks(chainId)
@@ -773,8 +774,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #shouldMonitorRelay({ origin, destinations, events }: Subscription) {
     return (
       (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
-      !this.#ingress.isRelay(origin) &&
-      destinations.some((d) => !this.#ingress.isRelay(d))
+      !this.#ingress.isRelay(origin as OcnURN) &&
+      destinations.some((d) => !this.#ingress.isRelay(d as OcnURN))
     );
   }
 
@@ -793,7 +794,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       );
   }
 
-  #getDmp(chainId: string, registry: Registry): GetDownwardMessageQueues {
+  #getDmp(chainId: OcnURN, registry: Registry): GetDownwardMessageQueues {
     return (blockHash: HexString, networkId: string) => {
       const paraId = getChainId(networkId);
       return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
@@ -804,7 +805,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #getUmp(chainId: string, registry: Registry): GetOutboundUmpMessages {
+  #getUmp(chainId: OcnURN, registry: Registry): GetOutboundUmpMessages {
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
         map((buffer) => {
@@ -814,7 +815,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  #getHrmp(chainId: string, registry: Registry): GetOutboundHrmpMessages {
+  #getHrmp(chainId: OcnURN, registry: Registry): GetOutboundHrmpMessages {
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
         map((buffer) => {

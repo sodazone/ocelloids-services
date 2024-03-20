@@ -9,6 +9,8 @@ import { Scheduler } from './persistence/scheduler.js';
 import { BlockNumberRange, HexString } from './monitoring/types.js';
 import { IngressConsumer } from './ingress/consumer/index.js';
 
+export type OcnURN = `urn:ocn:${string}`;
+
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>;
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>;
 export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, V>;
@@ -18,19 +20,19 @@ export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, 
  */
 export const prefixes = {
   subs: {
-    family: (chainId: string) => `su:${chainId}`,
+    family: (chainId: OcnURN) => `su:${chainId}`,
   },
   sched: {
     tasks: 'sc:tasks',
   },
   cache: {
-    family: (chainId: string) => `ch:${chainId}`,
+    family: (chainId: OcnURN) => `ch:${chainId}`,
     keys: {
       block: (hash: HexString) => `blk:${hash}`,
       storage: (storageKey: HexString, blockHash = '$') => `st:${storageKey}:${blockHash}`,
       range: (range: BlockNumberRange) => `${range.fromBlockNum}-${range.toBlockNum}`,
     },
-    ranges: (chainId: string) => `ch:rg:${chainId}`,
+    ranges: (chainId: OcnURN) => `ch:rg:${chainId}`,
     tips: 'ch:fi',
   },
   matching: {
@@ -40,7 +42,7 @@ export const prefixes = {
     hop: 'ma:hop',
   },
   distributor: {
-    lastBlockStreamId: (chainId: string) => `dis:blocks:lid:${chainId}`,
+    lastBlockStreamId: (chainId: OcnURN) => `dis:blocks:lid:${chainId}`,
   },
 };
 export const jsonEncoded = { valueEncoding: 'json' };

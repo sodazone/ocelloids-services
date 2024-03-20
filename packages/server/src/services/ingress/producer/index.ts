@@ -10,7 +10,7 @@ import {
   getVersionKey,
 } from '../distributor.js';
 import { HeadCatcher } from '../watcher/head-catcher.js';
-import { Logger, Services } from '../../types.js';
+import { Logger, Services, OcnURN } from '../../types.js';
 import { ServiceConfiguration } from '../../config.js';
 import { HexString } from '../../monitoring/types.js';
 import { IngressOptions } from '../../../types.js';
@@ -139,7 +139,7 @@ export default class IngressProducer {
     );
   }
 
-  #registerStorageRequestHandler(chainId: string) {
+  #registerStorageRequestHandler(chainId: OcnURN) {
     const key = getStorageReqKey(chainId);
     this.#distributor.read<StorageRequest>(key, (request, { client }) => {
       this.#headCatcher.getStorage(chainId, request.storageKey, request.at).subscribe((data) => {

@@ -658,7 +658,9 @@ export const $Subscription = z
     ),
   })
   .refine(
-    (schema) => !schema.ephemeral || (schema.channels.length === 1 && schema.channels[0].type === 'websocket'),
+    (schema) =>
+      !schema.ephemeral ||
+      (schema.channels !== undefined && schema.channels.length === 1 && schema.channels[0].type === 'websocket'),
     'ephemeral subscriptions only supports websocket notifications'
   );
 
