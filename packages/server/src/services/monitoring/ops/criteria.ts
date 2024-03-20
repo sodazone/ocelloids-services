@@ -1,5 +1,6 @@
 import { ControlQuery, Criteria, types } from '@sodazone/ocelloids-sdk';
 import { XcmSentWithContext } from '../types.js';
+import { OcnURN } from '../../types.js';
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {
@@ -18,7 +19,7 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
 }
 
 // Assuming we are in the same consensus
-export function messageCriteria(recipients: string[]): Criteria {
+export function messageCriteria(recipients: OcnURN[]): Criteria {
   return {
     recipient: { $in: recipients },
   };

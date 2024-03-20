@@ -4,9 +4,12 @@ import { Subscription as RxSubscription } from 'rxjs';
 
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
-import { getChainId, getConsensus } from '../config.js';
+import { OcnURN } from '../types.js';
+import { createNetworkId, getChainId } from '../config.js';
 
 /**
+ * Represents a generic JSON object.
+ *
  * @public
  */
 export type AnyJson =
@@ -105,7 +108,7 @@ export type XcmProgram = {
 
 export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array;
-  recipient: string;
+  recipient: OcnURN;
   sender: AnyJson;
   instructions: XcmProgram;
 }
@@ -202,7 +205,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
 
 export class XcmInbound {
   subscriptionId: string;
-  chainId: string;
+  chainId: OcnURN;
   event: AnyJson;
   messageHash: HexString;
   messageId: HexString;
@@ -213,7 +216,7 @@ export class XcmInbound {
   extrinsicId?: string;
   assetsTrapped?: AssetsTrapped;
 
-  constructor(subscriptionId: string, chainId: string, msg: XcmInboundWithContext) {
+  constructor(subscriptionId: string, chainId: OcnURN, msg: XcmInboundWithContext) {
     this.subscriptionId = subscriptionId;
     this.chainId = chainId;
     this.event = msg.event;
@@ -230,7 +233,7 @@ export class XcmInbound {
 
 export class GenericXcmSentWithContext implements XcmSentWithContext {
   messageData: Uint8Array;
-  recipient: string;
+  recipient: OcnURN;
   instructions: XcmProgram;
   messageHash: HexString;
   event: AnyJson;
@@ -285,7 +288,7 @@ const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object
  * @public
  */
 export type XcmTerminus = {
-  chainId: string;
+  chainId: OcnURN;
 };
 
 /**
@@ -324,8 +327,8 @@ export interface XcmWaypointContext extends XcmTerminusContext {
  * @public
  */
 export type Leg = {
-  from: string;
-  to: string;
+  from: OcnURN;
+  to: OcnURN;
 };
 
 /**
@@ -354,7 +357,7 @@ export class GenericXcmSent implements XcmSent {
   sender: AnyJson;
   messageId?: HexString;
 
-  constructor(subscriptionId: string, chainId: string, msg: XcmSentWithContext, stops: string[]) {
+  constructor(subscriptionId: string, chainId: OcnURN, msg: XcmSentWithContext, stops: OcnURN[]) {
     this.subscriptionId = subscriptionId;
     this.legs = this.constructLegs(chainId, stops);
     this.origin = {
@@ -385,7 +388,7 @@ export class GenericXcmSent implements XcmSent {
   }
 
   // TODO: to be replaced with proper consensus handling
-  constructLegs(origin: string, stops: string[]) {
+  constructLegs(origin: OcnURN, stops: OcnURN[]) {
     const legs: Leg[] = [];
     const nodes = [origin].concat(stops);
     for (let i = 0; i < nodes.length - 1; i++) {
@@ -394,7 +397,7 @@ export class GenericXcmSent implements XcmSent {
       // If OD are parachains, add intermediate path through relay.
       // TODO: revisit when XCMP is launched.
       if (getChainId(from) !== '0' && getChainId(to) !== '0') {
-        const relayId = `urn:ocn:${getConsensus(from)}:0`;
+        const relayId = createNetworkId(from, '0');
         legs.push(
           {
             from,
@@ -524,8 +527,8 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
     this.waypoint = {
-      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.to === '0'),
-      chainId: '0', // relay waypoint always at relay chain
+      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && getChainId(l.to) === '0'),
+      chainId: createNetworkId(this.origin.chainId, '0'), // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
       extrinsicId: relayMsg.extrinsicId,

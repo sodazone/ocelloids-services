@@ -265,7 +265,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   updateDestinations(id: string) {
     const { descriptor, messageControl } = this.#subs[id];
 
-    messageControl.change(messageCriteria(descriptor.destinations));
+    messageControl.change(messageCriteria(descriptor.destinations as OcnURN[]));
 
     const updatedSubs = this.#updateDestinationSubscriptions(id);
     this.#subs[id].destinationSubs = updatedSubs;
@@ -485,7 +485,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     }
 
     const sendersControl = ControlQuery.from(sendersCriteria(senders));
-    const messageControl = ControlQuery.from(messageCriteria(destinations));
+    const messageControl = ControlQuery.from(messageCriteria(destinations as OcnURN[]));
 
     const outboundObserver = {
       error: (error: any) => {
@@ -532,7 +532,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
                   extractDmpSend(
-                    origin,
+                    chainId,
                     {
                       sendersControl,
                       messageControl,
@@ -558,7 +558,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractDmpSendByEvent(
-                    origin,
+                    chainId,
                     {
                       sendersControl,
                       messageControl,
@@ -584,7 +584,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractXcmpSend(
-                    origin,
+                    chainId,
                     {
                       sendersControl,
                       messageControl,
@@ -610,7 +610,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
                   extractUmpSend(
-                    origin,
+                    chainId,
                     {
                       sendersControl,
                       messageControl,
@@ -647,7 +647,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     if (this.#subs[id]?.relaySub) {
       this.#log.debug('Relay subscription already exists.');
     }
-    const messageControl = ControlQuery.from(messageCriteria(destinations));
+    const messageControl = ControlQuery.from(messageCriteria(destinations as OcnURN[]));
 
     const emitRelayInbound = () => (source: Observable<XcmRelayedWithContext>) =>
       source.pipe(switchMap((message) => from(this.#engine.onRelayedMessage(id, message))));
@@ -685,7 +685,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         .pipe(
           switchMap((registry) =>
             this.#sharedBlockExtrinsics(relayIds[0]).pipe(
-              extractRelayReceive(origin, messageControl, registry),
+              extractRelayReceive(chainId, messageControl, registry),
               emitRelayInbound()
             )
           )
@@ -779,12 +779,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     );
   }
 
-  #emitInbound(id: string, chainId: string) {
+  #emitInbound(id: string, chainId: OcnURN) {
     return (source: Observable<XcmInboundWithContext>) =>
       source.pipe(switchMap((msg) => from(this.#engine.onInboundMessage(new XcmInbound(id, chainId, msg)))));
   }
 
-  #emitOutbound(id: string, origin: string, registry: Registry) {
+  #emitOutbound(id: string, origin: OcnURN, registry: Registry) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
         extractXcmWaypoints(registry, origin),
@@ -795,7 +795,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #getDmp(chainId: OcnURN, registry: Registry): GetDownwardMessageQueues {
-    return (blockHash: HexString, networkId: string) => {
+    return (blockHash: HexString, networkId: OcnURN) => {
       const paraId = getChainId(networkId);
       return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
         map((buffer) => {

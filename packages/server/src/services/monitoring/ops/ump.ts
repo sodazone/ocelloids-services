@@ -24,6 +24,7 @@ import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from 
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { getConsensus } from '../../config.js';
+import { OcnURN } from '../../types.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
@@ -83,7 +84,7 @@ function umpMessagesSent() {
 }
 
 function findOutboundUmpMessage(
-  origin: string,
+  origin: OcnURN,
   messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
@@ -122,7 +123,7 @@ function findOutboundUmpMessage(
 }
 
 export function extractUmpSend(
-  origin: string,
+  origin: OcnURN,
   { sendersControl, messageControl }: XcmCriteria,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry

@@ -26,6 +26,7 @@ import {
   XcmV4Junction,
 } from './xcm-types.js';
 import { getConsensus } from '../../config.js';
+import { OcnURN } from '../../types.js';
 
 /**
  * Gets message id from setTopic.
@@ -99,7 +100,7 @@ function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
   }
 }
 
-function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId) {
+function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): OcnURN | undefined {
   if (junctions.asX1.isGlobalConsensus) {
     extractConsensusAndId(junctions.asX1, n);
     if (n.consensus !== undefined && n.chainId !== undefined) {
@@ -109,7 +110,7 @@ function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId) {
   return undefined;
 }
 
-function networkIdFromV4(junctions: XcmV4Junctions) {
+function networkIdFromV4(junctions: XcmV4Junctions): OcnURN | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
@@ -133,7 +134,7 @@ function networkIdFromV4(junctions: XcmV4Junctions) {
   return undefined;
 }
 
-function networkIdFromV3(junctions: XcmV3Junctions) {
+function networkIdFromV3(junctions: XcmV3Junctions): OcnURN | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
@@ -195,8 +196,8 @@ export function getParaIdFromMultiLocation(
 
 export function networkIdFromMultiLocation(
   loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location,
-  currentNetworkId: string
-) {
+  currentNetworkId: OcnURN
+): OcnURN | undefined {
   const { parents, interior: junctions } = loc;
   const consensus = getConsensus(currentNetworkId);
 
@@ -226,8 +227,8 @@ export function networkIdFromMultiLocation(
 
 export function networkIdFromVersionedMultiLocation(
   loc: XcmVersionedMultiLocation | XcmVersionedLocation,
-  currentNetworkId: string
-): string | undefined {
+  currentNetworkId: OcnURN
+): OcnURN | undefined {
   switch (loc.type) {
     case 'V2':
     case 'V3':

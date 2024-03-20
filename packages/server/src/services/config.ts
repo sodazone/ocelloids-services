@@ -6,6 +6,7 @@ import fp from 'fastify-plugin';
 import toml from 'toml';
 
 import { ConfigServerOptions } from '../types.js';
+import { OcnURN } from './types.js';
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),
@@ -66,24 +67,25 @@ export type NetworkId = z.infer<typeof $NetworkId>;
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>;
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>;
 
-export function isRelay({ networks }: ServiceConfiguration, chainId: string) {
+export function isRelay({ networks }: ServiceConfiguration, chainId: OcnURN) {
   return networks.findIndex((n) => n.relay === undefined && n.id === chainId) >= 0;
 }
 
-export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: string) {
+export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: OcnURN) {
   return networks.findIndex((n) => n.id === chainId) >= 0;
 }
 
-export function getConsensus(networkId: string) {
+export function getConsensus(networkId: OcnURN) {
   return networkId.split(':')[2];
 }
 
-export function getChainId(networkId: string) {
+export function getChainId(networkId: OcnURN) {
   return networkId.split(':')[3];
 }
 
-export function constructNetworkId(consensus: string, chainId: string) {
-  return `urn:ocn:${consensus}:${chainId}`;
+export function createNetworkId(consensus: string | OcnURN, chainId: string): OcnURN {
+  const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as OcnURN) : consensus;
+  return `urn:ocn:${c}:${chainId}`;
 }
 
 declare module 'fastify' {

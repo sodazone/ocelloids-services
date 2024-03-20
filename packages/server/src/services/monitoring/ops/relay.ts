@@ -7,9 +7,10 @@ import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 import { getMessageId, matchExtrinsic } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js';
-import { constructNetworkId, getChainId, getConsensus } from '../../config.js';
+import { createNetworkId, getChainId, getConsensus } from '../../config.js';
+import { OcnURN } from '../../types.js';
 
-export function extractRelayReceive(origin: string, messageControl: ControlQuery, registry: Registry) {
+export function extractRelayReceive(origin: OcnURN, messageControl: ControlQuery, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmRelayedWithContext> => {
     return source.pipe(
       filter(({ extrinsic }) => matchExtrinsic(extrinsic, 'parainherent', 'enter')),
@@ -20,7 +21,7 @@ export function extractRelayReceive(origin: string, messageControl: ControlQuery
           const { horizontalMessages } = backed.candidate.commitments;
           const message = horizontalMessages.find(({ recipient }) => {
             return messageControl.value.test({
-              recipient: constructNetworkId(getConsensus(origin), recipient.toNumber().toString()),
+              recipient: createNetworkId(getConsensus(origin), recipient.toNumber().toString()),
             });
           });
           if (message) {
@@ -31,7 +32,7 @@ export function extractRelayReceive(origin: string, messageControl: ControlQuery
                 new GenericXcmRelayedWithContext({
                   blockHash: blockHash.toHex(),
                   blockNumber: blockNumber.toPrimitive(),
-                  recipient: constructNetworkId(getConsensus(origin), message.recipient.toString()),
+                  recipient: createNetworkId(getConsensus(origin), message.recipient.toString()),
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   origin,

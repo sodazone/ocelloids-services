@@ -4,6 +4,7 @@ import { relayHrmpReceive, registry } from '../../../testing/xcm.js';
 import { extractRelayReceive } from './relay.js';
 import { extractTxWithEvents } from '@sodazone/ocelloids-sdk';
 import { messageCriteria } from './criteria.js';
+import { OcnURN } from '../../types.js';
 
 describe('relay operator', () => {
   describe('extractRelayReceive', () => {
@@ -12,7 +13,7 @@ describe('relay operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractRelayReceive(origin, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractRelayReceive(origin as OcnURN, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -40,10 +41,10 @@ describe('relay operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractRelayReceive(origin, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractRelayReceive(origin as OcnURN, messageControl, registry)(blocks.pipe(extractTxWithEvents()));
 
       // remove destination from criteria
-      messageControl.change(messageCriteria(['2000', '2006']));
+      messageControl.change(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006']));
 
       test$.subscribe({
         next: (_) => {
