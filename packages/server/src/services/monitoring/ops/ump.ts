@@ -23,7 +23,7 @@ import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
-import { getConsensus } from '../../config.js';
+import { getChainId, getConsensus } from '../../config.js';
 import { OcnURN } from '../../types.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
@@ -36,7 +36,7 @@ type UmpReceivedContext = {
 };
 
 function createUmpReceivedWithContext(
-  subOrigin: string,
+  subOrigin: OcnURN,
   event: types.BlockEvent,
   assetsTrappedEvent?: types.BlockEvent
 ): XcmInboundWithContext | null {
@@ -49,7 +49,7 @@ function createUmpReceivedWithContext(
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
   // If we can get message origin, only return message if origin matches with subscription origin
   // If no origin, we will return the message without matching with subscription origin
-  if (messageOrigin === undefined || messageOrigin === subOrigin) {
+  if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
     return new GenericXcmInboundWithContext({
       event: event.toHuman(),
       blockHash: event.blockHash.toHex(),
@@ -141,7 +141,7 @@ export function extractUmpSend(
   };
 }
 
-export function extractUmpReceive(originId: string) {
+export function extractUmpReceive(originId: OcnURN) {
   return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),

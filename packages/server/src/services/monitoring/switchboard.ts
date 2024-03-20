@@ -675,9 +675,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       },
     };
 
-    this.#log.info('[%s] subscribe relay xcm events (%s)', chainId, id);
     // TODO: should resolve relay id for consensus in context
     const relayIds = this.#ingress.getRelayIds();
+    this.#log.info('[%s] subscribe relay %s xcm events (%s)', chainId, relayIds[0], id);
     return {
       chainId,
       sub: this.#ingress

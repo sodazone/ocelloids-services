@@ -21,7 +21,7 @@ export function extractRelayReceive(origin: OcnURN, messageControl: ControlQuery
           const { horizontalMessages } = backed.candidate.commitments;
           const message = horizontalMessages.find(({ recipient }) => {
             return messageControl.value.test({
-              recipient: createNetworkId(getConsensus(origin), recipient.toNumber().toString()),
+              recipient: createNetworkId(origin, recipient.toString()),
             });
           });
           if (message) {
@@ -32,7 +32,7 @@ export function extractRelayReceive(origin: OcnURN, messageControl: ControlQuery
                 new GenericXcmRelayedWithContext({
                   blockHash: blockHash.toHex(),
                   blockNumber: blockNumber.toPrimitive(),
-                  recipient: createNetworkId(getConsensus(origin), message.recipient.toString()),
+                  recipient: createNetworkId(origin, message.recipient.toString()),
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   origin,
