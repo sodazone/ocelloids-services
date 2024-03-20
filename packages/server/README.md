@@ -114,13 +114,13 @@ yarn && yarn build
 Run:
 
 ```shell
-yarn oc-exec --help
+yarn oc-node --help
 ```
 
 ```shell
-Usage: oc-exec [options]
+Usage: oc-node [options]
 
-Ocelloids Execution Server
+Ocelloids Services Node
 
 Options:
   -V, --version                           output the version number
