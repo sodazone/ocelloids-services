@@ -1,6 +1,6 @@
 # Ocelloids Service Node
 
-[![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-services?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-services)
+[![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-integrated-node?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-integrated-node)
 [![CI](https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-services/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/ocelloids-services/actions/workflows/ci.yml)
 
 The Ocelloids Service Node repository provides software components for running programmable offchain layers.
@@ -67,7 +67,7 @@ The accepted configuration fields are as follows:
 | Field      | Description                                                                                        | Required   | Default |
 | ---------  | -------------------------------------------------------------------------------------------------- | ---------- | ------- |
 | name       | The name of the network.                                                                           | Yes        | n/a     |
-| id         | The ID of the network.                                                                             | Yes        | n/a     |
+| id         | The ID of the network.[^1]                                                                         | Yes        | n/a     |
 | provider   | Provider configuration, detailed below.                                                            | Yes        | n/a     |
 | relay      | For parachains, the name of the relay chain it connects to.                                        | No         | n/a     |
 | recovery   | Enbles or disables the recovery of interrupted catch-ups.                                          | No         | false   |
@@ -82,6 +82,8 @@ Provider configuration fields:
 | spec     | Path to the chain specs, used when type=`smoldot`. Required when **not** using [well-known chain](https://github.com/paritytech/substrate-connect/blob/main/packages/connect/src/WellKnownChain.ts) names. |
 
 Example configurations are available in the `config/` directory of this repository for reference.
+
+[^1]: Network ID format `urn:ocn:[consensus]:[chainId]`, where `consensus` is one of the values in [XCM NetworkId](https://paritytech.github.io/polkadot-sdk/master/staging_xcm/v4/enum.NetworkId.html) or `local`.
 </details>
 
 ## Running the Service Node
@@ -93,13 +95,13 @@ You can run an integrated Service Node using Docker.
 Download the Docker image:
 
 ```shell
-docker pull sodazone/ocelloids-service
+docker pull sodazone/ocelloids-integrated-node
 ```
 
 Or build locally:
  
 ```shell
-docker build . -t ocelloids-service:develop
+docker build . -t ocelloids-integrated-node:develop
 ```
 
 Run the image mounting the configuration and chain specs as volumes:
@@ -110,7 +112,7 @@ docker run -d \
   -p 3000:3000 \
   -v <PATH_TO_CHAIN_SPECS>:/opt/oc/chain-specs \
   -v <PATH_TO_CONFIG>:/opt/oc/config \
-  sodazone/ocelloids-service
+  sodazone/ocelloids-integrated-node
 ```
 
 ### Command Line
