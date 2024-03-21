@@ -1,8 +1,8 @@
 {
-  "name": "@sodazone/ocelloids-server",
+  "name": "@sodazone/ocelloids-service-node",
   "version": "1.0.0",
   "type": "module",
-  "description": "Ocelloids server",
+  "description": "Ocelloids Service Node",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
     "Marc Fornós <marc@soda.zone>",

@@ -1,5 +1,5 @@
 {
-  "name": "@sodazone/ocelloids-server-root",
+  "name": "@sodazone/ocelloids-service-root",
   "version": "1.0.0",
   "description": "Ocelloids Server",
   "author": "SO/DA <projects@soda.zone>",
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "yarn server build && yarn client build",
-    "server": "yarn workspace @sodazone/ocelloids-server",
+    "server": "yarn workspace @sodazone/ocelloids-service-node",
     "client": "yarn workspace @sodazone/ocelloids-client"
   },
   "license": "Apache-2.0",

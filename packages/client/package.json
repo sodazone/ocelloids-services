@@ -8,6 +8,7 @@
     "Marc Fornós <marc@soda.zone>",
     "Xueying Wang <xueying@soda.zone>"
   ],
+  "repository": "https://github.com/sodazone/ocelloids-services",
   "source": "./src/lib.ts",
   "main": "./dist/lib.cjs",
   "module": "./dist/lib.js",
