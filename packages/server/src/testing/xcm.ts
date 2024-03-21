@@ -17,6 +17,7 @@ import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 import { testBlocksFrom } from './blocks.js';
 import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js';
+import { NetworkURN } from '../services/types.js';
 
 const _registry = new TypeRegistry();
 const metadata = new Metadata(_registry, spec);
@@ -27,10 +28,9 @@ export const registry = _registry;
 const xcmpData =
   '0x000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368';
 export const xcmpSend = {
-  origin: 'urn:ocn:local:1000',
+  origin: 'urn:ocn:local:1000' as NetworkURN,
   blocks: from(testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'])),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2032'])),
   getHrmp: () =>
     from([
       [
@@ -54,10 +54,9 @@ export const xcmpReceive = {
 const umpData =
   '0x03100204000000000700fcf9d8080a13000000000700fcf9d808000d01020400010100a0ce523c0e0ce46845d3fe6258d0e314e029bbcdd96e19646cc4ffd395ff0e5e';
 export const umpSend = {
-  origin: 'urn:ocn:local:1000',
+  origin: 'urn:ocn:local:1000' as NetworkURN,
   blocks: from(testBlocksFrom('ump-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14dqxCimfu8PEuneBLgZnxgyxPuMoaVto7xozL6rgSo3hGU9'])),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:0'])),
   getUmp: () => from([[registry.createType('Bytes', umpData)] as Vec<Bytes>]),
 };
 
@@ -129,10 +128,9 @@ const dmpData =
 const dmpData2 =
   '0x03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c';
 export const dmpSendSingleMessageInQueue = {
-  origin: 'urn:ocn:local:0',
+  origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
   sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -171,10 +169,9 @@ export const dmpSendSingleMessageInQueue = {
 
 // Insert a fake message in the queue to simulate mutliple messages in DMP queue
 export const dmpSendMultipleMessagesInQueue = {
-  origin: 'urn:ocn:local:0',
+  origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
   sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -237,10 +234,9 @@ export const dmpSendMultipleMessagesInQueue = {
 };
 
 export const dmpXcmPalletSentEvent = {
-  origin: 'urn:ocn:local:0',
+  origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('dmp-out-event-19505060.cbor.bin', 'polkadot-1000001.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2034'])),
   apiPromise: {
     at: () =>
       new Promise((resolve) => {
@@ -307,9 +303,8 @@ export const relayHrmpReceive = {
 export const xcmHop = {
   blocks: from(testBlocksFrom('hydra-hop-4624161.cbor.bin', 'hydra-207.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:0', 'urn:ocn:local:1000', 'urn:ocn:local:2104'])),
-  origin: 'urn:ocn:local:0',
-  destination: 'urn:ocn:local:1000',
+  origin: 'urn:ocn:local:0' as NetworkURN,
+  destination: 'urn:ocn:local:1000' as NetworkURN,
   getHrmp: () =>
     from([
       [
@@ -401,7 +396,7 @@ const instructions: any = {
 
 // DMP to 2034
 export const xcmHopOrigin = {
-  origin: 'urn:ocn:local:0',
+  origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('polkadot-hop-19777220.cbor.bin', 'polkadot-1000001.json')),
   sendersControl: new ControlQuery(sendersCriteria('*')),
   messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:1000', 'urn:ocn:local:2034'])),

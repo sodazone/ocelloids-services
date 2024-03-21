@@ -4,24 +4,15 @@ import { extractEvents } from '@sodazone/ocelloids-sdk';
 import { umpReceive, umpSend, registry } from '../../../testing/xcm.js';
 
 import { extractUmpReceive, extractUmpSend } from './ump.js';
-import { NetworkURN } from '../../types.js';
 
 describe('ump operator', () => {
   describe('extractUmpSend', () => {
     it('should extract UMP sent message', (done) => {
-      const { origin, blocks, sendersControl, messageControl, getUmp } = umpSend;
+      const { origin, blocks, sendersControl, getUmp } = umpSend;
 
       const calls = jest.fn();
 
-      const test$ = extractUmpSend(
-        origin as NetworkURN,
-        {
-          sendersControl,
-          messageControl,
-        },
-        getUmp,
-        registry
-      )(blocks.pipe(extractEvents()));
+      const test$ = extractUmpSend(origin, sendersControl, getUmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {

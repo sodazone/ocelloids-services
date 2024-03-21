@@ -9,19 +9,11 @@ import { sendersCriteria } from './criteria.js';
 describe('xcmp operator', () => {
   describe('extractXcmpSend', () => {
     it('should extract XCMP sent message', (done) => {
-      const { origin, blocks, sendersControl, messageControl, getHrmp } = xcmpSend;
+      const { origin, blocks, sendersControl, getHrmp } = xcmpSend;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpSend(
-        origin,
-        {
-          sendersControl,
-          messageControl,
-        },
-        getHrmp,
-        registry
-      )(blocks.pipe(extractEvents()));
+      const test$ = extractXcmpSend(origin, sendersControl, getHrmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -42,19 +34,11 @@ describe('xcmp operator', () => {
     });
 
     it('should extract XCMP sent on hops', (done) => {
-      const { origin, blocks, sendersControl, messageControl, getHrmp } = xcmHop;
+      const { origin, blocks, sendersControl, getHrmp } = xcmHop;
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpSend(
-        origin,
-        {
-          sendersControl,
-          messageControl,
-        },
-        getHrmp,
-        registry
-      )(blocks.pipe(extractEvents()));
+      const test$ = extractXcmpSend(origin, sendersControl, getHrmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -76,18 +60,13 @@ describe('xcmp operator', () => {
   });
 
   it('should extract XCMP sent message matching by public key', (done) => {
-    const { origin, blocks, messageControl, getHrmp } = xcmpSend;
+    const { origin, blocks, getHrmp } = xcmpSend;
 
     const calls = jest.fn();
 
     const test$ = extractXcmpSend(
       origin,
-      {
-        sendersControl: new ControlQuery(
-          sendersCriteria(['0x8e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'])
-        ),
-        messageControl,
-      },
+      new ControlQuery(sendersCriteria(['0x8e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'])),
       getHrmp,
       registry
     )(blocks.pipe(extractEvents()));

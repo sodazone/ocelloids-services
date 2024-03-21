@@ -4,13 +4,13 @@ import { jest } from '@jest/globals';
 import { from, of } from 'rxjs';
 
 import { registry } from '../../../testing/xcm.js';
-import { extractXcmWaypoints } from './common';
+import { mapXcmSent } from './common';
 import { GenericXcmSentWithContext } from '../types';
 import { asVersionedXcm, fromXcmpFormat } from './xcm-format';
 import { getMessageId } from './util';
 
 describe('extract waypoints operator', () => {
-  describe('extractXcmWaypoints', () => {
+  describe('mapXcmSent', () => {
     it('should extract stops for a V2 XCM message without hops', (done) => {
       const calls = jest.fn();
 
@@ -19,7 +19,8 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(
+      const test$ = mapXcmSent(
+        'test-sub',
         registry,
         'urn:ocn:local:2004'
       )(
@@ -46,10 +47,11 @@ describe('extract waypoints operator', () => {
       );
 
       test$.subscribe({
-        next: ({ stops }) => {
-          expect(stops).toBeDefined();
-          expect(stops.length).toBe(1);
-          expect(stops[0]).toBe('urn:ocn:local:2104');
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.waypoint.chainId).toBe('urn:ocn:local:2004');
+          expect(msg.legs.length).toBe(2);
+          expect(msg.destination.chainId).toBe('urn:ocn:local:2104');
           calls();
         },
         complete: () => {
@@ -67,7 +69,8 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(polka19505060, 'hex'));
 
       const xcm = asVersionedXcm(buf, registry);
-      const test$ = extractXcmWaypoints(
+      const test$ = mapXcmSent(
+        'test-sub',
         registry,
         'urn:ocn:local:0'
       )(
@@ -91,11 +94,17 @@ describe('extract waypoints operator', () => {
       );
 
       test$.subscribe({
-        next: ({ stops }) => {
-          expect(stops).toBeDefined();
-          expect(stops.length).toBe(2);
-          expect(stops[0]).toBe('urn:ocn:local:2034');
-          expect(stops[1]).toBe('urn:ocn:local:1000');
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.waypoint.chainId).toBe('urn:ocn:local:0');
+          expect(msg.legs.length).toBe(3);
+          expect(msg.legs[0].from).toBe('urn:ocn:local:0');
+          expect(msg.legs[0].to).toBe('urn:ocn:local:2034');
+          expect(msg.legs[1].from).toBe('urn:ocn:local:2034');
+          expect(msg.legs[1].to).toBe('urn:ocn:local:0');
+          expect(msg.legs[2].from).toBe('urn:ocn:local:0');
+          expect(msg.legs[2].to).toBe('urn:ocn:local:1000');
+          expect(msg.destination.chainId).toBe('urn:ocn:local:1000');
           calls();
         },
         complete: () => {
@@ -113,7 +122,8 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(heiko5389341, 'hex'));
 
       const xcms = fromXcmpFormat(buf, registry);
-      const test$ = extractXcmWaypoints(
+      const test$ = mapXcmSent(
+        'test-sub',
         registry,
         'urn:ocn:local:2085'
       )(
@@ -140,11 +150,21 @@ describe('extract waypoints operator', () => {
       );
 
       test$.subscribe({
-        next: ({ stops }) => {
-          expect(stops).toBeDefined();
-          expect(stops.length).toBe(2);
-          expect(stops[0]).toBe('urn:ocn:local:2004');
-          expect(stops[1]).toBe('urn:ocn:local:2000');
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.waypoint.chainId).toBe('urn:ocn:local:2085');
+
+          expect(msg.legs.length).toBe(4);
+          expect(msg.legs[0].from).toBe('urn:ocn:local:2085');
+          expect(msg.legs[0].to).toBe('urn:ocn:local:0');
+          expect(msg.legs[1].from).toBe('urn:ocn:local:0');
+          expect(msg.legs[1].to).toBe('urn:ocn:local:2004');
+          expect(msg.legs[2].from).toBe('urn:ocn:local:2004');
+          expect(msg.legs[2].to).toBe('urn:ocn:local:0');
+          expect(msg.legs[3].from).toBe('urn:ocn:local:0');
+          expect(msg.legs[3].to).toBe('urn:ocn:local:2000');
+
+          expect(msg.destination.chainId).toBe('urn:ocn:local:2000');
           calls();
         },
         complete: () => {
