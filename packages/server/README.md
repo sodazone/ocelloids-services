@@ -53,7 +53,7 @@ The configuration values can be overridden using command line arguments.
 [^1]: Redis URL format `redis[s]://[[username][:password]@][host][:port][/db-number]`.
 </details>
 
-Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md) for details on running decoupled service layers.
+If you are looking for a distributed deployment, [check the guide for details on running decoupled service layers](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md).
 
 ### Network Configuration
 
