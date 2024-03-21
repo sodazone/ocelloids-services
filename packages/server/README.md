@@ -1,27 +1,30 @@
-# Ocelloids Server
+# Ocelloids Service Node
 
-[![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server)
-[![CI](https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-server/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/ocelloids-services/actions/workflows/ci.yml)
+[![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-services?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-services)
+[![CI](https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-services/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8)](https://github.com/sodazone/ocelloids-services/actions/workflows/ci.yml)
 
-The Ocelloids Server is a software application designed to monitor Cross-Consensus Message Format (XCM)
-program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
+The Ocelloids Service Node repository provides software components for running programmable offchain layers.
+
+> [!IMPORTANT]
+> Ocelloids is transitioning to a generalized execution model. Currently, the Ocelloids Node only supports XCM monitoring logic.
+> You can monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
 
 ## Key Features
 
-- **Execution Monitoring:** The server tracks XCM program executions across various networks.
-- **Subscription Management:** The server provides a flexible API for users to specify subscription criteria, including origin, destinations, senders, and delivery channels. It supports long-lived and on-demand subscriptions, delivering notifications via webhooks and websockets.
-- **Dynamic Subscription Updates:** The subscription API allows users to modify subscription parameters, such as list of senders and destinations. The monitor seamlessly updates its matching criteria in real-time, without need for restarts.
-- **Light client support:** The server supports connecting to chains through smoldot, in addition to RPC endpoints, thereby reducing infrastructure needs by eliminating the necessity of running full nodes or relying on RPC providers.
-- **Resilience and Reliability:** The server ensures uninterrupted operation with persistent data storage between restarts. It supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
-- **Observability:** The server exposes telemetry metrics in a Prometheus-compatible exporter.
+- **Subscription Management:** Flexible API for specifying subscription criteria, including origin, destinations, senders, and delivery channels. Supports long-lived and on-demand subscriptions, delivering notifications via webhooks and websockets.
+- **Dynamic Subscription Updates:** Exposes a subscription API for modifying subscription parameters, such as lists of senders and destinations. Seamlessly updates matching criteria in real-time, without need for restarts.
+- **Light client support:** Connects to chains through smoldot, in addition to RPC endpoints, reducing infrastructure needs by eliminating the necessity of running full nodes or relying on RPC providers.
+- **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
+- **Observability:** Exports Prometheus-compatible telemetry metrics.
+- **Scalability:** Can run in a distributed way, separating the sourcing of onchain data from the execution of automation programs.
 
-The Ocelloids Server utilizes the [Ocelloids SDK](https://github.com/sodazone/ocelloids-sdk) for the implementation of its monitoring logic.
+The Ocelloids Service Node utilizes the [Ocelloids SDK](https://github.com/sodazone/ocelloids-sdk) for the implementation of its monitoring logic.
 
 ## Configuration
 
-### Server Configuration
+### Service Node Configuration
 
-The server configuration uses the environment variables described in the table below.
+The service node configuration uses the environment variables described in the table below.
 The configuration values can be overridden using command line arguments.
 
 | Variable                          | Description                                    | Default   |
@@ -43,6 +46,12 @@ The configuration values can be overridden using command line arguments.
 | OC_CORS_ORIGIN                    | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
 | OC_SUBSCRIPTION_MAX_PERSISTENT    | Maximum number of persistent subscriptions.    | 5000      |
 | OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
+| OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
+| OC_REDIS_URL                      | Redis connection URL[^1].                      | redis://localhost:6379 |
+
+Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md) for details on running decoupled service layers.
+
+[^1]: `redis[s]://[[username][:password]@][host][:port][/db-number]`
 
 ### Network Configuration
 
@@ -67,7 +76,7 @@ Provider configuration fields:
 
 Example configurations are available in the `config/` directory of this repository for reference.
 
-## Running the Server
+## Running the Service Node
 
 ### Docker
 
@@ -76,13 +85,13 @@ Alternatively you can run the server using Docker.
 Download the Docker image:
 
 ```
-docker pull sodazone/ocelloids-server
+docker pull sodazone/ocelloids-service
 ```
 
 Or build locally:
  
 ```
-docker build . -t ocelloids-server:develop
+docker build . -t ocelloids-service:develop
 ```
 
 Run the image mounting the configuration and chain specs as volumes:
@@ -93,7 +102,7 @@ docker run -d \
   -p 3000:3000 \
   -v <PATH_TO_CHAIN_SPECS>:/opt/oc/chain-specs \
   -v <PATH_TO_CONFIG>:/opt/oc/config \
-  sodazone/ocelloids-server
+  sodazone/ocelloids-service
 ```
 
 ### Command Line
@@ -120,7 +129,7 @@ yarn oc-node --help
 ```shell
 Usage: oc-node [options]
 
-Ocelloids Services Node
+Ocelloids Service Node
 
 Options:
   -V, --version                           output the version number
@@ -137,12 +146,12 @@ Options:
   --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
   --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
   --cors <boolean>                        enables or disables CORS support (default: false, env: OC_CORS_ENABLE)
-  --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env:
-                                          OC_CORS_CREDENTIALS)
+  --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env: OC_CORS_CREDENTIALS)
   --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
                                           "true" for wildcard, "string" or "/regexp/"
-                                          repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env:
-                                          OC_CORS_ORIGIN)
+                                          repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
+  --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
+  --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
   --help                                  display help for command
 ```
 
@@ -158,35 +167,9 @@ OC_CONFIG_FILE=config/manta.toml yarn dev
 
 The XCM Monitoring Server offers convenient APIs for seamless interaction.
 
-Explore the [Hurl requests](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/hurl) for comprehensive usage examples.
-
-### Subscription API
-
-The subscription HTTP API allows you to create and manage subscriptions to XCM interactions of your interest.
-
-The OpenAPI documentation is published at the path [/documentation](http://localhost:3000/documentation) in your running server.
-
-Fore more details, refer to [Subscription HTTP API Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/SUBSCRIPTION.md)
-
-### Administration API
-
-The server provides an API for administration purposes. It facilitates tasks such as reading and purging cached data, pending XCM messages and scheduled tasks. You can also consult the current chain tip of a network through this API.
-
-For more details, refer to our [Administration Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/ADMINISTRATION.md). 
-
-### Healthcheck
-
-The server exposes a healthchek endpoint at [/health](http://localhost:3000/health).
+[Explore the provided HTTP APIs for subscription management, administration, and health checks](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/HTTP_APIS.md).
 
 ## Testing
 
-To run unit tests:
-
-```shell
-yarn test
-```
-
-For end-to-end testing with Polkadot please refer to our [Polkadot Testing Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING-POLKADOT.md).
-
-For end-to-end testing with Zombienet please refer to our [Zombienet Testing Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING-ZOMBIENET.md).
+[Run unit tests and explore end-to-end testing guides for Polkadot and Zombienet](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING.md).
 

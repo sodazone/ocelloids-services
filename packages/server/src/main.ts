@@ -53,7 +53,7 @@ async function startServer(this: Command) {
 
 program
   .name('oc-node')
-  .description('Ocelloids Services Node')
+  .description('Ocelloids Service Node')
   .version(version)
   .addOption(opt('-h, --host <address>', 'host to bind to', 'OC_HOST').default('localhost'))
   .addOption(optInt('-p, --port <number>', 'port number to listen on', 'OC_PORT').default(3000))

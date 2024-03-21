@@ -21,25 +21,25 @@
 </p>
 </div>
 
-Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the [Ocelloids Services Node](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) and the [Ocelloids Client library](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/).
+Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the [Ocelloids Service Node](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) and the [Ocelloids Client library](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/).
 
 ## Packages
 
 | Name | Folder | Release |
 | ---- | ------ | ------- |
-| Ocelloids Services Node | [packages/server](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) | [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-server?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-server) |
+| Ocelloids Service Node | [packages/server](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) | [![Docker](https://img.shields.io/docker/v/sodazone/ocelloids-services?label=docker&style=flat&color=69D2E7&labelColor=A7DBD8&logo=docker&logoColor=444444)](https://hub.docker.com/r/sodazone/ocelloids-services) |
 | Ocelloids Client Library | [packages/client](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/) | <a href="https://www.npmjs.com/package/@sodazone/ocelloids-client"><img src="https://img.shields.io/npm/v/@sodazone/ocelloids-client?color=69D2E7&labelColor=69D2E7&logo=npm&logoColor=333333" alt="npm @sodazone/ocelloids-client" /></a> |
 
-### Ocelloids Services Node
+### Ocelloids Service Node
 
-The Ocelloids Services Node provies:
+The Ocelloids Service Node provies:
 
 - Ingress services for sourcing onchain data
 - Program execution environment for offchain automation
 - Persistent and on-demand subscription management
 - Delivery channels including websockets and webhooks
 
-Explore the [Ocelloids Services Node Repository](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/).
+Explore the [Ocelloids Service Node Repository](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/).
 
 ### Ocelloids Client Library
 
