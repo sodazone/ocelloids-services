@@ -116,9 +116,9 @@ docker run -d \
 ### Command Line
 
 > [!IMPORTANT]
-> The Ocelloids Server requires `node.js >= 20`.
+> The Ocelloids Service Node requires `node.js >= 20`.
 
-Install and build:
+From the root of the project, install and build:
 
 ```shell
 corepack enable
@@ -128,7 +128,7 @@ corepack enable
 yarn && yarn build
 ```
 
-Run:
+From `packages/server`, run:
 
 ```shell
 yarn oc-node --help
