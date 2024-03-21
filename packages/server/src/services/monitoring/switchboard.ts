@@ -701,10 +701,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #onXcmWaypointReached(msg: XcmNotifyMessage) {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
-      const { descriptor, messageControl } = this.#subs[subscriptionId];
+      const { descriptor, sendersControl } = this.#subs[subscriptionId];
       if (
         (descriptor.events === undefined || descriptor.events === '*' || descriptor.events.includes(msg.type)) &&
-        matchSenders(messageControl, msg.sender)
+        matchSenders(sendersControl, msg.sender)
       ) {
         this.#notifier.notify(descriptor, msg);
       }
