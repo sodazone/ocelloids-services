@@ -42,7 +42,7 @@ jobs:
         with:
           images: |
             sodazone/ocelloids-integrated-node
-            ghcr.io/ocelloids-integrated-node
+            ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
       
