@@ -43,7 +43,7 @@ Explore the [Ocelloids Service Node Repository](https://github.com/sodazone/ocel
 
 ### Ocelloids Client Library
 
-The TypeScript client library to interact with Ocelloids Servers.
+The TypeScript client library to interact with Ocelloids Service APIs.
 
 Explore the [Ocelloids Client Library Repository](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/).
 

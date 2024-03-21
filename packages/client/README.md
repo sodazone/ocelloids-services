@@ -4,7 +4,7 @@
 
 [Documentation](https://sodazone.github.io/ocelloids-services/) | [Examples](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/examples)
 
-TypeScript client library for Ocelloids Services APIs.
+TypeScript client library to interact with Ocelloids Service APIs.
 
 Compatible with [browser environments, Node, Bun and Deno](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).
 
