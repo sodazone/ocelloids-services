@@ -43,8 +43,6 @@ jobs:
           images: |
             sodazone/ocelloids-integrated-node
             ghcr.io/${{ github.repository }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
       
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
