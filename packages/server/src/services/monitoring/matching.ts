@@ -148,6 +148,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       let idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId);
 
       if (hashKey === idKey) {
+        // if hash and id are the same, both could be the message hash or both could be the message id
         try {
           const outMsg = await this.#outbound.get(hashKey);
           log.info(
@@ -158,9 +159,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             inMsg.blockHash,
             inMsg.blockNumber
           );
-          // If outbound has messageId, we need to reconstruct idKey
+          // if outbound has no messageId, we can safely assume that
+          // idKey and hashKey are made up of only the message hash.
+          // if outbound has messageId, we need to reconstruct idKey and hashKey
+          // using outbound values to ensure that no dangling keys will be left on janitor sweep.
           if (outMsg.messageId !== undefined) {
             idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageId);
+            hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash);
           }
           await this.#outbound.batch().del(idKey).del(hashKey).write();
           this.#onXcmMatched(outMsg, inMsg);
