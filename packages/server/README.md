@@ -16,7 +16,7 @@ The Ocelloids Service Node repository provides software components for running p
 - **Light client support:** Connects to chains through smoldot, in addition to RPC endpoints, reducing infrastructure needs by eliminating the necessity of running full nodes or relying on RPC providers.
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
-- **Scalability:** Can run in a distributed way, separating the sourcing of onchain data from the execution of automation programs.
+- **Scalability:** Can run in a distributed way, decoupling the sourcing of onchain data from the execution of automation programs.
 
 ## Configuration
 
