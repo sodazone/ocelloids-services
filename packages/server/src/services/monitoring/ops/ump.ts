@@ -15,14 +15,13 @@ import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  XcmCriteria,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
 import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { matchMessage, matchSenders } from './criteria.js';
+import { matchSenders } from './criteria.js';
 import { getChainId, getRelayId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
@@ -85,7 +84,6 @@ function umpMessagesSent() {
 
 function findOutboundUmpMessage(
   origin: NetworkURN,
-  messageControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
 ) {
@@ -114,8 +112,7 @@ function findOutboundUmpMessage(
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
               });
           }),
-          filterNonNull(),
-          filter((xcm) => matchMessage(messageControl, xcm))
+          filterNonNull()
         );
       })
     );
@@ -124,7 +121,7 @@ function findOutboundUmpMessage(
 
 export function extractUmpSend(
   origin: NetworkURN,
-  { sendersControl, messageControl }: XcmCriteria,
+  sendersControl: ControlQuery,
   getOutboundUmpMessages: GetOutboundUmpMessages,
   registry: Registry
 ) {
@@ -136,7 +133,7 @@ export function extractUmpSend(
           matchSenders(sendersControl, event.extrinsic)
       ),
       umpMessagesSent(),
-      findOutboundUmpMessage(origin, messageControl, getOutboundUmpMessages, registry)
+      findOutboundUmpMessage(origin, getOutboundUmpMessages, registry)
     );
   };
 }

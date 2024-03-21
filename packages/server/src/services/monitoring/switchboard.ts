@@ -1,13 +1,12 @@
 import EventEmitter from 'node:events';
 
-import { Observable, from, switchMap, map, share } from 'rxjs';
+import { Observable, from, switchMap, map, share, filter } from 'rxjs';
 import { Registry } from '@polkadot/types-codec/types';
 import { ControlQuery, extractEvents, types, extractTxWithEvents, flattenCalls } from '@sodazone/ocelloids-sdk';
 
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js';
 import { Logger, Services, NetworkURN } from '../types.js';
 import {
-  GenericXcmSent,
   Subscription,
   XcmInbound,
   RxSubscriptionHandler,
@@ -28,10 +27,10 @@ import { NotifierHub } from '../notification/hub.js';
 import { NotifierEvents } from '../notification/types.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
 
-import { sendersCriteria, messageCriteria } from './ops/criteria.js';
+import { sendersCriteria, messageCriteria, matchMessage } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
-import { extractXcmWaypoints } from './ops/common.js';
+import { mapXcmSent } from './ops/common.js';
 import { errorMessage } from '../../errors.js';
 import { extractRelayReceive } from './ops/relay.js';
 import { IngressConsumer } from '../ingress/index.js';
@@ -531,16 +530,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
-                  extractDmpSend(
-                    chainId,
-                    {
-                      sendersControl,
-                      messageControl,
-                    },
-                    this.#getDmp(chainId, registry),
-                    registry
-                  ),
-                  this.#emitOutbound(id, chainId, registry)
+                  extractDmpSend(chainId, sendersControl, this.#getDmp(chainId, registry), registry),
+                  this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
             )
@@ -557,16 +548,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
-                  extractDmpSendByEvent(
-                    chainId,
-                    {
-                      sendersControl,
-                      messageControl,
-                    },
-                    this.#getDmp(chainId, registry),
-                    registry
-                  ),
-                  this.#emitOutbound(id, chainId, registry)
+                  extractDmpSendByEvent(chainId, sendersControl, this.#getDmp(chainId, registry), registry),
+                  this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
             )
@@ -583,16 +566,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
-                  extractXcmpSend(
-                    chainId,
-                    {
-                      sendersControl,
-                      messageControl,
-                    },
-                    this.#getHrmp(chainId, registry),
-                    registry
-                  ),
-                  this.#emitOutbound(id, chainId, registry)
+                  extractXcmpSend(chainId, sendersControl, this.#getHrmp(chainId, registry), registry),
+                  this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
             )
@@ -609,16 +584,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
-                  extractUmpSend(
-                    chainId,
-                    {
-                      sendersControl,
-                      messageControl,
-                    },
-                    this.#getUmp(chainId, registry),
-                    registry
-                  ),
-                  this.#emitOutbound(id, chainId, registry)
+                  extractUmpSend(chainId, sendersControl, this.#getUmp(chainId, registry), registry),
+                  this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
             )
@@ -784,13 +751,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       source.pipe(switchMap((msg) => from(this.#engine.onInboundMessage(new XcmInbound(id, chainId, msg)))));
   }
 
-  #emitOutbound(id: string, origin: NetworkURN, registry: Registry) {
+  #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
-        extractXcmWaypoints(registry, origin),
-        switchMap(({ message, stops }) =>
-          from(this.#engine.onOutboundMessage(new GenericXcmSent(id, origin, message, stops)))
-        )
+        mapXcmSent(id, registry, origin),
+        filter((msg) => matchMessage(messageControl, msg)),
+        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound)))
       );
   }
 

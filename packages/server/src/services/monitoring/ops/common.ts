@@ -3,7 +3,7 @@ import { map, Observable } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
 import type { XcmV2Xcm, XcmV3Xcm } from '@polkadot/types/lookup';
 
-import { XcmSentWithContext } from '../types.js';
+import { GenericXcmSent, XcmSent, XcmSentWithContext } from '../types.js';
 import { networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm } from './xcm-types.js';
@@ -47,15 +47,25 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
   return stops;
 }
 
-export function extractXcmWaypoints(registry: Registry, origin: NetworkURN) {
-  return (source: Observable<XcmSentWithContext>) =>
+/**
+ * Maps a XcmSentWithContext to a XcmSent message.
+ * Sets the destination as the final stop after recursively extracting all stops from the XCM message,
+ * constructs the legs for the message and constructs the waypoint context.
+ *
+ * @param id subscription ID
+ * @param registry type registry
+ * @param origin origin network URN
+ * @returns Observable<XcmSent>
+ */
+export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
+  return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message;
         const stops: NetworkURN[] = [recipient];
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
         recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
-        return { message, stops };
+        return new GenericXcmSent(id, origin, message, stops);
       })
     );
 }

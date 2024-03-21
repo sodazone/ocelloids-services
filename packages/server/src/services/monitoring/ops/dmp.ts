@@ -10,13 +10,12 @@ import type { IU8a } from '@polkadot/types-codec/types';
 import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 
-import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
+import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   AnyJson,
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  XcmCriteria,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
@@ -30,7 +29,7 @@ import {
   networkIdFromMultiLocation,
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { matchMessage, matchSenders } from './criteria.js';
+import { matchSenders } from './criteria.js';
 import { XcmVersionedXcm } from './xcm-types.js';
 import { GetDownwardMessageQueues } from '../types-augmented.js';
 import { NetworkURN } from '../../types.js';
@@ -256,7 +255,7 @@ const METHODS_DMP = [
 
 export function extractDmpSend(
   origin: NetworkURN,
-  { sendersControl, messageControl }: XcmCriteria,
+  sendersControl: ControlQuery,
   getDmp: GetDownwardMessageQueues,
   registry: Registry
 ) {
@@ -270,15 +269,14 @@ export function extractDmpSend(
           matchSenders(sendersControl, extrinsic)
         );
       }),
-      findDmpMessagesFromTx(getDmp, registry, origin),
-      filter((xcm) => matchMessage(messageControl, xcm))
+      findDmpMessagesFromTx(getDmp, registry, origin)
     );
   };
 }
 
 export function extractDmpSendByEvent(
   origin: NetworkURN,
-  { sendersControl, messageControl }: XcmCriteria,
+  sendersControl: ControlQuery,
   getDmp: GetDownwardMessageQueues,
   registry: Registry
 ) {
@@ -287,8 +285,7 @@ export function extractDmpSendByEvent(
       // filtering of events is done in findDmpMessagesFromEvent
       // to take advantage of types augmentation
       filter((event) => matchSenders(sendersControl, event.extrinsic)),
-      findDmpMessagesFromEvent(origin, getDmp, registry),
-      filter((xcm) => matchMessage(messageControl, xcm))
+      findDmpMessagesFromEvent(origin, getDmp, registry)
     );
   };
 }

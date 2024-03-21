@@ -1,5 +1,5 @@
 import { ControlQuery, Criteria, types } from '@sodazone/ocelloids-sdk';
-import { XcmSentWithContext } from '../types.js';
+import { XcmSent } from '../types.js';
 import { NetworkURN } from '../../types.js';
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
@@ -71,6 +71,6 @@ export function matchSenders(query: ControlQuery, xt?: types.ExtrinsicWithId): b
 /**
  * Matches outbound XCM recipients.
  */
-export function matchMessage(query: ControlQuery, xcm: XcmSentWithContext): boolean {
-  return query.value.test({ recipient: xcm.recipient });
+export function matchMessage(query: ControlQuery, xcm: XcmSent): boolean {
+  return query.value.test({ recipient: xcm.destination.chainId });
 }

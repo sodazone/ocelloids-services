@@ -6,13 +6,12 @@ import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  XcmCriteria,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
 import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
-import { matchMessage, matchSenders } from './criteria.js';
+import { matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
@@ -21,7 +20,6 @@ const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
 function findOutboundHrmpMessage(
   origin: NetworkURN,
-  messageControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
 ) {
@@ -55,8 +53,7 @@ function findOutboundHrmpMessage(
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
               });
           }),
-          filterNonNull(),
-          filter((xcm) => matchMessage(messageControl, xcm))
+          filterNonNull()
         );
       })
     );
@@ -85,7 +82,7 @@ function xcmpMessagesSent() {
 
 export function extractXcmpSend(
   origin: NetworkURN,
-  { sendersControl, messageControl }: XcmCriteria,
+  sendersControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
 ) {
@@ -97,7 +94,7 @@ export function extractXcmpSend(
           matchSenders(sendersControl, event.extrinsic)
       ),
       xcmpMessagesSent(),
-      findOutboundHrmpMessage(origin, messageControl, getOutboundHrmpMessages, registry)
+      findOutboundHrmpMessage(origin, getOutboundHrmpMessages, registry)
     );
   };
 }
