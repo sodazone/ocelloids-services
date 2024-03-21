@@ -2165,22 +2165,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sodazone/ocelloids-server-root@workspace:.":
+"@sodazone/ocelloids-service-node@workspace:packages/server":
   version: 0.0.0-use.local
-  resolution: "@sodazone/ocelloids-server-root@workspace:."
-  dependencies:
-    eslint: "npm:^8.57.0"
-    eslint-config-prettier: "npm:^9.1.0"
-    eslint-plugin-prettier: "npm:^5.1.3"
-    prettier: "npm:3.2.5"
-    typescript: "npm:^5.4.2"
-    typescript-eslint: "npm:^7.1.1"
-  languageName: unknown
-  linkType: soft
-
-"@sodazone/ocelloids-server@workspace:packages/server":
-  version: 0.0.0-use.local
-  resolution: "@sodazone/ocelloids-server@workspace:packages/server"
+  resolution: "@sodazone/ocelloids-service-node@workspace:packages/server"
   dependencies:
     "@babel/core": "npm:^7.24.0"
     "@fastify/cors": "npm:^9.0.1"
@@ -2230,6 +2217,19 @@ __metadata:
   bin:
     oc-ingress: ./dist/services/ingress/server/main.js
     oc-node: ./dist/main.js
+  languageName: unknown
+  linkType: soft
+
+"@sodazone/ocelloids-service-root@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@sodazone/ocelloids-service-root@workspace:."
+  dependencies:
+    eslint: "npm:^8.57.0"
+    eslint-config-prettier: "npm:^9.1.0"
+    eslint-plugin-prettier: "npm:^5.1.3"
+    prettier: "npm:3.2.5"
+    typescript: "npm:^5.4.2"
+    typescript-eslint: "npm:^7.1.1"
   languageName: unknown
   linkType: soft
 
