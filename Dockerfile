@@ -21,7 +21,7 @@ FROM node:20-alpine AS runner
 
 LABEL org.opencontainers.image.authors="oc@soda.zone"
 LABEL org.opencontainers.image.source=https://github.com/sodazone/ocelloids-services
-LABEL org.opencontainers.image.description="Ocelloids Integrated Server"
+LABEL org.opencontainers.image.description="Ocelloids Integrated Node"
 
 WORKDIR /opt/oc
 
