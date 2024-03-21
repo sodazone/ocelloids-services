@@ -1,5 +1,8 @@
 # Distributed Deployment
 
+> [!NOTE]
+> The distributed deployment require a running Redis instance.
+
 ## Distribution Middleware
 
 > [!WARNING]
@@ -26,9 +29,6 @@ The streams provide indexed access while retaining the last N items and facilita
 The source code is located in `packages/server/services/ingress`.
 
 ### Command Line
-
-> [!NOTE]
-> The service require a running Redis instance.
 
 From the root of the project, install and build:
 
@@ -75,3 +75,18 @@ Options:
   --help                                display help for command
 ```
 </details>
+
+## Execution Layer
+
+The execution layer is responsible for executing hosted programs (also known as agents) in a runtime environment, isolated from blockchain connectivity. Currently, the only available "embedded" program is the XCM matching one; however, this will be abstracted away in subsequent iterations of the system and generalized to provide an execution runtime.
+
+To run the execution layer node, follow the instructions provided in the [Ocelloids Service Node README](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/), with the following parameters:
+
+```shell
+oc-node [...] --distributed --redis <redis-url>
+```
+
+---
+
+:dizzy::rocket: Have fun!
+
