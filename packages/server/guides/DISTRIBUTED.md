@@ -3,6 +3,8 @@
 > [!NOTE]
 > The distributed deployment require a running Redis instance.
 
+The distributed deployment architecture consists of three primary layers: distribution middleware handled by Redis, the ingress layer responsible for connecting to onchain sources, and the execution layer for executing hosted programs.
+
 ## Distribution Middleware
 
 > [!WARNING]
