@@ -57,7 +57,12 @@ Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/
 
 ### Network Configuration
 
-To configure network connections, you need to provide a configuration file in TOML format. The accepted configuration fields are as follows:
+To configure network connections, you need to provide a configuration file in TOML format. 
+
+<details>
+  <summary><strong>Configuration file details</strong></summary>
+
+The accepted configuration fields are as follows:
 
 | Field      | Description                                                                                        | Required   | Default |
 | ---------  | -------------------------------------------------------------------------------------------------- | ---------- | ------- |
@@ -77,6 +82,7 @@ Provider configuration fields:
 | spec     | Path to the chain specs, used when type=`smoldot`. Required when **not** using [well-known chain](https://github.com/paritytech/substrate-connect/blob/main/packages/connect/src/WellKnownChain.ts) names. |
 
 Example configurations are available in the `config/` directory of this repository for reference.
+</details>
 
 ## Running the Service Node
 
