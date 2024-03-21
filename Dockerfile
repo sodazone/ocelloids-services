@@ -15,7 +15,7 @@ RUN mkdir -p chain-specs config && \
 yarn run server build && \
 yarn cache clear && \
 rm -rf node_modules/ && \
-yarn workspaces focus --production @sodazone/ocelloids-server
+yarn workspaces focus --production @sodazone/ocelloids-service-node
 
 FROM node:20-alpine AS runner
 
