@@ -120,8 +120,8 @@ export interface XcmInboundWithContext extends XcmWithContext {
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
-  recipient: string;
-  origin: string;
+  recipient: NetworkURN;
+  origin: NetworkURN;
 }
 
 export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
@@ -131,8 +131,8 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
   blockHash: HexString;
   messageHash: HexString;
   messageId?: HexString;
-  recipient: string;
-  origin: string;
+  recipient: NetworkURN;
+  origin: NetworkURN;
   outcome: 'Success' | 'Fail';
   error: AnyJson;
 
