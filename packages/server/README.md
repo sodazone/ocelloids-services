@@ -18,7 +18,7 @@ The Ocelloids Service Node repository provides software components for running p
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
 - **Scalability:** Can run in a distributed way, separating the sourcing of onchain data from the execution of automation programs.
 
-The Ocelloids Service Node utilizes the [Ocelloids SDK](https://github.com/sodazone/ocelloids-sdk) for the implementation of its monitoring logic.
+:star: The Ocelloids Service Node utilizes the [Ocelloids SDK](https://github.com/sodazone/ocelloids-sdk) for the implementation of its monitoring logic.
 
 ## Configuration
 
@@ -26,6 +26,9 @@ The Ocelloids Service Node utilizes the [Ocelloids SDK](https://github.com/sodaz
 
 The service node configuration uses the environment variables described in the table below.
 The configuration values can be overridden using command line arguments.
+
+<details>
+  <summary>Environment variables table</summary>
 
 | Variable                          | Description                                    | Default   |
 | --------------------------------- | ---------------------------------------------- | --------- |
@@ -49,9 +52,10 @@ The configuration values can be overridden using command line arguments.
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
 | OC_REDIS_URL                      | Redis connection URL[^1].                      | redis://localhost:6379 |
 
-Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md) for details on running decoupled service layers.
-
 [^1]: `redis[s]://[[username][:password]@][host][:port][/db-number]`
+</details>
+
+Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md) for details on running decoupled service layers.
 
 ### Network Configuration
 
@@ -80,23 +84,23 @@ Example configurations are available in the `config/` directory of this reposito
 
 ### Docker
 
-Alternatively you can run the server using Docker.
+You can run an integrated Service Node using Docker.
 
 Download the Docker image:
 
-```
+```shell
 docker pull sodazone/ocelloids-service
 ```
 
 Or build locally:
  
-```
+```shell
 docker build . -t ocelloids-service:develop
 ```
 
 Run the image mounting the configuration and chain specs as volumes:
 
-```
+```shell
 docker run -d \
   -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
@@ -126,6 +130,9 @@ Run:
 yarn oc-node --help
 ```
 
+<details>
+  <summary>Command line options</summary>
+
 ```shell
 Usage: oc-node [options]
 
@@ -154,6 +161,7 @@ Options:
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
   --help                                  display help for command
 ```
+</details>
 
 ### Development
 
