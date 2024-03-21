@@ -13,4 +13,4 @@ export type {
   AssetsTrapped,
   TrappedAsset,
   Leg,
-} from '@sodazone/ocelloids-server';
+} from '@sodazone/ocelloids-service-node';
