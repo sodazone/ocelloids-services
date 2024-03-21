@@ -67,7 +67,7 @@ The accepted configuration fields are as follows:
 | Field      | Description                                                                                        | Required   | Default |
 | ---------  | -------------------------------------------------------------------------------------------------- | ---------- | ------- |
 | name       | The name of the network.                                                                           | Yes        | n/a     |
-| id         | The ID of the network.[^1]                                                                         | Yes        | n/a     |
+| id         | The ID of the network.[^2]                                                                         | Yes        | n/a     |
 | provider   | Provider configuration, detailed below.                                                            | Yes        | n/a     |
 | relay      | For parachains, the name of the relay chain it connects to.                                        | No         | n/a     |
 | recovery   | Enbles or disables the recovery of interrupted catch-ups.                                          | No         | false   |
@@ -83,7 +83,7 @@ Provider configuration fields:
 
 Example configurations are available in the `config/` directory of this repository for reference.
 
-[^1]: Network ID format `urn:ocn:[consensus]:[chainId]`, where `consensus` is one of the values in [XCM NetworkId](https://paritytech.github.io/polkadot-sdk/master/staging_xcm/v4/enum.NetworkId.html) or `local`.
+[^2]: Network ID format `urn:ocn:[consensus]:[chainId]`, where `consensus` is one of the values in [XCM NetworkId](https://paritytech.github.io/polkadot-sdk/master/staging_xcm/v4/enum.NetworkId.html) or `local`.
 </details>
 
 ## Running the Service Node
