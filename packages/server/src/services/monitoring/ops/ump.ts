@@ -23,7 +23,7 @@ import { GetOutboundUmpMessages } from '../types-augmented.js';
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
-import { getChainId, getConsensus } from '../../config.js';
+import { getChainId, getRelayId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
@@ -101,7 +101,7 @@ function findOutboundUmpMessage(
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
                   messageData: data.toU8a(),
-                  recipient: `urn:ocn:${getConsensus(origin)}:0`, // always relay
+                  recipient: getRelayId(origin), // always relay
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
                   instructions: {

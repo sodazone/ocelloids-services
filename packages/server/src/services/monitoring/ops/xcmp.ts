@@ -14,7 +14,7 @@ import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { matchMessage, matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
-import { getConsensus } from '../../config.js';
+import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
@@ -41,7 +41,7 @@ function findOutboundHrmpMessage(
                     new GenericXcmSentWithContext({
                       ...sentMsg,
                       messageData: xcmProgram.toU8a(),
-                      recipient: `urn:ocn:${getConsensus(origin)}:${recipient.toNumber().toString()}`,
+                      recipient: createNetworkId(origin, recipient.toNumber().toString()),
                       messageHash: xcmProgram.hash.toHex(),
                       instructions: {
                         bytes: xcmProgram.toU8a(),

@@ -25,7 +25,7 @@ import {
   XcmV4Junctions,
   XcmV4Junction,
 } from './xcm-types.js';
-import { getConsensus } from '../../config.js';
+import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
 /**
@@ -155,7 +155,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
     }
 
     if (networkId.consensus !== undefined && networkId.chainId !== undefined) {
-      return `urn:ocn:${networkId.consensus}:${networkId.chainId}`;
+      return createNetworkId(networkId.consensus, networkId.chainId);
     }
   }
 
@@ -199,14 +199,13 @@ export function networkIdFromMultiLocation(
   currentNetworkId: NetworkURN
 ): NetworkURN | undefined {
   const { parents, interior: junctions } = loc;
-  const consensus = getConsensus(currentNetworkId);
 
   if (parents.toNumber() <= 1) {
     // is within current consensus system
     const paraId = getParaIdFromMultiLocation(loc);
 
     if (paraId !== undefined) {
-      return `urn:ocn:${consensus}:${paraId}`;
+      return createNetworkId(currentNetworkId, paraId);
     }
   } else if (parents.toNumber() > 1) {
     // is in other consensus system
