@@ -22,6 +22,7 @@ import {
 
 import { Janitor, JanitorTask } from '../persistence/janitor.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
+import { getRelayId } from '../config.js';
 
 export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void;
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>;
@@ -191,18 +192,21 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   async onRelayedMessage(subscriptionId: string, relayMsg: XcmRelayedWithContext) {
     const log = this.#log;
+
+    const relayId = getRelayId(relayMsg.origin);
     const idKey = relayMsg.messageId
       ? this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageId)
       : this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageHash);
     const hopKey = relayMsg.messageId
-      ? this.#matchingKey(subscriptionId, '0', relayMsg.messageId)
-      : this.#matchingKey(subscriptionId, '0', relayMsg.messageHash);
+      ? this.#matchingKey(subscriptionId, relayId, relayMsg.messageId)
+      : this.#matchingKey(subscriptionId, relayId, relayMsg.messageHash);
+
     await this.#mutex.runExclusive(async () => {
       try {
         const outMsg = await Promise.any([this.#outbound.get(idKey), this.#hop.get(hopKey)]);
         log.info(
           '[%s:r] RELAYED origin=%s recipient=%s (subId=%s, block=%s #%s)',
-          '0',
+          relayId,
           relayMsg.origin,
           relayMsg.recipient,
           subscriptionId,
@@ -217,7 +221,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           : this.#matchingKey(subscriptionId, relayMsg.origin, relayMsg.messageHash);
         log.info(
           '[%s:r] STORED relayKey=%s origin=%s recipient=%s (subId=%s, block=%s #%s)',
-          '0',
+          relayId,
           relayKey,
           relayMsg.origin,
           relayMsg.recipient,
@@ -587,6 +591,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       if (task.sublevel === prefixes.matching.outbound) {
         const outMsg = JSON.parse(msg) as XcmSent;
         const message: XcmTimeout = new GenericXcmTimeout(outMsg);
+        this.#log.debug('TIMEOUT on key %s', task.key);
         this.emit('telemetryTimeout', message);
         this.#xcmMatchedReceiver(message);
       }

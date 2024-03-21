@@ -83,6 +83,10 @@ export function getChainId(networkId: NetworkURN) {
   return networkId.split(':')[3];
 }
 
+export function getRelayId(networkId: NetworkURN): NetworkURN {
+  return `urn:ocn:${getConsensus(networkId)}:0`;
+}
+
 export function createNetworkId(consensus: string | NetworkURN, chainId: string): NetworkURN {
   const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus;
   return `urn:ocn:${c}:${chainId}`;
