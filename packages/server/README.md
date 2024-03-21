@@ -28,7 +28,7 @@ The service node configuration uses the environment variables described in the t
 The configuration values can be overridden using command line arguments.
 
 <details>
-  <summary>Environment variables table</summary>
+  <summary><strong>Environment variables table</strong></summary>
 
 | Variable                          | Description                                    | Default   |
 | --------------------------------- | ---------------------------------------------- | --------- |
@@ -50,9 +50,9 @@ The configuration values can be overridden using command line arguments.
 | OC_SUBSCRIPTION_MAX_PERSISTENT    | Maximum number of persistent subscriptions.    | 5000      |
 | OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
-| OC_REDIS_URL                      | Redis connection URL[^1].                      | redis://localhost:6379 |
+| OC_REDIS_URL                      | Redis connection URL.[^1]                      | redis://localhost:6379 |
 
-[^1]: `redis[s]://[[username][:password]@][host][:port][/db-number]`
+[^1]: Redis URL format `redis[s]://[[username][:password]@][host][:port][/db-number]`.
 </details>
 
 Please, check [distributed guide](ttps://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md) for details on running decoupled service layers.
@@ -131,7 +131,7 @@ yarn oc-node --help
 ```
 
 <details>
-  <summary>Command line options</summary>
+  <summary><strong>Command line options</strong></summary>
 
 ```shell
 Usage: oc-node [options]
@@ -180,4 +180,8 @@ The XCM Monitoring Server offers convenient APIs for seamless interaction.
 ## Testing
 
 [Run unit tests and explore end-to-end testing guides for Polkadot and Zombienet](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING.md).
+
+---
+
+Stay fresh! :zap::flamingo::palm_tree: 
 
