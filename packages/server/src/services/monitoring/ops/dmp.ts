@@ -7,7 +7,6 @@ import type { Registry } from '@polkadot/types/types';
 import type { Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
 import type { IU8a } from '@polkadot/types-codec/types';
-import type { Address } from '@polkadot/types/interfaces/runtime';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 
 import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
@@ -16,6 +15,7 @@ import {
   AnyJson,
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  SignerData,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
@@ -27,9 +27,10 @@ import {
   matchExtrinsic,
   matchProgramByTopic,
   networkIdFromMultiLocation,
+  getSendersFromExtrinsic,
+  getSendersFromEvent,
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { matchSenders } from './criteria.js';
 import { XcmVersionedXcm } from './xcm-types.js';
 import { GetDownwardMessageQueues } from '../types-augmented.js';
 import { NetworkURN } from '../../types.js';
@@ -52,7 +53,7 @@ type XcmContext = {
   program: XcmVersionedXcm;
   blockHash: IU8a;
   blockNumber: Compact<BlockNumber>;
-  signer?: Address;
+  sender?: SignerData;
   event?: types.BlockEvent;
 };
 
@@ -92,7 +93,7 @@ function createXcmMessageSent({
   program,
   blockHash,
   blockNumber,
-  signer,
+  sender,
   event,
 }: XcmContext): GenericXcmSentWithContext {
   const messageId = getMessageId(program);
@@ -109,7 +110,7 @@ function createXcmMessageSent({
     messageData: data,
     messageHash: program.hash.toHex(),
     messageId,
-    sender: signer?.toHuman(),
+    sender,
   });
 }
 
@@ -140,17 +141,17 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
       mergeMap(({ tx, recipient, beneficiary, assets }) => {
         return getDmp(tx.extrinsic.blockHash.toHex(), recipient).pipe(
           map((messages) => {
-            const { blockHash, blockNumber, signer } = tx.extrinsic;
+            const { blockHash, blockNumber } = tx.extrinsic;
             if (messages.length === 1) {
               const data = messages[0].msg;
               const program = asVersionedXcm(data, registry);
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
-                signer,
                 recipient,
                 data,
                 program,
+                sender: getSendersFromExtrinsic(tx.extrinsic),
               });
             } else {
               // XXX Temporary matching heuristics until DMP message
@@ -163,10 +164,10 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
-                    signer,
                     recipient,
                     data,
                     program,
+                    sender: getSendersFromExtrinsic(tx.extrinsic),
                   });
                 }
               }
@@ -213,9 +214,9 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
                 blockNumber,
                 recipient,
                 event,
-                signer: event.extrinsic?.signer,
                 data,
                 program,
+                sender: getSendersFromEvent(event),
               });
             } else {
               // Since we are matching by topic and it is assumed that the TopicId is unique
@@ -229,9 +230,9 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
                     blockNumber,
                     recipient,
                     event,
-                    signer: event.extrinsic?.signer,
                     data,
                     program,
+                    sender: getSendersFromEvent(event),
                   });
                 }
               }
@@ -263,11 +264,7 @@ export function extractDmpSend(
     return source.pipe(
       filter((tx) => {
         const { extrinsic } = tx;
-        return (
-          tx.dispatchError === undefined &&
-          matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP) &&
-          matchSenders(sendersControl, extrinsic)
-        );
+        return tx.dispatchError === undefined && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP);
       }),
       findDmpMessagesFromTx(getDmp, registry, origin)
     );
@@ -281,12 +278,7 @@ export function extractDmpSendByEvent(
   registry: Registry
 ) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
-    return source.pipe(
-      // filtering of events is done in findDmpMessagesFromEvent
-      // to take advantage of types augmentation
-      filter((event) => matchSenders(sendersControl, event.extrinsic)),
-      findDmpMessagesFromEvent(origin, getDmp, registry)
-    );
+    return source.pipe(findDmpMessagesFromEvent(origin, getDmp, registry));
   };
 }
 

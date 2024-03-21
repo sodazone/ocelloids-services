@@ -1,5 +1,5 @@
-import { ControlQuery, Criteria, types } from '@sodazone/ocelloids-sdk';
-import { XcmSent } from '../types.js';
+import { ControlQuery, Criteria } from '@sodazone/ocelloids-sdk';
+import { SignerData, XcmSent } from '../types.js';
 import { NetworkURN } from '../../types.js';
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
@@ -9,10 +9,10 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
   } else {
     return {
       $or: [
-        { 'extrinsic.signer.id': { $in: senders } },
-        { 'extrinsic.signer.publicKey': { $in: senders } },
-        { 'extrinsic.extraSigners.id': { $in: senders } },
-        { 'extrinsic.extraSigners.publicKey': { $in: senders } },
+        { 'sender.signer.id': { $in: senders } },
+        { 'sender.signer.publicKey': { $in: senders } },
+        { 'sender.extraSigners.id': { $in: senders } },
+        { 'sender.extraSigners.publicKey': { $in: senders } },
       ],
     };
   }
@@ -25,46 +25,18 @@ export function messageCriteria(recipients: NetworkURN[]): Criteria {
   };
 }
 
-function createSignersData(xt: types.ExtrinsicWithId) {
-  try {
-    if (xt.isSigned) {
-      // Signer could be Address or AccountId
-      const accountId = xt.signer.value ?? xt.signer;
-      return {
-        signer: {
-          id: accountId.toPrimitive(),
-          publicKey: accountId.toHex(),
-        },
-        extraSigners: xt.extraSigners.map((signer) => ({
-          type: signer.type,
-          id: signer.address.value.toPrimitive(),
-          publicKey: signer.address.value.toHex(),
-        })),
-      };
-    }
-  } catch (error) {
-    throw new Error(`creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`, { cause: error });
-  }
-
-  return {};
-}
-
 /**
  * Matches sender account address and public keys, including extra senders.
  */
-export function matchSenders(query: ControlQuery, xt?: types.ExtrinsicWithId): boolean {
-  if (xt === undefined) {
+export function matchSenders(query: ControlQuery, sender?: SignerData): boolean {
+  if (sender === undefined) {
     return query.value.test({
-      extrinsic: undefined,
+      sender: undefined,
     });
   }
 
-  // TODO: this is not needed if the query is '*'
-  // but no easy way to know it.
-  const signersData = createSignersData(xt);
-
   return query.value.test({
-    extrinsic: signersData,
+    sender,
   });
 }
 

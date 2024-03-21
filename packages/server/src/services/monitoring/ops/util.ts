@@ -15,7 +15,7 @@ import type { H256 } from '@polkadot/types/interfaces/runtime';
 
 import { types } from '@sodazone/ocelloids-sdk';
 
-import { AssetsTrapped, HexString, TrappedAsset } from '../types.js';
+import { AssetsTrapped, HexString, SignerData, TrappedAsset } from '../types.js';
 import {
   XcmVersionedXcm,
   XcmVersionedLocation,
@@ -28,6 +28,40 @@ import {
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
+function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
+  try {
+    if (xt.isSigned) {
+      // Signer could be Address or AccountId
+      const accountId = xt.signer.value ?? xt.signer;
+      return {
+        signer: {
+          id: accountId.toPrimitive(),
+          publicKey: accountId.toHex(),
+        },
+        extraSigners: xt.extraSigners.map((signer) => ({
+          type: signer.type,
+          id: signer.address.value.toPrimitive(),
+          publicKey: signer.address.value.toHex(),
+        })),
+      };
+    }
+  } catch (error) {
+    throw new Error(`creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`, { cause: error });
+  }
+
+  return undefined;
+}
+
+export function getSendersFromExtrinsic(extrinsic: types.ExtrinsicWithId): SignerData | undefined {
+  return createSignersData(extrinsic);
+}
+
+export function getSendersFromEvent(event: types.BlockEvent): SignerData | undefined {
+  if (event.extrinsic !== undefined) {
+    return getSendersFromExtrinsic(event.extrinsic);
+  }
+  return undefined;
+}
 /**
  * Gets message id from setTopic.
  */

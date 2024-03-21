@@ -29,7 +29,7 @@ describe('extract waypoints operator', () => {
             (x) =>
               new GenericXcmSentWithContext({
                 event: {},
-                sender: { id: 'xyz' },
+                sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
                 blockHash: '0x01',
                 blockNumber: '32',
                 extrinsicId: '32-4',
@@ -77,7 +77,7 @@ describe('extract waypoints operator', () => {
         of(
           new GenericXcmSentWithContext({
             event: {},
-            sender: { id: 'xyz' },
+            sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
             blockHash: '0x01',
             blockNumber: '32',
             extrinsicId: '32-4',
@@ -132,7 +132,7 @@ describe('extract waypoints operator', () => {
             (x) =>
               new GenericXcmSentWithContext({
                 event: {},
-                sender: { id: 'xyz' },
+                sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
                 blockHash: '0x01',
                 blockNumber: '32',
                 extrinsicId: '32-4',

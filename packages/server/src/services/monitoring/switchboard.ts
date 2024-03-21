@@ -27,7 +27,7 @@ import { NotifierHub } from '../notification/hub.js';
 import { NotifierEvents } from '../notification/types.js';
 import { TelemetryEventEmitter } from '../telemetry/types.js';
 
-import { sendersCriteria, messageCriteria, matchMessage } from './ops/criteria.js';
+import { sendersCriteria, messageCriteria, matchMessage, matchSenders } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js';
 import { mapXcmSent } from './ops/common.js';
@@ -701,8 +701,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   #onXcmWaypointReached(msg: XcmNotifyMessage) {
     const { subscriptionId } = msg;
     if (this.#subs[subscriptionId]) {
-      const { descriptor } = this.#subs[subscriptionId];
-      if (descriptor.events === undefined || descriptor.events === '*' || descriptor.events.includes(msg.type)) {
+      const { descriptor, messageControl } = this.#subs[subscriptionId];
+      if (
+        (descriptor.events === undefined || descriptor.events === '*' || descriptor.events.includes(msg.type)) &&
+        matchSenders(messageControl, msg.sender)
+      ) {
         this.#notifier.notify(descriptor, msg);
       }
     } else {

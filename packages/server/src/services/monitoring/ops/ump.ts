@@ -19,9 +19,8 @@ import {
   XcmSentWithContext,
 } from '../types.js';
 import { GetOutboundUmpMessages } from '../types-augmented.js';
-import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
+import { getMessageId, getParaIdFromOrigin, getSendersFromEvent, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { matchSenders } from './criteria.js';
 import { getChainId, getRelayId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
@@ -75,7 +74,7 @@ function umpMessagesSent() {
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash?.toHex(),
           messageId: xcmMessage.messageId?.toHex(),
-          sender: event.extrinsic?.signer.toHuman(),
+          sender: getSendersFromEvent(event),
         } as XcmSentWithContext;
       })
     );
@@ -128,9 +127,7 @@ export function extractUmpSend(
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter(
-        (event) =>
-          (matchEvent(event, 'parachainSystem', 'UpwardMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')) &&
-          matchSenders(sendersControl, event.extrinsic)
+        (event) => matchEvent(event, 'parachainSystem', 'UpwardMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')
       ),
       umpMessagesSent(),
       findOutboundUmpMessage(origin, getOutboundUmpMessages, registry)

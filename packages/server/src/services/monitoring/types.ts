@@ -57,6 +57,18 @@ function toHexString(buf: Uint8Array): HexString {
   return `0x${Buffer.from(buf).toString('hex')}`;
 }
 
+export type SignerData = {
+  signer: {
+    id: AnyJson;
+    publicKey: HexString;
+  };
+  extraSigners: {
+    type: string;
+    id: AnyJson;
+    publicKey: HexString;
+  }[];
+};
+
 export type XcmCriteria = {
   sendersControl: ControlQuery;
   messageControl: ControlQuery;
@@ -109,7 +121,7 @@ export type XcmProgram = {
 export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array;
   recipient: NetworkURN;
-  sender: AnyJson;
+  sender?: SignerData;
   instructions: XcmProgram;
 }
 
@@ -239,7 +251,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   event: AnyJson;
   blockHash: HexString;
   blockNumber: string;
-  sender: AnyJson;
+  sender?: SignerData;
   extrinsicId?: string;
   messageId?: HexString;
 
@@ -267,7 +279,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
       blockNumber: this.blockNumber,
       extrinsicId: this.extrinsicId,
       messageId: this.messageId,
-      sender: this.sender,
+      senders: this.sender,
     };
   }
 }
@@ -343,7 +355,7 @@ export interface XcmSent {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 }
 
@@ -354,7 +366,7 @@ export class GenericXcmSent implements XcmSent {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 
   constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmSentWithContext, stops: NetworkURN[]) {
@@ -432,7 +444,7 @@ export interface XcmReceived {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminusContext;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 }
 
@@ -450,7 +462,7 @@ export class GenericXcmTimeout implements XcmTimeout {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 
   constructor(msg: XcmSent) {
@@ -471,7 +483,7 @@ export class GenericXcmReceived implements XcmReceived {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminusContext;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 
   constructor(outMsg: XcmSent, inMsg: XcmInbound) {
@@ -518,7 +530,7 @@ export class GenericXcmRelayed implements XcmRelayed {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
-  sender: AnyJson;
+  sender?: SignerData;
   messageId?: HexString;
 
   constructor(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
@@ -560,7 +572,7 @@ export class GenericXcmHop implements XcmHop {
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
-  sender: AnyJson;
+  sender?: SignerData;
   direction: 'out' | 'in';
   messageId?: HexString;
 

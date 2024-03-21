@@ -9,9 +9,8 @@ import {
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
-import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
+import { getMessageId, getSendersFromEvent, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
-import { matchSenders } from './criteria.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
@@ -68,7 +67,7 @@ function xcmpMessagesSent() {
         const xcmMessage = event.data as any;
         return {
           event: event.toHuman(),
-          sender: event.extrinsic?.signer.toHuman(),
+          sender: getSendersFromEvent(event),
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
           extrinsicId: event.extrinsicId,
@@ -88,11 +87,7 @@ export function extractXcmpSend(
 ) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      filter(
-        (event) =>
-          (matchEvent(event, 'xcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')) &&
-          matchSenders(sendersControl, event.extrinsic)
-      ),
+      filter((event) => matchEvent(event, 'xcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')),
       xcmpMessagesSent(),
       findOutboundHrmpMessage(origin, getOutboundHrmpMessages, registry)
     );
