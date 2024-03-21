@@ -9,7 +9,7 @@ import {
 const subscriptionId = 'manamana-1';
 
 const originContext: XcmTerminusContext = {
-  chainId: '1000',
+  chainId: 'urn:ocn:local:1000',
   event: {},
   blockHash: '0xBEEF',
   blockNumber: '2',
@@ -25,16 +25,16 @@ const outboundMessage: XcmSent = {
   messageId: '0xB000',
   legs: [
     {
-      from: '1000',
-      to: '0',
+      from: 'urn:ocn:local:1000',
+      to: 'urn:ocn:local:0',
     },
     {
-      from: '0',
-      to: '2000',
+      from: 'urn:ocn:local:0',
+      to: 'urn:ocn:local:2000',
     },
   ],
   destination: {
-    chainId: '2000',
+    chainId: 'urn:ocn:local:2000',
   },
   origin: originContext,
   waypoint: {
@@ -50,7 +50,7 @@ const outboundMessage: XcmSent = {
 const inboundMessage: XcmInbound = {
   messageHash: '0xCAFE',
   messageId: '0xB000',
-  chainId: '2000',
+  chainId: 'urn:ocn:local:2000',
   outcome: 'Success',
   error: null,
   event: {},
@@ -65,8 +65,8 @@ const relayMessage: XcmRelayedWithContext = {
   extrinsicId: '5-1',
   blockHash: '0x828',
   blockNumber: '5',
-  recipient: '2000',
-  origin: '1000',
+  recipient: 'urn:ocn:local:2000',
+  origin: 'urn:ocn:local:1000',
   outcome: 'Success',
   error: null,
 };
@@ -94,20 +94,20 @@ export const matchHopMessages: MatchHopMessages = {
     ...outboundMessage,
     legs: [
       {
-        from: '1000',
-        to: '0',
+        from: 'urn:ocn:local:1000',
+        to: 'urn:ocn:local:0',
       },
       {
-        from: '0',
-        to: '3000',
+        from: 'urn:ocn:local:0',
+        to: 'urn:ocn:local:3000',
       },
       {
-        from: '3000',
-        to: '0',
+        from: 'urn:ocn:local:3000',
+        to: 'urn:ocn:local:0',
       },
       {
-        from: '0',
-        to: '2000',
+        from: 'urn:ocn:local:0',
+        to: 'urn:ocn:local:2000',
       },
     ],
   },
@@ -117,15 +117,15 @@ export const matchHopMessages: MatchHopMessages = {
     extrinsicId: '5-1',
     blockHash: '0x828',
     blockNumber: '5',
-    recipient: '3000',
-    origin: '1000',
+    recipient: 'urn:ocn:local:3000',
+    origin: 'urn:ocn:local:1000',
     outcome: 'Success',
     error: null,
   },
   hopin: {
     messageHash: '0xCAFE',
     messageId: '0xB000',
-    chainId: '3000',
+    chainId: 'urn:ocn:local:3000',
     outcome: 'Success',
     error: null,
     event: {},
@@ -138,19 +138,19 @@ export const matchHopMessages: MatchHopMessages = {
     messageId: '0xB000',
     legs: [
       {
-        from: '3000',
-        to: '0',
+        from: 'urn:ocn:local:3000',
+        to: 'urn:ocn:local:0',
       },
       {
-        from: '0',
-        to: '2000',
+        from: 'urn:ocn:local:0',
+        to: 'urn:ocn:local:2000',
       },
     ],
     destination: {
-      chainId: '2000',
+      chainId: 'urn:ocn:local:2000',
     },
     origin: {
-      chainId: '3000',
+      chainId: 'urn:ocn:local:3000',
       event: {},
       blockHash: '0xBEEF',
       blockNumber: '2',
@@ -161,7 +161,7 @@ export const matchHopMessages: MatchHopMessages = {
       messageHash: '0xDEAD',
     },
     waypoint: {
-      chainId: '3000',
+      chainId: 'urn:ocn:local:3000',
       event: {},
       blockHash: '0xBEEF',
       blockNumber: '2',
@@ -181,15 +181,15 @@ export const matchHopMessages: MatchHopMessages = {
     extrinsicId: '9-1',
     blockHash: '0x222',
     blockNumber: '9',
-    recipient: '2000',
-    origin: '3000',
+    recipient: 'urn:ocn:local:2000',
+    origin: 'urn:ocn:local:3000',
     outcome: 'Success',
     error: null,
   },
   destination: {
     messageHash: '0xDEAD',
     messageId: '0xB000',
-    chainId: '2000',
+    chainId: 'urn:ocn:local:2000',
     outcome: 'Success',
     error: null,
     event: {},
@@ -203,12 +203,12 @@ const hopOrigin: XcmSent = {
   type: XcmNotificationType.Sent,
   subscriptionId: 'xxx-1',
   legs: [
-    { from: '0', to: '2034' },
-    { from: '2034', to: '0' },
-    { from: '0', to: '1000' },
+    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034' },
+    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0' },
+    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:1000' },
   ],
   waypoint: {
-    chainId: '0',
+    chainId: 'urn:ocn:local:0',
     blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
     blockNumber: '19777220',
     extrinsicId: undefined,
@@ -222,7 +222,7 @@ const hopOrigin: XcmSent = {
     messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   },
   origin: {
-    chainId: '0',
+    chainId: 'urn:ocn:local:0',
     blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
     blockNumber: '19777220',
     extrinsicId: undefined,
@@ -234,14 +234,14 @@ const hopOrigin: XcmSent = {
     instructions: {},
     messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   },
-  destination: { chainId: '1000' },
+  destination: { chainId: 'urn:ocn:local:1000' },
   sender: undefined,
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
 };
 
 const hopIB: XcmInbound = {
   subscriptionId: 'xxx-1',
-  chainId: '2034',
+  chainId: 'urn:ocn:local:2034',
   event: {},
   messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
@@ -257,11 +257,11 @@ const hopOB: XcmSent = {
   type: XcmNotificationType.Sent,
   subscriptionId: 'xxx-1',
   legs: [
-    { from: '2034', to: '0' },
-    { from: '0', to: '1000' },
+    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0' },
+    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:1000' },
   ],
   waypoint: {
-    chainId: '2034',
+    chainId: 'urn:ocn:local:2034',
     blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
     blockNumber: '4624161',
     extrinsicId: '4624161-1',
@@ -275,7 +275,7 @@ const hopOB: XcmSent = {
     messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
   },
   origin: {
-    chainId: '2034',
+    chainId: 'urn:ocn:local:2034',
     blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
     blockNumber: '4624161',
     extrinsicId: '4624161-1',
@@ -287,7 +287,7 @@ const hopOB: XcmSent = {
     instructions: {},
     messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
   },
-  destination: { chainId: '1000' },
+  destination: { chainId: 'urn:ocn:local:1000' },
   sender: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7',
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
 };

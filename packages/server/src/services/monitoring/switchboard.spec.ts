@@ -48,7 +48,7 @@ describe('switchboard service', () => {
     (extractXcmpSend as jest.Mock).mockImplementation(() => {
       return () => {
         return of({
-          recipient: 2000,
+          recipient: 'urn:ocn:local:2000',
           blockNumber: 1,
           blockHash: '0x0',
           messageHash: '0x0',
@@ -62,7 +62,6 @@ describe('switchboard service', () => {
     (extractXcmpReceive as jest.Mock).mockImplementation(() => {
       return () => {
         return of({
-          recipient: 2000,
           blockNumber: {
             toString: () => 1,
           },
@@ -75,7 +74,7 @@ describe('switchboard service', () => {
     (extractUmpSend as jest.Mock).mockImplementation(() => {
       return () =>
         of({
-          recipient: 0,
+          recipient: 'urn:ocn:local:0',
           blockNumber: 1,
           blockHash: '0x0',
           messageHash: '0x0',
@@ -88,7 +87,7 @@ describe('switchboard service', () => {
     (extractUmpReceive as jest.Mock).mockImplementation(() => {
       return () =>
         of({
-          recipient: 0,
+          recipient: 'urn:ocn:local:0',
           blockNumber: {
             toString: () => 1,
           },

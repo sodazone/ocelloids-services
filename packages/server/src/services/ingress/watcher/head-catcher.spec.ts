@@ -8,7 +8,7 @@ import { _services } from '../../../testing/services.js';
 import Connector from '../../networking/connector.js';
 import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js';
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js';
-import { DB, jsonEncoded, prefixes, OcnURN } from '../../types.js';
+import { DB, jsonEncoded, prefixes, NetworkURN } from '../../types.js';
 import { Janitor } from '../../persistence/janitor.js';
 import { BlockNumberRange, ChainHead } from '../../monitoring/types.js';
 import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js';
@@ -20,7 +20,7 @@ const flushPromises = () => new Promise((res) => process.nextTick(res));
 describe('head catcher', () => {
   let db: DB;
 
-  function sl(chainId: OcnURN) {
+  function sl(chainId: NetworkURN) {
     return db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
       valueEncoding: 'buffer',
     });
