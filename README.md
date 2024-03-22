@@ -9,6 +9,8 @@
   />
 </picture>
 
+[Packages](https://github.com/sodazone/ocelloids-services/#packages) | [Service Node](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) | [Client Library](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/)
+
 <p align="center">
   <a href="https://github.com/sodazone/ocelloids-services/actions/workflows/ci.yml"><img
       src="https://img.shields.io/github/actions/workflow/status/sodazone/ocelloids-server/ci.yml?branch=main&color=69D2E7&labelColor=A7DBD8"
@@ -21,7 +23,7 @@
 </p>
 </div>
 
-Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the [Ocelloids Service Node](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/) and the [Ocelloids Client library](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/).
+Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the Ocelloids Service Node and the Ocelloids Client library.
 
 ## Packages
 
