@@ -1,5 +1,5 @@
 import { TelemetryEventEmitter } from '../types.js';
-import { ingressMetrics } from './ingress.js';
+import { ingressConsumerMetrics, ingressProducerMetrics } from './ingress.js';
 import { catcherMetrics } from './catcher.js';
 import { engineMetrics } from './engine.js';
 import { notifierMetrics } from './notifiers.js';
@@ -9,6 +9,7 @@ import { MatchingEngine } from '../../monitoring/matching.js';
 import { Switchboard } from '../../monitoring/switchboard.js';
 import { switchboardMetrics } from './switchboard.js';
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js';
+import IngressProducer from '../../ingress/producer/index.js';
 
 function isIngressConsumer(o: TelemetryEventEmitter): o is IngressConsumer {
   return 'finalizedBlocks' in o && 'getRegistry' in o;
@@ -21,9 +22,11 @@ export function collect(observer: TelemetryEventEmitter) {
     engineMetrics(observer);
   } else if (observer instanceof HeadCatcher) {
     catcherMetrics(observer);
-  } else if (isIngressConsumer(observer)) {
-    ingressMetrics(observer);
   } else if (observer instanceof NotifierHub) {
     notifierMetrics(observer);
+  } else if (observer instanceof IngressProducer) {
+    ingressProducerMetrics(observer);
+  } else if (isIngressConsumer(observer)) {
+    ingressConsumerMetrics(observer);
   }
 }

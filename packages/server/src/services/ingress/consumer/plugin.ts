@@ -6,7 +6,7 @@ import { IngressOptions } from '../../../types.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingress: IngressConsumer;
+    ingressConsumer: IngressConsumer;
   }
 }
 
@@ -23,8 +23,6 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
     ? new DistributedIngressConsumer(fastify, options)
     : new LocalIngressConsumer(fastify);
 
-  fastify.decorate('ingress', consumer);
-
   fastify.addHook('onClose', (server, done) => {
     consumer
       .stop()
@@ -38,6 +36,8 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
         done();
       });
   });
+
+  fastify.decorate('ingressConsumer', consumer);
 
   await consumer.start();
 };

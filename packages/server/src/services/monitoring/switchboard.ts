@@ -25,7 +25,7 @@ import { MatchingEngine } from './matching.js';
 import { SubsStore } from '../persistence/subs.js';
 import { NotifierHub } from '../notification/hub.js';
 import { NotifierEvents } from '../notification/types.js';
-import { TelemetryEventEmitter } from '../telemetry/types.js';
+import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js';
 
 import { sendersCriteria, messageCriteria, matchMessage, matchSenders } from './ops/criteria.js';
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js';
@@ -100,13 +100,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   constructor(ctx: Services, options: SwitchboardOptions) {
     super();
 
-    const { log, subsStore, ingress } = ctx;
+    const { log, subsStore, ingressConsumer } = ctx;
 
     this.#db = subsStore;
     this.#log = log;
 
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this));
-    this.#ingress = ingress;
+    this.#ingress = ingressConsumer;
     this.#notifier = new NotifierHub(ctx);
     this.#stats = {
       ephemeral: 0,
@@ -305,12 +305,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @param collect The collect callback function.
    */
-  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void) {
+  collectTelemetry(collect: TelemetryCollect) {
     collect(this);
     collect(this.#engine);
     collect(this.#notifier);
-
-    this.#ingress.collectTelemetry(collect);
   }
 
   /**

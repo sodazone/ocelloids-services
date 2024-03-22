@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events';
+
 import { Subscription as RxSubscription } from 'rxjs';
 
 import {
@@ -16,6 +18,7 @@ import { HexString } from '../../monitoring/types.js';
 import { IngressOptions } from '../../../types.js';
 
 import { encodeSignedBlockExtended } from '../watcher/codec.js';
+import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js';
 
 type StorageRequest = {
   replyTo: string;
@@ -30,7 +33,7 @@ type StorageRequest = {
  * - Providing blockchain storage data through asynchronous request-reply
  * - Writing network configuration into a Redis set
  */
-export default class IngressProducer {
+export default class IngressProducer extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger;
   readonly #headCatcher: HeadCatcher;
   readonly #distributor: RedisDistributor;
@@ -40,6 +43,8 @@ export default class IngressProducer {
   #config: ServiceConfiguration;
 
   constructor(ctx: Services, opts: IngressOptions) {
+    super();
+
     this.#log = ctx.log;
 
     this.#headCatcher = new HeadCatcher(ctx);
@@ -77,6 +82,11 @@ export default class IngressProducer {
     this.#headCatcher.stop();
 
     await this.#distributor.stop();
+  }
+
+  collectTelemetry(collect: TelemetryCollect) {
+    collect(this.#headCatcher);
+    collect(this);
   }
 
   async #initializeStreams() {

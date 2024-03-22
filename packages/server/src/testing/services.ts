@@ -166,7 +166,7 @@ const __services = {
   connector: _connector,
   rootStore: _rootDB,
   subsStore: {} as unknown as SubsStore,
-  ingress: {} as unknown as IngressConsumer,
+  ingressConsumer: {} as unknown as IngressConsumer,
   scheduler: {
     on: () => {},
   } as unknown as Scheduler,
@@ -181,6 +181,6 @@ export const _subsDB = new SubsStore(_log, _rootDB, _ingress);
 
 export const _services = {
   ...__services,
-  ingress: _ingress,
+  ingressConsumer: _ingress,
   subsStore: _subsDB,
 } as Services;

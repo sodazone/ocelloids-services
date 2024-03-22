@@ -4,6 +4,12 @@ import fp from 'fastify-plugin';
 import IngressProducer from './index.js';
 import { IngressOptions } from '../../../types.js';
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    ingressProducer: IngressProducer;
+  }
+}
+
 /**
  * Fastify plug-in for the {@link IngressProducer} instance.
  *
@@ -26,6 +32,8 @@ const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
         done();
       });
   });
+
+  fastify.decorate('ingressProducer', producer);
 
   await producer.start();
 };

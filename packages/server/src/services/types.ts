@@ -85,6 +85,6 @@ export type Services = {
   janitor: Janitor;
   scheduler: Scheduler;
   localConfig: ServiceConfiguration;
-  ingress: IngressConsumer;
+  ingressConsumer: IngressConsumer;
   connector: Connector;
 };

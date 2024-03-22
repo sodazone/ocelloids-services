@@ -50,6 +50,16 @@ export const TelemetryNotifierEventKeys: Array<keyof TelemetryNotifierEvents> = 
   'telemetryNotifyError',
 ];
 
+type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info';
+
+export type TelemetryIngressConsumerEvents = {
+  telemetryIngressConsumerError: (id: string, severity?: ErrorSeverity) => void;
+};
+
+export type TelemetryIngressProducerEvents = {
+  telemetryIngressProducerError: (id: string, severity?: ErrorSeverity) => void;
+};
+
 export type TelemetryEvents = {
   telemetryInbound: (message: XcmInbound) => void;
   telemetryOutbound: (message: XcmSent) => void;
@@ -68,6 +78,9 @@ export type TelemetryEvents = {
   }) => void;
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void;
   telemetryBlockCacheError: (msg: { chainId: string; method: string }) => void;
-} & TelemetryNotifierEvents;
+} & TelemetryNotifierEvents &
+  TelemetryIngressConsumerEvents &
+  TelemetryIngressProducerEvents;
 
 export type TelemetryEventEmitter = TypedEventEmitter<TelemetryEvents>;
+export type TelemetryCollect = (observer: TelemetryEventEmitter) => void;

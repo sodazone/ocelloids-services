@@ -24,7 +24,7 @@ import { HeadCatcher } from '../watcher/head-catcher.js';
 import { decodeSignedBlockExtended } from '../watcher/codec.js';
 import { HexString } from '../../monitoring/types.js';
 import { ServiceConfiguration, isRelay, isNetworkDefined } from '../../config.js';
-import { TelemetryEventEmitter } from '../../telemetry/types.js';
+import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js';
 
 /**
  * Creates a type registry with metadata.
@@ -56,7 +56,7 @@ export interface IngressConsumer extends TelemetryEventEmitter {
   getChainIds(): NetworkURN[];
   start(): Promise<void>;
   stop(): Promise<void>;
-  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void;
+  collectTelemetry(collect: TelemetryCollect): void;
 }
 
 /**
@@ -111,10 +111,11 @@ export class DistributedIngressConsumer
     await this.#distributor.stop();
   }
 
-  // TODO: retry??
   finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
     const consumer = this.#blockConsumers[chainId];
     if (consumer === undefined) {
+      this.emit('telemetryIngressConsumerError', 'missingBlockConsumer');
+
       throw new Error('Missing distributed consumer for chain=' + chainId);
     }
     return consumer.asObservable();
@@ -125,6 +126,8 @@ export class DistributedIngressConsumer
       this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
           if (metadata === null) {
+            this.emit('telemetryIngressConsumerError', `missingMetadata(${chainId})`);
+
             throw new Error(`No metadata found for ${chainId}`);
           }
           return createRegistry(metadata);
@@ -138,9 +141,14 @@ export class DistributedIngressConsumer
     return this.#registries$[chainId];
   }
 
-  // TODO: retry??
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
-    return this.#storageFromRedis(chainId, storageKey, blockHash);
+    try {
+      return this.#storageFromRedis(chainId, storageKey, blockHash);
+    } catch (error) {
+      this.emit('telemetryIngressConsumerError', 'storageFromRedis');
+
+      throw error;
+    }
   }
 
   getChainIds(): NetworkURN[] {
@@ -161,7 +169,7 @@ export class DistributedIngressConsumer
     return this.#networks[chainId] !== undefined;
   }
 
-  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void {
+  collectTelemetry(collect: TelemetryCollect): void {
     collect(this);
   }
 
@@ -187,6 +195,8 @@ export class DistributedIngressConsumer
         this.#networksFromRedis();
       }, 60_000);
     } catch (error) {
+      this.emit('telemetryIngressConsumerError', 'readNetworks');
+
       this.#log.error(error, 'Error reading networks from Redis');
       throw error;
     }
@@ -255,7 +265,7 @@ export class DistributedIngressConsumer
           try {
             await this.#db.put(prefixes.distributor.lastBlockStreamId(chainId), lastId);
           } catch {
-            //
+            this.emit('telemetryIngressConsumerError', `putLastId(${chainId})`, 'warning');
           }
         });
       },
@@ -331,9 +341,8 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
     return this.#headCatcher.getStorage(chainId, storageKey, blockHash);
   }
 
-  collectTelemetry(collect: (observer: TelemetryEventEmitter) => void): void {
+  collectTelemetry(collect: TelemetryCollect): void {
     collect(this);
     collect(this.#headCatcher);
-    // TODO collect distributor
   }
 }
