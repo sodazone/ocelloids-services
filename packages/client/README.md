@@ -2,11 +2,9 @@
 
 <a href="https://www.npmjs.com/package/@sodazone/ocelloids-client"><img src="https://img.shields.io/npm/v/@sodazone/ocelloids-client?color=69D2E7&labelColor=69D2E7&logo=npm&logoColor=333333" alt="npm @sodazone/ocelloids-client" /></a> 
 
-[Documentation](https://sodazone.github.io/ocelloids-services/) | [Examples](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/examples)
-
 TypeScript client library to interact with Ocelloids Service APIs.
 
-Compatible with [browser environments, Node, Bun and Deno](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).
+[Documentation Site](https://sodazone.github.io/ocelloids-services/).
 
 ## Usage
 
@@ -62,6 +60,12 @@ yarn && yarn build
 
 ## Testing
 
+Run unit tests:
+
 ```shell
 yarn test
 ```
+
+## Compatibility
+
+Compatible with [browser environments, Node, Bun and Deno](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).
