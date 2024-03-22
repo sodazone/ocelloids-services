@@ -19,6 +19,11 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     help: 'Matching engine matched messages.',
     labelNames: ['subscription', 'origin', 'destination', 'outcome'],
   });
+  const trapCount = new Counter({
+    name: 'oc_engine_trapped_total',
+    help: 'Matching engine matched messages with trapped assets.',
+    labelNames: ['subscription', 'origin', 'destination', 'outcome'],
+  });
   const relayCount = new Counter({
     name: 'oc_engine_relayed_total',
     help: 'Matching engine relayed messages.',
@@ -47,6 +52,12 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     matchCount
       .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
       .inc();
+
+    if (inMsg.assetsTrapped !== undefined) {
+      trapCount
+        .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
+        .inc();
+    }
   });
 
   source.on('telemetryRelayed', (relayMsg: XcmRelayed) => {
