@@ -23,6 +23,8 @@
 </p>
 </div>
 
+---
+
 Welcome to the Ocelloids Service Layer repository, where you will find software components for running programmable offchain layers. This repository is structured into two main packages: the Ocelloids Service Node and the Ocelloids Client library.
 
 ## Packages
