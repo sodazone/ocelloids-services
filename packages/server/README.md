@@ -7,7 +7,7 @@ The Ocelloids Service Node repository provides software components for running p
 
 > [!NOTE]
 > Ocelloids is transitioning to a generalized execution model. Currently, the Ocelloids Node only supports XCM monitoring logic.
-> You can monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the endpoints specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
+> You can monitor Cross-Consensus Message Format (XCM) program executions across consensus systems. Users can configure specific blockchain networks for observation and create subscriptions based on origin and destination chains, as well as sender addresses through a web API. The server delivers real-time notifications to the delivery channels specified in the subscriptions, providing timely updates about relevant interactions. The currently supported XCM protocols are XCMP-lite (HRMP) and VMP.
 
 ## Key Features
 
