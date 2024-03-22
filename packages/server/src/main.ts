@@ -105,7 +105,7 @@ program
       'OC_SUBSCRIPTION_MAX_EPHEMERAL'
     ).default(5_000)
   )
-  .addOption(optBool('--cors', 'enables CORS support', 'OC_CORS').default(false))
+  .addOption(opt('--cors', 'enables CORS support', 'OC_CORS').default(false))
   .addOption(
     optBool(
       '--cors-credentials <boolean>',
