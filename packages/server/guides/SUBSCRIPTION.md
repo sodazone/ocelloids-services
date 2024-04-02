@@ -1,16 +1,21 @@
-# Subscription Guide
+# Ocelloids Subscription Guide
+
+Ocelloids subscriptions allow users to subscribe to onchain activities of interest and receive notifications through preferred delivery channels.
+
+> [!NOTE]
+> Ocelloids is transitioning to a generalized execution model. Presently, the Ocelloids Node exclusively supports XCM monitoring logic, and the subscriptions detailed in this guide are tailored to XCM activity.
 
 An Ocelloids subscription has the following fields:
 
-| Field        | Description                                                                                          | Required   | Type                       |
-| ------------ | ---------------------------------------------------------------------------------------------------- | ---------- | -------------------------- |
-| id           | The subscription ID.                                                                                 | Yes        | String                     |
-| origin       | The network ID of the chain where XCM messages will be sent out.                                     | Yes        | NetworkId[^1]              |
-| destinations | Network IDs of the chains where XCM messages will be received.                                       | Yes        | Array<NetworkId>           |
-| channels     | Delivery channels for notifications. See [Supported Delivery Channels](#supported-delivery-channels) | Yes        | Array<NotificationChannel> |
-| senders      | Filter for senders by account ID or public key.                                                      | No         | Array<String>              |
-| events       | Filter for event types in notification. See [Notification Event Types](#notification-event-types)    | No         | Array<EventType>           |
-| ephemeral    | Flag to indicate if subscription is ephemeral. Applies only to WebSocket notifications.              | No         | Boolean                    |
+| Field        | Description                                                                                          | Required | Type                               |
+| ------------ | ---------------------------------------------------------------------------------------------------- | -------- | ---------------------------------- |
+| id           | The subscription ID.                                                                                 | Yes      | String                             |
+| origin       | The network ID of the chain where XCM messages will be sent out.                                     | Yes      | NetworkId[^1]                      |
+| destinations | Network IDs of the chains where XCM messages will be received.                                       | Yes      | Array<NetworkId>                   |
+| channels     | Delivery channels for notifications. See [Supported Delivery Channels](#supported-delivery-channels) | Yes      | Array<NotificationChannel>         |
+| senders      | Filter for senders by account ID or public key.                                                      | No       | Array<String> or * for wildcard    |
+| events       | Filter for event types in notification. See [Notification Event Types](#notification-event-types)    | No       | Array<EventType> or * for wildcard |
+| ephemeral    | Flag to indicate if subscription is ephemeral. Applies only to WebSocket notifications.              | No       | Boolean                            |
 
 [^1]: Network ID format `urn:ocn:[consensus]:[chainId]`, where `consensus` is one of the values in [XCM NetworkId](https://paritytech.github.io/polkadot-sdk/master/staging_xcm/v4/enum.NetworkId.html) or `local`.
 
@@ -28,11 +33,11 @@ Delivers notification messages to the configured webhook. A template can be appl
 | events      | Overrides subscription level filter for event types in notification. See [Notification Event Types](#notification-event-types).                                                                                         | No       | -                  |
 | template    | Template to be applied to notification messages before delivery. See [Templates](#templates).        | No       | -                  |
 | bearer      | Bearer token for webhook authentication.                                                             | No       | -                  |
-| limit       | Max number of retries in case of delivery error.                                                     | No       | 5                  |
+| limit       | Maximum number of retries in case of delivery error.                                                 | No       | 5                  |
 
 ### WebSocket
 
-Delivers notification messages through a WebSocket stream.
+Delivers notification messages through a WebSocket stream. Detailed usage example of the WebSocket notification channel can be seen in the Ocelloids XCM Tracker demo application.
 
 | Field    | Description                                              |
 | ---------| -------------------------------------------------------- |
@@ -48,7 +53,25 @@ Logs the notification message to `stdout`.
 
 ## Notification Event Types
 
+The Ocelloids subscription allows configuring the types of XCM events you want to receive. The supported event types are:
+
+| Type           | Description                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `xcm.sent`     | An XCM was sent out from the origin chain.                                                                     |
+| `xcm.received` | An XCM was received on the destination chain.                                                                  |
+| `xcm.relay`    | An XCM using HRMP was relayed by the relay chain.                                                              |
+| `xcm.hop`      | A multi-hop XCM was executed on intermediate chains.                                                           |
+| `xcm.timeout`  | An XCM execution that was expected on the destination chain was not detected within the configured timeframe.  |
+
 ## Templates
+
+For Webhook delivery channels, you can configure a template to transform the notification message before delivery. Ocelloids uses [handlebars](https://handlebarsjs.com/guide/) under the hood to evaluate the templates. A simple example template applied to an XCM received message would look like this:
+
+```
+"Received XCM with hash {{waypoint.messageHash}} on chain {{waypoint.chainId}}. Sent from chain {{origin.chainId}} by {{sender.signer.id}}."
+```
+
+You may find some example template configurations in the [hurl template example](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/hurl/scenarios/templates).
 
 ## HTTP API
 
@@ -60,9 +83,6 @@ Examples of request for the available API methods are listed below.
 You can check the [Hurl requests](https://github.com/sodazone/xcm-monitoring/tree/main/guides/hurl) for usage examples.
 
 **Create Subscriptions**
-
-> [!NOTE]
-> You can also specify '*' as the value of senders or events to receive all the notification messages regardless of the sender address or event type.
 
 `POST /subs`
 
