@@ -1,10 +1,6 @@
 # Administration Guide
 
-This guide provides an overview of the XCM Monitoring Server administration.
-
-## Storage
-
-The server stores its data in the filesystem using LevelDB. The location of the database is configured through a command line argument or an environment variable.
+This guide provides an overview of the Ocelloids Service Node administration.
 
 ## HTTP API
 
@@ -22,6 +18,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.TUkHePbst2jnFffIG
 ```
 
 ### Caches
+
+> [!NOTE]
+> The cache endpoints only work when running the node in integrated mode i.e. without Redis.
 
 You can list the cached items, blocks, and messages by making a GET request to `/admin/cache/:network_id_urn`.
 You can clear a cache with a DELETE request to the same endpoint.
