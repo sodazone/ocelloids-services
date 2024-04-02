@@ -753,11 +753,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
+    const {
+      descriptor: { outboundTTL }
+    } = this.#subs[id];
+
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
         mapXcmSent(id, registry, origin),
         filter((msg) => matchMessage(messageControl, msg)),
-        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound)))
+        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL)))
       );
   }
 

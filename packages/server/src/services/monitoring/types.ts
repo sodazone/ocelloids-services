@@ -294,6 +294,8 @@ export enum XcmNotificationType {
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
 
+const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds';
+
 /**
  * The terminal point of an XCM journey.
  *
@@ -668,6 +670,7 @@ export const $Subscription = z
     events: z.optional(
       z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR))
     ),
+    outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER))
   })
   .refine(
     (schema) =>

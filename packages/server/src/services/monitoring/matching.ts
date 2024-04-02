@@ -77,7 +77,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this));
   }
 
-  async onOutboundMessage(outMsg: XcmSent) {
+  async onOutboundMessage(outMsg: XcmSent, outboundTTL: number = DEFAULT_TIMEOUT) {
     const log = this.#log;
 
     // Confirmation key at destination
@@ -114,7 +114,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           // If not found, store outbound message in #outbound to match destination inbound
           // and #hop to match hop outbounds and inbounds.
           // Note: if relay messages arrive after outbound and inbound, it will not match.
-          await this.#tryMatchOnOutbound(outMsg);
+          await this.#tryMatchOnOutbound(outMsg, outboundTTL);
         }
       } else {
         this.#onXcmOutbound(outMsg);
@@ -132,7 +132,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           await this.#inbound.del(hashKey);
           this.#onXcmMatched(outMsg, inMsg);
         } catch {
-          await this.#storekeysOnOutbound(outMsg);
+          await this.#storekeysOnOutbound(outMsg, outboundTTL);
         }
       }
     });
@@ -314,7 +314,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // Option 1: emit relay as hops and remove 'relay' concept
   // Option 2: allow potentially unneccessary message to be stored and leave it for janitor to clean up
   // Option 3: enrich legs info or new field stops to know if relay or not...
-  async #tryMatchOnOutbound(msg: XcmSent) {
+  async #tryMatchOnOutbound(msg: XcmSent, outboundTTL: number) {
     if (msg.messageId === undefined) {
       return;
     }
@@ -340,11 +340,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       await this.#inbound.batch().del(idKey).del(hashKey).write();
       this.#onXcmMatched(msg, inMsg);
     } catch {
-      await this.#storekeysOnOutbound(msg);
+      await this.#storekeysOnOutbound(msg, outboundTTL);
     }
   }
 
-  async #storekeysOnOutbound(msg: XcmSent) {
+  async #storekeysOnOutbound(msg: XcmSent, outboundTTL: number) {
     const log = this.#log;
     const stops = msg.legs.map((l) => l.to);
 
@@ -368,12 +368,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             {
               sublevel: prefixes.matching.outbound,
               key: hKey,
-              expiry: DEFAULT_TIMEOUT,
+              expiry: outboundTTL,
             },
             {
               sublevel: prefixes.matching.outbound,
               key: iKey,
-              expiry: DEFAULT_TIMEOUT,
+              expiry: outboundTTL,
             }
           );
         } else {
