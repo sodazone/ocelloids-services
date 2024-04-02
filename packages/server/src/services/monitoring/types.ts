@@ -327,9 +327,6 @@ export interface XcmTerminusContext extends XcmTerminus {
  */
 export interface XcmWaypointContext extends XcmTerminusContext {
   legIndex: number;
-  messageHash: HexString;
-  messageData: string;
-  instructions: AnyJson;
   assetsTrapped?: AnyJson;
 }
 
