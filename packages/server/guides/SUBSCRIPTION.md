@@ -16,6 +16,7 @@ An Ocelloids subscription has the following fields:
 | senders      | Filter for senders by account ID or public key.                                                      | No       | Array<String> or * for wildcard    |
 | events       | Filter for event types in notification. See [Notification Event Types](#notification-event-types)    | No       | Array<EventType> or * for wildcard |
 | ephemeral    | Flag to indicate if subscription is ephemeral. Applies only to WebSocket notifications.              | No       | Boolean                            |
+| outboundTTL  | A TLL value for outbound messages before an `xcm.timeout` event is notified. Defaults to 2 minutes.  | No       | Number                             |
 
 [^1]: Network ID format `urn:ocn:[consensus]:[chainId]`, where `consensus` is one of the values in [XCM NetworkId](https://paritytech.github.io/polkadot-sdk/master/staging_xcm/v4/enum.NetworkId.html) or `local`.
 
