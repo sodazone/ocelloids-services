@@ -16,7 +16,7 @@ declare module 'fastify' {
 
 type DBOptions = JanitorOptions &
   SchedulerOptions & {
-    db: string;
+    data: string;
   };
 
 /**
@@ -26,7 +26,7 @@ type DBOptions = JanitorOptions &
  * @param options - The persistence options
  */
 const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
-  const dbPath = options.db || './db';
+  const dbPath = options.data || './db';
 
   fastify.log.info(`Open database at ${dbPath}`);
 

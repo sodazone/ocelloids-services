@@ -30,10 +30,10 @@ The configuration values can be overridden using command line arguments.
 
 | Variable                          | Description                                    | Default   |
 | --------------------------------- | ---------------------------------------------- | --------- |
-| OC_HOST                           | The host to bind to.                           | localhost |
+| OC_ADDRESS                        | The address to bind to.                        | localhost |
 | OC_PORT                           | The TCP port number to listen on.              | 3000      |
 | OC_CONFIG_FILE                    | The service configuration file.                | -         |
-| OC_DB_DIR                         | The database directory.                        | ./db      |
+| OC_DATA_DIR                       | The database directory.                        | ./db      |
 | OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
 | OC_DB_SCHEDULER_FREQUENCY         | Milliseconds to wait before each tick.         | 5000      |
 | OC_DB_JANITOR_SWEEP_EXPIRY        | Milliseconds before a task is swept.           | 1500000   |
@@ -146,10 +146,10 @@ Ocelloids Service Node
 
 Options:
   -V, --version                           output the version number
-  -h, --host <address>                    host to bind to (default: "localhost", env: OC_HOST)
+  -a, --address <address>                 address to bind to (default: "localhost", env: OC_ADDRESS)
   -p, --port <number>                     port number to listen on (default: 3000, env: OC_PORT)
   -c, --config <file>                     service configuration file (env: OC_CONFIG_FILE)
-  -d, --db <dir>                          database directory (default: "./db", env: OC_DB_DIR)
+  -d, --data <dir>                        database directory (default: "./db", env: OC_DATA_DIR)
   --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
   --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
   --sweep-expiry <milliseconds>           milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
@@ -158,14 +158,14 @@ Options:
   --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
   --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
   --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
-  --cors <boolean>                        enables or disables CORS support (default: false, env: OC_CORS_ENABLE)
+  --cors                                  enables CORS support (default: false, env: OC_CORS)
   --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env: OC_CORS_CREDENTIALS)
   --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
                                           "true" for wildcard, "string" or "/regexp/"
                                           repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
   --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
-  --help                                  display help for command
+  -h, --help                              display help for command
 ```
 </details>
 

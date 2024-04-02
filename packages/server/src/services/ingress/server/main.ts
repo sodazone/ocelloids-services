@@ -20,7 +20,7 @@ async function startServer(this: Command) {
     server.listen(
       {
         port: opts.port,
-        host: opts.host,
+        host: opts.address,
       },
       function (err, _) {
         if (err) {
@@ -44,10 +44,10 @@ program
   .name('oc-ingress')
   .description('Ocelloids Ingress Node')
   .version(version)
-  .addOption(opt('-h, --host <address>', 'host to bind to', 'OC_HOST').default('localhost'))
+  .addOption(opt('-a, --address <address>', 'address to bind to', 'OC_ADDRESS').default('localhost'))
   .addOption(optInt('-p, --port <number>', 'port number to listen on', 'OC_PORT').default(3011))
   .addOption(opt('-c, --config <file>', 'service configuration file', 'OC_CONFIG_FILE').makeOptionMandatory(true))
-  .addOption(opt('-d, --db <dir>', 'database directory', 'OC_DB_DIR').default('./db.ingress'))
+  .addOption(opt('-d, --data <dir>', 'database directory', 'OC_DATA_DIR').default('./db.ingress'))
   .addOption(
     optBool('--scheduler <boolean>', 'enables or disables the task scheduler', 'OC_DB_SCHEDULER_ENABLE').default(true)
   )

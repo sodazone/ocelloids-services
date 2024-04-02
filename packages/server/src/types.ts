@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const $BaseServerOptions = z.object({
   port: z.number().min(0),
-  host: z.string().min(1),
+  address: z.string().min(1),
   grace: z.number().min(1),
   telemetry: z.boolean().default(true),
 });
@@ -12,7 +12,7 @@ export const $RedisServerOptions = z.object({
 });
 
 export const $LevelServerOptions = z.object({
-  db: z
+  data: z
     .string({
       required_error: 'Database directory path is required',
     })

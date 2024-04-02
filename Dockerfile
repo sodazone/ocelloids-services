@@ -26,7 +26,7 @@ LABEL org.opencontainers.image.description="Ocelloids Integrated Node"
 WORKDIR /opt/oc
 
 ENV NODE_ENV=production
-ENV OC_HOST=0.0.0.0
+ENV OC_ADDRESS=0.0.0.0
 EXPOSE 3000
 
 COPY --from=builder /opt/oc/node_modules ./node_modules

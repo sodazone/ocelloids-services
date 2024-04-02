@@ -64,17 +64,17 @@ Ocelloids Ingress Node
 
 Options:
   -V, --version                         output the version number
-  -h, --host <address>                  host to bind to (default: "localhost", env: OC_HOST)
+  -a, --address <address>               address to bind to (default: "localhost", env: OC_ADDRESS)
   -p, --port <number>                   port number to listen on (default: 3011, env: OC_PORT)
   -c, --config <file>                   service configuration file (env: OC_CONFIG_FILE)
-  -d, --db <dir>                        database directory (default: "./db.ingress", env: OC_DB_DIR)
+  -d, --data <dir>                      database directory (default: "./db.ingress", env: OC_DATA_DIR)
   --scheduler <boolean>                 enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
   --scheduler-frequency <milliseconds>  milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
   --sweep-expiry <milliseconds>         milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
   -g, --grace <milliseconds>            milliseconds for the graceful close to finish (default: 5000, env: OC_CLOSE_GRACE_DELAY)
   -t --telemetry <boolean>              enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
   --redis <redis-url>                   redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
-  --help                                display help for command
+  -h, --help                            display help for command
 ```
 </details>
 
