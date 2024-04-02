@@ -18,7 +18,7 @@ For HTTP tests please refer to [Hurl Tests](https://github.com/sodazone/ocelloid
 
 ## Stress Testing
 
-You con use [artillery](https://www.artillery.io/) to run the suites located in `guides/artillery`.
+You can use [artillery](https://www.artillery.io/) to run the suites located in `guides/artillery`.
 
 ```shell
 artillery run ./artillery/on_demand_subscriptions.yaml
