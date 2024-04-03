@@ -28,7 +28,7 @@ Configure Prometheus as the data source.
 
 Now you can run metric queries and start building your dashboards. All metrics exposed by the Ocelloids Service Node are prefixed with `oc_` in the metric names, making them easy to search for in the metric explorer.
 
-You can also import the sample [Grafana dashboard](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/grafana/xcmon_dashboard.yml) that we have prepared.
+You can also import the sample [Grafana dashboard](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/grafana/xcmon_dashboard.json) that we have prepared.
 
 ## Alertmanager
 
