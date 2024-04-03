@@ -1,0 +1,49 @@
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    volumes:
+      - ./prometheus:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    links:
+      - alertmanager:alertmanager
+    extra_hosts:
+      - host.docker.internal:HOST_IP_ADDRESS
+
+  alertmanager:
+    image: prom/alertmanager
+    restart: always
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+
+  grafana:
+    image: grafana/grafana
+    user: '472'
+    restart: always
+    environment:
+      GF_INSTALL_PLUGINS: 'grafana-clock-panel,grafana-simple-json-datasource'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/config.monitoring
+    ports:
+      - 3001:3000
+    depends_on:
+      - prometheus

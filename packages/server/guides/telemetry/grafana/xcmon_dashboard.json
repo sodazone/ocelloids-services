@@ -343,7 +343,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "red",
+            "mode": "fixed"
           },
           "mappings": [],
           "noValue": "0",
@@ -353,6 +354,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           },
@@ -366,11 +371,13 @@
         "x": 0,
         "y": 10
       },
-      "id": 22,
+      "id": 4,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
+        "displayMode": "basic",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -379,9 +386,9 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
       "pluginVersion": "10.4.0",
       "targets": [
@@ -391,20 +398,22 @@
             "uid": "PBFA97CFB590B2093"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(oc_engine_out_total)",
+          "expr": "sum by (origin, destination) (sum_over_time(oc_notifier_notification_error_total[$__interval]))",
+          "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{origin}}-{{destination}}",
+          "range": true,
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Total XCM Sent",
-      "type": "stat"
+      "title": "Notification Errors",
+      "type": "bargauge"
     },
     {
       "datasource": {
@@ -497,6 +506,90 @@
       "type": "bargauge"
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 23,
+      "panels": [],
+      "title": "XCM Activity",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 5,
+        "x": 0,
+        "y": 22
+      },
+      "id": 22,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "sum(oc_engine_out_total)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Total XCM Sent",
+      "type": "stat"
+    },
+    {
       "datasource": {
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
@@ -523,8 +616,8 @@
       "gridPos": {
         "h": 11,
         "w": 5,
-        "x": 0,
-        "y": 21
+        "x": 5,
+        "y": 22
       },
       "id": 19,
       "options": {
@@ -575,86 +668,6 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "red",
-            "mode": "fixed"
-          },
-          "mappings": [],
-          "noValue": "0",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 5,
-        "x": 5,
-        "y": 21
-      },
-      "id": 4,
-      "options": {
-        "displayMode": "basic",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "pluginVersion": "10.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum by (origin, destination) (sum_over_time(oc_notifier_notification_error_total[$__interval]))",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{origin}}-{{destination}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Notification Errors",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
             "mode": "thresholds"
           },
           "mappings": [],
@@ -675,7 +688,7 @@
         "h": 11,
         "w": 5,
         "x": 10,
-        "y": 21
+        "y": 22
       },
       "id": 21,
       "options": {
@@ -749,7 +762,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 33
       },
       "id": 17,
       "options": {
@@ -812,7 +825,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 45
       },
       "id": 12,
       "panels": [],
@@ -850,7 +863,7 @@
         "h": 10,
         "w": 3,
         "x": 0,
-        "y": 45
+        "y": 46
       },
       "id": 13,
       "options": {
@@ -963,7 +976,7 @@
         "h": 10,
         "w": 21,
         "x": 3,
-        "y": 45
+        "y": 46
       },
       "id": 1,
       "interval": "15s",
@@ -1016,12 +1029,12 @@
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "XCM Monitoring Server",
+  "title": "Ocelloids Service Node",
   "uid": "f127df32-837f-4adf-acf5-c944cadc9dc5",
   "version": 22,
   "weekStart": ""
