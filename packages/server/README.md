@@ -88,6 +88,9 @@ Example configurations are available in the `config/` directory of this reposito
 
 ## Running the Service Node
 
+> [!NOTE]
+> The following commands are for running the node in integrated mode. If you wish to run in distributed mode, i.e. with Redis, please refer to our [Distributed Deployment Guide](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/DISTRIBUTED.md).
+
 ### Docker
 
 You can run an integrated Service Node using Docker.
