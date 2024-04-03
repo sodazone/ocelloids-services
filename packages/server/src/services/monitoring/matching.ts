@@ -560,8 +560,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
-  // NOTE: message data, hash and instructions are right for single hop messages
-  // but will be wrong on the second or later hops for multi-hop messages
+  // NOTE: message data, hash and instructions are right for hop messages with 1 intermediate stop
+  // but will be wrong on the second or later hops for XCM with > 2 intermediate stops
   // since we are not storing messages or contexts of intermediate hops
   #onXcmHopIn(originMsg: XcmSent, hopMsg: XcmInbound) {
     try {
