@@ -179,9 +179,15 @@ OC_CONFIG_FILE=config/manta.toml yarn dev
 
 ## HTTP APIs
 
-The XCM Monitoring Server offers convenient APIs for seamless interaction.
+The Ocelloids Service Node offers convenient APIs for seamless interaction.
 
 [Explore the provided HTTP APIs for subscription management, administration, and health checks](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/HTTP_APIS.md).
+
+## Observability
+
+The Ocelloids Service Node exposes observability metrics via Prometheus, enabling visualization through Grafana dashboards and the configuration of alerts via Alertmanager.
+
+[Setup Prometheus, Grafana and Alertmanager](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/OBSERVABILITY.md).
 
 ## Testing
 
