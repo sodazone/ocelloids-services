@@ -4,7 +4,7 @@ The Ocelloids Service Node emits metrics related to subscriptions, notifications
 
 ## Running
 
-We've provided an example [Docker Compose](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/docker-compose.yml) file and sample configurations to facilitate the setup of Prometheus, Grafana, and Alertmanager.
+We've provided an example [Docker Compose](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/docker-compose.yml) file and sample configurations in the `telemetry` directory to facilitate the setup of Prometheus, Grafana, and Alertmanager.
 
 To run, navigate to the directory containing the Docker Compose file:
 

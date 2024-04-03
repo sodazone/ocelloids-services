@@ -71,7 +71,7 @@ The accepted configuration fields are as follows:
 | provider   | Provider configuration, detailed below.                                                            | Yes        | n/a     |
 | relay      | For parachains, the name of the relay chain it connects to.                                        | No         | n/a     |
 | recovery   | Enbles or disables the recovery of interrupted catch-ups.                                          | No         | false   |
-| batch-size | The batch size for catching up heads.                                                              | No         | 25      |
+| batch-size | The batch size for catching up missed blocks.                                                      | No         | 25      |
 
 Provider configuration fields:
 
