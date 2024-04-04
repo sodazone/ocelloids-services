@@ -74,7 +74,17 @@ docker run -d \
 
 Use the subscription API to subscribe to cross-chain messages.
 
-To monitor transfers from any account in Asset Hub to Polkadot Relay, Acala, Astar, or Moonbeam, use the following request:
+The easiest way is to use the hurl example we have prepared, which will subscribe to all channels in the configured network and deliver notifications through both webhook and WebSocket.
+
+From the `packages/server/guides/hurl/` directory:
+
+```shell
+hurl --variables-file ./dev.env scenarios/transfers/0_create_polkadot.hurl
+```
+
+The webhook notifications will be shown in RequestBin: https://public.requestbin.com/r/enrycp95owk7o
+
+If you prefer not to install hurl, you can also use `curl`:
 
 ```shell
 curl 'http://127.0.0.1:3000/subs' \
@@ -83,28 +93,9 @@ curl 'http://127.0.0.1:3000/subs' \
     "id": "asset-hub-transfers",
     "origin": "urn:ocn:polkadot:1000",
     "senders": "*",
-    "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006"],
+    "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006", "urn:ocn:polkadot:2034"],
     "channels": [{
         "type": "log"
-    }]
-}]'
-```
-
-This request will log the notifications in the console. If you want to test with a webhook endpoint, simply configure the `notify` parameter to point to your endpoint.
-
-In the example below we are using [https://webhook.site](https://webhook.site) as a webhook testing service.
-
-```shell
-curl 'http://127.0.0.1:3000/subs' \
---header 'Content-Type: application/json' \
---data '[{
-    "id": "acala-transfers",
-    "origin": "urn:ocn:polkadot:2000",
-    "senders": "*",
-    "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:1000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006"],
-    "channels": [{
-        "type": "webhook",
-        "url": "https://webhook.site/faf64821-cb4d-41ad-bb81-fd119e80ad02"
     }]
 }]'
 ```

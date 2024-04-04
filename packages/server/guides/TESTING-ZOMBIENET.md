@@ -103,7 +103,7 @@ curl 'http://127.0.0.1:3000/subs' \
 Alternatively, you can use the avaible hurl example to create subscriptions. From the `packages/server/guides/hurl/` directory:
 
 ```shell
-hurl --variables-file ./dev.env scenarios/transfers/0_create.hurl
+hurl --variables-file ./dev.env scenarios/transfers/0_create_dev.hurl
 ``` 
 
 ## 4. Transfer Assets
