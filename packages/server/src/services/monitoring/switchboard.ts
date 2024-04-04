@@ -564,7 +564,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
-                  extractXcmpSend(chainId, sendersControl, this.#getHrmp(chainId, registry), registry),
+                  extractXcmpSend(chainId, this.#getHrmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
@@ -754,7 +754,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
     const {
-      descriptor: { outboundTTL }
+      descriptor: { outboundTTL },
     } = this.#subs[id];
 
     return (source: Observable<XcmSentWithContext>) =>

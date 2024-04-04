@@ -3,18 +3,13 @@ import { mergeMap, map, Observable, filter, bufferCount } from 'rxjs';
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
 import type { Registry } from '@polkadot/types/types';
-import type {
-  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-  FrameSupportMessagesProcessMessageError,
-} from '@polkadot/types/lookup';
-
-import type { U8aFixed, bool } from '@polkadot/types-codec';
 
 import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  MessageQueueEventContext,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
@@ -26,19 +21,12 @@ import { NetworkURN } from '../../types.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
-type UmpReceivedContext = {
-  id: U8aFixed;
-  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin;
-  success?: bool;
-  error?: FrameSupportMessagesProcessMessageError;
-};
-
 function createUmpReceivedWithContext(
   subOrigin: NetworkURN,
   event: types.BlockEvent,
   assetsTrappedEvent?: types.BlockEvent
 ): XcmInboundWithContext | null {
-  const { id, origin, success, error } = event.data as unknown as UmpReceivedContext;
+  const { id, origin, success, error } = event.data as unknown as MessageQueueEventContext;
   // Received event only emits field `message_id`,
   // which is actually the message hash in the current runtime.
   const messageId = id.toHex();

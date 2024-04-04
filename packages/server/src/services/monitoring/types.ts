@@ -2,6 +2,12 @@ import z from 'zod';
 
 import { Subscription as RxSubscription } from 'rxjs';
 
+import type { U8aFixed, bool } from '@polkadot/types-codec';
+import type {
+  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
+  FrameSupportMessagesProcessMessageError,
+} from '@polkadot/types/lookup';
+
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 import { NetworkURN } from '../types.js';
@@ -670,7 +676,7 @@ export const $Subscription = z
     events: z.optional(
       z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR))
     ),
-    outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER))
+    outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
   })
   .refine(
     (schema) =>
@@ -708,4 +714,11 @@ export type BinBlock = {
   block: Uint8Array;
   events: Uint8Array[];
   author?: Uint8Array;
+};
+
+export type MessageQueueEventContext = {
+  id: U8aFixed;
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin;
+  success?: bool;
+  error?: FrameSupportMessagesProcessMessageError;
 };

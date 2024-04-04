@@ -1,11 +1,12 @@
 import { map, Observable, mergeMap, filter, bufferCount } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
+import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  MessageQueueEventContext,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
@@ -81,7 +82,6 @@ function xcmpMessagesSent() {
 
 export function extractXcmpSend(
   origin: NetworkURN,
-  sendersControl: ControlQuery,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
   registry: Registry
 ) {
@@ -99,21 +99,43 @@ export function extractXcmpReceive() {
     return source.pipe(
       bufferCount(2, 1),
       map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
-        if (maybeXcmpEvent && matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
-          const xcmMessage = maybeXcmpEvent.data as any;
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped')
-            ? maybeAssetTrapEvent
-            : undefined;
-          const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
+        if (maybeXcmpEvent === undefined) {
+          return null;
+        }
+
+        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped')
+          ? maybeAssetTrapEvent
+          : undefined;
+        const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
+
+        if (matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
+          const xcmpQueueData = maybeXcmpEvent.data as any;
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent.toHuman(),
             blockHash: maybeXcmpEvent.blockHash.toHex(),
             blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
             extrinsicId: maybeXcmpEvent.extrinsicId,
-            messageHash: xcmMessage.messageHash.toHex(),
+            messageHash: xcmpQueueData.messageHash.toHex(),
             outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
-            error: xcmMessage.error,
+            error: xcmpQueueData.error,
+            assetsTrapped,
+          });
+        } else if (matchEvent(maybeXcmpEvent, 'messageQueue', 'Processed')) {
+          const { id, success, error } = maybeXcmpEvent.data as unknown as MessageQueueEventContext;
+          // Received event only emits field `message_id`,
+          // which is actually the message hash in chains that do not yet support Topic ID.
+          const messageId = id.toHex();
+          const messageHash = messageId;
+
+          return new GenericXcmInboundWithContext({
+            event: maybeXcmpEvent.toHuman(),
+            blockHash: maybeXcmpEvent.blockHash.toHex(),
+            blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
+            messageHash,
+            messageId,
+            outcome: success?.isTrue ? 'Success' : 'Fail',
+            error: error ? error.toHuman() : null,
             assetsTrapped,
           });
         }
