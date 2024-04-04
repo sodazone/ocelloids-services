@@ -125,15 +125,45 @@ Or tail and grep:
 tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 ```
 
+### Run XCM Tracker App (Optional)
+
+If you want a convenient UI to see your cross-chain transfers, you can run the XCM tracker app. To do so, follow the instructions below:
+
+Clone the tracker app repo:
+
+```shell
+git clone https://github.com/sodazone/xcm-tracker.git
+```
+
+```shell
+cd xcm-tracker
+```
+
+```shell
+corepack enable
+```
+
+Run:
+
+> [!IMPORTANT]
+> You will need to have subscriptions configured with WebSocket notification channels for the app to work.
+
+> [!IMPORTANT]
+> You will need to enable CORS when starting the service node using the `--cors` flag.
+
+```shell
+yarn && yarn dev
+```
+
+The app should be running on http://localhost:5173. Select `ALL NETWORKS` from the UI to see XCM activity across all subscribed networks. Alternatively, you can choose to track only a single subscription by clicking `SELECT SUBSCRIPTION`.
+
 ## Troubleshooting
 
 When utilizing light client connections, we've observed occasional issues where, upon server start, the relay chain fails to receive finalized blocks after warp sync is completed. Similarly, chains connecting via light clients might stop receiving finalized blocks after the server has been running for some time. In both scenarios, a system restart typically resolves the issue.
 
 For the moment, we have not been able to deterministically reproduce and pinpoint the cause of these problems. We anticipate that these and similar issues will be resolved as light client implementations become more stable.
 
-In the future, our plan is to implement Prometheus monitoring, providing better insights into the server's performance and allowing for proactive issue detection and resolution.
-
-In the meantime, you can use the admin API to monitor the blockchain tip and automate a restart if the tip doesn't progress for a specified duration, like 30 minutes.
+You can set up an alert in Prometheus Alertmanager or use the admin API to monitor the blockchain tip, and automate a restart if the tip doesn't progress for a specified duration, like 30 minutes.
 
 To check the current blockchain tip with the admin API:
 

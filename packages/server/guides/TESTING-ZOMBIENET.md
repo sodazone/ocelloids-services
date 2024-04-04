@@ -33,18 +33,22 @@ At this point you should have running a Zombienet with the default testing confi
 
 In a separate terminal, clone the project repository:
 
-```
-git clone https://github.com/sodazone/xcm-monitoring.git
-```
-
-```
-cd xcm-monitoring
+```shell
+git clone https://github.com/sodazone/ocelloids-services.git
 ```
 
-Install and build the project:
-
+```shell
+cd ocelloids-services
 ```
-npm i && npm run build
+
+From the root of the project, install and build:
+
+```shell
+corepack enable
+```
+
+```shell
+yarn && yarn server build
 ```
 
 Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
@@ -73,7 +77,7 @@ Please, replace `zombie-<RANDOM>` with the temporary directory created by Zombie
 Run the server using `yarn` and pipe the output to stdout and a file for searching in later:
 
 ```shell
-yarn xcm-mon -c ./config/dev.toml | tee /tmp/xcm.log
+yarn oc-node -c ./config/dev.toml | tee /tmp/xcm.log
 ```
 
 ## 3. Add Subscriptions
@@ -88,13 +92,19 @@ curl 'http://127.0.0.1:3000/subs' \
 --data '[{
     "id": "asset-hub-transfers",
     "origin": "urn:ocn:local:1000",
-    "senders": ["HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F", "FoQJpPyadYccjavVdTWxpxU7rUEaYhfLCPwXgkfD6Zat9QP"],
+    "senders": ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"],
     "destinations": ["urn:ocn:local:0", "urn:ocn:local:2000"],
     "channels": [{
         "type": "log"
     }]
 }]'
 ```
+
+Alternatively, you can use the avaible hurl example to create subscriptions. From the `packages/server/guides/hurl/` directory:
+
+```shell
+hurl --variables-file ./dev.env scenarios/transfers/0_create.hurl
+``` 
 
 ## 4. Transfer Assets
 
@@ -104,21 +114,29 @@ curl 'http://127.0.0.1:3000/subs' \
 > [!NOTE]
 > The following instructions refer to the XCM Testing Tools repository.
 
-Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#assets-tranfser) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using either Alice's or Bob's account.
+Utilize the [scripts](https://github.com/sodazone/xcm-testing-tools#assets-tranfser) in the `xcm-testing-tools` project to initiate a reserve-backed asset transfer using Alice's account.
 
 ```shell
-just transfer ws://127.0.0.1:9910 -s //Alice -d 2000 -r 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -a 1984 -m 1500000000000
+just transfer ws://127.0.0.1:9910 -s //Alice -d 2000 -r ajYMsCKsEAhEvHpeA4XqsfiA9v1CdzZPrCfS6pEfeGHW9j8 -a 1984 -m 1500000000000 --asset-registry ./config/asset-registries/local-rococo.json
 ```
 
 After the extrinsic is finalized, you will receive similar logs in the console to indicate a notification:
 
-```
-[12:07:07 UTC] INFO: [2000:i] STORED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000 (subId=asset-hub-transfers)
-[12:07:07 UTC] INFO: [1000:o] MATCHED hash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce:2000
-[12:07:07 UTC] INFO: [1000 ➜ 2000] NOTIFICATION subscription=asset-hub-transfers, messageHash=0x20ad5ddb54c87125bbaf7e90329db6e5ffd577478b96d85034d2826b91c65fce, outcome=Success (o: #217, d: #216)
+```shell
+[11:24:05 UTC] INFO: [urn:ocn:local:1000:r] RELAYED key=asset-hub-transfers:0xbbde23d294a4906d1670e21b5865519de428d9a416057d0da66a7ab521782d41:urn:ocn:local:1000 (subId=asset-hub-transfers, block=0xaccd37bccff145fb06068aabf11a85fdf7477b7ffccbe181b632c82d742062c7 #49)
+[11:24:05 UTC] INFO: [urn:ocn:local:1000 ↠ urn:ocn:local:2000] NOTIFICATION xcm.relayed subscription=asset-hub-transfers, messageHash=0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0, block=110
+[11:24:05 UTC] INFO: [urn:ocn:local:1000 ➜] NOTIFICATION xcm.sent subscription=asset-hub-transfers, messageHash=0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0, block=49
+[11:24:05 UTC] INFO: [urn:ocn:local:1000:h] STORED stop=urn:ocn:local:0 hash=asset-hub-transfers:0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0:urn:ocn:local:0 id=asset-hub-transfers:0xbbde23d294a4906d1670e21b5865519de428d9a416057d0da66a7ab521782d41:urn:ocn:local:0 (subId=asset-hub-transfers, block=0xaccd37bccff145fb06068aabf11a85fdf7477b7ffccbe181b632c82d742062c7 #49)
+[11:24:05 UTC] INFO: [urn:ocn:local:1000:o] STORED dest=urn:ocn:local:2000 hash=asset-hub-transfers:0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0:urn:ocn:local:2000 id=asset-hub-transfers:0xbbde23d294a4906d1670e21b5865519de428d9a416057d0da66a7ab521782d41:urn:ocn:local:2000 (subId=asset-hub-transfers, block=0xaccd37bccff145fb06068aabf11a85fdf7477b7ffccbe181b632c82d742062c7 #49)
+[11:24:09 UTC] INFO: [urn:ocn:local:0] FINALIZED block #112 0xa8404b8bf5cf95cc38ae8d72a138e30622424ded72a9a9b696d5f1dd215dde9d
+[11:24:17 UTC] INFO: [urn:ocn:local:0] FINALIZED block #113 0x40e535085d7e4f57cee1997acbcc60dcbebb86c22b14e542eb1cfadde6b4826e
+[11:24:17 UTC] INFO: [urn:ocn:local:2000] FINALIZED block #50 0x93677fd655392b943b8c8715bd6bd617d3e2843fd45f1cae2c8eb5f35d758892
+[11:24:17 UTC] INFO: [urn:ocn:local:1000] FINALIZED block #50 0xe5342a23c937be807fe62784d2ee9dac3a6efbd6067483f8f3bbe37e1bbaa604
+[11:24:17 UTC] INFO: [urn:ocn:local:2000:i] MATCHED hash=asset-hub-transfers:0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0:urn:ocn:local:2000 (subId=asset-hub-transfers, block=0x93677fd655392b943b8c8715bd6bd617d3e2843fd45f1cae2c8eb5f35d758892 #50)
+[11:24:17 UTC] INFO: [urn:ocn:local:1000 ➜ urn:ocn:local:2000] NOTIFICATION xcm.received subscription=asset-hub-transfers, messageHash=0xd431e297031b1301db3227096a208d284b9eeac214d96d42d72491e450b9c4d0, outcome=Fail (o: #49, d: #50)
 ```
 
-In this example, the message on the destination chain was captured first. This is not a problem since the XCM Monitoring Server supports matching messages out-of-order.
+In this example, the message on the relay chain was captured first. This is not a problem since the XCM Monitoring Server supports matching messages out-of-order.
 
 You can search in the log file using grep:
 
@@ -154,149 +172,7 @@ curl -X PATCH 'http://127.0.0.1:3000/subs/asset-hub-transfers' \
 ]'
 ```
 
-Now, if you make another transfer, the notification should be delivered to your endpoint with a message similar to the one below:
-
-<details>
-  <summary>JSON Notification</summary>
-
-```json
-{
-  "subscriptionId":"asset-hub-transfers",
-  "origin":{
-    "chainId":"urn:ocn:local:1000",
-    "blockNumber":"271",
-    "blockHash":"0x2165b67e8ec89291633b6a10fab68a62b868cc69ab5ab2dd1e21372c4e5f3f62",
-    "extrinsicId":"271-2",
-    "event":{
-      "eventId":"271-2-2",
-      "extrinsicId":"271-2",
-      "extrinsicPosition":2,
-      "blockNumber":"271",
-      "blockHash":"0x2165b67e8ec89291633b6a10fab68a62b868cc69ab5ab2dd1e21372c4e5f3f62",
-      "method":"XcmpMessageSent",
-      "section":"xcmpQueue",
-      "index":"0x1e04",
-      "data":{
-        "messageHash":"0x825d998fc7f68a85777087d88d1e78951d25be433ac3240f5193884f949cf86a"
-      }
-    }
-  },
-  "destination":{
-    "chainId":"urn:ocn:local:2000",
-    "blockNumber":"268",
-    "blockHash":"0x0390ae32561ab87524fb5f0765604a519ca66a3aec64b8ca6c2ab81e455f2a03",
-    "extrinsicId":"268-1",
-    "event":{
-      "eventId":"268-1-1",
-      "extrinsicId":"268-1",
-      "extrinsicPosition":1,
-      "blockNumber":"268",
-      "blockHash":"0x0390ae32561ab87524fb5f0765604a519ca66a3aec64b8ca6c2ab81e455f2a03",
-      "method":"Success",
-      "section":"xcmpQueue",
-      "index":"0x3200",
-      "data":{
-        "messageHash":"0x825d998fc7f68a85777087d88d1e78951d25be433ac3240f5193884f949cf86a",
-        "weight":{
-          "refTime":"5,000,000,000",
-          "proofSize":"327,680"
-        }
-      }
-    }
-  },
-  "messageHash":"0x825d998fc7f68a85777087d88d1e78951d25be433ac3240f5193884f949cf86a",
-  "messageData":"0x000314010400010300a10f043205011f0002286bee0a1300010300a10f043205011f0002286bee000d01020400010100d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d2cdde8ae7392d5e34e2aadd1976eb1540a18238f2f48bfde9058f3e1ec7c840899",
-  "instructions":{
-    "V3":[
-      {
-        "ReserveAssetDeposited":[
-          {
-            "id":{
-              "Concrete":{
-                "parents":"1",
-                "interior":{
-                  "X3":[
-                    {
-                      "Parachain":"1,000"
-                    },
-                    {
-                      "PalletInstance":"50"
-                    },
-                    {
-                      "GeneralIndex":"1,984"
-                    }
-                  ]
-                }
-              }
-            },
-            "fun":{
-              "Fungible":"1,000,000,000"
-            }
-          }
-        ]
-      },
-      "ClearOrigin",
-      {
-        "BuyExecution":{
-          "fees":{
-            "id":{
-              "Concrete":{
-                "parents":"1",
-                "interior":{
-                  "X3":[
-                    {
-                      "Parachain":"1,000"
-                    },
-                    {
-                      "PalletInstance":"50"
-                    },
-                    {
-                      "GeneralIndex":"1,984"
-                    }
-                  ]
-                }
-              }
-            },
-            "fun":{
-              "Fungible":"1,000,000,000"
-            }
-          },
-          "weightLimit":"Unlimited"
-        }
-      },
-      {
-        "DepositAsset":{
-          "assets":{
-            "Wild":{
-              "AllCounted":"1"
-            }
-          },
-          "beneficiary":{
-            "parents":"0",
-            "interior":{
-              "X1":{
-                "AccountId32":{
-                  "network":null,
-                  "id":"0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "SetTopic":"0xdde8ae7392d5e34e2aadd1976eb1540a18238f2f48bfde9058f3e1ec7c840899"
-      }
-    ]
-  },
-  "sender": {
-    "Id": "HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F"
-  },
-  "outcome":"Success",
-  "error":null
-}
-```
-</details>
+Now, if you make another transfer, the notifications should be delivered to your endpoint.
 
 ## 6. Update Senders and Destinations
 
@@ -317,34 +193,6 @@ After making these changes, any cross-chain transfers from parachain 1000 initia
 
 ## Troubleshooting
 
-While testing on Zombienet, you might encounter a network error in smoldot,  `[sync-service-rococo_local_testnet] Error while verifying justification: There exists a block in-between the latest finalized block and the block targeted by the justification that must first be finalized` which can flood the server. If this occurs, please restart the server to resolve the issue.
-
-
-Additionally, if you come across a smoldot panic like the one shown below, it is advisable to restart both Zombienet and the server:
-
-```shell
-[smoldot] Smoldot v1.0.4. Current memory usage: 57.7 MiB. Average download: 446 kiB/s. Average upload: 251 kiB/s.
-Smoldot has panicked while executing task `network-service`. This is a bug in smoldot. Please open an issue at https://github.com/smol-dot/smoldot/issues with the following message:
-panicked at 'called `Option::unwrap()` on a `None` value', /__w/smoldot/smoldot/lib/src/network/service/notifications.rs:320:88
-[16:09:46 UTC] ERROR: 
-    err: {
-      "type": "Error",
-      "message": "",
-      "stack":
-          Error
-              at Object.onPanic (file:///home/xueying/dev/sodazone/xcm-monitoring/node_modules/smoldot/dist/mjs/instance/raw-instance.js:36:23)
-              at panic (file:///home/xueying/dev/sodazone/xcm-monitoring/node_modules/smoldot/dist/mjs/instance/bindings-smoldot-light.js:52:20)
-              at wasm://wasm/00fc8eb6:wasm-function[2764]:0xa0317
-              at wasm://wasm/00fc8eb6:wasm-function[12523]:0x282f48
-              at wasm://wasm/00fc8eb6:wasm-function[12513]:0x2823a7
-              at wasm://wasm/00fc8eb6:wasm-function[12518]:0x282a47
-              at wasm://wasm/00fc8eb6:wasm-function[12590]:0x2888ed
-              at wasm://wasm/00fc8eb6:wasm-function[12597]:0x288e15
-              at wasm://wasm/00fc8eb6:wasm-function[3312]:0xa8e9c
-              at wasm://wasm/00fc8eb6:wasm-function[5292]:0x10f4ae
-    }
-```
-
-Moreover, after Zombienet has been operational for some time, there may be instances where the parachains become stalled. In such cases, restarting Zombienet will refresh the network.
+After Zombienet has been operational for some time, there may be instances where the parachains become stalled. In such cases, restarting Zombienet will refresh the network.
 
 It's worth noting that the issues described above appear to be unique to Zombienet, as similar behavior has not been observed when running the monitoring server on public networks like Polkadot and its parachains.
