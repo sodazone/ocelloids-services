@@ -1,0 +1,53 @@
+[
+  {
+    "id": "relay-transfers",
+    "origin": "urn:ocn:local:0",
+    "senders": "*",
+    "destinations": [
+      "urn:ocn:local:1000", "urn:ocn:local:2000"
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "log"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "asset-hub-transfers",
+    "origin": "urn:ocn:local:1000",
+    "senders": "*",
+    "destinations": [
+      "urn:ocn:local:0", "urn:ocn:local:2000"
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "log"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "parachain-transfers",
+    "origin": "urn:ocn:local:2000",
+    "senders": "*",
+    "destinations": [
+      "urn:ocn:local:0", "urn:ocn:local:1000"
+    ],
+    "events": "*",
+    "channels": [
+      {
+        "type": "log"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  }
+]

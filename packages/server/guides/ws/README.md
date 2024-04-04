@@ -28,6 +28,13 @@ relay = "polkadot"
   type = "rpc"
   url = "wss://acala-rpc-0.aca-api.network"
 [[networks]]
+name = "astar"
+id = "urn:ocn:polkadot:2006"
+relay = "polkadot"
+  [networks.provider]
+  type = "rpc"
+  url="wss://rpc.astar.network"
+[[networks]]
 name = "hydra"
 id = 2_034
 relay = "polkadot"
@@ -41,13 +48,6 @@ relay = "polkadot"
   [networks.provider]
   type = "rpc"
   url = "wss://wss.api.moonbeam.network"
-[[networks]]
-name = "manta"
-id = 2_104
-relay = "polkadot"
-  [networks.provider]
-  type = "rpc"
-  url = "wss://ws.manta.systems"
 ```
 
 # On-demand Subscriptions
@@ -59,14 +59,14 @@ websocat -E ws://127.0.0.1:3000/ws/subs | jq .
 
 2) Send this payload
 ```json
-{ "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2104" ] }
+{ "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2006" ] }
 ```
 
 # Persistent Subscriptions
 
 1) Create some subscriptions
 ```shell
-hurl --variables-file ./dev.env -v scenarios/transfers/0_create.hurl
+hurl --variables-file ./dev.env -v scenarios/transfers/0_create_polkadot.hurl
 ```
 
 2) Open websocket listeners

@@ -41,3 +41,11 @@ relay = "polkadot"
   type = "rpc"
   url = "wss://wss.api.moonbeam.network"
 
+[[networks]]
+name = "hydradx"
+id = "urn:ocn:polkadot:2034"
+relay = "polkadot"
+
+  [networks.provider]
+  type = "smoldot"
+  spec = "./chain-specs/hydradx.json"
