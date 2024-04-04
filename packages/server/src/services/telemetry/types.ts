@@ -67,6 +67,7 @@ export type TelemetryEvents = {
   telemetryMatched: (inMsg: XcmInbound, outMsg: XcmSent) => void;
   telemetryTimeout: (message: XcmTimeout) => void;
   telemetryHop: (message: XcmHop) => void;
+  telemetryTrapped: (inMsg: XcmInbound, outMsg: XcmSent) => void;
   telemetryBlockSeen: (msg: { chainId: string; header: Header }) => void;
   telemetryBlockFinalized: (msg: { chainId: string; header: Header }) => void;
   telemetryBlockCacheHit: (msg: { chainId: string }) => void;

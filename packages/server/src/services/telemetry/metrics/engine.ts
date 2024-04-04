@@ -88,4 +88,10 @@ export function engineMetrics(source: TelemetryEventEmitter) {
       )
       .inc();
   });
+
+  source.on('telemetryTrapped', (inMsg: XcmInbound, outMsg: XcmSent) => {
+    trapCount
+      .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
+      .inc();
+  });
 }

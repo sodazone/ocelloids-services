@@ -511,6 +511,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   #onXcmMatched(outMsg: XcmSent, inMsg: XcmInbound) {
     this.emit('telemetryMatched', inMsg, outMsg);
+    if (inMsg.assetsTrapped !== undefined) {
+      this.emit('telemetryTrapped', inMsg, outMsg);
+    }
 
     try {
       const message: XcmReceived = new GenericXcmReceived(outMsg, inMsg);
@@ -564,6 +567,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // but will be wrong on the second or later hops for XCM with > 2 intermediate stops
   // since we are not storing messages or contexts of intermediate hops
   #onXcmHopIn(originMsg: XcmSent, hopMsg: XcmInbound) {
+    if (hopMsg.assetsTrapped !== undefined) {
+      this.emit('telemetryTrapped', hopMsg, originMsg);
+    }
+
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped } = hopMsg;
       const { messageData, messageHash, instructions } = originMsg.waypoint;
