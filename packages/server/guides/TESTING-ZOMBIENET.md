@@ -51,7 +51,7 @@ corepack enable
 yarn && yarn server build
 ```
 
-Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
+Create the configuration file for your network, you can just use [config/dev.toml](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/config/dev.toml) for the default testing configuration. Ensure that the parameters correspond to those used to set up Zombienet. If you are planning to test with light clients, copy the chain specs for your chains from the temporary folder spawned by Zombienet into the `./chain-specs/` directory pointed in the configuration file. Note that the name of the files should match as well.
 
 For example, with the provided configuration you can copy the chain specs as shown below:
 
@@ -74,7 +74,7 @@ cp /tmp/zombie-<RANDOM>/asset-hub-kusama-local-1000-rococo-local.json chain-spec
 
 Please, replace `zombie-<RANDOM>` with the temporary directory created by Zombienet.
 
-Run the server using `yarn` and pipe the output to stdout and a file for searching in later:
+From `packages/server/`, run the node using `yarn` and pipe the output to stdout and a file for searching in later:
 
 ```shell
 yarn oc-node -c ./config/dev.toml | tee /tmp/xcm.log

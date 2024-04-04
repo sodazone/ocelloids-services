@@ -1,6 +1,6 @@
 # Polkadot Testing Guide
 
-This guide provides detailed instructions for testing the XCM Monitoring Server on Polkadot and several parachains.
+This guide provides detailed instructions for testing the Ocelloids Service on Polkadot and several parachains.
 
 ## 1. Running the Server
 
@@ -14,27 +14,31 @@ You have two options for running the server: through the command line or using D
 Clone the project repository:
 
 ```
-git clone https://github.com/sodazone/xcm-monitoring.git
+git clone https://github.com/sodazone/ocelloids-services.git
 ```
 
 ```
-cd xcm-monitoring
+cd ocelloids-services
 ```
 
-Install and build the project:
+From the root of the project, install and build:
 
-```
-npm i && npm run build
+```shell
+corepack enable
 ```
 
-Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
+```shell
+yarn && yarn server build
+```
+
+Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/config/polkadot.toml) for the default Polkadot configuration.
 
 Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs).
 
-Run the server using `yarn` and pipe the output to both stdout and a file for future searching:
+From `packages/server/`, run the node using `yarn` and pipe the output to stdout and a file for searching in later:
 
 ```shell
-yarn xcm-mon -c ./config/polkadot.toml | tee /tmp/xcm.log
+yarn oc-node -c ./config/polkadot.toml | tee /tmp/xcm.log
 ```
 
 :star2: Now you can proceed to [2. Add Subscriptions](#2-add-subscriptions).
@@ -46,13 +50,13 @@ Alternatively you can run the server using Docker.
 Download the Docker image:
 
 ```
-docker pull sodazone/xcm-monitoring
+docker pull sodazone/ocelloids-integrated-node
 ```
 
 Or build locally:
  
 ```
-docker build . -t xcm-monitoring:develop
+docker build . -t ocelloids-integrated-node:develop
 ```
 
 Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs). Store them in a directory to be mounted later.
@@ -65,9 +69,9 @@ Run the Docker image, mounting the configuration and chain specs as volumes:
 docker run -d \
   -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
-  -v <PATH_TO_CHAIN_SPECS>:/opt/xcmon/chain-specs \
-  -v <PATH_TO_CONFIG>:/opt/xcmon/config \
-  sodazone/xcm-monitoring
+  -v <PATH_TO_CHAIN_SPECS>:/opt/oc/chain-specs \
+  -v <PATH_TO_CONFIG>:/opt/oc/config \
+  sodazone/ocelloids-integrated-node
 ```
 
 ## 2. Add Subscriptions
@@ -82,7 +86,7 @@ From the `packages/server/guides/hurl/` directory:
 hurl --variables-file ./dev.env scenarios/transfers/0_create_polkadot.hurl
 ```
 
-The webhook notifications will be shown in RequestBin: https://public.requestbin.com/r/enrycp95owk7o
+The webhook notifications can be viewed in RequestBin: https://public.requestbin.com/r/enrycp95owk7o.
 
 If you prefer not to install hurl, you can also use `curl`:
 
@@ -118,7 +122,7 @@ tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 
 ### Run XCM Tracker App (Optional)
 
-If you want a convenient UI to see your cross-chain transfers, you can run the XCM tracker app. To do so, follow the instructions below:
+If you want a convenient UI to view cross-chain transfers, you can run the XCM tracker app. To do so, follow the instructions below:
 
 Clone the tracker app repo:
 
@@ -204,4 +208,5 @@ mkdir -p ./chain-specs
 # Download chain specs
 curl -o ./chain-specs/acala.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/acala.json
 curl -o ./chain-specs/astar.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/astar.json
+curl -o ./chain-specs/hydradx.json https://raw.githubusercontent.com/sodazone/substrate-chain-specs/main/polkadot/hydradx.json
 ```
