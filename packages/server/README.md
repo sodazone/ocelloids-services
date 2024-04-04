@@ -130,7 +130,7 @@ corepack enable
 ```
 
 ```shell
-yarn && yarn build
+yarn && yarn server build
 ```
 
 From `packages/server`, run:
