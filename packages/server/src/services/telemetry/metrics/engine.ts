@@ -52,12 +52,6 @@ export function engineMetrics(source: TelemetryEventEmitter) {
     matchCount
       .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
       .inc();
-
-    if (inMsg.assetsTrapped !== undefined) {
-      trapCount
-        .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
-        .inc();
-    }
   });
 
   source.on('telemetryRelayed', (relayMsg: XcmRelayed) => {
