@@ -13,7 +13,7 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpSend(origin, sendersControl, getHrmp, registry)(blocks.pipe(extractEvents()));
+      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -38,7 +38,7 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpSend(origin, sendersControl, getHrmp, registry)(blocks.pipe(extractEvents()));
+      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -66,7 +66,6 @@ describe('xcmp operator', () => {
 
     const test$ = extractXcmpSend(
       origin,
-      new ControlQuery(sendersCriteria(['0x8e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'])),
       getHrmp,
       registry
     )(blocks.pipe(extractEvents()));
