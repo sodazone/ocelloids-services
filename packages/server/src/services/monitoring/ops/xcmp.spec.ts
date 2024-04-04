@@ -8,7 +8,7 @@ import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 describe('xcmp operator', () => {
   describe('extractXcmpSend', () => {
     it('should extract XCMP sent message', (done) => {
-      const { origin, blocks, sendersControl, getHrmp } = xcmpSend;
+      const { origin, blocks, getHrmp } = xcmpSend;
 
       const calls = jest.fn();
 
@@ -33,7 +33,7 @@ describe('xcmp operator', () => {
     });
 
     it('should extract XCMP sent on hops', (done) => {
-      const { origin, blocks, sendersControl, getHrmp } = xcmHop;
+      const { origin, blocks, getHrmp } = xcmHop;
 
       const calls = jest.fn();
 
@@ -63,11 +63,7 @@ describe('xcmp operator', () => {
 
     const calls = jest.fn();
 
-    const test$ = extractXcmpSend(
-      origin,
-      getHrmp,
-      registry
-    )(blocks.pipe(extractEvents()));
+    const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()));
 
     test$.subscribe({
       next: (msg) => {
