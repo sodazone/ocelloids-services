@@ -1,10 +1,9 @@
 import { jest } from '@jest/globals';
-import { ControlQuery, extractEvents } from '@sodazone/ocelloids-sdk';
+import { extractEvents } from '@sodazone/ocelloids-sdk';
 
 import { xcmpSend, xcmpReceive, registry, xcmHop } from '../../../testing/xcm.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
-import { sendersCriteria } from './criteria.js';
 
 describe('xcmp operator', () => {
   describe('extractXcmpSend', () => {
