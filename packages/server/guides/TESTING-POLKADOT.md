@@ -61,7 +61,7 @@ docker build . -t ocelloids-integrated-node:develop
 
 Download the chain specs required for the chains using a light client, as explained in [Annex: Chain Specs](#annex-chain-specs). Store them in a directory to be mounted later.
 
-Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/xcm-monitoring/blob/main/config/polkadot.toml) for the default Polkadot configuration.
+Create a configuration file for your network. You can use [config/polkadot.toml](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/config/polkadot.toml) for the default Polkadot configuration.
 
 Run the Docker image, mounting the configuration and chain specs as volumes:
 

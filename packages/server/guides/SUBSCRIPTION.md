@@ -81,7 +81,7 @@ The Subscription HTTP API allows you to create and manage subscriptions to XCM i
 The OpenAPI documentation is published at the path [/documentation](http://localhost:3000/documentation) in your running server.
 
 Examples of request for the available API methods are listed below.
-You can check the [Hurl requests](https://github.com/sodazone/xcm-monitoring/tree/main/guides/hurl) for usage examples.
+You can check the [Hurl requests](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/hurl) for usage examples.
 
 **Create Subscriptions**
 
