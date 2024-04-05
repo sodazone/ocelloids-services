@@ -144,7 +144,7 @@ Run:
 > You will need to have subscriptions configured with WebSocket notification channels for the app to work.
 
 > [!IMPORTANT]
-> You will need to enable CORS when starting the service node using the `--cors` flag.
+> The service node needs to be running with CORS enabled.
 
 ```shell
 yarn && yarn dev
