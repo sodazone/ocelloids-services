@@ -8,7 +8,6 @@ import {
   mergeWith,
   from,
   tap,
-  raceWith,
   switchMap,
   map,
   catchError,
@@ -24,13 +23,7 @@ import type { Raw } from '@polkadot/types';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
 import { ApiPromise } from '@polkadot/api';
 
-import {
-  finalizedHeads,
-  blockFromHeader,
-  retryWithTruncatedExpBackoff,
-  SubstrateApis,
-  filterNonNull,
-} from '@sodazone/ocelloids-sdk';
+import { finalizedHeads, blockFromHeader, retryWithTruncatedExpBackoff, SubstrateApis } from '@sodazone/ocelloids-sdk';
 
 import { DB, Logger, Services, jsonEncoded, prefixes, NetworkURN } from '../../types.js';
 import { ChainHead as ChainTip, HexString, BlockNumberRange } from '../../monitoring/types.js';
@@ -192,7 +185,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return this.#apis.promise[chainId];
   }
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     const apiPromise$ = from(this.#apis.promise[chainId].isReady);
     const getStorage$ = apiPromise$.pipe(
       switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
@@ -202,16 +195,25 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     if (this.#localCache.has(chainId)) {
       return from(this.#localCache.getStorage(chainId, storageKey, blockHash)).pipe(
-        filterNonNull(),
-        raceWith(
-          getStorage$.pipe(
-            retryWithTruncatedExpBackoff(RETRY_CAPPED),
-            catchError((error) => {
-              this.#log.error('[%s] Unable to get storage key=%s blockHash=%s', chainId, storageKey, blockHash, error);
-              return EMPTY;
-            })
-          )
-        )
+        mergeMap((data) => {
+          if (data === null) {
+            return getStorage$.pipe(
+              retryWithTruncatedExpBackoff(RETRY_CAPPED),
+              catchError((error) => {
+                this.#log.error(
+                  '[%s] Unable to get storage key=%s blockHash=%s',
+                  chainId,
+                  storageKey,
+                  blockHash,
+                  error
+                );
+                return EMPTY;
+              })
+            );
+          } else {
+            return of(data);
+          }
+        })
       );
     }
 

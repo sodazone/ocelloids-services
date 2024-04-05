@@ -528,7 +528,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockExtrinsics(chainId).pipe(
-                  extractDmpSend(chainId, sendersControl, this.#getDmp(chainId, registry), registry),
+                  extractDmpSend(chainId, this.#getDmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )
@@ -546,7 +546,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
             .pipe(
               switchMap((registry) =>
                 this.#sharedBlockEvents(chainId).pipe(
-                  extractDmpSendByEvent(chainId, sendersControl, this.#getDmp(chainId, registry), registry),
+                  extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
               )

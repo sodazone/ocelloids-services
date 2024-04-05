@@ -15,7 +15,9 @@ export default class Connector {
   readonly #log: Logger;
   readonly #config: ServiceConfiguration;
   readonly #relays: Record<string, ScProvider> = {};
+  // TODO: names will be deprecated
   readonly #chains: Record<string, ProviderInterface> = {};
+  // TODO: use only chain ids
   readonly #chainIdMap: Record<string, string> = {};
 
   #substrateApis?: SubstrateApis;
@@ -66,11 +68,15 @@ export default class Connector {
       const provider = this.#relays[key];
       providers[this.#chainIdMap[key]] = { provider };
       provider.connect().catch((error) => this.#log.error(error));
+
+      this.#log.info('- Relay %s', key);
     }
 
     for (const key of Object.keys(this.#chains)) {
       const provider = this.#chains[key];
       providers[this.#chainIdMap[key]] = { provider };
+
+      this.#log.info('- Chain %s', key);
     }
 
     // Providers are exposed by chain id.

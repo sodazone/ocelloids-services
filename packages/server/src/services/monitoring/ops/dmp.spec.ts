@@ -25,11 +25,11 @@ const getDmp = () =>
 describe('dmp operator', () => {
   describe('extractDmpSend', () => {
     it('should extract DMP sent message', (done) => {
-      const { origin, blocks, sendersControl } = dmpSendSingleMessageInQueue;
+      const { origin, blocks } = dmpSendSingleMessageInQueue;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpSend(origin, sendersControl, getDmp, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractDmpSend(origin, getDmp, registry)(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -50,11 +50,11 @@ describe('dmp operator', () => {
     });
 
     it('should extract DMP sent for multi-leg messages', (done) => {
-      const { origin, blocks, sendersControl } = xcmHopOrigin;
+      const { origin, blocks } = xcmHopOrigin;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpSendByEvent(origin, sendersControl, getDmp, registry)(blocks.pipe(extractEvents()));
+      const test$ = extractDmpSendByEvent(origin, getDmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -75,11 +75,11 @@ describe('dmp operator', () => {
     });
 
     it('should extract DMP sent message with multiple messages in the queue', (done) => {
-      const { origin, blocks, sendersControl } = dmpSendMultipleMessagesInQueue;
+      const { origin, blocks } = dmpSendMultipleMessagesInQueue;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpSend(origin, sendersControl, getDmp, registry)(blocks.pipe(extractTxWithEvents()));
+      const test$ = extractDmpSend(origin, getDmp, registry)(blocks.pipe(extractTxWithEvents()));
 
       test$.subscribe({
         next: (msg) => {
@@ -102,11 +102,11 @@ describe('dmp operator', () => {
 
   describe('extractDmpSendByEvent', () => {
     it('should extract DMP sent message filtered by event', (done) => {
-      const { origin, blocks, sendersControl } = dmpXcmPalletSentEvent;
+      const { origin, blocks } = dmpXcmPalletSentEvent;
 
       const calls = jest.fn();
 
-      const test$ = extractDmpSendByEvent(origin, sendersControl, getDmp, registry)(blocks.pipe(extractEvents()));
+      const test$ = extractDmpSendByEvent(origin, getDmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {

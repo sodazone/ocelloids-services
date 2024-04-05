@@ -9,7 +9,7 @@ import type { BlockNumber } from '@polkadot/types/interfaces';
 import type { IU8a } from '@polkadot/types-codec/types';
 import type { Outcome } from '@polkadot/types/interfaces/xcm';
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
+import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
   AnyJson,
@@ -254,12 +254,7 @@ const METHODS_DMP = [
   'teleportAssets',
 ];
 
-export function extractDmpSend(
-  origin: NetworkURN,
-  sendersControl: ControlQuery,
-  getDmp: GetDownwardMessageQueues,
-  registry: Registry
-) {
+export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter((tx) => {
@@ -271,12 +266,7 @@ export function extractDmpSend(
   };
 }
 
-export function extractDmpSendByEvent(
-  origin: NetworkURN,
-  sendersControl: ControlQuery,
-  getDmp: GetDownwardMessageQueues,
-  registry: Registry
-) {
+export function extractDmpSendByEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(findDmpMessagesFromEvent(origin, getDmp, registry));
   };
