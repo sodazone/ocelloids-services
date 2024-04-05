@@ -20,8 +20,8 @@ id = "urn:ocn:polkadot:2000"
 relay = "polkadot"
 
   [networks.provider]
-  type = "smoldot"
-  spec = "./chain-specs/acala.json"
+  type = "rpc"
+  url = "wss://acala-rpc-0.aca-api.network"
 
 [[networks]]
 name = "astar"
@@ -29,8 +29,8 @@ id = "urn:ocn:polkadot:2006"
 relay = "polkadot"
 
   [networks.provider]
-  type = "smoldot"
-  spec = "./chain-specs/astar.json"
+  type = "rpc"
+  url = "wss://rpc.astar.network"
 
 [[networks]]
 name = "moonbeam"
@@ -47,5 +47,5 @@ id = "urn:ocn:polkadot:2034"
 relay = "polkadot"
 
   [networks.provider]
-  type = "smoldot"
-  spec = "./chain-specs/hydradx.json"
+  type = "rpc"
+  url = "wss://hydradx-rpc.dwellir.com"
