@@ -42,7 +42,7 @@ The configuration values can be overridden using command line arguments.
 | OC_MAX_BLOCK_DIST                 | Maximum distance in blocks for the catch-up.   | 50        |
 | OC_TELEMETRY_ENABLE               | Enables or disables the telemetry service.     | true      |
 | OC_WS_MAX_CLIENTS                 | Maximum number of websocket clients.           | 10000     |
-| OC_CORS_ENABLE                    | Enables or disables CORS support.              | false     |
+| OC_CORS                           | Enables or disables CORS support.              | false     |
 | OC_CORS_CREDENTIALS               | Access-Control-Allow-Credentials CORS header.  | true      |
 | OC_CORS_ORIGIN                    | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
 | OC_SUBSCRIPTION_MAX_PERSISTENT    | Maximum number of persistent subscriptions.    | 5000      |
