@@ -3,7 +3,8 @@ name = "polkadot"
 id = "urn:ocn:polkadot:0"
 
   [networks.provider]
-  type = "smoldot"
+  type = "rpc"
+  url = "wss://rpc.ibp.network/polkadot"
 
 [[networks]]
 name = "asset_hub"
