@@ -28,7 +28,6 @@ export type XAddOptions = {
  */
 export type NetworkEntry = {
   id: NetworkURN;
-  name: string;
   isRelay: boolean;
   // TODO: owner to be able to remove owned entries
   // on configuration changes?

@@ -15,6 +15,7 @@ const $RpcProvider = z.object({
 
 const $SmoldotProvider = z.object({
   type: z.literal('smoldot'),
+  name: z.string().min(1).optional(),
   spec: z.string().min(1).optional(),
 });
 
@@ -47,13 +48,8 @@ const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-z
 export const $NetworkId = z.string().regex(networkIdRegex);
 
 const $NetworkConfiguration = z.object({
-  name: z
-    .string({
-      required_error: 'Network name is required',
-    })
-    .min(1),
   id: $NetworkId,
-  relay: z.string().min(1).optional(),
+  relay: $NetworkId.optional(),
   provider: $NetworkProvider,
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),

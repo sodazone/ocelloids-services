@@ -3,6 +3,7 @@ import EventEmitter from 'node:events';
 import { Subscription as RxSubscription } from 'rxjs';
 
 import {
+  NetworkEntry,
   NetworksKey,
   RedisDistributor,
   XAddOptions,
@@ -128,20 +129,14 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
 
   async #writeNetworkConfig() {
     // TODO handle DELETE
-    const networks = [];
+    const networks: NetworkEntry[] = [];
     for (const network of this.#config.networks) {
       networks.push({
-        id: network.id,
-        name: network.name,
+        id: network.id as NetworkURN,
         isRelay: network.relay === undefined,
       });
 
-      this.#log.info(
-        '[%s] WRITE network configuration (name=%s,relay=%s)',
-        network.id,
-        network.name,
-        network.relay ?? 'n/a'
-      );
+      this.#log.info('[%s] WRITE network configuration (relay=%s)', network.id, network.relay ?? 'n/a');
     }
     await this.#distributor.sadd(
       NetworksKey,

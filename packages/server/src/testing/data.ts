@@ -61,7 +61,6 @@ export const _subsFix: Subscription[] = [
 export const _configToml = `
 [[networks]]
 id = "urn:ocn:local:0"
-name = "local_relay"
 
   [networks.provider]
   type = "rpc"
@@ -69,8 +68,7 @@ name = "local_relay"
 
 [[networks]]
 id = "urn:ocn:local:1000"
-name = "local_1"
-relay = "local_reay"
+relay = "urn:ocn:local:0"
 
   [networks.provider]
   type = "rpc"
@@ -78,8 +76,7 @@ relay = "local_reay"
 
 [[networks]]
 id = "urn:ocn:local:2000"
-name = "local_2000"
-relay = "local_reay"
+relay = "urn:ocn:local:0"
 
   [networks.provider]
   type = "rpc"
@@ -87,8 +84,7 @@ relay = "local_reay"
 
 [[networks]]
 id = "urn:ocn:local:3000"
-name = "local_3000"
-relay = "local_reay"
+relay = "urn:ocn:local:0"
 
   [networks.provider]
   type = "rpc"

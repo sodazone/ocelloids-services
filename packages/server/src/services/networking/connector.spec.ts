@@ -21,7 +21,9 @@ describe('connector', () => {
   });
 
   it('should fail if `relay` field in parachain config does not match WellKnown chain or relay chain config name', () => {
-    expect(() => new Connector(_log, mockConfigRelayMismatch)).toThrow('Configuration for network rococo not found.');
+    expect(() => new Connector(_log, mockConfigRelayMismatch)).toThrow(
+      'Configuration for network urn:ocn:local:0 not found.'
+    );
   });
 
   describe('connect', () => {

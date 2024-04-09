@@ -3,7 +3,6 @@ import { ServiceConfiguration } from '../services/config.js';
 export const mockConfigProviderMismatch: ServiceConfiguration = {
   networks: [
     {
-      name: 'kusama',
       id: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
@@ -11,9 +10,8 @@ export const mockConfigProviderMismatch: ServiceConfiguration = {
       },
     },
     {
-      name: 'shiden',
       id: 'urn:ocn:local:2006',
-      relay: 'kusama',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
         spec: './chain-specs/shiden.json',
@@ -25,17 +23,16 @@ export const mockConfigProviderMismatch: ServiceConfiguration = {
 export const mockConfigRelayMismatch: ServiceConfiguration = {
   networks: [
     {
-      name: 'local',
       id: 'urn:ocn:rococo:0',
       provider: {
         type: 'smoldot',
+        name: 'local',
         spec: './chain-specs/polkadot.json',
       },
     },
     {
-      name: 'asset-hub',
       id: 'urn:ocn:rococo:1000',
-      relay: 'rococo',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
         spec: './chain-specs/ah.json',
@@ -47,28 +44,28 @@ export const mockConfigRelayMismatch: ServiceConfiguration = {
 export const mockConfigLC: ServiceConfiguration = {
   networks: [
     {
-      name: 'polkadot',
       id: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'polkadot',
         spec: './chain-specs/polkadot.json',
       },
     },
     {
-      name: 'asset-hub',
       id: 'urn:ocn:local:1000',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'asset-hub',
         spec: './chain-specs/ah.json',
       },
     },
     {
-      name: 'astar',
       id: 'urn:ocn:local:2006',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'astar',
         spec: './chain-specs/astar.json',
       },
     },
@@ -78,7 +75,6 @@ export const mockConfigLC: ServiceConfiguration = {
 export const mockConfigWS: ServiceConfiguration = {
   networks: [
     {
-      name: 'polkadot',
       id: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
@@ -88,18 +84,16 @@ export const mockConfigWS: ServiceConfiguration = {
       batchSize: 5,
     },
     {
-      name: 'asset-hub',
       id: 'urn:ocn:local:1000',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
         url: 'wss://asset-hub.io',
       },
     },
     {
-      name: 'astar',
       id: 'urn:ocn:local:2006',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
         url: 'wss://astar.io',
@@ -111,28 +105,27 @@ export const mockConfigWS: ServiceConfiguration = {
 export const mockConfigMixed: ServiceConfiguration = {
   networks: [
     {
-      name: 'polkadot',
       id: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'polkadot',
         spec: './chain-specs/polkadot.json',
       },
     },
     {
-      name: 'asset-hub',
       id: 'urn:ocn:local:1000',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
         url: 'wss://asset-hub.io',
       },
     },
     {
-      name: 'interlay',
       id: 'urn:ocn:local:2032',
-      relay: 'polkadot',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'interlay',
         spec: './chain-specs/interlay.json',
       },
     },
@@ -142,28 +135,27 @@ export const mockConfigMixed: ServiceConfiguration = {
 export const mockConfigRelayLast: ServiceConfiguration = {
   networks: [
     {
-      name: 'asset-hub',
       id: 'urn:ocn:local:1000',
-      relay: 'kusama',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'rpc',
         url: 'wss://asset-hub.io',
       },
     },
     {
-      name: 'shiden',
       id: 'urn:ocn:local:2006',
-      relay: 'kusama',
+      relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'shiden',
         spec: './chain-specs/shiden.json',
       },
     },
     {
-      name: 'kusama',
       id: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
+        name: 'kusama',
         spec: './chain-specs/kusama.json',
       },
     },

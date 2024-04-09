@@ -180,12 +180,7 @@ export class DistributedIngressConsumer
         for (const m of members) {
           const network = JSON.parse(m) as NetworkEntry;
           if (this.#networks[network.id] === undefined) {
-            this.#log.info(
-              '[%s] READ network configuration (name=%s,relay?=%s)',
-              network.id,
-              network.name,
-              network.isRelay
-            );
+            this.#log.info('[%s] READ network configuration (relay?=%s)', network.id, network.isRelay);
             this.#networks[network.id] = network;
           }
           // TODO handle removal

@@ -1,31 +1,31 @@
 [[networks]]
-name = "rococo_local_testnet"
 id = "urn:ocn:local:0"
 
   [networks.provider]
   # type = "smoldot"
+  # name = "rococo_local_testnet"
   # spec = "./chain-specs/rococo-local-relay.json"
   type = "rpc"
   url = "ws://127.0.0.1:9900"
 
 [[networks]]
-name = "asset-hub-local"
 id = "urn:ocn:local:1000"
-relay = "rococo_local_testnet"
+relay = "urn:ocn:local:0"
 
   [networks.provider]
   # type = "smoldot"
+  # name = "asset-hub-local"
   # spec = "./chain-specs/assethub-local.json"
   type = "rpc"
   url = "ws://127.0.0.1:9910"
   
 [[networks]]
-name = "shibuya-local"
 id = "urn:ocn:local:2000"
-relay = "rococo_local_testnet"
+relay = "urn:ocn:local:0"
 
   [networks.provider]
   # type = "smoldot"
+  # name = "shibuya-local"
   # spec = "./chain-specs/shibuya-local.json"
   type = "rpc"
   url = "ws://127.0.0.1:9920"

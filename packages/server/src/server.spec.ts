@@ -26,13 +26,13 @@ describe('monitoring server API', () => {
   beforeAll(async () => {
     server = await createServer({
       config: 'config/test.toml',
-      db: '',
+      data: '',
       scheduler: false,
       telemetry: true,
       sweepExpiry: 0,
       schedulerFrequency: 0,
       grace: 1000,
-      host: 'localhost',
+      address: 'localhost',
       port: 0,
       subscriptionMaxEphemeral: 10_000,
       subscriptionMaxPersistent: 10_000,
@@ -359,7 +359,9 @@ describe('monitoring server API', () => {
 
       await root.sublevel<string, any>(prefixes.cache.tips, jsonEncoded).batch().put('0', {}).put('1', {}).write();
       for (let i = 0; i < 3; i++) {
-        await root.sublevel<string, any>(prefixes.cache.family(i.toString()), jsonEncoded).put('0x0', {});
+        await root
+          .sublevel<string, any>(prefixes.cache.family(`urn:ocn:local:${i.toString()}`), jsonEncoded)
+          .put('0x0', {});
       }
     });
     function adminRq(url: string, method = 'GET') {

@@ -30,20 +30,20 @@ export default class Connector {
         continue;
       }
 
-      log.info('Register network: %s [chainId=%s]', network.name, network.id);
+      log.info('Register network: %s', network.id);
 
       this.registerNetwork(network);
     }
   }
 
   private registerNetwork(network: NetworkConfiguration) {
-    const { id, name, relay, provider } = network;
+    const { id, relay, provider } = network;
 
     if (provider.type === 'smoldot') {
       if (relay !== undefined) {
         this.#registerSmoldotParachain(id, relay, provider.spec);
       } else {
-        this.#registerSmoldotRelay(id, name, provider.spec);
+        this.#registerSmoldotRelay(id, provider.name, provider.spec);
       }
     } else {
       this.#log.info('Register WS provider: %s', id);
@@ -92,7 +92,7 @@ export default class Connector {
     return fs.readFileSync(spec, 'utf-8');
   }
 
-  #registerSmoldotRelay(id: string, name: string, spec?: string) {
+  #registerSmoldotRelay(id: string, name?: string, spec?: string) {
     this.#log.info('Register relay smoldot provider: %s', id);
 
     const key = Object.values(Smoldot.WellKnownChain).find((c) => c === name);
@@ -108,11 +108,11 @@ export default class Connector {
     }
   }
 
-  #getNetworkConfig(name: string) {
+  #getNetworkConfig(id: string) {
     const { networks } = this.#config;
-    const conf = networks.find((n) => n.name === name);
+    const conf = networks.find((n) => n.id === id);
     if (conf === undefined) {
-      throw new Error(`Configuration for network ${name} not found.`);
+      throw new Error(`Configuration for network ${id} not found.`);
     }
     return conf;
   }
@@ -124,7 +124,7 @@ export default class Connector {
       throw new Error(`Spec not provided for parachain: ${id}`);
     }
 
-    const { id: relayId, name, provider } = this.#getNetworkConfig(relay);
+    const { id: relayId, provider } = this.#getNetworkConfig(relay);
 
     // Make sure relay client is registered first
     if (this.#relays[relayId] === undefined) {
@@ -133,7 +133,7 @@ export default class Connector {
           'RPC provider cannot be used for relay chain if light client provider is being used for parachain.'
         );
       }
-      this.#registerSmoldotRelay(relayId, name, provider.spec);
+      this.#registerSmoldotRelay(relayId, provider.name, provider.spec);
     }
 
     this.#chains[id] = new ScProvider(Smoldot, this.#loadSpec(spec), this.#relays[relayId]);
