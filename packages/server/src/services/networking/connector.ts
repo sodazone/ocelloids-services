@@ -95,6 +95,10 @@ export default class Connector {
   #registerSmoldotRelay(id: string, name?: string, spec?: string) {
     this.#log.info('Register relay smoldot provider: %s', id);
 
+    if (name === undefined && spec === undefined) {
+      throw new Error(`Please, specify either 'name' or 'spec' in ${id} smoldot configuration`);
+    }
+
     const key = Object.values(Smoldot.WellKnownChain).find((c) => c === name);
 
     if (key) {

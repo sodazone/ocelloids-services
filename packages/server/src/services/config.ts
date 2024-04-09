@@ -13,9 +13,11 @@ const $RpcProvider = z.object({
   url: z.string().min(1),
 });
 
+const wellKnownChains = ['polkadot', 'ksmcc3', 'rococo_v2_2', 'westend2'] as const;
+
 const $SmoldotProvider = z.object({
   type: z.literal('smoldot'),
-  name: z.string().min(1).optional(),
+  name: z.enum(wellKnownChains).optional(),
   spec: z.string().min(1).optional(),
 });
 

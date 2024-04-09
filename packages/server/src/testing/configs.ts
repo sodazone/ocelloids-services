@@ -26,7 +26,6 @@ export const mockConfigRelayMismatch: ServiceConfiguration = {
       id: 'urn:ocn:rococo:0',
       provider: {
         type: 'smoldot',
-        name: 'local',
         spec: './chain-specs/polkadot.json',
       },
     },
@@ -56,7 +55,6 @@ export const mockConfigLC: ServiceConfiguration = {
       relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
-        name: 'asset-hub',
         spec: './chain-specs/ah.json',
       },
     },
@@ -65,7 +63,6 @@ export const mockConfigLC: ServiceConfiguration = {
       relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
-        name: 'astar',
         spec: './chain-specs/astar.json',
       },
     },
@@ -125,7 +122,6 @@ export const mockConfigMixed: ServiceConfiguration = {
       relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
-        name: 'interlay',
         spec: './chain-specs/interlay.json',
       },
     },
@@ -147,7 +143,6 @@ export const mockConfigRelayLast: ServiceConfiguration = {
       relay: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
-        name: 'shiden',
         spec: './chain-specs/shiden.json',
       },
     },
@@ -155,7 +150,6 @@ export const mockConfigRelayLast: ServiceConfiguration = {
       id: 'urn:ocn:local:0',
       provider: {
         type: 'smoldot',
-        name: 'kusama',
         spec: './chain-specs/kusama.json',
       },
     },
