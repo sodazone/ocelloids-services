@@ -117,6 +117,7 @@ export function extractXcmpReceive() {
             blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
             extrinsicId: maybeXcmpEvent.extrinsicId,
             messageHash: xcmpQueueData.messageHash.toHex(),
+            messageId: xcmpQueueData.messageId?.toHex(),
             outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
             error: xcmpQueueData.error,
             assetsTrapped,
