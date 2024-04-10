@@ -45,9 +45,9 @@ const outboundMessage: XcmSent = {
   sender: {
     signer: {
       id: '0x123',
-      publicKey: '0x123'
+      publicKey: '0x123',
     },
-    extraSigners: []
+    extraSigners: [],
   },
 };
 
@@ -295,9 +295,9 @@ const hopOB: XcmSent = {
   sender: {
     signer: {
       id: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7',
-      publicKey: '0x123'
+      publicKey: '0x123',
     },
-    extraSigners: []
+    extraSigners: [],
   },
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
 };

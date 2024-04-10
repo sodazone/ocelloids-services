@@ -24,6 +24,7 @@ import {
   XcmV4AssetAssets,
   XcmV4Junctions,
   XcmV4Junction,
+  VersionedInteriorLocation,
 } from './xcm-types.js';
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
@@ -225,6 +226,21 @@ export function getParaIdFromMultiLocation(
     }
   }
 
+  return undefined;
+}
+
+export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {
+  if (junctions.isV2) {
+    return undefined;
+  }
+
+  if (junctions.isV3) {
+    return networkIdFromV3(junctions.asV3);
+  }
+
+  if (junctions.isV4) {
+    return networkIdFromV4(junctions.asV4);
+  }
   return undefined;
 }
 

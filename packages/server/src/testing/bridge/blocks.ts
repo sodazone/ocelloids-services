@@ -4,15 +4,13 @@ import '@polkadot/api-augment/polkadot';
 import { from } from 'rxjs';
 
 import { TypeRegistry, Metadata } from '@polkadot/types';
-import type { Vec, Bytes, Option } from '@polkadot/types';
-import type {
-  PolkadotCorePrimitivesOutboundHrmpMessage,
-} from '@polkadot/types/lookup';
+import type { Vec } from '@polkadot/types';
+import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup';
 import spec from '@polkadot/types-support/metadata/static-polkadot';
 
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
-import { testBlocksFrom, testRegistryFromMetadata } from '../blocks.js';
+import { testBlocksFrom } from '../blocks.js';
 import { NetworkURN } from '../../services/types.js';
 import { messageCriteria } from '../../services/monitoring/ops/criteria.js';
 
@@ -40,8 +38,9 @@ export const xcmpSendKusamaAssetHub = {
     ]),
 };
 
-
-export const xcmpReceiveKusamaBridgeHub =  from(testBlocksFrom('ksm-bridgehub-bridge-xcm-in.cbor.bin', 'kusama-bridge-hub.json'));
+export const xcmpReceiveKusamaBridgeHub = from(
+  testBlocksFrom('ksm-bridgehub-bridge-xcm-in.cbor.bin', 'kusama-bridge-hub.json')
+);
 
 export const relayHrmpReceiveKusama = {
   blocks: from(testBlocksFrom('ksm-bridge-xcm-relay.cbor.bin', 'kusama.json')),
@@ -69,23 +68,26 @@ export const xcmpSendPolkadotBridgeHub = {
     ]),
 };
 
-export const xcmpReceivePolkadotAssetHub =  from(testBlocksFrom('dot-assethub-bridge-xcm-in.cbor.bin', 'polkadot-asset-hub-1001002.json'));
-
+export const xcmpReceivePolkadotAssetHub = from(
+  testBlocksFrom('dot-assethub-bridge-xcm-in.cbor.bin', 'polkadot-asset-hub-1001002.json')
+);
 
 export const relayHrmpReceivePolkadot = {
   blocks: from(testBlocksFrom('dot-bridge-xcm-relay.cbor.bin', 'polkadot-1000001.json')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:polkadot:1000', 'urn:ocn:polkadot:1002', 'urn:ocn:polkadot:0'])),
+  messageControl: new ControlQuery(
+    messageCriteria(['urn:ocn:polkadot:1000', 'urn:ocn:polkadot:1002', 'urn:ocn:polkadot:0'])
+  ),
   origin: 'urn:ocn:polkadot:1002',
   destination: 'urn:ocn:polkadot:1000',
 };
 
 // Bridge blocks
-const ksmBridgeData = 'dd010302090200a10f031c2509030b0100a10f01040002010903000700e87648170a130002010903000700e8764817000d010204000101002cb783d5c0ddcccd2608c83d43ee6fc19320408c24764c2f8ac164b27beaee372cf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab'
+const ksmBridgeData =
+  'dd010302090200a10f031c2509030b0100a10f01040002010903000700e87648170a130002010903000700e8764817000d010204000101002cb783d5c0ddcccd2608c83d43ee6fc19320408c24764c2f8ac164b27beaee372cf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab';
 export const bridgeOutKusama = {
-  registry,
   origin: 'urn:ocn:kusama:1002',
   blocks: from(testBlocksFrom('ksm-bridgehub-bridge-out.cbor.bin', 'kusama-bridge-hub.json')),
   getStorage: () => from([new Uint8Array(Buffer.from(ksmBridgeData, 'hex'))]),
-}
+};
 
 export const bridgeInPolkadot = from(testBlocksFrom('dot-bridgehub-bridge-in.cbor.bin', 'polkadot-bridge-hub.json'));

@@ -131,6 +131,10 @@ export interface XcmSentWithContext extends XcmWithContext {
   instructions: XcmProgram;
 }
 
+export interface XcmBridgeSentWithContext extends XcmSentWithContext {
+  bridgeKey: string;
+}
+
 export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail';
   error: AnyJson;
@@ -286,6 +290,22 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
       extrinsicId: this.extrinsicId,
       messageId: this.messageId,
       senders: this.sender,
+    };
+  }
+}
+
+export class GenericXcmBridgeSentWithContext extends GenericXcmSentWithContext {
+  bridgeKey: string;
+
+  constructor(msg: XcmBridgeSentWithContext) {
+    super(msg);
+    this.bridgeKey = msg.bridgeKey;
+  }
+
+  toHuman(isExpanded?: boolean | undefined): Record<string, AnyJson> {
+    return {
+      ...super.toHuman(isExpanded),
+      bridgeKey: this.bridgeKey,
     };
   }
 }

@@ -30,6 +30,8 @@ import type {
   XcmV3MultiLocation,
   XcmV2MultiassetMultiAssets,
   XcmV3MultiassetMultiAssets,
+  XcmV2MultilocationJunctions,
+  XcmV3Junctions,
 } from '@polkadot/types/lookup';
 
 /** @name XcmVersionedXcm (296) */
@@ -514,3 +516,18 @@ interface XcmV4JunctionNetworkId extends Enum {
 
 /** @name XcmV4AssetAssetId (69) */
 interface XcmV4AssetAssetId extends XcmV4Location {}
+
+export interface VersionedInteriorLocation extends Enum {
+  readonly isV2: boolean;
+  readonly asV2: XcmV2MultilocationJunctions;
+  readonly isV3: boolean;
+  readonly asV3: XcmV3Junctions;
+  readonly isV4: boolean;
+  readonly asV4: XcmV4Junctions;
+  readonly type: 'V2' | 'V3' | 'V4';
+}
+
+export interface BridgeMessage extends Struct {
+  readonly universal_dest: VersionedInteriorLocation;
+  readonly message: XcmVersionedXcm;
+}

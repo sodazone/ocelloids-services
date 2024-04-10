@@ -16,3 +16,17 @@ export function dmpDownwardMessageQueuesKey(registry: Registry, paraId: string):
   return (dmpDownwardMessageQueuesPartial +
     Buffer.from(twox64concat(registry.createType('u32', paraId).toU8a())).toString('hex')) as HexString;
 }
+
+export const bridgeStorageKeys = {
+  kusama: {
+    messagesOutboundPartial: '0xc97517321a38a23d9c0aa5983686a3558a395e6242c6813b196ca31ed0547ea7',
+  },
+  polkadot: {
+    messagesOutboundPartial: '0xa0499b8502d976c920e399c80697ef008a395e6242c6813b196ca31ed0547ea7',
+  },
+} as Record<
+  string,
+  {
+    messagesOutboundPartial: HexString;
+  }
+>;
