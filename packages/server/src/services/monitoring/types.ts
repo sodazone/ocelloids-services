@@ -374,9 +374,9 @@ export class GenericXcmSent implements XcmSent {
   sender?: SignerData;
   messageId?: HexString;
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmSentWithContext, stops: NetworkURN[]) {
+  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
     this.subscriptionId = subscriptionId;
-    this.legs = this.constructLegs(chainId, stops);
+    this.legs = legs;
     this.origin = {
       chainId,
       blockHash: msg.blockHash,
@@ -390,7 +390,7 @@ export class GenericXcmSent implements XcmSent {
       messageHash: msg.messageHash,
     };
     this.destination = {
-      chainId: stops[stops.length - 1], // last stop is the destination
+      chainId: legs[legs.length - 1].to, // last stop is the destination
     };
     this.waypoint = {
       ...this.origin,
@@ -402,38 +402,6 @@ export class GenericXcmSent implements XcmSent {
 
     this.messageId = msg.messageId;
     this.sender = msg.sender;
-  }
-
-  // TODO: to be replaced with proper consensus handling
-  constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
-    const legs: Leg[] = [];
-    const nodes = [origin].concat(stops);
-    for (let i = 0; i < nodes.length - 1; i++) {
-      const from = nodes[i];
-      const to = nodes[i + 1];
-      // If OD are parachains, add intermediate path through relay.
-      // TODO: revisit when XCMP is launched.
-      if (getChainId(from) !== '0' && getChainId(to) !== '0') {
-        const relayId = createNetworkId(from, '0');
-        legs.push(
-          {
-            from,
-            to: relayId,
-          },
-          {
-            from: relayId,
-            to,
-          }
-        );
-      } else {
-        legs.push({
-          from,
-          to,
-        });
-      }
-    }
-
-    return legs;
   }
 }
 

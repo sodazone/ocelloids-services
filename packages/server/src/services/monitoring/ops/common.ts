@@ -3,11 +3,12 @@ import { map, Observable } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
 import type { XcmV2Xcm, XcmV3Xcm } from '@polkadot/types/lookup';
 
-import { GenericXcmSent, XcmSent, XcmSentWithContext } from '../types.js';
+import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js';
 import { networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm } from './xcm-types.js';
 import { NetworkURN } from '../../types.js';
+import { createNetworkId, getChainId, getConsensus } from '../../config.js';
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
@@ -47,6 +48,49 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
   return stops;
 }
 
+function usesHrmp(from: NetworkURN, to: NetworkURN): boolean {
+  if (getConsensus(from) !== getConsensus(to)) {
+    return false
+  }
+
+  if (getChainId(from) !== '0' && getChainId(to) !== '0') {
+    return true;
+  }
+
+  return false;
+}
+
+function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
+  const legs: Leg[] = [];
+  const nodes = [origin].concat(stops);
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const from = nodes[i];
+    const to = nodes[i + 1];
+    // If HRMP is used between the 2 stops, add intermediate path through relay.
+    // TODO: revisit when XCMP is launched.
+    if (usesHrmp(from, to)) {
+      const relayId = createNetworkId(from, '0');
+      legs.push(
+        {
+          from,
+          to: relayId,
+        },
+        {
+          from: relayId,
+          to,
+        }
+      );
+    } else {
+      legs.push({
+        from,
+        to,
+      });
+    }
+  }
+
+  return legs;
+}
+
 /**
  * Maps a XcmSentWithContext to a XcmSent message.
  * Sets the destination as the final stop after recursively extracting all stops from the XCM message,
@@ -65,7 +109,8 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
         const stops: NetworkURN[] = [recipient];
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
         recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
-        return new GenericXcmSent(id, origin, message, stops);
+        const legs = constructLegs(origin, stops);
+        return new GenericXcmSent(id, origin, message, legs);
       })
     );
 }
