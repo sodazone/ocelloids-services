@@ -1,13 +1,14 @@
 import { map, Observable } from 'rxjs';
 
 import type { Registry } from '@polkadot/types/types';
-import type { XcmV2Xcm, XcmV3Xcm } from '@polkadot/types/lookup';
+import type { XcmV2Xcm, XcmV3Xcm, XcmV3Instruction } from '@polkadot/types/lookup';
 
 import { GenericXcmSent, XcmSent, XcmSentWithContext } from '../types.js';
-import { networkIdFromMultiLocation } from './util.js';
+import { getBridgeHubNetworkId, getParaIdFromJunctions, networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { XcmV4Xcm } from './xcm-types.js';
+import { XcmV4Xcm, XcmV4Instruction } from './xcm-types.js';
 import { NetworkURN } from '../../types.js';
+import { createNetworkId } from '../../config.js';
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
@@ -31,8 +32,21 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
       const { dest, xcm } = instruction.asTransferReserveAsset;
       nextStop = dest;
       message = xcm;
+    } else if ((instruction as XcmV3Instruction | XcmV4Instruction).isExportMessage) {
+      const { network, destination, xcm } = (instruction as XcmV3Instruction | XcmV4Instruction).asExportMessage;
+      const paraId = getParaIdFromJunctions(destination)
+      if (paraId) {
+        const consensus = network.toString().toLowerCase();
+        const networkId = createNetworkId(consensus, paraId)
+        const bridgeHubNetworkId = getBridgeHubNetworkId(consensus)
+        // We assume that an ExportMessage will always go through Bridge Hub
+        if (bridgeHubNetworkId !== undefined && networkId !== bridgeHubNetworkId) {
+          stops.push(bridgeHubNetworkId)
+        }
+        stops.push(networkId);
+        recursiveExtractStops(networkId, xcm, stops);
+      }
     }
-    // TODO: support ExportMessage for bridges
 
     if (nextStop !== undefined && message !== undefined) {
       const networkId = networkIdFromMultiLocation(nextStop, origin);

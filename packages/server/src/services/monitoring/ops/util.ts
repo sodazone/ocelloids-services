@@ -29,6 +29,19 @@ import {
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
+const POLKADOT_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:polkadot:1002'
+const KUSAMA_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:kusama:1002'
+
+export function getBridgeHubNetworkId(consensus: string) {
+  if (consensus === 'polkadot') {
+    return POLKADOT_BRIDGE_HUB_NETWORK_ID
+  }
+  if (consensus === 'kusama') {
+    return KUSAMA_BRIDGE_HUB_NETWORK_ID
+  }
+  return undefined
+}
+
 function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
   try {
     if (xt.isSigned) {
@@ -197,15 +210,10 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   return undefined;
 }
 
-// eslint-disable-next-line complexity
-export function getParaIdFromMultiLocation(
-  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location
-): string | undefined {
-  const junctions = loc.interior;
+export function getParaIdFromJunctions(
+  junctions: XcmV2MultilocationJunctions | XcmV4Junctions | XcmV3Junctions
+) {
   if (junctions.type === 'Here') {
-    if (loc.parents.toNumber() === 1) {
-      return '0';
-    }
     return undefined;
   }
 
@@ -225,8 +233,21 @@ export function getParaIdFromMultiLocation(
       }
     }
   }
-
   return undefined;
+}
+
+export function getParaIdFromMultiLocation(
+  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location
+): string | undefined {
+  const junctions = loc.interior;
+  if (junctions.type === 'Here') {
+    if (loc.parents.toNumber() === 1) {
+      return '0';
+    }
+    return undefined;
+  }
+
+  return getParaIdFromJunctions(junctions);
 }
 
 export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {
