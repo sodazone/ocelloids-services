@@ -132,7 +132,17 @@ export interface XcmSentWithContext extends XcmWithContext {
 }
 
 export interface XcmBridgeSentWithContext extends XcmSentWithContext {
-  bridgeKey: string;
+  bridgeKey: HexString;
+}
+
+export interface XcmBridgeInboundWithContext {
+  bridgeKey: HexString;
+  blockNumber: string | number;
+  blockHash: HexString;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+  event?: AnyJson;
+  extrinsicId?: string;
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
@@ -295,7 +305,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
 }
 
 export class GenericXcmBridgeSentWithContext extends GenericXcmSentWithContext {
-  bridgeKey: string;
+  bridgeKey: HexString;
 
   constructor(msg: XcmBridgeSentWithContext) {
     super(msg);
@@ -307,6 +317,26 @@ export class GenericXcmBridgeSentWithContext extends GenericXcmSentWithContext {
       ...super.toHuman(isExpanded),
       bridgeKey: this.bridgeKey,
     };
+  }
+}
+
+export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+  bridgeKey: HexString;
+  event: AnyJson;
+  extrinsicId?: string | undefined;
+  blockNumber: string;
+  blockHash: HexString;
+  outcome: 'Success' | 'Fail';
+  error: AnyJson;
+
+  constructor(msg: XcmBridgeInboundWithContext) {
+    this.event = msg.event;
+    this.outcome = msg.outcome;
+    this.error = msg.error;
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber.toString();
+    this.extrinsicId = msg.extrinsicId;
+    this.bridgeKey = msg.bridgeKey;
   }
 }
 

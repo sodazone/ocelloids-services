@@ -18,6 +18,8 @@ import {
   GenericXcmHop,
   XcmHop,
   XcmWaypointContext,
+  XcmBridgeSentWithContext,
+  XcmBridgeInboundWithContext,
 } from './types.js';
 
 import { Janitor, JanitorTask } from '../persistence/janitor.js';
@@ -54,6 +56,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #inbound: SubLevel<XcmInbound>;
   readonly #relay: SubLevel<XcmRelayedWithContext>;
   readonly #hop: SubLevel<XcmSent>;
+  readonly #bridgeOutbound: SubLevel<XcmBridgeSentWithContext>;
+  readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>;
   readonly #mutex: Mutex;
   readonly #xcmMatchedReceiver: XcmMatchedReceiver;
 
@@ -73,6 +77,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     this.#relay = rootStore.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded);
     // Key format: [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
     this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
+
+    // Key format: [subscription-id]:[destination-chain-id]:[bridge-key]
+    this.#bridgeOutbound = rootStore.sublevel<string, XcmBridgeSentWithContext>(prefixes.matching.bridgeOut, jsonEncoded);
+    // Key format: [subscription-id]:[current-chain-id]:[bridge-key]
+    this.#bridgeInbound = rootStore.sublevel<string, XcmBridgeInboundWithContext>(prefixes.matching.bridgeIn, jsonEncoded);
 
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this));
   }

@@ -1,18 +1,18 @@
 import { Observable, switchMap, mergeMap, filter, from } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
-import type { u64, U8aFixed } from '@polkadot/types-codec';
+import type { Vec } from '@polkadot/types-codec';
 import { blake2AsU8a } from '@polkadot/util-crypto';
 import { u8aConcat, compactFromU8aLim, u8aToHex, hexToU8a } from '@polkadot/util';
 
 import { types } from '@sodazone/ocelloids-sdk';
 
-import { GenericXcmBridgeSentWithContext, HexString } from '../types.js';
+import { GenericXcmBridgeInboundWithContext, GenericXcmBridgeSentWithContext, HexString, XcmBridgeInboundWithContext } from '../types.js';
 import { getMessageId, getSendersFromEvent, matchEvent, networkIdFromInteriorLocation } from './util.js';
 import { GetStorageAt } from '../types-augmented.js';
 import { getConsensus } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 import { bridgeStorageKeys } from '../storage.js';
-import { BridgeMessage } from './xcm-types.js';
+import { BpMessagesReceivedMessages, BridgeMessage, BridgeMessagesDelivered } from './xcm-types.js';
 
 export function extractBridgeSend(origin: NetworkURN, registry: Registry, getStorage: GetStorageAt) {
   return (source: Observable<types.BlockEvent>): Observable<GenericXcmBridgeSentWithContext> => {
@@ -23,13 +23,7 @@ export function extractBridgeSend(origin: NetworkURN, registry: Registry, getSto
           matchEvent(event, 'bridgeKusamaMessages', 'MessagesDelivered')
       ),
       mergeMap((blockEvent) => {
-        const data = blockEvent.data as unknown as {
-          laneId: U8aFixed;
-          messages: {
-            end: u64;
-            begin: u64;
-          };
-        };
+        const data = blockEvent.data as unknown as BridgeMessagesDelivered;
         const begin = data.messages.begin.toNumber();
         const end = data.messages.end.toNumber();
         const laneId = data.laneId.toU8a();
@@ -111,4 +105,38 @@ export function extractBridgeSend(origin: NetworkURN, registry: Registry, getSto
       })
     );
   };
+}
+
+export function extractBridgeReceive() {
+  return (source: Observable<types.BlockEvent>): Observable<XcmBridgeInboundWithContext> => {
+    return source.pipe(
+      filter(
+        (event) =>
+          matchEvent(event, 'bridgePolkadotMessages', 'MessagesReceived') ||
+          matchEvent(event, 'bridgeKusamaMessages', 'MessagesReceived')
+      ),
+      mergeMap(event => {
+        // for some reason the Vec is wrapped with another array?
+        // TODO: investigate for cases of multiple lanes
+        const receivedMessages = event.data[0] as unknown as Vec<BpMessagesReceivedMessages>;
+        const inboundMsgs: XcmBridgeInboundWithContext[] = [];
+        for (const message of receivedMessages) {
+          const laneId = message.lane;
+          for (const [nonce, result] of message.receiveResults) {
+            const key = u8aConcat(laneId.toU8a(), nonce.toU8a());
+            inboundMsgs.push(new GenericXcmBridgeInboundWithContext({
+              bridgeKey: u8aToHex(key),
+              event: event.toHuman(),
+              extrinsicId: event.extrinsicId,
+              blockNumber: event.blockNumber.toPrimitive(),
+              blockHash: event.blockHash.toHex(),
+              outcome: result.isDispatched ? 'Success' : 'Fail',
+              error: result.isDispatched ? null : result.type
+            }))
+          }
+        }
+        return from(inboundMsgs)
+      })
+    )
+  }
 }
