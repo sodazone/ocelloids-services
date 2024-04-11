@@ -113,81 +113,175 @@ kusama bridge hub xcm in
       error: undefined,
       assetsTrapped: undefined
     }
+
+Kusama bridge out
+
+{
+  messageData: '0x031c2509030b0100a10f01040002010903000700e87648170a130002010903000700e8764817000d010204000101002cb783d5c0ddcccd2608c83d43ee6fc19320408c24764c2f8ac164b27beaee372cf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab',
+  recipient: 'urn:ocn:polkadot:1000',
+  instructions: {
+    V3: [
+      [Object],
+      [Object],
+      [Object],
+      'ClearOrigin',
+      [Object],
+      [Object],
+      [Object]
+    ]
+  },
+  messageHash: '0xd20ec7c40bffddbc725c6f8a513daac289eff67fc8c50327f8133035402829d2',
+  event: {
+    extrinsicId: '3076900-2',
+    extrinsicPosition: 5,
+    extrinsic: {
+      extrinsicId: '3076900-2',
+      blockNumber: '3,076,900',
+      blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
+      position: 2,
+      extraSigners: [],
+      isSigned: true,
+      method: [Object],
+      era: [Object],
+      nonce: '75',
+      signature: '0xce0a6660e69ad7c1c90fabc109f182efa1cbc1ce1dcd495abd0b835cb6fd0a365422f14e7ba0551a6afbacbab04f75b7f7084c2b22dd07ce1ffff0e25fbc988c',
+      signer: [Object],
+      tip: '0'
+    },
+    eventId: '3076900-8',
+    blockPosition: 8,
+    blockNumber: '3,076,900',
+    blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
+    method: 'MessagesDelivered',
+    section: 'bridgePolkadotMessages',
+    index: '0x3502',
+    data: { laneId: '0x00000001', messages: [Object] }
+  },
+  blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
+  blockNumber: '3076900',
+  extrinsicId: '3076900-2',
+  messageId: '0xf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab',
+  senders: {
+    signer: {
+      id: 'HppRiCoXkhb1URsL2qWyaCqA3cigAgDBsPZWWbY3gx1kcNv',
+      publicKey: '0xe83beb66f2da17cc51a48dda94136e98e28eee1123611f533b3b22fd195c9b6b'
+    },
+    extraSigners: []
+  },
+  bridgeKey: '0x000000010100000000000000'
+}
 */
 
 /*
+Polkadot bridge hub in 
+
+{
+  bridgeKey: '0x000000010100000000000000',
+  event: {
+    extrinsicId: '2340207-2',
+    extrinsicPosition: 6,
+    extrinsic: {
+      extrinsicId: '2340207-2',
+      blockNumber: '2,340,207',
+      blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+      position: 2,
+      extraSigners: [],
+      isSigned: true,
+      method: [Object],
+      era: [Object],
+      nonce: '242',
+      signature: '0xf4313be9d56930a6bcdf4d487362db73e72dd09903a672476b94e67f061e8f2e7bd80074b5d63c319f678c7d753d38afecc546f24ca67f4ca5f2098cd4aca68e',
+      signer: [Object],
+      tip: '0'
+    },
+    eventId: '2340207-8',
+    blockPosition: 8,
+    blockNumber: '2,340,207',
+    blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+    method: 'MessagesReceived',
+    section: 'bridgeKusamaMessages',
+    index: '0x3501',
+    data: [ [Array] ]
+  },
+  extrinsicId: '2340207-2',
+  blockNumber: '2340207',
+  blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+  outcome: 'Success',
+  error: null
+}
+
 Polkadot bridge hub xcm out
 
 {
-      messageData: Uint8Array(116) [
-          3,  32,  11,   1,   4,  53,  37,   9,   3,  11,   1,  0,
-        161,  15,   1,   4,   0,   2,   1,   9,   3,   0,   7,  0,
-        232, 118,  72,  23,  10,  19,   0,   2,   1,   9,   3,  0,
-          7,   0, 232, 118,  72,  23,   0,  13,   1,   2,   4,  0,
-          1,   1,   0,  44, 183, 131, 213, 192, 221, 204, 205, 38,
-          8, 200,  61,  67, 238, 111, 193, 147,  32,  64, 140, 36,
-        118,  76,  47, 138, 193, 100, 178, 123, 234, 238,  55, 44,
-        247, 210, 241,  50, 148,  76,  12,  81, 139,  76, 134, 45,
-        110, 104,   3,  15,
-        ... 16 more items
-      ],
-      recipient: 'urn:ocn:polkadot:1000',
-      instructions: {
-        bytes: Uint8Array(116) [
-            3,  32,  11,   1,   4,  53,  37,   9,   3,  11,   1,  0,
-          161,  15,   1,   4,   0,   2,   1,   9,   3,   0,   7,  0,
-          232, 118,  72,  23,  10,  19,   0,   2,   1,   9,   3,  0,
-            7,   0, 232, 118,  72,  23,   0,  13,   1,   2,   4,  0,
-            1,   1,   0,  44, 183, 131, 213, 192, 221, 204, 205, 38,
-            8, 200,  61,  67, 238, 111, 193, 147,  32,  64, 140, 36,
-          118,  76,  47, 138, 193, 100, 178, 123, 234, 238,  55, 44,
-          247, 210, 241,  50, 148,  76,  12,  81, 139,  76, 134, 45,
-          110, 104,   3,  15,
-          ... 16 more items
-        ],
-        json: { V3: [Array] }
-      },
-      messageHash: '0x96761b9d2231070c8f80c46976fa3682f3eee734ffad11bfa722f3c2d0386203',
-      event: {
-        extrinsicId: '2340207-2',
-        extrinsicPosition: 5,
-        extrinsic: {
-          extrinsicId: '2340207-2',
-          blockNumber: '2,340,207',
-          blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
-          position: 2,
-          extraSigners: [],
-          isSigned: true,
-          method: [Object],
-          era: [Object],
-          nonce: '242',
-          signature: '0xf4313be9d56930a6bcdf4d487362db73e72dd09903a672476b94e67f061e8f2e7bd80074b5d63c319f678c7d753d38afecc546f24ca67f4ca5f2098cd4aca68e',
-          signer: [Object],
-          tip: '0'
-        },
-        eventId: '2340207-7',
-        blockPosition: 7,
-        blockNumber: '2,340,207',
-        blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
-        method: 'XcmpMessageSent',
-        section: 'xcmpQueue',
-        index: '0x1e04',
-        data: {
-          messageHash: '0x96761b9d2231070c8f80c46976fa3682f3eee734ffad11bfa722f3c2d0386203'
-        }
-      },
-      blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
-      blockNumber: '2340207',
-      sender: {
-        signer: {
-          id: '1W4WxmnXHU1cMVXuT8qmp9XSxQyzNQNu4mMB9PeNg32JdBF',
-          publicKey: '0x1629f45fd0f1bdbfcd46142c8519e4da2967832e025b30232bddc8bba699ec7a'
-        },
-        extraSigners: []
-      },
+  messageData: Uint8Array(116) [
+      3,  32,  11,   1,   4,  53,  37,   9,   3,  11,   1,  0,
+    161,  15,   1,   4,   0,   2,   1,   9,   3,   0,   7,  0,
+    232, 118,  72,  23,  10,  19,   0,   2,   1,   9,   3,  0,
+      7,   0, 232, 118,  72,  23,   0,  13,   1,   2,   4,  0,
+      1,   1,   0,  44, 183, 131, 213, 192, 221, 204, 205, 38,
+      8, 200,  61,  67, 238, 111, 193, 147,  32,  64, 140, 36,
+    118,  76,  47, 138, 193, 100, 178, 123, 234, 238,  55, 44,
+    247, 210, 241,  50, 148,  76,  12,  81, 139,  76, 134, 45,
+    110, 104,   3,  15,
+    ... 16 more items
+  ],
+  recipient: 'urn:ocn:polkadot:1000',
+  instructions: {
+    bytes: Uint8Array(116) [
+        3,  32,  11,   1,   4,  53,  37,   9,   3,  11,   1,  0,
+      161,  15,   1,   4,   0,   2,   1,   9,   3,   0,   7,  0,
+      232, 118,  72,  23,  10,  19,   0,   2,   1,   9,   3,  0,
+        7,   0, 232, 118,  72,  23,   0,  13,   1,   2,   4,  0,
+        1,   1,   0,  44, 183, 131, 213, 192, 221, 204, 205, 38,
+        8, 200,  61,  67, 238, 111, 193, 147,  32,  64, 140, 36,
+      118,  76,  47, 138, 193, 100, 178, 123, 234, 238,  55, 44,
+      247, 210, 241,  50, 148,  76,  12,  81, 139,  76, 134, 45,
+      110, 104,   3,  15,
+      ... 16 more items
+    ],
+    json: { V3: [Array] }
+  },
+  messageHash: '0x96761b9d2231070c8f80c46976fa3682f3eee734ffad11bfa722f3c2d0386203',
+  event: {
+    extrinsicId: '2340207-2',
+    extrinsicPosition: 5,
+    extrinsic: {
       extrinsicId: '2340207-2',
-      messageId: '0xf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab'
+      blockNumber: '2,340,207',
+      blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+      position: 2,
+      extraSigners: [],
+      isSigned: true,
+      method: [Object],
+      era: [Object],
+      nonce: '242',
+      signature: '0xf4313be9d56930a6bcdf4d487362db73e72dd09903a672476b94e67f061e8f2e7bd80074b5d63c319f678c7d753d38afecc546f24ca67f4ca5f2098cd4aca68e',
+      signer: [Object],
+      tip: '0'
+    },
+    eventId: '2340207-7',
+    blockPosition: 7,
+    blockNumber: '2,340,207',
+    blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+    method: 'XcmpMessageSent',
+    section: 'xcmpQueue',
+    index: '0x1e04',
+    data: {
+      messageHash: '0x96761b9d2231070c8f80c46976fa3682f3eee734ffad11bfa722f3c2d0386203'
     }
+  },
+  blockHash: '0xbbcaec547ab8473aed6cfafa3b5f0e15037f44c1bd462300c0bc1ca53ad2e28a',
+  blockNumber: '2340207',
+  sender: {
+    signer: {
+      id: '1W4WxmnXHU1cMVXuT8qmp9XSxQyzNQNu4mMB9PeNg32JdBF',
+      publicKey: '0x1629f45fd0f1bdbfcd46142c8519e4da2967832e025b30232bddc8bba699ec7a'
+    },
+    extraSigners: []
+  },
+  extrinsicId: '2340207-2',
+  messageId: '0xf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab'
+}
 
 Polkadot relay
 
