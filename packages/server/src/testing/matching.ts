@@ -26,11 +26,9 @@ const outboundMessage: XcmSent = {
   legs: [
     {
       from: 'urn:ocn:local:1000',
-      to: 'urn:ocn:local:0',
-    },
-    {
-      from: 'urn:ocn:local:0',
       to: 'urn:ocn:local:2000',
+      relay: 'urn:ocn:local:0',
+      type: 'hrmp',
     },
   ],
   destination: {
@@ -42,9 +40,7 @@ const outboundMessage: XcmSent = {
     legIndex: 0,
   },
   subscriptionId: subscriptionId,
-  sender: {
-    id: '0x123',
-  },
+  sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
 };
 
 const inboundMessage: XcmInbound = {
@@ -95,19 +91,15 @@ export const matchHopMessages: MatchHopMessages = {
     legs: [
       {
         from: 'urn:ocn:local:1000',
-        to: 'urn:ocn:local:0',
-      },
-      {
-        from: 'urn:ocn:local:0',
         to: 'urn:ocn:local:3000',
+        relay: 'urn:ocn:local:0',
+        type: 'hop',
       },
       {
         from: 'urn:ocn:local:3000',
-        to: 'urn:ocn:local:0',
-      },
-      {
-        from: 'urn:ocn:local:0',
         to: 'urn:ocn:local:2000',
+        relay: 'urn:ocn:local:0',
+        type: 'hop',
       },
     ],
   },
@@ -140,10 +132,8 @@ export const matchHopMessages: MatchHopMessages = {
       {
         from: 'urn:ocn:local:3000',
         to: 'urn:ocn:local:0',
-      },
-      {
-        from: 'urn:ocn:local:0',
-        to: 'urn:ocn:local:2000',
+        relay: 'urn:ocn:local:0',
+        type: 'hrmp',
       },
     ],
     destination: {
@@ -203,9 +193,8 @@ const hopOrigin: XcmSent = {
   type: XcmNotificationType.Sent,
   subscriptionId: 'xxx-1',
   legs: [
-    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034' },
-    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0' },
-    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:1000' },
+    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
+    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hop' },
   ],
   waypoint: {
     chainId: 'urn:ocn:local:0',
@@ -256,10 +245,7 @@ const hopIB: XcmInbound = {
 const hopOB: XcmSent = {
   type: XcmNotificationType.Sent,
   subscriptionId: 'xxx-1',
-  legs: [
-    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0' },
-    { from: 'urn:ocn:local:0', to: 'urn:ocn:local:1000' },
-  ],
+  legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hrmp' }],
   waypoint: {
     chainId: 'urn:ocn:local:2034',
     blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
@@ -288,7 +274,7 @@ const hopOB: XcmSent = {
     messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
   },
   destination: { chainId: 'urn:ocn:local:1000' },
-  sender: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7',
+  sender: { signer: { id: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7', publicKey: '0x01' }, extraSigners: [] },
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
 };
 

@@ -11,7 +11,7 @@ import type {
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 import { NetworkURN } from '../types.js';
-import { createNetworkId, getChainId } from '../config.js';
+import { createNetworkId } from '../config.js';
 
 /**
  * Represents a generic JSON object.
@@ -338,6 +338,8 @@ export interface XcmWaypointContext extends XcmTerminusContext {
   assetsTrapped?: AnyJson;
 }
 
+const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const;
+
 /**
  * A leg of an XCM journey.
  *
@@ -346,6 +348,8 @@ export interface XcmWaypointContext extends XcmTerminusContext {
 export type Leg = {
   from: NetworkURN;
   to: NetworkURN;
+  relay?: NetworkURN;
+  type: (typeof legType)[number];
 };
 
 /**
@@ -512,7 +516,7 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
     this.waypoint = {
-      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && getChainId(l.to) === '0'),
+      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.type === 'hrmp'),
       chainId: createNetworkId(this.origin.chainId, '0'), // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,

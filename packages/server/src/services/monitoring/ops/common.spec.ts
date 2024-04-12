@@ -50,7 +50,13 @@ describe('extract waypoints operator', () => {
         next: (msg) => {
           expect(msg).toBeDefined();
           expect(msg.waypoint.chainId).toBe('urn:ocn:local:2004');
-          expect(msg.legs.length).toBe(2);
+          expect(msg.legs.length).toBe(1);
+          expect(msg.legs[0]).toEqual({
+            from: 'urn:ocn:local:2004',
+            to: 'urn:ocn:local:2104',
+            relay: 'urn:ocn:local:0',
+            type: 'hrmp',
+          });
           expect(msg.destination.chainId).toBe('urn:ocn:local:2104');
           calls();
         },
@@ -97,13 +103,18 @@ describe('extract waypoints operator', () => {
         next: (msg) => {
           expect(msg).toBeDefined();
           expect(msg.waypoint.chainId).toBe('urn:ocn:local:0');
-          expect(msg.legs.length).toBe(3);
-          expect(msg.legs[0].from).toBe('urn:ocn:local:0');
-          expect(msg.legs[0].to).toBe('urn:ocn:local:2034');
-          expect(msg.legs[1].from).toBe('urn:ocn:local:2034');
-          expect(msg.legs[1].to).toBe('urn:ocn:local:0');
-          expect(msg.legs[2].from).toBe('urn:ocn:local:0');
-          expect(msg.legs[2].to).toBe('urn:ocn:local:1000');
+          expect(msg.legs.length).toBe(2);
+          expect(msg.legs[0]).toEqual({
+            from: 'urn:ocn:local:0',
+            to: 'urn:ocn:local:2034',
+            type: 'hop',
+          });
+          expect(msg.legs[1]).toEqual({
+            from: 'urn:ocn:local:2034',
+            to: 'urn:ocn:local:1000',
+            relay: 'urn:ocn:local:0',
+            type: 'hop',
+          });
           expect(msg.destination.chainId).toBe('urn:ocn:local:1000');
           calls();
         },
@@ -154,15 +165,19 @@ describe('extract waypoints operator', () => {
           expect(msg).toBeDefined();
           expect(msg.waypoint.chainId).toBe('urn:ocn:local:2085');
 
-          expect(msg.legs.length).toBe(4);
-          expect(msg.legs[0].from).toBe('urn:ocn:local:2085');
-          expect(msg.legs[0].to).toBe('urn:ocn:local:0');
-          expect(msg.legs[1].from).toBe('urn:ocn:local:0');
-          expect(msg.legs[1].to).toBe('urn:ocn:local:2004');
-          expect(msg.legs[2].from).toBe('urn:ocn:local:2004');
-          expect(msg.legs[2].to).toBe('urn:ocn:local:0');
-          expect(msg.legs[3].from).toBe('urn:ocn:local:0');
-          expect(msg.legs[3].to).toBe('urn:ocn:local:2000');
+          expect(msg.legs.length).toBe(2);
+          expect(msg.legs[0]).toEqual({
+            from: 'urn:ocn:local:2085',
+            to: 'urn:ocn:local:2004',
+            relay: 'urn:ocn:local:0',
+            type: 'hop',
+          });
+          expect(msg.legs[1]).toEqual({
+            from: 'urn:ocn:local:2004',
+            to: 'urn:ocn:local:2000',
+            relay: 'urn:ocn:local:0',
+            type: 'hop',
+          });
 
           expect(msg.destination.chainId).toBe('urn:ocn:local:2000');
           calls();

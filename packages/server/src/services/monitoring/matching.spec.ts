@@ -85,7 +85,7 @@ describe('message matching engine', () => {
   it('should match relay and outbound', async () => {
     await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay);
     await engine.onOutboundMessage(matchMessages.origin);
-    expect(schedule).toHaveBeenCalledTimes(3);
+    expect(schedule).toHaveBeenCalledTimes(2);
 
     expect(cb).toHaveBeenCalledTimes(2);
   });
@@ -99,7 +99,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(origin);
     await engine.onInboundMessage(destination);
 
-    expect(schedule).toHaveBeenCalledTimes(3);
+    expect(schedule).toHaveBeenCalledTimes(2);
     expect(cb).toHaveBeenCalledTimes(3);
     await expect(outbound.get(idKey)).rejects.toBeDefined();
     await expect(outbound.get(hashKey)).rejects.toBeDefined();
@@ -234,12 +234,12 @@ describe('message matching engine', () => {
         subscriptionId: r + i,
       });
     }
-    expect(await count()).toBe(1000);
+    expect(await count()).toBe(600);
 
     for (let i = 0; i < 100; i++) {
       await engine.clearPendingStates('z.transfers:' + i);
       await engine.clearPendingStates('baba-yaga-1:' + i);
     }
-    expect(await count()).toBe(400);
+    expect(await count()).toBe(200);
   });
 });
