@@ -77,6 +77,10 @@ export function getConsensus(networkId: NetworkURN) {
   return networkId.split(':')[2];
 }
 
+export function isOnSameConsensus(network1: NetworkURN, network2: NetworkURN) {
+  return getConsensus(network1) === getConsensus(network2);
+}
+
 export function getChainId(networkId: NetworkURN) {
   return networkId.split(':')[3];
 }

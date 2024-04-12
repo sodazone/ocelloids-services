@@ -90,4 +90,7 @@ export const bridgeOutKusama = {
   getStorage: () => from([new Uint8Array(Buffer.from(ksmBridgeData, 'hex'))]),
 };
 
-export const bridgeInPolkadot = from(testBlocksFrom('dot-bridgehub-bridge-in.cbor.bin', 'polkadot-bridge-hub.json'));
+export const bridgeInPolkadot = {
+  origin: 'urn:ocn:polkadot:1002',
+  blocks: from(testBlocksFrom('dot-bridgehub-bridge-in.cbor.bin', 'polkadot-bridge-hub.json')),
+};

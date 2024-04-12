@@ -2,13 +2,15 @@ import { map, Observable } from 'rxjs';
 
 import type { Registry } from '@polkadot/types/types';
 import type { XcmV2Xcm, XcmV3Xcm, XcmV3Instruction } from '@polkadot/types/lookup';
+import { u8aConcat, stringToU8a, hexToU8a } from '@polkadot/util';
+import { blake2AsHex } from '@polkadot/util-crypto';
 
-import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js';
+import { GenericXcmSent, HexString, Leg, XcmSent, XcmSentWithContext } from '../types.js';
 import { getBridgeHubNetworkId, getParaIdFromJunctions, networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm, XcmV4Instruction } from './xcm-types.js';
 import { NetworkURN } from '../../types.js';
-import { createNetworkId, getChainId, getConsensus } from '../../config.js';
+import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '../../config.js';
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
@@ -34,14 +36,14 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
       message = xcm;
     } else if ((instruction as XcmV3Instruction | XcmV4Instruction).isExportMessage) {
       const { network, destination, xcm } = (instruction as XcmV3Instruction | XcmV4Instruction).asExportMessage;
-      const paraId = getParaIdFromJunctions(destination)
+      const paraId = getParaIdFromJunctions(destination);
       if (paraId) {
         const consensus = network.toString().toLowerCase();
-        const networkId = createNetworkId(consensus, paraId)
-        const bridgeHubNetworkId = getBridgeHubNetworkId(consensus)
+        const networkId = createNetworkId(consensus, paraId);
+        const bridgeHubNetworkId = getBridgeHubNetworkId(consensus);
         // We assume that an ExportMessage will always go through Bridge Hub
         if (bridgeHubNetworkId !== undefined && networkId !== bridgeHubNetworkId) {
-          stops.push(bridgeHubNetworkId)
+          stops.push(bridgeHubNetworkId);
         }
         stops.push(networkId);
         recursiveExtractStops(networkId, xcm, stops);
@@ -63,7 +65,6 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
 
 function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
   const legs: Leg[] = [];
-  const destination = stops[stops.length - 1];
   const nodes = [origin].concat(stops);
   for (let i = 0; i < nodes.length - 1; i++) {
     const from = nodes[i];
@@ -79,14 +80,24 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
         leg.relay = createNetworkId(from, '0');
         leg.type = 'hrmp';
       }
-      if (from !== origin || to !== destination) {
-        leg.type = 'hop';
-      }
     } else {
       leg.type = 'bridge';
     }
 
     legs.push(leg);
+  }
+
+  if (legs.length === 1) {
+    return legs;
+  }
+
+  for (let i = 0; i < legs.length - 1; i++) {
+    const leg1 = legs[i];
+    const leg2 = legs[i + 1];
+    if (isOnSameConsensus(leg1.from, leg2.to)) {
+      leg1.type = 'hop';
+      leg2.type = 'hop';
+    }
   }
 
   return legs;
@@ -111,7 +122,15 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
         const versionedXcm = asVersionedXcm(instructions.bytes, registry);
         recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops);
         const legs = constructLegs(origin, stops);
-        return new GenericXcmSent(id, origin, message, legs);
+
+        let forwardId: HexString | undefined;
+        // TODO: extract to util?
+        if (origin === getBridgeHubNetworkId(origin) && message.messageId !== undefined) {
+          const constant = 'forward_id_for';
+          const derivedIdBuf = u8aConcat(stringToU8a(constant), hexToU8a(message.messageId));
+          forwardId = blake2AsHex(derivedIdBuf);
+        }
+        return new GenericXcmSent(id, origin, message, legs, forwardId);
       })
     );
 }

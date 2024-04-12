@@ -26,20 +26,21 @@ import {
   XcmV4Junction,
   VersionedInteriorLocation,
 } from './xcm-types.js';
-import { createNetworkId } from '../../config.js';
+import { createNetworkId, getConsensus } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
-const POLKADOT_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:polkadot:1002'
-const KUSAMA_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:kusama:1002'
+const POLKADOT_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:polkadot:1002';
+const KUSAMA_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:kusama:1002';
 
-export function getBridgeHubNetworkId(consensus: string) {
-  if (consensus === 'polkadot') {
-    return POLKADOT_BRIDGE_HUB_NETWORK_ID
+export function getBridgeHubNetworkId(consensus: string | NetworkURN) {
+  const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus;
+  if (c === 'polkadot') {
+    return POLKADOT_BRIDGE_HUB_NETWORK_ID;
   }
-  if (consensus === 'kusama') {
-    return KUSAMA_BRIDGE_HUB_NETWORK_ID
+  if (c === 'kusama') {
+    return KUSAMA_BRIDGE_HUB_NETWORK_ID;
   }
-  return undefined
+  return undefined;
 }
 
 function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
@@ -210,9 +211,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   return undefined;
 }
 
-export function getParaIdFromJunctions(
-  junctions: XcmV2MultilocationJunctions | XcmV4Junctions | XcmV3Junctions
-) {
+export function getParaIdFromJunctions(junctions: XcmV2MultilocationJunctions | XcmV4Junctions | XcmV3Junctions) {
   if (junctions.type === 'Here') {
     return undefined;
   }

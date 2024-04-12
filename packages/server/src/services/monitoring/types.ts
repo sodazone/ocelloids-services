@@ -65,7 +65,7 @@ function toHexString(buf: Uint8Array): HexString {
 
 /**
  * Account data of the signer of an XCM.
- * 
+ *
  * Includes any extra signers involved e.g. proxy accounts, multisigs
  *
  * @public
@@ -138,11 +138,18 @@ export interface XcmSentWithContext extends XcmWithContext {
   instructions: XcmProgram;
 }
 
-export interface XcmBridgeSentWithContext extends XcmSentWithContext {
+export interface XcmBridgeSentWithContext extends XcmWithContext {
+  chainId: NetworkURN;
   bridgeKey: HexString;
+  messageData: HexString;
+  instructions: AnyJson;
+  recipient: NetworkURN;
+  sender?: SignerData;
+  forwardId?: HexString;
 }
 
 export interface XcmBridgeInboundWithContext {
+  chainId: NetworkURN;
   bridgeKey: HexString;
   blockNumber: string | number;
   blockHash: HexString;
@@ -311,23 +318,40 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
-export class GenericXcmBridgeSentWithContext extends GenericXcmSentWithContext {
+export class GenericXcmBridgeSentWithContext implements XcmBridgeSentWithContext {
+  chainId: NetworkURN;
   bridgeKey: HexString;
+  messageData: HexString;
+  recipient: NetworkURN;
+  instructions: AnyJson;
+  messageHash: HexString;
+  event: AnyJson;
+  blockHash: HexString;
+  blockNumber: string;
+  sender?: SignerData;
+  extrinsicId?: string;
+  messageId?: HexString;
+  forwardId?: HexString;
 
   constructor(msg: XcmBridgeSentWithContext) {
-    super(msg);
+    this.chainId = msg.chainId;
     this.bridgeKey = msg.bridgeKey;
-  }
-
-  toHuman(isExpanded?: boolean | undefined): Record<string, AnyJson> {
-    return {
-      ...super.toHuman(isExpanded),
-      bridgeKey: this.bridgeKey,
-    };
+    this.event = msg.event;
+    this.messageData = msg.messageData;
+    this.recipient = msg.recipient;
+    this.instructions = msg.instructions;
+    this.messageHash = msg.messageHash;
+    this.blockHash = msg.blockHash;
+    this.blockNumber = msg.blockNumber.toString();
+    this.extrinsicId = msg.extrinsicId;
+    this.messageId = msg.messageId;
+    this.forwardId = msg.forwardId;
+    this.sender = msg.sender;
   }
 }
 
 export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+  chainId: NetworkURN;
   bridgeKey: HexString;
   event: AnyJson;
   extrinsicId?: string | undefined;
@@ -337,6 +361,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   error: AnyJson;
 
   constructor(msg: XcmBridgeInboundWithContext) {
+    this.chainId = msg.chainId;
     this.event = msg.event;
     this.outcome = msg.outcome;
     this.error = msg.error;
@@ -353,6 +378,7 @@ export enum XcmNotificationType {
   Relayed = 'xcm.relayed',
   Timeout = 'xcm.timeout',
   Hop = 'xcm.hop',
+  Bridge = 'xcm.bridge',
 }
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(',')}]`;
@@ -428,6 +454,7 @@ export interface XcmSent {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 }
 
 export class GenericXcmSent implements XcmSent {
@@ -439,8 +466,15 @@ export class GenericXcmSent implements XcmSent {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
+  constructor(
+    subscriptionId: string,
+    chainId: NetworkURN,
+    msg: XcmSentWithContext,
+    legs: Leg[],
+    forwardId?: HexString
+  ) {
     this.subscriptionId = subscriptionId;
     this.legs = legs;
     this.origin = {
@@ -467,6 +501,7 @@ export class GenericXcmSent implements XcmSent {
     };
 
     this.messageId = msg.messageId;
+    this.forwardId = forwardId;
     this.sender = msg.sender;
   }
 }
@@ -578,8 +613,8 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
     this.waypoint = {
-      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.type === 'hrmp'),
-      chainId: createNetworkId(this.origin.chainId, '0'), // relay waypoint always at relay chain
+      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.relay !== undefined),
+      chainId: createNetworkId(relayMsg.origin, '0'), // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
       extrinsicId: relayMsg.extrinsicId,
@@ -606,13 +641,13 @@ export interface XcmHop extends XcmSent {
 
 export class GenericXcmHop implements XcmHop {
   type: XcmNotificationType = XcmNotificationType.Hop;
+  direction: 'out' | 'in';
   subscriptionId: string;
   legs: Leg[];
   waypoint: XcmWaypointContext;
   origin: XcmTerminusContext;
   destination: XcmTerminus;
   sender?: SignerData;
-  direction: 'out' | 'in';
   messageId?: HexString;
 
   constructor(originMsg: XcmSent, hopWaypoint: XcmWaypointContext, direction: 'out' | 'in') {
@@ -628,11 +663,45 @@ export class GenericXcmHop implements XcmHop {
 }
 
 /**
+ * Event emitted when an XCM is sent or received on an intermediate stop.
+ *
+ * @public
+ */
+export interface XcmBridge extends XcmHop {
+  bridgeKey: HexString;
+}
+
+export class GenericXcmBridge implements XcmBridge {
+  type: XcmNotificationType = XcmNotificationType.Bridge;
+  direction: 'out' | 'in';
+  subscriptionId: string;
+  bridgeKey: HexString;
+  legs: Leg[];
+  waypoint: XcmWaypointContext;
+  origin: XcmTerminusContext;
+  destination: XcmTerminus;
+  sender?: SignerData;
+  messageId?: HexString;
+
+  constructor(originMsg: XcmSent, waypoint: XcmWaypointContext, direction: 'out' | 'in', bridgeKey: HexString) {
+    this.subscriptionId = originMsg.subscriptionId;
+    this.direction = direction;
+    this.legs = originMsg.legs;
+    this.origin = originMsg.origin;
+    this.destination = originMsg.destination;
+    this.waypoint = waypoint;
+    this.messageId = originMsg.messageId;
+    this.sender = originMsg.sender;
+    this.bridgeKey = bridgeKey;
+  }
+}
+
+/**
  * The XCM event types.
  *
  * @public
  */
-export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop;
+export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge;
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent;

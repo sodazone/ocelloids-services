@@ -40,8 +40,9 @@ export const prefixes = {
     inbound: 'ma:in',
     relay: 'ma:relay',
     hop: 'ma:hop',
+    bridge: 'ma:bridge',
     bridgeOut: 'ma:bridgeOut',
-    bridgeIn: 'ma:bridgeIn'
+    bridgeIn: 'ma:bridgeIn',
   },
   distributor: {
     lastBlockStreamId: (chainId: NetworkURN) => `dis:blocks:lid:${chainId}`,
