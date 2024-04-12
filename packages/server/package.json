@@ -37,6 +37,7 @@
     "coveragePathIgnorePatterns": [
       ".*/dist",
       "testing",
+      "src/services/telemetry/metrics",
       "src/services/notification/log.ts"
     ],
     "extensionsToTreatAsEsm": [
