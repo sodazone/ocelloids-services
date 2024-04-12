@@ -211,13 +211,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     const idKey = relayMsg.messageId
       ? this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageId)
       : this.#matchingKey(subscriptionId, relayMsg.recipient, relayMsg.messageHash);
-    const hopKey = relayMsg.messageId
-      ? this.#matchingKey(subscriptionId, relayId, relayMsg.messageId)
-      : this.#matchingKey(subscriptionId, relayId, relayMsg.messageHash);
 
     await this.#mutex.runExclusive(async () => {
       try {
-        const outMsg = await Promise.any([this.#outbound.get(idKey), this.#hop.get(hopKey)]);
+        const outMsg = await this.#outbound.get(idKey);
         log.info(
           '[%s:r] RELAYED origin=%s recipient=%s (subId=%s, block=%s #%s)',
           relayId,
@@ -227,7 +224,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           relayMsg.blockHash,
           relayMsg.blockNumber
         );
-        await this.#relay.batch().del(idKey).del(hopKey).write();
+        await this.#relay.del(idKey);
         await this.#onXcmRelayed(outMsg, relayMsg);
       } catch {
         const relayKey = relayMsg.messageId
@@ -317,12 +314,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
-  // ************* REVIEW ****************
-  // Right now we're also storing relay stops in the hop keys, these will never be matched.
-  // But unless we enrich legs info we don't know if '0' is a relay or hop stopover.
-  // Option 1: emit relay as hops and remove 'relay' concept
-  // Option 2: allow potentially unneccessary message to be stored and leave it for janitor to clean up
-  // Option 3: enrich legs info or new field stops to know if relay or not...
   async #tryMatchOnOutbound(msg: XcmSent, outboundTTL: number) {
     if (msg.messageId === undefined) {
       return;
@@ -355,13 +346,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
 
   async #storekeysOnOutbound(msg: XcmSent, outboundTTL: number) {
     const log = this.#log;
-    const stops = msg.legs.map((l) => l.to);
 
-    for (const [i, stop] of stops.entries()) {
+    for (const [i, leg] of msg.legs.entries()) {
+      const stop = leg.to;
       const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash);
       if (msg.messageId) {
         const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId);
-        if (i === stops.length - 1) {
+        if (i === msg.legs.length - 1 || leg.relay !== undefined) {
           log.info(
             '[%s:o] STORED dest=%s hash=%s id=%s (subId=%s, block=%s #%s)',
             msg.origin.chainId,
@@ -385,7 +376,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
               expiry: outboundTTL,
             }
           );
-        } else {
+        } else if (leg.type === 'hop') {
           log.info(
             '[%s:h] STORED stop=%s hash=%s id=%s (subId=%s, block=%s #%s)',
             msg.origin.chainId,
@@ -410,7 +401,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             }
           );
         }
-      } else if (i === stops.length - 1) {
+      } else if (i === msg.legs.length - 1 || leg.relay !== undefined) {
         log.info(
           '[%s:o] STORED dest=%s hash=%s (subId=%s, block=%s #%s)',
           msg.origin.chainId,
@@ -426,7 +417,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           key: hKey,
           expiry: DEFAULT_TIMEOUT,
         });
-      } else {
+      } else if (leg.type === 'hop') {
         log.info(
           '[%s:h] STORED stop=%s hash=%s(subId=%s, block=%s #%s)',
           msg.origin.chainId,

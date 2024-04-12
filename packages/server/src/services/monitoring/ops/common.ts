@@ -61,44 +61,32 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
   return stops;
 }
 
-function usesHrmp(from: NetworkURN, to: NetworkURN): boolean {
-  if (getConsensus(from) !== getConsensus(to)) {
-    return false
-  }
-
-  if (getChainId(from) !== '0' && getChainId(to) !== '0') {
-    return true;
-  }
-
-  return false;
-}
-
 function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
   const legs: Leg[] = [];
+  const destination = stops[stops.length - 1];
   const nodes = [origin].concat(stops);
   for (let i = 0; i < nodes.length - 1; i++) {
     const from = nodes[i];
     const to = nodes[i + 1];
-    // If HRMP is used between the 2 stops, add intermediate path through relay.
-    // TODO: revisit when XCMP is launched.
-    if (usesHrmp(from, to)) {
-      const relayId = createNetworkId(from, '0');
-      legs.push(
-        {
-          from,
-          to: relayId,
-        },
-        {
-          from: relayId,
-          to,
-        }
-      );
+    const leg = {
+      from,
+      to,
+      type: 'vmp',
+    } as Leg;
+
+    if (getConsensus(from) === getConsensus(to)) {
+      if (getChainId(from) !== '0' && getChainId(to) !== '0') {
+        leg.relay = createNetworkId(from, '0');
+        leg.type = 'hrmp';
+      }
+      if (from !== origin || to !== destination) {
+        leg.type = 'hop';
+      }
     } else {
-      legs.push({
-        from,
-        to,
-      });
+      leg.type = 'bridge';
     }
+
+    legs.push(leg);
   }
 
   return legs;

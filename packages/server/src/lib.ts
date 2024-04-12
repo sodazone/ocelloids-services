@@ -14,7 +14,9 @@ export type {
   TrappedAsset,
   XcmNotifyMessage,
   Leg,
+  legType,
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
+  SignerData
 } from './services/monitoring/types.js';

@@ -11,7 +11,7 @@ import type {
 import { ControlQuery } from '@sodazone/ocelloids-sdk';
 
 import { NetworkURN } from '../types.js';
-import { createNetworkId, getChainId } from '../config.js';
+import { createNetworkId } from '../config.js';
 
 /**
  * Represents a generic JSON object.
@@ -63,6 +63,13 @@ function toHexString(buf: Uint8Array): HexString {
   return `0x${Buffer.from(buf).toString('hex')}`;
 }
 
+/**
+ * Account data of the signer of an XCM.
+ * 
+ * Includes any extra signers involved e.g. proxy accounts, multisigs
+ *
+ * @public
+ */
 export type SignerData = {
   signer: {
     id: AnyJson;
@@ -389,6 +396,13 @@ export interface XcmWaypointContext extends XcmTerminusContext {
 }
 
 /**
+ * Type of an XCM journey leg.
+ *
+ * @public
+ */
+export const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const;
+
+/**
  * A leg of an XCM journey.
  *
  * @public
@@ -396,6 +410,8 @@ export interface XcmWaypointContext extends XcmTerminusContext {
 export type Leg = {
   from: NetworkURN;
   to: NetworkURN;
+  relay?: NetworkURN;
+  type: (typeof legType)[number];
 };
 
 /**
@@ -562,7 +578,7 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.destination = outMsg.destination;
     this.origin = outMsg.origin;
     this.waypoint = {
-      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && getChainId(l.to) === '0'),
+      legIndex: outMsg.legs.findIndex((l) => l.from === relayMsg.origin && l.type === 'hrmp'),
       chainId: createNetworkId(this.origin.chainId, '0'), // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
