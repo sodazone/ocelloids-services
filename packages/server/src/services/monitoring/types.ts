@@ -63,6 +63,13 @@ function toHexString(buf: Uint8Array): HexString {
   return `0x${Buffer.from(buf).toString('hex')}`;
 }
 
+/**
+ * Account data of the signer of an XCM.
+ * 
+ * Includes any extra signers involved e.g. proxy accounts, multisigs
+ *
+ * @public
+ */
 export type SignerData = {
   signer: {
     id: AnyJson;
@@ -338,7 +345,12 @@ export interface XcmWaypointContext extends XcmTerminusContext {
   assetsTrapped?: AnyJson;
 }
 
-const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const;
+/**
+ * Type of an XCM journey leg.
+ *
+ * @public
+ */
+export const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const;
 
 /**
  * A leg of an XCM journey.
