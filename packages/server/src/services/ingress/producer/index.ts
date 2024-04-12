@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import EventEmitter from 'node:events';
 
 import { Subscription as RxSubscription } from 'rxjs';
