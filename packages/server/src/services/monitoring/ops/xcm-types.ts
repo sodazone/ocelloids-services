@@ -532,6 +532,11 @@ export interface BridgeMessage extends Struct {
   readonly message: XcmVersionedXcm;
 }
 
+export type BridgeMessageAccepted = {
+  readonly laneId: BpMessagesLaneId;
+  readonly nonce: u64;
+} & Struct;
+
 export type BridgeMessagesDelivered = {
   readonly laneId: BpMessagesLaneId;
   readonly messages: BpMessagesDeliveredMessages;

@@ -214,23 +214,34 @@ describe('message matching engine', () => {
   });
 
   it('should match bridge messages', async () => {
-    const { origin, relay0, bridgeXcmIn, bridgeOut, bridgeIn, bridgeXcmOut, relay1, destination, subscriptionId } =
-      matchBridgeMessages;
+    const {
+      origin,
+      relay0,
+      bridgeXcmIn,
+      bridgeAccepted,
+      bridgeDelivered,
+      bridgeIn,
+      bridgeXcmOut,
+      relay1,
+      destination,
+      subscriptionId,
+    } = matchBridgeMessages;
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
     const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
-    cb.mockImplementation(msg => console.log(msg.type))
+    cb.mockImplementation((msg) => console.log(msg.type));
 
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay0);
     await engine.onInboundMessage(bridgeXcmIn);
-    await engine.onBridgeOutbound(subscriptionId, bridgeOut);
+    await engine.onBridgeOutboundAccepted(subscriptionId, bridgeAccepted);
+    await engine.onBridgeOutboundDelivered(subscriptionId, bridgeDelivered);
     await engine.onBridgeInbound(subscriptionId, bridgeIn);
     await engine.onOutboundMessage(bridgeXcmOut);
     await engine.onRelayedMessage(subscriptionId, relay1);
     await engine.onInboundMessage(destination);
 
-    expect(cb).toHaveBeenCalledTimes(8);
+    expect(cb).toHaveBeenCalledTimes(9);
     await expect(outbound.get(idKey)).rejects.toBeDefined();
     await expect(outbound.get(hashKey)).rejects.toBeDefined();
   });

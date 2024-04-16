@@ -24,6 +24,12 @@ export const bridgeStorageKeys = {
   polkadot: {
     messagesOutboundPartial: '0xa0499b8502d976c920e399c80697ef008a395e6242c6813b196ca31ed0547ea7',
   },
+  rococo: {
+    messagesOutboundPartial: '0x6c94932d373e5f918cd765b7b8f06f118a395e6242c6813b196ca31ed0547ea7',
+  },
+  westend: {
+    messagesOutboundPartial: '0x2b46c0ae62c8114b3eda55630f11ff3a8a395e6242c6813b196ca31ed0547ea7',
+  },
 } as Record<
   string,
   {

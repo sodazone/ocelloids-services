@@ -1,6 +1,6 @@
-import { Observable, switchMap, mergeMap, filter, from } from 'rxjs';
+import { Observable, mergeMap, filter, from } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
-import type { Vec } from '@polkadot/types-codec';
+import type { Vec, Bytes } from '@polkadot/types-codec';
 import { blake2AsU8a } from '@polkadot/util-crypto';
 import { u8aConcat, compactFromU8aLim, u8aToHex, hexToU8a, stringToU8a } from '@polkadot/util';
 import { blake2AsHex } from '@polkadot/util-crypto';
@@ -9,112 +9,169 @@ import { types } from '@sodazone/ocelloids-sdk';
 
 import {
   GenericXcmBridgeInboundWithContext,
-  GenericXcmBridgeSentWithContext,
+  GenericXcmBridgeAcceptedWithContext,
+  XcmBridgeDeliveredWithContext,
   HexString,
   XcmBridgeInboundWithContext,
-  XcmBridgeSentWithContext,
+  XcmBridgeAcceptedWithContext,
+  GenericXcmBridgeDeliveredWithContext,
 } from '../types.js';
 import { getMessageId, getSendersFromEvent, matchEvent, networkIdFromInteriorLocation } from './util.js';
 import { GetStorageAt } from '../types-augmented.js';
 import { getConsensus } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 import { bridgeStorageKeys } from '../storage.js';
-import { BpMessagesReceivedMessages, BridgeMessage, BridgeMessagesDelivered } from './xcm-types.js';
+import {
+  BpMessagesReceivedMessages,
+  BridgeMessage,
+  BridgeMessageAccepted,
+  BridgeMessagesDelivered,
+} from './xcm-types.js';
 
-export function extractBridgeSend(origin: NetworkURN, registry: Registry, getStorage: GetStorageAt) {
-  return (source: Observable<types.BlockEvent>): Observable<XcmBridgeSentWithContext> => {
+export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Registry, getStorage: GetStorageAt) {
+  return (source: Observable<types.BlockEvent>): Observable<XcmBridgeAcceptedWithContext> => {
     return source.pipe(
-      filter(
-        (event) =>
-          matchEvent(event, 'bridgePolkadotMessages', 'MessagesDelivered') ||
-          matchEvent(event, 'bridgeKusamaMessages', 'MessagesDelivered')
+      filter((event) =>
+        matchEvent(
+          event,
+          ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
+          'MessageAccepted'
+        )
       ),
       mergeMap((blockEvent) => {
+        console.log(
+          'ACCEPTED ============================================= ACCEPTED',
+          blockEvent.blockNumber.toNumber()
+        );
+        const data = blockEvent.data as unknown as BridgeMessageAccepted;
+        const laneId = data.laneId.toU8a();
+        const nonce = data.nonce.toU8a();
+        const consensus = getConsensus(origin);
+        const { messagesOutboundPartial } = bridgeStorageKeys[consensus];
+
+        const value = u8aConcat(laneId, nonce);
+
+        const arg = u8aConcat(blake2AsU8a(value, 128), value);
+        const key = (messagesOutboundPartial + Buffer.from(arg).toString('hex')) as HexString;
+        console.log('storage key ==============================', key);
+        return getStorage(blockEvent.blockHash.toHex(), key).pipe(
+          mergeMap((buf) => {
+            console.log('GOT STORAGE ITEM', u8aToHex(buf));
+            // if registry does not have needed types, register them
+            if (!registry.hasType('BridgeMessage')) {
+              registry.register({
+                VersionedInteriorLocation: {
+                  _enum: {
+                    V0: null,
+                    V1: null,
+                    V2: 'XcmV2MultilocationJunctions',
+                    V3: 'XcmV3Junctions',
+                  },
+                },
+                BridgeMessage: {
+                  universal_dest: 'VersionedInteriorLocation',
+                  message: 'XcmVersionedXcm',
+                },
+              });
+            }
+
+            const msgs: XcmBridgeAcceptedWithContext[] = [];
+
+            // we use the length of the u8 array instead of Option
+            // since the value is bare.
+            if (buf.length > 1) {
+              const bytes = registry.createType('Bytes', buf) as unknown as Bytes;
+              let baseOffset = 0;
+
+              while (baseOffset < bytes.length) {
+                const [offset, length] = compactFromU8aLim(bytes.slice(baseOffset));
+                const increment = offset + length;
+                const msgBuf = bytes.slice(baseOffset + offset, baseOffset + increment);
+                baseOffset += increment;
+
+                const bridgeMessage = registry.createType('BridgeMessage', msgBuf) as unknown as BridgeMessage;
+                const recipient = networkIdFromInteriorLocation(bridgeMessage.universal_dest);
+                console.log('MSG ================================', bridgeMessage.toHuman());
+                console.log('REC ======================================', recipient);
+                if (recipient === undefined) {
+                  continue;
+                }
+                const xcmProgram = bridgeMessage.message;
+                const messageId = getMessageId(xcmProgram);
+                let forwardId: HexString | undefined;
+                if (messageId !== undefined) {
+                  const constant = 'forward_id_for';
+                  const derivedIdBuf = u8aConcat(stringToU8a(constant), hexToU8a(messageId));
+                  forwardId = blake2AsHex(derivedIdBuf);
+                }
+
+                const xcmBridgeSent = new GenericXcmBridgeAcceptedWithContext({
+                  event: blockEvent.toHuman(),
+                  blockHash: blockEvent.blockHash.toHex(),
+                  blockNumber: blockEvent.blockNumber.toPrimitive(),
+                  extrinsicId: blockEvent.extrinsicId,
+                  messageData: xcmProgram.toHex(),
+                  recipient,
+                  messageHash: xcmProgram.hash.toHex(),
+                  instructions: xcmProgram.toHuman(),
+                  messageId,
+                  forwardId,
+                  bridgeKey: u8aToHex(hexToU8a(key).slice(48)),
+                  chainId: origin,
+                });
+
+                msgs.push(xcmBridgeSent);
+              }
+            }
+            return from(msgs);
+          })
+        );
+      })
+    );
+  };
+}
+
+export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Registry) {
+  return (source: Observable<types.BlockEvent>): Observable<XcmBridgeDeliveredWithContext> => {
+    return source.pipe(
+      filter((event) =>
+        matchEvent(
+          event,
+          ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
+          'MessagesDelivered'
+        )
+      ),
+      mergeMap((blockEvent) => {
+        console.log(
+          'DELIVERED ========================================================= DELIVERED',
+          blockEvent.blockNumber.toNumber()
+        );
         const data = blockEvent.data as unknown as BridgeMessagesDelivered;
+        console.log('Data: ', data.toHuman());
         const begin = data.messages.begin.toNumber();
         const end = data.messages.end.toNumber();
         const laneId = data.laneId.toU8a();
-        const consensus = getConsensus(origin);
-        const { messagesOutboundPartial } = bridgeStorageKeys[consensus];
-        const storageKeys: HexString[] = [];
+        const msgs: XcmBridgeDeliveredWithContext[] = [];
 
         for (let i = begin; i <= end; i++) {
           const nonce = registry.createType('u64', i);
           const value = u8aConcat(laneId, nonce.toU8a());
 
-          const arg = u8aConcat(blake2AsU8a(value, 128), value);
-          const key = (messagesOutboundPartial + Buffer.from(arg).toString('hex')) as HexString;
-
-          storageKeys.push(key);
+          const bridgeKey = u8aToHex(value);
+          msgs.push(
+            new GenericXcmBridgeDeliveredWithContext({
+              chainId: origin,
+              bridgeKey,
+              event: blockEvent.toHuman(),
+              extrinsicId: blockEvent.extrinsicId,
+              blockNumber: blockEvent.blockNumber.toPrimitive(),
+              blockHash: blockEvent.blockHash.toHex(),
+              sender: getSendersFromEvent(blockEvent),
+            })
+          );
         }
 
-        return from(storageKeys).pipe(
-          switchMap((key) =>
-            getStorage(blockEvent.blockHash.toHex(), key).pipe(
-              mergeMap((buf) => {
-                // if registry does not have needed types, register them
-                if (!registry.hasType('BridgeMessage')) {
-                  registry.register({
-                    VersionedInteriorLocation: {
-                      _enum: {
-                        V0: null,
-                        V1: null,
-                        V2: 'XcmV2MultilocationJunctions',
-                        V3: 'XcmV3Junctions',
-                      },
-                    },
-                    BridgeMessage: {
-                      universal_dest: 'VersionedInteriorLocation',
-                      message: 'XcmVersionedXcm',
-                    },
-                  });
-                }
-
-                const msgs: XcmBridgeSentWithContext[] = [];
-                let baseOffset = 0;
-                while (baseOffset < buf.length) {
-                  const [offset, length] = compactFromU8aLim(buf.slice(baseOffset));
-                  const increment = offset + length;
-                  const msgBuf = buf.slice(baseOffset + offset, baseOffset + increment);
-                  baseOffset += increment;
-
-                  const bridgeMessage = registry.createType('BridgeMessage', msgBuf) as unknown as BridgeMessage;
-                  const recipient = networkIdFromInteriorLocation(bridgeMessage.universal_dest);
-                  if (recipient === undefined) {
-                    continue;
-                  }
-                  const xcmProgram = bridgeMessage.message;
-                  const messageId = getMessageId(xcmProgram);
-                  let forwardId: HexString | undefined;
-                  if (messageId !== undefined) {
-                    const constant = 'forward_id_for';
-                    const derivedIdBuf = u8aConcat(stringToU8a(constant), hexToU8a(messageId));
-                    forwardId = blake2AsHex(derivedIdBuf);
-                  }
-
-                  const xcmBridgeSent = new GenericXcmBridgeSentWithContext({
-                    event: blockEvent.toHuman(),
-                    sender: getSendersFromEvent(blockEvent),
-                    blockHash: blockEvent.blockHash.toHex(),
-                    blockNumber: blockEvent.blockNumber.toPrimitive(),
-                    extrinsicId: blockEvent.extrinsicId,
-                    messageData: xcmProgram.toHex(),
-                    recipient,
-                    messageHash: xcmProgram.hash.toHex(),
-                    instructions: xcmProgram.toHuman(),
-                    messageId,
-                    forwardId,
-                    bridgeKey: u8aToHex(hexToU8a(key).slice(48)),
-                    chainId: origin,
-                  });
-
-                  msgs.push(xcmBridgeSent);
-                }
-                return from(msgs);
-              })
-            )
-          )
-        );
+        return from(msgs);
       })
     );
   };
@@ -123,10 +180,12 @@ export function extractBridgeSend(origin: NetworkURN, registry: Registry, getSto
 export function extractBridgeReceive(origin: NetworkURN) {
   return (source: Observable<types.BlockEvent>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
-      filter(
-        (event) =>
-          matchEvent(event, 'bridgePolkadotMessages', 'MessagesReceived') ||
-          matchEvent(event, 'bridgeKusamaMessages', 'MessagesReceived')
+      filter((event) =>
+        matchEvent(
+          event,
+          ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
+          'MessagesReceived'
+        )
       ),
       mergeMap((event) => {
         // for some reason the Vec is wrapped with another array?

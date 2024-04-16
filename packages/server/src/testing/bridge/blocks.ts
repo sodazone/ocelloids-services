@@ -84,10 +84,23 @@ export const relayHrmpReceivePolkadot = {
 // Bridge blocks
 const ksmBridgeData =
   'dd010302090200a10f031c2509030b0100a10f01040002010903000700e87648170a130002010903000700e8764817000d010204000101002cb783d5c0ddcccd2608c83d43ee6fc19320408c24764c2f8ac164b27beaee372cf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab';
-export const bridgeOutKusama = {
+export const bridgeOutAcceptedKusama = {
+  origin: 'urn:ocn:kusama:1002',
+  blocks: from(testBlocksFrom('ksm-bridgehub-bridge-accepted.cbor.bin', 'kusama-bridge-hub.json')),
+  getStorage: () => from([new Uint8Array(Buffer.from(ksmBridgeData, 'hex'))]),
+};
+
+const rocData =
+  'dd010302090400a10f031c2509050b0100a10f0104000201090500070088526a740a13000201090500070088526a74000d01020400010100b8b252915f3539ec83e068f10cff92dac918f2b92005eb16ba0e6208924c5b1d2cf930b8dca0b4da50bde3ee542ab47256f91e0286d0d5efb2b06cece16c838247';
+export const bridgeOutAcceptedRococo = {
+  origin: 'urn:ocn:rococo:1013',
+  blocks: from(testBlocksFrom('roc-bridge-out-accepted.cbor.bin', 'rococo-bridge-hub.json')),
+  getStorage: () => from([new Uint8Array(Buffer.from(rocData, 'hex'))]),
+};
+
+export const bridgeOutDeliveredKusama = {
   origin: 'urn:ocn:kusama:1002',
   blocks: from(testBlocksFrom('ksm-bridgehub-bridge-out.cbor.bin', 'kusama-bridge-hub.json')),
-  getStorage: () => from([new Uint8Array(Buffer.from(ksmBridgeData, 'hex'))]),
 };
 
 export const bridgeInPolkadot = {

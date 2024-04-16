@@ -41,7 +41,8 @@ export const prefixes = {
     relay: 'ma:relay',
     hop: 'ma:hop',
     bridge: 'ma:bridge',
-    bridgeOut: 'ma:bridgeOut',
+    bridgeAccepted: 'ma:bridgeAccepted',
+    bridgeDelivered: 'ma:bridgeDelivered',
     bridgeIn: 'ma:bridgeIn',
   },
   distributor: {

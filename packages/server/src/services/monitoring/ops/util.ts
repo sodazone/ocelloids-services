@@ -26,19 +26,27 @@ import {
   XcmV4Junction,
   VersionedInteriorLocation,
 } from './xcm-types.js';
-import { createNetworkId, getConsensus } from '../../config.js';
+import { isGlobalConsensus, GlobalConsensus, createNetworkId, getConsensus } from '../../config.js';
 import { NetworkURN } from '../../types.js';
 
-const POLKADOT_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:polkadot:1002';
-const KUSAMA_BRIDGE_HUB_NETWORK_ID = 'urn:ocn:kusama:1002';
+const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
+  polkadot: 'urn:ocn:polkadot:1002',
+  kusama: 'urn:ocn:kusama:1002',
+  rococo: 'urn:ocn:rococo:1013',
+  westend: 'urn:ocn:westend:1002',
+  local: 'urn:ocn:local:1002',
+  wococo: 'urn:ocn:wococo:1002',
+  ethereum: undefined,
+  byfork: undefined,
+  bygenesis: undefined,
+  bitcoincore: undefined,
+  bitcoincash: undefined,
+};
 
-export function getBridgeHubNetworkId(consensus: string | NetworkURN) {
+export function getBridgeHubNetworkId(consensus: string | NetworkURN): NetworkURN | undefined {
   const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus;
-  if (c === 'polkadot') {
-    return POLKADOT_BRIDGE_HUB_NETWORK_ID;
-  }
-  if (c === 'kusama') {
-    return KUSAMA_BRIDGE_HUB_NETWORK_ID;
+  if (isGlobalConsensus(c)) {
+    return BRIDGE_HUB_NETWORK_IDS[c];
   }
   return undefined;
 }
@@ -326,8 +334,11 @@ export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed)
   }
 }
 
-export function matchEvent(event: types.BlockEvent, section: string, method: string | string[]) {
-  return section === event.section && Array.isArray(method) ? method.includes(event.method) : method === event.method;
+export function matchEvent(event: types.BlockEvent, section: string | string[], method: string | string[]) {
+  return (
+    (Array.isArray(section) ? section.includes(event.section) : section === event.section) &&
+    (Array.isArray(method) ? method.includes(event.method) : method === event.method)
+  );
 }
 
 export function matchExtrinsic(extrinsic: types.ExtrinsicWithId, section: string, method: string | string[]): boolean {

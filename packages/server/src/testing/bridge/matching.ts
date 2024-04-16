@@ -174,11 +174,12 @@ Kusama bridge out
 
 import {
   XcmBridgeInboundWithContext,
-  XcmBridgeSentWithContext,
+  XcmBridgeAcceptedWithContext,
   XcmInbound,
   XcmNotificationType,
   XcmRelayedWithContext,
   XcmSent,
+  XcmBridgeDeliveredWithContext,
 } from '../../services/monitoring/types';
 
 /*
@@ -341,7 +342,8 @@ type MatchBridgeMessages = {
   origin: XcmSent;
   relay0: XcmRelayedWithContext;
   bridgeXcmIn: XcmInbound;
-  bridgeOut: XcmBridgeSentWithContext;
+  bridgeAccepted: XcmBridgeAcceptedWithContext;
+  bridgeDelivered: XcmBridgeDeliveredWithContext;
   bridgeIn: XcmBridgeInboundWithContext;
   bridgeXcmOut: XcmSent;
   relay1: XcmRelayedWithContext;
@@ -448,13 +450,33 @@ export const matchBridgeMessages: MatchBridgeMessages = {
     error: undefined,
     assetsTrapped: undefined,
   },
-  bridgeOut: {
+  bridgeAccepted: {
     chainId: 'urn:ocn:kusama:1002',
+    bridgeKey: '0x000000010100000000000000',
     messageData:
       '0x031c2509030b0100a10f01040002010903000700e87648170a130002010903000700e8764817000d010204000101002cb783d5c0ddcccd2608c83d43ee6fc19320408c24764c2f8ac164b27beaee372cf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab',
     recipient: 'urn:ocn:polkadot:1000',
     instructions: {},
     messageHash: '0xd20ec7c40bffddbc725c6f8a513daac289eff67fc8c50327f8133035402829d2',
+    event: {
+      eventId: '3076892-1',
+      blockPosition: 1,
+      blockNumber: '3,076,892',
+      blockHash: '0xb97d57e388c812f755dbfa025ba67f1347fac1adfb81caf5b0fb48653f7f40d2',
+      method: 'MessageAccepted',
+      section: 'bridgePolkadotMessages',
+      index: '0x3500',
+      data: { laneId: '0x00000001', nonce: '1' },
+    },
+    blockHash: '0xb97d57e388c812f755dbfa025ba67f1347fac1adfb81caf5b0fb48653f7f40d2',
+    blockNumber: '3076892',
+    extrinsicId: undefined,
+    messageId: '0xf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab',
+    forwardId: '0x4b422c686214e14cc3034a661b6a01dfd2c9a811ef9ec20ef798d0e687640e6d',
+  },
+  bridgeDelivered: {
+    chainId: 'urn:ocn:kusama:1002',
+    bridgeKey: '0x000000010100000000000000',
     event: {
       extrinsicId: '3076900-2',
       extrinsicPosition: 5,
@@ -462,6 +484,12 @@ export const matchBridgeMessages: MatchBridgeMessages = {
         extrinsicId: '3076900-2',
         blockNumber: '3,076,900',
         blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
+        position: 2,
+        extraSigners: [],
+        isSigned: true,
+        signature:
+          '0xce0a6660e69ad7c1c90fabc109f182efa1cbc1ce1dcd495abd0b835cb6fd0a365422f14e7ba0551a6afbacbab04f75b7f7084c2b22dd07ce1ffff0e25fbc988c',
+        tip: '0',
       },
       eventId: '3076900-8',
       blockPosition: 8,
@@ -472,11 +500,9 @@ export const matchBridgeMessages: MatchBridgeMessages = {
       index: '0x3502',
       data: { laneId: '0x00000001', messages: [] },
     },
-    blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
-    blockNumber: '3076900',
     extrinsicId: '3076900-2',
-    messageId: '0xf7d2f132944c0c518b4c862d6e68030f0ba49808125a805a11a9ede30d0410ab',
-    forwardId: '0x4b422c686214e14cc3034a661b6a01dfd2c9a811ef9ec20ef798d0e687640e6d',
+    blockNumber: '3076900',
+    blockHash: '0x79242237c34c9cfc1f4eed26f335ca602bdc3e69ff93225d0b84d196dd8591ea',
     sender: {
       signer: {
         id: 'HppRiCoXkhb1URsL2qWyaCqA3cigAgDBsPZWWbY3gx1kcNv',
@@ -484,7 +510,6 @@ export const matchBridgeMessages: MatchBridgeMessages = {
       },
       extraSigners: [],
     },
-    bridgeKey: '0x000000010100000000000000',
   },
   bridgeIn: {
     chainId: 'urn:ocn:polkadot:1002',

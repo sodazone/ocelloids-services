@@ -10,6 +10,7 @@ export type {
   XcmSent,
   XcmTimeout,
   XcmHop,
+  XcmBridge,
   AssetsTrapped,
   TrappedAsset,
   XcmNotifyMessage,
@@ -18,5 +19,5 @@ export type {
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
-  SignerData
+  SignerData,
 } from './services/monitoring/types.js';

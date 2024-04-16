@@ -37,6 +37,11 @@ const globalConsensus = [
 
 export type GlobalConsensus = (typeof globalConsensus)[number];
 
+export function isGlobalConsensus(value: string): value is GlobalConsensus {
+  const s: readonly string[] = globalConsensus;
+  return s.includes(value);
+}
+
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider]);
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`);

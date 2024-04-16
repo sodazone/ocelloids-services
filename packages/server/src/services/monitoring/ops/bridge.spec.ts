@@ -3,11 +3,8 @@ import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk';
 
 import { from } from 'rxjs';
 
-import { u8aToHex } from '@polkadot/util';
-
 import {
   registry,
-  bridgeOutKusama,
   xcmpReceiveKusamaBridgeHub,
   xcmpReceivePolkadotAssetHub,
   xcmpSendKusamaAssetHub,
@@ -15,11 +12,13 @@ import {
   relayHrmpReceiveKusama,
   relayHrmpReceivePolkadot,
   bridgeInPolkadot,
+  bridgeOutDeliveredKusama,
+  bridgeOutAcceptedRococo,
 } from '../../../testing/bridge/blocks.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
 import { extractRelayReceive } from './relay.js';
-import { extractBridgeReceive, extractBridgeSend } from './pk-bridge.js';
+import { extractBridgeReceive, extractBridgeMessageAccepted, extractBridgeMessageDelivered } from './pk-bridge.js';
 
 import { NetworkURN } from '../../types.js';
 import { fromXcmpFormat } from './xcm-format.js';
@@ -198,15 +197,26 @@ describe('relay operator', () => {
 });
 
 describe('bridge operator', () => {
-  describe('extractBridgeSend', () => {
+  describe('extractBridgeMessageAccepted', () => {
     it('should do something', () => {
-      const { origin, blocks, getStorage } = bridgeOutKusama;
+      const { origin, blocks, getStorage } = bridgeOutAcceptedRococo;
       // expect(msg.forwardId).toBeDefined();
-      extractBridgeSend(
+      extractBridgeMessageAccepted(
         origin as NetworkURN,
         registry,
         getStorage
-      )(blocks.pipe(extractEvents())).subscribe((x) => console.log('-------------------'));
+      )(blocks.pipe(extractEvents())).subscribe((x) => console.log('ACCEPTED -------------------', x));
+    });
+  });
+
+  describe('extractBridgeMessageDelivered', () => {
+    it('should do something', () => {
+      const { origin, blocks } = bridgeOutDeliveredKusama;
+      // expect(msg.forwardId).toBeDefined();
+      extractBridgeMessageDelivered(
+        origin as NetworkURN,
+        registry
+      )(blocks.pipe(extractEvents())).subscribe((x) => console.log('DELIVERED -------------------', x));
     });
   });
 
@@ -214,7 +224,7 @@ describe('bridge operator', () => {
     it('should do something', () => {
       const { origin, blocks } = bridgeInPolkadot;
       extractBridgeReceive(origin as NetworkURN)(blocks.pipe(extractEvents())).subscribe((x) =>
-        console.log('-------------------', x)
+        console.log('-------------------')
       );
     });
   });

@@ -138,14 +138,23 @@ export interface XcmSentWithContext extends XcmWithContext {
   instructions: XcmProgram;
 }
 
-export interface XcmBridgeSentWithContext extends XcmWithContext {
+export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   chainId: NetworkURN;
   bridgeKey: HexString;
   messageData: HexString;
   instructions: AnyJson;
   recipient: NetworkURN;
-  sender?: SignerData;
   forwardId?: HexString;
+}
+
+export interface XcmBridgeDeliveredWithContext {
+  chainId: NetworkURN;
+  bridgeKey: HexString;
+  event?: AnyJson;
+  extrinsicId?: string;
+  blockNumber: string | number;
+  blockHash: HexString;
+  sender?: SignerData;
 }
 
 export interface XcmBridgeInboundWithContext {
@@ -318,7 +327,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   }
 }
 
-export class GenericXcmBridgeSentWithContext implements XcmBridgeSentWithContext {
+export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWithContext {
   chainId: NetworkURN;
   bridgeKey: HexString;
   messageData: HexString;
@@ -328,12 +337,11 @@ export class GenericXcmBridgeSentWithContext implements XcmBridgeSentWithContext
   event: AnyJson;
   blockHash: HexString;
   blockNumber: string;
-  sender?: SignerData;
   extrinsicId?: string;
   messageId?: HexString;
   forwardId?: HexString;
 
-  constructor(msg: XcmBridgeSentWithContext) {
+  constructor(msg: XcmBridgeAcceptedWithContext) {
     this.chainId = msg.chainId;
     this.bridgeKey = msg.bridgeKey;
     this.event = msg.event;
@@ -346,6 +354,25 @@ export class GenericXcmBridgeSentWithContext implements XcmBridgeSentWithContext
     this.extrinsicId = msg.extrinsicId;
     this.messageId = msg.messageId;
     this.forwardId = msg.forwardId;
+  }
+}
+
+export class GenericXcmBridgeDeliveredWithContext implements XcmBridgeDeliveredWithContext {
+  chainId: NetworkURN;
+  bridgeKey: HexString;
+  event?: AnyJson;
+  extrinsicId?: string;
+  blockNumber: string;
+  blockHash: HexString;
+  sender?: SignerData;
+
+  constructor(msg: XcmBridgeDeliveredWithContext) {
+    this.chainId = msg.chainId;
+    this.bridgeKey = msg.bridgeKey;
+    this.event = msg.event;
+    this.extrinsicId = msg.extrinsicId;
+    this.blockNumber = msg.blockNumber.toString();
+    this.blockHash = msg.blockHash;
     this.sender = msg.sender;
   }
 }
@@ -520,6 +547,7 @@ export interface XcmReceived {
   destination: XcmTerminusContext;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 }
 
 /**
@@ -538,6 +566,7 @@ export class GenericXcmTimeout implements XcmTimeout {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
   constructor(msg: XcmSent) {
     this.subscriptionId = msg.subscriptionId;
@@ -547,6 +576,7 @@ export class GenericXcmTimeout implements XcmTimeout {
     this.waypoint = msg.waypoint;
     this.messageId = msg.messageId;
     this.sender = msg.sender;
+    this.forwardId = msg.forwardId;
   }
 }
 
@@ -559,6 +589,7 @@ export class GenericXcmReceived implements XcmReceived {
   destination: XcmTerminusContext;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
   constructor(outMsg: XcmSent, inMsg: XcmInbound) {
     this.subscriptionId = outMsg.subscriptionId;
@@ -578,7 +609,7 @@ export class GenericXcmReceived implements XcmReceived {
     this.origin = outMsg.origin;
     this.waypoint = {
       ...this.destination,
-      legIndex: this.legs.length - 1,
+      legIndex: this.legs.findIndex(l => l.to === inMsg.chainId && l.type !== 'bridge'),
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
@@ -586,6 +617,7 @@ export class GenericXcmReceived implements XcmReceived {
     };
     this.sender = outMsg.sender;
     this.messageId = outMsg.messageId;
+    this.forwardId = outMsg.forwardId;
   }
 }
 
@@ -606,6 +638,7 @@ export class GenericXcmRelayed implements XcmRelayed {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
   constructor(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
     this.subscriptionId = outMsg.subscriptionId;
@@ -627,6 +660,7 @@ export class GenericXcmRelayed implements XcmRelayed {
     };
     this.sender = outMsg.sender;
     this.messageId = outMsg.messageId;
+    this.forwardId = outMsg.forwardId;
   }
 }
 
@@ -649,6 +683,7 @@ export class GenericXcmHop implements XcmHop {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
   constructor(originMsg: XcmSent, hopWaypoint: XcmWaypointContext, direction: 'out' | 'in') {
     this.subscriptionId = originMsg.subscriptionId;
@@ -659,21 +694,31 @@ export class GenericXcmHop implements XcmHop {
     this.messageId = originMsg.messageId;
     this.sender = originMsg.sender;
     this.direction = direction;
+    this.forwardId = originMsg.forwardId
   }
 }
+
+export type BridgeMessageType = 'accepted' | 'delivered' | 'received';
 
 /**
  * Event emitted when an XCM is sent or received on an intermediate stop.
  *
  * @public
  */
-export interface XcmBridge extends XcmHop {
+export interface XcmBridge extends XcmSent {
   bridgeKey: HexString;
+  bridgeMessageType: BridgeMessageType;
+}
+
+type XcmBridgeContext = {
+  bridgeMessageType: BridgeMessageType,
+  bridgeKey: HexString,
+  forwardId?: HexString;
 }
 
 export class GenericXcmBridge implements XcmBridge {
   type: XcmNotificationType = XcmNotificationType.Bridge;
-  direction: 'out' | 'in';
+  bridgeMessageType: BridgeMessageType;
   subscriptionId: string;
   bridgeKey: HexString;
   legs: Leg[];
@@ -682,10 +727,15 @@ export class GenericXcmBridge implements XcmBridge {
   destination: XcmTerminus;
   sender?: SignerData;
   messageId?: HexString;
+  forwardId?: HexString;
 
-  constructor(originMsg: XcmSent, waypoint: XcmWaypointContext, direction: 'out' | 'in', bridgeKey: HexString) {
+  constructor(
+    originMsg: XcmSent,
+    waypoint: XcmWaypointContext,
+    { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext
+  ) {
     this.subscriptionId = originMsg.subscriptionId;
-    this.direction = direction;
+    this.bridgeMessageType = bridgeMessageType;
     this.legs = originMsg.legs;
     this.origin = originMsg.origin;
     this.destination = originMsg.destination;
@@ -693,6 +743,7 @@ export class GenericXcmBridge implements XcmBridge {
     this.messageId = originMsg.messageId;
     this.sender = originMsg.sender;
     this.bridgeKey = bridgeKey;
+    this.forwardId = forwardId
   }
 }
 
@@ -751,6 +802,10 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a));
 }
 
+const bridgeTypes = ['pk-bridge', 'snowbridge'] as const;
+
+export type BridgeType = (typeof bridgeTypes)[number];
+
 export const $Subscription = z
   .object({
     id: $SafeId,
@@ -771,6 +826,7 @@ export const $Subscription = z
           .min(1)
       )
       .transform(distinct),
+    bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
     ephemeral: z.optional(z.boolean()),
     channels: z
       .array(z.discriminatedUnion('type', [$WebhookNotification, $LogNotification, $WebsocketNotification]))
@@ -799,9 +855,12 @@ export type RxSubscriptionWithId = {
   sub: RxSubscription;
 };
 
+export type BridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] };
+
 export type RxSubscriptionHandler = {
   originSubs: RxSubscriptionWithId[];
   destinationSubs: RxSubscriptionWithId[];
+  bridgeSubs: BridgeSubscription[];
   sendersControl: ControlQuery;
   messageControl: ControlQuery;
   descriptor: Subscription;
