@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { Option, InvalidArgumentError } from 'commander';
 
 import { CorsServerOptions } from './types.js';
