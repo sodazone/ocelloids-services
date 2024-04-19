@@ -229,8 +229,6 @@ describe('message matching engine', () => {
     const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
     const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
 
-    cb.mockImplementation((msg) => console.log(msg.type));
-
     await engine.onOutboundMessage(origin);
     await engine.onRelayedMessage(subscriptionId, relay0);
     await engine.onInboundMessage(bridgeXcmIn);

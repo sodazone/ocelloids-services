@@ -13,7 +13,7 @@ import {
   relayHrmpReceivePolkadot,
   bridgeInPolkadot,
   bridgeOutDeliveredKusama,
-  bridgeOutAcceptedRococo,
+  bridgeOutAcceptedKusama,
 } from '../../../testing/bridge/blocks.js';
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js';
@@ -198,34 +198,90 @@ describe('relay operator', () => {
 
 describe('bridge operator', () => {
   describe('extractBridgeMessageAccepted', () => {
-    it('should do something', () => {
-      const { origin, blocks, getStorage } = bridgeOutAcceptedRococo;
-      // expect(msg.forwardId).toBeDefined();
-      extractBridgeMessageAccepted(
+    it('should do something', (done) => {
+      const { origin, destination, blocks, getStorage } = bridgeOutAcceptedKusama;
+
+      const calls = jest.fn();
+
+      const test$ = extractBridgeMessageAccepted(
         origin as NetworkURN,
         registry,
         getStorage
-      )(blocks.pipe(extractEvents())).subscribe((x) => console.log('ACCEPTED -------------------', x));
+      )(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.messageHash).toBeDefined();
+          expect(msg.recipient).toBeDefined();
+          expect(msg.recipient).toBe(destination);
+          expect(msg.forwardId).toBeDefined();
+          expect(msg.messageId).toBeDefined();
+          expect(msg.bridgeKey).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
     });
   });
 
   describe('extractBridgeMessageDelivered', () => {
-    it('should do something', () => {
+    it('should do something', (done) => {
       const { origin, blocks } = bridgeOutDeliveredKusama;
-      // expect(msg.forwardId).toBeDefined();
-      extractBridgeMessageDelivered(
-        origin as NetworkURN,
-        registry
-      )(blocks.pipe(extractEvents())).subscribe((x) => console.log('DELIVERED -------------------', x));
+
+      const calls = jest.fn();
+
+      const test$ = extractBridgeMessageDelivered(origin as NetworkURN, registry)(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.chainId).toBeDefined();
+          expect(msg.chainId).toBe(origin);
+          expect(msg.bridgeKey).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
     });
   });
 
   describe('extractBridgeReceive', () => {
-    it('should do something', () => {
+    it('should do something', (done) => {
       const { origin, blocks } = bridgeInPolkadot;
-      extractBridgeReceive(origin as NetworkURN)(blocks.pipe(extractEvents())).subscribe((x) =>
-        console.log('-------------------')
-      );
+
+      const calls = jest.fn();
+      const test$ = extractBridgeReceive(origin as NetworkURN)(blocks.pipe(extractEvents()));
+
+      test$.subscribe({
+        next: (msg) => {
+          expect(msg).toBeDefined();
+          expect(msg.blockNumber).toBeDefined();
+          expect(msg.blockHash).toBeDefined();
+          expect(msg.event).toBeDefined();
+          expect(msg.chainId).toBeDefined();
+          expect(msg.chainId).toBe(origin);
+          expect(msg.outcome).toBeDefined();
+          expect(msg.outcome).toBe('Success');
+          expect(msg.error).toBeNull();
+          expect(msg.bridgeKey).toBeDefined();
+          calls();
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1);
+          done();
+        },
+      });
     });
   });
 });

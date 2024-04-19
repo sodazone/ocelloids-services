@@ -609,7 +609,7 @@ export class GenericXcmReceived implements XcmReceived {
     this.origin = outMsg.origin;
     this.waypoint = {
       ...this.destination,
-      legIndex: this.legs.findIndex(l => l.to === inMsg.chainId && l.type !== 'bridge'),
+      legIndex: this.legs.findIndex((l) => l.to === inMsg.chainId && l.type !== 'bridge'),
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
@@ -694,7 +694,7 @@ export class GenericXcmHop implements XcmHop {
     this.messageId = originMsg.messageId;
     this.sender = originMsg.sender;
     this.direction = direction;
-    this.forwardId = originMsg.forwardId
+    this.forwardId = originMsg.forwardId;
   }
 }
 
@@ -711,10 +711,10 @@ export interface XcmBridge extends XcmSent {
 }
 
 type XcmBridgeContext = {
-  bridgeMessageType: BridgeMessageType,
-  bridgeKey: HexString,
+  bridgeMessageType: BridgeMessageType;
+  bridgeKey: HexString;
   forwardId?: HexString;
-}
+};
 
 export class GenericXcmBridge implements XcmBridge {
   type: XcmNotificationType = XcmNotificationType.Bridge;
@@ -743,7 +743,7 @@ export class GenericXcmBridge implements XcmBridge {
     this.messageId = originMsg.messageId;
     this.sender = originMsg.sender;
     this.bridgeKey = bridgeKey;
-    this.forwardId = forwardId
+    this.forwardId = forwardId;
   }
 }
 

@@ -667,10 +667,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     // TODO: should resolve relay id for consensus in context
     const relayIds = this.#ingress.getRelayIds();
-    const relayId = relayIds.find(r => getConsensus(r) === getConsensus(chainId))
-    
+    const relayId = relayIds.find((r) => getConsensus(r) === getConsensus(chainId));
+
     if (relayId === undefined) {
-      throw new Error(`No relay ID found for chain ${chainId}`)
+      throw new Error(`No relay ID found for chain ${chainId}`);
     }
     this.#log.info('[%s] subscribe relay %s xcm events (%s)', chainId, relayId, id);
     return {
