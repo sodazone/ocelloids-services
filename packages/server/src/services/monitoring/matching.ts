@@ -106,7 +106,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
       await this.#findRelayInbound(outMsg);
 
       if (outMsg.forwardId !== undefined) {
-        console.log('FORWARD ID =============', outMsg.forwardId)
         // Is bridged message
         // Try to match origin message (on other consensus) using the forward ID.
         // If found, create outbound message with origin context and current waypoint context
@@ -121,9 +120,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             waypoint,
           } = outMsg;
           const forwardIdKey = this.#matchingKey(subscriptionId, chainId, forwardId);
-          console.log('FORWARD ID KEY ====================', forwardIdKey)
           const originMsg = await this.#bridge.get(forwardIdKey);
-          console.log('FOUND ORIGIN MSG')
 
           const bridgedSent: XcmSent = {
             ...originMsg,
@@ -135,7 +132,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           await this.#tryMatchOnOutbound(bridgedSent, outboundTTL);
           await this.#bridge.del(forwardIdKey);
         } catch {
-          console.log('ORIGIN MSG NOT FOUND', outMsg)
           this.#onXcmOutbound(outMsg);
           await this.#tryMatchOnOutbound(outMsg, outboundTTL);
         }

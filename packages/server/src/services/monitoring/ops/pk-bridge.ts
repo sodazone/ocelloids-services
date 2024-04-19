@@ -39,10 +39,6 @@ export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Regis
         )
       ),
       mergeMap((blockEvent) => {
-        console.log(
-          'ACCEPTED ============================================= ACCEPTED',
-          blockEvent.blockNumber.toNumber()
-        );
         const data = blockEvent.data as unknown as BridgeMessageAccepted;
         const laneId = data.laneId.toU8a();
         const nonce = data.nonce.toU8a();
@@ -53,10 +49,9 @@ export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Regis
 
         const arg = u8aConcat(blake2AsU8a(value, 128), value);
         const key = (messagesOutboundPartial + Buffer.from(arg).toString('hex')) as HexString;
-        console.log('storage key ==============================', key);
+
         return getStorage(blockEvent.blockHash.toHex(), key).pipe(
           mergeMap((buf) => {
-            console.log('GOT STORAGE ITEM', u8aToHex(buf));
             // if registry does not have needed types, register them
             if (!registry.hasType('BridgeMessage')) {
               registry.register({
@@ -91,8 +86,6 @@ export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Regis
 
                 const bridgeMessage = registry.createType('BridgeMessage', msgBuf) as unknown as BridgeMessage;
                 const recipient = networkIdFromInteriorLocation(bridgeMessage.universal_dest);
-                console.log('MSG ================================', bridgeMessage.toHuman());
-                console.log('REC ======================================', recipient);
                 if (recipient === undefined) {
                   continue;
                 }
@@ -142,12 +135,7 @@ export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Regi
         )
       ),
       mergeMap((blockEvent) => {
-        console.log(
-          'DELIVERED ========================================================= DELIVERED',
-          blockEvent.blockNumber.toNumber()
-        );
         const data = blockEvent.data as unknown as BridgeMessagesDelivered;
-        console.log('Data: ', data.toHuman());
         const begin = data.messages.begin.toNumber();
         const end = data.messages.end.toNumber();
         const laneId = data.laneId.toU8a();
