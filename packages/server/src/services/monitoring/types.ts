@@ -65,7 +65,7 @@ function toHexString(buf: Uint8Array): HexString {
 
 /**
  * Account data of the signer of an XCM.
- * 
+ *
  * Includes any extra signers involved e.g. proxy accounts, multisigs
  *
  * @public

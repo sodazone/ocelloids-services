@@ -290,8 +290,11 @@ export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed)
   }
 }
 
-export function matchEvent(event: types.BlockEvent, section: string, method: string | string[]) {
-  return section === event.section && Array.isArray(method) ? method.includes(event.method) : method === event.method;
+export function matchEvent(event: types.BlockEvent, section: string | string[], method: string | string[]) {
+  return (
+    (Array.isArray(section) ? section.includes(event.section) : section === event.section) &&
+    (Array.isArray(method) ? method.includes(event.method) : method === event.method)
+  );
 }
 
 export function matchExtrinsic(extrinsic: types.ExtrinsicWithId, section: string, method: string | string[]): boolean {

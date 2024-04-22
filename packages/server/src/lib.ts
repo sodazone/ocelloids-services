@@ -18,5 +18,5 @@ export type {
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
-  SignerData
+  SignerData,
 } from './services/monitoring/types.js';
