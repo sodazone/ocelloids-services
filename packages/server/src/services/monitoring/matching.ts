@@ -534,6 +534,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     }
   }
 
+  // TODO: refactor to lower complexity
+  // eslint-disable-next-line complexity
   async #storekeysOnOutbound(msg: XcmSent, outboundTTL: number) {
     const log = this.#log;
     const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from));

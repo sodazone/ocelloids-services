@@ -103,7 +103,7 @@ export function extractXcmpReceive() {
           return null;
         }
 
-        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'xcmPallet', 'AssetsTrapped')
+        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['xcmPallet', 'polkadotXcm'], 'AssetsTrapped')
           ? maybeAssetTrapEvent
           : undefined;
         const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
