@@ -4,6 +4,11 @@ The Ocelloids Service Node emits metrics related to subscriptions, notifications
 
 ## Running
 
+> [!IMPORTANT]
+> We are mapping `host.docker.internal:host-gateway` in the docker compose "extra_hosts".
+> If you experience problems connecting from the container to the local host, just remove the "extra_hosts" configuration in the `docker-compose.yml`.
+> More info: https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host
+
 We've provided an example [Docker Compose](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/docker-compose.yml) file and sample configurations in the `telemetry` directory to facilitate the setup of Prometheus, Grafana, and Alertmanager.
 
 To run, navigate to the directory containing the Docker Compose file:
@@ -16,9 +21,6 @@ cd packages/server/guides/telemetry
 ```shell
 docker compose up
 ```
-
-> [!NOTE]
-> Remember to map `host.docker.internal` to the host address where the service node is running for Prometheus.
 
 ## Grafana
 
