@@ -6,6 +6,18 @@ TypeScript client library to interact with Ocelloids Service APIs.
 
 [Documentation Site](https://sodazone.github.io/ocelloids-services/).
 
+## Install
+
+NPM
+```shell
+npm install @sodazone/ocelloids-client
+```
+
+Yarn
+```shell
+yarn add @sodazone/ocelloids-client
+```
+
 ## Usage
 
 ```typescript
