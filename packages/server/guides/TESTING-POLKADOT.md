@@ -247,6 +247,12 @@ Upon receiving the next notification from the subscription that you have just ad
 NOTIFICATION xcm.received subscription=asset-hub-transfers leg=1 legs=[(from=urn:ocn:polkadot:1000, to=urn:ocn:polkadot:0)(from=urn:ocn:polkadot:0, to=urn:ocn:polkadot:2034)]
 ```
 
+## 6. Testing Websocket Notifications
+
+In addition to delivering notification messages through Webhooks, Ocelloids also supports Websocket delivery channels. This enables easy integration of Ocelloids subscriptions into apps. The simplest way to test Websocket support is by using the [Ocelloids Client Library](https://github.com/sodazone/ocelloids-services/tree/main/packages/client). Follow the README to create a simple test app for integration with Websocket subscriptions.
+
+The [XCM Tracker App](https://github.com/sodazone/xcm-tracker) is a demo application that utilizes the Ocelloids Client Library and Websocket subscriptions. You can run the app by following the instructions in [Run XCM Tracker App](#31-run-xcm-tracker-app-optional) to see the Websocket subscriptions in action.
+
 ## Troubleshooting
 
 When utilizing light client connections, we've observed occasional issues where, upon server start, the relay chain fails to receive finalized blocks after warp sync is completed. Similarly, chains connecting via light clients might stop receiving finalized blocks after the server has been running for some time. In both scenarios, a system restart typically resolves the issue.
