@@ -5,6 +5,9 @@ This guide provides detailed instructions for testing the Ocelloids Service on P
 ## 1. Running the Server
 
 > [!NOTE]
+> This section describes how to run the server in integrated mode. If you wish to run in distributed mode, i.e. with Redis, please follow the [Distributed Deployment Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/DISTRIBUTED.md).
+
+> [!NOTE]
 > If you're using light clients, you will only start receiving new or finalized blocks when warp sync is complete.
 
 You have two options for running the server: through the command line or using Docker.
@@ -142,7 +145,7 @@ Or tail and grep:
 tail -f /tmp/xcm.log | grep -E "STORED|MATCHED|NOTIFICATION"
 ```
 
-### Run XCM Tracker App (Optional)
+### 3.1. Run XCM Tracker App (Optional)
 
 If you want a convenient UI to view cross-chain transfers, you can run the XCM tracker app. To do so, follow the instructions below:
 
@@ -174,6 +177,75 @@ yarn && yarn dev
 ```
 
 The app should be running on http://localhost:5173. Select `ALL NETWORKS` from the UI to see XCM activity across all subscribed networks. Alternatively, you can choose to track only a single subscription by clicking `SELECT SUBSCRIPTION`.
+
+## 4. Set up Observability (Optional)
+
+We've provided an example [Docker Compose](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/docker-compose.yml) file and sample configurations in the `telemetry` directory to help you set up Prometheus, Grafana, and Alertmanager.
+
+To start, navigate to the directory containing the Docker Compose file:
+
+```shell
+# from project root
+cd packages/server/guides/telemetry
+```
+
+Then run:
+
+```shell
+docker compose up
+```
+
+If you wish to configure and set up Grafana, please follow the steps in our [Observability Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/OBSERVABILITY.md#grafana).
+
+## 5. Testing Webhook Templates
+ 
+Ocelloids supports templates on Webhook delivery channels, as explained in the [Subscription Guide](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/SUBSCRIPTION.md#templates). If you wish to apply a template to the notification message before delivery to your webhook, you can configure it in your subscriptions.
+
+Add a subscription with a simple template:
+
+```shell
+curl 'http://127.0.0.1:3000/subs' \
+--header 'Content-Type: application/json' \
+--data '[{
+    "id": "polkadot-transfers",
+    "origin": "urn:ocn:polkadot:0",
+    "senders": "*",
+    "destinations": ["urn:ocn:polkadot:1000", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006", "urn:ocn:polkadot:2034"],
+    "channels": [{
+      "type": "webhook",
+      "contentType": "text/plain",
+      "template": "NOTIFICATION {{type}} subscription={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+      "url": "https://enrycp95owk7o.x.pipedream.net"
+    }]
+}]'
+```
+
+If you already have active subscriptions, you can update one of your subscriptions with the `PATCH` method:
+
+```shell
+curl -X PATCH 'http://127.0.0.1:3000/subs/<subscription-id>' \
+--header 'Content-Type: application/json' \
+--data '[
+  { "op": "replace", "path": "/channels/0", "value": {
+      "type": "webhook",
+      "contentType": "text/plain",
+      "template": "NOTIFICATION {{type}} subscription={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+      "url": <webhook-url>
+  } }
+]'
+```
+
+Make sure to replace `<subscription-id>` and `<webhook-url>` with the ID of the corresponding subscription that you wish to update and the webhook URL that you are using. To list currently active subscriptions, use the following command:
+
+```shell
+curl 'http://127.0.0.1:3000/subs'
+```
+
+Upon receiving the next notification from the subscription that you have just added or updated, you should receive the message in your webhook transformed by the template:
+
+```
+NOTIFICATION xcm.received subscription=asset-hub-transfers leg=1 legs=[(from=urn:ocn:polkadot:1000, to=urn:ocn:polkadot:0)(from=urn:ocn:polkadot:0, to=urn:ocn:polkadot:2034)]
+```
 
 ## Troubleshooting
 
