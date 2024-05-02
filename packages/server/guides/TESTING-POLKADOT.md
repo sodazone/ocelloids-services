@@ -41,6 +41,14 @@ From `packages/server/`, run the node using `yarn` and pipe the output to stdout
 yarn oc-node -c ./config/polkadot.toml | tee /tmp/xcm.log
 ```
 
+#### 1.1.1. Enabling CORS from Command Line
+
+If you are planning to connect to the server from the browser, e.g. from the [XCM Tracker App](#run-xcm-tracker-app-optional), you will need to enable CORS in the server. To do so, simply run the server with the following command:
+
+```shell
+yarn server start -c config/polkadot.toml --cors true --address 0.0.0.0 | tee /tmp/xcm.log
+```
+
 :star2: Now you can proceed to [2. Add Subscriptions](#2-add-subscriptions).
 
 ### 1.2. Docker
@@ -68,7 +76,21 @@ Run the Docker image, mounting the configuration directory (and chain specs dire
 
 ```
 docker run -d \
-  -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
+  -e OC_CONFIG_FILE=./config/polkadot.toml \
+  -p 3000:3000 \
+  -v <PATH_TO_CONFIG>:/opt/oc/config \
+  sodazone/ocelloids-integrated-node
+```
+
+#### 1.2.1. Enabling CORS from Docker
+
+If you are planning to connect to the server from the browser, e.g. from the [XCM Tracker App](#run-xcm-tracker-app-optional), you will need to enable CORS in the server. To do so, simply run the server with the following command:
+
+```shell
+docker run \
+  -e OC_CONFIG_FILE=./config/polkadot.toml \  
+  -e OC_ADDRESS=0.0.0.0 \
+  -e OC_CORS=true \
   -p 3000:3000 \
   -v <PATH_TO_CONFIG>:/opt/oc/config \
   sodazone/ocelloids-integrated-node
@@ -145,6 +167,7 @@ Run:
 
 > [!IMPORTANT]
 > The service node needs to be running with CORS enabled.
+> See [Enabling CORS from Command Line](#111-enabling-cors-from-command-line) or [Enabling CORS from Docker](#121-enabling-cors-from-docker) if it is not yet enabled.
 
 ```shell
 yarn && yarn dev
