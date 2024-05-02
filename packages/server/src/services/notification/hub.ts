@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 
-import { Logger, Services } from '../types.js';
+import { Services } from '../types.js';
 import { Subscription, XcmNotifyMessage } from '../monitoring/types.js';
 import { Notifier, NotifierEmitter } from './types.js';
 import { LogNotifier } from './log.js';
@@ -13,7 +13,7 @@ import { TelemetryNotifierEventKeys } from '../telemetry/types.js';
  * Provides resolution of the supported notifiers.
  */
 export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
-  #log: Logger;
+  // #log: Logger;
   #notifiers: {
     [property: string]: Notifier;
   };
@@ -21,7 +21,7 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
   constructor(services: Services) {
     super();
 
-    this.#log = services.log;
+    // this.#log = services.log;
     this.#notifiers = {
       log: new LogNotifier(this, services),
       webhook: new WebhookNotifier(this, services),

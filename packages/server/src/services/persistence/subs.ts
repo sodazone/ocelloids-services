@@ -9,12 +9,12 @@ import { IngressConsumer } from '../ingress/index.js';
  * A subscription is expected to have a unique id in the database.
  */
 export class SubsStore {
-  readonly #log: Logger;
+  // readonly #log: Logger;
   readonly #db: DB;
   readonly #ingress: IngressConsumer;
 
-  constructor(log: Logger, db: DB, ingress: IngressConsumer) {
-    this.#log = log;
+  constructor(_log: Logger, db: DB, ingress: IngressConsumer) {
+    // this.#log = log;
     this.#db = db;
     this.#ingress = ingress;
   }

@@ -277,7 +277,7 @@ export class DistributedIngressConsumer
  * within a local or integrated environment.
  */
 export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEventEmitter) implements IngressConsumer {
-  readonly #log: Logger;
+  // readonly #log: Logger;
   readonly #headCatcher: HeadCatcher;
   readonly #config: ServiceConfiguration;
   readonly #registries$: Record<NetworkURN, Observable<Registry>>;
@@ -285,7 +285,7 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
   constructor(ctx: Services) {
     super();
 
-    this.#log = ctx.log;
+    // this.#log = ctx.log;
     this.#config = ctx.localConfig;
     this.#headCatcher = new HeadCatcher(ctx);
     this.#registries$ = {};

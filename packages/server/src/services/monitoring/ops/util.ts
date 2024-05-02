@@ -1,9 +1,7 @@
 import type {
-  XcmVersionedMultiLocation,
-  XcmV3MultiLocation,
+  StagingXcmV3MultiLocation,
   XcmV2MultiLocation,
   XcmV3Junctions,
-  XcmVersionedMultiAssets,
   XcmV2MultiassetMultiAssets,
   XcmV3MultiassetMultiAssets,
   XcmV2MultilocationJunctions,
@@ -196,7 +194,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
 
 // eslint-disable-next-line complexity
 export function getParaIdFromMultiLocation(
-  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location
+  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location
 ): string | undefined {
   const junctions = loc.interior;
   if (junctions.type === 'Here') {
@@ -230,7 +228,7 @@ export function getParaIdFromMultiLocation(
 
 // eslint-disable-next-line complexity
 export function networkIdFromMultiLocation(
-  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location,
+  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
   currentNetworkId: NetworkURN
 ): NetworkURN | undefined {
   const { parents, interior: junctions } = loc;
@@ -265,7 +263,7 @@ export function networkIdFromMultiLocation(
 }
 
 export function networkIdFromVersionedMultiLocation(
-  loc: XcmVersionedMultiLocation | XcmVersionedLocation,
+  loc: XcmVersionedLocation,
   currentNetworkId: NetworkURN
 ): NetworkURN | undefined {
   switch (loc.type) {
@@ -338,7 +336,7 @@ function createTrappedAssetsFromAssets(version: number, assets: XcmV4AssetAssets
   }));
 }
 
-function mapVersionedAssets(assets: XcmVersionedMultiAssets | XcmVersionedAssets): TrappedAsset[] {
+function mapVersionedAssets(assets: XcmVersionedAssets): TrappedAsset[] {
   switch (assets.type) {
     case 'V2':
     case 'V3':
@@ -357,7 +355,7 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
   const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
     hash_: H256,
     _origin: any,
-    assets: XcmVersionedMultiAssets | XcmVersionedAssets,
+    assets: XcmVersionedAssets,
   ];
   return {
     event: {

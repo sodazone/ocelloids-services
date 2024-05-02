@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import '@polkadot/api-augment/polkadot';
 
 import { jest } from '@jest/globals';

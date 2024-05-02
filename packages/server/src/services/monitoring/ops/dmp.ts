@@ -2,7 +2,6 @@ import { bufferCount, mergeMap, map, filter, Observable } from 'rxjs';
 
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot';
-import type { XcmVersionedMultiLocation, XcmVersionedMultiAssets } from '@polkadot/types/lookup';
 import type { Registry } from '@polkadot/types/types';
 import type { Compact } from '@polkadot/types';
 import type { BlockNumber } from '@polkadot/types/interfaces';
@@ -31,9 +30,10 @@ import {
   getSendersFromEvent,
 } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
-import { XcmVersionedXcm } from './xcm-types.js';
+import { XcmVersionedXcm, XcmVersionedAssets, XcmVersionedLocation } from './xcm-types.js';
 import { GetDownwardMessageQueues } from '../types-augmented.js';
 import { NetworkURN } from '../../types.js';
+import { blockEventToHuman } from './common.js';
 
 /*
  ==================================================================================
@@ -57,10 +57,11 @@ type XcmContext = {
   event?: types.BlockEvent;
 };
 
+// eslint-disable-next-line complexity
 function matchInstructions(
   xcmProgram: XcmVersionedXcm,
-  assets: XcmVersionedMultiAssets,
-  beneficiary: XcmVersionedMultiLocation
+  assets: XcmVersionedAssets,
+  beneficiary: XcmVersionedLocation
 ): boolean {
   const program = xcmProgram.value.toHuman() as Json[];
   let sameAssetFun = false;
@@ -101,7 +102,7 @@ function createXcmMessageSent({
   return new GenericXcmSentWithContext({
     blockHash: blockHash.toHex(),
     blockNumber: blockNumber.toPrimitive(),
-    event: event ? event.toHuman() : {},
+    event: event ? blockEventToHuman(event) : {},
     recipient,
     instructions: {
       bytes: program.toU8a(),
@@ -120,9 +121,9 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((tx) => {
-        const dest = tx.extrinsic.args[0] as XcmVersionedMultiLocation;
-        const beneficiary = tx.extrinsic.args[1] as XcmVersionedMultiLocation;
-        const assets = tx.extrinsic.args[2] as XcmVersionedMultiAssets;
+        const dest = tx.extrinsic.args[0] as XcmVersionedLocation;
+        const beneficiary = tx.extrinsic.args[1] as XcmVersionedLocation;
+        const assets = tx.extrinsic.args[2] as XcmVersionedAssets;
 
         const recipient = networkIdFromVersionedMultiLocation(dest, origin);
 
@@ -300,7 +301,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent);
 
   return new GenericXcmInboundWithContext({
-    event: event.toHuman(),
+    event: blockEventToHuman(event),
     blockHash: event.blockHash.toHex(),
     blockNumber: event.blockNumber.toPrimitive(),
     extrinsicId: event.extrinsicId,

@@ -19,16 +19,16 @@
   "private": true,
   "packageManager": "yarn@4.1.0",
   "devDependencies": {
-    "eslint": "^8.57.0",
+    "eslint": "^9.1.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
     "prettier": "3.2.5",
-    "typescript": "^5.4.2",
-    "typescript-eslint": "^7.1.1"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.8.0"
   },
   "resolutions": {
     "@substrate/connect": "0.8.4",
     "@polkadot/util": "patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch",
-    "@polkadot/rpc-core": "patch:@polkadot/rpc-core@npm%3A10.12.2#~/.yarn/patches/@polkadot-rpc-core-npm-10.12.2-455f33ffb2.patch"
+    "@polkadot/rpc-core@npm:11.0.2": "patch:@polkadot/rpc-core@npm%3A11.0.2#~/.yarn/patches/@polkadot-rpc-core-npm-11.0.2-abf12dd244.patch"
   }
 }

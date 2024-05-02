@@ -4,6 +4,7 @@ import type { Registry } from '@polkadot/types/types';
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
+  AnyJson,
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   MessageQueueEventContext,
@@ -15,6 +16,7 @@ import { fromXcmpFormat } from './xcm-format.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
 import { createNetworkId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
+import { blockEventToHuman, xcmMessagesSent } from './common.js';
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail'];
 
@@ -60,26 +62,6 @@ function findOutboundHrmpMessage(
   };
 }
 
-// TODO: duplicate in UMP, extract and reuse?
-function xcmpMessagesSent() {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
-    return source.pipe(
-      map((event) => {
-        const xcmMessage = event.data as any;
-        return {
-          event: event.toHuman(),
-          sender: getSendersFromEvent(event),
-          blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toPrimitive(),
-          extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash?.toHex(),
-          messageId: xcmMessage.messageId?.toHex(),
-        } as XcmSentWithContext;
-      })
-    );
-  };
-}
-
 export function extractXcmpSend(
   origin: NetworkURN,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
@@ -88,7 +70,7 @@ export function extractXcmpSend(
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter((event) => matchEvent(event, 'xcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')),
-      xcmpMessagesSent(),
+      xcmMessagesSent(),
       findOutboundHrmpMessage(origin, getOutboundHrmpMessages, registry)
     );
   };
@@ -98,6 +80,7 @@ export function extractXcmpReceive() {
   return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),
+      // eslint-disable-next-line complexity
       map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
         if (maybeXcmpEvent === undefined) {
           return null;
@@ -112,7 +95,7 @@ export function extractXcmpReceive() {
           const xcmpQueueData = maybeXcmpEvent.data as any;
 
           return new GenericXcmInboundWithContext({
-            event: maybeXcmpEvent.toHuman(),
+            event: blockEventToHuman(maybeXcmpEvent),
             blockHash: maybeXcmpEvent.blockHash.toHex(),
             blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
             extrinsicId: maybeXcmpEvent.extrinsicId,
@@ -130,7 +113,7 @@ export function extractXcmpReceive() {
           const messageHash = messageId;
 
           return new GenericXcmInboundWithContext({
-            event: maybeXcmpEvent.toHuman(),
+            event: blockEventToHuman(maybeXcmpEvent),
             blockHash: maybeXcmpEvent.blockHash.toHex(),
             blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
             messageHash,
