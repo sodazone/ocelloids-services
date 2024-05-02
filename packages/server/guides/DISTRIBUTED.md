@@ -67,7 +67,7 @@ To run the execution layer node, follow the instructions provided in the [Ocello
 From `packages/server`, run:
 
 ```shell
-yarn oc-node --config <path/to/your-config.toml> --distributed --redis <redis-url>
+yarn oc-node --config <path/to/your-config.toml> --distributed --redis <redis-url> --address 0.0.0.0
 ```
 
 You can use `./config/minimal.toml` as `<path/to/your-config.toml>` and `redis://127.0.0.1:6379` as `<redis-url>`.
