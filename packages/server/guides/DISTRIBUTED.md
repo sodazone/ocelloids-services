@@ -20,7 +20,7 @@ docker run --rm -p 6379:6379 --name oc-redis redis
 
 ## Ingress Layer
 
-The ingress layer is the one connected to onchain sources, either through RPC or P2P protocols. It serves as the unique layer with connectivity to blockchain networks.
+The ingress layer is connected to onchain sources through RPC or P2P protocols. It serves as the unique layer with connectivity to blockchain networks.
 
 Its primary function is to publish onchain data into streams, including extended block data and storage items. Additionally, it maintains a registry of the available networks in the system along with their respective runtime metadata.
 
@@ -30,7 +30,7 @@ The streams provide indexed access while retaining the last N items and facilita
 
 The source code is located in `packages/server/services/ingress`.
 
-### Command Line
+### Running from Command Line
 
 From the root of the project, install and build:
 
@@ -45,48 +45,54 @@ yarn && yarn build
 From `packages/server`, run:
 
 ```shell
-yarn oc-ingress --help
+OC_CONFIG_FILE=<path/to/your-config.toml> yarn oc-ingress --redis <redis-url>
 ```
 
-Or, in development mode:
+You can use `./config/minimal.toml` as `<path/to/your-config.toml>` for a minimal configuration for Polkadot and Assethub. Use `redis://127.0.0.1:6379` for `<redis-url>`.
 
-```shell
-OC_CONFIG_FILE=<path/to/config.toml> yarn dev:ingress
-```
+> [!NOTE]
+> For development purposes you can run:
+> ```shell
+> OC_CONFIG_FILE=<path/to/config.toml> yarn dev:ingress
+> ```
 
-<details>
-  <summary><strong>Command line options</strong></summary>
-
-```shell
-Usage: oc-ingress [options]
-
-Ocelloids Ingress Node
-
-Options:
-  -V, --version                         output the version number
-  -a, --address <address>               address to bind to (default: "localhost", env: OC_ADDRESS)
-  -p, --port <number>                   port number to listen on (default: 3011, env: OC_PORT)
-  -c, --config <file>                   service configuration file (env: OC_CONFIG_FILE)
-  -d, --data <dir>                      database directory (default: "./db.ingress", env: OC_DATA_DIR)
-  --scheduler <boolean>                 enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
-  --scheduler-frequency <milliseconds>  milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
-  --sweep-expiry <milliseconds>         milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
-  -g, --grace <milliseconds>            milliseconds for the graceful close to finish (default: 5000, env: OC_CLOSE_GRACE_DELAY)
-  -t --telemetry <boolean>              enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
-  --redis <redis-url>                   redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
-  -h, --help                            display help for command
-```
-</details>
+After running an ingress node, proceed to run an execution node, as described below.
 
 ## Execution Layer
 
-The execution layer is responsible for executing hosted programs (also known as agents) in a runtime environment, isolated from blockchain connectivity. Currently, the only available "embedded" program is the XCM matching one; however, this will be abstracted away in subsequent iterations of the system and generalized to provide an execution runtime.
+The execution layer executes hosted programs (also known as agents) in a runtime environment, isolated from blockchain connectivity. Currently, the only available "embedded" program is the XCM matching one; however, this will be abstracted away in subsequent iterations of the system and generalized to provide an execution runtime.
 
-To run the execution layer node, follow the instructions provided in the [Ocelloids Service Node README](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/), with the following parameters:
+To run the execution layer node, follow the instructions provided in the [Ocelloids Service Node README](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/), with the additional parameters `distributed` and `redis` as shown below.
+
+From `packages/server`, run:
 
 ```shell
-oc-node [...] --distributed --redis <redis-url>
+yarn oc-node --config <path/to/your-config.toml> --distributed --redis <redis-url>
 ```
+
+You can use `./config/minimal.toml` as `<path/to/your-config.toml>` and `redis://127.0.0.1:6379` as `<redis-url>`.
+
+### Create a Webhook Subscription
+
+> [!IMPORTANT]
+> If you don't have a webhook receiver, you can set one up at https://webhook.site/ and use your unique URL as <YOUR_WEBHOOK_URL> in the curl command.
+
+Now, you can create a webhook subscription using curl:
+
+```shell
+curl -v -H "Content-Type: application/json" -d '{
+  "id": "unique-sub-name-1",
+  "origin": "urn:ocn:polkadot:0",
+  "senders": "*",
+  "destinations": ["urn:ocn:polkadot:1000"],
+  "channels": [{
+    "type": "webhook",
+    "url": "<YOUR_WEBHOOK_URL>"
+  }]
+}' http://127.0.0.1:3000/subs
+```
+
+Any XCM activity from Polkadot to Assethub will be sent to your webhook.
 
 ---
 
