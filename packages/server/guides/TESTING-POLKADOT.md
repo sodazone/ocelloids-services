@@ -103,9 +103,11 @@ docker run \
 
 Use the subscription API to subscribe to cross-chain messages.
 
-The easiest way is to use the hurl example we have prepared, which will subscribe to all channels in the configured network and deliver notifications through both webhook and WebSocket.
+The easiest way is to use the [hurl](https://hurl.dev/) example we have prepared, which will subscribe to all channels in the configured network and deliver notifications through both webhook and WebSocket.
 
-From the `packages/server/guides/hurl/` directory:
+First, follow the [installation guide](https://hurl.dev/docs/installation.html) to install hurl.
+
+Then, from the `packages/server/guides/hurl/` directory:
 
 ```shell
 hurl --variables-file ./dev.env scenarios/transfers/0_create_polkadot.hurl
@@ -124,7 +126,8 @@ curl 'http://127.0.0.1:3000/subs' \
     "senders": "*",
     "destinations": ["urn:ocn:polkadot:0", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2004", "urn:ocn:polkadot:2006", "urn:ocn:polkadot:2034"],
     "channels": [{
-        "type": "log"
+      "type": "webhook",
+      "url": "https://enrycp95owk7o.x.pipedream.net"
     }]
 }]'
 ```
