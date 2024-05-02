@@ -37,3 +37,36 @@ After logging in to the Grafana UI, go to 'Dashboards', expand the menu under 'N
 ## Alertmanager
 
 If you wish to receive Prometheus alerts, please configure the [alert rules](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/prometheus/alert.rules) and set up receivers in the Alertmanager [configuration file](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/telemetry/alertmanager/config.yml). For more information on configuring alerting in Prometheus, refer to the [Prometheus Alerting Guide](https://prometheus.io/docs/alerting/latest/overview/).
+
+## Troubleshooting
+
+If the telemetry services are running and connected to the Ocelloids service node, you should see incoming requests from Prometheus in the logs similar to the ones shown below.
+
+If running in docker:
+
+```json
+{"level":30,"time":1714643943130,"pid":1,"hostname":"36c1530b611c","reqId":"req-sx","req":{"method":"GET","url":"/metrics","hostname":"host.docker.internal:3000","remoteAddress":"172.17.0.1","remotePort":59504},"msg":"incoming request"}
+```
+
+If running in command line:
+
+```shell
+[14:26:13 UTC] INFO: incoming request
+    reqId: "req-2"
+    req: {
+      "method": "GET",
+      "url": "/metrics",
+      "hostname": "host.docker.internal:3000",
+      "remoteAddress": "172.19.0.3",
+      "remotePort": 35024
+    }
+```
+
+If the telemetry docker containers are running but you do not see these logs, it indicates that Prometheus is unable to connect from inside the container. In this case, map `host.docker.internal` to your IP address in the `services.prometheus.extra_hosts` configuration.
+
+For example, if your IP address is `192.168.0.146`, the configuration should look like:
+
+```
+extra_hosts:
+  - host.docker.internal:192.168.0.146
+```
