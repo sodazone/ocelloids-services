@@ -177,8 +177,10 @@ Options:
 Uses nodemon to automatically restart the application on file changes.
 
 ```shell
-OC_CONFIG_FILE=config/manta.toml yarn dev
+OC_CONFIG_FILE=<path/to/your-config.toml> yarn dev
 ```
+
+Replace `<path/to/your-config.toml>` with a valid configuration file path. Configuration examples can be found in the `config/` folder.
 
 ## HTTP APIs
 
