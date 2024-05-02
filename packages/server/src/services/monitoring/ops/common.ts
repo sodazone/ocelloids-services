@@ -3,12 +3,13 @@ import { map, Observable } from 'rxjs';
 import type { Registry } from '@polkadot/types/types';
 import type { XcmV2Xcm, XcmV3Xcm } from '@polkadot/types/lookup';
 
-import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js';
-import { networkIdFromMultiLocation } from './util.js';
+import { AnyJson, GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js';
+import { getSendersFromEvent, networkIdFromMultiLocation } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm } from './xcm-types.js';
 import { NetworkURN } from '../../types.js';
 import { createNetworkId, getChainId, getConsensus } from '../../config.js';
+import { types } from '@sodazone/ocelloids-sdk';
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
@@ -101,4 +102,39 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
         return new GenericXcmSent(id, origin, message, legs);
       })
     );
+}
+
+export function blockEventToHuman(event: types.BlockEvent) : AnyJson {
+  return {
+    extrinsicPosition: event.extrinsicPosition,
+    extrinsicId: event.extrinsicId,
+    blockNumber: event.blockNumber.toNumber(),
+    blockHash: event.blockHash.toHex(),
+    blockPosition: event.blockPosition,
+    eventId: event.eventId,
+    data: event.data.toHuman(),
+    index: event.index.toHuman(),
+    meta: event.meta.toHuman(),
+    method: event.method,
+    section: event.section
+  } as AnyJson
+}
+
+export function xcmMessagesSent() {
+  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
+    return source.pipe(
+      map((event) => {
+        const xcmMessage = event.data as any;
+        return {
+          event: blockEventToHuman(event),
+          sender: getSendersFromEvent(event),
+          blockHash: event.blockHash.toHex(),
+          blockNumber: event.blockNumber.toPrimitive(),
+          extrinsicId: event.extrinsicId,
+          messageHash: xcmMessage.messageHash?.toHex(),
+          messageId: xcmMessage.messageId?.toHex(),
+        } as XcmSentWithContext;
+      })
+    );
+  };
 }

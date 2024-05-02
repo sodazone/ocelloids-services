@@ -3,25 +3,6 @@ import type { Bytes } from '@polkadot/types';
 import type { Registry } from '@polkadot/types/types';
 import { XcmVersionedXcm } from './xcm-types.js';
 
-/* // Polkadot registry hack, remove me when decided
-import { createRequire } from 'node:module';
-import { TypeRegistry, Metadata } from '@polkadot/types';
-
-let _registry : Registry;
-
-function polkadotRegistry() : Registry {
-  if (_registry) {
-    return _registry;
-  }
-  _registry = new TypeRegistry();
-  const require = createRequire(import.meta.url);
-  const spec = require('@polkadot/types-support/metadata/static-polkadot').default;
-  const metadata = new Metadata(_registry, spec);
-  _registry.setMetadata(metadata);
-  return _registry;
-}
-*/
-
 /**
  * Creates a versioned XCM program from bytes.
  *
@@ -31,7 +12,8 @@ function polkadotRegistry() : Registry {
  */
 export function asVersionedXcm(data: Bytes | Uint8Array, registry: Registry): XcmVersionedXcm {
   if (registry.hasType('XcmVersionedXcm')) {
-    return registry.createType('XcmVersionedXcm', data) as XcmVersionedXcm;
+    // TODO patch types because bundled types are wrong
+    return registry.createType('XcmVersionedXcm', data) as unknown as XcmVersionedXcm;
   } else if (registry.hasType('StagingXcmVersionedXcm')) {
     return registry.createType('StagingXcmVersionedXcm', data) as XcmVersionedXcm;
   }

@@ -48,7 +48,6 @@ type Monitor = {
   controls: Record<string, ControlQuery>;
 };
 
-// eslint-disable-next-line no-shadow
 export enum SubscribeErrorCodes {
   TOO_MANY_SUBSCRIBERS,
 }

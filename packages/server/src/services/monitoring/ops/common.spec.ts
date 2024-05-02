@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { jest } from '@jest/globals';
 
 import { from, of } from 'rxjs';

@@ -1,6 +1,6 @@
 import { Observable, map, mergeMap, filter } from 'rxjs';
 
-import type { PolkadotPrimitivesV5InherentData } from '@polkadot/types/lookup';
+import type { PolkadotPrimitivesV6InherentData } from '@polkadot/types/lookup';
 import type { Registry } from '@polkadot/types/types';
 
 import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk';
@@ -15,7 +15,7 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
     return source.pipe(
       filter(({ extrinsic }) => matchExtrinsic(extrinsic, 'parainherent', 'enter')),
       map(({ extrinsic, dispatchError }) => {
-        const { backedCandidates } = extrinsic.args[0] as unknown as PolkadotPrimitivesV5InherentData;
+        const { backedCandidates } = extrinsic.args[0] as unknown as PolkadotPrimitivesV6InherentData;
         const backed = backedCandidates.find((c) => c.candidate.descriptor.paraId.toString() === getChainId(origin));
         if (backed) {
           const { horizontalMessages } = backed.candidate.commitments;
