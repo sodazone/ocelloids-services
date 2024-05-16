@@ -2,7 +2,7 @@
 
 ## Unit Testing
 
-To run unit tests:
+To run unit tests, from `packages/server` execute:
 
 ```shell
 yarn test
