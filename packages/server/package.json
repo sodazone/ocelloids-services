@@ -38,14 +38,11 @@
       "src/services/telemetry/metrics",
       "src/services/notification/log.ts"
     ],
-    "transformIgnorePatterns": [
-      "node_modules/(?!(web-worker)/)"
-    ],
     "extensionsToTreatAsEsm": [
       ".ts"
     ],
     "transform": {
-      "^.+\\.[tj]sx?$": [
+      "^.+\\.tsx?$": [
         "@swc/jest"
       ]
     },

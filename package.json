@@ -20,7 +20,6 @@
   "packageManager": "yarn@4.1.0",
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
-    "prettier": "3.2.5",
     "typescript": "^5.4.5"
   },
   "resolutions": {
