@@ -35,11 +35,11 @@ const globalConsensus = [
   'bitcoincash',
 ] as const
 
-export type GlobalConsensus = (typeof globalConsensus)[number];
+export type GlobalConsensus = (typeof globalConsensus)[number]
 
 export function isGlobalConsensus(value: string): value is GlobalConsensus {
-  const s: readonly string[] = globalConsensus;
-  return s.includes(value);
+  const s: readonly string[] = globalConsensus
+  return s.includes(value)
 }
 
 const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider])
@@ -83,7 +83,7 @@ export function getConsensus(networkId: NetworkURN) {
 }
 
 export function isOnSameConsensus(network1: NetworkURN, network2: NetworkURN) {
-  return getConsensus(network1) === getConsensus(network2);
+  return getConsensus(network1) === getConsensus(network2)
 }
 
 export function getChainId(networkId: NetworkURN) {

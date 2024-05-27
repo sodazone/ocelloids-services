@@ -13,19 +13,19 @@ import type {
 
 import { types } from '@sodazone/ocelloids-sdk'
 
+import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '../../config.js'
 import { NetworkURN } from '../../types.js'
 import { AssetsTrapped, HexString, SignerData, TrappedAsset } from '../types.js'
 import {
-  XcmV4AssetAssets,
-  XcmV4Junctions,
-  XcmV4Junction,
   VersionedInteriorLocation,
-  XcmVersionedXcm,
-  XcmVersionedLocation,
+  XcmV4AssetAssets,
+  XcmV4Junction,
+  XcmV4Junctions,
   XcmV4Location,
-  XcmVersionedAssets
-} from './xcm-types.js';
-import { isGlobalConsensus, GlobalConsensus, createNetworkId, getConsensus } from '../../config.js';
+  XcmVersionedAssets,
+  XcmVersionedLocation,
+  XcmVersionedXcm,
+} from './xcm-types.js'
 
 const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
   polkadot: 'urn:ocn:polkadot:1002',
@@ -39,14 +39,14 @@ const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = 
   bygenesis: undefined,
   bitcoincore: undefined,
   bitcoincash: undefined,
-};
+}
 
 export function getBridgeHubNetworkId(consensus: string | NetworkURN): NetworkURN | undefined {
-  const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus;
+  const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus
   if (isGlobalConsensus(c)) {
-    return BRIDGE_HUB_NETWORK_IDS[c];
+    return BRIDGE_HUB_NETWORK_IDS[c]
   }
-  return undefined;
+  return undefined
 }
 
 function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
@@ -163,16 +163,15 @@ function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
 
 function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): NetworkURN | undefined {
   if (junctions.asX1.isGlobalConsensus) {
-    extractConsensusAndId(junctions.asX1, n);
+    extractConsensusAndId(junctions.asX1, n)
     if (n.consensus !== undefined) {
-      return createNetworkId(n.consensus, n.chainId ?? '0');
+      return createNetworkId(n.consensus, n.chainId ?? '0')
     }
   }
   return undefined
 }
 
 function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: NetworkId) {
-  
   if (junctions.type === 'X1' || junctions.type === 'Here') {
     return undefined
   }
@@ -188,7 +187,7 @@ function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: N
   }
 
   if (networkId.consensus !== undefined) {
-    return createNetworkId(networkId.consensus, networkId.chainId ?? '0');
+    return createNetworkId(networkId.consensus, networkId.chainId ?? '0')
   }
 
   return undefined
@@ -205,7 +204,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
     return undefined
   }
 
-  const networkId: NetworkId = {};
+  const networkId: NetworkId = {}
 
   if (junctions.type === 'X1') {
     return extractV3X1GlobalConsensus(junctions, networkId)
@@ -219,7 +218,7 @@ export function getParaIdFromJunctions(
   junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions
 ): string | undefined {
   if (junctions.type === 'Here') {
-    return undefined;
+    return undefined
   }
 
   if (junctions.type === 'X1') {
@@ -240,36 +239,36 @@ export function getParaIdFromJunctions(
       return j.asParachain.toString()
     }
   }
-  return undefined;
+  return undefined
 }
 
 export function getParaIdFromMultiLocation(
   loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location
 ): string | undefined {
-  const junctions = loc.interior;
+  const junctions = loc.interior
   if (junctions.type === 'Here') {
     if (loc.parents?.toNumber() === 1) {
-      return '0';
+      return '0'
     }
-    return undefined;
+    return undefined
   }
 
-  return getParaIdFromJunctions(junctions);
+  return getParaIdFromJunctions(junctions)
 }
 
 export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {
   if (junctions.isV2) {
-    return undefined;
+    return undefined
   }
 
   if (junctions.isV3) {
-    return networkIdFromV3(junctions.asV3);
+    return networkIdFromV3(junctions.asV3)
   }
 
   if (junctions.isV4) {
-    return networkIdFromV4(junctions.asV4);
+    return networkIdFromV4(junctions.asV4)
   }
-  return undefined;
+  return undefined
 }
 
 // eslint-disable-next-line complexity

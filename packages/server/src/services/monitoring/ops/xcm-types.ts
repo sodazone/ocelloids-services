@@ -21,17 +21,17 @@ import type {
   XcmDoubleEncoded,
   XcmV2MultiLocation,
   XcmV2MultiassetMultiAssets,
+  XcmV2MultilocationJunctions,
   XcmV2OriginKind,
   XcmV2Xcm,
   XcmV3JunctionBodyId,
   XcmV3JunctionBodyPart,
+  XcmV3Junctions,
   XcmV3MaybeErrorCode,
   XcmV3MultiassetMultiAssets,
   XcmV3TraitsError,
   XcmV3WeightLimit,
   XcmV3Xcm,
-  XcmV2MultilocationJunctions,
-  XcmV3Junctions
 } from '@polkadot/types/lookup'
 
 /** @name XcmVersionedXcm (296) */
@@ -518,59 +518,59 @@ interface XcmV4JunctionNetworkId extends Enum {
 interface XcmV4AssetAssetId extends XcmV4Location {}
 
 export interface VersionedInteriorLocation extends Enum {
-  readonly isV2: boolean;
-  readonly asV2: XcmV2MultilocationJunctions;
-  readonly isV3: boolean;
-  readonly asV3: XcmV3Junctions;
-  readonly isV4: boolean;
-  readonly asV4: XcmV4Junctions;
-  readonly type: 'V2' | 'V3' | 'V4';
+  readonly isV2: boolean
+  readonly asV2: XcmV2MultilocationJunctions
+  readonly isV3: boolean
+  readonly asV3: XcmV3Junctions
+  readonly isV4: boolean
+  readonly asV4: XcmV4Junctions
+  readonly type: 'V2' | 'V3' | 'V4'
 }
 
 export interface BridgeMessage extends Struct {
-  readonly universal_dest: VersionedInteriorLocation;
-  readonly message: XcmVersionedXcm;
+  readonly universal_dest: VersionedInteriorLocation
+  readonly message: XcmVersionedXcm
 }
 
 export type BridgeMessageAccepted = {
-  readonly laneId: BpMessagesLaneId;
-  readonly nonce: u64;
-} & Struct;
+  readonly laneId: BpMessagesLaneId
+  readonly nonce: u64
+} & Struct
 
 export type BridgeMessagesDelivered = {
-  readonly laneId: BpMessagesLaneId;
-  readonly messages: BpMessagesDeliveredMessages;
-} & Struct;
+  readonly laneId: BpMessagesLaneId
+  readonly messages: BpMessagesDeliveredMessages
+} & Struct
 
 interface BpMessagesLaneId extends U8aFixed {}
 
 interface BpMessagesDeliveredMessages extends Struct {
-  readonly begin: u64;
-  readonly end: u64;
+  readonly begin: u64
+  readonly end: u64
 }
 
 export interface BpMessagesReceivedMessages extends Struct {
-  readonly lane: BpMessagesLaneId;
-  readonly receiveResults: Vec<ITuple<[u64, BpMessagesReceivalResult]>>;
+  readonly lane: BpMessagesLaneId
+  readonly receiveResults: Vec<ITuple<[u64, BpMessagesReceivalResult]>>
 }
 
 interface BpMessagesReceivalResult extends Enum {
-  readonly isDispatched: boolean;
-  readonly asDispatched: BpRuntimeMessagesMessageDispatchResult;
-  readonly isInvalidNonce: boolean;
-  readonly isTooManyUnrewardedRelayers: boolean;
-  readonly isTooManyUnconfirmedMessages: boolean;
-  readonly type: 'Dispatched' | 'InvalidNonce' | 'TooManyUnrewardedRelayers' | 'TooManyUnconfirmedMessages';
+  readonly isDispatched: boolean
+  readonly asDispatched: BpRuntimeMessagesMessageDispatchResult
+  readonly isInvalidNonce: boolean
+  readonly isTooManyUnrewardedRelayers: boolean
+  readonly isTooManyUnconfirmedMessages: boolean
+  readonly type: 'Dispatched' | 'InvalidNonce' | 'TooManyUnrewardedRelayers' | 'TooManyUnconfirmedMessages'
 }
 
 interface BpRuntimeMessagesMessageDispatchResult extends Struct {
-  readonly unspentWeight: SpWeightsWeightV2Weight;
-  readonly dispatchLevelResult: BridgeRuntimeCommonMessagesXcmExtensionXcmBlobMessageDispatchResult;
+  readonly unspentWeight: SpWeightsWeightV2Weight
+  readonly dispatchLevelResult: BridgeRuntimeCommonMessagesXcmExtensionXcmBlobMessageDispatchResult
 }
 
 interface BridgeRuntimeCommonMessagesXcmExtensionXcmBlobMessageDispatchResult extends Enum {
-  readonly isInvalidPayload: boolean;
-  readonly isDispatched: boolean;
-  readonly isNotDispatched: boolean;
-  readonly type: 'InvalidPayload' | 'Dispatched' | 'NotDispatched';
+  readonly isInvalidPayload: boolean
+  readonly isDispatched: boolean
+  readonly isNotDispatched: boolean
+  readonly type: 'InvalidPayload' | 'Dispatched' | 'NotDispatched'
 }

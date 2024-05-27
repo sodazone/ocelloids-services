@@ -15,6 +15,6 @@ export type GetOutboundUmpMessages = (hash: HexString) => Observable<Vec<Bytes>>
 export type GetDownwardMessageQueues = (
   hash: HexString,
   networkId: NetworkURN
-) => Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>;
+) => Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
 
-export type GetStorageAt = (hash: HexString, key: HexString) => Observable<Uint8Array>;
+export type GetStorageAt = (hash: HexString, key: HexString) => Observable<Uint8Array>

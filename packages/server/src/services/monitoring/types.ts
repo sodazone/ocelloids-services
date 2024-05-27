@@ -134,74 +134,74 @@ export type XcmProgram = {
 export interface XcmSentWithContext extends XcmWithContext {
   messageData: Uint8Array
   recipient: NetworkURN
-  sender?: SignerData 
+  sender?: SignerData
   instructions: XcmProgram
 }
 
 export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  messageData: HexString;
-  instructions: AnyJson;
-  recipient: NetworkURN;
-  forwardId?: HexString;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  messageData: HexString
+  instructions: AnyJson
+  recipient: NetworkURN
+  forwardId?: HexString
 }
 
 export interface XcmBridgeDeliveredWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  event?: AnyJson;
-  extrinsicId?: string;
-  blockNumber: string | number;
-  blockHash: HexString;
-  sender?: SignerData;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  event?: AnyJson
+  extrinsicId?: string
+  blockNumber: string | number
+  blockHash: HexString
+  sender?: SignerData
 }
 
 export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  messageData: HexString;
-  instructions: AnyJson;
-  recipient: NetworkURN;
-  forwardId?: HexString;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  messageData: HexString
+  instructions: AnyJson
+  recipient: NetworkURN
+  forwardId?: HexString
 }
 
 export interface XcmBridgeDeliveredWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  event?: AnyJson;
-  extrinsicId?: string;
-  blockNumber: string | number;
-  blockHash: HexString;
-  sender?: SignerData;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  event?: AnyJson
+  extrinsicId?: string
+  blockNumber: string | number
+  blockHash: HexString
+  sender?: SignerData
 }
 
 export interface XcmBridgeInboundWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  blockNumber: string | number;
-  blockHash: HexString;
-  outcome: 'Success' | 'Fail';
-  error: AnyJson;
-  event?: AnyJson;
-  extrinsicId?: string;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  blockNumber: string | number
+  blockHash: HexString
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
+  event?: AnyJson
+  extrinsicId?: string
 }
 
 export interface XcmBridgeInboundWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  blockNumber: string | number;
-  blockHash: HexString;
-  outcome: 'Success' | 'Fail';
-  error: AnyJson;
-  event?: AnyJson;
-  extrinsicId?: string;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  blockNumber: string | number
+  blockHash: HexString
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
+  event?: AnyJson
+  extrinsicId?: string
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail'
   error: AnyJson
-  assetsTrapped?: AssetsTrapped 
+  assetsTrapped?: AssetsTrapped
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -353,79 +353,79 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
       extrinsicId: this.extrinsicId,
       messageId: this.messageId,
       senders: this.sender,
-    } 
+    }
   }
 }
 
 export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  messageData: HexString;
-  recipient: NetworkURN;
-  instructions: AnyJson;
-  messageHash: HexString;
-  event: AnyJson;
-  blockHash: HexString;
-  blockNumber: string;
-  extrinsicId?: string;
-  messageId?: HexString;
-  forwardId?: HexString;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  messageData: HexString
+  recipient: NetworkURN
+  instructions: AnyJson
+  messageHash: HexString
+  event: AnyJson
+  blockHash: HexString
+  blockNumber: string
+  extrinsicId?: string
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(msg: XcmBridgeAcceptedWithContext) {
-    this.chainId = msg.chainId;
-    this.bridgeKey = msg.bridgeKey;
-    this.event = msg.event;
-    this.messageData = msg.messageData;
-    this.recipient = msg.recipient;
-    this.instructions = msg.instructions;
-    this.messageHash = msg.messageHash;
-    this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber.toString();
-    this.extrinsicId = msg.extrinsicId;
-    this.messageId = msg.messageId;
-    this.forwardId = msg.forwardId;
+    this.chainId = msg.chainId
+    this.bridgeKey = msg.bridgeKey
+    this.event = msg.event
+    this.messageData = msg.messageData
+    this.recipient = msg.recipient
+    this.instructions = msg.instructions
+    this.messageHash = msg.messageHash
+    this.blockHash = msg.blockHash
+    this.blockNumber = msg.blockNumber.toString()
+    this.extrinsicId = msg.extrinsicId
+    this.messageId = msg.messageId
+    this.forwardId = msg.forwardId
   }
 }
 
 export class GenericXcmBridgeDeliveredWithContext implements XcmBridgeDeliveredWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  event?: AnyJson;
-  extrinsicId?: string;
-  blockNumber: string;
-  blockHash: HexString;
-  sender?: SignerData;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  event?: AnyJson
+  extrinsicId?: string
+  blockNumber: string
+  blockHash: HexString
+  sender?: SignerData
 
   constructor(msg: XcmBridgeDeliveredWithContext) {
-    this.chainId = msg.chainId;
-    this.bridgeKey = msg.bridgeKey;
-    this.event = msg.event;
-    this.extrinsicId = msg.extrinsicId;
-    this.blockNumber = msg.blockNumber.toString();
-    this.blockHash = msg.blockHash;
-    this.sender = msg.sender;
+    this.chainId = msg.chainId
+    this.bridgeKey = msg.bridgeKey
+    this.event = msg.event
+    this.extrinsicId = msg.extrinsicId
+    this.blockNumber = msg.blockNumber.toString()
+    this.blockHash = msg.blockHash
+    this.sender = msg.sender
   }
 }
 
 export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
-  chainId: NetworkURN;
-  bridgeKey: HexString;
-  event: AnyJson;
-  extrinsicId?: string | undefined;
-  blockNumber: string;
-  blockHash: HexString;
-  outcome: 'Success' | 'Fail';
-  error: AnyJson;
+  chainId: NetworkURN
+  bridgeKey: HexString
+  event: AnyJson
+  extrinsicId?: string | undefined
+  blockNumber: string
+  blockHash: HexString
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
 
   constructor(msg: XcmBridgeInboundWithContext) {
-    this.chainId = msg.chainId;
-    this.event = msg.event;
-    this.outcome = msg.outcome;
-    this.error = msg.error;
-    this.blockHash = msg.blockHash;
-    this.blockNumber = msg.blockNumber.toString();
-    this.extrinsicId = msg.extrinsicId;
-    this.bridgeKey = msg.bridgeKey;
+    this.chainId = msg.chainId
+    this.event = msg.event
+    this.outcome = msg.outcome
+    this.error = msg.error
+    this.blockHash = msg.blockHash
+    this.blockNumber = msg.blockNumber.toString()
+    this.extrinsicId = msg.extrinsicId
+    this.bridgeKey = msg.bridgeKey
   }
 }
 
@@ -505,27 +505,27 @@ export type Leg = {
  * @public
  */
 export interface XcmSent {
-  type: XcmNotificationType;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 }
 
 export class GenericXcmSent implements XcmSent {
-  type: XcmNotificationType = XcmNotificationType.Sent;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Sent
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(
     subscriptionId: string,
@@ -534,8 +534,8 @@ export class GenericXcmSent implements XcmSent {
     legs: Leg[],
     forwardId?: HexString
   ) {
-    this.subscriptionId = subscriptionId;
-    this.legs = legs;
+    this.subscriptionId = subscriptionId
+    this.legs = legs
     this.origin = {
       chainId,
       blockHash: msg.blockHash,
@@ -559,9 +559,9 @@ export class GenericXcmSent implements XcmSent {
       messageHash: msg.messageHash,
     }
 
-    this.messageId = msg.messageId;
-    this.forwardId = forwardId;
-    this.sender = msg.sender;
+    this.messageId = msg.messageId
+    this.forwardId = forwardId
+    this.sender = msg.sender
   }
 }
 
@@ -571,15 +571,15 @@ export class GenericXcmSent implements XcmSent {
  * @public
  */
 export interface XcmReceived {
-  type: XcmNotificationType;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminusContext;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminusContext
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 }
 
 /**
@@ -590,38 +590,38 @@ export interface XcmReceived {
 export type XcmTimeout = XcmSent
 
 export class GenericXcmTimeout implements XcmTimeout {
-  type: XcmNotificationType = XcmNotificationType.Timeout;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Timeout
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(msg: XcmSent) {
-    this.subscriptionId = msg.subscriptionId;
-    this.legs = msg.legs;
-    this.origin = msg.origin;
-    this.destination = msg.destination;
-    this.waypoint = msg.waypoint;
-    this.messageId = msg.messageId;
-    this.sender = msg.sender;
-    this.forwardId = msg.forwardId;
+    this.subscriptionId = msg.subscriptionId
+    this.legs = msg.legs
+    this.origin = msg.origin
+    this.destination = msg.destination
+    this.waypoint = msg.waypoint
+    this.messageId = msg.messageId
+    this.sender = msg.sender
+    this.forwardId = msg.forwardId
   }
 }
 
 export class GenericXcmReceived implements XcmReceived {
-  type: XcmNotificationType = XcmNotificationType.Received;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminusContext;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Received
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminusContext
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(outMsg: XcmSent, inMsg: XcmInbound) {
     this.subscriptionId = outMsg.subscriptionId
@@ -646,10 +646,10 @@ export class GenericXcmReceived implements XcmReceived {
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
       assetsTrapped: inMsg.assetsTrapped,
-    };
-    this.sender = outMsg.sender;
-    this.messageId = outMsg.messageId;
-    this.forwardId = outMsg.forwardId;
+    }
+    this.sender = outMsg.sender
+    this.messageId = outMsg.messageId
+    this.forwardId = outMsg.forwardId
   }
 }
 
@@ -662,15 +662,15 @@ export class GenericXcmReceived implements XcmReceived {
 export type XcmRelayed = XcmSent
 
 export class GenericXcmRelayed implements XcmRelayed {
-  type: XcmNotificationType = XcmNotificationType.Relayed;
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Relayed
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
     this.subscriptionId = outMsg.subscriptionId
@@ -689,10 +689,10 @@ export class GenericXcmRelayed implements XcmRelayed {
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
-    };
-    this.sender = outMsg.sender;
-    this.messageId = outMsg.messageId;
-    this.forwardId = outMsg.forwardId;
+    }
+    this.sender = outMsg.sender
+    this.messageId = outMsg.messageId
+    this.forwardId = outMsg.forwardId
   }
 }
 
@@ -706,31 +706,31 @@ export interface XcmHop extends XcmSent {
 }
 
 export class GenericXcmHop implements XcmHop {
-  type: XcmNotificationType = XcmNotificationType.Hop;
-  direction: 'out' | 'in';
-  subscriptionId: string;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Hop
+  direction: 'out' | 'in'
+  subscriptionId: string
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(originMsg: XcmSent, hopWaypoint: XcmWaypointContext, direction: 'out' | 'in') {
-    this.subscriptionId = originMsg.subscriptionId;
-    this.legs = originMsg.legs;
-    this.origin = originMsg.origin;
-    this.destination = originMsg.destination;
-    this.waypoint = hopWaypoint;
-    this.messageId = originMsg.messageId;
-    this.sender = originMsg.sender;
-    this.direction = direction;
-    this.forwardId = originMsg.forwardId;
+    this.subscriptionId = originMsg.subscriptionId
+    this.legs = originMsg.legs
+    this.origin = originMsg.origin
+    this.destination = originMsg.destination
+    this.waypoint = hopWaypoint
+    this.messageId = originMsg.messageId
+    this.sender = originMsg.sender
+    this.direction = direction
+    this.forwardId = originMsg.forwardId
   }
 }
 
-export type BridgeMessageType = 'accepted' | 'delivered' | 'received';
+export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
 
 /**
  * Event emitted when an XCM is sent or received on an intermediate stop.
@@ -738,44 +738,44 @@ export type BridgeMessageType = 'accepted' | 'delivered' | 'received';
  * @public
  */
 export interface XcmBridge extends XcmSent {
-  bridgeKey: HexString;
-  bridgeMessageType: BridgeMessageType;
+  bridgeKey: HexString
+  bridgeMessageType: BridgeMessageType
 }
 
 type XcmBridgeContext = {
-  bridgeMessageType: BridgeMessageType;
-  bridgeKey: HexString;
-  forwardId?: HexString;
-};
+  bridgeMessageType: BridgeMessageType
+  bridgeKey: HexString
+  forwardId?: HexString
+}
 
 export class GenericXcmBridge implements XcmBridge {
-  type: XcmNotificationType = XcmNotificationType.Bridge;
-  bridgeMessageType: BridgeMessageType;
-  subscriptionId: string;
-  bridgeKey: HexString;
-  legs: Leg[];
-  waypoint: XcmWaypointContext;
-  origin: XcmTerminusContext;
-  destination: XcmTerminus;
-  sender?: SignerData;
-  messageId?: HexString;
-  forwardId?: HexString;
+  type: XcmNotificationType = XcmNotificationType.Bridge
+  bridgeMessageType: BridgeMessageType
+  subscriptionId: string
+  bridgeKey: HexString
+  legs: Leg[]
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
+  sender?: SignerData
+  messageId?: HexString
+  forwardId?: HexString
 
   constructor(
     originMsg: XcmSent,
     waypoint: XcmWaypointContext,
     { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext
   ) {
-    this.subscriptionId = originMsg.subscriptionId;
-    this.bridgeMessageType = bridgeMessageType;
-    this.legs = originMsg.legs;
-    this.origin = originMsg.origin;
-    this.destination = originMsg.destination;
-    this.waypoint = waypoint;
-    this.messageId = originMsg.messageId;
-    this.sender = originMsg.sender;
-    this.bridgeKey = bridgeKey;
-    this.forwardId = forwardId;
+    this.subscriptionId = originMsg.subscriptionId
+    this.bridgeMessageType = bridgeMessageType
+    this.legs = originMsg.legs
+    this.origin = originMsg.origin
+    this.destination = originMsg.destination
+    this.waypoint = waypoint
+    this.messageId = originMsg.messageId
+    this.sender = originMsg.sender
+    this.bridgeKey = bridgeKey
+    this.forwardId = forwardId
   }
 }
 
@@ -784,7 +784,7 @@ export class GenericXcmBridge implements XcmBridge {
  *
  * @public
  */
-export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge;
+export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent
@@ -834,9 +834,9 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a))
 }
 
-const bridgeTypes = ['pk-bridge', 'snowbridge'] as const;
+const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
 
-export type BridgeType = (typeof bridgeTypes)[number];
+export type BridgeType = (typeof bridgeTypes)[number]
 
 export const $Subscription = z
   .object({
@@ -883,21 +883,21 @@ export type Subscription = z.infer<typeof $Subscription>
 export type XcmEventListener = (sub: Subscription, xcm: XcmNotifyMessage) => void
 
 export type RxSubscriptionWithId = {
-  chainId: string;
-  sub: RxSubscription;
-};
+  chainId: string
+  sub: RxSubscription
+}
 
-export type BridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] };
+export type BridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
 
 export type RxSubscriptionHandler = {
-  originSubs: RxSubscriptionWithId[];
-  destinationSubs: RxSubscriptionWithId[];
-  bridgeSubs: BridgeSubscription[];
-  sendersControl: ControlQuery;
-  messageControl: ControlQuery;
-  descriptor: Subscription;
-  relaySub?: RxSubscriptionWithId;
-};
+  originSubs: RxSubscriptionWithId[]
+  destinationSubs: RxSubscriptionWithId[]
+  bridgeSubs: BridgeSubscription[]
+  sendersControl: ControlQuery
+  messageControl: ControlQuery
+  descriptor: Subscription
+  relaySub?: RxSubscriptionWithId
+}
 
 export type SubscriptionStats = {
   persistent: number

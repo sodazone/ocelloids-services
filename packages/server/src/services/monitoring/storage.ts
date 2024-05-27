@@ -33,6 +33,6 @@ export const bridgeStorageKeys = {
 } as Record<
   string,
   {
-    messagesOutboundPartial: HexString;
+    messagesOutboundPartial: HexString
   }
->;
+>

@@ -5,10 +5,15 @@ import { Mutex } from 'async-mutex'
 
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../types.js'
 import {
+  GenericXcmBridge,
   GenericXcmHop,
   GenericXcmReceived,
   GenericXcmRelayed,
   GenericXcmTimeout,
+  XcmBridge,
+  XcmBridgeAcceptedWithContext,
+  XcmBridgeDeliveredWithContext,
+  XcmBridgeInboundWithContext,
   XcmHop,
   XcmInbound,
   XcmNotifyMessage,
@@ -18,16 +23,11 @@ import {
   XcmSent,
   XcmTimeout,
   XcmWaypointContext,
-  XcmBridgeAcceptedWithContext,
-  XcmBridgeInboundWithContext,
-  GenericXcmBridge,
-  XcmBridge,
-  XcmBridgeDeliveredWithContext,
-} from './types.js';
+} from './types.js'
 
-import { Janitor, JanitorTask } from '../persistence/janitor.js';
-import { TelemetryEventEmitter } from '../telemetry/types.js';
-import { getRelayId, isOnSameConsensus } from '../config.js';
+import { getRelayId, isOnSameConsensus } from '../config.js'
+import { Janitor, JanitorTask } from '../persistence/janitor.js'
+import { TelemetryEventEmitter } from '../telemetry/types.js'
 
 export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>
@@ -55,15 +55,15 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #log: Logger
   readonly #janitor: Janitor
 
-  readonly #outbound: SubLevel<XcmSent>;
-  readonly #inbound: SubLevel<XcmInbound>;
-  readonly #relay: SubLevel<XcmRelayedWithContext>;
-  readonly #hop: SubLevel<XcmSent>;
-  readonly #bridge: SubLevel<XcmSent>;
-  readonly #bridgeAccepted: SubLevel<XcmBridge>;
-  readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>;
-  readonly #mutex: Mutex;
-  readonly #xcmMatchedReceiver: XcmMatchedReceiver;
+  readonly #outbound: SubLevel<XcmSent>
+  readonly #inbound: SubLevel<XcmInbound>
+  readonly #relay: SubLevel<XcmRelayedWithContext>
+  readonly #hop: SubLevel<XcmSent>
+  readonly #bridge: SubLevel<XcmSent>
+  readonly #bridgeAccepted: SubLevel<XcmBridge>
+  readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>
+  readonly #mutex: Mutex
+  readonly #xcmMatchedReceiver: XcmMatchedReceiver
 
   constructor({ log, rootStore, janitor }: Services, xcmMatchedReceiver: XcmMatchedReceiver) {
     super()
@@ -80,17 +80,17 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
     // Key format: [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
     this.#relay = rootStore.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded)
     // Key format: [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
-    this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded);
+    this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded)
     // Key format: [subscription-id]:[bridge-chain-id]:[message-id]
-    this.#bridge = rootStore.sublevel<string, XcmSent>(prefixes.matching.bridge, jsonEncoded);
+    this.#bridge = rootStore.sublevel<string, XcmSent>(prefixes.matching.bridge, jsonEncoded)
 
     // Key format: [subscription-id]:[bridge-key]
-    this.#bridgeAccepted = rootStore.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded);
+    this.#bridgeAccepted = rootStore.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded)
     // Key format: [subscription-id]:[bridge-key]
     this.#bridgeInbound = rootStore.sublevel<string, XcmBridgeInboundWithContext>(
       prefixes.matching.bridgeIn,
       jsonEncoded
-    );
+    )
 
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
   }
@@ -118,22 +118,22 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             messageId,
             forwardId,
             waypoint,
-          } = outMsg;
-          const forwardIdKey = this.#matchingKey(subscriptionId, chainId, forwardId);
-          const originMsg = await this.#bridge.get(forwardIdKey);
+          } = outMsg
+          const forwardIdKey = this.#matchingKey(subscriptionId, chainId, forwardId)
+          const originMsg = await this.#bridge.get(forwardIdKey)
 
           const bridgedSent: XcmSent = {
             ...originMsg,
             waypoint,
             messageId,
             forwardId,
-          };
-          this.#onXcmOutbound(bridgedSent);
-          await this.#tryMatchOnOutbound(bridgedSent, outboundTTL);
-          await this.#bridge.del(forwardIdKey);
+          }
+          this.#onXcmOutbound(bridgedSent)
+          await this.#tryMatchOnOutbound(bridgedSent, outboundTTL)
+          await this.#bridge.del(forwardIdKey)
         } catch {
-          this.#onXcmOutbound(outMsg);
-          await this.#tryMatchOnOutbound(outMsg, outboundTTL);
+          this.#onXcmOutbound(outMsg)
+          await this.#tryMatchOnOutbound(outMsg, outboundTTL)
         }
       } else if (outMsg.messageId) {
         // Is not bridged message
@@ -290,7 +290,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   }
 
   async onBridgeOutboundAccepted(subscriptionId: string, msg: XcmBridgeAcceptedWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
       if (msg.forwardId === undefined) {
@@ -300,17 +300,17 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
-        return;
+        )
+        return
       }
-      const { chainId, forwardId, bridgeKey } = msg;
-      const idKey = this.#matchingKey(subscriptionId, chainId, forwardId);
+      const { chainId, forwardId, bridgeKey } = msg
+      const idKey = this.#matchingKey(subscriptionId, chainId, forwardId)
 
       try {
-        const originMsg = await this.#bridge.get(idKey);
+        const originMsg = await this.#bridge.get(idKey)
 
-        const { blockHash, blockNumber, event, messageData, instructions, messageHash } = msg;
-        const legIndex = originMsg.legs.findIndex((l) => l.from === chainId && l.type === 'bridge');
+        const { blockHash, blockNumber, event, messageData, instructions, messageHash } = msg
+        const legIndex = originMsg.legs.findIndex((l) => l.from === chainId && l.type === 'bridge')
         const waypointContext: XcmWaypointContext = {
           legIndex,
           chainId,
@@ -322,18 +322,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           instructions,
           outcome: 'Success', // always 'Success' since it's delivered
           error: null,
-        };
+        }
         const bridgeOutMsg: XcmBridge = new GenericXcmBridge(originMsg, waypointContext, {
           bridgeMessageType: 'accepted',
           bridgeKey,
           forwardId,
-        });
-        const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
-        await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg);
+        })
+        const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
+        await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg)
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeAccepted,
           key: sublevelBridgeKey,
-        });
+        })
         log.info(
           '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (subId=%s, block=%s #%s)',
           chainId,
@@ -341,8 +341,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
-        this.#onXcmBridgeAccepted(bridgeOutMsg);
+        )
+        this.#onXcmBridgeAccepted(bridgeOutMsg)
       } catch {
         log.warn(
           '[%s:ba] ORIGIN MSG NOT FOUND id=%s (subId=%s, block=%s #%s)',
@@ -351,21 +351,21 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
+        )
       }
-    });
+    })
   }
 
   async onBridgeOutboundDelivered(subscriptionId: string, msg: XcmBridgeDeliveredWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
-      const { chainId, bridgeKey } = msg;
-      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
+      const { chainId, bridgeKey } = msg
+      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
       try {
-        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey);
+        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
         try {
-          const bridgeInMsg = await this.#bridgeInbound.get(sublevelBridgeKey);
+          const bridgeInMsg = await this.#bridgeInbound.get(sublevelBridgeKey)
           log.info(
             '[%s:bd] BRIDGE MATCHED key=%s (subId=%s, block=%s #%s)',
             chainId,
@@ -373,11 +373,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             subscriptionId,
             msg.blockHash,
             msg.blockNumber
-          );
-          await this.#bridgeInbound.del(sublevelBridgeKey);
-          await this.#bridgeAccepted.del(sublevelBridgeKey);
-          this.#onXcmBridgeDelivered({ ...bridgeOutMsg, bridgeMessageType: 'delivered' });
-          this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg);
+          )
+          await this.#bridgeInbound.del(sublevelBridgeKey)
+          await this.#bridgeAccepted.del(sublevelBridgeKey)
+          this.#onXcmBridgeDelivered({ ...bridgeOutMsg, bridgeMessageType: 'delivered' })
+          this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
         } catch {
           this.#log.info(
             '[%s:bo] BRIDGE DELIVERED key=%s (subId=%s, block=%s #%s)',
@@ -386,8 +386,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             subscriptionId,
             msg.blockHash,
             msg.blockNumber
-          );
-          this.#onXcmBridgeDelivered(bridgeOutMsg);
+          )
+          this.#onXcmBridgeDelivered(bridgeOutMsg)
         }
       } catch {
         log.warn(
@@ -397,20 +397,20 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
+        )
       }
-    });
+    })
   }
 
   async onBridgeInbound(subscriptionId: string, bridgeInMsg: XcmBridgeInboundWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
-      const { chainId, bridgeKey } = bridgeInMsg;
-      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
+      const { chainId, bridgeKey } = bridgeInMsg
+      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
 
       try {
-        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey);
+        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
         log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (subId=%s, block=%s #%s)',
           chainId,
@@ -418,9 +418,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber
-        );
-        await this.#bridgeAccepted.del(sublevelBridgeKey);
-        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg);
+        )
+        await this.#bridgeAccepted.del(sublevelBridgeKey)
+        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
       } catch {
         this.#log.info(
           '[%s:bi] BRIDGE IN STORED id=%s (subId=%s, block=%s #%s)',
@@ -429,18 +429,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber
-        );
-        this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg);
+        )
+        this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg)
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeIn,
           key: sublevelBridgeKey,
-        });
+        })
       }
     })
   }
 
   async onBridgeOutboundAccepted(subscriptionId: string, msg: XcmBridgeAcceptedWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
       if (msg.forwardId === undefined) {
@@ -450,17 +450,17 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
-        return;
+        )
+        return
       }
-      const { chainId, forwardId, bridgeKey } = msg;
-      const idKey = this.#matchingKey(subscriptionId, chainId, forwardId);
+      const { chainId, forwardId, bridgeKey } = msg
+      const idKey = this.#matchingKey(subscriptionId, chainId, forwardId)
 
       try {
-        const originMsg = await this.#bridge.get(idKey);
+        const originMsg = await this.#bridge.get(idKey)
 
-        const { blockHash, blockNumber, event, messageData, instructions, messageHash } = msg;
-        const legIndex = originMsg.legs.findIndex((l) => l.from === chainId && l.type === 'bridge');
+        const { blockHash, blockNumber, event, messageData, instructions, messageHash } = msg
+        const legIndex = originMsg.legs.findIndex((l) => l.from === chainId && l.type === 'bridge')
         const waypointContext: XcmWaypointContext = {
           legIndex,
           chainId,
@@ -472,18 +472,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           instructions,
           outcome: 'Success', // always 'Success' since it's delivered
           error: null,
-        };
+        }
         const bridgeOutMsg: XcmBridge = new GenericXcmBridge(originMsg, waypointContext, {
           bridgeMessageType: 'accepted',
           bridgeKey,
           forwardId,
-        });
-        const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
-        await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg);
+        })
+        const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
+        await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg)
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeAccepted,
           key: sublevelBridgeKey,
-        });
+        })
         log.info(
           '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (subId=%s, block=%s #%s)',
           chainId,
@@ -491,8 +491,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
-        this.#onXcmBridgeAccepted(bridgeOutMsg);
+        )
+        this.#onXcmBridgeAccepted(bridgeOutMsg)
       } catch {
         log.warn(
           '[%s:ba] ORIGIN MSG NOT FOUND id=%s (subId=%s, block=%s #%s)',
@@ -501,21 +501,21 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
+        )
       }
-    });
+    })
   }
 
   async onBridgeOutboundDelivered(subscriptionId: string, msg: XcmBridgeDeliveredWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
-      const { chainId, bridgeKey } = msg;
-      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
+      const { chainId, bridgeKey } = msg
+      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
       try {
-        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey);
+        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
         try {
-          const bridgeInMsg = await this.#bridgeInbound.get(sublevelBridgeKey);
+          const bridgeInMsg = await this.#bridgeInbound.get(sublevelBridgeKey)
           log.info(
             '[%s:bd] BRIDGE MATCHED key=%s (subId=%s, block=%s #%s)',
             chainId,
@@ -523,11 +523,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             subscriptionId,
             msg.blockHash,
             msg.blockNumber
-          );
-          await this.#bridgeInbound.del(sublevelBridgeKey);
-          await this.#bridgeAccepted.del(sublevelBridgeKey);
-          this.#onXcmBridgeDelivered({ ...bridgeOutMsg, bridgeMessageType: 'delivered' });
-          this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg);
+          )
+          await this.#bridgeInbound.del(sublevelBridgeKey)
+          await this.#bridgeAccepted.del(sublevelBridgeKey)
+          this.#onXcmBridgeDelivered({ ...bridgeOutMsg, bridgeMessageType: 'delivered' })
+          this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
         } catch {
           this.#log.info(
             '[%s:bo] BRIDGE DELIVERED key=%s (subId=%s, block=%s #%s)',
@@ -536,8 +536,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             subscriptionId,
             msg.blockHash,
             msg.blockNumber
-          );
-          this.#onXcmBridgeDelivered(bridgeOutMsg);
+          )
+          this.#onXcmBridgeDelivered(bridgeOutMsg)
         }
       } catch {
         log.warn(
@@ -547,20 +547,20 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           msg.blockHash,
           msg.blockNumber
-        );
+        )
       }
-    });
+    })
   }
 
   async onBridgeInbound(subscriptionId: string, bridgeInMsg: XcmBridgeInboundWithContext) {
-    const log = this.#log;
+    const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
-      const { chainId, bridgeKey } = bridgeInMsg;
-      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`;
+      const { chainId, bridgeKey } = bridgeInMsg
+      const sublevelBridgeKey = `${subscriptionId}:${bridgeKey}`
 
       try {
-        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey);
+        const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
         log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (subId=%s, block=%s #%s)',
           chainId,
@@ -568,9 +568,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber
-        );
-        await this.#bridgeAccepted.del(sublevelBridgeKey);
-        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg);
+        )
+        await this.#bridgeAccepted.del(sublevelBridgeKey)
+        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
       } catch {
         this.#log.info(
           '[%s:bi] BRIDGE IN STORED id=%s (subId=%s, block=%s #%s)',
@@ -579,14 +579,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           subscriptionId,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber
-        );
-        this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg);
+        )
+        this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg)
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeIn,
           key: sublevelBridgeKey,
-        });
+        })
       }
-    });
+    })
   }
 
   // try to find in DB by hop key
@@ -687,19 +687,19 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   // TODO: refactor to lower complexity
   // eslint-disable-next-line complexity
   async #storekeysOnOutbound(msg: XcmSent, outboundTTL: number) {
-    const log = this.#log;
-    const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from));
+    const log = this.#log
+    const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from))
 
     for (const [i, leg] of sublegs.entries()) {
-      const stop = leg.to;
-      const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash);
+      const stop = leg.to
+      const hKey = this.#matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash)
       if (msg.messageId) {
-        const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId);
+        const iKey = this.#matchingKey(msg.subscriptionId, stop, msg.messageId)
         if (leg.type === 'bridge') {
-          const bridgeOut = leg.from;
-          const bridgeIn = leg.to;
-          const bridgeOutIdKey = this.#matchingKey(msg.subscriptionId, bridgeOut, msg.messageId);
-          const bridgeInIdKey = this.#matchingKey(msg.subscriptionId, bridgeIn, msg.messageId);
+          const bridgeOut = leg.from
+          const bridgeIn = leg.to
+          const bridgeOutIdKey = this.#matchingKey(msg.subscriptionId, bridgeOut, msg.messageId)
+          const bridgeInIdKey = this.#matchingKey(msg.subscriptionId, bridgeIn, msg.messageId)
           log.info(
             '[%s:b] STORED out=%s outKey=%s in=%s inKey=%s (subId=%s, block=%s #%s)',
             msg.origin.chainId,
@@ -710,8 +710,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
             msg.subscriptionId,
             msg.origin.blockHash,
             msg.origin.blockNumber
-          );
-          await this.#bridge.batch().put(bridgeOutIdKey, msg).put(bridgeInIdKey, msg).write();
+          )
+          await this.#bridge.batch().put(bridgeOutIdKey, msg).put(bridgeInIdKey, msg).write()
           await this.#janitor.schedule(
             {
               sublevel: prefixes.matching.bridge,
@@ -723,7 +723,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
               key: bridgeInIdKey,
               expiry: outboundTTL,
             }
-          );
+          )
         } else if (i === sublegs.length - 1 || leg.relay !== undefined) {
           log.info(
             '[%s:o] STORED dest=%s hash=%s id=%s (subId=%s, block=%s #%s)',
@@ -788,7 +788,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           sublevel: prefixes.matching.outbound,
           key: hKey,
           expiry: outboundTTL,
-        });
+        })
       } else if (leg.type === 'hop') {
         log.info(
           '[%s:h] STORED stop=%s hash=%s(subId=%s, block=%s #%s)',
@@ -804,7 +804,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
           sublevel: prefixes.matching.hop,
           key: hKey,
           expiry: outboundTTL,
-        });
+        })
       }
     }
   }
@@ -973,26 +973,26 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   #onXcmBridgeAccepted(bridgeAcceptedMsg: XcmBridge) {
     // this.emit('telemetryBridge', message);
     try {
-      this.#xcmMatchedReceiver(bridgeAcceptedMsg);
+      this.#xcmMatchedReceiver(bridgeAcceptedMsg)
     } catch (e) {
-      this.#log.error(e, 'Error on notification');
+      this.#log.error(e, 'Error on notification')
     }
   }
 
   #onXcmBridgeDelivered(bridgeDeliveredMsg: XcmBridge) {
     // this.emit('telemetryBridge', message);
     try {
-      this.#xcmMatchedReceiver(bridgeDeliveredMsg);
+      this.#xcmMatchedReceiver(bridgeDeliveredMsg)
     } catch (e) {
-      this.#log.error(e, 'Error on notification');
+      this.#log.error(e, 'Error on notification')
     }
   }
 
   #onXcmBridgeMatched(bridgeOutMsg: XcmBridge, bridgeInMsg: XcmBridgeInboundWithContext) {
     try {
-      const { chainId, blockHash, blockNumber, event, outcome, error, bridgeKey } = bridgeInMsg;
-      const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint;
-      const legIndex = bridgeOutMsg.legs.findIndex((l) => l.to === chainId && l.type === 'bridge');
+      const { chainId, blockHash, blockNumber, event, outcome, error, bridgeKey } = bridgeInMsg
+      const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint
+      const legIndex = bridgeOutMsg.legs.findIndex((l) => l.to === chainId && l.type === 'bridge')
       const waypointContext: XcmWaypointContext = {
         legIndex,
         chainId,
@@ -1004,18 +1004,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         instructions,
         outcome,
         error,
-      };
+      }
       const bridgeMatched: XcmBridge = new GenericXcmBridge(bridgeOutMsg, waypointContext, {
         bridgeMessageType: 'received',
         bridgeKey,
         forwardId: bridgeOutMsg.forwardId,
-      });
+      })
 
       // this.emit('telemetryBridge', bridgeMatched);
 
-      this.#xcmMatchedReceiver(bridgeMatched);
+      this.#xcmMatchedReceiver(bridgeMatched)
     } catch (e) {
-      this.#log.error(e, 'Error on notification');
+      this.#log.error(e, 'Error on notification')
     }
   }
 

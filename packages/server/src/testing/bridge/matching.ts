@@ -1,27 +1,27 @@
 import {
-  XcmBridgeInboundWithContext,
   XcmBridgeAcceptedWithContext,
+  XcmBridgeDeliveredWithContext,
+  XcmBridgeInboundWithContext,
   XcmInbound,
   XcmNotificationType,
   XcmRelayedWithContext,
   XcmSent,
-  XcmBridgeDeliveredWithContext,
-} from '../../services/monitoring/types';
+} from '../../services/monitoring/types'
 
 type MatchBridgeMessages = {
-  subscriptionId: string;
-  origin: XcmSent;
-  relay0: XcmRelayedWithContext;
-  bridgeXcmIn: XcmInbound;
-  bridgeAccepted: XcmBridgeAcceptedWithContext;
-  bridgeDelivered: XcmBridgeDeliveredWithContext;
-  bridgeIn: XcmBridgeInboundWithContext;
-  bridgeXcmOut: XcmSent;
-  relay1: XcmRelayedWithContext;
-  destination: XcmInbound;
-};
+  subscriptionId: string
+  origin: XcmSent
+  relay0: XcmRelayedWithContext
+  bridgeXcmIn: XcmInbound
+  bridgeAccepted: XcmBridgeAcceptedWithContext
+  bridgeDelivered: XcmBridgeDeliveredWithContext
+  bridgeIn: XcmBridgeInboundWithContext
+  bridgeXcmOut: XcmSent
+  relay1: XcmRelayedWithContext
+  destination: XcmInbound
+}
 
-const subscriptionId = 'bridge-test';
+const subscriptionId = 'bridge-test'
 export const matchBridgeMessages: MatchBridgeMessages = {
   subscriptionId,
   origin: {
@@ -293,4 +293,4 @@ export const matchBridgeMessages: MatchBridgeMessages = {
     error: undefined,
     assetsTrapped: undefined,
   },
-};
+}

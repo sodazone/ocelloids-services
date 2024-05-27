@@ -24,14 +24,14 @@ type RpcResult = {
 }
 
 export function testRegistryFromMetadata(metadataFile: string) {
-  const m = readFileSync(path.resolve(__dirname, '__data__/metadata', metadataFile)).toString();
-  const r: RpcResult = JSON.parse(m);
+  const m = readFileSync(path.resolve(__dirname, '__data__/metadata', metadataFile)).toString()
+  const r: RpcResult = JSON.parse(m)
 
-  const registry = new TypeRegistry() as any;
-  const metadata = new Metadata(registry, r.result);
+  const registry = new TypeRegistry() as any
+  const metadata = new Metadata(registry, r.result)
 
-  registry.setMetadata(metadata, undefined, undefined, true);
-  return registry;
+  registry.setMetadata(metadata, undefined, undefined, true)
+  return registry
 }
 
 export function testBlocksFrom(file: string, metadataFile: string) {

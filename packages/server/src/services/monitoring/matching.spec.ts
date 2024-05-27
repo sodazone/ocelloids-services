@@ -3,13 +3,13 @@ import { jest } from '@jest/globals'
 import { MemoryLevel as Level } from 'memory-level'
 
 import { AbstractSublevel } from 'abstract-level'
+import { matchBridgeMessages } from '../../testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '../../testing/matching.js'
 import { _services } from '../../testing/services.js'
 import { Janitor } from '../persistence/janitor.js'
 import { jsonEncoded, prefixes } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmNotificationType, XcmNotifyMessage, XcmSent } from './types.js'
-import { matchBridgeMessages } from '../../testing/bridge/matching.js';
 
 describe('message matching engine', () => {
   let engine: MatchingEngine
@@ -214,10 +214,10 @@ describe('message matching engine', () => {
 
     await engine.onInboundMessage(destination)
 
-    expect(cb).toHaveBeenCalledTimes(6);
-    await expect(outbound.get(idKey)).rejects.toBeDefined();
-    await expect(outbound.get(hashKey)).rejects.toBeDefined();
-  });
+    expect(cb).toHaveBeenCalledTimes(6)
+    await expect(outbound.get(idKey)).rejects.toBeDefined()
+    await expect(outbound.get(hashKey)).rejects.toBeDefined()
+  })
 
   it('should match bridge messages', async () => {
     const {
@@ -231,24 +231,24 @@ describe('message matching engine', () => {
       relay1,
       destination,
       subscriptionId,
-    } = matchBridgeMessages;
-    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`;
-    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`;
+    } = matchBridgeMessages
+    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`
+    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`
 
-    await engine.onOutboundMessage(origin);
-    await engine.onRelayedMessage(subscriptionId, relay0);
-    await engine.onInboundMessage(bridgeXcmIn);
-    await engine.onBridgeOutboundAccepted(subscriptionId, bridgeAccepted);
-    await engine.onBridgeOutboundDelivered(subscriptionId, bridgeDelivered);
-    await engine.onBridgeInbound(subscriptionId, bridgeIn);
-    await engine.onOutboundMessage(bridgeXcmOut);
-    await engine.onRelayedMessage(subscriptionId, relay1);
-    await engine.onInboundMessage(destination);
+    await engine.onOutboundMessage(origin)
+    await engine.onRelayedMessage(subscriptionId, relay0)
+    await engine.onInboundMessage(bridgeXcmIn)
+    await engine.onBridgeOutboundAccepted(subscriptionId, bridgeAccepted)
+    await engine.onBridgeOutboundDelivered(subscriptionId, bridgeDelivered)
+    await engine.onBridgeInbound(subscriptionId, bridgeIn)
+    await engine.onOutboundMessage(bridgeXcmOut)
+    await engine.onRelayedMessage(subscriptionId, relay1)
+    await engine.onInboundMessage(destination)
 
-    expect(cb).toHaveBeenCalledTimes(9);
-    await expect(outbound.get(idKey)).rejects.toBeDefined();
-    await expect(outbound.get(hashKey)).rejects.toBeDefined();
-  });
+    expect(cb).toHaveBeenCalledTimes(9)
+    await expect(outbound.get(idKey)).rejects.toBeDefined()
+    await expect(outbound.get(hashKey)).rejects.toBeDefined()
+  })
 
   it('should clean up stale data', async () => {
     async function count() {
