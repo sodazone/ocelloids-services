@@ -1,0 +1,51 @@
+[
+  {
+    "id": "rococo-asset-hub-transfers",
+    "origin": "urn:ocn:rococo:1000",
+    "senders": "*",
+    "destinations": [
+      "urn:ocn:rococo:0",
+      "urn:ocn:rococo:1013",
+      "urn:ocn:westend:1000",
+      "urn:ocn:westend:1002",
+      "urn:ocn:westend:0"
+    ],
+    "bridges": [{
+      "type": "pk-bridge",
+      "subscription": "westend-bridge-hub-transfers"
+    }],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en3irsgsiujy7.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "westend-bridge-hub-transfers",
+    "origin": "urn:ocn:westend:1002",
+    "senders": "*",
+    "destinations": [
+      "urn:ocn:westend:1000",
+      "urn:ocn:westend:0"
+    ],
+    "bridges": [{
+      "type": "pk-bridge",
+      "subscription": "rococo-asset-hub-transfers"
+    }],
+    "events": "*",
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en3irsgsiujy7.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  }
+]
