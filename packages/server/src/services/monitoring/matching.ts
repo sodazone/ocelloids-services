@@ -821,7 +821,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   }
 
   #onXcmBridgeAccepted(bridgeAcceptedMsg: XcmBridge) {
-    // this.emit('telemetryBridge', message);
+    this.emit('telemetryBridge', bridgeAcceptedMsg)
     try {
       this.#xcmMatchedReceiver(bridgeAcceptedMsg)
     } catch (e) {
@@ -830,7 +830,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   }
 
   #onXcmBridgeDelivered(bridgeDeliveredMsg: XcmBridge) {
-    // this.emit('telemetryBridge', message);
+    this.emit('telemetryBridge', bridgeDeliveredMsg)
     try {
       this.#xcmMatchedReceiver(bridgeDeliveredMsg)
     } catch (e) {
@@ -861,7 +861,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
         forwardId: bridgeOutMsg.forwardId,
       })
 
-      // this.emit('telemetryBridge', bridgeMatched);
+      this.emit('telemetryBridge', bridgeMatched)
 
       this.#xcmMatchedReceiver(bridgeMatched)
     } catch (e) {

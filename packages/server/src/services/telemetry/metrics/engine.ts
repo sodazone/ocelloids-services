@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client'
 
-import { XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../../monitoring/types.js'
+import { XcmBridge, XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../../monitoring/types.js'
 import { TelemetryEventEmitter } from '../types.js'
 
 export function engineMetrics(source: TelemetryEventEmitter) {
@@ -37,7 +37,12 @@ export function engineMetrics(source: TelemetryEventEmitter) {
   const hopCount = new Counter({
     name: 'oc_engine_hop_total',
     help: 'Matching engine hop messages.',
-    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome'],
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome', 'direction'],
+  })
+  const bridgeCount = new Counter({
+    name: 'oc_engine_bridge_total',
+    help: 'Matching engine bridge messages.',
+    labelNames: ['subscription', 'origin', 'destination', 'legIndex', 'stop', 'outcome', 'direction'],
   })
 
   source.on('telemetryInbound', (message: XcmInbound) => {
@@ -78,7 +83,22 @@ export function engineMetrics(source: TelemetryEventEmitter) {
         msg.destination.chainId,
         msg.waypoint.legIndex.toString(),
         msg.waypoint.chainId,
-        msg.waypoint.outcome.toString()
+        msg.waypoint.outcome.toString(),
+        msg.direction
+      )
+      .inc()
+  })
+
+  source.on('telemetryBridge', (msg: XcmBridge) => {
+    bridgeCount
+      .labels(
+        msg.subscriptionId,
+        msg.origin.chainId,
+        msg.destination.chainId,
+        msg.waypoint.legIndex.toString(),
+        msg.waypoint.chainId,
+        msg.waypoint.outcome.toString(),
+        msg.bridgeMessageType
       )
       .inc()
   })
