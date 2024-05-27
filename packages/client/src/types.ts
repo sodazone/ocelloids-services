@@ -127,7 +127,7 @@ export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>
 
 /**
  * Authentication reply.
- * 
+ *
  * @public
  */
 export type AuthReply = {
@@ -138,7 +138,7 @@ export type AuthReply = {
 
 /**
  * WebSockets auth error event.
- * 
+ *
  * @public
  */
 export class WsAuthErrorEvent extends Event {
