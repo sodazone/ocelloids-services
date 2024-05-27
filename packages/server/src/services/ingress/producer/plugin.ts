@@ -1,12 +1,12 @@
-import { FastifyPluginAsync } from 'fastify';
-import fp from 'fastify-plugin';
+import { FastifyPluginAsync } from 'fastify'
+import fp from 'fastify-plugin'
 
-import IngressProducer from './index.js';
-import { IngressOptions } from '../../../types.js';
+import { IngressOptions } from '../../../types.js'
+import IngressProducer from './index.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingressProducer: IngressProducer;
+    ingressProducer: IngressProducer
   }
 }
 
@@ -17,29 +17,29 @@ declare module 'fastify' {
  * @param options Options for configuring the IngressProducer.
  */
 const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
-  const producer = new IngressProducer(fastify, options);
+  const producer = new IngressProducer(fastify, options)
 
   fastify.addHook('onClose', (server, done) => {
     producer
       .stop()
       .then(() => {
-        server.log.info('Ingress stopped');
+        server.log.info('Ingress stopped')
       })
       .catch((error) => {
-        server.log.error(error, 'Error while stopping ingress');
+        server.log.error(error, 'Error while stopping ingress')
       })
       .finally(() => {
-        done();
-      });
-  });
+        done()
+      })
+  })
 
-  fastify.decorate('ingressProducer', producer);
+  fastify.decorate('ingressProducer', producer)
 
-  await producer.start();
-};
+  await producer.start()
+}
 
 export default fp(IngressProducerPlugin, {
   fastify: '>=4.x',
   name: 'ingress-producer',
   dependencies: ['config', 'connector'],
-});
+})

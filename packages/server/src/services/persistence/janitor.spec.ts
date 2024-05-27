@@ -1,70 +1,70 @@
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals'
 
-import { MemoryLevel as Level } from 'memory-level';
+import { MemoryLevel as Level } from 'memory-level'
 
-import { _config, _log } from '../../testing/services';
-import { Janitor } from './janitor';
-import { Scheduler } from './scheduler';
+import { _config, _log } from '../../testing/services'
+import { Janitor } from './janitor'
+import { Scheduler } from './scheduler'
 
-jest.useFakeTimers();
+jest.useFakeTimers()
 
-const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve));
+const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))
 
 describe('janitor service', () => {
-  let janitor: Janitor;
-  let scheduler: Scheduler;
-  let db: Level;
-  let now: any;
+  let janitor: Janitor
+  let scheduler: Scheduler
+  let db: Level
+  let now: any
 
   beforeEach(() => {
-    db = new Level();
+    db = new Level()
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
       scheduler: true,
-    });
+    })
     janitor = new Janitor(_log, db, scheduler, {
       sweepExpiry: 500,
-    });
-    now = jest.spyOn(Date, 'now').mockImplementation(() => 0);
-  });
+    })
+    now = jest.spyOn(Date, 'now').mockImplementation(() => 0)
+  })
 
   afterEach(() => {
-    now.mockRestore();
-  });
+    now.mockRestore()
+  })
 
   it('should schedule and execute a task', async () => {
-    const s1 = db.sublevel('s1');
-    await s1.batch().put('k1', '').put('k2', '').write();
+    const s1 = db.sublevel('s1')
+    await s1.batch().put('k1', '').put('k2', '').write()
 
-    scheduler.start();
+    scheduler.start()
 
     await janitor.schedule({
       key: 'k1',
       sublevel: 's1',
-    });
+    })
 
-    expect((await scheduler.allTaskTimes()).length).toBe(1);
-    await expect(s1.get('k1')).resolves.toBeDefined();
+    expect((await scheduler.allTaskTimes()).length).toBe(1)
+    await expect(s1.get('k1')).resolves.toBeDefined()
 
-    now.mockImplementation(() => 1000);
-    jest.advanceTimersByTime(1000);
+    now.mockImplementation(() => 1000)
+    jest.advanceTimersByTime(1000)
 
-    await scheduler.stop();
+    await scheduler.stop()
 
-    await flushPromises();
+    await flushPromises()
 
     await expect(async () => {
-      await s1.get('k1');
-    }).rejects.toThrow();
+      await s1.get('k1')
+    }).rejects.toThrow()
 
-    await expect(s1.get('k2')).resolves.toBeDefined();
-  });
+    await expect(s1.get('k2')).resolves.toBeDefined()
+  })
 
   it('should skip future tasks', async () => {
-    const s1 = db.sublevel('s1');
-    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write();
+    const s1 = db.sublevel('s1')
+    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write()
 
-    scheduler.start();
+    scheduler.start()
 
     await janitor.schedule(
       {
@@ -80,57 +80,57 @@ describe('janitor service', () => {
         sublevel: 's1',
         expiry: 2000,
       }
-    );
+    )
 
-    expect((await scheduler.allTaskTimes()).length).toBe(3);
-    expect(await s1.get('k1')).toBeDefined();
+    expect((await scheduler.allTaskTimes()).length).toBe(3)
+    expect(await s1.get('k1')).toBeDefined()
 
-    now.mockImplementation(() => 1000);
-    jest.advanceTimersByTime(1000);
+    now.mockImplementation(() => 1000)
+    jest.advanceTimersByTime(1000)
 
-    await scheduler.stop();
+    await scheduler.stop()
 
-    await flushPromises();
-
-    await expect(async () => {
-      await s1.get('k1');
-    }).rejects.toThrow();
-
-    expect((await scheduler.allTaskTimes()).length).toBe(1);
-    expect(await s1.get('k3')).toBeDefined();
-
-    scheduler.start();
-    now.mockImplementation(() => 2500);
-    jest.advanceTimersByTime(2500);
-
-    await scheduler.stop();
-
-    await flushPromises();
+    await flushPromises()
 
     await expect(async () => {
-      await s1.get('k3');
-    }).rejects.toThrow();
-  });
+      await s1.get('k1')
+    }).rejects.toThrow()
+
+    expect((await scheduler.allTaskTimes()).length).toBe(1)
+    expect(await s1.get('k3')).toBeDefined()
+
+    scheduler.start()
+    now.mockImplementation(() => 2500)
+    jest.advanceTimersByTime(2500)
+
+    await scheduler.stop()
+
+    await flushPromises()
+
+    await expect(async () => {
+      await s1.get('k3')
+    }).rejects.toThrow()
+  })
 
   it('should avoid key collisions', async () => {
-    const p: Promise<void>[] = [];
+    const p: Promise<void>[] = []
     for (let i = 0; i < 10; i++) {
       p.push(
         janitor.schedule({
           key: 'k' + i,
           sublevel: 's',
         })
-      );
+      )
     }
-    await Promise.all(p);
-    expect((await scheduler.allTaskTimes()).length).toBe(10);
-  });
+    await Promise.all(p)
+    expect((await scheduler.allTaskTimes()).length).toBe(10)
+  })
 
   it('should continue if the tasks fails', async () => {
-    const s1 = db.sublevel('s1');
-    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write();
+    const s1 = db.sublevel('s1')
+    await s1.batch().put('k1', '').put('k2', '').put('k3', '').write()
 
-    scheduler.start();
+    scheduler.start()
 
     await janitor.schedule(
       {
@@ -145,16 +145,16 @@ describe('janitor service', () => {
         key: 'k1',
         sublevel: 's1',
       }
-    );
+    )
 
-    expect((await scheduler.allTaskTimes()).length).toBe(3);
+    expect((await scheduler.allTaskTimes()).length).toBe(3)
 
-    now.mockImplementation(() => 1000);
-    jest.advanceTimersByTime(1000);
+    now.mockImplementation(() => 1000)
+    jest.advanceTimersByTime(1000)
 
-    await scheduler.stop();
-    expect((await scheduler.allTaskTimes()).length).toBe(0);
-    expect((await s1.keys().all()).length).toBe(1);
-    expect(await s1.get('k3')).toBeDefined();
-  });
-});
+    await scheduler.stop()
+    expect((await scheduler.allTaskTimes()).length).toBe(0)
+    expect((await s1.keys().all()).length).toBe(1)
+    expect(await s1.get('k3')).toBeDefined()
+  })
+})

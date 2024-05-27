@@ -1,18 +1,18 @@
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from 'node:events'
 
-import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js';
-import { NotFound } from '../../errors.js';
+import { NotFound } from '../../errors.js'
+import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js'
 
 export type Scheduled<T = any> = {
-  key?: string;
-  type: string;
-  task: T;
-};
+  key?: string
+  type: string
+  task: T
+}
 
 export type SchedulerOptions = {
-  scheduler: boolean;
-  schedulerFrequency: number;
-};
+  scheduler: boolean
+  schedulerFrequency: number
+}
 
 /**
  * Simple database persistent scheduler.
@@ -21,99 +21,101 @@ export type SchedulerOptions = {
  * It uses keys with an ISO 8601 UTC formatted date and time for lexicographic ordering.
  */
 export class Scheduler extends EventEmitter {
-  #log: Logger;
-  #tasks: Family;
-  #frequency: number;
-  #enabled: boolean;
+  #log: Logger
+  #tasks: Family
+  #frequency: number
+  #enabled: boolean
 
-  #running: boolean;
-  #while: Promise<void> = Promise.resolve();
-  #cancel = (_?: unknown) => {};
+  #running: boolean
+  #while: Promise<void> = Promise.resolve()
+  #cancel = (_?: unknown) => {
+    /* empty */
+  }
 
   constructor(log: Logger, db: DB, opts: SchedulerOptions) {
-    super();
+    super()
 
-    this.#log = log;
-    this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded);
-    this.#enabled = opts.scheduler;
-    this.#frequency = opts.schedulerFrequency;
+    this.#log = log
+    this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded)
+    this.#enabled = opts.scheduler
+    this.#frequency = opts.schedulerFrequency
 
-    this.#running = false;
+    this.#running = false
   }
 
   start() {
     if (this.#enabled) {
-      this.#log.info('Starting scheduler (frequency=%dms)', this.#frequency);
-      this.#while = this.#run();
+      this.#log.info('Starting scheduler (frequency=%dms)', this.#frequency)
+      this.#while = this.#run()
     }
   }
 
   async stop() {
     if (this.#running) {
-      this.#log.info('Stopping scheduler');
-      this.#running = false;
-      this.#cancel();
-      await this.#while;
+      this.#log.info('Stopping scheduler')
+      this.#running = false
+      this.#cancel()
+      await this.#while
     }
   }
 
   async schedule<T>(...tasks: Scheduled<T>[]) {
-    const batch = this.#tasks.batch();
+    const batch = this.#tasks.batch()
     for (const task of tasks) {
       if (task.key) {
-        batch.put(task.key, task);
+        batch.put(task.key, task)
       }
     }
-    await batch.write();
+    await batch.write()
   }
 
   async remove(key: string) {
-    await this.#tasks.del(key);
+    await this.#tasks.del(key)
   }
 
   async allTaskTimes() {
-    return await this.#tasks.keys({ limit: 15_000 }).all();
+    return await this.#tasks.keys({ limit: 15_000 }).all()
   }
 
   async getById(key: string) {
     try {
-      return await this.#tasks.get(key);
-    } catch (error) {
-      throw new NotFound('Task no found');
+      return await this.#tasks.get(key)
+    } catch {
+      throw new NotFound('Task no found')
     }
   }
 
   async #run() {
     const cancellable = new Promise((resolve) => {
-      this.#cancel = resolve;
-    });
-    const delay = () => Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable]);
+      this.#cancel = resolve
+    })
+    const delay = () => Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable])
 
-    this.#running = true;
+    this.#running = true
 
     while (this.#running) {
-      await delay();
+      await delay()
       try {
-        await this.#sched();
+        await this.#sched()
       } catch (error) {
-        this.#log.error(error, 'Error while sweeping');
+        this.#log.error(error, 'Error while sweeping')
       }
     }
   }
 
   async #sched() {
     // We use now for easy tesing
-    const now = new Date(Date.now());
-    const range = this.#tasks.iterator({ lt: now.toISOString() });
+    const now = new Date(Date.now())
+    const range = this.#tasks.iterator({ lt: now.toISOString() })
 
     for await (const [key, task] of range) {
       try {
         if (this.emit(task.type, task)) {
-          await this.#tasks.del(key);
-          this.#log.debug(task, 'scheduler: Dispatched %s %j', key, task);
+          await this.#tasks.del(key)
+          this.#log.debug(task, 'scheduler: Dispatched %s %j', key, task)
         }
       } catch (error) {
-        this.#log.warn(error, 'scheduler: Error scheduling %s %j', key, task);
+        this.#log.warn(error, 'scheduler: Error scheduling %s %j', key, task)
       }
     }
   }

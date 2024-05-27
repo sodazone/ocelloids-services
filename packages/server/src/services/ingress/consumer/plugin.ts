@@ -1,12 +1,12 @@
-import { FastifyPluginAsync } from 'fastify';
-import fp from 'fastify-plugin';
+import { FastifyPluginAsync } from 'fastify'
+import fp from 'fastify-plugin'
 
-import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } from './index.js';
-import { IngressOptions } from '../../../types.js';
+import { IngressOptions } from '../../../types.js'
+import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } from './index.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingressConsumer: IngressConsumer;
+    ingressConsumer: IngressConsumer
   }
 }
 
@@ -21,25 +21,25 @@ declare module 'fastify' {
 const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
   const consumer: IngressConsumer = options.distributed
     ? new DistributedIngressConsumer(fastify, options)
-    : new LocalIngressConsumer(fastify);
+    : new LocalIngressConsumer(fastify)
 
   fastify.addHook('onClose', (server, done) => {
     consumer
       .stop()
       .then(() => {
-        server.log.info('Ingress consumer stopped');
+        server.log.info('Ingress consumer stopped')
       })
       .catch((error) => {
-        server.log.error(error, 'Error while stopping ingress consumer');
+        server.log.error(error, 'Error while stopping ingress consumer')
       })
       .finally(() => {
-        done();
-      });
-  });
+        done()
+      })
+  })
 
-  fastify.decorate('ingressConsumer', consumer);
+  fastify.decorate('ingressConsumer', consumer)
 
-  await consumer.start();
-};
+  await consumer.start()
+}
 
-export default fp(ingressConsumerPlugin, { fastify: '>=4.x', name: 'ingress-consumer' });
+export default fp(ingressConsumerPlugin, { fastify: '>=4.x', name: 'ingress-consumer' })

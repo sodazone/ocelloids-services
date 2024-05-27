@@ -1,31 +1,31 @@
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals'
 
-import '../../testing/network.js';
+import '../../testing/network.js'
 
-import { of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs'
 
-import { _services } from '../../testing/services.js';
-import { SubsStore } from '../persistence/subs';
-import { Subscription, XcmInboundWithContext, XcmSentWithContext, XcmNotificationType } from './types';
-import type { Switchboard } from './switchboard.js';
+import { _services } from '../../testing/services.js'
+import { SubsStore } from '../persistence/subs'
+import type { Switchboard } from './switchboard.js'
+import { Subscription, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types'
 
 jest.unstable_mockModule('./ops/xcmp.js', () => {
   return {
     extractXcmpSend: jest.fn(),
     extractXcmpReceive: jest.fn(),
-  };
-});
+  }
+})
 
 jest.unstable_mockModule('./ops/ump.js', () => {
   return {
     extractUmpReceive: jest.fn(),
     extractUmpSend: jest.fn(),
-  };
-});
+  }
+})
 
-const SwitchboardImpl = (await import('./switchboard.js')).Switchboard;
-const { extractXcmpReceive, extractXcmpSend } = await import('./ops/xcmp.js');
-const { extractUmpReceive, extractUmpSend } = await import('./ops/ump.js');
+const SwitchboardImpl = (await import('./switchboard.js')).Switchboard
+const { extractXcmpReceive, extractXcmpSend } = await import('./ops/xcmp.js')
+const { extractUmpReceive, extractUmpSend } = await import('./ops/ump.js')
 
 const testSub: Subscription = {
   id: '1000:2000:0',
@@ -38,14 +38,14 @@ const testSub: Subscription = {
     },
   ],
   events: '*',
-};
+}
 
 describe('switchboard service', () => {
-  let switchboard: Switchboard;
-  let subs: SubsStore;
+  let switchboard: Switchboard
+  let subs: SubsStore
 
   beforeEach(() => {
-    (extractXcmpSend as jest.Mock).mockImplementation(() => {
+    ;(extractXcmpSend as jest.Mock).mockImplementation(() => {
       return () => {
         return of({
           recipient: 'urn:ocn:local:2000',
@@ -56,10 +56,10 @@ describe('switchboard service', () => {
           instructions: {
             bytes: '0x0300',
           },
-        } as unknown as XcmSentWithContext);
-      };
-    });
-    (extractXcmpReceive as jest.Mock).mockImplementation(() => {
+        } as unknown as XcmSentWithContext)
+      }
+    })
+    ;(extractXcmpReceive as jest.Mock).mockImplementation(() => {
       return () => {
         return of({
           blockNumber: {
@@ -68,10 +68,10 @@ describe('switchboard service', () => {
           blockHash: '0x0',
           messageHash: '0x0',
           outcome: 'Success',
-        } as unknown as XcmInboundWithContext);
-      };
-    });
-    (extractUmpSend as jest.Mock).mockImplementation(() => {
+        } as unknown as XcmInboundWithContext)
+      }
+    })
+    ;(extractUmpSend as jest.Mock).mockImplementation(() => {
       return () =>
         of({
           recipient: 'urn:ocn:local:0',
@@ -82,9 +82,9 @@ describe('switchboard service', () => {
           instructions: {
             bytes: '0x0300',
           },
-        } as unknown as XcmSentWithContext);
-    });
-    (extractUmpReceive as jest.Mock).mockImplementation(() => {
+        } as unknown as XcmSentWithContext)
+    })
+    ;(extractUmpReceive as jest.Mock).mockImplementation(() => {
       return () =>
         of({
           recipient: 'urn:ocn:local:0',
@@ -94,206 +94,206 @@ describe('switchboard service', () => {
           blockHash: '0x0',
           messageHash: '0x0',
           outcome: 'Success',
-        } as unknown as XcmInboundWithContext);
-    });
+        } as unknown as XcmInboundWithContext)
+    })
 
-    subs = _services.subsStore;
+    subs = _services.subsStore
     switchboard = new SwitchboardImpl(_services, {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
-    });
-  });
+    })
+  })
 
   afterEach(async () => {
-    await _services.rootStore.clear();
-    return switchboard.stop();
-  });
+    await _services.rootStore.clear()
+    return switchboard.stop()
+  })
 
   it('should unsubscribe', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
-    await switchboard.subscribe(testSub);
+    await switchboard.subscribe(testSub)
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
-    expect(await subs.getById(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
+    expect(await subs.getById(testSub.id)).toBeDefined()
 
-    await switchboard.unsubscribe(testSub.id);
+    await switchboard.unsubscribe(testSub.id)
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined();
-  });
+    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined()
+  })
 
   it('should notify on matched HRMP', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
-    await switchboard.subscribe(testSub);
+    await switchboard.subscribe(testSub)
 
-    await switchboard.stop();
+    await switchboard.stop()
 
     // we can extract the NotifierHub as a service
     // to test the matched, but not really worth right now
-  });
+  })
 
   it('should subscribe to persisted subscriptions on start', async () => {
-    await subs.insert(testSub);
+    await subs.insert(testSub)
 
-    await switchboard.start();
+    await switchboard.start()
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
-  });
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
+  })
 
   it('should handle relay subscriptions', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       origin: 'urn:ocn:local:0',
-    });
+    })
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
-  });
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
+  })
 
   it('should handle pipe errors', async () => {
-    (extractUmpSend as jest.Mock).mockImplementation(() => () => {
-      return throwError(() => new Error('errored'));
-    });
-    (extractUmpReceive as jest.Mock).mockImplementation(() => () => {
-      return throwError(() => new Error('errored'));
-    });
-    (extractXcmpSend as jest.Mock).mockImplementation(() => () => {
-      return throwError(() => new Error('errored'));
-    });
-    (extractXcmpReceive as jest.Mock).mockImplementation(() => () => {
-      return throwError(() => new Error('errored'));
-    });
+    ;(extractUmpSend as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'))
+    })
+    ;(extractUmpReceive as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'))
+    })
+    ;(extractXcmpSend as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'))
+    })
+    ;(extractXcmpReceive as jest.Mock).mockImplementation(() => () => {
+      return throwError(() => new Error('errored'))
+    })
 
-    await switchboard.start();
+    await switchboard.start()
 
-    await switchboard.subscribe(testSub);
+    await switchboard.subscribe(testSub)
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined();
+    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
 
-    await switchboard.stop();
-  });
+    await switchboard.stop()
+  })
 
   it('should update destination subscriptions on destinations change', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
-    });
+    })
 
-    const { destinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(destinationSubs.length).toBe(2);
-    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1);
-    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(1);
+    const { destinationSubs } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(destinationSubs.length).toBe(2)
+    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1)
+    expect(destinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(1)
 
     // Remove 2000 and add 3000 to destinations
     const newSub = {
       ...testSub,
       destinations: ['urn:ocn:local:0', 'urn:ocn:local:3000'],
-    };
-    await subs.save(newSub);
+    }
+    await subs.save(newSub)
 
-    switchboard.updateSubscription(newSub);
-    switchboard.updateDestinations(newSub.id);
-    const { destinationSubs: newDestinationSubs } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(newDestinationSubs.length).toBe(2);
-    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1);
-    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:3000').length).toBe(1);
-    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(0);
-  });
+    switchboard.updateSubscription(newSub)
+    switchboard.updateDestinations(newSub.id)
+    const { destinationSubs: newDestinationSubs } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(newDestinationSubs.length).toBe(2)
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1)
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:3000').length).toBe(1)
+    expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(0)
+  })
 
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
-    await switchboard.subscribe(testSub); // origin: '1000', destinations: ['2000']
+    await switchboard.subscribe(testSub) // origin: '1000', destinations: ['2000']
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).toBeDefined();
-  });
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).toBeDefined()
+  })
 
   it('should not create relay hrmp subscription when the origin is a relay chain', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       origin: 'urn:ocn:local:0', // origin: '0', destinations: ['2000']
-    });
+    })
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).not.toBeDefined();
-  });
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).not.toBeDefined()
+  })
 
   it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       destinations: ['urn:ocn:local:0'], // origin: '1000', destinations: ['0']
-    });
+    })
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).not.toBeDefined();
-  });
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).not.toBeDefined()
+  })
 
   it('should not create relay hrmp subscription when relayed events are not requested', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       events: [XcmNotificationType.Received],
-    });
+    })
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).not.toBeDefined();
-  });
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).not.toBeDefined()
+  })
 
   it('should create relay hrmp subscription if relayed event is added', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       events: [XcmNotificationType.Received],
-    });
+    })
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).not.toBeDefined();
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).not.toBeDefined()
 
     // add relayed event to subscription
     const newSub = {
       ...testSub,
       events: [XcmNotificationType.Received, XcmNotificationType.Relayed],
-    };
-    await subs.save(newSub);
+    }
+    await subs.save(newSub)
 
-    switchboard.updateSubscription(newSub);
-    switchboard.updateEvents(newSub.id);
-    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(newRelaySub).toBeDefined();
-  });
+    switchboard.updateSubscription(newSub)
+    switchboard.updateEvents(newSub.id)
+    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(newRelaySub).toBeDefined()
+  })
 
   it('should remove relay hrmp subscription if relayed event is removed', async () => {
-    await switchboard.start();
+    await switchboard.start()
 
     await switchboard.subscribe({
       ...testSub,
       events: '*',
-    });
+    })
 
-    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(relaySub).toBeDefined();
+    const { relaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(relaySub).toBeDefined()
 
     // remove relayed event
     const newSub = {
       ...testSub,
       events: [XcmNotificationType.Received, XcmNotificationType.Sent],
-    };
-    await subs.save(newSub);
+    }
+    await subs.save(newSub)
 
-    switchboard.updateSubscription(newSub);
-    switchboard.updateEvents(newSub.id);
-    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id);
-    expect(newRelaySub).not.toBeDefined();
-  });
-});
+    switchboard.updateSubscription(newSub)
+    switchboard.updateEvents(newSub.id)
+    const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id)
+    expect(newRelaySub).not.toBeDefined()
+  })
+})

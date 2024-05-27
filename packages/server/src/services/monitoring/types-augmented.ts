@@ -1,18 +1,18 @@
-import { Observable } from 'rxjs';
+import { Observable } from 'rxjs'
 
-import type { Vec, Bytes } from '@polkadot/types';
+import type { Bytes, Vec } from '@polkadot/types'
 import type {
-  PolkadotCorePrimitivesOutboundHrmpMessage,
   PolkadotCorePrimitivesInboundDownwardMessage,
-} from '@polkadot/types/lookup';
-import { HexString } from './types.js';
-import { NetworkURN } from '../types.js';
+  PolkadotCorePrimitivesOutboundHrmpMessage,
+} from '@polkadot/types/lookup'
+import { NetworkURN } from '../types.js'
+import { HexString } from './types.js'
 
-export type GetOutboundHrmpMessages = (hash: HexString) => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>;
+export type GetOutboundHrmpMessages = (hash: HexString) => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
 
-export type GetOutboundUmpMessages = (hash: HexString) => Observable<Vec<Bytes>>;
+export type GetOutboundUmpMessages = (hash: HexString) => Observable<Vec<Bytes>>
 
 export type GetDownwardMessageQueues = (
   hash: HexString,
   networkId: NetworkURN
-) => Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>;
+) => Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>

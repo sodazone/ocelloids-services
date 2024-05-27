@@ -1,21 +1,21 @@
-import { FastifyInstance } from 'fastify';
-import { zodToJsonSchema } from 'zod-to-json-schema';
-import { Operation, applyPatch } from 'rfc6902';
+import { FastifyInstance } from 'fastify'
+import { Operation, applyPatch } from 'rfc6902'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { $Subscription, $SafeId, Subscription } from '../types.js';
-import $JSONPatch from './json-patch.js';
+import { $SafeId, $Subscription, Subscription } from '../types.js'
+import $JSONPatch from './json-patch.js'
 
-const allowedPaths = ['/senders', '/destinations', '/channels', '/events'];
+const allowedPaths = ['/senders', '/destinations', '/channels', '/events']
 
 function hasOp(patch: Operation[], path: string) {
-  return patch.some((op) => op.path.startsWith(path));
+  return patch.some((op) => op.path.startsWith(path))
 }
 
 /**
  * Subscriptions HTTP API.
  */
 export async function SubscriptionApi(api: FastifyInstance) {
-  const { switchboard, subsStore } = api;
+  const { switchboard, subsStore } = api
 
   /**
    * GET subs
@@ -33,17 +33,17 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (_, reply) => {
-      reply.send(await subsStore.getAll());
+      reply.send(await subsStore.getAll())
     }
-  );
+  )
 
   /**
    * GET subs/:id
    */
   api.get<{
     Params: {
-      id: string;
-    };
+      id: string
+    }
   }>(
     '/subs/:id',
     {
@@ -58,15 +58,15 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      reply.send(await subsStore.getById(request.params.id));
+      reply.send(await subsStore.getById(request.params.id))
     }
-  );
+  )
 
   /**
    * POST subs
    */
   api.post<{
-    Body: Subscription | Subscription[];
+    Body: Subscription | Subscription[]
   }>(
     '/subs',
     {
@@ -89,36 +89,36 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const qs = request.body;
+      const qs = request.body
       if (Array.isArray(qs)) {
-        const ids = [];
+        const ids = []
         try {
           for (const q of qs) {
-            await switchboard.subscribe(q);
-            ids.push(q.id);
+            await switchboard.subscribe(q)
+            ids.push(q.id)
           }
         } catch (error) {
           for (const id of ids) {
-            await switchboard.unsubscribe(id);
+            await switchboard.unsubscribe(id)
           }
-          throw error;
+          throw error
         }
       } else {
-        await switchboard.subscribe(qs);
+        await switchboard.subscribe(qs)
       }
 
-      reply.status(201).send();
+      reply.status(201).send()
     }
-  );
+  )
 
   /**
    * PATCH subs/:id
    */
   api.patch<{
     Params: {
-      id: string;
-    };
-    Body: Operation[];
+      id: string
+    }
+    Body: Operation[]
   }>(
     '/subs/:id',
     {
@@ -135,47 +135,47 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const patch = request.body;
-      const { id } = request.params;
-      const sub = await subsStore.getById(id);
+      const patch = request.body
+      const { id } = request.params
+      const sub = await subsStore.getById(id)
 
       // Check allowed patch ops
-      const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)));
+      const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)))
 
       if (allowedOps) {
-        applyPatch(sub, patch);
-        $Subscription.parse(sub);
+        applyPatch(sub, patch)
+        $Subscription.parse(sub)
 
-        await subsStore.save(sub);
+        await subsStore.save(sub)
 
-        switchboard.updateSubscription(sub);
+        switchboard.updateSubscription(sub)
 
         if (hasOp(patch, '/senders')) {
-          switchboard.updateSenders(id);
+          switchboard.updateSenders(id)
         }
 
         if (hasOp(patch, '/destinations')) {
-          switchboard.updateDestinations(id);
+          switchboard.updateDestinations(id)
         }
 
         if (hasOp(patch, '/events')) {
-          switchboard.updateEvents(id);
+          switchboard.updateEvents(id)
         }
 
-        reply.status(200).send(sub);
+        reply.status(200).send(sub)
       } else {
-        reply.status(400).send('Only operations on these paths are allowed: ' + allowedPaths.join(','));
+        reply.status(400).send('Only operations on these paths are allowed: ' + allowedPaths.join(','))
       }
     }
-  );
+  )
 
   /**
    * DELETE subs/:id
    */
   api.delete<{
     Params: {
-      id: string;
-    };
+      id: string
+    }
   }>(
     '/subs/:id',
     {
@@ -192,9 +192,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      await switchboard.unsubscribe(request.params.id);
+      await switchboard.unsubscribe(request.params.id)
 
-      reply.send();
+      reply.send()
     }
-  );
+  )
 }

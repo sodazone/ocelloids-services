@@ -1,5 +1,5 @@
 /* istanbul ignore next */
-export const environment = process.env.NODE_ENV || 'development';
+export const environment = process.env.NODE_ENV || 'development'
 
 const envToLogger: Record<string, any> = {
   development: {
@@ -13,6 +13,6 @@ const envToLogger: Record<string, any> = {
   },
   production: true,
   test: false,
-};
+}
 
-export const logger = envToLogger[environment];
+export const logger = envToLogger[environment]

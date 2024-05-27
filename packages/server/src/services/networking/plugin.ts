@@ -1,25 +1,25 @@
-import { FastifyPluginAsync } from 'fastify';
-import fp from 'fastify-plugin';
+import { FastifyPluginAsync } from 'fastify'
+import fp from 'fastify-plugin'
 
-import Connector from './connector.js';
+import Connector from './connector.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    connector: Connector;
+    connector: Connector
   }
 }
 
 const connectorPlugin: FastifyPluginAsync = async (fastify) => {
   if (fastify.localConfig === undefined) {
-    return;
+    return
   }
 
-  const connector = new Connector(fastify.log, fastify.localConfig);
-  fastify.decorate('connector', connector);
+  const connector = new Connector(fastify.log, fastify.localConfig)
+  fastify.decorate('connector', connector)
 
   fastify.addHook('onClose', (_, done) => {
-    connector.disconnect().finally(done);
-  });
-};
+    connector.disconnect().finally(done)
+  })
+}
 
-export default fp(connectorPlugin, { fastify: '>=4.x', name: 'connector' });
+export default fp(connectorPlugin, { fastify: '>=4.x', name: 'connector' })

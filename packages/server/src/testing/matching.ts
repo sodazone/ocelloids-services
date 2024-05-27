@@ -4,9 +4,9 @@ import {
   XcmRelayedWithContext,
   XcmSent,
   XcmTerminusContext,
-} from '../services/monitoring/types';
+} from '../services/monitoring/types'
 
-const subscriptionId = 'manamana-1';
+const subscriptionId = 'manamana-1'
 
 const originContext: XcmTerminusContext = {
   chainId: 'urn:ocn:local:1000',
@@ -18,7 +18,7 @@ const originContext: XcmTerminusContext = {
   instructions: {},
   messageData: '0x0',
   messageHash: '0xCAFE',
-};
+}
 
 const outboundMessage: XcmSent = {
   type: XcmNotificationType.Sent,
@@ -41,7 +41,7 @@ const outboundMessage: XcmSent = {
   },
   subscriptionId: subscriptionId,
   sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
-};
+}
 
 const inboundMessage: XcmInbound = {
   messageHash: '0xCAFE',
@@ -53,7 +53,7 @@ const inboundMessage: XcmInbound = {
   subscriptionId: subscriptionId,
   blockHash: '0xBEEF',
   blockNumber: '2',
-};
+}
 
 const relayMessage: XcmRelayedWithContext = {
   messageHash: '0xCAFE',
@@ -65,24 +65,24 @@ const relayMessage: XcmRelayedWithContext = {
   origin: 'urn:ocn:local:1000',
   outcome: 'Success',
   error: null,
-};
+}
 
 export const matchMessages = {
   subscriptionId,
   origin: outboundMessage,
   relay: relayMessage,
   destination: inboundMessage,
-};
+}
 
 type MatchHopMessages = {
-  subscriptionId: string;
-  origin: XcmSent;
-  relay0: XcmRelayedWithContext;
-  hopin: XcmInbound;
-  hopout: XcmSent;
-  relay2: XcmRelayedWithContext;
-  destination: XcmInbound;
-};
+  subscriptionId: string
+  origin: XcmSent
+  relay0: XcmRelayedWithContext
+  hopin: XcmInbound
+  hopout: XcmSent
+  relay2: XcmRelayedWithContext
+  destination: XcmInbound
+}
 
 export const matchHopMessages: MatchHopMessages = {
   subscriptionId,
@@ -187,7 +187,7 @@ export const matchHopMessages: MatchHopMessages = {
     blockHash: '0xEEEE',
     blockNumber: '23',
   },
-};
+}
 
 const hopOrigin: XcmSent = {
   type: XcmNotificationType.Sent,
@@ -226,7 +226,7 @@ const hopOrigin: XcmSent = {
   destination: { chainId: 'urn:ocn:local:1000' },
   sender: undefined,
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
-};
+}
 
 const hopIB: XcmInbound = {
   subscriptionId: 'xxx-1',
@@ -240,7 +240,7 @@ const hopIB: XcmInbound = {
   blockNumber: '4624161',
   extrinsicId: '4624161-1',
   assetsTrapped: undefined,
-};
+}
 
 const hopOB: XcmSent = {
   type: XcmNotificationType.Sent,
@@ -276,18 +276,18 @@ const hopOB: XcmSent = {
   destination: { chainId: 'urn:ocn:local:1000' },
   sender: { signer: { id: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7', publicKey: '0x01' }, extraSigners: [] },
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
-};
+}
 
 type RealHopMessages = {
-  subscriptionId: string;
-  origin: XcmSent;
-  hopin: XcmInbound;
-  hopout: XcmSent;
-};
+  subscriptionId: string
+  origin: XcmSent
+  hopin: XcmInbound
+  hopout: XcmSent
+}
 
 export const realHopMessages: RealHopMessages = {
   subscriptionId: 'xxx-1',
   origin: hopOrigin,
   hopin: hopIB,
   hopout: hopOB,
-};
+}

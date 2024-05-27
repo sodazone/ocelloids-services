@@ -1,42 +1,42 @@
-import process from 'node:process';
+import process from 'node:process'
 
-import { z } from 'zod';
+import { z } from 'zod'
 
-import closeWithGrace from 'close-with-grace';
-import Fastify from 'fastify';
+import closeWithGrace from 'close-with-grace'
+import Fastify from 'fastify'
 
-import FastifySwagger from '@fastify/swagger';
-import FastifySwaggerUI from '@fastify/swagger-ui';
-import FastifyWebsocket from '@fastify/websocket';
-import FastifyCors from '@fastify/cors';
-import FastifyHealthcheck from 'fastify-healthcheck';
+import FastifyCors from '@fastify/cors'
+import FastifySwagger from '@fastify/swagger'
+import FastifySwaggerUI from '@fastify/swagger-ui'
+import FastifyWebsocket from '@fastify/websocket'
+import FastifyHealthcheck from 'fastify-healthcheck'
 
-import version from './version.js';
-import { errorHandler } from './errors.js';
-import { logger } from './environment.js';
+import { logger } from './environment.js'
+import { errorHandler } from './errors.js'
 import {
-  Root,
-  Auth,
-  Telemetry,
   Administration,
-  Persistence,
+  Auth,
   Configuration,
-  Monitoring,
   Connector,
   Ingress,
-} from './services/index.js';
+  Monitoring,
+  Persistence,
+  Root,
+  Telemetry,
+} from './services/index.js'
+import version from './version.js'
 
-import { toCorsOpts } from './args.js';
+import { toCorsOpts } from './args.js'
 import {
   $BaseServerOptions,
-  $CorsServerOptions,
-  $SubscriptionServerOptions,
   $ConfigServerOptions,
+  $CorsServerOptions,
   $LevelServerOptions,
   $RedisServerOptions,
-} from './types.js';
+  $SubscriptionServerOptions,
+} from './types.js'
 
-const WS_MAX_PAYLOAD = 1048576; // 1MB
+const WS_MAX_PAYLOAD = 1048576 // 1MB
 
 export const $ServerOptions = z
   .object({
@@ -47,9 +47,9 @@ export const $ServerOptions = z
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
-  .merge($RedisServerOptions);
+  .merge($RedisServerOptions)
 
-type ServerOptions = z.infer<typeof $ServerOptions>;
+type ServerOptions = z.infer<typeof $ServerOptions>
 
 /**
  * Creates and starts the Ocelloids Execution Server with specified options.
@@ -59,9 +59,9 @@ type ServerOptions = z.infer<typeof $ServerOptions>;
 export async function createServer(opts: ServerOptions) {
   const server = Fastify({
     logger,
-  });
+  })
 
-  server.setErrorHandler(errorHandler);
+  server.setErrorHandler(errorHandler)
 
   /* istanbul ignore next */
   const closeListeners = closeWithGrace(
@@ -70,40 +70,40 @@ export async function createServer(opts: ServerOptions) {
     },
     async function ({ err }) {
       if (err) {
-        server.log.error(err);
+        server.log.error(err)
       }
 
-      const { websocketServer } = server;
+      const { websocketServer } = server
       if (websocketServer.clients) {
-        server.log.info('Closing websockets');
+        server.log.info('Closing websockets')
 
         for (const client of websocketServer.clients) {
-          client.close(1001, 'server shutdown');
+          client.close(1001, 'server shutdown')
           if (client.readyState !== client.CLOSED) {
             // Websocket clients could ignore the close acknowledge
             // breaking the clean shutdown of the server.
             // To prevent it we terminate the socket.
-            client.terminate();
+            client.terminate()
           }
         }
       }
 
-      await server.close();
+      await server.close()
     }
-  );
+  )
 
   /* istanbul ignore next */
   process.once('SIGUSR2', async function () {
-    await server.close();
+    await server.close()
     // Controlled shutdown for Nodemon
     // https://github.com/remy/nodemon?tab=readme-ov-file#controlling-shutdown-of-your-script
-    process.kill(process.pid, 'SIGUSR2');
-  });
+    process.kill(process.pid, 'SIGUSR2')
+  })
 
   server.addHook('onClose', function (_, done) {
-    closeListeners.uninstall();
-    done();
-  });
+    closeListeners.uninstall()
+    done()
+  })
 
   await server.register(FastifySwagger, {
     openapi: {
@@ -112,15 +112,15 @@ export async function createServer(opts: ServerOptions) {
         version,
       },
     },
-  });
+  })
 
   await server.register(FastifySwaggerUI, {
     routePrefix: '/documentation',
-  });
+  })
 
   await server.register(FastifyHealthcheck, {
     exposeUptime: true,
-  });
+  })
 
   await server.register(FastifyWebsocket, {
     options: {
@@ -133,32 +133,34 @@ export async function createServer(opts: ServerOptions) {
     },
     // override default pre-close
     // we explicitly handle it with terminate
-    preClose: () => {},
-  });
+    preClose: () => {
+      /* empty */
+    },
+  })
 
   if (opts.cors) {
-    server.log.info('Enable CORS');
+    server.log.info('Enable CORS')
 
-    const corsOpts = toCorsOpts(opts);
-    server.log.info('- origin: %s', corsOpts.origin);
-    server.log.info('- credentials: %s', corsOpts.credentials);
+    const corsOpts = toCorsOpts(opts)
+    server.log.info('- origin: %s', corsOpts.origin)
+    server.log.info('- credentials: %s', corsOpts.credentials)
 
-    await server.register(FastifyCors, corsOpts);
+    await server.register(FastifyCors, corsOpts)
   }
 
-  await server.register(Root);
-  await server.register(Auth);
+  await server.register(Root)
+  await server.register(Auth)
 
   if (!opts.distributed) {
-    await server.register(Configuration, opts);
-    await server.register(Connector);
+    await server.register(Configuration, opts)
+    await server.register(Connector)
   }
 
-  await server.register(Persistence, opts);
-  await server.register(Ingress, opts);
-  await server.register(Monitoring, opts);
-  await server.register(Administration);
-  await server.register(Telemetry, opts);
+  await server.register(Persistence, opts)
+  await server.register(Ingress, opts)
+  await server.register(Monitoring, opts)
+  await server.register(Administration)
+  await server.register(Telemetry, opts)
 
-  return server;
+  return server
 }

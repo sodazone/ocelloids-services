@@ -19,4 +19,4 @@ export type {
   XcmTerminusContext,
   XcmWaypointContext,
   SignerData,
-} from './services/monitoring/types.js';
+} from './services/monitoring/types.js'

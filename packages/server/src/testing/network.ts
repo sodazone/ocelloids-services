@@ -1,24 +1,24 @@
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals'
 
-import { MemoryLevel } from 'memory-level';
-import * as P from '@polkadot/api';
-import * as C from '@sodazone/ocelloids-sdk';
+import * as P from '@polkadot/api'
+import * as C from '@sodazone/ocelloids-sdk'
+import { MemoryLevel } from 'memory-level'
 
-import { _configToml } from './data.js';
+import { _configToml } from './data.js'
 
 jest.unstable_mockModule('node:fs', () => {
   return {
     default: {
       readFileSync: () => {
-        return _configToml;
+        return _configToml
       },
     },
-  };
-});
+  }
+})
 
 jest.unstable_mockModule('level', async () => {
-  return { Level: MemoryLevel };
-});
+  return { Level: MemoryLevel }
+})
 
 jest.unstable_mockModule('@polkadot/api', () => {
   return {
@@ -27,7 +27,7 @@ jest.unstable_mockModule('@polkadot/api', () => {
     WsProvider: jest.fn(() => {
       return {
         hasSubscriptions: jest.fn(() => {
-          return true;
+          return true
         }),
         on: jest.fn(),
         connect: jest.fn(() => Promise.resolve()),
@@ -35,12 +35,12 @@ jest.unstable_mockModule('@polkadot/api', () => {
         send: jest.fn(),
         subscribe: jest.fn(),
         unsubscribe: jest.fn(),
-      };
+      }
     }),
     ScProvider: jest.fn(() => {
       return {
         hasSubscriptions: jest.fn(() => {
-          return true;
+          return true
         }),
         on: jest.fn(),
         connect: jest.fn(() => Promise.resolve()),
@@ -48,10 +48,10 @@ jest.unstable_mockModule('@polkadot/api', () => {
         send: jest.fn(),
         subscribe: jest.fn(),
         unsubscribe: jest.fn(),
-      };
+      }
     }),
-  };
-});
+  }
+})
 
 jest.unstable_mockModule('@sodazone/ocelloids-sdk', () => {
   return {
@@ -65,7 +65,9 @@ jest.unstable_mockModule('@sodazone/ocelloids-sdk', () => {
           },
           derive: {
             chain: {
-              getBlock: () => {},
+              getBlock: () => {
+                /* empty */
+              },
             },
           },
           rpc: {
@@ -75,15 +77,15 @@ jest.unstable_mockModule('@sodazone/ocelloids-sdk', () => {
               }),
             },
           },
-        } as unknown as P.ApiPromise);
-        const records: Record<string, P.ApiPromise> = {};
+        } as unknown as P.ApiPromise)
+        const records: Record<string, P.ApiPromise> = {}
         for (const k of this.chains) {
           records[k] = {
             isReady: p,
-          } as unknown as P.ApiPromise;
+          } as unknown as P.ApiPromise
         }
-        return records;
+        return records
       }
     },
-  };
-});
+  }
+})

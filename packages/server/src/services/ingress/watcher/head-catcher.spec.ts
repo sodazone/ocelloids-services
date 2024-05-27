@@ -1,42 +1,42 @@
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals'
 
-import { MemoryLevel } from 'memory-level';
-import { from, of } from 'rxjs';
-import { ApiRx, ApiPromise } from '@polkadot/api';
+import { ApiPromise, ApiRx } from '@polkadot/api'
+import { MemoryLevel } from 'memory-level'
+import { from, of } from 'rxjs'
 
-import { _services } from '../../../testing/services.js';
-import Connector from '../../networking/connector.js';
-import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js';
-import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js';
-import { DB, jsonEncoded, prefixes, NetworkURN } from '../../types.js';
-import { Janitor } from '../../persistence/janitor.js';
-import { BlockNumberRange, ChainHead } from '../../monitoring/types.js';
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js';
+import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js'
+import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js'
+import { _services } from '../../../testing/services.js'
+import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js'
+import { BlockNumberRange, ChainHead } from '../../monitoring/types.js'
+import Connector from '../../networking/connector.js'
+import { Janitor } from '../../persistence/janitor.js'
+import { DB, NetworkURN, jsonEncoded, prefixes } from '../../types.js'
 
-const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher;
+const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 
-const flushPromises = () => new Promise((res) => process.nextTick(res));
+const flushPromises = () => new Promise((res) => process.nextTick(res))
 
 describe('head catcher', () => {
-  let db: DB;
+  let db: DB
 
   function sl(chainId: NetworkURN) {
     return db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
       valueEncoding: 'buffer',
-    });
+    })
   }
 
   beforeAll(async () => {
-    db = new MemoryLevel();
-  });
+    db = new MemoryLevel()
+  })
 
   afterEach(async () => {
-    await db.clear();
-  });
+    await db.clear()
+  })
 
   afterAll(async () => {
-    await db.close();
-  });
+    await db.close()
+  })
 
   describe('start', () => {
     it('should store new blocks in db for relay chain if using smoldot provider', async () => {
@@ -59,21 +59,21 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
       const expectedKeys = [
         prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
         prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
         prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'),
-      ];
+      ]
 
-      catcher.start();
+      catcher.start()
 
-      const slkeys = await sl('urn:ocn:local:0').keys().all();
-      expect(expectedKeys.every((k) => slkeys.includes(k))).toBe(true);
+      const slkeys = await sl('urn:ocn:local:0').keys().all()
+      expect(expectedKeys.every((k) => slkeys.includes(k))).toBe(true)
 
-      catcher.stop();
-    });
+      catcher.stop()
+    })
 
     it('should store new blocks and outbound xcm messages in db for parachain if using smoldot provider', async () => {
       const catcher = new HeadCatcher({
@@ -90,7 +90,7 @@ describe('head catcher', () => {
                     getStorage: () => {
                       return Promise.resolve({
                         toU8a: () => new Uint8Array(0),
-                      });
+                      })
                     },
                   },
                 },
@@ -104,7 +104,7 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
       const expectedKeys = [
         prefixes.cache.keys.block('0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'),
@@ -134,32 +134,34 @@ describe('head catcher', () => {
           parachainSystemUpwardMessages,
           '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'
         ),
-      ];
+      ]
 
-      catcher.start();
+      catcher.start()
 
-      await flushPromises();
+      await flushPromises()
 
-      const slkeys = await sl('urn:ocn:local:2032').keys().all();
+      const slkeys = await sl('urn:ocn:local:2032').keys().all()
 
-      catcher.stop();
+      catcher.stop()
 
       expect(
         expectedKeys.every((k) => {
-          return slkeys.includes(k);
+          return slkeys.includes(k)
         })
-      ).toBe(true);
-    });
-  });
+      ).toBe(true)
+    })
+  })
 
   describe('finalizedBlocks', () => {
     it('should get block from cache and delete gotten entries if using smoldot', (done) => {
       const janitor = {
-        schedule: () => {},
-      } as unknown as Janitor;
+        schedule: () => {
+          /* empty */
+        },
+      } as unknown as Janitor
 
-      const headersSource = from(polkadotBlocks.map((tb) => tb.block.header));
-      const blocksSource = from(polkadotBlocks);
+      const headersSource = from(polkadotBlocks.map((tb) => tb.block.header))
+      const blocksSource = from(polkadotBlocks)
 
       const catcher = new HeadCatcher({
         ..._services,
@@ -191,7 +193,7 @@ describe('head catcher', () => {
                       getHeader: (hash) => {
                         return Promise.resolve(
                           polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!
-                        );
+                        )
                       },
                     },
                   },
@@ -206,8 +208,8 @@ describe('head catcher', () => {
                               toBigInt: () => 0n,
                             },
                           },
-                        };
-                      };
+                        }
+                      }
                     },
                   },
                 } as unknown as ApiPromise),
@@ -217,52 +219,52 @@ describe('head catcher', () => {
         } as unknown as Connector,
         rootStore: db,
         janitor,
-      });
+      })
 
-      const janitorSpy = jest.spyOn(janitor, 'schedule');
+      const janitorSpy = jest.spyOn(janitor, 'schedule')
       const expectedBlocks = [
         prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
         prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
         prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'),
-      ];
+      ]
 
-      catcher.start();
+      catcher.start()
 
       blocksSource.subscribe({
         complete: async () => {
           // Blocks should be put in cache
-          const blockCache = await sl('urn:ocn:local:0').keys().all();
-          expect(expectedBlocks.every((k) => blockCache.includes(k))).toBe(true);
+          const blockCache = await sl('urn:ocn:local:0').keys().all()
+          expect(expectedBlocks.every((k) => blockCache.includes(k))).toBe(true)
 
           catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             complete: async () => {
-              catcher.stop();
-              done();
-              expect(janitorSpy).toHaveBeenCalledTimes(3);
+              catcher.stop()
+              done()
+              expect(janitorSpy).toHaveBeenCalledTimes(3)
             },
-          });
+          })
         },
-      });
-    });
+      })
+    })
 
     it('should catch up blocks', (done) => {
       // Load 20 blocks starting from #17844552
-      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
+      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
       // Pretend that we left off at block #17844551
       db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
         chainId: 'urn:ocn:local:0',
         blockNumber: '17844551',
-      } as unknown as ChainHead);
+      } as unknown as ChainHead)
 
-      const testHeaders = testBlocks.map((tb) => tb.block.header);
+      const testHeaders = testBlocks.map((tb) => tb.block.header)
       // We will emit finalized headers with gaps to force enter catch-up logic multiple times
-      const headersSource = from([testHeaders[3], testHeaders[9], testHeaders[19]]);
-      const blocksSource = from(testBlocks);
+      const headersSource = from([testHeaders[3], testHeaders[9], testHeaders[19]])
+      const blocksSource = from(testBlocks)
 
       const mockGetHeader = jest.fn((hash: any) => {
-        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex());
-        return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`);
-      });
+        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex())
+        return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`)
+      })
 
       const catcher = new HeadCatcher({
         ..._services,
@@ -306,8 +308,8 @@ describe('head catcher', () => {
                               toBigInt: () => 0n,
                             },
                           },
-                        };
-                      };
+                        }
+                      }
                     },
                   },
                 } as unknown as ApiPromise),
@@ -316,83 +318,83 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
-      const cb = [jest.fn(), jest.fn()];
+      const cb = [jest.fn(), jest.fn()]
 
-      catcher.start();
+      catcher.start()
 
       blocksSource.subscribe({
         complete: async () => {
           // Blocks should be put in cache
-          const blockCache = await sl('urn:ocn:local:0').keys().all();
-          expect(blockCache.length).toBe(20);
+          const blockCache = await sl('urn:ocn:local:0').keys().all()
+          expect(blockCache.length).toBe(20)
 
-          let completes = 0;
+          let completes = 0
           catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: (_) => {
-              cb[0]();
+              cb[0]()
             },
             complete: async () => {
-              expect(cb[0]).toHaveBeenCalledTimes(20);
+              expect(cb[0]).toHaveBeenCalledTimes(20)
 
-              completes++;
+              completes++
               if (completes === 2) {
-                catcher.stop();
-                done();
+                catcher.stop()
+                done()
               }
             },
-          });
+          })
 
           catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: () => {
-              cb[1]();
+              cb[1]()
             },
             complete: async () => {
-              expect(cb[1]).toHaveBeenCalledTimes(20);
+              expect(cb[1]).toHaveBeenCalledTimes(20)
 
-              completes++;
+              completes++
               if (completes === 2) {
-                catcher.stop();
-                done();
+                catcher.stop()
+                done()
               }
             },
-          });
+          })
         },
-      });
-    });
+      })
+    })
 
     it('should recover block ranges', (done) => {
       // Load 20 blocks starting from #17844552
-      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json');
+      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
       // Pretend that we left off at block #17844570
       db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
         chainId: 'urn:ocn:local:0',
         blockNumber: '17844570',
-      } as unknown as ChainHead);
+      } as unknown as ChainHead)
       // Pretend that we got interrupted
       const range: BlockNumberRange = {
         fromBlockNum: '17844569',
         toBlockNum: '17844551',
-      };
+      }
       db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
         prefixes.cache.keys.range(range),
         range
-      );
-      const testHeaders = testBlocks.map((tb) => tb.block.header);
+      )
+      const testHeaders = testBlocks.map((tb) => tb.block.header)
       // We will emit the last finalized headers
-      const headersSource = from([testHeaders[18], testHeaders[19]]);
-      const blocksSource = from(testBlocks);
+      const headersSource = from([testHeaders[18], testHeaders[19]])
+      const blocksSource = from(testBlocks)
 
       const mockGetHeader = jest.fn((hash: any) => {
-        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex());
-        return found ? Promise.resolve(found) : Promise.reject(new Error(`No header for ${hash.toHex()}`));
-      });
+        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex())
+        return found ? Promise.resolve(found) : Promise.reject(new Error(`No header for ${hash.toHex()}`))
+      })
 
       const mockGetHash = jest.fn((blockNumber: any) => {
-        const found = testHeaders.find((h) => h.number.toString() === blockNumber.toString());
-        return found ? Promise.resolve(found.hash) : Promise.reject(new Error(`No hash for ${blockNumber}`));
-      });
+        const found = testHeaders.find((h) => h.number.toString() === blockNumber.toString())
+        return found ? Promise.resolve(found.hash) : Promise.reject(new Error(`No hash for ${blockNumber}`))
+      })
 
       const catcher = new HeadCatcher({
         ..._services,
@@ -423,7 +425,7 @@ describe('head catcher', () => {
                   derive: {
                     chain: {
                       getBlock: (hash) => {
-                        return Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex()));
+                        return Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex()))
                       },
                     },
                   },
@@ -436,35 +438,35 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
-      const cb = jest.fn();
+      const cb = jest.fn()
 
-      catcher.start();
+      catcher.start()
 
       blocksSource.subscribe({
         complete: async () => {
           catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
             next: (_) => {
-              cb();
+              cb()
             },
             complete: async () => {
-              catcher.stop();
-              done();
-              expect(cb).toHaveBeenCalledTimes(20);
+              catcher.stop()
+              done()
+              expect(cb).toHaveBeenCalledTimes(20)
             },
-          });
+          })
         },
-      });
-    });
-  });
+      })
+    })
+  })
 
   describe('outboundUmpMessages', () => {
     it('should construct outbound UMP messages from cached buffers if using smoldot', (done) => {
       const mockRegistry = {
         createType: jest.fn(),
-      };
-      const blocksSource = from(interlayBlocks);
+      }
+      const blocksSource = from(interlayBlocks)
 
       const catcher = new HeadCatcher({
         ..._services,
@@ -500,35 +502,35 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
-      catcher.start();
+      catcher.start()
 
-      let calls = 0;
+      let calls = 0
       blocksSource.subscribe({
         complete: () => {
-          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
+          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
           catcher.getStorage('urn:ocn:local:2032', parachainSystemUpwardMessages, hash).subscribe({
             next: () => {
-              calls++;
+              calls++
             },
             complete: () => {
-              expect(calls).toBe(1);
-              done();
+              expect(calls).toBe(1)
+              done()
             },
-          });
+          })
         },
-      });
+      })
 
-      catcher.stop();
-    });
+      catcher.stop()
+    })
 
     it('should get outbound UMP messages from chain storage if using rpc', (done) => {
       const mockUpwardMessagesQuery = jest.fn(() =>
         Promise.resolve({
           toU8a: () => new Uint8Array(0),
         })
-      );
+      )
       const catcher = new HeadCatcher({
         ..._services,
         localConfig: mockConfigMixed,
@@ -553,23 +555,23 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
         complete: () => {
-          expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1);
-          done();
+          expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1)
+          done()
         },
-      });
-    });
-  });
+      })
+    })
+  })
 
   describe('outboundHrmpMessages', () => {
     it('should construct outbound HRMP messages from cached buffers if using smoldot', (done) => {
       const mockRegistry = {
         createType: jest.fn(),
-      };
-      const blocksSource = from(interlayBlocks);
+      }
+      const blocksSource = from(interlayBlocks)
 
       const catcher = new HeadCatcher({
         ..._services,
@@ -605,35 +607,35 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
-      catcher.start();
+      catcher.start()
 
-      let calls = 0;
+      let calls = 0
       blocksSource.subscribe({
         complete: () => {
-          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0';
+          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
           catcher.getStorage('urn:ocn:local:2032', parachainSystemHrmpOutboundMessages, hash).subscribe({
             next: () => {
-              calls++;
+              calls++
             },
             complete: () => {
-              expect(calls).toBe(1);
-              done();
+              expect(calls).toBe(1)
+              done()
             },
-          });
+          })
         },
-      });
+      })
 
-      catcher.stop();
-    });
+      catcher.stop()
+    })
 
     it('should get outbound HRMP messages from chain storage if using rpc', (done) => {
       const mockHrmpOutboundMessagesQuery = jest.fn(() =>
         Promise.resolve({
           toU8a: () => new Uint8Array(0),
         })
-      );
+      )
       const catcher = new HeadCatcher({
         ..._services,
         localConfig: mockConfigMixed,
@@ -658,14 +660,14 @@ describe('head catcher', () => {
           }),
         } as unknown as Connector,
         rootStore: db,
-      });
+      })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({
         complete: () => {
-          expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1);
-          done();
+          expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1)
+          done()
         },
-      });
-    });
-  });
-});
+      })
+    })
+  })
+})

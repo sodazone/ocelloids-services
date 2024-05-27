@@ -1,33 +1,32 @@
-import Handlebars, { TemplateDelegate } from 'handlebars';
-import { LRUCache } from 'lru-cache';
+import Handlebars, { TemplateDelegate } from 'handlebars'
+import { LRUCache } from 'lru-cache'
 
 type RenderContext<T> = {
-  template: string;
-  data: T;
-};
+  template: string
+  data: T
+}
 
 type DataObject = {
-  [key: string]: any;
-};
+  [key: string]: any
+}
 
 function toDataObject(obj: any): DataObject {
-  let dao: DataObject;
+  let dao: DataObject
 
   if (Array.isArray(obj)) {
-    dao = obj.map((it) => toDataObject(it));
+    dao = obj.map((it) => toDataObject(it))
   } else if (obj instanceof Object && !(obj instanceof Function)) {
-    dao = {};
+    dao = {}
     for (const [key, value] of Object.entries(obj)) {
-      // eslint-disable-next-line no-prototype-builtins
-      if (obj.hasOwnProperty(key)) {
-        dao[key] = toDataObject(value);
+      if (Object.hasOwn(obj, key)) {
+        dao[key] = toDataObject(value)
       }
     }
   } else {
-    dao = obj;
+    dao = obj
   }
 
-  return dao;
+  return dao
 }
 
 /**
@@ -36,7 +35,7 @@ function toDataObject(obj: any): DataObject {
  * The renderer keeps an LRU cache of the compiled templates.
  */
 export class TemplateRenderer {
-  #cache;
+  #cache
 
   constructor(cache?: LRUCache<string, TemplateDelegate>) {
     this.#cache =
@@ -44,7 +43,7 @@ export class TemplateRenderer {
       new LRUCache<string, TemplateDelegate>({
         max: 100,
         ttl: 3.6e6, // 1 hour
-      });
+      })
   }
 
   render<T>(context: RenderContext<T>): string {
@@ -53,18 +52,18 @@ export class TemplateRenderer {
       allowProtoMethodsByDefault: false,
       allowCallsToHelperMissing: false,
       allowProtoPropertiesByDefault: false,
-    });
+    })
   }
 
   #resolve<T>({ template }: RenderContext<T>): TemplateDelegate<any> {
     if (this.#cache.has(template)) {
-      return this.#cache.get(template)!;
+      return this.#cache.get(template)!
     }
     const delgate = Handlebars.compile(template, {
       strict: true,
       knownHelpersOnly: true,
-    });
-    this.#cache.set(template, delgate);
-    return delgate;
+    })
+    this.#cache.set(template, delgate)
+    return delgate
   }
 }

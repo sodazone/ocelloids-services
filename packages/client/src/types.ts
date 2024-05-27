@@ -1,4 +1,4 @@
-import { XcmNotifyMessage, XcmReceived, XcmRelayed, XcmSent } from './lib';
+import { XcmNotifyMessage, XcmReceived, XcmRelayed, XcmSent } from './lib'
 
 /**
  * Represents a {@link Subscription} delivery channel.
@@ -7,20 +7,20 @@ import { XcmNotifyMessage, XcmReceived, XcmRelayed, XcmSent } from './lib';
  */
 export type DeliveryChannel =
   | {
-      type: 'webhook';
-      url: string;
-      contentType?: string;
-      events?: '*' | string[];
-      template?: string;
-      bearer?: string;
-      limit?: number;
+      type: 'webhook'
+      url: string
+      contentType?: string
+      events?: '*' | string[]
+      template?: string
+      bearer?: string
+      limit?: number
     }
   | {
-      type: 'log';
+      type: 'log'
     }
   | {
-      type: 'websocket';
-    };
+      type: 'websocket'
+    }
 
 /**
  * Represents a persistent subscription.
@@ -55,40 +55,40 @@ export type Subscription = {
    * The subscription id.
    * Must be unique.
    */
-  id: string;
+  id: string
 
   /**
    * The origin chain id.
    */
-  origin: string;
+  origin: string
 
   /**
    * An array of sender addresses or '*' for all.
    */
-  senders?: '*' | string[];
+  senders?: '*' | string[]
 
   /**
    * An array of destination chain ids.
    */
-  destinations: string[];
+  destinations: string[]
 
   /**
    * Indicates the persistence preference.
    */
-  ephemeral?: boolean;
+  ephemeral?: boolean
 
   /**
    * An array of delivery channels.
    */
-  channels: DeliveryChannel[];
+  channels: DeliveryChannel[]
 
   /**
    * An optional array with the events to deliver.
    * Use '*' for all.
    * @see {@link XcmNotificationType} for supported event names.
    */
-  events?: '*' | string[];
-};
+  events?: '*' | string[]
+}
 
 /**
  * Represents a subscription error.
@@ -96,14 +96,14 @@ export type Subscription = {
  * @public
  */
 export type SubscriptionError = {
-  name: string;
+  name: string
   issues: {
-    code: string;
-    expected: string;
-    path: string[];
-    message: string;
-  }[];
-};
+    code: string
+    expected: string
+    path: string[]
+    message: string
+  }[]
+}
 
 /**
  * The XCM event types.
@@ -123,29 +123,29 @@ export enum XcmNotificationType {
  *
  * @public
  */
-export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>;
+export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>
 
 /**
  * Authentication reply.
  */
 export type AuthReply = {
-  code: number;
-  error: boolean;
-  reason?: string;
-};
+  code: number
+  error: boolean
+  reason?: string
+}
 
 /**
  * WebSockets auth error event.
  */
 export class WsAuthErrorEvent extends Event {
-  name = 'WsAuthError';
+  name = 'WsAuthError'
 
-  reply: AuthReply;
+  reply: AuthReply
 
   constructor(reply: AuthReply) {
-    super('error');
+    super('error')
 
-    this.reply = reply;
+    this.reply = reply
   }
 }
 
@@ -154,21 +154,21 @@ export class WsAuthErrorEvent extends Event {
  *
  * @public
  */
-export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void;
+export type MessageHandler<T> = (message: T, ws: WebSocket, event: MessageEvent) => void
 
 /**
  * Handler for WebSocket close event.
  *
  * @public
  */
-export type CloseHandler = (event: CloseEvent) => void;
+export type CloseHandler = (event: CloseEvent) => void
 
 /**
  * Handler for WebSocket errors.
  *
  * @public
  */
-export type ErrorHandler = (error: Event) => void;
+export type ErrorHandler = (error: Event) => void
 
 /**
  * Type definition for WebSocket event handlers.
@@ -180,23 +180,23 @@ export type WebSocketHandlers = {
    * Called on every {@link XcmNotifyMessage}.
    * This is the main message handling callback.
    */
-  onMessage: MessageHandler<XcmNotifyMessage>;
+  onMessage: MessageHandler<XcmNotifyMessage>
 
   /**
    * Called if the authentication fails.
    */
-  onAuthError?: MessageHandler<AuthReply>;
+  onAuthError?: MessageHandler<AuthReply>
 
   /**
    * Called on WebSocket close.
    */
-  onClose?: CloseHandler;
+  onClose?: CloseHandler
 
   /**
    * Called on WebSocket error.
    */
-  onError?: ErrorHandler;
-};
+  onError?: ErrorHandler
+}
 
 /**
  * Handlers for on-demand subscription creation.
@@ -204,10 +204,10 @@ export type WebSocketHandlers = {
  * @public
  */
 export type OnDemandSubscriptionHandlers = {
-  onSubscriptionCreated?: (sub: Subscription) => void;
-  onSubscriptionError?: (err: SubscriptionError) => void;
-  onError?: (err: any) => void;
-};
+  onSubscriptionCreated?: (sub: Subscription) => void
+  onSubscriptionError?: (err: SubscriptionError) => void
+  onError?: (err: any) => void
+}
 
 /**
  * Guard condition for {@link Subscription}.
@@ -215,13 +215,13 @@ export type OnDemandSubscriptionHandlers = {
  * @public
  */
 export function isSubscription(obj: Subscription | SubscriptionError | XcmNotifyMessage): obj is Subscription {
-  const maybeSub = obj as Subscription;
+  const maybeSub = obj as Subscription
   return (
     maybeSub.origin !== undefined &&
     maybeSub.destinations !== undefined &&
     maybeSub.id !== undefined &&
     maybeSub.channels !== undefined
-  );
+  )
 }
 
 /**
@@ -230,8 +230,8 @@ export function isSubscription(obj: Subscription | SubscriptionError | XcmNotify
  * @public
  */
 export function isSubscriptionError(obj: Subscription | SubscriptionError): obj is SubscriptionError {
-  const maybeError = obj as SubscriptionError;
-  return maybeError.issues !== undefined && maybeError.name !== undefined;
+  const maybeError = obj as SubscriptionError
+  return maybeError.issues !== undefined && maybeError.name !== undefined
 }
 
 /**
@@ -240,7 +240,7 @@ export function isSubscriptionError(obj: Subscription | SubscriptionError): obj 
  * @public
  */
 export function isXcmSent(object: any): object is XcmSent {
-  return object.type !== undefined && object.type === XcmNotificationType.Sent;
+  return object.type !== undefined && object.type === XcmNotificationType.Sent
 }
 
 /**
@@ -249,7 +249,7 @@ export function isXcmSent(object: any): object is XcmSent {
  * @public
  */
 export function isXcmReceived(object: any): object is XcmReceived {
-  return object.type !== undefined && object.type === XcmNotificationType.Received;
+  return object.type !== undefined && object.type === XcmNotificationType.Received
 }
 
 /**
@@ -258,5 +258,5 @@ export function isXcmReceived(object: any): object is XcmReceived {
  * @public
  */
 export function isXcmRelayed(object: any): object is XcmRelayed {
-  return object.type !== undefined && object.type === XcmNotificationType.Relayed;
+  return object.type !== undefined && object.type === XcmNotificationType.Relayed
 }

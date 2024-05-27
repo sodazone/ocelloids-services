@@ -1,23 +1,23 @@
-import { pino } from 'pino';
-import toml from 'toml';
-import { of } from 'rxjs';
-import { MemoryLevel } from 'memory-level';
-import { ApiRx, ApiPromise } from '@polkadot/api';
+import { ApiPromise, ApiRx } from '@polkadot/api'
+import { MemoryLevel } from 'memory-level'
+import { pino } from 'pino'
+import { of } from 'rxjs'
+import toml from 'toml'
 
-import { SubsStore } from '../services/persistence/subs.js';
-import { Janitor } from '../services/persistence/janitor.js';
-import { $ServiceConfiguration } from '../services/config.js';
-import Connector from '../services/networking/connector.js';
-import { _configToml } from './data.js';
-import { Scheduler } from '../services/persistence/scheduler.js';
-import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js';
-import { Services } from '../services/types.js';
+import { $ServiceConfiguration } from '../services/config.js'
+import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
+import Connector from '../services/networking/connector.js'
+import { Janitor } from '../services/persistence/janitor.js'
+import { Scheduler } from '../services/persistence/scheduler.js'
+import { SubsStore } from '../services/persistence/subs.js'
+import { Services } from '../services/types.js'
+import { _configToml } from './data.js'
 
 export const _log = pino({
   enabled: false,
-});
+})
 
-export const _config = $ServiceConfiguration.parse(toml.parse(_configToml));
+export const _config = $ServiceConfiguration.parse(toml.parse(_configToml))
 
 export const _mockApiPromises = {
   'urn:ocn:local:0': {
@@ -31,7 +31,9 @@ export const _mockApiPromises = {
       },
       derive: {
         chain: {
-          getBlock: () => {},
+          getBlock: () => {
+            /* empty */
+          },
         },
       },
       rpc: {
@@ -54,7 +56,9 @@ export const _mockApiPromises = {
       },
       derive: {
         chain: {
-          getBlock: () => {},
+          getBlock: () => {
+            /* empty */
+          },
         },
       },
       rpc: {
@@ -67,7 +71,7 @@ export const _mockApiPromises = {
       at: () => {
         return Promise.resolve({
           query: {},
-        });
+        })
       },
     } as unknown as ApiPromise),
   },
@@ -82,7 +86,9 @@ export const _mockApiPromises = {
       },
       derive: {
         chain: {
-          getBlock: () => {},
+          getBlock: () => {
+            /* empty */
+          },
         },
       },
       rpc: {
@@ -105,7 +111,9 @@ export const _mockApiPromises = {
       },
       derive: {
         chain: {
-          getBlock: () => {},
+          getBlock: () => {
+            /* empty */
+          },
         },
       },
       rpc: {
@@ -117,7 +125,7 @@ export const _mockApiPromises = {
       },
     } as unknown as ApiPromise),
   },
-};
+}
 
 export const _mockApiRxs = {
   'urn:ocn:local:0': of({
@@ -148,7 +156,7 @@ export const _mockApiRxs = {
       },
     },
   } as unknown as ApiRx),
-};
+}
 
 export const _connector = {
   connect: () => ({
@@ -156,9 +164,9 @@ export const _connector = {
     rx: _mockApiRxs,
     chains: Object.keys(_mockApiRxs),
   }),
-} as unknown as Connector;
+} as unknown as Connector
 
-export const _rootDB = new MemoryLevel();
+export const _rootDB = new MemoryLevel()
 
 const __services = {
   log: _log,
@@ -168,19 +176,25 @@ const __services = {
   subsStore: {} as unknown as SubsStore,
   ingressConsumer: {} as unknown as IngressConsumer,
   scheduler: {
-    on: () => {},
+    on: () => {
+      /* empty */
+    },
   } as unknown as Scheduler,
   janitor: {
-    on: () => {},
-    schedule: () => {},
+    on: () => {
+      /* empty */
+    },
+    schedule: () => {
+      /* empty */
+    },
   } as unknown as Janitor,
-};
+}
 
-export const _ingress = new LocalIngressConsumer(__services);
-export const _subsDB = new SubsStore(_log, _rootDB, _ingress);
+export const _ingress = new LocalIngressConsumer(__services)
+export const _subsDB = new SubsStore(_log, _rootDB, _ingress)
 
 export const _services = {
   ...__services,
   ingressConsumer: _ingress,
   subsStore: _subsDB,
-} as Services;
+} as Services

@@ -1,4 +1,4 @@
 /**
  * Ingress layer exports.
  */
-export * from './consumer/index.js';
+export * from './consumer/index.js'

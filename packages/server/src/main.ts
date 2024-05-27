@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
-import 'dotenv/config';
-import process from 'node:process';
+import 'dotenv/config'
+import process from 'node:process'
 
-import z from 'zod';
-import { Command, program } from 'commander';
+import { Command, program } from 'commander'
+import z from 'zod'
 
-import version from './version.js';
-import { optArr, optInt, opt, optBool } from './args.js';
-import { createServer, $ServerOptions } from './server.js';
+import { opt, optArr, optBool, optInt } from './args.js'
+import { $ServerOptions, createServer } from './server.js'
+import version from './version.js'
 
 /**
  * Starts an Ocelloids Execution Server from the command line.
  */
 async function startServer(this: Command) {
   try {
-    const opts = $ServerOptions.parse(this.opts());
+    const opts = $ServerOptions.parse(this.opts())
     if (opts.config === undefined && !opts.distributed) {
       throw new z.ZodError([
         {
@@ -25,9 +25,9 @@ async function startServer(this: Command) {
             'Service configuration file option `-c --config <file>` is mandatory while running in integrated mode',
           path: ['config'],
         },
-      ]);
+      ])
     }
-    const server = await createServer(opts);
+    const server = await createServer(opts)
     server.listen(
       {
         port: opts.port,
@@ -35,18 +35,18 @@ async function startServer(this: Command) {
       },
       function (err, _) {
         if (err) {
-          server.log.error(err);
-          process.exit(1);
+          server.log.error(err)
+          process.exit(1)
         }
       }
-    );
+    )
   } catch (err) {
     if (err instanceof z.ZodError) {
-      console.error(err.issues);
-      program.help();
+      console.error(err.issues)
+      program.help()
     } else {
-      console.error(err);
-      process.exit(1);
+      console.error(err)
+      process.exit(1)
     }
   }
 }
@@ -124,6 +124,6 @@ program
   )
   .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
   .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
-  .action(startServer);
+  .action(startServer)
 
-program.parse();
+program.parse()

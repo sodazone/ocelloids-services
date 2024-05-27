@@ -1,23 +1,23 @@
-import { FastifyPluginAsync } from 'fastify';
-import fp from 'fastify-plugin';
-import { Level } from 'level';
+import { FastifyPluginAsync } from 'fastify'
+import fp from 'fastify-plugin'
+import { Level } from 'level'
 
-import { DB } from '../types.js';
-import { Janitor, JanitorOptions } from './janitor.js';
-import { Scheduler, SchedulerOptions } from './scheduler.js';
+import { DB } from '../types.js'
+import { Janitor, JanitorOptions } from './janitor.js'
+import { Scheduler, SchedulerOptions } from './scheduler.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    rootStore: DB;
-    scheduler: Scheduler;
-    janitor: Janitor;
+    rootStore: DB
+    scheduler: Scheduler
+    janitor: Janitor
   }
 }
 
 type DBOptions = JanitorOptions &
   SchedulerOptions & {
-    data: string;
-  };
+    data: string
+  }
 
 /**
  * Persistence related services.
@@ -26,44 +26,44 @@ type DBOptions = JanitorOptions &
  * @param options - The persistence options
  */
 const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
-  const dbPath = options.data || './db';
+  const dbPath = options.data || './db'
 
-  fastify.log.info(`Open database at ${dbPath}`);
+  fastify.log.info(`Open database at ${dbPath}`)
 
-  const root = new Level(dbPath);
-  const scheduler = new Scheduler(fastify.log, root, options);
-  const janitor = new Janitor(fastify.log, root, scheduler, options);
+  const root = new Level(dbPath)
+  const scheduler = new Scheduler(fastify.log, root, options)
+  const janitor = new Janitor(fastify.log, root, scheduler, options)
 
-  fastify.decorate('rootStore', root);
-  fastify.decorate('janitor', janitor);
-  fastify.decorate('scheduler', scheduler);
+  fastify.decorate('rootStore', root)
+  fastify.decorate('janitor', janitor)
+  fastify.decorate('scheduler', scheduler)
 
   fastify.addHook('onClose', (instance, done) => {
     scheduler
       .stop()
       .catch((error) => {
-        instance.log.error(error, 'Error while stopping the scheduler');
+        instance.log.error(error, 'Error while stopping the scheduler')
       })
       .finally(() => {
         instance.rootStore.close((error) => {
-          instance.log.info('Closing database');
+          instance.log.info('Closing database')
           /* istanbul ignore if */
           if (error) {
-            instance.log.error(error, 'Error while closing the database');
+            instance.log.error(error, 'Error while closing the database')
           }
-          done();
-        });
-      });
-  });
+          done()
+        })
+      })
+  })
 
   try {
-    await root.open();
+    await root.open()
   } catch (err) {
-    fastify.log.error(err, 'Error opening database');
-    throw err;
+    fastify.log.error(err, 'Error opening database')
+    throw err
   }
 
-  scheduler.start();
-};
+  scheduler.start()
+}
 
-export default fp(persistencePlugin, { fastify: '>=4.x', name: 'persistence' });
+export default fp(persistencePlugin, { fastify: '>=4.x', name: 'persistence' })
