@@ -13,18 +13,19 @@ import type {
 
 import { types } from '@sodazone/ocelloids-sdk'
 
-import { createNetworkId } from '../../config.js'
 import { NetworkURN } from '../../types.js'
 import { AssetsTrapped, HexString, SignerData, TrappedAsset } from '../types.js'
 import {
   XcmV4AssetAssets,
-  XcmV4Junction,
   XcmV4Junctions,
   XcmV4Junction,
   VersionedInteriorLocation,
+  XcmVersionedXcm,
+  XcmVersionedLocation,
+  XcmV4Location,
+  XcmVersionedAssets
 } from './xcm-types.js';
 import { isGlobalConsensus, GlobalConsensus, createNetworkId, getConsensus } from '../../config.js';
-import { NetworkURN } from '../../types.js';
 
 const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
   polkadot: 'urn:ocn:polkadot:1002',

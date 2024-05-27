@@ -7,7 +7,6 @@ import { Observable, filter, from, map, share, switchMap } from 'rxjs'
 import { Logger, NetworkURN, Services } from '../types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
-  HexString,
   RxSubscriptionHandler,
   RxSubscriptionWithId,
   Subscription,
@@ -24,6 +23,7 @@ import {
   BridgeType,
   BridgeSubscription,
   XcmBridgeDeliveredWithContext,
+  XcmSentWithContext,
 } from './types.js';
 
 import { NotifierHub } from '../notification/hub.js'
@@ -820,127 +820,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     };
   }
 
-  // Assumes only 1 pair of bridge hub origin-destination is possible
-  // TODO: handle possible multiple different consensus utilizing PK bridge e.g. solochains?
-  #monitorPkBridge({ id, destinations, origin }: Subscription) {
-    const originBridgeHub = getBridgeHubNetworkId(origin as NetworkURN);
-    const dest = (destinations as NetworkURN[]).find((d) => getConsensus(d) !== getConsensus(origin as NetworkURN));
-
-    if (dest === undefined) {
-      throw new Error(`No destination on different consensus found for bridging (sub=${id})`);
-    }
-
-    const destBridgeHub = getBridgeHubNetworkId(dest);
-
-    if (originBridgeHub === undefined || destBridgeHub === undefined) {
-      throw new Error(
-        `Unable to subscribe to PK bridge due to missing bridge hub network URNs for origin=${origin} and destinations=${destinations}. (sub=${id})`
-      );
-    }
-
-    if (this.#subs[id]?.bridgeSubs.find((s) => s.type === 'pk-bridge')) {
-      throw new Error(`Fatal: duplicated PK bridge monitor ${id}`);
-    }
-
-    const type: BridgeType = 'pk-bridge';
-
-    const emitBridgeOutboundAccepted = () => (source: Observable<XcmBridgeAcceptedWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundAccepted(id, message))));
-
-    const emitBridgeOutboundDelivered = () => (source: Observable<XcmBridgeDeliveredWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundDelivered(id, message))));
-
-    const emitBridgeInbound = () => (source: Observable<XcmBridgeInboundWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeInbound(id, message))));
-
-    const pkBridgeObserver = {
-      error: (error: any) => {
-        this.#log.error(error, '[%s] error on PK bridge subscription s', originBridgeHub, id);
-        // this.emit('telemetrySubscriptionError', {
-        //   subscriptionId: id,
-        //   chainId: originBridgeHub,
-        //   direction: 'bridge',
-        // });
-
-        // try recover pk bridge subscription
-        if (this.#subs[id]) {
-          const { bridgeSubs } = this.#subs[id];
-          const index = bridgeSubs.findIndex((s) => s.type === 'pk-bridge');
-          if (index > -1) {
-            bridgeSubs.splice(index, 1);
-            this.#timeouts.push(
-              setTimeout(() => {
-                this.#log.info(
-                  '[%s] UPDATE destination subscription %s due error %s',
-                  originBridgeHub,
-                  id,
-                  errorMessage(error)
-                );
-                bridgeSubs.push(this.#monitorPkBridge(this.#subs[id].descriptor));
-                this.#subs[id].bridgeSubs = bridgeSubs;
-              }, SUB_ERROR_RETRY_MS)
-            );
-          }
-        }
-      },
-    };
-
-    this.#log.info(
-      '[%s] subscribe PK bridge outbound accepted events on bridge hub %s (%s)',
-      origin,
-      originBridgeHub,
-      id
-    );
-    const outboundAccepted: RxSubscriptionWithId = {
-      chainId: originBridgeHub,
-      sub: this.#ingress
-        .getRegistry(originBridgeHub)
-        .pipe(
-          switchMap((registry) =>
-            this.#sharedBlockEvents(originBridgeHub).pipe(
-              extractBridgeMessageAccepted(originBridgeHub, registry, this.#getStorageAt(originBridgeHub)),
-              emitBridgeOutboundAccepted()
-            )
-          )
-        )
-        .subscribe(pkBridgeObserver),
-    };
-
-    this.#log.info(
-      '[%s] subscribe PK bridge outbound delivered events on bridge hub %s (%s)',
-      origin,
-      originBridgeHub,
-      id
-    );
-    const outboundDelivered: RxSubscriptionWithId = {
-      chainId: originBridgeHub,
-      sub: this.#ingress
-        .getRegistry(originBridgeHub)
-        .pipe(
-          switchMap((registry) =>
-            this.#sharedBlockEvents(originBridgeHub).pipe(
-              extractBridgeMessageDelivered(originBridgeHub, registry),
-              emitBridgeOutboundDelivered()
-            )
-          )
-        )
-        .subscribe(pkBridgeObserver),
-    };
-
-    this.#log.info('[%s] subscribe PK bridge inbound events on bridge hub %s (%s)', origin, destBridgeHub, id);
-    const inbound: RxSubscriptionWithId = {
-      chainId: destBridgeHub,
-      sub: this.#sharedBlockEvents(destBridgeHub)
-        .pipe(extractBridgeReceive(destBridgeHub), emitBridgeInbound())
-        .subscribe(pkBridgeObserver),
-    };
-
-    return {
-      type,
-      subs: [outboundAccepted, outboundDelivered, inbound],
-    };
-  }
-
   #updateDestinationSubscriptions(id: string) {
     const { descriptor, destinationSubs } = this.#subs[id]
     // Subscribe to new destinations, if any
@@ -1076,12 +955,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         })
       )
     }
-  }
-
-  #getStorageAt(chainId: NetworkURN): GetStorageAt {
-    return (blockHash: HexString, key: HexString) => {
-      return from(this.#ingress.getStorage(chainId, key, blockHash));
-    };
   }
 
   #getStorageAt(chainId: NetworkURN): GetStorageAt {

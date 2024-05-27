@@ -3,9 +3,6 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { createNetworkId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,

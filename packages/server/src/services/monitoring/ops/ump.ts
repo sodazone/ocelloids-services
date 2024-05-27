@@ -4,11 +4,8 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 import '@polkadot/api-augment/polkadot'
 import type { Registry } from '@polkadot/types/types'
 
-import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk'
+import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { getChainId, getRelayId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,

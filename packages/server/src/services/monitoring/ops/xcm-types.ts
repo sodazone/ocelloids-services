@@ -30,6 +30,8 @@ import type {
   XcmV3TraitsError,
   XcmV3WeightLimit,
   XcmV3Xcm,
+  XcmV2MultilocationJunctions,
+  XcmV3Junctions
 } from '@polkadot/types/lookup'
 
 /** @name XcmVersionedXcm (296) */
@@ -69,7 +71,7 @@ export interface XcmVersionedAssets extends Enum {
 export interface XcmV4Xcm extends Vec<XcmV4Instruction> {}
 
 /** @name XcmV4Instruction (342) */
-interface XcmV4Instruction extends Enum {
+export interface XcmV4Instruction extends Enum {
   readonly isWithdrawAsset: boolean
   readonly asWithdrawAsset: XcmV4AssetAssets
   readonly isReserveAssetDeposited: boolean
