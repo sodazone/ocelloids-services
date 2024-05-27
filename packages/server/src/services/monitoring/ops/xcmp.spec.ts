@@ -37,9 +37,7 @@ describe('xcmp operator', () => {
 
       const calls = jest.fn();
 
-      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(
-        extractEvents()
-      ));
+      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()));
 
       test$.subscribe({
         next: (msg) => {

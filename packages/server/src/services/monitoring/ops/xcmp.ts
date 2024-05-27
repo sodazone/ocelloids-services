@@ -4,14 +4,13 @@ import type { Registry } from '@polkadot/types/types';
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
 
 import {
-  AnyJson,
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   MessageQueueEventContext,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js';
-import { getMessageId, getSendersFromEvent, mapAssetsTrapped, matchEvent } from './util.js';
+import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js';
 import { fromXcmpFormat } from './xcm-format.js';
 import { GetOutboundHrmpMessages } from '../types-augmented.js';
 import { createNetworkId } from '../../config.js';

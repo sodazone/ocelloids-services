@@ -215,7 +215,10 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   return _networkIdFrom(junctions, networkId);
 }
 
-export function getParaIdFromJunctions(junctions: XcmV3Junctions | XcmV4Junctions): string | undefined {
+// eslint-disable-next-line complexity
+export function getParaIdFromJunctions(
+  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions
+): string | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
@@ -252,7 +255,7 @@ export function getParaIdFromMultiLocation(
     return undefined;
   }
 
-  return getParaIdFromJunctions(junctions)
+  return getParaIdFromJunctions(junctions);
 }
 
 export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {

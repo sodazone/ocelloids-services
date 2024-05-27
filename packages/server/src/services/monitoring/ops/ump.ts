@@ -14,7 +14,7 @@ import {
   XcmSentWithContext,
 } from '../types.js';
 import { GetOutboundUmpMessages } from '../types-augmented.js';
-import { getMessageId, getParaIdFromOrigin, getSendersFromEvent, mapAssetsTrapped, matchEvent } from './util.js';
+import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { getChainId, getRelayId } from '../../config.js';
 import { NetworkURN } from '../../types.js';

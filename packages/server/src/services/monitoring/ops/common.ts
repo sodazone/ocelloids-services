@@ -6,7 +6,12 @@ import { u8aConcat, stringToU8a, hexToU8a } from '@polkadot/util';
 import { blake2AsHex } from '@polkadot/util-crypto';
 
 import { AnyJson, GenericXcmSent, HexString, Leg, XcmSent, XcmSentWithContext } from '../types.js';
-import { getBridgeHubNetworkId, getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js';
+import {
+  getBridgeHubNetworkId,
+  getParaIdFromJunctions,
+  getSendersFromEvent,
+  networkIdFromMultiLocation,
+} from './util.js';
 import { asVersionedXcm } from './xcm-format.js';
 import { XcmV4Xcm, XcmV4Instruction } from './xcm-types.js';
 import { NetworkURN } from '../../types.js';
@@ -136,7 +141,7 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
     );
 }
 
-export function blockEventToHuman(event: types.BlockEvent) : AnyJson {
+export function blockEventToHuman(event: types.BlockEvent): AnyJson {
   return {
     extrinsicPosition: event.extrinsicPosition,
     extrinsicId: event.extrinsicId,
@@ -148,8 +153,8 @@ export function blockEventToHuman(event: types.BlockEvent) : AnyJson {
     index: event.index.toHuman(),
     meta: event.meta.toHuman(),
     method: event.method,
-    section: event.section
-  } as AnyJson
+    section: event.section,
+  } as AnyJson;
 }
 
 export function xcmMessagesSent() {
