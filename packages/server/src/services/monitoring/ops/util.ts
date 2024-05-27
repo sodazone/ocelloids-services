@@ -164,14 +164,15 @@ function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
 function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): NetworkURN | undefined {
   if (junctions.asX1.isGlobalConsensus) {
     extractConsensusAndId(junctions.asX1, n);
-    if (n.consensus !== undefined && n.chainId !== undefined) {
-      return `urn:ocn:${n.consensus}:${n.chainId}`;
+    if (n.consensus !== undefined) {
+      return createNetworkId(n.consensus, n.chainId ?? '0');
     }
   }
   return undefined;
 }
 
 function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: NetworkId) {
+  
   if (junctions.type === 'X1' || junctions.type === 'Here') {
     return undefined;
   }
@@ -184,10 +185,10 @@ function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: N
     if (j.isParachain) {
       networkId.chainId = j.asParachain.toString();
     }
+  }
 
-    if (networkId.consensus !== undefined && networkId.chainId !== undefined) {
-      return createNetworkId(networkId.consensus, networkId.chainId);
-    }
+  if (networkId.consensus !== undefined) {
+    return createNetworkId(networkId.consensus, networkId.chainId ?? '0');
   }
 
   return undefined;
@@ -204,9 +205,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
     return undefined;
   }
 
-  const networkId: NetworkId = {
-    chainId: '0',
-  };
+  const networkId: NetworkId = {};
 
   if (junctions.type === 'X1') {
     return extractV3X1GlobalConsensus(junctions, networkId);
@@ -291,14 +290,17 @@ export function networkIdFromMultiLocation(
     // is in other consensus system
     if (junctions.type === 'X1') {
       if (isX1V2Junctions(junctions)) {
+        console.log('X1 V2')
         return undefined;
       }
 
       if (isX1V3Junctions(junctions)) {
+        console.log('X1 V3')
         return networkIdFromV3(junctions);
       }
 
       if (isX1V4Junctions(junctions)) {
+        console.log('X1 V4')
         return networkIdFromV4(junctions);
       }
     } else if (!isXnV2Junctions(junctions)) {

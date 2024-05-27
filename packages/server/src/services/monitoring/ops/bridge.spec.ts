@@ -198,7 +198,7 @@ describe('relay operator', () => {
 
 describe('bridge operator', () => {
   describe('extractBridgeMessageAccepted', () => {
-    it('should do something', (done) => {
+    it('should extract accepted bridge messages on Bridge Hub', (done) => {
       const { origin, destination, blocks, getStorage } = bridgeOutAcceptedKusama;
 
       const calls = jest.fn();
@@ -231,7 +231,7 @@ describe('bridge operator', () => {
   });
 
   describe('extractBridgeMessageDelivered', () => {
-    it('should do something', (done) => {
+    it('should extract bridge message delivered event', (done) => {
       const { origin, blocks } = bridgeOutDeliveredKusama;
 
       const calls = jest.fn();
@@ -257,7 +257,7 @@ describe('bridge operator', () => {
   });
 
   describe('extractBridgeReceive', () => {
-    it('should do something', (done) => {
+    it('should extract bridge message receive events when message arrives on receving Bridge Hub', (done) => {
       const { origin, blocks } = bridgeInPolkadot;
 
       const calls = jest.fn();

@@ -27,6 +27,7 @@ import {
   BridgeMessageAccepted,
   BridgeMessagesDelivered,
 } from './xcm-types.js';
+import { blockEventToHuman } from './common.js';
 
 export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Registry, getStorage: GetStorageAt) {
   return (source: Observable<types.BlockEvent>): Observable<XcmBridgeAcceptedWithContext> => {
@@ -150,7 +151,7 @@ export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Regi
             new GenericXcmBridgeDeliveredWithContext({
               chainId: origin,
               bridgeKey,
-              event: blockEvent.toHuman(),
+              event: blockEventToHuman(blockEvent),
               extrinsicId: blockEvent.extrinsicId,
               blockNumber: blockEvent.blockNumber.toPrimitive(),
               blockHash: blockEvent.blockHash.toHex(),
@@ -188,7 +189,7 @@ export function extractBridgeReceive(origin: NetworkURN) {
               new GenericXcmBridgeInboundWithContext({
                 chainId: origin,
                 bridgeKey: u8aToHex(key),
-                event: event.toHuman(),
+                event: blockEventToHuman(event),
                 extrinsicId: event.extrinsicId,
                 blockNumber: event.blockNumber.toPrimitive(),
                 blockHash: event.blockHash.toHex(),
