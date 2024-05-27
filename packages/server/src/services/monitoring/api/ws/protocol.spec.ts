@@ -65,8 +65,8 @@ describe('WebsocketProtocol', () => {
     it('should handle on-demand ephemeral subscriptions', async () => {
       const mockData = Buffer.from(JSON.stringify(testSub))
       const mockStream = {
-        socket: { close: jest.fn(), once: jest.fn() },
-        writable: true,
+        close: jest.fn(),
+        once: jest.fn(),
         on: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
@@ -85,8 +85,8 @@ describe('WebsocketProtocol', () => {
     it('should close connection if number of connections exceed maxClients', async () => {
       const mockData = Buffer.from(JSON.stringify(testSub))
       const mockStream = {
-        socket: { close: jest.fn(), once: jest.fn() },
-        writable: true,
+        close: jest.fn(),
+        once: jest.fn(),
         on: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
@@ -104,7 +104,7 @@ describe('WebsocketProtocol', () => {
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
 
-      expect(mockStream.socket.close).toHaveBeenCalledWith(1013, 'server too busy')
+      expect(mockStream.close).toHaveBeenCalledWith(1013, 'server too busy')
     })
 
     it('should close connection with error if websocket channel not enabled in subscription', async () => {
@@ -115,12 +115,12 @@ describe('WebsocketProtocol', () => {
         })
       )
       const mockStream = {
-        socket: { close: jest.fn(), once: jest.fn() },
-        writable: true,
+        close: jest.fn(),
+        once: jest.fn(),
         on: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
-        write: jest.fn(),
+        send: jest.fn(),
       }
       const mockRequest = {
         id: 'mockRequestId',
@@ -136,18 +136,18 @@ describe('WebsocketProtocol', () => {
       await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription')
       await flushPromises()
 
-      expect(mockStream.socket.close).toHaveBeenCalledWith(1007, 'websocket channel not enabled in subscription')
+      expect(mockStream.close).toHaveBeenCalledWith(1007, 'websocket channel not enabled in subscription')
     })
 
     it('should close connection with error code if unable to add subscription', async () => {
       const mockData = Buffer.from(JSON.stringify(testSub))
       const mockStream = {
-        socket: { close: jest.fn(), once: jest.fn() },
-        writable: true,
+        close: jest.fn(),
+        once: jest.fn(),
         on: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
-        write: jest.fn(),
+        send: jest.fn(),
       }
       const mockRequest = {
         id: 'mockRequestId',
@@ -162,16 +162,16 @@ describe('WebsocketProtocol', () => {
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
 
-      expect(mockStream.socket.close).toHaveBeenCalledWith(1013, 'server too busy')
+      expect(mockStream.close).toHaveBeenCalledWith(1013, 'server too busy')
     })
 
     it('should close connection with error code if an error occurs', async () => {
-      const mockStream = { socket: { close: jest.fn() }, writable: true }
+      const mockStream = { close: jest.fn() }
       mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => {
         return undefined
       })
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')
-      expect(mockStream.socket.close).toHaveBeenCalledWith(1007, 'subscription not found')
+      expect(mockStream.close).toHaveBeenCalledWith(1007, 'subscription not found')
     })
   })
 })

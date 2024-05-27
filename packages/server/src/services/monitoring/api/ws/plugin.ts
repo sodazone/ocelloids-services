@@ -35,13 +35,13 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
     Params: {
       id: string
     }
-  }>('/ws/subs/:id', { websocket: true, schema: { hide: true } }, (connection, request): void => {
+  }>('/ws/subs/:id', { websocket: true, schema: { hide: true } }, (socket, request): void => {
     const { id } = request.params
-    setImmediate(() => protocol.handle(connection, request, id))
+    setImmediate(() => protocol.handle(socket, request, id))
   })
 
-  fastify.get('/ws/subs', { websocket: true, schema: { hide: true } }, (connection, request): void => {
-    setImmediate(() => protocol.handle(connection, request))
+  fastify.get('/ws/subs', { websocket: true, schema: { hide: true } }, (socket, request): void => {
+    setImmediate(() => protocol.handle(socket, request))
   })
 }
 

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { SocketStream } from '@fastify/websocket'
+import { WebSocket } from '@fastify/websocket'
 import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
 import { z } from 'zod'
@@ -36,11 +36,11 @@ const jsonSchema = z
 type Connection = {
   id: string
   ip: string
-  stream: SocketStream
+  socket: WebSocket
 }
 
-function safeWrite(stream: SocketStream, content: NonNullable<unknown>) {
-  return stream.writable ? stream.write(JSON.stringify(content)) : false
+function safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
+  return socket.send(JSON.stringify(content))
 }
 
 /**
@@ -68,9 +68,9 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       const connections = this.#connections.get(sub.id)
       if (connections) {
         for (const connection of connections) {
-          const { stream, ip } = connection
+          const { socket, ip } = connection
           try {
-            safeWrite(stream, xcm)
+            safeWrite(socket, xcm)
 
             this.#telemetryNotify(ip, xcm)
           } catch (error) {
@@ -90,13 +90,13 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * If no subscription is given creates an ephemeral through the websocket.
    *
-   * @param stream The websocket stream
+   * @param socket The websocket
    * @param request The Fastify request
    * @param subscriptionId The subscription identifier
    */
-  async handle(stream: SocketStream, request: FastifyRequest, subscriptionId?: string) {
+  async handle(socket: WebSocket, request: FastifyRequest, subscriptionId?: string) {
     if (this.#clientsNum >= this.#maxClients) {
-      stream.socket.close(1013, 'server too busy')
+      socket.close(1013, 'server too busy')
       return
     }
 
@@ -105,25 +105,25 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         let resolvedId: string
 
         // on-demand ephemeral subscriptions
-        stream.on('data', (data: Buffer) => {
+        socket.on('data', (data: Buffer) => {
           setImmediate(async () => {
             if (resolvedId) {
-              safeWrite(stream, { id: resolvedId })
+              safeWrite(socket, { id: resolvedId })
             } else {
               const parsed = jsonSchema.safeParse(data.toString())
               if (parsed.success) {
                 const onDemandSub = parsed.data
                 try {
-                  this.#addSubscriber(onDemandSub, stream, request)
+                  this.#addSubscriber(onDemandSub, socket, request)
                   resolvedId = onDemandSub.id
                   await this.#switchboard.subscribe(onDemandSub)
-                  safeWrite(stream, onDemandSub)
+                  safeWrite(socket, onDemandSub)
                 } catch (error) {
-                  stream.socket.close(1013, 'server too busy')
+                  socket.close(1013, 'server too busy')
                   this.#log.error(error)
                 }
               } else {
-                safeWrite(stream, parsed.error)
+                safeWrite(socket, parsed.error)
               }
             }
           })
@@ -136,10 +136,10 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         }
 
         const subscription = handler.descriptor
-        this.#addSubscriber(subscription, stream, request)
+        this.#addSubscriber(subscription, socket, request)
       }
     } catch (error) {
-      stream.socket.close(1007, errorMessage(error))
+      socket.close(1007, errorMessage(error))
     }
   }
 
@@ -147,7 +147,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#switchboard.removeNotificationListener('websocket', this.#broadcaster)
   }
 
-  #addSubscriber(subscription: Subscription, stream: SocketStream, request: FastifyRequest) {
+  #addSubscriber(subscription: Subscription, socket: WebSocket, request: FastifyRequest) {
     if (subscription.channels.findIndex((chan) => chan.type === 'websocket') === -1) {
       throw new Error('websocket channel not enabled in subscription')
     }
@@ -158,7 +158,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     const connection = {
       id: request.id,
       ip: request.ip,
-      stream,
+      socket,
     }
 
     if (this.#connections.has(subId)) {
@@ -169,7 +169,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     this.emit('telemetrySocketListener', request.ip, subscription)
 
-    stream.socket.once('close', async () => {
+    socket.once('close', async () => {
       this.#clientsNum--
 
       const { id, ephemeral } = subscription
