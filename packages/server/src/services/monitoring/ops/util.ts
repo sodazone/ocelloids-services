@@ -1,9 +1,7 @@
 import type {
-  XcmVersionedMultiLocation,
-  XcmV3MultiLocation,
+  StagingXcmV3MultiLocation,
   XcmV2MultiLocation,
   XcmV3Junctions,
-  XcmVersionedMultiAssets,
   XcmV2MultiassetMultiAssets,
   XcmV3MultiassetMultiAssets,
   XcmV2MultilocationJunctions,
@@ -69,7 +67,7 @@ function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
       };
     }
   } catch (error) {
-    throw new Error(`creating signers data at ${xt.extrinsicId} ${xt.signer.toRawType()}`, { cause: error });
+    throw new Error(`creating signers data at ${xt.extrinsicId ?? '-1'}`, { cause: error });
   }
 
   return undefined;
@@ -117,28 +115,34 @@ export function getParaIdFromOrigin(
   return undefined;
 }
 
-export function isV2Junctions(object: any): object is XcmV2MultilocationJunctions {
+// TODO: revisit Junction guards and conversions
+// TODO: extract in multiple files
+
+function isX1V2Junctions(object: any): object is XcmV2MultilocationJunctions {
   return (
     object.asX1 !== undefined &&
-    object.asX1.isGlobalConsensus === undefined &&
-    object.asX1.asGlobalConsensus === undefined
+    typeof object.asX1[Symbol.iterator] !== 'function' &&
+    object.asX1.isGlobalConsensus === undefined
   );
 }
 
-export function isV4Junctions(object: any): object is XcmV4Junctions {
+const Xn = ['X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8'];
+function isXnV2Junctions(object: any): object is XcmV2MultilocationJunctions {
+  return Xn.every((x) => {
+    const ax = object[`as${x}`];
+    return ax === undefined || (Array.isArray(ax) && ax.every((a) => a.isGlobalConsensus === undefined));
+  });
+}
+
+function isX1V4Junctions(object: any): object is XcmV4Junctions {
   return object.asX1 !== undefined && typeof object.asX1[Symbol.iterator] === 'function';
 }
 
-export function isV3Junctions(object: any): object is XcmV3Junctions {
-  return object.asX1 !== undefined && object.asX1.isGlobalConsensus !== undefined && typeof object.asX1 === 'object';
-}
-
-export function isV4Location(object: any): object is XcmV4Location {
+function isX1V3Junctions(object: any): object is XcmV3Junctions {
   return (
-    object.parent !== undefined &&
-    object.interior !== undefined &&
-    object.interior.asX1 !== undefined &&
-    typeof object.interior.asX1[Symbol.iterator] === 'function'
+    object.asX1 !== undefined &&
+    typeof object.asX1[Symbol.iterator] !== 'function' &&
+    object.asX1.isGlobalConsensus !== undefined
   );
 }
 
@@ -167,39 +171,9 @@ function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): Ne
   return undefined;
 }
 
-function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
-  if (junctions.type === 'Here') {
+function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: NetworkId) {
+  if (junctions.type === 'X1' || junctions.type === 'Here') {
     return undefined;
-  }
-
-  const networkId: NetworkId = {};
-
-  for (const j of junctions[`as${junctions.type}`]) {
-    if (j.isGlobalConsensus) {
-      extractConsensusAndId(j, networkId);
-    }
-
-    if (j.isParachain) {
-      networkId.chainId = j.asParachain.toString();
-    }
-
-    if (networkId.consensus !== undefined && networkId.chainId !== undefined) {
-      return `urn:ocn:${networkId.consensus}:${networkId.chainId}`;
-    }
-  }
-
-  return undefined;
-}
-
-function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
-  if (junctions.type === 'Here') {
-    return undefined;
-  }
-
-  const networkId: NetworkId = {};
-
-  if (junctions.type === 'X1') {
-    return extractV3X1GlobalConsensus(junctions, networkId);
   }
 
   for (const j of junctions[`as${junctions.type}`]) {
@@ -219,42 +193,66 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   return undefined;
 }
 
-export function getParaIdFromJunctions(junctions: XcmV2MultilocationJunctions | XcmV4Junctions | XcmV3Junctions) {
+function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
+  const networkId: NetworkId = {};
+
+  return _networkIdFrom(junctions, networkId);
+}
+
+function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
   if (junctions.type === 'Here') {
     return undefined;
   }
 
-  if (isV4Junctions(junctions)) {
-    for (const j of junctions[`as${junctions.type}`]) {
-      if (j.isParachain) {
-        return j.asParachain.toString();
-      }
-    }
-  } else {
-    if (junctions.type === 'X1') {
+  const networkId: NetworkId = {
+    chainId: '0',
+  };
+
+  if (junctions.type === 'X1') {
+    return extractV3X1GlobalConsensus(junctions, networkId);
+  }
+
+  return _networkIdFrom(junctions, networkId);
+}
+
+export function getParaIdFromJunctions(junctions: XcmV3Junctions | XcmV4Junctions): string | undefined {
+  if (junctions.type === 'Here') {
+    return undefined;
+  }
+
+  if (junctions.type === 'X1') {
+    if (isX1V3Junctions(junctions) || isX1V2Junctions(junctions)) {
       return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined;
-    }
-    for (const j of junctions[`as${junctions.type}`]) {
-      if (j.isParachain) {
-        return j.asParachain.toString();
+    } else {
+      for (const j of junctions[`as${junctions.type}`]) {
+        if (j.isParachain) {
+          return j.asParachain.toString();
+        }
       }
+    }
+    return undefined;
+  }
+
+  for (const j of junctions[`as${junctions.type}`]) {
+    if (j.isParachain) {
+      return j.asParachain.toString();
     }
   }
   return undefined;
 }
 
 export function getParaIdFromMultiLocation(
-  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location
+  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location
 ): string | undefined {
   const junctions = loc.interior;
   if (junctions.type === 'Here') {
-    if (loc.parents.toNumber() === 1) {
+    if (loc.parents?.toNumber() === 1) {
       return '0';
     }
     return undefined;
   }
 
-  return getParaIdFromJunctions(junctions);
+  return getParaIdFromJunctions(junctions)
 }
 
 export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {
@@ -272,8 +270,9 @@ export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocati
   return undefined;
 }
 
+// eslint-disable-next-line complexity
 export function networkIdFromMultiLocation(
-  loc: XcmV2MultiLocation | XcmV3MultiLocation | XcmV4Location,
+  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
   currentNetworkId: NetworkURN
 ): NetworkURN | undefined {
   const { parents, interior: junctions } = loc;
@@ -287,23 +286,28 @@ export function networkIdFromMultiLocation(
     }
   } else if (parents.toNumber() > 1) {
     // is in other consensus system
-    if (isV2Junctions(junctions)) {
-      return undefined;
-    }
+    if (junctions.type === 'X1') {
+      if (isX1V2Junctions(junctions)) {
+        return undefined;
+      }
 
-    if (isV3Junctions(junctions)) {
-      return networkIdFromV3(junctions);
-    }
+      if (isX1V3Junctions(junctions)) {
+        return networkIdFromV3(junctions);
+      }
 
-    if (isV4Junctions(junctions)) {
-      return networkIdFromV4(junctions);
+      if (isX1V4Junctions(junctions)) {
+        return networkIdFromV4(junctions);
+      }
+    } else if (!isXnV2Junctions(junctions)) {
+      return _networkIdFrom(junctions, {});
     }
   }
+
   return undefined;
 }
 
 export function networkIdFromVersionedMultiLocation(
-  loc: XcmVersionedMultiLocation | XcmVersionedLocation,
+  loc: XcmVersionedLocation,
   currentNetworkId: NetworkURN
 ): NetworkURN | undefined {
   switch (loc.type) {
@@ -376,7 +380,7 @@ function createTrappedAssetsFromAssets(version: number, assets: XcmV4AssetAssets
   }));
 }
 
-function mapVersionedAssets(assets: XcmVersionedMultiAssets | XcmVersionedAssets): TrappedAsset[] {
+function mapVersionedAssets(assets: XcmVersionedAssets): TrappedAsset[] {
   switch (assets.type) {
     case 'V2':
     case 'V3':
@@ -395,7 +399,7 @@ export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsT
   const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
     hash_: H256,
     _origin: any,
-    assets: XcmVersionedMultiAssets | XcmVersionedAssets,
+    assets: XcmVersionedAssets,
   ];
   return {
     event: {

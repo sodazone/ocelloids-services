@@ -23,14 +23,14 @@ export type JanitorEvents = {
  * Database clean up tasks.
  */
 export class Janitor extends (EventEmitter as new () => TypedEventEmitter<JanitorEvents>) {
-  #log: Logger;
+  // #log: Logger;
   #db: DB;
   #sched: Scheduler;
   #expiry: number;
 
-  constructor(log: Logger, db: DB, sched: Scheduler, options: JanitorOptions) {
+  constructor(_log: Logger, db: DB, sched: Scheduler, options: JanitorOptions) {
     super();
-    this.#log = log;
+    // this.#log = log;
     this.#db = db;
     this.#expiry = options.sweepExpiry;
     this.#sched = sched;

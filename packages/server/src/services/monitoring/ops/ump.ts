@@ -18,6 +18,7 @@ import { getMessageId, getParaIdFromOrigin, getSendersFromEvent, mapAssetsTrappe
 import { asVersionedXcm } from './xcm-format.js';
 import { getChainId, getRelayId } from '../../config.js';
 import { NetworkURN } from '../../types.js';
+import { blockEventToHuman, xcmMessagesSent } from './common.js';
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed'];
 
@@ -37,7 +38,7 @@ function createUmpReceivedWithContext(
   // If no origin, we will return the message without matching with subscription origin
   if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
     return new GenericXcmInboundWithContext({
-      event: event.toHuman(),
+      event: blockEventToHuman(event),
       blockHash: event.blockHash.toHex(),
       blockNumber: event.blockNumber.toPrimitive(),
       messageHash,
@@ -48,25 +49,6 @@ function createUmpReceivedWithContext(
     });
   }
   return null;
-}
-
-function umpMessagesSent() {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
-    return source.pipe(
-      map((event) => {
-        const xcmMessage = event.data as any;
-        return {
-          event: event.toHuman(),
-          blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toPrimitive(),
-          extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash?.toHex(),
-          messageId: xcmMessage.messageId?.toHex(),
-          sender: getSendersFromEvent(event),
-        } as XcmSentWithContext;
-      })
-    );
-  };
 }
 
 function findOutboundUmpMessage(
@@ -117,7 +99,7 @@ export function extractUmpSend(
       filter(
         (event) => matchEvent(event, 'parachainSystem', 'UpwardMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')
       ),
-      umpMessagesSent(),
+      xcmMessagesSent(),
       findOutboundUmpMessage(origin, getOutboundUmpMessages, registry)
     );
   };

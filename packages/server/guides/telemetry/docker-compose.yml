@@ -18,8 +18,11 @@ services:
       - 9090:9090
     links:
       - alertmanager:alertmanager
+    # Workaround for Linux compatibility
+    # In MacOS and Windows this mapping is not required
+    # @see https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host  
     extra_hosts:
-      - host.docker.internal:HOST_IP_ADDRESS
+      - host.docker.internal:host-gateway
 
   alertmanager:
     image: prom/alertmanager

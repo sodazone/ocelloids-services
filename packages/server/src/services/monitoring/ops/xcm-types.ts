@@ -1,4 +1,4 @@
-/* eslint-disable no-use-before-define, max-len */
+/* eslint-disable no-use-before-define */
 import type {
   Bytes,
   Compact,
@@ -27,7 +27,7 @@ import type {
   XcmV3JunctionBodyId,
   XcmV3JunctionBodyPart,
   XcmV2MultiLocation,
-  XcmV3MultiLocation,
+  StagingXcmV3MultiLocation,
   XcmV2MultiassetMultiAssets,
   XcmV3MultiassetMultiAssets,
   XcmV2MultilocationJunctions,
@@ -50,7 +50,7 @@ export interface XcmVersionedLocation extends Enum {
   readonly isV2: boolean;
   readonly asV2: XcmV2MultiLocation;
   readonly isV3: boolean;
-  readonly asV3: XcmV3MultiLocation;
+  readonly asV3: StagingXcmV3MultiLocation;
   readonly isV4: boolean;
   readonly asV4: XcmV4Location;
   readonly type: 'V2' | 'V3' | 'V4';
