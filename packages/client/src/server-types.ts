@@ -15,4 +15,5 @@ export type {
   Leg,
   SignerData,
   legType,
+  XcmBridge,
 } from '@sodazone/ocelloids-service-node'
