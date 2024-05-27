@@ -1,18 +1,18 @@
-import { WebSocket, type MessageEvent } from 'isows';
+import { type MessageEvent, WebSocket } from 'isows'
 
+import type { XcmNotifyMessage } from './server-types'
 import {
-  type Subscription,
-  type OnDemandSubscription,
-  type SubscriptionError,
-  type MessageHandler,
-  type OnDemandSubscriptionHandlers,
-  type WebSocketHandlers,
   type AuthReply,
-  isSubscriptionError,
-  isSubscription,
+  type MessageHandler,
+  type OnDemandSubscription,
+  type OnDemandSubscriptionHandlers,
+  type Subscription,
+  type SubscriptionError,
+  type WebSocketHandlers,
   WsAuthErrorEvent,
-} from './types';
-import type { XcmNotifyMessage } from './server-types';
+  isSubscription,
+  isSubscriptionError,
+} from './types'
 
 /**
  * The Ocelloids client configuration.
@@ -20,11 +20,11 @@ import type { XcmNotifyMessage } from './server-types';
  * @public
  */
 export type OcelloidsClientConfig = {
-  wsUrl: string;
-  httpUrl: string;
-  httpAuthToken?: string;
-  wsAuthToken?: string;
-};
+  wsUrl: string
+  httpUrl: string
+  httpAuthToken?: string
+  wsAuthToken?: string
+}
 
 /**
  * Type guard to check if a value is a Blob.
@@ -34,26 +34,26 @@ export type OcelloidsClientConfig = {
  */
 function isBlob(value: any): value is Blob {
   if (typeof Blob === 'undefined') {
-    return false;
+    return false
   }
-  return value instanceof Blob || Object.prototype.toString.call(value) === '[object Blob]';
+  return value instanceof Blob || Object.prototype.toString.call(value) === '[object Blob]'
 }
 
 /**
  * Protocol class to chain request response until reach streaming state.
  */
 class Protocol {
-  readonly #queue: MessageHandler<any>[] = [];
-  readonly #stream: MessageHandler<XcmNotifyMessage>;
-  #isStreaming: boolean;
+  readonly #queue: MessageHandler<any>[] = []
+  readonly #stream: MessageHandler<XcmNotifyMessage>
+  #isStreaming: boolean
 
   /**
    * Constructs a Protocol instance.
    * @param stream - The message handler for streaming state.
    */
   constructor(stream: MessageHandler<XcmNotifyMessage>) {
-    this.#stream = stream;
-    this.#isStreaming = false;
+    this.#stream = stream
+    this.#isStreaming = false
   }
 
   /**
@@ -62,7 +62,7 @@ class Protocol {
    * @param handler - The message handler to add.
    */
   next<T>(handler: MessageHandler<T>) {
-    this.#queue.push(handler);
+    this.#queue.push(handler)
   }
 
   /**
@@ -70,25 +70,25 @@ class Protocol {
    * @param event - The message event to handle.
    */
   handle(event: MessageEvent) {
-    const ws = event.target as WebSocket;
-    let current: MessageHandler<any>;
+    const ws = event.target as WebSocket
+    let current: MessageHandler<any>
 
     if (this.#isStreaming) {
-      current = this.#stream;
+      current = this.#stream
     } else {
-      const next = this.#queue.pop();
+      const next = this.#queue.pop()
       if (next) {
-        current = next;
+        current = next
       } else {
-        current = this.#stream;
-        this.#isStreaming = true;
+        current = this.#stream
+        this.#isStreaming = true
       }
     }
 
     if (isBlob(event.data)) {
-      (event.data as Blob).text().then((blob) => current(JSON.parse(blob), ws, event));
+      ;(event.data as Blob).text().then((blob) => current(JSON.parse(blob), ws, event))
     } else {
-      current(JSON.parse(event.data.toString()), ws, event);
+      current(JSON.parse(event.data.toString()), ws, event)
     }
   }
 }
@@ -177,8 +177,8 @@ class Protocol {
  * @public
  */
 export class OcelloidsClient {
-  readonly #config: OcelloidsClientConfig;
-  readonly #headers: NonNullable<unknown>;
+  readonly #config: OcelloidsClientConfig
+  readonly #headers: NonNullable<unknown>
 
   /**
    * Constructs an OcelloidsClient instance.
@@ -186,17 +186,17 @@ export class OcelloidsClient {
    * @param config - The configuration for the client.
    */
   constructor(config: OcelloidsClientConfig) {
-    this.#config = config;
+    this.#config = config
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-    };
+    }
     if (config.httpAuthToken) {
-      headers['Authorization'] = `Bearer ${config.httpAuthToken}`;
+      headers['Authorization'] = `Bearer ${config.httpAuthToken}`
     }
 
-    this.#headers = headers;
+    this.#headers = headers
   }
 
   /**
@@ -211,7 +211,7 @@ export class OcelloidsClient {
       ...init,
       method: 'POST',
       body: JSON.stringify(subscription),
-    });
+    })
   }
 
   /**
@@ -222,7 +222,7 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
   async getSubscription(subscriptionId: string, init?: RequestInit): Promise<Subscription> {
-    return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init);
+    return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init)
   }
 
   /**
@@ -232,7 +232,7 @@ export class OcelloidsClient {
    * @returns A promise that resolves with an array of subscriptions.
    */
   async allSubscriptions(init?: RequestInit): Promise<Subscription[]> {
-    return this.#fetch(this.#config.httpUrl + '/subs', init);
+    return this.#fetch(this.#config.httpUrl + '/subs', init)
   }
 
   /**
@@ -242,7 +242,7 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the health status.
    */
   async health(init?: RequestInit): Promise<any> {
-    return this.#fetch(this.#config.httpUrl + '/health', init);
+    return this.#fetch(this.#config.httpUrl + '/health', init)
   }
 
   /**
@@ -258,14 +258,14 @@ export class OcelloidsClient {
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
-    const url = this.#config.wsUrl + '/ws/subs';
+    const url = this.#config.wsUrl + '/ws/subs'
 
     return typeof subscription === 'string'
       ? this.#openWebSocket(`${url}/${subscription}`, handlers)
       : this.#openWebSocket(url, handlers, {
           sub: subscription,
           onDemandHandlers,
-        });
+        })
   }
 
   #fetch<T>(url: string, init?: RequestInit) {
@@ -277,8 +277,8 @@ export class OcelloidsClient {
         .then((res) => {
           if (res.ok) {
             res.json().then((j) => {
-              resolve(j as T);
-            });
+              resolve(j as T)
+            })
           } else {
             res
               .json()
@@ -288,80 +288,80 @@ export class OcelloidsClient {
                   reject({
                     status: res.status,
                     statusText: res.statusText,
-                  });
+                  })
                 } else {
-                  res.text().then(reject);
+                  res.text().then(reject)
                 }
-              });
+              })
           }
         })
-        .catch(reject);
-    });
+        .catch(reject)
+    })
   }
 
   #openWebSocket(
     url: string,
     { onMessage, onAuthError, onError, onClose }: WebSocketHandlers,
     onDemandSub?: {
-      sub: OnDemandSubscription;
-      onDemandHandlers?: OnDemandSubscriptionHandlers;
+      sub: OnDemandSubscription
+      onDemandHandlers?: OnDemandSubscriptionHandlers
     }
   ) {
-    const protocol = new Protocol(onMessage);
-    const ws = new WebSocket(url);
+    const protocol = new Protocol(onMessage)
+    const ws = new WebSocket(url)
 
-    ws.onmessage = protocol.handle.bind(protocol);
+    ws.onmessage = protocol.handle.bind(protocol)
 
     if (onError) {
-      ws.onerror = onError;
+      ws.onerror = onError
     }
 
     if (onClose) {
-      ws.onclose = onClose;
+      ws.onclose = onClose
     }
 
     function requestOnDemandSub() {
       if (onDemandSub === undefined) {
-        throw new Error('on demand subscription must be defined');
+        throw new Error('on demand subscription must be defined')
       }
-      const { sub, onDemandHandlers } = onDemandSub;
+      const { sub, onDemandHandlers } = onDemandSub
 
-      ws.send(JSON.stringify(sub));
+      ws.send(JSON.stringify(sub))
       protocol.next<Subscription | SubscriptionError>((msg) => {
         if (onDemandHandlers?.onSubscriptionCreated && isSubscription(msg)) {
-          onDemandHandlers.onSubscriptionCreated(msg);
+          onDemandHandlers.onSubscriptionCreated(msg)
         } else if (onDemandHandlers?.onSubscriptionError && isSubscriptionError(msg)) {
-          onDemandHandlers.onSubscriptionError(msg);
+          onDemandHandlers.onSubscriptionError(msg)
         } else if (onDemandHandlers?.onError) {
-          onDemandHandlers.onError(msg);
+          onDemandHandlers.onError(msg)
         }
-      });
+      })
     }
 
     ws.onopen = () => {
       if (ws.readyState !== 1) {
-        ws.dispatchEvent(new Event('error'));
-        return;
+        ws.dispatchEvent(new Event('error'))
+        return
       }
 
       if (this.#config.wsAuthToken) {
-        ws.send(this.#config.wsAuthToken);
+        ws.send(this.#config.wsAuthToken)
         protocol.next<AuthReply>((reply, _ws, event) => {
           if (reply.error) {
             if (onAuthError) {
-              onAuthError(reply, _ws, event);
+              onAuthError(reply, _ws, event)
             } else {
-              _ws.dispatchEvent(new WsAuthErrorEvent(reply));
+              _ws.dispatchEvent(new WsAuthErrorEvent(reply))
             }
           } else if (onDemandSub) {
-            requestOnDemandSub();
+            requestOnDemandSub()
           }
-        });
+        })
       } else if (onDemandSub) {
-        requestOnDemandSub();
+        requestOnDemandSub()
       }
-    };
+    }
 
-    return ws;
+    return ws
   }
 }

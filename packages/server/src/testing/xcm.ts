@@ -1,31 +1,31 @@
-import '@polkadot/api-augment/polkadot';
+import '@polkadot/api-augment/polkadot'
 
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals'
 
-import { from } from 'rxjs';
-import { ApiPromise } from '@polkadot/api';
-import { ApiDecoration } from '@polkadot/api/types';
-import { TypeRegistry, Metadata } from '@polkadot/types';
-import type { Vec, Bytes } from '@polkadot/types';
+import { ApiPromise } from '@polkadot/api'
+import { ApiDecoration } from '@polkadot/api/types'
+import { Metadata, TypeRegistry } from '@polkadot/types'
+import type { Bytes, Vec } from '@polkadot/types'
+import spec from '@polkadot/types-support/metadata/static-polkadot'
 import type {
-  PolkadotCorePrimitivesOutboundHrmpMessage,
   PolkadotCorePrimitivesInboundDownwardMessage,
-} from '@polkadot/types/lookup';
-import spec from '@polkadot/types-support/metadata/static-polkadot';
-import { ControlQuery } from '@sodazone/ocelloids-sdk';
+  PolkadotCorePrimitivesOutboundHrmpMessage,
+} from '@polkadot/types/lookup'
+import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { from } from 'rxjs'
 
-import { testBlocksFrom } from './blocks.js';
-import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js';
-import { NetworkURN } from '../services/types.js';
+import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js'
+import { NetworkURN } from '../services/types.js'
+import { testBlocksFrom } from './blocks.js'
 
-const _registry = new TypeRegistry();
-const metadata = new Metadata(_registry, spec);
-_registry.setMetadata(metadata);
-export const registry = _registry;
+const _registry = new TypeRegistry()
+const metadata = new Metadata(_registry, spec)
+_registry.setMetadata(metadata)
+export const registry = _registry
 
 // XCMP testing mocks
 const xcmpData =
-  '0x000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368';
+  '0x000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'
 export const xcmpSend = {
   origin: 'urn:ocn:local:1000' as NetworkURN,
   blocks: from(testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json')),
@@ -41,29 +41,29 @@ export const xcmpSend = {
         },
       ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,
     ]),
-};
+}
 
 export const xcmpReceive = {
   successBlocks: from(testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')),
   failBlocks: from(testBlocksFrom('hrmp-in-2032-fail.cbor.bin', 'interlay.json')),
   trappedBlocks: from(testBlocksFrom('hrmp-2032-trapped-3781567.cbor.bin', 'interlay.json')),
-};
+}
 
 // UMP testing mocks
 const umpData =
-  '0x03100204000000000700fcf9d8080a13000000000700fcf9d808000d01020400010100a0ce523c0e0ce46845d3fe6258d0e314e029bbcdd96e19646cc4ffd395ff0e5e';
+  '0x03100204000000000700fcf9d8080a13000000000700fcf9d808000d01020400010100a0ce523c0e0ce46845d3fe6258d0e314e029bbcdd96e19646cc4ffd395ff0e5e'
 export const umpSend = {
   origin: 'urn:ocn:local:1000' as NetworkURN,
   blocks: from(testBlocksFrom('ump-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14dqxCimfu8PEuneBLgZnxgyxPuMoaVto7xozL6rgSo3hGU9'])),
   getUmp: () => from([[registry.createType('Bytes', umpData)] as Vec<Bytes>]),
-};
+}
 
 export const umpReceive = {
   successBlocks: from(testBlocksFrom('ump-in-success.cbor.bin', 'polkadot.json')),
   failBlocks: from(testBlocksFrom('ump-in-fail.cbor.bin', 'polkadot.json')),
   trappedBlocks: from(testBlocksFrom('ump-0-trapped-19511591.cbor.bin', 'polkadot-1000001.json')),
-};
+}
 
 // DMP testing mocks
 
@@ -120,12 +120,12 @@ const dmpSendInstructions: any = [
       },
     },
   },
-];
+]
 
 const dmpData =
-  '0x031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257';
+  '0x031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257'
 const dmpData2 =
-  '0x03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c';
+  '0x03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c'
 export const dmpSendSingleMessageInQueue = {
   origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
@@ -148,7 +148,7 @@ export const dmpSendSingleMessageInQueue = {
               ],
             },
           },
-        } as unknown as ApiDecoration<'promise'>);
+        } as unknown as ApiDecoration<'promise'>)
       }),
     registry: {
       createType: jest.fn().mockImplementation(() => ({
@@ -164,7 +164,7 @@ export const dmpSendSingleMessageInQueue = {
       })),
     },
   } as unknown as ApiPromise,
-};
+}
 
 // Insert a fake message in the queue to simulate mutliple messages in DMP queue
 export const dmpSendMultipleMessagesInQueue = {
@@ -195,7 +195,7 @@ export const dmpSendMultipleMessagesInQueue = {
               ],
             },
           },
-        } as unknown as ApiDecoration<'promise'>);
+        } as unknown as ApiDecoration<'promise'>)
       }),
     registry: {
       createType: jest.fn((_type: string, data: { toHex: () => string }) => {
@@ -213,7 +213,7 @@ export const dmpSendMultipleMessagesInQueue = {
             toHuman: () => ({
               V3: dmpSendInstructions,
             }),
-          };
+          }
         } else {
           return {
             value: {
@@ -225,12 +225,12 @@ export const dmpSendMultipleMessagesInQueue = {
             toHuman: () => ({
               V3: [],
             }),
-          };
+          }
         }
       }),
     },
   } as unknown as ApiPromise,
-};
+}
 
 export const dmpXcmPalletSentEvent = {
   origin: 'urn:ocn:local:0' as NetworkURN,
@@ -254,7 +254,7 @@ export const dmpXcmPalletSentEvent = {
               ],
             },
           },
-        } as unknown as ApiDecoration<'promise'>);
+        } as unknown as ApiDecoration<'promise'>)
       }),
     registry: {
       createType: jest.fn().mockImplementation(() => ({
@@ -279,7 +279,7 @@ export const dmpXcmPalletSentEvent = {
       })),
     },
   } as unknown as ApiPromise,
-};
+}
 
 export const dmpReceive = {
   successBlocks: from(testBlocksFrom('dmp-in-1000-success.cbor.bin', 'asset-hub.json')),
@@ -288,14 +288,14 @@ export const dmpReceive = {
   api: {
     at: () => jest.fn(),
   } as unknown as ApiPromise,
-};
+}
 
 export const relayHrmpReceive = {
   blocks: from(testBlocksFrom('relay-hrmp-19507696.cbor.bin', 'polkadot.json')),
   messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006', 'urn:ocn:local:2104'])),
   origin: 'urn:ocn:local:2004',
   destination: 'urn:ocn:local:2104',
-};
+}
 
 // In: DMP receive
 // Out: HRMP send
@@ -318,10 +318,10 @@ export const xcmHop = {
         },
       ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,
     ]),
-};
+}
 
 const xcmData =
-  '0x0310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf';
+  '0x0310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf'
 const instructions: any = {
   WithdrawAsset: [
     {
@@ -391,7 +391,7 @@ const instructions: any = {
     xcm: [],
   },
   SetTopic: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
-};
+}
 
 // DMP to 2034
 export const xcmHopOrigin = {
@@ -417,7 +417,7 @@ export const xcmHopOrigin = {
               ],
             },
           },
-        } as unknown as ApiDecoration<'promise'>);
+        } as unknown as ApiDecoration<'promise'>)
       }),
     registry: {
       createType: jest.fn().mockImplementation(() => ({
@@ -433,4 +433,4 @@ export const xcmHopOrigin = {
       })),
     },
   } as unknown as ApiPromise,
-};
+}

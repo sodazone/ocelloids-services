@@ -1,24 +1,24 @@
-import { FastifyReply } from 'fastify';
-import { ZodError } from 'zod';
+import { FastifyReply } from 'fastify'
+import { ZodError } from 'zod'
 
 export class NotFound extends Error {
-  statusCode = 404;
+  statusCode = 404
 
   constructor(message: string) {
-    super(message);
+    super(message)
   }
 }
 
 export class ValidationError extends Error {
-  statusCode = 400;
+  statusCode = 400
 
   constructor(message: string) {
-    super(message);
+    super(message)
   }
 }
 
 export function errorMessage(error: any) {
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? error.message : String(error)
 }
 
 function jsonError(error: any) {
@@ -26,16 +26,16 @@ function jsonError(error: any) {
     error: true,
     statusCode: error.statusCode,
     reason: errorMessage(error),
-  });
+  })
 }
 
 export function errorHandler(error: any, _: any, reply: FastifyReply) {
   if (error.statusCode) {
-    reply.status(error.statusCode).send(jsonError(error));
+    reply.status(error.statusCode).send(jsonError(error))
   } else if (error instanceof ZodError) {
-    reply.status(400).send(jsonError(error));
+    reply.status(400).send(jsonError(error))
   } else {
     // to parent handler
-    reply.status(500).send(jsonError(error));
+    reply.status(500).send(jsonError(error))
   }
 }

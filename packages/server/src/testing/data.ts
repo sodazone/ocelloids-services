@@ -1,4 +1,4 @@
-import { Subscription } from '../services/monitoring/types.js';
+import { Subscription } from '../services/monitoring/types.js'
 
 export const _subsFix: Subscription[] = [
   {
@@ -56,7 +56,7 @@ export const _subsFix: Subscription[] = [
       },
     ],
   },
-];
+]
 
 export const _configToml = `
 [[networks]]
@@ -89,4 +89,4 @@ relay = "urn:ocn:local:0"
   [networks.provider]
   type = "rpc"
   url = "ws://localhost:9003"
-`;
+`

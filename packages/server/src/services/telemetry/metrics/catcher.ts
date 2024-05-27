@@ -1,77 +1,77 @@
-import { Counter, Gauge, Histogram } from 'prom-client';
-import { TelemetryEventEmitter } from '../types.js';
+import { Counter, Gauge, Histogram } from 'prom-client'
+import { TelemetryEventEmitter } from '../types.js'
 
 export function catcherMetrics(source: TelemetryEventEmitter) {
-  const timers: Record<string, () => void> = {};
+  const timers: Record<string, () => void> = {}
 
   const blockSeenHist = new Histogram({
     name: 'oc_catcher_blocks_seen_seconds',
     help: 'Blocks seen frequencies in seconds.',
     labelNames: ['origin'],
-  });
+  })
   const blockFinHist = new Histogram({
     name: 'oc_catcher_block_finalized_seconds',
     help: 'Blocks finalized frequencies in seconds.',
     labelNames: ['origin'],
-  });
+  })
 
   const blockFinCount = new Counter({
     name: 'oc_catcher_blocks_finalized_total',
     help: 'Blocks finalized.',
     labelNames: ['origin'],
-  });
+  })
   const blockSeenCount = new Counter({
     name: 'oc_catcher_blocks_seen_total',
     help: 'Blocks seen.',
     labelNames: ['origin'],
-  });
+  })
   const blockCacheHitsCount = new Counter({
     name: 'oc_catcher_blocks_cache_hits_total',
     help: 'Block cache hits.',
     labelNames: ['origin'],
-  });
+  })
   const catcherErrorsCount = new Counter({
     name: 'oc_catcher_errors_total',
     help: 'Head catcher errors.',
     labelNames: ['origin', 'step'],
-  });
+  })
 
   const blockHeightGauge = new Gauge({
     name: 'oc_catcher_block_height',
     help: 'Block height.',
     labelNames: ['origin'],
-  });
+  })
 
   source.on('telemetryHeadCatcherError', ({ chainId, method }) => {
-    catcherErrorsCount.labels(chainId, method).inc();
-  });
+    catcherErrorsCount.labels(chainId, method).inc()
+  })
 
   source.on('telemetryBlockCacheHit', ({ chainId }) => {
-    blockCacheHitsCount.labels(chainId).inc();
-  });
+    blockCacheHitsCount.labels(chainId).inc()
+  })
 
   source.on('telemetryBlockSeen', ({ chainId }) => {
-    blockSeenCount.labels(chainId).inc();
+    blockSeenCount.labels(chainId).inc()
 
-    const timerId = chainId + ':block-seen';
-    const timer = timers[timerId];
+    const timerId = chainId + ':block-seen'
+    const timer = timers[timerId]
     if (timer) {
-      timer();
+      timer()
     }
 
-    timers[timerId] = blockSeenHist.labels(chainId).startTimer();
-  });
+    timers[timerId] = blockSeenHist.labels(chainId).startTimer()
+  })
   source.on('telemetryBlockFinalized', ({ chainId, header }) => {
-    blockFinCount.labels(chainId).inc();
+    blockFinCount.labels(chainId).inc()
 
-    blockHeightGauge.labels(chainId).set(header.number.toNumber());
+    blockHeightGauge.labels(chainId).set(header.number.toNumber())
 
-    const timerId = chainId + ':block-fin';
-    const timer = timers[timerId];
+    const timerId = chainId + ':block-fin'
+    const timer = timers[timerId]
     if (timer) {
-      timer();
+      timer()
     }
 
-    timers[timerId] = blockFinHist.labels(chainId).startTimer();
-  });
+    timers[timerId] = blockFinHist.labels(chainId).startTimer()
+  })
 }

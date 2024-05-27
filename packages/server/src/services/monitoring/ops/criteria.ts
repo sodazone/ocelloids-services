@@ -1,11 +1,11 @@
-import { ControlQuery, Criteria } from '@sodazone/ocelloids-sdk';
-import { SignerData, XcmSent } from '../types.js';
-import { NetworkURN } from '../../types.js';
+import { ControlQuery, Criteria } from '@sodazone/ocelloids-sdk'
+import { NetworkURN } from '../../types.js'
+import { SignerData, XcmSent } from '../types.js'
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {
     // match any
-    return {};
+    return {}
   } else {
     return {
       $or: [
@@ -14,7 +14,7 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
         { 'sender.extraSigners.id': { $in: senders } },
         { 'sender.extraSigners.publicKey': { $in: senders } },
       ],
-    };
+    }
   }
 }
 
@@ -22,7 +22,7 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
 export function messageCriteria(recipients: NetworkURN[]): Criteria {
   return {
     recipient: { $in: recipients },
-  };
+  }
 }
 
 /**
@@ -32,17 +32,17 @@ export function matchSenders(query: ControlQuery, sender?: SignerData): boolean 
   if (sender === undefined) {
     return query.value.test({
       sender: undefined,
-    });
+    })
   }
 
   return query.value.test({
     sender,
-  });
+  })
 }
 
 /**
  * Matches outbound XCM recipients.
  */
 export function matchMessage(query: ControlQuery, xcm: XcmSent): boolean {
-  return query.value.test({ recipient: xcm.destination.chainId });
+  return query.value.test({ recipient: xcm.destination.chainId })
 }

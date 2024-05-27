@@ -1,4 +1,4 @@
-import { ServiceConfiguration } from '../services/config.js';
+import { ServiceConfiguration } from '../services/config.js'
 
 export const mockConfigProviderMismatch: ServiceConfiguration = {
   networks: [
@@ -18,7 +18,7 @@ export const mockConfigProviderMismatch: ServiceConfiguration = {
       },
     },
   ],
-};
+}
 
 export const mockConfigRelayMismatch: ServiceConfiguration = {
   networks: [
@@ -38,7 +38,7 @@ export const mockConfigRelayMismatch: ServiceConfiguration = {
       },
     },
   ],
-};
+}
 
 export const mockConfigLC: ServiceConfiguration = {
   networks: [
@@ -67,7 +67,7 @@ export const mockConfigLC: ServiceConfiguration = {
       },
     },
   ],
-};
+}
 
 export const mockConfigWS: ServiceConfiguration = {
   networks: [
@@ -97,7 +97,7 @@ export const mockConfigWS: ServiceConfiguration = {
       },
     },
   ],
-};
+}
 
 export const mockConfigMixed: ServiceConfiguration = {
   networks: [
@@ -126,7 +126,7 @@ export const mockConfigMixed: ServiceConfiguration = {
       },
     },
   ],
-};
+}
 
 export const mockConfigRelayLast: ServiceConfiguration = {
   networks: [
@@ -154,4 +154,4 @@ export const mockConfigRelayLast: ServiceConfiguration = {
       },
     },
   ],
-};
+}

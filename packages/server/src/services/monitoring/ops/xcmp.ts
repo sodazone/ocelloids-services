@@ -1,8 +1,11 @@
-import { map, Observable, mergeMap, filter, bufferCount } from 'rxjs';
-import type { Registry } from '@polkadot/types/types';
+import type { Registry } from '@polkadot/types/types'
+import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { filterNonNull, types } from '@sodazone/ocelloids-sdk';
+import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
+import { createNetworkId } from '../../config.js'
+import { NetworkURN } from '../../types.js'
+import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
@@ -27,14 +30,14 @@ function findOutboundHrmpMessage(
   return (source: Observable<XcmSentWithContext>): Observable<GenericXcmSentWithContext> => {
     return source.pipe(
       mergeMap((sentMsg): Observable<GenericXcmSentWithContext> => {
-        const { blockHash, messageHash, messageId } = sentMsg;
+        const { blockHash, messageHash, messageId } = sentMsg
         return getOutboundHrmpMessages(blockHash).pipe(
           map((messages) => {
             return messages
               .flatMap((msg) => {
-                const { data, recipient } = msg;
+                const { data, recipient } = msg
                 // TODO: caching strategy
-                const xcms = fromXcmpFormat(data, registry);
+                const xcms = fromXcmpFormat(data, registry)
                 return xcms.map(
                   (xcmProgram) =>
                     new GenericXcmSentWithContext({
@@ -48,17 +51,17 @@ function findOutboundHrmpMessage(
                       },
                       messageId: getMessageId(xcmProgram),
                     })
-                );
+                )
               })
               .find((msg) => {
-                return messageId ? msg.messageId === messageId : msg.messageHash === messageHash;
-              });
+                return messageId ? msg.messageId === messageId : msg.messageHash === messageHash
+              })
           }),
           filterNonNull()
-        );
+        )
       })
-    );
-  };
+    )
+  }
 }
 
 export function extractXcmpSend(
@@ -71,8 +74,8 @@ export function extractXcmpSend(
       filter((event) => matchEvent(event, 'xcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')),
       xcmMessagesSent(),
       findOutboundHrmpMessage(origin, getOutboundHrmpMessages, registry)
-    );
-  };
+    )
+  }
 }
 
 export function extractXcmpReceive() {
@@ -82,16 +85,16 @@ export function extractXcmpReceive() {
       // eslint-disable-next-line complexity
       map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
         if (maybeXcmpEvent === undefined) {
-          return null;
+          return null
         }
 
         const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['xcmPallet', 'polkadotXcm'], 'AssetsTrapped')
           ? maybeAssetTrapEvent
-          : undefined;
-        const assetsTrapped = mapAssetsTrapped(assetTrapEvent);
+          : undefined
+        const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
 
         if (matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
-          const xcmpQueueData = maybeXcmpEvent.data as any;
+          const xcmpQueueData = maybeXcmpEvent.data as any
 
           return new GenericXcmInboundWithContext({
             event: blockEventToHuman(maybeXcmpEvent),
@@ -103,13 +106,13 @@ export function extractXcmpReceive() {
             outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
             error: xcmpQueueData.error,
             assetsTrapped,
-          });
+          })
         } else if (matchEvent(maybeXcmpEvent, 'messageQueue', 'Processed')) {
-          const { id, success, error } = maybeXcmpEvent.data as unknown as MessageQueueEventContext;
+          const { id, success, error } = maybeXcmpEvent.data as unknown as MessageQueueEventContext
           // Received event only emits field `message_id`,
           // which is actually the message hash in chains that do not yet support Topic ID.
-          const messageId = id.toHex();
-          const messageHash = messageId;
+          const messageId = id.toHex()
+          const messageHash = messageId
 
           return new GenericXcmInboundWithContext({
             event: blockEventToHuman(maybeXcmpEvent),
@@ -120,12 +123,12 @@ export function extractXcmpReceive() {
             outcome: success?.isTrue ? 'Success' : 'Fail',
             error: error ? error.toHuman() : null,
             assetsTrapped,
-          });
+          })
         }
 
-        return null;
+        return null
       }),
       filterNonNull()
-    );
-  };
+    )
+  }
 }

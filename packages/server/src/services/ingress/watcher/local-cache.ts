@@ -1,28 +1,28 @@
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from 'node:events'
 
-import { SubstrateApis, blocks, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk';
+import { SubstrateApis, blocks, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk'
 
-import { Subscription, mergeAll, zip, mergeMap, from, tap, switchMap, map } from 'rxjs';
+import { Subscription, from, map, mergeAll, mergeMap, switchMap, tap, zip } from 'rxjs'
 
-import type { Raw } from '@polkadot/types';
-import type { Hash } from '@polkadot/types/interfaces';
-import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import { ApiPromise, ApiRx } from '@polkadot/api';
+import { ApiPromise, ApiRx } from '@polkadot/api'
+import type { SignedBlockExtended } from '@polkadot/api-derive/types'
+import type { Raw } from '@polkadot/types'
+import type { Hash } from '@polkadot/types/interfaces'
 
-import { Services, DB, Logger, prefixes, NetworkURN } from '../../types.js';
-import { HexString } from '../../monitoring/types.js';
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js';
-import { NetworkConfiguration } from '../../config.js';
-import { Janitor } from '../../persistence/janitor.js';
-import { TelemetryEventEmitter } from '../../telemetry/types.js';
+import { NetworkConfiguration } from '../../config.js'
+import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js'
+import { HexString } from '../../monitoring/types.js'
+import { Janitor } from '../../persistence/janitor.js'
+import { TelemetryEventEmitter } from '../../telemetry/types.js'
+import { DB, Logger, NetworkURN, Services, prefixes } from '../../types.js'
 
-import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js';
-import { RETRY_INFINITE } from './head-catcher.js';
+import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js'
+import { RETRY_INFINITE } from './head-catcher.js'
 
 /**
  * Storage keys to be cached.
  */
-const captureStorageKeys: HexString[] = [parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages];
+const captureStorageKeys: HexString[] = [parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages]
 
 /**
  * A local cache for seen blocks and storage items.
@@ -36,20 +36,20 @@ const captureStorageKeys: HexString[] = [parachainSystemHrmpOutboundMessages, pa
  * - https://github.com/smol-dot/smoldot/blob/6f7afdc9d35a1377af1073be6c0791a62a9c7f45/light-base/src/json_rpc_service/background.rs#L713
  */
 export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #log: Logger;
-  readonly #db: DB;
-  readonly #janitor: Janitor;
-  readonly #apis: SubstrateApis;
+  readonly #log: Logger
+  readonly #db: DB
+  readonly #janitor: Janitor
+  readonly #apis: SubstrateApis
 
-  readonly #subs: Record<string, Subscription> = {};
+  readonly #subs: Record<string, Subscription> = {}
 
   constructor(apis: SubstrateApis, { log, rootStore, janitor }: Services) {
-    super();
+    super()
 
-    this.#log = log;
-    this.#apis = apis;
-    this.#janitor = janitor;
-    this.#db = rootStore;
+    this.#log = log
+    this.#apis = apis
+    this.#janitor = janitor
+    this.#db = rootStore
   }
 
   /**
@@ -58,24 +58,24 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
    * @param network The network configuration
    */
   watch(network: NetworkConfiguration) {
-    const chainId = network.id as NetworkURN;
-    const isRelayChain = network.relay === undefined;
-    const api = this.#apis.rx[chainId];
+    const chainId = network.id as NetworkURN
+    const isRelayChain = network.relay === undefined
+    const api = this.#apis.rx[chainId]
 
-    this.#log.info('[%s] Register block cache', chainId);
+    this.#log.info('[%s] Register block cache', chainId)
 
     const block$ = api.pipe(
       blocks(),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       tap(({ block: { header } }) => {
-        this.#log.debug('[%s] SEEN block #%s %s', chainId, header.number.toString(), header.hash.toHex());
+        this.#log.debug('[%s] SEEN block #%s %s', chainId, header.number.toString(), header.hash.toHex())
 
         this.emit('telemetryBlockSeen', {
           chainId,
           header,
-        });
+        })
       })
-    );
+    )
 
     const fromStorage = (_api: ApiRx, hash: Hash) =>
       zip(captureStorageKeys.map((key) => from(_api.rpc.state.getStorage<Raw>(key, hash)))).pipe(
@@ -83,9 +83,9 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
           return items.map((value, index) => ({
             key: captureStorageKeys[index],
             value,
-          }));
+          }))
         })
-      );
+      )
 
     const msgs$ = block$.pipe(
       mergeMap((block) => {
@@ -97,11 +97,11 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
             return {
               block,
               storageItems,
-            };
+            }
           })
-        );
+        )
       })
-    );
+    )
 
     if (isRelayChain) {
       this.#subs[chainId] = block$
@@ -111,13 +111,13 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
         )
         .subscribe({
           error: (error) => this.#log.error(error, '[%s] Error on caching block for relay chain', chainId),
-        });
+        })
     } else {
       this.#subs[chainId] = msgs$
         .pipe(
           map(({ block, storageItems }) => {
-            const ops = [from(this.#putBlockBuffer(chainId, block))];
-            const hash = block.block.header.hash.toHex();
+            const ops = [from(this.#putBlockBuffer(chainId, block))]
+            const hash = block.block.header.hash.toHex()
 
             for (const storageItem of storageItems) {
               ops.push(
@@ -128,18 +128,18 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
                     storageItem.value.toU8a(true)
                   )
                 )
-              );
+              )
             }
 
-            return ops;
+            return ops
           }),
           mergeAll()
         )
         .subscribe({
           error: (error: unknown) => {
-            this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId);
+            this.#log.error(error, '[%s] Error on caching block and XCMP messages for parachain', chainId)
           },
-        });
+        })
     }
   }
 
@@ -149,33 +149,33 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
    */
   async getBlock(chainId: NetworkURN, api: ApiPromise, hash: HexString) {
     try {
-      const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.block(hash));
-      const signedBlock = decodeSignedBlockExtended(api.registry, buffer);
+      const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.block(hash))
+      const signedBlock = decodeSignedBlockExtended(api.registry, buffer)
 
       this.emit('telemetryBlockCacheHit', {
         chainId,
-      });
+      })
 
-      return signedBlock;
+      return signedBlock
     } catch (_error) {
-      this.#log.warn('[%s] GET block after cache miss (%s)', chainId, hash);
+      this.#log.warn('[%s] GET block after cache miss (%s)', chainId, hash)
 
-      return await api.derive.chain.getBlock(hash);
+      return await api.derive.chain.getBlock(hash)
     }
   }
 
   async getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     try {
-      const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.storage(storageKey, blockHash));
+      const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.storage(storageKey, blockHash))
 
       // TODO event
       this.emit('telemetryBlockCacheHit', {
         chainId,
-      });
+      })
 
-      return buffer;
-    } catch (error) {
-      return null;
+      return buffer
+    } catch {
+      return null
     }
   }
 
@@ -185,14 +185,14 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
    *
    */
   has(chainId: string) {
-    return this.#subs[chainId] !== undefined;
+    return this.#subs[chainId] !== undefined
   }
 
   stop() {
     for (const [chain, sub] of Object.entries(this.#subs)) {
-      this.#log.info(`Unsubscribe block cache of chain ${chain}`);
-      sub.unsubscribe();
-      delete this.#subs[chain];
+      this.#log.info(`Unsubscribe block cache of chain ${chain}`)
+      sub.unsubscribe()
+      delete this.#subs[chain]
     }
   }
 
@@ -202,44 +202,44 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
   #bufferCache(chainId: NetworkURN) {
     return this.#db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
       valueEncoding: 'buffer',
-    });
+    })
   }
 
   /**
    * Puts into the binary cache.
    */
   async #putBuffer(chainId: NetworkURN, key: string, buffer: Uint8Array) {
-    const db = this.#bufferCache(chainId);
-    await db.put(key, buffer);
+    const db = this.#bufferCache(chainId)
+    await db.put(key, buffer)
 
     await this.#janitor.schedule({
       sublevel: prefixes.cache.family(chainId),
       key,
-    });
+    })
   }
 
   async #putBlockBuffer(chainId: NetworkURN, block: SignedBlockExtended) {
-    const hash = block.block.header.hash.toHex();
-    const key = prefixes.cache.keys.block(hash);
+    const hash = block.block.header.hash.toHex()
+    const key = prefixes.cache.keys.block(hash)
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#bufferCache(chainId).put(key, encodeSignedBlockExtended(block));
+    await this.#bufferCache(chainId).put(key, encodeSignedBlockExtended(block))
 
     await this.#janitor.schedule({
       sublevel: prefixes.cache.family(chainId),
       key,
-    });
+    })
   }
 
   #tapError<T>(chainId: NetworkURN, method: string) {
     return tap<T>({
       error: (e) => {
-        this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId);
+        this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId)
         this.emit('telemetryBlockCacheError', {
           chainId,
           method,
-        });
+        })
       },
-    });
+    })
   }
 }

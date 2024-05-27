@@ -21,21 +21,21 @@ import { types } from '@sodazone/ocelloids-sdk';
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
   for (const instruction of instructions) {
-    let nextStop;
-    let message;
+    let nextStop
+    let message
 
     if (instruction.isDepositReserveAsset) {
-      const { dest, xcm } = instruction.asDepositReserveAsset;
-      nextStop = dest;
-      message = xcm;
+      const { dest, xcm } = instruction.asDepositReserveAsset
+      nextStop = dest
+      message = xcm
     } else if (instruction.isInitiateReserveWithdraw) {
-      const { reserve, xcm } = instruction.asInitiateReserveWithdraw;
-      nextStop = reserve;
-      message = xcm;
+      const { reserve, xcm } = instruction.asInitiateReserveWithdraw
+      nextStop = reserve
+      message = xcm
     } else if (instruction.isInitiateTeleport) {
-      const { dest, xcm } = instruction.asInitiateTeleport;
-      nextStop = dest;
-      message = xcm;
+      const { dest, xcm } = instruction.asInitiateTeleport
+      nextStop = dest
+      message = xcm
     } else if (instruction.isTransferReserveAsset) {
       const { dest, xcm } = instruction.asTransferReserveAsset;
       nextStop = dest;
@@ -57,40 +57,40 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
     }
 
     if (nextStop !== undefined && message !== undefined) {
-      const networkId = networkIdFromMultiLocation(nextStop, origin);
+      const networkId = networkIdFromMultiLocation(nextStop, origin)
 
       if (networkId) {
-        stops.push(networkId);
-        recursiveExtractStops(networkId, message, stops);
+        stops.push(networkId)
+        recursiveExtractStops(networkId, message, stops)
       }
     }
   }
 
-  return stops;
+  return stops
 }
 
 function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
   const legs: Leg[] = [];
   const nodes = [origin].concat(stops);
   for (let i = 0; i < nodes.length - 1; i++) {
-    const from = nodes[i];
-    const to = nodes[i + 1];
+    const from = nodes[i]
+    const to = nodes[i + 1]
     const leg = {
       from,
       to,
       type: 'vmp',
-    } as Leg;
+    } as Leg
 
     if (getConsensus(from) === getConsensus(to)) {
       if (getChainId(from) !== '0' && getChainId(to) !== '0') {
-        leg.relay = createNetworkId(from, '0');
-        leg.type = 'hrmp';
+        leg.relay = createNetworkId(from, '0')
+        leg.type = 'hrmp'
       }
     } else {
-      leg.type = 'bridge';
+      leg.type = 'bridge'
     }
 
-    legs.push(leg);
+    legs.push(leg)
   }
 
   if (legs.length === 1) {
@@ -106,7 +106,20 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
     }
   }
 
-  return legs;
+  if (legs.length === 1) {
+    return legs;
+  }
+
+  for (let i = 0; i < legs.length - 1; i++) {
+    const leg1 = legs[i];
+    const leg2 = legs[i + 1];
+    if (isOnSameConsensus(leg1.from, leg2.to)) {
+      leg1.type = 'hop';
+      leg2.type = 'hop';
+    }
+  }
+
+  return legs
 }
 
 /**
@@ -138,7 +151,7 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
         }
         return new GenericXcmSent(id, origin, message, legs, forwardId);
       })
-    );
+    )
 }
 
 export function blockEventToHuman(event: types.BlockEvent): AnyJson {
@@ -161,7 +174,7 @@ export function xcmMessagesSent() {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
-        const xcmMessage = event.data as any;
+        const xcmMessage = event.data as any
         return {
           event: blockEventToHuman(event),
           sender: getSendersFromEvent(event),
@@ -170,8 +183,8 @@ export function xcmMessagesSent() {
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash?.toHex(),
           messageId: xcmMessage.messageId?.toHex(),
-        } as XcmSentWithContext;
+        } as XcmSentWithContext
       })
-    );
-  };
+    )
+  }
 }

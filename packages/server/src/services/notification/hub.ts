@@ -1,11 +1,11 @@
-import EventEmitter from 'node:events';
+import EventEmitter from 'node:events'
 
-import { Services } from '../types.js';
-import { Subscription, XcmNotifyMessage } from '../monitoring/types.js';
-import { Notifier, NotifierEmitter } from './types.js';
-import { LogNotifier } from './log.js';
-import { WebhookNotifier } from './webhook.js';
-import { TelemetryNotifierEventKeys } from '../telemetry/types.js';
+import { Subscription, XcmNotifyMessage } from '../monitoring/types.js'
+import { TelemetryNotifierEventKeys } from '../telemetry/types.js'
+import { Services } from '../types.js'
+import { LogNotifier } from './log.js'
+import { Notifier, NotifierEmitter } from './types.js'
+import { WebhookNotifier } from './webhook.js'
 
 /**
  * Notifier hub.
@@ -15,24 +15,24 @@ import { TelemetryNotifierEventKeys } from '../telemetry/types.js';
 export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
   // #log: Logger;
   #notifiers: {
-    [property: string]: Notifier;
-  };
+    [property: string]: Notifier
+  }
 
   constructor(services: Services) {
-    super();
+    super()
 
     // this.#log = services.log;
     this.#notifiers = {
       log: new LogNotifier(this, services),
       webhook: new WebhookNotifier(this, services),
-    };
+    }
 
     // delegate telemetry events
     for (const n of Object.values(this.#notifiers)) {
       for (const t of TelemetryNotifierEventKeys) {
         n.on(t, (msg) => {
-          this.emit(t, msg);
-        });
+          this.emit(t, msg)
+        })
       }
     }
   }
@@ -44,11 +44,11 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
    * @param msg The message.
    */
   notify(sub: Subscription, msg: XcmNotifyMessage) {
-    const types: any[] = [];
+    const types: any[] = []
     for (const { type } of sub.channels) {
       if (types.indexOf(type) === -1) {
-        types.push(type);
-        this.emit(type, sub, msg);
+        types.push(type)
+        this.emit(type, sub, msg)
       }
     }
   }

@@ -1,29 +1,29 @@
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from 'node:events'
 
-import got from 'got';
-import { ulid } from 'ulidx';
+import got from 'got'
+import { ulid } from 'ulidx'
 
-import version from '../../version.js';
-import { Subscription, WebhookNotification, XcmNotifyMessage } from '../monitoring/types.js';
-import { Logger, Services } from '../types.js';
+import version from '../../version.js'
+import { Subscription, WebhookNotification, XcmNotifyMessage } from '../monitoring/types.js'
+import { Logger, Services } from '../types.js'
 
-import { Notifier, NotifierEmitter } from './types.js';
-import { TemplateRenderer } from './template.js';
-import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js';
-import { notifyTelemetryFrom } from '../telemetry/types.js';
-import { NotifierHub } from './hub.js';
+import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'
+import { notifyTelemetryFrom } from '../telemetry/types.js'
+import { NotifierHub } from './hub.js'
+import { TemplateRenderer } from './template.js'
+import { Notifier, NotifierEmitter } from './types.js'
 
-const DEFAULT_DELAY = 300000; // 5 minutes
+const DEFAULT_DELAY = 300000 // 5 minutes
 
 type WebhookTask = {
-  id: string;
-  subId: string;
-  msg: XcmNotifyMessage;
-};
-const WebhookTaskType = 'task:webhook';
+  id: string
+  subId: string
+  msg: XcmNotifyMessage
+}
+const WebhookTaskType = 'task:webhook'
 
 function buildPostUrl(url: string, id: string) {
-  return [url, id].join('/').replace(/([^:]\/)\/+/g, '$1');
+  return [url, id].join('/').replace(/([^:]\/)\/+/g, '$1')
 }
 
 /**
@@ -34,30 +34,30 @@ function buildPostUrl(url: string, id: string) {
  * - Text templates for the body payload.
  */
 export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
-  #log: Logger;
-  #scheduler: Scheduler;
-  #subs: SubsStore;
-  #renderer: TemplateRenderer;
+  #log: Logger
+  #scheduler: Scheduler
+  #subs: SubsStore
+  #renderer: TemplateRenderer
 
   constructor(hub: NotifierHub, { log, scheduler, subsStore }: Services) {
-    super();
+    super()
 
-    this.#log = log;
-    this.#scheduler = scheduler;
-    this.#subs = subsStore;
-    this.#renderer = new TemplateRenderer();
+    this.#log = log
+    this.#scheduler = scheduler
+    this.#subs = subsStore
+    this.#renderer = new TemplateRenderer()
 
-    this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this));
+    this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this))
 
-    hub.on('webhook', this.notify.bind(this));
+    hub.on('webhook', this.notify.bind(this))
   }
 
   async notify(sub: Subscription, msg: XcmNotifyMessage) {
-    const { id, channels } = sub;
+    const { id, channels } = sub
 
     for (const chan of channels) {
       if (chan.type === 'webhook') {
-        const taskId = ulid();
+        const taskId = ulid()
         const scheduled: Scheduled<WebhookTask> = {
           type: WebhookTaskType,
           task: {
@@ -65,8 +65,8 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
             subId: id,
             msg,
           },
-        };
-        await this.#dispatch(scheduled);
+        }
+        await this.#dispatch(scheduled)
       }
     }
   }
@@ -74,30 +74,30 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   async #dispatch(scheduled: Scheduled<WebhookTask>) {
     const {
       task: { subId },
-    } = scheduled;
+    } = scheduled
 
     try {
-      const { channels } = await this.#subs.getById(subId);
+      const { channels } = await this.#subs.getById(subId)
       for (const chan of channels) {
         if (chan.type === 'webhook') {
-          const config = chan as WebhookNotification;
+          const config = chan as WebhookNotification
           if (config.events === undefined || config.events === '*' || config.events.includes(scheduled.task.msg.type)) {
-            await this.#post(scheduled, config);
+            await this.#post(scheduled, config)
           }
         }
       }
     } catch (error) {
       // do not re-schedule
-      this.#log.error(error, 'Webhook dispatch error');
+      this.#log.error(error, 'Webhook dispatch error')
     }
   }
 
   async #post(scheduled: Scheduled<WebhookTask>, config: WebhookNotification) {
     const {
       task: { id, msg },
-    } = scheduled;
-    const { contentType, url, limit, template } = config;
-    const postUrl = buildPostUrl(url, id);
+    } = scheduled
+    const { contentType, url, limit, template } = config
+    const postUrl = buildPostUrl(url, id)
 
     try {
       const res = await got.post<XcmNotifyMessage>(postUrl, {
@@ -117,21 +117,21 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           init: [
             (raw, options) => {
               if ('bearer' in raw) {
-                options.context.bearer = raw.bearer;
-                delete raw.bearer;
+                options.context.bearer = raw.bearer
+                delete raw.bearer
               }
             },
           ],
           beforeRequest: [
             (options) => {
-              const { bearer } = options.context;
+              const { bearer } = options.context
               if (bearer && !options.headers.authorization) {
-                options.headers.authorization = `Bearer ${bearer}`;
+                options.headers.authorization = `Bearer ${bearer}`
               }
             },
           ],
         },
-      });
+      })
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.#log.info(
@@ -140,34 +140,34 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           msg.subscriptionId,
           postUrl,
           msg.waypoint.messageHash
-        );
-        this.#telemetryNotify(config, msg);
+        )
+        this.#telemetryNotify(config, msg)
       } else {
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
         // of retries is reached.
-        this.#log.error('Not deliverable webhook %s %s', postUrl, id);
+        this.#log.error('Not deliverable webhook %s %s', postUrl, id)
       }
     } catch (error) {
-      this.#log.warn(error, 'Error while posting to webhook %s', config.url);
+      this.#log.warn(error, 'Error while posting to webhook %s', config.url)
 
       // Re-schedule in 5 minutes
-      const time = new Date(Date.now() + DEFAULT_DELAY);
-      const key = time.toISOString() + id;
+      const time = new Date(Date.now() + DEFAULT_DELAY)
+      const key = time.toISOString() + id
       await this.#scheduler.schedule({
         ...scheduled,
         key,
-      });
-      this.#log.info('Scheduled webhook delivery %s', key);
-      this.#telemetryNotifyError(config, msg);
+      })
+      this.#log.info('Scheduled webhook delivery %s', key)
+      this.#telemetryNotifyError(config, msg)
     }
   }
 
   #telemetryNotify(config: WebhookNotification, msg: XcmNotifyMessage) {
-    this.emit('telemetryNotify', notifyTelemetryFrom(config.type, config.url, msg));
+    this.emit('telemetryNotify', notifyTelemetryFrom(config.type, config.url, msg))
   }
 
   #telemetryNotifyError(config: WebhookNotification, msg: XcmNotifyMessage) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'));
+    this.emit('telemetryNotifyError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'))
   }
 }

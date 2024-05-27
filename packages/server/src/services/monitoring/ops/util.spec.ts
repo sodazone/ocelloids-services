@@ -1,4 +1,4 @@
-import { types } from '@sodazone/ocelloids-sdk';
+import { types } from '@sodazone/ocelloids-sdk'
 
 import {
   getMessageId,
@@ -7,7 +7,7 @@ import {
   getSendersFromEvent,
   getSendersFromExtrinsic,
   networkIdFromMultiLocation,
-} from './util.js';
+} from './util.js'
 
 describe('xcm ops utils', () => {
   describe('getSendersFromExtrinsic', () => {
@@ -19,27 +19,27 @@ describe('xcm ops utils', () => {
           toHex: () => '0x0',
         },
         extraSigners: [],
-      } as unknown as types.ExtrinsicWithId);
+      } as unknown as types.ExtrinsicWithId)
 
-      expect(signerData).toBeDefined();
-    });
+      expect(signerData).toBeDefined()
+    })
 
     it('should return undefined on unsigned extrinsic', () => {
       const signerData = getSendersFromExtrinsic({
         isSigned: false,
         extraSigners: [],
-      } as unknown as types.ExtrinsicWithId);
+      } as unknown as types.ExtrinsicWithId)
 
-      expect(signerData).toBeUndefined();
-    });
+      expect(signerData).toBeUndefined()
+    })
 
     it('should throw error on malformed extrinsic', () => {
       expect(() =>
         getSendersFromExtrinsic({
           isSigned: true,
         } as unknown as types.ExtrinsicWithId)
-      ).toThrow();
-    });
+      ).toThrow()
+    })
 
     it('should get extra signers data', () => {
       const signerData = getSendersFromExtrinsic({
@@ -70,12 +70,12 @@ describe('xcm ops utils', () => {
             },
           },
         ],
-      } as unknown as types.ExtrinsicWithId);
+      } as unknown as types.ExtrinsicWithId)
 
-      expect(signerData).toBeDefined();
-      expect(signerData?.extraSigners.length).toBe(2);
-    });
-  });
+      expect(signerData).toBeDefined()
+      expect(signerData?.extraSigners.length).toBe(2)
+    })
+  })
   describe('getSendersFromEvent', () => {
     it('should extract signers data for an event with signed extrinsic', () => {
       const signerData = getSendersFromEvent({
@@ -87,16 +87,16 @@ describe('xcm ops utils', () => {
           },
           extraSigners: [],
         },
-      } as unknown as types.EventWithId);
+      } as unknown as types.EventWithId)
 
-      expect(signerData).toBeDefined();
-    });
+      expect(signerData).toBeDefined()
+    })
     it('should return undefined for an event without extrinsic', () => {
-      const signerData = getSendersFromEvent({} as unknown as types.EventWithId);
+      const signerData = getSendersFromEvent({} as unknown as types.EventWithId)
 
-      expect(signerData).toBeUndefined();
-    });
-  });
+      expect(signerData).toBeUndefined()
+    })
+  })
   describe('getMessageId', () => {
     it('should get the message id from setTopic V3 instruction', () => {
       const messageId = getMessageId({
@@ -109,9 +109,9 @@ describe('xcm ops utils', () => {
             },
           },
         ],
-      } as unknown as any);
-      expect(messageId).toBe('0x012233');
-    });
+      } as unknown as any)
+      expect(messageId).toBe('0x012233')
+    })
     it('should get the message id from setTopic V4 instruction', () => {
       const messageId = getMessageId({
         type: 'V4',
@@ -123,9 +123,9 @@ describe('xcm ops utils', () => {
             },
           },
         ],
-      } as unknown as any);
-      expect(messageId).toBe('0x012233');
-    });
+      } as unknown as any)
+      expect(messageId).toBe('0x012233')
+    })
     it('should return undefined for V3 without setTopic', () => {
       const messageId = getMessageId({
         type: 'V3',
@@ -134,16 +134,16 @@ describe('xcm ops utils', () => {
             isSetTopic: false,
           },
         ],
-      } as unknown as any);
-      expect(messageId).toBeUndefined();
-    });
+      } as unknown as any)
+      expect(messageId).toBeUndefined()
+    })
     it('should return undefined for V2 instruction', () => {
       const messageId = getMessageId({
         type: 'V2',
-      } as unknown as any);
-      expect(messageId).toBeUndefined();
-    });
-  });
+      } as unknown as any)
+      expect(messageId).toBeUndefined()
+    })
+  })
   describe('getParaIdFromOrigin', () => {
     it('should get para id from UMP origin', () => {
       const paraId = getParaIdFromOrigin({
@@ -154,9 +154,9 @@ describe('xcm ops utils', () => {
             toString: () => '10',
           },
         },
-      } as unknown as any);
-      expect(paraId).toBe('10');
-    });
+      } as unknown as any)
+      expect(paraId).toBe('10')
+    })
     it('should return undefined from unknown origin', () => {
       expect(
         getParaIdFromOrigin({
@@ -165,14 +165,14 @@ describe('xcm ops utils', () => {
             isPara: false,
           },
         } as unknown as any)
-      ).toBeUndefined();
+      ).toBeUndefined()
       expect(
         getParaIdFromOrigin({
           isUmp: false,
         } as unknown as any)
-      ).toBeUndefined();
-    });
-  });
+      ).toBeUndefined()
+    })
+  })
   describe('getParaIdFromMultiLocation', () => {
     it('should get paraId from local relay multi location', () => {
       const paraId = getParaIdFromMultiLocation({
@@ -182,9 +182,9 @@ describe('xcm ops utils', () => {
         parents: {
           toNumber: () => 1,
         },
-      } as unknown as any);
-      expect(paraId).toBe('0');
-    });
+      } as unknown as any)
+      expect(paraId).toBe('0')
+    })
 
     it('should get paraId from V4 multi location', () => {
       for (const t of ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8']) {
@@ -200,10 +200,10 @@ describe('xcm ops utils', () => {
               },
             ],
           },
-        } as unknown as any);
-        expect(paraId).toBe('10');
+        } as unknown as any)
+        expect(paraId).toBe('10')
       }
-    });
+    })
 
     it('should get paraId from >V4 X1 multi location', () => {
       const paraId = getParaIdFromMultiLocation({
@@ -216,9 +216,9 @@ describe('xcm ops utils', () => {
             },
           },
         },
-      } as unknown as any);
-      expect(paraId).toBe('10');
-    });
+      } as unknown as any)
+      expect(paraId).toBe('10')
+    })
 
     it('should get paraId from >V4 multi location', () => {
       for (const t of ['X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8']) {
@@ -234,10 +234,10 @@ describe('xcm ops utils', () => {
               },
             ],
           },
-        } as unknown as any);
-        expect(paraId).toBe('10');
+        } as unknown as any)
+        expect(paraId).toBe('10')
       }
-    });
+    })
     it('should return undefined on unknown multi location', () => {
       expect(
         getParaIdFromMultiLocation({
@@ -246,14 +246,14 @@ describe('xcm ops utils', () => {
             asZZ: [],
           },
         } as unknown as any)
-      ).toBeUndefined();
+      ).toBeUndefined()
       expect(
         getParaIdFromMultiLocation({
           interior: {
             type: 'Here',
           },
         } as unknown as any)
-      ).toBeUndefined();
+      ).toBeUndefined()
       expect(
         getParaIdFromMultiLocation({
           interior: {
@@ -263,9 +263,9 @@ describe('xcm ops utils', () => {
             toNumber: () => 10,
           },
         } as unknown as any)
-      ).toBeUndefined();
-    });
-  });
+      ).toBeUndefined()
+    })
+  })
   describe('networkIdFromMultiLocation', () => {
     it('should get a network id from multi location same consensus', () => {
       const networkId = networkIdFromMultiLocation(
@@ -286,9 +286,9 @@ describe('xcm ops utils', () => {
           },
         } as unknown as any,
         'urn:ocn:polkadot:10'
-      );
-      expect(networkId).toBe('urn:ocn:polkadot:11');
-    });
+      )
+      expect(networkId).toBe('urn:ocn:polkadot:11')
+    })
     it('should get a network id from V4 multi location different consensus', () => {
       const networkId = networkIdFromMultiLocation(
         {
@@ -314,9 +314,9 @@ describe('xcm ops utils', () => {
           },
         } as unknown as any,
         'urn:ocn:polkadot:10'
-      );
-      expect(networkId).toBe('urn:ocn:espartaco:11');
-    });
+      )
+      expect(networkId).toBe('urn:ocn:espartaco:11')
+    })
     it('should get a network id from V3 multi location different consensus', () => {
       const networkId = networkIdFromMultiLocation(
         {
@@ -334,8 +334,8 @@ describe('xcm ops utils', () => {
           },
         } as unknown as any,
         'urn:ocn:polkadot:10'
-      );
-      expect(networkId).toBe('urn:ocn:espartaco:0');
-    });
-  });
-});
+      )
+      expect(networkId).toBe('urn:ocn:espartaco:0')
+    })
+  })
+})

@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
-import 'dotenv/config';
-import process from 'node:process';
+import 'dotenv/config'
+import process from 'node:process'
 
-import z from 'zod';
-import { Command, program } from 'commander';
+import { Command, program } from 'commander'
+import z from 'zod'
 
-import version from '../../../version.js';
-import { optInt, opt, optBool } from '../../../args.js';
-import { $ServerOptions, createIngressServer } from './server.js';
+import { opt, optBool, optInt } from '../../../args.js'
+import version from '../../../version.js'
+import { $ServerOptions, createIngressServer } from './server.js'
 
 /**
  * Starts an Ocelloids Ingress Server from the command line.
  */
 async function startServer(this: Command) {
   try {
-    const opts = $ServerOptions.parse(this.opts());
-    const server = await createIngressServer(opts);
+    const opts = $ServerOptions.parse(this.opts())
+    const server = await createIngressServer(opts)
     server.listen(
       {
         port: opts.port,
@@ -24,18 +24,18 @@ async function startServer(this: Command) {
       },
       function (err, _) {
         if (err) {
-          server.log.error(err);
-          process.exit(1);
+          server.log.error(err)
+          process.exit(1)
         }
       }
-    );
+    )
   } catch (err) {
     if (err instanceof z.ZodError) {
-      console.error(err.issues);
-      program.help();
+      console.error(err.issues)
+      program.help()
     } else {
-      console.error(err);
-      process.exit(1);
+      console.error(err)
+      process.exit(1)
     }
   }
 }
@@ -78,6 +78,6 @@ program
     )
   )
   .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
-  .action(startServer);
+  .action(startServer)
 
-program.parse();
+program.parse()
