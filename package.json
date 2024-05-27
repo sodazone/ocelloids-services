@@ -13,6 +13,7 @@
   "scripts": {
     "build": "yarn server build && yarn client build",
     "lint": "yarn workspaces foreach -A run lint",
+    "test": "yarn workspaces foreach -A run test",
     "server": "yarn workspace @sodazone/ocelloids-service-node",
     "client": "yarn workspace @sodazone/ocelloids-client"
   },
