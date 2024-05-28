@@ -15,7 +15,7 @@ declare module 'fastify' {
  * Fastify plug-in for instantiating an {@link AgentService} instance.
  *
  * @param fastify The Fastify instance.
- * @param options Options for configuring the IngressConsumer.
+ * @param options Options for configuring the Agent Service.
  */
 const agentServicePlugin: FastifyPluginAsync<AgentServiceOptions> = async (fastify, options) => {
   if (options.mode !== AgentServiceMode.local) {

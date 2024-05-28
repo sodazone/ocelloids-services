@@ -3,6 +3,7 @@ import EventEmitter from 'node:events'
 import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
 
+import { DB, Logger, Services, jsonEncoded, prefixes } from '../../services/types.js'
 import {
   GenericXcmBridge,
   GenericXcmHop,
@@ -23,7 +24,6 @@ import {
   XcmTimeout,
   XcmWaypointContext,
 } from './types.js'
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../../services/types.js'
 
 import { getRelayId, isOnSameConsensus } from '../../services/config.js'
 import { Janitor, JanitorTask } from '../../services/persistence/janitor.js'
