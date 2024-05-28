@@ -2,7 +2,7 @@
 import { InvalidArgumentError, Option } from 'commander'
 
 import { FastifyCorsOptions } from '@fastify/cors'
-import { CorsServerOptions } from './types.js'
+import { CorsServerOptions } from '../types.js'
 
 function positiveInt(v: string) {
   const parsedValue = parseInt(v, 10)

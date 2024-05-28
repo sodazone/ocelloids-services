@@ -6,7 +6,7 @@ import process from 'node:process'
 import { Command, program } from 'commander'
 import z from 'zod'
 
-import { opt, optArr, optBool, optInt } from './args.js'
+import { addServerOptions, opt, optArr, optBool, optInt } from './cli/index.js'
 import { $ServerOptions, createServer } from './server.js'
 import version from './version.js'
 
@@ -51,43 +51,10 @@ async function startServer(this: Command) {
   }
 }
 
-program
+addServerOptions(program)
   .name('oc-node')
   .description('Ocelloids Service Node')
   .version(version)
-  .addOption(opt('-a, --address <address>', 'address to bind to', 'OC_ADDRESS').default('localhost'))
-  .addOption(optInt('-p, --port <number>', 'port number to listen on', 'OC_PORT').default(3000))
-  .addOption(opt('-c, --config <file>', 'service configuration file', 'OC_CONFIG_FILE'))
-  .addOption(opt('-d, --data <dir>', 'database directory', 'OC_DATA_DIR').default('./db'))
-  .addOption(
-    optBool('--scheduler <boolean>', 'enables or disables the task scheduler', 'OC_DB_SCHEDULER_ENABLE').default(true)
-  )
-  .addOption(
-    optInt(
-      '--scheduler-frequency <milliseconds>',
-      'milliseconds to wait before each tick',
-      'OC_DB_SCHEDULER_FREQUENCY'
-    ).default(5_000) // 5 secs
-  )
-  .addOption(
-    optInt(
-      '--sweep-expiry <milliseconds>',
-      'milliseconds before a task is swept',
-      'OC_DB_JANITOR_SWEEP_EXPIRY'
-    ).default(25 * 60_000) // 25 minutes
-  )
-  .addOption(
-    optInt(
-      '-g, --grace <milliseconds>',
-      'milliseconds for the graceful close to finish',
-      'OC_CLOSE_GRACE_DELAY'
-    ).default(5_000)
-  )
-  .addOption(
-    optBool('-t --telemetry <boolean>', 'enables or disables the telemetry exporter', 'OC_TELEMETRY_ENABLE').default(
-      true
-    )
-  )
   .addOption(
     optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(10_000)
   )
@@ -122,8 +89,8 @@ program
       'OC_CORS_ORIGIN'
     ).default(['/https?://localhost.*/'])
   )
-  .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
   .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
+  .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
   .action(startServer)
 
 program.parse()
