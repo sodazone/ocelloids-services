@@ -6,16 +6,16 @@ import type { Registry } from '@polkadot/types/types'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { getChainId, getRelayId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  MessageQueueEventContext,
   XcmInboundWithContext,
   XcmSentWithContext,
-} from '../types.js'
+} from 'agents/xcm/types.js'
+import { getChainId, getRelayId } from '../../../services/config.js'
+import { NetworkURN } from '../../../services/types.js'
+import { GetOutboundUmpMessages } from '../types-augmented.js'
+import { MessageQueueEventContext } from '../types.js'
 import { blockEventToHuman, xcmMessagesSent } from './common.js'
 import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'

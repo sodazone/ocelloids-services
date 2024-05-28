@@ -5,8 +5,8 @@ import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
   PolkadotCorePrimitivesOutboundHrmpMessage,
 } from '@polkadot/types/lookup'
-import { NetworkURN } from '../types.js'
-import { HexString } from './types.js'
+import { HexString } from '../../services/monitoring/types.js'
+import { NetworkURN } from '../../services/types.js'
 
 export type GetOutboundHrmpMessages = (hash: HexString) => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
 

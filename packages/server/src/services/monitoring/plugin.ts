@@ -25,7 +25,7 @@ type MonitoringOptions = SwitchboardOptions & WebsocketProtocolOptions
 const monitoringPlugin: FastifyPluginAsync<MonitoringOptions> = async (fastify, options) => {
   const { log } = fastify
 
-  const subsStore = new SubsStore(fastify.log, fastify.rootStore, fastify.ingressConsumer)
+  const subsStore = new SubsStore(fastify.log, fastify.rootStore, fastify.agentService)
   fastify.decorate('subsStore', subsStore)
 
   const switchboard = new Switchboard(fastify, options)

@@ -3,16 +3,16 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { createNetworkId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
-  MessageQueueEventContext,
   XcmInboundWithContext,
   XcmSentWithContext,
-} from '../types.js'
+} from 'agents/xcm/types.js'
+import { createNetworkId } from '../../../services/config.js'
+import { NetworkURN } from '../../../services/types.js'
+import { GetOutboundHrmpMessages } from '../types-augmented.js'
+import { MessageQueueEventContext } from '../types.js'
 import { blockEventToHuman, xcmMessagesSent } from './common.js'
 import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'

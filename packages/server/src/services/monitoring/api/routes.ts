@@ -2,14 +2,15 @@ import { FastifyInstance } from 'fastify'
 import { Operation, applyPatch } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { $SafeId, $Subscription, Subscription } from '../types.js'
+import { $AgentId, $SafeId, $Subscription, AgentId, Subscription } from '../types.js'
 import $JSONPatch from './json-patch.js'
 
+/* TODO extract this
 const allowedPaths = ['/senders', '/destinations', '/channels', '/events']
 
 function hasOp(patch: Operation[], path: string) {
   return patch.some((op) => op.path.startsWith(path))
-}
+}*/
 
 /**
  * Subscriptions HTTP API.
@@ -89,22 +90,22 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const qs = request.body
-      if (Array.isArray(qs)) {
-        const ids = []
+      const subs = request.body
+      if (Array.isArray(subs)) {
+        const tmp = []
         try {
-          for (const q of qs) {
-            await switchboard.subscribe(q)
-            ids.push(q.id)
+          for (const s of subs) {
+            await switchboard.subscribe(s)
+            tmp.push(s)
           }
         } catch (error) {
-          for (const id of ids) {
-            await switchboard.unsubscribe(id)
+          for (const s of tmp) {
+            await switchboard.unsubscribe(s.agent, s.id)
           }
           throw error
         }
       } else {
-        await switchboard.subscribe(qs)
+        await switchboard.subscribe(subs)
       }
 
       reply.status(201).send()
@@ -134,7 +135,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
+    async (_request, reply) => {
+      /*
       const patch = request.body
       const { id } = request.params
       const sub = await subsStore.getById(id)
@@ -165,7 +167,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
         reply.status(200).send(sub)
       } else {
         reply.status(400).send('Only operations on these paths are allowed: ' + allowedPaths.join(','))
-      }
+      }*/
+      reply.status(400)
     }
   )
 
@@ -174,13 +177,15 @@ export async function SubscriptionApi(api: FastifyInstance) {
    */
   api.delete<{
     Params: {
+      agent: AgentId
       id: string
     }
   }>(
-    '/subs/:id',
+    '/subs/:agent/:id',
     {
       schema: {
         params: {
+          agent: zodToJsonSchema($AgentId),
           id: zodToJsonSchema($SafeId),
         },
         response: {
@@ -192,7 +197,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      await switchboard.unsubscribe(request.params.id)
+      const { agent, id } = request.params
+      await switchboard.unsubscribe(agent, id)
 
       reply.send()
     }

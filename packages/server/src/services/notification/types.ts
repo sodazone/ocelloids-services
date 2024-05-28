@@ -1,5 +1,6 @@
+import { XcmNotifyMessage } from 'agents/xcm/types.js'
 import { TypedEventEmitter } from '../index.js'
-import { Subscription, XcmNotifyMessage } from '../monitoring/types.js'
+import { Subscription } from '../monitoring/types.js'
 import { TelemetryNotifierEvents } from '../telemetry/types.js'
 
 export type NotifierEvents = {

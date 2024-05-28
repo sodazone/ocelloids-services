@@ -41,9 +41,18 @@ export const $SubscriptionServerOptions = z.object({
   subscriptionMaxPersistent: z.number().min(0).optional(),
 })
 
+export enum AgentServiceMode {
+  local = 'local',
+}
+
+export const $AgentServiceOptions = z.object({
+  mode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
+})
+
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
 export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
 export type IngressOptions = {
   distributed?: boolean
 } & RedisServerOptions
+export type AgentServiceOptions = z.infer<typeof $AgentServiceOptions>

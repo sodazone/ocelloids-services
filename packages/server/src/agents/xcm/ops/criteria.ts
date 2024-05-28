@@ -1,6 +1,7 @@
 import { ControlQuery, Criteria } from '@sodazone/ocelloids-sdk'
-import { NetworkURN } from '../../types.js'
-import { SignerData, XcmSent } from '../types.js'
+import { XcmSent } from 'agents/xcm/types.js'
+import { SignerData } from '../../../services/monitoring/types.js'
+import { NetworkURN } from '../../../services/types.js'
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {

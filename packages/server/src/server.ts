@@ -11,6 +11,7 @@ import FastifySwaggerUI from '@fastify/swagger-ui'
 import FastifyWebsocket from '@fastify/websocket'
 import FastifyHealthcheck from 'fastify-healthcheck'
 
+import AgentService from './agents/plugin.js'
 import { logger } from './environment.js'
 import { errorHandler } from './errors.js'
 import {
@@ -28,6 +29,7 @@ import version from './version.js'
 
 import { toCorsOpts } from './cli/args.js'
 import {
+  $AgentServiceOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
@@ -48,6 +50,7 @@ export const $ServerOptions = z
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
   .merge($RedisServerOptions)
+  .merge($AgentServiceOptions)
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 
@@ -158,6 +161,7 @@ export async function createServer(opts: ServerOptions) {
 
   await server.register(Persistence, opts)
   await server.register(Ingress, opts)
+  await server.register(AgentService, opts)
   await server.register(Monitoring, opts)
   await server.register(Administration)
   await server.register(Telemetry, opts)

@@ -1,7 +1,7 @@
+import { AgentService } from '../../agents/types.js'
 import { NotFound, ValidationError } from '../../errors.js'
-import { IngressConsumer } from '../ingress/index.js'
-import { Subscription } from '../monitoring/types.js'
-import { BatchOperation, DB, Logger, NetworkURN, jsonEncoded, prefixes } from '../types.js'
+import { AgentId, Subscription } from '../monitoring/types.js'
+import { DB, Logger, NetworkURN, jsonEncoded, prefixes } from '../types.js'
 
 /**
  * Subscriptions persistence.
@@ -11,12 +11,12 @@ import { BatchOperation, DB, Logger, NetworkURN, jsonEncoded, prefixes } from '.
 export class SubsStore {
   // readonly #log: Logger;
   readonly #db: DB
-  readonly #ingress: IngressConsumer
+  readonly #agentService: AgentService
 
-  constructor(_log: Logger, db: DB, ingress: IngressConsumer) {
+  constructor(_log: Logger, db: DB, agentService: AgentService) {
     // this.#log = log;
     this.#db = db
-    this.#ingress = ingress
+    this.#agentService = agentService
   }
 
   /**
@@ -40,8 +40,8 @@ export class SubsStore {
    */
   async getAll() {
     let subscriptions: Subscription[] = []
-    for (const chainId of this.#ingress.getChainIds()) {
-      const subs = await this.getByNetworkId(chainId)
+    for (const chainId of this.#agentService.getAgentIds()) {
+      const subs = await this.getByAgentId(chainId)
       subscriptions = subscriptions.concat(subs)
     }
 
@@ -49,12 +49,12 @@ export class SubsStore {
   }
 
   /**
-   * Retrieves all the subscriptions for a given network.
+   * Retrieves all the subscriptions for a given agent.
    *
    * @returns {Subscription[]} an array with the subscriptions
    */
-  async getByNetworkId(chainId: NetworkURN) {
-    return await this.#subsFamily(chainId).values().all()
+  async getByAgentId(agentId: AgentId) {
+    return await this.#subsFamily(agentId).values().all()
   }
 
   /**
@@ -65,9 +65,9 @@ export class SubsStore {
    * @throws {NotFound} if the subscription does not exist
    */
   async getById(id: string) {
-    for (const chainId of this.#ingress.getChainIds()) {
+    for (const agentId of this.#agentService.getAgentIds()) {
       try {
-        const subscription = await this.#subsFamily(chainId).get(id)
+        const subscription = await this.#subsFamily(agentId).get(id)
         return subscription
       } catch {
         continue
@@ -82,11 +82,11 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async insert(qs: Subscription) {
-    if (await this.exists(qs.id)) {
-      throw new ValidationError(`Subscription with ID ${qs.id} already exists`)
+  async insert(s: Subscription) {
+    if (await this.exists(s.id)) {
+      throw new ValidationError(`Subscription with ID ${s.id} already exists`)
     }
-    await this.save(qs)
+    await this.save(s)
   }
 
   /**
@@ -94,38 +94,20 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async save(qs: Subscription) {
-    const origin = qs.origin as NetworkURN
-    const dests = qs.destinations as NetworkURN[]
-    this.#validateChainIds([origin, ...dests])
-    const db = await this.#subsFamily(origin)
-    await db.put(qs.id, qs)
+  async save(s: Subscription) {
+    const db = await this.#subsFamily(s.agent)
+    await db.put(s.id, s)
   }
 
   /**
    * Removes a subscription for the given id.
    */
   async remove(id: string) {
-    const qs = await this.getById(id)
-    const origin = qs.origin as NetworkURN
-    const ops: BatchOperation[] = []
-    ops.push({
-      type: 'del',
-      sublevel: this.#subsFamily(origin),
-      key: id,
-    })
-    await this.#db.batch(ops)
+    const s = await this.getById(id)
+    await this.#subsFamily(s.agent).del(id)
   }
 
-  #subsFamily(chainId: NetworkURN) {
-    return this.#db.sublevel<string, Subscription>(prefixes.subs.family(chainId), jsonEncoded)
-  }
-
-  #validateChainIds(chainIds: NetworkURN[]) {
-    chainIds.forEach((chainId) => {
-      if (!this.#ingress.isNetworkDefined(chainId)) {
-        throw new ValidationError('Invalid chain id:' + chainId)
-      }
-    })
+  #subsFamily(agentId: AgentId) {
+    return this.#db.sublevel<string, Subscription>(prefixes.subs.family(agentId), jsonEncoded)
   }
 }

@@ -5,6 +5,10 @@
 export type {
   AnyJson,
   HexString,
+  SignerData,
+} from './services/monitoring/types.js'
+
+export type {
   XcmReceived,
   XcmRelayed,
   XcmSent,
@@ -19,5 +23,4 @@ export type {
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
-  SignerData,
-} from './services/monitoring/types.js'
+} from './agents/xcm/types.js'

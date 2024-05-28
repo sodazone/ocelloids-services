@@ -7,19 +7,19 @@ import { Observable, filter, from, mergeMap } from 'rxjs'
 
 import { types } from '@sodazone/ocelloids-sdk'
 
-import { getConsensus } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { bridgeStorageKeys } from '../storage.js'
-import { GetStorageAt } from '../types-augmented.js'
 import {
   GenericXcmBridgeAcceptedWithContext,
   GenericXcmBridgeDeliveredWithContext,
   GenericXcmBridgeInboundWithContext,
-  HexString,
   XcmBridgeAcceptedWithContext,
   XcmBridgeDeliveredWithContext,
   XcmBridgeInboundWithContext,
-} from '../types.js'
+} from 'agents/xcm/types.js'
+import { getConsensus } from '../../../services/config.js'
+import { bridgeStorageKeys } from '../../../services/monitoring/storage.js'
+import { HexString } from '../../../services/monitoring/types.js'
+import { NetworkURN } from '../../../services/types.js'
+import { GetStorageAt } from '../types-augmented.js'
 import { blockEventToHuman } from './common.js'
 import { getMessageId, getSendersFromEvent, matchEvent, networkIdFromInteriorLocation } from './util.js'
 import {

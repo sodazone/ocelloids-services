@@ -1,15 +1,7 @@
 import type { Header } from '@polkadot/types/interfaces'
 
-import {
-  Subscription,
-  XcmBridge,
-  XcmHop,
-  XcmInbound,
-  XcmNotifyMessage,
-  XcmRelayed,
-  XcmSent,
-  XcmTimeout,
-} from '../monitoring/types.js'
+import { XcmBridge, XcmHop, XcmInbound, XcmNotifyMessage, XcmRelayed, XcmSent, XcmTimeout } from 'agents/xcm/types.js'
+import { Subscription } from '../monitoring/types.js'
 import { TypedEventEmitter } from '../types.js'
 
 export type NotifyTelemetryMessage = {

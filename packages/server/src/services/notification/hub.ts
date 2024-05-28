@@ -1,6 +1,7 @@
 import EventEmitter from 'node:events'
 
-import { Subscription, XcmNotifyMessage } from '../monitoring/types.js'
+import { XcmNotifyMessage } from 'agents/xcm/types.js'
+import { Subscription } from '../monitoring/types.js'
 import { TelemetryNotifierEventKeys } from '../telemetry/types.js'
 import { Services } from '../types.js'
 import { LogNotifier } from './log.js'

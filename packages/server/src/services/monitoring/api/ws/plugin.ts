@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
+import { AgentId } from 'services/monitoring/types.js'
 import WebsocketProtocol from './protocol.js'
 
 declare module 'fastify' {
@@ -33,11 +34,12 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
 
   fastify.get<{
     Params: {
+      agent: AgentId
       id: string
     }
-  }>('/ws/subs/:id', { websocket: true, schema: { hide: true } }, (socket, request): void => {
-    const { id } = request.params
-    setImmediate(() => protocol.handle(socket, request, id))
+  }>('/ws/subs/:agent/:id', { websocket: true, schema: { hide: true } }, (socket, request): void => {
+    const { id, agent } = request.params
+    setImmediate(() => protocol.handle(socket, request, { agent, id }))
   })
 
   fastify.get('/ws/subs', { websocket: true, schema: { hide: true } }, (socket, request): void => {

@@ -4,9 +4,9 @@ import type { PolkadotPrimitivesV6InherentData } from '@polkadot/types/lookup'
 import type { Registry } from '@polkadot/types/types'
 
 import { ControlQuery, filterNonNull, types } from '@sodazone/ocelloids-sdk'
-import { createNetworkId, getChainId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
-import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js'
+import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from 'agents/xcm/types.js'
+import { createNetworkId, getChainId } from '../../../services/config.js'
+import { NetworkURN } from '../../../services/types.js'
 import { getMessageId, matchExtrinsic } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'
 

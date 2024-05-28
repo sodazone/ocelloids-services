@@ -1,7 +1,7 @@
+import { MatchingEngine } from '../../../agents/xcm/matching.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import IngressProducer from '../../ingress/producer/index.js'
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js'
-import { MatchingEngine } from '../../monitoring/matching.js'
 import { Switchboard } from '../../monitoring/switchboard.js'
 import { NotifierHub } from '../../notification/hub.js'
 import { TelemetryEventEmitter } from '../types.js'

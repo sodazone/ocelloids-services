@@ -13,11 +13,11 @@ export function wsMetrics(source: TelemetryEventEmitter) {
   })
 
   source.on('telemetrySocketListener', (ip, sub, close = false) => {
-    const gauge = socketListenerCount.labels('websocket', sub.id, sub.origin, sub.destinations.join(','), ip)
+    /*const gauge = socketListenerCount.labels('websocket', sub.id, sub.origin, sub.destinations.join(','), ip)
     if (close) {
       gauge.dec()
     } else {
       gauge.inc()
-    }
+    }*/
   })
 }

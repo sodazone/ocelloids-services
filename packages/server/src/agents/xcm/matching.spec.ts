@@ -3,13 +3,13 @@ import { jest } from '@jest/globals'
 import { MemoryLevel as Level } from 'memory-level'
 
 import { AbstractSublevel } from 'abstract-level'
+import { XcmInbound, XcmNotificationType, XcmNotifyMessage, XcmSent } from '../../services/monitoring/types.js'
+import { Janitor } from '../../services/persistence/janitor.js'
+import { jsonEncoded, prefixes } from '../../services/types.js'
 import { matchBridgeMessages } from '../../testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '../../testing/matching.js'
 import { _services } from '../../testing/services.js'
-import { Janitor } from '../persistence/janitor.js'
-import { jsonEncoded, prefixes } from '../types.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmNotificationType, XcmNotifyMessage, XcmSent } from './types.js'
 
 describe('message matching engine', () => {
   let engine: MatchingEngine

@@ -5,14 +5,15 @@ import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
 import { z } from 'zod'
 
+import { XcmNotifyMessage } from 'agents/xcm/types.js'
 import { errorMessage } from '../../../../errors.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
-import { $Subscription, Subscription, XcmEventListener, XcmNotifyMessage } from '../../types.js'
+import { $Subscription, AgentId, Subscription, XcmEventListener } from '../../types.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
-const jsonSchema = z
+const $EphemeralSubscription = z
   .string()
   .transform((str, ctx) => {
     try {
@@ -94,7 +95,14 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    * @param request The Fastify request
    * @param subscriptionId The subscription identifier
    */
-  async handle(socket: WebSocket, request: FastifyRequest, subscriptionId?: string) {
+  async handle(
+    socket: WebSocket,
+    request: FastifyRequest,
+    subscriptionId?: {
+      id: string
+      agent: AgentId
+    }
+  ) {
     if (this.#clientsNum >= this.#maxClients) {
       socket.close(1013, 'server too busy')
       return
@@ -102,20 +110,20 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     try {
       if (subscriptionId === undefined) {
-        let resolvedId: string
+        let resolvedId: { id: string; agent: AgentId }
 
         // on-demand ephemeral subscriptions
         socket.on('data', (data: Buffer) => {
           setImmediate(async () => {
             if (resolvedId) {
-              safeWrite(socket, { id: resolvedId })
+              safeWrite(socket, resolvedId)
             } else {
-              const parsed = jsonSchema.safeParse(data.toString())
+              const parsed = $EphemeralSubscription.safeParse(data.toString())
               if (parsed.success) {
                 const onDemandSub = parsed.data
                 try {
                   this.#addSubscriber(onDemandSub, socket, request)
-                  resolvedId = onDemandSub.id
+                  resolvedId = { id: onDemandSub.id, agent: onDemandSub.agent }
                   await this.#switchboard.subscribe(onDemandSub)
                   safeWrite(socket, onDemandSub)
                 } catch (error) {
@@ -130,12 +138,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         })
       } else {
         // existing subscriptions
-        const handler = this.#switchboard.findSubscriptionHandler(subscriptionId)
-        if (handler === undefined) {
-          throw new Error('subscription not found')
-        }
-
-        const subscription = handler.descriptor
+        const { agent, id } = subscriptionId
+        const subscription = this.#switchboard.findSubscriptionHandler(agent, id)
         this.#addSubscriber(subscription, socket, request)
       }
     } catch (error) {
@@ -172,12 +176,12 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     socket.once('close', async () => {
       this.#clientsNum--
 
-      const { id, ephemeral } = subscription
+      const { id, agent, ephemeral } = subscription
 
       try {
         if (ephemeral) {
           // TODO clean up pending matches
-          await this.#switchboard.unsubscribe(id)
+          await this.#switchboard.unsubscribe(agent, id)
         }
 
         this.emit('telemetrySocketListener', request.ip, subscription, true)

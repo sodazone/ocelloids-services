@@ -1,9 +1,10 @@
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
+import { AgentService } from 'agents/types.js'
 import { FastifyBaseLogger } from 'fastify'
 import { ServiceConfiguration } from './config.js'
 import { IngressConsumer } from './ingress/consumer/index.js'
-import { BlockNumberRange, HexString } from './monitoring/types.js'
+import { AgentId, BlockNumberRange, HexString } from './monitoring/types.js'
 import Connector from './networking/connector.js'
 import { Janitor } from './persistence/janitor.js'
 import { Scheduler } from './persistence/scheduler.js'
@@ -29,7 +30,7 @@ export enum LevelEngine {
  */
 export const prefixes = {
   subs: {
-    family: (chainId: NetworkURN) => `su:${chainId}`,
+    family: (agentId: AgentId) => `su:${agentId}`,
   },
   sched: {
     tasks: 'sc:tasks',
@@ -99,5 +100,6 @@ export type Services = {
   scheduler: Scheduler
   localConfig: ServiceConfiguration
   ingressConsumer: IngressConsumer
+  agentService: AgentService
   connector: Connector
 }
