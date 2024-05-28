@@ -22,7 +22,7 @@ import {
   XcmSent,
   XcmTimeout,
   XcmWaypointContext,
-} from 'agents/xcm/types.js'
+} from './types.js'
 import { DB, Logger, Services, jsonEncoded, prefixes } from '../../services/types.js'
 
 import { getRelayId, isOnSameConsensus } from '../../services/config.js'
