@@ -13,10 +13,10 @@ import type {
 
 import { types } from '@sodazone/ocelloids-sdk'
 
-import { AssetsTrapped, TrappedAsset } from 'agents/xcm/types.js'
 import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '../../../services/config.js'
 import { HexString, SignerData } from '../../../services/monitoring/types.js'
 import { NetworkURN } from '../../../services/types.js'
+import { AssetsTrapped, TrappedAsset } from '../types.js'
 import {
   VersionedInteriorLocation,
   XcmV4AssetAssets,

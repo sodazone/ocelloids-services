@@ -10,15 +10,15 @@ import type { Registry } from '@polkadot/types/types'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
+import { AnyJson, SignerData } from '../../../services/monitoring/types.js'
+import { NetworkURN } from '../../../services/types.js'
+import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
   XcmInboundWithContext,
   XcmSentWithContext,
-} from 'agents/xcm/types.js'
-import { AnyJson, SignerData } from '../../../services/monitoring/types.js'
-import { NetworkURN } from '../../../services/types.js'
-import { GetDownwardMessageQueues } from '../types-augmented.js'
+} from '../types.js'
 import { blockEventToHuman } from './common.js'
 import {
   getMessageId,

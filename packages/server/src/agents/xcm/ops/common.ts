@@ -6,10 +6,10 @@ import { hexToU8a, stringToU8a, u8aConcat } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 
 import { types } from '@sodazone/ocelloids-sdk'
-import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from 'agents/xcm/types.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '../../../services/config.js'
 import { AnyJson, HexString } from '../../../services/monitoring/types.js'
 import { NetworkURN } from '../../../services/types.js'
+import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import {
   getBridgeHubNetworkId,
   getParaIdFromJunctions,
