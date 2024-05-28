@@ -16,6 +16,15 @@ export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = Abst
 export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, V>
 
 /**
+ * Supported Abstract Level engines.
+ */
+export enum LevelEngine {
+  classic = 'classic',
+  rave = 'rave',
+  mem = 'mem',
+}
+
+/**
  * Sublevel prefixes.
  */
 export const prefixes = {

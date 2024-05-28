@@ -26,7 +26,7 @@ import {
 } from './services/index.js'
 import version from './version.js'
 
-import { toCorsOpts } from './args.js'
+import { toCorsOpts } from './cli/args.js'
 import {
   $BaseServerOptions,
   $ConfigServerOptions,

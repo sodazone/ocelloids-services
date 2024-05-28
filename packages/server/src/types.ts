@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { LevelEngine } from './services/types.js'
+
 export const $BaseServerOptions = z.object({
   port: z.number().min(0),
   address: z.string().min(1),
@@ -17,6 +19,7 @@ export const $LevelServerOptions = z.object({
       required_error: 'Database directory path is required',
     })
     .min(1),
+  levelEngine: z.nativeEnum(LevelEngine).default(LevelEngine.classic),
   scheduler: z.boolean().default(true),
   schedulerFrequency: z.number().min(1000),
   sweepExpiry: z.number().min(20000),
