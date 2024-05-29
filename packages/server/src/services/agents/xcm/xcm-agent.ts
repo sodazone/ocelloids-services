@@ -58,7 +58,6 @@ function hasOp(patch: Operation[], path: string) {
 }
 
 export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
-  protected readonly subs: Record<string, XCMSubscriptionHandler> = {}
   readonly #engine: MatchingEngine
   readonly #telemetry: TelemetryXCMEventEmitter
 
