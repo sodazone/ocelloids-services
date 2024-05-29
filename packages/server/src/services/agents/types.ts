@@ -29,8 +29,15 @@ export interface AgentService {
   stop(): Promise<void>
 }
 
+export type AgentMetadata = {
+  id: AgentId
+  name?: string
+  description?: string
+}
+
 export interface Agent {
   get id(): AgentId
+  get metadata(): AgentMetadata
   getSubscriptionById(subscriptionId: string): Promise<Subscription>
   getAllSubscriptions(): Promise<Subscription[]>
   getInputSchema(): z.ZodSchema

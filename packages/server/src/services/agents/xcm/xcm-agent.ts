@@ -1,6 +1,8 @@
 import { Registry } from '@polkadot/types-codec/types'
-import { ControlQuery, extractEvents, extractTxWithEvents, flattenCalls, types } from '@sodazone/ocelloids-sdk'
-import { Observable, filter, from, map, share, switchMap } from 'rxjs'
+import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { Operation, applyPatch } from 'rfc6902'
+import { Observable, filter, from, map, switchMap } from 'rxjs'
+import { z } from 'zod'
 
 import {
   $Subscription,
@@ -10,7 +12,7 @@ import {
   RxSubscriptionWithId,
   Subscription,
 } from '../../subscriptions/types.js'
-import { Logger, NetworkURN } from '../../types.js'
+import { NetworkURN } from '../../types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
   $XCMSubscriptionArgs,
@@ -30,35 +32,26 @@ import {
   XcmSentWithContext,
 } from './types.js'
 
-import { SubsStore } from '../../persistence/subs.js'
 import { MatchingEngine } from './matching.js'
 
 import { ValidationError, errorMessage } from '../../../errors.js'
-import { IngressConsumer } from '../../ingress/index.js'
 import { mapXcmSent } from './ops/common.js'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 
-import { Operation, applyPatch } from 'rfc6902'
-import { z } from 'zod'
 import { getChainId, getConsensus } from '../../config.js'
-import { NotifierHub } from '../../notification/index.js'
 import {
   dmpDownwardMessageQueuesKey,
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from '../../subscriptions/storage.js'
-import { Agent, AgentRuntimeContext } from '../types.js'
+import { BaseAgent } from '../base/base-agent.js'
+import { AgentMetadata, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
-import {
-  GetDownwardMessageQueues,
-  GetOutboundHrmpMessages,
-  GetOutboundUmpMessages,
-  GetStorageAt,
-} from './types-augmented.js'
+import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js'
 
 const SUB_ERROR_RETRY_MS = 5000
 
@@ -68,45 +61,17 @@ function hasOp(patch: Operation[], path: string) {
   return patch.some((op) => op.path.startsWith(path))
 }
 
-export class XCMAgent implements Agent {
-  readonly #subs: Record<string, XCMSubscriptionHandler> = {}
-  readonly #log: Logger
+export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
+  protected readonly subs: Record<string, XCMSubscriptionHandler> = {}
   readonly #engine: MatchingEngine
-  readonly #timeouts: NodeJS.Timeout[] = []
-  readonly #db: SubsStore
-  readonly #ingress: IngressConsumer
-  readonly #notifier: NotifierHub
-
-  #shared: {
-    blockEvents: Record<string, Observable<types.BlockEvent>>
-    blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
-  }
 
   constructor(ctx: AgentRuntimeContext) {
-    const { log, ingressConsumer, notifier, subsStore } = ctx
-
-    this.#log = log
-    this.#ingress = ingressConsumer
-    this.#notifier = notifier
-    this.#db = subsStore
-    this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
-
-    this.#shared = {
-      blockEvents: {},
-      blockExtrinsics: {},
-    }
-  }
-
-  async getAllSubscriptions(): Promise<Subscription[]> {
-    return await this.#db.getByAgentId(this.id)
-  }
-
-  async getSubscriptionById(subscriptionId: string): Promise<Subscription> {
-    return await this.#db.getById(this.id, subscriptionId)
+    super(ctx)
+    this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached)
   }
 
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
-    const sub = this.#subs[subscriptionId]
+    const sub = this.subs[subscriptionId]
     const descriptor = sub.descriptor
 
     // Check allowed patch ops
@@ -117,7 +82,7 @@ export class XCMAgent implements Agent {
       $Subscription.parse(descriptor)
       const args = $XCMSubscriptionArgs.parse(descriptor.args)
 
-      await this.#db.save(descriptor)
+      await this.db.save(descriptor)
 
       sub.args = args
       sub.descriptor = descriptor
@@ -144,15 +109,10 @@ export class XCMAgent implements Agent {
     return $XCMSubscriptionArgs
   }
 
-  get id(): AgentId {
-    return 'xcm'
-  }
-
-  getSubscriptionHandler(id: string): Subscription {
-    if (this.#subs[id]) {
-      return this.#subs[id].descriptor
-    } else {
-      throw Error('subscription handler not found')
+  get metadata(): AgentMetadata {
+    return {
+      id: 'xcm',
+      name: 'XCM Agent'
     }
   }
 
@@ -164,15 +124,15 @@ export class XCMAgent implements Agent {
     this.#validateChainIds([origin, ...dests])
 
     if (!s.ephemeral) {
-      await this.#db.insert(s)
+      await this.db.insert(s)
     }
 
     this.#monitor(s, args)
   }
 
   async unsubscribe(id: string): Promise<void> {
-    if (this.#subs[id] === undefined) {
-      this.#log.warn('unsubscribe from a non-existent subscription %s', id)
+    if (this.subs[id] === undefined) {
+      this.log.warn('unsubscribe from a non-existent subscription %s', id)
       return
     }
 
@@ -183,24 +143,24 @@ export class XCMAgent implements Agent {
         originSubs,
         destinationSubs,
         relaySub,
-      } = this.#subs[id]
+      } = this.subs[id]
 
-      this.#log.info('[%s] unsubscribe %s', origin, id)
+      this.log.info('[%s] unsubscribe %s', origin, id)
 
       originSubs.forEach(({ sub }) => sub.unsubscribe())
       destinationSubs.forEach(({ sub }) => sub.unsubscribe())
       if (relaySub) {
         relaySub.sub.unsubscribe()
       }
-      delete this.#subs[id]
+      delete this.subs[id]
 
       await this.#engine.clearPendingStates(id)
 
       if (!ephemeral) {
-        await this.#db.remove(this.id, id)
+        await this.db.remove(this.id, id)
       }
     } catch (error) {
-      this.#log.error(error, 'Error unsubscribing %s', id)
+      this.log.error(error, 'Error unsubscribing %s', id)
     }
   }
   async stop(): Promise<void> {
@@ -209,8 +169,8 @@ export class XCMAgent implements Agent {
       originSubs,
       destinationSubs,
       relaySub,
-    } of Object.values(this.#subs)) {
-      this.#log.info('Unsubscribe %s', id)
+    } of Object.values(this.subs)) {
+      this.log.info('Unsubscribe %s', id)
 
       originSubs.forEach(({ sub }) => sub.unsubscribe())
       destinationSubs.forEach(({ sub }) => sub.unsubscribe())
@@ -219,7 +179,7 @@ export class XCMAgent implements Agent {
       }
     }
 
-    for (const t of this.#timeouts) {
+    for (const t of this.timeouts) {
       t.unref()
     }
 
@@ -232,13 +192,13 @@ export class XCMAgent implements Agent {
 
   #onXcmWaypointReached(payload: XcmNotifyMessage) {
     const { subscriptionId } = payload
-    if (this.#subs[subscriptionId]) {
-      const { descriptor, args, sendersControl } = this.#subs[subscriptionId]
+    if (this.subs[subscriptionId]) {
+      const { descriptor, args, sendersControl } = this.subs[subscriptionId]
       if (
         (args.events === undefined || args.events === '*' || args.events.includes(payload.type)) &&
         matchSenders(sendersControl, payload.sender)
       ) {
-        this.#notifier.notify(descriptor, {
+        this.notifier.notify(descriptor, {
           metadata: {
             type: payload.type,
             subscriptionId,
@@ -249,7 +209,7 @@ export class XCMAgent implements Agent {
       }
     } else {
       // this could happen with closed ephemeral subscriptions
-      this.#log.warn('Unable to find descriptor for subscription %s', subscriptionId)
+      this.log.warn('Unable to find descriptor for subscription %s', subscriptionId)
     }
   }
 
@@ -291,7 +251,7 @@ export class XCMAgent implements Agent {
         relaySub = this.#monitorRelay(descriptor, args)
       } catch (error) {
         // log instead of throw to not block OD subscriptions
-        this.#log.error(error, 'Error on relay subscription (%s)', id)
+        this.log.error(error, 'Error on relay subscription (%s)', id)
       }
     }
 
@@ -301,14 +261,14 @@ export class XCMAgent implements Agent {
           bridgeSubs.push(this.#monitorPkBridge(descriptor, args))
         } catch (error) {
           // log instead of throw to not block OD subscriptions
-          this.#log.error(error, 'Error on bridge subscription (%s)', id)
+          this.log.error(error, 'Error on bridge subscription (%s)', id)
         }
       }
     }
 
     const { sendersControl, messageControl } = origMonitor.controls
 
-    this.#subs[id] = {
+    this.subs[id] = {
       descriptor,
       args,
       sendersControl,
@@ -331,7 +291,7 @@ export class XCMAgent implements Agent {
     try {
       for (const dest of destinations as NetworkURN[]) {
         const chainId = dest
-        if (this.#subs[id]?.destinationSubs.find((s) => s.chainId === chainId)) {
+        if (this.subs[id]?.destinationSubs.find((s) => s.chainId === chainId)) {
           // Skip existing subscriptions
           // for the same destination chain
           continue
@@ -339,7 +299,7 @@ export class XCMAgent implements Agent {
 
         const inboundObserver = {
           error: (error: any) => {
-            this.#log.error(error, '[%s] error on destination subscription %s', chainId, id)
+            this.log.error(error, '[%s] error on destination subscription %s', chainId, id)
 
             /*this.emit('telemetrySubscriptionError', {
               subscriptionId: id,
@@ -348,21 +308,21 @@ export class XCMAgent implements Agent {
             })*/
 
             // try recover inbound subscription
-            if (this.#subs[id]) {
-              const { destinationSubs } = this.#subs[id]
+            if (this.subs[id]) {
+              const { destinationSubs } = this.subs[id]
               const index = destinationSubs.findIndex((s) => s.chainId === chainId)
               if (index > -1) {
                 destinationSubs.splice(index, 1)
-                this.#timeouts.push(
+                this.timeouts.push(
                   setTimeout(() => {
-                    this.#log.info(
+                    this.log.info(
                       '[%s] UPDATE destination subscription %s due error %s',
                       chainId,
                       id,
                       errorMessage(error)
                     )
                     const updated = this.#updateDestinationSubscriptions(id)
-                    this.#subs[id].destinationSubs = updated
+                    this.subs[id].destinationSubs = updated
                   }, SUB_ERROR_RETRY_MS)
                 )
               }
@@ -370,33 +330,33 @@ export class XCMAgent implements Agent {
           },
         }
 
-        if (this.#ingress.isRelay(dest)) {
+        if (this.ingress.isRelay(dest)) {
           // VMP UMP
-          this.#log.info('[%s] subscribe inbound UMP (%s)', chainId, id)
+          this.log.info('[%s] subscribe inbound UMP (%s)', chainId, id)
 
           subs.push({
             chainId,
-            sub: this.#sharedBlockEvents(chainId)
+            sub: this.sharedBlockEvents(chainId)
               .pipe(extractUmpReceive(originId), this.#emitInbound(id, chainId))
               .subscribe(inboundObserver),
           })
-        } else if (this.#ingress.isRelay(originId)) {
+        } else if (this.ingress.isRelay(originId)) {
           // VMP DMP
-          this.#log.info('[%s] subscribe inbound DMP (%s)', chainId, id)
+          this.log.info('[%s] subscribe inbound DMP (%s)', chainId, id)
 
           subs.push({
             chainId,
-            sub: this.#sharedBlockEvents(chainId)
+            sub: this.sharedBlockEvents(chainId)
               .pipe(extractDmpReceive(), this.#emitInbound(id, chainId))
               .subscribe(inboundObserver),
           })
         } else {
           // Inbound HRMP / XCMP transport
-          this.#log.info('[%s] subscribe inbound HRMP (%s)', chainId, id)
+          this.log.info('[%s] subscribe inbound HRMP (%s)', chainId, id)
 
           subs.push({
             chainId,
-            sub: this.#sharedBlockEvents(chainId)
+            sub: this.sharedBlockEvents(chainId)
               .pipe(extractXcmpReceive(), this.#emitInbound(id, chainId))
               .subscribe(inboundObserver),
           })
@@ -422,7 +382,7 @@ export class XCMAgent implements Agent {
     const subs: RxSubscriptionWithId[] = []
     const chainId = origin as NetworkURN
 
-    if (this.#subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
+    if (this.subs[id]?.originSubs.find((s) => s.chainId === chainId)) {
       throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`)
     }
 
@@ -431,7 +391,7 @@ export class XCMAgent implements Agent {
 
     const outboundObserver = {
       error: (error: any) => {
-        this.#log.error(error, '[%s] error on origin subscription %s', chainId, id)
+        this.log.error(error, '[%s] error on origin subscription %s', chainId, id)
         /*
         this.emit('telemetrySubscriptionError', {
           subscriptionId: id,
@@ -441,19 +401,19 @@ export class XCMAgent implements Agent {
 
         // try recover outbound subscription
         // note: there is a single origin per outbound
-        if (this.#subs[id]) {
-          const { originSubs, descriptor, args } = this.#subs[id]
+        if (this.subs[id]) {
+          const { originSubs, descriptor, args } = this.subs[id]
           const index = originSubs.findIndex((s) => s.chainId === chainId)
           if (index > -1) {
-            this.#subs[id].originSubs = []
-            this.#timeouts.push(
+            this.subs[id].originSubs = []
+            this.timeouts.push(
               setTimeout(() => {
-                if (this.#subs[id]) {
-                  this.#log.info('[%s] UPDATE origin subscription %s due error %s', chainId, id, errorMessage(error))
+                if (this.subs[id]) {
+                  this.log.info('[%s] UPDATE origin subscription %s due error %s', chainId, id, errorMessage(error))
                   const { subs: updated, controls } = this.#monitorOrigins(descriptor, args)
-                  this.#subs[id].sendersControl = controls.sendersControl
-                  this.#subs[id].messageControl = controls.messageControl
-                  this.#subs[id].originSubs = updated
+                  this.subs[id].sendersControl = controls.sendersControl
+                  this.subs[id].messageControl = controls.messageControl
+                  this.subs[id].originSubs = updated
                 }
               }, SUB_ERROR_RETRY_MS)
             )
@@ -463,17 +423,17 @@ export class XCMAgent implements Agent {
     }
 
     try {
-      if (this.#ingress.isRelay(chainId)) {
+      if (this.ingress.isRelay(chainId)) {
         // VMP DMP
-        this.#log.info('[%s] subscribe outbound DMP (%s)', chainId, id)
+        this.log.info('[%s] subscribe outbound DMP (%s)', chainId, id)
 
         subs.push({
           chainId,
-          sub: this.#ingress
+          sub: this.ingress
             .getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
-                this.#sharedBlockExtrinsics(chainId).pipe(
+                this.sharedBlockExtrinsics(chainId).pipe(
                   extractDmpSend(chainId, this.#getDmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
@@ -483,15 +443,15 @@ export class XCMAgent implements Agent {
         })
 
         // VMP DMP
-        this.#log.info('[%s] subscribe outbound DMP - by event (%s)', chainId, id)
+        this.log.info('[%s] subscribe outbound DMP - by event (%s)', chainId, id)
 
         subs.push({
           chainId,
-          sub: this.#ingress
+          sub: this.ingress
             .getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
-                this.#sharedBlockEvents(chainId).pipe(
+                this.sharedBlockEvents(chainId).pipe(
                   extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
@@ -501,15 +461,15 @@ export class XCMAgent implements Agent {
         })
       } else {
         // Outbound HRMP / XCMP transport
-        this.#log.info('[%s] subscribe outbound HRMP (%s)', chainId, id)
+        this.log.info('[%s] subscribe outbound HRMP (%s)', chainId, id)
 
         subs.push({
           chainId,
-          sub: this.#ingress
+          sub: this.ingress
             .getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
-                this.#sharedBlockEvents(chainId).pipe(
+                this.sharedBlockEvents(chainId).pipe(
                   extractXcmpSend(chainId, this.#getHrmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
@@ -519,15 +479,15 @@ export class XCMAgent implements Agent {
         })
 
         // VMP UMP
-        this.#log.info('[%s] subscribe outbound UMP (%s)', chainId, id)
+        this.log.info('[%s] subscribe outbound UMP (%s)', chainId, id)
 
         subs.push({
           chainId,
-          sub: this.#ingress
+          sub: this.ingress
             .getRegistry(chainId)
             .pipe(
               switchMap((registry) =>
-                this.#sharedBlockEvents(chainId).pipe(
+                this.sharedBlockEvents(chainId).pipe(
                   extractUmpSend(chainId, this.#getUmp(chainId, registry), registry),
                   this.#emitOutbound(id, chainId, registry, messageControl)
                 )
@@ -555,8 +515,8 @@ export class XCMAgent implements Agent {
 
   #monitorRelay({ id }: Subscription, { origin, destinations }: XCMSubscriptionArgs) {
     const chainId = origin as NetworkURN
-    if (this.#subs[id]?.relaySub) {
-      this.#log.debug('Relay subscription already exists.')
+    if (this.subs[id]?.relaySub) {
+      this.log.debug('Relay subscription already exists.')
     }
     const messageControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]))
 
@@ -565,7 +525,7 @@ export class XCMAgent implements Agent {
 
     const relayObserver = {
       error: (error: any) => {
-        this.#log.error(error, '[%s] error on relay subscription s', chainId, id)
+        this.log.error(error, '[%s] error on relay subscription s', chainId, id)
         /*
         this.emit('telemetrySubscriptionError', {
           subscriptionId: id,
@@ -575,11 +535,11 @@ export class XCMAgent implements Agent {
 
         // try recover relay subscription
         // there is only one subscription per subscription ID for relay
-        if (this.#subs[id]) {
-          const sub = this.#subs[id]
-          this.#timeouts.push(
+        if (this.subs[id]) {
+          const sub = this.subs[id]
+          this.timeouts.push(
             setTimeout(async () => {
-              this.#log.info('[%s] UPDATE relay subscription %s due error %s', chainId, id, errorMessage(error))
+              this.log.info('[%s] UPDATE relay subscription %s due error %s', chainId, id, errorMessage(error))
               const updatedSub = await this.#monitorRelay(sub.descriptor, sub.args)
               sub.relaySub = updatedSub
             }, SUB_ERROR_RETRY_MS)
@@ -589,20 +549,20 @@ export class XCMAgent implements Agent {
     }
 
     // TODO: should resolve relay id for consensus in context
-    const relayIds = this.#ingress.getRelayIds()
+    const relayIds = this.ingress.getRelayIds()
     const relayId = relayIds.find((r) => getConsensus(r) === getConsensus(chainId))
 
     if (relayId === undefined) {
       throw new Error(`No relay ID found for chain ${chainId}`)
     }
-    this.#log.info('[%s] subscribe relay %s xcm events (%s)', chainId, relayId, id)
+    this.log.info('[%s] subscribe relay %s xcm events (%s)', chainId, relayId, id)
     return {
       chainId,
-      sub: this.#ingress
+      sub: this.ingress
         .getRegistry(relayId)
         .pipe(
           switchMap((registry) =>
-            this.#sharedBlockExtrinsics(relayId).pipe(
+            this.sharedBlockExtrinsics(relayId).pipe(
               extractRelayReceive(chainId, messageControl, registry),
               emitRelayInbound()
             )
@@ -630,7 +590,7 @@ export class XCMAgent implements Agent {
       )
     }
 
-    if (this.#subs[id]?.bridgeSubs.find((s) => s.type === 'pk-bridge')) {
+    if (this.subs[id]?.bridgeSubs.find((s) => s.type === 'pk-bridge')) {
       throw new Error(`Fatal: duplicated PK bridge monitor ${id}`)
     }
 
@@ -647,7 +607,7 @@ export class XCMAgent implements Agent {
 
     const pkBridgeObserver = {
       error: (error: any) => {
-        this.#log.error(error, '[%s] error on PK bridge subscription s', originBridgeHub, id)
+        this.log.error(error, '[%s] error on PK bridge subscription s', originBridgeHub, id)
         // this.emit('telemetrySubscriptionError', {
         //   subscriptionId: id,
         //   chainId: originBridgeHub,
@@ -655,15 +615,15 @@ export class XCMAgent implements Agent {
         // });
 
         // try recover pk bridge subscription
-        if (this.#subs[id]) {
-          const sub = this.#subs[id]
+        if (this.subs[id]) {
+          const sub = this.subs[id]
           const { bridgeSubs } = sub
           const index = bridgeSubs.findIndex((s) => s.type === 'pk-bridge')
           if (index > -1) {
             bridgeSubs.splice(index, 1)
-            this.#timeouts.push(
+            this.timeouts.push(
               setTimeout(() => {
-                this.#log.info(
+                this.log.info(
                   '[%s] UPDATE destination subscription %s due error %s',
                   originBridgeHub,
                   id,
@@ -678,7 +638,7 @@ export class XCMAgent implements Agent {
       },
     }
 
-    this.#log.info(
+    this.log.info(
       '[%s] subscribe PK bridge outbound accepted events on bridge hub %s (%s)',
       origin,
       originBridgeHub,
@@ -686,12 +646,12 @@ export class XCMAgent implements Agent {
     )
     const outboundAccepted: RxSubscriptionWithId = {
       chainId: originBridgeHub,
-      sub: this.#ingress
+      sub: this.ingress
         .getRegistry(originBridgeHub)
         .pipe(
           switchMap((registry) =>
-            this.#sharedBlockEvents(originBridgeHub).pipe(
-              extractBridgeMessageAccepted(originBridgeHub, registry, this.#getStorageAt(originBridgeHub)),
+            this.sharedBlockEvents(originBridgeHub).pipe(
+              extractBridgeMessageAccepted(originBridgeHub, registry, this.getStorageAt(originBridgeHub)),
               emitBridgeOutboundAccepted()
             )
           )
@@ -699,7 +659,7 @@ export class XCMAgent implements Agent {
         .subscribe(pkBridgeObserver),
     }
 
-    this.#log.info(
+    this.log.info(
       '[%s] subscribe PK bridge outbound delivered events on bridge hub %s (%s)',
       origin,
       originBridgeHub,
@@ -707,11 +667,11 @@ export class XCMAgent implements Agent {
     )
     const outboundDelivered: RxSubscriptionWithId = {
       chainId: originBridgeHub,
-      sub: this.#ingress
+      sub: this.ingress
         .getRegistry(originBridgeHub)
         .pipe(
           switchMap((registry) =>
-            this.#sharedBlockEvents(originBridgeHub).pipe(
+            this.sharedBlockEvents(originBridgeHub).pipe(
               extractBridgeMessageDelivered(originBridgeHub, registry),
               emitBridgeOutboundDelivered()
             )
@@ -720,10 +680,10 @@ export class XCMAgent implements Agent {
         .subscribe(pkBridgeObserver),
     }
 
-    this.#log.info('[%s] subscribe PK bridge inbound events on bridge hub %s (%s)', origin, destBridgeHub, id)
+    this.log.info('[%s] subscribe PK bridge inbound events on bridge hub %s (%s)', origin, destBridgeHub, id)
     const inbound: RxSubscriptionWithId = {
       chainId: destBridgeHub,
-      sub: this.#sharedBlockEvents(destBridgeHub)
+      sub: this.sharedBlockEvents(destBridgeHub)
         .pipe(extractBridgeReceive(destBridgeHub), emitBridgeInbound())
         .subscribe(pkBridgeObserver),
     }
@@ -735,7 +695,7 @@ export class XCMAgent implements Agent {
   }
 
   #updateDestinationSubscriptions(id: string) {
-    const { descriptor, args, destinationSubs } = this.#subs[id]
+    const { descriptor, args, destinationSubs } = this.subs[id]
     // Subscribe to new destinations, if any
     const { subs } = this.#monitorDestinations(descriptor, args)
     const updatedSubs = destinationSubs.concat(subs)
@@ -754,33 +714,17 @@ export class XCMAgent implements Agent {
    * @private
    */
   async #startNetworkMonitors() {
-    const subs = await this.#db.getByAgentId(this.id)
+    const subs = await this.db.getByAgentId(this.id)
 
-    this.#log.info('[%s] #subscriptions %d', this.id, subs.length)
+    this.log.info('[%s] subscriptions %d', this.id, subs.length)
 
     for (const sub of subs) {
       try {
         this.#monitor(sub, $XCMSubscriptionArgs.parse(sub.args))
       } catch (err) {
-        this.#log.error(err, 'Unable to create subscription: %j', sub)
+        this.log.error(err, 'Unable to create subscription: %j', sub)
       }
     }
-  }
-
-  #sharedBlockEvents(chainId: NetworkURN): Observable<types.BlockEvent> {
-    if (!this.#shared.blockEvents[chainId]) {
-      this.#shared.blockEvents[chainId] = this.#ingress.finalizedBlocks(chainId).pipe(extractEvents(), share())
-    }
-    return this.#shared.blockEvents[chainId]
-  }
-
-  #sharedBlockExtrinsics(chainId: NetworkURN): Observable<types.TxWithIdAndEvent> {
-    if (!this.#shared.blockExtrinsics[chainId]) {
-      this.#shared.blockExtrinsics[chainId] = this.#ingress
-        .finalizedBlocks(chainId)
-        .pipe(extractTxWithEvents(), flattenCalls(), share())
-    }
-    return this.#shared.blockExtrinsics[chainId]
   }
 
   /**
@@ -797,8 +741,8 @@ export class XCMAgent implements Agent {
   #shouldMonitorRelay({ origin, destinations, events }: XCMSubscriptionArgs) {
     return (
       (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
-      !this.#ingress.isRelay(origin as NetworkURN) &&
-      destinations.some((d) => !this.#ingress.isRelay(d as NetworkURN))
+      !this.ingress.isRelay(origin as NetworkURN) &&
+      destinations.some((d) => !this.ingress.isRelay(d as NetworkURN))
     )
   }
 
@@ -810,7 +754,7 @@ export class XCMAgent implements Agent {
   #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
     const {
       args: { outboundTTL },
-    } = this.#subs[id]
+    } = this.subs[id]
 
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
@@ -823,7 +767,7 @@ export class XCMAgent implements Agent {
   #getDmp(chainId: NetworkURN, registry: Registry): GetDownwardMessageQueues {
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
+      return from(this.ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer)
         })
@@ -833,7 +777,7 @@ export class XCMAgent implements Agent {
 
   #getUmp(chainId: NetworkURN, registry: Registry): GetOutboundUmpMessages {
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
+      return from(this.ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<Bytes>', buffer)
         })
@@ -843,17 +787,11 @@ export class XCMAgent implements Agent {
 
   #getHrmp(chainId: NetworkURN, registry: Registry): GetOutboundHrmpMessages {
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
+      return from(this.ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer)
         })
       )
-    }
-  }
-
-  #getStorageAt(chainId: NetworkURN): GetStorageAt {
-    return (blockHash: HexString, key: HexString) => {
-      return from(this.#ingress.getStorage(chainId, key, blockHash))
     }
   }
 
@@ -866,7 +804,7 @@ export class XCMAgent implements Agent {
     const {
       args: { senders },
       sendersControl,
-    } = this.#subs[id]
+    } = this.subs[id]
 
     sendersControl.change(sendersCriteria(senders))
   }
@@ -877,36 +815,36 @@ export class XCMAgent implements Agent {
    * Updates the destination subscriptions.
    */
   #updateDestinations(id: string) {
-    const { args, messageControl } = this.#subs[id]
+    const { args, messageControl } = this.subs[id]
 
     messageControl.change(messageCriteria(args.destinations as NetworkURN[]))
 
     const updatedSubs = this.#updateDestinationSubscriptions(id)
-    this.#subs[id].destinationSubs = updatedSubs
+    this.subs[id].destinationSubs = updatedSubs
   }
 
   /**
    * Updates the subscription to relayed HRMP messages in the relay chain.
    */
   #updateEvents(id: string) {
-    const { descriptor, args, relaySub } = this.#subs[id]
+    const { descriptor, args, relaySub } = this.subs[id]
 
     if (this.#shouldMonitorRelay(args) && relaySub === undefined) {
       try {
-        this.#subs[id].relaySub = this.#monitorRelay(descriptor, args)
+        this.subs[id].relaySub = this.#monitorRelay(descriptor, args)
       } catch (error) {
         // log instead of throw to not block OD subscriptions
-        this.#log.error(error, 'Error on relay subscription (%s)', id)
+        this.log.error(error, 'Error on relay subscription (%s)', id)
       }
     } else if (!this.#shouldMonitorRelay(args) && relaySub !== undefined) {
       relaySub.sub.unsubscribe()
-      delete this.#subs[id].relaySub
+      delete this.subs[id].relaySub
     }
   }
 
   #validateChainIds(chainIds: NetworkURN[]) {
     chainIds.forEach((chainId) => {
-      if (!this.#ingress.isNetworkDefined(chainId)) {
+      if (!this.ingress.isNetworkDefined(chainId)) {
         throw new ValidationError('Invalid chain id:' + chainId)
       }
     })
