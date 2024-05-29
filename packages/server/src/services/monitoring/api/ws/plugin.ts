@@ -34,12 +34,12 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
 
   fastify.get<{
     Params: {
-      agent: AgentId
-      id: string
+      agentId: AgentId
+      subscriptionId: string
     }
-  }>('/ws/subs/:agent/:id', { websocket: true, schema: { hide: true } }, (socket, request): void => {
-    const { id, agent } = request.params
-    setImmediate(() => protocol.handle(socket, request, { agent, id }))
+  }>('/ws/subs/:agentId/:subscriptionId', { websocket: true, schema: { hide: true } }, (socket, request): void => {
+    const { agentId, subscriptionId } = request.params
+    setImmediate(() => protocol.handle(socket, request, { agentId, subscriptionId }))
   })
 
   fastify.get('/ws/subs', { websocket: true, schema: { hide: true } }, (socket, request): void => {

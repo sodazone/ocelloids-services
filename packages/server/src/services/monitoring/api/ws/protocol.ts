@@ -93,14 +93,14 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * @param socket The websocket
    * @param request The Fastify request
-   * @param subscriptionId The subscription identifier
+   * @param ids The subscription and agent identifiers
    */
   async handle(
     socket: WebSocket,
     request: FastifyRequest,
-    subscriptionId?: {
-      id: string
-      agent: AgentId
+    ids?: {
+      subscriptionId: string
+      agentId: AgentId
     }
   ) {
     if (this.#clientsNum >= this.#maxClients) {
@@ -109,7 +109,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     }
 
     try {
-      if (subscriptionId === undefined) {
+      if (ids === undefined) {
         let resolvedId: { id: string; agent: AgentId }
 
         // on-demand ephemeral subscriptions
@@ -138,8 +138,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         })
       } else {
         // existing subscriptions
-        const { agent, id } = subscriptionId
-        const subscription = this.#switchboard.findSubscriptionHandler(agent, id)
+        const { agentId, subscriptionId } = ids
+        const subscription = this.#switchboard.findSubscriptionHandler(agentId, subscriptionId)
         this.#addSubscriber(subscription, socket, request)
       }
     } catch (error) {
