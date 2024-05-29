@@ -5,13 +5,13 @@ import '../../testing/network.js'
 import { of, throwError } from 'rxjs'
 
 import { _services } from '../../testing/services.js'
+import { AgentServiceMode } from '../../types.js'
+import { LocalAgentService } from '../agents/local.js'
+import { AgentService } from '../agents/types.js'
 import { SubsStore } from '../persistence/subs'
+import { Services } from '../types.js'
 import type { Switchboard } from './switchboard.js'
 import { Subscription } from './types'
-import { AgentService } from '../agents/types.js'
-import { LocalAgentService } from '../agents/local.js'
-import { Services } from '../types.js'
-import { AgentServiceMode } from '../../types.js'
 
 /* TODO: move to xcm agent tests
 jest.unstable_mockModule('./ops/xcmp.js', () => {
@@ -141,7 +141,9 @@ describe('switchboard service', () => {
 
     await switchboard.unsubscribe('xcm', testSub.id)
 
-    expect(() => {switchboard.findSubscriptionHandler('xcm', testSub.id)}).toThrow('subscription handler not found')
+    expect(() => {
+      switchboard.findSubscriptionHandler('xcm', testSub.id)
+    }).toThrow('subscription handler not found')
   })
 
   /* TODO: move to agent service test

@@ -7,10 +7,10 @@ import { from, of } from 'rxjs'
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js'
 import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js'
 import { _services } from '../../../testing/services.js'
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js'
-import { BlockNumberRange, ChainHead } from '../../monitoring/types.js'
 import Connector from '../../networking/connector.js'
 import { Janitor } from '../../persistence/janitor.js'
+import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../subscriptions/storage.js'
+import { BlockNumberRange, ChainHead } from '../../subscriptions/types.js'
 import { DB, NetworkURN, jsonEncoded, prefixes } from '../../types.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher

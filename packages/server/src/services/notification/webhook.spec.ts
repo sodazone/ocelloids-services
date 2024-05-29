@@ -5,57 +5,38 @@ import nock from 'nock'
 
 import { _log, _services } from '../../testing/services.js'
 
-import { Subscription, XcmNotificationType, XcmNotifyMessage, XcmTerminusContext } from '../monitoring/types.js'
 import { Scheduler } from '../persistence/scheduler.js'
+import { Subscription } from '../subscriptions/types.js'
 import { NotifierHub } from './hub.js'
+import { NotifyMessage } from './types.js'
 import { WebhookNotifier } from './webhook.js'
 
-const destinationContext: XcmTerminusContext = {
-  blockHash: '0xBEEF',
-  blockNumber: '2',
-  chainId: 'urn:ocn:local:1',
-  event: {},
-  outcome: 'Success',
-  error: null,
-  messageHash: '0xCAFE',
-  instructions: '0x',
-  messageData: '0x',
-}
-const notification: XcmNotifyMessage = {
-  type: XcmNotificationType.Received,
-  subscriptionId: 'ok',
-  legs: [{ type: 'hrmp', from: 'urn:ocn:local:0', to: 'urn:ocn:local:1' }],
-  waypoint: {
-    ...destinationContext,
-    legIndex: 0,
+const notification: NotifyMessage = {
+  metadata: {
+    type: 'xcm.ok',
+    agentId: 'xcm',
+    subscriptionId: 'ok',
   },
-  destination: destinationContext,
-  origin: {
-    blockHash: '0xBEEF',
-    blockNumber: '2',
-    chainId: 'urn:ocn:local:0',
-    event: {},
-    outcome: 'Success',
-    error: null,
-    messageHash: '0xCAFE',
-    instructions: '0x',
-    messageData: '0x',
+  payload: {
+    foo: 'bar',
   },
-  sender: { signer: { id: 'w123', publicKey: '0x0' }, extraSigners: [] },
 }
 
 const subOk = {
-  destinations: ['urn:ocn:local:1000'],
   id: 'ok',
+  agent: 'xcm',
+  args: {
+    destinations: ['urn:ocn:local:1000'],
+    origin: 'urn:ocn:local:0',
+    senders: '*',
+    events: '*',
+  },
   channels: [
     {
       type: 'webhook',
       url: 'http://localhost/ok',
     },
   ],
-  origin: 'urn:ocn:local:0',
-  senders: '*',
-  events: '*',
 } as Subscription
 
 const xmlTemplate = `
@@ -75,8 +56,8 @@ const xmlTemplate = `
 </paymentService>
 `
 const subOkXml = {
-  destinations: ['urn:ocn:local:0'],
   id: 'ok:xml',
+  agent: 'xcm',
   channels: [
     {
       type: 'webhook',
@@ -85,30 +66,36 @@ const subOkXml = {
       template: xmlTemplate,
     },
   ],
-  origin: 'urn:ocn:local:1000',
-  senders: '*',
-  events: '*',
+  args: {
+    origin: 'urn:ocn:local:1000',
+    destinations: ['urn:ocn:local:0'],
+    senders: '*',
+    events: '*',
+  },
 } as Subscription
 
 const subFail = {
-  destinations: ['urn:ocn:local:2000'],
   id: 'fail',
+  agent: 'xcm',
   channels: [
     {
       type: 'webhook',
       url: 'http://localhost/not-found',
     },
   ],
-  origin: 'urn:ocn:local:0',
-  senders: '*',
-  events: '*',
+  args: {
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:2000'],
+    senders: '*',
+    events: '*',
+  },
 } as Subscription
 
 const authToken = 'secret'
 
 const subOkAuth = {
-  destinations: ['urn:ocn:local:3000'],
   id: 'ok:auth',
+  agent: 'xcm',
   channels: [
     {
       type: 'webhook',
@@ -116,9 +103,12 @@ const subOkAuth = {
       bearer: authToken,
     },
   ],
-  origin: 'urn:ocn:local:0',
-  senders: '*',
-  events: '*',
+  args: {
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:3000'],
+    senders: '*',
+    events: '*',
+  },
 } as Subscription
 
 describe('webhook notifier', () => {
@@ -175,10 +165,14 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     notifier.on('telemetryNotify', ok)
 
-    await notifier.notify(subOkXml, {
+    const xmlNotifyMsg = {
       ...notification,
-      subscriptionId: 'ok:xml',
-    })
+      metadata: {
+        ...notification.metadata,
+        subscriptionId: 'ok:xml',
+      },
+    }
+    await notifier.notify(subOkXml, xmlNotifyMsg)
 
     expect(ok).toHaveBeenCalled()
     scope.done()

@@ -382,7 +382,6 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
    * @private
    */
   #monitorOrigins({ id }: Subscription, { origin, senders, destinations }: XCMSubscriptionArgs): Monitor {
-    console.log(this.subs)
     const subs: RxSubscriptionWithId[] = []
     const chainId = origin as NetworkURN
 

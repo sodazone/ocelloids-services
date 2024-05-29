@@ -4,7 +4,7 @@ import {
   XcmRelayedWithContext,
   XcmSent,
   XcmTerminusContext,
-} from '../services/monitoring/types'
+} from '../services/agents/xcm/types.js'
 
 const subscriptionId = 'manamana-1'
 
