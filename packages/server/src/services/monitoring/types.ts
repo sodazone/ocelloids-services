@@ -108,7 +108,7 @@ export const $AgentArgs = z.record(
 )
 
 export const $AgentId = z.string({
-  required_error: 'agent id is required'
+  required_error: 'agent id is required',
 })
 
 export type AgentId = z.infer<typeof $AgentId>
