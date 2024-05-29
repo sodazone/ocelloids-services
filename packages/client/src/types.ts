@@ -224,7 +224,7 @@ export type OnDemandSubscriptionHandlers = {
  */
 export function isSubscription(obj: Subscription | SubscriptionError | NotifyMessage): obj is Subscription {
   const maybeSub = obj as Subscription
-  return maybeSub.id !== undefined && maybeSub.agent !== undefined && maybeSub.channels !== undefined
+  return maybeSub.channels !== undefined && maybeSub.agent !== undefined && maybeSub.id !== undefined
 }
 
 /**
