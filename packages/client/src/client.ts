@@ -113,7 +113,7 @@ class Protocol {
  *
  * ```typescript
  * // create a 'long-lived' subscription
- * const reply = await client.create<xcm.XcmSubscriptionInputs>({
+ * const reply = await client.create<xcm.XcmInputs>({
  *   id: "my-subscription",
  *   agent: "xcm",
  *   args: {
@@ -158,7 +158,7 @@ class Protocol {
  *
  * ```typescript
  * // subscribe on-demand
- * const ws = client.subscribe<xcm.XcmSubscriptionInputs>({
+ * const ws = client.subscribe<xcm.XcmInputs>({
  *   agent: "xcm",
  *   args: {
  *     origin: "urn:ocn:polkadot:2004",

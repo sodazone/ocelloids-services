@@ -29,7 +29,7 @@ const client = new OcelloidsClient({
 });
 
 // subscribe on-demand
-const ws = client.subscribe<xcm.XcmSubscriptionInputs>({
+const ws = client.subscribe<xcm.XcmInputs>({
   agent: "xcm",
   args: {
     origin: "urn:ocn:polkadot:2004",

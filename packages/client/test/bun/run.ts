@@ -7,7 +7,7 @@ const client = new OcelloidsClient({
 
 client.health().then(console.log).catch(console.error)
 
-client.subscribe<xcm.XcmSubscriptionInputs>(
+client.subscribe<xcm.XcmInputs>(
   {
     agent: 'xcm',
     args: {

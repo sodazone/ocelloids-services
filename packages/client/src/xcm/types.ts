@@ -18,7 +18,7 @@ export enum XcmNotificationType {
  *
  * @public
  */
-export type XcmSubscriptionInputs = {
+export type XcmInputs = {
   /**
    * The origin chain id.
    */
