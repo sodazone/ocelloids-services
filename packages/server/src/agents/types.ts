@@ -30,10 +30,10 @@ export interface AgentService {
 }
 
 export interface Agent {
+  get id(): AgentId
   getSubscriptionById(subscriptionId: string): Promise<Subscription>
   getAllSubscriptions(): Promise<Subscription[]>
   getInputSchema(): z.ZodSchema
-  get id(): AgentId
   getSubscriptionHandler(subscriptionId: string): Subscription
   subscribe(subscription: Subscription): Promise<void>
   unsubscribe(subscriptionId: string): Promise<void>
