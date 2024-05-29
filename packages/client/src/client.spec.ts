@@ -368,7 +368,7 @@ describe('OcelloidsClient', () => {
             type: 'websocket',
           },
         ],
-      } as Subscription
+      } as Subscription<XcmSubscriptionInputs>
 
       const scope = nock('http://mock')
         .matchHeader('content-type', 'application/json')

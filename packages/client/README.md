@@ -21,7 +21,7 @@ yarn add @sodazone/ocelloids-client
 ## Usage
 
 ```typescript
-import { OcelloidsClient, isXcmReceived, isXcmSent } from "@sodazone/ocelloids-client";
+import { OcelloidsClient, xcm } from "@sodazone/ocelloids-client";
 
 const client = new OcelloidsClient({
   httpUrl: "http://127.0.0.1:3000",
@@ -29,7 +29,7 @@ const client = new OcelloidsClient({
 });
 
 // subscribe on-demand
-const ws = client.subscribe({
+const ws = client.subscribe<xcm.XcmSubscriptionInputs>({
   agent: "xcm",
   args: {
     origin: "urn:ocn:polkadot:2004",
@@ -45,9 +45,9 @@ const ws = client.subscribe({
   }
  }, {
   onMessage: msg => {
-    if(isXcmReceived(msg)) {
+    if(xcm.isXcmReceived(msg)) {
       console.log("RECV", msg.subscriptionId);
-    } else if(isXcmSent(msg)) {
+    } else if(xcm.isXcmSent(msg)) {
       console.log("SENT", msg.subscriptionId)
     }
     console.log(msg);
@@ -83,4 +83,4 @@ yarn test
 
 ## Compatibility
 
-Compatible with [browser environments, Node, Bun and Deno](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).
+Compatible with [browser environments, Node and Bun](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).

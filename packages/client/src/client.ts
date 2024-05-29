@@ -102,7 +102,7 @@ class Protocol {
  * @example Create a client instance
  *
  * ```typescript
- * import { OcelloidsClient, isXcmReceived, isXcmSent } from "@sodazone/ocelloids-client";
+ * import { OcelloidsClient, xcm } from "@sodazone/ocelloids-client";
  *
  * const client = new OcelloidsClient({
  *   httpUrl: "http://127.0.0.1:3000",
@@ -113,7 +113,7 @@ class Protocol {
  *
  * ```typescript
  * // create a 'long-lived' subscription
- * const reply = await client.create({
+ * const reply = await client.create<xcm.XcmSubscriptionInputs>({
  *   id: "my-subscription",
  *   agent: "xcm",
  *   args: {
@@ -142,9 +142,9 @@ class Protocol {
  * // subscribe to the previously created subscription
  * const ws = client.subscribe("my-subscription", {
  *  onMessage: msg => {
- *    if(isXcmReceived(msg)) {
+ *    if(xcm.isXcmReceived(msg)) {
  *      console.log("RECV", msg.subscriptionId);
- *    } else if(isXcmSent(msg)) {
+ *    } else if(xcm.isXcmSent(msg)) {
  *      console.log("SENT", msg.subscriptionId)
  *    }
  *    console.log(msg);
@@ -158,7 +158,7 @@ class Protocol {
  *
  * ```typescript
  * // subscribe on-demand
- * const ws = client.subscribe({
+ * const ws = client.subscribe<xcm.XcmSubscriptionInputs>({
  *   agent: "xcm",
  *   args: {
  *     origin: "urn:ocn:polkadot:2004",
@@ -174,9 +174,9 @@ class Protocol {
  *   }
  * }, {
  *  onMessage: msg => {
- *    if(isXcmReceived(msg)) {
+ *    if(xcm.isXcmReceived(msg)) {
  *      console.log("RECV", msg.subscriptionId);
- *    } else if(isXcmSent(msg)) {
+ *    } else if(xcm.isXcmSent(msg)) {
  *      console.log("SENT", msg.subscriptionId)
  *    }
  *    console.log(msg);
@@ -217,7 +217,7 @@ export class OcelloidsClient {
    * @param init - The fetch request init.
    * @returns A promise that resolves when the subscription is created.
    */
-  async create(subscription: Subscription, init: RequestInit = {}) {
+  async create<T = AnySubscriptionInputs>(subscription: Subscription<T>, init: RequestInit = {}) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
       ...init,
       method: 'POST',
@@ -232,7 +232,10 @@ export class OcelloidsClient {
    * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription(subscriptionId: string, init?: RequestInit): Promise<Subscription> {
+  async getSubscription<T = AnySubscriptionInputs>(
+    subscriptionId: string,
+    init?: RequestInit
+  ): Promise<Subscription<T>> {
     return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init)
   }
 

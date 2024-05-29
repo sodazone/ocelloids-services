@@ -32,10 +32,9 @@
     "clean": true
   },
   "scripts": {
-    "build": "yarn build:ts && yarn build:api && yarn build:deno",
+    "build": "yarn build:ts && yarn build:api",
     "build:ts": "tsup",
     "build:api": "tsc  && api-extractor run --local --verbose",
-    "build:deno": "node deno-build.mjs",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "docs": "typedoc",
     "lint": "biome check --apply src/**/*.ts"
