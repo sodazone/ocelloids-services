@@ -5,6 +5,7 @@ import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
 import type { Subscription, WsAuthErrorEvent } from './lib'
+import { XcmSubscriptionInputs } from './xcm/types'
 
 jest.unstable_mockModule('isows', () => {
   return {
@@ -97,7 +98,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.subscribe(
+      const ws = client.subscribe<XcmSubscriptionInputs>(
         {
           agent: 'xcm',
           args: {

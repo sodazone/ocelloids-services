@@ -27,7 +27,7 @@ export type DeliveryChannel =
  *
  * @public
  */
-export type SubscriptionInputs = Record<string, any>
+export type AnySubscriptionInputs = Record<string, any>
 
 /**
  * Represents a persistent subscription.
@@ -60,7 +60,7 @@ export type SubscriptionInputs = Record<string, any>
  *
  * @public
  */
-export type Subscription = {
+export type Subscription<T = AnySubscriptionInputs> = {
   /**
    * The subscription id.
    * Must be unique.
@@ -75,7 +75,7 @@ export type Subscription = {
   /**
    * The specific agent inputs.
    */
-  args: SubscriptionInputs
+  args: T
 
   /**
    * Indicates the persistence preference.
@@ -108,7 +108,7 @@ export type SubscriptionError = {
  *
  * @public
  */
-export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>
+export type OnDemandSubscription<T = AnySubscriptionInputs> = Omit<Subscription<T>, 'id' | 'channels'>
 
 /**
  * Subscription identifiers.

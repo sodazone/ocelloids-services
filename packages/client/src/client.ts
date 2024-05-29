@@ -2,6 +2,7 @@ import { type MessageEvent, WebSocket } from 'isows'
 
 import type { NotifyMessage } from './server-types'
 import {
+  AnySubscriptionInputs,
   type AuthReply,
   type MessageHandler,
   type OnDemandSubscription,
@@ -263,16 +264,16 @@ export class OcelloidsClient {
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  subscribe(
-    subscription: SubscriptionIds | OnDemandSubscription,
+  subscribe<T = AnySubscriptionInputs>(
+    subscription: SubscriptionIds | OnDemandSubscription<T>,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs'
 
     return isSubscriptionIds(subscription)
-      ? this.#openWebSocket(`${url}/${subscription.agentId}/${subscription.subscriptionId}`, handlers)
-      : this.#openWebSocket(url, handlers, {
+      ? this.#openWebSocket<T>(`${url}/${subscription.agentId}/${subscription.subscriptionId}`, handlers)
+      : this.#openWebSocket<T>(url, handlers, {
           sub: subscription,
           onDemandHandlers,
         })
@@ -309,11 +310,11 @@ export class OcelloidsClient {
     })
   }
 
-  #openWebSocket(
+  #openWebSocket<T = AnySubscriptionInputs>(
     url: string,
     { onMessage, onAuthError, onError, onClose }: WebSocketHandlers,
     onDemandSub?: {
-      sub: OnDemandSubscription
+      sub: OnDemandSubscription<T>
       onDemandHandlers?: OnDemandSubscriptionHandlers
     }
   ) {

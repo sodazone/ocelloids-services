@@ -1,6 +1,19 @@
 import type { xcm } from '@sodazone/ocelloids-service-node'
 
 /**
+ * The XCM event types.
+ *
+ * @public
+ */
+export enum XcmNotificationType {
+  Sent = 'xcm.sent',
+  Received = 'xcm.received',
+  Relayed = 'xcm.relayed',
+  Timeout = 'xcm.timeout',
+  Hop = 'xcm.hop',
+}
+
+/**
  * XCM Agent subscription inputs.
  *
  * @public
@@ -24,22 +37,9 @@ export type XcmSubscriptionInputs = {
   /**
    * An optional array with the events to deliver.
    * Use '*' for all.
-   * @see {@link xcm.XcmNotificationType} for supported event names.
+   * @see {@link XcmNotificationType} for supported event names.
    */
-  events?: '*' | string[]
-}
-
-/**
- * The XCM event types.
- *
- * @public
- */
-export enum XcmNotificationType {
-  Sent = 'xcm.sent',
-  Received = 'xcm.received',
-  Relayed = 'xcm.relayed',
-  Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop',
+  events?: '*' | XcmNotificationType[]
 }
 
 /**
