@@ -31,5 +31,10 @@ client.subscribe(
     },
     onError: (error) => console.log(error),
     onClose: (event) => console.log(event.reason),
+  },
+  {
+    onSubscriptionCreated: (sub) => {
+      console.log('SUB', sub)
+    }
   }
 )
