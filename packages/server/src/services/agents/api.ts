@@ -1,62 +1,57 @@
-// TBD agent web api
-/*
-// TO MOVE OUT to the XCM agent
-    if (isXcmReceived(msg)) {
-      this.#log.info(
-        '[%s ➜ %s] NOTIFICATION %s subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',
-        msg.origin.chainId,
-        msg.destination.chainId,
-        msg.type,
-        sub.id,
-        msg.waypoint.messageHash,
-        msg.waypoint.outcome,
-        msg.origin.blockNumber,
-        msg.destination.blockNumber
-      )
-    } else if (isXcmHop(msg)) {
-      this.#notifyHop(sub, msg)
-    } else if (isXcmRelayed(msg) && msg.type === XcmNotificationType.Relayed) {
-      this.#log.info(
-        '[%s ↠ %s] NOTIFICATION %s subscription=%s, messageHash=%s, block=%s',
-        msg.origin.chainId,
-        msg.destination.chainId,
-        msg.type,
-        sub.id,
-        msg.waypoint.messageHash,
-        msg.waypoint.blockNumber
-      )
-    } else if (isXcmSent(msg)) {
-      this.#log.info(
-        '[%s ➜] NOTIFICATION %s subscription=%s, messageHash=%s, block=%s',
-        msg.origin.chainId,
-        msg.type,
-        sub.id,
-        msg.waypoint.messageHash,
-        msg.origin.blockNumber
-      )
-    }
-  }
+import { FastifyInstance } from 'fastify'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
-  #notifyHop(sub: Subscription, msg: XcmHop) {
-    if (msg.direction === 'out') {
-      this.#log.info(
-        '[%s ↷] NOTIFICATION %s-%s subscription=%s, messageHash=%s, block=%s',
-        msg.waypoint.chainId,
-        msg.type,
-        msg.direction,
-        sub.id,
-        msg.waypoint.messageHash,
-        msg.waypoint.blockNumber
-      )
-    } else if (msg.direction === 'in') {
-      this.#log.info(
-        '[↷ %s] NOTIFICATION %s-%s subscription=%s, messageHash=%s, block=%s',
-        msg.waypoint.chainId,
-        msg.type,
-        msg.direction,
-        sub.id,
-        msg.waypoint.messageHash,
-        msg.waypoint.blockNumber
-      )
+import { $AgentId, AgentId } from '../subscriptions/types.js'
+
+/**
+ * Agents HTTP API
+ */
+export async function AgentsApi(api: FastifyInstance) {
+  const { agentService } = api
+
+  /**
+   * GET /agents
+   */
+  api.get(
+    '/agents',
+    {
+      schema: {
+        response: {
+          200: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (_, reply) => {
+      reply.send(await agentService.getAgentIds())
     }
-*/
+  )
+
+  /**
+   * GET /agents/:agentId/inputs
+   */
+  api.get<{
+    Params: {
+      agentId: AgentId
+    }
+  }>(
+    '/agents/:agentId/inputs',
+    {
+      schema: {
+        params: {
+          agentId: zodToJsonSchema($AgentId),
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'string' },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { agentId } = request.params
+      reply.send(zodToJsonSchema(await agentService.getAgentInputSchema(agentId)))
+    }
+  )
+}

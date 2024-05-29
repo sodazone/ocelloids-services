@@ -111,7 +111,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(FastifySwagger, {
     openapi: {
       info: {
-        title: 'Ocelloids Execution Service',
+        title: 'Ocelloids Execution Node',
         version,
       },
     },

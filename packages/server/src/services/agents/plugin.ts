@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { AgentServiceMode, AgentServiceOptions } from '../../types.js'
+import { AgentsApi } from './api.js'
 import { LocalAgentService } from './local.js'
 import { AgentService } from './types.js'
 
@@ -23,6 +24,10 @@ const agentServicePlugin: FastifyPluginAsync<AgentServiceOptions> = async (fasti
   }
   const service: AgentService = new LocalAgentService(fastify, options)
 
+  fastify.decorate('agentService', service)
+
+  await AgentsApi(fastify)
+
   fastify.addHook('onClose', (server, done) => {
     service
       .stop()
@@ -36,8 +41,6 @@ const agentServicePlugin: FastifyPluginAsync<AgentServiceOptions> = async (fasti
         done()
       })
   })
-
-  fastify.decorate('agentService', service)
 
   await service.start()
 }

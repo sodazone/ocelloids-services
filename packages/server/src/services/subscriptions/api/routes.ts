@@ -36,6 +36,35 @@ export async function SubscriptionApi(api: FastifyInstance) {
    */
   api.get<{
     Params: {
+      agentId: AgentId
+    }
+  }>(
+    '/subs/:agentId',
+    {
+      schema: {
+        params: {
+          agentId: zodToJsonSchema($AgentId),
+        },
+        response: {
+          200: {
+            type: 'array',
+            items: zodToJsonSchema($Subscription),
+          },
+          404: { type: 'string' },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { agentId } = request.params
+      reply.send(await switchboard.getSubscriptionsByAgentId(agentId))
+    }
+  )
+
+  /**
+   * GET subs/:agentId/:subscriptionId
+   */
+  api.get<{
+    Params: {
       subscriptionId: string
       agentId: AgentId
     }

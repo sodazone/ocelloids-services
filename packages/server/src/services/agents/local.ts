@@ -1,3 +1,4 @@
+import { NotFound } from '../../errors.js'
 import { AgentServiceOptions } from '../../types.js'
 import { Logger, Services } from '../index.js'
 import { NotifierHub } from '../notification/index.js'
@@ -16,11 +17,7 @@ export class LocalAgentService implements AgentService {
 
   constructor(ctx: Services, _options: AgentServiceOptions) {
     this.#log = ctx.log
-
-    // XXX: this is a local in the process memory
-    // notifier hub
     this.#notifier = new NotifierHub(ctx)
-
     this.#agents = this.#loadAgents({
       ...ctx,
       notifier: this.#notifier,
@@ -59,7 +56,7 @@ export class LocalAgentService implements AgentService {
     if (this.#agents[agentId]) {
       return this.#agents[agentId]
     }
-    throw new Error(`Agent not found for id=${agentId}`)
+    throw new NotFound(`Agent not found for id=${agentId}`)
   }
 
   getAgentInputSchema(agentId: AgentId) {

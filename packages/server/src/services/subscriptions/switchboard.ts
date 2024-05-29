@@ -13,6 +13,9 @@ export enum SubscribeErrorCodes {
   TOO_MANY_SUBSCRIBERS,
 }
 
+/**
+ * Custom error class for subscription-related errors.
+ */
 export class SubscribeError extends Error {
   code: SubscribeErrorCodes
 
@@ -81,8 +84,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Adds a listener function to the underlying notifier.
    *
+   * This method is used by the web socket broadcaster.
+   *
    * @param eventName The notifier event name.
    * @param listener The listener function.
+   * @see {@link WebsocketProtocol}
    */
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
     this.#agentService.addNotificationListener(eventName, listener)
@@ -93,6 +99,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @param eventName The notifier event name.
    * @param listener The listener function.
+   * @see {@link WebsocketProtocol}
    */
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
     this.#agentService.removeNotificationListener(eventName, listener)
@@ -104,30 +111,37 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * If the subscription does not exists just ignores it.
    *
    * @param {AgentId} agentId The agent identifier.
-   * @param {string} id The subscription identifier.
+   * @param {string} subscriptionId The subscription identifier.
    */
-  async unsubscribe(agentId: AgentId, id: string) {
-    const agent = this.#agentService.getAgentById(agentId)
-    const { ephemeral } = agent.getSubscriptionHandler(id)
-    await agent.unsubscribe(id)
+  async unsubscribe(agentId: AgentId, subscriptionId: string) {
+    try {
+      const agent = this.#agentService.getAgentById(agentId)
+      const { ephemeral } = agent.getSubscriptionHandler(subscriptionId)
+      await agent.unsubscribe(subscriptionId)
 
-    if (ephemeral) {
-      this.#stats.ephemeral--
-    } else {
-      this.#stats.persistent--
+      if (ephemeral) {
+        this.#stats.ephemeral--
+      } else {
+        this.#stats.persistent--
+      }
+    } catch {
+      // ignore
     }
   }
 
   async start() {
-    // empty
+    // This method can be used for initialization if needed.
   }
 
   async stop() {
-    // empty
+    // This method can be used for cleanup if needed.
   }
 
   /**
    * Gets a subscription handler by id.
+   *
+   * @param {AgentId} agentId The agent identifier.
+   * @param {string} subscriptionId The subscription identifier.
    */
   findSubscriptionHandler(agentId: AgentId, subscriptionId: string) {
     return this.#agentService.getAgentById(agentId).getSubscriptionHandler(subscriptionId)
@@ -135,6 +149,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   /**
    * Gets all the subscriptions for all the known agents.
+   *
+   * @returns {Promise<Subscription[]>} All subscriptions.
    */
   async getAllSubscriptions(): Promise<Subscription[]> {
     const subs: Subscription[][] = []
@@ -145,10 +161,21 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Gets a subscription by identifier.
+   * Gets all the subscriptions under an agent.
+   *
+   * @param agentId The agent identifier.
+   * @returns {Promise<Subscription[]>} All subscriptions under the specified agent.
+   */
+  async getSubscriptionsByAgentId(agentId: string): Promise<Subscription[]> {
+    return await this.#agentService.getAgentById(agentId).getAllSubscriptions()
+  }
+
+  /**
+   * Gets a subscription by subscription identifier under an agent.
    *
    * @param agentId The agent identifier.
    * @param subscriptionId  The subscription identifier.
+   * @returns {Promise<Subscription>} The subscription with the specified identifier.
    */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
     return await this.#agentService.getAgentById(agentId).getSubscriptionById(subscriptionId)
@@ -160,7 +187,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param agentId The agent identifier.
    * @param subscriptionId The subscription identifier
    * @param patch The JSON patch operations.
-   * @returns the patched subscription object.
+   * @returns {Promise<Subscription>} The updated subscription object.
    */
   updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
     return this.#agentService.getAgentById(agentId).update(subscriptionId, patch)
