@@ -34,6 +34,7 @@ import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 
+import { EventEmitter } from 'node:events'
 import { getChainId, getConsensus } from '../../config.js'
 import {
   dmpDownwardMessageQueuesKey,
@@ -44,6 +45,8 @@ import { BaseAgent } from '../base/base-agent.js'
 import { AgentMetadata, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
+import { TelemetryXCMEventEmitter } from './telemetry/events.js'
+import { xcmAgentMetrics, xcmAgentEngineMetrics as xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js'
 
 const SUB_ERROR_RETRY_MS = 5000
@@ -57,10 +60,13 @@ function hasOp(patch: Operation[], path: string) {
 export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
   protected readonly subs: Record<string, XCMSubscriptionHandler> = {}
   readonly #engine: MatchingEngine
+  readonly #telemetry: TelemetryXCMEventEmitter
 
   constructor(ctx: AgentRuntimeContext) {
     super(ctx)
+
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached)
+    this.#telemetry = new (EventEmitter as new () => TelemetryXCMEventEmitter)()
   }
 
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
@@ -107,6 +113,11 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
       id: 'xcm',
       name: 'XCM Agent',
     }
+  }
+
+  override collectTelemetry(): void {
+    xcmAgentMetrics(this.#telemetry)
+    xcmMatchingEngineMetrics(this.#engine)
   }
 
   async subscribe(s: Subscription): Promise<void> {
@@ -294,11 +305,11 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
           error: (error: any) => {
             this.log.error(error, '[%s] error on destination subscription %s', chainId, id)
 
-            /*this.emit('telemetrySubscriptionError', {
+            this.#telemetry.emit('telemetryXcmSubscriptionError', {
               subscriptionId: id,
               chainId,
               direction: 'in',
-            })*/
+            })
 
             // try recover inbound subscription
             if (this.subs[id]) {
@@ -385,12 +396,11 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     const outboundObserver = {
       error: (error: any) => {
         this.log.error(error, '[%s] error on origin subscription %s', chainId, id)
-        /*
-        this.emit('telemetrySubscriptionError', {
+        this.#telemetry.emit('telemetryXcmSubscriptionError', {
           subscriptionId: id,
           chainId,
           direction: 'out',
-        })*/
+        })
 
         // try recover outbound subscription
         // note: there is a single origin per outbound
@@ -519,12 +529,11 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     const relayObserver = {
       error: (error: any) => {
         this.log.error(error, '[%s] error on relay subscription s', chainId, id)
-        /*
-        this.emit('telemetrySubscriptionError', {
+        this.#telemetry.emit('telemetryXcmSubscriptionError', {
           subscriptionId: id,
           chainId,
           direction: 'relay',
-        })*/
+        })
 
         // try recover relay subscription
         // there is only one subscription per subscription ID for relay
@@ -601,11 +610,11 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     const pkBridgeObserver = {
       error: (error: any) => {
         this.log.error(error, '[%s] error on PK bridge subscription s', originBridgeHub, id)
-        // this.emit('telemetrySubscriptionError', {
-        //   subscriptionId: id,
-        //   chainId: originBridgeHub,
-        //   direction: 'bridge',
-        // });
+        this.#telemetry.emit('telemetryXcmSubscriptionError', {
+          subscriptionId: id,
+          chainId: originBridgeHub,
+          direction: 'bridge',
+        })
 
         // try recover pk bridge subscription
         if (this.subs[id]) {

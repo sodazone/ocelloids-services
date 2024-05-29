@@ -1,5 +1,6 @@
 import type { Header } from '@polkadot/types/interfaces'
 
+import EventEmitter from 'events'
 import { NotifyMessage } from '../notification/types.js'
 import { Subscription } from '../subscriptions/types.js'
 import { TypedEventEmitter } from '../types.js'
@@ -52,11 +53,6 @@ export type TelemetryEvents = {
   telemetryBlockFinalized: (msg: { chainId: string; header: Header }) => void
   telemetryBlockCacheHit: (msg: { chainId: string }) => void
   telemetrySocketListener: (ip: string, sub: Subscription, close?: boolean) => void
-  telemetrySubscriptionError: (msg: {
-    subscriptionId: string
-    chainId: string
-    direction: 'in' | 'out' | 'relay'
-  }) => void
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void
   telemetryBlockCacheError: (msg: { chainId: string; method: string }) => void
 } & TelemetryNotifierEvents &

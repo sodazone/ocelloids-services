@@ -722,7 +722,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   }
 
   #onXcmOutbound(outMsg: XcmSent) {
-    this.emit('telemetryOutbound', outMsg)
+    this.emit('telemetryXcmOutbound', outMsg)
 
     try {
       this.#xcmMatchedReceiver(outMsg)
@@ -732,9 +732,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   }
 
   #onXcmMatched(outMsg: XcmSent, inMsg: XcmInbound) {
-    this.emit('telemetryMatched', inMsg, outMsg)
+    this.emit('telemetryXcmMatched', inMsg, outMsg)
     if (inMsg.assetsTrapped !== undefined) {
-      this.emit('telemetryTrapped', inMsg, outMsg)
+      this.emit('telemetryXcmTrapped', inMsg, outMsg)
     }
 
     try {
@@ -747,7 +747,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
 
   #onXcmRelayed(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
     const message: XcmRelayed = new GenericXcmRelayed(outMsg, relayMsg)
-    this.emit('telemetryRelayed', message)
+    this.emit('telemetryXcmRelayed', message)
 
     try {
       this.#xcmMatchedReceiver(message)
@@ -777,7 +777,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out')
 
-      this.emit('telemetryHop', message)
+      this.emit('telemetryXcmHop', message)
 
       this.#xcmMatchedReceiver(message)
     } catch (e) {
@@ -790,7 +790,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   // since we are not storing messages or contexts of intermediate hops
   #onXcmHopIn(originMsg: XcmSent, hopMsg: XcmInbound) {
     if (hopMsg.assetsTrapped !== undefined) {
-      this.emit('telemetryTrapped', hopMsg, originMsg)
+      this.emit('telemetryXcmTrapped', hopMsg, originMsg)
     }
 
     try {
@@ -812,7 +812,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in')
 
-      this.emit('telemetryHop', message)
+      this.emit('telemetryXcmHop', message)
 
       this.#xcmMatchedReceiver(message)
     } catch (e) {
@@ -821,7 +821,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   }
 
   #onXcmBridgeAccepted(bridgeAcceptedMsg: XcmBridge) {
-    this.emit('telemetryBridge', bridgeAcceptedMsg)
+    this.emit('telemetryXcmBridge', bridgeAcceptedMsg)
     try {
       this.#xcmMatchedReceiver(bridgeAcceptedMsg)
     } catch (e) {
@@ -830,7 +830,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   }
 
   #onXcmBridgeDelivered(bridgeDeliveredMsg: XcmBridge) {
-    this.emit('telemetryBridge', bridgeDeliveredMsg)
+    this.emit('telemetryXcmBridge', bridgeDeliveredMsg)
     try {
       this.#xcmMatchedReceiver(bridgeDeliveredMsg)
     } catch (e) {
@@ -861,7 +861,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
         forwardId: bridgeOutMsg.forwardId,
       })
 
-      this.emit('telemetryBridge', bridgeMatched)
+      this.emit('telemetryXcmBridge', bridgeMatched)
 
       this.#xcmMatchedReceiver(bridgeMatched)
     } catch (e) {
@@ -875,7 +875,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
         const outMsg = JSON.parse(msg) as XcmSent
         const message: XcmTimeout = new GenericXcmTimeout(outMsg)
         this.#log.debug('TIMEOUT on key %s', task.key)
-        this.emit('telemetryTimeout', message)
+        this.emit('telemetryXcmTimeout', message)
         this.#xcmMatchedReceiver(message)
       }
     } catch (e) {

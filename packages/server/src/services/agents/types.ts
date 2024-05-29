@@ -1,6 +1,5 @@
-import { z } from 'zod'
-
 import { Operation } from 'rfc6902'
+import { z } from 'zod'
 
 import { IngressConsumer } from '../ingress/index.js'
 import { NotifierHub } from '../notification/hub.js'
@@ -33,6 +32,7 @@ export interface AgentService {
   getAgentIds(): AgentId[]
   start(): Promise<void>
   stop(): Promise<void>
+  collectTelemetry(): void
 }
 
 export type AgentMetadata = {
@@ -42,6 +42,7 @@ export type AgentMetadata = {
 }
 
 export interface Agent {
+  collectTelemetry(): void
   get id(): AgentId
   get metadata(): AgentMetadata
   getSubscriptionById(subscriptionId: string): Promise<Subscription>

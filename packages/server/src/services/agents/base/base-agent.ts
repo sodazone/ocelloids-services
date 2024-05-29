@@ -41,6 +41,7 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent 
       blockExtrinsics: {},
     }
   }
+
   abstract get metadata(): AgentMetadata
 
   get id(): AgentId {
@@ -68,6 +69,10 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent 
   abstract update(subscriptionId: string, patch: Operation[]): Promise<Subscription>
   abstract stop(): Promise<void>
   abstract start(): Promise<void>
+
+  collectTelemetry() {
+    /* no telemetry */
+  }
 
   protected sharedBlockEvents(chainId: NetworkURN): Observable<types.BlockEvent> {
     if (!this.shared.blockEvents[chainId]) {
