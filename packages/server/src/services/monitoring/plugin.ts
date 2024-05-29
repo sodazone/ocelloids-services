@@ -1,7 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { SubsStore } from '../persistence/index.js'
 import { SubscriptionApi } from './api/index.js'
 import WebsocketProtocolPlugin, { WebsocketProtocolOptions } from './api/ws/plugin.js'
 import { Switchboard, SwitchboardOptions } from './switchboard.js'
@@ -9,11 +8,10 @@ import { Switchboard, SwitchboardOptions } from './switchboard.js'
 declare module 'fastify' {
   interface FastifyInstance {
     switchboard: Switchboard
-    subsStore: SubsStore
   }
 }
 
-type MonitoringOptions = SwitchboardOptions & WebsocketProtocolOptions
+type SubscriptionsOptions = SwitchboardOptions & WebsocketProtocolOptions
 
 /**
  * Monitoring service Fastify plugin.
@@ -22,11 +20,8 @@ type MonitoringOptions = SwitchboardOptions & WebsocketProtocolOptions
  *
  * @param {FastifyInstance} fastify The Fastify instance.
  */
-const monitoringPlugin: FastifyPluginAsync<MonitoringOptions> = async (fastify, options) => {
+const subscriptionsPlugin: FastifyPluginAsync<SubscriptionsOptions> = async (fastify, options) => {
   const { log } = fastify
-
-  const subsStore = new SubsStore(fastify.log, fastify.rootStore, fastify.agentService)
-  fastify.decorate('subsStore', subsStore)
 
   const switchboard = new Switchboard(fastify, options)
 
@@ -43,4 +38,4 @@ const monitoringPlugin: FastifyPluginAsync<MonitoringOptions> = async (fastify, 
   await fastify.register(WebsocketProtocolPlugin, options)
 }
 
-export default fp(monitoringPlugin, { fastify: '>=4.x', name: 'monitoring' })
+export default fp(subscriptionsPlugin, { fastify: '>=4.x', name: 'subscriptions' })

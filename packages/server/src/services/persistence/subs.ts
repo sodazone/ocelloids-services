@@ -1,7 +1,6 @@
-import { AgentService } from '../../agents/types.js'
 import { NotFound, ValidationError } from '../../errors.js'
 import { AgentId, Subscription } from '../monitoring/types.js'
-import { DB, Logger, NetworkURN, jsonEncoded, prefixes } from '../types.js'
+import { DB, Logger, jsonEncoded, prefixes } from '../types.js'
 
 /**
  * Subscriptions persistence.
@@ -11,41 +10,23 @@ import { DB, Logger, NetworkURN, jsonEncoded, prefixes } from '../types.js'
 export class SubsStore {
   // readonly #log: Logger;
   readonly #db: DB
-  readonly #agentService: AgentService
 
-  constructor(_log: Logger, db: DB, agentService: AgentService) {
+  constructor(_log: Logger, db: DB) {
     // this.#log = log;
     this.#db = db
-    this.#agentService = agentService
   }
 
   /**
    * Returns true if a subscription for the given id exists,
    * false otherwise.
    */
-  async exists(id: string): Promise<boolean> {
+  async exists(agentId: AgentId, id: string): Promise<boolean> {
     try {
-      await this.getById(id)
+      await this.getById(agentId, id)
       return true
     } catch {
       return false
     }
-  }
-
-  /**
-   * Retrieves the registered subscriptions in the database
-   * for all the configured networks.
-   *
-   * @returns {Subscription[]} an array with the subscriptions
-   */
-  async getAll() {
-    let subscriptions: Subscription[] = []
-    for (const chainId of this.#agentService.getAgentIds()) {
-      const subs = await this.getByAgentId(chainId)
-      subscriptions = subscriptions.concat(subs)
-    }
-
-    return subscriptions
   }
 
   /**
@@ -64,17 +45,13 @@ export class SubsStore {
    * @returns {Subscription} the subscription information
    * @throws {NotFound} if the subscription does not exist
    */
-  async getById(id: string) {
-    for (const agentId of this.#agentService.getAgentIds()) {
-      try {
-        const subscription = await this.#subsFamily(agentId).get(id)
-        return subscription
-      } catch {
-        continue
-      }
+  async getById(agentId: AgentId, id: string) {
+    try {
+      const subscription = await this.#subsFamily(agentId).get(id)
+      return subscription
+    } catch {
+      throw new NotFound(`Subscription ${id} not found.`)
     }
-
-    throw new NotFound(`Subscription ${id} not found.`)
   }
 
   /**
@@ -83,8 +60,8 @@ export class SubsStore {
    * @throws {ValidationError} if there is a validation error.
    */
   async insert(s: Subscription) {
-    if (await this.exists(s.id)) {
-      throw new ValidationError(`Subscription with ID ${s.id} already exists`)
+    if (await this.exists(s.agent, s.id)) {
+      throw new ValidationError(`Subscription with ID=${s.agent}:${s.id} already exists`)
     }
     await this.save(s)
   }
@@ -102,9 +79,8 @@ export class SubsStore {
   /**
    * Removes a subscription for the given id.
    */
-  async remove(id: string) {
-    const s = await this.getById(id)
-    await this.#subsFamily(s.agent).del(id)
+  async remove(agentId: AgentId, id: string) {
+    await this.#subsFamily(agentId).del(id)
   }
 
   #subsFamily(agentId: AgentId) {

@@ -18,6 +18,7 @@ const DEFAULT_DELAY = 300000 // 5 minutes
 type WebhookTask = {
   id: string
   subId: string
+  agentId: string
   msg: NotifyMessage
 }
 const WebhookTaskType = 'task:webhook'
@@ -53,7 +54,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
   }
 
   async notify(sub: Subscription, msg: NotifyMessage) {
-    const { id, channels } = sub
+    const { id, agent, channels } = sub
 
     for (const chan of channels) {
       if (chan.type === 'webhook') {
@@ -63,6 +64,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
           task: {
             id: taskId,
             subId: id,
+            agentId: agent,
             msg,
           },
         }
@@ -73,11 +75,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
   async #dispatch(scheduled: Scheduled<WebhookTask>) {
     const {
-      task: { subId },
+      task: { subId, agentId },
     } = scheduled
 
     try {
-      const { channels } = await this.#subs.getById(subId)
+      const { channels } = await this.#subs.getById(agentId, subId)
       for (const chan of channels) {
         if (chan.type === 'webhook') {
           const config = chan as WebhookNotification

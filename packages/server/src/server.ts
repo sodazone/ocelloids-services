@@ -20,9 +20,9 @@ import {
   Configuration,
   Connector,
   Ingress,
-  Monitoring,
   Persistence,
   Root,
+  Monitoring as Subscriptions,
   Telemetry,
 } from './services/index.js'
 import version from './version.js'
@@ -162,7 +162,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(Persistence, opts)
   await server.register(Ingress, opts)
   await server.register(AgentService, opts)
-  await server.register(Monitoring, opts)
+  await server.register(Subscriptions, opts)
   await server.register(Administration)
   await server.register(Telemetry, opts)
 

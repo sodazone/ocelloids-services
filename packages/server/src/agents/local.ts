@@ -1,5 +1,5 @@
 import { Logger, Services } from '../services/index.js'
-import { AgentId, NotificationListener } from '../services/monitoring/types.js'
+import { AgentId, NotificationListener, Subscription } from '../services/monitoring/types.js'
 import { NotifierHub } from '../services/notification/index.js'
 import { NotifierEvents } from '../services/notification/types.js'
 import { AgentServiceOptions } from '../types.js'
@@ -25,6 +25,22 @@ export class LocalAgentService implements AgentService {
       ...ctx,
       notifier: this.#notifier,
     })
+  }
+
+  /**
+   * Retrieves the registered subscriptions in the database
+   * for all the configured networks.
+   *
+   * @returns {Subscription[]} an array with the subscriptions
+   */
+  async getAllSubscriptions() {
+    let subscriptions: Subscription[] = []
+    for (const chainId of this.getAgentIds()) {
+      const agent = await this.getAgentById(chainId)
+      subscriptions = subscriptions.concat(await agent.getAllSubscriptions())
+    }
+
+    return subscriptions
   }
 
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {

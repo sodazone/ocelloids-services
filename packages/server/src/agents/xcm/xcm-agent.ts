@@ -98,11 +98,11 @@ export class XCMAgent implements Agent {
   }
 
   async getAllSubscriptions(): Promise<Subscription[]> {
-    return await this.#db.getAll()
+    return await this.#db.getByAgentId(this.id)
   }
 
   async getSubscriptionById(subscriptionId: string): Promise<Subscription> {
-    return await this.#db.getById(subscriptionId)
+    return await this.#db.getById(this.id, subscriptionId)
   }
 
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
@@ -197,7 +197,7 @@ export class XCMAgent implements Agent {
       await this.#engine.clearPendingStates(id)
 
       if (!ephemeral) {
-        await this.#db.remove(id)
+        await this.#db.remove(this.id, id)
       }
     } catch (error) {
       this.#log.error(error, 'Error unsubscribing %s', id)
