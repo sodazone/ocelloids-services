@@ -66,7 +66,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEvent
   readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
 
-  constructor({ log, rootStore, janitor }: AgentRuntimeContext, xcmMatchedReceiver: XcmMatchedReceiver) {
+  constructor(
+    { log, rootStore, janitor }: Omit<AgentRuntimeContext, 'notifier'>,
+    xcmMatchedReceiver: XcmMatchedReceiver
+  ) {
     super()
 
     this.#log = log

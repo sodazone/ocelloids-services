@@ -2,11 +2,11 @@ import { jest } from '@jest/globals'
 
 import { from, of } from 'rxjs'
 
-import { registry } from '../../../testing/xcm.js'
-import { GenericXcmSentWithContext } from '../types'
-import { mapXcmSent } from './common'
-import { getMessageId } from './util'
-import { asVersionedXcm, fromXcmpFormat } from './xcm-format'
+import { registry } from '../../../../testing/xcm.js'
+import { GenericXcmSentWithContext } from '../types.js'
+import { mapXcmSent } from './common.js'
+import { getMessageId } from './util.js'
+import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
 
 describe('extract waypoints operator', () => {
   describe('mapXcmSent', () => {

@@ -51,7 +51,7 @@ import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessag
 
 const SUB_ERROR_RETRY_MS = 5000
 
-const allowedPaths = ['/senders', '/destinations', '/channels', '/events']
+const allowedPaths = ['/args/senders', '/args/destinations', '/channels', '/args/events']
 
 function hasOp(patch: Operation[], path: string) {
   return patch.some((op) => op.path.startsWith(path))

@@ -11,7 +11,7 @@ import {
   registry,
   xcmHop,
   xcmHopOrigin,
-} from '../../../testing/xcm.js'
+} from '../../../../testing/xcm.js'
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js'
 
 const getDmp = () =>

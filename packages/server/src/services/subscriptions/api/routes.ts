@@ -171,7 +171,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         const res = await switchboard.updateSubscription(agentId, subscriptionId, patch)
         reply.status(200).send(res)
       } catch (error) {
-        reply.status(400).send(error)
+        reply.code(400).send((error as Error).message)
       }
     }
   )

@@ -14,13 +14,13 @@ import {
   xcmpReceivePolkadotAssetHub,
   xcmpSendKusamaAssetHub,
   xcmpSendPolkadotBridgeHub,
-} from '../../../testing/bridge/blocks.js'
+} from '../../../../testing/bridge/blocks.js'
 
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './pk-bridge.js'
 import { extractRelayReceive } from './relay.js'
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js'
 
-import { NetworkURN } from '../../types.js'
+import { NetworkURN } from '../../../types.js'
 import { GenericXcmSentWithContext } from '../types.js'
 import { mapXcmSent } from './common.js'
 import { getMessageId } from './util.js'
