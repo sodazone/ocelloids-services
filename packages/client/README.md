@@ -30,16 +30,19 @@ const client = new OcelloidsClient({
 
 // subscribe on-demand
 const ws = client.subscribe({
-  origin: "urn:ocn:polkadot:2004",
-  senders: "*",
-  events: "*",
-  destinations: [ 
-    "urn:ocn:polkadot:0",
-    "urn:ocn:polkadot:1000",
-    "urn:ocn:polkadot:2000",
-    "urn:ocn:polkadot:2034",
-    "urn:ocn:polkadot:2104"
-  ]
+  agent: "xcm",
+  args: {
+    origin: "urn:ocn:polkadot:2004",
+    senders: "*",
+    events: "*",
+    destinations: [ 
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
+    ]
+  }
 }, {
  onMessage: msg => {
    if(isXcmReceived(msg)) {
