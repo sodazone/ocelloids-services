@@ -44,16 +44,16 @@ const ws = client.subscribe({
     ]
   }
  }, {
- onMessage: msg => {
-   if(isXcmReceived(msg)) {
-     console.log("RECV", msg.subscriptionId);
-   } else if(isXcmSent(msg)) {
-     console.log("SENT", msg.subscriptionId)
-   }
-   console.log(msg);
- },
- onError: error => console.log(error),
- onClose: event => console.log(event.reason)
+  onMessage: msg => {
+    if(isXcmReceived(msg)) {
+      console.log("RECV", msg.subscriptionId);
+    } else if(isXcmSent(msg)) {
+      console.log("SENT", msg.subscriptionId)
+    }
+    console.log(msg);
+  },
+  onError: error => console.log(error),
+  onClose: event => console.log(event.reason)
 });
 ```
 
