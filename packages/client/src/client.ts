@@ -72,16 +72,13 @@ class Protocol {
    * @param event - The message event to handle.
    */
   handle(event: MessageEvent) {
-    console.log('jkkjkjkjkjkjkjkjkk', event)
     const ws = event.target as WebSocket
     let current: MessageHandler<any>
 
     if (this.#isStreaming) {
-      console.log('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS')
       current = this.#stream
     } else {
       const next = this.#queue.pop()
-      console.log(next)
       if (next) {
         current = next
       } else {
@@ -90,7 +87,6 @@ class Protocol {
       }
     }
 
-    console.log('MMMMMMMMMMMMM', event.data)
     if (isBlob(event.data)) {
       ;(event.data as Blob).text().then((blob) => current(JSON.parse(blob), ws, event))
     } else {
