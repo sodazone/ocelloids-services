@@ -4,7 +4,7 @@ import { TelemetryNotifierEvents } from '../telemetry/types.js'
 
 /**
  * The generic message.
- * 
+ *
  * @public
  */
 export type NotifyMessage = {

@@ -4,7 +4,6 @@ import { Logger, Services } from '../index.js'
 import { NotifierHub } from '../notification/index.js'
 import { NotifierEvents } from '../notification/types.js'
 import { NotificationListener, Subscription } from '../subscriptions/types.js'
-import { TelemetryCollect } from '../telemetry/types.js'
 import { Agent, AgentId, AgentRuntimeContext, AgentService } from './types.js'
 import { XCMAgent } from './xcm/xcm-agent.js'
 
@@ -25,12 +24,6 @@ export class LocalAgentService implements AgentService {
     })
   }
 
-  /**
-   * Retrieves the registered subscriptions in the database
-   * for all the configured networks.
-   *
-   * @returns {Subscription[]} an array with the subscriptions
-   */
   async getAllSubscriptions() {
     let subscriptions: Subscription[] = []
     for (const chainId of this.getAgentIds()) {
@@ -79,11 +72,6 @@ export class LocalAgentService implements AgentService {
     }
   }
 
-  /**
-   * Calls the given collect function for each private observable component.
-   *
-   * @param collect The collect callback function.
-   */
   collectTelemetry() {
     for (const [id, agent] of Object.entries(this.#agents)) {
       this.#log.info('[local:agents] collect telemetry from agent %s', id)
@@ -95,6 +83,6 @@ export class LocalAgentService implements AgentService {
     const xcm = new XCMAgent(ctx)
     return {
       [xcm.id]: xcm,
-    }
+    } as unknown as Record<AgentId, Agent>
   }
 }
