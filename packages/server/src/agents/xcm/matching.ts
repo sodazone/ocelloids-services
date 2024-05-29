@@ -3,7 +3,7 @@ import EventEmitter from 'node:events'
 import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
 
-import { DB, Logger, Services, jsonEncoded, prefixes } from '../../services/types.js'
+import { DB, Logger, jsonEncoded, prefixes } from '../../services/types.js'
 import {
   GenericXcmBridge,
   GenericXcmHop,
@@ -27,7 +27,8 @@ import {
 
 import { getRelayId, isOnSameConsensus } from '../../services/config.js'
 import { Janitor, JanitorTask } from '../../services/persistence/janitor.js'
-import { TelemetryEventEmitter } from '../../services/telemetry/types.js'
+import { AgentRuntimeContext } from '../types.js'
+import { TelemetryXCMEventEmitter } from './telemetry/events.js'
 
 export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>
@@ -51,7 +52,7 @@ const DEFAULT_TIMEOUT = 2 * 60000
  * - simplify logic to match only by message ID
  * - check notification storage by message ID and do not store for matching if already matched
  */
-export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmitter) {
+export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEventEmitter) {
   readonly #log: Logger
   readonly #janitor: Janitor
 
@@ -65,7 +66,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
 
-  constructor({ log, rootStore, janitor }: Services, xcmMatchedReceiver: XcmMatchedReceiver) {
+  constructor({ log, rootStore, janitor }: AgentRuntimeContext, xcmMatchedReceiver: XcmMatchedReceiver) {
     super()
 
     this.#log = log
@@ -535,7 +536,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryEventEmi
   }
 
   // TODO: refactor to lower complexity
-  // eslint-disable-next-line complexity
   async #storekeysOnOutbound(msg: XcmSent, outboundTTL: number) {
     const log = this.#log
     const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from))

@@ -5,12 +5,12 @@ import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
 import { z } from 'zod'
 
-import { XcmNotifyMessage } from 'agents/xcm/types.js'
 import { errorMessage } from '../../../../errors.js'
+import { NotifyMessage } from '../../../notification/types.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
-import { $Subscription, AgentId, Subscription, XcmEventListener } from '../../types.js'
+import { $Subscription, AgentId, NotificationListener, Subscription } from '../../types.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z
@@ -50,7 +50,7 @@ function safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
   readonly #switchboard: Switchboard
-  readonly #broadcaster: XcmEventListener
+  readonly #broadcaster: NotificationListener
   readonly #maxClients: number
 
   #connections: Map<string, Connection[]>
@@ -65,19 +65,19 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     this.#connections = new Map()
     this.#maxClients = options.wsMaxClients ?? 10_000
     this.#clientsNum = 0
-    this.#broadcaster = (sub, xcm) => {
+    this.#broadcaster = (sub, msg) => {
       const connections = this.#connections.get(sub.id)
       if (connections) {
         for (const connection of connections) {
           const { socket, ip } = connection
           try {
-            safeWrite(socket, xcm)
+            safeWrite(socket, msg)
 
-            this.#telemetryNotify(ip, xcm)
+            this.#telemetryNotify(ip, msg)
           } catch (error) {
             this.#log.error(error)
 
-            this.#telemetryNotifyError(ip, xcm, errorMessage(error))
+            this.#telemetryNotifyError(ip, msg, errorMessage(error))
           }
         }
       }
@@ -203,11 +203,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     })
   }
 
-  #telemetryNotify(ip: string, xcm: XcmNotifyMessage) {
-    this.emit('telemetryNotify', notifyTelemetryFrom('websocket', ip, xcm))
+  #telemetryNotify(ip: string, msg: NotifyMessage) {
+    this.emit('telemetryNotify', notifyTelemetryFrom('websocket', ip, msg))
   }
 
-  #telemetryNotifyError(ip: string, xcm: XcmNotifyMessage, error: string) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom('websocket', ip, xcm, error))
+  #telemetryNotifyError(ip: string, msg: NotifyMessage, error: string) {
+    this.emit('telemetryNotifyError', notifyTelemetryFrom('websocket', ip, msg, error))
   }
 }

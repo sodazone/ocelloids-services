@@ -5,11 +5,12 @@ import { Observable, filter, from, map, share, switchMap } from 'rxjs'
 import {
   $Subscription,
   AgentId,
+  AnyJson,
   HexString,
   RxSubscriptionWithId,
   Subscription,
 } from '../../services/monitoring/types.js'
-import { Logger, NetworkURN, Services } from '../../services/types.js'
+import { Logger, NetworkURN } from '../../services/types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
   $XCMSubscriptionArgs,
@@ -48,7 +49,8 @@ import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from '../../services/monitoring/storage.js'
-import { Agent } from '../types.js'
+import { NotifierHub } from '../../services/notification/index.js'
+import { Agent, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
 import {
@@ -73,17 +75,19 @@ export class XCMAgent implements Agent {
   readonly #timeouts: NodeJS.Timeout[] = []
   readonly #db: SubsStore
   readonly #ingress: IngressConsumer
+  readonly #notifier: NotifierHub
 
   #shared: {
     blockEvents: Record<string, Observable<types.BlockEvent>>
     blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
   }
 
-  constructor(ctx: Services) {
-    const { log, ingressConsumer, subsStore } = ctx
+  constructor(ctx: AgentRuntimeContext) {
+    const { log, ingressConsumer, notifier, subsStore } = ctx
 
     this.#log = log
     this.#ingress = ingressConsumer
+    this.#notifier = notifier
     this.#db = subsStore
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
 
@@ -226,16 +230,22 @@ export class XCMAgent implements Agent {
     await this.#startNetworkMonitors()
   }
 
-  #onXcmWaypointReached(msg: XcmNotifyMessage) {
-    const { subscriptionId } = msg
+  #onXcmWaypointReached(payload: XcmNotifyMessage) {
+    const { subscriptionId } = payload
     if (this.#subs[subscriptionId]) {
-      const { args, sendersControl } = this.#subs[subscriptionId]
+      const { descriptor, args, sendersControl } = this.#subs[subscriptionId]
       if (
-        (args.events === undefined || args.events === '*' || args.events.includes(msg.type)) &&
-        matchSenders(sendersControl, msg.sender)
+        (args.events === undefined || args.events === '*' || args.events.includes(payload.type)) &&
+        matchSenders(sendersControl, payload.sender)
       ) {
-        // XXX
-        // this.#notifier.notify(descriptor, msg)
+        this.#notifier.notify(descriptor, {
+          metadata: {
+            type: payload.type,
+            subscriptionId,
+            agentId: this.id,
+          },
+          payload: payload as unknown as AnyJson,
+        })
       }
     } else {
       // this could happen with closed ephemeral subscriptions

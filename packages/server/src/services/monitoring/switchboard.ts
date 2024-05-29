@@ -1,11 +1,11 @@
 import EventEmitter from 'node:events'
 
-import { Logger, Services } from '../types.js'
-import { AgentId, Subscription, SubscriptionStats, XcmEventListener } from './types.js'
-
-import { AgentService } from 'agents/types.js'
 import { Operation } from 'rfc6902'
-import { NotifierHub } from '../notification/hub.js'
+
+import { Logger, Services } from '../types.js'
+import { AgentId, NotificationListener, Subscription, SubscriptionStats } from './types.js'
+
+import { AgentService } from '../../agents/types.js'
 import { NotifierEvents } from '../notification/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 
@@ -30,17 +30,12 @@ export type SwitchboardOptions = {
 }
 
 /**
- * XCM Subscriptions Switchboard.
+ * Subscriptions Switchboard.
  *
- * Manages subscriptions and notifications for Cross-Consensus Message Format (XCM) formatted messages.
- * Enables subscribing to and unsubscribing from XCM messages of interest, handling 'matched' notifications,
- * and managing subscription lifecycles.
- * Monitors active subscriptions, processes incoming 'matched' notifications,
- * and dynamically updates selection criteria of the subscriptions.
+ * Manages subscriptions and notifications for the platform agents.
  */
 export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
-  readonly #notifier: NotifierHub
   readonly #stats: SubscriptionStats
   readonly #maxEphemeral: number
   readonly #maxPersistent: number
@@ -52,8 +47,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     this.#log = ctx.log
     this.#agentService = ctx.agentService
 
-    // TODO here could be local for websockets over event emitter or remote over redis
-    this.#notifier = new NotifierHub(ctx)
     this.#stats = {
       ephemeral: 0,
       persistent: 0,
@@ -91,8 +84,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param eventName The notifier event name.
    * @param listener The listener function.
    */
-  addNotificationListener(eventName: keyof NotifierEvents, listener: XcmEventListener) {
-    this.#notifier.on(eventName, listener)
+  addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
+    this.#agentService.addNotificationListener(eventName, listener)
   }
 
   /**
@@ -101,8 +94,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param eventName The notifier event name.
    * @param listener The listener function.
    */
-  removeNotificationListener(eventName: keyof NotifierEvents, listener: XcmEventListener) {
-    this.#notifier.off(eventName, listener)
+  removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
+    this.#agentService.removeNotificationListener(eventName, listener)
   }
 
   /**
@@ -129,9 +122,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     // empty
   }
 
-  /**
-   * Stops the switchboard.
-   */
   async stop() {
     // empty
   }
@@ -139,10 +129,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Gets a subscription handler by id.
    */
-  findSubscriptionHandler(agentId: AgentId, id: string) {
-    return this.#agentService.getAgentById(agentId).getSubscriptionHandler(id)
+  findSubscriptionHandler(agentId: AgentId, subscriptionId: string) {
+    return this.#agentService.getAgentById(agentId).getSubscriptionHandler(subscriptionId)
   }
 
+  /**
+   * Gets all the subscriptions for all the known agents.
+   */
   async getAllSubscriptions(): Promise<Subscription[]> {
     const subs: Subscription[][] = []
     for (const agentId of this.#agentService.getAgentIds()) {
@@ -151,19 +144,26 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     return subs.flat()
   }
 
+  /**
+   * Gets a subscription by identifier.
+   *
+   * @param agentId The agent identifier.
+   * @param subscriptionId  The subscription identifier.
+   */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
     return await this.#agentService.getAgentById(agentId).getSubscriptionById(subscriptionId)
   }
 
   /**
+   * Updates an existing subscription applying the given JSON patch.
    *
-   * @param agentId
-   * @param id
-   * @param patch
-   * @returns
+   * @param agentId The agent identifier.
+   * @param subscriptionId The subscription identifier
+   * @param patch The JSON patch operations.
+   * @returns the patched subscription object.
    */
-  updateSubscription(agentId: AgentId, id: string, patch: Operation[]) {
-    return this.#agentService.getAgentById(agentId).update(id, patch)
+  updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
+    return this.#agentService.getAgentById(agentId).update(subscriptionId, patch)
   }
 
   /**
@@ -173,8 +173,6 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   collectTelemetry(collect: TelemetryCollect) {
     collect(this)
-    // collect(this.#engine)
-    collect(this.#notifier)
   }
 
   /**

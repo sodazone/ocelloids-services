@@ -1,7 +1,9 @@
 import { Logger, Services } from '../services/index.js'
-import { AgentId } from '../services/monitoring/types.js'
+import { AgentId, NotificationListener } from '../services/monitoring/types.js'
+import { NotifierHub } from '../services/notification/index.js'
+import { NotifierEvents } from '../services/notification/types.js'
 import { AgentServiceOptions } from '../types.js'
-import { Agent, AgentService } from './types.js'
+import { Agent, AgentRuntimeContext, AgentService } from './types.js'
 import { XCMAgent } from './xcm/xcm-agent.js'
 
 /**
@@ -10,10 +12,27 @@ import { XCMAgent } from './xcm/xcm-agent.js'
 export class LocalAgentService implements AgentService {
   readonly #log: Logger
   readonly #agents: Record<AgentId, Agent>
+  readonly #notifier: NotifierHub
 
   constructor(ctx: Services, _options: AgentServiceOptions) {
     this.#log = ctx.log
-    this.#agents = this.#loadAgents(ctx)
+
+    // XXX: this is a local in the process memory
+    // notifier hub
+    this.#notifier = new NotifierHub(ctx)
+
+    this.#agents = this.#loadAgents({
+      ...ctx,
+      notifier: this.#notifier,
+    })
+  }
+
+  addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {
+    return this.#notifier.on(eventName, listener)
+  }
+
+  removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {
+    return this.#notifier.off(eventName, listener)
   }
 
   getAgentIds(): AgentId[] {
@@ -46,7 +65,7 @@ export class LocalAgentService implements AgentService {
     }
   }
 
-  #loadAgents(ctx: Services) {
+  #loadAgents(ctx: AgentRuntimeContext) {
     const xcm = new XCMAgent(ctx)
     return {
       [xcm.id]: xcm,

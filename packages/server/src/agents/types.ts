@@ -1,9 +1,27 @@
 import { z } from 'zod'
 
 import { Operation } from 'rfc6902'
-import { AgentId, Subscription } from '../services/monitoring/types.js'
+
+import { IngressConsumer } from '../services/ingress/index.js'
+import { AgentId, NotificationListener, Subscription } from '../services/monitoring/types.js'
+import { NotifierHub } from '../services/notification/hub.js'
+import { NotifierEvents } from '../services/notification/types.js'
+import { Janitor } from '../services/persistence/janitor.js'
+import { SubsStore } from '../services/persistence/subs.js'
+import { DB, Logger } from '../services/types.js'
+
+export type AgentRuntimeContext = {
+  log: Logger
+  notifier: NotifierHub
+  ingressConsumer: IngressConsumer
+  rootStore: DB
+  subsStore: SubsStore
+  janitor: Janitor
+}
 
 export interface AgentService {
+  addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
+  removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
   getAgentById(agentId: AgentId): Agent
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
   getAgentIds(): AgentId[]

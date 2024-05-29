@@ -2,7 +2,7 @@ import z from 'zod'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
-import { XcmNotifyMessage } from '../../agents/xcm/types.js'
+import { NotifyMessage } from '../notification/types.js'
 
 /**
  * Represents a generic JSON object.
@@ -132,7 +132,7 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>
 
 export type Subscription = z.infer<typeof $Subscription>
 
-export type XcmEventListener = (sub: Subscription, xcm: XcmNotifyMessage) => void
+export type NotificationListener = (sub: Subscription, msg: NotifyMessage) => void
 
 export type RxSubscriptionWithId = {
   chainId: string

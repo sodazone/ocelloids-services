@@ -398,6 +398,7 @@ export enum XcmNotificationType {
   Hop = 'xcm.hop',
   Bridge = 'xcm.bridge',
 }
+
 /**
  * The terminal point of an XCM journey.
  *
@@ -732,12 +733,12 @@ export class GenericXcmBridge implements XcmBridge {
     this.forwardId = forwardId
   }
 }
+
 /**
  * The XCM event types.
  *
  * @public
  */
-
 export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
 
 export function isXcmSent(object: any): object is XcmSent {

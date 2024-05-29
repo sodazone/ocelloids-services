@@ -1,16 +1,13 @@
 import type { Header } from '@polkadot/types/interfaces'
 
-import { XcmBridge, XcmHop, XcmInbound, XcmNotifyMessage, XcmRelayed, XcmSent, XcmTimeout } from 'agents/xcm/types.js'
 import { Subscription } from '../monitoring/types.js'
+import { NotifyMessage } from '../notification/types.js'
 import { TypedEventEmitter } from '../types.js'
 
 export type NotifyTelemetryMessage = {
   type: string
   subscription: string
-  origin: string
-  destination: string
-  waypoint: string
-  outcome: string
+  agent: string
   channel: string
   error?: string
 }
@@ -18,16 +15,13 @@ export type NotifyTelemetryMessage = {
 export function notifyTelemetryFrom(
   type: string,
   channel: string,
-  msg: XcmNotifyMessage,
+  msg: NotifyMessage,
   error?: string
 ): NotifyTelemetryMessage {
   return {
     type,
-    subscription: msg.subscriptionId,
-    origin: msg.origin.chainId,
-    destination: msg.destination.chainId,
-    waypoint: msg.waypoint.chainId,
-    outcome: msg.waypoint.outcome,
+    subscription: msg.metadata.subscriptionId,
+    agent: msg.metadata.agentId,
     channel,
     error,
   }
@@ -54,14 +48,6 @@ export type TelemetryIngressProducerEvents = {
 }
 
 export type TelemetryEvents = {
-  telemetryInbound: (message: XcmInbound) => void
-  telemetryOutbound: (message: XcmSent) => void
-  telemetryRelayed: (relayMsg: XcmRelayed) => void
-  telemetryMatched: (inMsg: XcmInbound, outMsg: XcmSent) => void
-  telemetryTimeout: (message: XcmTimeout) => void
-  telemetryHop: (message: XcmHop) => void
-  telemetryBridge: (message: XcmBridge) => void
-  telemetryTrapped: (inMsg: XcmInbound, outMsg: XcmSent) => void
   telemetryBlockSeen: (msg: { chainId: string; header: Header }) => void
   telemetryBlockFinalized: (msg: { chainId: string; header: Header }) => void
   telemetryBlockCacheHit: (msg: { chainId: string }) => void

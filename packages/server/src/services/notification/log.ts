@@ -12,7 +12,7 @@ import {
 import { Logger, Services } from '../../services/types.js'
 import { Subscription } from '../monitoring/types.js'
 import { NotifierHub } from './hub.js'
-import { Notifier, NotifierEmitter } from './types.js'
+import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
 
 export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
   #log: Logger
@@ -25,7 +25,15 @@ export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) imp
     hub.on('log', this.notify.bind(this))
   }
 
-  notify(sub: Subscription, msg: XcmNotifyMessage) {
+  notify(sub: Subscription, msg: NotifyMessage) {
+    this.#log.info(
+      'NOTIFICATION %s agent=%s subscription=%s, payload=%j',
+      msg.metadata.type,
+      msg.metadata.agentId,
+      msg.metadata.subscriptionId,
+      msg.payload
+    )
+
     if (isXcmReceived(msg)) {
       this.#log.info(
         '[%s ➜ %s] NOTIFICATION %s subscription=%s, messageHash=%s, outcome=%s (o: #%s, d: #%s)',

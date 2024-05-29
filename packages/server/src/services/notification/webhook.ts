@@ -3,7 +3,6 @@ import { EventEmitter } from 'node:events'
 import got from 'got'
 import { ulid } from 'ulidx'
 
-import { XcmNotifyMessage } from 'agents/xcm/types.js'
 import version from '../../version.js'
 import { Subscription, WebhookNotification } from '../monitoring/types.js'
 import { Logger, Services } from '../types.js'
@@ -12,14 +11,14 @@ import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'
 import { notifyTelemetryFrom } from '../telemetry/types.js'
 import { NotifierHub } from './hub.js'
 import { TemplateRenderer } from './template.js'
-import { Notifier, NotifierEmitter } from './types.js'
+import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
 
 const DEFAULT_DELAY = 300000 // 5 minutes
 
 type WebhookTask = {
   id: string
   subId: string
-  msg: XcmNotifyMessage
+  msg: NotifyMessage
 }
 const WebhookTaskType = 'task:webhook'
 
@@ -53,7 +52,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     hub.on('webhook', this.notify.bind(this))
   }
 
-  async notify(sub: Subscription, msg: XcmNotifyMessage) {
+  async notify(sub: Subscription, msg: NotifyMessage) {
     const { id, channels } = sub
 
     for (const chan of channels) {
@@ -99,10 +98,10 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     const postUrl = buildPostUrl(url, id)
 
     try {
-      const res = await got.post<XcmNotifyMessage>(postUrl, {
+      const res = await got.post<NotifyMessage>(postUrl, {
         body: template === undefined ? JSON.stringify(msg) : this.#renderer.render({ template, data: msg }),
         headers: {
-          'user-agent': 'xcmon/' + version,
+          'user-agent': 'ocelloids/' + version,
           'content-type': contentType ?? 'application/json',
         },
         retry: {
@@ -134,11 +133,12 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.#log.info(
-          'NOTIFICATION %s subscription=%s, endpoint=%s, messageHash=%s',
-          msg.type,
-          msg.subscriptionId,
+          'NOTIFICATION %s agent=%s subscription=%s, endpoint=%s, payload=%j',
+          msg.metadata.type,
+          msg.metadata.agentId,
+          msg.metadata.subscriptionId,
           postUrl,
-          msg.waypoint.messageHash
+          msg.payload
         )
         this.#telemetryNotify(config, msg)
       } else {
@@ -162,11 +162,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     }
   }
 
-  #telemetryNotify(config: WebhookNotification, msg: XcmNotifyMessage) {
+  #telemetryNotify(config: WebhookNotification, msg: NotifyMessage) {
     this.emit('telemetryNotify', notifyTelemetryFrom(config.type, config.url, msg))
   }
 
-  #telemetryNotifyError(config: WebhookNotification, msg: XcmNotifyMessage) {
+  #telemetryNotifyError(config: WebhookNotification, msg: NotifyMessage) {
     this.emit('telemetryNotifyError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'))
   }
 }
