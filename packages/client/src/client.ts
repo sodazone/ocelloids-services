@@ -2,7 +2,7 @@ import { type MessageEvent, WebSocket } from 'isows'
 
 import type { NotifyMessage } from './server-types'
 import {
-  AnySubscriptionInputs,
+  type AnySubscriptionInputs,
   type AuthReply,
   type MessageHandler,
   type OnDemandSubscription,
