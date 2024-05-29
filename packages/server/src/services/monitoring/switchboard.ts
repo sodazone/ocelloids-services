@@ -4,6 +4,7 @@ import { Logger, Services } from '../types.js'
 import { AgentId, Subscription, SubscriptionStats, XcmEventListener } from './types.js'
 
 import { AgentService } from 'agents/types.js'
+import { Operation } from 'rfc6902'
 import { NotifierHub } from '../notification/hub.js'
 import { NotifierEvents } from '../notification/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
@@ -140,6 +141,29 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   findSubscriptionHandler(agentId: AgentId, id: string) {
     return this.#agentService.getAgentById(agentId).getSubscriptionHandler(id)
+  }
+
+  async getAllSubscriptions(): Promise<Subscription[]> {
+    const subs: Subscription[][] = []
+    for (const agentId of this.#agentService.getAgentIds()) {
+      subs.push(await this.#agentService.getAgentById(agentId).getAllSubscriptions())
+    }
+    return subs.flat()
+  }
+
+  async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
+    return await this.#agentService.getAgentById(agentId).getSubscriptionById(subscriptionId)
+  }
+
+  /**
+   *
+   * @param agentId
+   * @param id
+   * @param patch
+   * @returns
+   */
+  updateSubscription(agentId: AgentId, id: string, patch: Operation[]) {
+    return this.#agentService.getAgentById(agentId).update(id, patch)
   }
 
   /**

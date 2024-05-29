@@ -2,7 +2,13 @@ import { Registry } from '@polkadot/types-codec/types'
 import { ControlQuery, extractEvents, extractTxWithEvents, flattenCalls, types } from '@sodazone/ocelloids-sdk'
 import { Observable, filter, from, map, share, switchMap } from 'rxjs'
 
-import { AgentId, HexString, RxSubscriptionWithId, Subscription } from '../../services/monitoring/types.js'
+import {
+  $Subscription,
+  AgentId,
+  HexString,
+  RxSubscriptionWithId,
+  Subscription,
+} from '../../services/monitoring/types.js'
 import { Logger, NetworkURN, Services } from '../../services/types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
@@ -34,6 +40,8 @@ import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 
+import { Operation, applyPatch } from 'rfc6902'
+import { z } from 'zod'
 import { getChainId, getConsensus } from '../../services/config.js'
 import {
   dmpDownwardMessageQueuesKey,
@@ -51,6 +59,12 @@ import {
 } from './types-augmented.js'
 
 const SUB_ERROR_RETRY_MS = 5000
+
+const allowedPaths = ['/senders', '/destinations', '/channels', '/events']
+
+function hasOp(patch: Operation[], path: string) {
+  return patch.some((op) => op.path.startsWith(path))
+}
 
 export class XCMAgent implements Agent {
   readonly #subs: Record<string, XCMSubscriptionHandler> = {}
@@ -79,6 +93,53 @@ export class XCMAgent implements Agent {
     }
   }
 
+  async getAllSubscriptions(): Promise<Subscription[]> {
+    return await this.#db.getAll()
+  }
+
+  async getSubscriptionById(subscriptionId: string): Promise<Subscription> {
+    return await this.#db.getById(subscriptionId)
+  }
+
+  async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
+    const sub = this.#subs[subscriptionId]
+    const descriptor = sub.descriptor
+
+    // Check allowed patch ops
+    const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)))
+
+    if (allowedOps) {
+      applyPatch(descriptor, patch)
+      $Subscription.parse(descriptor)
+      const args = $XCMSubscriptionArgs.parse(descriptor.args)
+
+      await this.#db.save(descriptor)
+
+      sub.args = args
+      sub.descriptor = descriptor
+
+      if (hasOp(patch, '/senders')) {
+        this.#updateSenders(subscriptionId)
+      }
+
+      if (hasOp(patch, '/destinations')) {
+        this.#updateDestinations(subscriptionId)
+      }
+
+      if (hasOp(patch, '/events')) {
+        this.#updateEvents(subscriptionId)
+      }
+
+      return descriptor
+    } else {
+      throw Error('Only operations on these paths are allowed: ' + allowedPaths.join(','))
+    }
+  }
+
+  getInputSchema(): z.ZodSchema {
+    return $XCMSubscriptionArgs
+  }
+
   get id(): AgentId {
     return 'xcm'
   }
@@ -93,9 +154,10 @@ export class XCMAgent implements Agent {
 
   async subscribe(s: Subscription): Promise<void> {
     const args = $XCMSubscriptionArgs.parse(s.args)
-    // TODO validate?
-    // const dests = qs.destinations as NetworkURN[]
-    // this.#validateChainIds([origin, ...dests])
+
+    const origin = args.origin as NetworkURN
+    const dests = args.destinations as NetworkURN[]
+    this.#validateChainIds([origin, ...dests])
 
     if (!s.ephemeral) {
       await this.#db.insert(s)
@@ -159,9 +221,11 @@ export class XCMAgent implements Agent {
 
     await this.#engine.stop()
   }
+
   async start(): Promise<void> {
-    this.#startNetworkMonitors()
+    await this.#startNetworkMonitors()
   }
+
   #onXcmWaypointReached(msg: XcmNotifyMessage) {
     const { subscriptionId } = msg
     if (this.#subs[subscriptionId]) {
@@ -788,7 +852,7 @@ export class XCMAgent implements Agent {
    *
    * Applies to the outbound extrinsic signers.
    */
-  updateSenders(id: string) {
+  #updateSenders(id: string) {
     const {
       args: { senders },
       sendersControl,
@@ -802,7 +866,7 @@ export class XCMAgent implements Agent {
    *
    * Updates the destination subscriptions.
    */
-  updateDestinations(id: string) {
+  #updateDestinations(id: string) {
     const { args, messageControl } = this.#subs[id]
 
     messageControl.change(messageCriteria(args.destinations as NetworkURN[]))
@@ -814,7 +878,7 @@ export class XCMAgent implements Agent {
   /**
    * Updates the subscription to relayed HRMP messages in the relay chain.
    */
-  updateEvents(id: string) {
+  #updateEvents(id: string) {
     const { descriptor, args, relaySub } = this.#subs[id]
 
     if (this.#shouldMonitorRelay(args) && relaySub === undefined) {
@@ -827,17 +891,6 @@ export class XCMAgent implements Agent {
     } else if (!this.#shouldMonitorRelay(args) && relaySub !== undefined) {
       relaySub.sub.unsubscribe()
       delete this.#subs[id].relaySub
-    }
-  }
-
-  /**
-   * Updates a subscription descriptor.
-   */
-  updateSubscription(sub: Subscription) {
-    if (this.#subs[sub.id]) {
-      this.#subs[sub.id].descriptor = sub
-    } else {
-      this.#log.warn('trying to update an unknown subscription %s', sub.id)
     }
   }
 

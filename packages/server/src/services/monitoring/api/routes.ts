@@ -1,22 +1,15 @@
 import { FastifyInstance } from 'fastify'
-import { Operation, applyPatch } from 'rfc6902'
+import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { $AgentId, $SafeId, $Subscription, AgentId, Subscription } from '../types.js'
 import $JSONPatch from './json-patch.js'
 
-/* TODO extract this
-const allowedPaths = ['/senders', '/destinations', '/channels', '/events']
-
-function hasOp(patch: Operation[], path: string) {
-  return patch.some((op) => op.path.startsWith(path))
-}*/
-
 /**
  * Subscriptions HTTP API.
  */
 export async function SubscriptionApi(api: FastifyInstance) {
-  const { switchboard, subsStore } = api
+  const { switchboard } = api
 
   /**
    * GET subs
@@ -34,16 +27,17 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (_, reply) => {
-      reply.send(await subsStore.getAll())
+      reply.send(await switchboard.getAllSubscriptions())
     }
   )
 
   /**
-   * GET subs/:id
+   * GET subs/:agent/:id
    */
   api.get<{
     Params: {
       id: string
+      agent: AgentId
     }
   }>(
     '/subs/:id',
@@ -51,6 +45,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       schema: {
         params: {
           id: zodToJsonSchema($SafeId),
+          agent: zodToJsonSchema($AgentId),
         },
         response: {
           200: zodToJsonSchema($Subscription),
@@ -59,7 +54,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      reply.send(await subsStore.getById(request.params.id))
+      const { agent, id } = request.params
+      reply.send(await switchboard.getSubscriptionById(agent, id))
     }
   )
 
@@ -118,14 +114,16 @@ export async function SubscriptionApi(api: FastifyInstance) {
   api.patch<{
     Params: {
       id: string
+      agent: AgentId
     }
     Body: Operation[]
   }>(
-    '/subs/:id',
+    '/subs/:agent/:id',
     {
       schema: {
         params: {
           id: zodToJsonSchema($SafeId),
+          agent: zodToJsonSchema($AgentId),
         },
         body: $JSONPatch,
         response: {
@@ -135,40 +133,16 @@ export async function SubscriptionApi(api: FastifyInstance) {
         },
       },
     },
-    async (_request, reply) => {
-      /*
+    async (request, reply) => {
       const patch = request.body
-      const { id } = request.params
-      const sub = await subsStore.getById(id)
+      const { agent, id } = request.params
 
-      // Check allowed patch ops
-      const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)))
-
-      if (allowedOps) {
-        applyPatch(sub, patch)
-        $Subscription.parse(sub)
-
-        await subsStore.save(sub)
-
-        switchboard.updateSubscription(sub)
-
-        if (hasOp(patch, '/senders')) {
-          switchboard.updateSenders(id)
-        }
-
-        if (hasOp(patch, '/destinations')) {
-          switchboard.updateDestinations(id)
-        }
-
-        if (hasOp(patch, '/events')) {
-          switchboard.updateEvents(id)
-        }
-
-        reply.status(200).send(sub)
-      } else {
-        reply.status(400).send('Only operations on these paths are allowed: ' + allowedPaths.join(','))
-      }*/
-      reply.status(400)
+      try {
+        const res = await switchboard.updateSubscription(agent, id, patch)
+        reply.status(200).send(res)
+      } catch (error) {
+        reply.status(400).send(error)
+      }
     }
   )
 
