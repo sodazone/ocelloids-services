@@ -32,20 +32,20 @@ export async function SubscriptionApi(api: FastifyInstance) {
   )
 
   /**
-   * GET subs/:agent/:id
+   * GET subs/:agentId/:subscriptionId
    */
   api.get<{
     Params: {
-      id: string
-      agent: AgentId
+      subscriptionId: string
+      agentId: AgentId
     }
   }>(
-    '/subs/:id',
+    '/subs/:agentId/:subscriptionId',
     {
       schema: {
         params: {
-          id: zodToJsonSchema($SafeId),
-          agent: zodToJsonSchema($AgentId),
+          subscriptionId: zodToJsonSchema($SafeId),
+          agentId: zodToJsonSchema($AgentId),
         },
         response: {
           200: zodToJsonSchema($Subscription),
@@ -54,8 +54,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { agent, id } = request.params
-      reply.send(await switchboard.getSubscriptionById(agent, id))
+      const { agentId, subscriptionId } = request.params
+      reply.send(await switchboard.getSubscriptionById(agentId, subscriptionId))
     }
   )
 
@@ -109,21 +109,21 @@ export async function SubscriptionApi(api: FastifyInstance) {
   )
 
   /**
-   * PATCH subs/:id
+   * PATCH subs/:agentId/:subscriptionId
    */
   api.patch<{
     Params: {
-      id: string
-      agent: AgentId
+      subscriptionId: string
+      agentId: AgentId
     }
     Body: Operation[]
   }>(
-    '/subs/:agent/:id',
+    '/subs/:agentId/:subscriptionId',
     {
       schema: {
         params: {
-          id: zodToJsonSchema($SafeId),
-          agent: zodToJsonSchema($AgentId),
+          subscriptionId: zodToJsonSchema($SafeId),
+          agentId: zodToJsonSchema($AgentId),
         },
         body: $JSONPatch,
         response: {
@@ -135,10 +135,10 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const patch = request.body
-      const { agent, id } = request.params
+      const { agentId, subscriptionId } = request.params
 
       try {
-        const res = await switchboard.updateSubscription(agent, id, patch)
+        const res = await switchboard.updateSubscription(agentId, subscriptionId, patch)
         reply.status(200).send(res)
       } catch (error) {
         reply.status(400).send(error)
@@ -147,20 +147,20 @@ export async function SubscriptionApi(api: FastifyInstance) {
   )
 
   /**
-   * DELETE subs/:id
+   * DELETE subs/:agentId/:subscriptionId
    */
   api.delete<{
     Params: {
-      agent: AgentId
-      id: string
+      agentId: AgentId
+      subscriptionId: string
     }
   }>(
-    '/subs/:agent/:id',
+    '/subs/:agentId/:subscriptionId',
     {
       schema: {
         params: {
-          agent: zodToJsonSchema($AgentId),
-          id: zodToJsonSchema($SafeId),
+          agentId: zodToJsonSchema($AgentId),
+          subscriptionId: zodToJsonSchema($SafeId),
         },
         response: {
           200: {
@@ -171,8 +171,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { agent, id } = request.params
-      await switchboard.unsubscribe(agent, id)
+      const { agentId, subscriptionId } = request.params
+      await switchboard.unsubscribe(agentId, subscriptionId)
 
       reply.send()
     }
