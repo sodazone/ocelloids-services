@@ -14,7 +14,7 @@ import {
   SignerData,
   Subscription,
   toHexString,
-} from '../../services/monitoring/types.js'
+} from '../../services/subscriptions/types.js'
 import { NetworkURN } from '../../services/types.js'
 
 export type Monitor = {

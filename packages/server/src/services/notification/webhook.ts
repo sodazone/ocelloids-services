@@ -4,7 +4,7 @@ import got from 'got'
 import { ulid } from 'ulidx'
 
 import version from '../../version.js'
-import { Subscription, WebhookNotification } from '../monitoring/types.js'
+import { Subscription, WebhookNotification } from '../subscriptions/types.js'
 import { Logger, Services } from '../types.js'
 
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'

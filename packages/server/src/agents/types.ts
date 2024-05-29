@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { Operation } from 'rfc6902'
 
 import { IngressConsumer } from '../services/ingress/index.js'
-import { AgentId, NotificationListener, Subscription } from '../services/monitoring/types.js'
+import { AgentId, NotificationListener, Subscription } from '../services/subscriptions/types.js'
 import { NotifierHub } from '../services/notification/hub.js'
 import { NotifierEvents } from '../services/notification/types.js'
 import { Janitor } from '../services/persistence/janitor.js'

@@ -1,6 +1,6 @@
 import type { Header } from '@polkadot/types/interfaces'
 
-import { Subscription } from '../monitoring/types.js'
+import { Subscription } from '../subscriptions/types.js'
 import { NotifyMessage } from '../notification/types.js'
 import { TypedEventEmitter } from '../types.js'
 

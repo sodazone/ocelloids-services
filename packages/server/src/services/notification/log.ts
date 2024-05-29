@@ -10,7 +10,7 @@ import {
   isXcmSent,
 } from 'agents/xcm/types.js'
 import { Logger, Services } from '../../services/types.js'
-import { Subscription } from '../monitoring/types.js'
+import { Subscription } from '../subscriptions/types.js'
 import { NotifierHub } from './hub.js'
 import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
 

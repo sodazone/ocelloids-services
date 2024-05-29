@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { AgentId } from 'services/monitoring/types.js'
+import { AgentId } from '../../types.js'
 import WebsocketProtocol from './protocol.js'
 
 declare module 'fastify' {

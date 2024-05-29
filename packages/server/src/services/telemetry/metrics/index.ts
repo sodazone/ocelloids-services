@@ -1,7 +1,7 @@
 import { IngressConsumer } from '../../ingress/index.js'
 import IngressProducer from '../../ingress/producer/index.js'
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js'
-import { Switchboard } from '../../monitoring/switchboard.js'
+import { Switchboard } from '../../subscriptions/switchboard.js'
 import { NotifierHub } from '../../notification/hub.js'
 import { TelemetryEventEmitter } from '../types.js'
 import { catcherMetrics } from './catcher.js'

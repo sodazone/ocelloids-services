@@ -1,5 +1,5 @@
 import { Logger, Services } from '../services/index.js'
-import { AgentId, NotificationListener, Subscription } from '../services/monitoring/types.js'
+import { AgentId, NotificationListener, Subscription } from '../services/subscriptions/types.js'
 import { NotifierHub } from '../services/notification/index.js'
 import { NotifierEvents } from '../services/notification/types.js'
 import { AgentServiceOptions } from '../types.js'

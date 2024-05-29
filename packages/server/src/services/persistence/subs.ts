@@ -1,5 +1,5 @@
 import { NotFound, ValidationError } from '../../errors.js'
-import { AgentId, Subscription } from '../monitoring/types.js'
+import { AgentId, Subscription } from '../subscriptions/types.js'
 import { DB, Logger, jsonEncoded, prefixes } from '../types.js'
 
 /**

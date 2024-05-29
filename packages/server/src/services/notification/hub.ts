@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events'
 
-import { Subscription } from '../monitoring/types.js'
+import { Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEventKeys } from '../telemetry/types.js'
 import { Services } from '../types.js'
 import { LogNotifier } from './log.js'

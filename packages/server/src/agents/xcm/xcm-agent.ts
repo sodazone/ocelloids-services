@@ -9,7 +9,7 @@ import {
   HexString,
   RxSubscriptionWithId,
   Subscription,
-} from '../../services/monitoring/types.js'
+} from '../../services/subscriptions/types.js'
 import { Logger, NetworkURN } from '../../services/types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
@@ -48,7 +48,7 @@ import {
   dmpDownwardMessageQueuesKey,
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
-} from '../../services/monitoring/storage.js'
+} from '../../services/subscriptions/storage.js'
 import { NotifierHub } from '../../services/notification/index.js'
 import { Agent, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
