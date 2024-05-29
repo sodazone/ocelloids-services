@@ -111,10 +111,10 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     try {
       if (ids === undefined) {
-        let resolvedId: { id: string; agent: AgentId }
+        let resolvedId: { id: string; agent: AgentId } | undefined = undefined
 
         // on-demand ephemeral subscriptions
-        socket.on('data', (data: Buffer) => {
+        socket.on('message', (data: Buffer) => {
           setImmediate(async () => {
             if (resolvedId) {
               safeWrite(socket, resolvedId)

@@ -8,23 +8,17 @@ export type {
   SignerData,
 } from './services/subscriptions/types.js'
 
+export type { NotifyMessage } from './services/notification/types.js'
+
+// ====================================================================
+// Agent-specific support types
+// NOTE: this will be extracted
+// ====================================================================
+
 /**
  * XCM agent types
- * TODO: should be moved
  */
-export type {
-  XcmReceived,
-  XcmRelayed,
-  XcmSent,
-  XcmTimeout,
-  XcmHop,
-  XcmBridge,
-  AssetsTrapped,
-  TrappedAsset,
-  XcmNotifyMessage,
-  Leg,
-  legType,
-  XcmTerminus,
-  XcmTerminusContext,
-  XcmWaypointContext,
-} from './services/agents/xcm/types.js'
+// The "export * as ___" syntax is not supported yet; as a workaround,
+// use "import * as ___" with a separate "export { ___ }" declaration
+import * as xcm from './services/agents/xcm/lib.js'
+export { xcm }

@@ -1,6 +1,6 @@
 import { type MessageEvent, WebSocket } from 'isows'
 
-import type { XcmNotifyMessage } from './server-types'
+import type { NotifyMessage } from './server-types'
 import {
   type AuthReply,
   type MessageHandler,
@@ -8,10 +8,12 @@ import {
   type OnDemandSubscriptionHandlers,
   type Subscription,
   type SubscriptionError,
+  type SubscriptionIds,
   type WebSocketHandlers,
   WsAuthErrorEvent,
   isSubscription,
   isSubscriptionError,
+  isSubscriptionIds,
 } from './types'
 
 /**
@@ -44,14 +46,14 @@ function isBlob(value: any): value is Blob {
  */
 class Protocol {
   readonly #queue: MessageHandler<any>[] = []
-  readonly #stream: MessageHandler<XcmNotifyMessage>
+  readonly #stream: MessageHandler<NotifyMessage>
   #isStreaming: boolean
 
   /**
    * Constructs a Protocol instance.
    * @param stream - The message handler for streaming state.
    */
-  constructor(stream: MessageHandler<XcmNotifyMessage>) {
+  constructor(stream: MessageHandler<NotifyMessage>) {
     this.#stream = stream
     this.#isStreaming = false
   }
@@ -70,13 +72,16 @@ class Protocol {
    * @param event - The message event to handle.
    */
   handle(event: MessageEvent) {
+    console.log('jkkjkjkjkjkjkjkjkk', event)
     const ws = event.target as WebSocket
     let current: MessageHandler<any>
 
     if (this.#isStreaming) {
+      console.log('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS')
       current = this.#stream
     } else {
       const next = this.#queue.pop()
+      console.log(next)
       if (next) {
         current = next
       } else {
@@ -85,6 +90,7 @@ class Protocol {
       }
     }
 
+    console.log('MMMMMMMMMMMMM', event.data)
     if (isBlob(event.data)) {
       ;(event.data as Blob).text().then((blob) => current(JSON.parse(blob), ws, event))
     } else {
@@ -112,23 +118,28 @@ class Protocol {
  * // create a 'long-lived' subscription
  * const reply = await client.create({
  *   id: "my-subscription",
- *   origin: "urn:ocn:polkadot:2004",
- *   senders: "*",
- *   events: "*",
- *   destinations: [
- *     "urn:ocn:polkadot:0",
- *     "urn:ocn:polkadot:1000",
- *     "urn:ocn:polkadot:2000",
- *     "urn:ocn:polkadot:2034",
- *     "urn:ocn:polkadot:2104"
- *   ],
- *   channels: [{
- *     type: "webhook",
- *     url: "https://some.webhook"
+ *   agent: "xcm",
+ *   args: {
+ *     origin: "urn:ocn:polkadot:2004",
+ *     senders: "*",
+ *     events: "*",
+ *     destinations: [
+ *       "urn:ocn:polkadot:0",
+ *       "urn:ocn:polkadot:1000",
+ *       "urn:ocn:polkadot:2000",
+ *       "urn:ocn:polkadot:2034",
+ *       "urn:ocn:polkadot:2104"
+ *     ],
  *   },
- *   {
- *     type: "websocket"
- *   }]
+ *   channels: [
+ *     {
+ *       type: "webhook",
+ *       url: "https://some.webhook"
+ *     },
+ *     {
+ *       type: "websocket"
+ *     }
+ *   ]
  * });
  *
  * // subscribe to the previously created subscription
@@ -151,16 +162,19 @@ class Protocol {
  * ```typescript
  * // subscribe on-demand
  * const ws = client.subscribe({
- *   origin: "urn:ocn:polkadot:2004",
- *   senders: "*",
- *   events: "*",
- *   destinations: [
- *     "urn:ocn:polkadot:0",
- *     "urn:ocn:polkadot:1000",
- *     "urn:ocn:polkadot:2000",
- *     "urn:ocn:polkadot:2034",
- *     "urn:ocn:polkadot:2104"
- *   ]
+ *   agent: "xcm",
+ *   args: {
+ *     origin: "urn:ocn:polkadot:2004",
+ *     senders: "*",
+ *     events: "*",
+ *     destinations: [
+ *       "urn:ocn:polkadot:0",
+ *       "urn:ocn:polkadot:1000",
+ *       "urn:ocn:polkadot:2000",
+ *       "urn:ocn:polkadot:2034",
+ *       "urn:ocn:polkadot:2104"
+ *     ]
+ *   }
  * }, {
  *  onMessage: msg => {
  *    if(isXcmReceived(msg)) {
@@ -254,14 +268,14 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the WebSocket instance.
    */
   subscribe(
-    subscription: string | OnDemandSubscription,
+    subscription: SubscriptionIds | OnDemandSubscription,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs'
 
-    return typeof subscription === 'string'
-      ? this.#openWebSocket(`${url}/${subscription}`, handlers)
+    return isSubscriptionIds(subscription)
+      ? this.#openWebSocket(`${url}/${subscription.agentId}/${subscription.subscriptionId}`, handlers)
       : this.#openWebSocket(url, handlers, {
           sub: subscription,
           onDemandHandlers,
@@ -327,6 +341,7 @@ export class OcelloidsClient {
       const { sub, onDemandHandlers } = onDemandSub
 
       ws.send(JSON.stringify(sub))
+
       protocol.next<Subscription | SubscriptionError>((msg) => {
         if (onDemandHandlers?.onSubscriptionCreated && isSubscription(msg)) {
           onDemandHandlers.onSubscriptionCreated(msg)

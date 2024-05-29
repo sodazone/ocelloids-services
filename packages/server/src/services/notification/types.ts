@@ -2,6 +2,11 @@ import { TypedEventEmitter } from '../index.js'
 import { AnyJson, Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEvents } from '../telemetry/types.js'
 
+/**
+ * The generic message.
+ * 
+ * @public
+ */
 export type NotifyMessage = {
   metadata: {
     type: string

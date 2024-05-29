@@ -31,7 +31,7 @@ const denoLibRoot = join(distRoot, "deno");
 
 const replacements = {
   "isows": "// native",
-  "xcmon-server": "export type * from './ocelloids-client.d.ts';\n"
+  "@sodazone/ocelloids-service-node": "export type * from './ocelloids-client.d.ts';\n"
 };
 
 const walkAndBuild = (/** @type string */ dir) => {

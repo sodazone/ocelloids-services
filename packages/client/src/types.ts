@@ -1,4 +1,4 @@
-import { XcmNotifyMessage, XcmReceived, XcmRelayed, XcmSent } from './lib'
+import { NotifyMessage } from './lib'
 
 /**
  * Represents a {@link Subscription} delivery channel.
@@ -23,19 +23,29 @@ export type DeliveryChannel =
     }
 
 /**
+ * Generic subscription inputs placeholder type.
+ *
+ * @public
+ */
+export type SubscriptionInputs = Record<string, any>
+
+/**
  * Represents a persistent subscription.
  *
  * @example
  * ```typescript
  * {
  *   id: "polkadot-transfers",
- *   origin: "0",
- *   senders: "*",
- *   destinations: [
- *     "2000",
- *     "1000"
- *   ],
- *   events: "*",
+ *   agent: "xcm",
+ *   args: {
+ *     origin: "0",
+ *     senders: "*",
+ *     destinations: [
+ *       "2000",
+ *       "1000"
+ *     ],
+ *     events: "*",
+ *   },
  *   channels: [
  *     {
  *       type: "webhook",
@@ -58,19 +68,14 @@ export type Subscription = {
   id: string
 
   /**
-   * The origin chain id.
+   * The agent id.
    */
-  origin: string
+  agent: string
 
   /**
-   * An array of sender addresses or '*' for all.
+   * The specific agent inputs.
    */
-  senders?: '*' | string[]
-
-  /**
-   * An array of destination chain ids.
-   */
-  destinations: string[]
+  args: SubscriptionInputs
 
   /**
    * Indicates the persistence preference.
@@ -81,13 +86,6 @@ export type Subscription = {
    * An array of delivery channels.
    */
   channels: DeliveryChannel[]
-
-  /**
-   * An optional array with the events to deliver.
-   * Use '*' for all.
-   * @see {@link XcmNotificationType} for supported event names.
-   */
-  events?: '*' | string[]
 }
 
 /**
@@ -106,24 +104,30 @@ export type SubscriptionError = {
 }
 
 /**
- * The XCM event types.
- *
- * @public
- */
-export enum XcmNotificationType {
-  Sent = 'xcm.sent',
-  Received = 'xcm.received',
-  Relayed = 'xcm.relayed',
-  Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop',
-}
-
-/**
  * Represents an on-demand subscription.
  *
  * @public
  */
 export type OnDemandSubscription = Omit<Subscription, 'id' | 'channels'>
+
+/**
+ * Subscription identifiers.
+ *
+ * @public
+ */
+export type SubscriptionIds = {
+  subscriptionId: string
+  agentId: string
+}
+
+/**
+ * Guard condition for {@link SubscriptionIds}.
+ *
+ * @public
+ */
+export function isSubscriptionIds(object: any): object is SubscriptionIds {
+  return object.subscriptionId !== undefined && object.agentId !== undefined
+}
 
 /**
  * Authentication reply.
@@ -181,10 +185,10 @@ export type ErrorHandler = (error: Event) => void
  */
 export type WebSocketHandlers = {
   /**
-   * Called on every {@link XcmNotifyMessage}.
+   * Called on every {@link NotifyMessage}.
    * This is the main message handling callback.
    */
-  onMessage: MessageHandler<XcmNotifyMessage>
+  onMessage: MessageHandler<NotifyMessage>
 
   /**
    * Called if the authentication fails.
@@ -218,14 +222,9 @@ export type OnDemandSubscriptionHandlers = {
  *
  * @public
  */
-export function isSubscription(obj: Subscription | SubscriptionError | XcmNotifyMessage): obj is Subscription {
+export function isSubscription(obj: Subscription | SubscriptionError | NotifyMessage): obj is Subscription {
   const maybeSub = obj as Subscription
-  return (
-    maybeSub.origin !== undefined &&
-    maybeSub.destinations !== undefined &&
-    maybeSub.id !== undefined &&
-    maybeSub.channels !== undefined
-  )
+  return maybeSub.id !== undefined && maybeSub.agent !== undefined && maybeSub.channels !== undefined
 }
 
 /**
@@ -236,31 +235,4 @@ export function isSubscription(obj: Subscription | SubscriptionError | XcmNotify
 export function isSubscriptionError(obj: Subscription | SubscriptionError): obj is SubscriptionError {
   const maybeError = obj as SubscriptionError
   return maybeError.issues !== undefined && maybeError.name !== undefined
-}
-
-/**
- * Guard condition for {@link XcmSent}.
- *
- * @public
- */
-export function isXcmSent(object: any): object is XcmSent {
-  return object.type !== undefined && object.type === XcmNotificationType.Sent
-}
-
-/**
- * Guard condition for {@link XcmReceived}.
- *
- * @public
- */
-export function isXcmReceived(object: any): object is XcmReceived {
-  return object.type !== undefined && object.type === XcmNotificationType.Received
-}
-
-/**
- * Guard condition for {@link XcmRelayed}.
- *
- * @public
- */
-export function isXcmRelayed(object: any): object is XcmRelayed {
-  return object.type !== undefined && object.type === XcmNotificationType.Relayed
 }
