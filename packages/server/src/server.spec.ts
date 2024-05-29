@@ -281,7 +281,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-          
+
           expect(JSON.parse(response.body).args.senders).toEqual(['ALICE', 'BOB'])
         }
       )

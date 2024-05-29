@@ -4,6 +4,8 @@ import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
 
+import { LocalAgentService } from '../services/agents/local.js'
+import { AgentService } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
 import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
@@ -11,6 +13,7 @@ import { Janitor } from '../services/persistence/janitor.js'
 import { Scheduler } from '../services/persistence/scheduler.js'
 import { SubsStore } from '../services/persistence/subs.js'
 import { Services } from '../services/types.js'
+import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
 
 export const _log = pino({
@@ -175,6 +178,7 @@ const __services = {
   rootStore: _rootDB,
   subsStore: {} as unknown as SubsStore,
   ingressConsumer: {} as unknown as IngressConsumer,
+  agentService: {} as unknown as AgentService,
   scheduler: {
     on: () => {
       /* empty */
@@ -191,10 +195,19 @@ const __services = {
 }
 
 export const _ingress = new LocalIngressConsumer(__services)
-export const _subsDB = new SubsStore(_log, _rootDB, _ingress)
+export const _subsDB = new SubsStore(_log, _rootDB)
+export const _agentService = new LocalAgentService(
+  {
+    ...__services,
+    ingressConsumer: _ingress,
+    subsStore: _subsDB,
+  } as Services,
+  { mode: AgentServiceMode.local }
+)
 
 export const _services = {
   ...__services,
   ingressConsumer: _ingress,
   subsStore: _subsDB,
+  agentService: _agentService,
 } as Services

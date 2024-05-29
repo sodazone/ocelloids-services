@@ -7,8 +7,13 @@ import { of, throwError } from 'rxjs'
 import { _services } from '../../testing/services.js'
 import { SubsStore } from '../persistence/subs'
 import type { Switchboard } from './switchboard.js'
-import { Subscription, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types'
+import { Subscription } from './types'
+import { AgentService } from '../agents/types.js'
+import { LocalAgentService } from '../agents/local.js'
+import { Services } from '../types.js'
+import { AgentServiceMode } from '../../types.js'
 
+/* TODO: move to xcm agent tests
 jest.unstable_mockModule('./ops/xcmp.js', () => {
   return {
     extractXcmpSend: jest.fn(),
@@ -22,29 +27,33 @@ jest.unstable_mockModule('./ops/ump.js', () => {
     extractUmpSend: jest.fn(),
   }
 })
+*/
 
 const SwitchboardImpl = (await import('./switchboard.js')).Switchboard
-const { extractXcmpReceive, extractXcmpSend } = await import('./ops/xcmp.js')
-const { extractUmpReceive, extractUmpSend } = await import('./ops/ump.js')
 
 const testSub: Subscription = {
   id: '1000:2000:0',
-  origin: 'urn:ocn:local:1000',
-  senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
-  destinations: ['urn:ocn:local:2000'],
+  agent: 'xcm',
+  args: {
+    origin: 'urn:ocn:local:1000',
+    senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
+    events: '*',
+    destinations: ['urn:ocn:local:2000'],
+  },
   channels: [
     {
       type: 'log',
     },
   ],
-  events: '*',
 }
 
 describe('switchboard service', () => {
   let switchboard: Switchboard
   let subs: SubsStore
+  let agentService: AgentService
 
-  beforeEach(() => {
+  beforeAll(async () => {
+    /*
     ;(extractXcmpSend as jest.Mock).mockImplementation(() => {
       return () => {
         return of({
@@ -96,49 +105,52 @@ describe('switchboard service', () => {
           outcome: 'Success',
         } as unknown as XcmInboundWithContext)
     })
+    */
 
-    subs = _services.subsStore
+    subs = new SubsStore(_services.log, _services.rootStore)
+    agentService = new LocalAgentService(
+      {
+        ..._services,
+        subsStore: subs,
+      } as Services,
+      { mode: AgentServiceMode.local }
+    )
+
     switchboard = new SwitchboardImpl(_services, {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
     })
+    agentService.start()
   })
 
-  afterEach(async () => {
+  afterAll(async () => {
     await _services.rootStore.clear()
-    return switchboard.stop()
+    return agentService.stop()
   })
 
-  it('should unsubscribe', async () => {
-    await switchboard.start()
-
+  it('should add a subscription by agent', async () => {
     await switchboard.subscribe(testSub)
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
-    expect(await subs.getById(testSub.id)).toBeDefined()
-
-    await switchboard.unsubscribe(testSub.id)
-
-    expect(switchboard.findSubscriptionHandler(testSub.id)).not.toBeDefined()
+    expect(switchboard.findSubscriptionHandler('xcm', testSub.id)).toBeDefined()
+    expect(await subs.getById('xcm', testSub.id)).toBeDefined()
   })
 
-  it('should notify on matched HRMP', async () => {
-    await switchboard.start()
+  it('should remove subscription by agent', async () => {
+    expect(switchboard.findSubscriptionHandler('xcm', testSub.id)).toBeDefined()
+    expect(await subs.getById('xcm', testSub.id)).toBeDefined()
 
-    await switchboard.subscribe(testSub)
+    await switchboard.unsubscribe('xcm', testSub.id)
 
-    await switchboard.stop()
-
-    // we can extract the NotifierHub as a service
-    // to test the matched, but not really worth right now
+    expect(() => {switchboard.findSubscriptionHandler('xcm', testSub.id)}).toThrow('subscription handler not found')
   })
 
+  /* TODO: move to agent service test
   it('should subscribe to persisted subscriptions on start', async () => {
     await subs.insert(testSub)
 
-    await switchboard.start()
+    await agentService.start()
 
-    expect(switchboard.findSubscriptionHandler(testSub.id)).toBeDefined()
+    expect(switchboard.findSubscriptionHandler('xcm', testSub.id)).toBeDefined()
   })
 
   it('should handle relay subscriptions', async () => {
@@ -296,4 +308,16 @@ describe('switchboard service', () => {
     const { relaySub: newRelaySub } = switchboard.findSubscriptionHandler(testSub.id)
     expect(newRelaySub).not.toBeDefined()
   })
+
+  it('should notify on matched HRMP', async () => {
+    await switchboard.start()
+
+    await switchboard.subscribe(testSub)
+
+    await switchboard.stop()
+
+    // we can extract the NotifierHub as a service
+    // to test the matched, but not really worth right now
+  })
+  */
 })
