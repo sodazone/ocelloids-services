@@ -1,5 +1,5 @@
 import { TypedEventEmitter } from '../index.js'
-import { AnyJson, Subscription } from '../monitoring/types.js'
+import { AnyJson, Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEvents } from '../telemetry/types.js'
 
 export type NotifyMessage = {

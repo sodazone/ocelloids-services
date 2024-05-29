@@ -11,18 +11,18 @@ import FastifySwaggerUI from '@fastify/swagger-ui'
 import FastifyWebsocket from '@fastify/websocket'
 import FastifyHealthcheck from 'fastify-healthcheck'
 
-import AgentService from './agents/plugin.js'
 import { logger } from './environment.js'
 import { errorHandler } from './errors.js'
 import {
   Administration,
+  Agents,
   Auth,
   Configuration,
   Connector,
   Ingress,
   Persistence,
   Root,
-  Monitoring as Subscriptions,
+  Subscriptions,
   Telemetry,
 } from './services/index.js'
 import version from './version.js'
@@ -161,7 +161,7 @@ export async function createServer(opts: ServerOptions) {
 
   await server.register(Persistence, opts)
   await server.register(Ingress, opts)
-  await server.register(AgentService, opts)
+  await server.register(Agents, opts)
   await server.register(Subscriptions, opts)
   await server.register(Administration)
   await server.register(Telemetry, opts)

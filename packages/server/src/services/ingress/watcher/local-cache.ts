@@ -10,9 +10,9 @@ import type { Raw } from '@polkadot/types'
 import type { Hash } from '@polkadot/types/interfaces'
 
 import { NetworkConfiguration } from '../../config.js'
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../monitoring/storage.js'
-import { HexString } from '../../monitoring/types.js'
 import { Janitor } from '../../persistence/janitor.js'
+import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../subscriptions/storage.js'
+import { HexString } from '../../subscriptions/types.js'
 import { TelemetryEventEmitter } from '../../telemetry/types.js'
 import { DB, Logger, NetworkURN, Services, prefixes } from '../../types.js'
 

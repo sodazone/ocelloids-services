@@ -5,7 +5,7 @@ import { Operation } from 'rfc6902'
 import { Logger, Services } from '../types.js'
 import { AgentId, NotificationListener, Subscription, SubscriptionStats } from './types.js'
 
-import { AgentService } from '../../agents/types.js'
+import { AgentService } from '../agents/types.js'
 import { NotifierEvents } from '../notification/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 

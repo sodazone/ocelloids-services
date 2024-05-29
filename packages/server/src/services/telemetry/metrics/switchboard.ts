@@ -1,6 +1,6 @@
 import { Counter, Gauge } from 'prom-client'
 
-import { Switchboard } from '../../monitoring/switchboard.js'
+import { Switchboard } from '../../subscriptions/switchboard.js'
 
 export function switchboardMetrics(switchboard: Switchboard) {
   const subsErrors = new Counter({

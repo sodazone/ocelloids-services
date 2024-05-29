@@ -6,8 +6,12 @@ export type {
   AnyJson,
   HexString,
   SignerData,
-} from './services/monitoring/types.js'
+} from './services/subscriptions/types.js'
 
+/**
+ * XCM agent types
+ * TODO: should be moved
+ */
 export type {
   XcmReceived,
   XcmRelayed,
@@ -23,4 +27,4 @@ export type {
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
-} from './agents/xcm/types.js'
+} from './services/agents/xcm/types.js'
