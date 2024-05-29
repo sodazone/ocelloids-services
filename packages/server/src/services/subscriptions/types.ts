@@ -2,6 +2,7 @@ import z from 'zod'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
+import { $AgentId } from '../agents/types.js'
 import { NotifyMessage } from '../notification/types.js'
 
 /**
@@ -106,12 +107,6 @@ export const $AgentArgs = z.record(
   }),
   z.any()
 )
-
-export const $AgentId = z.string({
-  required_error: 'agent id is required',
-})
-
-export type AgentId = z.infer<typeof $AgentId>
 
 export const $Subscription = z
   .object({

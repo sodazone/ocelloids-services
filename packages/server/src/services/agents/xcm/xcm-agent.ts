@@ -4,14 +4,7 @@ import { Operation, applyPatch } from 'rfc6902'
 import { Observable, filter, from, map, switchMap } from 'rxjs'
 import { z } from 'zod'
 
-import {
-  $Subscription,
-  AgentId,
-  AnyJson,
-  HexString,
-  RxSubscriptionWithId,
-  Subscription,
-} from '../../subscriptions/types.js'
+import { $Subscription, AnyJson, HexString, RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { NetworkURN } from '../../types.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import {
@@ -112,7 +105,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
   get metadata(): AgentMetadata {
     return {
       id: 'xcm',
-      name: 'XCM Agent'
+      name: 'XCM Agent',
     }
   }
 

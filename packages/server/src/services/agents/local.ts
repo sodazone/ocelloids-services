@@ -3,8 +3,8 @@ import { AgentServiceOptions } from '../../types.js'
 import { Logger, Services } from '../index.js'
 import { NotifierHub } from '../notification/index.js'
 import { NotifierEvents } from '../notification/types.js'
-import { AgentId, NotificationListener, Subscription } from '../subscriptions/types.js'
-import { Agent, AgentRuntimeContext, AgentService } from './types.js'
+import { NotificationListener, Subscription } from '../subscriptions/types.js'
+import { Agent, AgentId, AgentRuntimeContext, AgentService } from './types.js'
 import { XCMAgent } from './xcm/xcm-agent.js'
 
 /**

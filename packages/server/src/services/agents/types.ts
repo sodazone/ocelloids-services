@@ -7,8 +7,14 @@ import { NotifierHub } from '../notification/hub.js'
 import { NotifierEvents } from '../notification/types.js'
 import { Janitor } from '../persistence/janitor.js'
 import { SubsStore } from '../persistence/subs.js'
-import { AgentId, NotificationListener, Subscription } from '../subscriptions/types.js'
+import { NotificationListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
+
+export const $AgentId = z.string({
+  required_error: 'agent id is required',
+})
+
+export type AgentId = z.infer<typeof $AgentId>
 
 export type AgentRuntimeContext = {
   log: Logger

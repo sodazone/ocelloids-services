@@ -6,11 +6,12 @@ import { ulid } from 'ulidx'
 import { z } from 'zod'
 
 import { errorMessage } from '../../../../errors.js'
+import { AgentId } from '../../../agents/types.js'
 import { NotifyMessage } from '../../../notification/types.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
-import { $Subscription, AgentId, NotificationListener, Subscription } from '../../types.js'
+import { $Subscription, NotificationListener, Subscription } from '../../types.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z

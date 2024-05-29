@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { $AgentId, AgentId } from '../subscriptions/types.js'
+import { $AgentId, AgentId } from './types.js'
 
 /**
  * Agents HTTP API

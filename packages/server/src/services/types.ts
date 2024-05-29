@@ -1,14 +1,14 @@
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
 import { FastifyBaseLogger } from 'fastify'
-import { AgentService } from './agents/types.js'
+import { AgentId, AgentService } from './agents/types.js'
 import { ServiceConfiguration } from './config.js'
 import { IngressConsumer } from './ingress/consumer/index.js'
 import Connector from './networking/connector.js'
 import { Janitor } from './persistence/janitor.js'
 import { Scheduler } from './persistence/scheduler.js'
 import { SubsStore } from './persistence/subs.js'
-import { AgentId, BlockNumberRange, HexString } from './subscriptions/types.js'
+import { BlockNumberRange, HexString } from './subscriptions/types.js'
 
 export type NetworkURN = `urn:ocn:${string}`
 
