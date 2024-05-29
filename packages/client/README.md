@@ -43,7 +43,7 @@ const ws = client.subscribe({
       "urn:ocn:polkadot:2104"
     ]
   }
-}, {
+ }, {
  onMessage: msg => {
    if(isXcmReceived(msg)) {
      console.log("RECV", msg.subscriptionId);
