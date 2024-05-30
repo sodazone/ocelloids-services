@@ -389,9 +389,9 @@ describe('OcelloidsClient', () => {
       const scope = nock('http://mock')
         .get('/health')
         .reply(200, '{}')
-        .get('/subs')
+        .get('/subs/xcm')
         .reply(200, '[]')
-        .get('/subs/id')
+        .get('/subs/xcm/id')
         .reply(200, '{}')
 
       const client = new OcelloidsClient({
@@ -400,8 +400,8 @@ describe('OcelloidsClient', () => {
       })
 
       await client.health()
-      await client.allSubscriptions()
-      await client.getSubscription('id')
+      await client.allSubscriptions('xcm')
+      await client.getSubscription({ agentId: 'xcm', subscriptionId: 'id' })
 
       scope.done()
     })

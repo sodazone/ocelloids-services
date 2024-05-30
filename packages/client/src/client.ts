@@ -228,25 +228,23 @@ export class OcelloidsClient {
   /**
    * Gets a subscription by its identifier.
    *
-   * @param subscriptionId - The subscription identifier.
+   * @param ids - The agent and subscription identifiers.
    * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription<T = AnySubscriptionInputs>(
-    subscriptionId: string,
-    init?: RequestInit
-  ): Promise<Subscription<T>> {
-    return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init)
+  async getSubscription<T = AnySubscriptionInputs>(ids: SubscriptionIds, init?: RequestInit): Promise<Subscription<T>> {
+    return this.#fetch(`${this.#config.httpUrl}/subs/${ids.agentId}/${ids.subscriptionId}`, init)
   }
 
   /**
-   * Lists all subscriptions.
+   * Lists all subscriptions for a given agent.
    *
+   * @param agentId - The agent identifier.
    * @param init - The fetch request init.
    * @returns A promise that resolves with an array of subscriptions.
    */
-  async allSubscriptions(init?: RequestInit): Promise<Subscription[]> {
-    return this.#fetch(this.#config.httpUrl + '/subs', init)
+  async allSubscriptions(agentId: string, init?: RequestInit): Promise<Subscription[]> {
+    return this.#fetch(this.#config.httpUrl + '/subs/' + agentId, init)
   }
 
   /**
