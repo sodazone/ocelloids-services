@@ -37,7 +37,7 @@ describe('WebsocketProtocol', () => {
       removeNotificationListener: jest.fn(),
       subscribe: jest.fn(),
       unsubscribe: jest.fn(),
-      findSubscriptionHandler: jest.fn(),
+      findSubscription: jest.fn(),
     }
     mockOptions = {
       wsMaxClients: 2,
@@ -128,7 +128,7 @@ describe('WebsocketProtocol', () => {
         id: 'mockRequestId',
         ip: 'mockRequestIp',
       } as FastifyRequest
-      mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => ({
+      mockSwitchboard.findSubscription.mockImplementationOnce(() => ({
         ...testSub,
         channels: [{ type: 'log' }],
       }))
@@ -167,7 +167,7 @@ describe('WebsocketProtocol', () => {
 
     it('should close connection with error code if an error occurs', async () => {
       const mockStream = { close: jest.fn() }
-      mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => {
+      mockSwitchboard.findSubscription.mockImplementationOnce(() => {
         throw new Error('subscription not found')
       })
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')
