@@ -14,6 +14,85 @@ export enum XcmNotificationType {
 }
 
 /**
+ * XCM sent event.
+ *
+ * @public
+ */
+export type XcmSent = xcm.XcmSent
+/**
+ * XCM received event.
+ *
+ * @public
+ */
+export type XcmReceived = xcm.XcmReceived
+/**
+ * XCM relayed event.
+ *
+ * @public
+ */
+export type XcmRelayed = xcm.XcmRelayed
+/**
+ * XCM hop event.
+ *
+ * @public
+ */
+export type XcmHop = xcm.XcmHop
+/**
+ * XCM bridge event.
+ *
+ * @public
+ */
+export type XcmBridge = xcm.XcmBridge
+/**
+ * XCM timeout event.
+ *
+ * @public
+ */
+export type XcmTimeout = xcm.XcmTimeout
+/**
+ * The XCM notification payload.
+ *
+ * @public
+ */
+export type XcmNotifyMessage = xcm.XcmNotifyMessage
+/**
+ * XCM assets trapped event.
+ *
+ * @public
+ */
+export type XcmAssetsTrapped = xcm.AssetsTrapped
+/**
+ * XCM trapped asset data.
+ *
+ * @public
+ */
+export type XcmTrappedAsset = xcm.TrappedAsset
+/**
+ * The leg of an XCM journey.
+ *
+ * @public
+ */
+export type XcmLeg = xcm.Leg
+/**
+ * The XcmTerminus contextual information.
+ *
+ * @public
+ */
+export type XcmTerminusContext = xcm.XcmTerminusContext
+/**
+ * Terminal point of an XCM journey.
+ *
+ * @public
+ */
+export type XcmTerminus = xcm.XcmTerminus
+/**
+ * The XCM waypoint contextual information.
+ *
+ * @public
+ */
+export type XcmWaypointContext = xcm.XcmWaypointContext
+
+/**
  * XCM Agent subscription inputs.
  *
  * @public
@@ -37,34 +116,33 @@ export type XcmInputs = {
   /**
    * An optional array with the events to deliver.
    * Use '*' for all.
-   * @see {@link XcmNotificationType} for supported event names.
    */
   events?: '*' | XcmNotificationType[]
 }
 
 /**
- * Guard condition for {@link xcm.XcmSent}.
+ * Guard condition for XcmSent.
  *
  * @public
  */
-export function isXcmSent(object: any): object is xcm.XcmSent {
+export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent
 }
 
 /**
- * Guard condition for {@link xcm.XcmReceived}.
+ * Guard condition for XcmReceived.
  *
  * @public
  */
-export function isXcmReceived(object: any): object is xcm.XcmReceived {
+export function isXcmReceived(object: any): object is XcmReceived {
   return object.type !== undefined && object.type === XcmNotificationType.Received
 }
 
 /**
- * Guard condition for {@link xcm.XcmRelayed}.
+ * Guard condition for XcmRelayed.
  *
  * @public
  */
-export function isXcmRelayed(object: any): object is xcm.XcmRelayed {
+export function isXcmRelayed(object: any): object is XcmRelayed {
   return object.type !== undefined && object.type === XcmNotificationType.Relayed
 }
