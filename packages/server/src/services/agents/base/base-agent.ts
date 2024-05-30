@@ -8,14 +8,10 @@ import { NotifierHub } from '../../notification/hub.js'
 import { SubsStore } from '../../persistence/subs.js'
 import { HexString, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
-import { Agent, AgentId, AgentMetadata, AgentRuntimeContext } from '../types.js'
+import { Agent, AgentId, AgentMetadata, AgentRuntimeContext, SubscriptionHandler } from '../types.js'
 import { GetStorageAt } from '../xcm/types-augmented.js'
 
-type SubscriptionHandler = {
-  descriptor: Subscription
-}
-
-export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent {
+export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent<T> {
   protected readonly subs: Record<string, T>
   protected readonly log: Logger
   protected readonly timeouts: NodeJS.Timeout[]
@@ -57,11 +53,19 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent 
     return await this.db.getByAgentId(this.id)
   }
 
-  getSubscriptionHandler(subscriptionId: string): Subscription {
+  getSubscriptionDescriptor(subscriptionId: string): Subscription {
     if (this.subs[subscriptionId]) {
       return this.subs[subscriptionId].descriptor
     } else {
       throw Error('subscription not found')
+    }
+  }
+
+  getSubscriptionHandler(subscriptionId: string): T {
+    if (this.subs[subscriptionId]) {
+      return this.subs[subscriptionId]
+    } else {
+      throw Error('subscription handler not found')
     }
   }
 

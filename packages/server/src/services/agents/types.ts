@@ -45,14 +45,19 @@ export type AgentMetadata = {
   description?: string
 }
 
-export interface Agent {
+export type SubscriptionHandler = {
+  descriptor: Subscription
+}
+
+export interface Agent<T extends SubscriptionHandler = SubscriptionHandler> {
   collectTelemetry(): void
   get id(): AgentId
   get metadata(): AgentMetadata
   getSubscriptionById(subscriptionId: string): Promise<Subscription>
   getAllSubscriptions(): Promise<Subscription[]>
   getInputSchema(): z.ZodSchema
-  getSubscriptionHandler(subscriptionId: string): Subscription
+  getSubscriptionDescriptor(subscriptionId: string): Subscription
+  getSubscriptionHandler(subscriptionId: string): T
   subscribe(subscription: Subscription): Promise<void>
   unsubscribe(subscriptionId: string): Promise<void>
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription>

@@ -116,7 +116,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
       const agent = this.#agentService.getAgentById(agentId)
-      const { ephemeral } = agent.getSubscriptionHandler(subscriptionId)
+      const { ephemeral } = agent.getSubscriptionDescriptor(subscriptionId)
       await agent.unsubscribe(subscriptionId)
 
       if (ephemeral) {
@@ -138,13 +138,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Gets a subscription handler by id.
+   * Gets a subscription of an agent by agent id and subscription id.
    *
    * @param {AgentId} agentId The agent identifier.
    * @param {string} subscriptionId The subscription identifier.
    */
-  findSubscriptionHandler(agentId: AgentId, subscriptionId: string) {
-    return this.#agentService.getAgentById(agentId).getSubscriptionHandler(subscriptionId)
+  findSubscription(agentId: AgentId, subscriptionId: string): Subscription {
+    return this.#agentService.getAgentById(agentId).getSubscriptionDescriptor(subscriptionId)
   }
 
   /**

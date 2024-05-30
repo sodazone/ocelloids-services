@@ -140,7 +140,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       } else {
         // existing subscriptions
         const { agentId, subscriptionId } = ids
-        const subscription = this.#switchboard.findSubscriptionHandler(agentId, subscriptionId)
+        const subscription = this.#switchboard.findSubscription(agentId, subscriptionId)
         this.#addSubscriber(subscription, socket, request)
       }
     } catch (error) {

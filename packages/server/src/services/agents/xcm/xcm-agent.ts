@@ -97,6 +97,8 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
         this.#updateEvents(subscriptionId)
       }
 
+      this.#updateDescriptor(descriptor)
+
       return descriptor
     } else {
       throw Error('Only operations on these paths are allowed: ' + allowedPaths.join(','))
@@ -840,6 +842,14 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     } else if (!this.#shouldMonitorRelay(args) && relaySub !== undefined) {
       relaySub.sub.unsubscribe()
       delete this.subs[id].relaySub
+    }
+  }
+
+  #updateDescriptor(sub: Subscription) {
+    if (this.subs[sub.id]) {
+      this.subs[sub.id].descriptor = sub
+    } else {
+      this.log.warn('trying to update an unknown subscription %s', sub.id)
     }
   }
 
