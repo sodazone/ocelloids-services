@@ -1,5 +1,5 @@
 # Update Senders
-PATCH {{base-url}}/subs/test-1
+PATCH {{base-url}}/subs/xcm/test-1
 ```json
 [
   { "op": "add", "path": "/senders/-", "value": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y" },
@@ -11,7 +11,7 @@ PATCH {{base-url}}/subs/test-1
 HTTP 200
 
 # Update Destinations
-PATCH {{base-url}}/subs/test-1
+PATCH {{base-url}}/subs/xcm/test-1
 ```json
 [
   { "op": "add", "path": "/destinations/-", "value": "urn:ocn:polkadot:2000" },
@@ -21,7 +21,7 @@ PATCH {{base-url}}/subs/test-1
 HTTP 200
 
 # Update Notify
-PATCH {{base-url}}/subs/test-1
+PATCH {{base-url}}/subs/xcm/test-1
 ```json
 [
   {
@@ -35,9 +35,9 @@ PATCH {{base-url}}/subs/test-1
 ```
 
 # Check Updates
-GET {{base-url}}/subs/test-1
+GET {{base-url}}/subs/xcm/test-1
 HTTP 200
 [Asserts]
-jsonpath "$.destinations" count == 2
-jsonpath "$.senders" count == 3
-jsonpath "$.channels[0].type" == "log"
+jsonpath "$.args.destinations" count == 2
+jsonpath "$.args.senders" count == 3
+jsonpath "$.args.channels[0].type" == "log"

@@ -1,18 +1,21 @@
 [
   {
     "id": "acala-transfers",
-    "origin": "urn:ocn:polkadot:2000",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:2104"
-    ],
-    "events": [
-      "xcm.received"
-    ],
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2000",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2034",
+        "urn:ocn:polkadot:2104"
+      ],
+      "events": [
+        "xcm.received"
+      ]
+    },
     "channels": [
       {
         "type": "webhook",
@@ -22,33 +25,24 @@
   },
   {
     "id": "moonbeam-transfers",
-    "origin": "urn:ocn:polkadot:2004",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:2104"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2004",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:2034",
+        "urn:ocn:polkadot:2104"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
         "contentType": "text/plain",
-        "events": [
-          "xcm.sent"
-        ],
-        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
-        "url": "https://en785006d7bvj.x.pipedream.net"
-      },
-      {
-        "type": "webhook",
-        "contentType": "text/plain",
-        "events": [
-          "xcm.received"
-        ],
-        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "template": "TEMPLATE id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
         "url": "https://en785006d7bvj.x.pipedream.net"
       },
       {
@@ -58,33 +52,24 @@
   },
   {
     "id": "polkadot-transfers",
-    "origin": "urn:ocn:polkadot:0",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:2104"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:0",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2034",
+        "urn:ocn:polkadot:2104"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
         "contentType": "text/plain",
-        "events": [
-          "xcm.sent"
-        ],
-        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
-        "url": "https://en785006d7bvj.x.pipedream.net"
-      },
-      {
-        "type": "webhook",
-        "contentType": "text/plain",
-        "events": [
-          "xcm.received"
-        ],
-        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "template": "TEMPLATE id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
         "url": "https://en785006d7bvj.x.pipedream.net"
       },
       {
@@ -94,33 +79,24 @@
   },
   {
     "id": "asset-hub-transfers",
-    "origin": "urn:ocn:polkadot:1000",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:2104"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:1000",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2034",
+        "urn:ocn:polkadot:2104"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
         "contentType": "text/plain",
-        "events": [
-          "xcm.sent"
-        ],
-        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
-        "url": "https://en785006d7bvj.x.pipedream.net"
-      },
-      {
-        "type": "webhook",
-        "contentType": "text/plain",
-        "events": [
-          "xcm.received"
-        ],
-        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "template": "TEMPLATE id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
         "url": "https://en785006d7bvj.x.pipedream.net"
       },
       {
@@ -130,33 +106,24 @@
   },
   {
     "id": "hydra-transfers",
-    "origin": "urn:ocn:polkadot:2034",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2104"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2034",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2104"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
         "contentType": "text/plain",
-        "events": [
-          "xcm.sent"
-        ],
-        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
-        "url": "https://en785006d7bvj.x.pipedream.net"
-      },
-      {
-        "type": "webhook",
-        "contentType": "text/plain",
-        "events": [
-          "xcm.received"
-        ],
-        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "template": "TEMPLATE id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
         "url": "https://en785006d7bvj.x.pipedream.net"
       },
       {
@@ -166,33 +133,24 @@
   },
   {
     "id": "manta-transfers",
-    "origin": "urn:ocn:polkadot:2104",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:0"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2104",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2034",
+        "urn:ocn:polkadot:0"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
         "contentType": "text/plain",
-        "events": [
-          "xcm.sent"
-        ],
-        "template": "SENT id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
-        "url": "https://en785006d7bvj.x.pipedream.net"
-      },
-      {
-        "type": "webhook",
-        "contentType": "text/plain",
-        "events": [
-          "xcm.received"
-        ],
-        "template": "RECEIVED id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
+        "template": "TEMPLATE id={{subscriptionId}} leg={{waypoint.legIndex}} legs=[{{#each legs}}(from={{from}}, to={{to}}){{/each}}]",
         "url": "https://en785006d7bvj.x.pipedream.net"
       },
       {
