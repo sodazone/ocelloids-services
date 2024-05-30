@@ -243,7 +243,7 @@ export class OcelloidsClient {
    * @param init - The fetch request init.
    * @returns A promise that resolves with an array of subscriptions.
    */
-  async allSubscriptions(agentId: string, init?: RequestInit): Promise<Subscription[]> {
+  async allSubscriptions<T = AnySubscriptionInputs>(agentId: string, init?: RequestInit): Promise<Subscription<T>[]> {
     return this.#fetch(this.#config.httpUrl + '/subs/' + agentId, init)
   }
 
