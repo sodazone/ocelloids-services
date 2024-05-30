@@ -9,9 +9,13 @@ import { SubsStore } from '../persistence/subs.js'
 import { NotificationListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
 
-export const $AgentId = z.string({
-  required_error: 'agent id is required',
-})
+export const $AgentId = z
+  .string({
+    required_error: 'agent id is required',
+  })
+  .min(1)
+  .max(100)
+  .regex(/[A-Za-z0-9.\-_]+/)
 
 export type AgentId = z.infer<typeof $AgentId>
 

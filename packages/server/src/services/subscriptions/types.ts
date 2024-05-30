@@ -43,7 +43,7 @@ export const $SafeId = z
   })
   .min(1)
   .max(100)
-  .regex(/[A-Za-z0-9:.\-_]+/)
+  .regex(/[A-Za-z0-9.\-_]+/)
 
 /**
  * A hex string starting with '0x'.
