@@ -8,11 +8,14 @@ const client = new OcelloidsClient({
 client.health().then(console.log).catch(console.error)
 
 client.subscribe(
-  { 
-    origin: "urn:ocn:polkadot:2004",
-    senders: "*",
-    events: "*",
-    destinations: [ "urn:ocn:polkadot:0","urn:ocn:polkadot:1000", "urn:ocn:polkadot:2000", "urn:ocn:polkadot:2034", "urn:ocn:polkadot:2104" ]
+  {
+    agent: "xcm",
+    args: {
+      origin: "urn:ocn:polkadot:0",
+      senders: "*",
+      events: "*",
+      destinations: ["urn:ocn:polkadot:1000"]
+    }
   }, {
   onMessage: (msg, ws) => {
     console.log(msg);
