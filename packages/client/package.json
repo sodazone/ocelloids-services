@@ -40,7 +40,6 @@
     "lint": "biome check --apply src/**/*.ts"
   },
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "collectCoverage": true,
     "coveragePathIgnorePatterns": [
