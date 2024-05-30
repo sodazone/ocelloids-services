@@ -7,13 +7,13 @@ import { TelemetryNotifierEvents } from '../telemetry/types.js'
  *
  * @public
  */
-export type NotifyMessage = {
+export type NotifyMessage<T = AnyJson> = {
   metadata: {
     type: string
     agentId: string
     subscriptionId: string
   }
-  payload: AnyJson
+  payload: T
 }
 
 export type NotifierEvents = {

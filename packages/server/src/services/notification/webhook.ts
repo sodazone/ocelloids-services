@@ -135,12 +135,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.#log.info(
-          'NOTIFICATION %s agent=%s subscription=%s, endpoint=%s, payload=%j',
+          'NOTIFICATION %s agent=%s subscription=%s, endpoint=%s',
           msg.metadata.type,
           msg.metadata.agentId,
           msg.metadata.subscriptionId,
-          postUrl,
-          msg.payload
+          postUrl
         )
         this.#telemetryNotify(config, msg)
       } else {

@@ -16,9 +16,9 @@ type SubscriptionHandler = {
 }
 
 export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent {
-  protected readonly subs: Record<string, T> = {}
+  protected readonly subs: Record<string, T>
   protected readonly log: Logger
-  protected readonly timeouts: NodeJS.Timeout[] = []
+  protected readonly timeouts: NodeJS.Timeout[]
   protected readonly db: SubsStore
   protected readonly ingress: IngressConsumer
   protected readonly notifier: NotifierHub
@@ -35,6 +35,8 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent 
     this.ingress = ingressConsumer
     this.notifier = notifier
     this.db = subsStore
+    this.subs = {}
+    this.timeouts = []
 
     this.shared = {
       blockEvents: {},

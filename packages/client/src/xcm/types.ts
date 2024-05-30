@@ -54,7 +54,7 @@ export type XcmTimeout = xcm.XcmTimeout
  *
  * @public
  */
-export type XcmNotifyMessage = xcm.XcmNotifyMessage
+export type XcmMessagePayload = xcm.XcmMessagePayload
 /**
  * XCM assets trapped event.
  *

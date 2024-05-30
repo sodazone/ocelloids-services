@@ -735,11 +735,11 @@ export class GenericXcmBridge implements XcmBridge {
 }
 
 /**
- * The XCM event types.
+ * The XCM payloads.
  *
  * @public
  */
-export type XcmNotifyMessage = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
+export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === XcmNotificationType.Sent

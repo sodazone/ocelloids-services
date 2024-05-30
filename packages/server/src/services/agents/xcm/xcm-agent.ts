@@ -19,8 +19,8 @@ import {
   XcmBridgeInboundWithContext,
   XcmInbound,
   XcmInboundWithContext,
+  XcmMessagePayload,
   XcmNotificationType,
-  XcmNotifyMessage,
   XcmRelayedWithContext,
   XcmSentWithContext,
 } from './types.js'
@@ -64,7 +64,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
   constructor(ctx: AgentRuntimeContext) {
     super(ctx)
 
-    this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached)
+    this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
     this.#telemetry = new (EventEmitter as new () => TelemetryXCMEventEmitter)()
   }
 
@@ -193,7 +193,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     await this.#startNetworkMonitors()
   }
 
-  #onXcmWaypointReached(payload: XcmNotifyMessage) {
+  #onXcmWaypointReached(payload: XcmMessagePayload) {
     const { subscriptionId } = payload
     if (this.subs[subscriptionId]) {
       const { descriptor, args, sendersControl } = this.subs[subscriptionId]

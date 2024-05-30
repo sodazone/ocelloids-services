@@ -7,7 +7,7 @@ export type {
   XcmBridge,
   AssetsTrapped,
   TrappedAsset,
-  XcmNotifyMessage,
+  XcmMessagePayload,
   Leg,
   legType,
   XcmTerminus,

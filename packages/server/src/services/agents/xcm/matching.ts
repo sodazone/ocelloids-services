@@ -16,7 +16,7 @@ import {
   XcmBridgeInboundWithContext,
   XcmHop,
   XcmInbound,
-  XcmNotifyMessage,
+  XcmMessagePayload,
   XcmReceived,
   XcmRelayed,
   XcmRelayedWithContext,
@@ -30,7 +30,7 @@ import { Janitor, JanitorTask } from '../../persistence/janitor.js'
 import { AgentRuntimeContext } from '../types.js'
 import { TelemetryXCMEventEmitter } from './telemetry/events.js'
 
-export type XcmMatchedReceiver = (message: XcmNotifyMessage) => Promise<void> | void
+export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>
 
 export type ChainBlock = {
