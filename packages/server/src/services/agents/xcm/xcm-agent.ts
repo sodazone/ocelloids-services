@@ -36,15 +36,15 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 
 import { EventEmitter } from 'node:events'
 import { getChainId, getConsensus } from '../../config.js'
-import {
-  dmpDownwardMessageQueuesKey,
-  parachainSystemHrmpOutboundMessages,
-  parachainSystemUpwardMessages,
-} from '../../subscriptions/storage.js'
 import { BaseAgent } from '../base/base-agent.js'
 import { AgentMetadata, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
+import {
+  dmpDownwardMessageQueuesKey,
+  parachainSystemHrmpOutboundMessages,
+  parachainSystemUpwardMessages,
+} from './storage.js'
 import { TelemetryXCMEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmAgentEngineMetrics as xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js'

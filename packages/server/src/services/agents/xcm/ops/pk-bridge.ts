@@ -8,9 +8,9 @@ import { Observable, filter, from, mergeMap } from 'rxjs'
 import { types } from '@sodazone/ocelloids-sdk'
 
 import { getConsensus } from '../../../config.js'
-import { bridgeStorageKeys } from '../../../subscriptions/storage.js'
 import { HexString } from '../../../subscriptions/types.js'
 import { NetworkURN } from '../../../types.js'
+import { bridgeStorageKeys } from '../storage.js'
 import { GetStorageAt } from '../types-augmented.js'
 import {
   GenericXcmBridgeAcceptedWithContext,

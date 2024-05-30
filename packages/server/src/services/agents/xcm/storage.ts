@@ -1,7 +1,7 @@
 import { Registry } from '@polkadot/types-codec/types'
 import { u8aConcat, u8aToU8a } from '@polkadot/util'
 import { xxhashAsU8a } from '@polkadot/util-crypto'
-import { HexString } from './types.js'
+import { HexString } from '../../subscriptions/types.js'
 
 // Storage Keys Constants
 export const parachainSystemUpwardMessages = '0x45323df7cc47150b3930e2666b0aa313549294c71991aee810463ccf34a0f1d1'

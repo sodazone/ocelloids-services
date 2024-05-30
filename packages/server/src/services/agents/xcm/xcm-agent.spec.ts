@@ -4,16 +4,16 @@ import { of, throwError } from 'rxjs'
 
 import '../../../testing/network.js'
 
-import { Subscription } from '../../subscriptions/types.js'
-import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
-import * as XcmpOps from './ops/xcmp.js'
-import { XcmInboundWithContext, XcmNotificationType, XcmSentWithContext, XCMSubscriptionHandler } from './types.js'
 import { _services } from '../../../testing/services.js'
 import { AgentServiceMode } from '../../../types.js'
 import { Services } from '../../index.js'
 import { SubsStore } from '../../persistence/subs.js'
+import { Subscription } from '../../subscriptions/types.js'
 import { LocalAgentService } from '../local.js'
 import { AgentService } from '../types.js'
+import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
+import * as XcmpOps from './ops/xcmp.js'
+import { XCMSubscriptionHandler, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types.js'
 import { XCMAgent } from './xcm-agent.js'
 
 const mockExtractXcmpReceive = jest.fn()
@@ -57,7 +57,7 @@ describe('switchboard service', () => {
   let agentService: AgentService
   let xcmAgent: XCMAgent
 
-  beforeEach(async () => { 
+  beforeEach(async () => {
     mockExtractXcmpSend.mockImplementation(() => {
       return () => {
         return of({
@@ -72,7 +72,7 @@ describe('switchboard service', () => {
         } as unknown as XcmSentWithContext)
       }
     })
-    
+
     mockExtractXcmpReceive.mockImplementation(() => {
       return () => {
         return of({
@@ -119,8 +119,6 @@ describe('switchboard service', () => {
       } as Services,
       { mode: AgentServiceMode.local }
     )
-
-    
   })
 
   afterEach(async () => {
@@ -145,13 +143,13 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      origin: 'urn:ocn:local:0',
-      }
+        origin: 'urn:ocn:local:0',
+      },
     })
 
     expect(xcmAgent.getSubscriptionDescriptor(testSub.id)).toBeDefined()
   })
-  
+
   it('should handle pipe errors', async () => {
     mockExtractUmpSend.mockImplementationOnce(() => () => {
       return throwError(() => new Error('errored'))
@@ -172,9 +170,8 @@ describe('switchboard service', () => {
     await xcmAgent.subscribe(testSub)
 
     expect(xcmAgent.getSubscriptionDescriptor(testSub.id)).toBeDefined()
-
   })
-  
+
   it('should update destination subscriptions on destinations change', async () => {
     await agentService.start()
 
@@ -185,8 +182,7 @@ describe('switchboard service', () => {
       args: {
         ...testSub.args,
         destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
-      }
-      
+      },
     })
 
     const { destinationSubs } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -200,20 +196,23 @@ describe('switchboard service', () => {
       args: {
         ...testSub.args,
         destinations: ['urn:ocn:local:0', 'urn:ocn:local:3000'],
-      }
-      
+      },
     }
 
-    await xcmAgent.update(newSub.id, [{
-      op: 'remove',
-      path: '/args/destinations/1'
-    },
-    {
-      op: 'add',
-      path: '/args/destinations/-',
-      value: 'urn:ocn:local:3000'
-    }])
-    const { destinationSubs: newDestinationSubs, descriptor } = agentService.getAgentById('xcm').getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
+    await xcmAgent.update(newSub.id, [
+      {
+        op: 'remove',
+        path: '/args/destinations/1',
+      },
+      {
+        op: 'add',
+        path: '/args/destinations/-',
+        value: 'urn:ocn:local:3000',
+      },
+    ])
+    const { destinationSubs: newDestinationSubs, descriptor } = agentService
+      .getAgentById('xcm')
+      .getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
 
     expect(newDestinationSubs.length).toBe(2)
     expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1)
@@ -242,8 +241,8 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      origin: 'urn:ocn:local:0' // origin: '0', destinations: ['2000']
-      }
+        origin: 'urn:ocn:local:0', // origin: '0', destinations: ['2000']
+      },
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
@@ -259,8 +258,8 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      destinations: ['urn:ocn:local:0'], // origin: '1000', destinations: ['0']
-      }
+        destinations: ['urn:ocn:local:0'], // origin: '1000', destinations: ['0']
+      },
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -276,8 +275,8 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      events: [XcmNotificationType.Received]
-      }
+        events: [XcmNotificationType.Received],
+      },
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -293,8 +292,8 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      events: [XcmNotificationType.Received]
-      }
+        events: [XcmNotificationType.Received],
+      },
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -305,14 +304,17 @@ describe('switchboard service', () => {
       ...testSub,
       args: {
         ...testSub.args,
-      events: [XcmNotificationType.Received, XcmNotificationType.Relayed]}
+        events: [XcmNotificationType.Received, XcmNotificationType.Relayed],
+      },
     }
 
-    await xcmAgent.update(newSub.id, [{
-      op: 'add',
-      path: '/args/events/-',
-      value: XcmNotificationType.Relayed
-    }])
+    await xcmAgent.update(newSub.id, [
+      {
+        op: 'add',
+        path: '/args/events/-',
+        value: XcmNotificationType.Relayed,
+      },
+    ])
     const { relaySub: newRelaySub, descriptor } = xcmAgent.getSubscriptionHandler(testSub.id)
     expect(newRelaySub).toBeDefined()
     expect(descriptor).toEqual(newSub)
@@ -328,8 +330,7 @@ describe('switchboard service', () => {
       args: {
         ...testSub.args,
         events: [XcmNotificationType.Received, XcmNotificationType.Sent, XcmNotificationType.Relayed],
-      }
-      
+      },
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -341,15 +342,14 @@ describe('switchboard service', () => {
       args: {
         ...testSub.args,
         events: [XcmNotificationType.Received, XcmNotificationType.Sent],
-      }
-      
+      },
     }
 
     await xcmAgent.update(newSub.id, [
       {
         op: 'remove',
-        path: '/args/events/2'
-      }
+        path: '/args/events/2',
+      },
     ])
     const { relaySub: newRelaySub, descriptor } = xcmAgent.getSubscriptionHandler(testSub.id)
     expect(newRelaySub).not.toBeDefined()
