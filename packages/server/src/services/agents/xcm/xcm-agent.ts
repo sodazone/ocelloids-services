@@ -85,15 +85,15 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
       sub.args = args
       sub.descriptor = descriptor
 
-      if (hasOp(patch, '/senders')) {
+      if (hasOp(patch, '/args/senders')) {
         this.#updateSenders(subscriptionId)
       }
 
-      if (hasOp(patch, '/destinations')) {
+      if (hasOp(patch, '/args/destinations')) {
         this.#updateDestinations(subscriptionId)
       }
 
-      if (hasOp(patch, '/events')) {
+      if (hasOp(patch, '/args/events')) {
         this.#updateEvents(subscriptionId)
       }
 
