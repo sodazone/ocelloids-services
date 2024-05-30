@@ -11,9 +11,10 @@ const testSub: Subscription = {
   id: 'test-subscription',
   agent: 'xcm',
   args: {
-  origin: '1000',
-  senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
-  destinations: ['2000']},
+    origin: '1000',
+    senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
+    destinations: ['2000'],
+  },
   channels: [
     {
       type: 'websocket',
@@ -128,10 +129,9 @@ describe('WebsocketProtocol', () => {
         ip: 'mockRequestIp',
       } as FastifyRequest
       mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => ({
-          ...testSub,
-          channels: [{ type: 'log' }],
-        }
-      ))
+        ...testSub,
+        channels: [{ type: 'log' }],
+      }))
 
       await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription')
       await flushPromises()
