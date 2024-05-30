@@ -1,0 +1,16 @@
+export type {
+  XcmReceived,
+  XcmRelayed,
+  XcmSent,
+  XcmTimeout,
+  XcmHop,
+  XcmBridge,
+  AssetsTrapped,
+  TrappedAsset,
+  XcmMessagePayload,
+  Leg,
+  legType,
+  XcmTerminus,
+  XcmTerminusContext,
+  XcmWaypointContext,
+} from './types.js'

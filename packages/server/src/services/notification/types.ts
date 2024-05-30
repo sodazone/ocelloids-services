@@ -1,15 +1,29 @@
 import { TypedEventEmitter } from '../index.js'
-import { Subscription, XcmNotifyMessage } from '../monitoring/types.js'
+import { AnyJson, Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEvents } from '../telemetry/types.js'
 
+/**
+ * The generic message.
+ *
+ * @public
+ */
+export type NotifyMessage<T = AnyJson> = {
+  metadata: {
+    type: string
+    agentId: string
+    subscriptionId: string
+  }
+  payload: T
+}
+
 export type NotifierEvents = {
-  log: (sub: Subscription, msg: XcmNotifyMessage) => void
-  webhook: (sub: Subscription, msg: XcmNotifyMessage) => void
-  websocket: (sub: Subscription, msg: XcmNotifyMessage) => void
+  log: (sub: Subscription, msg: NotifyMessage) => void
+  webhook: (sub: Subscription, msg: NotifyMessage) => void
+  websocket: (sub: Subscription, msg: NotifyMessage) => void
 }
 
 export type NotifierEmitter = TypedEventEmitter<NotifierEvents & TelemetryNotifierEvents>
 
 export interface Notifier extends NotifierEmitter {
-  notify(sub: Subscription, msg: XcmNotifyMessage): void | Promise<void>
+  notify(sub: Subscription, msg: NotifyMessage): void | Promise<void>
 }

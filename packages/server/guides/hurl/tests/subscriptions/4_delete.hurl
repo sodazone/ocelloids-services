@@ -1,3 +1,3 @@
 # Delete Subscription
-DELETE {{base-url}}/subs/test-1
+DELETE {{base-url}}/subs/xcm/test-1
 HTTP 200

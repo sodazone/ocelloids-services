@@ -1,17 +1,20 @@
 import { type MessageEvent, WebSocket } from 'isows'
 
-import type { XcmNotifyMessage } from './server-types'
+import type { NotifyMessage } from './server-types'
 import {
+  type AnySubscriptionInputs,
   type AuthReply,
   type MessageHandler,
   type OnDemandSubscription,
   type OnDemandSubscriptionHandlers,
   type Subscription,
   type SubscriptionError,
+  type SubscriptionIds,
   type WebSocketHandlers,
   WsAuthErrorEvent,
   isSubscription,
   isSubscriptionError,
+  isSubscriptionIds,
 } from './types'
 
 /**
@@ -44,14 +47,14 @@ function isBlob(value: any): value is Blob {
  */
 class Protocol {
   readonly #queue: MessageHandler<any>[] = []
-  readonly #stream: MessageHandler<XcmNotifyMessage>
+  readonly #stream: MessageHandler<NotifyMessage>
   #isStreaming: boolean
 
   /**
    * Constructs a Protocol instance.
    * @param stream - The message handler for streaming state.
    */
-  constructor(stream: MessageHandler<XcmNotifyMessage>) {
+  constructor(stream: MessageHandler<NotifyMessage>) {
     this.#stream = stream
     this.#isStreaming = false
   }
@@ -99,7 +102,7 @@ class Protocol {
  * @example Create a client instance
  *
  * ```typescript
- * import { OcelloidsClient, isXcmReceived, isXcmSent } from "@sodazone/ocelloids-client";
+ * import { OcelloidsClient, xcm } from "@sodazone/ocelloids-client";
  *
  * const client = new OcelloidsClient({
  *   httpUrl: "http://127.0.0.1:3000",
@@ -110,33 +113,38 @@ class Protocol {
  *
  * ```typescript
  * // create a 'long-lived' subscription
- * const reply = await client.create({
+ * const reply = await client.create<xcm.XcmInputs>({
  *   id: "my-subscription",
- *   origin: "urn:ocn:polkadot:2004",
- *   senders: "*",
- *   events: "*",
- *   destinations: [
- *     "urn:ocn:polkadot:0",
- *     "urn:ocn:polkadot:1000",
- *     "urn:ocn:polkadot:2000",
- *     "urn:ocn:polkadot:2034",
- *     "urn:ocn:polkadot:2104"
- *   ],
- *   channels: [{
- *     type: "webhook",
- *     url: "https://some.webhook"
+ *   agent: "xcm",
+ *   args: {
+ *     origin: "urn:ocn:polkadot:2004",
+ *     senders: "*",
+ *     events: "*",
+ *     destinations: [
+ *       "urn:ocn:polkadot:0",
+ *       "urn:ocn:polkadot:1000",
+ *       "urn:ocn:polkadot:2000",
+ *       "urn:ocn:polkadot:2034",
+ *       "urn:ocn:polkadot:2104"
+ *     ],
  *   },
- *   {
- *     type: "websocket"
- *   }]
+ *   channels: [
+ *     {
+ *       type: "webhook",
+ *       url: "https://some.webhook"
+ *     },
+ *     {
+ *       type: "websocket"
+ *     }
+ *   ]
  * });
  *
  * // subscribe to the previously created subscription
  * const ws = client.subscribe("my-subscription", {
  *  onMessage: msg => {
- *    if(isXcmReceived(msg)) {
+ *    if(xcm.isXcmReceived(msg)) {
  *      console.log("RECV", msg.subscriptionId);
- *    } else if(isXcmSent(msg)) {
+ *    } else if(xcm.isXcmSent(msg)) {
  *      console.log("SENT", msg.subscriptionId)
  *    }
  *    console.log(msg);
@@ -150,22 +158,25 @@ class Protocol {
  *
  * ```typescript
  * // subscribe on-demand
- * const ws = client.subscribe({
- *   origin: "urn:ocn:polkadot:2004",
- *   senders: "*",
- *   events: "*",
- *   destinations: [
- *     "urn:ocn:polkadot:0",
- *     "urn:ocn:polkadot:1000",
- *     "urn:ocn:polkadot:2000",
- *     "urn:ocn:polkadot:2034",
- *     "urn:ocn:polkadot:2104"
- *   ]
+ * const ws = client.subscribe<xcm.XcmInputs>({
+ *   agent: "xcm",
+ *   args: {
+ *     origin: "urn:ocn:polkadot:2004",
+ *     senders: "*",
+ *     events: "*",
+ *     destinations: [
+ *       "urn:ocn:polkadot:0",
+ *       "urn:ocn:polkadot:1000",
+ *       "urn:ocn:polkadot:2000",
+ *       "urn:ocn:polkadot:2034",
+ *       "urn:ocn:polkadot:2104"
+ *     ]
+ *   }
  * }, {
  *  onMessage: msg => {
- *    if(isXcmReceived(msg)) {
+ *    if(xcm.isXcmReceived(msg)) {
  *      console.log("RECV", msg.subscriptionId);
- *    } else if(isXcmSent(msg)) {
+ *    } else if(xcm.isXcmSent(msg)) {
  *      console.log("SENT", msg.subscriptionId)
  *    }
  *    console.log(msg);
@@ -206,7 +217,7 @@ export class OcelloidsClient {
    * @param init - The fetch request init.
    * @returns A promise that resolves when the subscription is created.
    */
-  async create(subscription: Subscription, init: RequestInit = {}) {
+  async create<T = AnySubscriptionInputs>(subscription: Subscription<T>, init: RequestInit = {}) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
       ...init,
       method: 'POST',
@@ -217,22 +228,23 @@ export class OcelloidsClient {
   /**
    * Gets a subscription by its identifier.
    *
-   * @param subscriptionId - The subscription identifier.
+   * @param ids - The agent and subscription identifiers.
    * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription(subscriptionId: string, init?: RequestInit): Promise<Subscription> {
-    return this.#fetch(this.#config.httpUrl + '/subs/' + subscriptionId, init)
+  async getSubscription<T = AnySubscriptionInputs>(ids: SubscriptionIds, init?: RequestInit): Promise<Subscription<T>> {
+    return this.#fetch(`${this.#config.httpUrl}/subs/${ids.agentId}/${ids.subscriptionId}`, init)
   }
 
   /**
-   * Lists all subscriptions.
+   * Lists all subscriptions for a given agent.
    *
+   * @param agentId - The agent identifier.
    * @param init - The fetch request init.
    * @returns A promise that resolves with an array of subscriptions.
    */
-  async allSubscriptions(init?: RequestInit): Promise<Subscription[]> {
-    return this.#fetch(this.#config.httpUrl + '/subs', init)
+  async allSubscriptions<T = AnySubscriptionInputs>(agentId: string, init?: RequestInit): Promise<Subscription<T>[]> {
+    return this.#fetch(this.#config.httpUrl + '/subs/' + agentId, init)
   }
 
   /**
@@ -253,16 +265,16 @@ export class OcelloidsClient {
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  subscribe(
-    subscription: string | OnDemandSubscription,
+  subscribe<T = AnySubscriptionInputs>(
+    subscription: SubscriptionIds | OnDemandSubscription<T>,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs'
 
-    return typeof subscription === 'string'
-      ? this.#openWebSocket(`${url}/${subscription}`, handlers)
-      : this.#openWebSocket(url, handlers, {
+    return isSubscriptionIds(subscription)
+      ? this.#openWebSocket<T>(`${url}/${subscription.agentId}/${subscription.subscriptionId}`, handlers)
+      : this.#openWebSocket<T>(url, handlers, {
           sub: subscription,
           onDemandHandlers,
         })
@@ -299,11 +311,11 @@ export class OcelloidsClient {
     })
   }
 
-  #openWebSocket(
+  #openWebSocket<T = AnySubscriptionInputs>(
     url: string,
     { onMessage, onAuthError, onError, onClose }: WebSocketHandlers,
     onDemandSub?: {
-      sub: OnDemandSubscription
+      sub: OnDemandSubscription<T>
       onDemandHandlers?: OnDemandSubscriptionHandlers
     }
   ) {
@@ -327,6 +339,7 @@ export class OcelloidsClient {
       const { sub, onDemandHandlers } = onDemandSub
 
       ws.send(JSON.stringify(sub))
+
       protocol.next<Subscription | SubscriptionError>((msg) => {
         if (onDemandHandlers?.onSubscriptionCreated && isSubscription(msg)) {
           onDemandHandlers.onSubscriptionCreated(msg)

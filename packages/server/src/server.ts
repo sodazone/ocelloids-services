@@ -15,19 +15,21 @@ import { logger } from './environment.js'
 import { errorHandler } from './errors.js'
 import {
   Administration,
+  Agents,
   Auth,
   Configuration,
   Connector,
   Ingress,
-  Monitoring,
   Persistence,
   Root,
+  Subscriptions,
   Telemetry,
 } from './services/index.js'
 import version from './version.js'
 
 import { toCorsOpts } from './cli/args.js'
 import {
+  $AgentServiceOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
@@ -48,6 +50,7 @@ export const $ServerOptions = z
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
   .merge($RedisServerOptions)
+  .merge($AgentServiceOptions)
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 
@@ -108,7 +111,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(FastifySwagger, {
     openapi: {
       info: {
-        title: 'Ocelloids Execution Service',
+        title: 'Ocelloids Execution Node',
         version,
       },
     },
@@ -158,7 +161,8 @@ export async function createServer(opts: ServerOptions) {
 
   await server.register(Persistence, opts)
   await server.register(Ingress, opts)
-  await server.register(Monitoring, opts)
+  await server.register(Agents, opts)
+  await server.register(Subscriptions, opts)
   await server.register(Administration)
   await server.register(Telemetry, opts)
 

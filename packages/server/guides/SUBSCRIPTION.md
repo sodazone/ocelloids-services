@@ -88,7 +88,7 @@ You can check the [Hurl requests](https://github.com/sodazone/ocelloids-services
 `POST /subs`
 
 ```shell
-curl 'http://127.0.0.1:3000/subs' \
+curl -H "Content-Type: application/json" 'http://127.0.0.1:3000/subs' \
 --data '{
     "id": "test-sub",
     "origin": "urn:ocn:polkadot:0",

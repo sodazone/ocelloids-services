@@ -28,7 +28,7 @@ type PullCollect = () => Promise<void>
  * @param options - The telemetry options
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, options) => {
-  const { log, switchboard, wsProtocol, rootStore, ingressConsumer, ingressProducer } = fastify
+  const { log, switchboard, wsProtocol, rootStore, ingressConsumer, ingressProducer, agentService } = fastify
 
   if (options.telemetry) {
     log.info('Enable default metrics')
@@ -60,6 +60,11 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
     if (ingressProducer) {
       log.info('Enable ingress producer metrics')
       ingressProducer.collectTelemetry(collect)
+    }
+
+    if (agentService) {
+      log.info('Enable agent metrics')
+      agentService.collectTelemetry()
     }
 
     fastify.addHook('onResponse', createReplyHook())

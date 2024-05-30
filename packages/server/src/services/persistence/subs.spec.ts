@@ -1,6 +1,6 @@
 import { MemoryLevel as Level } from 'memory-level'
 
-import { _subsFix } from '../../testing/data'
+import { _subsFix, _testAgentId } from '../../testing/data'
 import { _ingress, _log } from '../../testing/services'
 import { SubsStore } from './subs'
 
@@ -9,31 +9,32 @@ describe('subscriptions persistence', () => {
 
   beforeAll(() => {
     const mem = new Level()
-    db = new SubsStore(_log, mem, _ingress)
+    db = new SubsStore(_log, mem)
   })
 
   describe('prepare data', () => {
-    it('should insert subscriptions fix', async () => {
+    it('should insert subscriptions', async () => {
       for (const sub of _subsFix) {
         await db.insert(sub)
       }
-      expect((await db.getAll()).length).toBe(5)
+      expect((await db.getByAgentId(_testAgentId)).length).toBe(5)
     })
   })
 
   describe('modify subscriptions', () => {
-    it('should prevent duplicate ids', async () => {
+    it('should prevent duplicate subscription ids under the same agent', async () => {
       await expect(async () => {
         await db.insert(_subsFix[0])
       }).rejects.toThrow()
     })
 
     it('should remove subsciption by id', async () => {
-      const subs = await db.getAll()
-      await db.remove(subs[subs.length - 1].id)
-      expect((await db.getAll()).length).toBe(subs.length - 1)
+      const subs = await db.getByAgentId(_testAgentId)
+      await db.remove(_testAgentId, subs[subs.length - 1].id)
+      expect((await db.getByAgentId(_testAgentId)).length).toBe(subs.length - 1)
     })
 
+    /* TODO: move to agents??
     it('should prevent unconfigured chain ids', async () => {
       await expect(async () => {
         await db.save({
@@ -48,6 +49,7 @@ describe('subscriptions persistence', () => {
         })
       }).rejects.toThrow()
     })
+    
 
     it('should allow multiple subscription for the same conditions', async () => {
       const len = (await db.getAll()).length
@@ -60,5 +62,6 @@ describe('subscriptions persistence', () => {
       })
       expect((await db.getAll()).length).toBe(len + 1)
     })
+    */
   })
 })

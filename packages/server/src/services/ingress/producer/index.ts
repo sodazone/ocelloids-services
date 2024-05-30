@@ -5,7 +5,7 @@ import { Subscription as RxSubscription } from 'rxjs'
 
 import { IngressOptions } from '../../../types.js'
 import { ServiceConfiguration } from '../../config.js'
-import { HexString } from '../../monitoring/types.js'
+import { HexString } from '../../subscriptions/types.js'
 import { Logger, NetworkURN, Services } from '../../types.js'
 import {
   NetworkEntry,

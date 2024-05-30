@@ -1,16 +1,19 @@
 [
   {
     "id": "polkadot-transfers",
-    "origin": "urn:ocn:polkadot:0",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2006",
-      "urn:ocn:polkadot:2034"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:0",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
@@ -23,16 +26,19 @@
   },
   {
     "id": "asset-hub-transfers",
-    "origin": "urn:ocn:polkadot:1000",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2006",
-      "urn:ocn:polkadot:2034"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:1000",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
@@ -45,16 +51,19 @@
   },
   {
     "id": "acala-transfers",
-    "origin": "urn:ocn:polkadot:2000",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2006",
-      "urn:ocn:polkadot:2034"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2000",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
@@ -67,16 +76,19 @@
   },
   {
     "id": "moonbeam-transfers",
-    "origin": "urn:ocn:polkadot:2004",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2006",
-      "urn:ocn:polkadot:2034"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2004",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
@@ -89,16 +101,19 @@
   },
   {
     "id": "astar-transfers",
-    "origin": "urn:ocn:polkadot:2006",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:2034"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2006",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",
@@ -111,16 +126,19 @@
   },
   {
     "id": "hydra-transfers",
-    "origin": "urn:ocn:polkadot:2034",
-    "senders": "*",
-    "destinations": [
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2004",
-      "urn:ocn:polkadot:2006",
-      "urn:ocn:polkadot:0"
-    ],
-    "events": "*",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2034",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:0"
+      ],
+      "events": "*"
+    },
     "channels": [
       {
         "type": "webhook",

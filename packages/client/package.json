@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-client",
-  "version": "1.0.3-dev.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Ocelloids client library",
   "author": "SO/DA <projects@soda.zone>",
@@ -32,24 +32,18 @@
     "clean": true
   },
   "scripts": {
-    "build": "yarn build:ts && yarn build:api && yarn build:deno",
+    "build": "yarn build:ts && yarn build:api",
     "build:ts": "tsup",
     "build:api": "tsc  && api-extractor run --local --verbose",
-    "build:deno": "node deno-build.mjs",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "docs": "typedoc",
     "lint": "biome check --apply src/**/*.ts"
   },
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "collectCoverage": true,
-    "testPathIgnorePatterns": [
-      "./deno_dist"
-    ],
     "coveragePathIgnorePatterns": [
-      ".*/dist",
-      ".*/deno_dist"
+      ".*/dist"
     ],
     "extensionsToTreatAsEsm": [
       ".ts"
@@ -83,6 +77,5 @@
   },
   "dependencies": {
     "isows": "^1.0.4"
-  },
-  "stableVersion": "1.0.2"
+  }
 }

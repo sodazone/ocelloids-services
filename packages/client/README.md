@@ -21,7 +21,7 @@ yarn add @sodazone/ocelloids-client
 ## Usage
 
 ```typescript
-import { OcelloidsClient, isXcmReceived, isXcmSent } from "@sodazone/ocelloids-client";
+import { OcelloidsClient, xcm } from "@sodazone/ocelloids-client";
 
 const client = new OcelloidsClient({
   httpUrl: "http://127.0.0.1:3000",
@@ -29,28 +29,31 @@ const client = new OcelloidsClient({
 });
 
 // subscribe on-demand
-const ws = client.subscribe({
-  origin: "urn:ocn:polkadot:2004",
-  senders: "*",
-  events: "*",
-  destinations: [ 
-    "urn:ocn:polkadot:0",
-    "urn:ocn:polkadot:1000",
-    "urn:ocn:polkadot:2000",
-    "urn:ocn:polkadot:2034",
-    "urn:ocn:polkadot:2104"
-  ]
-}, {
- onMessage: msg => {
-   if(isXcmReceived(msg)) {
-     console.log("RECV", msg.subscriptionId);
-   } else if(isXcmSent(msg)) {
-     console.log("SENT", msg.subscriptionId)
-   }
-   console.log(msg);
- },
- onError: error => console.log(error),
- onClose: event => console.log(event.reason)
+const ws = client.subscribe<xcm.XcmInputs>({
+  agent: "xcm",
+  args: {
+    origin: "urn:ocn:polkadot:2004",
+    senders: "*",
+    events: "*",
+    destinations: [ 
+      "urn:ocn:polkadot:0",
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:2000",
+      "urn:ocn:polkadot:2034",
+      "urn:ocn:polkadot:2104"
+    ]
+  }
+ }, {
+  onMessage: msg => {
+    if(xcm.isXcmReceived(msg)) {
+      console.log("RECV", msg.subscriptionId);
+    } else if(xcm.isXcmSent(msg)) {
+      console.log("SENT", msg.subscriptionId)
+    }
+    console.log(msg);
+  },
+  onError: error => console.log(error),
+  onClose: event => console.log(event.reason)
 });
 ```
 
@@ -80,4 +83,4 @@ yarn test
 
 ## Compatibility
 
-Compatible with [browser environments, Node, Bun and Deno](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).
+Compatible with [browser environments, Node and Bun](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).

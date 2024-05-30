@@ -21,7 +21,7 @@ import {
 } from '../distributor.js'
 
 import { ServiceConfiguration, isNetworkDefined, isRelay } from '../../config.js'
-import { HexString } from '../../monitoring/types.js'
+import { HexString } from '../../subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js'
 import { decodeSignedBlockExtended } from '../watcher/codec.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'

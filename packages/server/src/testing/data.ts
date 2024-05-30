@@ -1,11 +1,15 @@
-import { Subscription } from '../services/monitoring/types.js'
+import { Subscription } from '../services/subscriptions/types.js'
 
+export const _testAgentId = 'agent-mcmuffin'
 export const _subsFix: Subscription[] = [
   {
     id: '0:1000:1',
-    origin: 'urn:ocn:local:0',
-    destinations: ['urn:ocn:local:1000'],
-    senders: ['a', 'b', 'c'],
+    agent: _testAgentId,
+    args: {
+      origin: 'urn:ocn:local:0',
+      destinations: ['urn:ocn:local:1000'],
+      senders: ['a', 'b', 'c'],
+    },
     channels: [
       {
         type: 'log',
@@ -14,9 +18,12 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '0:1000:2',
-    origin: 'urn:ocn:local:0',
-    destinations: ['urn:ocn:local:1000'],
-    senders: ['d', 'e', 'f'],
+    agent: _testAgentId,
+    args: {
+      origin: 'urn:ocn:local:0',
+      destinations: ['urn:ocn:local:1000'],
+      senders: ['d', 'e', 'f'],
+    },
     channels: [
       {
         type: 'log',
@@ -25,9 +32,12 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '0:2000:1',
-    origin: 'urn:ocn:local:0',
-    destinations: ['urn:ocn:local:2000'],
-    senders: ['a', 'b', 'c'],
+    agent: _testAgentId,
+    args: {
+      origin: 'urn:ocn:local:0',
+      destinations: ['urn:ocn:local:2000'],
+      senders: ['a', 'b', 'c'],
+    },
     channels: [
       {
         type: 'log',
@@ -36,9 +46,12 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '100:0-2000:1',
-    origin: 'urn:ocn:local:1000',
-    destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
-    senders: ['a', 'b', 'c'],
+    agent: _testAgentId,
+    args: {
+      origin: 'urn:ocn:local:1000',
+      destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
+      senders: ['a', 'b', 'c'],
+    },
     channels: [
       {
         type: 'log',
@@ -47,9 +60,12 @@ export const _subsFix: Subscription[] = [
   },
   {
     id: '100:0-2000:2',
-    origin: 'urn:ocn:local:1000',
-    destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
-    senders: ['d', 'e', 'f'],
+    agent: _testAgentId,
+    args: {
+      origin: 'urn:ocn:local:1000',
+      destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
+      senders: ['d', 'e', 'f'],
+    },
     channels: [
       {
         type: 'log',

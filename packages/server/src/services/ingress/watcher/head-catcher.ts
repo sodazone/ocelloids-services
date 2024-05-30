@@ -26,7 +26,7 @@ import type { Header } from '@polkadot/types/interfaces'
 import { SubstrateApis, blockFromHeader, finalizedHeads, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk'
 
 import { ServiceConfiguration } from '../../config.js'
-import { BlockNumberRange, ChainHead as ChainTip, HexString } from '../../monitoring/types.js'
+import { BlockNumberRange, ChainHead as ChainTip, HexString } from '../../subscriptions/types.js'
 import { TelemetryEventEmitter } from '../../telemetry/types.js'
 import { DB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '../../types.js'
 

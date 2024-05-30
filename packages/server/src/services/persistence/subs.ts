@@ -1,7 +1,7 @@
 import { NotFound, ValidationError } from '../../errors.js'
-import { IngressConsumer } from '../ingress/index.js'
-import { Subscription } from '../monitoring/types.js'
-import { BatchOperation, DB, Logger, NetworkURN, jsonEncoded, prefixes } from '../types.js'
+import { AgentId } from '../agents/types.js'
+import { Subscription } from '../subscriptions/types.js'
+import { DB, Logger, jsonEncoded, prefixes } from '../types.js'
 
 /**
  * Subscriptions persistence.
@@ -11,21 +11,19 @@ import { BatchOperation, DB, Logger, NetworkURN, jsonEncoded, prefixes } from '.
 export class SubsStore {
   // readonly #log: Logger;
   readonly #db: DB
-  readonly #ingress: IngressConsumer
 
-  constructor(_log: Logger, db: DB, ingress: IngressConsumer) {
+  constructor(_log: Logger, db: DB) {
     // this.#log = log;
     this.#db = db
-    this.#ingress = ingress
   }
 
   /**
    * Returns true if a subscription for the given id exists,
    * false otherwise.
    */
-  async exists(id: string): Promise<boolean> {
+  async exists(agentId: AgentId, id: string): Promise<boolean> {
     try {
-      await this.getById(id)
+      await this.getById(agentId, id)
       return true
     } catch {
       return false
@@ -33,28 +31,12 @@ export class SubsStore {
   }
 
   /**
-   * Retrieves the registered subscriptions in the database
-   * for all the configured networks.
+   * Retrieves all the subscriptions for a given agent.
    *
    * @returns {Subscription[]} an array with the subscriptions
    */
-  async getAll() {
-    let subscriptions: Subscription[] = []
-    for (const chainId of this.#ingress.getChainIds()) {
-      const subs = await this.getByNetworkId(chainId)
-      subscriptions = subscriptions.concat(subs)
-    }
-
-    return subscriptions
-  }
-
-  /**
-   * Retrieves all the subscriptions for a given network.
-   *
-   * @returns {Subscription[]} an array with the subscriptions
-   */
-  async getByNetworkId(chainId: NetworkURN) {
-    return await this.#subsFamily(chainId).values().all()
+  async getByAgentId(agentId: AgentId) {
+    return await this.#subsFamily(agentId).values().all()
   }
 
   /**
@@ -64,17 +46,13 @@ export class SubsStore {
    * @returns {Subscription} the subscription information
    * @throws {NotFound} if the subscription does not exist
    */
-  async getById(id: string) {
-    for (const chainId of this.#ingress.getChainIds()) {
-      try {
-        const subscription = await this.#subsFamily(chainId).get(id)
-        return subscription
-      } catch {
-        continue
-      }
+  async getById(agentId: AgentId, id: string) {
+    try {
+      const subscription = await this.#subsFamily(agentId).get(id)
+      return subscription
+    } catch {
+      throw new NotFound(`Subscription ${id} not found.`)
     }
-
-    throw new NotFound(`Subscription ${id} not found.`)
   }
 
   /**
@@ -82,11 +60,11 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async insert(qs: Subscription) {
-    if (await this.exists(qs.id)) {
-      throw new ValidationError(`Subscription with ID ${qs.id} already exists`)
+  async insert(s: Subscription) {
+    if (await this.exists(s.agent, s.id)) {
+      throw new ValidationError(`Subscription with ID=${s.agent}:${s.id} already exists`)
     }
-    await this.save(qs)
+    await this.save(s)
   }
 
   /**
@@ -94,38 +72,19 @@ export class SubsStore {
    *
    * @throws {ValidationError} if there is a validation error.
    */
-  async save(qs: Subscription) {
-    const origin = qs.origin as NetworkURN
-    const dests = qs.destinations as NetworkURN[]
-    this.#validateChainIds([origin, ...dests])
-    const db = await this.#subsFamily(origin)
-    await db.put(qs.id, qs)
+  async save(s: Subscription) {
+    const db = await this.#subsFamily(s.agent)
+    await db.put(s.id, s)
   }
 
   /**
    * Removes a subscription for the given id.
    */
-  async remove(id: string) {
-    const qs = await this.getById(id)
-    const origin = qs.origin as NetworkURN
-    const ops: BatchOperation[] = []
-    ops.push({
-      type: 'del',
-      sublevel: this.#subsFamily(origin),
-      key: id,
-    })
-    await this.#db.batch(ops)
+  async remove(agentId: AgentId, id: string) {
+    await this.#subsFamily(agentId).del(id)
   }
 
-  #subsFamily(chainId: NetworkURN) {
-    return this.#db.sublevel<string, Subscription>(prefixes.subs.family(chainId), jsonEncoded)
-  }
-
-  #validateChainIds(chainIds: NetworkURN[]) {
-    chainIds.forEach((chainId) => {
-      if (!this.#ingress.isNetworkDefined(chainId)) {
-        throw new ValidationError('Invalid chain id:' + chainId)
-      }
-    })
+  #subsFamily(agentId: AgentId) {
+    return this.#db.sublevel<string, Subscription>(prefixes.subs.family(agentId), jsonEncoded)
   }
 }

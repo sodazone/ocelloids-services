@@ -5,6 +5,7 @@ import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
 import type { Subscription, WsAuthErrorEvent } from './lib'
+import { XcmInputs } from './xcm/types'
 
 jest.unstable_mockModule('isows', () => {
   return {
@@ -15,7 +16,8 @@ jest.unstable_mockModule('isows', () => {
 
 //[!] important: requires dynamic imports
 const { OcelloidsClient } = await import('./client')
-const { isXcmRelayed, isSubscriptionError, isXcmSent, isXcmReceived } = await import('./lib')
+const { isSubscriptionError } = await import('./lib')
+const { isXcmReceived, isXcmSent, isXcmRelayed } = await import('./xcm/types')
 
 describe('OcelloidsClient', () => {
   it('should create a client instance', () => {
@@ -35,7 +37,7 @@ describe('OcelloidsClient', () => {
     })
 
     it('should connect to a subscription', (done) => {
-      const wsUrl = 'ws://mock/ws/subs/subid'
+      const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockServer = new Server(wsUrl, { mock: false })
       const samplesNum = samples.length
 
@@ -51,27 +53,33 @@ describe('OcelloidsClient', () => {
       })
 
       let called = 0
-      const ws = client.subscribe('subid', {
-        onMessage: (msg) => {
-          expect(ws.readyState).toBe(1)
-          expect(msg).toBeDefined()
-
-          switch (called) {
-            case 1:
-              expect(isXcmSent(msg)).toBeTruthy()
-              break
-            case 2:
-              expect(isXcmReceived(msg)).toBeTruthy()
-              break
-            default:
-            //
-          }
-
-          if (++called === samplesNum) {
-            done()
-          }
+      const ws = client.subscribe(
+        {
+          subscriptionId: 'subid',
+          agentId: 'agentid',
         },
-      })
+        {
+          onMessage: (msg) => {
+            expect(ws.readyState).toBe(1)
+            expect(msg).toBeDefined()
+
+            switch (called) {
+              case 1:
+                expect(isXcmSent(msg)).toBeTruthy()
+                break
+              case 2:
+                expect(isXcmReceived(msg)).toBeTruthy()
+                break
+              default:
+              //
+            }
+
+            if (++called === samplesNum) {
+              done()
+            }
+          },
+        }
+      )
     })
 
     it('should create on-demand subscription', (done) => {
@@ -90,18 +98,21 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.subscribe(
+      const ws = client.subscribe<XcmInputs>(
         {
-          origin: 'urn:ocn:local:2004',
-          senders: '*',
-          events: '*',
-          destinations: [
-            'urn:ocn:local:0',
-            'urn:ocn:local:1000',
-            'urn:ocn:local:2000',
-            'urn:ocn:local:2034',
-            'urn:ocn:local:2104',
-          ],
+          agent: 'xcm',
+          args: {
+            origin: 'urn:ocn:local:2004',
+            senders: '*',
+            events: '*',
+            destinations: [
+              'urn:ocn:local:0',
+              'urn:ocn:local:1000',
+              'urn:ocn:local:2000',
+              'urn:ocn:local:2034',
+              'urn:ocn:local:2104',
+            ],
+          },
         },
         {
           onMessage: (msg) => {
@@ -113,7 +124,7 @@ describe('OcelloidsClient', () => {
         },
         {
           onSubscriptionCreated: (sub) => {
-            expect(sub.origin).toBe('urn:ocn:local:2004')
+            expect(sub.agent).toBe('xcm')
           },
         }
       )
@@ -149,16 +160,19 @@ describe('OcelloidsClient', () => {
 
       const ws = client.subscribe(
         {
-          origin: 'urn:ocn:local:2004',
-          senders: '*',
-          events: '*',
-          destinations: [
-            'urn:ocn:local:0',
-            'urn:ocn:local:1000',
-            'urn:ocn:local:2000',
-            'urn:ocn:local:2034',
-            'urn:ocn:local:2104',
-          ],
+          agent: 'xcm',
+          args: {
+            origin: 'urn:ocn:local:2004',
+            senders: '*',
+            events: '*',
+            destinations: [
+              'urn:ocn:local:0',
+              'urn:ocn:local:1000',
+              'urn:ocn:local:2000',
+              'urn:ocn:local:2034',
+              'urn:ocn:local:2104',
+            ],
+          },
         },
         {
           onMessage: (_) => {
@@ -177,7 +191,7 @@ describe('OcelloidsClient', () => {
     })
 
     it('should handle socket closed', (done) => {
-      const wsUrl = 'ws://mock/ws/subs/subid'
+      const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockServer = new Server(wsUrl, { mock: false })
 
       mockServer.on('connection', (socket) => {
@@ -193,22 +207,28 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive messages')
+      client.subscribe(
+        {
+          agentId: 'agentid',
+          subscriptionId: 'subid',
         },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (e) => {
-          expect(e).toBeDefined()
-          done()
-        },
-      })
+        {
+          onMessage: (_) => {
+            fail('should not receive messages')
+          },
+          onError: (_) => {
+            fail('should not receive error')
+          },
+          onClose: (e) => {
+            expect(e).toBeDefined()
+            done()
+          },
+        }
+      )
     })
 
     it('should authentitcate', (done) => {
-      const wsUrl = 'ws://mock/ws/subs/subid'
+      const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockServer = new Server(wsUrl, { mock: false })
 
       mockServer.on('connection', (socket) => {
@@ -225,21 +245,27 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe('subid', {
-        onMessage: (_) => {
-          done()
+      client.subscribe(
+        {
+          agentId: 'agentid',
+          subscriptionId: 'subid',
         },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (_) => {
-          fail('should not receive close')
-        },
-      })
+        {
+          onMessage: (_) => {
+            done()
+          },
+          onError: (_) => {
+            fail('should not receive error')
+          },
+          onClose: (_) => {
+            fail('should not receive close')
+          },
+        }
+      )
     })
 
     it('should handle auth error', (done) => {
-      const wsUrl = 'ws://mock/ws/subs/subid'
+      const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockServer = new Server(wsUrl, { mock: false })
 
       mockServer.on('connection', (socket) => {
@@ -254,25 +280,31 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive message')
+      client.subscribe(
+        {
+          agentId: 'agentid',
+          subscriptionId: 'subid',
         },
-        onAuthError: (r) => {
-          expect(r.error).toBeTruthy()
-          done()
-        },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (_) => {
-          fail('should not receive close')
-        },
-      })
+        {
+          onMessage: (_) => {
+            fail('should not receive message')
+          },
+          onAuthError: (r) => {
+            expect(r.error).toBeTruthy()
+            done()
+          },
+          onError: (_) => {
+            fail('should not receive error')
+          },
+          onClose: (_) => {
+            fail('should not receive close')
+          },
+        }
+      )
     })
 
     it('should throw auth error event', (done) => {
-      const wsUrl = 'ws://mock/ws/subs/subid'
+      const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockServer = new Server(wsUrl, { mock: false })
 
       mockServer.on('connection', (socket) => {
@@ -287,16 +319,22 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive message')
+      client.subscribe(
+        {
+          agentId: 'agentid',
+          subscriptionId: 'subid',
         },
-        onError: (error) => {
-          const authError = error as WsAuthErrorEvent
-          expect(authError.name).toBe('WsAuthError')
-          done()
-        },
-      })
+        {
+          onMessage: (_) => {
+            fail('should not receive message')
+          },
+          onError: (error) => {
+            const authError = error as WsAuthErrorEvent
+            expect(authError.name).toBe('WsAuthError')
+            done()
+          },
+        }
+      )
     })
   })
 
@@ -308,16 +346,19 @@ describe('OcelloidsClient', () => {
     it('should create a subscription', async () => {
       const sub = {
         id: 'my-subscription',
-        origin: 'urn:ocn:local:2004',
-        senders: '*',
-        events: '*',
-        destinations: [
-          'urn:ocn:local:0',
-          'urn:ocn:local:1000',
-          'urn:ocn:local:2000',
-          'urn:ocn:local:2034',
-          'urn:ocn:local:2104',
-        ],
+        agent: 'xcm',
+        args: {
+          origin: 'urn:ocn:local:2004',
+          senders: '*',
+          events: '*',
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
+        },
         channels: [
           {
             type: 'webhook',
@@ -327,7 +368,7 @@ describe('OcelloidsClient', () => {
             type: 'websocket',
           },
         ],
-      } as Subscription
+      } as Subscription<XcmInputs>
 
       const scope = nock('http://mock')
         .matchHeader('content-type', 'application/json')
@@ -348,9 +389,9 @@ describe('OcelloidsClient', () => {
       const scope = nock('http://mock')
         .get('/health')
         .reply(200, '{}')
-        .get('/subs')
+        .get('/subs/xcm')
         .reply(200, '[]')
-        .get('/subs/id')
+        .get('/subs/xcm/id')
         .reply(200, '{}')
 
       const client = new OcelloidsClient({
@@ -359,8 +400,8 @@ describe('OcelloidsClient', () => {
       })
 
       await client.health()
-      await client.allSubscriptions()
-      await client.getSubscription('id')
+      await client.allSubscriptions('xcm')
+      await client.getSubscription({ agentId: 'xcm', subscriptionId: 'id' })
 
       scope.done()
     })

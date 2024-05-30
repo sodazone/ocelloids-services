@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store'
-import { OcelloidsClient, type XcmSent, isXcmSent } from '../../../dist/lib'
+import { OcelloidsClient, xcm } from '../../../dist/lib'
 
 export const createSubscriptionStore = async () => {
   const { subscribe, set, update } = writable<string[]>([])
@@ -9,23 +9,22 @@ export const createSubscriptionStore = async () => {
     httpUrl: 'http://localhost:3000',
   })
 
-  const ws = client.subscribe(
+  const ws = client.subscribe({
+    agent: 'xcm',
+    args:
     {
-      origin: 'urn:ocn:polkadot:2004',
+      origin: 'urn:ocn:polkadot:1000',
       senders: '*',
       events: '*',
       destinations: [
         'urn:ocn:polkadot:0',
-        'urn:ocn:polkadot:1000',
-        'urn:ocn:polkadot:2000',
-        'urn:ocn:polkadot:2034',
-        'urn:ocn:polkadot:2104',
       ],
-    },
+    }
+  },
     {
       onMessage: (msg) => {
-        if (isXcmSent(msg)) {
-          const sent = msg as XcmSent
+        if (xcm.isXcmSent(msg)) {
+          const sent = msg as xcm.XcmSent
           console.log(sent.type, sent.subscriptionId)
         }
         update((messages) => [JSON.stringify(msg)].concat(messages))

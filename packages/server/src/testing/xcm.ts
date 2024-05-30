@@ -14,7 +14,7 @@ import type {
 import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { from } from 'rxjs'
 
-import { messageCriteria, sendersCriteria } from '../services/monitoring/ops/criteria.js'
+import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
 import { NetworkURN } from '../services/types.js'
 import { testBlocksFrom } from './blocks.js'
 

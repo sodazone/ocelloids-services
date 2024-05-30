@@ -1,21 +1,25 @@
-import { Subscription } from './services/monitoring/types.js'
-import { jsonEncoded, prefixes } from './services/types.js'
+import { Subscription } from './services/subscriptions/types.js'
+import { LevelEngine, jsonEncoded, prefixes } from './services/types.js'
 
 import './testing/network.js'
 
 import { FastifyInstance, InjectOptions } from 'fastify'
+import { AgentServiceMode } from './types.js'
 
 const testSubContent = {
   id: 'macatron',
-  origin: 'urn:ocn:local:1000',
-  senders: ['ALICE'],
-  destinations: ['urn:ocn:local:2000'],
+  agent: 'xcm',
+  args: {
+    origin: 'urn:ocn:local:1000',
+    senders: ['ALICE'],
+    events: '*',
+    destinations: ['urn:ocn:local:2000'],
+  },
   channels: [
     {
       type: 'log',
     },
   ],
-  events: '*',
 } as Subscription
 
 const { createServer } = await import('./server.js')
@@ -41,6 +45,8 @@ describe('monitoring server API', () => {
       corsCredentials: false,
       corsOrigin: true,
       distributed: false,
+      levelEngine: LevelEngine.mem,
+      mode: AgentServiceMode.local,
     })
 
     return server.ready()
@@ -87,15 +93,18 @@ describe('monitoring server API', () => {
           url: '/subs',
           body: {
             id: 'wild',
-            origin: 'urn:ocn:local:1000',
-            senders: '*',
-            destinations: ['urn:ocn:local:2000'],
+            agent: 'xcm',
+            args: {
+              origin: 'urn:ocn:local:1000',
+              senders: '*',
+              events: '*',
+              destinations: ['urn:ocn:local:2000'],
+            },
             channels: [
               {
                 type: 'log',
               },
             ],
-            events: '*',
           } as Subscription,
         },
         (_err, response) => {
@@ -114,12 +123,10 @@ describe('monitoring server API', () => {
             {
               ...testSubContent,
               id: 'm1',
-              senders: ['M1'],
             },
             {
               ...testSubContent,
               id: 'm2',
-              senders: ['M2'],
             },
           ],
         },
@@ -155,12 +162,10 @@ describe('monitoring server API', () => {
             {
               ...testSubContent,
               id: 'm3',
-              senders: ['M3'],
             },
             {
               ...testSubContent,
               id: 'm1',
-              senders: ['M1'],
             },
           ],
         },
@@ -185,7 +190,7 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'DELETE',
-          url: '/subs/m2',
+          url: '/subs/xcm/m2',
         },
         (_err, response) => {
           done()
@@ -198,7 +203,7 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'GET',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
         },
         (_err, response) => {
           done()
@@ -212,12 +217,12 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'GET',
-          url: '/subs/wild',
+          url: '/subs/xcm/wild',
         },
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).senders).toEqual('*')
+          expect(JSON.parse(response.body).args.senders).toEqual('*')
         }
       )
     })
@@ -226,7 +231,7 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'GET',
-          url: '/subs/non-existent',
+          url: '/subs/xcm/non-existent',
         },
         (_err, response) => {
           done()
@@ -239,7 +244,7 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'PATCH',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
           body: [
             {
               op: 'replace',
@@ -248,7 +253,7 @@ describe('monitoring server API', () => {
             },
             {
               op: 'add',
-              path: '/senders/-',
+              path: '/args/senders/-',
               value: 'BOB',
             },
           ],
@@ -264,11 +269,11 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'PATCH',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
           body: [
             {
               op: 'add',
-              path: '/senders/-',
+              path: '/args/senders/-',
               value: 'BOB',
             },
           ],
@@ -276,7 +281,8 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).senders).toEqual(['ALICE', 'BOB'])
+
+          expect(JSON.parse(response.body).args.senders).toEqual(['ALICE', 'BOB'])
         }
       )
     })
@@ -285,11 +291,11 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'PATCH',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
           body: [
             {
               op: 'remove',
-              path: '/senders',
+              path: '/args/senders',
             },
           ],
         },
@@ -304,11 +310,11 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'PATCH',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
           body: [
             {
               op: 'add',
-              path: '/destinations/-',
+              path: '/args/destinations/-',
               value: 'urn:ocn:local:3000',
             },
           ],
@@ -316,7 +322,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).destinations).toEqual(['urn:ocn:local:2000', 'urn:ocn:local:3000'])
+          expect(JSON.parse(response.body).args.destinations).toEqual(['urn:ocn:local:2000', 'urn:ocn:local:3000'])
         }
       )
     })
@@ -325,7 +331,7 @@ describe('monitoring server API', () => {
       server.inject(
         {
           method: 'PATCH',
-          url: '/subs/macatron',
+          url: '/subs/xcm/macatron',
           body: [
             {
               op: 'replace',
@@ -420,12 +426,14 @@ describe('monitoring server API', () => {
       })
     })
 
+    /* TODO: move to XCM agent???
     it('should get pending messages', (done) => {
       server.inject(adminRq('/admin/xcm'), (_err, response) => {
         done()
         expect(response.statusCode).toStrictEqual(200)
       })
     })
+    */
 
     it('should get scheduled tasks', (done) => {
       server.inject(adminRq('/admin/sched'), (_err, response) => {

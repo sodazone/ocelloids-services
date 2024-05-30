@@ -8,10 +8,12 @@ import { RaveLevel } from 'rave-level'
 import { DB, LevelEngine } from '../types.js'
 import { Janitor, JanitorOptions } from './janitor.js'
 import { Scheduler, SchedulerOptions } from './scheduler.js'
+import { SubsStore } from './subs.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
     rootStore: DB
+    subsStore: SubsStore
     scheduler: Scheduler
     janitor: Janitor
   }
@@ -49,10 +51,12 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
   const root = createLevel(fastify, options)
   const scheduler = new Scheduler(fastify.log, root, options)
   const janitor = new Janitor(fastify.log, root, scheduler, options)
+  const subsStore = new SubsStore(fastify.log, root)
 
   fastify.decorate('rootStore', root)
   fastify.decorate('janitor', janitor)
   fastify.decorate('scheduler', scheduler)
+  fastify.decorate('subsStore', subsStore)
 
   fastify.addHook('onClose', (instance, done) => {
     scheduler
