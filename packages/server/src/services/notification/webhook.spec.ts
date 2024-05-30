@@ -11,6 +11,18 @@ import { NotifierHub } from './hub.js'
 import { NotifyMessage } from './types.js'
 import { WebhookNotifier } from './webhook.js'
 
+const destinationContext = {
+  blockHash: '0xBEEF',
+  blockNumber: '2',
+  chainId: 'urn:ocn:local:1',
+  event: {},
+  outcome: 'Success',
+  error: null,
+  messageHash: '0xCAFE',
+  instructions: '0x',
+  messageData: '0x',
+}
+
 const notification: NotifyMessage = {
   metadata: {
     type: 'xcm.ok',
@@ -18,7 +30,26 @@ const notification: NotifyMessage = {
     subscriptionId: 'ok',
   },
   payload: {
-    foo: 'bar',
+    type: 'xcm.ok',
+    subscriptionId: 'ok',
+    legs: [{ type: 'hrmp', from: 'urn:ocn:local:0', to: 'urn:ocn:local:1' }],
+  waypoint: {
+    ...destinationContext,
+    legIndex: 0,
+  },
+  destination: destinationContext,
+  origin: {
+    blockHash: '0xBEEF',
+    blockNumber: '2',
+    chainId: 'urn:ocn:local:0',
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageHash: '0xCAFE',
+    instructions: '0x',
+    messageData: '0x',
+  },
+  sender: { signer: { id: 'w123', publicKey: '0x0' }, extraSigners: [] },
   },
 }
 
@@ -44,12 +75,12 @@ const xmlTemplate = `
         "http://dtd.worldpay.com/paymentService_v1.dtd">
 <paymentService version="1.4" merchantCode="MERCHANTCODE">
     <notify>
-      <xcmStatusEvent type="{{type}}" subscriptionId="{{subscriptionId}}" outcome="{{waypoint.outcome}}">
-        <origin block="{{origin.blockHash}}">{{origin.chainId}}</origin>
-        <destination>{{destination.chainId}}</destination>
-        <sender>{{sender.signer.id}}</sender>
-        {{#if waypoint.error}}
-        <error>{{waypoint.error}}</error>
+      <xcmStatusEvent type="{{metadata.type}}" subscriptionId="{{metadata.subscriptionId}}" outcome="{{payload.waypoint.outcome}}">
+        <origin block="{{payload.origin.blockHash}}">{{payload.origin.chainId}}</origin>
+        <destination>{{payload.destination.chainId}}</destination>
+        <sender>{{payload.sender.signer.id}}</sender>
+        {{#if payload.waypoint.error}}
+        <error>{{payload.waypoint.error}}</error>
         {{/if}}
       </xcmStatusEvent>
     </notify>

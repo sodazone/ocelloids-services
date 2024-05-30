@@ -143,7 +143,7 @@ describe('switchboard service', () => {
 
     expect(() => {
       switchboard.findSubscriptionHandler('xcm', testSub.id)
-    }).toThrow('subscription handler not found')
+    }).toThrow('subscription not found')
   })
 
   /* TODO: move to agent service test

@@ -61,7 +61,7 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent 
     if (this.subs[subscriptionId]) {
       return this.subs[subscriptionId].descriptor
     } else {
-      throw Error('subscription handler not found')
+      throw Error('subscription not found')
     }
   }
 

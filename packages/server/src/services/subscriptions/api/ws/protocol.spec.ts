@@ -9,15 +9,16 @@ const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('ti
 
 const testSub: Subscription = {
   id: 'test-subscription',
+  agent: 'xcm',
+  args: {
   origin: '1000',
   senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
-  destinations: ['2000'],
+  destinations: ['2000']},
   channels: [
     {
       type: 'websocket',
     },
   ],
-  events: '*',
 }
 
 describe('WebsocketProtocol', () => {
@@ -127,11 +128,10 @@ describe('WebsocketProtocol', () => {
         ip: 'mockRequestIp',
       } as FastifyRequest
       mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => ({
-        descriptor: {
           ...testSub,
           channels: [{ type: 'log' }],
-        },
-      }))
+        }
+      ))
 
       await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription')
       await flushPromises()
@@ -168,7 +168,7 @@ describe('WebsocketProtocol', () => {
     it('should close connection with error code if an error occurs', async () => {
       const mockStream = { close: jest.fn() }
       mockSwitchboard.findSubscriptionHandler.mockImplementationOnce(() => {
-        return undefined
+        throw new Error('subscription not found')
       })
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')
       expect(mockStream.close).toHaveBeenCalledWith(1007, 'subscription not found')
