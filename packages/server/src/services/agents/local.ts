@@ -60,21 +60,21 @@ export class LocalAgentService implements AgentService {
 
   async start() {
     for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[local:agents] Starting agent %s', id)
+      this.#log.info('[LOCAL] Starting agent %s (%s)', id, agent.metadata.name ?? 'unnamed')
       await agent.start()
     }
   }
 
   async stop() {
     for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[local:agents] Stopping agent %s', id)
+      this.#log.info('[LOCAL] Stopping agent %s', id)
       await agent.stop()
     }
   }
 
   collectTelemetry() {
     for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[local:agents] collect telemetry from agent %s', id)
+      this.#log.info('[LOCAL] collect telemetry from agent %s', id)
       agent.collectTelemetry()
     }
   }
