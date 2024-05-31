@@ -140,7 +140,10 @@ class Protocol {
  * });
  *
  * // subscribe to the previously created subscription
- * const ws = client.subscribe("my-subscription", {
+ * const ws = client.subscribe({
+ *    agentId: "xcm",
+ *    subscriptionId: "my-subscription"
+ *  }, {
  *  onMessage: msg => {
  *    if(xcm.isXcmReceived(msg)) {
  *      console.log("RECV", msg.subscriptionId);
