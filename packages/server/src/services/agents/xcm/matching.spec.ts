@@ -9,13 +9,13 @@ import { _services } from '../../../testing/services.js'
 import { Janitor } from '../../persistence/janitor.js'
 import { jsonEncoded, prefixes } from '../../types.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmNotificationType, XcmNotifyMessage, XcmSent } from './types.js'
+import { XcmInbound, XcmMessagePayload, XcmNotificationType, XcmSent } from './types.js'
 
 describe('message matching engine', () => {
   let engine: MatchingEngine
   let db: Level
   let outbound: AbstractSublevel<Level, Buffer | Uint8Array | string, string, XcmSent>
-  const cb = jest.fn((_: XcmNotifyMessage) => {
+  const cb = jest.fn((_: XcmMessagePayload) => {
     /* empty */
   })
   const schedule = jest.fn(() => {

@@ -46,7 +46,7 @@ describe('switchboard service', () => {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
     })
-    agentService.start()
+    await agentService.startAgent('xcm')
   })
 
   afterAll(async () => {

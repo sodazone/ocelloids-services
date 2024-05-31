@@ -24,7 +24,6 @@ export type AgentRuntimeContext = {
   notifier: NotifierHub
   ingressConsumer: IngressConsumer
   rootStore: DB
-  subsStore: SubsStore
   janitor: Janitor
 }
 
@@ -34,7 +33,7 @@ export interface AgentService {
   getAgentById(agentId: AgentId): Agent
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
   getAgentIds(): AgentId[]
-  start(): Promise<void>
+  startAgent(agentId: string, subscriptions?: Subscription[]): Promise<void>
   stop(): Promise<void>
   collectTelemetry(): void
 }
@@ -53,14 +52,12 @@ export interface Agent<T extends SubscriptionHandler = SubscriptionHandler> {
   collectTelemetry(): void
   get id(): AgentId
   get metadata(): AgentMetadata
-  getSubscriptionById(subscriptionId: string): Promise<Subscription>
-  getAllSubscriptions(): Promise<Subscription[]>
-  getInputSchema(): z.ZodSchema
+  get inputSchema(): z.ZodSchema
   getSubscriptionDescriptor(subscriptionId: string): Subscription
   getSubscriptionHandler(subscriptionId: string): T
   subscribe(subscription: Subscription): Promise<void>
   unsubscribe(subscriptionId: string): Promise<void>
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription>
   stop(): Promise<void>
-  start(): Promise<void>
+  start(subscriptions: Subscription[]): Promise<void>
 }

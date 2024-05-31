@@ -4,35 +4,27 @@ import { Observable, from, share } from 'rxjs'
 import { z } from 'zod'
 
 import { IngressConsumer } from '../../ingress/index.js'
-import { NotifierHub } from '../../notification/hub.js'
-import { SubsStore } from '../../persistence/subs.js'
 import { HexString, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 import { Agent, AgentId, AgentMetadata, AgentRuntimeContext, SubscriptionHandler } from '../types.js'
 import { GetStorageAt } from '../xcm/types-augmented.js'
 
-export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent<T> {
-  protected readonly subs: Record<string, T>
+export abstract class BaseAgent<T extends SubscriptionHandler = SubscriptionHandler> implements Agent<T> {
   protected readonly log: Logger
-  protected readonly timeouts: NodeJS.Timeout[]
-  protected readonly db: SubsStore
-  protected readonly ingress: IngressConsumer
-  protected readonly notifier: NotifierHub
 
-  protected shared: {
+  protected readonly subs: Record<string, T>
+  protected readonly ingress: IngressConsumer
+  protected readonly shared: {
     blockEvents: Record<string, Observable<types.BlockEvent>>
     blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
   }
 
   constructor(ctx: AgentRuntimeContext) {
-    const { log, ingressConsumer, notifier, subsStore } = ctx
+    const { log, ingressConsumer } = ctx
 
     this.log = log
     this.ingress = ingressConsumer
-    this.notifier = notifier
-    this.db = subsStore
     this.subs = {}
-    this.timeouts = []
 
     this.shared = {
       blockEvents: {},
@@ -46,35 +38,26 @@ export abstract class BaseAgent<T extends SubscriptionHandler> implements Agent<
     return this.metadata.id
   }
 
-  async getSubscriptionById(subscriptionId: string): Promise<Subscription> {
-    return await this.db.getById(this.id, subscriptionId)
-  }
-  async getAllSubscriptions(): Promise<Subscription[]> {
-    return await this.db.getByAgentId(this.id)
-  }
-
   getSubscriptionDescriptor(subscriptionId: string): Subscription {
-    if (this.subs[subscriptionId]) {
-      return this.subs[subscriptionId].descriptor
-    } else {
-      throw Error('subscription not found')
-    }
+    return this.getSubscriptionHandler(subscriptionId).descriptor
   }
 
   getSubscriptionHandler(subscriptionId: string): T {
     if (this.subs[subscriptionId]) {
       return this.subs[subscriptionId]
     } else {
-      throw Error('subscription handler not found')
+      throw Error('subscription not found')
     }
   }
 
-  abstract getInputSchema(): z.ZodSchema
+  abstract get inputSchema(): z.ZodSchema
+
   abstract subscribe(subscription: Subscription): Promise<void>
   abstract unsubscribe(subscriptionId: string): Promise<void>
+
   abstract update(subscriptionId: string, patch: Operation[]): Promise<Subscription>
   abstract stop(): Promise<void>
-  abstract start(): Promise<void>
+  abstract start(subs: Subscription[]): Promise<void>
 
   collectTelemetry() {
     /* no telemetry */

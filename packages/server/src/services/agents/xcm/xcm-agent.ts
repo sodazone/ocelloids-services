@@ -36,7 +36,8 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 
 import { EventEmitter } from 'node:events'
 import { getChainId, getConsensus } from '../../config.js'
-import { BaseAgent } from '../base/base-agent.js'
+import { NotifierHub } from '../../notification/hub.js'
+import { BaseAgent } from '../base/agent.js'
 import { AgentMetadata, AgentRuntimeContext } from '../types.js'
 import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
@@ -58,16 +59,22 @@ function hasOp(patch: Operation[], path: string) {
 }
 
 export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
+  readonly #notifier: NotifierHub
   readonly #engine: MatchingEngine
   readonly #telemetry: TelemetryXCMEventEmitter
+
+  readonly #timeouts: NodeJS.Timeout[]
 
   constructor(ctx: AgentRuntimeContext) {
     super(ctx)
 
+    this.#notifier = ctx.notifier
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
     this.#telemetry = new (EventEmitter as new () => TelemetryXCMEventEmitter)()
+    this.#timeouts = []
   }
 
+  // XXX refactor this
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
     const sub = this.subs[subscriptionId]
     const descriptor = sub.descriptor
@@ -79,8 +86,6 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
       applyPatch(descriptor, patch)
       $Subscription.parse(descriptor)
       const args = $XCMSubscriptionArgs.parse(descriptor.args)
-
-      await this.db.save(descriptor)
 
       sub.args = args
       sub.descriptor = descriptor
@@ -105,7 +110,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
     }
   }
 
-  getInputSchema(): z.ZodSchema {
+  get inputSchema(): z.ZodSchema {
     return $XCMSubscriptionArgs
   }
 
@@ -122,52 +127,46 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
   }
 
   async subscribe(s: Subscription): Promise<void> {
-    const args = $XCMSubscriptionArgs.parse(s.args)
-
+    const args = this.inputSchema.parse(s.args)
     const origin = args.origin as NetworkURN
     const dests = args.destinations as NetworkURN[]
+
     this.#validateChainIds([origin, ...dests])
 
-    if (!s.ephemeral) {
-      await this.db.insert(s)
-    }
-
-    this.#monitor(s, args)
+    const handler = await this.#monitor(s, args)
+    this.subs[s.id] = handler
   }
 
   async unsubscribe(id: string): Promise<void> {
     if (this.subs[id] === undefined) {
-      this.log.warn('unsubscribe from a non-existent subscription %s', id)
+      this.log.warn('unsubscribe from a non-existent subscription agent=%s sub=%s', this.id, id)
       return
     }
 
     try {
       const {
-        descriptor: { ephemeral },
         args: { origin },
         originSubs,
         destinationSubs,
         relaySub,
       } = this.subs[id]
 
-      this.log.info('[%s] unsubscribe %s', origin, id)
+      this.log.info('[%s:%s] unsubscribe %s', this.id, origin, id)
 
       originSubs.forEach(({ sub }) => sub.unsubscribe())
       destinationSubs.forEach(({ sub }) => sub.unsubscribe())
       if (relaySub) {
         relaySub.sub.unsubscribe()
       }
+
       delete this.subs[id]
 
       await this.#engine.clearPendingStates(id)
-
-      if (!ephemeral) {
-        await this.db.remove(this.id, id)
-      }
     } catch (error) {
-      this.log.error(error, 'Error unsubscribing %s', id)
+      this.log.error(error, 'Error unsubscribing agent=%s sub=%s', this.id, id)
     }
   }
+
   async stop(): Promise<void> {
     for (const {
       descriptor: { id },
@@ -175,7 +174,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
       destinationSubs,
       relaySub,
     } of Object.values(this.subs)) {
-      this.log.info('Unsubscribe %s', id)
+      this.log.info('[%s] Unsubscribe %s', this.id, id)
 
       originSubs.forEach(({ sub }) => sub.unsubscribe())
       destinationSubs.forEach(({ sub }) => sub.unsubscribe())
@@ -184,15 +183,15 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
       }
     }
 
-    for (const t of this.timeouts) {
+    for (const t of this.#timeouts) {
       t.unref()
     }
 
     await this.#engine.stop()
   }
 
-  async start(): Promise<void> {
-    await this.#startNetworkMonitors()
+  async start(subs: Subscription[]): Promise<void> {
+    await this.#startNetworkMonitors(subs)
   }
 
   #onXcmWaypointReached(payload: XcmMessagePayload) {
@@ -203,7 +202,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
         (args.events === undefined || args.events === '*' || args.events.includes(payload.type)) &&
         matchSenders(sendersControl, payload.sender)
       ) {
-        this.notifier.notify(descriptor, {
+        this.#notifier.notify(descriptor, {
           metadata: {
             type: payload.type,
             subscriptionId,
@@ -273,7 +272,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
 
     const { sendersControl, messageControl } = origMonitor.controls
 
-    this.subs[id] = {
+    return {
       descriptor,
       args,
       sendersControl,
@@ -318,7 +317,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
               const index = destinationSubs.findIndex((s) => s.chainId === chainId)
               if (index > -1) {
                 destinationSubs.splice(index, 1)
-                this.timeouts.push(
+                this.#timeouts.push(
                   setTimeout(() => {
                     this.log.info(
                       '[%s] UPDATE destination subscription %s due error %s',
@@ -410,7 +409,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
           const index = originSubs.findIndex((s) => s.chainId === chainId)
           if (index > -1) {
             this.subs[id].originSubs = []
-            this.timeouts.push(
+            this.#timeouts.push(
               setTimeout(() => {
                 if (this.subs[id]) {
                   this.log.info('[%s] UPDATE origin subscription %s due error %s', chainId, id, errorMessage(error))
@@ -540,7 +539,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
         // there is only one subscription per subscription ID for relay
         if (this.subs[id]) {
           const sub = this.subs[id]
-          this.timeouts.push(
+          this.#timeouts.push(
             setTimeout(async () => {
               this.log.info('[%s] UPDATE relay subscription %s due error %s', chainId, id, errorMessage(error))
               const updatedSub = await this.#monitorRelay(sub.descriptor, sub.args)
@@ -624,7 +623,7 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
           const index = bridgeSubs.findIndex((s) => s.type === 'pk-bridge')
           if (index > -1) {
             bridgeSubs.splice(index, 1)
-            this.timeouts.push(
+            this.#timeouts.push(
               setTimeout(() => {
                 this.log.info(
                   '[%s] UPDATE destination subscription %s due error %s',
@@ -716,14 +715,12 @@ export class XCMAgent extends BaseAgent<XCMSubscriptionHandler> {
    *
    * @private
    */
-  async #startNetworkMonitors() {
-    const subs = await this.db.getByAgentId(this.id)
-
+  async #startNetworkMonitors(subs: Subscription[]) {
     this.log.info('[%s] subscriptions %d', this.id, subs.length)
 
     for (const sub of subs) {
       try {
-        this.#monitor(sub, $XCMSubscriptionArgs.parse(sub.args))
+        this.subs[sub.id] = await this.#monitor(sub, this.inputSchema.parse(sub.args))
       } catch (err) {
         this.log.error(err, 'Unable to create subscription: %j', sub)
       }

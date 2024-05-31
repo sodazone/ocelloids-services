@@ -41,8 +41,6 @@ const agentServicePlugin: FastifyPluginAsync<AgentServiceOptions> = async (fasti
         done()
       })
   })
-
-  await service.start()
 }
 
 export default fp(agentServicePlugin, { fastify: '>=4.x', name: 'agent-service' })

@@ -11,7 +11,6 @@ import { SubsStore } from '../../persistence/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
 import { LocalAgentService } from '../local.js'
 import { AgentService } from '../types.js'
-import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import * as XcmpOps from './ops/xcmp.js'
 import { XCMSubscriptionHandler, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types.js'
 import { XCMAgent } from './xcm-agent.js'
@@ -127,15 +126,13 @@ describe('switchboard service', () => {
   })
 
   it('should subscribe to persisted subscriptions on start', async () => {
-    await subs.insert(testSub)
-
-    await agentService.start()
+    await agentService.startAgent('xcm', [testSub])
 
     expect(agentService.getAgentById('xcm').getSubscriptionDescriptor(testSub.id)).toBeDefined()
   })
 
   it('should handle relay subscriptions', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -164,7 +161,7 @@ describe('switchboard service', () => {
       return throwError(() => new Error('errored'))
     })
 
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
     await xcmAgent.subscribe(testSub)
@@ -173,7 +170,7 @@ describe('switchboard service', () => {
   })
 
   it('should update destination subscriptions on destinations change', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -222,7 +219,7 @@ describe('switchboard service', () => {
   })
 
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -233,7 +230,7 @@ describe('switchboard service', () => {
   })
 
   it('should not create relay hrmp subscription when the origin is a relay chain', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -250,7 +247,7 @@ describe('switchboard service', () => {
   })
 
   it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -267,7 +264,7 @@ describe('switchboard service', () => {
   })
 
   it('should not create relay hrmp subscription when relayed events are not requested', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -284,7 +281,7 @@ describe('switchboard service', () => {
   })
 
   it('should create relay hrmp subscription if relayed event is added', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 
@@ -321,7 +318,7 @@ describe('switchboard service', () => {
   })
 
   it('should remove relay hrmp subscription if relayed event is removed', async () => {
-    await agentService.start()
+    await agentService.startAgent('xcm')
 
     xcmAgent = agentService.getAgentById('xcm') as XCMAgent
 

@@ -24,16 +24,6 @@ export class LocalAgentService implements AgentService {
     })
   }
 
-  async getAllSubscriptions() {
-    let subscriptions: Subscription[] = []
-    for (const chainId of this.getAgentIds()) {
-      const agent = await this.getAgentById(chainId)
-      subscriptions = subscriptions.concat(await agent.getAllSubscriptions())
-    }
-
-    return subscriptions
-  }
-
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {
     return this.#notifier.on(eventName, listener)
   }
@@ -55,14 +45,13 @@ export class LocalAgentService implements AgentService {
 
   getAgentInputSchema(agentId: AgentId) {
     const agent = this.getAgentById(agentId)
-    return agent.getInputSchema()
+    return agent.inputSchema
   }
 
-  async start() {
-    for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[LOCAL] starting agent %s (%s)', id, agent.metadata.name ?? 'unnamed')
-      await agent.start()
-    }
+  async startAgent(agentId: string, subscriptions: Subscription[] = []) {
+    const agent = this.#agents[agentId]
+    this.#log.info('[LOCAL] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
+    await agent.start(subscriptions)
   }
 
   async stop() {

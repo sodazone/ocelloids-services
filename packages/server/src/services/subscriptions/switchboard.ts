@@ -7,6 +7,7 @@ import { NotificationListener, Subscription, SubscriptionStats } from './types.j
 
 import { AgentId, AgentService } from '../agents/types.js'
 import { NotifierEvents } from '../notification/types.js'
+import { SubsStore } from '../persistence/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 
 export enum SubscribeErrorCodes {
@@ -43,12 +44,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #maxEphemeral: number
   readonly #maxPersistent: number
   readonly #agentService: AgentService
+  readonly #db: SubsStore
 
   constructor(ctx: Services, options: SwitchboardOptions) {
     super()
 
     this.#log = ctx.log
     this.#agentService = ctx.agentService
+    this.#db = ctx.subsStore
 
     this.#stats = {
       ephemeral: 0,
@@ -74,10 +77,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     this.#log.info('[%s] new subscription: %j', s.agent, s)
 
-    if (s.ephemeral) {
-      this.#stats.ephemeral++
-    } else {
-      this.#stats.persistent++
+    try {
+      if (s.ephemeral) {
+        this.#stats.ephemeral++
+      } else {
+        await this.#db.insert(s)
+        this.#stats.persistent++
+      }
+    } catch (error) {
+      this.#log.error('Error while persisting subscription agent=%s id=%s', s.agent, s.id, error)
     }
   }
 
@@ -122,15 +130,18 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
       if (ephemeral) {
         this.#stats.ephemeral--
       } else {
+        await this.#db.remove(agentId, subscriptionId)
         this.#stats.persistent--
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      this.#log.error('Error while unsubscribing agent=%s sub=%s', agentId, subscriptionId, error)
     }
   }
 
   async start() {
-    // This method can be used for initialization if needed.
+    for (const agentId of this.#agentService.getAgentIds()) {
+      await this.#agentService.startAgent(agentId, await this.getSubscriptionsByAgentId(agentId))
+    }
   }
 
   async stop() {
@@ -155,7 +166,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   async getAllSubscriptions(): Promise<Subscription[]> {
     const subs: Subscription[][] = []
     for (const agentId of this.#agentService.getAgentIds()) {
-      subs.push(await this.#agentService.getAgentById(agentId).getAllSubscriptions())
+      subs.push(await this.#db.getByAgentId(agentId))
     }
     return subs.flat()
   }
@@ -167,7 +178,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @returns {Promise<Subscription[]>} All subscriptions under the specified agent.
    */
   async getSubscriptionsByAgentId(agentId: string): Promise<Subscription[]> {
-    return await this.#agentService.getAgentById(agentId).getAllSubscriptions()
+    return await this.#db.getByAgentId(agentId)
   }
 
   /**
@@ -178,7 +189,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @returns {Promise<Subscription>} The subscription with the specified identifier.
    */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
-    return await this.#agentService.getAgentById(agentId).getSubscriptionById(subscriptionId)
+    return await this.#db.getById(agentId, subscriptionId)
   }
 
   /**
@@ -189,8 +200,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param patch The JSON patch operations.
    * @returns {Promise<Subscription>} The updated subscription object.
    */
-  updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
-    return this.#agentService.getAgentById(agentId).update(subscriptionId, patch)
+  async updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
+    const agent = this.#agentService.getAgentById(agentId)
+    const updated = await agent.update(subscriptionId, patch)
+    await this.#db.save(updated)
+    return updated
   }
 
   /**
