@@ -48,7 +48,7 @@ export class LocalAgentCatalog implements AgentCatalog {
     return agent.inputSchema
   }
 
-  async startAgent(agentId: string, subscriptions: Subscription[] = []) {
+  async startAgent(agentId: AgentId, subscriptions: Subscription[] = []) {
     const agent = this.#agents[agentId]
     this.#log.info('[catalog:local] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
     await agent.start(subscriptions)

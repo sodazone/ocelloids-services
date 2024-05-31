@@ -32,7 +32,7 @@ export interface AgentCatalog {
   getAgentById<A extends Agent = Agent>(agentId: AgentId): A
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
   getAgentIds(): AgentId[]
-  startAgent(agentId: string, subscriptions?: Subscription[]): Promise<void>
+  startAgent(agentId: AgentId, subscriptions?: Subscription[]): Promise<void>
   stop(): Promise<void>
   collectTelemetry(): void
 }
