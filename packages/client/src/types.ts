@@ -111,7 +111,7 @@ export type SubscriptionError = {
 export type OnDemandSubscription<T = AnySubscriptionInputs> = Omit<Subscription<T>, 'id' | 'channels'>
 
 /**
- * Subscription identifier.
+ * Subscription ID.
  *
  * @public
  */

@@ -235,9 +235,9 @@ export class OcelloidsClient {
   }
 
   /**
-   * Gets a subscription by its identifier.
+   * Gets a subscription by its ID.
    *
-   * @param id - The agent and subscription identifiers.
+   * @param id - The agent and subscription IDs.
    * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
@@ -248,7 +248,7 @@ export class OcelloidsClient {
   /**
    * Lists all subscriptions for a given agent.
    *
-   * @param agentId - The agent identifier.
+   * @param agentId - The agent ID.
    * @param init - The fetch request init.
    * @returns A promise that resolves with an array of subscriptions.
    */
