@@ -55,8 +55,8 @@ describe('OcelloidsClient', () => {
       let called = 0
       const ws = client.subscribe(
         {
-          subscriptionId: 'subid',
-          agentId: 'agentid',
+          id: 'subid',
+          agent: 'agentid',
         },
         {
           onMessage: (msg) => {
@@ -209,8 +209,8 @@ describe('OcelloidsClient', () => {
 
       client.subscribe(
         {
-          agentId: 'agentid',
-          subscriptionId: 'subid',
+          agent: 'agentid',
+          id: 'subid',
         },
         {
           onMessage: (_) => {
@@ -247,8 +247,8 @@ describe('OcelloidsClient', () => {
 
       client.subscribe(
         {
-          agentId: 'agentid',
-          subscriptionId: 'subid',
+          agent: 'agentid',
+          id: 'subid',
         },
         {
           onMessage: (_) => {
@@ -282,8 +282,8 @@ describe('OcelloidsClient', () => {
 
       client.subscribe(
         {
-          agentId: 'agentid',
-          subscriptionId: 'subid',
+          agent: 'agentid',
+          id: 'subid',
         },
         {
           onMessage: (_) => {
@@ -321,8 +321,8 @@ describe('OcelloidsClient', () => {
 
       client.subscribe(
         {
-          agentId: 'agentid',
-          subscriptionId: 'subid',
+          agent: 'agentid',
+          id: 'subid',
         },
         {
           onMessage: (_) => {
@@ -401,7 +401,7 @@ describe('OcelloidsClient', () => {
 
       await client.health()
       await client.allSubscriptions('xcm')
-      await client.getSubscription({ agentId: 'xcm', subscriptionId: 'id' })
+      await client.getSubscription({ agent: 'xcm', id: 'id' })
 
       scope.done()
     })

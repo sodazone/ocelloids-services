@@ -9,12 +9,11 @@ import {
   type OnDemandSubscriptionHandlers,
   type Subscription,
   type SubscriptionError,
-  type SubscriptionIds,
+  type SubscriptionId,
   type WebSocketHandlers,
   WsAuthErrorEvent,
   isSubscription,
   isSubscriptionError,
-  isSubscriptionIds,
 } from './types'
 
 /**
@@ -27,6 +26,13 @@ export type OcelloidsClientConfig = {
   httpUrl: string
   httpAuthToken?: string
   wsAuthToken?: string
+}
+
+/**
+ * Guard condition for {@link SubscriptionId}.
+ */
+function isSubscriptionId(object: any): object is SubscriptionId {
+  return object.id !== undefined && object.agent !== undefined
 }
 
 /**
@@ -141,8 +147,8 @@ class Protocol {
  *
  * // subscribe to the previously created subscription
  * const ws = client.subscribe({
- *    agentId: "xcm",
- *    subscriptionId: "my-subscription"
+ *    agent: "xcm",
+ *    id: "my-subscription"
  *  }, {
  *  onMessage: msg => {
  *    if(xcm.isXcmReceived(msg)) {
@@ -231,12 +237,12 @@ export class OcelloidsClient {
   /**
    * Gets a subscription by its identifier.
    *
-   * @param ids - The agent and subscription identifiers.
+   * @param id - The agent and subscription identifiers.
    * @param init - The fetch request init.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription<T = AnySubscriptionInputs>(ids: SubscriptionIds, init?: RequestInit): Promise<Subscription<T>> {
-    return this.#fetch(`${this.#config.httpUrl}/subs/${ids.agentId}/${ids.subscriptionId}`, init)
+  async getSubscription<T = AnySubscriptionInputs>(id: SubscriptionId, init?: RequestInit): Promise<Subscription<T>> {
+    return this.#fetch(`${this.#config.httpUrl}/subs/${id.agent}/${id.id}`, init)
   }
 
   /**
@@ -269,14 +275,14 @@ export class OcelloidsClient {
    * @returns A promise that resolves with the WebSocket instance.
    */
   subscribe<T = AnySubscriptionInputs>(
-    subscription: SubscriptionIds | OnDemandSubscription<T>,
+    subscription: SubscriptionId | OnDemandSubscription<T>,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
     const url = this.#config.wsUrl + '/ws/subs'
 
-    return isSubscriptionIds(subscription)
-      ? this.#openWebSocket<T>(`${url}/${subscription.agentId}/${subscription.subscriptionId}`, handlers)
+    return isSubscriptionId(subscription)
+      ? this.#openWebSocket<T>(`${url}/${subscription.agent}/${subscription.id}`, handlers)
       : this.#openWebSocket<T>(url, handlers, {
           sub: subscription,
           onDemandHandlers,

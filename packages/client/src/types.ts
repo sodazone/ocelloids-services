@@ -111,22 +111,13 @@ export type SubscriptionError = {
 export type OnDemandSubscription<T = AnySubscriptionInputs> = Omit<Subscription<T>, 'id' | 'channels'>
 
 /**
- * Subscription identifiers.
+ * Subscription identifier.
  *
  * @public
  */
-export type SubscriptionIds = {
-  subscriptionId: string
-  agentId: string
-}
-
-/**
- * Guard condition for {@link SubscriptionIds}.
- *
- * @public
- */
-export function isSubscriptionIds(object: any): object is SubscriptionIds {
-  return object.subscriptionId !== undefined && object.agentId !== undefined
+export type SubscriptionId = {
+  id: string
+  agent: string
 }
 
 /**
