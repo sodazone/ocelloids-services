@@ -6,7 +6,7 @@ import { Logger, Services } from '../types.js'
 import { NotificationListener, Subscription, SubscriptionStats } from './types.js'
 
 import { NotFound } from '../../errors.js'
-import { AgentId, AgentService } from '../agents/types.js'
+import { AgentCatalog, AgentId } from '../agents/types.js'
 import { NotifierEvents } from '../notification/types.js'
 import { SubsStore } from '../persistence/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
@@ -39,14 +39,14 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   readonly #stats: SubscriptionStats
   readonly #maxEphemeral: number
   readonly #maxPersistent: number
-  readonly #agentService: AgentService
+  readonly #agentCatalog: AgentCatalog
   readonly #db: SubsStore
 
   constructor(ctx: Services, options: SwitchboardOptions) {
     super()
 
     this.#log = ctx.log
-    this.#agentService = ctx.agentService
+    this.#agentCatalog = ctx.agentCatalog
     this.#db = ctx.subsStore
 
     this.#stats = {
@@ -92,7 +92,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @see {@link WebsocketProtocol}
    */
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
-    this.#agentService.addNotificationListener(eventName, listener)
+    this.#agentCatalog.addNotificationListener(eventName, listener)
   }
 
   /**
@@ -103,7 +103,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @see {@link WebsocketProtocol}
    */
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
-    this.#agentService.removeNotificationListener(eventName, listener)
+    this.#agentCatalog.removeNotificationListener(eventName, listener)
   }
 
   /**
@@ -117,7 +117,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
       const ephemeral = await this.#isEphemeral(agentId, subscriptionId)
-      const agent = this.#agentService.getAgentById(agentId)
+      const agent = this.#agentCatalog.getAgentById(agentId)
       await agent.unsubscribe(subscriptionId)
 
       if (ephemeral) {
@@ -137,8 +137,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * It will start all the platform agents.
    */
   async start() {
-    for (const agentId of this.#agentService.getAgentIds()) {
-      await this.#agentService.startAgent(agentId, await this.getSubscriptionsByAgentId(agentId))
+    for (const agentId of this.#agentCatalog.getAgentIds()) {
+      await this.#agentCatalog.startAgent(agentId, await this.getSubscriptionsByAgentId(agentId))
     }
   }
 
@@ -164,7 +164,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   async getAllSubscriptions(): Promise<Subscription[]> {
     const subs: Subscription[][] = []
-    for (const agentId of this.#agentService.getAgentIds()) {
+    for (const agentId of this.#agentCatalog.getAgentIds()) {
       subs.push(await this.#db.getByAgentId(agentId))
     }
     return subs.flat()
@@ -200,7 +200,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @returns {Promise<Subscription>} The updated subscription object.
    */
   async updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
-    const agent = this.#agentService.getAgentById(agentId)
+    const agent = this.#agentCatalog.getAgentById(agentId)
     const updated = await agent.update(subscriptionId, patch)
     await this.#db.save(updated)
     return updated
@@ -240,7 +240,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     await this.#subscriptionShouldNotExist(subscription)
 
-    const agent = this.#agentService.getAgentById(subscription.agent)
+    const agent = this.#agentCatalog.getAgentById(subscription.agent)
     await agent.subscribe(subscription)
 
     this.#log.info('[%s] new subscription: %j', subscription.agent, subscription)

@@ -45,7 +45,7 @@ export enum AgentServiceMode {
   local = 'local',
 }
 
-export const $AgentServiceOptions = z.object({
+export const $AgentCatalogOptions = z.object({
   mode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
 })
 
@@ -55,4 +55,4 @@ export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
 export type IngressOptions = {
   distributed?: boolean
 } & RedisServerOptions
-export type AgentServiceOptions = z.infer<typeof $AgentServiceOptions>
+export type AgentCatalogOptions = z.infer<typeof $AgentCatalogOptions>

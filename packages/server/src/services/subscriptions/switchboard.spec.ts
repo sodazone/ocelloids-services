@@ -2,8 +2,8 @@ import '../../testing/network.js'
 
 import { _services } from '../../testing/services.js'
 import { AgentServiceMode } from '../../types.js'
-import { LocalAgentService } from '../agents/local.js'
-import { AgentService } from '../agents/types.js'
+import { LocalAgentCatalog } from '../agents/catalog/local.js'
+import { AgentCatalog } from '../agents/types.js'
 import { SubsStore } from '../persistence/subs'
 import { Services } from '../types.js'
 import type { Switchboard } from './switchboard.js'
@@ -30,11 +30,11 @@ const testSub: Subscription = {
 describe('switchboard service', () => {
   let switchboard: Switchboard
   let subs: SubsStore
-  let agentService: AgentService
+  let agentService: AgentCatalog
 
   beforeAll(async () => {
     subs = new SubsStore(_services.log, _services.rootStore)
-    agentService = new LocalAgentService(
+    agentService = new LocalAgentCatalog(
       {
         ..._services,
         subsStore: subs,

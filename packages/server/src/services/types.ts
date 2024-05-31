@@ -1,7 +1,7 @@
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
 import { FastifyBaseLogger } from 'fastify'
-import { AgentId, AgentService } from './agents/types.js'
+import { AgentCatalog, AgentId } from './agents/types.js'
 import { ServiceConfiguration } from './config.js'
 import { IngressConsumer } from './ingress/consumer/index.js'
 import Connector from './networking/connector.js'
@@ -100,6 +100,6 @@ export type Services = {
   scheduler: Scheduler
   localConfig: ServiceConfiguration
   ingressConsumer: IngressConsumer
-  agentService: AgentService
+  agentCatalog: AgentCatalog
   connector: Connector
 }

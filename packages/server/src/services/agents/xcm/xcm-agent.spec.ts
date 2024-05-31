@@ -9,8 +9,8 @@ import { AgentServiceMode } from '../../../types.js'
 import { Services } from '../../index.js'
 import { SubsStore } from '../../persistence/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
-import { LocalAgentService } from '../local.js'
-import { AgentService } from '../types.js'
+import { LocalAgentCatalog } from '../catalog/local.js'
+import { AgentCatalog } from '../types.js'
 import * as XcmpOps from './ops/xcmp.js'
 import { XcmInboundWithContext, XcmNotificationType, XcmSentWithContext, XcmSubscriptionHandler } from './types.js'
 import { XcmAgent } from './xcm-agent.js'
@@ -53,7 +53,7 @@ const testSub: Subscription = {
 
 describe('switchboard service', () => {
   let subs: SubsStore
-  let agentService: AgentService
+  let agentService: AgentCatalog
   let xcmAgent: XcmAgent
 
   beforeEach(async () => {
@@ -111,7 +111,7 @@ describe('switchboard service', () => {
     })
 
     subs = new SubsStore(_services.log, _services.rootStore)
-    agentService = new LocalAgentService(
+    agentService = new LocalAgentCatalog(
       {
         ..._services,
         subsStore: subs,

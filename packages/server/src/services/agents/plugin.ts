@@ -1,35 +1,35 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { AgentServiceMode, AgentServiceOptions } from '../../types.js'
-import { AgentsApi } from './api.js'
-import { LocalAgentService } from './local.js'
-import { AgentService } from './types.js'
+import { AgentCatalogOptions, AgentServiceMode } from '../../types.js'
+import { AgentsApi } from './api/routes.js'
+import { LocalAgentCatalog } from './catalog/local.js'
+import { AgentCatalog } from './types.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    agentService: AgentService
+    agentCatalog: AgentCatalog
   }
 }
 
 /**
- * Fastify plug-in for instantiating an {@link AgentService} instance.
+ * Fastify plug-in for instantiating an {@link AgentCatalog} instance.
  *
  * @param fastify The Fastify instance.
  * @param options Options for configuring the Agent Service.
  */
-const agentServicePlugin: FastifyPluginAsync<AgentServiceOptions> = async (fastify, options) => {
+const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fastify, options) => {
   if (options.mode !== AgentServiceMode.local) {
     throw new Error('Only local agent service is supported')
   }
-  const service: AgentService = new LocalAgentService(fastify, options)
+  const catalog: AgentCatalog = new LocalAgentCatalog(fastify, options)
 
-  fastify.decorate('agentService', service)
+  fastify.decorate('agentCatalog', catalog)
 
   await AgentsApi(fastify)
 
   fastify.addHook('onClose', (server, done) => {
-    service
+    catalog
       .stop()
       .then(() => {
         server.log.info('Agent service stopped')

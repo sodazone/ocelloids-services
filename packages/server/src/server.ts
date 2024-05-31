@@ -29,7 +29,7 @@ import version from './version.js'
 
 import { toCorsOpts } from './cli/args.js'
 import {
-  $AgentServiceOptions,
+  $AgentCatalogOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
@@ -50,7 +50,7 @@ export const $ServerOptions = z
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
   .merge($RedisServerOptions)
-  .merge($AgentServiceOptions)
+  .merge($AgentCatalogOptions)
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 

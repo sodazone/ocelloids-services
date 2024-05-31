@@ -4,8 +4,8 @@ import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
 
-import { LocalAgentService } from '../services/agents/local.js'
-import { AgentService } from '../services/agents/types.js'
+import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
+import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
 import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
@@ -178,7 +178,7 @@ const __services = {
   rootStore: _rootDB,
   subsStore: {} as unknown as SubsStore,
   ingressConsumer: {} as unknown as IngressConsumer,
-  agentService: {} as unknown as AgentService,
+  agentService: {} as unknown as AgentCatalog,
   scheduler: {
     on: () => {
       /* empty */
@@ -196,7 +196,7 @@ const __services = {
 
 export const _ingress = new LocalIngressConsumer(__services)
 export const _subsDB = new SubsStore(_log, _rootDB)
-export const _agentService = new LocalAgentService(
+export const _agentService = new LocalAgentCatalog(
   {
     ...__services,
     ingressConsumer: _ingress,
@@ -209,5 +209,5 @@ export const _services = {
   ...__services,
   ingressConsumer: _ingress,
   subsStore: _subsDB,
-  agentService: _agentService,
+  agentCatalog: _agentService,
 } as Services

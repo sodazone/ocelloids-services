@@ -5,7 +5,6 @@ import { IngressConsumer } from '../ingress/index.js'
 import { NotifierHub } from '../notification/hub.js'
 import { NotifierEvents } from '../notification/types.js'
 import { Janitor } from '../persistence/janitor.js'
-import { SubsStore } from '../persistence/subs.js'
 import { NotificationListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
 
@@ -27,7 +26,7 @@ export type AgentRuntimeContext = {
   janitor: Janitor
 }
 
-export interface AgentService {
+export interface AgentCatalog {
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
   getAgentById<A extends Agent = Agent>(agentId: AgentId): A
@@ -49,7 +48,6 @@ export type SubscriptionHandler = {
 }
 
 export interface Agent {
-  collectTelemetry(): void
   get id(): AgentId
   get metadata(): AgentMetadata
   get inputSchema(): z.ZodSchema
@@ -58,4 +56,5 @@ export interface Agent {
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription>
   stop(): Promise<void>
   start(subscriptions: Subscription[]): Promise<void>
+  collectTelemetry(): void
 }

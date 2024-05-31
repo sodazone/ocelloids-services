@@ -1,21 +1,21 @@
-import { NotFound } from '../../errors.js'
-import { AgentServiceOptions } from '../../types.js'
-import { Logger, Services } from '../index.js'
-import { NotifierHub } from '../notification/index.js'
-import { NotifierEvents } from '../notification/types.js'
-import { NotificationListener, Subscription } from '../subscriptions/types.js'
-import { Agent, AgentId, AgentRuntimeContext, AgentService } from './types.js'
-import { XcmAgent } from './xcm/xcm-agent.js'
+import { NotFound } from '../../../errors.js'
+import { AgentCatalogOptions } from '../../../types.js'
+import { Logger, Services } from '../../index.js'
+import { NotifierHub } from '../../notification/index.js'
+import { NotifierEvents } from '../../notification/types.js'
+import { NotificationListener, Subscription } from '../../subscriptions/types.js'
+import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
+import { XcmAgent } from '../xcm/xcm-agent.js'
 
 /**
- * Local agent service.
+ * A local implementation of the {@link AgentCatalog}.
  */
-export class LocalAgentService implements AgentService {
+export class LocalAgentCatalog implements AgentCatalog {
   readonly #log: Logger
   readonly #agents: Record<AgentId, Agent>
   readonly #notifier: NotifierHub
 
-  constructor(ctx: Services, _options: AgentServiceOptions) {
+  constructor(ctx: Services, _options: AgentCatalogOptions) {
     this.#log = ctx.log
     this.#notifier = new NotifierHub(ctx)
     this.#agents = this.#loadAgents({
@@ -50,20 +50,20 @@ export class LocalAgentService implements AgentService {
 
   async startAgent(agentId: string, subscriptions: Subscription[] = []) {
     const agent = this.#agents[agentId]
-    this.#log.info('[LOCAL] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
+    this.#log.info('[catalog:local] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
     await agent.start(subscriptions)
   }
 
   async stop() {
     for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[LOCAL] stopping agent %s', id)
+      this.#log.info('[catalog:local] stopping agent %s', id)
       await agent.stop()
     }
   }
 
   collectTelemetry() {
     for (const [id, agent] of Object.entries(this.#agents)) {
-      this.#log.info('[LOCAL] collect telemetry from agent %s', id)
+      this.#log.info('[catalog:local] collect telemetry from agent %s', id)
       agent.collectTelemetry()
     }
   }
