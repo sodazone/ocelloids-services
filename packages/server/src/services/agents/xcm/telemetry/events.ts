@@ -17,4 +17,4 @@ export type TelemetryEvents = {
   }) => void
 }
 
-export type TelemetryXCMEventEmitter = TypedEventEmitter<TelemetryEvents>
+export type TelemetryXcmEventEmitter = TypedEventEmitter<TelemetryEvents>

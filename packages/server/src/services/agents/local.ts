@@ -40,7 +40,7 @@ export class LocalAgentService implements AgentService {
     if (this.#agents[agentId]) {
       return this.#agents[agentId] as A
     }
-    throw new NotFound(`Agent not found for id=${agentId}`)
+    throw new NotFound(`Agent not found (agent=${agentId})`)
   }
 
   getAgentInputSchema(agentId: AgentId) {

@@ -107,12 +107,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Unsubscribes from the specified subscription by agent and subscription identifier.
+   * Unsubscribes from the specified subscription by agent and subscription ID.
    *
    * If the subscription does not exist, it is ignored.
    *
-   * @param {AgentId} agentId The agent identifier.
-   * @param {string} subscriptionId The subscription identifier.
+   * @param {AgentId} agentId The agent ID.
+   * @param {string} subscriptionId The subscription ID.
    */
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
@@ -149,9 +149,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Retrieves a subscription for an agent by agent id and subscription id.
    *
-   * @param {AgentId} agentId The agent identifier.
-   * @param {string} subscriptionId The subscription identifier.
-   * @returns {Promise<Subscription>} The subscription with the specified identifier.
+   * @param {AgentId} agentId The agent ID.
+   * @param {string} subscriptionId The subscription ID.
+   * @returns {Promise<Subscription>} The subscription with the specified ID.
    */
   async findSubscription(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
     return await this.#db.getById(agentId, subscriptionId)
@@ -173,7 +173,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Retrieves all subscriptions for a specific agent.
    *
-   * @param agentId The agent identifier.
+   * @param agentId The agent ID.
    * @returns {Promise<Subscription[]>} All subscriptions for the specified agent.
    */
   async getSubscriptionsByAgentId(agentId: string): Promise<Subscription[]> {
@@ -181,11 +181,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Retrieves a subscription by its identifier for a specific agent.
+   * Retrieves a subscription by its ID for a specific agent.
    *
-   * @param agentId The agent identifier.
-   * @param subscriptionId The subscription identifier.
-   * @returns {Promise<Subscription>} The subscription with the specified identifier.
+   * @param agentId The agent ID.
+   * @param subscriptionId The subscription ID.
+   * @returns {Promise<Subscription>} The subscription with the specified ID.
    */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
     return await this.#db.getById(agentId, subscriptionId)
@@ -194,8 +194,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates an existing subscription by applying the given JSON patch.
    *
-   * @param agentId The agent identifier.
-   * @param subscriptionId The subscription identifier.
+   * @param agentId The agent ID.
+   * @param subscriptionId The subscription ID.
    * @param patch The JSON patch operations.
    * @returns {Promise<Subscription>} The updated subscription object.
    */

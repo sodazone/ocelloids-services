@@ -28,7 +28,7 @@ import {
 import { getRelayId, isOnSameConsensus } from '../../config.js'
 import { Janitor, JanitorTask } from '../../persistence/janitor.js'
 import { AgentRuntimeContext } from '../types.js'
-import { TelemetryXCMEventEmitter } from './telemetry/events.js'
+import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>
@@ -52,7 +52,7 @@ const DEFAULT_TIMEOUT = 2 * 60000
  * - simplify logic to match only by message ID
  * - check notification storage by message ID and do not store for matching if already matched
  */
-export class MatchingEngine extends (EventEmitter as new () => TelemetryXCMEventEmitter) {
+export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEventEmitter) {
   readonly #log: Logger
   readonly #janitor: Janitor
 

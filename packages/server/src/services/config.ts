@@ -50,7 +50,7 @@ const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-z
  * The network ID is a URN with the following format: `urn:ocn:<GlobalConsensus>:<ChainId>`.
  *
  * - `GlobalConsensus`: A literal representing the consensus network (e.g., polkadot, kusama, ethereum).
- * - `ChainId`: Typically a numeric identifier within the consensus system (e.g., 0 for Polkadot relay chain, a parachain id).
+ * - `ChainId`: Typically a numeric ID within the consensus system (e.g., 0 for Polkadot relay chain, a parachain id).
  */
 export const $NetworkId = z.string().regex(networkIdRegex)
 

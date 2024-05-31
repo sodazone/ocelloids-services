@@ -10,7 +10,7 @@ export async function AgentsApi(api: FastifyInstance) {
   const { agentService } = api
 
   /**
-   * GET /agents
+   * GET agents
    */
   api.get(
     '/agents',
@@ -30,7 +30,7 @@ export async function AgentsApi(api: FastifyInstance) {
   )
 
   /**
-   * GET /agents/:agentId/inputs
+   * GET agents/:agentId/inputs
    */
   api.get<{
     Params: {

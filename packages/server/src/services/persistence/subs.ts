@@ -40,9 +40,9 @@ export class SubsStore {
   }
 
   /**
-   * Retrieves a subscription by identifier.
+   * Retrieves a subscription by ID.
    *
-   * @param {string} subscriptionId The subscription identifier
+   * @param {string} subscriptionId The subscription ID
    * @returns {Subscription} the subscription information
    * @throws {NotFound} if the subscription does not exist
    */

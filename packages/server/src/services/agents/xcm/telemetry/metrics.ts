@@ -1,9 +1,9 @@
 import { Counter } from 'prom-client'
 
 import { XcmBridge, XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../types.js'
-import { TelemetryXCMEventEmitter } from './events.js'
+import { TelemetryXcmEventEmitter } from './events.js'
 
-export function xcmAgentMetrics(source: TelemetryXCMEventEmitter) {
+export function xcmAgentMetrics(source: TelemetryXcmEventEmitter) {
   const subsErrors = new Counter({
     name: 'oc_xcm_subscription_errors_count',
     help: 'Subscription errors',
@@ -15,7 +15,7 @@ export function xcmAgentMetrics(source: TelemetryXCMEventEmitter) {
   })
 }
 
-export function xcmAgentEngineMetrics(source: TelemetryXCMEventEmitter) {
+export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
   const inCount = new Counter({
     name: 'oc_xcm_engine_in_total',
     help: 'Matching engine inbound messages.',

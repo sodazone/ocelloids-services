@@ -12,7 +12,7 @@ import { Subscription } from '../../subscriptions/types.js'
 import { LocalAgentService } from '../local.js'
 import { AgentService } from '../types.js'
 import * as XcmpOps from './ops/xcmp.js'
-import { XCMSubscriptionHandler, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types.js'
+import { XcmInboundWithContext, XcmNotificationType, XcmSentWithContext, XcmSubscriptionHandler } from './types.js'
 import { XcmAgent } from './xcm-agent.js'
 
 const mockExtractXcmpReceive = jest.fn()
@@ -225,7 +225,7 @@ describe('switchboard service', () => {
 
     await xcmAgent.subscribe(testSub) // origin: '1000', destinations: ['2000']
 
-    const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
+    const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XcmSubscriptionHandler
     expect(relaySub).toBeDefined()
   })
 
@@ -242,7 +242,7 @@ describe('switchboard service', () => {
       },
     })
 
-    const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
+    const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XcmSubscriptionHandler
     expect(relaySub).not.toBeDefined()
   })
 

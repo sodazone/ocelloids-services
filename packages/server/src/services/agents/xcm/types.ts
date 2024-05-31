@@ -26,14 +26,14 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a))
 }
 
-export type XCMSubscriptionHandler = {
+export type XcmSubscriptionHandler = {
   originSubs: RxSubscriptionWithId[]
   destinationSubs: RxSubscriptionWithId[]
   bridgeSubs: BridgeSubscription[]
   sendersControl: ControlQuery
   messageControl: ControlQuery
   descriptor: Subscription
-  args: XCMSubscriptionArgs
+  args: XcmSubscriptionArgs
   relaySub?: RxSubscriptionWithId
 }
 
@@ -787,7 +787,7 @@ export const $XCMSubscriptionArgs = z.object({
   outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })
 
-export type XCMSubscriptionArgs = z.infer<typeof $XCMSubscriptionArgs>
+export type XcmSubscriptionArgs = z.infer<typeof $XCMSubscriptionArgs>
 
 export type MessageQueueEventContext = {
   id: U8aFixed

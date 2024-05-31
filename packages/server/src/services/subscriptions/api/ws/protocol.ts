@@ -94,7 +94,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * @param socket The websocket
    * @param request The Fastify request
-   * @param ids The subscription and agent identifiers
+   * @param ids The subscription and agent IDs
    */
   async handle(
     socket: WebSocket,
