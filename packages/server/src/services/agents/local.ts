@@ -5,7 +5,7 @@ import { NotifierHub } from '../notification/index.js'
 import { NotifierEvents } from '../notification/types.js'
 import { NotificationListener, Subscription } from '../subscriptions/types.js'
 import { Agent, AgentId, AgentRuntimeContext, AgentService } from './types.js'
-import { XCMAgent } from './xcm/xcm-agent.js'
+import { XcmAgent } from './xcm/xcm-agent.js'
 
 /**
  * Local agent service.
@@ -36,9 +36,9 @@ export class LocalAgentService implements AgentService {
     return Object.keys(this.#agents)
   }
 
-  getAgentById(agentId: AgentId): Agent {
+  getAgentById<A extends Agent = Agent>(agentId: AgentId): A {
     if (this.#agents[agentId]) {
-      return this.#agents[agentId]
+      return this.#agents[agentId] as A
     }
     throw new NotFound(`Agent not found for id=${agentId}`)
   }
@@ -69,7 +69,7 @@ export class LocalAgentService implements AgentService {
   }
 
   #loadAgents(ctx: AgentRuntimeContext) {
-    const xcm = new XCMAgent(ctx)
+    const xcm = new XcmAgent(ctx)
     return {
       [xcm.id]: xcm,
     } as unknown as Record<AgentId, Agent>

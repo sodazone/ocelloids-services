@@ -5,26 +5,22 @@ import { Operation } from 'rfc6902'
 import { Logger, Services } from '../types.js'
 import { NotificationListener, Subscription, SubscriptionStats } from './types.js'
 
+import { NotFound } from '../../errors.js'
 import { AgentId, AgentService } from '../agents/types.js'
 import { NotifierEvents } from '../notification/types.js'
 import { SubsStore } from '../persistence/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 
-export enum SubscribeErrorCodes {
-  TOO_MANY_SUBSCRIBERS,
-}
-
 /**
  * Custom error class for subscription-related errors.
  */
 export class SubscribeError extends Error {
-  code: SubscribeErrorCodes
+  statusCode: number
 
-  constructor(code: SubscribeErrorCodes, message: string) {
+  constructor(message: string, statusCode = 400) {
     super(message)
 
-    Object.setPrototypeOf(this, SubscribeError.prototype)
-    this.code = code
+    this.statusCode = statusCode
   }
 }
 
@@ -62,30 +58,27 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Subscribes according to the given subscription.
+   * Subscribes to the given subscription(s).
    *
-   * @param {Subscription} s The subscription.
-   * @throws {SubscribeError} If there is an error creating the subscription.
+   * @param {Subscription | Subscription[]} subscription The subscription(s).
+   * @throws {SubscribeError | Error} If there is an error creating the subscription.
    */
-  async subscribe(s: Subscription) {
-    if (this.#stats.ephemeral >= this.#maxEphemeral || this.#stats.persistent >= this.#maxPersistent) {
-      throw new SubscribeError(SubscribeErrorCodes.TOO_MANY_SUBSCRIBERS, 'too many subscriptions')
-    }
-
-    const agent = this.#agentService.getAgentById(s.agent)
-    await agent.subscribe(s)
-
-    this.#log.info('[%s] new subscription: %j', s.agent, s)
-
-    try {
-      if (s.ephemeral) {
-        this.#stats.ephemeral++
-      } else {
-        await this.#db.insert(s)
-        this.#stats.persistent++
+  async subscribe(subscription: Subscription | Subscription[]) {
+    if (Array.isArray(subscription)) {
+      const tmp = []
+      try {
+        for (const s of subscription) {
+          await this.#subscribe(s)
+          tmp.push(s)
+        }
+      } catch (error) {
+        for (const s of tmp) {
+          await this.unsubscribe(s.agent, s.id)
+        }
+        throw error
       }
-    } catch (error) {
-      this.#log.error('Error while persisting subscription agent=%s id=%s', s.agent, s.id, error)
+    } else {
+      await this.#subscribe(subscription)
     }
   }
 
@@ -114,17 +107,17 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Unsubscribes by subsciption and agent identifier.
+   * Unsubscribes from the specified subscription by agent and subscription identifier.
    *
-   * If the subscription does not exists just ignores it.
+   * If the subscription does not exist, it is ignored.
    *
    * @param {AgentId} agentId The agent identifier.
    * @param {string} subscriptionId The subscription identifier.
    */
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
+      const ephemeral = await this.#isEphemeral(agentId, subscriptionId)
       const agent = this.#agentService.getAgentById(agentId)
-      const { ephemeral } = agent.getSubscriptionDescriptor(subscriptionId)
       await agent.unsubscribe(subscriptionId)
 
       if (ephemeral) {
@@ -134,10 +127,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         this.#stats.persistent--
       }
     } catch (error) {
-      this.#log.error('Error while unsubscribing agent=%s sub=%s', agentId, subscriptionId, error)
+      this.#log.error('[%s] error while unsubscribing: %s', agentId, subscriptionId, error)
     }
   }
 
+  /**
+   * Starts the switchboard.
+   *
+   * It will start all the platform agents.
+   */
   async start() {
     for (const agentId of this.#agentService.getAgentIds()) {
       await this.#agentService.startAgent(agentId, await this.getSubscriptionsByAgentId(agentId))
@@ -149,17 +147,18 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Gets a subscription of an agent by agent id and subscription id.
+   * Retrieves a subscription for an agent by agent id and subscription id.
    *
    * @param {AgentId} agentId The agent identifier.
    * @param {string} subscriptionId The subscription identifier.
+   * @returns {Promise<Subscription>} The subscription with the specified identifier.
    */
-  findSubscription(agentId: AgentId, subscriptionId: string): Subscription {
-    return this.#agentService.getAgentById(agentId).getSubscriptionDescriptor(subscriptionId)
+  async findSubscription(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
+    return await this.#db.getById(agentId, subscriptionId)
   }
 
   /**
-   * Gets all the subscriptions for all the known agents.
+   * Retrieves all subscriptions for all known agents.
    *
    * @returns {Promise<Subscription[]>} All subscriptions.
    */
@@ -172,20 +171,20 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Gets all the subscriptions under an agent.
+   * Retrieves all subscriptions for a specific agent.
    *
    * @param agentId The agent identifier.
-   * @returns {Promise<Subscription[]>} All subscriptions under the specified agent.
+   * @returns {Promise<Subscription[]>} All subscriptions for the specified agent.
    */
   async getSubscriptionsByAgentId(agentId: string): Promise<Subscription[]> {
     return await this.#db.getByAgentId(agentId)
   }
 
   /**
-   * Gets a subscription by subscription identifier under an agent.
+   * Retrieves a subscription by its identifier for a specific agent.
    *
    * @param agentId The agent identifier.
-   * @param subscriptionId  The subscription identifier.
+   * @param subscriptionId The subscription identifier.
    * @returns {Promise<Subscription>} The subscription with the specified identifier.
    */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
@@ -193,10 +192,10 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Updates an existing subscription applying the given JSON patch.
+   * Updates an existing subscription by applying the given JSON patch.
    *
    * @param agentId The agent identifier.
-   * @param subscriptionId The subscription identifier
+   * @param subscriptionId The subscription identifier.
    * @param patch The JSON patch operations.
    * @returns {Promise<Subscription>} The updated subscription object.
    */
@@ -208,6 +207,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
+   * Collects telemetry data.
+   *
    * Calls the given collect function for each private observable component.
    *
    * @param collect The collect callback function.
@@ -218,8 +219,62 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   /**
    * Returns the in-memory subscription statistics.
+   *
+   * @returns {SubscriptionStats} The current subscription statistics.
    */
   get stats() {
     return this.#stats
+  }
+
+  /**
+   * Internal method to handle subscription logic.
+   *
+   * @param subscription The subscription to handle.
+   * @throws {SubscribeError} If there are too many subscriptions.
+   * @private
+   */
+  async #subscribe(subscription: Subscription) {
+    if (this.#stats.ephemeral >= this.#maxEphemeral || this.#stats.persistent >= this.#maxPersistent) {
+      throw new SubscribeError('too many subscriptions')
+    }
+
+    await this.#subscriptionShouldNotExist(subscription)
+
+    const agent = this.#agentService.getAgentById(subscription.agent)
+    await agent.subscribe(subscription)
+
+    this.#log.info('[%s] new subscription: %j', subscription.agent, subscription)
+
+    try {
+      if (subscription.ephemeral) {
+        this.#stats.ephemeral++
+      } else {
+        await this.#db.insert(subscription)
+        this.#stats.persistent++
+      }
+    } catch (error) {
+      this.#log.error('[%s] error while persisting subscription: %s', subscription.agent, subscription.id, error)
+    }
+  }
+
+  async #isEphemeral(agentId: string, subscriptionId: string): Promise<boolean> {
+    try {
+      return (await this.getSubscriptionById(agentId, subscriptionId)).ephemeral ?? false
+    } catch {
+      return true
+    }
+  }
+
+  async #subscriptionShouldNotExist({ agent, id }: Subscription) {
+    try {
+      await this.getSubscriptionById(agent, id)
+      throw new SubscribeError(`Subscription already exists (agent=${agent}, id=${id})`)
+    } catch (error) {
+      if (error instanceof NotFound) {
+        //
+      } else {
+        throw error
+      }
+    }
   }
 }

@@ -57,7 +57,7 @@ describe('switchboard service', () => {
   it('should add a subscription by agent', async () => {
     await switchboard.subscribe(testSub)
 
-    expect(switchboard.findSubscription('xcm', testSub.id)).toBeDefined()
+    expect(await switchboard.findSubscription('xcm', testSub.id)).toBeDefined()
     expect(await subs.getById('xcm', testSub.id)).toBeDefined()
   })
 
@@ -67,8 +67,8 @@ describe('switchboard service', () => {
 
     await switchboard.unsubscribe('xcm', testSub.id)
 
-    expect(() => {
-      switchboard.findSubscription('xcm', testSub.id)
-    }).toThrow('subscription not found')
+    expect(async () => {
+      await switchboard.findSubscription('xcm', testSub.id)
+    }).rejects.toThrow('Subscription xcm 1000:2000:0 not found.')
   })
 })

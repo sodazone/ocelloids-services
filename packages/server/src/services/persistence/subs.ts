@@ -42,16 +42,16 @@ export class SubsStore {
   /**
    * Retrieves a subscription by identifier.
    *
-   * @param {string} id The subscription identifier
+   * @param {string} subscriptionId The subscription identifier
    * @returns {Subscription} the subscription information
    * @throws {NotFound} if the subscription does not exist
    */
-  async getById(agentId: AgentId, id: string) {
+  async getById(agentId: AgentId, subscriptionId: string) {
     try {
-      const subscription = await this.#subsFamily(agentId).get(id)
+      const subscription = await this.#subsFamily(agentId).get(subscriptionId)
       return subscription
     } catch {
-      throw new NotFound(`Subscription ${id} not found.`)
+      throw new NotFound(`Subscription ${agentId} ${subscriptionId} not found.`)
     }
   }
 

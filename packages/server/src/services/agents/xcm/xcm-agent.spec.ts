@@ -13,7 +13,7 @@ import { LocalAgentService } from '../local.js'
 import { AgentService } from '../types.js'
 import * as XcmpOps from './ops/xcmp.js'
 import { XCMSubscriptionHandler, XcmInboundWithContext, XcmNotificationType, XcmSentWithContext } from './types.js'
-import { XCMAgent } from './xcm-agent.js'
+import { XcmAgent } from './xcm-agent.js'
 
 const mockExtractXcmpReceive = jest.fn()
 const mockExtractXcmpSend = jest.fn()
@@ -54,7 +54,7 @@ const testSub: Subscription = {
 describe('switchboard service', () => {
   let subs: SubsStore
   let agentService: AgentService
-  let xcmAgent: XCMAgent
+  let xcmAgent: XcmAgent
 
   beforeEach(async () => {
     mockExtractXcmpSend.mockImplementation(() => {
@@ -128,13 +128,13 @@ describe('switchboard service', () => {
   it('should subscribe to persisted subscriptions on start', async () => {
     await agentService.startAgent('xcm', [testSub])
 
-    expect(agentService.getAgentById('xcm').getSubscriptionDescriptor(testSub.id)).toBeDefined()
+    expect(agentService.getAgentById<XcmAgent>('xcm').getSubscriptionHandler(testSub.id)).toBeDefined()
   })
 
   it('should handle relay subscriptions', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm')
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -144,7 +144,7 @@ describe('switchboard service', () => {
       },
     })
 
-    expect(xcmAgent.getSubscriptionDescriptor(testSub.id)).toBeDefined()
+    expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
   })
 
   it('should handle pipe errors', async () => {
@@ -163,16 +163,16 @@ describe('switchboard service', () => {
 
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
     await xcmAgent.subscribe(testSub)
 
-    expect(xcmAgent.getSubscriptionDescriptor(testSub.id)).toBeDefined()
+    expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
   })
 
   it('should update destination subscriptions on destinations change', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -208,8 +208,8 @@ describe('switchboard service', () => {
       },
     ])
     const { destinationSubs: newDestinationSubs, descriptor } = agentService
-      .getAgentById('xcm')
-      .getSubscriptionHandler(testSub.id) as XCMSubscriptionHandler
+      .getAgentById<XcmAgent>('xcm')
+      .getSubscriptionHandler(testSub.id)
 
     expect(newDestinationSubs.length).toBe(2)
     expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1)
@@ -221,7 +221,7 @@ describe('switchboard service', () => {
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe(testSub) // origin: '1000', destinations: ['2000']
 
@@ -232,7 +232,7 @@ describe('switchboard service', () => {
   it('should not create relay hrmp subscription when the origin is a relay chain', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -249,7 +249,7 @@ describe('switchboard service', () => {
   it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -266,7 +266,7 @@ describe('switchboard service', () => {
   it('should not create relay hrmp subscription when relayed events are not requested', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -283,7 +283,7 @@ describe('switchboard service', () => {
   it('should create relay hrmp subscription if relayed event is added', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,
@@ -320,7 +320,7 @@ describe('switchboard service', () => {
   it('should remove relay hrmp subscription if relayed event is removed', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XCMAgent
+    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
 
     await xcmAgent.subscribe({
       ...testSub,

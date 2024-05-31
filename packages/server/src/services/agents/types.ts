@@ -30,7 +30,7 @@ export type AgentRuntimeContext = {
 export interface AgentService {
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
-  getAgentById(agentId: AgentId): Agent
+  getAgentById<A extends Agent = Agent>(agentId: AgentId): A
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
   getAgentIds(): AgentId[]
   startAgent(agentId: string, subscriptions?: Subscription[]): Promise<void>
@@ -48,13 +48,11 @@ export type SubscriptionHandler = {
   descriptor: Subscription
 }
 
-export interface Agent<T extends SubscriptionHandler = SubscriptionHandler> {
+export interface Agent {
   collectTelemetry(): void
   get id(): AgentId
   get metadata(): AgentMetadata
   get inputSchema(): z.ZodSchema
-  getSubscriptionDescriptor(subscriptionId: string): Subscription
-  getSubscriptionHandler(subscriptionId: string): T
   subscribe(subscription: Subscription): Promise<void>
   unsubscribe(subscriptionId: string): Promise<void>
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription>

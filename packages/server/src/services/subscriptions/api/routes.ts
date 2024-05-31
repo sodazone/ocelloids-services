@@ -117,23 +117,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const subs = request.body
-      if (Array.isArray(subs)) {
-        const tmp = []
-        try {
-          for (const s of subs) {
-            await switchboard.subscribe(s)
-            tmp.push(s)
-          }
-        } catch (error) {
-          for (const s of tmp) {
-            await switchboard.unsubscribe(s.agent, s.id)
-          }
-          throw error
-        }
-      } else {
-        await switchboard.subscribe(subs)
-      }
-
+      await switchboard.subscribe(subs)
       reply.status(201).send()
     }
   )

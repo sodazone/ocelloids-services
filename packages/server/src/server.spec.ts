@@ -175,7 +175,7 @@ describe('monitoring server API', () => {
           server.inject(
             {
               method: 'GET',
-              url: '/subs/m3',
+              url: '/subs/xcm/m3',
             },
             (_, r) => {
               done()
