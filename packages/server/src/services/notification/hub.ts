@@ -40,8 +40,8 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
   /**
    * Notifies a message in the context of a subscription.
    *
-   * @param sub The subscription.
-   * @param msg The message.
+   * @param sub - The subscription.
+   * @param msg - The message.
    */
   notify(sub: Subscription, msg: NotifyMessage) {
     const types: any[] = []

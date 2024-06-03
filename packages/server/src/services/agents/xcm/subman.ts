@@ -35,6 +35,7 @@ export class XcmSubscriptionManager {
 
   /**
    * Retrieves all subscription handlers.
+   * 
    * @returns {XcmSubscriptionHandler[]} All subscription handlers.
    */
   all() {
@@ -43,7 +44,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Deletes a subscription by its ID.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    */
   delete(id: string) {
     delete this.#handlers[id]
@@ -51,8 +53,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Sets a subscription.
-   * @param {string} id The subscription ID.
-   * @param {XcmSubscriptionHandler} handler The subscription handler.
+   * 
+   * @param {string} id - The subscription ID.
+   * @param {XcmSubscriptionHandler} - handler The subscription handler.
    */
   set(id: string, handler: XcmSubscriptionHandler) {
     this.#handlers[id] = handler
@@ -60,8 +63,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Checks if a subscription for a bridge exists.
-   * @param {string} id The subscription ID.
-   * @param {string} type The bridge type.
+   * 
+   * @param {string} id - The subscription ID.
+   * @param {string} type - The bridge type.
    * @returns {boolean} Whether a subscription for the bridge exists.
    */
   hasSubscriptionForBridge(id: string, type: string) {
@@ -70,7 +74,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Checks if a subscription exists.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    * @returns {boolean} Whether the subscription exists.
    */
   has(id: string) {
@@ -79,7 +84,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Retrieves a subscription by its ID.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    * @returns {XcmSubscriptionHandler} The subscription handler.
    */
   get(id: string) {
@@ -88,8 +94,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Checks if a subscription for a destination exists.
-   * @param {string} id The subscription ID.
-   * @param {string} chainId The chain ID.
+   * 
+   * @param {string} id - The subscription ID.
+   * @param {string} chainId - The chain ID.
    * @returns {boolean} Whether a subscription for the destination exists.
    */
   hasSubscriptionForDestination(id: string, chainId: string) {
@@ -98,8 +105,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Checks if a subscription for an origin exists.
-   * @param {string} id The subscription ID.
-   * @param {string} chainId The chain ID.
+   * 
+   * @param {string} id - The subscription ID.
+   * @param {string} chainId - The chain ID.
    * @returns {boolean} Whether a subscription for the origin exists.
    */
   hasSubscriptionForOrigin(id: string, chainId: string) {
@@ -108,7 +116,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Checks if a relay subscription exists.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    * @returns {boolean} Whether a relay subscription exists.
    */
   hasSubscriptionForRelay(id: string) {
@@ -117,8 +126,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Retrieves a subscription handler by its ID.
-   * @param {string} subscriptionId The subscription ID.
-   * @returns {XcmSubscriptionHandler} The subscription handler.
+   * 
+   * @param {string} subscriptionId - The subscription ID.
+   * @returns {XcmSubscriptionHandler} - The subscription handler.
    * @throws {NotFound} If the subscription handler is not found.
    */
   getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
@@ -131,8 +141,9 @@ export class XcmSubscriptionManager {
 
   /**
    * Updates a subscription with a JSON patch.
-   * @param {string} subscriptionId The subscription ID.
-   * @param {Operation[]} patch The JSON patch operations.
+   * 
+   * @param {string} subscriptionId - The subscription ID.
+   * @param {Operation[]} patch - The JSON patch operations.
    * @returns {Promise<Subscription>} The updated subscription.
    * @throws {ValidationError} If the patch contains disallowed operations.
    */
@@ -182,9 +193,10 @@ export class XcmSubscriptionManager {
 
   /**
    * Attempts to recover a relay subscription after an error.
-   * @param {Error} error The error that occurred.
-   * @param {string} id The subscription ID.
-   * @param {string} chainId The chain ID.
+   * 
+   * @param {Error} error - The error that occurred.
+   * @param {string} id - The subscription ID.
+   * @param {string} chainId - The chain ID.
    */
   tryRecoverRelay(error: Error, id: string, chainId: string) {
     // try recover relay subscription
@@ -203,10 +215,11 @@ export class XcmSubscriptionManager {
 
   /**
    * Attempts to recover a bridge subscription after an error.
-   * @param {Error} error The error that occurred.
-   * @param {string} id The subscription ID.
-   * @param {string} type The bridge type.
-   * @param {string} originBridgeHub The origin bridge hub.
+   * 
+   * @param {Error} error - The error that occurred.
+   * @param {string} id - The subscription ID.
+   * @param {string} type - The bridge type.
+   * @param {string} originBridgeHub - The origin bridge hub.
    */
   tryRecoverBridge(error: Error, id: string, type: string, originBridgeHub: string) {
     // try recover pk bridge subscription
@@ -234,9 +247,10 @@ export class XcmSubscriptionManager {
 
   /**
    * Attempts to recover an inbound subscription after an error.
-   * @param {Error} error The error that occurred.
-   * @param {string} id The subscription ID.
-   * @param {string} chainId The chain ID.
+   * 
+   * @param {Error} error - The error that occurred.
+   * @param {string} id - The subscription ID.
+   * @param {string} chainId - The chain ID.
    */
   tryRecoverInbound(error: Error, id: string, chainId: string) {
     // try recover inbound subscription
@@ -258,9 +272,10 @@ export class XcmSubscriptionManager {
 
   /**
    * Attempts to recover an outbound subscription after an error.
-   * @param {Error} error The error that occurred.
-   * @param {string} id The subscription ID.
-   * @param {string} chainId The chain ID.
+   * 
+   * @param {Error} error - The error that occurred.
+   * @param {string} id - The subscription ID.
+   * @param {string} chainId - The chain ID.
    */
   tryRecoverOutbound(error: Error, id: string, chainId: string) {
     // try recover outbound subscription
@@ -301,7 +316,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Updates the message control handler.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    */
   #updateDestinationMessageControl(id: string) {
     const { args, messageControl } = this.#handlers[id]
@@ -314,7 +330,8 @@ export class XcmSubscriptionManager {
 
   /**
    * Updates the destination subscriptions.
-   * @param {string} id The subscription ID.
+   * 
+   * @param {string} id - The subscription ID.
    * @returns {Subscription[]} The updated destination subscriptions.
    */
   #updateDestinationSubscriptions(id: string) {

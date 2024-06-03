@@ -55,7 +55,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
   /**
    * Caches produced blocks and storage items.
    *
-   * @param network The network configuration
+   * @param network - The network configuration
    */
   watch(network: NetworkConfiguration) {
     const chainId = network.id as NetworkURN

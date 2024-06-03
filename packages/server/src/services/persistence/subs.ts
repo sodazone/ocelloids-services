@@ -42,8 +42,8 @@ export class SubsStore {
   /**
    * Retrieves a subscription by ID.
    *
-   * @param {string} subscriptionId The subscription ID
-   * @returns {Subscription} the subscription information
+   * @param {string} subscriptionId - The subscription ID
+   * @returns {Subscription} the subscription
    * @throws {NotFound} if the subscription does not exist
    */
   async getById(agentId: AgentId, subscriptionId: string) {

@@ -15,8 +15,8 @@ declare module 'fastify' {
 /**
  * Fastify plug-in for instantiating an {@link AgentCatalog} instance.
  *
- * @param fastify The Fastify instance.
- * @param options Options for configuring the Agent Service.
+ * @param fastify - The Fastify instance.
+ * @param options - Options for configuring the Agent Service.
  */
 const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fastify, options) => {
   if (options.mode !== AgentServiceMode.local) {

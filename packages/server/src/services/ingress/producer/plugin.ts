@@ -13,8 +13,8 @@ declare module 'fastify' {
 /**
  * Fastify plug-in for the {@link IngressProducer} instance.
  *
- * @param fastify The Fastify instance.
- * @param options Options for configuring the IngressProducer.
+ * @param fastify - The Fastify instance.
+ * @param options - The options for configuring the IngressProducer.
  */
 const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
   const producer = new IngressProducer(fastify, options)

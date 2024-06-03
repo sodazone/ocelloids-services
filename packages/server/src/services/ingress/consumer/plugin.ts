@@ -15,8 +15,8 @@ declare module 'fastify' {
  *
  * The plug-in initializes either a distributed or a local implementation based on the `distributed` configuration option.
  *
- * @param fastify The Fastify instance.
- * @param options Options for configuring the IngressConsumer.
+ * @param fastify - The Fastify instance.
+ * @param options - Options for configuring the IngressConsumer.
  */
 const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
   const consumer: IngressConsumer = options.distributed

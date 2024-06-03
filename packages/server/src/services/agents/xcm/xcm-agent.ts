@@ -642,8 +642,8 @@ export class XcmAgent implements Agent {
    * 2. Origin chain is not a relay chain
    * 3. At least one destination chain is a parachain
    *
-   * @param Subscription
-   * @returns boolean
+   * @param Subscription - The subscription arguments.
+   * @returns true if should monitor the relay chain.
    */
   _shouldMonitorRelay({ origin, destinations, events }: XcmSubscriptionArgs) {
     return (

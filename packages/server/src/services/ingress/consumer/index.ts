@@ -29,9 +29,8 @@ import { HeadCatcher } from '../watcher/head-catcher.js'
 /**
  * Creates a type registry with metadata.
  *
- * @param bytes The bytes of the metadata.
+ * @param bytes - The bytes of the metadata.
  * @returns A new TypeRegistry instance with the provided metadata.
- * @private
  */
 function createRegistry(bytes: Buffer | Uint8Array) {
   const typeRegistry = new TypeRegistry()

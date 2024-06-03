@@ -17,7 +17,7 @@ export type WebsocketProtocolOptions = {
 /**
  * Websocket subscription protocol plug-in.
  *
- * @param fastify The fastify instance
+ * @param fastify - The fastify instance
  */
 const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = async (fastify, options) => {
   const { log, switchboard } = fastify

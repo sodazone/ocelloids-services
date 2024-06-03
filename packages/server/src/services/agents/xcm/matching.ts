@@ -693,7 +693,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   /**
    * Clears the pending states for a subcription.
    *
-   * @param subscriptionId The subscription id.
+   * @param subscriptionId - The subscription ID.
    */
   async clearPendingStates(subscriptionId: string) {
     const prefix = subscriptionId + ':'

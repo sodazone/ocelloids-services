@@ -128,10 +128,9 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
  * Sets the destination as the final stop after recursively extracting all stops from the XCM message,
  * constructs the legs for the message and constructs the waypoint context.
  *
- * @param id subscription ID
- * @param registry type registry
- * @param origin origin network URN
- * @returns Observable<XcmSent>
+ * @param id - The subscription ID
+ * @param registry - The type registry
+ * @param origin - The origin network URN
  */
 export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>

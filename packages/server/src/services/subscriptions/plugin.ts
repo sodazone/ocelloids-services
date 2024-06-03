@@ -18,7 +18,7 @@ type SubscriptionsOptions = SwitchboardOptions & WebsocketProtocolOptions
  *
  * Exposes the subscription HTTP API and starts the switchboard.
  *
- * @param {FastifyInstance} fastify The Fastify instance.
+ * @param {FastifyInstance} fastify - The Fastify instance.
  */
 const subscriptionsPlugin: FastifyPluginAsync<SubscriptionsOptions> = async (fastify, options) => {
   const { log } = fastify

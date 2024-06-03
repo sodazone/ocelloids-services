@@ -6,8 +6,8 @@ import { XcmVersionedXcm } from './xcm-types.js'
 /**
  * Creates a versioned XCM program from bytes.
  *
- * @param data The data bytes.
- * @param registry Optional - The registry to decode types.
+ * @param data - The data bytes.
+ * @param registry - The registry to decode types.
  * @returns a versioned XCM program
  */
 export function asVersionedXcm(data: Bytes | Uint8Array, registry: Registry): XcmVersionedXcm {

@@ -60,7 +60,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Subscribes to the given subscription(s).
    *
-   * @param {Subscription | Subscription[]} subscription The subscription(s).
+   * @param {Subscription | Subscription[]} subscription - The subscription(s).
    * @throws {SubscribeError | Error} If there is an error creating the subscription.
    */
   async subscribe(subscription: Subscription | Subscription[]) {
@@ -87,8 +87,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * This method is used by the web socket broadcaster.
    *
-   * @param eventName The notifier event name.
-   * @param listener The listener function.
+   * @param eventName - The notifier event name.
+   * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
@@ -98,8 +98,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Removes a listener function from the underlying notifier.
    *
-   * @param eventName The notifier event name.
-   * @param listener The listener function.
+   * @param eventName - The notifier event name.
+   * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
@@ -111,8 +111,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * If the subscription does not exist, it is ignored.
    *
-   * @param {AgentId} agentId The agent ID.
-   * @param {string} subscriptionId The subscription ID.
+   * @param {AgentId} agentId - The agent ID.
+   * @param {string} subscriptionId - The subscription ID.
    */
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
@@ -183,8 +183,8 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Retrieves a subscription by its ID for a specific agent.
    *
-   * @param agentId The agent ID.
-   * @param subscriptionId The subscription ID.
+   * @param agentId - The agent ID.
+   * @param subscriptionId - The subscription ID.
    * @returns {Promise<Subscription>} The subscription with the specified ID.
    */
   async getSubscriptionById(agentId: AgentId, subscriptionId: string): Promise<Subscription> {
@@ -194,9 +194,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Updates an existing subscription by applying the given JSON patch.
    *
-   * @param agentId The agent ID.
-   * @param subscriptionId The subscription ID.
-   * @param patch The JSON patch operations.
+   * @param agentId - The agent ID.
+   * @param subscriptionId - The subscription ID.
+   * @param patch - The JSON patch operations.
    * @returns {Promise<Subscription>} The updated subscription object.
    */
   async updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
@@ -211,7 +211,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * Calls the given collect function for each private observable component.
    *
-   * @param collect The collect callback function.
+   * @param collect - The collect callback function.
    */
   collectTelemetry(collect: TelemetryCollect) {
     collect(this)
@@ -229,7 +229,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Internal method to handle subscription logic.
    *
-   * @param subscription The subscription to handle.
+   * @param subscription - The subscription to handle.
    * @throws {SubscribeError} If there are too many subscriptions.
    * @private
    */
