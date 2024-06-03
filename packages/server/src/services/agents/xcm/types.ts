@@ -17,13 +17,13 @@ import {
 } from '../../subscriptions/types.js'
 import { NetworkURN } from '../../types.js'
 
+function distinct(a: Array<string>) {
+  return Array.from(new Set(a))
+}
+
 export type Monitor = {
   subs: RxSubscriptionWithId[]
   controls: Record<string, ControlQuery>
-}
-
-function distinct(a: Array<string>) {
-  return Array.from(new Set(a))
 }
 
 export type XcmSubscriptionHandler = {

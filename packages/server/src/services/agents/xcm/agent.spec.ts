@@ -11,9 +11,9 @@ import { SubsStore } from '../../persistence/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
 import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
+import { XcmAgent } from './agent.js'
 import * as XcmpOps from './ops/xcmp.js'
 import { XcmInboundWithContext, XcmNotificationType, XcmSentWithContext, XcmSubscriptionHandler } from './types.js'
-import { XcmAgent } from './agent.js'
 
 const mockExtractXcmpReceive = jest.fn()
 const mockExtractXcmpSend = jest.fn()
