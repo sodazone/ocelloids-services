@@ -44,7 +44,7 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: DBOptions)
 /**
  * Persistence related services.
  *
- * @param fastify - The fastify instance
+ * @param fastify - The Fastify instance
  * @param options - The persistence options
  */
 const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {

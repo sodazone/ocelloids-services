@@ -24,7 +24,7 @@ type PullCollect = () => Promise<void>
 /**
  * Telemetry related services.
  *
- * @param fastify - The fastify instance
+ * @param fastify - The Fastify instance
  * @param options - The telemetry options
  */
 const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, options) => {
