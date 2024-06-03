@@ -13,7 +13,7 @@ The Ocelloids Service Node repository provides software components for running p
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
 - **Scalability:** Can run in a distributed way, decoupling the sourcing of onchain data from the execution of automation programs.
-- **Programmability:** Provides agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the "agents" section for the currently available agents.
+- **Programmability:** Provides agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the ["agents" section](https://github.com/sodazone/ocelloids-services/tree/main/packages/server#agents) for the currently available agents.
 
 ## Configuration
 
@@ -178,6 +178,13 @@ OC_CONFIG_FILE=<path/to/your-config.toml> yarn dev
 ```
 
 Replace `<path/to/your-config.toml>` with a valid configuration file path. Configuration examples can be found in the `config/` folder.
+
+## Agents
+
+| Agent | Description |
+| ----- | ----------- |
+| General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions. |
+| XCM Monitor | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
 
 ## HTTP APIs
 
