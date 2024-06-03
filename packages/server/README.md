@@ -181,10 +181,10 @@ Replace `<path/to/your-config.toml>` with a valid configuration file path. Confi
 
 ## Agents
 
-| Agent | Description |
-| ----- | ----------- |
-| General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions. |
-| XCM Monitor | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
+| ID  | Name | Description |
+| --- | ----- | ----------- |
+| informant | General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions. |
+| xcm | XCM Monitor | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
 
 ## HTTP APIs
 
