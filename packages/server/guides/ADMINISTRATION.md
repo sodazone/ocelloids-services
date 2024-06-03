@@ -32,7 +32,4 @@ Some operations require expiration for cached entries, such as cached messages. 
 You can list the scheduled tasks by making a GET request to `/admin/sched`, which will return all the keys of the current scheduled tasks.
 You can retrieve the content of a scheduled task using GET `/admin/sched?key=<key>` and remove it using the DELETE operation.
 
-### Pending Messages
-
-You can list all the pending messages to be matched making a GET request to `/admin/xcm`.
 

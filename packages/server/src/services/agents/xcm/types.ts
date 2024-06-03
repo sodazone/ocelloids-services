@@ -21,6 +21,22 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a))
 }
 
+/**
+ * XCM storage prefixes.
+ */
+export const prefixes = {
+  matching: {
+    outbound: 'xcm:ma:out',
+    inbound: 'xcm:ma:in',
+    relay: 'xcm:ma:relay',
+    hop: 'xcm:ma:hop',
+    bridge: 'xcm:ma:bridge',
+    bridgeAccepted: 'xcm:ma:bridgeAccepted',
+    bridgeDelivered: 'xcm:ma:bridgeDelivered',
+    bridgeIn: 'xcm:ma:bridgeIn',
+  },
+}
+
 export type Monitor = {
   subs: RxSubscriptionWithId[]
   controls: Record<string, ControlQuery>

@@ -15,14 +15,14 @@ export const $InformantInputs = z.object({
   networks: z.array(
     z
       .string({
-        required_error: 'networks is required',
+        required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
       })
       .min(1)
   ),
   filter: z.object({
     type: z.enum(['event', 'extrinsic']),
     match: z.string({
-      required_error: 'match expression is required',
+      required_error: 'MongoQL matching expression is required',
     }),
   }),
 })

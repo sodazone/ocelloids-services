@@ -45,16 +45,6 @@ export const prefixes = {
     ranges: (chainId: NetworkURN) => `ch:rg:${chainId}`,
     tips: 'ch:fi',
   },
-  matching: {
-    outbound: 'ma:out',
-    inbound: 'ma:in',
-    relay: 'ma:relay',
-    hop: 'ma:hop',
-    bridge: 'ma:bridge',
-    bridgeAccepted: 'ma:bridgeAccepted',
-    bridgeDelivered: 'ma:bridgeDelivered',
-    bridgeIn: 'ma:bridgeIn',
-  },
   distributor: {
     lastBlockStreamId: (chainId: NetworkURN) => `dis:blocks:lid:${chainId}`,
   },

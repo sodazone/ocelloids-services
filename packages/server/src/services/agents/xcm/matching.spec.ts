@@ -7,9 +7,9 @@ import { matchBridgeMessages } from '../../../testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '../../../testing/matching.js'
 import { _services } from '../../../testing/services.js'
 import { Janitor } from '../../persistence/janitor.js'
-import { jsonEncoded, prefixes } from '../../types.js'
+import { jsonEncoded } from '../../types.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmMessagePayload, XcmNotificationType, XcmSent } from './types.js'
+import { XcmInbound, XcmMessagePayload, XcmNotificationType, XcmSent, prefixes } from './types.js'
 
 describe('message matching engine', () => {
   let engine: MatchingEngine

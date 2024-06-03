@@ -22,8 +22,6 @@ export default async function Administration(api: FastifyInstance) {
     },
   }
 
-  const inDB = rootStore.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded)
-  const outDB = rootStore.sublevel<string, any>(prefixes.matching.inbound, jsonEncoded)
   const tipsDB = rootStore.sublevel<string, any>(prefixes.cache.tips, jsonEncoded)
 
   api.get('/admin/cache/tips', opts, async (_, reply) => {
@@ -43,29 +41,6 @@ export default async function Administration(api: FastifyInstance) {
   api.delete<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded)
     await db.clear()
-    reply.send()
-  })
-
-  api.get('/admin/xcm', opts, async (_, reply) => {
-    const outbound = await inDB.keys(itOps).all()
-    const inbound = await outDB.keys(itOps).all()
-    reply.send({
-      outbound,
-      inbound,
-    })
-  })
-
-  api.delete<{
-    Querystring: { key: string }
-  }>('/admin/xcm/inbound', opts, async (request, reply) => {
-    await inDB.del(request.query.key)
-    reply.send()
-  })
-
-  api.delete<{
-    Querystring: { key: string }
-  }>('/admin/xcm/outbound', opts, async (request, reply) => {
-    await outDB.del(request.query.key)
     reply.send()
   })
 

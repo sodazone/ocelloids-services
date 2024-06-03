@@ -3,7 +3,7 @@ import EventEmitter from 'node:events'
 import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
 
-import { DB, Logger, jsonEncoded, prefixes } from '../../types.js'
+import { DB, Logger, jsonEncoded } from '../../types.js'
 import {
   GenericXcmBridge,
   GenericXcmHop,
@@ -23,6 +23,7 @@ import {
   XcmSent,
   XcmTimeout,
   XcmWaypointContext,
+  prefixes,
 } from './types.js'
 
 import { getRelayId, isOnSameConsensus } from '../../config.js'
@@ -80,18 +81,23 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     // Key format: [subscription-id]:[destination-chain-id]:[message-id/hash]
     this.#outbound = rootStore.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded)
-    // Key format: [subscription-id]:[current-chain-id]:[message-id/hash]
+
+    // [subscription-id]:[current-chain-id]:[message-id/hash]
     this.#inbound = rootStore.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded)
-    // Key format: [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
+
+    // [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
     this.#relay = rootStore.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded)
-    // Key format: [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
+
+    // [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
     this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded)
-    // Key format: [subscription-id]:[bridge-chain-id]:[message-id]
+
+    // [subscription-id]:[bridge-chain-id]:[message-id]
     this.#bridge = rootStore.sublevel<string, XcmSent>(prefixes.matching.bridge, jsonEncoded)
 
-    // Key format: [subscription-id]:[bridge-key]
+    // [subscription-id]:[bridge-key]
     this.#bridgeAccepted = rootStore.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded)
-    // Key format: [subscription-id]:[bridge-key]
+
+    // [subscription-id]:[bridge-key]
     this.#bridgeInbound = rootStore.sublevel<string, XcmBridgeInboundWithContext>(
       prefixes.matching.bridgeIn,
       jsonEncoded
