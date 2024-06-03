@@ -182,7 +182,7 @@ export class XcmAgent implements Agent {
   getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
     return this.#subs.getSubscriptionHandler(subscriptionId)
   }
-  
+
   collectTelemetry(): void {
     xcmAgentMetrics(this.#telemetry)
     xcmMatchingEngineMetrics(this.#engine)
