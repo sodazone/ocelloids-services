@@ -13,7 +13,7 @@ The Ocelloids Service Node repository provides software components for running p
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
 - **Scalability:** Can run in a distributed way, decoupling the sourcing of onchain data from the execution of automation programs.
-- **Programmability:** Utilizes agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the "agents" section for the currently available agents.
+- **Programmability:** Provides agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the "agents" section for the currently available agents.
 
 ## Configuration
 
