@@ -4,6 +4,8 @@ import { Logger, Services } from '../../index.js'
 import { NotifierHub } from '../../notification/index.js'
 import { NotifierEvents } from '../../notification/types.js'
 import { NotificationListener, Subscription } from '../../subscriptions/types.js'
+
+import { InformantAgent } from '../informant/agent.js'
 import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
 import { XcmAgent } from '../xcm/agent.js'
 
@@ -70,8 +72,11 @@ export class LocalAgentCatalog implements AgentCatalog {
 
   #loadAgents(ctx: AgentRuntimeContext) {
     const xcm = new XcmAgent(ctx)
+    const informant = new InformantAgent(ctx)
+
     return {
       [xcm.id]: xcm,
+      [informant.id]: informant,
     } as unknown as Record<AgentId, Agent>
   }
 }
