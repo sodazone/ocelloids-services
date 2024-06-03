@@ -36,6 +36,11 @@ export type InformantHandler = {
 
 export type InformantInputs = z.infer<typeof $InformantInputs>
 
+/**
+ * Informant agent.
+ *
+ * Fetches transactions and events using custom MongoQL-compatible filtering expressions.
+ */
 export class InformantAgent implements Agent {
   readonly #log: Logger
   readonly #shared: SharedStreams
