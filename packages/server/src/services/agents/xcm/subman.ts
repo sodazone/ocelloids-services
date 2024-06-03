@@ -5,7 +5,7 @@ import { Logger, NetworkURN } from '../../index.js'
 import { $Subscription, Subscription } from '../../subscriptions/types.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'
 import { $XCMSubscriptionArgs, XcmSubscriptionHandler } from './types.js'
-import { XcmAgent } from './xcm-agent.js'
+import { XcmAgent } from './agent.js'
 
 const SUB_ERROR_RETRY_MS = 5000
 

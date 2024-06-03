@@ -5,7 +5,7 @@ import { NotifierHub } from '../../notification/index.js'
 import { NotifierEvents } from '../../notification/types.js'
 import { NotificationListener, Subscription } from '../../subscriptions/types.js'
 import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
-import { XcmAgent } from '../xcm/xcm-agent.js'
+import { XcmAgent } from '../xcm/agent.js'
 
 /**
  * A local implementation of the {@link AgentCatalog}.

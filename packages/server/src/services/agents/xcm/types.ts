@@ -56,12 +56,12 @@ export type XcmWithContext = {
   messageHash: HexString
   messageId?: HexString
 }
+
 /**
  * Represents the asset that has been trapped.
  *
  * @public
  */
-
 export type TrappedAsset = {
   version: number
   id: {
@@ -72,21 +72,21 @@ export type TrappedAsset = {
   amount: string | number
   assetInstance?: AnyJson
 }
+
 /**
  * Event emitted when assets are trapped.
  *
  * @public
  */
-
 export type AssetsTrapped = {
   assets: TrappedAsset[]
   hash: HexString
   event: AnyJson
 }
+
 /**
  * Represents an XCM program bytes and human JSON.
  */
-
 export type XcmProgram = {
   bytes: Uint8Array
   json: AnyJson
@@ -404,16 +404,15 @@ export enum XcmNotificationType {
  *
  * @public
  */
-
 export type XcmTerminus = {
   chainId: NetworkURN
 }
+
 /**
  * The terminal point of an XCM journey with contextual information.
  *
  * @public
  */
-
 export interface XcmTerminusContext extends XcmTerminus {
   blockNumber: string
   blockHash: HexString
@@ -425,41 +424,41 @@ export interface XcmTerminusContext extends XcmTerminus {
   messageData: string
   instructions: AnyJson
 }
+
 /**
  * The contextual information of an XCM journey waypoint.
  *
  * @public
  */
-
 export interface XcmWaypointContext extends XcmTerminusContext {
   legIndex: number
   assetsTrapped?: AnyJson
 }
+
 /**
  * Type of an XCM journey leg.
  *
  * @public
  */
-
 export const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const
+
 /**
  * A leg of an XCM journey.
  *
  * @public
  */
-
 export type Leg = {
   from: NetworkURN
   to: NetworkURN
   relay?: NetworkURN
   type: (typeof legType)[number]
 }
+
 /**
  * Event emitted when an XCM is sent.
  *
  * @public
  */
-
 export interface XcmSent {
   type: XcmNotificationType
   subscriptionId: string
@@ -520,12 +519,12 @@ export class GenericXcmSent implements XcmSent {
     this.sender = msg.sender
   }
 }
+
 /**
  * Event emitted when an XCM is received.
  *
  * @public
  */
-
 export interface XcmReceived {
   type: XcmNotificationType
   subscriptionId: string
@@ -537,12 +536,12 @@ export interface XcmReceived {
   messageId?: HexString
   forwardId?: HexString
 }
+
 /**
  * Event emitted when an XCM is not received within a specified timeframe.
  *
  * @public
  */
-
 export type XcmTimeout = XcmSent
 
 export class GenericXcmTimeout implements XcmTimeout {
@@ -608,13 +607,13 @@ export class GenericXcmReceived implements XcmReceived {
     this.forwardId = outMsg.forwardId
   }
 }
+
 /**
  * Event emitted when an XCM is received on the relay chain
  * for an HRMP message.
  *
  * @public
  */
-
 export type XcmRelayed = XcmSent
 
 export class GenericXcmRelayed implements XcmRelayed {
@@ -651,12 +650,12 @@ export class GenericXcmRelayed implements XcmRelayed {
     this.forwardId = outMsg.forwardId
   }
 }
+
 /**
  * Event emitted when an XCM is sent or received on an intermediate stop.
  *
  * @public
  */
-
 export interface XcmHop extends XcmSent {
   direction: 'out' | 'in'
 }
@@ -687,16 +686,17 @@ export class GenericXcmHop implements XcmHop {
 }
 
 export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
+
 /**
  * Event emitted when an XCM is sent or received on an intermediate stop.
  *
  * @public
  */
-
 export interface XcmBridge extends XcmSent {
   bridgeKey: HexString
   bridgeMessageType: BridgeMessageType
 }
+
 type XcmBridgeContext = {
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
