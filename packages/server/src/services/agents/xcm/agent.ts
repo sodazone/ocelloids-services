@@ -101,17 +101,8 @@ export class XcmAgent implements Agent {
     }
   }
 
-  getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
-    return this.#subs.getSubscriptionHandler(subscriptionId)
-  }
-
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
     return this.#subs.update(subscriptionId, patch)
-  }
-
-  collectTelemetry(): void {
-    xcmAgentMetrics(this.#telemetry)
-    xcmMatchingEngineMetrics(this.#engine)
   }
 
   async subscribe(s: Subscription): Promise<void> {
@@ -155,6 +146,18 @@ export class XcmAgent implements Agent {
     }
   }
 
+  async start(subs: Subscription[]): Promise<void> {
+    this.#log.info('[%s] creating stored subscriptions (%d)', this.id, subs.length)
+
+    for (const sub of subs) {
+      try {
+        this.#subs.set(sub.id, await this.#monitor(sub, this.inputSchema.parse(sub.args)))
+      } catch (error) {
+        this.#log.error(error, '[%s] unable to create subscription: %j', this.id, sub)
+      }
+    }
+  }
+
   async stop(): Promise<void> {
     for (const {
       descriptor: { id },
@@ -176,16 +179,13 @@ export class XcmAgent implements Agent {
     await this.#engine.stop()
   }
 
-  async start(subs: Subscription[]): Promise<void> {
-    this.#log.info('[%s] creating stored subscriptions (%d)', this.id, subs.length)
-
-    for (const sub of subs) {
-      try {
-        this.#subs.set(sub.id, await this.#monitor(sub, this.inputSchema.parse(sub.args)))
-      } catch (error) {
-        this.#log.error(error, '[%s] unable to create subscription: %j', this.id, sub)
-      }
-    }
+  getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
+    return this.#subs.getSubscriptionHandler(subscriptionId)
+  }
+  
+  collectTelemetry(): void {
+    xcmAgentMetrics(this.#telemetry)
+    xcmMatchingEngineMetrics(this.#engine)
   }
 
   /**
