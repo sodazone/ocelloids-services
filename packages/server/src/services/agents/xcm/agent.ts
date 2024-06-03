@@ -54,6 +54,11 @@ import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 
+/**
+ * The XCM monitoring agent.
+ *
+ * Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
+ */
 export class XcmAgent implements Agent {
   readonly #log: Logger
 
@@ -89,6 +94,10 @@ export class XcmAgent implements Agent {
     return {
       id: 'xcm',
       name: 'XCM Agent',
+      description: `
+      Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
+      Currently supports XCMP-lite (HRMP) and VMP.
+      `,
     }
   }
 
