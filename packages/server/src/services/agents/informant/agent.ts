@@ -57,6 +57,7 @@ export class InformantAgent implements Agent {
     return {
       id: 'informant',
       name: 'General Informant',
+      description: 'Fetches transactions and events using custom MongoQL-compatible filtering expressions.',
     }
   }
 
