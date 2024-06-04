@@ -31,7 +31,7 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
 
 /**
  * Exposes the Ocelloids Agent API.
- * 
+ *
  * @public
  */
 export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
@@ -124,7 +124,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *   httpUrl: "http://127.0.0.1:3000",
  *   wsUrl: "ws://127.0.0.1:3000"
  * });
- * 
+ *
  * const agent = client.agent<xcm.XcmInputs>("xcm");
  * ```
  * @example Persistent long-lived subscription
@@ -201,7 +201,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *  onClose: event => console.log(event.reason)
  * });
  * ```
- * 
+ *
  * @public
  */
 export class OcelloidsClient {
