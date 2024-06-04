@@ -27,14 +27,14 @@ export const $InformantInputs = z.object({
   }),
 })
 
-export type InformantHandler = {
-  subs: RxSubscriptionWithId[]
-  control: ControlQuery
-  descriptor: Subscription
-  args: InformantInputs
-}
-
 export type InformantInputs = z.infer<typeof $InformantInputs>
+
+type InformantHandler = {
+  streams: RxSubscriptionWithId[]
+  control: ControlQuery
+  subscription: Subscription
+  inputs: InformantInputs
+}
 
 /**
  * Informant agent.
@@ -83,7 +83,7 @@ export class InformantAgent implements Agent {
   unsubscribe(subscriptionId: string) {
     const handler = this.#handlers[subscriptionId]
     if (handler) {
-      handler.subs.forEach(({ sub }) => {
+      handler.streams.forEach(({ sub }) => {
         sub.unsubscribe()
       })
       delete this.#handlers[subscriptionId]
@@ -96,8 +96,8 @@ export class InformantAgent implements Agent {
 
   stop() {
     for (const handler of Object.values(this.#handlers)) {
-      this.#log.info('[%s] unsubscribe %s', this.id, handler.descriptor.id)
-      handler.subs.forEach(({ sub }) => {
+      this.#log.info('[%s] unsubscribe %s', this.id, handler.subscription.id)
+      handler.streams.forEach(({ sub }) => {
         sub.unsubscribe()
       })
     }
@@ -119,18 +119,19 @@ export class InformantAgent implements Agent {
     //
   }
 
-  async #monitor(descriptor: Subscription, args: InformantInputs): Promise<InformantHandler> {
-    const { id } = descriptor
-    const { networks, filter } = args
+  async #monitor(subscription: Subscription, inputs: InformantInputs): Promise<InformantHandler> {
+    const { id } = subscription
+    const { networks, filter } = inputs
 
-    const subs: RxSubscriptionWithId[] = []
+    const streams: RxSubscriptionWithId[] = []
     const control = ControlQuery.from(JSON.parse(filter.match))
 
     try {
       for (const network of networks) {
         const chainId = network as NetworkURN
+
         if (filter.type === 'extrinsic') {
-          subs.push({
+          streams.push({
             chainId,
             sub: this.#shared
               .blockExtrinsics(chainId)
@@ -145,7 +146,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#notifier.notify(descriptor, {
+                    this.#notifier.notify(subscription, {
                       metadata: {
                         type: 'extrinsic',
                         subscriptionId: id,
@@ -166,8 +167,7 @@ export class InformantAgent implements Agent {
               }),
           })
         } else {
-          console.log(control.getValue())
-          subs.push({
+          streams.push({
             chainId,
             sub: this.#shared
               .blockEvents(chainId)
@@ -182,7 +182,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#notifier.notify(descriptor, {
+                    this.#notifier.notify(subscription, {
                       metadata: {
                         type: 'event',
                         subscriptionId: id,
@@ -199,14 +199,14 @@ export class InformantAgent implements Agent {
         }
       }
       return {
-        args,
-        descriptor,
-        subs,
+        inputs,
+        subscription,
+        streams,
         control,
       }
     } catch (error) {
       // clean up
-      subs.forEach(({ sub }) => {
+      streams.forEach(({ sub }) => {
         sub.unsubscribe()
       })
       throw error
