@@ -1,10 +1,10 @@
 import { Gauge } from 'prom-client'
 
 import { TelemetryEventEmitter } from '../types.js'
-import { notifierMetrics } from './publisher.js'
+import { egressMetrics } from './publisher.js'
 
 export function wsMetrics(source: TelemetryEventEmitter) {
-  notifierMetrics(source)
+  egressMetrics(source)
 
   const socketListenerCount = new Gauge({
     name: 'oc_socket_listener_count',
