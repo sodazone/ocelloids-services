@@ -44,11 +44,12 @@ export function doFetchWithConfig<T>(config: OcelloidsClientConfig) {
 }
 
 /**
- * HTTP transport.
+ * Performs an HTTP fetch request and handles the response.
  *
- * @param headers
- * @param url
- * @param init
+ * @param headers - The headers to include in the fetch request.
+ * @param url - The URL to send the fetch request to.
+ * @param init - Optional fetch request initialization parameters.
+ * @returns A promise that resolves with the response data or rejects with an error.
  */
 export function doFetch<T>(headers: Record<string, string>, url: string, init?: RequestInit) {
   return new Promise<T>((resolve, reject) => {
@@ -88,13 +89,13 @@ type OnDemandWithAgent<T = AnySubscriptionInputs> = {
 }
 
 /**
- * WebSocket transport.
+ * Establishes a WebSocket connection and handles message protocols.
  *
- * @param config
- * @param url
- * @param wsHandlers
- * @param onDemandSub
- * @returns
+ * @param config - The configuration for the Ocelloids client.
+ * @param url - The WebSocket URL to connect to.
+ * @param wsHandlers - The event handlers for the WebSocket.
+ * @param onDemandSub - Optional on-demand subscription details and handlers.
+ * @returns The WebSocket instance.
  */
 export function openWebSocket<T = AnySubscriptionInputs>(
   config: OcelloidsClientConfig,
@@ -118,6 +119,10 @@ export function openWebSocket<T = AnySubscriptionInputs>(
     ws.onclose = onClose
   }
 
+  /**
+   * Sends an on-demand subscription request.
+   * Throws an error if the on-demand subscription is not defined.
+   */
   function requestOnDemandSub() {
     if (onDemandSub === undefined) {
       throw new Error('on demand subscription must be defined')

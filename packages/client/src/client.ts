@@ -30,7 +30,8 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
 }
 
 /**
- *
+ * Exposes the Ocelloids Agent API.
+ * 
  * @public
  */
 export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
@@ -48,7 +49,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * Creates a subscription.
    *
    * @param subscription - The subscription to create.
-   * @param init - The fetch request init.
+   * @param init - The fetch request initialization.
    * @returns A promise that resolves when the subscription is created.
    */
   async create(subscription: Omit<Subscription<T>, 'agent'>, init: RequestInit = {}) {
@@ -66,7 +67,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * Gets a subscription by its ID.
    *
    * @param id - The subscription ID.
-   * @param init - The fetch request init.
+   * @param init - The fetch request initialization.
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
   async getSubscription(id: string, init?: RequestInit): Promise<Subscription<T>> {
@@ -76,7 +77,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   /**
    * Lists all subscriptions.
    *
-   * @param init - The fetch request init.
+   * @param init - The fetch request initialization.
    * @returns A promise that resolves with an array of subscriptions.
    */
   async allSubscriptions(init?: RequestInit): Promise<Subscription<T>[]> {
@@ -86,7 +87,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   /**
    * Creates an on-demand subscription or connects to an existing one.
    *
-   * @param subscription - The subscription id or the subscription object to create.
+   * @param subscription - The subscription id or the subscription inputs.
    * @param handlers - The WebSocket event handlers.
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
@@ -123,12 +124,14 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *   httpUrl: "http://127.0.0.1:3000",
  *   wsUrl: "ws://127.0.0.1:3000"
  * });
+ * 
+ * const agent = client.agent<xcm.XcmInputs>("xcm");
  * ```
  * @example Persistent long-lived subscription
  *
  * ```typescript
  * // create a 'long-lived' subscription
- * const reply = await client.agent<xcm.XcmInputs>("xcm").create({
+ * const reply = await agent.create({
  *   id: "my-subscription",
  *   args: {
  *     origin: "urn:ocn:polkadot:2004",
@@ -154,7 +157,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  * });
  *
  * // subscribe to the previously created subscription
- * const ws = client.agent("xcm").subscribe(
+ * const ws = agent.subscribe(
  *  "my-subscription",
  *  {
  *    onMessage: msg => {
@@ -174,7 +177,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *
  * ```typescript
  * // subscribe on-demand
- * const ws = client.agent<xcm.XcmInputs>("xcm") {
+ * const ws = agent.subscribe({
  *   origin: "urn:ocn:polkadot:2004",
  *   senders: "*",
  *   events: "*",
@@ -198,6 +201,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *  onClose: event => console.log(event.reason)
  * });
  * ```
+ * 
  * @public
  */
 export class OcelloidsClient {
@@ -215,9 +219,10 @@ export class OcelloidsClient {
   }
 
   /**
+   * Creates an {@link OcelloidsAgentApi} instance for a specific agent.
    *
-   * @param agentId
-   * @returns
+   * @param agentId - The ID of the agent.
+   * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
   agent<T = AnySubscriptionInputs>(agentId: string) {
     return new OcelloidsAgentApi<T>(this.#config, agentId)
@@ -226,7 +231,7 @@ export class OcelloidsClient {
   /**
    * Checks the health of the service.
    *
-   * @param init - The fetch request init.
+   * @param init - The fetch request initialization.
    * @returns A promise that resolves with the health status.
    */
   async health(init?: RequestInit): Promise<any> {

@@ -28,6 +28,7 @@ export class Protocol {
 
   /**
    * Constructs a Protocol instance.
+   * 
    * @param stream - The message handler for streaming state.
    */
   constructor(stream: MessageHandler<NotifyMessage>) {
@@ -37,6 +38,7 @@ export class Protocol {
 
   /**
    * Adds a handler to the message queue.
+   * 
    * @template T - The type of the message.
    * @param handler - The message handler to add.
    */
@@ -46,6 +48,7 @@ export class Protocol {
 
   /**
    * Handles a WebSocket message event.
+   * 
    * @param event - The message event to handle.
    */
   handle(event: MessageEvent) {
