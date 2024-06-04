@@ -231,6 +231,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @param subscription - The subscription to handle.
    * @throws {SubscribeError} If there are too many subscriptions.
+   *
    * @private
    */
   async #subscribe(subscription: Subscription) {
@@ -241,6 +242,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     await this.#subscriptionShouldNotExist(subscription)
 
     const agent = this.#agentCatalog.getAgentById(subscription.agent)
+
+    agent.inputSchema.parse(subscription.args)
+
     await agent.subscribe(subscription)
 
     this.#log.info('[%s] new subscription: %j', subscription.agent, subscription)

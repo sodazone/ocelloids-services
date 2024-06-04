@@ -127,7 +127,7 @@ export const $Subscription = z
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
 
-export type Subscription = z.infer<typeof $Subscription>
+export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscription>, 'args'> & { args: T }
 
 export type NotificationListener = (sub: Subscription, msg: NotifyMessage) => void
 

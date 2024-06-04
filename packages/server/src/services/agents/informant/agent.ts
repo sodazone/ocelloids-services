@@ -32,8 +32,7 @@ export type InformantInputs = z.infer<typeof $InformantInputs>
 type InformantHandler = {
   streams: RxSubscriptionWithId[]
   control: ControlQuery
-  subscription: Subscription
-  inputs: InformantInputs
+  subscription: Subscription<InformantInputs>
 }
 
 /**
@@ -70,12 +69,10 @@ export class InformantAgent implements Agent {
     return $InformantInputs
   }
 
-  async subscribe(subscription: Subscription): Promise<void> {
-    const args = this.inputSchema.parse(subscription.args) as InformantInputs
+  async subscribe(subscription: Subscription<InformantInputs>): Promise<void> {
+    this.#checkValidFilter(subscription.args)
 
-    this.#checkValidFilter(args)
-
-    const handler = await this.#monitor(subscription, args)
+    const handler = await this.#monitor(subscription)
 
     this.#handlers[subscription.id] = handler
   }
@@ -103,12 +100,12 @@ export class InformantAgent implements Agent {
     }
   }
 
-  async start(subscriptions: Subscription[]): Promise<void> {
+  async start(subscriptions: Subscription<InformantInputs>[]): Promise<void> {
     this.#log.info('[%s] start subscriptions %d', this.id, subscriptions.length)
 
     for (const sub of subscriptions) {
       try {
-        this.#handlers[sub.id] = await this.#monitor(sub, this.inputSchema.parse(sub.args))
+        this.#handlers[sub.id] = await this.#monitor(sub)
       } catch (err) {
         this.#log.error(err, '[%s] unable to create subscription: %j', this.id, sub)
       }
@@ -119,9 +116,11 @@ export class InformantAgent implements Agent {
     //
   }
 
-  async #monitor(subscription: Subscription, inputs: InformantInputs): Promise<InformantHandler> {
-    const { id } = subscription
-    const { networks, filter } = inputs
+  async #monitor(subscription: Subscription<InformantInputs>): Promise<InformantHandler> {
+    const {
+      id,
+      args: { networks, filter },
+    } = subscription
 
     const streams: RxSubscriptionWithId[] = []
     const control = ControlQuery.from(JSON.parse(filter.match))
@@ -199,7 +198,6 @@ export class InformantAgent implements Agent {
         }
       }
       return {
-        inputs,
         subscription,
         streams,
         control,

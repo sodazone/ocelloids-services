@@ -38,18 +38,17 @@ export const prefixes = {
 }
 
 export type Monitor = {
-  subs: RxSubscriptionWithId[]
+  streams: RxSubscriptionWithId[]
   controls: Record<string, ControlQuery>
 }
 
 export type XcmSubscriptionHandler = {
   originSubs: RxSubscriptionWithId[]
   destinationSubs: RxSubscriptionWithId[]
-  bridgeSubs: BridgeSubscription[]
+  bridgeSubs: RxBridgeSubscription[]
   sendersControl: ControlQuery
   messageControl: ControlQuery
-  descriptor: Subscription
-  args: XcmSubscriptionArgs
+  subscription: Subscription<XcmInputs>
   relaySub?: RxSubscriptionWithId
 }
 
@@ -57,7 +56,7 @@ const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
 
 export type BridgeType = (typeof bridgeTypes)[number]
 
-export type BridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
+export type RxBridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
 
 export type XcmCriteria = {
   sendersControl: ControlQuery
@@ -779,7 +778,7 @@ const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object
 
 const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds'
 
-export const $XCMSubscriptionArgs = z.object({
+export const $XcmInputs = z.object({
   origin: z
     .string({
       required_error: 'origin id is required',
@@ -803,7 +802,7 @@ export const $XCMSubscriptionArgs = z.object({
   outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })
 
-export type XcmSubscriptionArgs = z.infer<typeof $XCMSubscriptionArgs>
+export type XcmInputs = z.infer<typeof $XcmInputs>
 
 export type MessageQueueEventContext = {
   id: U8aFixed

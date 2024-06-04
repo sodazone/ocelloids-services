@@ -13,7 +13,13 @@ import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
 import * as XcmpOps from './ops/xcmp.js'
-import { XcmInboundWithContext, XcmNotificationType, XcmSentWithContext, XcmSubscriptionHandler } from './types.js'
+import {
+  XcmInboundWithContext,
+  XcmInputs,
+  XcmNotificationType,
+  XcmSentWithContext,
+  XcmSubscriptionHandler,
+} from './types.js'
 
 const mockExtractXcmpReceive = jest.fn()
 const mockExtractXcmpSend = jest.fn()
@@ -35,7 +41,7 @@ jest.unstable_mockModule('./ops/ump.js', () => {
   }
 })
 
-const testSub: Subscription = {
+const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',
   agent: 'xcm',
   args: {
@@ -207,7 +213,7 @@ describe('switchboard service', () => {
         value: 'urn:ocn:local:3000',
       },
     ])
-    const { destinationSubs: newDestinationSubs, descriptor } = agentService
+    const { destinationSubs: newDestinationSubs, subscription } = agentService
       .getAgentById<XcmAgent>('xcm')
       .getSubscriptionHandler(testSub.id)
 
@@ -215,7 +221,7 @@ describe('switchboard service', () => {
     expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:0').length).toBe(1)
     expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:3000').length).toBe(1)
     expect(newDestinationSubs.filter((s) => s.chainId === 'urn:ocn:local:2000').length).toBe(0)
-    expect(descriptor).toEqual(newSub)
+    expect(subscription).toEqual(newSub)
   })
 
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
@@ -312,9 +318,9 @@ describe('switchboard service', () => {
         value: XcmNotificationType.Relayed,
       },
     ])
-    const { relaySub: newRelaySub, descriptor } = xcmAgent.getSubscriptionHandler(testSub.id)
+    const { relaySub: newRelaySub, subscription } = xcmAgent.getSubscriptionHandler(testSub.id)
     expect(newRelaySub).toBeDefined()
-    expect(descriptor).toEqual(newSub)
+    expect(subscription).toEqual(newSub)
   })
 
   it('should remove relay hrmp subscription if relayed event is removed', async () => {
@@ -348,8 +354,8 @@ describe('switchboard service', () => {
         path: '/args/events/2',
       },
     ])
-    const { relaySub: newRelaySub, descriptor } = xcmAgent.getSubscriptionHandler(testSub.id)
+    const { relaySub: newRelaySub, subscription } = xcmAgent.getSubscriptionHandler(testSub.id)
     expect(newRelaySub).not.toBeDefined()
-    expect(descriptor).toEqual(newSub)
+    expect(subscription).toEqual(newSub)
   })
 })

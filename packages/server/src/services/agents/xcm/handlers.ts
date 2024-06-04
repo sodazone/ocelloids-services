@@ -5,7 +5,7 @@ import { Logger, NetworkURN } from '../../index.js'
 import { $Subscription, Subscription } from '../../subscriptions/types.js'
 import { XcmAgent } from './agent.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'
-import { $XCMSubscriptionArgs, XcmSubscriptionHandler } from './types.js'
+import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types.js'
 
 const SUB_ERROR_RETRY_MS = 5000
 
@@ -149,18 +149,18 @@ export class XcmSubscriptionManager {
    */
   async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
     const sub = this.#handlers[subscriptionId]
-    const descriptor = sub.descriptor
+    const descriptor = sub.subscription
 
     // Check allowed patch ops
     const allowedOps = patch.every((op) => allowedPaths.some((s) => op.path.startsWith(s)))
 
     if (allowedOps) {
       applyPatch(descriptor, patch)
-      $Subscription.parse(descriptor)
-      const args = $XCMSubscriptionArgs.parse(descriptor.args)
 
-      sub.args = args
-      sub.descriptor = descriptor
+      $Subscription.parse(descriptor)
+      $XcmInputs.parse(descriptor.args)
+
+      sub.subscription = descriptor
 
       if (hasOp(patch, '/args/senders')) {
         this.#updateSenders(subscriptionId)
@@ -212,7 +212,7 @@ export class XcmSubscriptionManager {
             id,
             errorMessage(error)
           )
-          const updatedSub = await this.#agent.__monitorRelay(sub.descriptor, sub.args)
+          const updatedSub = await this.#agent.__monitorRelay(sub.subscription)
           sub.relaySub = updatedSub
         }, SUB_ERROR_RETRY_MS)
       )
@@ -244,7 +244,7 @@ export class XcmSubscriptionManager {
               id,
               errorMessage(error)
             )
-            bridgeSubs.push(this.#agent.__monitorPkBridge(sub.descriptor, sub.args))
+            bridgeSubs.push(this.#agent.__monitorPkBridge(sub.subscription))
             sub.bridgeSubs = bridgeSubs
           }, SUB_ERROR_RETRY_MS)
         )
@@ -294,7 +294,7 @@ export class XcmSubscriptionManager {
     // try recover outbound subscription
     // note: there is a single origin per outbound
     if (this.has(id)) {
-      const { originSubs, descriptor, args } = this.get(id)
+      const { originSubs, subscription } = this.get(id)
       const index = originSubs.findIndex((s) => s.chainId === chainId)
       if (index > -1) {
         this.#handlers[id].originSubs = []
@@ -308,7 +308,7 @@ export class XcmSubscriptionManager {
                 id,
                 errorMessage(error)
               )
-              const { subs: updated, controls } = this.#agent.__monitorOrigins(descriptor, args)
+              const { streams: updated, controls } = this.#agent.__monitorOrigins(subscription)
               this.#handlers[id].sendersControl = controls.sendersControl
               this.#handlers[id].messageControl = controls.messageControl
               this.#handlers[id].originSubs = updated
@@ -326,7 +326,9 @@ export class XcmSubscriptionManager {
    */
   #updateSenders(id: string) {
     const {
-      args: { senders },
+      subscription: {
+        args: { senders },
+      },
       sendersControl,
     } = this.#handlers[id]
 
@@ -339,9 +341,14 @@ export class XcmSubscriptionManager {
    * @param {string} id - The subscription ID.
    */
   #updateDestinationMessageControl(id: string) {
-    const { args, messageControl } = this.#handlers[id]
+    const {
+      subscription: {
+        args: { destinations },
+      },
+      messageControl,
+    } = this.#handlers[id]
 
-    messageControl.change(messageCriteria(args.destinations as NetworkURN[]))
+    messageControl.change(messageCriteria(destinations as NetworkURN[]))
 
     const updatedSubs = this.#updateDestinationSubscriptions(id)
     this.#handlers[id].destinationSubs = updatedSubs
@@ -354,12 +361,12 @@ export class XcmSubscriptionManager {
    * @returns {Subscription[]} The updated destination subscriptions.
    */
   #updateDestinationSubscriptions(id: string) {
-    const { descriptor, args, destinationSubs } = this.#handlers[id]
+    const { subscription, destinationSubs } = this.#handlers[id]
     // Subscribe to new destinations, if any
-    const { subs } = this.#agent.__monitorDestinations(descriptor, args)
+    const { streams: subs } = this.#agent.__monitorDestinations(subscription)
     const updatedSubs = destinationSubs.concat(subs)
     // Unsubscribe removed destinations, if any
-    const removed = updatedSubs.filter((s) => !args.destinations.includes(s.chainId))
+    const removed = updatedSubs.filter((s) => !subscription.args.destinations.includes(s.chainId))
     removed.forEach(({ sub }) => sub.unsubscribe())
     // Return list of updated subscriptions
     return updatedSubs.filter((s) => !removed.includes(s))
@@ -369,24 +376,24 @@ export class XcmSubscriptionManager {
    * Updates the subscription to relayed HRMP messages in the relay chain.
    */
   #updateEvents(id: string) {
-    const { descriptor, args, relaySub } = this.#handlers[id]
+    const { subscription, relaySub } = this.#handlers[id]
 
-    if (this.#agent.__shouldMonitorRelay(args) && relaySub === undefined) {
+    if (this.#agent.__shouldMonitorRelay(subscription.args) && relaySub === undefined) {
       try {
-        this.#handlers[id].relaySub = this.#agent.__monitorRelay(descriptor, args)
+        this.#handlers[id].relaySub = this.#agent.__monitorRelay(subscription)
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(error, '[%s] error on relay subscription %s', this.#agent.id, id)
       }
-    } else if (!this.#agent.__shouldMonitorRelay(args) && relaySub !== undefined) {
+    } else if (!this.#agent.__shouldMonitorRelay(subscription.args) && relaySub !== undefined) {
       relaySub.sub.unsubscribe()
       delete this.#handlers[id].relaySub
     }
   }
 
-  #updateDescriptor(sub: Subscription) {
+  #updateDescriptor(sub: Subscription<XcmInputs>) {
     if (this.#handlers[sub.id]) {
-      this.#handlers[sub.id].descriptor = sub
+      this.#handlers[sub.id].subscription = sub
     } else {
       this.#log.warn('[%s] trying to update an unknown subscription %s', this.#agent.id, sub.id)
     }

@@ -25,20 +25,20 @@ import {
 } from './storage.js'
 import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js'
 import {
-  $XCMSubscriptionArgs,
-  BridgeSubscription,
+  $XcmInputs,
   BridgeType,
   Monitor,
+  RxBridgeSubscription,
   XcmBridgeAcceptedWithContext,
   XcmBridgeDeliveredWithContext,
   XcmBridgeInboundWithContext,
   XcmInbound,
   XcmInboundWithContext,
+  XcmInputs,
   XcmMessagePayload,
   XcmNotificationType,
   XcmRelayedWithContext,
   XcmSentWithContext,
-  XcmSubscriptionArgs,
   XcmSubscriptionHandler,
 } from './types.js'
 
@@ -87,7 +87,7 @@ export class XcmAgent implements Agent {
   }
 
   get inputSchema(): z.ZodSchema {
-    return $XCMSubscriptionArgs
+    return $XcmInputs
   }
 
   get metadata(): AgentMetadata {
@@ -105,15 +105,15 @@ export class XcmAgent implements Agent {
     return this.#subs.update(subscriptionId, patch)
   }
 
-  async subscribe(s: Subscription): Promise<void> {
-    const args = this.inputSchema.parse(s.args)
+  async subscribe(subscription: Subscription<XcmInputs>): Promise<void> {
+    const { id, args } = subscription
     const origin = args.origin as NetworkURN
     const dests = args.destinations as NetworkURN[]
 
     this.#validateChainIds([origin, ...dests])
 
-    const handler = await this.#monitor(s, args)
-    this.#subs.set(s.id, handler)
+    const handler = await this.#monitor(subscription)
+    this.#subs.set(id, handler)
   }
 
   async unsubscribe(id: string): Promise<void> {
@@ -124,7 +124,9 @@ export class XcmAgent implements Agent {
 
     try {
       const {
-        args: { origin },
+        subscription: {
+          args: { origin },
+        },
         originSubs,
         destinationSubs,
         relaySub,
@@ -146,12 +148,12 @@ export class XcmAgent implements Agent {
     }
   }
 
-  async start(subs: Subscription[]): Promise<void> {
+  async start(subs: Subscription<XcmInputs>[]): Promise<void> {
     this.#log.info('[%s] creating stored subscriptions (%d)', this.id, subs.length)
 
     for (const sub of subs) {
       try {
-        this.#subs.set(sub.id, await this.#monitor(sub, this.inputSchema.parse(sub.args)))
+        this.#subs.set(sub.id, await this.#monitor(sub))
       } catch (error) {
         this.#log.error(error, '[%s] unable to create subscription: %j', this.id, sub)
       }
@@ -160,7 +162,7 @@ export class XcmAgent implements Agent {
 
   async stop(): Promise<void> {
     for (const {
-      descriptor: { id },
+      subscription: { id },
       originSubs,
       destinationSubs,
       relaySub,
@@ -193,7 +195,7 @@ export class XcmAgent implements Agent {
    *
    * @private
    */
-  __monitorDestinations({ id }: Subscription, { origin, destinations }: XcmSubscriptionArgs): Monitor {
+  __monitorDestinations({ id, args: { origin, destinations } }: Subscription<XcmInputs>): Monitor {
     const subs: RxSubscriptionWithId[] = []
     const originId = origin as NetworkURN
     try {
@@ -262,7 +264,7 @@ export class XcmAgent implements Agent {
       throw error
     }
 
-    return { subs, controls: {} }
+    return { streams: subs, controls: {} }
   }
 
   /**
@@ -270,7 +272,7 @@ export class XcmAgent implements Agent {
    *
    * @private
    */
-  __monitorOrigins({ id }: Subscription, { origin, senders, destinations }: XcmSubscriptionArgs): Monitor {
+  __monitorOrigins({ id, args: { origin, senders, destinations } }: Subscription<XcmInputs>): Monitor {
     const subs: RxSubscriptionWithId[] = []
     const chainId = origin as NetworkURN
 
@@ -385,7 +387,7 @@ export class XcmAgent implements Agent {
     }
 
     return {
-      subs,
+      streams: subs,
       controls: {
         sendersControl,
         messageControl,
@@ -393,7 +395,7 @@ export class XcmAgent implements Agent {
     }
   }
 
-  __monitorRelay({ id }: Subscription, { origin, destinations }: XcmSubscriptionArgs) {
+  __monitorRelay({ id, args: { origin, destinations } }: Subscription<XcmInputs>) {
     const chainId = origin as NetworkURN
     if (this.#subs.hasSubscriptionForRelay(id)) {
       this.#log.debug('Relay subscription already exists.')
@@ -441,7 +443,7 @@ export class XcmAgent implements Agent {
 
   // Assumes only 1 pair of bridge hub origin-destination is possible
   // TODO: handle possible multiple different consensus utilizing PK bridge e.g. solochains?
-  __monitorPkBridge({ id }: Subscription, { origin, destinations }: XcmSubscriptionArgs) {
+  __monitorPkBridge({ id, args: { origin, destinations } }: Subscription<XcmInputs>) {
     const originBridgeHub = getBridgeHubNetworkId(origin as NetworkURN)
     const dest = (destinations as NetworkURN[]).find((d) => getConsensus(d) !== getConsensus(origin as NetworkURN))
 
@@ -562,7 +564,7 @@ export class XcmAgent implements Agent {
    * @param Subscription - The subscription arguments.
    * @returns true if should monitor the relay chain.
    */
-  __shouldMonitorRelay({ origin, destinations, events }: XcmSubscriptionArgs) {
+  __shouldMonitorRelay({ origin, destinations, events }: XcmInputs) {
     return (
       (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
       !this.#ingress.isRelay(origin as NetworkURN) &&
@@ -573,12 +575,13 @@ export class XcmAgent implements Agent {
   #onXcmWaypointReached(payload: XcmMessagePayload) {
     const { subscriptionId } = payload
     if (this.#subs.has(subscriptionId)) {
-      const { descriptor, args, sendersControl } = this.#subs.get(subscriptionId)
+      const { subscription, sendersControl } = this.#subs.get(subscriptionId)
+      const { args } = subscription
       if (
         (args.events === undefined || args.events === '*' || args.events.includes(payload.type)) &&
         matchSenders(sendersControl, payload.sender)
       ) {
-        this.#notifier.notify(descriptor, {
+        this.#notifier.notify(subscription, {
           metadata: {
             type: payload.type,
             subscriptionId,
@@ -600,25 +603,24 @@ export class XcmAgent implements Agent {
    * subscription information. It creates subscriptions for both the origin and destination
    * networks, monitors XCM message transfers, and emits events accordingly.
    *
-   * @param {Subscription} descriptor - The subscription descriptor.
-   * @param {XcmSubscriptionArgs} args - The coerced subscription arguments.
+   * @param {Subscription} subscription - The subscription descriptor.
    * @throws {Error} If there is an error during the subscription setup process.
    * @private
    */
-  #monitor(descriptor: Subscription, args: XcmSubscriptionArgs): XcmSubscriptionHandler {
-    const { id } = descriptor
+  #monitor(subscription: Subscription<XcmInputs>): XcmSubscriptionHandler {
+    const { id, args } = subscription
 
-    let origMonitor: Monitor = { subs: [], controls: {} }
-    let destMonitor: Monitor = { subs: [], controls: {} }
-    const bridgeSubs: BridgeSubscription[] = []
+    let origMonitor: Monitor = { streams: [], controls: {} }
+    let destMonitor: Monitor = { streams: [], controls: {} }
+    const bridgeSubs: RxBridgeSubscription[] = []
     let relaySub: RxSubscriptionWithId | undefined
 
     try {
-      origMonitor = this.__monitorOrigins(descriptor, args)
-      destMonitor = this.__monitorDestinations(descriptor, args)
+      origMonitor = this.__monitorOrigins(subscription)
+      destMonitor = this.__monitorDestinations(subscription)
     } catch (error) {
       // Clean up origin subscriptions.
-      origMonitor.subs.forEach(({ sub }) => {
+      origMonitor.streams.forEach(({ sub }) => {
         sub.unsubscribe()
       })
       throw error
@@ -628,7 +630,7 @@ export class XcmAgent implements Agent {
     // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
     if (this.__shouldMonitorRelay(args)) {
       try {
-        relaySub = this.__monitorRelay(descriptor, args)
+        relaySub = this.__monitorRelay(subscription)
       } catch (error) {
         // log instead of throw to not block OD subscriptions
         this.#log.error(error, '[%s] error on relay subscription %s', this.id, id)
@@ -638,7 +640,7 @@ export class XcmAgent implements Agent {
     if (args.bridges !== undefined) {
       if (args.bridges.includes('pk-bridge')) {
         try {
-          bridgeSubs.push(this.__monitorPkBridge(descriptor, args))
+          bridgeSubs.push(this.__monitorPkBridge(subscription))
         } catch (error) {
           // log instead of throw to not block OD subscriptions
           this.#log.error(error, '[%s] error on bridge subscription %s', this.id, id)
@@ -649,12 +651,11 @@ export class XcmAgent implements Agent {
     const { sendersControl, messageControl } = origMonitor.controls
 
     return {
-      descriptor,
-      args,
+      subscription,
       sendersControl,
       messageControl,
-      originSubs: origMonitor.subs,
-      destinationSubs: destMonitor.subs,
+      originSubs: origMonitor.streams,
+      destinationSubs: destMonitor.streams,
       bridgeSubs,
       relaySub,
     }
@@ -667,7 +668,9 @@ export class XcmAgent implements Agent {
 
   #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
     const {
-      args: { outboundTTL },
+      subscription: {
+        args: { outboundTTL },
+      },
     } = this.#subs.get(id)
 
     return (source: Observable<XcmSentWithContext>) =>
