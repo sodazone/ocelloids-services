@@ -3,7 +3,7 @@ import EventEmitter from 'node:events'
 import { Operation } from 'rfc6902'
 
 import { Logger, Services } from '../types.js'
-import { PublicationListener, Subscription, SubscriptionStats } from './types.js'
+import { EgressListener, Subscription, SubscriptionStats } from './types.js'
 
 import { NotFound } from '../../errors.js'
 import { AgentCatalog, AgentId } from '../agents/types.js'
@@ -83,7 +83,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Adds a listener function to the underlying publisher.
+   * Adds a listener function to the underlying egress hub.
    *
    * This method is used by the web socket broadcaster.
    *
@@ -91,19 +91,19 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  addPublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener) {
-    this.#agentCatalog.addPublicationListener(eventName, listener)
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener) {
+    this.#agentCatalog.addEgressListener(eventName, listener)
   }
 
   /**
-   * Removes a listener function from the underlying publisher.
+   * Removes a listener function from the underlying egress hub.
    *
    * @param eventName - The publisher event name.
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  removePublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener) {
-    this.#agentCatalog.removePublicationListener(eventName, listener)
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener) {
+    this.#agentCatalog.removeEgressListener(eventName, listener)
   }
 
   /**

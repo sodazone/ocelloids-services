@@ -34,8 +34,8 @@ describe('WebsocketProtocol', () => {
       error: jest.fn(),
     }
     mockSwitchboard = {
-      addPublicationListener: jest.fn(),
-      removePublicationListener: jest.fn(),
+      addEgressListener: jest.fn(),
+      removeEgressListener: jest.fn(),
       subscribe: jest.fn(),
       unsubscribe: jest.fn(),
       findSubscription: jest.fn(),
@@ -53,14 +53,14 @@ describe('WebsocketProtocol', () => {
   describe('Constructor', () => {
     it('should initialize properties correctly', () => {
       expect(websocketProtocol).toBeInstanceOf(EventEmitter)
-      expect(mockSwitchboard.addPublicationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
+      expect(mockSwitchboard.addEgressListener).toHaveBeenCalledWith('websocket', expect.any(Function))
     })
   })
 
   describe('stop', () => {
-    it('should remove notification listener', () => {
+    it('should remove egress listener', () => {
       websocketProtocol.stop()
-      expect(mockSwitchboard.removePublicationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
+      expect(mockSwitchboard.removeEgressListener).toHaveBeenCalledWith('websocket', expect.any(Function))
     })
   })
 

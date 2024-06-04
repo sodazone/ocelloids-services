@@ -1,9 +1,9 @@
 import { NotFound } from '../../../errors.js'
 import { AgentCatalogOptions } from '../../../types.js'
-import { PublisherHub } from '../../egress/index.js'
+import { Egress } from '../../egress/index.js'
 import { PublisherEvents } from '../../egress/types.js'
 import { Logger, Services } from '../../index.js'
-import { PublicationListener, Subscription } from '../../subscriptions/types.js'
+import { EgressListener, Subscription } from '../../subscriptions/types.js'
 
 import { InformantAgent } from '../informant/agent.js'
 import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
@@ -15,22 +15,22 @@ import { XcmAgent } from '../xcm/agent.js'
 export class LocalAgentCatalog implements AgentCatalog {
   readonly #log: Logger
   readonly #agents: Record<AgentId, Agent>
-  readonly #notifier: PublisherHub
+  readonly #notifier: Egress
 
   constructor(ctx: Services, _options: AgentCatalogOptions) {
     this.#log = ctx.log
-    this.#notifier = new PublisherHub(ctx)
+    this.#notifier = new Egress(ctx)
     this.#agents = this.#loadAgents({
       ...ctx,
       egress: this.#notifier,
     })
   }
 
-  addPublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub {
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
     return this.#notifier.on(eventName, listener)
   }
 
-  removePublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub {
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
     return this.#notifier.off(eventName, listener)
   }
 

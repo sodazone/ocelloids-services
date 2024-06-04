@@ -1,12 +1,12 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { PublisherHub } from '../egress/hub.js'
+import { Egress } from '../egress/hub.js'
 import { PublisherEvents } from '../egress/types.js'
 import { IngressConsumer } from '../ingress/index.js'
 import { Janitor } from '../persistence/janitor.js'
 import { Scheduler } from '../persistence/scheduler.js'
-import { PublicationListener, Subscription } from '../subscriptions/types.js'
+import { EgressListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
 
 export const $AgentId = z
@@ -24,7 +24,7 @@ export type AgentId = z.infer<typeof $AgentId>
  */
 export type AgentRuntimeContext = {
   log: Logger
-  egress: PublisherHub
+  egress: Egress
   ingress: IngressConsumer
   db: DB
   scheduler: Scheduler
@@ -35,8 +35,8 @@ export type AgentRuntimeContext = {
  *
  */
 export interface AgentCatalog {
-  addPublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub
-  removePublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
   getAgentById<A extends Agent = Agent>(agentId: AgentId): A
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
   getAgentIds(): AgentId[]

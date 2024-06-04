@@ -11,7 +11,7 @@ import { Message } from '../../../egress/types.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
-import { $Subscription, PublicationListener, Subscription } from '../../types.js'
+import { $Subscription, EgressListener, Subscription } from '../../types.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z
@@ -51,7 +51,7 @@ function safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
   readonly #switchboard: Switchboard
-  readonly #broadcaster: PublicationListener
+  readonly #broadcaster: EgressListener
   readonly #maxClients: number
 
   #connections: Map<string, Connection[]>
@@ -84,7 +84,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       }
     }
 
-    this.#switchboard.addPublicationListener('websocket', this.#broadcaster)
+    this.#switchboard.addEgressListener('websocket', this.#broadcaster)
   }
 
   /**
@@ -149,7 +149,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   stop() {
-    this.#switchboard.removePublicationListener('websocket', this.#broadcaster)
+    this.#switchboard.removeEgressListener('websocket', this.#broadcaster)
   }
 
   #addSubscriber(subscription: Subscription, socket: WebSocket, request: FastifyRequest) {

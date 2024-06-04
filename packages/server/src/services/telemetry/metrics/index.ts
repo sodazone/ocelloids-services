@@ -1,4 +1,4 @@
-import { PublisherHub } from '../../egress/hub.js'
+import { Egress } from '../../egress/hub.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import IngressProducer from '../../ingress/producer/index.js'
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js'
@@ -14,7 +14,7 @@ function isIngressConsumer(o: TelemetryEventEmitter): o is IngressConsumer {
 export function collect(observer: TelemetryEventEmitter) {
   if (observer instanceof HeadCatcher) {
     catcherMetrics(observer)
-  } else if (observer instanceof PublisherHub) {
+  } else if (observer instanceof Egress) {
     notifierMetrics(observer)
   } else if (observer instanceof IngressProducer) {
     ingressProducerMetrics(observer)

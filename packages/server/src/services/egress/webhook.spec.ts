@@ -7,7 +7,7 @@ import { _log, _services } from '../../testing/services.js'
 
 import { Scheduler } from '../persistence/scheduler.js'
 import { Subscription } from '../subscriptions/types.js'
-import { PublisherHub } from './hub.js'
+import { Egress } from './hub.js'
 import { Message } from './types.js'
 import { WebhookPublisher } from './webhook.js'
 
@@ -147,7 +147,7 @@ describe('webhook notifier', () => {
 
   let scheduler: Scheduler
   let publisher: WebhookPublisher
-  let hub: PublisherHub
+  let egress: Egress
 
   beforeAll(async () => {
     await subs.insert(subOk)
@@ -165,8 +165,8 @@ describe('webhook notifier', () => {
       scheduler: true,
       schedulerFrequency: 500,
     })
-    hub = new PublisherHub(_services)
-    publisher = new WebhookPublisher(hub, {
+    egress = new Egress(_services)
+    publisher = new WebhookPublisher(egress, {
       ..._services,
       scheduler,
     })

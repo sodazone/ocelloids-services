@@ -129,7 +129,7 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>
 
 export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscription>, 'args'> & { args: T }
 
-export type PublicationListener = (sub: Subscription, msg: Message) => void
+export type EgressListener = (sub: Subscription, msg: Message) => void
 
 export type RxSubscriptionWithId = {
   chainId: string

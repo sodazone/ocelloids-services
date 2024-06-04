@@ -10,7 +10,7 @@ import { WebhookPublisher } from './webhook.js'
 /**
  * Provides resolution of the supported publishers.
  */
-export class PublisherHub extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
+export class Egress extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
   // #log: Logger;
   #publishers: {
     [property: string]: Publisher

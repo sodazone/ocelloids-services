@@ -9,7 +9,7 @@ import { Logger, Services } from '../types.js'
 
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'
 import { notifyTelemetryFrom } from '../telemetry/types.js'
-import { PublisherHub } from './hub.js'
+import { Egress } from './hub.js'
 import { TemplateRenderer } from './template.js'
 import { Message, Publisher, PublisherEmitter } from './types.js'
 
@@ -40,7 +40,7 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
   #subs: SubsStore
   #renderer: TemplateRenderer
 
-  constructor(hub: PublisherHub, { log, scheduler, subsStore }: Services) {
+  constructor(egress: Egress, { log, scheduler, subsStore }: Services) {
     super()
 
     this.#log = log
@@ -50,7 +50,7 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
 
     this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this))
 
-    hub.on('webhook', this.publish.bind(this))
+    egress.on('webhook', this.publish.bind(this))
   }
 
   async publish(sub: Subscription, msg: Message) {

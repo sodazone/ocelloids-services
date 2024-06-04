@@ -4,7 +4,7 @@ import { filter as rxFilter } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '../../../errors.js'
-import { PublisherHub } from '../../../services/egress/hub.js'
+import { Egress } from '../../../services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 
@@ -44,7 +44,7 @@ export class InformantAgent implements Agent {
   readonly #log: Logger
   readonly #shared: SharedStreams
   readonly #handlers: Record<string, InformantHandler>
-  readonly #egress: PublisherHub
+  readonly #egress: Egress
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log

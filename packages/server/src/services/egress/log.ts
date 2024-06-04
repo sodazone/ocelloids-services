@@ -2,18 +2,18 @@ import EventEmitter from 'node:events'
 
 import { Logger, Services } from '../../services/types.js'
 import { Subscription } from '../subscriptions/types.js'
-import { PublisherHub } from './hub.js'
+import { Egress } from './hub.js'
 import { Message, Publisher, PublisherEmitter } from './types.js'
 
 export class LogPublisher extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
   #log: Logger
 
-  constructor(hub: PublisherHub, { log }: Services) {
+  constructor(egress: Egress, { log }: Services) {
     super()
 
     this.#log = log
 
-    hub.on('log', this.publish.bind(this))
+    egress.on('log', this.publish.bind(this))
   }
 
   publish(_sub: Subscription, msg: Message) {

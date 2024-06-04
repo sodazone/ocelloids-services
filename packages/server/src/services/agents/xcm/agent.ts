@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { ValidationError } from '../../../errors.js'
 import { IngressConsumer } from '../../../services/ingress/index.js'
 import { getChainId, getConsensus } from '../../config.js'
-import { PublisherHub } from '../../egress/hub.js'
+import { Egress } from '../../egress/hub.js'
 import { AnyJson, HexString, RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 
@@ -62,7 +62,7 @@ import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.j
 export class XcmAgent implements Agent {
   readonly #log: Logger
 
-  readonly #notifier: PublisherHub
+  readonly #notifier: Egress
   readonly #ingress: IngressConsumer
   readonly #engine: MatchingEngine
   readonly #telemetry: TelemetryXcmEventEmitter
