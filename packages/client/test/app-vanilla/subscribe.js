@@ -9,14 +9,11 @@ export function setup() {
     wsUrl: 'ws://127.0.0.1:3000'
   });
 
-  const ws = client.subscribe({
-    agent: "xcm",
-    args: {
-      origin: "urn:ocn:polkadot:1000",
-      senders: "*",
-      events: "*",
-      destinations: ["urn:ocn:polkadot:0"]
-    }
+  const ws = client.agent("xcm").subscribe({
+    origin: "urn:ocn:polkadot:1000",
+    senders: "*",
+    events: "*",
+    destinations: ["urn:ocn:polkadot:0"]
   }, {
     onMessage: msg => {
       if (xcm.isXcmSent(msg)) {

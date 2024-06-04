@@ -7,20 +7,19 @@ const client = new OcelloidsClient({
 
 client.health().then(console.log).catch(console.error)
 
-client.subscribe(
+client.agent("xcm").subscribe(
   {
-    agent: "xcm",
-    args: {
-      origin: "urn:ocn:polkadot:0",
-      senders: "*",
-      events: "*",
-      destinations: ["urn:ocn:polkadot:1000"]
-    }
-  }, {
-  onMessage: (msg, ws) => {
-    console.log(msg);
-    ws.close(1001, 'bye!');
+    origin: "urn:ocn:polkadot:0",
+    senders: "*",
+    events: "*",
+    destinations: ["urn:ocn:polkadot:1000"]
   },
-  onError: error => console.log(error),
-  onClose: event => console.log(event.reason)
-});
+  {
+    onMessage: (msg, ws) => {
+      console.log(msg);
+      ws.close(1001, 'bye!');
+    },
+    onError: error => console.log(error),
+    onClose: event => console.log(event.reason)
+  }
+);

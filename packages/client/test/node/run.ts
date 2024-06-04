@@ -7,17 +7,14 @@ const client = new OcelloidsClient({
 
 client.health().then(console.log).catch(console.error)
 
-client.subscribe<xcm.XcmInputs>(
+client.agent<xcm.XcmInputs>("xcm").subscribe(
   {
-    agent: "xcm",
-    args: {
-      origin: 'urn:ocn:polkadot:0',
-      senders: '*',
-      events: '*',
-      destinations: [
-        'urn:ocn:polkadot:1000'
-      ],
-    }
+    origin: 'urn:ocn:polkadot:0',
+    senders: '*',
+    events: '*',
+    destinations: [
+      'urn:ocn:polkadot:1000'
+    ],
   },
   {
     onMessage: (msg, ws) => {

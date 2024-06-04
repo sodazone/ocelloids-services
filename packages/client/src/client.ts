@@ -91,7 +91,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  subscribe<T = AnySubscriptionInputs>(
+  subscribe(
     subscription: string | T,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
