@@ -53,33 +53,27 @@ describe('OcelloidsClient', () => {
       })
 
       let called = 0
-      const ws = client.subscribe(
-        {
-          id: 'subid',
-          agent: 'agentid',
+      const ws = client.agent('agentid').subscribe('subid', {
+        onMessage: (msg) => {
+          expect(ws.readyState).toBe(1)
+          expect(msg).toBeDefined()
+
+          switch (called) {
+            case 1:
+              expect(isXcmSent(msg)).toBeTruthy()
+              break
+            case 2:
+              expect(isXcmReceived(msg)).toBeTruthy()
+              break
+            default:
+            //
+          }
+
+          if (++called === samplesNum) {
+            done()
+          }
         },
-        {
-          onMessage: (msg) => {
-            expect(ws.readyState).toBe(1)
-            expect(msg).toBeDefined()
-
-            switch (called) {
-              case 1:
-                expect(isXcmSent(msg)).toBeTruthy()
-                break
-              case 2:
-                expect(isXcmReceived(msg)).toBeTruthy()
-                break
-              default:
-              //
-            }
-
-            if (++called === samplesNum) {
-              done()
-            }
-          },
-        }
-      )
+      })
     })
 
     it('should create on-demand subscription', (done) => {
@@ -98,21 +92,18 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.subscribe<XcmInputs>(
+      const ws = client.agent<XcmInputs>('xcm').subscribe(
         {
-          agent: 'xcm',
-          args: {
-            origin: 'urn:ocn:local:2004',
-            senders: '*',
-            events: '*',
-            destinations: [
-              'urn:ocn:local:0',
-              'urn:ocn:local:1000',
-              'urn:ocn:local:2000',
-              'urn:ocn:local:2034',
-              'urn:ocn:local:2104',
-            ],
-          },
+          origin: 'urn:ocn:local:2004',
+          senders: '*',
+          events: '*',
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
         },
         {
           onMessage: (msg) => {
@@ -158,21 +149,18 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.subscribe(
+      const ws = client.agent<XcmInputs>('xcm').subscribe(
         {
-          agent: 'xcm',
-          args: {
-            origin: 'urn:ocn:local:2004',
-            senders: '*',
-            events: '*',
-            destinations: [
-              'urn:ocn:local:0',
-              'urn:ocn:local:1000',
-              'urn:ocn:local:2000',
-              'urn:ocn:local:2034',
-              'urn:ocn:local:2104',
-            ],
-          },
+          origin: 'urn:ocn:local:2004',
+          senders: '*',
+          events: '*',
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
         },
         {
           onMessage: (_) => {
@@ -207,24 +195,18 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe(
-        {
-          agent: 'agentid',
-          id: 'subid',
+      client.agent('agentid').subscribe('subid', {
+        onMessage: (_) => {
+          fail('should not receive messages')
         },
-        {
-          onMessage: (_) => {
-            fail('should not receive messages')
-          },
-          onError: (_) => {
-            fail('should not receive error')
-          },
-          onClose: (e) => {
-            expect(e).toBeDefined()
-            done()
-          },
-        }
-      )
+        onError: (_) => {
+          fail('should not receive error')
+        },
+        onClose: (e) => {
+          expect(e).toBeDefined()
+          done()
+        },
+      })
     })
 
     it('should authentitcate', (done) => {
@@ -245,23 +227,17 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe(
-        {
-          agent: 'agentid',
-          id: 'subid',
+      client.agent('agentid').subscribe('subid', {
+        onMessage: (_) => {
+          done()
         },
-        {
-          onMessage: (_) => {
-            done()
-          },
-          onError: (_) => {
-            fail('should not receive error')
-          },
-          onClose: (_) => {
-            fail('should not receive close')
-          },
-        }
-      )
+        onError: (_) => {
+          fail('should not receive error')
+        },
+        onClose: (_) => {
+          fail('should not receive close')
+        },
+      })
     })
 
     it('should handle auth error', (done) => {
@@ -280,27 +256,21 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe(
-        {
-          agent: 'agentid',
-          id: 'subid',
+      client.agent('agentid').subscribe('subid', {
+        onMessage: (_) => {
+          fail('should not receive message')
         },
-        {
-          onMessage: (_) => {
-            fail('should not receive message')
-          },
-          onAuthError: (r) => {
-            expect(r.error).toBeTruthy()
-            done()
-          },
-          onError: (_) => {
-            fail('should not receive error')
-          },
-          onClose: (_) => {
-            fail('should not receive close')
-          },
-        }
-      )
+        onAuthError: (r) => {
+          expect(r.error).toBeTruthy()
+          done()
+        },
+        onError: (_) => {
+          fail('should not receive error')
+        },
+        onClose: (_) => {
+          fail('should not receive close')
+        },
+      })
     })
 
     it('should throw auth error event', (done) => {
@@ -319,22 +289,16 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.subscribe(
-        {
-          agent: 'agentid',
-          id: 'subid',
+      client.agent('agentid').subscribe('subid', {
+        onMessage: (_) => {
+          fail('should not receive message')
         },
-        {
-          onMessage: (_) => {
-            fail('should not receive message')
-          },
-          onError: (error) => {
-            const authError = error as WsAuthErrorEvent
-            expect(authError.name).toBe('WsAuthError')
-            done()
-          },
-        }
-      )
+        onError: (error) => {
+          const authError = error as WsAuthErrorEvent
+          expect(authError.name).toBe('WsAuthError')
+          done()
+        },
+      })
     })
   })
 
@@ -380,7 +344,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'http://mock',
       })
 
-      await client.create(sub)
+      await client.agent('xcm').create(sub)
 
       scope.done()
     })
@@ -400,8 +364,10 @@ describe('OcelloidsClient', () => {
       })
 
       await client.health()
-      await client.allSubscriptions('xcm')
-      await client.getSubscription({ agent: 'xcm', id: 'id' })
+
+      const xcm = client.agent('xcm')
+      await xcm.allSubscriptions()
+      await xcm.getSubscription('id')
 
       scope.done()
     })

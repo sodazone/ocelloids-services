@@ -104,23 +104,6 @@ export type SubscriptionError = {
 }
 
 /**
- * Represents an on-demand subscription.
- *
- * @public
- */
-export type OnDemandSubscription<T = AnySubscriptionInputs> = Omit<Subscription<T>, 'id' | 'channels'>
-
-/**
- * Subscription ID.
- *
- * @public
- */
-export type SubscriptionId = {
-  id: string
-  agent: string
-}
-
-/**
  * Authentication reply.
  *
  * @public
