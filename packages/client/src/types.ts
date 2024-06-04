@@ -1,4 +1,4 @@
-import { NotifyMessage } from './lib'
+import { Message } from './lib'
 
 /**
  * Represents a {@link Subscription} delivery channel.
@@ -159,10 +159,10 @@ export type ErrorHandler = (error: Event) => void
  */
 export type WebSocketHandlers = {
   /**
-   * Called on every {@link NotifyMessage}.
+   * Called on every {@link Message}.
    * This is the main message handling callback.
    */
-  onMessage: MessageHandler<NotifyMessage>
+  onMessage: MessageHandler<Message>
 
   /**
    * Called if the authentication fails.
@@ -196,7 +196,7 @@ export type OnDemandSubscriptionHandlers = {
  *
  * @public
  */
-export function isSubscription(obj: Subscription | SubscriptionError | NotifyMessage): obj is Subscription {
+export function isSubscription(obj: Subscription | SubscriptionError | Message): obj is Subscription {
   const maybeSub = obj as Subscription
   return maybeSub.channels !== undefined && maybeSub.agent !== undefined && maybeSub.id !== undefined
 }

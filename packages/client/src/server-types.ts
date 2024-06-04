@@ -1,6 +1,6 @@
 export type {
   AnyJson,
   HexString,
-  NotifyMessage,
+  Message,
   SignerData,
 } from '@sodazone/ocelloids-service-node'

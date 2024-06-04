@@ -1,6 +1,6 @@
 import { type MessageEvent } from 'isows'
 
-import type { NotifyMessage } from './server-types'
+import type { Message } from './server-types'
 import { type MessageHandler } from './types'
 
 /**
@@ -23,7 +23,7 @@ function isBlob(value: any): value is Blob {
  */
 export class Protocol {
   readonly #queue: MessageHandler<any>[] = []
-  readonly #stream: MessageHandler<NotifyMessage>
+  readonly #stream: MessageHandler<Message>
   #isStreaming: boolean
 
   /**
@@ -31,7 +31,7 @@ export class Protocol {
    *
    * @param stream - The message handler for streaming state.
    */
-  constructor(stream: MessageHandler<NotifyMessage>) {
+  constructor(stream: MessageHandler<Message>) {
     this.#stream = stream
     this.#isStreaming = false
   }
