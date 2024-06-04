@@ -43,7 +43,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
 
   readonly #subs: Record<string, Subscription> = {}
 
-  constructor(apis: SubstrateApis, { log, rootStore, janitor }: Services) {
+  constructor(apis: SubstrateApis, { log, db: rootStore, janitor }: Services) {
     super()
 
     this.#log = log

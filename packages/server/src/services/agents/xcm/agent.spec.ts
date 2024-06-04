@@ -116,7 +116,7 @@ describe('switchboard service', () => {
         } as unknown as XcmInboundWithContext)
     })
 
-    subs = new SubsStore(_services.log, _services.rootStore)
+    subs = new SubsStore(_services.log, _services.db)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
@@ -127,7 +127,7 @@ describe('switchboard service', () => {
   })
 
   afterEach(async () => {
-    await _services.rootStore.clear()
+    await _services.db.clear()
     return agentService.stop()
   })
 

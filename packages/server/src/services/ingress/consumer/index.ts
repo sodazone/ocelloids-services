@@ -80,7 +80,7 @@ export class DistributedIngressConsumer
     super()
 
     this.#log = ctx.log
-    this.#db = ctx.rootStore
+    this.#db = ctx.db
     this.#distributor = new RedisDistributor(opts, ctx)
     this.#blockConsumers = {}
     this.#registries$ = {}

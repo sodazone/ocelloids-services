@@ -13,7 +13,7 @@ const itOps = {
 }
 
 export default async function Administration(api: FastifyInstance) {
-  const { rootStore, scheduler } = api
+  const { db: rootStore, scheduler } = api
 
   const opts = {
     onRequest: [api.auth],

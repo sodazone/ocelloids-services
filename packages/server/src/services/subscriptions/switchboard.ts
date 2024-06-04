@@ -7,7 +7,7 @@ import { NotificationListener, Subscription, SubscriptionStats } from './types.j
 
 import { NotFound } from '../../errors.js'
 import { AgentCatalog, AgentId } from '../agents/types.js'
-import { NotifierEvents } from '../notification/types.js'
+import { NotifierEvents } from '../egress/types.js'
 import { SubsStore } from '../persistence/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 

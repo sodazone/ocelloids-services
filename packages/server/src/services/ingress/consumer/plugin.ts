@@ -6,7 +6,7 @@ import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } fro
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingressConsumer: IngressConsumer
+    ingress: IngressConsumer
   }
 }
 
@@ -37,7 +37,7 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
       })
   })
 
-  fastify.decorate('ingressConsumer', consumer)
+  fastify.decorate('ingress', consumer)
 
   await consumer.start()
 }

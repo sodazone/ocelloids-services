@@ -1,8 +1,8 @@
 import { NotFound } from '../../../errors.js'
 import { AgentCatalogOptions } from '../../../types.js'
+import { NotifierHub } from '../../egress/index.js'
+import { NotifierEvents } from '../../egress/types.js'
 import { Logger, Services } from '../../index.js'
-import { NotifierHub } from '../../notification/index.js'
-import { NotifierEvents } from '../../notification/types.js'
 import { NotificationListener, Subscription } from '../../subscriptions/types.js'
 
 import { InformantAgent } from '../informant/agent.js'
@@ -22,7 +22,7 @@ export class LocalAgentCatalog implements AgentCatalog {
     this.#notifier = new NotifierHub(ctx)
     this.#agents = this.#loadAgents({
       ...ctx,
-      notifier: this.#notifier,
+      egress: this.#notifier,
     })
   }
 

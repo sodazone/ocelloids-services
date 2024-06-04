@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
-import { NotifyMessage } from '../../../notification/types.js'
+import { NotifyMessage } from '../../../egress/types.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'

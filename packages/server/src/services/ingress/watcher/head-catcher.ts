@@ -86,7 +86,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   constructor(services: Services) {
     super()
 
-    const { log, localConfig, rootStore, connector } = services
+    const { log, localConfig, db: rootStore, connector } = services
 
     this.#log = log
     this.#localConfig = localConfig

@@ -33,7 +33,7 @@ describe('switchboard service', () => {
   let agentService: AgentCatalog
 
   beforeAll(async () => {
-    subs = new SubsStore(_services.log, _services.rootStore)
+    subs = new SubsStore(_services.log, _services.db)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
@@ -50,7 +50,7 @@ describe('switchboard service', () => {
   })
 
   afterAll(async () => {
-    await _services.rootStore.clear()
+    await _services.db.clear()
     return agentService.stop()
   })
 

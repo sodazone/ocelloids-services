@@ -4,7 +4,7 @@ import { filter as rxFilter } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '../../../errors.js'
-import { NotifierHub } from '../../../services/notification/hub.js'
+import { NotifierHub } from '../../../services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 
@@ -44,22 +44,21 @@ export class InformantAgent implements Agent {
   readonly #log: Logger
   readonly #shared: SharedStreams
   readonly #handlers: Record<string, InformantHandler>
-  readonly #notifier: NotifierHub
+  readonly #egress: NotifierHub
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
-    this.#shared = new SharedStreams(ctx.ingressConsumer)
-    this.#notifier = ctx.notifier
+    this.#shared = new SharedStreams(ctx.ingress)
+    this.#egress = ctx.egress
     this.#handlers = {}
   }
 
   get id(): string {
-    return this.metadata.id
+    return 'informant'
   }
 
   get metadata(): AgentMetadata {
     return {
-      id: 'informant',
       name: 'General Informant',
       description: 'Fetches transactions and events using custom MongoQL-compatible filtering expressions.',
     }
@@ -145,7 +144,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#notifier.notify(subscription, {
+                    this.#egress.notify(subscription, {
                       metadata: {
                         type: 'extrinsic',
                         subscriptionId: id,
@@ -181,7 +180,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#notifier.notify(subscription, {
+                    this.#egress.notify(subscription, {
                       metadata: {
                         type: 'event',
                         subscriptionId: id,

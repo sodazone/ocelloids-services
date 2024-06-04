@@ -1,12 +1,12 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { NotifierHub } from '../egress/hub.js'
+import { NotifierEvents } from '../egress/types.js'
 import { IngressConsumer } from '../ingress/index.js'
-import { NotifierHub } from '../notification/hub.js'
-import { NotifierEvents } from '../notification/types.js'
 import { Janitor } from '../persistence/janitor.js'
-import { NotificationListener, RxSubscriptionWithId, Subscription } from '../subscriptions/types.js'
+import { Scheduler } from '../persistence/scheduler.js'
+import { NotificationListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
 
 export const $AgentId = z
@@ -19,14 +19,21 @@ export const $AgentId = z
 
 export type AgentId = z.infer<typeof $AgentId>
 
+/**
+ *
+ */
 export type AgentRuntimeContext = {
   log: Logger
-  notifier: NotifierHub
-  ingressConsumer: IngressConsumer
-  rootStore: DB
+  egress: NotifierHub
+  ingress: IngressConsumer
+  db: DB
+  scheduler: Scheduler
   janitor: Janitor
 }
 
+/**
+ *
+ */
 export interface AgentCatalog {
   addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
   removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub
@@ -38,16 +45,24 @@ export interface AgentCatalog {
   collectTelemetry(): void
 }
 
+/**
+ *
+ */
 export type AgentMetadata = {
-  id: AgentId
-  name?: string
+  name: string
   description?: string
 }
 
+/**
+ *
+ */
 export type SubscriptionHandler = {
-  descriptor: Subscription
+  subscription: Subscription
 }
 
+/**
+ *
+ */
 export interface Agent {
   get id(): AgentId
   get metadata(): AgentMetadata

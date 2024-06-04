@@ -3,7 +3,7 @@ import z from 'zod'
 import { Subscription as RxSubscription } from 'rxjs'
 
 import { $AgentId } from '../agents/types.js'
-import { NotifyMessage } from '../notification/types.js'
+import { NotifyMessage } from '../egress/types.js'
 
 /**
  * Represents a generic JSON object.

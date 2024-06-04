@@ -6,6 +6,7 @@ import { AbstractSublevel } from 'abstract-level'
 import { matchBridgeMessages } from '../../../testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '../../../testing/matching.js'
 import { _services } from '../../../testing/services.js'
+import { NotifierHub } from '../../egress/index.js'
 import { Janitor } from '../../persistence/janitor.js'
 import { jsonEncoded } from '../../types.js'
 import { MatchingEngine } from './matching.js'
@@ -30,7 +31,8 @@ describe('message matching engine', () => {
     engine = new MatchingEngine(
       {
         ..._services,
-        rootStore: db,
+        egress: {} as unknown as NotifierHub,
+        db,
         janitor: {
           on: jest.fn(),
           schedule,

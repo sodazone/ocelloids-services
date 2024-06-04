@@ -354,18 +354,18 @@ describe('monitoring server API', () => {
 
   describe('admin api', () => {
     beforeAll(async () => {
-      const { rootStore: root } = server
+      const { db } = server
 
-      await root
+      await db
         .sublevel<string, any>(prefixes.sched.tasks, jsonEncoded)
         .batch()
         .put('0000', { type: 'a', task: {} })
         .put('0001', { type: 'b', task: {} })
         .write()
 
-      await root.sublevel<string, any>(prefixes.cache.tips, jsonEncoded).batch().put('0', {}).put('1', {}).write()
+      await db.sublevel<string, any>(prefixes.cache.tips, jsonEncoded).batch().put('0', {}).put('1', {}).write()
       for (let i = 0; i < 3; i++) {
-        await root
+        await db
           .sublevel<string, any>(prefixes.cache.family(`urn:ocn:local:${i.toString()}`), jsonEncoded)
           .put('0x0', {})
       }

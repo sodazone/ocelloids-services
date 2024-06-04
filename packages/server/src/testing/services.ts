@@ -7,6 +7,7 @@ import toml from 'toml'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
+import { NotifierHub } from '../services/egress/index.js'
 import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
 import { Janitor } from '../services/persistence/janitor.js'
@@ -175,10 +176,10 @@ const __services = {
   log: _log,
   localConfig: _config,
   connector: _connector,
-  rootStore: _rootDB,
+  db: _rootDB,
   subsStore: {} as unknown as SubsStore,
-  ingressConsumer: {} as unknown as IngressConsumer,
-  agentService: {} as unknown as AgentCatalog,
+  ingress: {} as unknown as IngressConsumer,
+  agentCatalog: {} as unknown as AgentCatalog,
   scheduler: {
     on: () => {
       /* empty */
@@ -199,7 +200,7 @@ export const _subsDB = new SubsStore(_log, _rootDB)
 export const _agentService = new LocalAgentCatalog(
   {
     ...__services,
-    ingressConsumer: _ingress,
+    ingress: _ingress,
     subsStore: _subsDB,
   } as Services,
   { mode: AgentServiceMode.local }
@@ -207,7 +208,8 @@ export const _agentService = new LocalAgentCatalog(
 
 export const _services = {
   ...__services,
-  ingressConsumer: _ingress,
+  ingress: _ingress,
+  egress: {} as unknown as NotifierHub,
   subsStore: _subsDB,
   agentCatalog: _agentService,
 } as Services

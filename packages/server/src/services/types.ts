@@ -84,12 +84,12 @@ export interface TypedEventEmitter<Events extends EventMap> {
 export type Logger = FastifyBaseLogger
 export type Services = {
   log: Logger
-  rootStore: DB
+  db: DB
   subsStore: SubsStore
   janitor: Janitor
   scheduler: Scheduler
   localConfig: ServiceConfiguration
-  ingressConsumer: IngressConsumer
+  ingress: IngressConsumer
   agentCatalog: AgentCatalog
   connector: Connector
 }

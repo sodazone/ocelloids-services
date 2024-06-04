@@ -1,7 +1,7 @@
+import { NotifierHub } from '../../egress/hub.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import IngressProducer from '../../ingress/producer/index.js'
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js'
-import { NotifierHub } from '../../notification/hub.js'
 import { TelemetryEventEmitter } from '../types.js'
 import { catcherMetrics } from './catcher.js'
 import { ingressConsumerMetrics, ingressProducerMetrics } from './ingress.js'

@@ -68,10 +68,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
 
-  constructor(
-    { log, rootStore, janitor }: Omit<AgentRuntimeContext, 'notifier'>,
-    xcmMatchedReceiver: XcmMatchedReceiver
-  ) {
+  constructor({ log, db, janitor }: AgentRuntimeContext, xcmMatchedReceiver: XcmMatchedReceiver) {
     super()
 
     this.#log = log
@@ -80,28 +77,25 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     this.#xcmMatchedReceiver = xcmMatchedReceiver
 
     // Key format: [subscription-id]:[destination-chain-id]:[message-id/hash]
-    this.#outbound = rootStore.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded)
+    this.#outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded)
 
     // [subscription-id]:[current-chain-id]:[message-id/hash]
-    this.#inbound = rootStore.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded)
+    this.#inbound = db.sublevel<string, XcmInbound>(prefixes.matching.inbound, jsonEncoded)
 
     // [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
-    this.#relay = rootStore.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded)
+    this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded)
 
     // [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
-    this.#hop = rootStore.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded)
+    this.#hop = db.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded)
 
     // [subscription-id]:[bridge-chain-id]:[message-id]
-    this.#bridge = rootStore.sublevel<string, XcmSent>(prefixes.matching.bridge, jsonEncoded)
+    this.#bridge = db.sublevel<string, XcmSent>(prefixes.matching.bridge, jsonEncoded)
 
     // [subscription-id]:[bridge-key]
-    this.#bridgeAccepted = rootStore.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded)
+    this.#bridgeAccepted = db.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded)
 
     // [subscription-id]:[bridge-key]
-    this.#bridgeInbound = rootStore.sublevel<string, XcmBridgeInboundWithContext>(
-      prefixes.matching.bridgeIn,
-      jsonEncoded
-    )
+    this.#bridgeInbound = db.sublevel<string, XcmBridgeInboundWithContext>(prefixes.matching.bridgeIn, jsonEncoded)
 
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
   }

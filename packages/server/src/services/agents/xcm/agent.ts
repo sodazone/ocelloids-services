@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { ValidationError } from '../../../errors.js'
 import { IngressConsumer } from '../../../services/ingress/index.js'
 import { getChainId, getConsensus } from '../../config.js'
-import { NotifierHub } from '../../notification/hub.js'
+import { NotifierHub } from '../../egress/hub.js'
 import { AnyJson, HexString, RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 
@@ -73,8 +73,8 @@ export class XcmAgent implements Agent {
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
 
-    this.#notifier = ctx.notifier
-    this.#ingress = ctx.ingressConsumer
+    this.#notifier = ctx.egress
+    this.#ingress = ctx.ingress
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
 
@@ -83,7 +83,7 @@ export class XcmAgent implements Agent {
   }
 
   get id() {
-    return this.metadata.id
+    return 'xcm'
   }
 
   get inputSchema(): z.ZodSchema {
@@ -92,7 +92,6 @@ export class XcmAgent implements Agent {
 
   get metadata(): AgentMetadata {
     return {
-      id: 'xcm',
       name: 'XCM Agent',
       description: `
       Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.

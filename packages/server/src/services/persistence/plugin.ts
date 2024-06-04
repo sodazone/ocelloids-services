@@ -12,7 +12,7 @@ import { SubsStore } from './subs.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    rootStore: DB
+    db: DB
     subsStore: SubsStore
     scheduler: Scheduler
     janitor: Janitor
@@ -53,7 +53,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
   const janitor = new Janitor(fastify.log, root, scheduler, options)
   const subsStore = new SubsStore(fastify.log, root)
 
-  fastify.decorate('rootStore', root)
+  fastify.decorate('db', root)
   fastify.decorate('janitor', janitor)
   fastify.decorate('scheduler', scheduler)
   fastify.decorate('subsStore', subsStore)
@@ -65,7 +65,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
         instance.log.error(error, 'Error while stopping the scheduler')
       })
       .finally(() => {
-        instance.rootStore.close((error) => {
+        instance.db.close((error) => {
           instance.log.info('Closing database')
           /* istanbul ignore if */
           if (error) {

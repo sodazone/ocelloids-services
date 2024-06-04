@@ -8,7 +8,7 @@ export type {
   SignerData,
 } from './services/subscriptions/types.js'
 
-export type { NotifyMessage } from './services/notification/types.js'
+export type { NotifyMessage } from './services/egress/types.js'
 
 // ====================================================================
 // Agent-specific support types

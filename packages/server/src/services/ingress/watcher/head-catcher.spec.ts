@@ -58,7 +58,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       const expectedKeys = [
@@ -103,7 +103,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       const expectedKeys = [
@@ -217,7 +217,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
         janitor,
       })
 
@@ -317,7 +317,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       const cb = [jest.fn(), jest.fn()]
@@ -437,7 +437,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       const cb = jest.fn()
@@ -501,7 +501,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       catcher.start()
@@ -554,7 +554,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
@@ -606,7 +606,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       catcher.start()
@@ -659,7 +659,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        rootStore: db,
+        db,
       })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({
