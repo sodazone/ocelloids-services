@@ -7,11 +7,11 @@ import { z } from 'zod'
 
 import { errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
-import { NotifyMessage } from '../../../egress/types.js'
+import { Message } from '../../../egress/types.js'
 import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
-import { $Subscription, NotificationListener, Subscription } from '../../types.js'
+import { $Subscription, PublicationListener, Subscription } from '../../types.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z
@@ -51,7 +51,7 @@ function safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
   readonly #switchboard: Switchboard
-  readonly #broadcaster: NotificationListener
+  readonly #broadcaster: PublicationListener
   readonly #maxClients: number
 
   #connections: Map<string, Connection[]>
@@ -74,17 +74,17 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           try {
             safeWrite(socket, msg)
 
-            this.#telemetryNotify(ip, msg)
+            this.#telemetryPublish(ip, msg)
           } catch (error) {
             this.#log.error(error)
 
-            this.#telemetryNotifyError(ip, msg, errorMessage(error))
+            this.#telemetryPublishError(ip, msg, errorMessage(error))
           }
         }
       }
     }
 
-    this.#switchboard.addNotificationListener('websocket', this.#broadcaster)
+    this.#switchboard.addPublicationListener('websocket', this.#broadcaster)
   }
 
   /**
@@ -149,7 +149,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   stop() {
-    this.#switchboard.removeNotificationListener('websocket', this.#broadcaster)
+    this.#switchboard.removePublicationListener('websocket', this.#broadcaster)
   }
 
   #addSubscriber(subscription: Subscription, socket: WebSocket, request: FastifyRequest) {
@@ -204,11 +204,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     })
   }
 
-  #telemetryNotify(ip: string, msg: NotifyMessage) {
-    this.emit('telemetryNotify', notifyTelemetryFrom('websocket', ip, msg))
+  #telemetryPublish(ip: string, msg: Message) {
+    this.emit('telemetryPublish', notifyTelemetryFrom('websocket', ip, msg))
   }
 
-  #telemetryNotifyError(ip: string, msg: NotifyMessage, error: string) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom('websocket', ip, msg, error))
+  #telemetryPublishError(ip: string, msg: Message, error: string) {
+    this.emit('telemetryPublishError', notifyTelemetryFrom('websocket', ip, msg, error))
   }
 }

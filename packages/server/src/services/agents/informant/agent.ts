@@ -4,7 +4,7 @@ import { filter as rxFilter } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '../../../errors.js'
-import { NotifierHub } from '../../../services/egress/hub.js'
+import { PublisherHub } from '../../../services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js'
 import { Logger, NetworkURN } from '../../types.js'
 
@@ -44,7 +44,7 @@ export class InformantAgent implements Agent {
   readonly #log: Logger
   readonly #shared: SharedStreams
   readonly #handlers: Record<string, InformantHandler>
-  readonly #egress: NotifierHub
+  readonly #egress: PublisherHub
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -144,7 +144,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#egress.notify(subscription, {
+                    this.#egress.publish(subscription, {
                       metadata: {
                         type: 'extrinsic',
                         subscriptionId: id,
@@ -180,7 +180,7 @@ export class InformantAgent implements Agent {
                 },
                 next: (msg) => {
                   try {
-                    this.#egress.notify(subscription, {
+                    this.#egress.publish(subscription, {
                       metadata: {
                         type: 'event',
                         subscriptionId: id,

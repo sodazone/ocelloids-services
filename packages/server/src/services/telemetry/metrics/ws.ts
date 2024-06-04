@@ -1,7 +1,7 @@
 import { Gauge } from 'prom-client'
 
 import { TelemetryEventEmitter } from '../types.js'
-import { notifierMetrics } from './notifiers.js'
+import { notifierMetrics } from './publisher.js'
 
 export function wsMetrics(source: TelemetryEventEmitter) {
   notifierMetrics(source)

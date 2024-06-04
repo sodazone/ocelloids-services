@@ -2,23 +2,23 @@ import EventEmitter from 'node:events'
 
 import { Logger, Services } from '../../services/types.js'
 import { Subscription } from '../subscriptions/types.js'
-import { NotifierHub } from './hub.js'
-import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
+import { PublisherHub } from './hub.js'
+import { Message, Publisher, PublisherEmitter } from './types.js'
 
-export class LogNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
+export class LogPublisher extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
   #log: Logger
 
-  constructor(hub: NotifierHub, { log }: Services) {
+  constructor(hub: PublisherHub, { log }: Services) {
     super()
 
     this.#log = log
 
-    hub.on('log', this.notify.bind(this))
+    hub.on('log', this.publish.bind(this))
   }
 
-  notify(_sub: Subscription, msg: NotifyMessage) {
+  publish(_sub: Subscription, msg: Message) {
     this.#log.info(
-      'NOTIFICATION %s agent=%s subscription=%s, payload=%j',
+      'MESSAGE %s agent=%s subscription=%s, payload=%j',
       msg.metadata.type,
       msg.metadata.agentId,
       msg.metadata.subscriptionId,

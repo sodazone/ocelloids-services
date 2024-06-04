@@ -7,9 +7,9 @@ import { _log, _services } from '../../testing/services.js'
 
 import { Scheduler } from '../persistence/scheduler.js'
 import { Subscription } from '../subscriptions/types.js'
-import { NotifierHub } from './hub.js'
-import { NotifyMessage } from './types.js'
-import { WebhookNotifier } from './webhook.js'
+import { PublisherHub } from './hub.js'
+import { Message } from './types.js'
+import { WebhookPublisher } from './webhook.js'
 
 const destinationContext = {
   blockHash: '0xBEEF',
@@ -23,7 +23,7 @@ const destinationContext = {
   messageData: '0x',
 }
 
-const notification: NotifyMessage = {
+const notification: Message = {
   metadata: {
     type: 'xcm.ok',
     agentId: 'xcm',
@@ -146,8 +146,8 @@ describe('webhook notifier', () => {
   const subs = _services.subsStore
 
   let scheduler: Scheduler
-  let notifier: WebhookNotifier
-  let hub: NotifierHub
+  let publisher: WebhookPublisher
+  let hub: PublisherHub
 
   beforeAll(async () => {
     await subs.insert(subOk)
@@ -165,8 +165,8 @@ describe('webhook notifier', () => {
       scheduler: true,
       schedulerFrequency: 500,
     })
-    hub = new NotifierHub(_services)
-    notifier = new WebhookNotifier(hub, {
+    hub = new PublisherHub(_services)
+    publisher = new WebhookPublisher(hub, {
       ..._services,
       scheduler,
     })
@@ -179,9 +179,9 @@ describe('webhook notifier', () => {
       .reply(200)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
-    await notifier.notify(subOk, notification)
+    await publisher.publish(subOk, notification)
 
     expect(ok).toHaveBeenCalled()
     scope.done()
@@ -194,7 +194,7 @@ describe('webhook notifier', () => {
       .reply(200)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
     const xmlNotifyMsg = {
       ...notification,
@@ -203,7 +203,7 @@ describe('webhook notifier', () => {
         subscriptionId: 'ok:xml',
       },
     }
-    await notifier.notify(subOkXml, xmlNotifyMsg)
+    await publisher.publish(subOkXml, xmlNotifyMsg)
 
     expect(ok).toHaveBeenCalled()
     scope.done()
@@ -217,9 +217,9 @@ describe('webhook notifier', () => {
       .reply(200)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
-    await notifier.notify(subOkAuth, notification)
+    await publisher.publish(subOkAuth, notification)
 
     expect(ok).toHaveBeenCalled()
     scope.done()
@@ -229,9 +229,9 @@ describe('webhook notifier', () => {
     const scope = nock('http://localhost').post(/.+/).reply(404)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
-    await notifier.notify(subFail, notification)
+    await publisher.publish(subFail, notification)
 
     expect(ok).not.toHaveBeenCalled()
     scope.done()
@@ -244,9 +244,9 @@ describe('webhook notifier', () => {
       .reply(500)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
-    await notifier.notify(subOk, notification)
+    await publisher.publish(subOk, notification)
 
     expect(ok).not.toHaveBeenCalled()
     expect((await scheduler.allTaskTimes()).length).toBe(1)
@@ -262,9 +262,9 @@ describe('webhook notifier', () => {
       .reply(200)
 
     const ok = jest.fn()
-    notifier.on('telemetryNotify', ok)
+    publisher.on('telemetryPublish', ok)
 
-    await notifier.notify(subOk, notification)
+    await publisher.publish(subOk, notification)
 
     expect(ok).toHaveBeenCalled()
 

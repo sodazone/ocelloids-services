@@ -1,9 +1,9 @@
 import { NotFound } from '../../../errors.js'
 import { AgentCatalogOptions } from '../../../types.js'
-import { NotifierHub } from '../../egress/index.js'
-import { NotifierEvents } from '../../egress/types.js'
+import { PublisherHub } from '../../egress/index.js'
+import { PublisherEvents } from '../../egress/types.js'
 import { Logger, Services } from '../../index.js'
-import { NotificationListener, Subscription } from '../../subscriptions/types.js'
+import { PublicationListener, Subscription } from '../../subscriptions/types.js'
 
 import { InformantAgent } from '../informant/agent.js'
 import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
@@ -15,22 +15,22 @@ import { XcmAgent } from '../xcm/agent.js'
 export class LocalAgentCatalog implements AgentCatalog {
   readonly #log: Logger
   readonly #agents: Record<AgentId, Agent>
-  readonly #notifier: NotifierHub
+  readonly #notifier: PublisherHub
 
   constructor(ctx: Services, _options: AgentCatalogOptions) {
     this.#log = ctx.log
-    this.#notifier = new NotifierHub(ctx)
+    this.#notifier = new PublisherHub(ctx)
     this.#agents = this.#loadAgents({
       ...ctx,
       egress: this.#notifier,
     })
   }
 
-  addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {
+  addPublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub {
     return this.#notifier.on(eventName, listener)
   }
 
-  removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener): NotifierHub {
+  removePublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener): PublisherHub {
     return this.#notifier.off(eventName, listener)
   }
 

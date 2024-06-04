@@ -1,11 +1,11 @@
-import { NotifierHub } from '../../egress/hub.js'
+import { PublisherHub } from '../../egress/hub.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import IngressProducer from '../../ingress/producer/index.js'
 import { HeadCatcher } from '../../ingress/watcher/head-catcher.js'
 import { TelemetryEventEmitter } from '../types.js'
 import { catcherMetrics } from './catcher.js'
 import { ingressConsumerMetrics, ingressProducerMetrics } from './ingress.js'
-import { notifierMetrics } from './notifiers.js'
+import { notifierMetrics } from './publisher.js'
 
 function isIngressConsumer(o: TelemetryEventEmitter): o is IngressConsumer {
   return 'finalizedBlocks' in o && 'getRegistry' in o
@@ -14,7 +14,7 @@ function isIngressConsumer(o: TelemetryEventEmitter): o is IngressConsumer {
 export function collect(observer: TelemetryEventEmitter) {
   if (observer instanceof HeadCatcher) {
     catcherMetrics(observer)
-  } else if (observer instanceof NotifierHub) {
+  } else if (observer instanceof PublisherHub) {
     notifierMetrics(observer)
   } else if (observer instanceof IngressProducer) {
     ingressProducerMetrics(observer)

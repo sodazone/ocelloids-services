@@ -3,7 +3,7 @@ import z from 'zod'
 import { Subscription as RxSubscription } from 'rxjs'
 
 import { $AgentId } from '../agents/types.js'
-import { NotifyMessage } from '../egress/types.js'
+import { Message } from '../egress/types.js'
 
 /**
  * Represents a generic JSON object.
@@ -129,7 +129,7 @@ export type WebhookNotification = z.infer<typeof $WebhookNotification>
 
 export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscription>, 'args'> & { args: T }
 
-export type NotificationListener = (sub: Subscription, msg: NotifyMessage) => void
+export type PublicationListener = (sub: Subscription, msg: Message) => void
 
 export type RxSubscriptionWithId = {
   chainId: string

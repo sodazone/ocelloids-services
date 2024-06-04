@@ -1,6 +1,6 @@
 import type { Header } from '@polkadot/types/interfaces'
 
-import { NotifyMessage } from '../egress/types.js'
+import { Message } from '../egress/types.js'
 import { Subscription } from '../subscriptions/types.js'
 import { TypedEventEmitter } from '../types.js'
 
@@ -15,7 +15,7 @@ export type NotifyTelemetryMessage = {
 export function notifyTelemetryFrom(
   type: string,
   channel: string,
-  msg: NotifyMessage,
+  msg: Message,
   error?: string
 ): NotifyTelemetryMessage {
   return {
@@ -27,14 +27,14 @@ export function notifyTelemetryFrom(
   }
 }
 
-export type TelemetryNotifierEvents = {
-  telemetryNotify: (msg: NotifyTelemetryMessage) => void
-  telemetryNotifyError: (msg: NotifyTelemetryMessage) => void
+export type TelemetryPublisherEvents = {
+  telemetryPublish: (msg: NotifyTelemetryMessage) => void
+  telemetryPublishError: (msg: NotifyTelemetryMessage) => void
 }
 
-export const TelemetryNotifierEventKeys: Array<keyof TelemetryNotifierEvents> = [
-  'telemetryNotify',
-  'telemetryNotifyError',
+export const TelemetryNotifierEventKeys: Array<keyof TelemetryPublisherEvents> = [
+  'telemetryPublish',
+  'telemetryPublishError',
 ]
 
 type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info'
@@ -54,7 +54,7 @@ export type TelemetryEvents = {
   telemetrySocketListener: (ip: string, sub: Subscription, close?: boolean) => void
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void
   telemetryBlockCacheError: (msg: { chainId: string; method: string }) => void
-} & TelemetryNotifierEvents &
+} & TelemetryPublisherEvents &
   TelemetryIngressConsumerEvents &
   TelemetryIngressProducerEvents
 

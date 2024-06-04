@@ -3,11 +3,11 @@ import EventEmitter from 'node:events'
 import { Operation } from 'rfc6902'
 
 import { Logger, Services } from '../types.js'
-import { NotificationListener, Subscription, SubscriptionStats } from './types.js'
+import { PublicationListener, Subscription, SubscriptionStats } from './types.js'
 
 import { NotFound } from '../../errors.js'
 import { AgentCatalog, AgentId } from '../agents/types.js'
-import { NotifierEvents } from '../egress/types.js'
+import { PublisherEvents } from '../egress/types.js'
 import { SubsStore } from '../persistence/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '../telemetry/types.js'
 
@@ -83,27 +83,27 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Adds a listener function to the underlying notifier.
+   * Adds a listener function to the underlying publisher.
    *
    * This method is used by the web socket broadcaster.
    *
-   * @param eventName - The notifier event name.
+   * @param eventName - The publisher event name.
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  addNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
-    this.#agentCatalog.addNotificationListener(eventName, listener)
+  addPublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener) {
+    this.#agentCatalog.addPublicationListener(eventName, listener)
   }
 
   /**
-   * Removes a listener function from the underlying notifier.
+   * Removes a listener function from the underlying publisher.
    *
-   * @param eventName - The notifier event name.
+   * @param eventName - The publisher event name.
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  removeNotificationListener(eventName: keyof NotifierEvents, listener: NotificationListener) {
-    this.#agentCatalog.removeNotificationListener(eventName, listener)
+  removePublicationListener(eventName: keyof PublisherEvents, listener: PublicationListener) {
+    this.#agentCatalog.removePublicationListener(eventName, listener)
   }
 
   /**

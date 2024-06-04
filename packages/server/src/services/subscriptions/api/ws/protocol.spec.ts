@@ -2,6 +2,7 @@ import { jest } from '@jest/globals'
 
 import { EventEmitter } from 'events'
 import { FastifyRequest } from 'fastify'
+import { Switchboard } from '../../switchboard'
 import { Subscription } from '../../types'
 import WebsocketProtocol from './protocol'
 
@@ -24,7 +25,7 @@ const testSub: Subscription = {
 
 describe('WebsocketProtocol', () => {
   let mockLogger
-  let mockSwitchboard
+  let mockSwitchboard: Switchboard
   let mockOptions
   let websocketProtocol
 
@@ -33,12 +34,12 @@ describe('WebsocketProtocol', () => {
       error: jest.fn(),
     }
     mockSwitchboard = {
-      addNotificationListener: jest.fn(),
-      removeNotificationListener: jest.fn(),
+      addPublicationListener: jest.fn(),
+      removePublicationListener: jest.fn(),
       subscribe: jest.fn(),
       unsubscribe: jest.fn(),
       findSubscription: jest.fn(),
-    }
+    } as unknown as Switchboard
     mockOptions = {
       wsMaxClients: 2,
     }
@@ -52,14 +53,14 @@ describe('WebsocketProtocol', () => {
   describe('Constructor', () => {
     it('should initialize properties correctly', () => {
       expect(websocketProtocol).toBeInstanceOf(EventEmitter)
-      expect(mockSwitchboard.addNotificationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
+      expect(mockSwitchboard.addPublicationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
     })
   })
 
   describe('stop', () => {
     it('should remove notification listener', () => {
       websocketProtocol.stop()
-      expect(mockSwitchboard.removeNotificationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
+      expect(mockSwitchboard.removePublicationListener).toHaveBeenCalledWith('websocket', expect.any(Function))
     })
   })
 
@@ -128,7 +129,7 @@ describe('WebsocketProtocol', () => {
         id: 'mockRequestId',
         ip: 'mockRequestIp',
       } as FastifyRequest
-      mockSwitchboard.findSubscription.mockImplementationOnce(() => ({
+      ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => ({
         ...testSub,
         channels: [{ type: 'log' }],
       }))
@@ -154,8 +155,7 @@ describe('WebsocketProtocol', () => {
         ip: 'mockRequestIp',
       } as FastifyRequest
       const mockError = new Error('Test error')
-
-      mockSwitchboard.subscribe.mockImplementationOnce(() => {
+      ;(mockSwitchboard.subscribe as jest.Mock).mockImplementationOnce(() => {
         throw mockError
       })
 
@@ -167,7 +167,7 @@ describe('WebsocketProtocol', () => {
 
     it('should close connection with error code if an error occurs', async () => {
       const mockStream = { close: jest.fn() }
-      mockSwitchboard.findSubscription.mockImplementationOnce(() => {
+      ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => {
         throw new Error('subscription not found')
       })
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')

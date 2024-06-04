@@ -3,32 +3,30 @@ import EventEmitter from 'node:events'
 import { Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEventKeys } from '../telemetry/types.js'
 import { Services } from '../types.js'
-import { LogNotifier } from './log.js'
-import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
-import { WebhookNotifier } from './webhook.js'
+import { LogPublisher } from './log.js'
+import { Message, Publisher, PublisherEmitter } from './types.js'
+import { WebhookPublisher } from './webhook.js'
 
 /**
- * Notifier hub.
- *
- * Provides resolution of the supported notifiers.
+ * Provides resolution of the supported publishers.
  */
-export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
+export class PublisherHub extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
   // #log: Logger;
-  #notifiers: {
-    [property: string]: Notifier
+  #publishers: {
+    [property: string]: Publisher
   }
 
   constructor(services: Services) {
     super()
 
     // this.#log = services.log;
-    this.#notifiers = {
-      log: new LogNotifier(this, services),
-      webhook: new WebhookNotifier(this, services),
+    this.#publishers = {
+      log: new LogPublisher(this, services),
+      webhook: new WebhookPublisher(this, services),
     }
 
     // delegate telemetry events
-    for (const n of Object.values(this.#notifiers)) {
+    for (const n of Object.values(this.#publishers)) {
       for (const t of TelemetryNotifierEventKeys) {
         n.on(t, (msg) => {
           this.emit(t, msg)
@@ -43,7 +41,7 @@ export class NotifierHub extends (EventEmitter as new () => NotifierEmitter) imp
    * @param sub - The subscription.
    * @param msg - The message.
    */
-  notify(sub: Subscription, msg: NotifyMessage) {
+  publish(sub: Subscription, msg: Message) {
     const types: any[] = []
     for (const { type } of sub.channels) {
       if (types.indexOf(type) === -1) {

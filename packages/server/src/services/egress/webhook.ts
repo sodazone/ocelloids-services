@@ -9,9 +9,9 @@ import { Logger, Services } from '../types.js'
 
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'
 import { notifyTelemetryFrom } from '../telemetry/types.js'
-import { NotifierHub } from './hub.js'
+import { PublisherHub } from './hub.js'
 import { TemplateRenderer } from './template.js'
-import { Notifier, NotifierEmitter, NotifyMessage } from './types.js'
+import { Message, Publisher, PublisherEmitter } from './types.js'
 
 const DEFAULT_DELAY = 300000 // 5 minutes
 
@@ -19,7 +19,7 @@ type WebhookTask = {
   id: string
   subId: string
   agentId: string
-  msg: NotifyMessage
+  msg: Message
 }
 const WebhookTaskType = 'task:webhook'
 
@@ -28,19 +28,19 @@ function buildPostUrl(url: string, id: string) {
 }
 
 /**
- * WebhookNotifier ensures reliable delivery of webhook notifications.
+ * Reliable message delivery to webhooks.
  *
  * Features:
  * - Immediate and scheduled retry logic.
  * - Text templates for the body payload.
  */
-export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter) implements Notifier {
+export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
   #log: Logger
   #scheduler: Scheduler
   #subs: SubsStore
   #renderer: TemplateRenderer
 
-  constructor(hub: NotifierHub, { log, scheduler, subsStore }: Services) {
+  constructor(hub: PublisherHub, { log, scheduler, subsStore }: Services) {
     super()
 
     this.#log = log
@@ -50,10 +50,10 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
 
     this.#scheduler.on(WebhookTaskType, this.#dispatch.bind(this))
 
-    hub.on('webhook', this.notify.bind(this))
+    hub.on('webhook', this.publish.bind(this))
   }
 
-  async notify(sub: Subscription, msg: NotifyMessage) {
+  async publish(sub: Subscription, msg: Message) {
     const { id, agent, channels } = sub
 
     for (const chan of channels) {
@@ -100,7 +100,7 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     const postUrl = buildPostUrl(url, id)
 
     try {
-      const res = await got.post<NotifyMessage>(postUrl, {
+      const res = await got.post<Message>(postUrl, {
         body: template === undefined ? JSON.stringify(msg) : this.#renderer.render({ template, data: msg }),
         headers: {
           'user-agent': 'ocelloids/' + version,
@@ -163,11 +163,11 @@ export class WebhookNotifier extends (EventEmitter as new () => NotifierEmitter)
     }
   }
 
-  #telemetryNotify(config: WebhookNotification, msg: NotifyMessage) {
-    this.emit('telemetryNotify', notifyTelemetryFrom(config.type, config.url, msg))
+  #telemetryNotify(config: WebhookNotification, msg: Message) {
+    this.emit('telemetryPublish', notifyTelemetryFrom(config.type, config.url, msg))
   }
 
-  #telemetryNotifyError(config: WebhookNotification, msg: NotifyMessage) {
-    this.emit('telemetryNotifyError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'))
+  #telemetryNotifyError(config: WebhookNotification, msg: Message) {
+    this.emit('telemetryPublishError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'))
   }
 }
