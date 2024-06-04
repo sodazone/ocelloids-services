@@ -1,4 +1,4 @@
-import { FetchFn, doFetchWithConfig, openWebSocket } from './transport'
+import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
   type OnDemandSubscriptionHandlers,
