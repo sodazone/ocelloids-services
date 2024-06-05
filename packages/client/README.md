@@ -28,21 +28,21 @@ const client = new OcelloidsClient({
   wsUrl: "ws://127.0.0.1:3000"
 });
 
+// get the agent API
+const agent = client.agent<xcm.XcmInputs>("xcm");
+
 // subscribe on-demand
-const ws = client.subscribe<xcm.XcmInputs>({
-  agent: "xcm",
-  args: {
-    origin: "urn:ocn:polkadot:2004",
-    senders: "*",
-    events: "*",
-    destinations: [ 
-      "urn:ocn:polkadot:0",
-      "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2000",
-      "urn:ocn:polkadot:2034",
-      "urn:ocn:polkadot:2104"
-    ]
-  }
+const ws = agent.subscribe({
+  origin: "urn:ocn:polkadot:2004",
+  senders: "*",
+  events: "*",
+  destinations: [ 
+    "urn:ocn:polkadot:0",
+    "urn:ocn:polkadot:1000",
+    "urn:ocn:polkadot:2000",
+    "urn:ocn:polkadot:2034",
+    "urn:ocn:polkadot:2104"
+  ]
  }, {
   onMessage: msg => {
     if(xcm.isXcmReceived(msg)) {
