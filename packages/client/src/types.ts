@@ -1,4 +1,4 @@
-import { Message } from './lib'
+import { AgentId, Message, SubscriptionId } from './lib'
 
 /**
  * Represents a {@link Subscription} delivery channel.
@@ -65,12 +65,12 @@ export type Subscription<T = AnySubscriptionInputs> = {
    * The subscription id.
    * Must be unique.
    */
-  id: string
+  id: SubscriptionId
 
   /**
    * The agent id.
    */
-  agent: string
+  agent: AgentId
 
   /**
    * The specific agent inputs.

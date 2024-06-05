@@ -36,14 +36,23 @@ export type BlockNumberRange = {
   toBlockNum: string
 }
 
-// "urn:ocn:agent-id:subscription-id"
-export const $SafeId = z
+/**
+ * Schema to validate subscription IDs.
+ */
+export const $SubscriptionId = z
   .string({
-    required_error: 'id is required',
+    required_error: 'subscription id is required',
   })
   .min(1)
   .max(100)
   .regex(/[A-Za-z0-9.\-_]+/)
+
+/**
+ * Subscription identifier.
+ *
+ * @public
+ */
+export type SubscriptionId = z.infer<typeof $SubscriptionId>
 
 /**
  * A hex string starting with '0x'.
@@ -110,7 +119,7 @@ export const $AgentArgs = z.record(
 
 export const $Subscription = z
   .object({
-    id: $SafeId,
+    id: $SubscriptionId,
     agent: $AgentId,
     args: $AgentArgs,
     ephemeral: z.optional(z.boolean()),

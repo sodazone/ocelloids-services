@@ -1,3 +1,4 @@
+import type { AgentId, SubscriptionId } from './lib'
 import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
@@ -35,11 +36,11 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
  * @public
  */
 export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
-  readonly #agentId: string
+  readonly #agentId: AgentId
   readonly #config: OcelloidsClientConfig
   readonly #fetch: FetchFn
 
-  constructor(config: OcelloidsClientConfig, agentId: string) {
+  constructor(config: OcelloidsClientConfig, agentId: AgentId) {
     this.#agentId = agentId
     this.#config = config
     this.#fetch = doFetchWithConfig(config)
@@ -93,7 +94,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * @returns A promise that resolves with the WebSocket instance.
    */
   subscribe(
-    subscription: string | T,
+    subscription: SubscriptionId | T,
     handlers: WebSocketHandlers,
     onDemandHandlers?: OnDemandSubscriptionHandlers
   ): WebSocket {
@@ -224,7 +225,7 @@ export class OcelloidsClient {
    * @param agentId - The ID of the agent.
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
-  agent<T = AnySubscriptionInputs>(agentId: string) {
+  agent<T = AnySubscriptionInputs>(agentId: AgentId) {
     return new OcelloidsAgentApi<T>(this.#config, agentId)
   }
 

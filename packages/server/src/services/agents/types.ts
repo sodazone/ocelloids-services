@@ -20,6 +20,11 @@ export const $AgentId = z
   .max(100)
   .regex(/[A-Za-z0-9.\-_]+/)
 
+/**
+ * Agent ID.
+ *
+ * @public
+ */
 export type AgentId = z.infer<typeof $AgentId>
 
 /**

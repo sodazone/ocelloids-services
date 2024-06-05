@@ -3,7 +3,7 @@ import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { $AgentId, AgentId } from '../../agents/types.js'
-import { $SafeId, $Subscription, Subscription } from '../types.js'
+import { $Subscription, $SubscriptionId, Subscription } from '../types.js'
 import $JSONPatch from './json-patch.js'
 
 /**
@@ -74,7 +74,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     {
       schema: {
         params: {
-          subscriptionId: zodToJsonSchema($SafeId),
+          subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
         },
         response: {
@@ -136,7 +136,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     {
       schema: {
         params: {
-          subscriptionId: zodToJsonSchema($SafeId),
+          subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
         },
         body: $JSONPatch,
@@ -174,7 +174,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),
-          subscriptionId: zodToJsonSchema($SafeId),
+          subscriptionId: zodToJsonSchema($SubscriptionId),
         },
         response: {
           200: {
