@@ -10,7 +10,7 @@ import { EgressListener, Subscription } from '../subscriptions/types.js'
 import { DB, Logger } from '../types.js'
 
 /**
- * Schema for validating Agent IDs
+ * Schema for validating Agent IDs.
  */
 export const $AgentId = z
   .string({
@@ -23,7 +23,7 @@ export const $AgentId = z
 export type AgentId = z.infer<typeof $AgentId>
 
 /**
- * Services provided to agents
+ * Services provided to agents.
  */
 export type AgentRuntimeContext = {
   log: Logger
@@ -35,11 +35,11 @@ export type AgentRuntimeContext = {
 }
 
 /**
- * Interface for managing agents
+ * Interface for managing agents.
  */
 export interface AgentCatalog {
   /**
-   * Adds a listener for egress message publishing
+   * Adds a listener for egress message publishing.
    *
    * @param {keyof PublisherEvents} eventName - The name of the event to listen to
    * @param {EgressListener} listener - The listener to add
@@ -48,7 +48,7 @@ export interface AgentCatalog {
   addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
 
   /**
-   * Removes a listener for egress message publishing
+   * Removes a listener for egress message publishing.
    *
    * @param {keyof PublisherEvents} eventName - The name of the event to remove the listener from
    * @param {EgressListener} listener - The listener to remove
@@ -57,7 +57,7 @@ export interface AgentCatalog {
   removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
 
   /**
-   * Retrieves an agent by its ID
+   * Retrieves an agent by its ID.
    *
    * @param {AgentId} agentId - The ID of the agent to retrieve
    * @returns {A} The agent instance
@@ -65,7 +65,7 @@ export interface AgentCatalog {
   getAgentById<A extends Agent = Agent>(agentId: AgentId): A
 
   /**
-   * Gets the input schema for an agent
+   * Gets the input schema for an agent.
    *
    * @param {AgentId} agentId - The ID of the agent
    * @returns {z.ZodSchema} The agent's input schema
@@ -73,14 +73,14 @@ export interface AgentCatalog {
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
 
   /**
-   * Gets a list of all agent IDs
+   * Gets a list of all agent IDs.
    *
    * @returns {AgentId[]} An array of agent IDs
    */
   getAgentIds(): AgentId[]
 
   /**
-   * Starts an agent with optional subscriptions
+   * Starts an agent with optional subscriptions.
    *
    * @param {AgentId} agentId - The ID of the agent to start
    * @param {Subscription[]} [subscriptions] - Optional subscriptions to start with
@@ -89,20 +89,20 @@ export interface AgentCatalog {
   startAgent(agentId: AgentId, subscriptions?: Subscription[]): Promise<void>
 
   /**
-   * Stops the AgentCatalog and all managed agents
+   * Stops the AgentCatalog and all managed agents.
    *
    * @returns {Promise<void>} A promise that resolves when all agents are stopped
    */
   stop(): Promise<void>
 
   /**
-   * Collects telemetry data from agents
+   * Collects telemetry data from agents.
    */
   collectTelemetry(): void
 }
 
 /**
- * Metadata about an agent
+ * Metadata about an agent.
  */
 export type AgentMetadata = {
   name: string
@@ -110,39 +110,39 @@ export type AgentMetadata = {
 }
 
 /**
- * Handler for managing subscriptions
+ * Handler for managing subscriptions.
  */
 export type SubscriptionHandler = {
   subscription: Subscription
 }
 
 /**
- * Interface defining the structure and behavior of an agent
+ * Interface defining the structure and behavior of an agent.
  */
 export interface Agent {
   /**
-   * Gets the unique identifier of the agent
+   * Gets the unique identifier of the agent.
    *
    * @returns {AgentId} The agent's unique identifier
    */
   get id(): AgentId
 
   /**
-   * Gets metadata about the agent
+   * Gets metadata about the agent.
    *
    * @returns {AgentMetadata} The agent's metadata
    */
   get metadata(): AgentMetadata
 
   /**
-   * Gets the input schema used by the agent
+   * Gets the input schema used by the agent.
    *
    * @returns {z.ZodSchema} The agent's input schema
    */
   get inputSchema(): z.ZodSchema
 
   /**
-   * Subscribes to updates with a given subscription
+   * Subscribes to updates with a given subscription.
    *
    * @param {Subscription} subscription - The subscription to add
    * @returns {Promise<void> | void} A promise that resolves when the subscription is added, or void if synchronous
@@ -150,7 +150,7 @@ export interface Agent {
   subscribe(subscription: Subscription): Promise<void> | void
 
   /**
-   * Unsubscribes from updates using the subscription ID
+   * Unsubscribes from updates using the subscription ID.
    *
    * @param {string} subscriptionId - The ID of the subscription to remove
    * @returns {Promise<void> | void} A promise that resolves when the subscription is removed, or void if synchronous
@@ -158,7 +158,7 @@ export interface Agent {
   unsubscribe(subscriptionId: string): Promise<void> | void
 
   /**
-   * Updates a subscription with a patch operation
+   * Updates a subscription with a patch operation.
    *
    * @param {string} subscriptionId - The ID of the subscription to update
    * @param {Operation[]} patch - The patch operations to apply
@@ -167,14 +167,14 @@ export interface Agent {
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription
 
   /**
-   * Stops the agent
+   * Stops the agent.
    *
    * @returns {Promise<void> | void} A promise that resolves when the agent is stopped, or void if synchronous
    */
   stop(): Promise<void> | void
 
   /**
-   * Starts the agent with a list of subscriptions
+   * Starts the agent with a list of subscriptions.
    *
    * @param {Subscription[]} subscriptions - The list of subscriptions to start with
    * @returns {Promise<void> | void} A promise that resolves when the agent is started, or void if synchronous
@@ -182,7 +182,7 @@ export interface Agent {
   start(subscriptions: Subscription[]): Promise<void> | void
 
   /**
-   * Collects telemetry data from the agent
+   * Collects telemetry data from the agent.
    *
    * @returns {Promise<void> | void} A promise that resolves when telemetry is collected, or void if synchronous
    */
