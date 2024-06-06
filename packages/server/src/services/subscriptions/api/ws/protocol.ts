@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
 import { Message } from '../../../egress/types.js'
-import { TelemetryEventEmitter, notifyTelemetryFrom } from '../../../telemetry/types.js'
+import { TelemetryEventEmitter, publishTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
 import { Switchboard } from '../../switchboard.js'
 import { $Subscription, EgressListener, Subscription } from '../../types.js'
@@ -205,10 +205,10 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   #telemetryPublish(ip: string, msg: Message) {
-    this.emit('telemetryPublish', notifyTelemetryFrom('websocket', ip, msg))
+    this.emit('telemetryPublish', publishTelemetryFrom('websocket', ip, msg))
   }
 
   #telemetryPublishError(ip: string, msg: Message, error: string) {
-    this.emit('telemetryPublishError', notifyTelemetryFrom('websocket', ip, msg, error))
+    this.emit('telemetryPublishError', publishTelemetryFrom('websocket', ip, msg, error))
   }
 }

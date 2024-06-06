@@ -99,6 +99,7 @@ const $WebhookNotification = z.object({
   ),
   template: z.optional(z.string().min(5).max(32_000)),
   bearer: z.optional(z.string().min(1).max(1_000)),
+  secret: z.optional(z.string().min(1).max(1_000)),
   limit: z.optional(z.number().min(0).max(Number.MAX_SAFE_INTEGER)),
 })
 

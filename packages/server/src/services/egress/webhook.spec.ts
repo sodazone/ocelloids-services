@@ -7,6 +7,7 @@ import { _log, _services } from '../../testing/services.js'
 
 import { Scheduler } from '../persistence/scheduler.js'
 import { Subscription } from '../subscriptions/types.js'
+import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { Message } from './types.js'
 import { WebhookPublisher } from './webhook.js'
@@ -23,7 +24,7 @@ const destinationContext = {
   messageData: '0x',
 }
 
-const notification: Message = {
+const message: Message = {
   metadata: {
     type: 'xcm.ok',
     agentId: 'xcm',
@@ -142,7 +143,26 @@ const subOkAuth = {
   },
 } as Subscription
 
-describe('webhook notifier', () => {
+const secret = 'abracadabra'
+const subOkSecret = {
+  id: 'ok:secret',
+  agent: 'xcm',
+  channels: [
+    {
+      type: 'webhook',
+      url: 'http://localhost/ok',
+      secret,
+    },
+  ],
+  args: {
+    origin: 'urn:ocn:local:0',
+    destinations: ['urn:ocn:local:3000'],
+    senders: '*',
+    events: '*',
+  },
+} as Subscription
+
+describe('webhook publisher', () => {
   const subs = _services.subsStore
 
   let scheduler: Scheduler
@@ -154,6 +174,7 @@ describe('webhook notifier', () => {
     await subs.insert(subOkXml)
     await subs.insert(subFail)
     await subs.insert(subOkAuth)
+    await subs.insert(subOkSecret)
   })
 
   afterAll(() => {
@@ -172,7 +193,7 @@ describe('webhook notifier', () => {
     })
   })
 
-  it('should post a notification', async () => {
+  it('should post a message', async () => {
     const scope = nock('http://localhost')
       .matchHeader('content-type', 'application/json')
       .post(/ok\/.+/)
@@ -181,13 +202,13 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     publisher.on('telemetryPublish', ok)
 
-    await publisher.publish(subOk, notification)
+    await publisher.publish(subOk, message)
 
     expect(ok).toHaveBeenCalled()
     scope.done()
   })
 
-  it('should post an XML notification', async () => {
+  it('should post an XML message', async () => {
     const scope = nock('http://localhost')
       .matchHeader('content-type', 'application/xml')
       .post(/ok\/.+/, /<sender>w123<\/sender>/gi)
@@ -197,9 +218,9 @@ describe('webhook notifier', () => {
     publisher.on('telemetryPublish', ok)
 
     const xmlNotifyMsg = {
-      ...notification,
+      ...message,
       metadata: {
-        ...notification.metadata,
+        ...message.metadata,
         subscriptionId: 'ok:xml',
       },
     }
@@ -209,7 +230,36 @@ describe('webhook notifier', () => {
     scope.done()
   })
 
-  it('should post a notification with bearer auth', async () => {
+  it('should sign a message with secret', async () => {
+    let signature: string | null = null
+    let requestBoddy: string | null = null
+
+    const scope = nock('http://localhost', {
+      reqheaders: {
+        'x-oc-signature-256': (value) => {
+          signature = value
+          return signature === '7g7SDimPmSI18SUQ4ZcqLVtxPfjto+GhEj6BclJuyME='
+        },
+      },
+    })
+      .post(/ok\/.+/, (body) => {
+        requestBoddy = JSON.stringify(body)
+        return true
+      })
+      .reply(200)
+
+    await publisher.publish(subOkSecret, message)
+
+    expect(signature).not.toBeNull()
+    expect(requestBoddy).not.toBeNull()
+
+    expect(await hmac256.verify(secret, signature!, requestBoddy!)).toBe(true)
+    expect(await hmac256.verify(secret, signature!, requestBoddy!.substring(1))).toBe(false)
+
+    scope.done()
+  })
+
+  it('should post a message with bearer auth', async () => {
     const scope = nock('http://localhost', {
       reqheaders: { Authorization: 'Bearer ' + authToken },
     })
@@ -219,7 +269,7 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     publisher.on('telemetryPublish', ok)
 
-    await publisher.publish(subOkAuth, notification)
+    await publisher.publish(subOkAuth, message)
 
     expect(ok).toHaveBeenCalled()
     scope.done()
@@ -231,7 +281,7 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     publisher.on('telemetryPublish', ok)
 
-    await publisher.publish(subFail, notification)
+    await publisher.publish(subFail, message)
 
     expect(ok).not.toHaveBeenCalled()
     scope.done()
@@ -246,7 +296,7 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     publisher.on('telemetryPublish', ok)
 
-    await publisher.publish(subOk, notification)
+    await publisher.publish(subOk, message)
 
     expect(ok).not.toHaveBeenCalled()
     expect((await scheduler.allTaskTimes()).length).toBe(1)
@@ -254,7 +304,7 @@ describe('webhook notifier', () => {
     scope.done()
   })
 
-  it('should retry a notification', async () => {
+  it('should retry on failure', async () => {
     const scope = nock('http://localhost')
       .post(/ok\/.+/)
       .reply(500)
@@ -264,7 +314,7 @@ describe('webhook notifier', () => {
     const ok = jest.fn()
     publisher.on('telemetryPublish', ok)
 
-    await publisher.publish(subOk, notification)
+    await publisher.publish(subOk, message)
 
     expect(ok).toHaveBeenCalled()
 

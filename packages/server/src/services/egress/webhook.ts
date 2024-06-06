@@ -8,7 +8,8 @@ import { Subscription, WebhookNotification } from '../subscriptions/types.js'
 import { Logger, Services } from '../types.js'
 
 import { Scheduled, Scheduler, SubsStore } from '../persistence/index.js'
-import { notifyTelemetryFrom } from '../telemetry/types.js'
+import { publishTelemetryFrom } from '../telemetry/types.js'
+import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { TemplateRenderer } from './template.js'
 import { Message, Publisher, PublisherEmitter } from './types.js'
@@ -112,10 +113,15 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
         },
         context: {
           bearer: config.bearer,
+          secret: config.secret,
         },
         hooks: {
           init: [
             (raw, options) => {
+              if ('secret' in raw) {
+                options.context.secret = raw.secret
+                delete raw.secret
+              }
               if ('bearer' in raw) {
                 options.context.bearer = raw.bearer
                 delete raw.bearer
@@ -123,10 +129,21 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
             },
           ],
           beforeRequest: [
-            (options) => {
-              const { bearer } = options.context
+            async (options) => {
+              const { bearer, secret } = options.context as {
+                bearer?: string
+                secret?: string
+              }
               if (bearer && !options.headers.authorization) {
                 options.headers.authorization = `Bearer ${bearer}`
+              }
+              if (secret) {
+                const { body } = options
+
+                if (Buffer.isBuffer(body) || typeof body === 'string') {
+                  const signature = await hmac256.sign(secret, body)
+                  options.headers['X-OC-Signature-256'] = signature
+                }
               }
             },
           ],
@@ -135,13 +152,13 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.#log.info(
-          'NOTIFICATION %s agent=%s subscription=%s, endpoint=%s',
+          'MESSAGE %s agent=%s subscription=%s, endpoint=%s',
           msg.metadata.type,
           msg.metadata.agentId,
           msg.metadata.subscriptionId,
           postUrl
         )
-        this.#telemetryNotify(config, msg)
+        this.#telemetryPublish(config, msg)
       } else {
         // Should not enter here, since the non success status codes
         // are retryable and will throw an exception when the limit
@@ -159,15 +176,15 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
         key,
       })
       this.#log.info('Scheduled webhook delivery %s', key)
-      this.#telemetryNotifyError(config, msg)
+      this.#telemetryPublishError(config, msg)
     }
   }
 
-  #telemetryNotify(config: WebhookNotification, msg: Message) {
-    this.emit('telemetryPublish', notifyTelemetryFrom(config.type, config.url, msg))
+  #telemetryPublish(config: WebhookNotification, msg: Message) {
+    this.emit('telemetryPublish', publishTelemetryFrom(config.type, config.url, msg))
   }
 
-  #telemetryNotifyError(config: WebhookNotification, msg: Message) {
-    this.emit('telemetryPublishError', notifyTelemetryFrom(config.type, config.url, msg, 'max_retries'))
+  #telemetryPublishError(config: WebhookNotification, msg: Message) {
+    this.emit('telemetryPublishError', publishTelemetryFrom(config.type, config.url, msg, 'max_retries'))
   }
 }
