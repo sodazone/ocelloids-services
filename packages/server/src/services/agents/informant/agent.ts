@@ -205,8 +205,7 @@ export class InformantAgent implements Agent {
 
   #checkValidFilter(args: InformantInputs) {
     try {
-      // TODO implement a proper validation
-      JSON.stringify(args.filter.match)
+      ControlQuery.from(args.filter.match)
     } catch {
       throw new ValidationError('Filter match must be a valid JSON object')
     }
