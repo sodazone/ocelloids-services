@@ -37,7 +37,7 @@
     "build:api": "tsc  && api-extractor run --local --verbose",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest",
     "docs": "typedoc",
-    "lint": "biome check --apply src/**/*.ts"
+    "lint": "biome check --write src/**/*.ts"
   },
   "jest": {
     "testEnvironment": "node",
