@@ -24,7 +24,7 @@
     "dev:inspect": "nodemon --exec tsx --inspect ./src/main.ts",
     "dev:ingress": "nodemon --exec tsx ./src/services/ingress/server/main.ts",
     "dev:exec": "nodemon --exec tsx ./src/main.ts --distributed",
-    "lint": "biome check --apply src/**/*.ts",
+    "lint": "biome check --write src/**/*.ts",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest"
   },
   "license": "Apache-2.0",
