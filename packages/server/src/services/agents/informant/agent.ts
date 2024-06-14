@@ -1,6 +1,5 @@
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { ControlQuery, mongoFilter } from '@sodazone/ocelloids-sdk'
 import { Operation } from 'rfc6902'
-import { filter as rxFilter } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '../../../errors.js'
@@ -131,11 +130,7 @@ export class InformantAgent implements Agent {
             chainId,
             sub: this.#shared
               .blockExtrinsics(chainId)
-              .pipe(
-                rxFilter((tx) => {
-                  return control.getValue().test(tx)
-                })
-              )
+              .pipe(mongoFilter(control))
               .subscribe({
                 error: (error: any) => {
                   this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
@@ -169,11 +164,7 @@ export class InformantAgent implements Agent {
             chainId,
             sub: this.#shared
               .blockEvents(chainId)
-              .pipe(
-                rxFilter((event) => {
-                  return control.getValue().test(event)
-                })
-              )
+              .pipe(mongoFilter(control))
               .subscribe({
                 error: (error: any) => {
                   this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
