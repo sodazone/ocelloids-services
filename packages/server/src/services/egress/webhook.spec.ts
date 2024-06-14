@@ -30,6 +30,7 @@ const message: Message = {
     agentId: 'xcm',
     subscriptionId: 'ok',
     networkId: 'urn:ocn:local:0',
+    timestamp: 123,
   },
   payload: {
     type: 'xcm.ok',
@@ -251,7 +252,7 @@ describe('webhook publisher', () => {
 
     await publisher.publish(subOkSecret, message)
 
-    expect(signature).toBe('907KNrXfdU8epFhYVQ8QqJmecc6uhFk99AmWQ41bwXo=')
+    expect(signature).toBe('V89FS4pHD9/SyLZppL2ESpHgHlkKYt6IQSReACNSYcc=')
     expect(requestBoddy).not.toBeNull()
 
     expect(await hmac256.verify(secret, signature!, requestBoddy!)).toBe(true)

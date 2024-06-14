@@ -148,6 +148,7 @@ export class InformantAgent implements Agent {
                         subscriptionId: id,
                         agentId: this.id,
                         networkId: chainId,
+                        timestamp: Date.now(),
                       },
                       payload: {
                         events: msg.events.map((e) => e.toHuman()),
@@ -185,6 +186,7 @@ export class InformantAgent implements Agent {
                         subscriptionId: id,
                         agentId: this.id,
                         networkId: chainId,
+                        timestamp: Date.now(),
                       },
                       payload: msg.toHuman(),
                     })

@@ -13,6 +13,7 @@ export type Message<T = AnyJson> = {
     agentId: string
     subscriptionId: string
     networkId: NetworkURN
+    timestamp: number
   }
   payload: T
 }
