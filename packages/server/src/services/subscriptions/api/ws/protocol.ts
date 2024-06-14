@@ -3,9 +3,9 @@ import { EventEmitter } from 'node:events'
 import { WebSocket } from '@fastify/websocket'
 import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
-import { ZodError, z } from 'zod'
+import { ZodError, ZodIssueCode, z } from 'zod'
 
-import { errorMessage } from '../../../../errors.js'
+import { ValidationError, errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
 import { Message } from '../../../egress/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '../../../telemetry/types.js'
@@ -126,7 +126,17 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
                 } catch (error) {
                   if (error instanceof ZodError) {
                     this.#safeWrite(socket, error)
-                    this.#log.error(error)
+                  } else if (error instanceof ValidationError) {
+                    this.#safeWrite(
+                      socket,
+                      new ZodError([
+                        {
+                          code: ZodIssueCode.custom,
+                          path: ['filter', 'match'],
+                          message: error.message,
+                        },
+                      ])
+                    )
                   } else {
                     socket.close(1011, 'server error')
                     this.#log.error(error)

@@ -206,8 +206,10 @@ export class InformantAgent implements Agent {
   #checkValidFilter(args: InformantInputs) {
     try {
       ControlQuery.from(args.filter.match)
-    } catch {
-      throw new ValidationError('Filter match must be a valid JSON object')
+    } catch (error) {
+      throw new ValidationError(
+        `Filter match must be a valid Mongo Query Language expression: ${(error as Error).message}`
+      )
     }
   }
 }
