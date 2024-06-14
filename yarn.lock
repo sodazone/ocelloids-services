@@ -1636,18 +1636,18 @@ __metadata:
   linkType: hard
 
 "@noble/curves@npm:^1.3.0":
-  version: 1.3.0
-  resolution: "@noble/curves@npm:1.3.0"
+  version: 1.4.0
+  resolution: "@noble/curves@npm:1.4.0"
   dependencies:
-    "@noble/hashes": "npm:1.3.3"
-  checksum: 10c0/704bf8fda8e1365a9bb9e9945bd06645ef4ce85aa2fac5594abe09f19889197518152319481b89a271e0ee011787bd2ee87202441500bca7ca587a2c3ac10b01
+    "@noble/hashes": "npm:1.4.0"
+  checksum: 10c0/31fbc370df91bcc5a920ca3f2ce69c8cf26dc94775a36124ed8a5a3faf0453badafd2ee4337061ffea1b43c623a90ee8b286a5a81604aaf9563bdad7ff795d18
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:1.3.3, @noble/hashes@npm:^1.3.1, @noble/hashes@npm:^1.3.3":
-  version: 1.3.3
-  resolution: "@noble/hashes@npm:1.3.3"
-  checksum: 10c0/23c020b33da4172c988e44100e33cd9f8f6250b68b43c467d3551f82070ebd9716e0d9d2347427aa3774c85934a35fa9ee6f026fca2117e3fa12db7bedae7668
+"@noble/hashes@npm:1.4.0, @noble/hashes@npm:^1.3.1, @noble/hashes@npm:^1.3.3":
+  version: 1.4.0
+  resolution: "@noble/hashes@npm:1.4.0"
+  checksum: 10c0/8c3f005ee72e7b8f9cff756dfae1241485187254e3f743873e22073d63906863df5d4f13d441b7530ea614b7a093f0d889309f28b59850f33b66cb26a779a4a5
   languageName: node
   linkType: hard
 
@@ -2440,9 +2440,9 @@ __metadata:
   linkType: hard
 
 "@scure/base@npm:^1.1.1, @scure/base@npm:^1.1.5":
-  version: 1.1.5
-  resolution: "@scure/base@npm:1.1.5"
-  checksum: 10c0/6eb07be0202fac74a57c79d0d00a45f6f7e57447010c1e3d90a4275d197829727b7abc54b248fc6f9bef9ae374f7be5ee9154dde5b5b73da773560bf17aa8504
+  version: 1.1.7
+  resolution: "@scure/base@npm:1.1.7"
+  checksum: 10c0/2d06aaf39e6de4b9640eb40d2e5419176ebfe911597856dcbf3bc6209277ddb83f4b4b02cb1fd1208f819654268ec083da68111d3530bbde07bae913e2fc2e5d
   languageName: node
   linkType: hard
 
@@ -2507,16 +2507,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sodazone/ocelloids-sdk@npm:^1.2.9":
-  version: 1.2.9
-  resolution: "@sodazone/ocelloids-sdk@npm:1.2.9"
+"@sodazone/ocelloids-sdk@npm:^1.2.10":
+  version: 1.2.10
+  resolution: "@sodazone/ocelloids-sdk@npm:1.2.10"
   dependencies:
     "@polkadot/api": "npm:^11.2.1"
     "@substrate/connect-known-chains": "npm:^1.1.5"
     mingo: "npm:^6.4.15"
     rxjs: "npm:^7.8.1"
     web-worker: "npm:1.2.0"
-  checksum: 10c0/a3057ac83b23835ca3db9ae55d1dbee045127a7e9bcdec596e482e64c997825f02781a1147860717359b05114cf39760600f166e7ae8d32c67b29ac3e8cb7bf8
+  checksum: 10c0/3182847cd7092b03e4defca2385818bb08318947477587c1a13bebca9d3b89b9112aea52f3ea909430735b4952e6f0c2f101a6a6fe8ba5a8778e238b87577452
   languageName: node
   linkType: hard
 
@@ -2531,7 +2531,7 @@ __metadata:
     "@fastify/swagger": "npm:^8.14.0"
     "@fastify/swagger-ui": "npm:^3.1.0"
     "@fastify/websocket": "npm:^10.0.1"
-    "@sodazone/ocelloids-sdk": "npm:^1.2.9"
+    "@sodazone/ocelloids-sdk": "npm:^1.2.10"
     "@swc/core": "npm:^1.5.29"
     "@swc/jest": "npm:^0.2.36"
     "@types/babel__core": "npm:^7.20.5"
@@ -2544,7 +2544,7 @@ __metadata:
     close-with-grace: "npm:^1.3.0"
     commander: "npm:^12.1.0"
     dotenv: "npm:^16.4.5"
-    fastify: "npm:^4.27.0"
+    fastify: "npm:^4.28.0"
     fastify-healthcheck: "npm:^4.4.0"
     fastify-plugin: "npm:^4.5.1"
     got: "npm:^14.4.1"
@@ -2597,14 +2597,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@substrate/connect-known-chains@npm:^1.0.1, @substrate/connect-known-chains@npm:^1.0.3":
-  version: 1.1.1
-  resolution: "@substrate/connect-known-chains@npm:1.1.1"
-  checksum: 10c0/9fdd9bb7f290b2201606df3a9d46771cbe9724bf8c116108cea4e9c63803317c865f58d25284895d75b72d1ab09280c0770f6cd4b2693501e052e0c5cbde8e10
-  languageName: node
-  linkType: hard
-
-"@substrate/connect-known-chains@npm:^1.1.5":
+"@substrate/connect-known-chains@npm:^1.0.1, @substrate/connect-known-chains@npm:^1.0.3, @substrate/connect-known-chains@npm:^1.1.5":
   version: 1.1.5
   resolution: "@substrate/connect-known-chains@npm:1.1.5"
   checksum: 10c0/b3b08eabcbddecb058125bd133d929b455dde8fc78ee54eff8ee4646f469d7b5d2c61465c393bdc9686152ceeaa263cf0a8e057b1e3732a182f724d75c5cceae
@@ -2624,9 +2617,9 @@ __metadata:
   linkType: hard
 
 "@substrate/ss58-registry@npm:^1.44.0":
-  version: 1.46.0
-  resolution: "@substrate/ss58-registry@npm:1.46.0"
-  checksum: 10c0/29a3d554dcb99b98a9fec4a876ed11d2187c939f38f57f5de1907fe67bfa8081d77f8b7740605ac5a4199d428653c6109b513e986752973e2efcda6bc91f8afc
+  version: 1.48.0
+  resolution: "@substrate/ss58-registry@npm:1.48.0"
+  checksum: 10c0/b2ff1bd7688a3f72353f05dd47676a0127be346d0516a0dd2214118d4085637e35a37b115f4bd9101772a9723f6111e4e77dc008cf69ad45b64c806de419547c
   languageName: node
   linkType: hard
 
@@ -4482,9 +4475,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fastify@npm:^4.27.0":
-  version: 4.27.0
-  resolution: "fastify@npm:4.27.0"
+"fastify@npm:^4.28.0":
+  version: 4.28.0
+  resolution: "fastify@npm:4.28.0"
   dependencies:
     "@fastify/ajv-compiler": "npm:^3.5.0"
     "@fastify/error": "npm:^3.4.0"
@@ -4502,7 +4495,7 @@ __metadata:
     secure-json-parse: "npm:^2.7.0"
     semver: "npm:^7.5.4"
     toad-cache: "npm:^3.3.0"
-  checksum: 10c0/879e9d3f6b9521bea29255c79ca1ddf3dd4c017937a25e7348d7686625c7dd56f21af18e6db2ecdd41d07e5c73a779ab0bb1f5d6b081909bf3e8caadaf669160
+  checksum: 10c0/24307900a5ef5b8d6357d3cec40abf621859b8f6e3a046bfc5a45ec7fedec42c51bde0bb3c5913f7badd91d5d69a485e1f3e0e2310483103fabc472cb0e122cd
   languageName: node
   linkType: hard
 
@@ -8061,7 +8054,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.1.0, tslib@npm:^2.4.0, tslib@npm:^2.6.2":
+"tslib@npm:^2.1.0, tslib@npm:^2.6.2":
+  version: 2.6.3
+  resolution: "tslib@npm:2.6.3"
+  checksum: 10c0/2598aef53d9dbe711af75522464b2104724d6467b26a60f2bdac8297d2b5f1f6b86a71f61717384aa8fd897240467aaa7bcc36a0700a0faf751293d1331db39a
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^2.4.0":
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 10c0/e03a8a4271152c8b26604ed45535954c0a45296e32445b4b87f8a5abdb2421f40b59b4ca437c4346af0f28179780d604094eb64546bee2019d903d01c6c19bdb
@@ -8449,7 +8449,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.0.0, ws@npm:^8.15.1, ws@npm:^8.8.1":
+"ws@npm:^8.0.0":
   version: 8.16.0
   resolution: "ws@npm:8.16.0"
   peerDependencies:
@@ -8461,6 +8461,21 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 10c0/a7783bb421c648b1e622b423409cb2a58ac5839521d2f689e84bc9dc41d59379c692dd405b15a997ea1d4c0c2e5314ad707332d0c558f15232d2bc07c0b4618a
+  languageName: node
+  linkType: hard
+
+"ws@npm:^8.15.1, ws@npm:^8.8.1":
+  version: 8.17.0
+  resolution: "ws@npm:8.17.0"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ">=5.0.2"
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 10c0/55241ec93a66fdfc4bf4f8bc66c8eb038fda2c7a4ee8f6f157f2ca7dc7aa76aea0c0da0bf3adb2af390074a70a0e45456a2eaf80e581e630b75df10a64b0a990
   languageName: node
   linkType: hard
 
