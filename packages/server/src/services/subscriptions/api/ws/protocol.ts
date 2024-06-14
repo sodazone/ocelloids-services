@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { WebSocket } from '@fastify/websocket'
 import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 import { errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
@@ -41,10 +41,6 @@ type Connection = {
   socket: WebSocket
 }
 
-function safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
-  return socket.send(JSON.stringify(content))
-}
-
 /**
  * Websockets subscription protocol.
  */
@@ -72,7 +68,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         for (const connection of connections) {
           const { socket, ip } = connection
           try {
-            safeWrite(socket, msg)
+            this.#safeWrite(socket, msg)
 
             this.#telemetryPublish(ip, msg)
           } catch (error) {
@@ -117,7 +113,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         socket.on('message', (data: Buffer) => {
           setImmediate(async () => {
             if (resolvedId) {
-              safeWrite(socket, resolvedId)
+              this.#safeWrite(socket, resolvedId)
             } else {
               const parsed = $EphemeralSubscription.safeParse(data.toString())
               if (parsed.success) {
@@ -126,13 +122,18 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
                   this.#addSubscriber(onDemandSub, socket, request)
                   resolvedId = { id: onDemandSub.id, agent: onDemandSub.agent }
                   await this.#switchboard.subscribe(onDemandSub)
-                  safeWrite(socket, onDemandSub)
+                  this.#safeWrite(socket, onDemandSub)
                 } catch (error) {
-                  socket.close(1013, 'server too busy')
-                  this.#log.error(error)
+                  if (error instanceof ZodError) {
+                    this.#safeWrite(socket, error)
+                    this.#log.error(error)
+                  } else {
+                    socket.close(1011, 'server error')
+                    this.#log.error(error)
+                  }
                 }
               } else {
-                safeWrite(socket, parsed.error)
+                this.#safeWrite(socket, parsed.error)
               }
             }
           })
@@ -143,8 +144,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         const subscription = await this.#switchboard.findSubscription(agentId, subscriptionId)
         this.#addSubscriber(subscription, socket, request)
       }
-    } catch (error) {
-      socket.close(1007, errorMessage(error))
+    } catch {
+      socket.close(1007, 'inconsistent payload')
     }
   }
 
@@ -200,6 +201,14 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
             this.#connections.delete(id)
           }
         }
+      }
+    })
+  }
+
+  #safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
+    return socket.send(JSON.stringify(content), (error) => {
+      if (error) {
+        this.#log.error(error, 'error while write')
       }
     })
   }

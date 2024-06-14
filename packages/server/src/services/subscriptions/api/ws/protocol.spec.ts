@@ -137,7 +137,7 @@ describe('WebsocketProtocol', () => {
       await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription')
       await flushPromises()
 
-      expect(mockStream.close).toHaveBeenCalledWith(1007, 'websocket channel not enabled in subscription')
+      expect(mockStream.close).toHaveBeenCalledWith(1007, 'inconsistent payload')
     })
 
     it('should close connection with error code if unable to add subscription', async () => {
@@ -162,7 +162,7 @@ describe('WebsocketProtocol', () => {
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
 
-      expect(mockStream.close).toHaveBeenCalledWith(1013, 'server too busy')
+      expect(mockStream.close).toHaveBeenCalledWith(1011, 'server error')
     })
 
     it('should close connection with error code if an error occurs', async () => {
@@ -171,7 +171,7 @@ describe('WebsocketProtocol', () => {
         throw new Error('subscription not found')
       })
       await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')
-      expect(mockStream.close).toHaveBeenCalledWith(1007, 'subscription not found')
+      expect(mockStream.close).toHaveBeenCalledWith(1007, 'inconsistent payload')
     })
   })
 })
