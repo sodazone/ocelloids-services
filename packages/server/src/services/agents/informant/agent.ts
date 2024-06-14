@@ -21,9 +21,7 @@ export const $InformantInputs = z.object({
   ),
   filter: z.object({
     type: z.enum(['event', 'extrinsic']),
-    match: z.string({
-      required_error: 'MongoQL matching expression is required',
-    }),
+    match: z.record(z.any()),
   }),
 })
 
@@ -122,7 +120,7 @@ export class InformantAgent implements Agent {
     } = subscription
 
     const streams: RxSubscriptionWithId[] = []
-    const control = ControlQuery.from(JSON.parse(filter.match))
+    const control = ControlQuery.from(filter.match)
 
     try {
       for (const network of networks) {
@@ -212,7 +210,8 @@ export class InformantAgent implements Agent {
 
   #checkValidFilter(args: InformantInputs) {
     try {
-      JSON.parse(args.filter.match)
+      // TODO implement a proper validation
+      JSON.stringify(args.filter.match)
     } catch {
       throw new ValidationError('Filter match must be a valid JSON object')
     }
