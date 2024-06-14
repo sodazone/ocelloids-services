@@ -147,6 +147,7 @@ export class InformantAgent implements Agent {
                         type: 'extrinsic',
                         subscriptionId: id,
                         agentId: this.id,
+                        networkId: chainId,
                       },
                       payload: {
                         events: msg.events.map((e) => e.toHuman()),
@@ -183,6 +184,7 @@ export class InformantAgent implements Agent {
                         type: 'event',
                         subscriptionId: id,
                         agentId: this.id,
+                        networkId: chainId,
                       },
                       payload: msg.toHuman(),
                     })

@@ -1,4 +1,4 @@
-import { TypedEventEmitter } from '../index.js'
+import { NetworkURN, TypedEventEmitter } from '../index.js'
 import { AnyJson, Subscription } from '../subscriptions/types.js'
 import { TelemetryPublisherEvents } from '../telemetry/types.js'
 
@@ -12,6 +12,7 @@ export type Message<T = AnyJson> = {
     type: string
     agentId: string
     subscriptionId: string
+    networkId: NetworkURN
   }
   payload: T
 }

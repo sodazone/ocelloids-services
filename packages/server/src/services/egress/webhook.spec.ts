@@ -29,6 +29,7 @@ const message: Message = {
     type: 'xcm.ok',
     agentId: 'xcm',
     subscriptionId: 'ok',
+    networkId: 'urn:ocn:local:0',
   },
   payload: {
     type: 'xcm.ok',
@@ -238,7 +239,7 @@ describe('webhook publisher', () => {
       reqheaders: {
         'x-oc-signature-256': (value) => {
           signature = value
-          return signature === '7g7SDimPmSI18SUQ4ZcqLVtxPfjto+GhEj6BclJuyME='
+          return true
         },
       },
     })
@@ -250,7 +251,7 @@ describe('webhook publisher', () => {
 
     await publisher.publish(subOkSecret, message)
 
-    expect(signature).not.toBeNull()
+    expect(signature).toBe('907KNrXfdU8epFhYVQ8QqJmecc6uhFk99AmWQ41bwXo=')
     expect(requestBoddy).not.toBeNull()
 
     expect(await hmac256.verify(secret, signature!, requestBoddy!)).toBe(true)

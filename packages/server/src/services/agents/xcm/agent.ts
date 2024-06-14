@@ -585,6 +585,7 @@ export class XcmAgent implements Agent {
             type: payload.type,
             subscriptionId,
             agentId: this.id,
+            networkId: payload.waypoint.chainId,
           },
           payload: payload as unknown as AnyJson,
         })
