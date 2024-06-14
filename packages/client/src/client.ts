@@ -13,10 +13,9 @@ import {
  * @public
  */
 export type OcelloidsClientConfig = {
-  wsUrl: string
-  httpUrl: string
-  httpAuthToken?: string
-  wsAuthToken?: string
+  wsUrl?: string
+  httpUrl?: string
+  apiKey?: string | null
 }
 
 /**
@@ -30,6 +29,10 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
   return typeof object === 'object'
 }
 
+// Default public endpoints
+const API_WS_URL = 'wss://api.ocelloids.net'
+const API_HTTP_URL = 'https://api.ocelloids.net'
+
 /**
  * Exposes the Ocelloids Agent API.
  *
@@ -37,12 +40,17 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
  */
 export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   readonly #agentId: AgentId
-  readonly #config: OcelloidsClientConfig
+  readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
 
   constructor(config: OcelloidsClientConfig, agentId: AgentId) {
     this.#agentId = agentId
-    this.#config = config
+    this.#config = {
+      wsUrl: API_WS_URL,
+      httpUrl: API_HTTP_URL,
+      apiKey: null,
+      ...config,
+    }
     this.#fetch = doFetchWithConfig(config)
   }
 

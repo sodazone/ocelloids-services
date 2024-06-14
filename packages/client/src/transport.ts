@@ -24,8 +24,8 @@ function headersFromConfig(config: OcelloidsClientConfig): Record<string, string
     Accept: 'application/json',
     'Content-Type': 'application/json',
   }
-  if (config.httpAuthToken) {
-    headers['Authorization'] = `Bearer ${config.httpAuthToken}`
+  if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`
   }
   return headers
 }
@@ -148,8 +148,8 @@ export function openWebSocket<T = AnySubscriptionInputs>(
       return
     }
 
-    if (config.wsAuthToken) {
-      ws.send(config.wsAuthToken)
+    if (config.apiKey) {
+      ws.send(config.apiKey)
       protocol.next<AuthReply>((reply, _ws, event) => {
         if (reply.error) {
           if (onAuthError) {

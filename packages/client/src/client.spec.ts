@@ -223,7 +223,7 @@ describe('OcelloidsClient', () => {
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
-        wsAuthToken: 'abracadabra',
+        apiKey: 'abracadabra',
         httpUrl: 'https://rpc.abc',
       })
 
@@ -252,7 +252,7 @@ describe('OcelloidsClient', () => {
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
-        wsAuthToken: 'abracadabra',
+        apiKey: 'abracadabra',
         httpUrl: 'https://rpc.abc',
       })
 
@@ -285,7 +285,7 @@ describe('OcelloidsClient', () => {
 
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
-        wsAuthToken: 'abracadabra',
+        apiKey: 'abracadabra',
         httpUrl: 'https://rpc.abc',
       })
 
@@ -381,7 +381,7 @@ describe('OcelloidsClient', () => {
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
         httpUrl: 'http://mock',
-        httpAuthToken: 'abracadabra',
+        apiKey: 'abracadabra',
       })
 
       await client.health()
@@ -395,7 +395,7 @@ describe('OcelloidsClient', () => {
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
         httpUrl: 'http://mock',
-        httpAuthToken: 'abracadabra',
+        apiKey: 'abracadabra',
       })
 
       await expect(client.health()).rejects.toStrictEqual({ status: 401, statusText: 'Unauthorized' })
