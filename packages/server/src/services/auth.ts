@@ -15,7 +15,7 @@ export interface NodQuerystring {
   nod?: string
 }
 
-// XXX To be implemented
+// TODO #71 #92 To be implemented
 // user and capabilities management
 const capabilities = [['admin', 'read', 'write'], ['read', 'write'], ['read']]
 
@@ -105,7 +105,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       // seconds since the epoch
       const iat = Math.round(Date.now() / 1_000)
       const exp = iat + SECONDS_TO_EXPIRE
-      
+
       reply.send(
         await reply.jwtSign({
           iat,
