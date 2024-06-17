@@ -69,8 +69,8 @@ export async function createIngressServer(opts: ServerOptions) {
     exposeUptime: true,
   })
 
-  await server.register(Root)
   await server.register(Auth)
+  await server.register(Root)
   await server.register(Configuration, opts)
   await server.register(Connector)
   await server.register(Persistence, opts)

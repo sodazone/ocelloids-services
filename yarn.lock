@@ -1158,6 +1158,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/rate-limit@npm:^9.1.0":
+  version: 9.1.0
+  resolution: "@fastify/rate-limit@npm:9.1.0"
+  dependencies:
+    "@lukeed/ms": "npm:^2.0.1"
+    fastify-plugin: "npm:^4.0.0"
+    toad-cache: "npm:^3.3.1"
+  checksum: 10c0/55914e4af5d93fff29e94ad4e3f369a371a3e7b97e501e796167dd49115c5d8dfa94aec8ec78ffcdb058268465b072a0892880523774b7b90a27a8ff304fea82
+  languageName: node
+  linkType: hard
+
 "@fastify/send@npm:^2.0.0":
   version: 2.1.0
   resolution: "@fastify/send@npm:2.1.0"
@@ -2528,6 +2539,7 @@ __metadata:
     "@biomejs/biome": "npm:1.8.1"
     "@fastify/cors": "npm:^9.0.1"
     "@fastify/jwt": "npm:^8.0.1"
+    "@fastify/rate-limit": "npm:^9.1.0"
     "@fastify/swagger": "npm:^8.14.0"
     "@fastify/swagger-ui": "npm:^4.0.0"
     "@fastify/websocket": "npm:^10.0.1"
@@ -7961,7 +7973,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"toad-cache@npm:^3.3.0":
+"toad-cache@npm:^3.3.0, toad-cache@npm:^3.3.1":
   version: 3.7.0
   resolution: "toad-cache@npm:3.7.0"
   checksum: 10c0/7dae2782ee20b22c9798bb8b71dec7ec6a0091021d2ea9dd6e8afccab6b65b358fdba49a02209fac574499702e2c000660721516c87c2538d1b2c0ba03e8c0c3

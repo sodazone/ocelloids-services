@@ -1,6 +1,12 @@
 /* istanbul ignore next */
 export const environment = process.env.NODE_ENV || 'development'
 
+const NON_PROD = ['test', 'development']
+
+export function isNonProdEnv(envName: string): boolean {
+  return NON_PROD.includes(envName)
+}
+
 const envToLogger: Record<string, any> = {
   development: {
     transport: {
