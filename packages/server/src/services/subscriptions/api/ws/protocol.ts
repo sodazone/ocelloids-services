@@ -45,11 +45,7 @@ type Connection = {
 /**
  * Websockets subscription protocol.
  *
- * Notes on authentication:
- * Since we need to support browser-based clients, and the headers
- * on the upgrade request negotiation are not configurable.
- * See https://github.com/whatwg/websockets/issues/16
- * We have implemented support for explicit authorization in the WS app protocol itself.
+ * @see https://github.com/sodazone/ocelloids-services/issues/91
  */
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger

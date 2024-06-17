@@ -9,6 +9,10 @@ export const CAP_ADMIN = 'admin'
 export const CAP_READ = 'read'
 export const CAP_WRITE = 'write'
 
+export interface NodQuerystring {
+  nod?: string
+}
+
 // XXX To be implemented
 // user and capabilities management
 const capabilities = [['admin'], ['read', 'write'], ['read']]
@@ -19,7 +23,7 @@ declare module 'fastify' {
   }
   interface FastifyContextConfig {
     caps?: string[]
-    skipAuth?: boolean
+    wsAuth?: boolean
   }
 }
 
@@ -55,25 +59,37 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   })
 
   // Install hook for any route
-  fastify.addHook('preValidation', async function (request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    if (request.routeOptions.config.skipAuth) {
-      return
-    }
+  fastify.addHook(
+    'preValidation',
+    async function (
+      request: FastifyRequest<{
+        Querystring: NodQuerystring
+      }>,
+      reply: FastifyReply
+    ): Promise<void> {
+      try {
+        if (request.routeOptions.config.wsAuth) {
+          if (request.query.nod) {
+            fastify.jwt.verify(request.query.nod)
+            return
+          }
+          throw new Error('anti-dos parameter not provided')
+        }
 
-    try {
-      const payload: {
-        sub: string
-      } = await request.jwtVerify()
+        const payload: {
+          sub: string
+        } = await request.jwtVerify()
 
-      checkCapabilities(payload.sub, request.routeOptions.config.caps)
-    } catch (error) {
-      reply.status(401).send({
-        message: (error as Error).message,
-        code: 'AUTHORIZATION_ERROR',
-        statusCode: 401,
-      })
+        checkCapabilities(payload.sub, request.routeOptions.config.caps)
+      } catch (error) {
+        reply.status(401).send({
+          message: (error as Error).message,
+          code: 'AUTHORIZATION_ERROR',
+          statusCode: 401,
+        })
+      }
     }
-  })
+  )
 }
 
 export default fp(authPlugin)

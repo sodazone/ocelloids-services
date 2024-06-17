@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { AgentId } from '../../../agents/types.js'
-import { CAP_READ, CAP_WRITE } from '../../../auth.js'
+import { CAP_READ, CAP_WRITE, NodQuerystring } from '../../../auth.js'
 import WebsocketProtocol from './protocol.js'
 
 declare module 'fastify' {
@@ -37,22 +37,25 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
   })
 
   fastify.get<{
+    Querystring: NodQuerystring
     Params: {
       agentId: AgentId
       subscriptionId: string
     }
   }>(
     '/ws/subs/:agentId/:subscriptionId',
-    { websocket: true, config: { skipAuth: true, caps: [CAP_READ] }, schema: { hide: true } },
+    { websocket: true, config: { wsAuth: true, caps: [CAP_READ] }, schema: { hide: true } },
     (socket, request): void => {
       const { agentId, subscriptionId } = request.params
       setImmediate(() => protocol.handle(socket, request, { agentId, subscriptionId }))
     }
   )
 
-  fastify.get(
+  fastify.get<{
+    Querystring: NodQuerystring
+  }>(
     '/ws/subs',
-    { websocket: true, config: { skipAuth: true, caps: [CAP_WRITE] }, schema: { hide: true } },
+    { websocket: true, config: { wsAuth: true, caps: [CAP_WRITE] }, schema: { hide: true } },
     (socket, request): void => {
       setImmediate(() => protocol.handle(socket, request))
     }
