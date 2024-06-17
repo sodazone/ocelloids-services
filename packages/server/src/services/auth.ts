@@ -108,8 +108,8 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
 
       reply.send(
         await reply.jwtSign({
-          iat,
           aud: 'ws-nod',
+          iat,
           exp,
         })
       )
