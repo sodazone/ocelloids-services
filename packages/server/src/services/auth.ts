@@ -26,7 +26,11 @@ declare module 'fastify' {
 export function checkCapabilities(subject: string, requestedCaps: string[] = [CAP_ADMIN]) {
   const caps = capabilities[parseInt(subject)]
 
-  if (requestedCaps.length === 0 || requestedCaps.every((required) => caps.includes(required))) {
+  if (
+    requestedCaps.length === 0 ||
+    caps.includes(CAP_ADMIN) ||
+    requestedCaps.every((required) => caps.includes(required))
+  ) {
     return
   }
 

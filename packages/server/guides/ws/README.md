@@ -59,7 +59,7 @@ websocat -E ws://127.0.0.1:3000/ws/subs | jq .
 
 2) Send this payload
 ```json
-{ "origin": "2004", "senders": "*", "destinations": [ "0","1000", "2000", "2034", "2006" ] }
+{ "agent": "xcm", "args": { "origin": "0", "senders": "*", "destinations": [ "1000" ] } }
 ```
 
 # Persistent Subscriptions

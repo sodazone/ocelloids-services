@@ -116,12 +116,12 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
     const fastify = request.server
     if (fastify.authEnabled) {
-      socket.on('message', (data: Buffer) => {
+      socket.once('message', (data: Buffer) => {
         setImmediate(async () => {
           try {
             const payload: {
               sub: string
-            } = fastify.jwt.verify(data.toString())
+            } = fastify.jwt.verify(data.toString().trim())
             checkCapabilities(payload.sub, request.routeOptions.config.caps)
             this.#afterAuth(socket, request, ids)
           } catch (error) {
