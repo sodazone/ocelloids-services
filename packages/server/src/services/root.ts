@@ -6,6 +6,9 @@ export default async function Root(fastify: FastifyInstance) {
   fastify.get(
     '/',
     {
+      config: {
+        caps: [],
+      },
       schema: {
         hide: true,
         response: { 200: { type: 'string' } },

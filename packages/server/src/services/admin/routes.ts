@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
+import { CAP_ADMIN } from '../auth.js'
 import { NetworkURN, jsonEncoded, prefixes } from '../types.js'
 
 type chainIdParam = {
@@ -16,7 +17,9 @@ export default async function Administration(api: FastifyInstance) {
   const { db: rootStore, scheduler } = api
 
   const opts = {
-    onRequest: [api.auth],
+    config: {
+      caps: [CAP_ADMIN],
+    },
     schema: {
       hide: true,
     },

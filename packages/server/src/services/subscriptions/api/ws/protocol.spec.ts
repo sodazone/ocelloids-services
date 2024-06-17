@@ -23,6 +23,12 @@ const testSub: Subscription = {
   ],
 }
 
+const mockRequest = {
+  id: 'mockRequestId',
+  ip: 'mockRequestIp',
+  server: {},
+} as FastifyRequest
+
 describe('WebsocketProtocol', () => {
   let mockLogger
   let mockSwitchboard: Switchboard
@@ -75,10 +81,6 @@ describe('WebsocketProtocol', () => {
         }),
         write: jest.fn(),
       }
-      const mockRequest = {
-        id: 'mockRequestId',
-        ip: 'mockRequestIp',
-      } as FastifyRequest
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
@@ -95,10 +97,6 @@ describe('WebsocketProtocol', () => {
         }),
         write: jest.fn(),
       }
-      const mockRequest = {
-        id: 'mockRequestId',
-        ip: 'mockRequestIp',
-      } as FastifyRequest
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
@@ -125,10 +123,6 @@ describe('WebsocketProtocol', () => {
         }),
         send: jest.fn(),
       }
-      const mockRequest = {
-        id: 'mockRequestId',
-        ip: 'mockRequestIp',
-      } as FastifyRequest
       ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => ({
         ...testSub,
         channels: [{ type: 'log' }],
@@ -150,10 +144,7 @@ describe('WebsocketProtocol', () => {
         }),
         send: jest.fn(),
       }
-      const mockRequest = {
-        id: 'mockRequestId',
-        ip: 'mockRequestIp',
-      } as FastifyRequest
+
       const mockError = new Error('Test error')
       ;(mockSwitchboard.subscribe as jest.Mock).mockImplementationOnce(() => {
         throw mockError
@@ -170,7 +161,7 @@ describe('WebsocketProtocol', () => {
       ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => {
         throw new Error('subscription not found')
       })
-      await websocketProtocol.handle(mockStream, {} as FastifyRequest, 'testId')
+      await websocketProtocol.handle(mockStream, mockRequest, 'testId')
       expect(mockStream.close).toHaveBeenCalledWith(1007, 'inconsistent payload')
     })
   })

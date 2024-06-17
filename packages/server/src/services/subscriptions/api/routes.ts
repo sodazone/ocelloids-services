@@ -3,6 +3,7 @@ import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { $AgentId, AgentId } from '../../agents/types.js'
+import { CAP_READ, CAP_WRITE } from '../../auth.js'
 import { $Subscription, $SubscriptionId, Subscription } from '../types.js'
 import $JSONPatch from './json-patch.js'
 
@@ -18,6 +19,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   api.get(
     '/subs',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         response: {
           200: {
@@ -33,7 +37,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
   )
 
   /**
-   * GET subs/:agentId/:subscriptionId
+   * GET subs/:agentId
    */
   api.get<{
     Params: {
@@ -42,6 +46,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   }>(
     '/subs/:agentId',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),
@@ -72,6 +79,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   }>(
     '/subs/:agentId/:subscriptionId',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
@@ -97,6 +107,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   }>(
     '/subs',
     {
+      config: {
+        caps: [CAP_WRITE],
+      },
       schema: {
         body: {
           oneOf: [
@@ -134,6 +147,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   }>(
     '/subs/:agentId/:subscriptionId',
     {
+      config: {
+        caps: [CAP_WRITE],
+      },
       schema: {
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
@@ -171,6 +187,9 @@ export async function SubscriptionApi(api: FastifyInstance) {
   }>(
     '/subs/:agentId/:subscriptionId',
     {
+      config: {
+        caps: [CAP_WRITE],
+      },
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),

@@ -7,6 +7,7 @@ import { ZodError, ZodIssueCode, z } from 'zod'
 
 import { ValidationError, errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
+import { checkCapabilities } from '../../../auth.js'
 import { Message } from '../../../egress/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
@@ -43,6 +44,12 @@ type Connection = {
 
 /**
  * Websockets subscription protocol.
+ *
+ * Notes on authentication:
+ * Since we need to support browser-based clients, and the headers
+ * on the upgrade request negotiation are not configurable.
+ * See https://github.com/whatwg/websockets/issues/16
+ * We have implemented support for explicit authorization in the WS app protocol itself.
  */
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
@@ -88,6 +95,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * If no subscription is given creates an ephemeral through the websocket.
    *
+   *
+   *
    * @param socket - The websocket
    * @param request - The Fastify request
    * @param ids - The subscription and agent IDs
@@ -105,6 +114,35 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       return
     }
 
+    const fastify = request.server
+    if (fastify.authEnabled) {
+      socket.on('message', (data: Buffer) => {
+        setImmediate(async () => {
+          try {
+            const payload: {
+              sub: string
+            } = fastify.jwt.verify(data.toString())
+            checkCapabilities(payload.sub, request.routeOptions.config.caps)
+            this.#afterAuth(socket, request, ids)
+          } catch (error) {
+            fastify.log.error(error)
+            socket.close(1002, 'auth error')
+          }
+        })
+      })
+    } else {
+      this.#afterAuth(socket, request, ids)
+    }
+  }
+
+  async #afterAuth(
+    socket: WebSocket,
+    request: FastifyRequest,
+    ids?: {
+      subscriptionId: string
+      agentId: AgentId
+    }
+  ) {
     try {
       if (ids === undefined) {
         let resolvedId: { id: string; agent: AgentId } | undefined = undefined

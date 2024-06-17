@@ -151,8 +151,8 @@ export async function createServer(opts: ServerOptions) {
     await server.register(FastifyCors, corsOpts)
   }
 
-  await server.register(Root)
   await server.register(Auth)
+  await server.register(Root)
 
   if (!opts.distributed) {
     await server.register(Configuration, opts)
