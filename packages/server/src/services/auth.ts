@@ -91,6 +91,14 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     }
   )
 
+  /**
+   * Anti-DOS token issuance.
+   *
+   * The 'nod' is a JWT (RFC 7519) that holds:
+   * - Audience
+   * - Issued at
+   * - Expiration
+   */
   fastify.get(
     '/ws/nod',
     {
