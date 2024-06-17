@@ -91,8 +91,6 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
    *
    * If no subscription is given creates an ephemeral through the websocket.
    *
-   *
-   *
    * @param socket - The websocket
    * @param request - The Fastify request
    * @param ids - The subscription and agent IDs
