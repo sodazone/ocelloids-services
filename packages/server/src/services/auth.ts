@@ -2,7 +2,9 @@ import jwt from '@fastify/jwt'
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { environment } from '../environment.js'
+import { environment, isNonProdEnv } from '../environment.js'
+
+const SECONDS_TO_EXPIRE = 15
 
 // TODO CAP_OWNER
 export const CAP_ADMIN = 'admin'
@@ -15,7 +17,7 @@ export interface NodQuerystring {
 
 // XXX To be implemented
 // user and capabilities management
-const capabilities = [['admin'], ['read', 'write'], ['read']]
+const capabilities = [['admin', 'read', 'write'], ['read', 'write'], ['read']]
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -27,35 +29,33 @@ declare module 'fastify' {
   }
 }
 
-export function checkCapabilities(subject: string, requestedCaps: string[] = [CAP_ADMIN]) {
-  const caps = capabilities[parseInt(subject)]
+export function checkCapabilities(subject: string | undefined, requestedCaps: string[] = [CAP_ADMIN]) {
+  if (subject) {
+    const caps = capabilities[parseInt(subject)]
 
-  if (
-    requestedCaps.length === 0 ||
-    caps.includes(CAP_ADMIN) ||
-    requestedCaps.every((required) => caps.includes(required))
-  ) {
-    return
+    if (requestedCaps.length === 0 || requestedCaps.every((required) => caps.includes(required))) {
+      return
+    }
   }
 
   throw new Error('Not allowed')
 }
 
 const authPlugin: FastifyPluginAsync = async (fastify) => {
-  if (['development', 'test'].includes(environment) && process.env.OC_SECRET === undefined) {
+  if (isNonProdEnv(environment) && process.env.OC_SECRET === undefined) {
     fastify.log.warn('(!) Security is disabled [%s]', environment)
     fastify.decorate('authEnabled', false)
     return
   }
 
-  if (environment !== 'development' && !process.env.OC_SECRET) {
-    fastify.log.warn('!! Default OC_SECRET configured !!')
+  if (process.env.OC_SECRET === undefined) {
+    throw new Error(`Fatal: you must provide an OC_SECRET in [${environment}]`)
   }
 
   fastify.decorate('authEnabled', true)
 
   fastify.register(jwt, {
-    secret: process.env.OC_SECRET ?? 'IAO Abraxas Sabaoth',
+    secret: process.env.OC_SECRET,
   })
 
   // Install hook for any route
@@ -88,6 +88,31 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           statusCode: 401,
         })
       }
+    }
+  )
+
+  fastify.get(
+    '/ws/nod',
+    {
+      config: {
+        caps: [CAP_READ],
+      },
+      schema: {
+        hide: true,
+      },
+    },
+    async (_, reply) => {
+      // seconds since the epoch
+      const iat = Math.round(Date.now() / 1_000)
+      const exp = iat + SECONDS_TO_EXPIRE
+      console.log(iat, exp)
+      reply.send(
+        await reply.jwtSign({
+          iat,
+          aud: 'ws-nod',
+          exp,
+        })
+      )
     }
   )
 }
