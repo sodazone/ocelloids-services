@@ -1,6 +1,7 @@
 import { WebSocket } from 'isows'
 
 import {
+  AnyJson,
   AnySubscriptionInputs,
   AuthReply,
   OcelloidsClientConfig,
@@ -97,13 +98,13 @@ type OnDemandWithAgent<T = AnySubscriptionInputs> = {
  * @param onDemandSub - Optional on-demand subscription details and handlers.
  * @returns The WebSocket instance.
  */
-export function openWebSocket<T = AnySubscriptionInputs>(
+export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
   config: OcelloidsClientConfig,
   url: string,
-  { onMessage, onAuthError, onError, onClose }: WebSocketHandlers,
+  { onMessage, onAuthError, onError, onClose }: WebSocketHandlers<P>,
   onDemandSub?: {
     sub: OnDemandWithAgent<T>
-    onDemandHandlers?: OnDemandSubscriptionHandlers
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>
   }
 ) {
   const protocol = new Protocol(onMessage)
@@ -131,7 +132,7 @@ export function openWebSocket<T = AnySubscriptionInputs>(
 
     ws.send(JSON.stringify(sub))
 
-    protocol.next<Subscription | SubscriptionError>((msg) => {
+    protocol.next<Subscription<T> | SubscriptionError>((msg) => {
       if (onDemandHandlers?.onSubscriptionCreated && isSubscription(msg)) {
         onDemandHandlers.onSubscriptionCreated(msg)
       } else if (onDemandHandlers?.onSubscriptionError && isSubscriptionError(msg)) {

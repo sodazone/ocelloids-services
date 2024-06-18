@@ -1,6 +1,6 @@
 import { type MessageEvent } from 'isows'
 
-import type { Message } from './server-types'
+import type { AnyJson, Message } from './server-types'
 import { type MessageHandler } from './types'
 
 /**
@@ -21,9 +21,9 @@ function isBlob(value: any): value is Blob {
 /**
  * Protocol class to chain request response until reach streaming state.
  */
-export class Protocol {
+export class Protocol<P = AnyJson> {
   readonly #queue: MessageHandler<any>[] = []
-  readonly #stream: MessageHandler<Message>
+  readonly #stream: MessageHandler<Message<P>>
   #isStreaming: boolean
 
   /**
@@ -31,7 +31,7 @@ export class Protocol {
    *
    * @param stream - The message handler for streaming state.
    */
-  constructor(stream: MessageHandler<Message>) {
+  constructor(stream: MessageHandler<Message<P>>) {
     this.#stream = stream
     this.#isStreaming = false
   }

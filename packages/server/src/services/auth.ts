@@ -114,13 +114,13 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       const iat = Math.round(Date.now() / 1_000)
       const exp = iat + SECONDS_TO_EXPIRE
 
-      reply.send(
-        await reply.jwtSign({
+      reply.send({
+        token: await reply.jwtSign({
           aud: 'ws-nod',
           iat,
           exp,
         })
-      )
+      })
     }
   )
 }

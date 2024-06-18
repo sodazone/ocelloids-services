@@ -1,4 +1,4 @@
-import type { AgentId, SubscriptionId } from './lib'
+import type { AgentId, AnyJson, SubscriptionId } from './lib'
 import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
@@ -101,15 +101,15 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  subscribe(
+  async subscribe<P = AnyJson>(
     subscription: SubscriptionId | T,
-    handlers: WebSocketHandlers,
-    onDemandHandlers?: OnDemandSubscriptionHandlers
-  ): WebSocket {
-    const url = this.#config.wsUrl + '/ws/subs'
+    handlers: WebSocketHandlers<P>,
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>
+  ): Promise<WebSocket> {
+    const baseUrl = this.#config.wsUrl + '/ws/subs'
 
     return isAnySubscriptionInputs(subscription)
-      ? openWebSocket<T>(this.#config, url, handlers, {
+      ? openWebSocket<T, P>(this.#config, await this.#withToken(baseUrl), handlers, {
           sub: {
             args: subscription,
             ephemeral: true,
@@ -117,7 +117,24 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
           },
           onDemandHandlers,
         })
-      : openWebSocket<T>(this.#config, `${url}/${this.#agentId}/${subscription}`, handlers)
+      : openWebSocket<T, P>(
+          this.#config,
+          await this.#withToken(`${baseUrl}/${this.#agentId}/${subscription}`),
+          handlers
+        )
+  }
+
+  async #withToken(base: string) {
+    if (this.#config.apiKey) {
+      return base + '?nod=' + this.#requestNodToken()
+    }
+    return base
+  }
+
+  async #requestNodToken() {
+    return await this.#fetch<{
+      token: string
+    }>(this.#config.httpUrl + '/ws/nod')
   }
 }
 

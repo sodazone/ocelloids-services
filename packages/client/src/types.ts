@@ -1,4 +1,4 @@
-import { AgentId, Message, SubscriptionId } from './lib'
+import { AgentId, AnyJson, Message, SubscriptionId } from './lib'
 
 /**
  * Represents a {@link Subscription} delivery channel.
@@ -157,12 +157,12 @@ export type ErrorHandler = (error: Event) => void
  *
  * @public
  */
-export type WebSocketHandlers = {
+export type WebSocketHandlers<T = AnyJson> = {
   /**
    * Called on every {@link Message}.
    * This is the main message handling callback.
    */
-  onMessage: MessageHandler<Message>
+  onMessage: MessageHandler<Message<T>>
 
   /**
    * Called if the authentication fails.
@@ -185,8 +185,8 @@ export type WebSocketHandlers = {
  *
  * @public
  */
-export type OnDemandSubscriptionHandlers = {
-  onSubscriptionCreated?: (sub: Subscription) => void
+export type OnDemandSubscriptionHandlers<T = AnySubscriptionInputs> = {
+  onSubscriptionCreated?: (sub: Subscription<T>) => void
   onSubscriptionError?: (err: SubscriptionError) => void
   onError?: (err: any) => void
 }
@@ -196,7 +196,9 @@ export type OnDemandSubscriptionHandlers = {
  *
  * @public
  */
-export function isSubscription(obj: Subscription | SubscriptionError | Message): obj is Subscription {
+export function isSubscription<T = AnySubscriptionInputs>(
+  obj: Subscription<T> | SubscriptionError | Message
+): obj is Subscription<T> {
   const maybeSub = obj as Subscription
   return maybeSub.channels !== undefined && maybeSub.agent !== undefined && maybeSub.id !== undefined
 }
@@ -206,7 +208,9 @@ export function isSubscription(obj: Subscription | SubscriptionError | Message):
  *
  * @public
  */
-export function isSubscriptionError(obj: Subscription | SubscriptionError): obj is SubscriptionError {
+export function isSubscriptionError<T = AnySubscriptionInputs>(
+  obj: Subscription<T> | SubscriptionError
+): obj is SubscriptionError {
   const maybeError = obj as SubscriptionError
   return maybeError.issues !== undefined && maybeError.name !== undefined
 }

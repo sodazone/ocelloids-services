@@ -5,7 +5,7 @@ import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
 import type { Subscription, WsAuthErrorEvent } from './lib'
-import { XcmInputs } from './xcm/types'
+import { XcmInputs, XcmMessagePayload } from './xcm/types'
 
 jest.unstable_mockModule('isows', () => {
   return {
@@ -30,20 +30,38 @@ describe('OcelloidsClient', () => {
   })
 
   describe('ws', () => {
-    let mockServer: Server
+    let mockWebSocketServer: Server
+
+    beforeEach(() => {
+      nock('https://rpc.abc')
+        .matchHeader('content-type', 'application/json')
+        .matchHeader('authorization', 'Bearer abracadabra')
+        .get('/ws/nod')
+        .reply(
+          200,
+          JSON.stringify({
+            token: 'ey123',
+          })
+        )
+    })
 
     afterEach(() => {
-      mockServer?.stop()
+      mockWebSocketServer?.stop()
     })
 
     it('should connect to a subscription', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
       const samplesNum = samples.length
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         for (const s of samples) {
-          socket.send(JSON.stringify(s))
+          socket.send(
+            JSON.stringify({
+              metadata: {},
+              payload: s,
+            })
+          )
         }
       })
 
@@ -53,17 +71,16 @@ describe('OcelloidsClient', () => {
       })
 
       let called = 0
-      const ws = client.agent('agentid').subscribe('subid', {
+      client.agent('agentid').subscribe<XcmMessagePayload>('subid', {
         onMessage: (msg) => {
-          expect(ws.readyState).toBe(1)
           expect(msg).toBeDefined()
 
           switch (called) {
             case 1:
-              expect(isXcmSent(msg)).toBeTruthy()
+              expect(isXcmSent(msg.payload)).toBeTruthy()
               break
             case 2:
-              expect(isXcmReceived(msg)).toBeTruthy()
+              expect(isXcmReceived(msg.payload)).toBeTruthy()
               break
             default:
             //
@@ -78,12 +95,12 @@ describe('OcelloidsClient', () => {
 
     it('should create on-demand subscription', (done) => {
       const wsUrl = 'ws://mock/ws/subs'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (data) => {
           socket.send(JSON.stringify(data))
-          socket.send(JSON.stringify(samples[0]))
+          socket.send(JSON.stringify({ payload: samples[0] }))
         })
       })
 
@@ -92,7 +109,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.agent<XcmInputs>('xcm').subscribe(
+      client.agent<XcmInputs>('xcm').subscribe(
         {
           origin: 'urn:ocn:local:2004',
           senders: '*',
@@ -107,9 +124,8 @@ describe('OcelloidsClient', () => {
         },
         {
           onMessage: (msg) => {
-            expect(ws.readyState).toBe(1)
             expect(msg).toBeDefined()
-            expect(isXcmRelayed(msg)).toBeTruthy()
+            expect(isXcmRelayed(msg.payload)).toBeTruthy()
             done()
           },
         },
@@ -123,9 +139,9 @@ describe('OcelloidsClient', () => {
 
     it('should handle on-demand subscription creation errors', (done) => {
       const wsUrl = 'ws://mock/ws/subs'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (_) => {
           socket.send(
             JSON.stringify({
@@ -149,7 +165,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      const ws = client.agent<XcmInputs>('xcm').subscribe(
+      client.agent<XcmInputs>('xcm').subscribe(
         {
           origin: 'urn:ocn:local:2004',
           senders: '*',
@@ -169,7 +185,6 @@ describe('OcelloidsClient', () => {
         },
         {
           onSubscriptionError: (err) => {
-            expect(ws.readyState).toBe(1)
             expect(err).toBeDefined()
             expect(isSubscriptionError(err)).toBeTruthy()
             done()
@@ -180,9 +195,9 @@ describe('OcelloidsClient', () => {
 
     it('should handle socket closed', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.close({
           code: 3004,
           reason: 'ouch',
@@ -211,13 +226,13 @@ describe('OcelloidsClient', () => {
 
     it('should authentitcate', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (data) => {
           expect(data).toBe('abracadabra')
           socket.send('{ "code": 1000, "error": false }')
-          socket.send(JSON.stringify(samples[0]))
+          socket.send(JSON.stringify({ payload: samples[0] }))
         })
       })
 
@@ -242,9 +257,9 @@ describe('OcelloidsClient', () => {
 
     it('should handle auth error', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (_) => {
           socket.send('{ "code": 3001, "error": true, "reason": "none" }')
         })
@@ -275,9 +290,9 @@ describe('OcelloidsClient', () => {
 
     it('should throw auth error event', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
-      mockServer = new Server(wsUrl, { mock: false })
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
 
-      mockServer.on('connection', (socket) => {
+      mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (_) => {
           socket.send('{ "code": 3001, "error": true, "reason": "none" }')
         })
@@ -344,7 +359,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'http://mock',
       })
 
-      await client.agent('xcm').create(sub)
+      await client.agent<XcmInputs>('xcm').create(sub)
 
       scope.done()
     })
