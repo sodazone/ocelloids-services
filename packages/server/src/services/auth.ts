@@ -119,7 +119,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           aud: 'ws-nod',
           iat,
           exp,
-        })
+        }),
       })
     }
   )
