@@ -18,7 +18,7 @@ describe('templates', () => {
         data: {
           name: 'Moncho',
         },
-      })
+      }),
     ).toBe('hi Moncho')
   })
 
@@ -36,7 +36,7 @@ describe('templates', () => {
             nums: [3, 4, 5],
           },
         ],
-      })
+      }),
     ).toBe('Patricio3Moncho3')
   })
 
@@ -45,7 +45,7 @@ describe('templates', () => {
       renderer.render({
         template: '{{fail}}',
         data: { id: 0 },
-      })
+      }),
     ).toThrow()
   })
 
@@ -61,7 +61,7 @@ describe('templates', () => {
           data: {
             name: 'Moncho' + i,
           },
-        })
+        }),
       ).toBe('hi Moncho' + i)
     }
     expect(cache.size).toBe(1)
@@ -80,7 +80,7 @@ describe('templates', () => {
           data: {
             name: 'Moncho' + i,
           },
-        })
+        }),
       ).toBe(`hi Moncho${i}${p}`)
     }
     expect(cache.size).toBe(2)
@@ -98,7 +98,7 @@ describe('templates', () => {
             msg,
           },
         })
-        .replace(/[\s\n]+/g, '')
+        .replace(/[\s\n]+/g, ''),
     ).toBe('{"a":"ok","b":"0"}')
   })
 })

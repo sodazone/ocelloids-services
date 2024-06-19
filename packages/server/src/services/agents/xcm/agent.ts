@@ -23,7 +23,11 @@ import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
 } from './storage.js'
-import { GetDownwardMessageQueues, GetOutboundHrmpMessages, GetOutboundUmpMessages } from './types-augmented.js'
+import {
+  GetDownwardMessageQueues,
+  GetOutboundHrmpMessages,
+  GetOutboundUmpMessages,
+} from './types-augmented.js'
 import {
   $XcmInputs,
   BridgeType,
@@ -45,7 +49,11 @@ import {
 import { mapXcmSent } from './ops/common.js'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js'
-import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './ops/pk-bridge.js'
+import {
+  extractBridgeMessageAccepted,
+  extractBridgeMessageDelivered,
+  extractBridgeReceive,
+} from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
@@ -271,7 +279,10 @@ export class XcmAgent implements Agent {
    *
    * @private
    */
-  __monitorOrigins({ id, args: { origin, senders, destinations } }: Subscription<XcmInputs>): Monitor {
+  __monitorOrigins({
+    id,
+    args: { origin, senders, destinations, outboundTTL },
+  }: Subscription<XcmInputs>): Monitor {
     const subs: RxSubscriptionWithId[] = []
     const chainId = origin as NetworkURN
 
@@ -310,9 +321,9 @@ export class XcmAgent implements Agent {
                   .blockExtrinsics(chainId)
                   .pipe(
                     extractDmpSend(chainId, this.#getDmp(chainId, registry), registry),
-                    this.#emitOutbound(id, chainId, registry, messageControl)
-                  )
-              )
+                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                  ),
+              ),
             )
             .subscribe(outboundObserver),
         })
@@ -330,9 +341,9 @@ export class XcmAgent implements Agent {
                   .blockEvents(chainId)
                   .pipe(
                     extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
-                    this.#emitOutbound(id, chainId, registry, messageControl)
-                  )
-              )
+                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                  ),
+              ),
             )
             .subscribe(outboundObserver),
         })
@@ -350,9 +361,9 @@ export class XcmAgent implements Agent {
                   .blockEvents(chainId)
                   .pipe(
                     extractXcmpSend(chainId, this.#getHrmp(chainId, registry), registry),
-                    this.#emitOutbound(id, chainId, registry, messageControl)
-                  )
-              )
+                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                  ),
+              ),
             )
             .subscribe(outboundObserver),
         })
@@ -370,9 +381,9 @@ export class XcmAgent implements Agent {
                   .blockEvents(chainId)
                   .pipe(
                     extractUmpSend(chainId, this.#getUmp(chainId, registry), registry),
-                    this.#emitOutbound(id, chainId, registry, messageControl)
-                  )
-              )
+                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                  ),
+              ),
             )
             .subscribe(outboundObserver),
         })
@@ -433,8 +444,8 @@ export class XcmAgent implements Agent {
           switchMap((registry) =>
             this.#shared
               .blockExtrinsics(relayId)
-              .pipe(extractRelayReceive(chainId, messageControl, registry), emitRelayInbound())
-          )
+              .pipe(extractRelayReceive(chainId, messageControl, registry), emitRelayInbound()),
+          ),
         )
         .subscribe(relayObserver),
     }
@@ -444,7 +455,9 @@ export class XcmAgent implements Agent {
   // TODO: handle possible multiple different consensus utilizing PK bridge e.g. solochains?
   __monitorPkBridge({ id, args: { origin, destinations } }: Subscription<XcmInputs>) {
     const originBridgeHub = getBridgeHubNetworkId(origin as NetworkURN)
-    const dest = (destinations as NetworkURN[]).find((d) => getConsensus(d) !== getConsensus(origin as NetworkURN))
+    const dest = (destinations as NetworkURN[]).find(
+      (d) => getConsensus(d) !== getConsensus(origin as NetworkURN),
+    )
 
     if (dest === undefined) {
       throw new Error(`No destination on different consensus found for bridging (sub=${id})`)
@@ -454,7 +467,7 @@ export class XcmAgent implements Agent {
 
     if (originBridgeHub === undefined || destBridgeHub === undefined) {
       throw new Error(
-        `Unable to subscribe to PK bridge due to missing bridge hub network URNs for origin=${origin} and destinations=${destinations}. (sub=${id})`
+        `Unable to subscribe to PK bridge due to missing bridge hub network URNs for origin=${origin} and destinations=${destinations}. (sub=${id})`,
       )
     }
 
@@ -491,7 +504,7 @@ export class XcmAgent implements Agent {
       this.id,
       origin,
       originBridgeHub,
-      id
+      id,
     )
     const outboundAccepted: RxSubscriptionWithId = {
       chainId: originBridgeHub,
@@ -500,12 +513,16 @@ export class XcmAgent implements Agent {
         .pipe(
           switchMap((registry) =>
             this.#shared.blockEvents(originBridgeHub).pipe(
-              extractBridgeMessageAccepted(originBridgeHub, registry, (blockHash: HexString, key: HexString) => {
-                return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
-              }),
-              emitBridgeOutboundAccepted()
-            )
-          )
+              extractBridgeMessageAccepted(
+                originBridgeHub,
+                registry,
+                (blockHash: HexString, key: HexString) => {
+                  return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
+                },
+              ),
+              emitBridgeOutboundAccepted(),
+            ),
+          ),
         )
         .subscribe(pkBridgeObserver),
     }
@@ -515,7 +532,7 @@ export class XcmAgent implements Agent {
       this.id,
       origin,
       originBridgeHub,
-      id
+      id,
     )
     const outboundDelivered: RxSubscriptionWithId = {
       chainId: originBridgeHub,
@@ -525,8 +542,8 @@ export class XcmAgent implements Agent {
           switchMap((registry) =>
             this.#shared
               .blockEvents(originBridgeHub)
-              .pipe(extractBridgeMessageDelivered(originBridgeHub, registry), emitBridgeOutboundDelivered())
-          )
+              .pipe(extractBridgeMessageDelivered(originBridgeHub, registry), emitBridgeOutboundDelivered()),
+          ),
         )
         .subscribe(pkBridgeObserver),
     }
@@ -536,7 +553,7 @@ export class XcmAgent implements Agent {
       this.id,
       origin,
       destBridgeHub,
-      id
+      id,
     )
     const inbound: RxSubscriptionWithId = {
       chainId: destBridgeHub,
@@ -667,28 +684,36 @@ export class XcmAgent implements Agent {
       source.pipe(switchMap((msg) => from(this.#engine.onInboundMessage(new XcmInbound(id, chainId, msg)))))
   }
 
-  #emitOutbound(id: string, origin: NetworkURN, registry: Registry, messageControl: ControlQuery) {
-    const {
-      subscription: {
-        args: { outboundTTL },
-      },
-    } = this.#subs.get(id)
-
+  #emitOutbound({
+    id,
+    origin,
+    registry,
+    messageControl,
+    outboundTTL,
+  }: {
+    id: string
+    origin: NetworkURN
+    registry: Registry
+    messageControl: ControlQuery
+    outboundTTL?: number
+  }) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
         mapXcmSent(id, registry, origin),
         filter((msg) => matchMessage(messageControl, msg)),
-        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL)))
+        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL))),
       )
   }
 
   #getDmp(chainId: NetworkURN, registry: Registry): GetDownwardMessageQueues {
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      return from(this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash)).pipe(
+      return from(
+        this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash),
+      ).pipe(
         map((buffer) => {
           return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer)
-        })
+        }),
       )
     }
   }
@@ -698,7 +723,7 @@ export class XcmAgent implements Agent {
       return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<Bytes>', buffer)
-        })
+        }),
       )
     }
   }
@@ -708,7 +733,7 @@ export class XcmAgent implements Agent {
       return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
         map((buffer) => {
           return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer)
-        })
+        }),
       )
     }
   }

@@ -20,7 +20,11 @@ import { asVersionedXcm } from './xcm-format.js'
 import { XcmV4Instruction, XcmV4Xcm } from './xcm-types.js'
 
 // eslint-disable-next-line complexity
-function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm, stops: NetworkURN[]) {
+function recursiveExtractStops(
+  origin: NetworkURN,
+  instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm,
+  stops: NetworkURN[],
+) {
   for (const instruction of instructions) {
     let nextStop
     let message
@@ -42,7 +46,8 @@ function recursiveExtractStops(origin: NetworkURN, instructions: XcmV2Xcm | XcmV
       nextStop = dest
       message = xcm
     } else if ((instruction as XcmV3Instruction | XcmV4Instruction).isExportMessage) {
-      const { network, destination, xcm } = (instruction as XcmV3Instruction | XcmV4Instruction).asExportMessage
+      const { network, destination, xcm } = (instruction as XcmV3Instruction | XcmV4Instruction)
+        .asExportMessage
       const paraId = getParaIdFromJunctions(destination)
       if (paraId) {
         const consensus = network.toString().toLowerCase()
@@ -150,7 +155,7 @@ export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
           forwardId = blake2AsHex(derivedIdBuf)
         }
         return new GenericXcmSent(id, origin, message, legs, forwardId)
-      })
+      }),
     )
 }
 
@@ -184,7 +189,7 @@ export function xcmMessagesSent() {
           messageHash: xcmMessage.messageHash?.toHex(),
           messageId: xcmMessage.messageId?.toHex(),
         } as XcmSentWithContext
-      })
+      }),
     )
   }
 }

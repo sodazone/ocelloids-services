@@ -8,13 +8,15 @@ import type {
 import { HexString } from '../../subscriptions/types.js'
 import { NetworkURN } from '../../types.js'
 
-export type GetOutboundHrmpMessages = (hash: HexString) => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
+export type GetOutboundHrmpMessages = (
+  hash: HexString,
+) => Observable<Vec<PolkadotCorePrimitivesOutboundHrmpMessage>>
 
 export type GetOutboundUmpMessages = (hash: HexString) => Observable<Vec<Bytes>>
 
 export type GetDownwardMessageQueues = (
   hash: HexString,
-  networkId: NetworkURN
+  networkId: NetworkURN,
 ) => Observable<Vec<PolkadotCorePrimitivesInboundDownwardMessage>>
 
 export type GetStorageAt = (hash: HexString, key: HexString) => Observable<Uint8Array>

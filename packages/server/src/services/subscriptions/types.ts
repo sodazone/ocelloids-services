@@ -95,7 +95,7 @@ const $WebhookNotification = z.object({
     z
       .string()
       .regex(/(?:application|text)\/[a-z0-9-+.]+/i)
-      .max(250)
+      .max(250),
   ),
   template: z.optional(z.string().min(5).max(32_000)),
   bearer: z.optional(z.string().min(1).max(1_000)),
@@ -115,7 +115,7 @@ export const $AgentArgs = z.record(
   z.string({
     required_error: 'argument name is required',
   }),
-  z.any()
+  z.any(),
 )
 
 export const $Subscription = z
@@ -131,8 +131,10 @@ export const $Subscription = z
   .refine(
     (schema) =>
       !schema.ephemeral ||
-      (schema.channels !== undefined && schema.channels.length === 1 && schema.channels[0].type === 'websocket'),
-    'ephemeral subscriptions only supports websocket notifications'
+      (schema.channels !== undefined &&
+        schema.channels.length === 1 &&
+        schema.channels[0].type === 'websocket'),
+    'ephemeral subscriptions only supports websocket notifications',
   )
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>

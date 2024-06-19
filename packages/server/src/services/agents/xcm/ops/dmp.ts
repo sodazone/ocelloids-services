@@ -60,7 +60,7 @@ type XcmContext = {
 function matchInstructions(
   xcmProgram: XcmVersionedXcm,
   assets: XcmVersionedAssets,
-  beneficiary: XcmVersionedLocation
+  beneficiary: XcmVersionedLocation,
 ): boolean {
   const program = xcmProgram.value.toHuman() as Json[]
   let sameAssetFun = false
@@ -79,7 +79,8 @@ function matchInstructions(
     }
 
     if (DepositAsset) {
-      sameBeneficiary = JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman())
+      sameBeneficiary =
+        JSON.stringify(DepositAsset.beneficiary) === JSON.stringify(beneficiary.value.toHuman())
       break
     }
   }
@@ -175,9 +176,9 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
               return null
             }
           }),
-          filterNonNull()
+          filterNonNull(),
         )
-      })
+      }),
     )
   }
 }
@@ -240,14 +241,19 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
               return null
             }
           }),
-          filterNonNull()
+          filterNonNull(),
         )
-      })
+      }),
     )
   }
 }
 
-const METHODS_DMP = ['limitedReserveTransferAssets', 'reserveTransferAssets', 'limitedTeleportAssets', 'teleportAssets']
+const METHODS_DMP = [
+  'limitedReserveTransferAssets',
+  'reserveTransferAssets',
+  'limitedTeleportAssets',
+  'teleportAssets',
+]
 
 export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
@@ -256,12 +262,16 @@ export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQue
         const { extrinsic } = tx
         return tx.dispatchError === undefined && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP)
       }),
-      findDmpMessagesFromTx(getDmp, registry, origin)
+      findDmpMessagesFromTx(getDmp, registry, origin),
     )
   }
 }
 
-export function extractDmpSendByEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
+export function extractDmpSendByEvent(
+  origin: NetworkURN,
+  getDmp: GetDownwardMessageQueues,
+  registry: Registry,
+) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(findDmpMessagesFromEvent(origin, getDmp, registry))
   }
@@ -326,7 +336,7 @@ export function extractDmpReceive() {
         }
         return null
       }),
-      filterNonNull()
+      filterNonNull(),
     )
   }
 }

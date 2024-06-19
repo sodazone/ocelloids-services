@@ -29,15 +29,19 @@ import {
   BridgeMessagesDelivered,
 } from './xcm-types.js'
 
-export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Registry, getStorage: GetStorageAt) {
+export function extractBridgeMessageAccepted(
+  origin: NetworkURN,
+  registry: Registry,
+  getStorage: GetStorageAt,
+) {
   return (source: Observable<types.BlockEvent>): Observable<XcmBridgeAcceptedWithContext> => {
     return source.pipe(
       filter((event) =>
         matchEvent(
           event,
           ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
-          'MessageAccepted'
-        )
+          'MessageAccepted',
+        ),
       ),
       mergeMap((blockEvent) => {
         const data = blockEvent.data as unknown as BridgeMessageAccepted
@@ -118,9 +122,9 @@ export function extractBridgeMessageAccepted(origin: NetworkURN, registry: Regis
               }
             }
             return from(msgs)
-          })
+          }),
         )
-      })
+      }),
     )
   }
 }
@@ -132,8 +136,8 @@ export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Regi
         matchEvent(
           event,
           ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
-          'MessagesDelivered'
-        )
+          'MessagesDelivered',
+        ),
       ),
       mergeMap((blockEvent) => {
         const data = blockEvent.data as unknown as BridgeMessagesDelivered
@@ -156,12 +160,12 @@ export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Regi
               blockNumber: blockEvent.blockNumber.toPrimitive(),
               blockHash: blockEvent.blockHash.toHex(),
               sender: getSendersFromEvent(blockEvent),
-            })
+            }),
           )
         }
 
         return from(msgs)
-      })
+      }),
     )
   }
 }
@@ -173,8 +177,8 @@ export function extractBridgeReceive(origin: NetworkURN) {
         matchEvent(
           event,
           ['bridgePolkadotMessages', 'bridgeKusamaMessages', 'bridgeRococoMessages', 'bridgeWestendMessages'],
-          'MessagesReceived'
-        )
+          'MessagesReceived',
+        ),
       ),
       mergeMap((event) => {
         // for some reason the Vec is wrapped with another array?
@@ -195,12 +199,12 @@ export function extractBridgeReceive(origin: NetworkURN) {
                 blockHash: event.blockHash.toHex(),
                 outcome: result.isDispatched ? 'Success' : 'Fail',
                 error: result.isDispatched ? null : result.type,
-              })
+              }),
             )
           }
         }
         return from(inboundMsgs)
-      })
+      }),
     )
   }
 }

@@ -104,7 +104,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   async subscribe<P = AnyJson>(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
-    onDemandHandlers?: OnDemandSubscriptionHandlers<T>
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
   ): Promise<WebSocket> {
     const baseUrl = this.#config.wsUrl + '/ws/subs'
 
@@ -120,7 +120,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
       : openWebSocket<T, P>(
           this.#config,
           await this.#withToken(`${baseUrl}/${this.#agentId}/${subscription}`),
-          handlers
+          handlers,
         )
   }
 

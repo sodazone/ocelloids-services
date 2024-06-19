@@ -203,7 +203,7 @@ export const _agentService = new LocalAgentCatalog(
     ingress: _ingress,
     subsStore: _subsDB,
   } as Services,
-  { mode: AgentServiceMode.local }
+  { mode: AgentServiceMode.local },
 )
 
 export const _services = {

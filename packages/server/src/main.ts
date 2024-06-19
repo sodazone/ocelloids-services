@@ -38,7 +38,7 @@ async function startServer(this: Command) {
           server.log.error(err)
           process.exit(1)
         }
-      }
+      },
     )
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -56,29 +56,31 @@ addServerOptions(program)
   .description('Ocelloids Service Node')
   .version(version)
   .addOption(
-    optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(10_000)
+    optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(
+      10_000,
+    ),
   )
   .addOption(
     optInt(
       '--subscription-max-persistent <number>',
       'maximum number of persistent subscriptions',
-      'OC_SUBSCRIPTION_MAX_PERSISTENT'
-    ).default(5_000)
+      'OC_SUBSCRIPTION_MAX_PERSISTENT',
+    ).default(5_000),
   )
   .addOption(
     optInt(
       '--subscription-max-ephemeral <number>',
       'maximum number of ephemeral subscriptions',
-      'OC_SUBSCRIPTION_MAX_EPHEMERAL'
-    ).default(5_000)
+      'OC_SUBSCRIPTION_MAX_EPHEMERAL',
+    ).default(5_000),
   )
   .addOption(opt('--cors', 'enables CORS support', 'OC_CORS').default(false))
   .addOption(
     optBool(
       '--cors-credentials <boolean>',
       'configures the Access-Control-Allow-Credentials CORS header',
-      'OC_CORS_CREDENTIALS'
-    ).default(true)
+      'OC_CORS_CREDENTIALS',
+    ).default(true),
   )
   .addOption(
     optArr(
@@ -86,10 +88,16 @@ addServerOptions(program)
       'configures the Access-Control-Allow-Origin CORS header\n' +
         '"true" for wildcard, "string" or "/regexp/"\n' +
         'repeat this argument for multiple origins',
-      'OC_CORS_ORIGIN'
-    ).default(['/https?://localhost.*/'])
+      'OC_CORS_ORIGIN',
+    ).default(['/https?://localhost.*/']),
   )
-  .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
+  .addOption(
+    opt(
+      '--redis <redis-url>',
+      'redis[s]://[[username][:password]@][host][:port][/db-number]',
+      'OC_REDIS_URL',
+    ),
+  )
   .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
   .action(startServer)
 

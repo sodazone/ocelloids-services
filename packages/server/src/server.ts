@@ -93,7 +93,7 @@ export async function createServer(opts: ServerOptions) {
       }
 
       await server.close()
-    }
+    },
   )
 
   /* istanbul ignore next */

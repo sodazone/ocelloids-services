@@ -37,7 +37,7 @@ describe('xcm ops utils', () => {
       expect(() =>
         getSendersFromExtrinsic({
           isSigned: true,
-        } as unknown as types.ExtrinsicWithId)
+        } as unknown as types.ExtrinsicWithId),
       ).toThrow()
     })
 
@@ -164,12 +164,12 @@ describe('xcm ops utils', () => {
           asUmp: {
             isPara: false,
           },
-        } as unknown as any)
+        } as unknown as any),
       ).toBeUndefined()
       expect(
         getParaIdFromOrigin({
           isUmp: false,
-        } as unknown as any)
+        } as unknown as any),
       ).toBeUndefined()
     })
   })
@@ -245,14 +245,14 @@ describe('xcm ops utils', () => {
             type: 'ZZ',
             asZZ: [],
           },
-        } as unknown as any)
+        } as unknown as any),
       ).toBeUndefined()
       expect(
         getParaIdFromMultiLocation({
           interior: {
             type: 'Here',
           },
-        } as unknown as any)
+        } as unknown as any),
       ).toBeUndefined()
       expect(
         getParaIdFromMultiLocation({
@@ -262,7 +262,7 @@ describe('xcm ops utils', () => {
           parents: {
             toNumber: () => 10,
           },
-        } as unknown as any)
+        } as unknown as any),
       ).toBeUndefined()
     })
   })
@@ -285,7 +285,7 @@ describe('xcm ops utils', () => {
             ],
           },
         } as unknown as any,
-        'urn:ocn:polkadot:10'
+        'urn:ocn:polkadot:10',
       )
       expect(networkId).toBe('urn:ocn:polkadot:11')
     })
@@ -313,7 +313,7 @@ describe('xcm ops utils', () => {
             ],
           },
         } as unknown as any,
-        'urn:ocn:polkadot:10'
+        'urn:ocn:polkadot:10',
       )
       expect(networkId).toBe('urn:ocn:espartaco:11')
     })
@@ -333,7 +333,7 @@ describe('xcm ops utils', () => {
             },
           },
         } as unknown as any,
-        'urn:ocn:polkadot:10'
+        'urn:ocn:polkadot:10',
       )
       expect(networkId).toBe('urn:ocn:espartaco:0')
     })

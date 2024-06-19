@@ -274,7 +274,10 @@ const hopOB: XcmSent = {
     messageHash: '0x03f0f87c9f89de3b78e730e0c6af44941b3ada5446b46ff59460faa667a0c85d',
   },
   destination: { chainId: 'urn:ocn:local:1000' },
-  sender: { signer: { id: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7', publicKey: '0x01' }, extraSigners: [] },
+  sender: {
+    signer: { id: '7HbZHW7QDL6nqhVE4YRVnmkmia1XTYfntFuGm4WyAsTijUu7', publicKey: '0x01' },
+    extraSigners: [],
+  },
   messageId: '0x2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
 }
 

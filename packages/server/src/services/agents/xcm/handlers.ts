@@ -210,11 +210,11 @@ export class XcmSubscriptionManager {
             this.#agent.id,
             chainId,
             id,
-            errorMessage(error)
+            errorMessage(error),
           )
           const updatedSub = await this.#agent.__monitorRelay(sub.subscription)
           sub.relaySub = updatedSub
-        }, SUB_ERROR_RETRY_MS)
+        }, SUB_ERROR_RETRY_MS),
       )
     }
   }
@@ -242,11 +242,11 @@ export class XcmSubscriptionManager {
               this.#agent.id,
               originBridgeHub,
               id,
-              errorMessage(error)
+              errorMessage(error),
             )
             bridgeSubs.push(this.#agent.__monitorPkBridge(sub.subscription))
             sub.bridgeSubs = bridgeSubs
-          }, SUB_ERROR_RETRY_MS)
+          }, SUB_ERROR_RETRY_MS),
         )
       }
     }
@@ -273,11 +273,11 @@ export class XcmSubscriptionManager {
               this.#agent.id,
               chainId,
               id,
-              errorMessage(error)
+              errorMessage(error),
             )
             const updated = this.#updateDestinationSubscriptions(id)
             this.#handlers[id].destinationSubs = updated
-          }, SUB_ERROR_RETRY_MS)
+          }, SUB_ERROR_RETRY_MS),
         )
       }
     }
@@ -306,14 +306,14 @@ export class XcmSubscriptionManager {
                 this.#agent.id,
                 chainId,
                 id,
-                errorMessage(error)
+                errorMessage(error),
               )
               const { streams: updated, controls } = this.#agent.__monitorOrigins(subscription)
               this.#handlers[id].sendersControl = controls.sendersControl
               this.#handlers[id].messageControl = controls.messageControl
               this.#handlers[id].originSubs = updated
             }
-          }, SUB_ERROR_RETRY_MS)
+          }, SUB_ERROR_RETRY_MS),
         )
       }
     }

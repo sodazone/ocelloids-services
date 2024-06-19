@@ -26,7 +26,9 @@ describe('admin api', () => {
 
     await db.sublevel<string, any>(prefixes.cache.tips, jsonEncoded).batch().put('0', {}).put('1', {}).write()
     for (let i = 0; i < 3; i++) {
-      await db.sublevel<string, any>(prefixes.cache.family(`urn:ocn:local:${i.toString()}`), jsonEncoded).put('0x0', {})
+      await db
+        .sublevel<string, any>(prefixes.cache.family(`urn:ocn:local:${i.toString()}`), jsonEncoded)
+        .put('0x0', {})
     }
     return server.ready()
   })
@@ -53,13 +55,14 @@ describe('admin api', () => {
         method: 'GET',
         url: '/admin/sched',
         headers: {
-          authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.VAxxu2QZ2pPsTFklm7IS1Qc7p0E6_FQoiibkDZc9cio',
+          authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.VAxxu2QZ2pPsTFklm7IS1Qc7p0E6_FQoiibkDZc9cio',
         },
       },
       (_err, response) => {
         done()
         expect(response.statusCode).toStrictEqual(401)
-      }
+      },
     )
   })
 

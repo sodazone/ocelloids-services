@@ -154,7 +154,7 @@ export class RedisDistributor {
       commandOptions({
         returnBuffers: true,
       }),
-      key
+      key,
     )
   }
 
@@ -172,7 +172,7 @@ export class RedisDistributor {
         returnBuffers: true,
       }),
       key,
-      timeout
+      timeout,
     )
   }
 
@@ -189,7 +189,7 @@ export class RedisDistributor {
         {
           BLOCK: 500,
           COUNT: 1,
-        }
+        },
       )
     } else {
       return Promise.reject('Redis client is closed')

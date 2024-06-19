@@ -23,7 +23,12 @@ import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Raw } from '@polkadot/types'
 import type { Header } from '@polkadot/types/interfaces'
 
-import { SubstrateApis, blockFromHeader, finalizedHeads, retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk'
+import {
+  SubstrateApis,
+  blockFromHeader,
+  finalizedHeads,
+  retryWithTruncatedExpBackoff,
+} from '@sodazone/ocelloids-sdk'
 
 import { ServiceConfiguration } from '../../config.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '../../subscriptions/types.js'
@@ -146,15 +151,15 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                     chainId,
                     head.hash.toHex(),
                     head.number.toString(),
-                    error
+                    error,
                   )
                   return EMPTY
-                })
-              )
-            )
-          )
+                }),
+              ),
+            ),
+          ),
         ),
-        share()
+        share(),
       )
     } else {
       pipe = apiPromise$.pipe(
@@ -167,10 +172,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             this.#catchUpHeads(chainId, api),
             blockFromHeader(api),
             this.#tapError(chainId, 'blockFromHeader()'),
-            retryWithTruncatedExpBackoff(RETRY_INFINITE)
-          )
+            retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          ),
         ),
-        share()
+        share(),
       )
     }
 
@@ -190,7 +195,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     const getStorage$ = apiPromise$.pipe(
       switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
       map((data) => data.toU8a(true)),
-      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`)
+      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`),
     )
 
     if (this.#localCache.has(chainId)) {
@@ -200,14 +205,20 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
             return getStorage$.pipe(
               retryWithTruncatedExpBackoff(RETRY_CAPPED),
               catchError((error) => {
-                this.#log.error('[%s] Unable to get storage key=%s blockHash=%s', chainId, storageKey, blockHash, error)
+                this.#log.error(
+                  '[%s] Unable to get storage key=%s blockHash=%s',
+                  chainId,
+                  storageKey,
+                  blockHash,
+                  error,
+                )
                 return EMPTY
-              })
+              }),
             )
           } else {
             return of(data)
           }
-        })
+        }),
       )
     }
 
@@ -242,7 +253,12 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return (source: Observable<Header>): Observable<Header> => {
       return source.pipe(
         tap((header) => {
-          this.#log.info('[%s] FINALIZED block #%s %s', chainId, header.number.toBigInt(), header.hash.toHex())
+          this.#log.info(
+            '[%s] FINALIZED block #%s %s',
+            chainId,
+            header.number.toBigInt(),
+            header.hash.toHex(),
+          )
 
           this.emit('telemetryBlockFinalized', {
             chainId,
@@ -250,10 +266,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           })
         }),
         mergeMap((header) =>
-          from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header))
+          from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header)),
         ),
         this.#tapError(chainId, '#catchUpHeads()'),
-        retryWithTruncatedExpBackoff(RETRY_INFINITE)
+        retryWithTruncatedExpBackoff(RETRY_INFINITE),
       )
     }
   }
@@ -264,24 +280,26 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       return source.pipe(
         mergeAll(),
         mergeMap((range) =>
-          from(api.rpc.chain.getBlockHash(range.fromBlockNum).then((hash) => api.rpc.chain.getHeader(hash))).pipe(
+          from(
+            api.rpc.chain.getBlockHash(range.fromBlockNum).then((hash) => api.rpc.chain.getHeader(hash)),
+          ).pipe(
             catchError((error) => {
               this.#log.warn(
                 '[%s] in #recoverBlockRanges(%s-%s) %s',
                 chainId,
                 range.fromBlockNum,
                 range.toBlockNum,
-                error
+                error,
               )
               return EMPTY
             }),
             mergeMap((head) =>
               of(arrayOfTargetHeights(BigInt(range.fromBlockNum), BigInt(range.toBlockNum), batchSize)).pipe(
-                this.#catchUpToHeight(chainId, api, head)
-              )
-            )
-          )
-        )
+                this.#catchUpToHeight(chainId, api, head),
+              ),
+            ),
+          ),
+        ),
       )
     }
   }
@@ -361,8 +379,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       switchMap((header) =>
         header.number.toBigInt() - 1n <= targetHeight
           ? of([header, ...prev])
-          : this.#headers(api, header, targetHeight, [header, ...prev])
-      )
+          : this.#headers(api, header, targetHeight, [header, ...prev]),
+      ),
     )
   }
 
@@ -383,7 +401,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
           return batchControl.pipe(
             mergeMap(({ target, head, collect }) =>
-              (head.number.toBigInt() - 1n === target ? of([head]) : this.#headers(api, head, target, collect)).pipe(
+              (head.number.toBigInt() - 1n === target
+                ? of([head])
+                : this.#headers(api, head, target, collect)
+              ).pipe(
                 map((heads) => {
                   if (batchControl.value.index === targets.length - 1) {
                     batchControl.complete()
@@ -399,8 +420,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                   }
                   return heads
                 }),
-                mergeAll()
-              )
+                mergeAll(),
+              ),
             ),
             catchError((error) => {
               this.#log.warn('[%s] in #catchUpToHeight(%s) %s', chainId, targets, error)
@@ -438,14 +459,18 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                   const dbBatch = this.#pendingRanges(chainId).batch()
                   await dbBatch.del(fullRangeKey).put(currentRangeKey, currentRange).write()
 
-                  this.#log.info('[%s] stale range to recover %s', chainId, prefixes.cache.keys.range(currentRange))
+                  this.#log.info(
+                    '[%s] stale range to recover %s',
+                    chainId,
+                    prefixes.cache.keys.range(currentRange),
+                  )
                 }
               } catch (err) {
                 this.#log.warn('Error while writing stale ranges', err)
               }
-            })
+            }),
           )
-        })
+        }),
       )
     }
   }

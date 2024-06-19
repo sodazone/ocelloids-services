@@ -101,7 +101,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     ids?: {
       subscriptionId: string
       agentId: AgentId
-    }
+    },
   ) {
     if (this.#clientsNum >= this.#maxClients) {
       socket.close(1013, 'server too busy')
@@ -135,7 +135,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     ids?: {
       subscriptionId: string
       agentId: AgentId
-    }
+    },
   ) {
     try {
       if (ids === undefined) {
@@ -167,7 +167,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
                           path: ['filter', 'match'],
                           message: error.message,
                         },
-                      ])
+                      ]),
                     )
                   } else {
                     socket.close(1011, 'server error')

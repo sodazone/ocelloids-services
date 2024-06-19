@@ -95,7 +95,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     this.#bridgeAccepted = db.sublevel<string, XcmBridge>(prefixes.matching.bridgeAccepted, jsonEncoded)
 
     // [subscription-id]:[bridge-key]
-    this.#bridgeInbound = db.sublevel<string, XcmBridgeInboundWithContext>(prefixes.matching.bridgeIn, jsonEncoded)
+    this.#bridgeInbound = db.sublevel<string, XcmBridgeInboundWithContext>(
+      prefixes.matching.bridgeIn,
+      jsonEncoded,
+    )
 
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
   }
@@ -105,7 +108,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
-      const hashKey = this.#matchingKey(outMsg.subscriptionId, outMsg.destination.chainId, outMsg.waypoint.messageHash)
+      const hashKey = this.#matchingKey(
+        outMsg.subscriptionId,
+        outMsg.destination.chainId,
+        outMsg.waypoint.messageHash,
+      )
       // try to get any stored relay messages and notify if found.
       // do not clean up outbound in case inbound has not arrived yet.
       await this.#findRelayInbound(outMsg)
@@ -157,7 +164,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             hopKey,
             outMsg.subscriptionId,
             outMsg.origin.blockHash,
-            outMsg.origin.blockNumber
+            outMsg.origin.blockNumber,
           )
           // do not delete hop key because maybe hop stop inbound hasn't arrived yet
           this.#onXcmHopOut(originMsg, outMsg)
@@ -181,7 +188,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             hashKey,
             outMsg.subscriptionId,
             outMsg.origin.blockHash,
-            outMsg.origin.blockNumber
+            outMsg.origin.blockNumber,
           )
           await this.#inbound.del(hashKey)
           this.#onXcmMatched(outMsg, inMsg)
@@ -211,7 +218,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             hashKey,
             inMsg.subscriptionId,
             inMsg.blockHash,
-            inMsg.blockNumber
+            inMsg.blockNumber,
           )
           // if outbound has no messageId, we can safely assume that
           // idKey and hashKey are made up of only the message hash.
@@ -238,7 +245,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             idKey,
             inMsg.subscriptionId,
             inMsg.blockHash,
-            inMsg.blockNumber
+            inMsg.blockNumber,
           )
           await this.#outbound.batch().del(idKey).del(hashKey).write()
           this.#onXcmMatched(outMsg, inMsg)
@@ -267,7 +274,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           relayMsg.recipient,
           subscriptionId,
           relayMsg.blockHash,
-          relayMsg.blockNumber
+          relayMsg.blockNumber,
         )
         await this.#relay.del(idKey)
         await this.#onXcmRelayed(outMsg, relayMsg)
@@ -283,7 +290,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           relayMsg.recipient,
           subscriptionId,
           relayMsg.blockHash,
-          relayMsg.blockNumber
+          relayMsg.blockNumber,
         )
         await this.#relay.put(relayKey, relayMsg)
         await this.#janitor.schedule({
@@ -304,7 +311,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           msg.chainId,
           subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
         return
       }
@@ -345,7 +352,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           sublevelBridgeKey,
           subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
         this.#onXcmBridgeAccepted(bridgeOutMsg)
       } catch {
@@ -355,7 +362,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           idKey,
           subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
       }
     })
@@ -377,7 +384,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             sublevelBridgeKey,
             subscriptionId,
             msg.blockHash,
-            msg.blockNumber
+            msg.blockNumber,
           )
           await this.#bridgeInbound.del(sublevelBridgeKey)
           await this.#bridgeAccepted.del(sublevelBridgeKey)
@@ -390,7 +397,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             sublevelBridgeKey,
             subscriptionId,
             msg.blockHash,
-            msg.blockNumber
+            msg.blockNumber,
           )
           this.#onXcmBridgeDelivered(bridgeOutMsg)
         }
@@ -401,7 +408,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           sublevelBridgeKey,
           subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
       }
     })
@@ -422,7 +429,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           sublevelBridgeKey,
           subscriptionId,
           bridgeInMsg.blockHash,
-          bridgeInMsg.blockNumber
+          bridgeInMsg.blockNumber,
         )
         await this.#bridgeAccepted.del(sublevelBridgeKey)
         this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
@@ -433,7 +440,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           sublevelBridgeKey,
           subscriptionId,
           bridgeInMsg.blockHash,
-          bridgeInMsg.blockNumber
+          bridgeInMsg.blockNumber,
         )
         this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg)
         await this.#janitor.schedule({
@@ -461,7 +468,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         hopKey,
         msg.subscriptionId,
         msg.blockHash,
-        msg.blockNumber
+        msg.blockNumber,
       )
       // do not delete hop key because maybe hop stop outbound hasn't arrived yet
       // TO THINK: store in different keys?
@@ -477,7 +484,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           hashKey,
           msg.subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
         await this.#inbound.put(hashKey, msg)
         await this.#janitor.schedule({
@@ -492,7 +499,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           idKey,
           msg.subscriptionId,
           msg.blockHash,
-          msg.blockNumber
+          msg.blockNumber,
         )
         await this.#inbound.batch().put(idKey, msg).put(hashKey, msg).write()
         await this.#janitor.schedule(
@@ -503,7 +510,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           {
             sublevel: prefixes.matching.inbound,
             key: idKey,
-          }
+          },
         )
       }
     }
@@ -530,7 +537,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         idKey,
         msg.subscriptionId,
         msg.origin.blockHash,
-        msg.origin.blockNumber
+        msg.origin.blockNumber,
       )
       await this.#inbound.batch().del(idKey).del(hashKey).write()
       this.#onXcmMatched(msg, inMsg)
@@ -563,7 +570,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             bridgeInIdKey,
             msg.subscriptionId,
             msg.origin.blockHash,
-            msg.origin.blockNumber
+            msg.origin.blockNumber,
           )
           await this.#bridge.batch().put(bridgeOutIdKey, msg).put(bridgeInIdKey, msg).write()
           await this.#janitor.schedule(
@@ -576,7 +583,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
               sublevel: prefixes.matching.bridge,
               key: bridgeInIdKey,
               expiry: outboundTTL,
-            }
+            },
           )
         } else if (i === sublegs.length - 1 || leg.relay !== undefined) {
           log.info(
@@ -587,7 +594,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             iKey,
             msg.subscriptionId,
             msg.origin.blockHash,
-            msg.origin.blockNumber
+            msg.origin.blockNumber,
           )
           await this.#outbound.batch().put(iKey, msg).put(hKey, msg).write()
           await this.#janitor.schedule(
@@ -600,7 +607,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
               sublevel: prefixes.matching.outbound,
               key: iKey,
               expiry: outboundTTL,
-            }
+            },
           )
         } else if (leg.type === 'hop') {
           log.info(
@@ -611,7 +618,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             iKey,
             msg.subscriptionId,
             msg.origin.blockHash,
-            msg.origin.blockNumber
+            msg.origin.blockNumber,
           )
           await this.#hop.batch().put(iKey, msg).put(hKey, msg).write()
           await this.#janitor.schedule(
@@ -624,7 +631,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
               sublevel: prefixes.matching.hop,
               key: iKey,
               expiry: outboundTTL,
-            }
+            },
           )
         }
       } else if (i === sublegs.length - 1 || leg.relay !== undefined) {
@@ -635,7 +642,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           hKey,
           msg.subscriptionId,
           msg.origin.blockHash,
-          msg.origin.blockNumber
+          msg.origin.blockNumber,
         )
         await this.#outbound.put(hKey, msg)
         await this.#janitor.schedule({
@@ -651,7 +658,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           hKey,
           msg.subscriptionId,
           msg.origin.blockHash,
-          msg.origin.blockNumber
+          msg.origin.blockNumber,
         )
         await this.#hop.put(hKey, msg)
         await this.#janitor.schedule({
@@ -677,7 +684,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         relayKey,
         outMsg.subscriptionId,
         outMsg.origin.blockHash,
-        outMsg.origin.blockNumber
+        outMsg.origin.blockNumber,
       )
       await this.#relay.del(relayKey)
       await this.#onXcmRelayed(outMsg, relayMsg)

@@ -105,7 +105,7 @@ export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
   onDemandSub?: {
     sub: OnDemandWithAgent<T>
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>
-  }
+  },
 ) {
   const protocol = new Protocol(onMessage)
   const ws = new WebSocket(url)

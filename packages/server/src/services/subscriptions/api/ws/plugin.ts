@@ -48,7 +48,7 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
     (socket, request): void => {
       const { agentId, subscriptionId } = request.params
       setImmediate(() => protocol.handle(socket, request, { agentId, subscriptionId }))
-    }
+    },
   )
 
   fastify.get<{
@@ -58,7 +58,7 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
     { websocket: true, config: { wsAuth: true, caps: [CAP_WRITE] }, schema: { hide: true } },
     (socket, request): void => {
       setImmediate(() => protocol.handle(socket, request))
-    }
+    },
   )
 }
 

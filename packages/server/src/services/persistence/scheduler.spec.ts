@@ -84,7 +84,7 @@ describe('scheduler service', () => {
         key: new Date(time + 2000).toISOString() + 'c',
         type: 'task',
         task: {},
-      }
+      },
     )
 
     expect((await scheduler.allTaskTimes()).length).toBe(3)

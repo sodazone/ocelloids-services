@@ -7,7 +7,10 @@ import { from, of } from 'rxjs'
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js'
 import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js'
 import { _services } from '../../../testing/services.js'
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../agents/xcm/storage.js'
+import {
+  parachainSystemHrmpOutboundMessages,
+  parachainSystemUpwardMessages,
+} from '../../agents/xcm/storage.js'
 import Connector from '../../networking/connector.js'
 import { Janitor } from '../../persistence/janitor.js'
 import { BlockNumberRange, ChainHead } from '../../subscriptions/types.js'
@@ -112,27 +115,27 @@ describe('head catcher', () => {
         prefixes.cache.keys.block('0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'),
         prefixes.cache.keys.storage(
           parachainSystemHrmpOutboundMessages,
-          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
+          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
         ),
         prefixes.cache.keys.storage(
           parachainSystemHrmpOutboundMessages,
-          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'
+          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
         ),
         prefixes.cache.keys.storage(
           parachainSystemHrmpOutboundMessages,
-          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'
+          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
         ),
         prefixes.cache.keys.storage(
           parachainSystemUpwardMessages,
-          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
+          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
         ),
         prefixes.cache.keys.storage(
           parachainSystemUpwardMessages,
-          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'
+          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
         ),
         prefixes.cache.keys.storage(
           parachainSystemUpwardMessages,
-          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'
+          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
         ),
       ]
 
@@ -147,7 +150,7 @@ describe('head catcher', () => {
       expect(
         expectedKeys.every((k) => {
           return slkeys.includes(k)
-        })
+        }),
       ).toBe(true)
     })
   })
@@ -185,14 +188,15 @@ describe('head catcher', () => {
                 isReady: Promise.resolve({
                   derive: {
                     chain: {
-                      getBlock: (hash) => of(polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
+                      getBlock: (hash) =>
+                        of(polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
                     },
                   },
                   rpc: {
                     chain: {
                       getHeader: (hash) => {
                         return Promise.resolve(
-                          polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!
+                          polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!,
                         )
                       },
                     },
@@ -379,7 +383,7 @@ describe('head catcher', () => {
       }
       db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
         prefixes.cache.keys.range(range),
-        range
+        range,
       )
       const testHeaders = testBlocks.map((tb) => tb.block.header)
       // We will emit the last finalized headers
@@ -529,7 +533,7 @@ describe('head catcher', () => {
       const mockUpwardMessagesQuery = jest.fn(() =>
         Promise.resolve({
           toU8a: () => new Uint8Array(0),
-        })
+        }),
       )
       const catcher = new HeadCatcher({
         ..._services,
@@ -634,7 +638,7 @@ describe('head catcher', () => {
       const mockHrmpOutboundMessagesQuery = jest.fn(() =>
         Promise.resolve({
           toU8a: () => new Uint8Array(0),
-        })
+        }),
       )
       const catcher = new HeadCatcher({
         ..._services,

@@ -46,7 +46,7 @@ describe('monitoring server API', () => {
           expect(response.headers['content-type']).toStrictEqual('text/plain; charset=utf-8')
 
           done()
-        }
+        },
       )
     })
 
@@ -60,7 +60,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(201)
-        }
+        },
       )
     })
 
@@ -88,7 +88,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(201)
-        }
+        },
       )
     })
 
@@ -111,7 +111,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(201)
-        }
+        },
       )
     })
   })
@@ -127,7 +127,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(400)
-        }
+        },
       )
     })
 
@@ -158,9 +158,9 @@ describe('monitoring server API', () => {
             (_, r) => {
               done()
               expect(r.statusCode).toStrictEqual(404)
-            }
+            },
           )
-        }
+        },
       )
     })
 
@@ -173,7 +173,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-        }
+        },
       )
     })
 
@@ -187,7 +187,7 @@ describe('monitoring server API', () => {
           done()
           expect(response.statusCode).toStrictEqual(200)
           expect(JSON.parse(response.body)).toEqual(testSubContent)
-        }
+        },
       )
     })
 
@@ -201,7 +201,7 @@ describe('monitoring server API', () => {
           done()
           expect(response.statusCode).toStrictEqual(200)
           expect(JSON.parse(response.body).args.senders).toEqual('*')
-        }
+        },
       )
     })
 
@@ -214,7 +214,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(404)
-        }
+        },
       )
     })
 
@@ -239,7 +239,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(400)
-        }
+        },
       )
     })
 
@@ -261,7 +261,7 @@ describe('monitoring server API', () => {
           expect(response.statusCode).toStrictEqual(200)
 
           expect(JSON.parse(response.body).args.senders).toEqual(['ALICE', 'BOB'])
-        }
+        },
       )
     })
 
@@ -280,7 +280,7 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-        }
+        },
       )
     })
 
@@ -300,8 +300,11 @@ describe('monitoring server API', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).args.destinations).toEqual(['urn:ocn:local:2000', 'urn:ocn:local:3000'])
-        }
+          expect(JSON.parse(response.body).args.destinations).toEqual([
+            'urn:ocn:local:2000',
+            'urn:ocn:local:3000',
+          ])
+        },
       )
     })
 
@@ -325,7 +328,7 @@ describe('monitoring server API', () => {
           done()
           expect(response.statusCode).toStrictEqual(200)
           expect(JSON.parse(response.body).channels[0].type).toEqual('webhook')
-        }
+        },
       )
     })
   })

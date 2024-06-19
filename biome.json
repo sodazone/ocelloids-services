@@ -6,7 +6,7 @@
 		"indentStyle": "space",
 		"indentWidth": 2,
 		"lineEnding": "lf",
-		"lineWidth": 120,
+		"lineWidth": 110,
 		"attributePosition": "auto"
 	},
 	"organizeImports": { "enabled": true },
@@ -97,7 +97,6 @@
 		"formatter": {
 			"jsxQuoteStyle": "double",
 			"quoteProperties": "asNeeded",
-			"trailingCommas": "es5",
 			"semicolons": "asNeeded",
 			"arrowParentheses": "always",
 			"bracketSpacing": true,

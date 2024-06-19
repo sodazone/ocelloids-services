@@ -134,7 +134,7 @@ export default class Connector {
     if (this.#relays[relayId] === undefined) {
       if (provider.type === 'rpc') {
         throw new Error(
-          'RPC provider cannot be used for relay chain if light client provider is being used for parachain.'
+          'RPC provider cannot be used for relay chain if light client provider is being used for parachain.',
         )
       }
       this.#registerSmoldotRelay(relayId, provider.name, provider.spec)

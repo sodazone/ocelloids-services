@@ -9,7 +9,12 @@ import FastifyHealthcheck from 'fastify-healthcheck'
 
 import { logger } from '../../../environment.js'
 import { errorHandler } from '../../../errors.js'
-import { $BaseServerOptions, $ConfigServerOptions, $LevelServerOptions, $RedisServerOptions } from '../../../types.js'
+import {
+  $BaseServerOptions,
+  $ConfigServerOptions,
+  $LevelServerOptions,
+  $RedisServerOptions,
+} from '../../../types.js'
 import { Auth, Configuration, Connector, Persistence, Root, Telemetry } from '../../index.js'
 
 import Ingress from '../producer/plugin.js'
@@ -48,7 +53,7 @@ export async function createIngressServer(opts: ServerOptions) {
       }
 
       await server.close()
-    }
+    },
   )
 
   /* istanbul ignore next */

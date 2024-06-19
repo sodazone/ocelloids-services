@@ -22,7 +22,7 @@ export class LogPublisher extends (EventEmitter as new () => PublisherEmitter) i
       msg.metadata.type,
       msg.metadata.agentId,
       msg.metadata.subscriptionId,
-      msg.payload
+      msg.payload,
     )
   }
 }

@@ -502,7 +502,7 @@ export class GenericXcmSent implements XcmSent {
     chainId: NetworkURN,
     msg: XcmSentWithContext,
     legs: Leg[],
-    forwardId?: HexString
+    forwardId?: HexString,
   ) {
     this.subscriptionId = subscriptionId
     this.legs = legs
@@ -734,7 +734,7 @@ export class GenericXcmBridge implements XcmBridge {
   constructor(
     originMsg: XcmSent,
     waypoint: XcmWaypointContext,
-    { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext
+    { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext,
   ) {
     this.subscriptionId = originMsg.subscriptionId
     this.bridgeMessageType = bridgeMessageType
@@ -772,9 +772,9 @@ export function isXcmRelayed(object: any): object is XcmRelayed {
   return object.type !== undefined && object.type === XcmNotificationType.Relayed
 }
 
-const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(XcmNotificationType).join(
-  ','
-)}]`
+const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(
+  XcmNotificationType,
+).join(',')}]`
 
 const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds'
 
@@ -785,7 +785,9 @@ export const $XcmInputs = z.object({
     })
     .min(1),
   senders: z.optional(
-    z.literal('*').or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct))
+    z
+      .literal('*')
+      .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct)),
   ),
   destinations: z
     .array(
@@ -793,12 +795,14 @@ export const $XcmInputs = z.object({
         .string({
           required_error: 'destination id is required',
         })
-        .min(1)
+        .min(1),
     )
     .transform(distinct),
   bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
   // prevent using $refs
-  events: z.optional(z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR))),
+  events: z.optional(
+    z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
+  ),
   outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })
 

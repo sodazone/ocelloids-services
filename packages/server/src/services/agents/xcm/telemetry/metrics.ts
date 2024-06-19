@@ -67,7 +67,12 @@ export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
 
   source.on('telemetryXcmMatched', (inMsg: XcmInbound, outMsg: XcmSent) => {
     matchCount
-      .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
+      .labels(
+        outMsg.subscriptionId,
+        outMsg.origin.chainId,
+        outMsg.destination.chainId,
+        inMsg.outcome.toString(),
+      )
       .inc()
   })
 
@@ -78,7 +83,7 @@ export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
         relayMsg.origin.chainId,
         relayMsg.destination.chainId,
         relayMsg.waypoint.legIndex.toString(),
-        relayMsg.waypoint.outcome.toString()
+        relayMsg.waypoint.outcome.toString(),
       )
       .inc()
   })
@@ -96,7 +101,7 @@ export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
         msg.waypoint.legIndex.toString(),
         msg.waypoint.chainId,
         msg.waypoint.outcome.toString(),
-        msg.direction
+        msg.direction,
       )
       .inc()
   })
@@ -110,14 +115,19 @@ export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
         msg.waypoint.legIndex.toString(),
         msg.waypoint.chainId,
         msg.waypoint.outcome.toString(),
-        msg.bridgeMessageType
+        msg.bridgeMessageType,
       )
       .inc()
   })
 
   source.on('telemetryXcmTrapped', (inMsg: XcmInbound, outMsg: XcmSent) => {
     trapCount
-      .labels(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.destination.chainId, inMsg.outcome.toString())
+      .labels(
+        outMsg.subscriptionId,
+        outMsg.origin.chainId,
+        outMsg.destination.chainId,
+        inMsg.outcome.toString(),
+      )
       .inc()
   })
 }

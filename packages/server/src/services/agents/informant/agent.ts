@@ -16,7 +16,7 @@ export const $InformantInputs = z.object({
       .string({
         required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
       })
-      .min(1)
+      .min(1),
   ),
   filter: z.object({
     type: z.enum(['event', 'extrinsic']),
@@ -208,7 +208,7 @@ export class InformantAgent implements Agent {
       ControlQuery.from(args.filter.match)
     } catch (error) {
       throw new ValidationError(
-        `Filter match must be a valid Mongo Query Language expression: ${(error as Error).message}`
+        `Filter match must be a valid Mongo Query Language expression: ${(error as Error).message}`,
       )
     }
   }

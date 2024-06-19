@@ -16,7 +16,11 @@ import {
   xcmpSendPolkadotBridgeHub,
 } from '../../../../testing/bridge/blocks.js'
 
-import { extractBridgeMessageAccepted, extractBridgeMessageDelivered, extractBridgeReceive } from './pk-bridge.js'
+import {
+  extractBridgeMessageAccepted,
+  extractBridgeMessageDelivered,
+  extractBridgeReceive,
+} from './pk-bridge.js'
 import { extractRelayReceive } from './relay.js'
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js'
 
@@ -138,7 +142,7 @@ describe('relay operator', () => {
       const test$ = extractRelayReceive(
         origin as NetworkURN,
         messageControl,
-        registry
+        registry,
       )(blocks.pipe(extractTxWithEvents()))
 
       test$.subscribe({
@@ -170,7 +174,7 @@ describe('relay operator', () => {
       const test$ = extractRelayReceive(
         origin as NetworkURN,
         messageControl,
-        registry
+        registry,
       )(blocks.pipe(extractTxWithEvents()))
 
       test$.subscribe({
@@ -206,7 +210,7 @@ describe('bridge operator', () => {
       const test$ = extractBridgeMessageAccepted(
         origin as NetworkURN,
         registry,
-        getStorage
+        getStorage,
       )(blocks.pipe(extractEvents()))
 
       test$.subscribe({
@@ -236,7 +240,10 @@ describe('bridge operator', () => {
 
       const calls = jest.fn()
 
-      const test$ = extractBridgeMessageDelivered(origin as NetworkURN, registry)(blocks.pipe(extractEvents()))
+      const test$ = extractBridgeMessageDelivered(
+        origin as NetworkURN,
+        registry,
+      )(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -298,7 +305,7 @@ describe('mapXcmSent', () => {
     const test$ = mapXcmSent(
       'test-sub',
       registry,
-      'urn:ocn:kusama:1000'
+      'urn:ocn:kusama:1000',
     )(
       from(
         xcms.map(
@@ -317,9 +324,9 @@ describe('mapXcmSent', () => {
                 bytes: x.toU8a(),
                 json: x.toHuman(),
               },
-            })
-        )
-      )
+            }),
+        ),
+      ),
     )
 
     test$.subscribe({
@@ -348,7 +355,7 @@ describe('mapXcmSent', () => {
     const test$ = mapXcmSent(
       'test-sub',
       registry,
-      'urn:ocn:polkadot:1002'
+      'urn:ocn:polkadot:1002',
     )(
       from(
         xcms.map(
@@ -367,9 +374,9 @@ describe('mapXcmSent', () => {
                 bytes: x.toU8a(),
                 json: x.toHuman(),
               },
-            })
-        )
-      )
+            }),
+        ),
+      ),
     )
 
     test$.subscribe({

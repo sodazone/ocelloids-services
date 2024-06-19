@@ -56,7 +56,7 @@ export function testBlocksFrom(file: string, metadataFile: string) {
       block as SignedBlock,
       records as unknown as EventRecord[],
       null,
-      author as AccountId
+      author as AccountId,
     )
   })
 }

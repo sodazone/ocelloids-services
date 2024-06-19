@@ -25,7 +25,7 @@ describe('OcelloidsClient', () => {
       new OcelloidsClient({
         wsUrl: 'wss://ws.abc',
         httpUrl: 'https://rpc.abc',
-      })
+      }),
     ).toBeDefined()
   })
 
@@ -41,7 +41,7 @@ describe('OcelloidsClient', () => {
           200,
           JSON.stringify({
             token: 'ey123',
-          })
+          }),
         )
     })
 
@@ -60,7 +60,7 @@ describe('OcelloidsClient', () => {
             JSON.stringify({
               metadata: {},
               payload: s,
-            })
+            }),
           )
         }
       })
@@ -133,7 +133,7 @@ describe('OcelloidsClient', () => {
           onSubscriptionCreated: (sub) => {
             expect(sub.agent).toBe('xcm')
           },
-        }
+        },
       )
     })
 
@@ -155,7 +155,7 @@ describe('OcelloidsClient', () => {
                   message: 'origin id is required',
                 },
               ],
-            })
+            }),
           )
         })
       })
@@ -189,7 +189,7 @@ describe('OcelloidsClient', () => {
             expect(isSubscriptionError(err)).toBeTruthy()
             done()
           },
-        }
+        },
       )
     })
 

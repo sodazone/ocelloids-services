@@ -27,7 +27,7 @@ async function startServer(this: Command) {
           server.log.error(err)
           process.exit(1)
         }
-      }
+      },
     )
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -44,7 +44,13 @@ addServerOptions(program)
   .name('oc-ingress')
   .description('Ocelloids Ingress Node')
   .version(version)
-  .addOption(opt('--redis <redis-url>', 'redis[s]://[[username][:password]@][host][:port][/db-number]', 'OC_REDIS_URL'))
+  .addOption(
+    opt(
+      '--redis <redis-url>',
+      'redis[s]://[[username][:password]@][host][:port][/db-number]',
+      'OC_REDIS_URL',
+    ),
+  )
   .action(startServer)
 
 program.parse()

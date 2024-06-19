@@ -16,7 +16,7 @@ export function publishTelemetryFrom(
   type: string,
   channel: string,
   msg: Message,
-  error?: string
+  error?: string,
 ): NotifyTelemetryMessage {
   return {
     type,

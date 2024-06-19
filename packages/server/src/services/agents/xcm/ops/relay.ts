@@ -16,7 +16,9 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
       filter(({ extrinsic }) => matchExtrinsic(extrinsic, 'parainherent', 'enter')),
       map(({ extrinsic, dispatchError }) => {
         const { backedCandidates } = extrinsic.args[0] as unknown as PolkadotPrimitivesV6InherentData
-        const backed = backedCandidates.find((c) => c.candidate.descriptor.paraId.toString() === getChainId(origin))
+        const backed = backedCandidates.find(
+          (c) => c.candidate.descriptor.paraId.toString() === getChainId(origin),
+        )
         if (backed) {
           const { horizontalMessages } = backed.candidate.commitments
           const message = horizontalMessages.find(({ recipient }) => {
@@ -39,14 +41,14 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
                   extrinsicId,
                   outcome: dispatchError ? 'Fail' : 'Success',
                   error: dispatchError ? dispatchError.toHuman() : null,
-                })
+                }),
             )
           }
         }
         return null
       }),
       filterNonNull(),
-      mergeMap((x) => x)
+      mergeMap((x) => x),
     )
   }
 }

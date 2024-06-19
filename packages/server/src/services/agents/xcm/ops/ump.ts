@@ -25,7 +25,7 @@ const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed']
 function createUmpReceivedWithContext(
   subOrigin: NetworkURN,
   event: types.BlockEvent,
-  assetsTrappedEvent?: types.BlockEvent
+  assetsTrappedEvent?: types.BlockEvent,
 ): XcmInboundWithContext | null {
   const { id, origin, success, error } = event.data as unknown as MessageQueueEventContext
   // Received event only emits field `message_id`,
@@ -54,7 +54,7 @@ function createUmpReceivedWithContext(
 function findOutboundUmpMessage(
   origin: NetworkURN,
   getOutboundUmpMessages: GetOutboundUmpMessages,
-  registry: Registry
+  registry: Registry,
 ) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -81,21 +81,27 @@ function findOutboundUmpMessage(
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash
               })
           }),
-          filterNonNull()
+          filterNonNull(),
         )
-      })
+      }),
     )
   }
 }
 
-export function extractUmpSend(origin: NetworkURN, getOutboundUmpMessages: GetOutboundUmpMessages, registry: Registry) {
+export function extractUmpSend(
+  origin: NetworkURN,
+  getOutboundUmpMessages: GetOutboundUmpMessages,
+  registry: Registry,
+) {
   return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter(
-        (event) => matchEvent(event, 'parachainSystem', 'UpwardMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent')
+        (event) =>
+          matchEvent(event, 'parachainSystem', 'UpwardMessageSent') ||
+          matchEvent(event, 'polkadotXcm', 'Sent'),
       ),
       xcmMessagesSent(),
-      findOutboundUmpMessage(origin, getOutboundUmpMessages, registry)
+      findOutboundUmpMessage(origin, getOutboundUmpMessages, registry),
     )
   }
 }
@@ -113,7 +119,7 @@ export function extractUmpReceive(originId: NetworkURN) {
         }
         return null
       }),
-      filterNonNull()
+      filterNonNull(),
     )
   }
 }

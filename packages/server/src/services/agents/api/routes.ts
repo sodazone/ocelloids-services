@@ -26,7 +26,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (_, reply) => {
       reply.send(await agentService.getAgentIds())
-    }
+    },
   )
 
   /**
@@ -52,6 +52,6 @@ export async function AgentsApi(api: FastifyInstance) {
     async (request, reply) => {
       const { agentId } = request.params
       reply.send(zodToJsonSchema(await agentService.getAgentInputSchema(agentId)))
-    }
+    },
   )
 }

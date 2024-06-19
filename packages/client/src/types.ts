@@ -197,7 +197,7 @@ export type OnDemandSubscriptionHandlers<T = AnySubscriptionInputs> = {
  * @public
  */
 export function isSubscription<T = AnySubscriptionInputs>(
-  obj: Subscription<T> | SubscriptionError | Message
+  obj: Subscription<T> | SubscriptionError | Message,
 ): obj is Subscription<T> {
   const maybeSub = obj as Subscription
   return maybeSub.channels !== undefined && maybeSub.agent !== undefined && maybeSub.id !== undefined
@@ -209,7 +209,7 @@ export function isSubscription<T = AnySubscriptionInputs>(
  * @public
  */
 export function isSubscriptionError<T = AnySubscriptionInputs>(
-  obj: Subscription<T> | SubscriptionError
+  obj: Subscription<T> | SubscriptionError,
 ): obj is SubscriptionError {
   const maybeError = obj as SubscriptionError
   return maybeError.issues !== undefined && maybeError.name !== undefined

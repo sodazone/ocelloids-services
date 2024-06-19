@@ -33,7 +33,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (_, reply) => {
       reply.send(await switchboard.getAllSubscriptions())
-    }
+    },
   )
 
   /**
@@ -65,7 +65,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     async (request, reply) => {
       const { agentId } = request.params
       reply.send(await switchboard.getSubscriptionsByAgentId(agentId))
-    }
+    },
   )
 
   /**
@@ -96,7 +96,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     async (request, reply) => {
       const { agentId, subscriptionId } = request.params
       reply.send(await switchboard.getSubscriptionById(agentId, subscriptionId))
-    }
+    },
   )
 
   /**
@@ -132,7 +132,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       const subs = request.body
       await switchboard.subscribe(subs)
       reply.status(201).send()
-    }
+    },
   )
 
   /**
@@ -173,7 +173,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       } catch (error) {
         reply.code(400).send((error as Error).message)
       }
-    }
+    },
   )
 
   /**
@@ -208,6 +208,6 @@ export async function SubscriptionApi(api: FastifyInstance) {
       await switchboard.unsubscribe(agentId, subscriptionId)
 
       reply.send()
-    }
+    },
   )
 }

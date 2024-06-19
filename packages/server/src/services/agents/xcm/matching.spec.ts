@@ -38,7 +38,7 @@ describe('message matching engine', () => {
           schedule,
         } as unknown as Janitor,
       },
-      cb
+      cb,
     )
 
     outbound = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded)

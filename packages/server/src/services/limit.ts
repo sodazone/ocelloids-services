@@ -30,7 +30,7 @@ const limitPlugin: FastifyPluginAsync = async (fastify) => {
     },
     function (_, reply) {
       reply.code(404).send()
-    }
+    },
   )
 }
 

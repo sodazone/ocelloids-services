@@ -89,7 +89,8 @@ export class Scheduler extends EventEmitter {
     const cancellable = new Promise((resolve) => {
       this.#cancel = resolve
     })
-    const delay = () => Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable])
+    const delay = () =>
+      Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable])
 
     this.#running = true
 

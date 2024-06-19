@@ -106,7 +106,12 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
       const chainRuntimeVersion = await api.rpc.state.getRuntimeVersion()
       const chainSpecVersion = chainRuntimeVersion.specVersion.toString()
 
-      this.#log.info('[%s] Runtime version %s [current=%s]', chainId, runtimeVersion ?? 'unknown', chainSpecVersion)
+      this.#log.info(
+        '[%s] Runtime version %s [current=%s]',
+        chainId,
+        runtimeVersion ?? 'unknown',
+        chainSpecVersion,
+      )
 
       if (chainSpecVersion !== runtimeVersion) {
         this.#log.info('[%s] GET metadata', chainId)
@@ -115,7 +120,10 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
         const metadataKey = getMetadataKey(chainId)
 
         this.#log.info('[%s] UPDATE metadata [key=%s,spec=%s]', chainId, metadataKey, chainSpecVersion)
-        await this.#distributor.mset([metadataKey, Buffer.from(metadata.toU8a())], [versionKey, chainSpecVersion])
+        await this.#distributor.mset(
+          [metadataKey, Buffer.from(metadata.toU8a())],
+          [versionKey, chainSpecVersion],
+        )
       }
 
       this.#rxSubs[chainId] = this.#headCatcher.finalizedBlocks(chainId).subscribe({
@@ -141,7 +149,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
     }
     await this.#distributor.sadd(
       NetworksKey,
-      networks.map((network) => JSON.stringify(network))
+      networks.map((network) => JSON.stringify(network)),
     )
   }
 

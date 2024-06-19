@@ -113,7 +113,7 @@ describe('WebsocketProtocol', () => {
         JSON.stringify({
           ...testSub,
           channels: [{ type: 'log' }],
-        })
+        }),
       )
       const mockStream = {
         close: jest.fn(),

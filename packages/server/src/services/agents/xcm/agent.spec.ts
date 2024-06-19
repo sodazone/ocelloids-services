@@ -122,7 +122,7 @@ describe('switchboard service', () => {
         ..._services,
         subsStore: subs,
       } as Services,
-      { mode: AgentServiceMode.local }
+      { mode: AgentServiceMode.local },
     )
   })
 

@@ -19,7 +19,7 @@ export function decodeSignedBlockExtended(registry: Registry, buffer: Buffer | U
     block as SignedBlockExtended,
     records as unknown as EventRecord[],
     null,
-    author as AccountId
+    author as AccountId,
   )
 
   return signedBlock

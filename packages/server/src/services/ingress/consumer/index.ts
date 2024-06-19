@@ -134,7 +134,7 @@ export class DistributedIngressConsumer
         // TODO retry
         shareReplay({
           refCount: true,
-        })
+        }),
       )
     }
     return this.#registries$[chainId]
@@ -229,7 +229,7 @@ export class DistributedIngressConsumer
               .catch(reject)
           })
           .catch(reject)
-      })
+      }),
     )
   }
 
@@ -252,7 +252,7 @@ export class DistributedIngressConsumer
           chainId,
           signedBlock.block.header.number.toString(),
           signedBlock.block.header.hash.toHex(),
-          lastId
+          lastId,
         )
 
         setImmediate(async () => {
@@ -263,7 +263,7 @@ export class DistributedIngressConsumer
           }
         })
       },
-      id
+      id,
     )
   }
 }
@@ -275,7 +275,10 @@ export class DistributedIngressConsumer
  * This class is responsible for managing block consumption and storage retrieval logic
  * within a local or integrated environment.
  */
-export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEventEmitter) implements IngressConsumer {
+export class LocalIngressConsumer
+  extends (EventEmitter as new () => TelemetryEventEmitter)
+  implements IngressConsumer
+{
   // readonly #log: Logger;
   readonly #headCatcher: HeadCatcher
   readonly #config: ServiceConfiguration
@@ -325,7 +328,7 @@ export class LocalIngressConsumer extends (EventEmitter as new () => TelemetryEv
         // TODO retry
         shareReplay({
           refCount: true,
-        })
+        }),
       )
     }
     return this.#registries$[chainId]

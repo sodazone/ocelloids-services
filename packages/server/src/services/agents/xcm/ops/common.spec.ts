@@ -21,7 +21,7 @@ describe('extract waypoints operator', () => {
       const test$ = mapXcmSent(
         'test-sub',
         registry,
-        'urn:ocn:local:2004'
+        'urn:ocn:local:2004',
       )(
         from(
           xcms.map(
@@ -40,9 +40,9 @@ describe('extract waypoints operator', () => {
                   bytes: x.toU8a(),
                   json: x.toHuman(),
                 },
-              })
-          )
-        )
+              }),
+          ),
+        ),
       )
 
       test$.subscribe({
@@ -77,7 +77,7 @@ describe('extract waypoints operator', () => {
       const test$ = mapXcmSent(
         'test-sub',
         registry,
-        'urn:ocn:local:0'
+        'urn:ocn:local:0',
       )(
         of(
           new GenericXcmSentWithContext({
@@ -94,8 +94,8 @@ describe('extract waypoints operator', () => {
               bytes: xcm.toU8a(),
               json: xcm.toHuman(),
             },
-          })
-        )
+          }),
+        ),
       )
 
       test$.subscribe({
@@ -135,7 +135,7 @@ describe('extract waypoints operator', () => {
       const test$ = mapXcmSent(
         'test-sub',
         registry,
-        'urn:ocn:local:2085'
+        'urn:ocn:local:2085',
       )(
         from(
           xcms.map(
@@ -154,9 +154,9 @@ describe('extract waypoints operator', () => {
                   bytes: x.toU8a(),
                   json: x.toHuman(),
                 },
-              })
-          )
-        )
+              }),
+          ),
+        ),
       )
 
       test$.subscribe({

@@ -79,7 +79,7 @@ describe('janitor service', () => {
         key: 'k3',
         sublevel: 's1',
         expiry: 2000,
-      }
+      },
     )
 
     expect((await scheduler.allTaskTimes()).length).toBe(3)
@@ -119,7 +119,7 @@ describe('janitor service', () => {
         janitor.schedule({
           key: 'k' + i,
           sublevel: 's',
-        })
+        }),
       )
     }
     await Promise.all(p)
@@ -144,7 +144,7 @@ describe('janitor service', () => {
       {
         key: 'k1',
         sublevel: 's1',
-      }
+      },
     )
 
     expect((await scheduler.allTaskTimes()).length).toBe(3)

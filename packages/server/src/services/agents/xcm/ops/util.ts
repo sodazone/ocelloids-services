@@ -104,7 +104,7 @@ export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
 }
 
 export function getParaIdFromOrigin(
-  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
+  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
 ): string | undefined {
   if (origin.isUmp) {
     const umpOrigin = origin.asUmp
@@ -216,7 +216,7 @@ function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
 
 // eslint-disable-next-line complexity
 export function getParaIdFromJunctions(
-  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions
+  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions,
 ): string | undefined {
   if (junctions.type === 'Here') {
     return undefined
@@ -244,7 +244,7 @@ export function getParaIdFromJunctions(
 }
 
 export function getParaIdFromMultiLocation(
-  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location
+  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
 ): string | undefined {
   const junctions = loc.interior
   if (junctions.type === 'Here') {
@@ -275,7 +275,7 @@ export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocati
 // eslint-disable-next-line complexity
 export function networkIdFromMultiLocation(
   loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
-  currentNetworkId: NetworkURN
+  currentNetworkId: NetworkURN,
 ): NetworkURN | undefined {
   const { parents, interior: junctions } = loc
 
@@ -310,7 +310,7 @@ export function networkIdFromMultiLocation(
 
 export function networkIdFromVersionedMultiLocation(
   loc: XcmVersionedLocation,
-  currentNetworkId: NetworkURN
+  currentNetworkId: NetworkURN,
 ): NetworkURN | undefined {
   switch (loc.type) {
     case 'V2':
@@ -347,7 +347,11 @@ export function matchEvent(event: types.BlockEvent, section: string | string[], 
   )
 }
 
-export function matchExtrinsic(extrinsic: types.ExtrinsicWithId, section: string, method: string | string[]): boolean {
+export function matchExtrinsic(
+  extrinsic: types.ExtrinsicWithId,
+  section: string,
+  method: string | string[],
+): boolean {
   return section === extrinsic.method.section && Array.isArray(method)
     ? method.includes(extrinsic.method.method)
     : method === extrinsic.method.method
@@ -355,7 +359,7 @@ export function matchExtrinsic(extrinsic: types.ExtrinsicWithId, section: string
 
 function createTrappedAssetsFromMultiAssets(
   version: number,
-  assets: XcmV2MultiassetMultiAssets | XcmV3MultiassetMultiAssets
+  assets: XcmV2MultiassetMultiAssets | XcmV3MultiassetMultiAssets,
 ): TrappedAsset[] {
   return assets.map((a) => ({
     version,

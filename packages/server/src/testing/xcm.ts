@@ -292,7 +292,9 @@ export const dmpReceive = {
 
 export const relayHrmpReceive = {
   blocks: from(testBlocksFrom('relay-hrmp-19507696.cbor.bin', 'polkadot.json')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006', 'urn:ocn:local:2104'])),
+  messageControl: new ControlQuery(
+    messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006', 'urn:ocn:local:2104']),
+  ),
   origin: 'urn:ocn:local:2004',
   destination: 'urn:ocn:local:2104',
 }
@@ -313,7 +315,7 @@ export const xcmHop = {
           },
           data: registry.createType(
             'Bytes',
-            '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34'
+            '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34',
           ),
         },
       ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,

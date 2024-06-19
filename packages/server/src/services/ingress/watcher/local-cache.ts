@@ -9,7 +9,10 @@ import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Raw } from '@polkadot/types'
 import type { Hash } from '@polkadot/types/interfaces'
 
-import { parachainSystemHrmpOutboundMessages, parachainSystemUpwardMessages } from '../../agents/xcm/storage.js'
+import {
+  parachainSystemHrmpOutboundMessages,
+  parachainSystemUpwardMessages,
+} from '../../agents/xcm/storage.js'
 import { NetworkConfiguration } from '../../config.js'
 import { Janitor } from '../../persistence/janitor.js'
 import { HexString } from '../../subscriptions/types.js'
@@ -74,7 +77,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
           chainId,
           header,
         })
-      })
+      }),
     )
 
     const fromStorage = (_api: ApiRx, hash: Hash) =>
@@ -84,7 +87,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
             key: captureStorageKeys[index],
             value,
           }))
-        })
+        }),
       )
 
     const msgs$ = block$.pipe(
@@ -98,16 +101,16 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
               block,
               storageItems,
             }
-          })
+          }),
         )
-      })
+      }),
     )
 
     if (isRelayChain) {
       this.#subs[chainId] = block$
         .pipe(
           map((block) => from(this.#putBlockBuffer(chainId, block))),
-          mergeAll()
+          mergeAll(),
         )
         .subscribe({
           error: (error) => this.#log.error(error, '[%s] Error on caching block for relay chain', chainId),
@@ -125,15 +128,15 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
                   this.#putBuffer(
                     chainId,
                     prefixes.cache.keys.storage(storageItem.key, hash),
-                    storageItem.value.toU8a(true)
-                  )
-                )
+                    storageItem.value.toU8a(true),
+                  ),
+                ),
               )
             }
 
             return ops
           }),
-          mergeAll()
+          mergeAll(),
         )
         .subscribe({
           error: (error: unknown) => {

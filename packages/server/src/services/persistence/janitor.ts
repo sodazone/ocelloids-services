@@ -48,7 +48,7 @@ export class Janitor extends (EventEmitter as new () => TypedEventEmitter<Janito
           type: JanitorTaskType,
           task,
         } as Scheduled<JanitorTask>
-      })
+      }),
     )
   }
 

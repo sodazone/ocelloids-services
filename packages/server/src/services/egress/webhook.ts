@@ -156,7 +156,7 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
           msg.metadata.type,
           msg.metadata.agentId,
           msg.metadata.subscriptionId,
-          postUrl
+          postUrl,
         )
         this.#telemetryPublish(config, msg)
       } else {

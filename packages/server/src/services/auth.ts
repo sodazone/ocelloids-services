@@ -65,7 +65,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       request: FastifyRequest<{
         Querystring: NodQuerystring
       }>,
-      reply: FastifyReply
+      reply: FastifyReply,
     ): Promise<void> {
       try {
         if (request.routeOptions.config.wsAuth) {
@@ -88,7 +88,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           statusCode: 401,
         })
       }
-    }
+    },
   )
 
   /**
@@ -121,7 +121,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           exp,
         }),
       })
-    }
+    },
   )
 }
 

@@ -257,7 +257,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         this.#stats.persistent++
       }
     } catch (error) {
-      this.#log.error('[%s] error while persisting subscription: %s', subscription.agent, subscription.id, error)
+      this.#log.error(
+        '[%s] error while persisting subscription: %s',
+        subscription.agent,
+        subscription.id,
+        error,
+      )
     }
   }
 

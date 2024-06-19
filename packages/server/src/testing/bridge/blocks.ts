@@ -39,12 +39,14 @@ export const xcmpSendKusamaAssetHub = {
 }
 
 export const xcmpReceiveKusamaBridgeHub = from(
-  testBlocksFrom('ksm-bridgehub-bridge-xcm-in.cbor.bin', 'kusama-bridge-hub.json')
+  testBlocksFrom('ksm-bridgehub-bridge-xcm-in.cbor.bin', 'kusama-bridge-hub.json'),
 )
 
 export const relayHrmpReceiveKusama = {
   blocks: from(testBlocksFrom('ksm-bridge-xcm-relay.cbor.bin', 'kusama.json')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:kusama:1000', 'urn:ocn:kusama:1002', 'urn:ocn:kusama:0'])),
+  messageControl: new ControlQuery(
+    messageCriteria(['urn:ocn:kusama:1000', 'urn:ocn:kusama:1002', 'urn:ocn:kusama:0']),
+  ),
   origin: 'urn:ocn:kusama:1000',
   destination: 'urn:ocn:kusama:1002',
 }
@@ -69,13 +71,13 @@ export const xcmpSendPolkadotBridgeHub = {
 }
 
 export const xcmpReceivePolkadotAssetHub = from(
-  testBlocksFrom('dot-assethub-bridge-xcm-in.cbor.bin', 'polkadot-asset-hub-1001002.json')
+  testBlocksFrom('dot-assethub-bridge-xcm-in.cbor.bin', 'polkadot-asset-hub-1001002.json'),
 )
 
 export const relayHrmpReceivePolkadot = {
   blocks: from(testBlocksFrom('dot-bridge-xcm-relay.cbor.bin', 'polkadot-1000001.json')),
   messageControl: new ControlQuery(
-    messageCriteria(['urn:ocn:polkadot:1000', 'urn:ocn:polkadot:1002', 'urn:ocn:polkadot:0'])
+    messageCriteria(['urn:ocn:polkadot:1000', 'urn:ocn:polkadot:1002', 'urn:ocn:polkadot:0']),
   ),
   origin: 'urn:ocn:polkadot:1002',
   destination: 'urn:ocn:polkadot:1000',

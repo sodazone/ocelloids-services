@@ -16,7 +16,7 @@ describe('relay operator', () => {
       const test$ = extractRelayReceive(
         origin as NetworkURN,
         messageControl,
-        registry
+        registry,
       )(blocks.pipe(extractTxWithEvents()))
 
       test$.subscribe({
@@ -48,7 +48,7 @@ describe('relay operator', () => {
       const test$ = extractRelayReceive(
         origin as NetworkURN,
         messageControl,
-        registry
+        registry,
       )(blocks.pipe(extractTxWithEvents()))
 
       // remove destination from criteria
