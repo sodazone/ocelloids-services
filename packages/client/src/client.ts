@@ -126,7 +126,8 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
 
   async #withToken(base: string) {
     if (this.#config.apiKey) {
-      return base + '?nod=' + this.#requestNodToken()
+      const nod = await this.#requestNodToken()
+      return base + '?nod=' + nod.token
     }
     return base
   }
