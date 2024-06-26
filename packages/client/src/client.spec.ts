@@ -137,7 +137,7 @@ describe('OcelloidsClient', () => {
       )
     })
 
-    it.only('should create on-demand subscription with auth', (done) => {
+    it('should create on-demand subscription with auth', (done) => {
       const wsUrl = 'ws://mock/ws/subs'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -149,6 +149,7 @@ describe('OcelloidsClient', () => {
             socket.send(JSON.stringify({ payload: samples[0] }))
           } else {
             expect(data).toBe('abracadabra')
+            socket.send('{ "code": 1000, "error": false }')
             auth = true
           }
         })

@@ -118,6 +118,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
             } = fastify.jwt.verify(data.toString().trim())
             checkCapabilities(payload.sub, request.routeOptions.config.caps)
             this.#afterAuth(socket, request, ids)
+            // acknowledge auth
+            socket.send(JSON.stringify({ code: 1000, error: false }))
           } catch (error) {
             fastify.log.error(error)
             socket.close(1002, 'auth error')
