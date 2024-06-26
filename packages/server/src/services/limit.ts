@@ -5,18 +5,22 @@ import rateLimit from '@fastify/rate-limit'
 
 import { environment, isNonProdEnv } from '../environment.js'
 
-const limitPlugin: FastifyPluginAsync = async (fastify) => {
+type LimitOptions = {
+  rateLimitMax: number
+  rateLimitWindow: number
+}
+
+const limitPlugin: FastifyPluginAsync<LimitOptions> = async (fastify, opts) => {
   if (isNonProdEnv(environment)) {
     fastify.log.warn('(!) Rate limits are disabled [%s]', environment)
 
     return
   }
 
-  // TODO: make it configurable
   await fastify.register(rateLimit, {
     global: true,
-    max: 2,
-    timeWindow: 1000,
+    max: opts.rateLimitMax,
+    timeWindow: opts.rateLimitWindow,
     hook: 'preHandler',
     /*keyGenerator: function (request) {
       return request.headers['x-real-ip'] // nginx

@@ -43,4 +43,14 @@ export function addServerOptions(command: Command) {
         'OC_TELEMETRY_ENABLE',
       ).default(true),
     )
+    .addOption(
+      optInt('--rate-limit-max <number>', 'set the max number of requests', 'OC_RATE_LIMIT_MAX').default(60),
+    )
+    .addOption(
+      optInt(
+        '--rate-limit-window <milliseconds>',
+        'set the request limit time window',
+        'OC_RATE_LIMIT_WINDOW',
+      ).default(60_000),
+    )
 }

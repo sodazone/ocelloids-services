@@ -7,6 +7,8 @@ export const $BaseServerOptions = z.object({
   address: z.string().min(1),
   grace: z.number().min(1),
   telemetry: z.boolean().default(true),
+  rateLimitMax: z.number().default(60),
+  rateLimitWindow: z.number().default(60_000),
 })
 
 export const $RedisServerOptions = z.object({
