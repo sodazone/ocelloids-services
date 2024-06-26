@@ -4,6 +4,7 @@ import { Egress } from '../../egress/index.js'
 import { PublisherEvents } from '../../egress/types.js'
 import { Logger, Services } from '../../index.js'
 import { EgressListener, Subscription } from '../../subscriptions/types.js'
+import { egressMetrics } from '../../telemetry/metrics/publisher.js'
 
 import { InformantAgent } from '../informant/agent.js'
 import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
@@ -15,23 +16,23 @@ import { XcmAgent } from '../xcm/agent.js'
 export class LocalAgentCatalog implements AgentCatalog {
   readonly #log: Logger
   readonly #agents: Record<AgentId, Agent>
-  readonly #notifier: Egress
+  readonly #egress: Egress
 
   constructor(ctx: Services, _options: AgentCatalogOptions) {
     this.#log = ctx.log
-    this.#notifier = new Egress(ctx)
+    this.#egress = new Egress(ctx)
     this.#agents = this.#loadAgents({
       ...ctx,
-      egress: this.#notifier,
+      egress: this.#egress,
     })
   }
 
   addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
-    return this.#notifier.on(eventName, listener)
+    return this.#egress.on(eventName, listener)
   }
 
   removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
-    return this.#notifier.off(eventName, listener)
+    return this.#egress.off(eventName, listener)
   }
 
   getAgentIds(): AgentId[] {
@@ -64,6 +65,8 @@ export class LocalAgentCatalog implements AgentCatalog {
   }
 
   collectTelemetry() {
+    egressMetrics(this.#egress)
+
     for (const [id, agent] of Object.entries(this.#agents)) {
       this.#log.info('[catalog:local] collect telemetry from agent %s', id)
       agent.collectTelemetry()
