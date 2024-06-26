@@ -200,7 +200,7 @@ export function isSubscription<T = AnySubscriptionInputs>(
   obj: Subscription<T> | SubscriptionError | Message,
 ): obj is Subscription<T> {
   const maybeSub = obj as Subscription
-  return maybeSub.channels !== undefined && maybeSub.agent !== undefined && maybeSub.id !== undefined
+  return maybeSub.agent !== undefined && maybeSub.args !== undefined
 }
 
 /**

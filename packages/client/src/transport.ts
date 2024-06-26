@@ -130,8 +130,6 @@ export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
     }
     const { sub, onDemandHandlers } = onDemandSub
 
-    ws.send(JSON.stringify(sub))
-
     protocol.next<Subscription<T> | SubscriptionError>((msg) => {
       if (onDemandHandlers?.onSubscriptionCreated && isSubscription(msg)) {
         onDemandHandlers.onSubscriptionCreated(msg)
@@ -141,6 +139,8 @@ export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
         onDemandHandlers.onError(msg)
       }
     })
+
+    ws.send(JSON.stringify(sub))
   }
 
   ws.onopen = () => {
@@ -150,7 +150,6 @@ export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
     }
 
     if (config.apiKey) {
-      ws.send(config.apiKey)
       protocol.next<AuthReply>((reply, _ws, event) => {
         if (reply.error) {
           if (onAuthError) {
@@ -162,6 +161,7 @@ export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
           requestOnDemandSub()
         }
       })
+      ws.send(config.apiKey)
     } else if (onDemandSub) {
       requestOnDemandSub()
     }

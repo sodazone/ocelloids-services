@@ -99,7 +99,7 @@ describe('OcelloidsClient', () => {
 
       mockWebSocketServer.on('connection', (socket) => {
         socket.on('message', (data) => {
-          socket.send(JSON.stringify(data))
+          socket.send(data)
           socket.send(JSON.stringify({ payload: samples[0] }))
         })
       })
@@ -107,6 +107,58 @@ describe('OcelloidsClient', () => {
       const client = new OcelloidsClient({
         wsUrl: 'ws://mock',
         httpUrl: 'https://rpc.abc',
+      })
+
+      client.agent<XcmInputs>('xcm').subscribe(
+        {
+          origin: 'urn:ocn:local:2004',
+          senders: '*',
+          events: '*',
+          destinations: [
+            'urn:ocn:local:0',
+            'urn:ocn:local:1000',
+            'urn:ocn:local:2000',
+            'urn:ocn:local:2034',
+            'urn:ocn:local:2104',
+          ],
+        },
+        {
+          onMessage: (msg) => {
+            expect(msg).toBeDefined()
+            expect(isXcmRelayed(msg.payload)).toBeTruthy()
+            done()
+          },
+        },
+        {
+          onSubscriptionCreated: (sub) => {
+            expect(sub.agent).toBe('xcm')
+          },
+        },
+      )
+    })
+
+    it('should create on-demand subscription with auth', (done) => {
+      const wsUrl = 'ws://mock/ws/subs'
+      mockWebSocketServer = new Server(wsUrl, { mock: false })
+
+      mockWebSocketServer.on('connection', (socket) => {
+        let auth = false
+        socket.on('message', (data) => {
+          if (auth) {
+            socket.send(data)
+            socket.send(JSON.stringify({ payload: samples[0] }))
+          } else {
+            expect(data).toBe('abracadabra')
+            socket.send('{ "code": 1000, "error": false }')
+            auth = true
+          }
+        })
+      })
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'https://rpc.abc',
+        apiKey: 'abracadabra',
       })
 
       client.agent<XcmInputs>('xcm').subscribe(
@@ -224,7 +276,7 @@ describe('OcelloidsClient', () => {
       })
     })
 
-    it('should authentitcate', (done) => {
+    it('should authentitcate for existing subscription', (done) => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
