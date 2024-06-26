@@ -248,11 +248,15 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
   }
 
   #safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
-    return socket.send(JSON.stringify(content), (error) => {
-      if (error) {
-        this.#log.error(error, 'error while write')
-      }
-    })
+    if (socket.readyState === socket.OPEN) {
+      socket.send(JSON.stringify(content), (error) => {
+        if (error) {
+          this.#log.error(error, 'error while write')
+        }
+      })
+    } else {
+      this.#log.error('websocket is not open')
+    }
   }
 
   #telemetryPublish(ip: string, msg: Message) {
