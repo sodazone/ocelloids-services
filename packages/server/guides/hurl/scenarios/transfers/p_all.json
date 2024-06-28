@@ -17,12 +17,9 @@
         "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2037",
         "urn:ocn:polkadot:2040",
         "urn:ocn:polkadot:2094",
-        "urn:ocn:polkadot:2101",
-        "urn:ocn:polkadot:2104",
-        "urn:ocn:polkadot:3340"
+        "urn:ocn:polkadot:2104"
       ],
       "events": "*"
     },
@@ -37,13 +34,14 @@
     ]
   },
   {
-    "id": "asset-hub-transfers",
+    "id": "polkadot-assethub-transfers",
     "agent": "xcm",
     "args": {
       "origin": "urn:ocn:polkadot:1000",
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1002",
         "urn:ocn:polkadot:2000",
         "urn:ocn:polkadot:2004",
         "urn:ocn:polkadot:2006",
@@ -54,13 +52,14 @@
         "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2037",
         "urn:ocn:polkadot:2040",
         "urn:ocn:polkadot:2094",
-        "urn:ocn:polkadot:2101",
         "urn:ocn:polkadot:2104",
-        "urn:ocn:polkadot:3340"
+        "urn:ocn:kusama:0",
+        "urn:ocn:kusama:1000",
+        "urn:ocn:kusama:1002"
       ],
+      "bridges": [ "pk-bridge" ],
       "events": "*"
     },
     "channels": [
@@ -87,7 +86,6 @@
         "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2037",
         "urn:ocn:polkadot:2104"
       ],
       "events": "*"
@@ -122,7 +120,6 @@
         "urn:ocn:polkadot:2035",
         "urn:ocn:polkadot:2040",
         "urn:ocn:polkadot:2094",
-        "urn:ocn:polkadot:2101",
         "urn:ocn:polkadot:2104"
       ],
       "events": "*"
@@ -154,7 +151,6 @@
         "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2037",
         "urn:ocn:polkadot:2040"
       ],
       "events": "*"
@@ -314,8 +310,7 @@
         "urn:ocn:polkadot:2030",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2101"
+        "urn:ocn:polkadot:2035"
       ],
       "events": "*"
     },
@@ -357,32 +352,6 @@
     ]
   },
   {
-    "id": "unique-transfers",
-    "agent": "xcm",
-    "args": {
-      "origin": "urn:ocn:polkadot:2037",
-      "senders": "*",
-      "destinations": [
-        "urn:ocn:polkadot:0",
-        "urn:ocn:polkadot:1000",
-        "urn:ocn:polkadot:2000",
-        "urn:ocn:polkadot:2006",
-        "urn:ocn:polkadot:2034",
-        "urn:ocn:polkadot:2040"
-      ],
-      "events": "*"
-    },
-    "channels": [
-      {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
-      {
-        "type": "websocket"
-      }
-    ]
-  },
-  {
     "id": "polkadex-transfers",
     "agent": "xcm",
     "args": {
@@ -394,8 +363,7 @@
         "urn:ocn:polkadot:2004",
         "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2035",
-        "urn:ocn:polkadot:2037"
+        "urn:ocn:polkadot:2035"
       ],
       "events": "*"
     },
@@ -419,30 +387,6 @@
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:2004"
-      ],
-      "events": "*"
-    },
-    "channels": [
-      {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
-      {
-        "type": "websocket"
-      }
-    ]
-  },
-  {
-    "id": "subsocial-transfers",
-    "agent": "xcm",
-    "args": {
-      "origin": "urn:ocn:polkadot:2101",
-      "senders": "*",
-      "destinations": [
-        "urn:ocn:polkadot:0",
-        "urn:ocn:polkadot:1000",
-        "urn:ocn:polkadot:2004",
-        "urn:ocn:polkadot:2034"
       ],
       "events": "*"
     },
@@ -482,15 +426,65 @@
     ]
   },
   {
-    "id": "invarch-transfers",
+    "id": "polkadot-bridgehub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:3340",
+      "origin": "urn:ocn:polkadot:1002",
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:1000"
       ],
+      "bridges": [ "pk-bridge" ],
+      "events": "*"
+    },
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "kusama-assethub-transfers",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:kusama:1000",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:kusama:0",
+        "urn:ocn:kusama:1002",
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:1002"
+      ],
+      "bridges": [ "pk-bridge" ],
+      "events": "*"
+    },
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "kusama-bridgehub-transfers",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:kusama:1002",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:kusama:0",
+        "urn:ocn:kusama:1000"
+      ],
+      "bridges": [ "pk-bridge" ],
       "events": "*"
     },
     "channels": [
