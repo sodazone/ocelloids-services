@@ -86,7 +86,7 @@ export class XcmAgent implements Agent {
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
 
-    this.#subs = new XcmSubscriptionManager(ctx.log, this)
+    this.#subs = new XcmSubscriptionManager(ctx.log, this.#ingress, this)
     this.#shared = new SharedStreams(this.#ingress)
   }
 

@@ -8,6 +8,8 @@ import { RxSubscriptionWithId, Subscription } from '../../subscriptions/types.js
 import { Logger, NetworkURN } from '../../types.js'
 
 import { SharedStreams } from '../base/shared.js'
+import { SubscriptionUpdater, hasOp } from '../base/updater.js'
+
 import { Agent, AgentMetadata, AgentRuntimeContext } from '../types.js'
 
 export const $InformantInputs = z.object({
@@ -42,10 +44,12 @@ export class InformantAgent implements Agent {
   readonly #shared: SharedStreams
   readonly #handlers: Record<string, InformantHandler>
   readonly #egress: Egress
+  readonly #updater: SubscriptionUpdater
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
     this.#shared = new SharedStreams(ctx.ingress)
+    this.#updater = new SubscriptionUpdater(ctx.ingress, ['/args/networks', '/args/filter', '/channels'])
     this.#egress = ctx.egress
     this.#handlers = {}
   }
@@ -66,7 +70,7 @@ export class InformantAgent implements Agent {
   }
 
   async subscribe(subscription: Subscription<InformantInputs>): Promise<void> {
-    this.#checkValidFilter(subscription.args)
+    this.#checkValidFilter(subscription.args.filter.match)
 
     const handler = await this.#monitor(subscription)
 
@@ -83,8 +87,25 @@ export class InformantAgent implements Agent {
     }
   }
 
-  update(_subscriptionId: string, _patch: Operation[]): Promise<Subscription> {
-    throw new Error('Method not implemented.')
+  async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
+    const toUpdate = await this.#updater.prepare<InformantInputs>({
+      handler: this.#handlers[subscriptionId],
+      patch,
+      argsSchema: $InformantInputs,
+    })
+
+    if (hasOp(patch, '/args/networks')) {
+      this.#updateNetworks(toUpdate)
+    }
+
+    if (hasOp(patch, '/args/filter')) {
+      this.#updateFilter(toUpdate)
+    }
+
+    // Update in-memory handler
+    this.#handlers[subscriptionId].subscription = toUpdate
+
+    return toUpdate
   }
 
   stop() {
@@ -203,9 +224,39 @@ export class InformantAgent implements Agent {
     }
   }
 
-  #checkValidFilter(args: InformantInputs) {
+  async #updateFilter(toUpdate: Subscription<InformantInputs>) {
+    const {
+      id,
+      args: {
+        filter: { match },
+      },
+    } = toUpdate
+
+    const { control } = this.#handlers[id]
+
+    this.#checkValidFilter(match)
+    control.change(match)
+  }
+
+  async #updateNetworks(toUpdate: Subscription<InformantInputs>) {
+    const { id } = toUpdate
+
+    // Subscribe to new if any
+    const { streams } = this.#handlers[id]
+    const { streams: newStreams } = await this.#monitor(toUpdate)
+
+    // Remove unused streams
+    const updatedStreams = streams.concat(newStreams)
+    const removed = updatedStreams.filter((s) => !toUpdate.args.networks.includes(s.chainId))
+    removed.forEach(({ sub }) => sub.unsubscribe())
+
+    const updated = updatedStreams.filter((s) => !removed.includes(s))
+    this.#handlers[id].streams = updated
+  }
+
+  #checkValidFilter(match: Record<string, any>) {
     try {
-      ControlQuery.from(args.filter.match)
+      ControlQuery.from(match)
     } catch (error) {
       throw new ValidationError(
         `Filter match must be a valid Mongo Query Language expression: ${(error as Error).message}`,
