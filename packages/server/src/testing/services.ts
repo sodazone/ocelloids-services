@@ -7,7 +7,7 @@ import toml from 'toml'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
-import { NotifierHub } from '../services/egress/index.js'
+import { Egress } from '../services/egress/index.js'
 import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
 import { Janitor } from '../services/persistence/janitor.js'
@@ -209,7 +209,7 @@ export const _agentService = new LocalAgentCatalog(
 export const _services = {
   ...__services,
   ingress: _ingress,
-  egress: {} as unknown as NotifierHub,
+  egress: {} as unknown as Egress,
   subsStore: _subsDB,
   agentCatalog: _agentService,
 } as Services
