@@ -28,6 +28,7 @@ import {
   XcmVersionedXcm,
 } from './xcm-types.js'
 
+// TODO: review this, we don't want to define all not applicable consensus
 const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
   polkadot: 'urn:ocn:polkadot:1002',
   kusama: 'urn:ocn:kusama:1002',
@@ -35,6 +36,12 @@ const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = 
   westend: 'urn:ocn:westend:1002',
   local: 'urn:ocn:local:1002',
   wococo: 'urn:ocn:wococo:1002',
+  paseo: undefined,
+  chainflip: undefined,
+  alephzero: undefined,
+  avail: undefined,
+  polymesh: undefined,
+  ternoa: undefined,
   ethereum: undefined,
   byfork: undefined,
   bygenesis: undefined,
