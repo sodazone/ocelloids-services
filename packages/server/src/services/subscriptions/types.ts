@@ -4,22 +4,7 @@ import { Subscription as RxSubscription } from 'rxjs'
 
 import { $AgentId } from '../agents/types.js'
 import { Message } from '../egress/types.js'
-
-/**
- * Represents a generic JSON object.
- *
- * @public
- */
-export type AnyJson =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | AnyJson[]
-  | {
-      [index: string]: AnyJson
-    }
+import { AnyJson } from '../types.js'
 
 export const $ChainHead = z.object({
   chainId: z.string().min(1),

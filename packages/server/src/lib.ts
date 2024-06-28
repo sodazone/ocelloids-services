@@ -3,11 +3,11 @@
  */
 
 export type {
-  AnyJson,
   HexString,
   SignerData,
   SubscriptionId,
 } from './services/subscriptions/types.js'
+export type { AnyJson } from './services/types.js'
 export type { AgentId } from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
 

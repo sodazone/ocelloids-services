@@ -7,7 +7,7 @@ import { IngressConsumer } from '../ingress/index.js'
 import { Janitor } from '../persistence/janitor.js'
 import { Scheduler } from '../persistence/scheduler.js'
 import { EgressListener, Subscription } from '../subscriptions/types.js'
-import { DB, Logger } from '../types.js'
+import { AnyJson, DB, Logger } from '../types.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -147,11 +147,11 @@ export type SubscriptionHandler = {
 }
 
 /**
- * Interface defining the capabilities need to handle subscriptions.
+ * Interface defining the capabilities needed to handle subscriptions.
  */
 export interface Subscribable {
   /**
-   * Gets the input schema used by the agent.
+   * Gets the input schema used by the agent subscriptions.
    *
    * @returns {z.ZodSchema} The agent's input schema
    */
@@ -184,10 +184,11 @@ export interface Subscribable {
 }
 
 /**
- * TODO: define
+ * Interface defining the capabilities needed to handle aggregated queries.
  */
 export interface Queryable {
-  query(): any
+  querySchema: z.ZodSchema
+  query<R = AnyJson>(): R
 }
 
 /**

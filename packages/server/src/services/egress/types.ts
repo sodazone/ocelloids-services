@@ -1,5 +1,5 @@
-import { NetworkURN, TypedEventEmitter } from '../index.js'
-import { AnyJson, Subscription } from '../subscriptions/types.js'
+import { AnyJson, NetworkURN, TypedEventEmitter } from '../index.js'
+import { Subscription } from '../subscriptions/types.js'
 import { TelemetryPublisherEvents } from '../telemetry/types.js'
 
 /**

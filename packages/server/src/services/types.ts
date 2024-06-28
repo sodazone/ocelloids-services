@@ -1,6 +1,7 @@
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
 import { FastifyBaseLogger } from 'fastify'
+
 import { AgentCatalog, AgentId } from './agents/types.js'
 import { ServiceConfiguration } from './config.js'
 import { IngressConsumer } from './ingress/consumer/index.js'
@@ -93,3 +94,18 @@ export type Services = {
   agentCatalog: AgentCatalog
   connector: Connector
 }
+/**
+ * Represents a generic JSON object.
+ *
+ * @public
+ */
+export type AnyJson =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | AnyJson[]
+  | {
+      [index: string]: AnyJson
+    }

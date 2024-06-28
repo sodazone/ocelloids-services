@@ -8,14 +8,13 @@ import { z } from 'zod'
 
 import { createNetworkId } from '../../config.js'
 import {
-  AnyJson,
   HexString,
   RxSubscriptionWithId,
   SignerData,
   Subscription,
   toHexString,
 } from '../../subscriptions/types.js'
-import { NetworkURN } from '../../types.js'
+import { AnyJson, NetworkURN } from '../../types.js'
 
 function distinct(a: Array<string>) {
   return Array.from(new Set(a))
