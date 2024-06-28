@@ -138,7 +138,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   async start() {
     for (const agentId of this.#agentCatalog.getAgentIds()) {
-      await this.#agentCatalog.startAgent(agentId, await this.getSubscriptionsByAgentId(agentId))
+      const persistentSubs = await this.getSubscriptionsByAgentId(agentId)
+      if (persistentSubs.length > 0) {
+        this.#stats.persistent = persistentSubs.length;
+      }
+      await this.#agentCatalog.startAgent(agentId, persistentSubs)
     }
   }
 
