@@ -78,6 +78,22 @@ export interface AgentCatalog {
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
 
   /**
+   * Retrieves a subscribable agent by id.
+   *
+   * @param {AgentId} agentId - The ID of the agent to retrieve
+   * @returns {A} The agent instance
+   */
+  getSubscribableById<A extends Agent & Subscribable = Agent & Subscribable>(agentId: AgentId): A
+
+  /**
+   * Retrieves a queryable agent by id.
+   *
+   * @param {AgentId} agentId - The ID of the agent to retrieve
+   * @returns {A} The agent instance
+   */
+  getQueryableById<A extends Agent & Queryable = Agent & Queryable>(agentId: AgentId): A
+
+  /**
    * Gets a list of all agent IDs.
    *
    * @returns {AgentId[]} An array of agent IDs
@@ -107,10 +123,19 @@ export interface AgentCatalog {
 }
 
 /**
+ * Capabilities of an agent.
+ */
+export type AgentCapabilities = {
+  subscribable: boolean
+  queryable: boolean
+}
+
+/**
  * Metadata about an agent.
  */
 export type AgentMetadata = {
   name: string
+  capabilities: AgentCapabilities
   description?: string
 }
 
@@ -122,23 +147,9 @@ export type SubscriptionHandler = {
 }
 
 /**
- * Interface defining the structure and behavior of an agent.
+ * Interface defining the capabilities need to handle subscriptions.
  */
-export interface Agent {
-  /**
-   * Gets the unique identifier of the agent.
-   *
-   * @returns {AgentId} The agent's unique identifier
-   */
-  get id(): AgentId
-
-  /**
-   * Gets metadata about the agent.
-   *
-   * @returns {AgentMetadata} The agent's metadata
-   */
-  get metadata(): AgentMetadata
-
+export interface Subscribable {
   /**
    * Gets the input schema used by the agent.
    *
@@ -170,6 +181,32 @@ export interface Agent {
    * @returns {Promise<Subscription> | Subscription} A promise that resolves with the updated subscription, or the updated subscription if synchronous
    */
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription
+}
+
+/**
+ * TODO: define
+ */
+export interface Queryable {
+  query(): any
+}
+
+/**
+ * Interface defining the structure and behavior of an agent.
+ */
+export interface Agent {
+  /**
+   * Gets the unique identifier of the agent.
+   *
+   * @returns {AgentId} The agent's unique identifier
+   */
+  get id(): AgentId
+
+  /**
+   * Gets metadata about the agent.
+   *
+   * @returns {AgentMetadata} The agent's metadata
+   */
+  get metadata(): AgentMetadata
 
   /**
    * Stops the agent.
@@ -192,4 +229,28 @@ export interface Agent {
    * @returns {Promise<void> | void} A promise that resolves when telemetry is collected, or void if synchronous
    */
   collectTelemetry(): Promise<void> | void
+}
+
+/**
+ * Subscribable guard condition.
+ */
+export function isSubscribable(object: any): object is Subscribable {
+  return 'subscribe' in object
+}
+
+/**
+ * Queryable guard condition.
+ */
+export function isQueryable(object: any): object is Queryable {
+  return 'query' in object
+}
+
+/**
+ * Returns the agent capabilities based on the implemented interfaces.
+ */
+export function getAgentCapabilities(agent: Agent): AgentCapabilities {
+  return {
+    subscribable: isSubscribable(agent),
+    queryable: isQueryable(agent),
+  }
 }

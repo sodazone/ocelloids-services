@@ -1,4 +1,4 @@
-import { NotFound } from '../../../errors.js'
+import { NotFound, ValidationError } from '../../../errors.js'
 import { AgentCatalogOptions } from '../../../types.js'
 import { Egress } from '../../egress/index.js'
 import { PublisherEvents } from '../../egress/types.js'
@@ -7,7 +7,16 @@ import { EgressListener, Subscription } from '../../subscriptions/types.js'
 import { egressMetrics } from '../../telemetry/metrics/publisher.js'
 
 import { InformantAgent } from '../informant/agent.js'
-import { Agent, AgentCatalog, AgentId, AgentRuntimeContext } from '../types.js'
+import {
+  Agent,
+  AgentCatalog,
+  AgentId,
+  AgentRuntimeContext,
+  Queryable,
+  Subscribable,
+  isQueryable,
+  isSubscribable,
+} from '../types.js'
 import { XcmAgent } from '../xcm/agent.js'
 
 /**
@@ -46,9 +55,28 @@ export class LocalAgentCatalog implements AgentCatalog {
     throw new NotFound(`Agent not found (agent=${agentId})`)
   }
 
+  getSubscribableById<A extends Agent & Subscribable = Agent & Subscribable>(agentId: AgentId): A {
+    const agent = this.getAgentById(agentId)
+    if (isSubscribable(agent)) {
+      return agent as A
+    }
+    throw new NotFound(`Not subscribable (agent=${agentId})`)
+  }
+
+  getQueryableById<A extends Agent & Queryable = Agent & Queryable>(agentId: AgentId): A {
+    const agent = this.getAgentById(agentId)
+    if (isQueryable(agent)) {
+      return agent as A
+    }
+    throw new NotFound(`Not queryable (agent=${agentId})`)
+  }
+
   getAgentInputSchema(agentId: AgentId) {
     const agent = this.getAgentById(agentId)
-    return agent.inputSchema
+    if (isSubscribable(agent)) {
+      return agent.inputSchema
+    }
+    throw new ValidationError(`The agent is not subscribable: ${agentId}`)
   }
 
   async startAgent(agentId: AgentId, subscriptions: Subscription[] = []) {

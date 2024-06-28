@@ -10,7 +10,7 @@ import { Logger, NetworkURN } from '../../types.js'
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 
-import { Agent, AgentMetadata, AgentRuntimeContext } from '../types.js'
+import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 export const $InformantInputs = z.object({
   networks: z.array(
@@ -39,7 +39,7 @@ type InformantHandler = {
  *
  * Fetches transactions and events using custom MongoQL-compatible filtering expressions.
  */
-export class InformantAgent implements Agent {
+export class InformantAgent implements Agent, Subscribable {
   readonly #log: Logger
   readonly #shared: SharedStreams
   readonly #handlers: Record<string, InformantHandler>
@@ -62,6 +62,7 @@ export class InformantAgent implements Agent {
     return {
       name: 'General Informant',
       description: 'Fetches transactions and events using custom MongoQL-compatible filtering expressions.',
+      capabilities: getAgentCapabilities(this),
     }
   }
 

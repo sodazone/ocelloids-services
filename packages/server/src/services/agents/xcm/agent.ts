@@ -14,7 +14,7 @@ import { AnyJson, HexString, RxSubscriptionWithId, Subscription } from '../../su
 import { Logger, NetworkURN } from '../../types.js'
 
 import { SharedStreams } from '../base/shared.js'
-import { Agent, AgentMetadata, AgentRuntimeContext } from '../types.js'
+import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 import { XcmSubscriptionManager } from './handlers.js'
 import { MatchingEngine } from './matching.js'
@@ -67,7 +67,7 @@ import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.j
  *
  * Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
  */
-export class XcmAgent implements Agent {
+export class XcmAgent implements Agent, Subscribable {
   readonly #log: Logger
 
   readonly #notifier: Egress
@@ -105,6 +105,7 @@ export class XcmAgent implements Agent {
       Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
       Currently supports XCMP-lite (HRMP) and VMP.
       `,
+      capabilities: getAgentCapabilities(this),
     }
   }
 

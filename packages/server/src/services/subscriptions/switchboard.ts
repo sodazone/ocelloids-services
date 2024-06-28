@@ -117,7 +117,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   async unsubscribe(agentId: AgentId, subscriptionId: string) {
     try {
       const ephemeral = await this.#isEphemeral(agentId, subscriptionId)
-      const agent = this.#agentCatalog.getAgentById(agentId)
+      const agent = this.#agentCatalog.getSubscribableById(agentId)
       await agent.unsubscribe(subscriptionId)
 
       if (ephemeral) {
@@ -204,7 +204,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @returns {Promise<Subscription>} The updated subscription object.
    */
   async updateSubscription(agentId: AgentId, subscriptionId: string, patch: Operation[]) {
-    const agent = this.#agentCatalog.getAgentById(agentId)
+    const agent = this.#agentCatalog.getSubscribableById(agentId)
     const updated = await agent.update(subscriptionId, patch)
     await this.#db.save(updated)
     return updated
@@ -245,7 +245,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
     await this.#subscriptionShouldNotExist(subscription)
 
-    const agent = this.#agentCatalog.getAgentById(subscription.agent)
+    const agent = this.#agentCatalog.getSubscribableById(subscription.agent)
 
     agent.inputSchema.parse(subscription.args)
 
