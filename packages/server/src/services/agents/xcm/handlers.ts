@@ -266,7 +266,7 @@ export class XcmSubscriptionManager {
               id,
               errorMessage(error),
             )
-            const updated = this.#updateDestinationSubscriptions(id)
+            const updated = this.#updateDestinationSubscriptions(this.#handlers[id].subscription)
             this.#handlers[id].destinationSubs = updated
           }, SUB_ERROR_RETRY_MS),
         )
@@ -337,23 +337,24 @@ export class XcmSubscriptionManager {
 
     messageControl.change(messageCriteria(destinations as NetworkURN[]))
 
-    const updatedSubs = this.#updateDestinationSubscriptions(id)
+    const updatedSubs = this.#updateDestinationSubscriptions(toUpdate)
     this.#handlers[id].destinationSubs = updatedSubs
   }
 
   /**
    * Updates the destination subscriptions.
    *
-   * @param {string} id - The subscription ID.
+   * @param {Subscription} toUpdate - The subscription to update.
    * @returns {Subscription[]} The updated destination subscriptions.
    */
-  #updateDestinationSubscriptions(id: string) {
-    const { subscription, destinationSubs } = this.#handlers[id]
+  #updateDestinationSubscriptions(toUpdate: Subscription<XcmInputs>) {
+    const { id } = toUpdate
+    const { destinationSubs } = this.#handlers[id]
     // Subscribe to new destinations, if any
-    const { streams: subs } = this.#agent.__monitorDestinations(subscription)
+    const { streams: subs } = this.#agent.__monitorDestinations(toUpdate)
     const updatedSubs = destinationSubs.concat(subs)
     // Unsubscribe removed destinations, if any
-    const removed = updatedSubs.filter((s) => !subscription.args.destinations.includes(s.chainId))
+    const removed = updatedSubs.filter((s) => !toUpdate.args.destinations.includes(s.chainId))
     removed.forEach(({ sub }) => sub.unsubscribe())
     // Return list of updated subscriptions
     return updatedSubs.filter((s) => !removed.includes(s))
