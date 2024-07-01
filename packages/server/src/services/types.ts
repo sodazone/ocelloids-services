@@ -94,6 +94,7 @@ export type Services = {
   agentCatalog: AgentCatalog
   connector: Connector
 }
+
 /**
  * Represents a generic JSON object.
  *

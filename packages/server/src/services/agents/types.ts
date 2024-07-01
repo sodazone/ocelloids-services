@@ -183,12 +183,27 @@ export interface Subscribable {
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription
 }
 
+export type QueryParams<T = Record<string, any>> = {
+  args: T
+  pagination?: {
+    cursor: string
+    limit: number
+  }
+}
+export type QueryResult<T = Record<string, any>> = {
+  results: T
+  pageInfo?: {
+    endCursor: string
+    hasNextPage: boolean
+  }
+}
+
 /**
  * Interface defining the capabilities needed to handle aggregated queries.
  */
 export interface Queryable {
   querySchema: z.ZodSchema
-  query<R = AnyJson>(): R
+  query<Q = QueryParams, R = QueryResult>(params: Q): R
 }
 
 /**
