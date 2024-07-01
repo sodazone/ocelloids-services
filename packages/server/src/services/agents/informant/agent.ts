@@ -48,7 +48,7 @@ export class InformantAgent implements Agent, Subscribable {
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
-    this.#shared = new SharedStreams(ctx.ingress)
+    this.#shared = SharedStreams.instance(ctx.ingress)
     this.#updater = new SubscriptionUpdater(ctx.ingress, ['/args/networks', '/args/filter', '/channels'])
     this.#egress = ctx.egress
     this.#handlers = {}

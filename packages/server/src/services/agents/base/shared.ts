@@ -5,15 +5,20 @@ import { IngressConsumer } from '../../ingress/index.js'
 import { NetworkURN } from '../../types.js'
 
 export class SharedStreams {
+  static #instance: SharedStreams
   readonly #ingress: IngressConsumer
 
   readonly #blockEvents: Record<string, Observable<types.BlockEvent>>
   readonly #blockExtrinsics: Record<string, Observable<types.TxWithIdAndEvent>>
 
-  constructor(ingress: IngressConsumer) {
+  private constructor(ingress: IngressConsumer) {
     this.#ingress = ingress
     this.#blockEvents = {}
     this.#blockExtrinsics = {}
+  }
+
+  static instance(ingress: IngressConsumer) {
+    return SharedStreams.#instance ?? (SharedStreams.#instance = new SharedStreams(ingress))
   }
 
   blockEvents(chainId: NetworkURN): Observable<types.BlockEvent> {

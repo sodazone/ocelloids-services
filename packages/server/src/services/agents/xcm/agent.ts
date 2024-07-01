@@ -87,7 +87,7 @@ export class XcmAgent implements Agent, Subscribable {
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
 
     this.#subs = new XcmSubscriptionManager(ctx.log, this.#ingress, this)
-    this.#shared = new SharedStreams(this.#ingress)
+    this.#shared = SharedStreams.instance(this.#ingress)
   }
 
   get id() {
