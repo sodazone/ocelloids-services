@@ -10,7 +10,10 @@ import { NetworkURN } from './types.js'
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),
-  url: z.string().min(1),
+  url: z
+    .string()
+    .min(1)
+    .or(z.array(z.string().min(1)).min(1)),
 })
 
 const wellKnownChains = ['polkadot', 'ksmcc3', 'rococo_v2_2', 'westend2'] as const
