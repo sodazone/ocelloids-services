@@ -7,11 +7,12 @@ import { HexString } from '../../../lib.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import { AnyJson, NetworkURN } from '../../types.js'
 
-const networks: Record<string, string> = {
+export const networks: Record<string, string> = {
   bifrost: 'urn:ocn:polkadot:2030',
   assethub: 'urn:ocn:polkadot:1000',
   hydration: 'urn:ocn:polkadot:2034',
   moonbeam: 'urn:ocn:polkadot:2004',
+  manta: 'urn:ocn:polkadot:2104',
 }
 
 const networkURNs = Object.values(networks)

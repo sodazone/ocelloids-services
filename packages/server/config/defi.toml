@@ -36,3 +36,11 @@ relay = "urn:ocn:polkadot:0"
   [networks.provider]
   type = "rpc"
   url = "wss://moonbeam.api.onfinality.io/public-ws"
+
+[[networks]]
+id = "urn:ocn:polkadot:2104"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://ws.manta.systems"

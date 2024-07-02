@@ -6,14 +6,23 @@ import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString } from '../../../lib.js'
 import { IngressConsumer } from '../../ingress/index.js'
-import { AnyJson, NetworkURN } from '../../types.js'
-import { AssetMapper, AssetMetadata } from './types.js'
+import { NetworkURN } from '../../types.js'
+import { AssetMapper, AssetMetadata, networks } from './types.js'
 
 const OFFSET_128 = 16 * 2
 const OFFSET_64 = 8 * 2
 
-function keyValue(registry: Registry, type: string, keyArgs: string, offset = OFFSET_128) {
-  return registry.createType(type, hexToU8a('0x' + keyArgs.substring(offset)))
+type Hashing = 'xx-64' | 'blake2-128'
+
+function keyValue(registry: Registry, type: string, keyArgs: string, hashing: Hashing) {
+  return registry.createType(
+    type,
+    hexToU8a('0x' + keyArgs.substring(hashing === 'xx-64' ? OFFSET_64 : OFFSET_128)),
+  )
+}
+
+const keyConcat = (data: string | Buffer | Uint8Array, hashing: Hashing) => {
+  return hashing === 'xx-64' ? xx64concat(data) : blake2128concat(data)
 }
 
 const blake2128concat = (data: string | Buffer | Uint8Array) =>
@@ -21,56 +30,92 @@ const blake2128concat = (data: string | Buffer | Uint8Array) =>
 
 const xx64concat = (data: string | Buffer | Uint8Array) => u8aConcat(xxhashAsU8a(data, 64), u8aToU8a(data))
 
+const mapAssetsAndLocations = ({
+  chainId,
+  assetIdType,
+  assetMetadataType,
+  multiLocationKeyType,
+  multiLocationKeyPrefix,
+  multiLocationDataType,
+  hashing,
+  onMultiLocationData,
+}: {
+  chainId: string
+  assetIdType: string
+  assetMetadataType: string
+  multiLocationKeyType: string
+  multiLocationKeyPrefix: HexString
+  multiLocationDataType: string
+  hashing: Hashing
+  onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
+}) => {
+  return (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
+    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+      return source.pipe(
+        map((buffer) => {
+          const assetId = keyValue(registry, assetIdType, keyArgs, hashing).toString()
+          const assetDetails =
+            (registry.createType(assetMetadataType, buffer).toHuman() as Record<string, any>) ?? {}
+
+          return {
+            id: assetId,
+            updated: Date.now(),
+            name: assetDetails.name,
+            symbol: assetDetails.symbol,
+            decimals: assetDetails.decimals,
+            chainId,
+            raw: {
+              ...assetDetails,
+              keyArgs,
+            },
+          } as AssetMetadata
+        }),
+        mergeMap((asset) => {
+          // Expand AssetManager.assetIdType
+          const key = (multiLocationKeyPrefix +
+            Buffer.from(
+              keyConcat(
+                keyValue(registry, multiLocationKeyType, asset.raw.keyArgs, hashing).toU8a(),
+                hashing,
+              ),
+            ).toString('hex')) as HexString
+          return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
+            map((buffer) => {
+              const maybeLoc = registry.createType(multiLocationDataType, buffer)
+              if (maybeLoc.toHex() !== '0x0000') {
+                const multiLocation =
+                  onMultiLocationData === undefined
+                    ? maybeLoc.toJSON()
+                    : onMultiLocationData(maybeLoc.toJSON() as Record<string, any>)
+                return {
+                  ...asset,
+                  multiLocation,
+                } as AssetMetadata
+              } else {
+                return asset
+              }
+            }),
+          )
+        }),
+      )
+    }
+  }
+}
+
 const moonbeamMapper: AssetMapper = {
   mappings: [
     {
       keyPrefix: '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
-      mapEntry: (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
-        return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
-          return source.pipe(
-            map((buffer) => {
-              const assetId = keyValue(registry, 'u128', keyArgs).toString()
-              const assetDetails =
-                (registry.createType('PalletAssetsAssetMetadata', buffer).toHuman() as Record<string, any>) ??
-                {}
-
-              return {
-                id: assetId,
-                updated: Date.now(),
-                name: assetDetails.name,
-                symbol: assetDetails.symbol,
-                decimals: assetDetails.decimals,
-                chainId: 'urn:ocn:polkadot:2004',
-                raw: {
-                  ...assetDetails,
-                  keyArgs,
-                },
-              } as AssetMetadata
-            }),
-            mergeMap((asset) => {
-              // Expand AssetManager.assetIdType
-              const key = ('0x4ae7e256f92e5888372d72f3e4db10031e932ed06f88c7a37d7c7c3f5fbeca1c' +
-                Buffer.from(blake2128concat(keyValue(registry, 'u128', asset.raw.keyArgs).toU8a())).toString(
-                  'hex',
-                )) as HexString
-              return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
-                map((buffer) => {
-                  const maybeLoc = registry.createType('MoonbeamRuntimeXcmConfigAssetType', buffer)
-                  if (maybeLoc.toHex() !== '0x0000') {
-                    const json = maybeLoc.toJSON() as Record<string, AnyJson>
-                    return {
-                      ...asset,
-                      multiLocation: json.xcm,
-                    } as AssetMetadata
-                  } else {
-                    return asset
-                  }
-                }),
-              )
-            }),
-          )
-        }
-      },
+      mapEntry: mapAssetsAndLocations({
+        chainId: networks.moonbeam,
+        assetIdType: 'u128',
+        assetMetadataType: 'PalletAssetsAssetMetadata',
+        multiLocationKeyPrefix: '0x4ae7e256f92e5888372d72f3e4db10031e932ed06f88c7a37d7c7c3f5fbeca1c',
+        multiLocationKeyType: 'u128',
+        multiLocationDataType: 'MoonbeamRuntimeXcmConfigAssetType',
+        hashing: 'blake2-128',
+        onMultiLocationData: (json: Record<string, any>) => json.xcm,
+      }),
     },
   ],
 }
@@ -79,62 +124,15 @@ const bifrostMapper: AssetMapper = {
   mappings: [
     {
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6259988d804f8bb04d82c701e7f01fb9764',
-      mapEntry: (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
-        return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
-          return source.pipe(
-            map((buffer) => {
-              const assetId = keyValue(
-                registry,
-                'BifrostPrimitivesCurrencyCurrencyId',
-                keyArgs,
-                OFFSET_64,
-              ).toString()
-              const assetDetails =
-                (registry.createType('BifrostAssetRegistryAssetMetadata', buffer).toHuman() as any) ?? {}
-
-              return {
-                id: assetId,
-                updated: Date.now(),
-                name: assetDetails.name,
-                symbol: assetDetails.symbol,
-                decimals: assetDetails.decimals,
-                chainId: 'urn:ocn:polkadot:2030',
-                raw: {
-                  ...assetDetails,
-                  keyArgs,
-                },
-              } as AssetMetadata
-            }),
-            mergeMap((asset) => {
-              // Expand AssetRegistry.currencyIdToLocations
-              const key = ('0x6e9a9b71050cd23f2d7d1b72e8c1a6255f54cd54ea84dd94c101101f587e088d' +
-                Buffer.from(
-                  xx64concat(
-                    keyValue(
-                      registry,
-                      'BifrostPrimitivesCurrencyCurrencyId',
-                      asset.raw.keyArgs,
-                      OFFSET_64,
-                    ).toU8a(),
-                  ),
-                ).toString('hex')) as HexString
-              return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
-                map((buffer) => {
-                  const maybeLoc = registry.createType('StagingXcmV3MultiLocation', buffer)
-                  if (maybeLoc.toHex() !== '0x0000') {
-                    return {
-                      ...asset,
-                      multiLocation: maybeLoc.toJSON(),
-                    } as AssetMetadata
-                  } else {
-                    return asset
-                  }
-                }),
-              )
-            }),
-          )
-        }
-      },
+      mapEntry: mapAssetsAndLocations({
+        chainId: networks.bifrost,
+        assetIdType: 'BifrostPrimitivesCurrencyCurrencyId',
+        assetMetadataType: 'BifrostAssetRegistryAssetMetadata',
+        multiLocationKeyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6255f54cd54ea84dd94c101101f587e088d',
+        multiLocationKeyType: 'BifrostPrimitivesCurrencyCurrencyId',
+        multiLocationDataType: 'StagingXcmV3MultiLocation',
+        hashing: 'xx-64',
+      }),
     },
   ],
 }
@@ -143,50 +141,32 @@ const hydrationMapper: AssetMapper = {
   mappings: [
     {
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625682a59d51ab9e48a8c8cc418ff9708d2',
-      mapEntry: (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
-        return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
-          return source.pipe(
-            map((buffer) => {
-              const assetId = keyValue(registry, 'u32', keyArgs).toString()
-              const assetDetails =
-                (registry.createType('PalletAssetRegistryAssetDetails', buffer).toHuman() as any) ?? {}
+      mapEntry: mapAssetsAndLocations({
+        chainId: networks.hydration,
+        assetIdType: 'u32',
+        assetMetadataType: 'PalletAssetRegistryAssetDetails',
+        multiLocationKeyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6252dc0b8ee4c66b0b3e24b03ec002e2544',
+        multiLocationKeyType: 'u32',
+        multiLocationDataType: 'HydradxRuntimeXcmAssetLocation',
+        hashing: 'blake2-128',
+      }),
+    },
+  ],
+}
 
-              return {
-                id: assetId,
-                updated: Date.now(),
-                name: assetDetails.name,
-                symbol: assetDetails.symbol,
-                decimals: assetDetails.decimals,
-                chainId: 'urn:ocn:polkadot:2034',
-                raw: {
-                  ...assetDetails,
-                  keyArgs,
-                },
-              } as AssetMetadata
-            }),
-            mergeMap((asset) => {
-              // Expand AssetRegistry.assetLocations
-              const key = ('0x6e9a9b71050cd23f2d7d1b72e8c1a6252dc0b8ee4c66b0b3e24b03ec002e2544' +
-                Buffer.from(blake2128concat(keyValue(registry, 'u32', asset.raw.keyArgs).toU8a())).toString(
-                  'hex',
-                )) as HexString
-              return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
-                map((buffer) => {
-                  const maybeLoc = registry.createType('HydradxRuntimeXcmAssetLocation', buffer)
-                  if (maybeLoc.toHex() !== '0x0000') {
-                    return {
-                      ...asset,
-                      multiLocation: maybeLoc.toJSON(),
-                    } as AssetMetadata
-                  } else {
-                    return asset
-                  }
-                }),
-              )
-            }),
-          )
-        }
-      },
+const mantaMapper: AssetMapper = {
+  mappings: [
+    {
+      keyPrefix: '0x4ae7e256f92e5888372d72f3e4db1003b20b1df17c1eb8537e32dc07a9bfe191',
+      mapEntry: mapAssetsAndLocations({
+        chainId: networks.manta,
+        assetIdType: 'u128',
+        assetMetadataType: 'MantaPrimitivesAssetsAssetRegistryMetadata',
+        multiLocationKeyPrefix: '0x4ae7e256f92e5888372d72f3e4db1003f4f3777447099e92d2a7274f5bbd71a6',
+        multiLocationKeyType: 'u128',
+        multiLocationDataType: 'MantaPrimitivesAssetsAssetLocation',
+        hashing: 'blake2-128',
+      }),
     },
   ],
 }
@@ -199,7 +179,7 @@ const assetHubMapper: AssetMapper = {
         return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
           return source.pipe(
             map((buffer) => {
-              const assetId = keyValue(registry, 'u32', keyArgs).toString()
+              const assetId = keyValue(registry, 'u32', keyArgs, 'blake2-128').toString()
               const assetDetails =
                 (registry.createType('AssetMetadata', buffer).toHuman() as Record<string, any>) ?? {}
 
@@ -209,7 +189,7 @@ const assetHubMapper: AssetMapper = {
                 name: assetDetails.name,
                 symbol: assetDetails.symbol,
                 decimals: assetDetails.decimals,
-                chainId: 'urn:ocn:polkadot:1000',
+                chainId: networks.assethub,
                 raw: assetDetails,
               } as AssetMetadata
             }),
@@ -224,7 +204,7 @@ const assetHubMapper: AssetMapper = {
         return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
           return source.pipe(
             map((buffer) => {
-              const multiLocation = keyValue(registry, 'StagingXcmV3MultiLocation', keyArgs)
+              const multiLocation = keyValue(registry, 'StagingXcmV3MultiLocation', keyArgs, 'blake2-128')
               const assetId = multiLocation.toString()
               const assetDetails =
                 (registry.createType('AssetMetadata', buffer).toHuman() as Record<string, any>) ?? {}
@@ -235,10 +215,10 @@ const assetHubMapper: AssetMapper = {
                 name: assetDetails.name,
                 symbol: assetDetails.symbol,
                 decimals: assetDetails.decimals,
-                chainId: 'urn:ocn:polkadot:1000',
+                chainId: networks.assethub,
                 multiLocation: multiLocation.toJSON(),
                 raw: assetDetails,
-              }
+              } as AssetMetadata
             }),
           )
         }
@@ -248,8 +228,9 @@ const assetHubMapper: AssetMapper = {
 }
 
 export const mappers: Record<string, AssetMapper> = {
-  'urn:ocn:polkadot:1000': assetHubMapper,
-  'urn:ocn:polkadot:2030': bifrostMapper,
-  'urn:ocn:polkadot:2034': hydrationMapper,
-  'urn:ocn:polkadot:2004': moonbeamMapper,
+  [networks.assethub]: assetHubMapper,
+  [networks.bifrost]: bifrostMapper,
+  [networks.hydration]: hydrationMapper,
+  [networks.moonbeam]: moonbeamMapper,
+  [networks.manta]: mantaMapper,
 }
