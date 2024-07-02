@@ -158,6 +158,9 @@ export class DataSteward implements Agent, Queryable {
     for (const chainId of chainIds) {
       const mapper = mappers[chainId]
       if (mapper) {
+        this.#log.info('[agent:%s] GET chain properties (chainId=%s)', this.id, chainId)
+        this.#putChainProps(chainId)
+
         for (const mapping of mapper.mappings) {
           this.#log.info(
             '[agent:%s] START synchronizing asset metadata (chainId=%s, key=%s)',
@@ -169,6 +172,36 @@ export class DataSteward implements Agent, Queryable {
         }
       }
     }
+  }
+
+  #putChainProps(chainId: NetworkURN) {
+    this.#ingress
+      .getChainProperties(chainId)
+      .then((props) => {
+        if (props.tokenSymbol.isSome) {
+          const symbols = props.tokenSymbol.unwrap().toArray()
+          const decimals = props.tokenDecimals.unwrap().toArray()
+
+          for (let i = 0; i < symbols.length; i++) {
+            const asset: AssetMetadata = {
+              id: 'native#' + i,
+              updated: Date.now(),
+              symbol: symbols[i].toString(),
+              decimals: decimals[i].toNumber(),
+              chainId,
+              raw: {
+                native: true,
+              },
+            }
+            this.#db.put(assetMetadataKey(chainId, asset.id), asset).catch((e) => {
+              this.#log.error(e, '[agent:%s] while writing chain properties (chainId=%s)', this.id, chainId)
+            })
+          }
+        }
+      })
+      .catch((e) => {
+        this.#log.error(e, '[agent:%s] while getting chain properties (chainId=%s)', this.id, chainId)
+      })
   }
 
   #map(chainId: NetworkURN, mapping: AssetMapping) {
