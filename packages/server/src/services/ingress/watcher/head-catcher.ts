@@ -190,6 +190,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return this.#apis.promise[chainId]
   }
 
+  async getChainProperties(chainId: NetworkURN) {
+    return await this.#apis.promise[chainId].rpc.system.properties()
+  }
+
   /**
    * Enumerates storage keys by a given key prefix.
    *
