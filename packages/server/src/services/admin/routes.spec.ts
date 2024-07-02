@@ -99,7 +99,7 @@ describe('admin api', () => {
     server.inject(adminRq('/admin/sched'), (_err, response) => {
       done()
       expect(response.statusCode).toStrictEqual(200)
-      expect(JSON.parse(response.body).length).toBe(2)
+      expect(JSON.parse(response.body).length).toBe(3)
     })
   })
 
