@@ -14,6 +14,7 @@ import {
   XAddOptions,
   getBlockStreamKey,
   getMetadataKey,
+  getStorageKeysReqKey,
   getStorageReqKey,
   getVersionKey,
 } from '../distributor.js'
@@ -25,6 +26,14 @@ import { encodeSignedBlockExtended } from '../watcher/codec.js'
 type StorageRequest = {
   replyTo: string
   storageKey: HexString
+  at: HexString
+}
+
+type StorageKeysRequest = {
+  replyTo: string
+  keyPrefix: HexString
+  startKey?: HexString
+  count: number
   at: HexString
 }
 
@@ -133,6 +142,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
       })
 
       this.#registerStorageRequestHandler(chainId)
+      this.#registerStorageKeysRequestHandler(chainId)
     }
   }
 
@@ -151,6 +161,17 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
       NetworksKey,
       networks.map((network) => JSON.stringify(network)),
     )
+  }
+
+  #registerStorageKeysRequestHandler(chainId: NetworkURN) {
+    const key = getStorageKeysReqKey(chainId)
+    this.#distributor.read<StorageKeysRequest>(key, (request, { client }) => {
+      this.#headCatcher
+        .getStorageKeys(chainId, request.keyPrefix, request.count, request.startKey, request.at)
+        .subscribe((data) => {
+          client.LPUSH(request.replyTo, Buffer.from(JSON.stringify(data)))
+        })
+    })
   }
 
   #registerStorageRequestHandler(chainId: NetworkURN) {

@@ -17,6 +17,7 @@ import {
   getBlockStreamKey,
   getMetadataKey,
   getReplyToKey,
+  getStorageKeysReqKey,
   getStorageReqKey,
 } from '../distributor.js'
 
@@ -48,6 +49,13 @@ function createRegistry(bytes: Buffer | Uint8Array) {
 export interface IngressConsumer extends TelemetryEventEmitter {
   finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended>
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>
+  getStorageKeys(
+    chainId: NetworkURN,
+    keyPrefix: HexString,
+    count: number,
+    startKey?: HexString,
+    blockHash?: HexString,
+  ): Observable<HexString[]>
   getRegistry(chainId: NetworkURN): Observable<Registry>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
@@ -150,6 +158,22 @@ export class DistributedIngressConsumer
     }
   }
 
+  getStorageKeys(
+    chainId: NetworkURN,
+    keyPrefix: HexString,
+    count: number = 100,
+    startKey?: HexString,
+    blockHash?: HexString,
+  ): Observable<HexString[]> {
+    try {
+      return this.#storageKeysFromRedis(chainId, keyPrefix, count.toString(), startKey, blockHash)
+    } catch (error) {
+      this.emit('telemetryIngressConsumerError', 'storageKeysFromRedis')
+
+      throw error
+    }
+  }
+
   getChainIds(): NetworkURN[] {
     return Object.keys(this.#networks) as NetworkURN[]
   }
@@ -196,6 +220,51 @@ export class DistributedIngressConsumer
     }
   }
 
+  #storageKeysFromRedis(
+    chainId: NetworkURN,
+    keyPrefix: HexString,
+    count: string,
+    startKey?: HexString,
+    blockHash?: HexString,
+  ) {
+    return from(
+      new Promise<HexString[]>((resolve, reject) => {
+        const distributor = this.#distributor
+        const replyTo = getReplyToKey(chainId, keyPrefix, blockHash ?? '$')
+        const streamKey = getStorageKeysReqKey(chainId)
+        const req = {
+          replyTo,
+          keyPrefix,
+          count,
+          startKey: startKey ?? '0x0',
+          at: blockHash ?? '0x0',
+        }
+
+        distributor
+          .add(streamKey, '*', req, {
+            TRIM: {
+              strategy: 'MAXLEN',
+              strategyModifier: '~',
+              threshold: 50,
+            },
+          })
+          .then(() => {
+            distributor
+              .response(replyTo)
+              .then((buffer) => {
+                if (buffer) {
+                  resolve(JSON.parse(buffer.element.toString()))
+                } else {
+                  reject(`Error retrieving storage keys for prefix ${keyPrefix} (reply-to=${replyTo})`)
+                }
+              })
+              .catch(reject)
+          })
+          .catch(reject)
+      }),
+    )
+  }
+
   #storageFromRedis(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     return from(
       new Promise<Uint8Array>((resolve, reject) => {
@@ -223,7 +292,7 @@ export class DistributedIngressConsumer
                 if (buffer) {
                   resolve(buffer.element)
                 } else {
-                  reject(`Error retrieving ${storageKey} (reply-to=${replyTo})`)
+                  reject(`Error retrieving storage value for key ${storageKey} (reply-to=${replyTo})`)
                 }
               })
               .catch(reject)
@@ -336,6 +405,16 @@ export class LocalIngressConsumer
 
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     return this.#headCatcher.getStorage(chainId, storageKey, blockHash)
+  }
+
+  getStorageKeys(
+    chainId: NetworkURN,
+    keyPrefix: HexString,
+    count: number,
+    startKey?: HexString,
+    blockHash?: HexString,
+  ): Observable<HexString[]> {
+    return this.#headCatcher.getStorageKeys(chainId, keyPrefix, count, startKey, blockHash)
   }
 
   collectTelemetry(collect: TelemetryCollect): void {

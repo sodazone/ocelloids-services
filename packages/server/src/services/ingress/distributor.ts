@@ -53,6 +53,10 @@ export function getStorageReqKey(chainId: NetworkURN) {
   return 'RQ:STORAGE:' + chainId
 }
 
+export function getStorageKeysReqKey(chainId: NetworkURN) {
+  return 'RQ:STORAGE:KEYS:' + chainId
+}
+
 export function getReplyToKey(chainId: NetworkURN, ...args: string[]) {
   return `RP:${chainId}:${args.join(':')}`
 }

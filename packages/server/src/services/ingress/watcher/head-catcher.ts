@@ -190,12 +190,59 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return this.#apis.promise[chainId]
   }
 
+  /**
+   * Enumerates storage keys by a given key prefix.
+   *
+   * @param chainId The chain identifier.
+   * @param keyPrefix  The storage key hex prefix.
+   * @param count The number of results to get.
+   * @param startKey The key to start from.
+   * @param blockHash The block hash to query at.
+   * @returns an array of storage keys as hex strings
+   */
+  getStorageKeys(
+    chainId: NetworkURN,
+    keyPrefix: HexString,
+    count: number,
+    startKey?: HexString,
+    blockHash?: HexString,
+  ): Observable<HexString[]> {
+    const apiPromise$ = from(this.#apis.promise[chainId].isReady)
+    const resolvedStartKey = startKey === '0x0' ? undefined : startKey
+    const getStorageKeys$ = apiPromise$.pipe(
+      switchMap((api) =>
+        from(
+          blockHash === undefined || blockHash === '0x0'
+            ? api.rpc.state.getKeysPaged(keyPrefix, count, resolvedStartKey)
+            : api.rpc.state.getKeysPaged(keyPrefix, count, resolvedStartKey, blockHash),
+        ),
+      ),
+      map((data) =>
+        data.toArray().map((storageKey) => {
+          return storageKey.toHex()
+        }),
+      ),
+      this.#tapError(
+        chainId,
+        `rpc.state.getKeysPaged(${keyPrefix}, ${count}, ${startKey ?? 'start'}, ${blockHash ?? 'latest'})`,
+      ),
+    )
+
+    return getStorageKeys$.pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE))
+  }
+
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
     const apiPromise$ = from(this.#apis.promise[chainId].isReady)
     const getStorage$ = apiPromise$.pipe(
-      switchMap((api) => from(api.rpc.state.getStorage<Raw>(storageKey, blockHash))),
+      switchMap((api) =>
+        from(
+          blockHash === undefined || blockHash === '0x0'
+            ? api.rpc.state.getStorage<Raw>(storageKey)
+            : api.rpc.state.getStorage<Raw>(storageKey, blockHash),
+        ),
+      ),
       map((data) => data.toU8a(true)),
-      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash})`),
+      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash ?? 'latest'})`),
     )
 
     if (this.#localCache.has(chainId)) {
