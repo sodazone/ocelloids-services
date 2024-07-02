@@ -53,6 +53,9 @@ describe('janitor service', () => {
 
     await flushPromises()
 
+    jest.advanceTimersByTime(1)
+    await flushPromises()
+
     await expect(async () => {
       await s1.get('k1')
     }).rejects.toThrow()
@@ -107,6 +110,9 @@ describe('janitor service', () => {
 
     await flushPromises()
 
+    jest.advanceTimersByTime(1)
+    await flushPromises()
+
     await expect(async () => {
       await s1.get('k3')
     }).rejects.toThrow()
@@ -153,6 +159,7 @@ describe('janitor service', () => {
     jest.advanceTimersByTime(1000)
 
     await scheduler.stop()
+
     expect((await scheduler.allTaskTimes()).length).toBe(0)
     expect((await s1.keys().all()).length).toBe(1)
     expect(await s1.get('k3')).toBeDefined()

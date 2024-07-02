@@ -43,7 +43,7 @@ describe('scheduler service', () => {
 
     await scheduler.stop()
 
-    expect(ok).toBeCalled()
+    expect(ok).toHaveBeenCalled()
   })
 
   it('should remove a task', async () => {

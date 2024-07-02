@@ -54,7 +54,6 @@ export class Janitor extends (EventEmitter as new () => TypedEventEmitter<Janito
 
   async #sweep({ task }: Scheduled<JanitorTask>) {
     const { sublevel, key } = task
-
     try {
       const item = await this.#db.sublevel(sublevel).get(key)
       await this.#db.sublevel(sublevel).del(key)
