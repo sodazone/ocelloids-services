@@ -111,7 +111,7 @@ export class DataSteward implements Agent, Queryable {
   get metadata(): AgentMetadata {
     return {
       name: 'Data Steward',
-      description: 'Aggregates assets and currencies metadata.',
+      description: 'Aggregates and enriches cross-chain metadata for assets and currencies.',
       capabilities: getAgentCapabilities(this),
     }
   }
