@@ -20,7 +20,7 @@ import {
 import { mappers } from './mappers.js'
 import { $StewardQuery, AssetMapping, AssetMetadata, StewardQuery } from './types.js'
 
-const AssetMetadataSyncTaskType = 'task:steward:assets-metadata-sync'
+const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
 
 function assetMetadataKey(chainId: NetworkURN, assetId: string) {
@@ -55,7 +55,7 @@ export class DataSteward implements Agent, Queryable {
     })
     this.#log = ctx.log
 
-    this.#sched.on(AssetMetadataSyncTaskType, this.#onScheduledTask.bind(this))
+    this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
 
   get querySchema(): z.ZodSchema {
@@ -139,10 +139,10 @@ export class DataSteward implements Agent, Queryable {
   async #scheduleSync() {
     const time = new Date(Date.now() + SCHED_RATE)
     const timeString = time.toISOString()
-    const key = timeString + AssetMetadataSyncTaskType
+    const key = timeString + ASSET_METADATA_SYNC_TASK
     const task = {
       key,
-      type: AssetMetadataSyncTaskType,
+      type: ASSET_METADATA_SYNC_TASK,
       task: null,
     } as Scheduled
 
