@@ -21,7 +21,7 @@ import { mappers } from './mappers.js'
 import { $StewardQuery, AssetMapping, AssetMetadata, StewardQuery } from './types.js'
 
 const AssetMetadataSyncTaskType = 'task:steward:assets-metadata-sync'
-const LevelPrefix = 'agent:steward:assets:'
+const LEVEL_PREFIX = 'agent:steward:assets:'
 
 function assetMetadataKey(chainId: NetworkURN, assetId: string) {
   return `${chainId}:${assetId}`
@@ -45,7 +45,7 @@ export class DataSteward implements Agent, Queryable {
   constructor(ctx: AgentRuntimeContext) {
     this.#sched = ctx.scheduler
     this.#ingress = ctx.ingress
-    this.#db = ctx.db.sublevel<string, AssetMetadata>(LevelPrefix, {
+    this.#db = ctx.db.sublevel<string, AssetMetadata>(LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#log = ctx.log
@@ -116,7 +116,7 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async start() {
-    if (await this.#sched.isNotScheduled(AssetMetadataSyncTaskType)) {
+    if (await this.#isNotScheduled()) {
       await this.#scheduleSync()
 
       // first-time sync
@@ -142,18 +142,14 @@ export class DataSteward implements Agent, Queryable {
     } as Scheduled
 
     await this.#sched.schedule(task)
+    await this.#db.put('scheduled', true)
 
     this.#log.info('[agent:%s] sync scheduled %s', this.id, timeString)
   }
 
   async #onScheduledTask() {
     this.#syncAssetMetadata()
-
-    if (await this.#sched.isNotScheduled(AssetMetadataSyncTaskType)) {
-      await this.#scheduleSync()
-    } else {
-      this.#log.warn('[agent:%s] sync already scheduled', this.id)
-    }
+    await this.#scheduleSync()
   }
 
   #syncAssetMetadata() {
@@ -228,5 +224,14 @@ export class DataSteward implements Agent, Queryable {
         error: (e) =>
           this.#log.error(e, '[agent:%s] on metadata sync (chainId=%s, key=%s)', this.id, chainId, keyPrefix),
       })
+  }
+
+  async #isNotScheduled() {
+    try {
+      await this.#db.get('scheduled')
+      return false
+    } catch {
+      return true
+    }
   }
 }
