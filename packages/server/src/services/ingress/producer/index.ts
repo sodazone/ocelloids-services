@@ -13,6 +13,7 @@ import {
   RedisDistributor,
   XAddOptions,
   getBlockStreamKey,
+  getChainPropsReqKey,
   getMetadataKey,
   getStorageKeysReqKey,
   getStorageReqKey,
@@ -51,7 +52,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
   readonly #rxSubs: Record<string, RxSubscription> = {}
   readonly #streamOptions: XAddOptions
 
-  #config: ServiceConfiguration
+  readonly #config: ServiceConfiguration
 
   constructor(ctx: Services, opts: IngressOptions) {
     super()
@@ -143,6 +144,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
 
       this.#registerStorageRequestHandler(chainId)
       this.#registerStorageKeysRequestHandler(chainId)
+      this.#registerChainPropsRequestHandler(chainId)
     }
   }
 
@@ -168,8 +170,13 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
     this.#distributor.read<StorageKeysRequest>(key, (request, { client }) => {
       this.#headCatcher
         .getStorageKeys(chainId, request.keyPrefix, request.count, request.startKey, request.at)
-        .subscribe((data) => {
-          client.LPUSH(request.replyTo, Buffer.from(JSON.stringify(data)))
+        .subscribe({
+          next: (data) => {
+            client.LPUSH(request.replyTo, Buffer.from(JSON.stringify(data)))
+          },
+          error: (e) => {
+            this.#log.error(e, '[%s] error reading storage keys (keyPrefix=%s)', chainId, request.keyPrefix)
+          },
         })
     })
   }
@@ -177,9 +184,30 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
   #registerStorageRequestHandler(chainId: NetworkURN) {
     const key = getStorageReqKey(chainId)
     this.#distributor.read<StorageRequest>(key, (request, { client }) => {
-      this.#headCatcher.getStorage(chainId, request.storageKey, request.at).subscribe((data) => {
-        client.LPUSH(request.replyTo, Buffer.from(data))
+      this.#headCatcher.getStorage(chainId, request.storageKey, request.at).subscribe({
+        next: (data) => {
+          client.LPUSH(request.replyTo, Buffer.from(data))
+        },
+        error: (e) => {
+          this.#log.error(e, '[%s] error reading storage (key=%s)', chainId, request.storageKey)
+        },
       })
+    })
+  }
+
+  #registerChainPropsRequestHandler(chainId: NetworkURN) {
+    const key = getChainPropsReqKey(chainId)
+    this.#distributor.read<{
+      replyTo: string
+    }>(key, (request, { client }) => {
+      this.#headCatcher
+        .getChainProperties(chainId)
+        .then((data) => {
+          client.LPUSH(request.replyTo, Buffer.from(JSON.stringify(data)))
+        })
+        .catch((e) => {
+          this.#log.error(e, '[%s] error while reading chain properties', chainId)
+        })
     })
   }
 }
