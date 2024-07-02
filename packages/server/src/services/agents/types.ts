@@ -7,7 +7,7 @@ import { IngressConsumer } from '../ingress/index.js'
 import { Janitor } from '../persistence/janitor.js'
 import { Scheduler } from '../persistence/scheduler.js'
 import { EgressListener, Subscription } from '../subscriptions/types.js'
-import { AnyJson, DB, Logger } from '../types.js'
+import { DB, Logger } from '../types.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -78,6 +78,14 @@ export interface AgentCatalog {
   getAgentInputSchema(agentId: AgentId): z.ZodSchema
 
   /**
+   * Gets the query schema for an agent.
+   *
+   * @param {AgentId} agentId - The ID of the agent
+   * @returns {z.ZodSchema} The agent's query schema
+   */
+  getAgentQuerySchema(agentId: AgentId): z.ZodSchema
+
+  /**
    * Retrieves a subscribable agent by id.
    *
    * @param {AgentId} agentId - The ID of the agent to retrieve
@@ -108,6 +116,11 @@ export interface AgentCatalog {
    * @returns {Promise<void>} A promise that resolves when the agent is started
    */
   startAgent(agentId: AgentId, subscriptions?: Subscription[]): Promise<void>
+
+  /**
+   * Starts the AgentCatalog and all the non-subscribable agents.
+   */
+  start(): Promise<void>
 
   /**
    * Stops the AgentCatalog and all managed agents.
@@ -186,8 +199,8 @@ export interface Subscribable {
 export type QueryParams<T = Record<string, any>> = {
   args: T
   pagination?: {
-    cursor: string
-    limit: number
+    cursor?: string
+    limit?: number
   }
 }
 export type QueryResult<T = Record<string, any>> = {
@@ -203,7 +216,7 @@ export type QueryResult<T = Record<string, any>> = {
  */
 export interface Queryable {
   querySchema: z.ZodSchema
-  query<Q = QueryParams, R = QueryResult>(params: Q): R
+  query(params: QueryParams): Promise<QueryResult>
 }
 
 /**
@@ -234,10 +247,10 @@ export interface Agent {
   /**
    * Starts the agent with a list of subscriptions.
    *
-   * @param {Subscription[]} subscriptions - The list of subscriptions to start with
+   * @param {Subscription[] | undefined} subscriptions - The list of subscriptions to start with
    * @returns {Promise<void> | void} A promise that resolves when the agent is started, or void if synchronous
    */
-  start(subscriptions: Subscription[]): Promise<void> | void
+  start(subscriptions?: Subscription[]): Promise<void> | void
 
   /**
    * Collects telemetry data from the agent.

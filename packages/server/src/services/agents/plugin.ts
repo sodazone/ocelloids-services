@@ -28,6 +28,8 @@ const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fasti
 
   await AgentsApi(fastify)
 
+  await catalog.start()
+
   fastify.addHook('onClose', (server, done) => {
     catalog
       .stop()

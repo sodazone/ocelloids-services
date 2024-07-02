@@ -7,6 +7,7 @@ import { EgressListener, Subscription } from '../../subscriptions/types.js'
 import { egressMetrics } from '../../telemetry/metrics/publisher.js'
 
 import { InformantAgent } from '../informant/agent.js'
+import { DataSteward } from '../steward/agent.js'
 import {
   Agent,
   AgentCatalog,
@@ -18,6 +19,13 @@ import {
   isSubscribable,
 } from '../types.js'
 import { XcmAgent } from '../xcm/agent.js'
+
+function shouldStart(agent: Agent) {
+  const {
+    metadata: { capabilities },
+  } = agent
+  return capabilities.queryable && !capabilities.subscribable
+}
 
 /**
  * A local implementation of the {@link AgentCatalog}.
@@ -72,17 +80,30 @@ export class LocalAgentCatalog implements AgentCatalog {
   }
 
   getAgentInputSchema(agentId: AgentId) {
-    const agent = this.getAgentById(agentId)
-    if (isSubscribable(agent)) {
-      return agent.inputSchema
-    }
-    throw new ValidationError(`The agent is not subscribable: ${agentId}`)
+    const agent = this.getSubscribableById(agentId)
+    return agent.inputSchema
+  }
+
+  getAgentQuerySchema(agentId: AgentId) {
+    const agent = this.getQueryableById(agentId)
+    return agent.querySchema
   }
 
   async startAgent(agentId: AgentId, subscriptions: Subscription[] = []) {
     const agent = this.#agents[agentId]
-    this.#log.info('[catalog:local] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
-    await agent.start(subscriptions)
+    if (agent.metadata.capabilities.subscribable) {
+      this.#log.info('[catalog:local] starting agent %s (%s)', agentId, agent.metadata.name ?? 'unnamed')
+      await agent.start(subscriptions)
+    }
+  }
+
+  async start() {
+    for (const [id, agent] of Object.entries(this.#agents)) {
+      if (shouldStart(agent)) {
+        this.#log.info('[catalog:local] starting agent %s', id)
+        await agent.start()
+      }
+    }
   }
 
   async stop() {
@@ -104,10 +125,12 @@ export class LocalAgentCatalog implements AgentCatalog {
   #loadAgents(ctx: AgentRuntimeContext) {
     const xcm = new XcmAgent(ctx)
     const informant = new InformantAgent(ctx)
+    const steward = new DataSteward(ctx)
 
     return {
       [xcm.id]: xcm,
       [informant.id]: informant,
+      [steward.id]: steward,
     } as unknown as Record<AgentId, Agent>
   }
 }
