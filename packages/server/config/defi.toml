@@ -1,0 +1,38 @@
+[[networks]]
+id = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://rpc.ibp.network/polkadot"
+
+[[networks]]
+id = "urn:ocn:polkadot:1000"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://polkadot-asset-hub-rpc.polkadot.io"
+
+[[networks]]
+id = "urn:ocn:polkadot:2034"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://hydradx.paras.dotters.network"
+
+[[networks]]
+id = "urn:ocn:polkadot:2030"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://bifrost-polkadot-rpc.dwellir.com"
+
+[[networks]]
+id = "urn:ocn:polkadot:2004"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "wss://moonbeam.api.onfinality.io/public-ws"
