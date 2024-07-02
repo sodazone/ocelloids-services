@@ -3,10 +3,14 @@ import { EventEmitter } from 'node:events'
 import { NotFound } from '../../errors.js'
 import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js'
 
+const ZERO_TIME = '0000-00-00T00:00:00.000Z'
+const MAX_TIME = '9999-99-99T99:99:99.999Z'
+
 export type Scheduled<T = any> = {
+  // time based key
   key?: string
   type: string
-  task: T
+  task: T | null
 }
 
 export type SchedulerOptions = {
@@ -85,6 +89,21 @@ export class Scheduler extends EventEmitter {
     }
   }
 
+  async isScheduled(taskType: string) {
+    return (
+      (await this.#tasks
+        .iterator({
+          gt: ZERO_TIME,
+          lte: MAX_TIME + taskType,
+        })
+        .next()) !== undefined
+    )
+  }
+
+  async isNotScheduled(taskType: string) {
+    return !(await this.isScheduled(taskType))
+  }
+
   async #run() {
     const cancellable = new Promise((resolve) => {
       this.#cancel = resolve
@@ -111,8 +130,9 @@ export class Scheduler extends EventEmitter {
 
     for await (const [key, task] of range) {
       try {
+        await this.#tasks.del(key)
+
         if (this.emit(task.type, task)) {
-          await this.#tasks.del(key)
           this.#log.debug(task, 'scheduler: Dispatched %s %j', key, task)
         }
       } catch (error) {
