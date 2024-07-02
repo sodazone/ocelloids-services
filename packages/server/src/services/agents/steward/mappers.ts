@@ -71,7 +71,7 @@ const mapAssetsAndLocations = ({
           } as AssetMetadata
         }),
         mergeMap((asset) => {
-          // Expand AssetManager.assetIdType
+          // Expand multilocations
           const key = (multiLocationKeyPrefix +
             Buffer.from(
               keyConcat(
