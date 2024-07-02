@@ -111,21 +111,21 @@ export class InformantAgent implements Agent, Subscribable {
 
   stop() {
     for (const handler of Object.values(this.#handlers)) {
-      this.#log.info('[%s] unsubscribe %s', this.id, handler.subscription.id)
+      this.#log.info('[agent:%s] unsubscribe %s', this.id, handler.subscription.id)
       handler.streams.forEach(({ sub }) => {
         sub.unsubscribe()
       })
     }
   }
 
-  async start(subscriptions: Subscription<InformantInputs>[]): Promise<void> {
-    this.#log.info('[%s] start subscriptions %d', this.id, subscriptions.length)
+  async start(subscriptions: Subscription<InformantInputs>[] = []): Promise<void> {
+    this.#log.info('[agent:%s] start subscriptions (%d)', this.id, subscriptions.length)
 
     for (const sub of subscriptions) {
       try {
         this.#handlers[sub.id] = await this.#monitor(sub)
       } catch (err) {
-        this.#log.error(err, '[%s] unable to create subscription: %j', this.id, sub)
+        this.#log.error(err, '[agent:%s] unable to create subscription: %j', this.id, sub)
       }
     }
   }

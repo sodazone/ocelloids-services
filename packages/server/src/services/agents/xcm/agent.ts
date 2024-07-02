@@ -126,7 +126,7 @@ export class XcmAgent implements Agent, Subscribable {
 
   async unsubscribe(id: string): Promise<void> {
     if (!this.#subs.has(id)) {
-      this.#log.warn('[%s] unsubscribe from a non-existent subscription %s', this.id, id)
+      this.#log.warn('[agent:%s] unsubscribe from a non-existent subscription %s', this.id, id)
       return
     }
 
@@ -152,18 +152,18 @@ export class XcmAgent implements Agent, Subscribable {
 
       await this.#engine.clearPendingStates(id)
     } catch (error) {
-      this.#log.error(error, '[%s] error unsubscribing %s', this.id, id)
+      this.#log.error(error, '[agent:%s] error unsubscribing %s', this.id, id)
     }
   }
 
-  async start(subs: Subscription<XcmInputs>[]): Promise<void> {
-    this.#log.info('[%s] creating stored subscriptions (%d)', this.id, subs.length)
+  async start(subs: Subscription<XcmInputs>[] = []): Promise<void> {
+    this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
 
     for (const sub of subs) {
       try {
         this.#subs.set(sub.id, await this.#monitor(sub))
       } catch (error) {
-        this.#log.error(error, '[%s] unable to create subscription: %j', this.id, sub)
+        this.#log.error(error, '[agent:%s] unable to create subscription: %j', this.id, sub)
       }
     }
   }
@@ -175,7 +175,7 @@ export class XcmAgent implements Agent, Subscribable {
       destinationSubs,
       relaySub,
     } of this.#subs.all()) {
-      this.#log.info('[%s] unsubscribe %s', this.id, id)
+      this.#log.info('[agent:%s] unsubscribe %s', this.id, id)
 
       originSubs.forEach(({ sub }) => sub.unsubscribe())
       destinationSubs.forEach(({ sub }) => sub.unsubscribe())
@@ -611,7 +611,7 @@ export class XcmAgent implements Agent, Subscribable {
       }
     } else {
       // this could happen with closed ephemeral subscriptions
-      this.#log.warn('[%s] unable to find descriptor for subscription %s', this.id, subscriptionId)
+      this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, subscriptionId)
     }
   }
 
@@ -652,7 +652,7 @@ export class XcmAgent implements Agent, Subscribable {
         relaySub = this.__monitorRelay(subscription)
       } catch (error) {
         // log instead of throw to not block OD subscriptions
-        this.#log.error(error, '[%s] error on relay subscription %s', this.id, id)
+        this.#log.error(error, '[agent:%s] error on relay subscription %s', this.id, id)
       }
     }
 
@@ -662,7 +662,7 @@ export class XcmAgent implements Agent, Subscribable {
           bridgeSubs.push(this.__monitorPkBridge(subscription))
         } catch (error) {
           // log instead of throw to not block OD subscriptions
-          this.#log.error(error, '[%s] error on bridge subscription %s', this.id, id)
+          this.#log.error(error, '[agent:%s] error on bridge subscription %s', this.id, id)
         }
       }
     }
