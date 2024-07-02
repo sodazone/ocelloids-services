@@ -36,6 +36,11 @@ const API_LIMIT_MAX = 100
 const START_DELAY = 30_000 // 5m
 const SCHED_RATE = 43_200_000 // 12h
 
+/**
+ * The Data Steward agent.
+ *
+ * Aggregates and enriches cross-chain metadata for assets and currencies.
+ */
 export class DataSteward implements Agent, Queryable {
   readonly #sched: Scheduler
   readonly #ingress: IngressConsumer
