@@ -9,6 +9,9 @@ import { $AgentId, AgentId, QueryParams } from '../types.js'
 export async function AgentsApi(api: FastifyInstance) {
   const { agentCatalog: agentService } = api
 
+  /**
+   * POST /query/:agentId
+   */
   api.post<{
     Params: {
       agentId: AgentId
