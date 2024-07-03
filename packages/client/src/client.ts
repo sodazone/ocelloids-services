@@ -1,4 +1,13 @@
-import type { AgentId, AnyJson, SubscriptionId } from './lib'
+import type {
+  AgentId,
+  AnyJson,
+  AnyQueryArgs,
+  AnyQueryResultItem,
+  QueryPagination,
+  QueryParams,
+  QueryResult,
+  SubscriptionId,
+} from './lib'
 import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
@@ -52,6 +61,30 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
       ...config,
     }
     this.#fetch = doFetchWithConfig(config)
+  }
+
+  /**
+   * Executes a query on the specified agent.
+   *
+   * @param args - The query arguments.
+   * @param pagination - The pagination configuration.
+   * @param init - The fetch request initialization.
+   * @returns A promise that resolves to the results of the query.
+   */
+  async query<P = AnyQueryArgs, R = AnyQueryResultItem>(
+    args: P,
+    pagination?: QueryPagination,
+    init: RequestInit = {},
+  ) {
+    const url = this.#config.httpUrl + '/query/' + this.#agentId
+    return this.#fetch<QueryResult<R>>(url, {
+      ...init,
+      method: 'POST',
+      body: JSON.stringify({
+        args,
+        pagination,
+      } as QueryParams),
+    })
   }
 
   /**

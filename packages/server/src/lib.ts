@@ -8,7 +8,14 @@ export type {
   SubscriptionId,
 } from './services/subscriptions/types.js'
 export type { AnyJson } from './services/types.js'
-export type { AgentId } from './services/agents/types.js'
+export type {
+  AgentId,
+  QueryParams,
+  QueryResult,
+  QueryPagination,
+  AnyQueryArgs,
+  AnyQueryResultItem,
+} from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
 
 // ====================================================================

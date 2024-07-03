@@ -196,15 +196,20 @@ export interface Subscribable {
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription
 }
 
-export type QueryParams<T = Record<string, any>> = {
-  args: T
-  pagination?: {
-    cursor?: string
-    limit?: number
-  }
+export type AnyQueryArgs = Record<string, any>
+export type AnyQueryResultItem = Record<string, any>
+export type QueryPagination = {
+  cursor?: string
+  limit?: number
 }
-export type QueryResult<T = Record<string, any>> = {
-  items: T
+
+export type QueryParams<T = AnyQueryArgs> = {
+  args: T
+  pagination?: QueryPagination
+}
+
+export type QueryResult<T = AnyQueryResultItem> = {
+  items: T[]
   pageInfo?: {
     endCursor: string
     hasNextPage: boolean

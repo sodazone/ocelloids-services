@@ -4,7 +4,7 @@ import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
-import type { Subscription, WsAuthErrorEvent } from './lib'
+import type { QueryResult, Subscription, WsAuthErrorEvent } from './lib'
 import { XcmInputs, XcmMessagePayload } from './xcm/types'
 
 jest.unstable_mockModule('isows', () => {
@@ -372,6 +372,100 @@ describe('OcelloidsClient', () => {
   describe('http', () => {
     afterAll(() => {
       nock.restore()
+    })
+
+    it('should execute a query', async () => {
+      const scope = nock('http://mock')
+        .matchHeader('content-type', 'application/json')
+        .post('/query/steward', {
+          args: {
+            criteria: 'hello',
+          },
+        })
+        .reply(
+          200,
+          JSON.stringify({
+            items: [
+              {
+                a: 1,
+              },
+            ],
+          } as QueryResult),
+        )
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+      })
+
+      const res = await client.agent('steward').query<
+        {
+          criteria: string
+        },
+        {
+          a: number
+        }
+      >({
+        criteria: 'hello',
+      })
+
+      expect(res.items[0].a).toBe(1)
+
+      scope.done()
+    })
+
+    it('should execute a query with pagination', async () => {
+      const scope = nock('http://mock')
+        .matchHeader('content-type', 'application/json')
+        .post('/query/steward', {
+          pagination: {
+            limit: 100,
+            cursor: 'b',
+          },
+          args: {
+            criteria: 'hello',
+          },
+        })
+        .reply(
+          200,
+          JSON.stringify({
+            pageInfo: {
+              endCursor: 'a',
+              hasNextPage: false,
+            },
+            items: [
+              {
+                a: 1,
+              },
+            ],
+          } as QueryResult),
+        )
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+      })
+
+      const res = await client.agent('steward').query<
+        {
+          criteria: string
+        },
+        {
+          a: number
+        }
+      >(
+        {
+          criteria: 'hello',
+        },
+        {
+          cursor: 'b',
+          limit: 100,
+        },
+      )
+
+      expect(res.items[0].a).toBe(1)
+
+      scope.done()
     })
 
     it('should create a subscription', async () => {
