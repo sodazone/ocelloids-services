@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
+import { CAP_READ } from '../../auth.js'
 import { $AgentId, AgentId, QueryParams } from '../types.js'
 
 /**
@@ -20,6 +21,9 @@ export async function AgentsApi(api: FastifyInstance) {
   }>(
     '/query/:agentId',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),
@@ -59,6 +63,9 @@ export async function AgentsApi(api: FastifyInstance) {
   api.get(
     '/agents',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         response: {
           200: {
@@ -83,6 +90,9 @@ export async function AgentsApi(api: FastifyInstance) {
   }>(
     '/agents/:agentId/inputs',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),
@@ -109,6 +119,9 @@ export async function AgentsApi(api: FastifyInstance) {
   }>(
     '/agents/:agentId/queries',
     {
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),
