@@ -255,6 +255,7 @@ const METHODS_DMP = [
   'teleportAssets',
 ]
 
+// legacy support for DMP extrinsics that did not emit xcmPallet.Sent event
 export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
   return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(

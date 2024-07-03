@@ -319,26 +319,6 @@ export class XcmAgent implements Agent, Subscribable {
             .pipe(
               switchMap((registry) =>
                 this.#shared
-                  .blockExtrinsics(chainId)
-                  .pipe(
-                    extractDmpSend(chainId, this.#getDmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
-                  ),
-              ),
-            )
-            .subscribe(outboundObserver),
-        })
-
-        // VMP DMP
-        this.#log.info('[%s:%s] subscribe outbound DMP - by event (%s)', this.id, chainId, id)
-
-        subs.push({
-          chainId,
-          sub: this.#ingress
-            .getRegistry(chainId)
-            .pipe(
-              switchMap((registry) =>
-                this.#shared
                   .blockEvents(chainId)
                   .pipe(
                     extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
