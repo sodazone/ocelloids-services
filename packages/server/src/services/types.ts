@@ -11,6 +11,11 @@ import { Scheduler } from './persistence/scheduler.js'
 import { SubsStore } from './persistence/subs.js'
 import { BlockNumberRange, HexString } from './subscriptions/types.js'
 
+/**
+ * The network URN.
+ *
+ * @public
+ */
 export type NetworkURN = `urn:ocn:${string}`
 
 export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>

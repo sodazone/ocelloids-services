@@ -196,18 +196,45 @@ export interface Subscribable {
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription
 }
 
+/**
+ * Generic query arguments.
+ *
+ * @public
+ */
 export type AnyQueryArgs = Record<string, any>
+
+/**
+ * Generic query result item.
+ *
+ * @public
+ */
 export type AnyQueryResultItem = Record<string, any>
+
+/**
+ * Query pagination options.
+ *
+ * @public
+ */
 export type QueryPagination = {
   cursor?: string
   limit?: number
 }
 
+/**
+ * The query parameters.
+ *
+ * @public
+ */
 export type QueryParams<T = AnyQueryArgs> = {
   args: T
   pagination?: QueryPagination
 }
 
+/**
+ * The query result.
+ *
+ * @public
+ */
 export type QueryResult<T = AnyQueryResultItem> = {
   items: T[]
   pageInfo?: {

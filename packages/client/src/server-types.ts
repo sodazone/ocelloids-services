@@ -9,5 +9,6 @@ export type {
   QueryResult,
   QueryPagination,
   AnyQueryArgs,
+  NetworkURN,
   AnyQueryResultItem,
 } from '@sodazone/ocelloids-service-node'

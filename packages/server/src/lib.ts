@@ -7,7 +7,7 @@ export type {
   SignerData,
   SubscriptionId,
 } from './services/subscriptions/types.js'
-export type { AnyJson } from './services/types.js'
+export type { AnyJson, NetworkURN } from './services/types.js'
 export type {
   AgentId,
   QueryParams,
