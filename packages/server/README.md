@@ -30,7 +30,8 @@ The configuration values can be overridden using command line arguments.
 | OC_ADDRESS                        | The address to bind to.                        | localhost |
 | OC_PORT                           | The TCP port number to listen on.              | 3000      |
 | OC_CONFIG_FILE                    | The service configuration file.                | -         |
-| OC_DATA_DIR                       | The database directory.                        | ./db      |
+| OC_DATA_DIR                       | The database directory.                        | ./.db     |
+| OC_LEVEL_ENGINE                   | The LevelDB engine.                            | classic   |
 | OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
 | OC_DB_SCHEDULER_FREQUENCY         | Milliseconds to wait before each tick.         | 5000      |
 | OC_DB_JANITOR_SWEEP_EXPIRY        | Milliseconds before a task is swept.           | 1500000   |
@@ -41,7 +42,9 @@ The configuration values can be overridden using command line arguments.
 | OC_WS_MAX_CLIENTS                 | Maximum number of websocket clients.           | 10000     |
 | OC_CORS                           | Enables or disables CORS support.              | false     |
 | OC_CORS_CREDENTIALS               | Access-Control-Allow-Credentials CORS header.  | true      |
-| OC_CORS_ORIGIN                    | Access-Control-Allow-Origin CORS header.       | `/https?://localhost.*/` |
+| OC_CORS_ORIGIN                    | Access-Control-Allow-Origin CORS header. Use "true" for any origin. | `/https?://localhost.*/` |
+| OC_RATE_LIMIT_MAX                 | Max number of requests per limit window.       | 60        |
+| OC_RATE_LIMIT_WINDOW              | Rate limit window in milliseconds.             | 60000     |
 | OC_SUBSCRIPTION_MAX_PERSISTENT    | Maximum number of persistent subscriptions.    | 5000      |
 | OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
@@ -145,16 +148,19 @@ Usage: oc-node [options]
 Ocelloids Service Node
 
 Options:
-  -V, --version                           output the version number
   -a, --address <address>                 address to bind to (default: "localhost", env: OC_ADDRESS)
   -p, --port <number>                     port number to listen on (default: 3000, env: OC_PORT)
   -c, --config <file>                     service configuration file (env: OC_CONFIG_FILE)
-  -d, --data <dir>                        database directory (default: "./db", env: OC_DATA_DIR)
+  -d, --data <dir>                        database directory (default: "./.db", env: OC_DATA_DIR)
+  --level-engine <engine>                 level engine (default: "classic", env: OC_LEVEL_ENGINE)
   --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
   --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
   --sweep-expiry <milliseconds>           milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
   -g, --grace <milliseconds>              milliseconds for the graceful close to finish (default: 5000, env: OC_CLOSE_GRACE_DELAY)
   -t --telemetry <boolean>                enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
+  --rate-limit-max <number>               set the max number of requests (default: 60, env: OC_RATE_LIMIT_MAX)
+  --rate-limit-window <milliseconds>      set the request limit time window (default: 60000, env: OC_RATE_LIMIT_WINDOW)
+  -V, --version                           output the version number
   --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
   --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
   --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
@@ -163,8 +169,8 @@ Options:
   --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
                                           "true" for wildcard, "string" or "/regexp/"
                                           repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
-  --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
+  --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
   -h, --help                              display help for command
 ```
 </details>
@@ -184,7 +190,8 @@ Replace `<path/to/your-config.toml>` with a valid configuration file path. Confi
 | ID          | Name              | Description                                                                                |
 | ----------- | ----------------- | ------------------------------------------------------------------------------------------ |
 | `informant` | General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions.     |
-| `xcm-mon`   | XCM Monitor       | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
+| `xcm`       | XCM Monitor       | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
+| `steward`   | Data Steward      | Aggregates and enriches cross-chain metadata for assets and currencies.                    |
 
 ## HTTP APIs
 
