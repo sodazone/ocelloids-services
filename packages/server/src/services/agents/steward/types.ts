@@ -19,7 +19,7 @@ const networkURNs = Object.values(networks)
 
 export const $StewardQuery = z.discriminatedUnion('op', [
   z.object({
-    op: z.literal('find'),
+    op: z.literal('assets.metadata'),
     criteria: z.array(
       z.object({
         network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
@@ -28,7 +28,7 @@ export const $StewardQuery = z.discriminatedUnion('op', [
     ),
   }),
   z.object({
-    op: z.literal('list'),
+    op: z.literal('assets.metadata.list'),
     criteria: z.object({
       network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
     }),

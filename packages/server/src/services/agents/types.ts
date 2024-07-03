@@ -204,7 +204,7 @@ export type QueryParams<T = Record<string, any>> = {
   }
 }
 export type QueryResult<T = Record<string, any>> = {
-  results: T
+  items: T
   pageInfo?: {
     endCursor: string
     hasNextPage: boolean

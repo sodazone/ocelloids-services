@@ -66,18 +66,18 @@ export class DataSteward implements Agent, Queryable {
     const { args, pagination } = params
     $StewardQuery.parse(args)
 
-    if (args.op === 'find') {
+    if (args.op === 'assets.metadata') {
       const keys = args.criteria.flatMap((s) =>
         s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)),
       )
       return {
-        results: [
+        items: [
           await this.#db.getMany<string, AssetMetadata>(keys, {
             /** */
           }),
         ],
       } as QueryResult
-    } else if (args.op === 'list') {
+    } else if (args.op === 'assets.metadata.list') {
       const { network } = args.criteria
       const iterator = this.#db.iterator<string, AssetMetadata>({
         gte: pagination?.cursor ?? network,
@@ -88,7 +88,7 @@ export class DataSteward implements Agent, Queryable {
 
       if (entries.length === 0) {
         return {
-          results: [],
+          items: [],
         }
       }
 
@@ -97,7 +97,7 @@ export class DataSteward implements Agent, Queryable {
           endCursor: entries[entries.length - 1][0],
           hasNextPage: iterator.count >= iterator.limit,
         },
-        results: entries.map(([_, v]) => v),
+        items: entries.map(([_, v]) => v),
       }
     }
 
