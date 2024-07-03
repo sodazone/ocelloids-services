@@ -2513,6 +2513,7 @@ __metadata:
     tsx: "npm:^4.15.6"
     typedoc: "npm:^0.25.13"
     typescript: "npm:^5.4.5"
+    zod: "npm:^3.23.8"
   peerDependencies:
     ws: "*"
   languageName: unknown

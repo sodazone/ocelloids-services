@@ -76,7 +76,8 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "isows": "^1.0.4"
+    "isows": "^1.0.4",
+    "zod": "^3.23.8"
   },
   "stableVersion": "2.0.7"
 }
