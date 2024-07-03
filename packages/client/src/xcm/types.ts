@@ -19,72 +19,84 @@ export enum XcmNotificationType {
  * @public
  */
 export type XcmSent = xcm.XcmSent
+
 /**
  * XCM received event.
  *
  * @public
  */
 export type XcmReceived = xcm.XcmReceived
+
 /**
  * XCM relayed event.
  *
  * @public
  */
 export type XcmRelayed = xcm.XcmRelayed
+
 /**
  * XCM hop event.
  *
  * @public
  */
 export type XcmHop = xcm.XcmHop
+
 /**
  * XCM bridge event.
  *
  * @public
  */
 export type XcmBridge = xcm.XcmBridge
+
 /**
  * XCM timeout event.
  *
  * @public
  */
 export type XcmTimeout = xcm.XcmTimeout
+
 /**
  * The XCM notification payload.
  *
  * @public
  */
 export type XcmMessagePayload = xcm.XcmMessagePayload
+
 /**
  * XCM assets trapped event.
  *
  * @public
  */
 export type XcmAssetsTrapped = xcm.AssetsTrapped
+
 /**
  * XCM trapped asset data.
  *
  * @public
  */
 export type XcmTrappedAsset = xcm.TrappedAsset
+
 /**
  * The leg of an XCM journey.
  *
  * @public
  */
 export type XcmLeg = xcm.Leg
+
 /**
  * The XcmTerminus contextual information.
  *
  * @public
  */
 export type XcmTerminusContext = xcm.XcmTerminusContext
+
 /**
  * Terminal point of an XCM journey.
  *
  * @public
  */
 export type XcmTerminus = xcm.XcmTerminus
+
 /**
  * The XCM waypoint contextual information.
  *

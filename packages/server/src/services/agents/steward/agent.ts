@@ -18,7 +18,7 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 import { mappers } from './mappers.js'
-import { $StewardQuery, AssetMapping, AssetMetadata, StewardQuery } from './types.js'
+import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
@@ -59,12 +59,12 @@ export class DataSteward implements Agent, Queryable {
   }
 
   get querySchema(): z.ZodSchema {
-    return $StewardQuery
+    return $StewardQueryArgs
   }
 
-  async query(params: QueryParams<StewardQuery>): Promise<QueryResult> {
+  async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
     const { args, pagination } = params
-    $StewardQuery.parse(args)
+    $StewardQueryArgs.parse(args)
 
     if (args.op === 'assets.metadata') {
       const keys = args.criteria.flatMap((s) =>

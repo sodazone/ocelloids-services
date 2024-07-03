@@ -30,3 +30,9 @@ export type { Message } from './services/egress/types.js'
 // use "import * as ___" with a separate "export { ___ }" declaration
 import * as xcm from './services/agents/xcm/lib.js'
 export { xcm }
+
+/**
+ * Steward agent types
+ */
+import * as steward from './services/agents/steward/lib.js'
+export { steward }

@@ -5,6 +5,7 @@ import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
 import type { QueryResult, Subscription, WsAuthErrorEvent } from './lib'
+import { AssetMetadata, StewardQueryArgs } from './steward/types'
 import { XcmInputs, XcmMessagePayload } from './xcm/types'
 
 jest.unstable_mockModule('isows', () => {
@@ -375,19 +376,21 @@ describe('OcelloidsClient', () => {
     })
 
     it('should execute a query', async () => {
+      const queryArgs: StewardQueryArgs = {
+        op: 'assets.metadata',
+        criteria: [{ network: 'urn:ocn:local:0', assets: ['0'] }],
+      }
       const scope = nock('http://mock')
         .matchHeader('content-type', 'application/json')
         .post('/query/steward', {
-          args: {
-            criteria: 'hello',
-          },
+          args: queryArgs,
         })
         .reply(
           200,
           JSON.stringify({
             items: [
               {
-                a: 1,
+                id: '0',
               },
             ],
           } as QueryResult),
@@ -398,23 +401,19 @@ describe('OcelloidsClient', () => {
         httpUrl: 'http://mock',
       })
 
-      const res = await client.agent('steward').query<
-        {
-          criteria: string
-        },
-        {
-          a: number
-        }
-      >({
-        criteria: 'hello',
-      })
+      const agent = client.agent('steward')
+      const res = await agent.query<StewardQueryArgs, AssetMetadata>(queryArgs)
 
-      expect(res.items[0].a).toBe(1)
+      expect(res.items[0].id).toBe('0')
 
       scope.done()
     })
 
     it('should execute a query with pagination', async () => {
+      const queryArgs: StewardQueryArgs = {
+        op: 'assets.metadata',
+        criteria: [{ network: 'urn:ocn:local:0', assets: ['0'] }],
+      }
       const scope = nock('http://mock')
         .matchHeader('content-type', 'application/json')
         .post('/query/steward', {
@@ -422,9 +421,7 @@ describe('OcelloidsClient', () => {
             limit: 100,
             cursor: 'b',
           },
-          args: {
-            criteria: 'hello',
-          },
+          args: queryArgs,
         })
         .reply(
           200,
@@ -435,7 +432,7 @@ describe('OcelloidsClient', () => {
             },
             items: [
               {
-                a: 1,
+                id: '0',
               },
             ],
           } as QueryResult),
@@ -446,24 +443,12 @@ describe('OcelloidsClient', () => {
         httpUrl: 'http://mock',
       })
 
-      const res = await client.agent('steward').query<
-        {
-          criteria: string
-        },
-        {
-          a: number
-        }
-      >(
-        {
-          criteria: 'hello',
-        },
-        {
-          cursor: 'b',
-          limit: 100,
-        },
-      )
+      const res = await client.agent('steward').query<StewardQueryArgs, AssetMetadata>(queryArgs, {
+        cursor: 'b',
+        limit: 100,
+      })
 
-      expect(res.items[0].a).toBe(1)
+      expect(res.items[0].id).toBe('0')
 
       scope.done()
     })

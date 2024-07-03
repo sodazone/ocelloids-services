@@ -14,3 +14,6 @@ export * from './server-types'
 // use "import * as ___" with a separate "export { ___ }" declaration
 import * as xcm from './xcm/types'
 export { xcm }
+
+import * as steward from './steward/types'
+export { steward }

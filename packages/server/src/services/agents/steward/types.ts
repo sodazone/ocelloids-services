@@ -17,7 +17,7 @@ export const networks: Record<string, string> = {
 
 const networkURNs = Object.values(networks)
 
-export const $StewardQuery = z.discriminatedUnion('op', [
+export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets.metadata'),
     criteria: z.array(
@@ -35,7 +35,12 @@ export const $StewardQuery = z.discriminatedUnion('op', [
   }),
 ])
 
-export type StewardQuery = z.infer<typeof $StewardQuery>
+/**
+ * Data Steward query arguments.
+ *
+ * @public
+ */
+export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
 export type entryMapper = (
   registry: Registry,
@@ -52,6 +57,11 @@ export type AssetMapper = {
   mappings: AssetMapping[]
 }
 
+/**
+ * The asset metadata.
+ *
+ * @public
+ */
 export type AssetMetadata = {
   id: string
   chainId: NetworkURN
