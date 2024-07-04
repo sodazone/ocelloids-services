@@ -27,6 +27,8 @@ WORKDIR /opt/oc
 
 ENV NODE_ENV=production
 ENV OC_ADDRESS=0.0.0.0
+ENV OC_CORS=true
+ENV OC_CORS_ORIGIN=true
 EXPOSE 3000
 
 COPY --from=builder /opt/oc/node_modules ./node_modules
