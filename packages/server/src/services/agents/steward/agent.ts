@@ -71,11 +71,11 @@ export class DataSteward implements Agent, Queryable {
         s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)),
       )
       return {
-        items: [
+        items: (
           await this.#db.getMany<string, AssetMetadata>(keys, {
             /** */
-          }),
-        ],
+          })
+        ).filter((a) => a),
       } as QueryResult
     } else if (args.op === 'assets.metadata.list') {
       const { network } = args.criteria
