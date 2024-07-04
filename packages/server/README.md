@@ -111,12 +111,29 @@ Run the image mounting the configuration and chain specs as volumes:
 
 ```shell
 docker run -d \
-  -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
-  -v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro \
-  -v <PATH_TO_CONFIG_DIR>:/opt/oc/config:ro \
+  -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
+  -e OC_SECRET=<YOUR_SECRET> \
+  -v <YOUR_PATH_TO_CONFIG_DIR>:/opt/oc/config:ro \
   sodazone/ocelloids-integrated-node
 ```
+
+Please replace `YOUR_SECRET` with the secret used to sign the authorization tokens and `YOUR_PATH_TO_CONFIG_DIR` with the path to the directory containing the configuration TOML file.
+
+> [!NOTE]
+> For OC_SECRET="abracadabra" the root privileges token is `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiaWF0IjoxNTE2MjM5MDIyfQ.uczrtx6q-6dd3vPK1GT986kQ9IpQ-YYwVOSsv9moZQc`. (!) DO NOT USE IN PRODUCTION :D
+
+Now you can check if the server is running:
+```shell
+curl \
+-H 'accept: application/json' \
+-H 'content-type: application/json' \
+-H 'Authorization: Bearer <YOUR_TOKEN>' \
+http://127.0.0.1:3000/health
+```
+
+> [!HINT]
+> Use `-v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro` if you need to resolve chain specs for light client configurations.
 
 ### Command Line
 
