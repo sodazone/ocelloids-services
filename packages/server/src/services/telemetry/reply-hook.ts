@@ -2,6 +2,8 @@ import { FastifyReply, FastifyRequest } from 'fastify'
 
 import { Histogram } from 'prom-client'
 
+const NO_ROUTE_STATUS = [401, 404]
+
 export function createReplyHook() {
   const reqHist = new Histogram({
     name: 'oc_fastify_response_time_ms',
@@ -13,7 +15,13 @@ export function createReplyHook() {
       return
     }
 
-    const millis = reply.elapsedTime
-    reqHist.labels(reply.statusCode.toString(), request.method, request.originalUrl).observe(millis)
+    const { statusCode, elapsedTime } = reply
+
+    // only add route labels for non 401 or 404 status
+    if (NO_ROUTE_STATUS.includes(reply.statusCode)) {
+      reqHist.labels(statusCode.toString(), request.method, '-').observe(elapsedTime)
+    } else {
+      reqHist.labels(statusCode.toString(), request.method, request.originalUrl).observe(elapsedTime)
+    }
   }
 }
