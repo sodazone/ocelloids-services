@@ -101,7 +101,7 @@ Download the Docker image:
 docker pull sodazone/ocelloids-integrated-node
 ```
 
-Or build locally:
+Alternatively, if you want to build locally, from the root of the project, run:
  
 ```shell
 docker build . -t ocelloids-integrated-node:develop
@@ -113,8 +113,8 @@ Run the image mounting the configuration and chain specs as volumes:
 docker run -d \
   -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
   -p 3000:3000 \
-  -v <PATH_TO_CHAIN_SPECS>:/opt/oc/chain-specs \
-  -v <PATH_TO_CONFIG>:/opt/oc/config \
+  -v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro \
+  -v <PATH_TO_CONFIG_DIR>:/opt/oc/config:ro \
   sodazone/ocelloids-integrated-node
 ```
 
