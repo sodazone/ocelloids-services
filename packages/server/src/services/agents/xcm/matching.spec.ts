@@ -6,7 +6,7 @@ import { AbstractSublevel } from 'abstract-level'
 import { matchBridgeMessages } from '../../../testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '../../../testing/matching.js'
 import { _services } from '../../../testing/services.js'
-import { NotifierHub } from '../../egress/index.js'
+import { Egress } from '../../egress/index.js'
 import { Janitor } from '../../persistence/janitor.js'
 import { jsonEncoded } from '../../types.js'
 import { MatchingEngine } from './matching.js'
@@ -31,7 +31,7 @@ describe('message matching engine', () => {
     engine = new MatchingEngine(
       {
         ..._services,
-        egress: {} as unknown as NotifierHub,
+        egress: {} as unknown as Egress,
         db,
         janitor: {
           on: jest.fn(),
@@ -68,6 +68,15 @@ describe('message matching engine', () => {
     expect(cb).toHaveBeenCalledTimes(2)
     await expect(outbound.get(idKey)).rejects.toBeDefined()
     await expect(outbound.get(hashKey)).rejects.toBeDefined()
+  })
+
+  it('should skip duplicated outbound message', async () => {
+    const { origin } = matchMessages
+
+    await engine.onOutboundMessage(origin)
+    await engine.onOutboundMessage(origin)
+
+    expect(cb).toHaveBeenCalledTimes(1)
   })
 
   it('should work async concurrently', async () => {
