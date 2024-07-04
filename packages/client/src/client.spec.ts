@@ -490,7 +490,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'http://mock',
       })
 
-      await client.agent<XcmInputs>('xcm').create(sub)
+      await client.agent<XcmInputs>('xcm').createSubscription(sub)
 
       scope.done()
     })
@@ -514,6 +514,20 @@ describe('OcelloidsClient', () => {
       const xcm = client.agent('xcm')
       await xcm.allSubscriptions()
       await xcm.getSubscription('id')
+
+      scope.done()
+    })
+
+    it('should delete a subscription', async () => {
+      const scope = nock('http://mock').delete('/subs/xcm/id').reply(200, '{}')
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+      })
+
+      const xcm = client.agent('xcm')
+      await xcm.deleteSubscription('id')
 
       scope.done()
     })

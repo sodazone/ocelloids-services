@@ -94,7 +94,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * @param init - The fetch request initialization.
    * @returns A promise that resolves when the subscription is created.
    */
-  async create(subscription: Omit<Subscription<T>, 'agent'>, init: RequestInit = {}) {
+  async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, init: RequestInit = {}) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
       ...init,
       method: 'POST',
@@ -106,6 +106,20 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   }
 
   /**
+   * Deletes a subscription.
+   *
+   * @param id - The subscription ID.
+   * @param init - The fetch request initialization.
+   */
+  async deleteSubscription(id: string, init: RequestInit = {}) {
+    const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
+    return this.#fetch(url, {
+      ...init,
+      method: 'DELETE',
+    })
+  }
+
+  /**
    * Gets a subscription by its ID.
    *
    * @param id - The subscription ID.
@@ -113,7 +127,8 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
   async getSubscription(id: string, init?: RequestInit): Promise<Subscription<T>> {
-    return this.#fetch<Subscription<T>>(`${this.#config.httpUrl}/subs/${this.#agentId}/${id}`, init)
+    const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
+    return this.#fetch<Subscription<T>>(url, init)
   }
 
   /**
@@ -191,7 +206,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  *
  * ```typescript
  * // create a 'long-lived' subscription
- * const reply = await agent.create({
+ * const reply = await agent.createSubscription({
  *   id: "my-subscription",
  *   args: {
  *     origin: "urn:ocn:polkadot:2004",
