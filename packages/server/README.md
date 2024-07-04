@@ -109,6 +109,9 @@ docker build . -t ocelloids-integrated-node:develop
 
 Run the image mounting the configuration and chain specs as volumes:
 
+> [!TIP]
+> Use `-v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro` if you need to resolve chain specs for light client configurations.
+
 ```shell
 docker run -d \
   -p 3000:3000 \
@@ -131,9 +134,6 @@ curl \
 -H 'Authorization: Bearer <YOUR_TOKEN>' \
 http://127.0.0.1:3000/health
 ```
-
-> [!TIP]
-> Use `-v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro` if you need to resolve chain specs for light client configurations.
 
 ### Command Line
 
