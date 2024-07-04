@@ -120,8 +120,8 @@ docker run -d \
 
 Please replace `YOUR_SECRET` with the secret used to sign the authorization tokens and `YOUR_PATH_TO_CONFIG_DIR` with the path to the directory containing the configuration TOML file.
 
-> [!NOTE]
-> For OC_SECRET="abracadabra" the root privileges token is `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiaWF0IjoxNTE2MjM5MDIyfQ.uczrtx6q-6dd3vPK1GT986kQ9IpQ-YYwVOSsv9moZQc`. (!) DO NOT USE IN PRODUCTION :D
+> [!CAUTION]
+> For OC_SECRET="abracadabra" the root privileges token is `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiaWF0IjoxNTE2MjM5MDIyfQ.uczrtx6q-6dd3vPK1GT986kQ9IpQ-YYwVOSsv9moZQc`. Just for easy testing. (!) DO NOT USE IN PRODUCTION :D
 
 Now you can check if the server is running:
 ```shell
@@ -132,7 +132,7 @@ curl \
 http://127.0.0.1:3000/health
 ```
 
-> [!HINT]
+> [!TIP]
 > Use `-v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro` if you need to resolve chain specs for light client configurations.
 
 ### Command Line
