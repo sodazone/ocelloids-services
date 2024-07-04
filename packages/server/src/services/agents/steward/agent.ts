@@ -23,8 +23,12 @@ import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs } from
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
 
+function normalize(assetId: string) {
+  return assetId.toLowerCase().replaceAll('"', '')
+}
+
 function assetMetadataKey(chainId: NetworkURN, assetId: string) {
-  return `${chainId}:${assetId.toLowerCase()}`
+  return `${chainId}:${normalize(assetId)}`
 }
 
 const STORAGE_PAGE_LEN = 100
