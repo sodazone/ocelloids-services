@@ -24,7 +24,7 @@ const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
 
 function assetMetadataKey(chainId: NetworkURN, assetId: string) {
-  return `${chainId}:${assetId}`
+  return `${chainId}:${assetId.toLowerCase()}`
 }
 
 const STORAGE_PAGE_LEN = 100
