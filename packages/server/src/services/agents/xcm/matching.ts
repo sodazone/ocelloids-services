@@ -113,6 +113,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         outMsg.destination.chainId,
         outMsg.waypoint.messageHash,
       )
+      // check first if there is already an outbound msg stored with the same key
+      if (await this.#isOutboundDuplicate(hashKey)) {
+        return outMsg
+      }
       // try to get any stored relay messages and notify if found.
       // do not clean up outbound in case inbound has not arrived yet.
       await this.#findRelayInbound(outMsg)
@@ -140,12 +144,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             messageId,
             forwardId,
           }
-          this.#onXcmOutbound(bridgedSent)
-          await this.#tryMatchOnOutbound(bridgedSent, outboundTTL)
+          await this.#handleXcmOutbound(bridgedSent, outboundTTL)
           await this.#bridge.del(forwardIdKey)
         } catch {
-          this.#onXcmOutbound(outMsg)
-          await this.#tryMatchOnOutbound(outMsg, outboundTTL)
+          await this.#handleXcmOutbound(outMsg, outboundTTL)
         }
       } else if (outMsg.messageId) {
         // Is not bridged message
@@ -169,32 +171,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           // do not delete hop key because maybe hop stop inbound hasn't arrived yet
           this.#onXcmHopOut(originMsg, outMsg)
         } catch {
-          this.#onXcmOutbound(outMsg)
-          // Try to get stored inbound messages and notify if any
-          // If inbound messages are found, clean up outbound.
-          // If not found, store outbound message in #outbound to match destination inbound
-          // and #hop to match hop outbounds and inbounds.
-          // Note: if relay messages arrive after outbound and inbound, it will not match.
-          await this.#tryMatchOnOutbound(outMsg, outboundTTL)
+          await this.#handleXcmOutbound(outMsg, outboundTTL)
         }
       } else {
-        this.#onXcmOutbound(outMsg)
-        // try to get stored inbound messages by message hash and notify if any
-        try {
-          const inMsg = await this.#inbound.get(hashKey)
-          log.info(
-            '[%s:o] MATCHED hash=%s (subId=%s, block=%s #%s)',
-            outMsg.origin.chainId,
-            hashKey,
-            outMsg.subscriptionId,
-            outMsg.origin.blockHash,
-            outMsg.origin.blockNumber,
-          )
-          await this.#inbound.del(hashKey)
-          this.#onXcmMatched(outMsg, inMsg)
-        } catch {
-          await this.#storekeysOnOutbound(outMsg, outboundTTL)
-        }
+        await this.#handleXcmOutbound(outMsg, outboundTTL)
       }
     })
 
@@ -451,6 +431,23 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     })
   }
 
+  async #isOutboundDuplicate(hashKey: string) {
+    try {
+      const existing = await this.#outbound.get(hashKey)
+      this.#log.debug(
+        '[%s:o] DUPLICATE outbound dropped hash=%s (subId=%s, block=%s #%s)',
+        existing.origin.chainId,
+        hashKey,
+        existing.subscriptionId,
+        existing.origin.blockHash,
+        existing.origin.blockNumber,
+      )
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+
   // try to find in DB by hop key
   // if found, emit hop, and do not store anything
   // if no matching hop key, assume is destination inbound and store.
@@ -516,31 +513,47 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
   }
 
-  async #tryMatchOnOutbound(msg: XcmSent, outboundTTL: number) {
-    if (msg.messageId === undefined) {
-      return
-    }
-
-    // Still we don't know if the inbound is upgraded,
-    // i.e. if uses message ids
-    const idKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageId)
-    const hashKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.waypoint.messageHash)
-
+  // Try to get stored inbound messages and notify if any
+  // If inbound messages are found, clean up outbound.
+  // If not found, store outbound message in #outbound to match destination inbound
+  // and #hop to match hop outbounds and inbounds.
+  // Note: if relay messages arrive after outbound and inbound, it will not match.
+  async #handleXcmOutbound(msg: XcmSent, outboundTTL: number) {
+    // Emit outbound notification
+    this.#onXcmOutbound(msg)
     const log = this.#log
+    const hashKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.waypoint.messageHash)
     try {
-      const inMsg = await Promise.any([this.#inbound.get(idKey), this.#inbound.get(hashKey)])
+      if (msg.messageId === undefined) {
+        const inMsg = await this.#inbound.get(hashKey)
+        log.info(
+          '[%s:o] MATCHED hash=%s (subId=%s, block=%s #%s)',
+          msg.origin.chainId,
+          hashKey,
+          msg.subscriptionId,
+          msg.origin.blockHash,
+          msg.origin.blockNumber,
+        )
+        await this.#inbound.del(hashKey)
+        this.#onXcmMatched(msg, inMsg)
+      } else {
+        const idKey = this.#matchingKey(msg.subscriptionId, msg.destination.chainId, msg.messageId)
+        // Still we don't know if the inbound is upgraded, so get both id and hash keys
+        // i.e. if uses message ids
+        const inMsg = await Promise.any([this.#inbound.get(idKey), this.#inbound.get(hashKey)])
 
-      log.info(
-        '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
-        msg.origin.chainId,
-        hashKey,
-        idKey,
-        msg.subscriptionId,
-        msg.origin.blockHash,
-        msg.origin.blockNumber,
-      )
-      await this.#inbound.batch().del(idKey).del(hashKey).write()
-      this.#onXcmMatched(msg, inMsg)
+        log.info(
+          '[%s:o] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
+          msg.origin.chainId,
+          hashKey,
+          idKey,
+          msg.subscriptionId,
+          msg.origin.blockHash,
+          msg.origin.blockNumber,
+        )
+        await this.#inbound.batch().del(idKey).del(hashKey).write()
+        this.#onXcmMatched(msg, inMsg)
+      }
     } catch {
       await this.#storekeysOnOutbound(msg, outboundTTL)
     }
