@@ -1,7 +1,7 @@
 import type { StagingXcmV3MultiLocation, XcmV3Junctions } from '@polkadot/types/lookup'
 
-import { NetworkURN } from 'lib.js'
-import { createNetworkId, getRelayId } from 'services/config.js'
+import { createNetworkId, getRelayId } from '../../config.js'
+import { NetworkURN } from '../../types.js'
 import { mappers } from './mappers.js'
 import { GeneralKey } from './types.js'
 
