@@ -58,7 +58,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
   fastify.decorate('scheduler', scheduler)
   fastify.decorate('subsStore', subsStore)
 
-  fastify.addHook('onClose', (instance, done) => {
+  fastify.addHook('onClose', function onClose(instance, done) {
     scheduler
       .stop()
       .catch((error) => {

@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 import { CAP_ADMIN } from '../auth.js'
 import { NetworkURN, jsonEncoded, prefixes } from '../types.js'
@@ -13,7 +14,7 @@ const itOps = {
   limit: 10_000,
 }
 
-export default async function Administration(api: FastifyInstance) {
+async function AdminRoutes(api: FastifyInstance) {
   const { db: rootStore, scheduler } = api
 
   const opts = {
@@ -61,3 +62,5 @@ export default async function Administration(api: FastifyInstance) {
     reply.send()
   })
 }
+
+export default fp(AdminRoutes)

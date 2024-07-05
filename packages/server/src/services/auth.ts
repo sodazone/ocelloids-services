@@ -60,7 +60,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
 
   // Install hook for any route
   fastify.addHook(
-    'preValidation',
+    'onRequest',
     async function (
       request: FastifyRequest<{
         Querystring: NodQuerystring
@@ -68,7 +68,12 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       reply: FastifyReply,
     ): Promise<void> {
       try {
-        if (request.routeOptions.config.wsAuth) {
+        const {
+          routeOptions: { config },
+        } = request
+
+        // WebSockets Auth
+        if (config.wsAuth) {
           if (request.query.nod) {
             fastify.jwt.verify(request.query.nod)
             return
@@ -76,11 +81,12 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           throw new Error('anti-dos parameter not provided')
         }
 
+        // Capabilities Auth
         const payload: {
           sub: string
         } = await request.jwtVerify()
 
-        checkCapabilities(payload.sub, request.routeOptions.config.caps)
+        checkCapabilities(payload.sub, config.caps)
       } catch (error) {
         reply.status(401).send({
           message: (error as Error).message,
@@ -125,4 +131,6 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   )
 }
 
-export default fp(authPlugin)
+export default fp(authPlugin, {
+  name: 'auth',
+})
