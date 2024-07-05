@@ -20,14 +20,13 @@ export const networks = setNetworks({
   manta: 'urn:ocn:polkadot:2104',
 })
 
-const networkURNs = Object.values(networks)
-
+export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets.metadata'),
     criteria: z.array(
       z.object({
-        network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
+        network: $NetworkString,
         assets: z.array(z.string()).min(1).max(50),
       }),
     ),
@@ -35,14 +34,14 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets.metadata.list'),
     criteria: z.object({
-      network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
+      network: $NetworkString,
     }),
   }),
   z.object({
     op: z.literal('assets.metadata.by_location'),
     criteria: z.array(
       z.object({
-        network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
+        network: $NetworkString,
         locations: z.array(z.string()).min(1).max(50),
       }),
     ),
