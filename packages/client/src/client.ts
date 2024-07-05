@@ -55,10 +55,9 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   constructor(config: OcelloidsClientConfig, agentId: AgentId) {
     this.#agentId = agentId
     this.#config = {
-      wsUrl: API_WS_URL,
-      httpUrl: API_HTTP_URL,
-      apiKey: null,
-      ...config,
+      wsUrl: config.wsUrl ?? API_WS_URL,
+      httpUrl: config.httpUrl ?? API_HTTP_URL,
+      apiKey: config.apiKey ?? null,
     }
     this.#fetch = doFetchWithConfig(config)
   }
