@@ -11,7 +11,7 @@ export function mockServer() {
     telemetry: true,
     sweepExpiry: 0,
     schedulerFrequency: 0,
-    grace: 1000,
+    grace: 1_000,
     address: 'localhost',
     port: 0,
     subscriptionMaxEphemeral: 10_000,
@@ -23,5 +23,7 @@ export function mockServer() {
     distributed: false,
     levelEngine: LevelEngine.mem,
     mode: AgentServiceMode.local,
+    rateLimitMax: 10_000,
+    rateLimitWindow: 10_000,
   })
 }

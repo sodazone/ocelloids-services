@@ -65,37 +65,6 @@ export async function createServer(opts: ServerOptions) {
     logger,
   })
 
-  server.setErrorHandler(errorHandler)
-
-  /* istanbul ignore next */
-  const closeListeners = closeWithGrace(
-    {
-      delay: opts.grace,
-    },
-    async function ({ err }) {
-      if (err) {
-        server.log.error(err)
-      }
-
-      const { websocketServer } = server
-      if (websocketServer.clients) {
-        server.log.info('Closing websockets')
-
-        for (const client of websocketServer.clients) {
-          client.close(1001, 'server shutdown')
-          if (client.readyState !== client.CLOSED) {
-            // Websocket clients could ignore the close acknowledge
-            // breaking the clean shutdown of the server.
-            // To prevent it we terminate the socket.
-            client.terminate()
-          }
-        }
-      }
-
-      await server.close()
-    },
-  )
-
   /* istanbul ignore next */
   process.once('SIGUSR2', async function () {
     await server.close()
@@ -104,69 +73,106 @@ export async function createServer(opts: ServerOptions) {
     process.kill(process.pid, 'SIGUSR2')
   })
 
-  server.addHook('onClose', function (_, done) {
-    closeListeners.uninstall()
-    done()
+  await server.register(async function publicContext(childServer) {
+    await childServer.register(FastifyHealthcheck, {
+      exposeUptime: true,
+    })
   })
 
-  await server.register(FastifySwagger, {
-    openapi: {
-      info: {
-        title: 'Ocelloids Execution Node',
-        version,
+  await server.register(async function authenticatedContext(childServer) {
+    childServer.setErrorHandler(errorHandler)
+
+    await childServer.register(Auth)
+    await childServer.register(Limit, opts)
+    await childServer.register(Root)
+
+    await childServer.register(FastifyWebsocket, {
+      options: {
+        // we don't need to negotiate subprotocols
+        handleProtocols: undefined,
+        maxPayload: WS_MAX_PAYLOAD,
+        perMessageDeflate: false,
+        // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
+        // backlog: 511 // # default
       },
-    },
+      // override default pre-close
+      // we explicitly handle it with terminate
+      preClose: () => {
+        /* empty */
+      },
+    })
+
+    /* istanbul ignore next */
+    const closeListeners = closeWithGrace(
+      {
+        delay: opts.grace,
+      },
+      async function ({ err }) {
+        if (err) {
+          childServer.log.error(err)
+        }
+
+        childServer.log.info('Closing with grace')
+
+        const { websocketServer } = childServer
+        if (websocketServer.clients) {
+          childServer.log.info('Closing websockets')
+
+          for (const client of websocketServer.clients) {
+            client.close(1001, 'server shutdown')
+            if (client.readyState !== client.CLOSED) {
+              // Websocket clients could ignore the close acknowledge
+              // breaking the clean shutdown of the server.
+              // To prevent it we terminate the socket.
+              client.terminate()
+            }
+          }
+        }
+
+        await server.close()
+      },
+    )
+
+    childServer.addHook('onClose', function (_, done) {
+      closeListeners.uninstall()
+      done()
+    })
+
+    await childServer.register(FastifySwagger, {
+      openapi: {
+        info: {
+          title: 'Ocelloids Execution Node',
+          version,
+        },
+      },
+    })
+
+    await childServer.register(FastifySwaggerUI, {
+      routePrefix: '/documentation',
+    })
+
+    if (opts.cors) {
+      childServer.log.info('Enable CORS')
+
+      const corsOpts = toCorsOpts(opts)
+      childServer.log.info('- origin: %s', corsOpts.origin)
+      childServer.log.info('- credentials: %s', corsOpts.credentials)
+
+      await childServer.register(FastifyCors, corsOpts)
+    }
+
+    if (!opts.distributed) {
+      await childServer.register(Configuration, opts)
+      await childServer.register(Connector)
+    }
+
+    await childServer.register(Persistence, opts)
+    await childServer.register(Ingress, opts)
+    await childServer.register(Agents, opts)
+    await childServer.register(Subscriptions, opts)
+    await childServer.register(Administration)
+    await childServer.register(Telemetry, opts)
   })
-
-  await server.register(FastifySwaggerUI, {
-    routePrefix: '/documentation',
-  })
-
-  await server.register(FastifyHealthcheck, {
-    exposeUptime: true,
-  })
-
-  await server.register(FastifyWebsocket, {
-    options: {
-      // we don't need to negotiate subprotocols
-      handleProtocols: undefined,
-      maxPayload: WS_MAX_PAYLOAD,
-      perMessageDeflate: false,
-      // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
-      // backlog: 511 // # default
-    },
-    // override default pre-close
-    // we explicitly handle it with terminate
-    preClose: () => {
-      /* empty */
-    },
-  })
-
-  if (opts.cors) {
-    server.log.info('Enable CORS')
-
-    const corsOpts = toCorsOpts(opts)
-    server.log.info('- origin: %s', corsOpts.origin)
-    server.log.info('- credentials: %s', corsOpts.credentials)
-
-    await server.register(FastifyCors, corsOpts)
-  }
-
-  await server.register(Limit, opts)
-  await server.register(Auth)
-  await server.register(Root)
-
-  if (!opts.distributed) {
-    await server.register(Configuration, opts)
-    await server.register(Connector)
-  }
-
-  await server.register(Persistence, opts)
-  await server.register(Ingress, opts)
-  await server.register(Agents, opts)
-  await server.register(Subscriptions, opts)
-  await server.register(Administration)
-  await server.register(Telemetry, opts)
 
   return server
 }

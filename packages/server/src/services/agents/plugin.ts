@@ -22,6 +22,7 @@ const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fasti
   if (options.mode !== AgentServiceMode.local) {
     throw new Error('Only local agent service is supported')
   }
+
   const catalog: AgentCatalog = new LocalAgentCatalog(fastify, options)
 
   fastify.decorate('agentCatalog', catalog)

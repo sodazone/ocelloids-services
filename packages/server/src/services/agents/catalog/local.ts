@@ -39,7 +39,11 @@ export class LocalAgentCatalog implements AgentCatalog {
     this.#log = ctx.log
     this.#egress = new Egress(ctx)
     this.#agents = this.#loadAgents({
-      ...ctx,
+      log: ctx.log,
+      ingress: ctx.ingress,
+      janitor: ctx.janitor,
+      db: ctx.db,
+      scheduler: ctx.scheduler,
       egress: this.#egress,
     })
   }
