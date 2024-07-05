@@ -13,6 +13,7 @@ import {
   Agent,
   AgentMetadata,
   AgentRuntimeContext,
+  QueryPagination,
   QueryParams,
   QueryResult,
   Queryable,
@@ -73,73 +74,11 @@ export class DataSteward implements Agent, Queryable {
     $StewardQueryArgs.parse(args)
 
     if (args.op === 'assets.metadata') {
-      const keys = args.criteria.flatMap((s) =>
-        s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)),
-      )
-      return {
-        items: (
-          await this.#db.getMany<string, AssetMetadata>(keys, {
-            /** */
-          })
-        ).filter((a) => a),
-      } as QueryResult
+      return await this.#queryAssetMetadata(args.criteria)
     } else if (args.op === 'assets.metadata.list') {
-      const { network } = args.criteria
-      const iterator = this.#db.iterator<string, AssetMetadata>({
-        gte: pagination?.cursor ?? network,
-        lte: network + ':' + OMEGA_250,
-        limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
-      })
-      const entries = await iterator.all()
-
-      if (entries.length === 0) {
-        return {
-          items: [],
-        }
-      }
-
-      return {
-        pageInfo: {
-          endCursor: entries[entries.length - 1][0],
-          hasNextPage: iterator.count >= iterator.limit,
-        },
-        items: entries.map(([_, v]) => v),
-      }
+      return await this.#queryAssetMetadataList(args.criteria, pagination)
     } else if (args.op === 'assets.metadata.by_location') {
-      const keys: string[] = []
-      for (const { network: referenceNetwork, locations } of args.criteria) {
-        const relayRegistry = await firstValueFrom(
-          this.#ingress.getRegistry(getRelayId(referenceNetwork as NetworkURN)),
-        )
-
-        for (const loc of locations) {
-          try {
-            const multiLocation = relayRegistry.createType('StagingXcmV3MultiLocation', JSON.parse(loc))
-            const parsed = parseMultiLocation(referenceNetwork as NetworkURN, multiLocation)
-            if (parsed) {
-              const { network, assetId } = parsed
-              if (typeof assetId === 'string') {
-                keys.push(assetMetadataKey(network, assetId))
-              } else {
-                const registry = await firstValueFrom(this.#ingress.getRegistry(network))
-                for (const mapping of mappers[network].mappings) {
-                  const id = mapping.mapKey(registry, assetId)
-                  keys.push(assetMetadataKey(network, id))
-                }
-              }
-            }
-          } catch (e) {
-            this.#log.error(e, '[agent:%s] error converting multiLocation to assetId', this.id)
-          }
-        }
-      }
-      return {
-        items: (
-          await this.#db.getMany<string, AssetMetadata>(keys, {
-            /** */
-          })
-        ).filter((a) => a),
-      } as QueryResult
+      return await this.#queryAssetMetadataByLocation(args.criteria)
     }
 
     throw new ValidationError('Unknown query type')
@@ -175,6 +114,87 @@ export class DataSteward implements Agent, Queryable {
 
   collectTelemetry() {
     // TODO: impl telemetry
+  }
+
+  async #queryAssetMetadataByLocation(
+    criteria: { network: string; locations: string[] }[],
+  ): Promise<QueryResult> {
+    const keys: string[] = []
+    for (const { network: referenceNetwork, locations } of criteria) {
+      const relayRegistry = await firstValueFrom(
+        this.#ingress.getRegistry(getRelayId(referenceNetwork as NetworkURN)),
+      )
+
+      for (const loc of locations) {
+        try {
+          const multiLocation = relayRegistry.createType('StagingXcmV3MultiLocation', JSON.parse(loc))
+          const parsed = parseMultiLocation(referenceNetwork as NetworkURN, multiLocation)
+          if (parsed) {
+            const { network, assetId } = parsed
+            if (typeof assetId === 'string') {
+              keys.push(assetMetadataKey(network, assetId))
+            } else {
+              const registry = await firstValueFrom(this.#ingress.getRegistry(network))
+              for (const mapping of mappers[network].mappings) {
+                const id = mapping.mapKey(registry, assetId)
+                keys.push(assetMetadataKey(network, id))
+              }
+            }
+          }
+        } catch (e) {
+          this.#log.error(e, '[agent:%s] error converting multiLocation to assetId', this.id)
+        }
+      }
+    }
+    return {
+      items: (
+        await this.#db.getMany<string, AssetMetadata>(keys, {
+          /** */
+        })
+      ).filter((a) => a),
+    }
+  }
+
+  async #queryAssetMetadataList(
+    { network }: { network: string },
+    pagination?: QueryPagination,
+  ): Promise<QueryResult> {
+    const iterator = this.#db.iterator<string, AssetMetadata>({
+      gte: pagination?.cursor ?? network,
+      lte: network + ':' + OMEGA_250,
+      limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
+    })
+    const entries = await iterator.all()
+
+    if (entries.length === 0) {
+      return {
+        items: [],
+      }
+    }
+
+    return {
+      pageInfo: {
+        endCursor: entries[entries.length - 1][0],
+        hasNextPage: iterator.count >= iterator.limit,
+      },
+      items: entries.map(([_, v]) => v),
+    }
+  }
+
+  async #queryAssetMetadata(
+    criteria: {
+      network: string
+      assets: string[]
+    }[],
+  ): Promise<QueryResult> {
+    const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
+    return {
+      items: (
+        await this.#db.getMany<string, AssetMetadata>(keys, {
+          /** */
+        })
+      ).filter((a) => a),
+    } as QueryResult
   }
 
   async #scheduleSync() {
