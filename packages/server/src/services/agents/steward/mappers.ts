@@ -54,7 +54,7 @@ const mapAssetsAndLocations = ({
   onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
 }) => {
   return (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
-    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+    return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
       return source.pipe(
         map((buffer) => {
           const assetId = keyValue(registry, assetIdType, keyArgs, hashing).toString()
@@ -72,7 +72,7 @@ const mapAssetsAndLocations = ({
               ...assetDetails,
               keyArgs,
             },
-          } as AssetMetadata
+          } as NonNullable<AssetMetadata>
         }),
         mergeMap((asset) => {
           // Expand multilocations
@@ -94,7 +94,7 @@ const mapAssetsAndLocations = ({
                 return {
                   ...asset,
                   multiLocation,
-                } as AssetMetadata
+                } as NonNullable<AssetMetadata>
               } else {
                 return asset
               }
@@ -202,7 +202,7 @@ const assetHubMapper: AssetMapper = {
       palletInstance: 50,
       keyPrefix: '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
       mapEntry: (registry: Registry, keyArgs: string, _ingress: IngressConsumer) => {
-        return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+        return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
           return source.pipe(
             map((buffer) => {
               const assetId = keyValue(registry, 'u32', keyArgs, 'blake2-128').toString()
@@ -217,7 +217,7 @@ const assetHubMapper: AssetMapper = {
                 decimals: assetDetails.decimals,
                 chainId: networks.assethub,
                 raw: assetDetails,
-              } as AssetMetadata
+              } as NonNullable<AssetMetadata>
             }),
           )
         }
@@ -232,7 +232,7 @@ const assetHubMapper: AssetMapper = {
       palletInstance: 53,
       keyPrefix: '0x30e64a56026f4b5e3c2d196283a9a17db5f3822e35ca2f31ce3526eab1363fd2',
       mapEntry: (registry: Registry, keyArgs: string) => {
-        return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+        return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
           return source.pipe(
             map((buffer) => {
               const multiLocation = keyValue(registry, 'StagingXcmV3MultiLocation', keyArgs, 'blake2-128')
@@ -249,7 +249,7 @@ const assetHubMapper: AssetMapper = {
                 chainId: networks.assethub,
                 multiLocation: multiLocation.toJSON(),
                 raw: assetDetails,
-              } as AssetMetadata
+              } as NonNullable<AssetMetadata>
             }),
           )
         }

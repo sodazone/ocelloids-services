@@ -248,7 +248,7 @@ export type QueryResult<T = AnyQueryResultItem> = {
  */
 export interface Queryable {
   querySchema: z.ZodSchema
-  query(params: QueryParams): Promise<QueryResult>
+  query(params: QueryParams): Promise<QueryResult<AnyQueryResultItem | unknown>>
 }
 
 /**

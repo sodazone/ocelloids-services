@@ -69,7 +69,7 @@ export class DataSteward implements Agent, Queryable {
     return $StewardQueryArgs
   }
 
-  async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
+  async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult<AssetMetadata>> {
     const { args, pagination } = params
     $StewardQueryArgs.parse(args)
 
@@ -118,7 +118,7 @@ export class DataSteward implements Agent, Queryable {
 
   async #queryAssetMetadataByLocation(
     criteria: { network: string; locations: string[] }[],
-  ): Promise<QueryResult> {
+  ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
     for (const { network: referenceNetwork, locations } of criteria) {
       const relayRegistry = await firstValueFrom(
@@ -147,18 +147,16 @@ export class DataSteward implements Agent, Queryable {
       }
     }
     return {
-      items: (
-        await this.#db.getMany<string, AssetMetadata>(keys, {
-          /** */
-        })
-      ).filter((a) => a),
+      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+        /** */
+      }),
     }
   }
 
   async #queryAssetMetadataList(
     { network }: { network: string },
     pagination?: QueryPagination,
-  ): Promise<QueryResult> {
+  ): Promise<QueryResult<AssetMetadata>> {
     const iterator = this.#db.iterator<string, AssetMetadata>({
       gte: pagination?.cursor ?? network,
       lte: network + ':' + OMEGA_250,
@@ -186,15 +184,13 @@ export class DataSteward implements Agent, Queryable {
       network: string
       assets: string[]
     }[],
-  ): Promise<QueryResult> {
+  ): Promise<QueryResult<AssetMetadata>> {
     const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
     return {
-      items: (
-        await this.#db.getMany<string, AssetMetadata>(keys, {
-          /** */
-        })
-      ).filter((a) => a),
-    } as QueryResult
+      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+        /** */
+      }),
+    }
   }
 
   async #scheduleSync() {

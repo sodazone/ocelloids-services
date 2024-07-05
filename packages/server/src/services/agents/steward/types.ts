@@ -59,7 +59,7 @@ export type entryMapper = (
   registry: Registry,
   keyArgs: string,
   ingress: IngressConsumer,
-) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
+) => (source: Observable<Uint8Array>) => Observable<NonNullable<AssetMetadata>>
 
 export type GeneralKey = {
   data: U8aFixed
@@ -93,4 +93,4 @@ export type AssetMetadata = {
   multiLocation?: Record<string, any> | AnyJson
   updated: number
   raw: Record<string, any>
-}
+} | null
