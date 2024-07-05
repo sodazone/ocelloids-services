@@ -14,6 +14,10 @@ const OFFSET_64 = 8 * 2
 
 type Hashing = 'xx-64' | 'blake2-128'
 
+const BYPASS_MAPPER: AssetMapper = {
+  mappings: [],
+}
+
 function keyValue(registry: Registry, type: string, keyArgs: string, hashing: Hashing) {
   return registry.createType(
     type,
@@ -259,6 +263,7 @@ const assetHubMapper: AssetMapper = {
 }
 
 export const mappers: Record<string, AssetMapper> = {
+  [networks.polkadot]: BYPASS_MAPPER,
   [networks.assethub]: assetHubMapper,
   [networks.bifrost]: bifrostMapper,
   [networks.hydration]: hydrationMapper,

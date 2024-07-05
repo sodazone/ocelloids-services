@@ -9,13 +9,16 @@ import { HexString } from '../../../lib.js'
 import { IngressConsumer } from '../../ingress/index.js'
 import { AnyJson, NetworkURN } from '../../types.js'
 
-export const networks: Record<string, string> = {
+const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
+
+export const networks = setNetworks({
+  polkadot: 'urn:ocn:polkadot:0',
   bifrost: 'urn:ocn:polkadot:2030',
   assethub: 'urn:ocn:polkadot:1000',
   hydration: 'urn:ocn:polkadot:2034',
   moonbeam: 'urn:ocn:polkadot:2004',
   manta: 'urn:ocn:polkadot:2104',
-}
+})
 
 const networkURNs = Object.values(networks)
 
