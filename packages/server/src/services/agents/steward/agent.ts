@@ -1,11 +1,14 @@
 import { z } from 'zod'
 
-import { EMPTY, expand, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
+import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
+
+import type { StagingXcmV3MultiLocation } from '@polkadot/types/lookup'
 
 import { IngressConsumer } from '../../ingress/index.js'
 import { Scheduled, Scheduler } from '../../persistence/scheduler.js'
 import { DB, Logger, NetworkURN } from '../../types.js'
 
+import { getRelayId } from 'services/config.js'
 import { ValidationError } from '../../../errors.js'
 import { HexString } from '../../../lib.js'
 import {
@@ -17,6 +20,7 @@ import {
   Queryable,
   getAgentCapabilities,
 } from '../types.js'
+import { parseMultiLocation } from './location.js'
 import { mappers } from './mappers.js'
 import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
 
@@ -103,6 +107,41 @@ export class DataSteward implements Agent, Queryable {
         },
         items: entries.map(([_, v]) => v),
       }
+    } else if (args.op === 'assets.metadata.by_location') {
+      const keys: string[] = []
+      for (const { network: referenceNetwork, locations } of args.criteria) {
+        const relayRegistry = await firstValueFrom(
+          this.#ingress.getRegistry(getRelayId(referenceNetwork as NetworkURN)),
+        )
+
+        for (const loc of locations) {
+          try {
+            const multiLocation = relayRegistry.createType('StagingXcmV3MultiLocation', JSON.parse(loc))
+            const parsed = parseMultiLocation(referenceNetwork as NetworkURN, multiLocation)
+            if (parsed) {
+              const { network, assetId } = parsed
+              if (typeof assetId === 'string') {
+                keys.push(assetMetadataKey(network, assetId))
+              } else {
+                const registry = await firstValueFrom(this.#ingress.getRegistry(network))
+                for (const mapping of mappers[network].mappings) {
+                  const id = mapping.mapKey(registry, assetId)
+                  keys.push(assetMetadataKey(network, id))
+                }
+              }
+            }
+          } catch (e) {
+            this.#log.error(e, '[agent:%s] error converting multiLocation to assetId', this.id)
+          }
+        }
+      }
+      return {
+        items: (
+          await this.#db.getMany<string, AssetMetadata>(keys, {
+            /** */
+          })
+        ).filter((a) => a),
+      } as QueryResult
     }
 
     throw new ValidationError('Unknown query type')

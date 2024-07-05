@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
+import type { U8aFixed, u8 } from '@polkadot/types-codec'
 import { Registry } from '@polkadot/types-codec/types'
+
 import { Observable } from 'rxjs'
 
 import { HexString } from '../../../lib.js'
@@ -33,6 +35,15 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
     }),
   }),
+  z.object({
+    op: z.literal('assets.metadata.by_location'),
+    criteria: z.array(
+      z.object({
+        network: z.enum([networkURNs[0], ...networkURNs.slice(1)]),
+        locations: z.array(z.string()).min(1).max(50),
+      }),
+    ),
+  }),
 ])
 
 /**
@@ -48,9 +59,18 @@ export type entryMapper = (
   ingress: IngressConsumer,
 ) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
 
+export type GeneralKey = {
+  data: U8aFixed
+  length: u8
+}
+
+type keyMapper = (registry: Registry, key: GeneralKey) => string
+
 export type AssetMapping = {
   keyPrefix: HexString
   mapEntry: entryMapper
+  palletInstance: number
+  mapKey: keyMapper
 }
 
 export type AssetMapper = {
