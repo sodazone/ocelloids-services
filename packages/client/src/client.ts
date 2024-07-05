@@ -52,13 +52,9 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
 
-  constructor(config: OcelloidsClientConfig, agentId: AgentId) {
+  constructor(config: Required<OcelloidsClientConfig>, agentId: AgentId) {
     this.#agentId = agentId
-    this.#config = {
-      wsUrl: config.wsUrl ?? API_WS_URL,
-      httpUrl: config.httpUrl ?? API_HTTP_URL,
-      apiKey: config.apiKey ?? null,
-    }
+    this.#config = config
     this.#fetch = doFetchWithConfig(config)
   }
 
@@ -279,7 +275,7 @@ export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
  * @public
  */
 export class OcelloidsClient {
-  readonly #config: OcelloidsClientConfig
+  readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
 
   /**
@@ -288,8 +284,12 @@ export class OcelloidsClient {
    * @param config - The configuration for the client.
    */
   constructor(config: OcelloidsClientConfig) {
-    this.#config = config
-    this.#fetch = doFetchWithConfig(config)
+    this.#config = {
+      wsUrl: config.wsUrl ?? API_WS_URL,
+      httpUrl: config.httpUrl ?? API_HTTP_URL,
+      apiKey: config.apiKey ?? null,
+    }
+    this.#fetch = doFetchWithConfig(this.#config)
   }
 
   /**
