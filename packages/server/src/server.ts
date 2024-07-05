@@ -73,6 +73,16 @@ export async function createServer(opts: ServerOptions) {
     process.kill(process.pid, 'SIGUSR2')
   })
 
+  if (opts.cors) {
+    server.log.info('Enable CORS')
+
+    const corsOpts = toCorsOpts(opts)
+    server.log.info('- origin: %s', corsOpts.origin)
+    server.log.info('- credentials: %s', corsOpts.credentials)
+
+    await server.register(FastifyCors, corsOpts)
+  }
+
   await server.register(async function publicContext(childServer) {
     await childServer.register(FastifyHealthcheck, {
       exposeUptime: true,
@@ -150,16 +160,6 @@ export async function createServer(opts: ServerOptions) {
     await childServer.register(FastifySwaggerUI, {
       routePrefix: '/documentation',
     })
-
-    if (opts.cors) {
-      childServer.log.info('Enable CORS')
-
-      const corsOpts = toCorsOpts(opts)
-      childServer.log.info('- origin: %s', corsOpts.origin)
-      childServer.log.info('- credentials: %s', corsOpts.credentials)
-
-      await childServer.register(FastifyCors, corsOpts)
-    }
 
     if (!opts.distributed) {
       await childServer.register(Configuration, opts)
