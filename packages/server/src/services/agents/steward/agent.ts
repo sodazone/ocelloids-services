@@ -2,15 +2,13 @@ import { z } from 'zod'
 
 import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 
-import type { StagingXcmV3MultiLocation } from '@polkadot/types/lookup'
-
 import { IngressConsumer } from '../../ingress/index.js'
 import { Scheduled, Scheduler } from '../../persistence/scheduler.js'
 import { DB, Logger, NetworkURN } from '../../types.js'
 
-import { getRelayId } from 'services/config.js'
 import { ValidationError } from '../../../errors.js'
 import { HexString } from '../../../lib.js'
+import { getRelayId } from '../../config.js'
 import {
   Agent,
   AgentMetadata,
