@@ -58,7 +58,6 @@ const mapAssets = ({
           const assetId = keyValue(registry, assetIdType, keyArgs, hashing).toString()
           const assetDetails =
             (registry.createType(assetMetadataType, buffer).toHuman() as Record<string, any>) ?? {}
-          console.log('MAPPPPPPPPPPP', chainId, assetDetails)
           return {
             chainId,
             id: assetId,
