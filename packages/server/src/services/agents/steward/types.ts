@@ -19,6 +19,9 @@ export const networks = setNetworks({
   hydration: 'urn:ocn:polkadot:2034',
   moonbeam: 'urn:ocn:polkadot:2004',
   manta: 'urn:ocn:polkadot:2104',
+  centrifuge: 'urn:ocn:polkadot:2031',
+  interlay: 'urn:ocn:polkadot:2032',
+  astar: 'urn:ocn:polkadot:2006',
 })
 
 export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
@@ -60,6 +63,7 @@ export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 export type entryMapper = (
   registry: Registry,
   keyArgs: string,
+  assetIdType: string,
   ingress: IngressConsumer,
 ) => (source: Observable<Uint8Array>) => Observable<NonNullable<AssetMetadata>>
 
@@ -68,13 +72,11 @@ export type GeneralKey = {
   length: number
 }
 
-type keyMapper = (registry: Registry, key: GeneralKey) => string
-
 export type AssetMapping = {
   keyPrefix: HexString
-  mapEntry: entryMapper
   palletInstance: number
-  mapKey: keyMapper
+  assetIdType: string
+  mapEntry: entryMapper
 }
 
 export type AssetMapper = {

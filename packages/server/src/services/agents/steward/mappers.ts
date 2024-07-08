@@ -34,53 +34,80 @@ const blake2128concat = (data: string | Buffer | Uint8Array) =>
 
 const xx64concat = (data: string | Buffer | Uint8Array) => u8aConcat(xxhashAsU8a(data, 64), u8aToU8a(data))
 
-const mapAssetsAndLocations = ({
+function getLocationIfAny(assetDetails: Record<string, any>) {
+  const { location } = assetDetails
+  if (location) {
+    return location.toJSON === undefined ? location : location.toJSON()
+  }
+  return undefined
+}
+
+const mapAssets = ({
   chainId,
-  assetIdType,
   assetMetadataType,
-  multiLocationKeyType,
-  multiLocationKeyPrefix,
-  multiLocationDataType,
   hashing,
-  onMultiLocationData,
 }: {
   chainId: string
-  assetIdType: string
   assetMetadataType: string
-  multiLocationKeyType: string
-  multiLocationKeyPrefix: HexString
-  multiLocationDataType: string
   hashing: Hashing
-  onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
 }) => {
-  return (registry: Registry, keyArgs: string, ingress: IngressConsumer) => {
+  return (registry: Registry, keyArgs: string, assetIdType: string) => {
     return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
       return source.pipe(
         map((buffer) => {
           const assetId = keyValue(registry, assetIdType, keyArgs, hashing).toString()
           const assetDetails =
             (registry.createType(assetMetadataType, buffer).toHuman() as Record<string, any>) ?? {}
-
+          console.log('MAPPPPPPPPPPP', chainId, assetDetails)
           return {
+            chainId,
             id: assetId,
             updated: Date.now(),
             name: assetDetails.name,
             symbol: assetDetails.symbol,
             decimals: assetDetails.decimals,
-            chainId,
+            multiLocation: getLocationIfAny(assetDetails),
             raw: {
               ...assetDetails,
               keyArgs,
             },
           } as NonNullable<AssetMetadata>
         }),
+      )
+    }
+  }
+}
+
+const mapAssetsAndLocations = ({
+  chainId,
+  assetMetadataType,
+  metadataHashing,
+  multiLocationHashing = metadataHashing,
+  multiLocationKeyType,
+  multiLocationKeyPrefix,
+  multiLocationDataType,
+  onMultiLocationData,
+}: {
+  chainId: string
+  assetMetadataType: string
+  metadataHashing: Hashing
+  multiLocationHashing?: Hashing
+  multiLocationKeyType: string
+  multiLocationKeyPrefix: HexString
+  multiLocationDataType: string
+  onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
+}) => {
+  return (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
+    return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
+      return source.pipe(
+        mapAssets({ chainId, assetMetadataType, hashing: metadataHashing })(registry, keyArgs, assetIdType),
         mergeMap((asset) => {
           // Expand multilocations
           const key = (multiLocationKeyPrefix +
             Buffer.from(
               keyConcat(
-                keyValue(registry, multiLocationKeyType, asset.raw.keyArgs, hashing).toU8a(),
-                hashing,
+                keyValue(registry, multiLocationKeyType, asset.raw.keyArgs, multiLocationHashing).toU8a(),
+                multiLocationHashing,
               ),
             ).toString('hex')) as HexString
           return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
@@ -106,25 +133,70 @@ const mapAssetsAndLocations = ({
   }
 }
 
+const astarMapper: AssetMapper = {
+  mappings: [
+    {
+      palletInstance: 36,
+      keyPrefix: '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
+      assetIdType: 'u128',
+      mapEntry: mapAssetsAndLocations({
+        chainId: networks.astar,
+        assetMetadataType: 'PalletAssetsAssetMetadata',
+        metadataHashing: 'blake2-128',
+        multiLocationKeyPrefix: '0x9f5ad049cfbc7f413497855ef0232d4ea6718f60b6df3f6a17994cdf85e14dd4',
+        multiLocationKeyType: 'u128',
+        multiLocationDataType: 'XcmVersionedMultiLocation',
+        multiLocationHashing: 'xx-64',
+      }),
+    },
+  ],
+}
+
 const moonbeamMapper: AssetMapper = {
   mappings: [
     {
       palletInstance: 104,
       keyPrefix: '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
+      assetIdType: 'u128',
       mapEntry: mapAssetsAndLocations({
         chainId: networks.moonbeam,
-        assetIdType: 'u128',
+        metadataHashing: 'blake2-128',
         assetMetadataType: 'PalletAssetsAssetMetadata',
         multiLocationKeyPrefix: '0x4ae7e256f92e5888372d72f3e4db10031e932ed06f88c7a37d7c7c3f5fbeca1c',
         multiLocationKeyType: 'u128',
         multiLocationDataType: 'MoonbeamRuntimeXcmConfigAssetType',
-        hashing: 'blake2-128',
         onMultiLocationData: (json: Record<string, any>) => json.xcm,
       }),
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('u128', keyValue).toString()
-      },
+    },
+  ],
+}
+
+const centrifugeMapper: AssetMapper = {
+  mappings: [
+    {
+      palletInstance: 152,
+      keyPrefix: '0xd28431b6793b590766d3a73137018ccab5f3822e35ca2f31ce3526eab1363fd2',
+      assetIdType: 'CfgTypesTokensCurrencyId',
+      mapEntry: mapAssets({
+        chainId: networks.centrifuge,
+        assetMetadataType: 'OrmlTraitsAssetRegistryAssetMetadata',
+        hashing: 'xx-64',
+      }),
+    },
+  ],
+}
+
+const interlayMapper: AssetMapper = {
+  mappings: [
+    {
+      palletInstance: 24,
+      keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
+      assetIdType: 'u32',
+      mapEntry: mapAssets({
+        chainId: networks.interlay,
+        assetMetadataType: 'OrmlTraitsAssetRegistryAssetMetadata',
+        hashing: 'xx-64',
+      }),
     },
   ],
 }
@@ -134,19 +206,15 @@ const bifrostMapper: AssetMapper = {
     {
       palletInstance: 114,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6259988d804f8bb04d82c701e7f01fb9764',
+      assetIdType: 'BifrostPrimitivesCurrencyCurrencyId',
       mapEntry: mapAssetsAndLocations({
         chainId: networks.bifrost,
-        assetIdType: 'BifrostPrimitivesCurrencyCurrencyId',
         assetMetadataType: 'BifrostAssetRegistryAssetMetadata',
         multiLocationKeyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6255f54cd54ea84dd94c101101f587e088d',
         multiLocationKeyType: 'BifrostPrimitivesCurrencyCurrencyId',
         multiLocationDataType: 'StagingXcmV3MultiLocation',
-        hashing: 'xx-64',
+        metadataHashing: 'xx-64',
       }),
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('BifrostPrimitivesCurrencyCurrencyId', keyValue).toString()
-      },
     },
   ],
 }
@@ -156,19 +224,15 @@ const hydrationMapper: AssetMapper = {
     {
       palletInstance: 51,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625682a59d51ab9e48a8c8cc418ff9708d2',
+      assetIdType: 'u32',
       mapEntry: mapAssetsAndLocations({
         chainId: networks.hydration,
-        assetIdType: 'u32',
         assetMetadataType: 'PalletAssetRegistryAssetDetails',
         multiLocationKeyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a6252dc0b8ee4c66b0b3e24b03ec002e2544',
         multiLocationKeyType: 'u32',
         multiLocationDataType: 'HydradxRuntimeXcmAssetLocation',
-        hashing: 'blake2-128',
+        metadataHashing: 'blake2-128',
       }),
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('u32', keyValue).toString()
-      },
     },
   ],
 }
@@ -178,19 +242,15 @@ const mantaMapper: AssetMapper = {
     {
       palletInstance: 46,
       keyPrefix: '0x4ae7e256f92e5888372d72f3e4db1003b20b1df17c1eb8537e32dc07a9bfe191',
+      assetIdType: 'u128',
       mapEntry: mapAssetsAndLocations({
         chainId: networks.manta,
-        assetIdType: 'u128',
         assetMetadataType: 'MantaPrimitivesAssetsAssetRegistryMetadata',
         multiLocationKeyPrefix: '0x4ae7e256f92e5888372d72f3e4db1003f4f3777447099e92d2a7274f5bbd71a6',
         multiLocationKeyType: 'u128',
         multiLocationDataType: 'MantaPrimitivesAssetsAssetLocation',
-        hashing: 'blake2-128',
+        metadataHashing: 'blake2-128',
       }),
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('u128', keyValue).toString()
-      },
     },
   ],
 }
@@ -201,11 +261,12 @@ const assetHubMapper: AssetMapper = {
       // assets pallet
       palletInstance: 50,
       keyPrefix: '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
-      mapEntry: (registry: Registry, keyArgs: string, _ingress: IngressConsumer) => {
+      assetIdType: 'u32',
+      mapEntry: (registry: Registry, keyArgs: string, assetIdType: string, _ingress: IngressConsumer) => {
         return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
           return source.pipe(
             map((buffer) => {
-              const assetId = keyValue(registry, 'u32', keyArgs, 'blake2-128').toString()
+              const assetId = keyValue(registry, assetIdType, keyArgs, 'blake2-128').toString()
               const assetDetails =
                 (registry.createType('AssetMetadata', buffer).toHuman() as Record<string, any>) ?? {}
 
@@ -222,20 +283,17 @@ const assetHubMapper: AssetMapper = {
           )
         }
       },
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('u32', keyValue).toString()
-      },
     },
     {
       // Foreign assets pallet
       palletInstance: 53,
       keyPrefix: '0x30e64a56026f4b5e3c2d196283a9a17db5f3822e35ca2f31ce3526eab1363fd2',
-      mapEntry: (registry: Registry, keyArgs: string) => {
+      assetIdType: 'StagingXcmV3MultiLocation',
+      mapEntry: (registry: Registry, keyArgs: string, assetIdType: string) => {
         return (source: Observable<Uint8Array>): Observable<NonNullable<AssetMetadata>> => {
           return source.pipe(
             map((buffer) => {
-              const multiLocation = keyValue(registry, 'StagingXcmV3MultiLocation', keyArgs, 'blake2-128')
+              const multiLocation = keyValue(registry, assetIdType, keyArgs, 'blake2-128')
               const assetId = multiLocation.toString()
               const assetDetails =
                 (registry.createType('AssetMetadata', buffer).toHuman() as Record<string, any>) ?? {}
@@ -254,10 +312,6 @@ const assetHubMapper: AssetMapper = {
           )
         }
       },
-      mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.slice(0, key.length)
-        return registry.createType('StagingXcmV3MultiLocation', keyValue).toString()
-      },
     },
   ],
 }
@@ -266,6 +320,9 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.polkadot]: BYPASS_MAPPER,
   [networks.assethub]: assetHubMapper,
   [networks.bifrost]: bifrostMapper,
+  [networks.astar]: astarMapper,
+  [networks.interlay]: interlayMapper,
+  [networks.centrifuge]: centrifugeMapper,
   [networks.hydration]: hydrationMapper,
   [networks.moonbeam]: moonbeamMapper,
   [networks.manta]: mantaMapper,

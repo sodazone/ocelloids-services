@@ -140,7 +140,8 @@ export class DataSteward implements Agent, Queryable {
             } else {
               const registry = await this.#getRegistry(network)
               for (const mapping of mappers[network].mappings) {
-                const id = mapping.mapKey(registry, assetId)
+                const keyValue = assetId.data.slice(0, assetId.length)
+                const id = registry.createType(mapping.assetIdType, keyValue).toString()
                 keys.push(assetMetadataKey(network, id))
               }
             }
@@ -302,7 +303,7 @@ export class DataSteward implements Agent, Queryable {
   }
 
   #map(chainId: NetworkURN, mapping: AssetMapping) {
-    const { keyPrefix, mapEntry } = mapping
+    const { keyPrefix, assetIdType, mapEntry } = mapping
     this.#ingress
       .getRegistry(chainId)
       .pipe(
@@ -322,7 +323,7 @@ export class DataSteward implements Agent, Queryable {
                 return keys.map((key) =>
                   this.#ingress
                     .getStorage(chainId, key)
-                    .pipe(mapEntry(registry, key.substring(keyPrefix.length), this.#ingress)),
+                    .pipe(mapEntry(registry, key.substring(keyPrefix.length), assetIdType, this.#ingress)),
                 )
               }),
               mergeAll(),
