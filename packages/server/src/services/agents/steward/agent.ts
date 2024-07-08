@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 
+import { Registry } from '@polkadot/types-codec/types'
+
 import { IngressConsumer } from '../../ingress/index.js'
 import { Scheduled, Scheduler } from '../../persistence/scheduler.js'
 import { DB, Logger, NetworkURN } from '../../types.js'
@@ -19,7 +21,8 @@ import {
   Queryable,
   getAgentCapabilities,
 } from '../types.js'
-import { parseMultiLocation } from './location.js'
+import { XcmV4Location } from '../xcm/ops/xcm-types.js'
+import { ParsedAsset, parseMultiLocation } from './location.js'
 import { mappers } from './mappers.js'
 import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
 
@@ -116,40 +119,65 @@ export class DataSteward implements Agent, Queryable {
     // TODO: impl telemetry
   }
 
+  // TODO: temporary support for fetching asset metadata from multilocation
+  // will be refactored, probably as part of the XCM Humanizer agent
   async #queryAssetMetadataByLocation(
-    criteria: { network: string; locations: string[] }[],
+    criteria: { network: string; locations: string[]; version?: 'v3' | 'v4' }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
-    for (const { network: referenceNetwork, locations } of criteria) {
-      const relayRegistry = await firstValueFrom(
-        this.#ingress.getRegistry(getRelayId(referenceNetwork as NetworkURN)),
-      )
+    for (const { network: referenceNetwork, locations, version } of criteria) {
+      const relayRegistry = await this.#getRegistry(getRelayId(referenceNetwork as NetworkURN))
 
       for (const loc of locations) {
+        let parsed: ParsedAsset | null = null
         try {
-          const multiLocation = relayRegistry.createType('StagingXcmV3MultiLocation', JSON.parse(loc))
-          const parsed = parseMultiLocation(referenceNetwork as NetworkURN, multiLocation)
+          parsed = this.#parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
+
           if (parsed) {
             const { network, assetId } = parsed
             if (typeof assetId === 'string') {
               keys.push(assetMetadataKey(network, assetId))
             } else {
-              const registry = await firstValueFrom(this.#ingress.getRegistry(network))
+              const registry = await this.#getRegistry(network)
               for (const mapping of mappers[network].mappings) {
                 const id = mapping.mapKey(registry, assetId)
                 keys.push(assetMetadataKey(network, id))
               }
             }
+          } else {
+            keys.push(loc)
           }
         } catch (e) {
           this.#log.error(e, '[agent:%s] error converting multiLocation to assetId', this.id)
+          keys.push(loc)
         }
       }
     }
+
     return {
       items: await this.#db.getMany<string, AssetMetadata>(keys, {
         /** */
       }),
+    }
+  }
+
+  async #getRegistry(network: NetworkURN) {
+    return firstValueFrom(this.#ingress.getRegistry(network))
+  }
+
+  #parseAssetFromJson(
+    network: NetworkURN,
+    loc: string,
+    registry: Registry,
+    version?: 'v3' | 'v4',
+  ): ParsedAsset | null {
+    const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
+    if (version === 'v4') {
+      const multiLocation = registry.createType('XcmV4Location', JSON.parse(cleansedLoc)) as XcmV4Location
+      return parseMultiLocation(network, multiLocation)
+    } else {
+      const multiLocation = registry.createType('StagingXcmV3MultiLocation', JSON.parse(cleansedLoc))
+      return parseMultiLocation(network, multiLocation)
     }
   }
 

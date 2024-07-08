@@ -43,6 +43,7 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       z.object({
         network: $NetworkString,
         locations: z.array(z.string()).min(1).max(50),
+        version: z.optional(z.enum(['v3', 'v4'])),
       }),
     ),
   }),
