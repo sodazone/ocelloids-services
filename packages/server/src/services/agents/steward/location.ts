@@ -42,7 +42,7 @@ function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction) 
   }
 }
 
-function localAssetJunction(
+function parseLocalX1Junction(
   referenceNetwork: NetworkURN,
   junction: XcmV2Junction | XcmV3Junction | XcmV4Junction,
 ): ParsedAsset | null {
@@ -77,10 +77,57 @@ function parseLocalAsset(
     const junction = junctions.asX1
     if (Array.isArray(junction)) {
       for (const j of junction) {
-        return localAssetJunction(referenceNetwork, j)
+        return parseLocalX1Junction(referenceNetwork, j)
       }
     } else {
-      return localAssetJunction(referenceNetwork, junction)
+      return parseLocalX1Junction(referenceNetwork, junction)
+    }
+  } else {
+    let pallet: number | undefined
+    let index: string | undefined
+    let key: GeneralKey | undefined
+    let accountId20: string | undefined
+
+    for (const junction of junctions[`as${junctions.type}`]) {
+      if (junction.isPalletInstance) {
+        pallet = junction.asPalletInstance.toNumber()
+      } else if (junction.isGeneralIndex) {
+        index = junction.asGeneralIndex.toString()
+      } else if (junction.isGeneralKey) {
+        key = mapGeneralKey(junction)
+      } else if (junction.isAccountKey20) {
+        accountId20 = junction.asAccountKey20.toString()
+      }
+    }
+
+    if (pallet) {
+      // assume if there's only pallet instance that it is the balances pallet
+      if (!index && !key && !accountId20) {
+        return {
+          network: referenceNetwork,
+          assetId: 'native#0',
+        }
+      }
+
+      const palletInstances = mappers[referenceNetwork].mappings.map((m) => m.palletInstance)
+      if (palletInstances.includes(pallet) && index !== undefined) {
+        return {
+          network: referenceNetwork,
+          assetId: index,
+        }
+      }
+      if (palletInstances.includes(pallet) && key !== undefined) {
+        return {
+          network: referenceNetwork,
+          assetId: key,
+        }
+      }
+      // TODO: support EVM contract assets
+    } else if (key) {
+      return {
+        network: referenceNetwork,
+        assetId: key,
+      }
     }
   }
 
