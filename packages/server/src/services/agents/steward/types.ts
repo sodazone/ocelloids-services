@@ -77,9 +77,11 @@ export type AssetMapping = {
   palletInstance: number
   assetIdType: string
   mapEntry: entryMapper
+  resolveKey?: (registry: Registry, keyValue: Uint8Array) => string
 }
 
 export type AssetMapper = {
+  nativeKeyBySymbol?: boolean
   mappings: AssetMapping[]
 }
 

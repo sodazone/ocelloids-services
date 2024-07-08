@@ -24,7 +24,14 @@ import {
 import { XcmV4Location } from '../xcm/ops/xcm-types.js'
 import { ParsedAsset, parseMultiLocation } from './location.js'
 import { mappers } from './mappers.js'
-import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs, XcmVersions } from './types.js'
+import {
+  $StewardQueryArgs,
+  AssetMapper,
+  AssetMapping,
+  AssetMetadata,
+  StewardQueryArgs,
+  XcmVersions,
+} from './types.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
@@ -141,7 +148,9 @@ export class DataSteward implements Agent, Queryable {
               const registry = await this.#getRegistry(network)
               for (const mapping of mappers[network].mappings) {
                 const keyValue = assetId.data.slice(0, assetId.length)
-                const id = registry.createType(mapping.assetIdType, keyValue).toString()
+                const id = mapping.resolveKey
+                  ? mapping.resolveKey(registry, keyValue)
+                  : registry.createType(mapping.assetIdType, keyValue).toString()
                 keys.push(assetMetadataKey(network, id))
               }
             }
@@ -257,7 +266,7 @@ export class DataSteward implements Agent, Queryable {
       const mapper = mappers[chainId]
       if (mapper) {
         this.#log.info('[agent:%s] GET chain properties (chainId=%s)', this.id, chainId)
-        this.#putChainProps(chainId)
+        this.#putChainProps(chainId, mapper)
 
         for (const mapping of mapper.mappings) {
           this.#log.info(
@@ -272,7 +281,7 @@ export class DataSteward implements Agent, Queryable {
     }
   }
 
-  #putChainProps(chainId: NetworkURN) {
+  #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
     this.#ingress
       .getChainProperties(chainId)
       .then((props) => {
@@ -281,10 +290,12 @@ export class DataSteward implements Agent, Queryable {
           const decimals = props.tokenDecimals.unwrap().toArray()
 
           for (let i = 0; i < symbols.length; i++) {
+            const symbol = symbols[i].toString()
+            const id = 'native#' + (mapper.nativeKeyBySymbol ? symbol : i)
             const asset: AssetMetadata = {
-              id: 'native#' + i,
+              id,
               updated: Date.now(),
-              symbol: symbols[i].toString(),
+              symbol,
               decimals: decimals[i].toNumber(),
               chainId,
               raw: {

@@ -186,11 +186,22 @@ const centrifugeMapper: AssetMapper = {
 }
 
 const interlayMapper: AssetMapper = {
+  nativeKeyBySymbol: true,
   mappings: [
     {
       palletInstance: 24,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
       assetIdType: 'u32',
+      resolveKey: (registry, keyValue) => {
+        const v = registry.createType('InterbtcPrimitivesCurrencyId', keyValue) as unknown as any
+        if (v.isToken) {
+          return `native#${v.asToken.toString()}`
+        }
+        if (v.isForeignAsset) {
+          return v.asForeignAsset.toString()
+        }
+        return 'none'
+      },
       mapEntry: mapAssets({
         chainId: networks.interlay,
         assetMetadataType: 'OrmlTraitsAssetRegistryAssetMetadata',
