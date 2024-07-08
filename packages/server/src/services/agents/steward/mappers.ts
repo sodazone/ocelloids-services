@@ -122,7 +122,7 @@ const moonbeamMapper: AssetMapper = {
         onMultiLocationData: (json: Record<string, any>) => json.xcm,
       }),
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('u128', keyValue).toString()
       },
     },
@@ -144,7 +144,7 @@ const bifrostMapper: AssetMapper = {
         hashing: 'xx-64',
       }),
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('BifrostPrimitivesCurrencyCurrencyId', keyValue).toString()
       },
     },
@@ -166,7 +166,7 @@ const hydrationMapper: AssetMapper = {
         hashing: 'blake2-128',
       }),
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('u32', keyValue).toString()
       },
     },
@@ -188,7 +188,7 @@ const mantaMapper: AssetMapper = {
         hashing: 'blake2-128',
       }),
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('u128', keyValue).toString()
       },
     },
@@ -223,7 +223,7 @@ const assetHubMapper: AssetMapper = {
         }
       },
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('u32', keyValue).toString()
       },
     },
@@ -255,7 +255,7 @@ const assetHubMapper: AssetMapper = {
         }
       },
       mapKey: (registry: Registry, key: GeneralKey) => {
-        const keyValue = key.data.toU8a().slice(0, key.length.toNumber())
+        const keyValue = key.data.slice(0, key.length)
         return registry.createType('StagingXcmV3MultiLocation', keyValue).toString()
       },
     },

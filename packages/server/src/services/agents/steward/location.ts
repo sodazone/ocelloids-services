@@ -1,4 +1,13 @@
-import type { StagingXcmV3MultiLocation, XcmV3Junction, XcmV3Junctions } from '@polkadot/types/lookup'
+import { U8aFixed, u8 } from '@polkadot/types-codec'
+import type {
+  StagingXcmV3MultiLocation,
+  XcmV2Junction,
+  XcmV2MultiLocation,
+  XcmV2MultilocationJunctions,
+  XcmV3Junction,
+  XcmV3Junctions,
+} from '@polkadot/types/lookup'
+import { isInstanceOf } from '@polkadot/util'
 
 import { createNetworkId, getRelayId } from '../../config.js'
 import { NetworkURN } from '../../types.js'
@@ -11,9 +20,31 @@ export type ParsedAsset = {
   assetId: string | GeneralKey
 }
 
+function isV3GeneralKey(obj: any): obj is {
+  data: U8aFixed
+  length: u8
+} {
+  return obj.data !== undefined && isInstanceOf(obj.length, u8)
+}
+
+function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction) {
+  const genKey = junction.asGeneralKey
+  if (isV3GeneralKey(genKey)) {
+    return {
+      data: genKey.data.toU8a(),
+      length: genKey.length.toNumber(),
+    }
+  }
+
+  return {
+    data: genKey.toU8a(),
+    length: genKey.length,
+  }
+}
+
 function localAssetJunction(
   referenceNetwork: NetworkURN,
-  junction: XcmV3Junction | XcmV4Junction,
+  junction: XcmV2Junction | XcmV3Junction | XcmV4Junction,
 ): ParsedAsset | null {
   if (junction.isPalletInstance) {
     // only valid case SHOULD be balances pallet
@@ -26,7 +57,7 @@ function localAssetJunction(
   if (junction.isGeneralKey) {
     return {
       network: referenceNetwork,
-      assetId: junction.asGeneralKey,
+      assetId: mapGeneralKey(junction),
     }
   }
   return null
@@ -34,7 +65,7 @@ function localAssetJunction(
 
 function parseLocalAsset(
   referenceNetwork: NetworkURN,
-  junctions: XcmV3Junctions | XcmV4Junctions,
+  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions,
 ): ParsedAsset | null {
   if (junctions.type === 'Here') {
     return {
@@ -58,7 +89,7 @@ function parseLocalAsset(
 
 function parseCrossChainAsset(
   referenceNetwork: NetworkURN,
-  junctions: XcmV3Junctions | XcmV4Junctions,
+  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions,
 ): ParsedAsset | null {
   if (junctions.type === 'Here') {
     return {
@@ -96,7 +127,7 @@ function parseCrossChainAsset(
       } else if (junction.isGeneralIndex) {
         index = junction.asGeneralIndex.toString()
       } else if (junction.isGeneralKey) {
-        key = junction.asGeneralKey
+        key = mapGeneralKey(junction)
       } else if (junction.isAccountKey20) {
         accountId20 = junction.asAccountKey20.toString()
       }
@@ -142,7 +173,7 @@ function parseCrossChainAsset(
 
 export function parseMultiLocation(
   referenceNetwork: NetworkURN,
-  location: StagingXcmV3MultiLocation | XcmV4Location,
+  location: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
 ): ParsedAsset | null {
   const parents = location.parents.toNumber()
   const junctions = location.interior

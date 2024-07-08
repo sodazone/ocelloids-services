@@ -24,7 +24,7 @@ import {
 import { XcmV4Location } from '../xcm/ops/xcm-types.js'
 import { ParsedAsset, parseMultiLocation } from './location.js'
 import { mappers } from './mappers.js'
-import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
+import { $StewardQueryArgs, AssetMapping, AssetMetadata, StewardQueryArgs, XcmVersions } from './types.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
@@ -122,7 +122,7 @@ export class DataSteward implements Agent, Queryable {
   // TODO: temporary support for fetching asset metadata from multilocation
   // will be refactored, probably as part of the XCM Humanizer agent
   async #queryAssetMetadataByLocation(
-    criteria: { network: string; locations: string[]; version?: 'v3' | 'v4' }[],
+    criteria: { network: string; locations: string[]; version?: XcmVersions }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
     for (const { network: referenceNetwork, locations, version } of criteria) {
@@ -169,16 +169,23 @@ export class DataSteward implements Agent, Queryable {
     network: NetworkURN,
     loc: string,
     registry: Registry,
-    version?: 'v3' | 'v4',
+    version?: XcmVersions,
   ): ParsedAsset | null {
     const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
     if (version === 'v4') {
-      const multiLocation = registry.createType('XcmV4Location', JSON.parse(cleansedLoc)) as XcmV4Location
-      return parseMultiLocation(network, multiLocation)
-    } else {
-      const multiLocation = registry.createType('StagingXcmV3MultiLocation', JSON.parse(cleansedLoc))
+      const multiLocation = registry.createType(
+        'StagingXcmV4Location',
+        JSON.parse(cleansedLoc),
+      ) as unknown as XcmV4Location
       return parseMultiLocation(network, multiLocation)
     }
+    if (version === 'v2') {
+      const multiLocation = registry.createType('XcmV2MultiLocation', JSON.parse(cleansedLoc))
+      return parseMultiLocation(network, multiLocation)
+    }
+    // Try V3 as fallback if no version passed
+    const multiLocation = registry.createType('StagingXcmV3MultiLocation', JSON.parse(cleansedLoc))
+    return parseMultiLocation(network, multiLocation)
   }
 
   async #queryAssetMetadataList(

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { U8aFixed, u8 } from '@polkadot/types-codec'
 import { Registry } from '@polkadot/types-codec/types'
 
 import { Observable } from 'rxjs'
@@ -10,6 +9,8 @@ import { IngressConsumer } from '../../ingress/index.js'
 import { AnyJson, NetworkURN } from '../../types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
+const xcmVersions = ['v2', 'v3', 'v4'] as const
+export type XcmVersions = (typeof xcmVersions)[number]
 
 export const networks = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
@@ -43,7 +44,7 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       z.object({
         network: $NetworkString,
         locations: z.array(z.string()).min(1).max(50),
-        version: z.optional(z.enum(['v3', 'v4'])),
+        version: z.optional(z.enum(xcmVersions)),
       }),
     ),
   }),
@@ -63,8 +64,8 @@ export type entryMapper = (
 ) => (source: Observable<Uint8Array>) => Observable<NonNullable<AssetMetadata>>
 
 export type GeneralKey = {
-  data: U8aFixed
-  length: u8
+  data: Uint8Array
+  length: number
 }
 
 type keyMapper = (registry: Registry, key: GeneralKey) => string
