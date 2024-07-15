@@ -3,6 +3,7 @@ import fp from 'fastify-plugin'
 
 import { IngressOptions } from '../../../types.js'
 import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } from './index.js'
+import { ConsumerApi } from './routes.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -38,6 +39,8 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
   })
 
   fastify.decorate('ingress', consumer)
+
+  fastify.register(ConsumerApi)
 
   await consumer.start()
 }
