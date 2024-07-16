@@ -14,6 +14,7 @@ import FastifyHealthcheck from 'fastify-healthcheck'
 import { logger } from './environment.js'
 import { errorHandler } from './errors.js'
 import {
+  Accounts,
   Administration,
   Agents,
   Auth,
@@ -174,6 +175,7 @@ export async function createServer(opts: ServerOptions) {
     await childServer.register(Subscriptions, opts)
     await childServer.register(Administration)
     await childServer.register(Telemetry, opts)
+    await childServer.register(Accounts, opts)
   })
 
   return server
