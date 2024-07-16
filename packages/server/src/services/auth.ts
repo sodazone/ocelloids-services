@@ -1,5 +1,5 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import fs from 'node:fs'
 
 import jwt from '@fastify/jwt'
 import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
@@ -51,7 +51,7 @@ export function checkCapabilities(
 
 async function importKeys(fastify: FastifyInstance, path: string) {
   try {
-    const jwkFile = readFileSync(path, 'utf8')
+    const jwkFile = fs.readFileSync(path, 'utf8')
     const jwkJson = JSON.parse(jwkFile) as Record<string, any>
 
     fastify.log.info('Importing public JWK key id: %s', jwkJson.kid)

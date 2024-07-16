@@ -66,7 +66,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
       })
       .finally(() => {
         instance.db.close((error) => {
-          instance.log.info('Closing database')
+          instance.log.info('Closing database: OK')
           /* istanbul ignore if */
           if (error) {
             instance.log.error(error, 'Error while closing the database')

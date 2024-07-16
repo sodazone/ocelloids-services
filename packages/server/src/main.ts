@@ -6,6 +6,7 @@ import process from 'node:process'
 import { Command, program } from 'commander'
 import z from 'zod'
 
+import closeWithGrace from 'close-with-grace'
 import { addServerOptions, opt, optArr, optBool, optInt } from './cli/index.js'
 import { $ServerOptions, createServer } from './server.js'
 import version from './version.js'
@@ -38,6 +39,22 @@ async function startServer(this: Command) {
           server.log.error(err)
           process.exit(1)
         }
+      },
+    )
+
+    /* istanbul ignore next */
+    closeWithGrace(
+      {
+        delay: opts.grace,
+      },
+      async function ({ err }) {
+        if (err) {
+          server.log.error(err)
+        }
+
+        server.log.info('Closing with grace')
+
+        await server.close()
       },
     )
   } catch (err) {

@@ -6,6 +6,7 @@ import process from 'node:process'
 import { Command, program } from 'commander'
 import z from 'zod'
 
+import closeWithGrace from 'close-with-grace'
 import { addServerOptions, opt } from '../../../cli/index.js'
 import version from '../../../version.js'
 import { $ServerOptions, createIngressServer } from './server.js'
@@ -27,6 +28,20 @@ async function startServer(this: Command) {
           server.log.error(err)
           process.exit(1)
         }
+      },
+    )
+
+    /* istanbul ignore next */
+    closeWithGrace(
+      {
+        delay: opts.grace,
+      },
+      async function ({ err }) {
+        if (err) {
+          server.log.error(err)
+        }
+
+        await server.close()
       },
     )
   } catch (err) {

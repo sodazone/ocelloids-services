@@ -2,7 +2,6 @@ import process from 'node:process'
 
 import { z } from 'zod'
 
-import closeWithGrace from 'close-with-grace'
 import Fastify from 'fastify'
 
 import FastifyCors from '@fastify/cors'
@@ -115,42 +114,6 @@ export async function createServer(opts: ServerOptions) {
       },
     })
 
-    /* istanbul ignore next */
-    const closeListeners = closeWithGrace(
-      {
-        delay: opts.grace,
-      },
-      async function ({ err }) {
-        if (err) {
-          childServer.log.error(err)
-        }
-
-        childServer.log.info('Closing with grace')
-
-        const { websocketServer } = childServer
-        if (websocketServer.clients) {
-          childServer.log.info('Closing websockets')
-
-          for (const client of websocketServer.clients) {
-            client.close(1001, 'server shutdown')
-            if (client.readyState !== client.CLOSED) {
-              // Websocket clients could ignore the close acknowledge
-              // breaking the clean shutdown of the server.
-              // To prevent it we terminate the socket.
-              client.terminate()
-            }
-          }
-        }
-
-        await server.close()
-      },
-    )
-
-    childServer.addHook('onClose', function (_, done) {
-      closeListeners.uninstall()
-      done()
-    })
-
     await childServer.register(FastifySwagger, {
       openapi: {
         info: {
@@ -176,6 +139,23 @@ export async function createServer(opts: ServerOptions) {
     await childServer.register(Administration)
     await childServer.register(Telemetry, opts)
     await childServer.register(Accounts, opts)
+
+    childServer.addHook('onClose', function (_, done) {
+      const { websocketServer } = childServer
+      if (websocketServer.clients) {
+        for (const client of websocketServer.clients) {
+          client.close(1001, 'server shutdown')
+          if (client.readyState !== client.CLOSED) {
+            // Websocket clients could ignore the close acknowledge
+            // breaking the clean shutdown of the server.
+            // To prevent it we terminate the socket.
+            client.terminate()
+          }
+        }
+        childServer.log.info('Closing websockets: OK')
+      }
+      done()
+    })
   })
 
   return server

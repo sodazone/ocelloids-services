@@ -3,7 +3,7 @@ import { AgentServiceMode } from '../types.js'
 
 const { createServer } = await import('../server.js')
 
-export function mockServer() {
+export function mockServer(overrides?: Record<string, any>) {
   return createServer({
     config: 'config/test.toml',
     data: '',
@@ -11,7 +11,7 @@ export function mockServer() {
     telemetry: true,
     sweepExpiry: 0,
     schedulerFrequency: 0,
-    grace: 1_000,
+    grace: 500,
     address: 'localhost',
     port: 0,
     subscriptionMaxEphemeral: 10_000,
@@ -25,5 +25,9 @@ export function mockServer() {
     mode: AgentServiceMode.local,
     rateLimitMax: 10_000,
     rateLimitWindow: 10_000,
+    jwtAuth: false,
+    jwtIss: 'test',
+    jwtAllowedIss: ['test'],
+    ...overrides,
   })
 }

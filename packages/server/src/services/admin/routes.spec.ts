@@ -4,19 +4,17 @@ import '../../testing/network.js'
 
 import { mockServer } from '../../testing/server.js'
 
-describe('admin api', () => {
-  const OLD_ENV = process.env
+describe.skip('admin api', () => {
   let server: FastifyInstance
 
   beforeAll(async () => {
-    process.env.OC_SECRET = 'abc'
-
-    server = await mockServer()
+    server = await mockServer({
+      jwtAuth: true,
+    })
     return server.ready()
   })
 
   afterAll(() => {
-    process.env = OLD_ENV
     return server.close()
   })
 

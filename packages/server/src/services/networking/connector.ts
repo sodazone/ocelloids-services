@@ -81,11 +81,11 @@ export default class Connector {
   }
 
   async disconnect() {
-    this.#log.info('Closing connections')
-
     if (this.#substrateApis) {
       await this.#substrateApis.disconnect()
     }
+
+    this.#log.info('Closing connections: OK')
   }
 
   #loadSpec(spec: string) {
