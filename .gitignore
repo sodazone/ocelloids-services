@@ -5,6 +5,7 @@ deno_dist/
 docs/
 db*/
 .db*/
+.clinic/
 chain-specs/
 **/.yarn/cache
 **/.yarn/versions
