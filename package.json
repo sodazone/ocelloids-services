@@ -21,8 +21,8 @@
   "private": true,
   "packageManager": "yarn@4.1.0",
   "devDependencies": {
-    "@biomejs/biome": "1.8.2",
-    "typescript": "^5.4.5"
+    "@biomejs/biome": "1.8.3",
+    "typescript": "^5.5.3"
   },
   "resolutions": {
     "@substrate/connect": "0.8.4",
