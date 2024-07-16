@@ -116,9 +116,10 @@ export class DataSteward implements Agent, Queryable {
 
       // first-time sync
       this.#log.info('[agent:%s] delayed initial sync in %s', this.id, START_DELAY)
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         this.#syncAssetMetadata()
       }, START_DELAY)
+      timeout.unref()
     }
   }
 
