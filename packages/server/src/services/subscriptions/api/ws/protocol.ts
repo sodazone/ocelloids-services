@@ -7,7 +7,7 @@ import { ZodError, ZodIssueCode, z } from 'zod'
 
 import { ValidationError, errorMessage } from '../../../../errors.js'
 import { AgentId } from '../../../agents/types.js'
-import { checkCapabilities } from '../../../auth.js'
+import { SubjectInScope, checkCapabilities } from '../../../auth.js'
 import { Message } from '../../../egress/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '../../../telemetry/types.js'
 import { Logger } from '../../../types.js'
@@ -113,10 +113,9 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       socket.once('message', (data: Buffer) => {
         setImmediate(async () => {
           try {
-            const payload: {
-              sub: string
-            } = fastify.jwt.verify(data.toString().trim())
-            checkCapabilities(payload.sub, request.routeOptions.config.caps)
+            const payload = fastify.jwt.verify<SubjectInScope>(data.toString().trim())
+            checkCapabilities(payload, request.routeOptions.config.caps)
+
             this.#afterAuth(socket, request, ids)
             // acknowledge auth
             socket.send(JSON.stringify({ code: 1000, error: false }))

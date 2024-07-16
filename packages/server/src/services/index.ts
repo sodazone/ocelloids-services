@@ -1,3 +1,4 @@
+import Accounts from './accounts/plugin.js'
 import Administration from './admin/routes.js'
 import Agents from './agents/plugin.js'
 import Auth from './auth.js'
@@ -20,6 +21,7 @@ export {
   Persistence,
   Connector,
   Configuration,
+  Accounts,
   Agents,
   Subscriptions,
   Telemetry,

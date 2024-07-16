@@ -91,6 +91,12 @@ addServerOptions(program)
       'OC_CORS_ORIGIN',
     ).default(['/https?://localhost.*/']),
   )
+  .addOption(opt('--jwt-auth', 'enables the JWT authentication', 'OC_JWT_AUTH').default(false))
+  .addOption(opt('--jwt-sig-key-file <path>', 'path to the JWK EdDSA key', 'OC_JWT_SIG_KEY_FILE'))
+  .addOption(opt('--jwt-iss <issuer>', 'identity of the issuer', 'OC_JWT_ISSUER'))
+  .addOption(
+    optArr('--jwt-allowed-iss [issuer]', 'allowed issuers', 'OC_JWT_ALLOWED_ISSUERS').default(['/.*/']),
+  )
   .addOption(
     opt(
       '--redis <redis-url>',

@@ -1,23 +1,23 @@
+import { createPrivateKey, createPublicKey } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+
 import jwt from '@fastify/jwt'
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
+import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
+import { expandRegExps } from '../cli/index.js'
 import { environment, isNonProdEnv } from '../environment.js'
+import { JwtServerOptions } from '../types.js'
 
 const SECONDS_TO_EXPIRE = 15
 
-// TODO CAP_OWNER
-export const CAP_ADMIN = 'admin'
-export const CAP_READ = 'read'
-export const CAP_WRITE = 'write'
+export const CAP_ADMIN = '*:admin'
+export const CAP_READ = '*:read'
+export const CAP_WRITE = '*:write'
 
 export interface NodQuerystring {
   nod?: string
 }
-
-// TODO #71 #92 To be implemented
-// user and capabilities management
-const capabilities = [['admin', 'read', 'write'], ['read', 'write'], ['read']]
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -29,9 +29,17 @@ declare module 'fastify' {
   }
 }
 
-export function checkCapabilities(subject: string | undefined, requestedCaps: string[] = [CAP_ADMIN]) {
-  if (subject) {
-    const caps = capabilities[parseInt(subject)]
+export interface SubjectInScope {
+  sub: string
+  scope: string
+}
+
+export function checkCapabilities(
+  subInScope: SubjectInScope | undefined,
+  requestedCaps: string[] = [CAP_ADMIN],
+) {
+  if (subInScope) {
+    const caps = subInScope.scope.split(' ')
 
     if (requestedCaps.length === 0 || requestedCaps.every((required) => caps.includes(required))) {
       return
@@ -41,21 +49,59 @@ export function checkCapabilities(subject: string | undefined, requestedCaps: st
   throw new Error('Not allowed')
 }
 
-const authPlugin: FastifyPluginAsync = async (fastify) => {
-  if (isNonProdEnv(environment) && process.env.OC_SECRET === undefined) {
+async function importKeys(fastify: FastifyInstance, path: string) {
+  try {
+    const jwkFile = readFileSync(path, 'utf8')
+    const jwkJson = JSON.parse(jwkFile) as Record<string, any>
+
+    fastify.log.info('Importing public JWK key id: %s', jwkJson.kid)
+    const pubKey = await createPublicKey({ key: jwkJson, format: 'jwk' })
+
+    if (jwkJson.d) {
+      fastify.log.info('Importing private JWK key id: %s', jwkJson.kid)
+      const prvKey = await createPrivateKey({ key: jwkJson, format: 'jwk' })
+
+      return {
+        public: pubKey.export({ type: 'spki', format: 'pem' }),
+        private: prvKey.export({ type: 'pkcs8', format: 'pem' }),
+      }
+    } else {
+      fastify.log.info('No private key, signing is disabled')
+
+      return {
+        public: pubKey.export({ type: 'spki', format: 'pem' }),
+      }
+    }
+  } catch (error) {
+    throw new Error('Fatal: Error while importing JWK keys', { cause: error })
+  }
+}
+
+const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options) => {
+  if (isNonProdEnv(environment) && !options.jwtAuth) {
     fastify.log.warn('(!) Security is disabled [%s]', environment)
     fastify.decorate('authEnabled', false)
     return
   }
 
-  if (process.env.OC_SECRET === undefined) {
-    throw new Error(`Fatal: you must provide an OC_SECRET in [${environment}]`)
+  if (options.jwtSigKeyFile === undefined) {
+    throw new Error(`Fatal: you must provide an OC_JWT_SIG_KEY_FILE in [${environment}]`)
   }
 
   fastify.decorate('authEnabled', true)
 
+  const secret = await importKeys(fastify, options.jwtSigKeyFile)
+
   fastify.register(jwt, {
-    secret: process.env.OC_SECRET,
+    secret,
+    sign: {
+      algorithm: 'EdDSA',
+      iss: options.jwtIss,
+    },
+    verify: {
+      allowedIss: expandRegExps(options.jwtAllowedIss),
+      algorithms: ['EdDSA'],
+    },
   })
 
   // Install hook for any route
@@ -82,11 +128,9 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Capabilities Auth
-        const payload: {
-          sub: string
-        } = await request.jwtVerify()
+        const payload = await request.jwtVerify<SubjectInScope>()
 
-        checkCapabilities(payload.sub, config.caps)
+        checkCapabilities(payload, config.caps)
       } catch (error) {
         reply.status(401).send({
           message: (error as Error).message,

@@ -37,6 +37,13 @@ export const $CorsServerOptions = z.object({
   corsOrigin: z.optional(z.array(z.string()).or(z.boolean())),
 })
 
+export const $JwtServerOptions = z.object({
+  jwtAuth: z.boolean(),
+  jwtSigKeyFile: z.string().optional(),
+  jwtIss: z.string().default('api.ocelloids.net'),
+  jwtAllowedIss: z.array(z.string().default('api.ocelloids.net')),
+})
+
 export const $SubscriptionServerOptions = z.object({
   wsMaxClients: z.number().min(0).optional(),
   subscriptionMaxEphemeral: z.number().min(0).optional(),
@@ -52,6 +59,7 @@ export const $AgentCatalogOptions = z.object({
 })
 
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
+export type JwtServerOptions = z.infer<typeof $JwtServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
 export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
 export type IngressOptions = {

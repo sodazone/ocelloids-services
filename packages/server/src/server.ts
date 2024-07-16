@@ -34,6 +34,7 @@ import {
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
+  $JwtServerOptions,
   $LevelServerOptions,
   $RedisServerOptions,
   $SubscriptionServerOptions,
@@ -47,6 +48,7 @@ export const $ServerOptions = z
   })
   .merge($BaseServerOptions)
   .merge($CorsServerOptions)
+  .merge($JwtServerOptions)
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
@@ -92,7 +94,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(async function authenticatedContext(childServer) {
     childServer.setErrorHandler(errorHandler)
 
-    await childServer.register(Auth)
+    await childServer.register(Auth, opts)
     await childServer.register(Limit, opts)
     await childServer.register(Root)
 

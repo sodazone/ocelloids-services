@@ -25,17 +25,21 @@ function collect(value: string, previous: string[] | boolean = []) {
   return previous.concat([value])
 }
 
+export function expandRegExps(arr: any) {
+  return Array.isArray(arr)
+    ? arr.map((o) => {
+        if (o.startsWith('/') && o.endsWith('/')) {
+          return new RegExp(o.substring(1, o.length - 1))
+        }
+        return o
+      })
+    : arr
+}
+
 export function toCorsOpts({ corsOrigin, corsCredentials }: CorsServerOptions): FastifyCorsOptions {
   return {
     credentials: corsCredentials,
-    origin: Array.isArray(corsOrigin)
-      ? corsOrigin.map((o) => {
-          if (o.startsWith('/') && o.endsWith('/')) {
-            return new RegExp(o.substring(1, o.length - 1))
-          }
-          return o
-        })
-      : corsOrigin,
+    origin: expandRegExps(corsOrigin),
   }
 }
 
