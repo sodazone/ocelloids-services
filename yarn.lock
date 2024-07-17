@@ -2633,6 +2633,7 @@ __metadata:
     "@swc/core": "npm:^1.6.13"
     "@swc/jest": "npm:^0.2.36"
     "@types/babel__core": "npm:^7.20.5"
+    "@types/better-sqlite3": "npm:^7.6.11"
     "@types/jest": "npm:^29.5.12"
     "@types/node": "npm:^20.14.10"
     "@types/ws": "npm:^8.5.11"
@@ -2950,6 +2951,15 @@ __metadata:
   dependencies:
     "@babel/types": "npm:^7.20.7"
   checksum: 10c0/033abcb2f4c084ad33e30c3efaad82161240f351e3c71b6154ed289946b33b363696c0fbd42502b68e4582a87413c418321f40eb1ea863e34fe525641345e05b
+  languageName: node
+  linkType: hard
+
+"@types/better-sqlite3@npm:^7.6.11":
+  version: 7.6.11
+  resolution: "@types/better-sqlite3@npm:7.6.11"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/6a7b8e5765f872404242ff9626edf4b4dd7974047144ba7254a59f4f1c196d05f8001323d0b526e8bbb3842bf541e341d74ca0164e50bd38fceaf3ef5d2a673d
   languageName: node
   linkType: hard
 
