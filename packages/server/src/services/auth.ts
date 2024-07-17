@@ -1,13 +1,14 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto'
 import fs from 'node:fs'
 
-import jwt from '@fastify/jwt'
+import jwt, { DecodePayloadType } from '@fastify/jwt'
 import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { expandRegExps } from '@/cli/index.js'
 import { environment, isNonProdEnv } from '@/environment.js'
 import { JwtServerOptions } from '@/types.js'
+import { AccountsRepository } from './accounts/repository.js'
 
 const SECONDS_TO_EXPIRE = 15
 
@@ -29,20 +30,57 @@ declare module 'fastify' {
   }
 }
 
-export interface SubjectInScope {
+export interface JwtPayload {
   sub: string
-  scope: string
+  jti: string
 }
 
-export function checkCapabilities(
-  subInScope: SubjectInScope | undefined,
-  requestedCaps: string[] = [CAP_ADMIN],
-) {
-  if (subInScope) {
-    const caps = subInScope.scope.split(' ')
+function checkCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]) {
+  if (scope) {
+    const caps = scope.split(' ')
 
     if (requestedCaps.length === 0 || requestedCaps.every((required) => caps.includes(required))) {
       return
+    }
+  }
+
+  throw new Error('Not allowed')
+}
+
+export async function ensureAccountAuthorized(
+  { log, accountsRepository }: FastifyInstance,
+  request: FastifyRequest,
+  payload: JwtPayload,
+) {
+  if (payload) {
+    const { sub, jti } = payload
+
+    const apiToken = await accountsRepository.findApiTokenById(jti)
+
+    if (apiToken?.status === 'enabled') {
+      const { account } = apiToken
+      if (account) {
+        // FIX: type inference is correct but we get it as string (?)
+        const parsedAccount = typeof account === 'string' ? JSON.parse(account as unknown as string) : account
+        if (parsedAccount.status === 'enabled' && parsedAccount.subject === sub) {
+          const {
+            routeOptions: {
+              config: { caps },
+            },
+          } = request
+
+          checkCapabilities(apiToken.scope, caps)
+
+          // all OK
+          return
+        } else {
+          log.warn('[authorization] disabled account attempt %j', apiToken)
+        }
+      } else {
+        log.warn('[authorization] token without associated account %j', apiToken)
+      }
+    } else {
+      log.warn('[authorization] disabled token attempt %j', apiToken)
     }
   }
 
@@ -127,10 +165,11 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
           throw new Error('anti-dos parameter not provided')
         }
 
-        // Capabilities Auth
-        const payload = await request.jwtVerify<SubjectInScope>()
+        // JWT Auth
+        const payload = await request.jwtVerify<JwtPayload>()
 
-        checkCapabilities(payload, config.caps)
+        // Account Auth
+        await ensureAccountAuthorized(fastify, request, payload)
       } catch (error) {
         reply.status(401).send({
           message: (error as Error).message,
@@ -177,5 +216,5 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
 
 export default fp(authPlugin, {
   name: 'auth',
-  dependencies: ['accounts']
+  dependencies: ['accounts'],
 })

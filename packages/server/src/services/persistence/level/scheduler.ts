@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 
 import { NotFound } from '@/errors.js'
-import { LevelDB, Family, Logger, jsonEncoded, prefixes } from '@/services/types.js'
+import { Family, LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
 
 export type Scheduled<T = any> = {
   // time based key

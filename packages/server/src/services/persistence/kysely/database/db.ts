@@ -1,10 +1,12 @@
 import SQLite from 'better-sqlite3'
 
-import { Kysely, SqliteDialect } from 'kysely'
+import { Kysely, Migration, Migrator, SqliteDialect } from 'kysely'
+
+import * as initial from './migrations/000000_schema.js'
 
 import { Database } from './types.js'
 
-let db: Kysely<Database>
+let _db: Kysely<Database>
 
 interface SQLiteOptions {
   filename: string
@@ -12,16 +14,30 @@ interface SQLiteOptions {
 }
 
 export function openDatabase(opts: SQLiteOptions) {
-  if (db) {
-    return db
+  if (_db) {
+    return _db
   }
 
   const dialect = new SqliteDialect({
     database: new SQLite(opts.filename, opts.options),
   })
-  db = new Kysely<Database>({
+  _db = new Kysely<Database>({
     dialect,
   })
 
-  return db
+  return _db
+}
+
+export async function migrate(db: Kysely<any>) {
+  const migrator = new Migrator({
+    db,
+    provider: {
+      getMigrations: async (): Promise<Record<string, Migration>> => {
+        return {
+          '000000': initial,
+        }
+      },
+    },
+  })
+  return migrator.migrateToLatest()
 }

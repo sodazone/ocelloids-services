@@ -12,10 +12,10 @@ export type NewAccount = Insertable<AccountTable>
 export type AccountUpdate = Updateable<AccountTable>
 
 export interface ApiTokenTable {
-  id: Generated<number>
+  id: ColumnType<string>
   account_id: number
-  token: ColumnType<string>
-  name: ColumnType<string>
+  name: ColumnType<string | undefined>
+  scope: ColumnType<string>
   status: 'enabled' | 'disabled'
   created_at: ColumnType<Date, string | undefined, never>
 }

@@ -7,7 +7,7 @@ import { ZodError, ZodIssueCode, z } from 'zod'
 
 import { ValidationError, errorMessage } from '@/errors.js'
 import { AgentId } from '@/services/agents/types.js'
-import { SubjectInScope, checkCapabilities } from '@/services/auth.js'
+import { JwtPayload, ensureAccountAuthorized } from '@/services/auth.js'
 import { Message } from '@/services/egress/types.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { $Subscription, EgressListener, Subscription } from '@/services/subscriptions/types.js'
@@ -113,8 +113,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       socket.once('message', (data: Buffer) => {
         setImmediate(async () => {
           try {
-            const payload = fastify.jwt.verify<SubjectInScope>(data.toString().trim())
-            checkCapabilities(payload, request.routeOptions.config.caps)
+            const payload = fastify.jwt.verify<JwtPayload>(data.toString().trim())
+            await ensureAccountAuthorized(fastify, request, payload)
 
             this.#afterAuth(socket, request, ids)
             // acknowledge auth

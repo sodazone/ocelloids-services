@@ -28,8 +28,8 @@ type DBOptions = JanitorOptions &
 function createLevel({ log }: FastifyInstance, { data, levelEngine }: DBOptions): Level {
   const dbPath = data || './.db'
 
-  log.info('Level engine %s', levelEngine)
-  log.info('Open database at %s', dbPath)
+  log.info('[level] engine %s', levelEngine)
+  log.info('[level] open database at %s', dbPath)
 
   switch (levelEngine) {
     case LevelEngine.mem:
@@ -62,14 +62,14 @@ const levelDBPlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) =>
     scheduler
       .stop()
       .catch((error) => {
-        instance.log.error(error, 'Error while stopping the scheduler')
+        instance.log.error(error, '[level] error while stopping the scheduler')
       })
       .finally(() => {
         instance.levelDB.close((error) => {
-          instance.log.info('Closing database: OK')
+          instance.log.info('[level] closing database: OK')
           /* istanbul ignore if */
           if (error) {
-            instance.log.error(error, 'Error while closing the database')
+            instance.log.error(error, '[level] error while closing the database')
           }
           done()
         })
@@ -79,7 +79,7 @@ const levelDBPlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) =>
   try {
     await root.open()
   } catch (err) {
-    fastify.log.error(err, 'Error opening database')
+    fastify.log.error(err, '[level] error opening database')
     throw err
   }
 

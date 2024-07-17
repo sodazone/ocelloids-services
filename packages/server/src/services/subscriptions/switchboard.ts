@@ -5,9 +5,9 @@ import { Operation } from 'rfc6902'
 import { Logger, Services } from '@/services/types.js'
 
 import { NotFound } from '@/errors.js'
+import { AgentCatalog, AgentId } from '@/services/agents/types.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { SubsStore } from '@/services/persistence/level/index.js'
-import { AgentCatalog, AgentId } from '@/services/agents/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
 import { EgressListener, Subscription, SubscriptionStats } from './types.js'
