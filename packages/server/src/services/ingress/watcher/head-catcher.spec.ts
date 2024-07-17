@@ -9,9 +9,9 @@ import {
   parachainSystemUpwardMessages,
 } from '@/services/agents/xcm/storage.js'
 import Connector from '@/services/networking/connector.js'
-import { Janitor } from '@/services/persistence/janitor.js'
+import { Janitor } from '@/services/persistence/level/janitor.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
-import { DB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
+import { LevelDB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
 import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
 import { _services } from '@/testing/services.js'
@@ -21,7 +21,7 @@ const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 const flushPromises = () => new Promise((res) => process.nextTick(res))
 
 describe('head catcher', () => {
-  let db: DB
+  let db: LevelDB
 
   function sl(chainId: NetworkURN) {
     return db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
@@ -61,7 +61,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       const expectedKeys = [
@@ -106,7 +106,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       const expectedKeys = [
@@ -221,7 +221,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
         janitor,
       })
 
@@ -321,7 +321,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       const cb = [jest.fn(), jest.fn()]
@@ -441,7 +441,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       const cb = jest.fn()
@@ -505,7 +505,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       catcher.start()
@@ -558,7 +558,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
@@ -610,7 +610,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       catcher.start()
@@ -663,7 +663,7 @@ describe('head catcher', () => {
             },
           }),
         } as unknown as Connector,
-        db,
+        levelDB: db,
       })
 
       catcher.getStorage('urn:ocn:local:1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({

@@ -33,7 +33,7 @@ import {
 import { ServiceConfiguration } from '@/services/config.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { DB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
+import { LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
 import { LocalCache } from './local-cache.js'
 
@@ -81,7 +81,7 @@ function arrayOfTargetHeights(newHeight: bigint, targetHeight: bigint, batchSize
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #apis: SubstrateApis
   readonly #log: Logger
-  readonly #db: DB
+  readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
   readonly #localCache: LocalCache
 
@@ -91,7 +91,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   constructor(services: Services) {
     super()
 
-    const { log, localConfig, db: rootStore, connector } = services
+    const { log, localConfig, levelDB: rootStore, connector } = services
 
     this.#log = log
     this.#localConfig = localConfig

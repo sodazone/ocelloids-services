@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 
 import { NotFound } from '@/errors.js'
-import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js'
+import { LevelDB, Family, Logger, jsonEncoded, prefixes } from '@/services/types.js'
 
 export type Scheduled<T = any> = {
   // time based key
@@ -33,7 +33,7 @@ export class Scheduler extends EventEmitter {
     /* empty */
   }
 
-  constructor(log: Logger, db: DB, opts: SchedulerOptions) {
+  constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
 
     this.#log = log

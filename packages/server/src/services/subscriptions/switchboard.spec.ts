@@ -2,7 +2,7 @@ import '@/testing/network.js'
 
 import { LocalAgentCatalog } from '@/services/agents/catalog/local.js'
 import { AgentCatalog } from '@/services/agents/types.js'
-import { SubsStore } from '@/services/persistence/subs.js'
+import { SubsStore } from '@/services/persistence/level/subs.js'
 import { Services } from '@/services/types.js'
 import { _services } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
@@ -34,7 +34,7 @@ describe('switchboard service', () => {
   let agentService: AgentCatalog
 
   beforeAll(async () => {
-    subs = new SubsStore(_services.log, _services.db)
+    subs = new SubsStore(_services.log, _services.levelDB)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
@@ -51,7 +51,7 @@ describe('switchboard service', () => {
   })
 
   afterAll(async () => {
-    await _services.db.clear()
+    await _services.levelDB.clear()
     return agentService.stop()
   })
 

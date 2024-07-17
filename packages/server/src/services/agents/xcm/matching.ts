@@ -5,8 +5,8 @@ import { Mutex } from 'async-mutex'
 
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId, isOnSameConsensus } from '@/services/config.js'
-import { Janitor, JanitorTask } from '@/services/persistence/janitor.js'
-import { DB, Logger, jsonEncoded } from '@/services/types.js'
+import { Janitor, JanitorTask } from '@/services/persistence/level/janitor.js'
+import { LevelDB, Logger, jsonEncoded } from '@/services/types.js'
 
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
@@ -32,7 +32,7 @@ import {
 } from './types.js'
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
-type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>
+type SubLevel<TV> = AbstractSublevel<LevelDB, Buffer | Uint8Array | string, string, TV>
 
 export type ChainBlock = {
   chainId: string

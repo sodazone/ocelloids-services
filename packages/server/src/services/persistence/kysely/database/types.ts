@@ -1,0 +1,30 @@
+import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
+
+export interface AccountTable {
+  id: Generated<number>
+  subject: ColumnType<string>
+  status: 'enabled' | 'disabled'
+  created_at: ColumnType<Date, string | undefined, never>
+}
+
+export type Account = Selectable<AccountTable>
+export type NewAccount = Insertable<AccountTable>
+export type AccountUpdate = Updateable<AccountTable>
+
+export interface ApiTokenTable {
+  id: Generated<number>
+  account_id: number
+  token: ColumnType<string>
+  name: ColumnType<string>
+  status: 'enabled' | 'disabled'
+  created_at: ColumnType<Date, string | undefined, never>
+}
+
+export type ApiToken = Selectable<ApiTokenTable>
+export type NewApiToken = Insertable<ApiTokenTable>
+export type ApiTokenUpdate = Updateable<ApiTokenTable>
+
+export interface Database {
+  account: AccountTable
+  ['api-token']: ApiTokenTable
+}

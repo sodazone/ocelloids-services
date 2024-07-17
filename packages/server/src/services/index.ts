@@ -6,7 +6,8 @@ import Configuration from './config.js'
 import Ingress from './ingress/consumer/plugin.js'
 import Limit from './limit.js'
 import Connector from './networking/plugin.js'
-import Persistence from './persistence/plugin.js'
+import Kysely from './persistence/kysely/plugin.js'
+import LevelDB from './persistence/level/plugin.js'
 import Root from './root.js'
 import Subscriptions from './subscriptions/plugin.js'
 import Telemetry from './telemetry/plugin.js'
@@ -18,7 +19,8 @@ export {
   Limit,
   Auth,
   Administration,
-  Persistence,
+  LevelDB,
+  Kysely,
   Connector,
   Configuration,
   Accounts,

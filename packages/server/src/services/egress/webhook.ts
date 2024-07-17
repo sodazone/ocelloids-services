@@ -7,7 +7,7 @@ import { Subscription, WebhookNotification } from '@/services/subscriptions/type
 import { Logger, Services } from '@/services/types.js'
 import version from '@/version.js'
 
-import { Scheduled, Scheduler, SubsStore } from '@/services/persistence/index.js'
+import { Scheduled, Scheduler, SubsStore } from '@/services/persistence/level/index.js'
 import { publishTelemetryFrom } from '@/services/telemetry/types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'

@@ -32,7 +32,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
     log,
     switchboard,
     wsProtocol,
-    db: rootStore,
+    levelDB: rootStore,
     ingress,
     ingressProducer,
     agentCatalog: agentService,

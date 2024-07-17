@@ -177,4 +177,5 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
 
 export default fp(authPlugin, {
   name: 'auth',
+  dependencies: ['accounts']
 })

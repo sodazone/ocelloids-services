@@ -4,10 +4,10 @@ import { z } from 'zod'
 import { Egress } from '@/services/egress/hub.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
-import { Janitor } from '@/services/persistence/janitor.js'
-import { Scheduler } from '@/services/persistence/scheduler.js'
+import { Janitor } from '@/services/persistence/level/janitor.js'
+import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
-import { DB, Logger } from '@/services/types.js'
+import { LevelDB, Logger } from '@/services/types.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -34,7 +34,7 @@ export type AgentRuntimeContext = {
   log: Logger
   egress: Egress
   ingress: IngressConsumer
-  db: DB
+  db: LevelDB
   scheduler: Scheduler
   janitor: Janitor
 }

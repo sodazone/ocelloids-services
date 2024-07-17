@@ -5,8 +5,8 @@ import nock from 'nock'
 
 import { _log, _services } from '@/testing/services.js'
 
-import { Scheduler } from '../persistence/scheduler.js'
-import { Subscription } from '../subscriptions/types.js'
+import { Scheduler } from '@/services/persistence/level/scheduler.js'
+import { Subscription } from '@/services/subscriptions/types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { Message } from './types.js'

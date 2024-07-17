@@ -5,8 +5,8 @@ import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } 
 import { Registry } from '@polkadot/types-codec/types'
 
 import { IngressConsumer } from '@/services/ingress/index.js'
-import { Scheduled, Scheduler } from '@/services/persistence/scheduler.js'
-import { DB, Logger, NetworkURN } from '@/services/types.js'
+import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
+import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
 import { HexString } from '@/lib.js'
@@ -61,7 +61,7 @@ const SCHED_RATE = 43_200_000 // 12h
 export class DataSteward implements Agent, Queryable {
   readonly #sched: Scheduler
   readonly #ingress: IngressConsumer
-  readonly #db: DB
+  readonly #db: LevelDB
   readonly #log: Logger
 
   constructor(ctx: AgentRuntimeContext) {

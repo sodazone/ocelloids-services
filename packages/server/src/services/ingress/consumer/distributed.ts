@@ -7,7 +7,7 @@ import { Metadata, TypeRegistry } from '@polkadot/types'
 import type { Registry } from '@polkadot/types-codec/types'
 import { ChainProperties } from '@polkadot/types/interfaces'
 
-import { DB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
+import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
 import { IngressOptions } from '@/types.js'
 import {
@@ -52,7 +52,7 @@ export class DistributedIngressConsumer
   implements IngressConsumer
 {
   readonly #log: Logger
-  readonly #db: DB
+  readonly #db: LevelDB
   readonly #blockConsumers: Record<NetworkURN, Subject<SignedBlockExtended>>
   readonly #registries$: Record<NetworkURN, Observable<Registry>>
   readonly #distributor: RedisDistributor
@@ -63,7 +63,7 @@ export class DistributedIngressConsumer
     super()
 
     this.#log = ctx.log
-    this.#db = ctx.db
+    this.#db = ctx.levelDB
     this.#distributor = new RedisDistributor(opts, ctx)
     this.#blockConsumers = {}
     this.#registries$ = {}

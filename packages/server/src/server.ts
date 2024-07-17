@@ -20,8 +20,9 @@ import {
   Configuration,
   Connector,
   Ingress,
+  Kysely,
+  LevelDB,
   Limit,
-  Persistence,
   Root,
   Subscriptions,
   Telemetry,
@@ -35,6 +36,7 @@ import {
   $ConfigServerOptions,
   $CorsServerOptions,
   $JwtServerOptions,
+  $KyselyServerOptions,
   $LevelServerOptions,
   $RedisServerOptions,
   $SubscriptionServerOptions,
@@ -52,6 +54,7 @@ export const $ServerOptions = z
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
   .merge($LevelServerOptions)
+  .merge($KyselyServerOptions)
   .merge($RedisServerOptions)
   .merge($AgentCatalogOptions)
 
@@ -94,7 +97,6 @@ export async function createServer(opts: ServerOptions) {
   await server.register(async function authenticatedContext(childServer) {
     childServer.setErrorHandler(errorHandler)
 
-    await childServer.register(Auth, opts)
     await childServer.register(Limit, opts)
     await childServer.register(Root)
 
@@ -132,13 +134,15 @@ export async function createServer(opts: ServerOptions) {
       await childServer.register(Connector)
     }
 
-    await childServer.register(Persistence, opts)
+    await childServer.register(LevelDB, opts)
+    await childServer.register(Kysely, opts)
     await childServer.register(Ingress, opts)
     await childServer.register(Agents, opts)
     await childServer.register(Subscriptions, opts)
     await childServer.register(Administration)
     await childServer.register(Telemetry, opts)
     await childServer.register(Accounts, opts)
+    await childServer.register(Auth, opts)
 
     childServer.addHook('onClose', function (_, done) {
       const { websocketServer } = childServer

@@ -14,10 +14,10 @@ import {
   parachainSystemUpwardMessages,
 } from '@/services/agents/xcm/storage.js'
 import { NetworkConfiguration } from '@/services/config.js'
-import { Janitor } from '@/services/persistence/janitor.js'
+import { Janitor } from '@/services/persistence/level/janitor.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { DB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
+import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
 import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js'
 import { RETRY_INFINITE } from './head-catcher.js'
@@ -40,13 +40,13 @@ const captureStorageKeys: HexString[] = [parachainSystemHrmpOutboundMessages, pa
  */
 export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
-  readonly #db: DB
+  readonly #db: LevelDB
   readonly #janitor: Janitor
   readonly #apis: SubstrateApis
 
   readonly #subs: Record<string, Subscription> = {}
 
-  constructor(apis: SubstrateApis, { log, db: rootStore, janitor }: Services) {
+  constructor(apis: SubstrateApis, { log, levelDB: rootStore, janitor }: Services) {
     super()
 
     this.#log = log

@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events'
 
-import { DB, Logger, TypedEventEmitter } from '@/services/types.js'
+import { LevelDB, Logger, TypedEventEmitter } from '@/services/types.js'
 import { Scheduled, Scheduler } from './scheduler.js'
 
 export type JanitorTask = {
@@ -24,11 +24,11 @@ export type JanitorEvents = {
  */
 export class Janitor extends (EventEmitter as new () => TypedEventEmitter<JanitorEvents>) {
   // #log: Logger;
-  #db: DB
+  #db: LevelDB
   #sched: Scheduler
   #expiry: number
 
-  constructor(_log: Logger, db: DB, sched: Scheduler, options: JanitorOptions) {
+  constructor(_log: Logger, db: LevelDB, sched: Scheduler, options: JanitorOptions) {
     super()
     // this.#log = log;
     this.#db = db

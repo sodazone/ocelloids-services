@@ -3,7 +3,7 @@ import { jest } from '@jest/globals'
 import { MemoryLevel as Level } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
-import { Janitor } from '@/services/persistence/janitor.js'
+import { Janitor } from '@/services/persistence/level/janitor.js'
 import { jsonEncoded } from '@/services/types.js'
 import { matchBridgeMessages } from '@/testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '@/testing/matching.js'

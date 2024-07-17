@@ -1,7 +1,7 @@
 import { NotFound, ValidationError } from '@/errors.js'
 import { AgentId } from '@/services/agents/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { DB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
+import { LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
 
 /**
  * Subscriptions persistence.
@@ -10,9 +10,9 @@ import { DB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
  */
 export class SubsStore {
   // readonly #log: Logger;
-  readonly #db: DB
+  readonly #db: LevelDB
 
-  constructor(_log: Logger, db: DB) {
+  constructor(_log: Logger, db: LevelDB) {
     // this.#log = log;
     this.#db = db
   }

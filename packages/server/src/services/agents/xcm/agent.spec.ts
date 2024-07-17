@@ -7,7 +7,7 @@ import '@/testing/network.js'
 import { _services } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
 import { Services } from '../../index.js'
-import { SubsStore } from '../../persistence/subs.js'
+import { SubsStore } from '../../persistence/level/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
 import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
@@ -116,7 +116,7 @@ describe('xcm agent', () => {
         } as unknown as XcmInboundWithContext)
     })
 
-    subs = new SubsStore(_services.log, _services.db)
+    subs = new SubsStore(_services.log, _services.levelDB)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
@@ -127,7 +127,7 @@ describe('xcm agent', () => {
   })
 
   afterEach(async () => {
-    await _services.db.clear()
+    await _services.levelDB.clear()
     return agentService.stop()
   })
 

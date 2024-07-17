@@ -15,7 +15,7 @@ const itOps = {
 }
 
 async function AdminRoutes(api: FastifyInstance) {
-  const { db: rootStore, scheduler } = api
+  const { levelDB: rootStore, scheduler } = api
 
   const opts = {
     config: {

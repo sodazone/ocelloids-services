@@ -10,9 +10,9 @@ import { $ServiceConfiguration } from '../services/config.js'
 import { Egress } from '../services/egress/index.js'
 import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
-import { Janitor } from '../services/persistence/janitor.js'
-import { Scheduler } from '../services/persistence/scheduler.js'
-import { SubsStore } from '../services/persistence/subs.js'
+import { Janitor } from '../services/persistence/level/janitor.js'
+import { Scheduler } from '../services/persistence/level/scheduler.js'
+import { SubsStore } from '../services/persistence/level/subs.js'
 import { Services } from '../services/types.js'
 import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
@@ -176,7 +176,7 @@ const __services = {
   log: _log,
   localConfig: _config,
   connector: _connector,
-  db: _rootDB,
+  levelDB: _rootDB,
   subsStore: {} as unknown as SubsStore,
   ingress: {} as unknown as IngressConsumer,
   agentCatalog: {} as unknown as AgentCatalog,

@@ -5,14 +5,14 @@ import { Level } from 'level'
 import { MemoryLevel } from 'memory-level'
 import { RaveLevel } from 'rave-level'
 
-import { DB, LevelEngine } from '../types.js'
+import { LevelDB, LevelEngine } from '../../types.js'
 import { Janitor, JanitorOptions } from './janitor.js'
 import { Scheduler, SchedulerOptions } from './scheduler.js'
 import { SubsStore } from './subs.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: DB
+    levelDB: LevelDB
     subsStore: SubsStore
     scheduler: Scheduler
     janitor: Janitor
@@ -42,18 +42,18 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: DBOptions)
 }
 
 /**
- * Persistence related services.
+ * LevelDB related services.
  *
  * @param fastify - The Fastify instance
  * @param options - The persistence options
  */
-const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
+const levelDBPlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
   const root = createLevel(fastify, options)
   const scheduler = new Scheduler(fastify.log, root, options)
   const janitor = new Janitor(fastify.log, root, scheduler, options)
   const subsStore = new SubsStore(fastify.log, root)
 
-  fastify.decorate('db', root)
+  fastify.decorate('levelDB', root)
   fastify.decorate('janitor', janitor)
   fastify.decorate('scheduler', scheduler)
   fastify.decorate('subsStore', subsStore)
@@ -65,7 +65,7 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
         instance.log.error(error, 'Error while stopping the scheduler')
       })
       .finally(() => {
-        instance.db.close((error) => {
+        instance.levelDB.close((error) => {
           instance.log.info('Closing database: OK')
           /* istanbul ignore if */
           if (error) {
@@ -86,4 +86,4 @@ const persistencePlugin: FastifyPluginAsync<DBOptions> = async (fastify, options
   scheduler.start()
 }
 
-export default fp(persistencePlugin, { fastify: '>=4.x', name: 'persistence' })
+export default fp(levelDBPlugin, { fastify: '>=4.x', name: 'leveldb' })

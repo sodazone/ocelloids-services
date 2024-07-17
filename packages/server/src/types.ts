@@ -27,6 +27,14 @@ export const $LevelServerOptions = z.object({
   sweepExpiry: z.number().min(20000),
 })
 
+export const $KyselyServerOptions = z.object({
+  sqlData: z
+    .string({
+      required_error: 'Database directory path is required',
+    })
+    .min(1),
+})
+
 export const $ConfigServerOptions = z.object({
   config: z.string().min(1).optional(),
 })
@@ -62,6 +70,7 @@ export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
 export type JwtServerOptions = z.infer<typeof $JwtServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
 export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
+export type KyselyServerOptions = z.infer<typeof $KyselyServerOptions>
 export type IngressOptions = {
   distributed?: boolean
 } & RedisServerOptions

@@ -6,9 +6,9 @@ import { AgentCatalog, AgentId } from './agents/types.js'
 import { ServiceConfiguration } from './config.js'
 import { IngressConsumer } from './ingress/consumer/index.js'
 import Connector from './networking/connector.js'
-import { Janitor } from './persistence/janitor.js'
-import { Scheduler } from './persistence/scheduler.js'
-import { SubsStore } from './persistence/subs.js'
+import { Janitor } from './persistence/level/janitor.js'
+import { Scheduler } from './persistence/level/scheduler.js'
+import { SubsStore } from './persistence/level/subs.js'
 import { BlockNumberRange, HexString } from './subscriptions/types.js'
 
 /**
@@ -18,9 +18,9 @@ import { BlockNumberRange, HexString } from './subscriptions/types.js'
  */
 export type NetworkURN = `urn:ocn:${string}`
 
-export type DB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>
-export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<DB, F, K, V>
-export type BatchOperation<K = string, V = any> = AbstractBatchOperation<DB, K, V>
+export type LevelDB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>
+export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<LevelDB, F, K, V>
+export type BatchOperation<K = string, V = any> = AbstractBatchOperation<LevelDB, K, V>
 
 /**
  * Supported Abstract Level engines.
@@ -90,7 +90,7 @@ export interface TypedEventEmitter<Events extends EventMap> {
 export type Logger = FastifyBaseLogger
 export type Services = {
   log: Logger
-  db: DB
+  levelDB: LevelDB
   subsStore: SubsStore
   janitor: Janitor
   scheduler: Scheduler
