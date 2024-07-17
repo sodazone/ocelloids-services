@@ -8,13 +8,13 @@ import FastifyHealthcheck from 'fastify-healthcheck'
 
 import { logger } from '@/environment.js'
 import { errorHandler } from '@/errors.js'
+import { Auth, Configuration, Connector, Persistence, Root, Telemetry } from '@/services/index.js'
 import {
   $BaseServerOptions,
   $ConfigServerOptions,
   $LevelServerOptions,
   $RedisServerOptions,
 } from '@/types.js'
-import { Auth, Configuration, Connector, Persistence, Root, Telemetry } from '@/services/index.js'
 
 import Ingress from '../producer/plugin.js'
 

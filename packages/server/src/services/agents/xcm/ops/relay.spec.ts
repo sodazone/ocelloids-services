@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals'
 
-import { extractTxWithEvents } from '@sodazone/ocelloids-sdk'
-import { registry, relayHrmpReceive } from '@/testing/xcm.js'
 import { NetworkURN } from '@/services/types.js'
+import { registry, relayHrmpReceive } from '@/testing/xcm.js'
+import { extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 import { messageCriteria } from './criteria.js'
 import { extractRelayReceive } from './relay.js'
 

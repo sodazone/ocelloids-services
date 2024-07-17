@@ -2,7 +2,6 @@ import { jest } from '@jest/globals'
 
 import { of } from 'rxjs'
 
-import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 import {
   dmpReceive,
   dmpSendMultipleMessagesInQueue,
@@ -12,6 +11,7 @@ import {
   xcmHop,
   xcmHopOrigin,
 } from '@/testing/xcm.js'
+import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js'
 
 const getDmp = () =>

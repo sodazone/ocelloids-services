@@ -6,9 +6,9 @@ import process from 'node:process'
 import { Command, program } from 'commander'
 import z from 'zod'
 
-import closeWithGrace from 'close-with-grace'
 import { addServerOptions, opt } from '@/cli/index.js'
 import version from '@/version.js'
+import closeWithGrace from 'close-with-grace'
 import { $ServerOptions, createIngressServer } from './server.js'
 
 /**

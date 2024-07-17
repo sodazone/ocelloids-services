@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify'
 import { CAP_READ } from '@/services/auth.js'
+import { FastifyInstance } from 'fastify'
 
 export async function ConsumerApi(api: FastifyInstance) {
   const { ingress } = api

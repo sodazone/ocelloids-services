@@ -3,10 +3,10 @@ import EventEmitter from 'node:events'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
-import { IngressOptions } from '@/types.js'
 import { ServiceConfiguration } from '@/services/config.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN, Services } from '@/services/types.js'
+import { IngressOptions } from '@/types.js'
 import {
   NetworkEntry,
   NetworksKey,

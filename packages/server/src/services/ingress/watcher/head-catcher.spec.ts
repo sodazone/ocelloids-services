@@ -4,9 +4,6 @@ import { ApiPromise, ApiRx } from '@polkadot/api'
 import { MemoryLevel } from 'memory-level'
 import { from, of } from 'rxjs'
 
-import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
-import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
-import { _services } from '@/testing/services.js'
 import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
@@ -15,6 +12,9 @@ import Connector from '@/services/networking/connector.js'
 import { Janitor } from '@/services/persistence/janitor.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { DB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
+import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
+import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
+import { _services } from '@/testing/services.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 

@@ -1,14 +1,13 @@
 import { NotFound } from '@/errors.js'
-import { AgentCatalogOptions } from '@/types.js'
 import { Egress } from '@/services/egress/index.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { Logger, Services } from '@/services/index.js'
 import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
+import { AgentCatalogOptions } from '@/types.js'
 
 import { InformantAgent } from '@/services/agents/informant/agent.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
-import { XcmAgent } from '@/services/agents/xcm/agent.js'
 import {
   Agent,
   AgentCatalog,
@@ -19,6 +18,7 @@ import {
   isQueryable,
   isSubscribable,
 } from '@/services/agents/types.js'
+import { XcmAgent } from '@/services/agents/xcm/agent.js'
 
 function shouldStart(agent: Agent) {
   const {

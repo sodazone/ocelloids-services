@@ -3,9 +3,9 @@ import { EventEmitter } from 'node:events'
 import got from 'got'
 import { ulid } from 'ulidx'
 
-import version from '@/version.js'
 import { Subscription, WebhookNotification } from '@/services/subscriptions/types.js'
 import { Logger, Services } from '@/services/types.js'
+import version from '@/version.js'
 
 import { Scheduled, Scheduler, SubsStore } from '@/services/persistence/index.js'
 import { publishTelemetryFrom } from '@/services/telemetry/types.js'
