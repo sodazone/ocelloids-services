@@ -125,21 +125,6 @@ export class XcmSubscriptionManager {
   }
 
   /**
-   * Retrieves a subscription handler by its ID.
-   *
-   * @param {string} subscriptionId - The subscription ID.
-   * @returns {XcmSubscriptionHandler} - The subscription handler.
-   * @throws {NotFound} If the subscription handler is not found.
-   */
-  getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
-    if (this.#handlers[subscriptionId]) {
-      return this.#handlers[subscriptionId]
-    } else {
-      throw new NotFound(`Subscription handler not found (id=${subscriptionId})`)
-    }
-  }
-
-  /**
    * Updates a subscription with a JSON patch.
    *
    * @param {string} subscriptionId - The subscription ID.

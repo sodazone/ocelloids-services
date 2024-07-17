@@ -190,7 +190,7 @@ export class XcmAgent implements Agent, Subscribable {
   }
 
   getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
-    return this.#subs.getSubscriptionHandler(subscriptionId)
+    return this.#subs.get(subscriptionId)
   }
 
   collectTelemetry(): void {
