@@ -18,7 +18,7 @@ declare module 'fastify' {
 
 const kyselyPlugin: FastifyPluginAsync<KyselyServerOptions> = async (fastify, options) => {
   const filename = options.sqlData ?? ':memory:'
-  
+
   fastify.log.info('[kysely] open sqlite database at %s', filename)
 
   const db = openDatabase({
