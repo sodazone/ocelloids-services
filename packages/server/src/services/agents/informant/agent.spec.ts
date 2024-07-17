@@ -4,7 +4,7 @@ import { from } from 'rxjs'
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 
 import { Egress } from '@/services/egress/hub.js'
-import { SubsStore } from '@/services/persistence/subs.js'
+import { SubsStore } from '@/services/persistence/level/subs.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 import { _services } from '@/testing/services.js'
@@ -71,7 +71,7 @@ describe('informant agent', () => {
   let agentService: AgentCatalog
 
   beforeEach(() => {
-    subs = new SubsStore(_services.log, _services.db)
+    subs = new SubsStore(_services.log, _services.levelDB)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
@@ -82,7 +82,7 @@ describe('informant agent', () => {
   })
 
   afterEach(async () => {
-    await _services.db.clear()
+    await _services.levelDB.clear()
     return agentService.stop()
   })
 
