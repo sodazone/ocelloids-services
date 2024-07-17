@@ -1,10 +1,12 @@
 import { Operation, applyPatch } from 'rfc6902'
 
 import { ZodSchema } from 'zod'
-import { NotFound, ValidationError } from '../../../errors.js'
-import { IngressConsumer } from '../../ingress/index.js'
-import { $Subscription, Subscription } from '../../subscriptions/types.js'
-import { NetworkURN } from '../../types.js'
+
+import { NotFound, ValidationError } from '@/errors.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { $Subscription, Subscription } from '@/services/subscriptions/types.js'
+import { NetworkURN } from '@/services/types.js'
+
 import { SubscriptionHandler } from '../types.js'
 
 export function hasOp(patch: Operation[], path: string) {

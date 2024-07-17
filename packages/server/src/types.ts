@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { LevelEngine } from './services/types.js'
+import { LevelEngine } from '@/services/types.js'
 
 export const $BaseServerOptions = z.object({
   port: z.number().min(0),

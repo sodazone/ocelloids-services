@@ -1,9 +1,9 @@
 import { Operation } from 'rfc6902'
 
+import { NotFound, errorMessage } from '@/errors.js'
+import { Logger, NetworkURN } from '@/services/index.js'
+import { Subscription } from '@/services/subscriptions/types.js'
 import { IngressConsumer } from 'services/ingress/index.js'
-import { NotFound, errorMessage } from '../../../errors.js'
-import { Logger, NetworkURN } from '../../index.js'
-import { Subscription } from '../../subscriptions/types.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 import { XcmAgent } from './agent.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'

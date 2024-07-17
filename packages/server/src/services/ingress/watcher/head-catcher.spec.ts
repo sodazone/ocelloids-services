@@ -188,13 +188,13 @@ describe('head catcher', () => {
                 isReady: Promise.resolve({
                   derive: {
                     chain: {
-                      getBlock: (hash) =>
+                      getBlock: (hash: any) =>
                         of(polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
                     },
                   },
                   rpc: {
                     chain: {
-                      getHeader: (hash) => {
+                      getHeader: (hash: any) => {
                         return Promise.resolve(
                           polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!,
                         )
@@ -297,7 +297,7 @@ describe('head catcher', () => {
                   },
                   derive: {
                     chain: {
-                      getBlock: (hash) =>
+                      getBlock: (hash: any) =>
                         Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
                     },
                   },
@@ -428,7 +428,7 @@ describe('head catcher', () => {
                   },
                   derive: {
                     chain: {
-                      getBlock: (hash) => {
+                      getBlock: (hash: any) => {
                         return Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex()))
                       },
                     },

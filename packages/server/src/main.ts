@@ -6,10 +6,10 @@ import process from 'node:process'
 import { Command, program } from 'commander'
 import z from 'zod'
 
+import { addServerOptions, opt, optArr, optBool, optInt } from '@/cli/index.js'
+import { $ServerOptions, createServer } from '@/server.js'
+import version from '@/version.js'
 import closeWithGrace from 'close-with-grace'
-import { addServerOptions, opt, optArr, optBool, optInt } from './cli/index.js'
-import { $ServerOptions, createServer } from './server.js'
-import version from './version.js'
 
 /**
  * Starts an Ocelloids Execution Server from the command line.

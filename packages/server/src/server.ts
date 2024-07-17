@@ -10,8 +10,8 @@ import FastifySwaggerUI from '@fastify/swagger-ui'
 import FastifyWebsocket from '@fastify/websocket'
 import FastifyHealthcheck from 'fastify-healthcheck'
 
-import { logger } from './environment.js'
-import { errorHandler } from './errors.js'
+import { logger } from '@/environment.js'
+import { errorHandler } from '@/errors.js'
 import {
   Accounts,
   Administration,
@@ -25,10 +25,10 @@ import {
   Root,
   Subscriptions,
   Telemetry,
-} from './services/index.js'
-import version from './version.js'
+} from '@/services/index.js'
+import version from '@/version.js'
 
-import { toCorsOpts } from './cli/args.js'
+import { toCorsOpts } from '@/cli/args.js'
 import {
   $AgentCatalogOptions,
   $BaseServerOptions,
@@ -38,7 +38,7 @@ import {
   $LevelServerOptions,
   $RedisServerOptions,
   $SubscriptionServerOptions,
-} from './types.js'
+} from '@/types.js'
 
 const WS_MAX_PAYLOAD = 1048576 // 1MB
 

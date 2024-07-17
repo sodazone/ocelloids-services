@@ -1,12 +1,12 @@
 import { Observable } from 'rxjs'
 
+import { HexString } from '@/services/subscriptions/types.js'
+import { NetworkURN } from '@/services/types.js'
 import type { Bytes, Vec } from '@polkadot/types'
 import type {
   PolkadotCorePrimitivesInboundDownwardMessage,
   PolkadotCorePrimitivesOutboundHrmpMessage,
 } from '@polkadot/types/lookup'
-import { HexString } from '../../subscriptions/types.js'
-import { NetworkURN } from '../../types.js'
 
 export type GetOutboundHrmpMessages = (
   hash: HexString,

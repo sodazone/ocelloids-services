@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify'
 
-import { Subscription } from './services/subscriptions/types.js'
+import { Subscription } from '@/services/subscriptions/types.js'
 
-import './testing/network.js'
+import '@/testing/network.js'
 
-import { mockServer } from './testing/server.js'
+import { mockServer } from '@/testing/server.js'
 
 const testSubContent = {
   id: 'macatron',

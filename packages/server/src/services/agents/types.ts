@@ -1,13 +1,13 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { Egress } from '../egress/hub.js'
-import { PublisherEvents } from '../egress/types.js'
-import { IngressConsumer } from '../ingress/index.js'
-import { Janitor } from '../persistence/janitor.js'
-import { Scheduler } from '../persistence/scheduler.js'
-import { EgressListener, Subscription } from '../subscriptions/types.js'
-import { DB, Logger } from '../types.js'
+import { Egress } from '@/services/egress/hub.js'
+import { PublisherEvents } from '@/services/egress/types.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { Janitor } from '@/services/persistence/janitor.js'
+import { Scheduler } from '@/services/persistence/scheduler.js'
+import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
+import { DB, Logger } from '@/services/types.js'
 
 /**
  * Schema for validating Agent IDs.

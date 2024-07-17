@@ -6,15 +6,15 @@ import type {
 import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { z } from 'zod'
 
-import { createNetworkId } from '../../config.js'
+import { createNetworkId } from '@/services/config.js'
 import {
   HexString,
   RxSubscriptionWithId,
   SignerData,
   Subscription,
   toHexString,
-} from '../../subscriptions/types.js'
-import { AnyJson, NetworkURN } from '../../types.js'
+} from '@/services/subscriptions/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 
 function distinct(a: Array<string>) {
   return Array.from(new Set(a))

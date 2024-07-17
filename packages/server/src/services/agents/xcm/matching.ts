@@ -3,7 +3,12 @@ import EventEmitter from 'node:events'
 import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
 
-import { DB, Logger, jsonEncoded } from '../../types.js'
+import { AgentRuntimeContext } from '@/services/agents/types.js'
+import { getRelayId, isOnSameConsensus } from '@/services/config.js'
+import { Janitor, JanitorTask } from '@/services/persistence/janitor.js'
+import { DB, Logger, jsonEncoded } from '@/services/types.js'
+
+import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
   GenericXcmBridge,
   GenericXcmHop,
@@ -25,11 +30,6 @@ import {
   XcmWaypointContext,
   prefixes,
 } from './types.js'
-
-import { getRelayId, isOnSameConsensus } from '../../config.js'
-import { Janitor, JanitorTask } from '../../persistence/janitor.js'
-import { AgentRuntimeContext } from '../types.js'
-import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 type SubLevel<TV> = AbstractSublevel<DB, Buffer | Uint8Array | string, string, TV>

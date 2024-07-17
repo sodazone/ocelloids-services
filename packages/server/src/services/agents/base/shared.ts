@@ -1,8 +1,8 @@
 import { extractEvents, extractTxWithEvents, flattenCalls, types } from '@sodazone/ocelloids-sdk'
 import { Observable, share } from 'rxjs'
 
-import { IngressConsumer } from '../../ingress/index.js'
-import { NetworkURN } from '../../types.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { NetworkURN } from '@/services/types.js'
 
 export class SharedStreams {
   static #instance: SharedStreams

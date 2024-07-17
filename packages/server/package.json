@@ -29,27 +29,6 @@
   },
   "license": "Apache-2.0",
   "private": true,
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverage": true,
-    "coveragePathIgnorePatterns": [
-      ".*/dist",
-      "testing",
-      "src/services/telemetry/metrics",
-      "src/services/notification/log.ts"
-    ],
-    "extensionsToTreatAsEsm": [
-      ".ts"
-    ],
-    "transform": {
-      "^.+\\.tsx?$": [
-        "@swc/jest"
-      ]
-    },
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    }
-  },
   "devDependencies": {
     "@babel/core": "^7.24.9",
     "@biomejs/biome": "1.8.3",
@@ -65,6 +44,7 @@
     "nodemon": "^3.1.4",
     "pino-pretty": "^11.2.1",
     "ts-jest": "^29.2.2",
+    "ts-node": "^10.9.2",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   },

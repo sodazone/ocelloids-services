@@ -7,7 +7,7 @@ import { Metadata, TypeRegistry } from '@polkadot/types'
 import type { AccountId, EventRecord, SignedBlock } from '@polkadot/types/interfaces'
 import { decode } from 'cbor-x'
 
-import { HexString } from '../services/subscriptions/types.js'
+import { HexString } from '@/services/subscriptions/types.js'
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 

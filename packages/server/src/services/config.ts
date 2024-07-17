@@ -5,8 +5,8 @@ import fp from 'fastify-plugin'
 import toml from 'toml'
 import z from 'zod'
 
-import { ConfigServerOptions } from '../types.js'
-import { NetworkURN } from './types.js'
+import { NetworkURN } from '@/services/types.js'
+import { ConfigServerOptions } from '@/types.js'
 
 const $RpcProvider = z.object({
   type: z.literal('rpc'),

@@ -1,9 +1,13 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    },
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -15,8 +19,6 @@
     "src/**/*"
   ],
   "exclude": [
-    "node_modules",
-    "src/testing/*",
-    "**/*.spec.ts"
+    "node_modules"
   ]
 }

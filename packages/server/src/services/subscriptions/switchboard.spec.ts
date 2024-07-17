@@ -1,13 +1,14 @@
 import '../../testing/network.js'
 
-import { _services } from '../../testing/services.js'
-import { AgentServiceMode } from '../../types.js'
-import { LocalAgentCatalog } from '../agents/catalog/local.js'
-import { AgentCatalog } from '../agents/types.js'
-import { SubsStore } from '../persistence/subs'
-import { Services } from '../types.js'
+import { LocalAgentCatalog } from '@/services/agents/catalog/local.js'
+import { AgentCatalog } from '@/services/agents/types.js'
+import { SubsStore } from '@/services/persistence/subs.js'
+import { Services } from '@/services/types.js'
+import { _services } from '@/testing/services.js'
+import { AgentServiceMode } from '@/types.js'
+
 import type { Switchboard } from './switchboard.js'
-import { Subscription } from './types'
+import { Subscription } from './types.js'
 
 const SwitchboardImpl = (await import('./switchboard.js')).Switchboard
 

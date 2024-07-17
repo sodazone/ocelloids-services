@@ -1,8 +1,9 @@
 import { MemoryLevel as Level } from 'memory-level'
 
-import { _subsFix, _testAgentId } from '../../testing/data'
-import { _ingress, _log } from '../../testing/services'
-import { SubsStore } from './subs'
+import { _subsFix, _testAgentId } from '@/testing/data.js'
+import { _ingress, _log } from '@/testing/services.js'
+
+import { SubsStore } from './subs.js'
 
 describe('subscriptions persistence', () => {
   let db: SubsStore

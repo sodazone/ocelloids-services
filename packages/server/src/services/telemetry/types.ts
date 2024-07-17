@@ -1,8 +1,8 @@
 import type { Header } from '@polkadot/types/interfaces'
 
-import { Message } from '../egress/types.js'
-import { Subscription } from '../subscriptions/types.js'
-import { TypedEventEmitter } from '../types.js'
+import { Message } from '@/services/egress/types.js'
+import { Subscription } from '@/services/subscriptions/types.js'
+import { TypedEventEmitter } from '@/services/types.js'
 
 export type NotifyTelemetryMessage = {
   type: string

@@ -5,9 +5,9 @@ import jwt from '@fastify/jwt'
 import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { expandRegExps } from '../cli/index.js'
-import { environment, isNonProdEnv } from '../environment.js'
-import { JwtServerOptions } from '../types.js'
+import { expandRegExps } from '@/cli/index.js'
+import { environment, isNonProdEnv } from '@/environment.js'
+import { JwtServerOptions } from '@/types.js'
 
 const SECONDS_TO_EXPIRE = 15
 

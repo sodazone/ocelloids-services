@@ -2,8 +2,9 @@ import { FastifyInstance } from 'fastify'
 import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { $AgentId, AgentId } from '../../agents/types.js'
-import { CAP_READ, CAP_WRITE } from '../../auth.js'
+import { $AgentId, AgentId } from '@/services/agents/types.js'
+import { CAP_READ, CAP_WRITE } from '@/services/auth.js'
+
 import { $Subscription, $SubscriptionId, Subscription } from '../types.js'
 import $JSONPatch from './json-patch.js'
 

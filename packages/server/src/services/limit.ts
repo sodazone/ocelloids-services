@@ -3,7 +3,7 @@ import fp from 'fastify-plugin'
 
 import rateLimit from '@fastify/rate-limit'
 
-import { environment, isNonProdEnv } from '../environment.js'
+import { environment, isNonProdEnv } from '@/environment.js'
 
 type LimitOptions = {
   rateLimitMax: number

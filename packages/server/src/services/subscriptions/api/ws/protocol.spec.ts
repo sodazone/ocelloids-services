@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals'
 
 import { EventEmitter } from 'events'
-import { FastifyRequest } from 'fastify'
-import { Switchboard } from '../../switchboard'
-import { Subscription } from '../../types'
-import WebsocketProtocol from './protocol'
+import { FastifyBaseLogger, FastifyRequest } from 'fastify'
+import { Switchboard } from '../../switchboard.js'
+import { Subscription } from '../../types.js'
+import WebsocketProtocol from './protocol.js'
 
 const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))
 
@@ -33,12 +33,12 @@ describe('WebsocketProtocol', () => {
   let mockLogger
   let mockSwitchboard: Switchboard
   let mockOptions
-  let websocketProtocol
+  let websocketProtocol: WebsocketProtocol
 
   beforeEach(() => {
     mockLogger = {
       error: jest.fn(),
-    }
+    } as unknown as FastifyBaseLogger
     mockSwitchboard = {
       addEgressListener: jest.fn(),
       removeEgressListener: jest.fn(),
@@ -80,7 +80,7 @@ describe('WebsocketProtocol', () => {
           fn(mockData)
         }),
         write: jest.fn(),
-      }
+      } as any
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
@@ -96,7 +96,7 @@ describe('WebsocketProtocol', () => {
           fn(mockData)
         }),
         write: jest.fn(),
-      }
+      } as any
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
@@ -122,13 +122,16 @@ describe('WebsocketProtocol', () => {
           fn(mockData)
         }),
         send: jest.fn(),
-      }
+      } as any
       ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => ({
         ...testSub,
         channels: [{ type: 'log' }],
       }))
 
-      await websocketProtocol.handle(mockStream, mockRequest, 'test-subscription')
+      await websocketProtocol.handle(mockStream, mockRequest, {
+        subscriptionId: 'test-subscription',
+        agentId: 'xcm',
+      })
       await flushPromises()
 
       expect(mockStream.close).toHaveBeenCalledWith(1007, 'inconsistent payload')
@@ -143,7 +146,7 @@ describe('WebsocketProtocol', () => {
           fn(mockData)
         }),
         send: jest.fn(),
-      }
+      } as any
 
       const mockError = new Error('Test error')
       ;(mockSwitchboard.subscribe as jest.Mock).mockImplementationOnce(() => {
@@ -157,11 +160,11 @@ describe('WebsocketProtocol', () => {
     })
 
     it('should close connection with error code if an error occurs', async () => {
-      const mockStream = { close: jest.fn() }
+      const mockStream = { close: jest.fn() } as any
       ;(mockSwitchboard.findSubscription as jest.Mock).mockImplementationOnce(() => {
         throw new Error('subscription not found')
       })
-      await websocketProtocol.handle(mockStream, mockRequest, 'testId')
+      await websocketProtocol.handle(mockStream, mockRequest, { subscriptionId: 'testId', agentId: 'xcm' })
       expect(mockStream.close).toHaveBeenCalledWith(1007, 'inconsistent payload')
     })
   })

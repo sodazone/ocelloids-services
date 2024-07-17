@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { AgentCatalogOptions, AgentServiceMode } from '../../types.js'
+import { AgentCatalogOptions, AgentServiceMode } from '@/types.js'
+
 import { AgentsApi } from './api/routes.js'
 import { LocalAgentCatalog } from './catalog/local.js'
 import { AgentCatalog } from './types.js'

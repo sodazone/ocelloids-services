@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals'
 
-import '../../testing/network.js'
+import '@/testing/network.js'
 import {
   mockConfigLC,
   mockConfigMixed,
@@ -8,8 +8,8 @@ import {
   mockConfigRelayLast,
   mockConfigRelayMismatch,
   mockConfigWS,
-} from '../../testing/configs.js'
-import { _log } from '../../testing/services.js'
+} from '@/testing/configs.js'
+import { _log } from '@/testing/services.js'
 
 const Connector = (await import('./connector.js')).default
 

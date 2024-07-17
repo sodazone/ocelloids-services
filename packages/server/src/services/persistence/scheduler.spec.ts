@@ -2,8 +2,9 @@ import { jest } from '@jest/globals'
 
 import { MemoryLevel as Level } from 'memory-level'
 
-import { _config, _log } from '../../testing/services'
-import { Scheduler } from './scheduler'
+import { _config, _log } from '@/testing/services.js'
+
+import { Scheduler } from './scheduler.js'
 
 jest.useFakeTimers()
 
