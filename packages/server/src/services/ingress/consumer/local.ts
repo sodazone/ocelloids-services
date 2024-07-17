@@ -6,11 +6,11 @@ import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Registry } from '@polkadot/types-codec/types'
 import { ChainProperties } from '@polkadot/types/interfaces'
 
-import { NetworkURN, Services } from '../../types.js'
+import { NetworkURN, Services } from '@/services/types.js'
 
-import { ServiceConfiguration, isNetworkDefined, isRelay } from '../../config.js'
-import { HexString } from '../../subscriptions/types.js'
-import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js'
+import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/config.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
 import { IngressConsumer } from './index.js'
 

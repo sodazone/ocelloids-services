@@ -1,4 +1,4 @@
-import { TypedEventEmitter } from '../../../types.js'
+import { TypedEventEmitter } from '@/services/types.js'
 import { XcmBridge, XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../types.js'
 
 export type TelemetryEvents = {

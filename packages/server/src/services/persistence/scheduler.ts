@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { NotFound } from '../../errors.js'
+import { NotFound } from '@/errors.js'
 import { DB, Family, Logger, jsonEncoded, prefixes } from '../types.js'
 
 export type Scheduled<T = any> = {

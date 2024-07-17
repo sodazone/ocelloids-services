@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import { extractEvents } from '@sodazone/ocelloids-sdk'
 
-import { registry, xcmHop, xcmpReceive, xcmpSend } from '../../../../testing/xcm.js'
+import { registry, xcmHop, xcmpReceive, xcmpSend } from '@/testing/xcm.js'
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js'
 

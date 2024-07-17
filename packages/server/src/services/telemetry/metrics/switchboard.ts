@@ -1,6 +1,6 @@
 import { Gauge } from 'prom-client'
 
-import { Switchboard } from '../../subscriptions/switchboard.js'
+import { Switchboard } from '@/services/subscriptions/switchboard.js'
 
 export function collectSwitchboardStats(switchboard: Switchboard) {
   const subsGauge = new Gauge({

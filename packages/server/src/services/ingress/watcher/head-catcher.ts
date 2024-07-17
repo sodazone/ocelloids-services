@@ -30,10 +30,10 @@ import {
   retryWithTruncatedExpBackoff,
 } from '@sodazone/ocelloids-sdk'
 
-import { ServiceConfiguration } from '../../config.js'
-import { BlockNumberRange, ChainHead as ChainTip, HexString } from '../../subscriptions/types.js'
-import { TelemetryEventEmitter } from '../../telemetry/types.js'
-import { DB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '../../types.js'
+import { ServiceConfiguration } from '@/services/config.js'
+import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
+import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { DB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
 import { LocalCache } from './local-cache.js'
 

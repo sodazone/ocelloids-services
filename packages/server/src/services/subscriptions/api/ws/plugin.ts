@@ -1,8 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { AgentId } from '../../../agents/types.js'
-import { CAP_READ, CAP_WRITE, NodQuerystring } from '../../../auth.js'
+import { AgentId } from '@/services/agents/types.js'
+import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth.js'
 import WebsocketProtocol from './protocol.js'
 
 declare module 'fastify' {

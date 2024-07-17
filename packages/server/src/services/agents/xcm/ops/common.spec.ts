@@ -2,7 +2,7 @@ import { jest } from '@jest/globals'
 
 import { from, of } from 'rxjs'
 
-import { registry } from '../../../../testing/xcm.js'
+import { registry } from '@/testing/xcm.js'
 import { GenericXcmSentWithContext } from '../types.js'
 import { mapXcmSent } from './common.js'
 import { getMessageId } from './util.js'

@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify'
 
-import '../../testing/network.js'
+import '@/testing/network.js'
 
-import { mockServer } from '../../testing/server.js'
+import { mockServer } from '@/testing/server.js'
 
 describe.skip('admin api', () => {
   let server: FastifyInstance

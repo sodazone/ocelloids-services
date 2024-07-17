@@ -9,8 +9,8 @@ import type {
 } from '@polkadot/types/lookup'
 import { isInstanceOf } from '@polkadot/util'
 
-import { createNetworkId, getRelayId } from '../../config.js'
-import { NetworkURN } from '../../types.js'
+import { createNetworkId, getRelayId } from '@/services/config.js'
+import { NetworkURN } from '@/services/types.js'
 import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../xcm/ops/xcm-types.js'
 import { mappers } from './mappers.js'
 import { GeneralKey } from './types.js'

@@ -1,7 +1,7 @@
-import { NotFound, ValidationError } from '../../errors.js'
-import { AgentId } from '../agents/types.js'
-import { Subscription } from '../subscriptions/types.js'
-import { DB, Logger, jsonEncoded, prefixes } from '../types.js'
+import { NotFound, ValidationError } from '@/errors.js'
+import { AgentId } from '@/services/agents/types.js'
+import { Subscription } from '@/services/subscriptions/types.js'
+import { DB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
 
 /**
  * Subscriptions persistence.

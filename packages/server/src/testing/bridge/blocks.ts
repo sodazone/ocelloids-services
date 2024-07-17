@@ -10,8 +10,8 @@ import { hexToU8a } from '@polkadot/util'
 
 import { ControlQuery } from '@sodazone/ocelloids-sdk'
 
-import { messageCriteria } from '../../services/agents/xcm/ops/criteria.js'
-import { NetworkURN } from '../../services/types.js'
+import { messageCriteria } from '@/services/agents/xcm/ops/criteria.js'
+import { NetworkURN } from '@/services/types.js'
 import { testBlocksFrom } from '../blocks.js'
 
 const _registry = new TypeRegistry()

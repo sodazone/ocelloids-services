@@ -6,8 +6,8 @@ import type { Registry } from '@polkadot/types/types'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { getChainId, getRelayId } from '../../../config.js'
-import { NetworkURN } from '../../../types.js'
+import { getChainId, getRelayId } from '@/services/config.js'
+import { NetworkURN } from '@/services/types.js'
 import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,

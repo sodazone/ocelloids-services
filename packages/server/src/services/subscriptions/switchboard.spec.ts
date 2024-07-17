@@ -1,4 +1,4 @@
-import '../../testing/network.js'
+import '@/testing/network.js'
 
 import { LocalAgentCatalog } from '@/services/agents/catalog/local.js'
 import { AgentCatalog } from '@/services/agents/types.js'

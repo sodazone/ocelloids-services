@@ -4,9 +4,9 @@ import { blake2AsU8a, xxhashAsU8a } from '@polkadot/util-crypto'
 
 import { Observable, map, mergeMap } from 'rxjs'
 
-import { HexString } from '../../../lib.js'
-import { IngressConsumer } from '../../ingress/index.js'
-import { NetworkURN } from '../../types.js'
+import { HexString } from '@/lib.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { NetworkURN } from '@/services/types.js'
 import { AssetMapper, AssetMetadata, GeneralKey, networks } from './types.js'
 
 const OFFSET_128 = 16 * 2

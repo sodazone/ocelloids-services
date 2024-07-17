@@ -3,10 +3,10 @@ import EventEmitter from 'node:events'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
-import { IngressOptions } from '../../../types.js'
-import { ServiceConfiguration } from '../../config.js'
-import { HexString } from '../../subscriptions/types.js'
-import { Logger, NetworkURN, Services } from '../../types.js'
+import { IngressOptions } from '@/types.js'
+import { ServiceConfiguration } from '@/services/config.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { Logger, NetworkURN, Services } from '@/services/types.js'
 import {
   NetworkEntry,
   NetworksKey,
@@ -21,7 +21,7 @@ import {
 } from '../distributor.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
 
-import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js'
+import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { encodeSignedBlockExtended } from '../watcher/codec.js'
 
 type StorageRequest = {

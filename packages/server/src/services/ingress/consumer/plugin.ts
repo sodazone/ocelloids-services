@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { IngressOptions } from '../../../types.js'
+import { IngressOptions } from '@/types.js'
 import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } from './index.js'
 import { ConsumerApi } from './routes.js'
 

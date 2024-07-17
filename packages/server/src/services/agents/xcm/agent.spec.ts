@@ -2,10 +2,10 @@ import { jest } from '@jest/globals'
 
 import { of, throwError } from 'rxjs'
 
-import '../../../testing/network.js'
+import '@/testing/network.js'
 
-import { _services } from '../../../testing/services.js'
-import { AgentServiceMode } from '../../../types.js'
+import { _services } from '@/testing/services.js'
+import { AgentServiceMode } from '@/types.js'
 import { Services } from '../../index.js'
 import { SubsStore } from '../../persistence/subs.js'
 import { Subscription } from '../../subscriptions/types.js'

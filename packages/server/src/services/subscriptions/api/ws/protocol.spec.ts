@@ -2,8 +2,8 @@ import { jest } from '@jest/globals'
 
 import { EventEmitter } from 'events'
 import { FastifyBaseLogger, FastifyRequest } from 'fastify'
-import { Switchboard } from '../../switchboard.js'
-import { Subscription } from '../../types.js'
+import { Switchboard } from '@/services/subscriptions/switchboard.js'
+import { Subscription } from '@/services/subscriptions/types.js'
 import WebsocketProtocol from './protocol.js'
 
 const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))

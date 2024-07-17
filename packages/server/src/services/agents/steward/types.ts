@@ -4,9 +4,9 @@ import { Registry } from '@polkadot/types-codec/types'
 
 import { Observable } from 'rxjs'
 
-import { HexString } from '../../../lib.js'
-import { IngressConsumer } from '../../ingress/index.js'
-import { AnyJson, NetworkURN } from '../../types.js'
+import { HexString } from '@/lib.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
 const xcmVersions = ['v2', 'v3', 'v4'] as const

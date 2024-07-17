@@ -3,7 +3,7 @@ import { jest } from '@jest/globals'
 import { MemoryLevel } from 'memory-level'
 import nock from 'nock'
 
-import { _log, _services } from '../../testing/services.js'
+import { _log, _services } from '@/testing/services.js'
 
 import { Scheduler } from '../persistence/scheduler.js'
 import { Subscription } from '../subscriptions/types.js'

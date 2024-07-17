@@ -10,8 +10,8 @@ import type { Registry } from '@polkadot/types/types'
 
 import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
 
-import { SignerData } from '../../../subscriptions/types.js'
-import { AnyJson, NetworkURN } from '../../../types.js'
+import { SignerData } from '@/services/subscriptions/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,

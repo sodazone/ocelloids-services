@@ -1,13 +1,14 @@
-import { NotFound, ValidationError } from '../../../errors.js'
-import { AgentCatalogOptions } from '../../../types.js'
-import { Egress } from '../../egress/index.js'
-import { PublisherEvents } from '../../egress/types.js'
-import { Logger, Services } from '../../index.js'
-import { EgressListener, Subscription } from '../../subscriptions/types.js'
-import { egressMetrics } from '../../telemetry/metrics/publisher.js'
+import { NotFound } from '@/errors.js'
+import { AgentCatalogOptions } from '@/types.js'
+import { Egress } from '@/services/egress/index.js'
+import { PublisherEvents } from '@/services/egress/types.js'
+import { Logger, Services } from '@/services/index.js'
+import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
+import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
 
-import { InformantAgent } from '../informant/agent.js'
-import { DataSteward } from '../steward/agent.js'
+import { InformantAgent } from '@/services/agents/informant/agent.js'
+import { DataSteward } from '@/services/agents/steward/agent.js'
+import { XcmAgent } from '@/services/agents/xcm/agent.js'
 import {
   Agent,
   AgentCatalog,
@@ -17,8 +18,7 @@ import {
   Subscribable,
   isQueryable,
   isSubscribable,
-} from '../types.js'
-import { XcmAgent } from '../xcm/agent.js'
+} from '@/services/agents/types.js'
 
 function shouldStart(agent: Agent) {
   const {

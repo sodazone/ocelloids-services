@@ -6,7 +6,7 @@ import type { AccountId, EventRecord } from '@polkadot/types/interfaces'
 
 import { createSignedBlockExtended } from '@polkadot/api-derive'
 
-import { BinBlock } from '../../subscriptions/types.js'
+import { BinBlock } from '@/services/subscriptions/types.js'
 
 export function decodeSignedBlockExtended(registry: Registry, buffer: Buffer | Uint8Array) {
   const binBlock: BinBlock = decode(buffer)

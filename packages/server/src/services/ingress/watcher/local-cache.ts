@@ -12,12 +12,12 @@ import type { Hash } from '@polkadot/types/interfaces'
 import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
-} from '../../agents/xcm/storage.js'
-import { NetworkConfiguration } from '../../config.js'
-import { Janitor } from '../../persistence/janitor.js'
-import { HexString } from '../../subscriptions/types.js'
-import { TelemetryEventEmitter } from '../../telemetry/types.js'
-import { DB, Logger, NetworkURN, Services, prefixes } from '../../types.js'
+} from '@/services/agents/xcm/storage.js'
+import { NetworkConfiguration } from '@/services/config.js'
+import { Janitor } from '@/services/persistence/janitor.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { DB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
 import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js'
 import { RETRY_INFINITE } from './head-catcher.js'

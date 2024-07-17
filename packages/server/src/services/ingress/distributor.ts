@@ -1,7 +1,7 @@
 import { RedisClientType, commandOptions, createClient } from 'redis'
 
-import { RedisServerOptions } from '../../types.js'
-import { Logger, NetworkURN, Services } from '../types.js'
+import { RedisServerOptions } from '@/types.js'
+import { Logger, NetworkURN, Services } from '@/services/types.js'
 
 type StreamContext = {
   lastId: string

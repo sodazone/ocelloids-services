@@ -4,17 +4,17 @@ import { ApiPromise, ApiRx } from '@polkadot/api'
 import { MemoryLevel } from 'memory-level'
 import { from, of } from 'rxjs'
 
-import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '../../../testing/blocks.js'
-import { mockConfigMixed, mockConfigWS } from '../../../testing/configs.js'
-import { _services } from '../../../testing/services.js'
+import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
+import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
+import { _services } from '@/testing/services.js'
 import {
   parachainSystemHrmpOutboundMessages,
   parachainSystemUpwardMessages,
-} from '../../agents/xcm/storage.js'
-import Connector from '../../networking/connector.js'
-import { Janitor } from '../../persistence/janitor.js'
-import { BlockNumberRange, ChainHead } from '../../subscriptions/types.js'
-import { DB, NetworkURN, jsonEncoded, prefixes } from '../../types.js'
+} from '@/services/agents/xcm/storage.js'
+import Connector from '@/services/networking/connector.js'
+import { Janitor } from '@/services/persistence/janitor.js'
+import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
+import { DB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 

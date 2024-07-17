@@ -7,9 +7,9 @@ import { Metadata, TypeRegistry } from '@polkadot/types'
 import type { Registry } from '@polkadot/types-codec/types'
 import { ChainProperties } from '@polkadot/types/interfaces'
 
-import { DB, Logger, NetworkURN, Services, prefixes } from '../../types.js'
+import { DB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
-import { IngressOptions } from '../../../types.js'
+import { IngressOptions } from '@/types.js'
 import {
   NetworkEntry,
   NetworkRecord,
@@ -23,8 +23,8 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
-import { HexString } from '../../subscriptions/types.js'
-import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { decodeSignedBlockExtended } from '../watcher/codec.js'
 import { IngressConsumer } from './index.js'
 

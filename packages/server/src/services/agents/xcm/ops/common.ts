@@ -7,9 +7,9 @@ import { blake2AsHex } from '@polkadot/util-crypto'
 
 import { types } from '@sodazone/ocelloids-sdk'
 
-import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '../../../config.js'
-import { HexString } from '../../../subscriptions/types.js'
-import { AnyJson, NetworkURN } from '../../../types.js'
+import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import {
   getBridgeHubNetworkId,

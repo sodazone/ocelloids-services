@@ -6,7 +6,7 @@ import {
   XcmNotificationType,
   XcmRelayedWithContext,
   XcmSent,
-} from '../../services/agents/xcm/types.js'
+} from '@/services/agents/xcm/types.js'
 
 type MatchBridgeMessages = {
   subscriptionId: string

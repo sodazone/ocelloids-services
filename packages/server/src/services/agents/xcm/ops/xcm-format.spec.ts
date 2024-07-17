@@ -1,4 +1,4 @@
-import { registry } from '../../../../testing/xcm.js'
+import { registry } from '@/testing/xcm.js'
 import { fromXcmpFormat } from './xcm-format.js'
 
 describe('xcm formats', () => {

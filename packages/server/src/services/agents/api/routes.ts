@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { CAP_READ } from '../../auth.js'
-import { $AgentId, AgentId, QueryParams } from '../types.js'
+import { CAP_READ } from '@/services/auth.js'
+import { $AgentId, AgentId, QueryParams } from '@/services/agents/types.js'
 
 /**
  * Agents HTTP API

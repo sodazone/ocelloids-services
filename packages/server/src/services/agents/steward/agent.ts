@@ -4,13 +4,13 @@ import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } 
 
 import { Registry } from '@polkadot/types-codec/types'
 
-import { IngressConsumer } from '../../ingress/index.js'
-import { Scheduled, Scheduler } from '../../persistence/scheduler.js'
-import { DB, Logger, NetworkURN } from '../../types.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
+import { Scheduled, Scheduler } from '@/services/persistence/scheduler.js'
+import { DB, Logger, NetworkURN } from '@/services/types.js'
 
-import { ValidationError } from '../../../errors.js'
-import { HexString } from '../../../lib.js'
-import { getRelayId } from '../../config.js'
+import { ValidationError } from '@/errors.js'
+import { HexString } from '@/lib.js'
+import { getRelayId } from '@/services/config.js'
 import {
   Agent,
   AgentMetadata,

@@ -13,9 +13,9 @@ import type {
 
 import { types } from '@sodazone/ocelloids-sdk'
 
-import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '../../../config.js'
-import { HexString, SignerData } from '../../../subscriptions/types.js'
-import { NetworkURN } from '../../../types.js'
+import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '@/services/config.js'
+import { HexString, SignerData } from '@/services/subscriptions/types.js'
+import { NetworkURN } from '@/services/types.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import {
   VersionedInteriorLocation,

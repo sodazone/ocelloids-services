@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events'
 
-import { DB, Logger, TypedEventEmitter } from '../../services/types.js'
+import { DB, Logger, TypedEventEmitter } from '@/services/types.js'
 import { Scheduled, Scheduler } from './scheduler.js'
 
 export type JanitorTask = {

@@ -4,10 +4,10 @@ import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Registry } from '@polkadot/types-codec/types'
 import { ChainProperties } from '@polkadot/types/interfaces'
 
-import { NetworkURN } from '../../types.js'
+import { NetworkURN } from '@/services/types.js'
 
-import { HexString } from '../../subscriptions/types.js'
-import { TelemetryCollect, TelemetryEventEmitter } from '../../telemetry/types.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
 /**
  * Interface defining the operations for an IngressConsumer.
