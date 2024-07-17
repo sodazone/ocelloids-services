@@ -35,7 +35,7 @@ export interface JwtPayload {
   jti: string
 }
 
-function checkCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]) {
+function ensureCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]) {
   if (scope) {
     const caps = scope.split(' ')
 
@@ -69,7 +69,7 @@ export async function ensureAccountAuthorized(
             },
           } = request
 
-          checkCapabilities(apiToken.scope, caps)
+          ensureCapabilities(apiToken.scope, caps)
 
           // all OK
           return
