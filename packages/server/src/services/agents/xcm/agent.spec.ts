@@ -57,7 +57,7 @@ const testSub: Subscription<XcmInputs> = {
   ],
 }
 
-describe('switchboard service', () => {
+describe('xcm agent', () => {
   let subs: SubsStore
   let agentService: AgentCatalog
   let xcmAgent: XcmAgent
