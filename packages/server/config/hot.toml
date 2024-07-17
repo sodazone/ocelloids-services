@@ -23,6 +23,17 @@ relay = "urn:ocn:polkadot:0"
    ]
 
 [[networks]]
+id = "urn:ocn:polkadot:2006"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.astar.network",
+    "wss://astar-rpc.dwellir.com"
+  ]
+
+[[networks]]
 id = "urn:ocn:polkadot:2030"
 relay = "urn:ocn:polkadot:0"
 
@@ -32,6 +43,29 @@ relay = "urn:ocn:polkadot:0"
     "wss://eu.bifrost-polkadot-rpc.liebi.com/ws",
     "wss://bifrost-polkadot-rpc.dwellir.com",
     "wss://hk.p.bifrost-rpc.liebi.com/ws"
+  ]
+
+[[networks]]
+id = "urn:ocn:polkadot:2031"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = [
+    "wss://fullnode.centrifuge.io",
+    "wss://centrifuge-rpc.dwellir.com",
+    "wss://rpc-centrifuge.luckyfriday.io"
+  ]
+
+[[networks]]
+id = "urn:ocn:polkadot:2032"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc-interlay.luckyfriday.io/",
+    "wss://interlay-rpc.dwellir.com"
   ]
 
 [[networks]]
@@ -55,17 +89,6 @@ relay = "urn:ocn:polkadot:0"
   url = [
     "wss://wss.api.moonbeam.network",
     "wss://moonbeam-rpc.dwellir.com"
-  ]
-
-[[networks]]
-id = "urn:ocn:polkadot:2006"
-relay = "urn:ocn:polkadot:0"
-
-  [networks.provider]
-  type = "rpc"
-  url = [
-    "wss://rpc.astar.network",
-    "wss://astar-rpc.dwellir.com"
   ]
 
 [[networks]]

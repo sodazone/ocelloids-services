@@ -8,7 +8,10 @@
       "destinations": [
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2031",
+        "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2104"
       ],
@@ -33,7 +36,10 @@
       "destinations": [
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2031",
+        "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2104"
       ],
@@ -58,7 +64,10 @@
       "destinations": [
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2031",
+        "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2104"
       ],
@@ -68,6 +77,32 @@
       {
         "type": "webhook",
         "url": "https://enrycp95owk7o.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "astar-transfers",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2006",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2032",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
       },
       {
         "type": "websocket"
@@ -83,7 +118,10 @@
       "destinations": [
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:2031",
+        "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:2104"
       ],
@@ -100,6 +138,59 @@
     ]
   },
   {
+    "id": "centrifuge-transfers",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2031",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2032",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://enrycp95owk7o.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
+    "id": "interlay-transfers",
+    "agent": "xcm",
+    "args": {
+      "origin": "urn:ocn:polkadot:2032",
+      "senders": "*",
+      "destinations": [
+        "urn:ocn:polkadot:0",
+        "urn:ocn:polkadot:1000",
+        "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2006",
+        "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2034"
+      ],
+      "events": "*"
+    },
+    "channels": [
+      {
+        "type": "webhook",
+        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
+      },
+      {
+        "type": "websocket"
+      }
+    ]
+  },
+  {
     "id": "hydra-transfers",
     "agent": "xcm",
     "args": {
@@ -108,7 +199,10 @@
       "destinations": [
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:2004",
+        "urn:ocn:polkadot:2006",
         "urn:ocn:polkadot:2030",
+        "urn:ocn:polkadot:2031",
+        "urn:ocn:polkadot:2032",
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:2104"
       ],
