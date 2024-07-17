@@ -1,9 +1,15 @@
 import { pathsToModuleNameMapper } from 'ts-jest'
-import type { JestConfigWithTsJest } from 'ts-jest'
+import type {Config} from '@jest/types'
 
 import { compilerOptions } from './tsconfig.json'
 
-const jestConfig: JestConfigWithTsJest = {
+interface JestConfigWithSWCJest extends Omit<Config.InitialOptions, 'transform'> {
+  transform?: {
+    [regex: string]: ['@swc/jest'];
+  };
+}
+
+const jestConfig : JestConfigWithSWCJest = {
   roots: ['<rootDir>'],
   modulePaths: [compilerOptions.baseUrl],
   moduleNameMapper: {
@@ -26,10 +32,7 @@ const jestConfig: JestConfigWithTsJest = {
     // '^.+\\.[tj]sx?$' to process ts,js,tsx,jsx with `ts-jest`
     // '^.+\\.m?[tj]sx?$' to process ts,js,tsx,jsx,mts,mjs,mtsx,mjsx with `ts-jest`
     '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        useESM: true,
-      },
+      '@swc/jest'
     ],
   },
 }
