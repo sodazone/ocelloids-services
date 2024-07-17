@@ -52,7 +52,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      const agent = await agentService.getQueryableById(agentId)
+      const agent = agentService.getQueryableById(agentId)
       reply.send(await agent.query(request.body))
     },
   )

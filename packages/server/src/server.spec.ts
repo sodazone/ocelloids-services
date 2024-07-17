@@ -332,4 +332,82 @@ describe('monitoring server API', () => {
       )
     })
   })
+
+  describe('query', () => {
+    it('should do a query', (done) => {
+      server.inject(
+        {
+          method: 'POST',
+          url: '/query/steward',
+          body: {
+            args: {
+              op: 'assets.metadata',
+              criteria: [
+                {
+                  network: 'urn:ocn:polkadot:1000',
+                  assets: ['1984', '1337'],
+                },
+              ],
+            },
+          },
+        },
+        (_err, response) => {
+          expect(response.statusCode).toStrictEqual(200)
+          done()
+        },
+      )
+    })
+  })
+
+  describe('get resources', () => {
+    it('should get agents', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/agents',
+        },
+        (_err, response) => {
+          expect(response.statusCode).toStrictEqual(200)
+          expect(response.json()).toEqual(['xcm', 'informant', 'steward'])
+          done()
+        },
+      )
+    })
+
+    it('should get agent input schema', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/agents/xcm/inputs',
+        },
+        (_err, response) => {
+          const schema = response.json()
+          expect(response.statusCode).toStrictEqual(200)
+          expect(schema.type).toBe('object')
+          expect(schema.properties.origin).toBeDefined()
+          expect(schema.properties.senders).toBeDefined()
+          expect(schema.properties.destinations).toBeDefined()
+          expect(schema.properties.bridges).toBeDefined()
+          expect(schema.properties.events).toBeDefined()
+          expect(schema.properties.outboundTTL).toBeDefined()
+          done()
+        },
+      )
+    })
+
+    it('should get agent query schema', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/agents/steward/queries',
+        },
+        (_err, response) => {
+          const schema = response.json()
+          expect(response.statusCode).toStrictEqual(200)
+          expect(schema).toBeDefined()
+          done()
+        },
+      )
+    })
+  })
 })

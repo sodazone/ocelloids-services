@@ -25,7 +25,8 @@ const jestConfig : JestConfigWithSWCJest = {
     ".*/dist",
     "testing",
     "src/services/telemetry/metrics",
-    "src/services/notification/log.ts"
+    "src/services/notification/log.ts",
+    "src/services/agents/steward",
   ],
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
