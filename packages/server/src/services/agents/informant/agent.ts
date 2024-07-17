@@ -134,6 +134,10 @@ export class InformantAgent implements Agent, Subscribable {
     //
   }
 
+  getSubscriptionHandler(id: string) {
+    return this.#handlers[id]
+  }
+
   async #monitor(subscription: Subscription<InformantInputs>): Promise<InformantHandler> {
     const {
       id,
