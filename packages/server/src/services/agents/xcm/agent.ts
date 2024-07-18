@@ -109,18 +109,17 @@ export class XcmAgent implements Agent, Subscribable {
     }
   }
 
-  async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
+  update(subscriptionId: string, patch: Operation[]): Subscription {
     return this.#subs.update(subscriptionId, patch)
   }
 
-  async subscribe(subscription: Subscription<XcmInputs>): Promise<void> {
+  subscribe(subscription: Subscription<XcmInputs>): void {
     const { id, args } = subscription
     const origin = args.origin as NetworkURN
     const dests = args.destinations as NetworkURN[]
 
     this.#validateChainIds([origin, ...dests])
-
-    const handler = await this.#monitor(subscription)
+    const handler = this.#monitor(subscription)
     this.#subs.set(id, handler)
   }
 
@@ -131,22 +130,8 @@ export class XcmAgent implements Agent, Subscribable {
     }
 
     try {
-      const {
-        subscription: {
-          args: { origin },
-        },
-        originSubs,
-        destinationSubs,
-        relaySub,
-      } = this.#subs.get(id)
-
-      this.#log.info('[%s:%s] unsubscribe %s', this.id, origin, id)
-
-      originSubs.forEach(({ sub }) => sub.unsubscribe())
-      destinationSubs.forEach(({ sub }) => sub.unsubscribe())
-      if (relaySub) {
-        relaySub.sub.unsubscribe()
-      }
+      const handler = this.#subs.get(id)
+      this.#closeHandler(handler)
 
       this.#subs.delete(id)
 
@@ -169,19 +154,8 @@ export class XcmAgent implements Agent, Subscribable {
   }
 
   async stop(): Promise<void> {
-    for (const {
-      subscription: { id },
-      originSubs,
-      destinationSubs,
-      relaySub,
-    } of this.#subs.all()) {
-      this.#log.info('[agent:%s] unsubscribe %s', this.id, id)
-
-      originSubs.forEach(({ sub }) => sub.unsubscribe())
-      destinationSubs.forEach(({ sub }) => sub.unsubscribe())
-      if (relaySub) {
-        relaySub.sub.unsubscribe()
-      }
+    for (const handler of this.#subs.all()) {
+      this.#closeHandler(handler)
     }
 
     this.#subs.stop()
@@ -611,8 +585,9 @@ export class XcmAgent implements Agent, Subscribable {
 
     let origMonitor: Monitor = { streams: [], controls: {} }
     let destMonitor: Monitor = { streams: [], controls: {} }
-    const bridgeSubs: RxBridgeSubscription[] = []
     let relaySub: RxSubscriptionWithId | undefined
+
+    const bridgeSubs: RxBridgeSubscription[] = []
 
     try {
       origMonitor = this.__monitorOrigins(subscription)
@@ -635,15 +610,12 @@ export class XcmAgent implements Agent, Subscribable {
         this.#log.error(error, '[agent:%s] error on relay subscription %s', this.id, id)
       }
     }
-
-    if (args.bridges !== undefined) {
-      if (args.bridges.includes('pk-bridge')) {
-        try {
-          bridgeSubs.push(this.__monitorPkBridge(subscription))
-        } catch (error) {
-          // log instead of throw to not block OD subscriptions
-          this.#log.error(error, '[agent:%s] error on bridge subscription %s', this.id, id)
-        }
+    if (args.bridges && args.bridges.includes('pk-bridge')) {
+      try {
+        bridgeSubs.push(this.__monitorPkBridge(subscription))
+      } catch (error) {
+        // log instead of throw to not block OD subscriptions
+        this.#log.error(error, '[agent:%s] error on bridge subscription %s', this.id, id)
       }
     }
 
@@ -717,6 +689,24 @@ export class XcmAgent implements Agent, Subscribable {
         }),
       )
     }
+  }
+
+  #closeHandler(handler: XcmSubscriptionHandler) {
+    const { originSubs, destinationSubs, relaySub, bridgeSubs } = handler
+
+    this.#log.info('[agent:%s] unsubscribe %s', this.id, handler.subscription.id)
+
+    originSubs.forEach(({ sub }) => sub.unsubscribe())
+    destinationSubs.forEach(({ sub }) => sub.unsubscribe())
+    if (relaySub) {
+      relaySub.sub.unsubscribe()
+    }
+
+    bridgeSubs.forEach(({ subs }) => {
+      for (const { sub } of subs) {
+        sub.unsubscribe()
+      }
+    })
   }
 
   #validateChainIds(chainIds: NetworkURN[]) {

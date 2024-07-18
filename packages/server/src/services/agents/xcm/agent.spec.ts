@@ -35,18 +35,6 @@ jest.unstable_mockModule('./ops/xcmp.js', () => {
   }
 })
 
-// const mockEmit = jest.fn().mockImplementation(() => { console.log('emit')})
-// jest.unstable_mockModule('node:events', () => {
-//   return {
-//     __esModule: true,
-//     ...NodeEvents,
-//     EventEmitter: {
-//       on: jest.fn().mockImplementation(() => { console.log('on mock')}),
-//       emit: mockEmit
-//     },
-//   }
-// })
-
 const mockExtractUmpReceive = jest.fn()
 const mockExtractUmpSend = jest.fn()
 jest.unstable_mockModule('./ops/ump.js', () => {
