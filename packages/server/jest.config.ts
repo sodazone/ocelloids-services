@@ -24,6 +24,7 @@ const jestConfig : JestConfigWithSWCJest = {
   coveragePathIgnorePatterns: [
     ".*/dist",
     "testing",
+    "src/cli",
     "src/services/telemetry/metrics",
     "src/services/notification/log.ts",
     "src/services/agents/steward",
