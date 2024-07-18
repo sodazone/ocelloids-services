@@ -1,9 +1,8 @@
 import { FastifyInstance } from 'fastify'
-
-import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth.js'
-import { NewAccount, NewApiToken } from '../persistence/kysely/database/types.js'
-
 import { ulid } from 'ulidx'
+
+import { ValidationError } from '@/errors.js'
+import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth.js'
 
 interface InvitationQueryString {
   subject: string
@@ -41,7 +40,7 @@ export async function AccountsApi(api: FastifyInstance) {
       })
 
       if (account === undefined) {
-        throw new Error('bla')
+        throw new ValidationError('account not found')
       }
 
       const apiToken = await accountsRepository.createApiToken({
@@ -52,7 +51,7 @@ export async function AccountsApi(api: FastifyInstance) {
       })
 
       if (apiToken === undefined) {
-        throw new Error('bla')
+        throw new ValidationError('token not found')
       }
 
       const iat = Math.round(Date.now() / 1_000)
