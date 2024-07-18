@@ -199,7 +199,7 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
    * Anti-DOS token issuance.
    *
    * The 'nod' is a JWT (RFC 7519) that holds:
-   * - Audience
+   * - Issuer (automatic from JWT configuration)
    * - Issued at
    * - Expiration
    */
@@ -220,7 +220,6 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
 
       reply.send({
         token: await reply.jwtSign({
-          aud: 'ws-nod',
           iat,
           exp,
         }),
