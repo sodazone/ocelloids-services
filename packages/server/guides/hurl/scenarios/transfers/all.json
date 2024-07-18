@@ -403,7 +403,6 @@
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:1000"
       ],
-      "bridges": [ "pk-bridge" ],
       "events": "*"
     },
     "channels": [
@@ -452,7 +451,6 @@
         "urn:ocn:kusama:0",
         "urn:ocn:kusama:1000"
       ],
-      "bridges": [ "pk-bridge" ],
       "events": "*"
     },
     "channels": [
