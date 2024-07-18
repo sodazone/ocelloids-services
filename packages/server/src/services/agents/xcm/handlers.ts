@@ -1,6 +1,6 @@
 import { Operation } from 'rfc6902'
 
-import { NotFound, errorMessage } from '@/errors.js'
+import { errorMessage } from '@/errors.js'
 import { Logger, NetworkURN } from '@/services/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { IngressConsumer } from 'services/ingress/index.js'
@@ -23,14 +23,12 @@ export class XcmSubscriptionManager {
   readonly #agent: XcmAgent
   readonly #updater: SubscriptionUpdater
   readonly #handlers: Record<string, XcmSubscriptionHandler>
-  readonly #timeouts: NodeJS.Timeout[]
 
   constructor(log: Logger, ingress: IngressConsumer, agent: XcmAgent) {
     this.#log = log
     this.#agent = agent
     this.#updater = new SubscriptionUpdater(ingress, allowedPaths)
     this.#handlers = {}
-    this.#timeouts = []
   }
 
   /**
@@ -69,7 +67,7 @@ export class XcmSubscriptionManager {
    * @returns {boolean} Whether a subscription for the bridge exists.
    */
   hasSubscriptionForBridge(id: string, type: string) {
-    return this.#handlers[id]?.bridgeSubs.find((s) => s.type === type)
+    return this.#handlers[id]?.bridgeSubs.find((s) => s.type === type) !== undefined
   }
 
   /**
@@ -100,7 +98,7 @@ export class XcmSubscriptionManager {
    * @returns {boolean} Whether a subscription for the destination exists.
    */
   hasSubscriptionForDestination(id: string, chainId: string) {
-    return this.#handlers[id]?.destinationSubs.find((s) => s.chainId === chainId)
+    return this.#handlers[id]?.destinationSubs.find((s) => s.chainId === chainId) !== undefined
   }
 
   /**
@@ -111,7 +109,7 @@ export class XcmSubscriptionManager {
    * @returns {boolean} Whether a subscription for the origin exists.
    */
   hasSubscriptionForOrigin(id: string, chainId: string) {
-    return this.#handlers[id]?.originSubs.find((s) => s.chainId === chainId)
+    return this.#handlers[id]?.originSubs.find((s) => s.chainId === chainId) !== undefined
   }
 
   /**
@@ -121,7 +119,7 @@ export class XcmSubscriptionManager {
    * @returns {boolean} Whether a relay subscription exists.
    */
   hasSubscriptionForRelay(id: string) {
-    return this.#handlers[id]?.relaySub
+    return this.#handlers[id]?.relaySub !== undefined
   }
 
   /**
@@ -129,10 +127,10 @@ export class XcmSubscriptionManager {
    *
    * @param {string} subscriptionId - The subscription ID.
    * @param {Operation[]} patch - The JSON patch operations.
-   * @returns {Promise<Subscription>} The updated subscription.
+   * @returns {Subscription} The updated subscription.
    * @throws {ValidationError} If the patch contains disallowed operations.
    */
-  async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
+  update(subscriptionId: string, patch: Operation[]): Subscription {
     const toUpdate = this.#updater.prepare<XcmInputs>({
       handler: this.#handlers[subscriptionId],
       patch,
@@ -159,12 +157,10 @@ export class XcmSubscriptionManager {
   }
 
   /**
-   * Stops all active timeouts.
+   * Stops the handler manager
    */
   stop() {
-    for (const t of this.#timeouts) {
-      t.unref()
-    }
+    //
   }
 
   /**
@@ -177,21 +173,23 @@ export class XcmSubscriptionManager {
   tryRecoverRelay(error: Error, id: string, chainId: string) {
     // try recover relay subscription
     // there is only one subscription per subscription ID for relay
-    if (this.has(id)) {
+    if (this.has(id) && this.hasSubscriptionForRelay(id)) {
       const sub = this.get(id)
-      this.#timeouts.push(
-        setTimeout(async () => {
-          this.#log.info(
-            '[%s:%s] UPDATE relay subscription %s due error %s',
-            this.#agent.id,
-            chainId,
-            id,
-            errorMessage(error),
-          )
-          const updatedSub = await this.#agent.__monitorRelay(sub.subscription)
-          sub.relaySub = updatedSub
-        }, SUB_ERROR_RETRY_MS),
-      )
+
+      sub.relaySub?.sub.unsubscribe()
+      delete sub.relaySub
+
+      setTimeout(async () => {
+        this.#log.info(
+          '[%s:%s] UPDATE relay subscription %s due error %s',
+          this.#agent.id,
+          chainId,
+          id,
+          errorMessage(error),
+        )
+        const updatedSub = await this.#agent.__monitorRelay(sub.subscription)
+        sub.relaySub = updatedSub
+      }, SUB_ERROR_RETRY_MS).unref()
     }
   }
 
@@ -210,20 +208,21 @@ export class XcmSubscriptionManager {
       const { bridgeSubs } = sub
       const index = bridgeSubs.findIndex((s) => s.type === type)
       if (index > -1) {
-        bridgeSubs.splice(index, 1)
-        this.#timeouts.push(
-          setTimeout(() => {
-            this.#log.info(
-              '[%s:%s] UPDATE destination subscription %s due error %s',
-              this.#agent.id,
-              originBridgeHub,
-              id,
-              errorMessage(error),
-            )
-            bridgeSubs.push(this.#agent.__monitorPkBridge(sub.subscription))
-            sub.bridgeSubs = bridgeSubs
-          }, SUB_ERROR_RETRY_MS),
-        )
+        const rmds = bridgeSubs.splice(index, 1)
+        for (const rmd of rmds[0].subs) {
+          rmd.sub.unsubscribe()
+        }
+        setTimeout(() => {
+          this.#log.info(
+            '[%s:%s] UPDATE destination subscription %s due error %s',
+            this.#agent.id,
+            originBridgeHub,
+            id,
+            errorMessage(error),
+          )
+          bridgeSubs.push(this.#agent.__monitorPkBridge(sub.subscription))
+          sub.bridgeSubs = bridgeSubs
+        }, SUB_ERROR_RETRY_MS).unref()
       }
     }
   }
@@ -241,20 +240,21 @@ export class XcmSubscriptionManager {
       const { destinationSubs } = this.get(id)
       const index = destinationSubs.findIndex((s) => s.chainId === chainId)
       if (index > -1) {
-        destinationSubs.splice(index, 1)
-        this.#timeouts.push(
-          setTimeout(() => {
-            this.#log.info(
-              '[%s:%s] UPDATE destination subscription %s due error %s',
-              this.#agent.id,
-              chainId,
-              id,
-              errorMessage(error),
-            )
-            const updated = this.#updateDestinationSubscriptions(this.#handlers[id].subscription)
-            this.#handlers[id].destinationSubs = updated
-          }, SUB_ERROR_RETRY_MS),
-        )
+        const rmds = destinationSubs.splice(index, 1)
+        for (const rmd of rmds) {
+          rmd.sub.unsubscribe()
+        }
+        setTimeout(() => {
+          this.#log.info(
+            '[%s:%s] UPDATE destination subscription %s due error %s',
+            this.#agent.id,
+            chainId,
+            id,
+            errorMessage(error),
+          )
+          const updated = this.#updateDestinationSubscriptions(this.#handlers[id].subscription)
+          this.#handlers[id].destinationSubs = updated
+        }, SUB_ERROR_RETRY_MS).unref()
       }
     }
   }
@@ -273,24 +273,25 @@ export class XcmSubscriptionManager {
       const { originSubs, subscription } = this.get(id)
       const index = originSubs.findIndex((s) => s.chainId === chainId)
       if (index > -1) {
+        for (const { sub } of this.#handlers[id].originSubs) {
+          sub.unsubscribe()
+        }
         this.#handlers[id].originSubs = []
-        this.#timeouts.push(
-          setTimeout(() => {
-            if (this.#handlers[id]) {
-              this.#log.info(
-                '[%s:%s] UPDATE origin subscription %s due error %s',
-                this.#agent.id,
-                chainId,
-                id,
-                errorMessage(error),
-              )
-              const { streams: updated, controls } = this.#agent.__monitorOrigins(subscription)
-              this.#handlers[id].sendersControl = controls.sendersControl
-              this.#handlers[id].messageControl = controls.messageControl
-              this.#handlers[id].originSubs = updated
-            }
-          }, SUB_ERROR_RETRY_MS),
-        )
+        setTimeout(() => {
+          if (this.#handlers[id]) {
+            this.#log.info(
+              '[%s:%s] UPDATE origin subscription %s due error %s',
+              this.#agent.id,
+              chainId,
+              id,
+              errorMessage(error),
+            )
+            const { streams: updated, controls } = this.#agent.__monitorOrigins(subscription)
+            this.#handlers[id].sendersControl = controls.sendersControl
+            this.#handlers[id].messageControl = controls.messageControl
+            this.#handlers[id].originSubs = updated
+          }
+        }, SUB_ERROR_RETRY_MS).unref()
       }
     }
   }
