@@ -34,7 +34,7 @@ const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = 
   kusama: 'urn:ocn:kusama:1002',
   rococo: 'urn:ocn:rococo:1013',
   westend: 'urn:ocn:westend:1002',
-  local: 'urn:ocn:local:1002',
+  local: 'urn:ocn:local:2000',
   wococo: 'urn:ocn:wococo:1002',
   paseo: undefined,
   chainflip: undefined,

@@ -105,4 +105,27 @@ relay = "urn:ocn:local:0"
   [networks.provider]
   type = "rpc"
   url = "ws://localhost:9003"
+
+[[networks]]
+id = "urn:ocn:wococo:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "ws://localhost:8000"
+
+[[networks]]
+id = "urn:ocn:wococo:1000"
+relay = "urn:ocn:wococo:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "ws://localhost:8001"
+
+[[networks]]
+id = "urn:ocn:wococo:1002"
+relay = "urn:ocn:wococo:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "ws://localhost:8002"
 `

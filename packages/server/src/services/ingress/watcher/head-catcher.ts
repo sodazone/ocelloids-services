@@ -75,7 +75,7 @@ function arrayOfTargetHeights(newHeight: bigint, targetHeight: bigint, batchSize
  * - Caches seen extended signed blocks and supplies them when required on finalization.
  * - Caches on-chain storage data.
  *
- * @see {HeadCatcher.finalizedBlocks}
+ * @see {HeadCatcher["finalizedBlocks"]}
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {

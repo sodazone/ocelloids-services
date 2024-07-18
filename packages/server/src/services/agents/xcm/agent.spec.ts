@@ -14,6 +14,9 @@ import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
 import * as XcmpOps from './ops/xcmp.js'
 import {
+  XcmBridgeAcceptedWithContext,
+  XcmBridgeDeliveredWithContext,
+  XcmBridgeInboundWithContext,
   XcmInboundWithContext,
   XcmInputs,
   XcmNotificationType,
@@ -32,12 +35,35 @@ jest.unstable_mockModule('./ops/xcmp.js', () => {
   }
 })
 
+// const mockEmit = jest.fn().mockImplementation(() => { console.log('emit')})
+// jest.unstable_mockModule('node:events', () => {
+//   return {
+//     __esModule: true,
+//     ...NodeEvents,
+//     EventEmitter: {
+//       on: jest.fn().mockImplementation(() => { console.log('on mock')}),
+//       emit: mockEmit
+//     },
+//   }
+// })
+
 const mockExtractUmpReceive = jest.fn()
 const mockExtractUmpSend = jest.fn()
 jest.unstable_mockModule('./ops/ump.js', () => {
   return {
     extractUmpReceive: mockExtractUmpReceive,
     extractUmpSend: mockExtractUmpSend,
+  }
+})
+
+const mockExtractBridgeMessageAccepted = jest.fn()
+const mockExtractBridgeMessageDelivered = jest.fn()
+const mockExtractBridgeReceive = jest.fn()
+jest.unstable_mockModule('./ops/pk-bridge.js', () => {
+  return {
+    extractBridgeMessageAccepted: mockExtractBridgeMessageAccepted,
+    extractBridgeMessageDelivered: mockExtractBridgeMessageDelivered,
+    extractBridgeReceive: mockExtractBridgeReceive,
   }
 })
 
@@ -60,7 +86,6 @@ const testSub: Subscription<XcmInputs> = {
 describe('xcm agent', () => {
   let subs: SubsStore
   let agentService: AgentCatalog
-  let xcmAgent: XcmAgent
 
   beforeEach(async () => {
     mockExtractXcmpSend.mockImplementation(() => {
@@ -116,6 +141,46 @@ describe('xcm agent', () => {
         } as unknown as XcmInboundWithContext)
     })
 
+    mockExtractBridgeMessageAccepted.mockImplementation(() => {
+      return () =>
+        of({
+          blockNumber: 1000392,
+          blockHash: '0xCAFE',
+          messageHash: '0x00',
+          chainId: 'urn:ocn:local1002',
+          bridgeKey: '0x01',
+          messageData: '0xBEEF',
+          instructions: {},
+          recipient: 'urn:ocn:wococo:1000',
+          forwardId: '0x02',
+        } as unknown as XcmBridgeAcceptedWithContext)
+    })
+
+    mockExtractBridgeMessageDelivered.mockImplementation(() => {
+      return () =>
+        of({
+          blockNumber: 1000392,
+          blockHash: '0xCAFE',
+          chainId: 'urn:ocn:local1002',
+          bridgeKey: '0x01',
+          sender: {},
+          event: {},
+        } as unknown as XcmBridgeDeliveredWithContext)
+    })
+
+    mockExtractBridgeReceive.mockImplementation(() => {
+      return () =>
+        of({
+          blockNumber: 1000392,
+          blockHash: '0xCAFE',
+          chainId: 'urn:ocn:local1002',
+          bridgeKey: '0x01',
+          outcome: 'Success',
+          error: null,
+          event: {},
+        } as unknown as XcmBridgeInboundWithContext)
+    })
+
     subs = new SubsStore(_services.log, _services.levelDB)
     agentService = new LocalAgentCatalog(
       {
@@ -140,9 +205,9 @@ describe('xcm agent', () => {
   it('should handle relay subscriptions', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm')
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -169,8 +234,8 @@ describe('xcm agent', () => {
 
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
-    await xcmAgent.subscribe(testSub)
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    xcmAgent.subscribe(testSub)
 
     expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
   })
@@ -178,9 +243,9 @@ describe('xcm agent', () => {
   it('should update destination subscriptions on destinations change', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -202,7 +267,7 @@ describe('xcm agent', () => {
       },
     }
 
-    await xcmAgent.update(newSub.id, [
+    xcmAgent.update(newSub.id, [
       {
         op: 'remove',
         path: '/args/destinations/1',
@@ -227,9 +292,9 @@ describe('xcm agent', () => {
   it('should create relay hrmp subscription when there is at least one HRMP pair in subscription', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe(testSub) // origin: '1000', destinations: ['2000']
+    xcmAgent.subscribe(testSub) // origin: '1000', destinations: ['2000']
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XcmSubscriptionHandler
     expect(relaySub).toBeDefined()
@@ -238,9 +303,9 @@ describe('xcm agent', () => {
   it('should not create relay hrmp subscription when the origin is a relay chain', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -255,9 +320,9 @@ describe('xcm agent', () => {
   it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -272,9 +337,9 @@ describe('xcm agent', () => {
   it('should not create relay hrmp subscription when relayed events are not requested', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -289,9 +354,9 @@ describe('xcm agent', () => {
   it('should create relay hrmp subscription if relayed event is added', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -311,7 +376,7 @@ describe('xcm agent', () => {
       },
     }
 
-    await xcmAgent.update(newSub.id, [
+    xcmAgent.update(newSub.id, [
       {
         op: 'add',
         path: '/args/events/-',
@@ -326,9 +391,9 @@ describe('xcm agent', () => {
   it('should remove relay hrmp subscription if relayed event is removed', async () => {
     await agentService.startAgent('xcm')
 
-    xcmAgent = agentService.getAgentById('xcm') as XcmAgent
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
 
-    await xcmAgent.subscribe({
+    xcmAgent.subscribe({
       ...testSub,
       args: {
         ...testSub.args,
@@ -348,7 +413,7 @@ describe('xcm agent', () => {
       },
     }
 
-    await xcmAgent.update(newSub.id, [
+    xcmAgent.update(newSub.id, [
       {
         op: 'remove',
         path: '/args/events/2',
@@ -357,5 +422,29 @@ describe('xcm agent', () => {
     const { relaySub: newRelaySub, subscription } = xcmAgent.getSubscriptionHandler(testSub.id)
     expect(newRelaySub).not.toBeDefined()
     expect(subscription).toEqual(newSub)
+  })
+
+  it('should subscribe to pk-bridge if configured', async () => {
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+
+    xcmAgent.subscribe({
+      id: 'test-bridge-sub',
+      agent: 'xcm',
+      args: {
+        origin: 'urn:ocn:local:1000',
+        destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000', 'urn:ocn:wococo:1000'],
+        bridges: ['pk-bridge'],
+      },
+      channels: [
+        {
+          type: 'log',
+        },
+      ],
+    })
+
+    const { bridgeSubs } = xcmAgent.getSubscriptionHandler('test-bridge-sub')
+    expect(bridgeSubs.length).toBe(1)
   })
 })

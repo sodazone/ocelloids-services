@@ -132,15 +132,6 @@ export interface XcmBridgeDeliveredWithContext {
   sender?: SignerData
 }
 
-export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
-  chainId: NetworkURN
-  bridgeKey: HexString
-  messageData: HexString
-  instructions: AnyJson
-  recipient: NetworkURN
-  forwardId?: HexString
-}
-
 export interface XcmBridgeDeliveredWithContext {
   chainId: NetworkURN
   bridgeKey: HexString
