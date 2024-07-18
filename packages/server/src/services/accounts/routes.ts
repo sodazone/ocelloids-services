@@ -19,7 +19,6 @@ async function createUnsignedToken(
     accountId: number
     subject: string
     scope: string[]
-    aud?: string
   },
 ) {
   const jti = ulid()
