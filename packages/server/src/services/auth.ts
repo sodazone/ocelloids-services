@@ -1,14 +1,14 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto'
 import fs from 'node:fs'
 
-import jwt, { DecodePayloadType } from '@fastify/jwt'
+import jwt from '@fastify/jwt'
 import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { expandRegExps } from '@/cli/index.js'
 import { environment, isNonProdEnv } from '@/environment.js'
 import { JwtServerOptions } from '@/types.js'
-import { AccountsRepository } from './accounts/repository.js'
+import { Account } from './persistence/kysely/database/types.js'
 
 const SECONDS_TO_EXPIRE = 15
 
@@ -27,6 +27,9 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     caps?: string[]
     wsAuth?: boolean
+  }
+  interface FastifyRequest {
+    account?: Account
   }
 }
 
@@ -60,9 +63,7 @@ export async function ensureAccountAuthorized(
     if (apiToken?.status === 'enabled') {
       const { account } = apiToken
       if (account) {
-        // FIX: type inference is correct but we get it as string (?)
-        const parsedAccount = typeof account === 'string' ? JSON.parse(account as unknown as string) : account
-        if (parsedAccount.status === 'enabled' && parsedAccount.subject === sub) {
+        if (account.status === 'enabled' && account.subject === sub) {
           const {
             routeOptions: {
               config: { caps },
@@ -72,6 +73,7 @@ export async function ensureAccountAuthorized(
           ensureCapabilities(apiToken.scope, caps)
 
           // all OK
+          request.account = account
           return
         } else {
           log.warn('[authorization] disabled account attempt %j', apiToken)

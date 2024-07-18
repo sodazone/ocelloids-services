@@ -28,6 +28,14 @@ export class AccountsRepository {
     return await this.#db.deleteFrom('account').where('id', '=', id).returningAll().executeTakeFirst()
   }
 
+  async deleteAccountBySubject(subject: string) {
+    return await this.#db
+      .deleteFrom('account')
+      .where('subject', '=', subject)
+      .returningAll()
+      .executeTakeFirst()
+  }
+
   async createApiToken(apiToken: NewApiToken) {
     return await this.#db.insertInto('api-token').values(apiToken).returningAll().executeTakeFirstOrThrow()
   }
@@ -39,6 +47,23 @@ export class AccountsRepository {
       .selectAll('api-token')
       .select(({ ref }) => [this.#account(ref('api-token.account_id')).$notNull().as('account')])
       .executeTakeFirst()
+  }
+
+  async findApiTokensByAccount(accountId: number) {
+    return await this.#db.selectFrom('api-token').where('account_id', '=', accountId).selectAll().execute()
+  }
+
+  async findApiTokenByAccount(accountId: number, tokenId: string) {
+    return await this.#db
+      .selectFrom('api-token')
+      .where('id', '=', tokenId)
+      .where('account_id', '=', accountId)
+      .selectAll()
+      .executeTakeFirst()
+  }
+
+  async deleteApiToken(id: string) {
+    return await this.#db.deleteFrom('api-token').where('id', '=', id).returningAll().executeTakeFirst()
   }
 
   async findAccountBySubject(subject: string) {
@@ -73,7 +98,7 @@ export class AccountsRepository {
     return jsonObjectFrom(
       this.#db
         .selectFrom('account')
-        .select(['account.id', 'account.status', 'account.subject'])
+        .select(['account.id', 'account.status', 'account.subject', 'account.created_at'])
         .where('account.id', '=', accountId),
     )
   }

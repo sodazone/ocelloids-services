@@ -1,6 +1,6 @@
 import SQLite from 'better-sqlite3'
 
-import { Kysely, Migration, Migrator, SqliteDialect } from 'kysely'
+import { Kysely, Migration, Migrator, ParseJSONResultsPlugin, SqliteDialect } from 'kysely'
 
 import * as initial from './migrations/000000_schema.js'
 
@@ -23,6 +23,7 @@ export function openDatabase(opts: SQLiteOptions) {
   })
   _db = new Kysely<Database>({
     dialect,
+    plugins: [new ParseJSONResultsPlugin()],
   })
 
   return _db
