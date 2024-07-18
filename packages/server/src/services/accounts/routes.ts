@@ -9,6 +9,8 @@ interface InvitationQueryString {
   subject: string
 }
 
+// Create an unsigned token with specific properties
+// TODO: nbf and expiration properties
 async function createUnsignedToken(
   repository: AccountsRepository,
   {
@@ -39,16 +41,17 @@ async function createUnsignedToken(
   return {
     iat,
     jti,
-    // TODO: impl nbf and exp
-    // nbf
-    // exp: 6 MONTHS after nbf
     sub: subject,
   }
 }
 
+/**
+ * HTTP API for accounts and API tokens related functionality.
+ */
 export async function AccountsApi(api: FastifyInstance) {
   const { accountsRepository } = api
 
+  // Retrieve account from request
   function accountFromRequest(request: FastifyRequest) {
     const { account } = request
     if (account) {
@@ -57,6 +60,7 @@ export async function AccountsApi(api: FastifyInstance) {
     throw new NotFound('account not found')
   }
 
+  // Route for deleting the current account
   api.delete(
     '/myself',
     {
@@ -72,6 +76,7 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
+  // Route for retrieving the current account
   api.get(
     '/myself',
     {
@@ -86,6 +91,7 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
+  // Route for retrieving API tokens for the current account
   api.get(
     '/myself/tokens',
     {
@@ -101,6 +107,7 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
+  // Route for creating a new API token for the current account
   api.post<{
     Body: {
       scope: {
@@ -157,6 +164,7 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
+  // Route for deleting an API token in the current account
   api.delete<{
     Params: {
       tokenId: string
@@ -180,8 +188,8 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
-  // NOTE: this endpoint is only form admins
-  // we use GET for easier integration
+  // Route for administrator issued invites
+  // NOTE: GET for easier integration
   api.get<{
     Querystring: InvitationQueryString
   }>(
