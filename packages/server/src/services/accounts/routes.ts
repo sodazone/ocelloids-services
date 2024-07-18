@@ -15,7 +15,6 @@ async function createUnsignedToken(
     accountId,
     subject,
     scope,
-    aud = 'api.ocelloids.net',
   }: {
     accountId: number
     subject: string
@@ -41,7 +40,6 @@ async function createUnsignedToken(
   return {
     iat,
     jti,
-    aud,
     // TODO: impl nbf and exp
     // nbf
     // exp: 6 MONTHS after nbf
@@ -89,11 +87,20 @@ export async function AccountsApi(api: FastifyInstance) {
     },
   )
 
-  api.get('/myself/tokens', {}, async (request, reply) => {
-    const account = accountFromRequest(request)
-    const tokens = await accountsRepository.findApiTokensByAccount(account.id)
-    reply.send(tokens)
-  })
+  api.get(
+    '/myself/tokens',
+    {
+      config: {
+        caps: [CAP_READ],
+      },
+      schema: {},
+    },
+    async (request, reply) => {
+      const account = accountFromRequest(request)
+      const tokens = await accountsRepository.findApiTokensByAccount(account.id)
+      reply.send(tokens)
+    },
+  )
 
   api.post<{
     Body: {

@@ -35,15 +35,33 @@ export async function up(db: Kysely<any>): Promise<void> {
     .insertInto('account')
     .values({
       subject: 'root@ocelloids',
+      name: 'root',
     })
     .executeTakeFirst()
 
-  const _rootToken = await db
+  await db
     .insertInto('api-token')
     .values({
       id: '00000000000000000000000000',
       account_id: rootAccount.insertId,
       scope: [CAP_ADMIN, CAP_WRITE, CAP_READ].join(' '),
+    })
+    .executeTakeFirst()
+
+  const readOnlyAccount = await db
+    .insertInto('account')
+    .values({
+      subject: 'public@ocelloids',
+      name: 'public read only',
+    })
+    .executeTakeFirst()
+
+  await db
+    .insertInto('api-token')
+    .values({
+      id: '01000000000000000000000000',
+      account_id: readOnlyAccount.insertId,
+      scope: [CAP_READ].join(' '),
     })
     .executeTakeFirst()
 }
