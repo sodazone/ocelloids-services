@@ -38,6 +38,9 @@ export interface JwtPayload {
   jti: string
 }
 
+/**
+ * Ensure the requested capabilities are present in the scope.
+ */
 function ensureCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]) {
   if (scope) {
     const caps = scope.split(' ')
@@ -50,6 +53,9 @@ function ensureCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]
   throw new Error('Not allowed')
 }
 
+/**
+ * Ensure the account associated with the JWT is authorized.
+ */
 export async function ensureAccountAuthorized(
   { log, accountsRepository }: FastifyInstance,
   request: FastifyRequest,
@@ -89,6 +95,9 @@ export async function ensureAccountAuthorized(
   throw new Error('Not allowed')
 }
 
+/**
+ * Import EdDSA keys from a JWK file.
+ */
 async function importKeys(fastify: FastifyInstance, path: string) {
   try {
     const jwkFile = fs.readFileSync(path, 'utf8')
@@ -117,6 +126,9 @@ async function importKeys(fastify: FastifyInstance, path: string) {
   }
 }
 
+/**
+ * Plug-in that provides account-based authorization and JWT authentication.
+ */
 const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options) => {
   if (isNonProdEnv(environment) && !options.jwtAuth) {
     fastify.log.warn('(!) Security is disabled [%s]', environment)
@@ -124,6 +136,7 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
     return
   }
 
+  // In production the 'jwt-auth' options is ignored
   if (options.jwtSigKeyFile === undefined) {
     throw new Error(`Fatal: you must provide an OC_JWT_SIG_KEY_FILE in [${environment}]`)
   }
