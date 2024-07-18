@@ -48,7 +48,7 @@ import {
 
 import { mapXcmSent } from './ops/common.js'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
-import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
 import {
   extractBridgeMessageAccepted,
   extractBridgeMessageDelivered,
