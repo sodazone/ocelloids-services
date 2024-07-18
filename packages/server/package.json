@@ -18,7 +18,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node ./dist/main.js",
     "dev": "nodemon --exec tsx ./src/main.ts",
     "dev:inspect": "nodemon --exec tsx --inspect ./src/main.ts",
@@ -45,6 +45,7 @@
     "pino-pretty": "^11.2.1",
     "ts-jest": "^29.2.2",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   },
