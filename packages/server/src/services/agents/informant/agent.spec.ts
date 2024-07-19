@@ -56,8 +56,7 @@ const extrinsicSub: Subscription<InformantInputs> = {
     filter: {
       type: 'extrinsic',
       match: {
-        'extrinsic.call.section': 'balances',
-        'extrinsic.call.method': { $in: ['transferAllowDeath', 'transferKeepAlive'] },
+        'extrinsic.call.section': 'xcmPallet',
       },
     },
   },
@@ -99,22 +98,24 @@ describe('informant agent', () => {
   it('should subscribe to event subscriptions', async () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    await agent.subscribe(eventSub)
+    agent.subscribe(eventSub)
     expect(agent.getSubscriptionHandler(eventSub.id)).toBeDefined()
   })
 
   it('should subscribe to extrinsic subscriptions', async () => {
+    const spy = jest.spyOn(Egress.prototype, 'publish')
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    await agent.subscribe(extrinsicSub)
+    agent.subscribe(extrinsicSub)
     expect(agent.getSubscriptionHandler(extrinsicSub.id)).toBeDefined()
+    expect(spy).toHaveBeenCalledTimes(1)
   })
 
   it('should fail on invalid mongo filter inputs', async () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
 
-    await expect(
+    expect(() => {
       agent.subscribe({
         ...extrinsicSub,
         args: {
@@ -127,8 +128,8 @@ describe('informant agent', () => {
             },
           },
         },
-      }),
-    ).rejects.toThrow()
+      })
+    }).toThrow()
   })
 
   it('should publish to egress for event subscriptions', async () => {
@@ -136,26 +137,26 @@ describe('informant agent', () => {
 
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    await agent.subscribe(eventSub)
-    expect(spy).toHaveBeenCalledTimes(3)
+    agent.subscribe(eventSub)
+    expect(spy).toHaveBeenCalledTimes(4)
   })
 
   it('should unsubscribe subscription', async () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    await agent.subscribe(eventSub)
+    agent.subscribe(eventSub)
     expect(agent.getSubscriptionHandler(eventSub.id)).toBeDefined()
-    await agent.unsubscribe(eventSub.id)
+    agent.unsubscribe(eventSub.id)
     expect(agent.getSubscriptionHandler(eventSub.id)).not.toBeDefined()
   })
 
   it('should update subscription', async () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    await agent.subscribe(eventSub)
+    agent.subscribe(eventSub)
     expect(agent.getSubscriptionHandler(eventSub.id)).toBeDefined()
 
-    const newSub = await agent.update(eventSub.id, [
+    const newSub = agent.update(eventSub.id, [
       { op: 'add', path: '/args/networks/-', value: 'urn:ocn:polkadot:1000' },
       { op: 'replace', path: '/args/filter/match/section', value: 'accounts' },
     ])

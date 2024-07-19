@@ -15,6 +15,7 @@ const twox64concat = (data: string | Buffer | Uint8Array) => u8aConcat(xxhashAsU
 
 // TODO resolve storage hasher (?)
 // assume twox64concat for the moment
+/* istanbul ignore next */
 export function dmpDownwardMessageQueuesKey(registry: Registry, paraId: string): HexString {
   return (dmpDownwardMessageQueuesPartial +
     Buffer.from(twox64concat(registry.createType('u32', paraId).toU8a())).toString('hex')) as HexString

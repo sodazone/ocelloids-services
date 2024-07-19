@@ -75,10 +75,10 @@ export class InformantAgent implements Agent, Subscribable {
     return $InformantInputs
   }
 
-  async subscribe(subscription: Subscription<InformantInputs>): Promise<void> {
+  subscribe(subscription: Subscription<InformantInputs>): void {
     this.#checkValidFilter(subscription.args.filter.match)
 
-    const handler = await this.#monitor(subscription)
+    const handler = this.#monitor(subscription)
 
     this.#handlers[subscription.id] = handler
   }
@@ -93,8 +93,8 @@ export class InformantAgent implements Agent, Subscribable {
     }
   }
 
-  async update(subscriptionId: string, patch: Operation[]): Promise<Subscription> {
-    const toUpdate = await this.#updater.prepare<InformantInputs>({
+  update(subscriptionId: string, patch: Operation[]): Subscription {
+    const toUpdate = this.#updater.prepare<InformantInputs>({
       handler: this.#handlers[subscriptionId],
       patch,
       argsSchema: $InformantInputs,
@@ -123,12 +123,12 @@ export class InformantAgent implements Agent, Subscribable {
     }
   }
 
-  async start(subscriptions: Subscription<InformantInputs>[] = []): Promise<void> {
+  start(subscriptions: Subscription<InformantInputs>[] = []): void {
     this.#log.info('[agent:%s] start subscriptions (%d)', this.id, subscriptions.length)
 
     for (const sub of subscriptions) {
       try {
-        this.#handlers[sub.id] = await this.#monitor(sub)
+        this.#handlers[sub.id] = this.#monitor(sub)
       } catch (err) {
         this.#log.error(err, '[agent:%s] unable to create subscription: %j', this.id, sub)
       }
@@ -143,7 +143,7 @@ export class InformantAgent implements Agent, Subscribable {
     return this.#handlers[id]
   }
 
-  async #monitor(subscription: Subscription<InformantInputs>): Promise<InformantHandler> {
+  #monitor(subscription: Subscription<InformantInputs>): InformantHandler {
     const {
       id,
       args: { networks, filter },
