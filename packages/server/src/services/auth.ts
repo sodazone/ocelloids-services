@@ -10,8 +10,6 @@ import { environment, isNonProdEnv } from '@/environment.js'
 import { JwtServerOptions } from '@/types.js'
 import { Account } from './persistence/kysely/database/types.js'
 
-const SECONDS_TO_EXPIRE = 15
-
 export const CAP_ADMIN = '*:admin'
 export const CAP_READ = '*:read'
 export const CAP_WRITE = '*:write'
@@ -193,38 +191,6 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
           statusCode: 401,
         })
       }
-    },
-  )
-
-  /**
-   * Anti-DOS token issuance.
-   *
-   * The 'nod' is a JWT (RFC 7519) that holds:
-   * - Issuer (automatic from JWT configuration)
-   * - Issued at
-   * - Expiration
-   */
-  fastify.get(
-    '/ws/nod',
-    {
-      config: {
-        caps: [CAP_READ],
-      },
-      schema: {
-        hide: true,
-      },
-    },
-    async (_, reply) => {
-      // seconds since the epoch
-      const iat = Math.round(Date.now() / 1_000)
-      const exp = iat + SECONDS_TO_EXPIRE
-
-      reply.send({
-        token: await reply.jwtSign({
-          iat,
-          exp,
-        }),
-      })
     },
   )
 }

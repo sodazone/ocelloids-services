@@ -16,7 +16,7 @@ declare module 'fastify' {
  * @param sub - The subscription to check ownership of.
  * @throws {AuthorizationError} If the request account does not own the subscription.
  */
-function ensureOwnership(request: FastifyRequest, sub: Subscription) {
+export function ensureOwnership(request: FastifyRequest, sub: Subscription) {
   if (request.account === undefined || request.account.subject !== sub.owner) {
     throw new AuthorizationError()
   }

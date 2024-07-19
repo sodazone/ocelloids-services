@@ -13,6 +13,7 @@ import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { $Subscription, EgressListener, Subscription } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '@/services/telemetry/types.js'
 import { Logger } from '@/services/types.js'
+import { PublicOrOwner, ensureOwnership } from '../handlers.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z
@@ -116,7 +117,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
             const payload = fastify.jwt.verify<JwtPayload>(data.toString().trim())
             await ensureAccountAuthorized(fastify, request, payload)
 
-            this.#afterAuth(socket, request, ids)
+            this.#handleSubscribe(socket, request, ids)
+
             // acknowledge auth
             socket.send(JSON.stringify({ code: 1000, error: false }))
           } catch (error) {
@@ -126,11 +128,11 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         })
       })
     } else {
-      this.#afterAuth(socket, request, ids)
+      this.#handleSubscribe(socket, request, ids)
     }
   }
 
-  async #afterAuth(
+  async #handleSubscribe(
     socket: WebSocket,
     request: FastifyRequest,
     ids?: {
@@ -185,6 +187,14 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         // existing subscriptions
         const { agentId, subscriptionId } = ids
         const subscription = await this.#switchboard.findSubscription(agentId, subscriptionId)
+        if (request.server.authEnabled && subscription.public !== true) {
+          try {
+            ensureOwnership(request, subscription)
+          } catch {
+            socket.close(1002, 'auth error')
+            return
+          }
+        }
         this.#addSubscriber(subscription, socket, request)
       }
     } catch {
