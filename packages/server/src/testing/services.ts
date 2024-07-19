@@ -179,6 +179,31 @@ export const _mockApiPromises = {
       },
     } as unknown as ApiPromise),
   },
+  'urn:ocn:paseo:0': {
+    isReady: Promise.resolve({
+      registry: {
+        createType: () => ({
+          type: 'V3',
+          asV3: [],
+        }),
+        hasType: () => true,
+      },
+      derive: {
+        chain: {
+          getBlock: () => {
+            /* empty */
+          },
+        },
+      },
+      rpc: {
+        state: {
+          getMetadata: () => ({
+            toU8a: () => new Uint8Array(0),
+          }),
+        },
+      },
+    } as unknown as ApiPromise),
+  },
 }
 
 export const _mockApiRxs = {
@@ -218,6 +243,13 @@ export const _mockApiRxs = {
     },
   } as unknown as ApiRx),
   'urn:ocn:wococo:1002': of({
+    rpc: {
+      chain: {
+        subscribeFinalizedHeads: () => of({}),
+      },
+    },
+  } as unknown as ApiRx),
+  'urn:ocn:paseo:0': of({
     rpc: {
       chain: {
         subscribeFinalizedHeads: () => of({}),

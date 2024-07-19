@@ -133,4 +133,11 @@ relay = "urn:ocn:wococo:0"
   [networks.provider]
   type = "rpc"
   url = "ws://localhost:8002"
+
+[[networks]]
+id = "urn:ocn:paseo:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = "ws://localhost:6000"
 `

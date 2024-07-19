@@ -1,59 +1,26 @@
 import { jest } from '@jest/globals'
 
-import { of, throwError } from 'rxjs'
+import { from, of, throwError } from 'rxjs'
+
+import { Registry } from '@polkadot/types-codec/types'
 
 import '@/testing/network.js'
 
-import { _services } from '@/testing/services.js'
+import { _ingress, _services } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
-import { Services } from '../../index.js'
+import { NetworkURN, Services } from '../../index.js'
 import { SubsStore } from '../../persistence/level/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
+import { SharedStreams } from '../base/shared.js'
 import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
-import * as XcmpOps from './ops/xcmp.js'
-import {
-  XcmBridgeAcceptedWithContext,
-  XcmBridgeDeliveredWithContext,
-  XcmBridgeInboundWithContext,
-  XcmInboundWithContext,
-  XcmInputs,
-  XcmNotificationType,
-  XcmSentWithContext,
-  XcmSubscriptionHandler,
-} from './types.js'
 
-const mockExtractXcmpReceive = jest.fn()
-const mockExtractXcmpSend = jest.fn()
-jest.unstable_mockModule('./ops/xcmp.js', () => {
-  return {
-    __esModule: true,
-    ...XcmpOps,
-    extractXcmpReceive: mockExtractXcmpReceive,
-    extractXcmpSend: mockExtractXcmpSend,
-  }
-})
-
-const mockExtractUmpReceive = jest.fn()
-const mockExtractUmpSend = jest.fn()
-jest.unstable_mockModule('./ops/ump.js', () => {
-  return {
-    extractUmpReceive: mockExtractUmpReceive,
-    extractUmpSend: mockExtractUmpSend,
-  }
-})
-
-const mockExtractBridgeMessageAccepted = jest.fn()
-const mockExtractBridgeMessageDelivered = jest.fn()
-const mockExtractBridgeReceive = jest.fn()
-jest.unstable_mockModule('./ops/pk-bridge.js', () => {
-  return {
-    extractBridgeMessageAccepted: mockExtractBridgeMessageAccepted,
-    extractBridgeMessageDelivered: mockExtractBridgeMessageDelivered,
-    extractBridgeReceive: mockExtractBridgeReceive,
-  }
-})
+import { ValidationError } from '@/errors.js'
+import { polkadotBlocks } from '@/testing/blocks.js'
+import { extractEvents } from '@sodazone/ocelloids-sdk'
+import { XcmSubscriptionManager } from './handlers.js'
+import { XcmInputs, XcmNotificationType, XcmSubscriptionHandler } from './types.js'
 
 const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',
@@ -77,99 +44,6 @@ describe('xcm agent', () => {
   let agentService: AgentCatalog
 
   beforeEach(async () => {
-    mockExtractXcmpSend.mockImplementation(() => {
-      return () => {
-        return of({
-          recipient: 'urn:ocn:local:2000',
-          blockNumber: 1,
-          blockHash: '0x0',
-          messageHash: '0x0',
-          messageData: new Uint8Array([0x00]),
-          instructions: {
-            bytes: '0x0300',
-          },
-        } as unknown as XcmSentWithContext)
-      }
-    })
-
-    mockExtractXcmpReceive.mockImplementation(() => {
-      return () => {
-        return of({
-          blockNumber: {
-            toString: () => 1,
-          },
-          blockHash: '0x0',
-          messageHash: '0x0',
-          outcome: 'Success',
-        } as unknown as XcmInboundWithContext)
-      }
-    })
-    mockExtractUmpSend.mockImplementation(() => {
-      return () =>
-        of({
-          recipient: 'urn:ocn:local:0',
-          blockNumber: 1,
-          blockHash: '0x0',
-          messageHash: '0x0',
-          messageData: new Uint8Array([0x00]),
-          instructions: {
-            bytes: '0x0300',
-          },
-        } as unknown as XcmSentWithContext)
-    })
-    mockExtractUmpReceive.mockImplementation(() => {
-      return () =>
-        of({
-          recipient: 'urn:ocn:local:0',
-          blockNumber: {
-            toString: () => 1,
-          },
-          blockHash: '0x0',
-          messageHash: '0x0',
-          outcome: 'Success',
-        } as unknown as XcmInboundWithContext)
-    })
-
-    mockExtractBridgeMessageAccepted.mockImplementation(() => {
-      return () =>
-        of({
-          blockNumber: 1000392,
-          blockHash: '0xCAFE',
-          messageHash: '0x00',
-          chainId: 'urn:ocn:local1002',
-          bridgeKey: '0x01',
-          messageData: '0xBEEF',
-          instructions: {},
-          recipient: 'urn:ocn:wococo:1000',
-          forwardId: '0x02',
-        } as unknown as XcmBridgeAcceptedWithContext)
-    })
-
-    mockExtractBridgeMessageDelivered.mockImplementation(() => {
-      return () =>
-        of({
-          blockNumber: 1000392,
-          blockHash: '0xCAFE',
-          chainId: 'urn:ocn:local1002',
-          bridgeKey: '0x01',
-          sender: {},
-          event: {},
-        } as unknown as XcmBridgeDeliveredWithContext)
-    })
-
-    mockExtractBridgeReceive.mockImplementation(() => {
-      return () =>
-        of({
-          blockNumber: 1000392,
-          blockHash: '0xCAFE',
-          chainId: 'urn:ocn:local1002',
-          bridgeKey: '0x01',
-          outcome: 'Success',
-          error: null,
-          event: {},
-        } as unknown as XcmBridgeInboundWithContext)
-    })
-
     subs = new SubsStore(_services.log, _services.levelDB)
     agentService = new LocalAgentCatalog(
       {
@@ -191,6 +65,23 @@ describe('xcm agent', () => {
     expect(agentService.getAgentById<XcmAgent>('xcm').getSubscriptionHandler(testSub.id)).toBeDefined()
   })
 
+  it('should throw when subscribing to a chain that is not configured', async () => {
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    const chainId = 'urn:ocn:local:6001'
+
+    expect(() => {
+      xcmAgent.subscribe({
+        ...testSub,
+        args: {
+          ...testSub.args,
+          origin: chainId,
+        },
+      })
+    }).toThrow(new ValidationError('Invalid chain id:' + chainId))
+  })
+
   it('should handle relay subscriptions', async () => {
     await agentService.startAgent('xcm')
 
@@ -207,19 +98,12 @@ describe('xcm agent', () => {
     expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
   })
 
-  it('should handle pipe errors', async () => {
-    mockExtractUmpSend.mockImplementationOnce(() => () => {
-      return throwError(() => new Error('errored'))
-    })
-    mockExtractUmpReceive.mockImplementationOnce(() => () => {
-      return throwError(() => new Error('errored'))
-    })
-    mockExtractXcmpSend.mockImplementationOnce(() => () => {
-      return throwError(() => new Error('errored'))
-    })
-    mockExtractXcmpReceive.mockImplementationOnce(() => () => {
-      return throwError(() => new Error('errored'))
-    })
+  it('should handle pipe errors in outbound subscriptions', async () => {
+    jest
+      .spyOn(SharedStreams.prototype, 'blockEvents')
+      .mockImplementationOnce((_chainId: NetworkURN) => from(polkadotBlocks).pipe(extractEvents()))
+    jest.spyOn(_ingress, 'getRegistry').mockImplementationOnce(() => throwError(() => new Error('errored')))
+    const spy = jest.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverOutbound')
 
     await agentService.startAgent('xcm')
 
@@ -227,6 +111,22 @@ describe('xcm agent', () => {
     xcmAgent.subscribe(testSub)
 
     expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('should handle pipe errors in relay subscriptions', async () => {
+    jest
+      .spyOn(SharedStreams.prototype, 'blockExtrinsics')
+      .mockImplementationOnce((_chainId: NetworkURN) => throwError(() => new Error('errored')))
+    const spy = jest.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverRelay')
+
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    xcmAgent.subscribe(testSub)
+
+    expect(xcmAgent.getSubscriptionHandler(testSub.id)).toBeDefined()
+    expect(spy).toHaveBeenCalled()
   })
 
   it('should update destination subscriptions on destinations change', async () => {
@@ -303,7 +203,7 @@ describe('xcm agent', () => {
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id) as XcmSubscriptionHandler
-    expect(relaySub).not.toBeDefined()
+    expect(relaySub).toBeUndefined()
   })
 
   it('should not create relay hrmp subscription when there are no HRMP pairs in the subscription', async () => {
@@ -320,7 +220,7 @@ describe('xcm agent', () => {
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
-    expect(relaySub).not.toBeDefined()
+    expect(relaySub).toBeUndefined()
   })
 
   it('should not create relay hrmp subscription when relayed events are not requested', async () => {
@@ -337,7 +237,7 @@ describe('xcm agent', () => {
     })
 
     const { relaySub } = xcmAgent.getSubscriptionHandler(testSub.id)
-    expect(relaySub).not.toBeDefined()
+    expect(relaySub).toBeUndefined()
   })
 
   it('should create relay hrmp subscription if relayed event is added', async () => {
@@ -409,7 +309,7 @@ describe('xcm agent', () => {
       },
     ])
     const { relaySub: newRelaySub, subscription } = xcmAgent.getSubscriptionHandler(testSub.id)
-    expect(newRelaySub).not.toBeDefined()
+    expect(newRelaySub).toBeUndefined()
     expect(subscription).toEqual(newSub)
   })
 
@@ -436,5 +336,89 @@ describe('xcm agent', () => {
 
     const { bridgeSubs } = xcmAgent.getSubscriptionHandler('test-bridge-sub')
     expect(bridgeSubs.length).toBe(1)
+  })
+
+  it.skip('should handle pipe errors in bridge subscriptions', async () => {
+    jest
+      .spyOn(SharedStreams.prototype, 'blockEvents')
+      .mockImplementationOnce((_chainId: NetworkURN) => from(polkadotBlocks).pipe(extractEvents()))
+    jest.spyOn(_ingress, 'getRegistry').mockImplementationOnce(() => throwError(() => new Error('errored')))
+    const spy = jest.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverBridge')
+
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    const id = 'test-bridge-sub'
+    xcmAgent.subscribe({
+      id,
+      agent: 'xcm',
+      args: {
+        origin: 'urn:ocn:local:1000',
+        destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000', 'urn:ocn:wococo:1000'],
+        bridges: ['pk-bridge'],
+      },
+      channels: [
+        {
+          type: 'log',
+        },
+      ],
+    })
+
+    expect(xcmAgent.getSubscriptionHandler(id)).toBeDefined()
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('should throw on bridge subscription without destination on different consensus', async () => {
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    const id = 'test-bridge-sub'
+
+    expect(() => {
+      xcmAgent.subscribe({
+        id,
+        agent: 'xcm',
+        args: {
+          origin: 'urn:ocn:local:1000',
+          destinations: ['urn:ocn:local:0'],
+          bridges: ['pk-bridge'],
+        },
+        channels: [
+          {
+            type: 'log',
+          },
+        ],
+      })
+    }).toThrow(`No destination on different consensus found for bridging (sub=${id})`)
+    expect(xcmAgent.getSubscriptionHandler('test-bridge-sub')).toBeUndefined()
+  })
+
+  it('should throw on bridge subscription if no bridge hub id configured', async () => {
+    await agentService.startAgent('xcm')
+
+    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
+    const id = 'test-bridge-sub'
+    const origin = 'urn:ocn:local:1000'
+    const destinations = ['urn:ocn:local:0', 'urn:ocn:paseo:0']
+
+    expect(() => {
+      xcmAgent.subscribe({
+        id,
+        agent: 'xcm',
+        args: {
+          origin,
+          destinations,
+          bridges: ['pk-bridge'],
+        },
+        channels: [
+          {
+            type: 'log',
+          },
+        ],
+      })
+    }).toThrow(
+      `Unable to subscribe to PK bridge due to missing bridge hub network URNs for origin=${origin} and destinations=${destinations}. (sub=${id})`,
+    )
+    expect(xcmAgent.getSubscriptionHandler('test-bridge-sub')).toBeUndefined()
   })
 })

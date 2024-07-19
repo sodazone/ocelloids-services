@@ -362,9 +362,12 @@ export class XcmAgent implements Agent, Subscribable {
 
   __monitorRelay({ id, args: { origin, destinations } }: Subscription<XcmInputs>) {
     const chainId = origin as NetworkURN
-    if (this.#subs.hasSubscriptionForRelay(id)) {
+    const existingRelaySub = this.#subs.get(id)?.relaySub
+    if (existingRelaySub !== undefined) {
       this.#log.debug('Relay subscription already exists.')
+      return existingRelaySub
     }
+
     const messageControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]))
 
     const emitRelayInbound = () => (source: Observable<XcmRelayedWithContext>) =>
@@ -432,95 +435,107 @@ export class XcmAgent implements Agent, Subscribable {
       throw new Error(`Fatal: duplicated PK bridge monitor ${id}`)
     }
 
-    const emitBridgeOutboundAccepted = () => (source: Observable<XcmBridgeAcceptedWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundAccepted(id, message))))
+    const subs: RxSubscriptionWithId[] = []
 
-    const emitBridgeOutboundDelivered = () => (source: Observable<XcmBridgeDeliveredWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundDelivered(id, message))))
+    try {
+      const emitBridgeOutboundAccepted = () => (source: Observable<XcmBridgeAcceptedWithContext>) =>
+        source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundAccepted(id, message))))
 
-    const emitBridgeInbound = () => (source: Observable<XcmBridgeInboundWithContext>) =>
-      source.pipe(switchMap((message) => from(this.#engine.onBridgeInbound(id, message))))
+      const emitBridgeOutboundDelivered = () => (source: Observable<XcmBridgeDeliveredWithContext>) =>
+        source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundDelivered(id, message))))
 
-    const pkBridgeObserver = {
-      error: (error: any) => {
-        this.#log.error(error, '[%s:%s] error on PK bridge subscription %s', this.id, originBridgeHub, id)
-        this.#telemetry.emit('telemetryXcmSubscriptionError', {
-          subscriptionId: id,
-          chainId: originBridgeHub,
-          direction: 'bridge',
-        })
+      const emitBridgeInbound = () => (source: Observable<XcmBridgeInboundWithContext>) =>
+        source.pipe(switchMap((message) => from(this.#engine.onBridgeInbound(id, message))))
 
-        this.#subs.tryRecoverBridge(error, id, type, originBridgeHub)
-      },
-    }
+      const pkBridgeObserver = {
+        error: (error: any) => {
+          this.#log.error(error, '[%s:%s] error on PK bridge subscription %s', this.id, originBridgeHub, id)
+          this.#telemetry.emit('telemetryXcmSubscriptionError', {
+            subscriptionId: id,
+            chainId: originBridgeHub,
+            direction: 'bridge',
+          })
 
-    this.#log.info(
-      '[%s:%s] subscribe PK bridge outbound accepted events on bridge hub %s (%s)',
-      this.id,
-      origin,
-      originBridgeHub,
-      id,
-    )
-    const outboundAccepted: RxSubscriptionWithId = {
-      chainId: originBridgeHub,
-      sub: this.#ingress
-        .getRegistry(originBridgeHub)
-        .pipe(
-          switchMap((registry) =>
-            this.#shared.blockEvents(originBridgeHub).pipe(
-              extractBridgeMessageAccepted(
-                originBridgeHub,
-                registry,
-                (blockHash: HexString, key: HexString) => {
-                  return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
-                },
+          this.#subs.tryRecoverBridge(error, id, type, originBridgeHub)
+        },
+      }
+
+      this.#log.info(
+        '[%s:%s] subscribe PK bridge outbound accepted events on bridge hub %s (%s)',
+        this.id,
+        origin,
+        originBridgeHub,
+        id,
+      )
+      subs.push({
+        chainId: originBridgeHub,
+        sub: this.#ingress
+          .getRegistry(originBridgeHub)
+          .pipe(
+            switchMap((registry) =>
+              this.#shared.blockEvents(originBridgeHub).pipe(
+                extractBridgeMessageAccepted(
+                  originBridgeHub,
+                  registry,
+                  (blockHash: HexString, key: HexString) => {
+                    return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
+                  },
+                ),
+                emitBridgeOutboundAccepted(),
               ),
-              emitBridgeOutboundAccepted(),
             ),
-          ),
-        )
-        .subscribe(pkBridgeObserver),
-    }
+          )
+          .subscribe(pkBridgeObserver),
+      })
 
-    this.#log.info(
-      '[%s:%s] subscribe PK bridge outbound delivered events on bridge hub %s (%s)',
-      this.id,
-      origin,
-      originBridgeHub,
-      id,
-    )
-    const outboundDelivered: RxSubscriptionWithId = {
-      chainId: originBridgeHub,
-      sub: this.#ingress
-        .getRegistry(originBridgeHub)
-        .pipe(
-          switchMap((registry) =>
-            this.#shared
-              .blockEvents(originBridgeHub)
-              .pipe(extractBridgeMessageDelivered(originBridgeHub, registry), emitBridgeOutboundDelivered()),
-          ),
-        )
-        .subscribe(pkBridgeObserver),
-    }
+      this.#log.info(
+        '[%s:%s] subscribe PK bridge outbound delivered events on bridge hub %s (%s)',
+        this.id,
+        origin,
+        originBridgeHub,
+        id,
+      )
+      subs.push({
+        chainId: originBridgeHub,
+        sub: this.#ingress
+          .getRegistry(originBridgeHub)
+          .pipe(
+            switchMap((registry) =>
+              this.#shared
+                .blockEvents(originBridgeHub)
+                .pipe(
+                  extractBridgeMessageDelivered(originBridgeHub, registry),
+                  emitBridgeOutboundDelivered(),
+                ),
+            ),
+          )
+          .subscribe(pkBridgeObserver),
+      })
 
-    this.#log.info(
-      '[%s:%s] subscribe PK bridge inbound events on bridge hub %s (%s)',
-      this.id,
-      origin,
-      destBridgeHub,
-      id,
-    )
-    const inbound: RxSubscriptionWithId = {
-      chainId: destBridgeHub,
-      sub: this.#shared
-        .blockEvents(destBridgeHub)
-        .pipe(extractBridgeReceive(destBridgeHub), emitBridgeInbound())
-        .subscribe(pkBridgeObserver),
-    }
+      this.#log.info(
+        '[%s:%s] subscribe PK bridge inbound events on bridge hub %s (%s)',
+        this.id,
+        origin,
+        destBridgeHub,
+        id,
+      )
+      subs.push({
+        chainId: destBridgeHub,
+        sub: this.#shared
+          .blockEvents(destBridgeHub)
+          .pipe(extractBridgeReceive(destBridgeHub), emitBridgeInbound())
+          .subscribe(pkBridgeObserver),
+      })
 
-    return {
-      type,
-      subs: [outboundAccepted, outboundDelivered, inbound],
+      return {
+        type,
+        subs,
+      }
+    } catch (error) {
+      for (const s of subs) {
+        s.sub.unsubscribe()
+      }
+      throw error
     }
   }
 
@@ -581,7 +596,7 @@ export class XcmAgent implements Agent, Subscribable {
    * @private
    */
   #monitor(subscription: Subscription<XcmInputs>): XcmSubscriptionHandler {
-    const { id, args } = subscription
+    const { args } = subscription
 
     let origMonitor: Monitor = { streams: [], controls: {} }
     let destMonitor: Monitor = { streams: [], controls: {} }
@@ -592,43 +607,36 @@ export class XcmAgent implements Agent, Subscribable {
     try {
       origMonitor = this.__monitorOrigins(subscription)
       destMonitor = this.__monitorDestinations(subscription)
+
+      // Only subscribe to relay events if required by subscription.
+      // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
+      if (this.__shouldMonitorRelay(args)) {
+        relaySub = this.__monitorRelay(subscription)
+      }
+      if (args.bridges && args.bridges.includes('pk-bridge')) {
+        bridgeSubs.push(this.__monitorPkBridge(subscription))
+      }
+
+      const { sendersControl, messageControl } = origMonitor.controls
+
+      return {
+        subscription,
+        sendersControl,
+        messageControl,
+        originSubs: origMonitor.streams,
+        destinationSubs: destMonitor.streams,
+        bridgeSubs,
+        relaySub,
+      }
     } catch (error) {
-      // Clean up origin subscriptions.
-      origMonitor.streams.forEach(({ sub }) => {
-        sub.unsubscribe()
+      this.#closeHandler({
+        subscription,
+        originSubs: origMonitor.streams,
+        destinationSubs: destMonitor.streams,
+        bridgeSubs,
+        relaySub,
       })
       throw error
-    }
-
-    // Only subscribe to relay events if required by subscription.
-    // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
-    if (this.__shouldMonitorRelay(args)) {
-      try {
-        relaySub = this.__monitorRelay(subscription)
-      } catch (error) {
-        // log instead of throw to not block OD subscriptions
-        this.#log.error(error, '[agent:%s] error on relay subscription %s', this.id, id)
-      }
-    }
-    if (args.bridges && args.bridges.includes('pk-bridge')) {
-      try {
-        bridgeSubs.push(this.__monitorPkBridge(subscription))
-      } catch (error) {
-        // log instead of throw to not block OD subscriptions
-        this.#log.error(error, '[agent:%s] error on bridge subscription %s', this.id, id)
-      }
-    }
-
-    const { sendersControl, messageControl } = origMonitor.controls
-
-    return {
-      subscription,
-      sendersControl,
-      messageControl,
-      originSubs: origMonitor.streams,
-      destinationSubs: destMonitor.streams,
-      bridgeSubs,
-      relaySub,
     }
   }
 
@@ -691,10 +699,10 @@ export class XcmAgent implements Agent, Subscribable {
     }
   }
 
-  #closeHandler(handler: XcmSubscriptionHandler) {
-    const { originSubs, destinationSubs, relaySub, bridgeSubs } = handler
+  #closeHandler(handler: Omit<XcmSubscriptionHandler, 'sendersControl' | 'messageControl'>) {
+    const { subscription, originSubs, destinationSubs, relaySub, bridgeSubs } = handler
 
-    this.#log.info('[agent:%s] unsubscribe %s', this.id, handler.subscription.id)
+    this.#log.info('[agent:%s] close handlers %s', this.id, subscription.id)
 
     originSubs.forEach(({ sub }) => sub.unsubscribe())
     destinationSubs.forEach(({ sub }) => sub.unsubscribe())
