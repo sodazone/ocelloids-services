@@ -11,7 +11,7 @@ import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types.js'
 
 const SUB_ERROR_RETRY_MS = 5000
 
-const allowedPaths = ['/args/senders', '/args/destinations', '/channels', '/args/events']
+const allowedPaths = ['/args/senders', '/args/destinations', '/channels', '/public', '/args/events']
 
 /**
  * Manages the XCM agent subscription handlers.
