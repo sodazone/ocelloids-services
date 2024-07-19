@@ -11,6 +11,7 @@ declare module 'fastify' {
 
 /**
  * Ensures the request account owns the subscription.
+ *
  * @param request - The Fastify request object.
  * @param sub - The subscription to check ownership of.
  * @throws {AuthorizationError} If the request account does not own the subscription.
