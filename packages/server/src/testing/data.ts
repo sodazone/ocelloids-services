@@ -5,6 +5,7 @@ export const _subsFix: Subscription[] = [
   {
     id: '0:1000:1',
     agent: _testAgentId,
+    owner: 'unknown',
     args: {
       origin: 'urn:ocn:local:0',
       destinations: ['urn:ocn:local:1000'],
@@ -19,6 +20,7 @@ export const _subsFix: Subscription[] = [
   {
     id: '0:1000:2',
     agent: _testAgentId,
+    owner: 'unknown',
     args: {
       origin: 'urn:ocn:local:0',
       destinations: ['urn:ocn:local:1000'],
@@ -33,6 +35,7 @@ export const _subsFix: Subscription[] = [
   {
     id: '0:2000:1',
     agent: _testAgentId,
+    owner: 'unknown',
     args: {
       origin: 'urn:ocn:local:0',
       destinations: ['urn:ocn:local:2000'],
@@ -47,6 +50,7 @@ export const _subsFix: Subscription[] = [
   {
     id: '100:0-2000:1',
     agent: _testAgentId,
+    owner: 'unknown',
     args: {
       origin: 'urn:ocn:local:1000',
       destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],
@@ -61,6 +65,7 @@ export const _subsFix: Subscription[] = [
   {
     id: '100:0-2000:2',
     agent: _testAgentId,
+    owner: 'unknown',
     args: {
       origin: 'urn:ocn:local:1000',
       destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000'],

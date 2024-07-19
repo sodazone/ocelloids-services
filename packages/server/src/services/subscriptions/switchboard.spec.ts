@@ -15,6 +15,7 @@ const SwitchboardImpl = (await import('./switchboard.js')).Switchboard
 const testSub: Subscription = {
   id: '1000:2000:0',
   agent: 'xcm',
+  owner: 'unknown',
   args: {
     origin: 'urn:ocn:local:1000',
     senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],

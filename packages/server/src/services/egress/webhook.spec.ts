@@ -59,6 +59,7 @@ const message: Message = {
 const subOk = {
   id: 'ok',
   agent: 'xcm',
+  owner: 'unknown',
   args: {
     destinations: ['urn:ocn:local:1000'],
     origin: 'urn:ocn:local:0',
@@ -92,6 +93,7 @@ const xmlTemplate = `
 const subOkXml = {
   id: 'ok:xml',
   agent: 'xcm',
+  owner: 'unknown',
   channels: [
     {
       type: 'webhook',
@@ -111,6 +113,7 @@ const subOkXml = {
 const subFail = {
   id: 'fail',
   agent: 'xcm',
+  owner: 'unknown',
   channels: [
     {
       type: 'webhook',
@@ -130,6 +133,7 @@ const authToken = 'secret'
 const subOkAuth = {
   id: 'ok:auth',
   agent: 'xcm',
+  owner: 'unknown',
   channels: [
     {
       type: 'webhook',
@@ -149,6 +153,7 @@ const secret = 'abracadabra'
 const subOkSecret = {
   id: 'ok:secret',
   agent: 'xcm',
+  owner: 'unknown',
   channels: [
     {
       type: 'webhook',
