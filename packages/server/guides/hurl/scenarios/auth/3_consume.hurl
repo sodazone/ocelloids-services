@@ -6,6 +6,7 @@ HTTP 200
 nod_token: jsonpath "$.token"
 
 # NOTE: we send malformed WebSocket frames for testing the upgrade response
+# i.e. we force the server to close the connection 0x88
 # Only the "nod" token in the query string is tested out
 
 GET {{base-url}}/ws/subs/xcm/public
