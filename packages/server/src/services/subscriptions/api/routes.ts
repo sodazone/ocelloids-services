@@ -21,7 +21,8 @@ import $JSONPatch from './json-patch.js'
 export async function SubscriptionApi(api: FastifyInstance) {
   const { switchboard } = api
 
-  // Route to get all subscriptions for an agent
+  // Route to get all subscriptions of an agent
+  // that are readable by the current subject
   api.get<{
     Params: {
       agentId: AgentId
