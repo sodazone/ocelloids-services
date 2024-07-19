@@ -10,13 +10,7 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { SubsStore } from '@/services/persistence/level/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
-import {
-  EgressListener,
-  NewSubscription,
-  PublicSubscription,
-  Subscription,
-  SubscriptionStats,
-} from './types.js'
+import { EgressListener, NewSubscription, Subscription, SubscriptionStats } from './types.js'
 
 /**
  * Custom error class for subscription-related errors.
@@ -173,22 +167,11 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @param agentId The agent ID.
    * @param subject The subject making the request.
-   * @returns {Promise<PublicSubscription[]>} All subscriptions for the specified agent.
+   * @returns {Promise<Subscription[]>} All subscriptions for the specified agent.
    */
-  async getSubscriptionsByAgentId(
-    agentId: string,
-    subject: string = 'unknown',
-  ): Promise<PublicSubscription[]> {
+  async getSubscriptionsByAgentId(agentId: string, subject: string = 'unknown'): Promise<Subscription[]> {
     const subs = await this.#db.getByAgentId(agentId)
-    const pubs = subs
-      .filter((sub) => sub.public || sub.owner === subject)
-      .map((sub) => ({
-        id: sub.id,
-        agent: sub.agent,
-        args: sub.args,
-        owner: sub.owner,
-        public: sub.public,
-      }))
+    const pubs = subs.filter((sub) => sub.public || sub.owner === subject)
     return pubs
   }
 

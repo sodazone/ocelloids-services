@@ -115,8 +115,6 @@ export const $Subscription = z.object({
     .min(1),
 })
 
-export const $PublicSubscription = $Subscription.omit({ channels: true, ephemeral: true })
-
 export const $NewSubscription = $Subscription.omit({ owner: true })
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
@@ -126,11 +124,6 @@ export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscri
 export type NewSubscription<T = Record<string, any>> = Omit<z.infer<typeof $NewSubscription>, 'args'> & {
   args: T
 }
-
-export type PublicSubscription<T = Record<string, any>> = Omit<
-  z.infer<typeof $PublicSubscription>,
-  'args'
-> & { args: T }
 
 export type EgressListener = (sub: Subscription, msg: Message) => void
 

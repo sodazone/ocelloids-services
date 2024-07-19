@@ -5,13 +5,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 import { $AgentId, AgentId } from '@/services/agents/types.js'
 import { CAP_READ, CAP_WRITE } from '@/services/auth.js'
 
-import {
-  $NewSubscription,
-  $PublicSubscription,
-  $Subscription,
-  $SubscriptionId,
-  NewSubscription,
-} from '../types.js'
+import { $NewSubscription, $Subscription, $SubscriptionId, NewSubscription } from '../types.js'
 import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from './handlers.js'
 import $JSONPatch from './json-patch.js'
 
@@ -40,7 +34,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         response: {
           200: {
             type: 'array',
-            items: zodToJsonSchema($PublicSubscription),
+            items: zodToJsonSchema($Subscription),
           },
           404: { type: 'string' },
         },
