@@ -2,6 +2,7 @@
   {
     "id": "polkadot-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:0",
       "senders": "*",
@@ -35,6 +36,7 @@
   {
     "id": "polkadot-assethub-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:1000",
       "senders": "*",
@@ -57,7 +59,9 @@
         "urn:ocn:kusama:1000",
         "urn:ocn:kusama:1002"
       ],
-      "bridges": [ "pk-bridge" ],
+      "bridges": [
+        "pk-bridge"
+      ],
       "events": "*"
     },
     "channels": [
@@ -73,6 +77,7 @@
   {
     "id": "acala-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2000",
       "senders": "*",
@@ -101,6 +106,7 @@
   {
     "id": "moonbeam-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2004",
       "senders": "*",
@@ -134,6 +140,7 @@
   {
     "id": "astar-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2006",
       "senders": "*",
@@ -164,6 +171,7 @@
   {
     "id": "composable-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2019",
       "senders": "*",
@@ -189,6 +197,7 @@
   {
     "id": "nodle-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2026",
       "senders": "*",
@@ -213,6 +222,7 @@
   {
     "id": "bifrost-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2030",
       "senders": "*",
@@ -241,6 +251,7 @@
   {
     "id": "centrifuge-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2031",
       "senders": "*",
@@ -265,6 +276,7 @@
   {
     "id": "interlay-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2032",
       "senders": "*",
@@ -292,6 +304,7 @@
   {
     "id": "hydra-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2034",
       "senders": "*",
@@ -322,6 +335,7 @@
   {
     "id": "phala-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2035",
       "senders": "*",
@@ -348,6 +362,7 @@
   {
     "id": "pendulum-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2094",
       "senders": "*",
@@ -371,6 +386,7 @@
   {
     "id": "manta-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:2104",
       "senders": "*",
@@ -396,6 +412,7 @@
   {
     "id": "polkadot-bridgehub-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:polkadot:1002",
       "senders": "*",
@@ -418,6 +435,7 @@
   {
     "id": "kusama-assethub-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:kusama:1000",
       "senders": "*",
@@ -428,7 +446,9 @@
         "urn:ocn:polkadot:1000",
         "urn:ocn:polkadot:1002"
       ],
-      "bridges": [ "pk-bridge" ],
+      "bridges": [
+        "pk-bridge"
+      ],
       "events": "*"
     },
     "channels": [
@@ -444,6 +464,7 @@
   {
     "id": "kusama-bridgehub-transfers",
     "agent": "xcm",
+    "public": true,
     "args": {
       "origin": "urn:ocn:kusama:1002",
       "senders": "*",
