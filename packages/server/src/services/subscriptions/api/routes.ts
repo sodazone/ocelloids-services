@@ -21,7 +21,7 @@ import $JSONPatch from './json-patch.js'
 export async function SubscriptionApi(api: FastifyInstance) {
   const { switchboard } = api
 
-  // Route to get all public subscription data for an agent
+  // Route to get all subscriptions for an agent
   api.get<{
     Params: {
       agentId: AgentId
@@ -47,7 +47,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(await switchboard.getPublicSubscriptionsByAgentId(agentId))
+      reply.send(await switchboard.getSubscriptionsByAgentId(agentId, request.account?.subject))
     },
   )
 

@@ -172,12 +172,13 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * Retrieves all subscriptions for a specific agent.
    *
    * @param agentId The agent ID.
+   * @param subject The subject making the request.
    * @returns {Promise<PublicSubscription[]>} All subscriptions for the specified agent.
    */
-  async getPublicSubscriptionsByAgentId(agentId: string): Promise<PublicSubscription[]> {
+  async getSubscriptionsByAgentId(agentId: string, subject?: string): Promise<PublicSubscription[]> {
     const subs = await this.#db.getByAgentId(agentId)
     const pubs = subs
-      .filter((sub) => sub.public)
+      .filter((sub) => sub.public || sub.owner === subject)
       .map((sub) => ({
         id: sub.id,
         agent: sub.agent,
