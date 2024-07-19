@@ -2,6 +2,74 @@ import { Kysely, sql } from 'kysely'
 
 import { CAP_ADMIN, CAP_READ, CAP_TELEMETRY, CAP_WRITE } from '@/services/auth.js'
 
+async function createInitialAccounts(db: Kysely<any>) {
+  // Root Account
+  const rootAccount = await db
+    .insertInto('account')
+    .values({
+      subject: 'root@ocelloids',
+    })
+    .onConflict((oc) => oc.doNothing())
+    .executeTakeFirst()
+
+  if (rootAccount.insertId) {
+    await db
+      .insertInto('api-token')
+      .values({
+        id: '00000000000000000000000000',
+        name: 'root',
+        account_id: rootAccount.insertId,
+        scope: [CAP_ADMIN, CAP_WRITE, CAP_READ].join(' '),
+      })
+      .onConflict((oc) => oc.doNothing())
+      .executeTakeFirst()
+  }
+
+  // Demo Account
+  const readOnlyAccount = await db
+    .insertInto('account')
+    .values({
+      subject: 'public@ocelloids',
+    })
+    .onConflict((oc) => oc.doNothing())
+    .executeTakeFirst()
+
+  if (readOnlyAccount.insertId) {
+    await db
+      .insertInto('api-token')
+      .values({
+        id: '01000000000000000000000000',
+        name: 'public read only',
+        account_id: readOnlyAccount.insertId,
+        scope: [CAP_READ].join(' '),
+      })
+      .onConflict((oc) => oc.doNothing())
+      .executeTakeFirst()
+  }
+
+  // Telemetry Account
+  const telemetryAccount = await db
+    .insertInto('account')
+    .values({
+      subject: 'telemetry@ocelloids',
+    })
+    .onConflict((oc) => oc.doNothing())
+    .executeTakeFirst()
+
+  if (telemetryAccount.insertId) {
+    await db
+      .insertInto('api-token')
+      .values({
+        id: '02000000000000000000000000',
+        name: 'telemetry',
+        account_id: telemetryAccount.insertId,
+        scope: [CAP_TELEMETRY].join(' '),
+      })
+      .onConflict((oc) => oc.doNothing())
+      .executeTakeFirst()
+  }
+}
+
 export async function up(db: Kysely<any>): Promise<void> {
   try {
     await db.schema
@@ -37,56 +105,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .column('account_id')
       .execute()
 
-    const rootAccount = await db
-      .insertInto('account')
-      .values({
-        subject: 'root@ocelloids',
-      })
-      .executeTakeFirst()
-
-    await db
-      .insertInto('api-token')
-      .values({
-        id: '00000000000000000000000000',
-        name: 'root',
-        account_id: rootAccount.insertId,
-        scope: [CAP_ADMIN, CAP_WRITE, CAP_READ].join(' '),
-      })
-      .executeTakeFirst()
-
-    const telemetryAccount = await db
-      .insertInto('account')
-      .values({
-        subject: 'telemetry@ocelloids',
-      })
-      .executeTakeFirst()
-
-    await db
-      .insertInto('api-token')
-      .values({
-        id: '02000000000000000000000000',
-        name: 'telemetry',
-        account_id: telemetryAccount.insertId,
-        scope: [CAP_TELEMETRY].join(' '),
-      })
-      .executeTakeFirst()
-
-    const readOnlyAccount = await db
-      .insertInto('account')
-      .values({
-        subject: 'public@ocelloids',
-      })
-      .executeTakeFirst()
-
-    await db
-      .insertInto('api-token')
-      .values({
-        id: '01000000000000000000000000',
-        name: 'public read only',
-        account_id: readOnlyAccount.insertId,
-        scope: [CAP_READ].join(' '),
-      })
-      .executeTakeFirst()
+    await createInitialAccounts(db)
   } catch (error) {
     console.error(error)
     throw error
