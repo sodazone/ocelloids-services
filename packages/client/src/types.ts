@@ -78,6 +78,11 @@ export type Subscription<T = AnySubscriptionInputs> = {
   args: T
 
   /**
+   * Indicates a public scope.
+   */
+  public?: boolean
+
+  /**
    * Indicates the persistence preference.
    */
   ephemeral?: boolean
