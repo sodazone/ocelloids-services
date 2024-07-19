@@ -12,7 +12,7 @@ import {
   $SubscriptionId,
   NewSubscription,
 } from '../types.js'
-import { OnlyOwner, SubscriptionPathParams } from './handlers.js'
+import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from './handlers.js'
 import $JSONPatch from './json-patch.js'
 
 /**
@@ -60,7 +60,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       config: {
         caps: [CAP_READ],
       },
-      preHandler: [OnlyOwner],
+      preHandler: [PublicOrOwner],
       schema: {
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),

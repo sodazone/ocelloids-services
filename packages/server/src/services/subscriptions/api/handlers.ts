@@ -59,7 +59,7 @@ export async function OnlyOwner(request: SubscriptionRequest) {
  * @param request - The Fastify request object.
  * @throws {AuthorizationError} If the request account does not own the subscription and it is not public.
  */
-export async function OwnerOrPublic(request: SubscriptionRequest) {
+export async function PublicOrOwner(request: SubscriptionRequest) {
   const sub = await subscriptionFromRequest(request)
 
   if (request.server.authEnabled && sub.public !== true) {

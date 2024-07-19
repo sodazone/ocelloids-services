@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth.js'
-import { OnlyOwner, SubscriptionPathParams } from '../handlers.js'
+import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from '../handlers.js'
 import WebsocketProtocol from './protocol.js'
 
 declare module 'fastify' {
@@ -43,7 +43,7 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
     '/ws/subs/:agentId/:subscriptionId',
     {
       websocket: true,
-      preHandler: [OnlyOwner],
+      preHandler: [PublicOrOwner],
       config: { wsAuth: true, caps: [CAP_READ] },
       schema: { hide: true },
     },
