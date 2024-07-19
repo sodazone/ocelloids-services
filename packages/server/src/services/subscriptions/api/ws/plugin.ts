@@ -1,9 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth.js'
-import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from '../handlers.js'
 import WebsocketProtocol from './protocol.js'
+import { SubscriptionWebSocketsApi } from './routes.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -36,32 +35,7 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
     await protocol.stop()
   })
 
-  fastify.get<{
-    Querystring: NodQuerystring
-    Params: SubscriptionPathParams
-  }>(
-    '/ws/subs/:agentId/:subscriptionId',
-    {
-      websocket: true,
-      preHandler: [PublicOrOwner],
-      config: { wsAuth: true, caps: [CAP_READ] },
-      schema: { hide: true },
-    },
-    (socket, request): void => {
-      const { agentId, subscriptionId } = request.params
-      setImmediate(() => protocol.handle(socket, request, { agentId, subscriptionId }))
-    },
-  )
-
-  fastify.get<{
-    Querystring: NodQuerystring
-  }>(
-    '/ws/subs',
-    { websocket: true, config: { wsAuth: true, caps: [CAP_WRITE] }, schema: { hide: true } },
-    (socket, request): void => {
-      setImmediate(() => protocol.handle(socket, request))
-    },
-  )
+  await fastify.register(SubscriptionWebSocketsApi)
 }
 
 export default fp(websocketProtocolPlugin, {
