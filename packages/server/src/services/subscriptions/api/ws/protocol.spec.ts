@@ -85,7 +85,65 @@ describe('WebsocketProtocol', () => {
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
+      jest.advanceTimersByTime(1)
       expect(mockSwitchboard.subscribe).toHaveBeenCalledTimes(1)
+    })
+
+    it('should send error if subscription is not valid JSON', async () => {
+      const mockData = Buffer.from('macario')
+      const mockStream = {
+        close: jest.fn(),
+        once: jest.fn(),
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData)
+        }),
+        write: jest.fn(),
+        send: jest.fn(),
+      } as any
+
+      await websocketProtocol.handle(mockStream, mockRequest)
+      await flushPromises()
+      expect(mockSwitchboard.subscribe).toHaveBeenCalledTimes(0)
+      expect(mockStream.send).toHaveBeenCalledWith(
+        '{"issues":[{"code":"custom","message":"Invalid JSON","path":[]}],"name":"ZodError"}',
+        expect.any(Function),
+      )
+    })
+
+    it('should perform authentication if configured', async () => {
+      const mockVerify = jest.fn()
+      const mockRequestWithAuth = {
+        id: 'mockRequestId',
+        ip: 'mockRequestIp',
+        server: {
+          authEnabled: true,
+          jwt: {
+            verify: mockVerify,
+          },
+          log: {
+            error: jest.fn(),
+          },
+        },
+      } as unknown as FastifyRequest
+      const mockData = Buffer.from(JSON.stringify(testSub))
+      const mockStream = {
+        close: jest.fn(() => console.log('close')),
+        once: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData)
+        }),
+        on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          fn(mockData)
+        }),
+        write: jest.fn(() => console.log('write')),
+        send: jest.fn(() => console.log('send')),
+      } as any
+
+      websocketProtocol.handle(mockStream, mockRequestWithAuth)
+      await new Promise(setImmediate)
+      await flushPromises()
+
+      expect(mockSwitchboard.subscribe).toHaveBeenCalledTimes(0)
+      expect(mockVerify).toHaveBeenCalledTimes(1)
     })
 
     it('should close connection if number of connections exceed maxClients', async () => {
