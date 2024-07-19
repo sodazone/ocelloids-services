@@ -10,7 +10,13 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { SubsStore } from '@/services/persistence/level/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
-import { EgressListener, Subscription, SubscriptionStats } from './types.js'
+import {
+  EgressListener,
+  NewSubscription,
+  PublicSubscription,
+  Subscription,
+  SubscriptionStats,
+} from './types.js'
 
 /**
  * Custom error class for subscription-related errors.
@@ -61,15 +67,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Subscribes to the given subscription(s).
    *
-   * @param {Subscription | Subscription[]} subscription - The subscription(s).
+   * @param {NewSubscription | NewSubscription[]} subscription - The subscription(s).
    * @throws {SubscribeError | Error} If there is an error creating the subscription.
    */
-  async subscribe(subscription: Subscription | Subscription[]) {
+  async subscribe(subscription: NewSubscription | NewSubscription[], subject: string = 'unknown') {
     if (Array.isArray(subscription)) {
       const tmp = []
       try {
         for (const s of subscription) {
-          await this.#subscribe(s)
+          await this.#subscribe(s, subject)
           tmp.push(s)
         }
       } catch (error) {
@@ -79,7 +85,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         throw error
       }
     } else {
-      await this.#subscribe(subscription)
+      await this.#subscribe(subscription, subject)
     }
   }
 
@@ -139,7 +145,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    */
   async start() {
     for (const agentId of this.#agentCatalog.getAgentIds()) {
-      const persistentSubs = await this.getSubscriptionsByAgentId(agentId)
+      const persistentSubs = await this.#db.getByAgentId(agentId)
       if (persistentSubs.length > 0) {
         this.#stats.persistent = persistentSubs.length
       }
@@ -163,26 +169,23 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Retrieves all subscriptions for all known agents.
-   *
-   * @returns {Promise<Subscription[]>} All subscriptions.
-   */
-  async getAllSubscriptions(): Promise<Subscription[]> {
-    const subs: Subscription[][] = []
-    for (const agentId of this.#agentCatalog.getAgentIds()) {
-      subs.push(await this.#db.getByAgentId(agentId))
-    }
-    return subs.flat()
-  }
-
-  /**
    * Retrieves all subscriptions for a specific agent.
    *
    * @param agentId The agent ID.
-   * @returns {Promise<Subscription[]>} All subscriptions for the specified agent.
+   * @returns {Promise<PublicSubscription[]>} All subscriptions for the specified agent.
    */
-  async getSubscriptionsByAgentId(agentId: string): Promise<Subscription[]> {
-    return await this.#db.getByAgentId(agentId)
+  async getPublicSubscriptionsByAgentId(agentId: string): Promise<PublicSubscription[]> {
+    const subs = await this.#db.getByAgentId(agentId)
+    const pubs = subs
+      .filter((sub) => sub.public)
+      .map((sub) => ({
+        id: sub.id,
+        agent: sub.agent,
+        args: sub.args,
+        owner: sub.owner,
+        public: sub.public,
+      }))
+    return pubs
   }
 
   /**
@@ -234,38 +237,41 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
   /**
    * Internal method to handle subscription logic.
    *
-   * @param subscription - The subscription to handle.
+   * @param {NewSubscription} newSubscription - The subscription to handle.
    * @throws {SubscribeError} If there are too many subscriptions.
    *
    * @private
    */
-  async #subscribe(subscription: Subscription) {
+  async #subscribe(newSubscription: NewSubscription, subject: string) {
     if (this.#stats.ephemeral >= this.#maxEphemeral || this.#stats.persistent >= this.#maxPersistent) {
       throw new SubscribeError('too many subscriptions')
     }
 
-    await this.#subscriptionShouldNotExist(subscription)
+    await this.#subscriptionShouldNotExist(newSubscription.agent, newSubscription.id)
 
-    const agent = this.#agentCatalog.getSubscribableById(subscription.agent)
+    const agent = this.#agentCatalog.getSubscribableById(newSubscription.agent)
 
-    agent.inputSchema.parse(subscription.args)
+    agent.inputSchema.parse(newSubscription.args)
 
-    await agent.subscribe(subscription)
+    const ownedSubscription = newSubscription as Subscription
+    ownedSubscription.owner = subject
 
-    this.#log.info('[%s] new subscription: %j', subscription.agent, subscription)
+    await agent.subscribe(ownedSubscription)
+
+    this.#log.info('[%s] new subscription: %j', ownedSubscription.agent, ownedSubscription)
 
     try {
-      if (subscription.ephemeral) {
+      if (ownedSubscription.ephemeral) {
         this.#stats.ephemeral++
       } else {
-        await this.#db.insert(subscription)
+        await this.#db.insert(ownedSubscription)
         this.#stats.persistent++
       }
     } catch (error) {
       this.#log.error(
         '[%s] error while persisting subscription: %s',
-        subscription.agent,
-        subscription.id,
+        ownedSubscription.agent,
+        ownedSubscription.id,
         error,
       )
     }
@@ -279,10 +285,12 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  async #subscriptionShouldNotExist({ agent, id }: Subscription) {
+  async #subscriptionShouldNotExist(agentId: string, subscriptionId: string) {
     try {
-      await this.getSubscriptionById(agent, id)
-      throw new SubscribeError(`Subscription already exists (agent=${agent}, id=${id})`)
+      await this.getSubscriptionById(agentId, subscriptionId)
+      throw new SubscribeError(
+        `Subscription already exists (agentId=${agentId}, subscriptionId=${subscriptionId})`,
+      )
     } catch (error) {
       if (error instanceof NotFound) {
         //

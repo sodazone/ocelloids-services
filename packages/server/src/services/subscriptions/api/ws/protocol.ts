@@ -154,7 +154,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
                 try {
                   this.#addSubscriber(onDemandSub, socket, request)
                   resolvedId = { id: onDemandSub.id, agent: onDemandSub.agent }
-                  await this.#switchboard.subscribe(onDemandSub)
+                  await this.#switchboard.subscribe(onDemandSub, request.account?.subject)
                   this.#safeWrite(socket, onDemandSub)
                 } catch (error) {
                   if (error instanceof ZodError) {

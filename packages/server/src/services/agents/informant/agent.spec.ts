@@ -28,6 +28,7 @@ jest.spyOn(SharedStreams.prototype, 'blockExtrinsics').mockImplementation((_chai
 const eventSub: Subscription<InformantInputs> = {
   id: 'test-event-sub',
   agent: 'informant',
+  owner: 'test-account',
   args: {
     networks: ['urn:ocn:polkadot:0'],
     // Set the filter criteria for the events
@@ -49,6 +50,7 @@ const eventSub: Subscription<InformantInputs> = {
 const extrinsicSub: Subscription<InformantInputs> = {
   id: 'test-extrinsic-sub',
   agent: 'informant',
+  owner: 'test-account',
   args: {
     networks: ['urn:ocn:polkadot:0'],
     filter: {

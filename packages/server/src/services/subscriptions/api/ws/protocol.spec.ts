@@ -11,6 +11,7 @@ const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('ti
 const testSub: Subscription = {
   id: 'test-subscription',
   agent: 'xcm',
+  owner: 'test-account',
   args: {
     origin: '1000',
     senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],

@@ -1,11 +1,18 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { $AgentId, AgentId } from '@/services/agents/types.js'
 import { CAP_READ, CAP_WRITE } from '@/services/auth.js'
 
-import { $Subscription, $SubscriptionId, Subscription } from '../types.js'
+import {
+  $NewSubscription,
+  $PublicSubscription,
+  $Subscription,
+  $SubscriptionId,
+  NewSubscription,
+} from '../types.js'
+import { OnlyOwner, SubscriptionPathParams } from './handlers.js'
 import $JSONPatch from './json-patch.js'
 
 /**
@@ -14,32 +21,7 @@ import $JSONPatch from './json-patch.js'
 export async function SubscriptionApi(api: FastifyInstance) {
   const { switchboard } = api
 
-  /**
-   * GET subs
-   */
-  api.get(
-    '/subs',
-    {
-      config: {
-        caps: [CAP_READ],
-      },
-      schema: {
-        response: {
-          200: {
-            type: 'array',
-            items: zodToJsonSchema($Subscription),
-          },
-        },
-      },
-    },
-    async (_, reply) => {
-      reply.send(await switchboard.getAllSubscriptions())
-    },
-  )
-
-  /**
-   * GET subs/:agentId
-   */
+  // Route to get all public subscription data for an agent
   api.get<{
     Params: {
       agentId: AgentId
@@ -57,7 +39,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         response: {
           200: {
             type: 'array',
-            items: zodToJsonSchema($Subscription),
+            items: zodToJsonSchema($PublicSubscription),
           },
           404: { type: 'string' },
         },
@@ -65,24 +47,20 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(await switchboard.getSubscriptionsByAgentId(agentId))
+      reply.send(await switchboard.getPublicSubscriptionsByAgentId(agentId))
     },
   )
 
-  /**
-   * GET subs/:agentId/:subscriptionId
-   */
+  // Route to retrieve a subscription from an agent
   api.get<{
-    Params: {
-      subscriptionId: string
-      agentId: AgentId
-    }
+    Params: SubscriptionPathParams
   }>(
     '/subs/:agentId/:subscriptionId',
     {
       config: {
         caps: [CAP_READ],
       },
+      preHandler: [OnlyOwner],
       schema: {
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
@@ -95,16 +73,13 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { agentId, subscriptionId } = request.params
-      reply.send(await switchboard.getSubscriptionById(agentId, subscriptionId))
+      reply.send(request.subscription)
     },
   )
 
-  /**
-   * POST subs
-   */
+  // Route to subscribe to an agent
   api.post<{
-    Body: Subscription | Subscription[]
+    Body: NewSubscription | NewSubscription[]
   }>(
     '/subs',
     {
@@ -114,10 +89,10 @@ export async function SubscriptionApi(api: FastifyInstance) {
       schema: {
         body: {
           oneOf: [
-            zodToJsonSchema($Subscription),
+            zodToJsonSchema($NewSubscription),
             {
               type: 'array',
-              items: zodToJsonSchema($Subscription),
+              items: zodToJsonSchema($NewSubscription),
             },
           ],
         },
@@ -131,19 +106,14 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const subs = request.body
-      await switchboard.subscribe(subs)
+      await switchboard.subscribe(subs, request.account?.subject)
       reply.status(201).send()
     },
   )
 
-  /**
-   * PATCH subs/:agentId/:subscriptionId
-   */
+  // Route to update subscriptons
   api.patch<{
-    Params: {
-      subscriptionId: string
-      agentId: AgentId
-    }
+    Params: SubscriptionPathParams
     Body: Operation[]
   }>(
     '/subs/:agentId/:subscriptionId',
@@ -151,6 +121,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       config: {
         caps: [CAP_WRITE],
       },
+      preHandler: [OnlyOwner],
       schema: {
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
@@ -177,20 +148,16 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
   )
 
-  /**
-   * DELETE subs/:agentId/:subscriptionId
-   */
+  // Route to delete subscriptions
   api.delete<{
-    Params: {
-      agentId: AgentId
-      subscriptionId: string
-    }
+    Params: SubscriptionPathParams
   }>(
     '/subs/:agentId/:subscriptionId',
     {
       config: {
         caps: [CAP_WRITE],
       },
+      preHandler: [OnlyOwner],
       schema: {
         params: {
           agentId: zodToJsonSchema($AgentId),

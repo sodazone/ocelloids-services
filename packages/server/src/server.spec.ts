@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
-import { Subscription } from '@/services/subscriptions/types.js'
+import { NewSubscription, Subscription } from '@/services/subscriptions/types.js'
 
 import '@/testing/network.js'
 
@@ -9,6 +9,7 @@ import { mockServer } from '@/testing/server.js'
 const testSubContent = {
   id: 'macatron',
   agent: 'xcm',
+  owner: 'unknown',
   args: {
     origin: 'urn:ocn:local:1000',
     senders: ['ALICE'],
@@ -83,7 +84,7 @@ describe('monitoring server API', () => {
                 type: 'log',
               },
             ],
-          } as Subscription,
+          } as NewSubscription,
         },
         (_err, response) => {
           done()

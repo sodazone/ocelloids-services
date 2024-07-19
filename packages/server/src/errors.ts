@@ -4,7 +4,7 @@ import { ZodError } from 'zod'
 export class NotFound extends Error {
   statusCode = 404
 
-  constructor(message: string) {
+  constructor(message: string = 'not found') {
     super(message)
   }
 }
@@ -12,7 +12,15 @@ export class NotFound extends Error {
 export class ValidationError extends Error {
   statusCode = 400
 
-  constructor(message: string) {
+  constructor(message: string = 'validation error') {
+    super(message)
+  }
+}
+
+export class AuthorizationError extends Error {
+  statusCode = 401
+
+  constructor(message: string = 'authorization error') {
     super(message)
   }
 }

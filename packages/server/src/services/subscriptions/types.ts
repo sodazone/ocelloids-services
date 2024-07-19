@@ -103,28 +103,34 @@ export const $AgentArgs = z.record(
   z.any(),
 )
 
-export const $Subscription = z
-  .object({
-    id: $SubscriptionId,
-    agent: $AgentId,
-    args: $AgentArgs,
-    ephemeral: z.optional(z.boolean()),
-    channels: z
-      .array(z.discriminatedUnion('type', [$WebhookNotification, $LogNotification, $WebsocketNotification]))
-      .min(1),
-  })
-  .refine(
-    (schema) =>
-      !schema.ephemeral ||
-      (schema.channels !== undefined &&
-        schema.channels.length === 1 &&
-        schema.channels[0].type === 'websocket'),
-    'ephemeral subscriptions only supports websocket notifications',
-  )
+export const $Subscription = z.object({
+  id: $SubscriptionId,
+  agent: $AgentId,
+  args: $AgentArgs,
+  owner: z.string(),
+  public: z.optional(z.boolean()),
+  ephemeral: z.optional(z.boolean()),
+  channels: z
+    .array(z.discriminatedUnion('type', [$WebhookNotification, $LogNotification, $WebsocketNotification]))
+    .min(1),
+})
+
+export const $PublicSubscription = $Subscription.omit({ channels: true, ephemeral: true })
+
+export const $NewSubscription = $Subscription.omit({ owner: true })
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
 
 export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscription>, 'args'> & { args: T }
+
+export type NewSubscription<T = Record<string, any>> = Omit<z.infer<typeof $NewSubscription>, 'args'> & {
+  args: T
+}
+
+export type PublicSubscription<T = Record<string, any>> = Omit<
+  z.infer<typeof $PublicSubscription>,
+  'args'
+> & { args: T }
 
 export type EgressListener = (sub: Subscription, msg: Message) => void
 

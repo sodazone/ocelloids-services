@@ -58,6 +58,7 @@ jest.unstable_mockModule('./ops/pk-bridge.js', () => {
 const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',
   agent: 'xcm',
+  owner: 'unknown',
   args: {
     origin: 'urn:ocn:local:1000',
     senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
@@ -420,6 +421,7 @@ describe('xcm agent', () => {
     xcmAgent.subscribe({
       id: 'test-bridge-sub',
       agent: 'xcm',
+      owner: 'unknown',
       args: {
         origin: 'urn:ocn:local:1000',
         destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000', 'urn:ocn:wococo:1000'],

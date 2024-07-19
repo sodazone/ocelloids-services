@@ -1,6 +1,6 @@
 import { Kysely, sql } from 'kysely'
 
-import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '@/services/auth.js'
+import { CAP_ADMIN, CAP_READ, CAP_TELEMETRY, CAP_WRITE } from '@/services/auth.js'
 
 export async function up(db: Kysely<any>): Promise<void> {
   try {
@@ -54,10 +54,27 @@ export async function up(db: Kysely<any>): Promise<void> {
       })
       .executeTakeFirst()
 
+    const telemetryAccount = await db
+      .insertInto('account')
+      .values({
+        subject: 'telemetry@ocelloids',
+      })
+      .executeTakeFirst()
+
+    await db
+      .insertInto('api-token')
+      .values({
+        id: '02000000000000000000000000',
+        name: 'telemetry',
+        account_id: telemetryAccount.insertId,
+        scope: [CAP_TELEMETRY].join(' '),
+      })
+      .executeTakeFirst()
+
     const readOnlyAccount = await db
       .insertInto('account')
       .values({
-        subject: 'public@ocelloids'
+        subject: 'public@ocelloids',
       })
       .executeTakeFirst()
 
