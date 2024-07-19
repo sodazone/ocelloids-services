@@ -22,6 +22,15 @@ function ensureOwnership(request: FastifyRequest, sub: Subscription) {
   }
 }
 
+type SubscriptionRequest = FastifyRequest<{
+  Params: SubscriptionPathParams
+}>
+
+async function subscriptionFromRequest(request: SubscriptionRequest) {
+  const { agentId, subscriptionId } = request.params
+  return await request.server.switchboard.getSubscriptionById(agentId, subscriptionId)
+}
+
 export interface SubscriptionPathParams {
   subscriptionId: string
   agentId: AgentId
@@ -34,15 +43,26 @@ export interface SubscriptionPathParams {
  * @param request - The Fastify request object.
  * @throws {AuthorizationError} If the request account does not own the subscription.
  */
-export async function OnlyOwner(
-  request: FastifyRequest<{
-    Params: SubscriptionPathParams
-  }>,
-) {
-  const { agentId, subscriptionId } = request.params
-  const sub = await request.server.switchboard.getSubscriptionById(agentId, subscriptionId)
+export async function OnlyOwner(request: SubscriptionRequest) {
+  const sub = await subscriptionFromRequest(request)
 
   if (request.server.authEnabled) {
+    ensureOwnership(request, sub)
+  }
+
+  request.subscription = sub
+}
+
+/**
+ * Middleware to ensure access to owned or publicly flagged subscriptions.
+ *
+ * @param request - The Fastify request object.
+ * @throws {AuthorizationError} If the request account does not own the subscription and it is not public.
+ */
+export async function OwnerOrPublic(request: SubscriptionRequest) {
+  const sub = await subscriptionFromRequest(request)
+
+  if (request.server.authEnabled && sub.public !== true) {
     ensureOwnership(request, sub)
   }
 
