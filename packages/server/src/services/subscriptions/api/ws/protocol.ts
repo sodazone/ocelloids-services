@@ -13,7 +13,7 @@ import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { $Subscription, EgressListener, Subscription } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '@/services/telemetry/types.js'
 import { Logger } from '@/services/types.js'
-import { PublicOrOwner, ensureOwnership } from '../handlers.js'
+import { ensureOwnership } from '../handlers.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
 const $EphemeralSubscription = z
