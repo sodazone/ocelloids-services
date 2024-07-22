@@ -122,7 +122,7 @@ export async function createServer(opts: ServerOptions) {
       components: {
         securitySchemes: {
           BearerAuth: {
-            description: 'EdDSA256 JWT signed by private key, with account subject and token id in payload',
+            description: 'Ed25519 JWT signed by private key, with account subject and token id in payload',
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
