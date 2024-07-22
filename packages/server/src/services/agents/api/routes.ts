@@ -25,6 +25,7 @@ export async function AgentsApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['agents'],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -67,6 +68,7 @@ export async function AgentsApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['agents'],
         response: {
           200: {
             type: 'array',
@@ -94,6 +96,7 @@ export async function AgentsApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['agents'],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -123,6 +126,7 @@ export async function AgentsApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['agents'],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },

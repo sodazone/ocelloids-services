@@ -67,7 +67,9 @@ export async function AccountsApi(api: FastifyInstance) {
       config: {
         caps: [CAP_WRITE],
       },
-      schema: {},
+      schema: {
+        tags: ['accounts'],
+      },
     },
     async (request, reply) => {
       const account = accountFromRequest(request)
@@ -83,7 +85,9 @@ export async function AccountsApi(api: FastifyInstance) {
       config: {
         caps: [CAP_READ],
       },
-      schema: {},
+      schema: {
+        tags: ['accounts'],
+      },
     },
     async (request, reply) => {
       const account = accountFromRequest(request)
@@ -98,7 +102,9 @@ export async function AccountsApi(api: FastifyInstance) {
       config: {
         caps: [CAP_READ],
       },
-      schema: {},
+      schema: {
+        tags: ['accounts'],
+      },
     },
     async (request, reply) => {
       const account = accountFromRequest(request)
@@ -122,6 +128,7 @@ export async function AccountsApi(api: FastifyInstance) {
         caps: [CAP_WRITE],
       },
       schema: {
+        tags: ['accounts'],
         body: {
           type: 'object',
           properties: {
@@ -175,7 +182,9 @@ export async function AccountsApi(api: FastifyInstance) {
       config: {
         caps: [CAP_WRITE],
       },
-      schema: {},
+      schema: {
+        tags: ['accounts'],
+      },
     },
     async (request, reply) => {
       const account = accountFromRequest(request)

@@ -28,6 +28,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['subscriptions'],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -57,6 +58,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
       preHandler: [PublicOrOwner],
       schema: {
+        tags: ['subscriptions'],
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
@@ -82,6 +84,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
         caps: [CAP_WRITE],
       },
       schema: {
+        tags: ['subscriptions'],
         body: {
           oneOf: [
             zodToJsonSchema($NewSubscription),
@@ -118,6 +121,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
       preHandler: [OnlyOwner],
       schema: {
+        tags: ['subscriptions'],
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
@@ -154,6 +158,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
       preHandler: [OnlyOwner],
       schema: {
+        tags: ['subscriptions'],
         params: {
           agentId: zodToJsonSchema($AgentId),
           subscriptionId: zodToJsonSchema($SubscriptionId),

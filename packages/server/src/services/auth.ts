@@ -179,11 +179,14 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
           throw new Error('anti-dos parameter not provided')
         }
 
-        // JWT Auth
-        const payload = await request.jwtVerify<JwtPayload>()
+        // Apply authorization if caps are configured
+        if (config.caps && config.caps.length > 0) {
+          // JWT Auth
+          const payload = await request.jwtVerify<JwtPayload>()
 
-        // Account Auth
-        await ensureAccountAuthorized(fastify, request, payload)
+          // Account Auth
+          await ensureAccountAuthorized(fastify, request, payload)
+        }
       } catch (error) {
         reply.status(401).send({
           message: (error as Error).message,

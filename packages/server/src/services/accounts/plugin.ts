@@ -11,11 +11,11 @@ declare module 'fastify' {
 }
 
 const accountsPlugin: FastifyPluginAsync = async (fastify, _) => {
-  fastify.register(AccountsApi)
-
   const accountsRepository = new AccountsRepository(fastify.kysely.sqliteDB)
 
   fastify.decorate('accountsRepository', accountsRepository)
+
+  fastify.register(AccountsApi)
 }
 
 export default fp(accountsPlugin, { fastify: '>=4.x', name: 'accounts', dependencies: ['kysely'] })

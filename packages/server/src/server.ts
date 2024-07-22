@@ -88,78 +88,98 @@ export async function createServer(opts: ServerOptions) {
     await server.register(FastifyCors, corsOpts)
   }
 
-  await server.register(async function publicContext(childServer) {
-    await childServer.register(FastifyHealthcheck, {
-      exposeUptime: true,
-    })
+  await server.register(FastifyHealthcheck, {
+    exposeUptime: true,
   })
 
-  await server.register(async function authenticatedContext(childServer) {
-    childServer.setErrorHandler(errorHandler)
+  server.setErrorHandler(errorHandler)
 
-    await childServer.register(Limit, opts)
-    await childServer.register(Root)
+  await server.register(Limit, opts)
+  await server.register(Root)
 
-    await childServer.register(FastifyWebsocket, {
-      options: {
-        // we don't need to negotiate subprotocols
-        handleProtocols: undefined,
-        maxPayload: WS_MAX_PAYLOAD,
-        perMessageDeflate: false,
-        // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
-        // backlog: 511 // # default
+  await server.register(FastifyWebsocket, {
+    options: {
+      // we don't need to negotiate subprotocols
+      handleProtocols: undefined,
+      maxPayload: WS_MAX_PAYLOAD,
+      perMessageDeflate: false,
+      // https://elixir.bootlin.com/linux/v4.15.18/source/Documentation/networking/ip-sysctl.txt#L372
+      // backlog: 511 // # default
+    },
+    // override default pre-close
+    // we explicitly handle it with terminate
+    preClose: () => {
+      /* empty */
+    },
+  })
+
+  await server.register(FastifySwagger, {
+    openapi: {
+      info: {
+        title: 'Ocelloids Execution Node',
+        version,
       },
-      // override default pre-close
-      // we explicitly handle it with terminate
-      preClose: () => {
-        /* empty */
-      },
-    })
-
-    await childServer.register(FastifySwagger, {
-      openapi: {
-        info: {
-          title: 'Ocelloids Execution Node',
-          version,
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            description: 'EdDSA256 JWT signed by private key, with account subject and token id in payload',
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
         },
       },
-    })
+      tags: [
+        {
+          name: 'accounts',
+          description: 'Account-related endpoints',
+        },
+        {
+          name: 'subscriptions',
+          description: 'Subscription-related endpoints',
+        },
+        {
+          name: 'agents',
+          description: 'Agent-related endpoints',
+        },
+      ],
+    },
+  })
 
-    await childServer.register(FastifySwaggerUI, {
-      routePrefix: '/documentation',
-    })
+  await server.register(FastifySwaggerUI, {
+    routePrefix: '/documentation',
+  })
 
-    if (!opts.distributed) {
-      await childServer.register(Configuration, opts)
-      await childServer.register(Connector)
-    }
+  if (!opts.distributed) {
+    await server.register(Configuration, opts)
+    await server.register(Connector)
+  }
 
-    await childServer.register(LevelDB, opts)
-    await childServer.register(Kysely, opts)
-    await childServer.register(Ingress, opts)
-    await childServer.register(Agents, opts)
-    await childServer.register(Subscriptions, opts)
-    await childServer.register(Administration)
-    await childServer.register(Telemetry, opts)
-    await childServer.register(Accounts, opts)
-    await childServer.register(Auth, opts)
+  await server.register(LevelDB, opts)
+  await server.register(Kysely, opts)
+  await server.register(Ingress, opts)
+  await server.register(Agents, opts)
+  await server.register(Subscriptions, opts)
+  await server.register(Administration)
+  await server.register(Telemetry, opts)
+  await server.register(Accounts, opts)
+  await server.register(Auth, opts)
 
-    childServer.addHook('onClose', function (_, done) {
-      const { websocketServer } = childServer
-      if (websocketServer.clients) {
-        for (const client of websocketServer.clients) {
-          client.close(1001, 'server shutdown')
-          if (client.readyState !== client.CLOSED) {
-            // Websocket clients could ignore the close acknowledge
-            // breaking the clean shutdown of the server.
-            // To prevent it we terminate the socket.
-            client.terminate()
-          }
+  server.addHook('onClose', function (_, done) {
+    const { websocketServer } = server
+    if (websocketServer.clients) {
+      for (const client of websocketServer.clients) {
+        client.close(1001, 'server shutdown')
+        if (client.readyState !== client.CLOSED) {
+          // Websocket clients could ignore the close acknowledge
+          // breaking the clean shutdown of the server.
+          // To prevent it we terminate the socket.
+          client.terminate()
         }
-        childServer.log.info('Closing websockets: OK')
       }
-      done()
-    })
+      server.log.info('Closing websockets: OK')
+    }
+    done()
   })
 
   return server
