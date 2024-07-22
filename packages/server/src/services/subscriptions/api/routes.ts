@@ -43,7 +43,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(await switchboard.getSubscriptionsByAgentId(agentId, request.account?.subject))
+      reply.send(await switchboard.getReadableSubscriptions(agentId, request.account?.subject))
     },
   )
 
