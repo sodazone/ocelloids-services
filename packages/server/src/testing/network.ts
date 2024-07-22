@@ -4,12 +4,15 @@ import * as P from '@polkadot/api'
 import * as C from '@sodazone/ocelloids-sdk'
 import { MemoryLevel } from 'memory-level'
 
-import { _configToml } from './data.js'
+import { _configToml, jwtSigKey } from './data.js'
 
 jest.unstable_mockModule('node:fs', () => {
   return {
     default: {
-      readFileSync: () => {
+      readFileSync: (file: string) => {
+        if (file === 'keys') {
+          return jwtSigKey
+        }
         return _configToml
       },
     },

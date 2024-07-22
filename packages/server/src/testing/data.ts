@@ -141,3 +141,15 @@ id = "urn:ocn:paseo:0"
   type = "rpc"
   url = "ws://localhost:6000"
 `
+
+export const jwtSigKey = `
+  {
+    "use":"sig",
+    "kty":"OKP",
+    "kid":"y27ec-ZpjEcWSAbGz6zt_08nWkJ18Db21vLKlwkLxSY=",
+    "crv":"Ed25519",
+    "alg":"EdDSA",
+    "d": "OrUxD8lEjqIu7Rhi_Wo590NOTMNGYM3kMlETMSimFZc",
+    "x": "O6ljryhfUImIYY05ZsbEehfKE-YXu3e_FSV0CqZr-9s"
+  }
+`

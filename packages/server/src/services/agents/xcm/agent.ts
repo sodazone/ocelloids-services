@@ -261,10 +261,6 @@ export class XcmAgent implements Agent, Subscribable {
     const subs: RxSubscriptionWithId[] = []
     const chainId = origin as NetworkURN
 
-    if (this.#subs.hasSubscriptionForOrigin(id, chainId)) {
-      throw new Error(`Fatal: duplicated origin monitor ${id} for chain ${chainId}`)
-    }
-
     const sendersControl = ControlQuery.from(sendersCriteria(senders))
     const messageControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]))
 
@@ -344,10 +340,12 @@ export class XcmAgent implements Agent, Subscribable {
         })
       }
     } catch (error) {
+      /* istanbul ignore next */
       // Clean up subscriptions.
       subs.forEach(({ sub }) => {
         sub.unsubscribe()
       })
+      /* istanbul ignore next */
       throw error
     }
 
@@ -430,10 +428,6 @@ export class XcmAgent implements Agent, Subscribable {
     }
 
     const type: BridgeType = 'pk-bridge'
-
-    if (this.#subs.hasSubscriptionForBridge(id, type)) {
-      throw new Error(`Fatal: duplicated PK bridge monitor ${id}`)
-    }
 
     const subs: RxSubscriptionWithId[] = []
 

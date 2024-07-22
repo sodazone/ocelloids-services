@@ -51,6 +51,37 @@ describe('monitoring server API', () => {
       )
     })
 
+    it('should get ingress networks', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/ingress/networks',
+        },
+        (_err, response) => {
+          expect(response.statusCode).toStrictEqual(200)
+          expect(response.json().length).toBeGreaterThan(1)
+
+          done()
+        },
+      )
+    })
+
+    it('should return 400 on malformed subscription', (done) => {
+      server.inject(
+        {
+          method: 'POST',
+          url: '/subs',
+          body: {
+            hello: 9,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(400)
+        },
+      )
+    })
+
     it('should create a subscription', (done) => {
       server.inject(
         {

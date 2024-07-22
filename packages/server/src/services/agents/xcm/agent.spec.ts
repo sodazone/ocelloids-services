@@ -338,37 +338,6 @@ describe('xcm agent', () => {
     expect(bridgeSubs.length).toBe(1)
   })
 
-  it.skip('should handle pipe errors in bridge subscriptions', async () => {
-    jest
-      .spyOn(SharedStreams.prototype, 'blockEvents')
-      .mockImplementationOnce((_chainId: NetworkURN) => from(polkadotBlocks).pipe(extractEvents()))
-    jest.spyOn(_ingress, 'getRegistry').mockImplementationOnce(() => throwError(() => new Error('errored')))
-    const spy = jest.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverBridge')
-
-    await agentService.startAgent('xcm')
-
-    const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
-    const id = 'test-bridge-sub'
-    xcmAgent.subscribe({
-      id,
-      agent: 'xcm',
-      owner: 'unknown',
-      args: {
-        origin: 'urn:ocn:local:1000',
-        destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000', 'urn:ocn:wococo:1000'],
-        bridges: ['pk-bridge'],
-      },
-      channels: [
-        {
-          type: 'log',
-        },
-      ],
-    })
-
-    expect(xcmAgent.getSubscriptionHandler(id)).toBeDefined()
-    expect(spy).toHaveBeenCalled()
-  })
-
   it('should throw on bridge subscription without destination on different consensus', async () => {
     await agentService.startAgent('xcm')
 

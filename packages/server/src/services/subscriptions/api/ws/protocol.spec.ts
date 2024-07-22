@@ -85,7 +85,6 @@ describe('WebsocketProtocol', () => {
 
       await websocketProtocol.handle(mockStream, mockRequest)
       await flushPromises()
-      jest.advanceTimersByTime(1)
       expect(mockSwitchboard.subscribe).toHaveBeenCalledTimes(1)
     })
 
@@ -127,15 +126,15 @@ describe('WebsocketProtocol', () => {
       } as unknown as FastifyRequest
       const mockData = Buffer.from(JSON.stringify(testSub))
       const mockStream = {
-        close: jest.fn(() => console.log('close')),
+        close: jest.fn(),
         once: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
         on: jest.fn((_: string, fn: (data: Buffer) => void) => {
           fn(mockData)
         }),
-        write: jest.fn(() => console.log('write')),
-        send: jest.fn(() => console.log('send')),
+        write: jest.fn(),
+        send: jest.fn(),
       } as any
 
       websocketProtocol.handle(mockStream, mockRequestWithAuth)
