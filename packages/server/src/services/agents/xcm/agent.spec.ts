@@ -352,6 +352,7 @@ describe('xcm agent', () => {
     xcmAgent.subscribe({
       id,
       agent: 'xcm',
+      owner: 'unknown',
       args: {
         origin: 'urn:ocn:local:1000',
         destinations: ['urn:ocn:local:0', 'urn:ocn:local:2000', 'urn:ocn:wococo:1000'],
@@ -378,6 +379,7 @@ describe('xcm agent', () => {
       xcmAgent.subscribe({
         id,
         agent: 'xcm',
+        owner: 'unknown',
         args: {
           origin: 'urn:ocn:local:1000',
           destinations: ['urn:ocn:local:0'],
@@ -405,6 +407,7 @@ describe('xcm agent', () => {
       xcmAgent.subscribe({
         id,
         agent: 'xcm',
+        owner: 'unknown',
         args: {
           origin,
           destinations,
