@@ -143,7 +143,6 @@ describe('subscription api', () => {
           },
         },
         (_err, response) => {
-          console.log(response)
           done()
           expect(response.statusCode).toStrictEqual(201)
         },

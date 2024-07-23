@@ -27,7 +27,9 @@ describe('monitoring server API', () => {
   let server: FastifyInstance
 
   beforeAll(async () => {
-    server = await mockServer()
+    server = await mockServer({
+      cors: true,
+    })
     return server.ready()
   })
 
@@ -64,6 +66,14 @@ describe('monitoring server API', () => {
           done()
         },
       )
+    })
+
+    it('should throw if instantiating the server with non-local agent catalog', async () => {
+      await expect(
+        mockServer({
+          mode: 'lol',
+        }),
+      ).rejects.toThrow('Only local agent service is supported')
     })
 
     it('should return 400 on malformed subscription', (done) => {

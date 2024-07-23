@@ -10,6 +10,7 @@ declare module 'fastify' {
 }
 
 const connectorPlugin: FastifyPluginAsync = async (fastify) => {
+  /* istanbul ignore next */
   if (fastify.localConfig === undefined) {
     return
   }
