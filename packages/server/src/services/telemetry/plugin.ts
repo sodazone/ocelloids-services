@@ -3,7 +3,7 @@ import fp from 'fastify-plugin'
 import { Level } from 'level'
 import { collectDefaultMetrics, register } from 'prom-client'
 
-import { CAP_TELEMETRY } from '../auth.js'
+import { CAP_TELEMETRY } from '../auth/index.js'
 import { collectDiskStats } from './metrics/disk.js'
 import { collect } from './metrics/index.js'
 import { collectSwitchboardStats } from './metrics/switchboard.js'

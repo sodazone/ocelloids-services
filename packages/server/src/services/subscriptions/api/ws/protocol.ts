@@ -7,7 +7,7 @@ import { ZodError, ZodIssueCode, z } from 'zod'
 
 import { ValidationError, errorMessage } from '@/errors.js'
 import { AgentId } from '@/services/agents/types.js'
-import { JwtPayload, ensureAccountAuthorized } from '@/services/auth.js'
+import { JwtPayload, ensureAccountAuthorized } from '@/services/auth/index.js'
 import { Message } from '@/services/egress/types.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { $Subscription, EgressListener, Subscription } from '@/services/subscriptions/types.js'

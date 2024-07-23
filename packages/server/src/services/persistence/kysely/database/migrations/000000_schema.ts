@@ -1,6 +1,6 @@
 import { Kysely, sql } from 'kysely'
 
-import { CAP_ADMIN, CAP_READ, CAP_TELEMETRY, CAP_WRITE } from '@/services/auth.js'
+import { CAP_ADMIN, CAP_READ, CAP_TELEMETRY, CAP_WRITE } from '@/services/auth/index.js'
 
 async function createInitialAccounts(db: Kysely<any>) {
   // Root Account

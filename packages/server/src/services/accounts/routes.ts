@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
 
 import { NotFound, ValidationError } from '@/errors.js'
-import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth.js'
+import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth/index.js'
 import { AccountsRepository } from './repository.js'
 
 interface InvitationQueryString {

@@ -3,7 +3,7 @@ import { Operation } from 'rfc6902'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { $AgentId, AgentId } from '@/services/agents/types.js'
-import { CAP_READ, CAP_WRITE } from '@/services/auth.js'
+import { CAP_READ, CAP_WRITE } from '@/services/auth/index.js'
 
 import { $NewSubscription, $Subscription, $SubscriptionId, NewSubscription } from '../types.js'
 import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from './handlers.js'

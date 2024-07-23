@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { CAP_ADMIN } from '../auth.js'
+import { CAP_ADMIN } from '../auth/index.js'
 import { NetworkURN, jsonEncoded, prefixes } from '../types.js'
 
 type chainIdParam = {

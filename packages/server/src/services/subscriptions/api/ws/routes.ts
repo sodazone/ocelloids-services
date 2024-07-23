@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
-import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth.js'
+import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth/index.js'
 
 import { SubscriptionPathParams } from '../handlers.js'
 
