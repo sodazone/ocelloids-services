@@ -1,9 +1,6 @@
 import { jest } from '@jest/globals'
 
-import { EventEmitter } from 'events'
 import { ValidationError } from '@/errors.js'
-import { Message } from '@/lib.js'
-import { Egress } from '@/services/egress/index.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { _egress, _services } from '@/testing/services.js'
