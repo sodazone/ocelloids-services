@@ -308,7 +308,9 @@ describe('WebsocketProtocol', () => {
         payload: {},
       }
       const emitSpy = jest.spyOn(websocketProtocol, 'emit')
-      jest.spyOn(testSubStream, 'send').mockImplementationOnce(() => {throw new Error('test error')})
+      jest.spyOn(testSubStream, 'send').mockImplementationOnce(() => {
+        throw new Error('test error')
+      })
 
       await mockSwitchboard.subscribe(testSub)
 
