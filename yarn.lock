@@ -2043,6 +2043,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@polkadot/rpc-provider@patch:@polkadot/rpc-provider@npm%3A11.2.1#~/.yarn/patches/@polkadot-rpc-provider-npm-11.2.1-da70f3b9e8.patch":
+  version: 11.2.1
+  resolution: "@polkadot/rpc-provider@patch:@polkadot/rpc-provider@npm%3A11.2.1#~/.yarn/patches/@polkadot-rpc-provider-npm-11.2.1-da70f3b9e8.patch::version=11.2.1&hash=60ecd9"
+  dependencies:
+    "@polkadot/keyring": "npm:^12.6.2"
+    "@polkadot/types": "npm:11.2.1"
+    "@polkadot/types-support": "npm:11.2.1"
+    "@polkadot/util": "npm:^12.6.2"
+    "@polkadot/util-crypto": "npm:^12.6.2"
+    "@polkadot/x-fetch": "npm:^12.6.2"
+    "@polkadot/x-global": "npm:^12.6.2"
+    "@polkadot/x-ws": "npm:^12.6.2"
+    "@substrate/connect": "npm:0.8.10"
+    eventemitter3: "npm:^5.0.1"
+    mock-socket: "npm:^9.3.1"
+    nock: "npm:^13.5.0"
+    tslib: "npm:^2.6.2"
+  dependenciesMeta:
+    "@substrate/connect":
+      optional: true
+  checksum: 10c0/77714c00e717560d1f27344b36e3ee10f3fe510b8e526aef05725a9a390220601536415991d39f586b78bc098e3f005baf15dc3ef02c205168c639bdb7672196
+  languageName: node
+  linkType: hard
+
 "@polkadot/types-augment@npm:11.2.1":
   version: 11.2.1
   resolution: "@polkadot/types-augment@npm:11.2.1"
