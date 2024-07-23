@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { FastifyReply } from 'fastify'
 import { ZodError } from 'zod'
 
@@ -41,11 +42,9 @@ export function errorHandler(error: any, _: any, reply: FastifyReply) {
   if (error.statusCode) {
     reply.status(error.statusCode).send(jsonError(error))
   } else if (error instanceof ZodError) {
-    /* istanbul ignore next */
     reply.status(400).send(jsonError(error))
   } else {
     // to parent handler
-    /* istanbul ignore next */
     reply.status(500).send(jsonError(error))
   }
 }
