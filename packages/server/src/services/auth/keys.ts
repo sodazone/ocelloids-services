@@ -1,17 +1,15 @@
 import { KeyObject, createPrivateKey, createPublicKey } from 'node:crypto'
-import fs from 'node:fs'
-import { FastifyInstance } from 'fastify'
 
 type KeyPair = {
   prv?: KeyObject
   pub: KeyObject
 }
 
-function importFromPEM(keyFile: string): KeyPair {
-  if (keyFile.startsWith('-----BEGIN PRIVATE KEY-----')) {
-    return { prv: createPrivateKey(keyFile), pub: createPublicKey(keyFile) }
-  } else if (keyFile.startsWith('-----BEGIN PUBLIC KEY-----')) {
-    return { pub: createPublicKey(keyFile) }
+function importFromPEM(keyData: string): KeyPair {
+  if (keyData.startsWith('-----BEGIN PRIVATE KEY-----')) {
+    return { prv: createPrivateKey(keyData), pub: createPublicKey(keyData) }
+  } else if (keyData.startsWith('-----BEGIN PUBLIC KEY-----')) {
+    return { pub: createPublicKey(keyData) }
   } else {
     throw new Error('malformed key file')
   }
@@ -33,30 +31,23 @@ function importFromJWK(keyFile: string): KeyPair {
 /**
  * Import EdDSA keys from a file.
  */
-export function importKeys(fastify: FastifyInstance, path: string) {
+export function importKeys(keyData: string) {
   try {
-    const keyFile = fs.readFileSync(path, 'utf8')
+    const data = keyData.trim()
     let pair: KeyPair
 
-    fastify.log.info('[auth] Importing keys from %s', path)
-
-    if (keyFile.startsWith('-----BEGIN')) {
-      pair = importFromPEM(keyFile)
+    if (data.startsWith('-----BEGIN')) {
+      pair = importFromPEM(data)
     } else {
-      pair = importFromJWK(keyFile)
+      pair = importFromJWK(data)
     }
 
     if (pair.prv) {
-      fastify.log.info('[auth] Key pair imported')
-
       return {
         public: pair.pub.export({ type: 'spki', format: 'pem' }),
         private: pair.prv.export({ type: 'pkcs8', format: 'pem' }),
       }
     } else {
-      fastify.log.info('[auth] Public key imported')
-      fastify.log.info('[auth] No private key, signing is disabled')
-
       return {
         public: pair.pub.export({ type: 'spki', format: 'pem' }),
       }

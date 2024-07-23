@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+
 import jwt from '@fastify/jwt'
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
@@ -40,7 +42,18 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
 
   fastify.decorate('authEnabled', true)
 
-  const secret = importKeys(fastify, options.jwtSigKeyFile)
+  const keyFilePath = options.jwtSigKeyFile
+
+  fastify.log.info('[auth] Importing keys from %s', keyFilePath)
+
+  const keyData = fs.readFileSync(keyFilePath, 'utf8')
+  const secret = importKeys(keyData)
+
+  fastify.log.info('[auth] Key pair imported')
+
+  if (secret.private === undefined) {
+    fastify.log.info('[auth] No private key, signing is disabled')
+  }
 
   fastify.register(jwt, {
     secret,
