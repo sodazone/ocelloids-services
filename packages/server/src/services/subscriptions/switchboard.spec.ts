@@ -32,28 +32,17 @@ const testSub: Subscription = {
 describe('switchboard service', () => {
   let switchboard: Switchboard
   let subs: SubsStore
-  let agentService: AgentCatalog
 
   beforeAll(async () => {
     subs = new SubsStore(_services.log, _services.levelDB)
-    agentService = new LocalAgentCatalog(
-      {
-        ..._services,
-        subsStore: subs,
-      } as Services,
-      { mode: AgentServiceMode.local },
-    )
-
     switchboard = new SwitchboardImpl(_services, {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
     })
-    await agentService.startAgent('xcm')
   })
 
   afterAll(async () => {
     await _services.levelDB.clear()
-    return agentService.stop()
   })
 
   it('should add a subscription by agent', async () => {

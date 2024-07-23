@@ -116,9 +116,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           try {
             const payload = fastify.jwt.verify<JwtPayload>(data.toString().trim())
             await ensureAccountAuthorized(fastify, request, payload)
-
-            this.#handleSubscribe(socket, request, ids)
-
+            await this.#handleSubscribe(socket, request, ids)
             // acknowledge auth
             socket.send(JSON.stringify({ code: 1000, error: false }))
           } catch (error) {
@@ -128,7 +126,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         })
       })
     } else {
-      this.#handleSubscribe(socket, request, ids)
+      await this.#handleSubscribe(socket, request, ids)
     }
   }
 
@@ -197,7 +195,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         }
         this.#addSubscriber(subscription, socket, request)
       }
-    } catch {
+    } catch (_e) {
       socket.close(1007, 'inconsistent payload')
     }
   }

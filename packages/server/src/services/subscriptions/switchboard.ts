@@ -164,7 +164,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
 
   /**
    * Retrieves all readable (i.e. public or owned by subject) subscriptions for a specific agent.
-   * 
+   *
    * @param agentId The agent ID.
    * @param subject The subject making the request.
    * @returns {Promise<Subscription[]>} All subscriptions for the specified agent.

@@ -276,6 +276,7 @@ const __services = {
   subsStore: {} as unknown as SubsStore,
   ingress: {} as unknown as IngressConsumer,
   agentCatalog: {} as unknown as AgentCatalog,
+  egress: {} as unknown as Egress,
   scheduler: {
     on: () => {
       /* empty */
@@ -292,11 +293,13 @@ const __services = {
 }
 
 export const _ingress = new LocalIngressConsumer(__services)
+export const _egress = new Egress(__services)
 export const _subsDB = new SubsStore(_log, _rootDB)
 export const _agentService = new LocalAgentCatalog(
   {
     ...__services,
     ingress: _ingress,
+    egress: _egress,
     subsStore: _subsDB,
   } as Services,
   { mode: AgentServiceMode.local },
@@ -305,7 +308,6 @@ export const _agentService = new LocalAgentCatalog(
 export const _services = {
   ...__services,
   ingress: _ingress,
-  egress: {} as unknown as Egress,
   subsStore: _subsDB,
   agentCatalog: _agentService,
 } as Services

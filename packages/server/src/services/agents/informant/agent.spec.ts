@@ -70,13 +70,16 @@ const extrinsicSub: Subscription<InformantInputs> = {
 describe('informant agent', () => {
   let subs: SubsStore
   let agentService: AgentCatalog
+  let egress: Egress
 
   beforeEach(() => {
     subs = new SubsStore(_services.log, _services.levelDB)
+    egress = new Egress(_services)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
         subsStore: subs,
+        egress,
       } as Services,
       { mode: AgentServiceMode.local },
     )
@@ -103,7 +106,7 @@ describe('informant agent', () => {
   })
 
   it('should subscribe to extrinsic subscriptions', async () => {
-    const spy = jest.spyOn(Egress.prototype, 'publish')
+    const spy = jest.spyOn(egress, 'publish')
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(extrinsicSub)
@@ -133,12 +136,12 @@ describe('informant agent', () => {
   })
 
   it('should publish to egress for event subscriptions', async () => {
-    const spy = jest.spyOn(Egress.prototype, 'publish')
+    const spy = jest.spyOn(egress, 'publish')
 
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(eventSub)
-    expect(spy).toHaveBeenCalledTimes(4)
+    expect(spy).toHaveBeenCalledTimes(3)
   })
 
   it('should unsubscribe subscription', async () => {

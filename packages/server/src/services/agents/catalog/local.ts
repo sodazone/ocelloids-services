@@ -37,14 +37,14 @@ export class LocalAgentCatalog implements AgentCatalog {
 
   constructor(ctx: Services, _options: AgentCatalogOptions) {
     this.#log = ctx.log
-    this.#egress = new Egress(ctx)
+    this.#egress = ctx.egress
     this.#agents = this.#loadAgents({
       log: ctx.log,
       ingress: ctx.ingress,
       janitor: ctx.janitor,
       db: ctx.levelDB,
       scheduler: ctx.scheduler,
-      egress: this.#egress,
+      egress: ctx.egress,
     })
   }
 

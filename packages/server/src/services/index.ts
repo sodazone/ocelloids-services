@@ -3,6 +3,7 @@ import Administration from './admin/routes.js'
 import Agents from './agents/plugin.js'
 import Auth from './auth.js'
 import Configuration from './config.js'
+import Egress from './egress/plugin.js'
 import Ingress from './ingress/consumer/plugin.js'
 import Limit from './limit.js'
 import Connector from './networking/plugin.js'
@@ -28,4 +29,5 @@ export {
   Subscriptions,
   Telemetry,
   Ingress,
+  Egress,
 }

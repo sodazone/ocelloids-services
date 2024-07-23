@@ -19,6 +19,7 @@ import {
   Auth,
   Configuration,
   Connector,
+  Egress,
   Ingress,
   Kysely,
   LevelDB,
@@ -158,6 +159,7 @@ export async function createServer(opts: ServerOptions) {
   await server.register(LevelDB, opts)
   await server.register(Kysely, opts)
   await server.register(Ingress, opts)
+  await server.register(Egress, opts)
   await server.register(Agents, opts)
   await server.register(Subscriptions, opts)
   await server.register(Administration)
