@@ -1,6 +1,6 @@
 # Ocelloids Offchain Agents
 
-Ocelloids provides the infrastructure to develop, operate, and deploy offchain agents ([def.1](#d1-offchain-agents)), which interact with the blockchain without operating directly on it. Each agent is implemented as an [ECMAScript Module](https://tc39.es/ecma262/#sec-modules) and conforms to the `Agent` interface. Currently, agents support two behaviors: `Subscribable` and `Queryable`.
+Ocelloids provides the infrastructure to develop, operate, and deploy offchain agents ([def.1](#d1-offchain-agents)). Each agent is implemented as an [ECMAScript Module](https://tc39.es/ecma262/#sec-modules) and conforms to the `Agent` interface. Currently, agents support two behaviors: `Subscribable` and `Queryable`.
 
 Agents have access to essential services defined in the `AgentRuntimeContext` from the Ocelloids host.
 
