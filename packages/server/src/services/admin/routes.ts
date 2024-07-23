@@ -26,17 +26,6 @@ async function AdminRoutes(api: FastifyInstance) {
     },
   }
 
-  const tipsDB = rootStore.sublevel<string, any>(prefixes.cache.tips, jsonEncoded)
-
-  api.get('/admin/cache/tips', opts, async (_, reply) => {
-    reply.send(await tipsDB.iterator(itOps).all())
-  })
-
-  api.delete('/admin/cache/tips', opts, async (_, reply) => {
-    await tipsDB.clear()
-    reply.send()
-  })
-
   api.get<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded)
     reply.send(await db.iterator(itOps).all())

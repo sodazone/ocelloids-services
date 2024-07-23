@@ -2,18 +2,13 @@ import { FastifyInstance } from 'fastify'
 
 import '@/testing/network.js'
 
+import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
 import { mockServer } from '@/testing/server.js'
 
 const flushPromises = () => new Promise((res) => process.nextTick(res))
 
 describe('accounts api', () => {
   let server: FastifyInstance
-  const rootToken =
-    'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsInN1YiI6InJvb3RAb2NlbGxvaWRzIiwiaXNzIjoidGVzdCIsImlhdCI6MTcyMTczMzkxN30.nBuCOzUYl4ABOBg8A52ga9R5DUYtx8XdkU_xHlGzy_DMnIhA9qRDZFSzCund3qxQo_Jcv_iB9JZL-7M-5TD7Aw'
-  const publicToken =
-    'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsInN1YiI6InB1YmxpY0BvY2VsbG9pZHMiLCJpc3MiOiJ0ZXN0IiwiaWF0IjoxNzIxNjQ2NjE5fQ.eD5EBUclmJp6oyLS_FECuZxUDr_QUp5ISqzTu4H6LiOq_fjLZFJoWdfRZLpGnp5AgOI7rO7LpeiV60wMePW9Aw'
-  const invalidToken =
-    'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsInN1YiI6Im1hY2FyaW8iLCJpc3MiOiJ0ZXN0IiwiaWF0IjoxNzIxNjQ2NjE5fQ.TR6eH5XPxSG-fboGrMjlUAzeUL3zyUifu56DK2_bssU8nUKXXacUhvCeLW6zdsuTFAq6gm5rRL9pvbp0n8I2Bg'
   let macarioToken = ''
 
   beforeAll(async () => {
