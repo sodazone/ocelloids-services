@@ -47,7 +47,7 @@ export default class Connector {
       }
     } else {
       this.#log.info('Register WS provider: %s', id)
-      this.#chains[id] = new WsProvider(provider.url, 2_500, undefined, 10_000, 2)
+      this.#chains[id] = new WsProvider(provider.url, 2_500, undefined, 10_000, 128)
     }
   }
 
