@@ -13,7 +13,7 @@ function importFromPEM(keyFile: string): KeyPair {
   } else if (keyFile.startsWith('-----BEGIN PUBLIC KEY-----')) {
     return { pub: createPublicKey(keyFile) }
   } else {
-    throw new Error('Fatal: malformed key file')
+    throw new Error('malformed key file')
   }
 }
 
