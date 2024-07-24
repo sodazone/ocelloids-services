@@ -36,6 +36,7 @@ import {
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
+  $DatabaseOptions,
   $JwtServerOptions,
   $KyselyServerOptions,
   $LevelServerOptions,
@@ -54,6 +55,7 @@ export const $ServerOptions = z
   .merge($JwtServerOptions)
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
+  .merge($DatabaseOptions)
   .merge($LevelServerOptions)
   .merge($KyselyServerOptions)
   .merge($RedisServerOptions)

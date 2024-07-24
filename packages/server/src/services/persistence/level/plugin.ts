@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -5,6 +7,7 @@ import { Level } from 'level'
 import { MemoryLevel } from 'memory-level'
 import { RaveLevel } from 'rave-level'
 
+import { DatabaseOptions, LevelServerOptions } from '@/types.js'
 import { LevelDB, LevelEngine } from '../../types.js'
 import { Janitor, JanitorOptions } from './janitor.js'
 import { Scheduler, SchedulerOptions } from './scheduler.js'
@@ -19,14 +22,10 @@ declare module 'fastify' {
   }
 }
 
-type DBOptions = JanitorOptions &
-  SchedulerOptions & {
-    data: string
-    levelEngine: LevelEngine
-  }
+type LevelOptions = JanitorOptions & SchedulerOptions & DatabaseOptions & LevelServerOptions
 
-function createLevel({ log }: FastifyInstance, { data, levelEngine }: DBOptions): Level {
-  const dbPath = data || './.db'
+function createLevel({ log }: FastifyInstance, { data, levelEngine }: LevelOptions): Level {
+  const dbPath = path.join(data || './.db', 'level')
 
   log.info('[level] engine %s', levelEngine)
   log.info('[level] open database at %s', dbPath)
@@ -47,7 +46,7 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: DBOptions)
  * @param fastify - The Fastify instance
  * @param options - The persistence options
  */
-const levelDBPlugin: FastifyPluginAsync<DBOptions> = async (fastify, options) => {
+const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options) => {
   const root = createLevel(fastify, options)
   const scheduler = new Scheduler(fastify.log, root, options)
   const janitor = new Janitor(fastify.log, root, scheduler, options)

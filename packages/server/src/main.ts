@@ -72,7 +72,6 @@ addServerOptions(program)
   .name('oc-node')
   .description('Ocelloids Service Node')
   .version(version)
-  .addOption(opt('--sql-data <path>', 'SQL database path', 'OC_SQL_DB').default(':memory:'))
   .addOption(
     optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(
       10_000,

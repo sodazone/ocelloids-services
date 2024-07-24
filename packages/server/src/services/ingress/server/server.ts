@@ -12,6 +12,7 @@ import { Auth, Configuration, Connector, LevelDB, Root, Telemetry } from '@/serv
 import {
   $BaseServerOptions,
   $ConfigServerOptions,
+  $DatabaseOptions,
   $LevelServerOptions,
   $RedisServerOptions,
 } from '@/types.js'
@@ -24,6 +25,7 @@ export const $ServerOptions = z
   })
   .merge($BaseServerOptions)
   .merge($ConfigServerOptions)
+  .merge($DatabaseOptions)
   .merge($LevelServerOptions)
   .merge($RedisServerOptions)
 

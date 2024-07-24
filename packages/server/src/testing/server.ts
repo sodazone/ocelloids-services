@@ -7,7 +7,6 @@ export function mockServer(overrides?: Record<string, any>) {
   return createServer({
     config: 'config/test.toml',
     data: '',
-    sqlData: ':memory:',
     scheduler: false,
     telemetry: true,
     sweepExpiry: 0,

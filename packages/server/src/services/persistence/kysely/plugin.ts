@@ -1,8 +1,10 @@
+import path from 'node:path'
+
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 import { Kysely } from 'kysely'
 
-import { KyselyServerOptions } from '@/types.js'
+import { DatabaseOptions, KyselyServerOptions } from '@/types.js'
 import { migrate, openDatabase } from './database/db.js'
 import { Database } from './database/types.js'
 
@@ -16,8 +18,10 @@ declare module 'fastify' {
   }
 }
 
-const kyselyPlugin: FastifyPluginAsync<KyselyServerOptions> = async (fastify, options) => {
-  const filename = options.sqlData ?? ':memory:'
+type KyselyOptions = DatabaseOptions & KyselyServerOptions
+
+const kyselyPlugin: FastifyPluginAsync<KyselyOptions> = async (fastify, { data }) => {
+  const filename = data && data.length > 0 ? path.join(data, '/sqlite') : ':memory:'
 
   fastify.log.info('[kysely] open sqlite database at %s', filename)
 

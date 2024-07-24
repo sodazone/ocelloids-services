@@ -15,25 +15,22 @@ export const $RedisServerOptions = z.object({
   redisUrl: z.string().optional(),
 })
 
-export const $LevelServerOptions = z.object({
+export const $DatabaseOptions = z.object({
   data: z
     .string({
       required_error: 'Database directory path is required',
     })
     .min(1),
+})
+
+export const $LevelServerOptions = z.object({
   levelEngine: z.nativeEnum(LevelEngine).default(LevelEngine.classic),
   scheduler: z.boolean().default(true),
   schedulerFrequency: z.number().min(1000),
   sweepExpiry: z.number().min(20000),
 })
 
-export const $KyselyServerOptions = z.object({
-  sqlData: z
-    .string({
-      required_error: 'Database directory path is required',
-    })
-    .min(1),
-})
+export const $KyselyServerOptions = z.object({})
 
 export const $ConfigServerOptions = z.object({
   config: z.string().min(1).optional(),
@@ -71,6 +68,8 @@ export type JwtServerOptions = z.infer<typeof $JwtServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
 export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
 export type KyselyServerOptions = z.infer<typeof $KyselyServerOptions>
+export type LevelServerOptions = z.infer<typeof $LevelServerOptions>
+export type DatabaseOptions = z.infer<typeof $DatabaseOptions>
 export type IngressOptions = {
   distributed?: boolean
 } & RedisServerOptions

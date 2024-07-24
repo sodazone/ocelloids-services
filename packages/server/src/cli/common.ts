@@ -6,7 +6,7 @@ export function addServerOptions(command: Command) {
     .addOption(opt('-a, --address <address>', 'address to bind to', 'OC_ADDRESS').default('localhost'))
     .addOption(optInt('-p, --port <number>', 'port number to listen on', 'OC_PORT').default(3000))
     .addOption(opt('-c, --config <file>', 'service configuration file', 'OC_CONFIG_FILE'))
-    .addOption(opt('-d, --data <dir>', 'database directory', 'OC_DATA_DIR').default('./.db'))
+    .addOption(opt('-d, --data <dir>', 'data directory', 'OC_DATA_DIR').default('./.db'))
     .addOption(opt('--level-engine <engine>', 'level engine', 'OC_LEVEL_ENGINE').default('classic'))
     .addOption(
       optBool(
