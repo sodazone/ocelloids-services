@@ -23,7 +23,7 @@ const testSubContent = {
   ],
 } as Subscription
 
-describe('monitoring server API', () => {
+describe('Ocelloids Server HTTP API', () => {
   let server: FastifyInstance
 
   beforeAll(async () => {
@@ -84,6 +84,40 @@ describe('monitoring server API', () => {
           body: {
             hello: 9,
           },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(400)
+        },
+      )
+    })
+
+    it('should prevent JSON.parse prototype poisoning', (done) => {
+      const json = `{ 
+              "id": "poison",
+              "agent": "xcm",
+              "args": {
+                "origin": "urn:ocn:local:1000",
+                "senders": "*",
+                "events": "*",
+                "destinations": ["urn:ocn:local:2000"]
+              },
+              "__proto__": { "owner": "xxx" },
+              "channels": [
+                {
+                  "type": "log"
+                }
+              ]
+          }`
+
+      server.inject(
+        {
+          method: 'POST',
+          url: '/subs',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: json,
         },
         (_err, response) => {
           done()

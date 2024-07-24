@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 
 import { WebSocket } from '@fastify/websocket'
+import { safeDestr } from 'destr'
 import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
 import { ZodError, ZodIssueCode, z } from 'zod'
@@ -21,7 +22,7 @@ const $EphemeralSubscription = z
   .transform((str, ctx) => {
     try {
       return {
-        ...JSON.parse(str),
+        ...safeDestr<Subscription>(str),
         id: ulid(),
         ephemeral: true,
         channels: [

@@ -4,6 +4,8 @@ import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } 
 
 import { Registry } from '@polkadot/types-codec/types'
 
+import { safeDestr } from 'destr'
+
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
@@ -186,16 +188,16 @@ export class DataSteward implements Agent, Queryable {
     if (version === 'v4') {
       const multiLocation = registry.createType(
         'StagingXcmV4Location',
-        JSON.parse(cleansedLoc),
+        safeDestr(cleansedLoc),
       ) as unknown as XcmV4Location
       return parseMultiLocation(network, multiLocation)
     }
     if (version === 'v2') {
-      const multiLocation = registry.createType('XcmV2MultiLocation', JSON.parse(cleansedLoc))
+      const multiLocation = registry.createType('XcmV2MultiLocation', safeDestr(cleansedLoc))
       return parseMultiLocation(network, multiLocation)
     }
     // Try V3 as fallback if no version passed
-    const multiLocation = registry.createType('StagingXcmV3MultiLocation', JSON.parse(cleansedLoc))
+    const multiLocation = registry.createType('StagingXcmV3MultiLocation', safeDestr(cleansedLoc))
     return parseMultiLocation(network, multiLocation)
   }
 

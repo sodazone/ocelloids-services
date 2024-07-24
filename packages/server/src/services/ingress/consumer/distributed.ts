@@ -25,6 +25,7 @@ import {
 
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { safeDestr } from 'destr'
 import { decodeSignedBlockExtended } from '../watcher/codec.js'
 import { IngressConsumer } from './index.js'
 
@@ -186,7 +187,7 @@ export class DistributedIngressConsumer
       const members = await this.#distributor.smembers(NetworksKey)
       if (members.length > 0) {
         for (const m of members) {
-          const network = JSON.parse(m) as NetworkEntry
+          const network = safeDestr<NetworkEntry>(m)
           if (this.#networks[network.id] === undefined) {
             this.#log.info('[%s] READ network configuration (relay?=%s)', network.id, network.isRelay)
             this.#networks[network.id] = network
@@ -205,7 +206,7 @@ export class DistributedIngressConsumer
     }
   }
 
-  async #chainPropertiesFromRedis(chainId: NetworkURN) {
+  async #chainPropertiesFromRedis(chainId: NetworkURN): Promise<ChainProperties> {
     const distributor = this.#distributor
     const replyTo = getReplyToKey(chainId, 'PROPS', '$')
     const streamKey = getChainPropsReqKey(chainId)
@@ -220,7 +221,7 @@ export class DistributedIngressConsumer
     })
 
     const buffer = await distributor.response(replyTo)
-    return buffer === null ? {} : JSON.parse(buffer.element.toString())
+    return buffer === null ? ({} as ChainProperties) : safeDestr<ChainProperties>(buffer.element.toString())
   }
 
   #storageKeysFromRedis(
@@ -256,7 +257,7 @@ export class DistributedIngressConsumer
               .response(replyTo)
               .then((buffer) => {
                 if (buffer) {
-                  resolve(JSON.parse(buffer.element.toString()))
+                  resolve(safeDestr(buffer.element.toString()))
                 } else {
                   reject(`Error retrieving storage keys for prefix ${keyPrefix} (reply-to=${replyTo})`)
                 }

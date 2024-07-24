@@ -2,6 +2,7 @@ import EventEmitter from 'node:events'
 
 import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
+import { safeDestr } from 'destr'
 
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId, isOnSameConsensus } from '@/services/config.js'
@@ -896,7 +897,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   #onXcmSwept(task: JanitorTask, msg: string) {
     try {
       if (task.sublevel === prefixes.matching.outbound) {
-        const outMsg = JSON.parse(msg) as XcmSent
+        const outMsg = safeDestr<XcmSent>(msg)
         const message: XcmTimeout = new GenericXcmTimeout(outMsg)
         this.#log.debug('TIMEOUT on key %s', task.key)
         this.emit('telemetryXcmTimeout', message)

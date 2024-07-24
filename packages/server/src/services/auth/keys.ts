@@ -1,5 +1,7 @@
 import { KeyObject, createPrivateKey, createPublicKey } from 'node:crypto'
 
+import { safeDestr } from 'destr'
+
 type KeyPair = {
   prv?: KeyObject
   pub: KeyObject
@@ -16,7 +18,7 @@ function importFromPEM(keyData: string): KeyPair {
 }
 
 function importFromJWK(keyFile: string): KeyPair {
-  const jwkJson = JSON.parse(keyFile) as Record<string, any>
+  const jwkJson = safeDestr<Record<string, any>>(keyFile)
   const pub = createPublicKey({ key: jwkJson, format: 'jwk' })
 
   let prv: KeyObject | undefined
