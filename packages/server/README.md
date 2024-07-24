@@ -8,12 +8,13 @@ The Ocelloids Service Node repository provides software components for running p
 ## Key Features
 
 - **Account Management:** Manages user accounts and API tokens to define permissions and ownership. Check the [accounts service README](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/src/services/accounts).
-- **Subscription Management:** Provides a flexible API for specifying subscription criteria, including origins, destinations, senders, and delivery channels. Supports both long-lived and on-demand subscriptions, with notifications delivered via webhooks and WebSockets.
+- **Subscription Management:** Provides a flexible API for specifying subscription criteria, including origins, destinations, senders, and delivery channels. Supports both long-lived and on-demand subscriptions, with data streams delivered via webhooks and WebSockets.
 - **Dynamic Subscription Updates:** Offers a subscription API for modifying subscription parameters, such as lists of senders and destinations. Seamlessly updates matching criteria in real time without requiring restarts.
+- **Aggregated APIs:** Combines multiple data sources and services into unified HTTP endpoints with customizable querying capabilities.
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
 - **Scalability:** Can run in a distributed manner, decoupling the sourcing of on-chain data from the execution of automation programs.
-- **Programmability:** Provides offchain agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the ["agents" section](https://github.com/sodazone/ocelloids-services/tree/main/packages/server#agents) for the currently available agents.
+- **Programmability:** Provides offchain agents as modular building blocks for automation, with each agent offering specific functionalities accessible as data streams and aggregated APIs. Refer to the ["agents" section](https://github.com/sodazone/ocelloids-services/tree/main/packages/server#agents) for the currently available agents.
 
 
 ## Configuration
