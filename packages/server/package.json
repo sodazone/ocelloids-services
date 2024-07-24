@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-service-node",
-  "version": "2.0.1-dev.0",
+  "version": "2.2.0-dev.0",
   "type": "module",
   "description": "Ocelloids Service Node",
   "author": "SO/DA <projects@soda.zone>",
