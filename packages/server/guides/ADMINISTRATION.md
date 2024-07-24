@@ -8,13 +8,13 @@ The server exposes administration functionality through an HTTP API. Generally, 
 
 ### Authorization
 
-The administration API uses bearer token authorization. You must configure the secret value using the `OC_SECRET` environment variable; it will be used to verify the hash-based signature of the auth token.
+The administration API uses bearer token authorization. You will need an account with administrative privileges.
 
-To authenticate with the `admin/` endpoints, you should pass an HTTP authorization header with a valid JWT token signed with the configured secret; the payload of the token is not considered.
+To authenticate with the `admin/` endpoints, you should pass an HTTP authorization header with a valid JWT token signed with the configured private key linked to an account with administrative privileges.
 
-Example using the default secret:
+Example using the development account:
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.TUkHePbst2jnFffIGHbn-fFnZz36DfBjxsfptqFypaA
+Authorization: Bearer eyJhbGciOiJFZERTQSIsImtpZCI6InkyN2VjLVpwakVjV1NBYkd6Nnp0XzA4bldrSjE4RGIyMXZMS2x3a0x4U1k9In0.ewogICJpc3MiOiAibG9jYWxob3N0IiwKICAianRpIjogIjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwKICAic3ViIjogInJvb3RAb2NlbGxvaWRzIgp9Cg.Q3cvoZtZ68Lr1sceY2Iz7Qw5uf7niDVaHGRt5Zoi-ARRzErRYmazkxPQUJTJAm4PgItmkQypCkaJriR-XhCDDQ
 ```
 
 ### Caches
