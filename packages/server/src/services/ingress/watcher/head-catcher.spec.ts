@@ -15,10 +15,9 @@ import { LevelDB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
 import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
 import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
 import { _services } from '@/testing/services.js'
+import { flushPromises } from '@/testing/promises.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
-
-const flushPromises = () => new Promise((res) => process.nextTick(res))
 
 describe('head catcher', () => {
   let db: LevelDB

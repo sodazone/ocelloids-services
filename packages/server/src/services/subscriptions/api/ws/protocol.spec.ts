@@ -7,8 +7,7 @@ import { _egress, _services } from '@/testing/services.js'
 import { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import z, { ZodError } from 'zod'
 import WebsocketProtocol from './protocol.js'
-
-const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))
+import { flushPromises } from '@/testing/promises.js'
 
 const testSub: Subscription = {
   id: 'test-subscription',

@@ -6,10 +6,9 @@ import { _config, _log } from '@/testing/services.js'
 
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'
+import { flushPromises } from '@/testing/promises.js'
 
 jest.useFakeTimers()
-
-const flushPromises = () => new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))
 
 describe('janitor service', () => {
   let janitor: Janitor

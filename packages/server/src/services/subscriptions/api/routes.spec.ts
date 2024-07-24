@@ -5,8 +5,7 @@ import '@/testing/network.js'
 import { publicToken, rootToken } from '@/testing/data.js'
 import { mockServer } from '@/testing/server.js'
 import { Subscription } from '../types.js'
-
-const flushPromises = () => new Promise((res) => process.nextTick(res))
+import { flushPromises } from '@/testing/promises.js'
 
 const testSubContent = {
   id: 'macatron',

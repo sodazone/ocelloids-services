@@ -4,8 +4,7 @@ import '@/testing/network.js'
 
 import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
 import { mockServer } from '@/testing/server.js'
-
-const flushPromises = () => new Promise((res) => process.nextTick(res))
+import { flushPromises } from '@/testing/promises.js'
 
 describe('accounts api', () => {
   let server: FastifyInstance
