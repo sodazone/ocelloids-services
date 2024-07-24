@@ -18,7 +18,7 @@ export const $RedisServerOptions = z.object({
 export const $DatabaseOptions = z.object({
   data: z
     .string({
-      required_error: 'Database directory path is required',
+      required_error: 'Data directory path is required',
     })
     .min(1),
 })
