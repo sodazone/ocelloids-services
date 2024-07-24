@@ -30,13 +30,15 @@ The configuration values can be overridden using command line arguments.
 | OC_ADDRESS                        | The address to bind to.                        | localhost |
 | OC_PORT                           | The TCP port number to listen on.              | 3000      |
 | OC_CONFIG_FILE                    | The service configuration file.                | -         |
-| OC_DATA_DIR                       | The database directory.                        | ./.db     |
+| OC_DATA_DIR                       | The data directory.                            | ./.db     |
 | OC_LEVEL_ENGINE                   | The LevelDB engine.                            | classic   |
 | OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
 | OC_DB_SCHEDULER_FREQUENCY         | Milliseconds to wait before each tick.         | 5000      |
 | OC_DB_JANITOR_SWEEP_EXPIRY        | Milliseconds before a task is swept.           | 1500000   |
 | OC_CLOSE_GRACE_DELAY              | Milliseconds for the graceful close to finish. | 5000      |
-| OC_SECRET                         | Secret passphrase for administration auth.     | -         |
+| OC_JWT_SIG_KEY_FILE               | [Ed25519](https://ed25519.cr.yp.to/) private key used to sign and verify the authorization tokens. | -         |
+| OC_JWT_ISSUER                     | Issuer identifier.                             | localhost |
+| OC_JWT_ALLOWED_ISSUERS            | Allowed issuers.                               | localhost |
 | OC_MAX_BLOCK_DIST                 | Maximum distance in blocks for the catch-up.   | 50        |
 | OC_TELEMETRY_ENABLE               | Enables or disables the telemetry service.     | true      |
 | OC_WS_MAX_CLIENTS                 | Maximum number of websocket clients.           | 10000     |
