@@ -172,7 +172,7 @@ Options:
   -a, --address <address>                 address to bind to (default: "localhost", env: OC_ADDRESS)
   -p, --port <number>                     port number to listen on (default: 3000, env: OC_PORT)
   -c, --config <file>                     service configuration file (env: OC_CONFIG_FILE)
-  -d, --data <dir>                        database directory (default: "./.db", env: OC_DATA_DIR)
+  -d, --data <dir>                        data directory (default: "./.db", env: OC_DATA_DIR)
   --level-engine <engine>                 level engine (default: "classic", env: OC_LEVEL_ENGINE)
   --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
   --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
@@ -190,6 +190,10 @@ Options:
   --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
                                           "true" for wildcard, "string" or "/regexp/"
                                           repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
+  --jwt-auth                              enables the JWT authentication (default: false, env: OC_JWT_AUTH)
+  --jwt-sig-key-file <path>               path to the EdDSA key in JWK or PEM format (env: OC_JWT_SIG_KEY_FILE)
+  --jwt-iss <issuer>                      identity of the issuer (default: "localhost", env: OC_JWT_ISSUER)
+  --jwt-allowed-iss [issuer]              allowed issuers, accepts regular expressions (default: ["localhost"], env: OC_JWT_ALLOWED_ISSUERS)
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
   --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
   -h, --help                              display help for command
