@@ -1,3 +1,7 @@
+import { jest } from '@jest/globals'
+
+import { TypeRegistry } from '@polkadot/types'
+
 import { registry } from '@/testing/xcm.js'
 import { fromXcmpFormat } from './xcm-format.js'
 
@@ -23,5 +27,22 @@ describe('xcm formats', () => {
     const buf = new Uint8Array(Buffer.from('BAD', 'hex'))
 
     expect(() => fromXcmpFormat(buf, registry)).toThrow(Error)
+  })
+
+  it('should fail on registry with no XCM types', () => {
+    const errorLogSpy = jest.spyOn(console, 'error').mockImplementationOnce(() => {
+      // noop
+    })
+    const defaultRegistry = new TypeRegistry()
+    const buf = new Uint8Array(
+      Buffer.from(
+        '000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368',
+        'hex',
+      ),
+    )
+
+    const xcms = fromXcmpFormat(buf, defaultRegistry)
+    expect(errorLogSpy).toHaveBeenCalled()
+    expect(xcms.length).toBe(0)
   })
 })

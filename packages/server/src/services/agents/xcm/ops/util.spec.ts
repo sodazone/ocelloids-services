@@ -1,15 +1,27 @@
 import { types } from '@sodazone/ocelloids-sdk'
 
+import { U8aFixed } from '@polkadot/types-codec'
+
+import { registry } from '@/testing/xcm.js'
 import {
+  getBridgeHubNetworkId,
   getMessageId,
   getParaIdFromMultiLocation,
   getParaIdFromOrigin,
   getSendersFromEvent,
   getSendersFromExtrinsic,
+  matchProgramByTopic,
   networkIdFromMultiLocation,
 } from './util.js'
+import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
 
 describe('xcm ops utils', () => {
+  describe('getBridgeHubNetworkId', () => {
+    it('should return undefined for unknown consensus', () => {
+      const bid = getBridgeHubNetworkId('urn:ocn:macario:0')
+      expect(bid).toBeUndefined()
+    })
+  })
   describe('getSendersFromExtrinsic', () => {
     it('should extract signers data for signed extrinsic', () => {
       const signerData = getSendersFromExtrinsic({
@@ -266,6 +278,7 @@ describe('xcm ops utils', () => {
       ).toBeUndefined()
     })
   })
+
   describe('networkIdFromMultiLocation', () => {
     it('should get a network id from multi location same consensus', () => {
       const networkId = networkIdFromMultiLocation(
@@ -275,21 +288,45 @@ describe('xcm ops utils', () => {
           },
           interior: {
             type: 'X1',
-            asX1: [
+            asX1: Array.from([
               {
                 isParachain: true,
                 asParachain: {
                   toString: () => '11',
                 },
               },
-            ],
+            ]),
           },
         } as unknown as any,
         'urn:ocn:polkadot:10',
       )
       expect(networkId).toBe('urn:ocn:polkadot:11')
     })
+
     it('should get a network id from V4 multi location different consensus', () => {
+      const networkId = networkIdFromMultiLocation(
+        {
+          parents: {
+            toNumber: () => 2,
+          },
+          interior: {
+            type: 'X1',
+            asX1: Array.from([
+              {
+                isGlobalConsensus: true,
+                asGlobalConsensus: {
+                  type: 'Bitcoin',
+                },
+              },
+            ]),
+          },
+        } as unknown as any,
+        'urn:ocn:polkadot:10',
+      )
+      expect(networkId).toBe('urn:ocn:bitcoin:0')
+    })
+
+    it('should get a network id from V4 multi location different consensus parachain', () => {
       const networkId = networkIdFromMultiLocation(
         {
           parents: {
@@ -336,6 +373,50 @@ describe('xcm ops utils', () => {
         'urn:ocn:polkadot:10',
       )
       expect(networkId).toBe('urn:ocn:espartaco:0')
+    })
+  })
+
+  describe('matchProgramByTopic', () => {
+    it('should throw on XCM V2 program', () => {
+      const v2XcmData =
+        '0002100004000000001700004b3471bb156b050a13000000001700004b3471bb156b05010300286bee0d010004000101001e08eb75720cb63fbfcbe7237c6d9b7cf6b4953518da6b38731d5bc65b9ffa32021000040000000017206d278c7e297945030a130000000017206d278c7e29794503010300286bee0d010004000101000257fd81d0a71b094c2c8d3e6c93a9b01a31a43d38408bb2c4c2b49a4c58eb01'
+      const buf = new Uint8Array(Buffer.from(v2XcmData, 'hex'))
+
+      const xcms = fromXcmpFormat(buf, registry)
+      expect(() => {
+        matchProgramByTopic(xcms[0], new U8aFixed(registry, new Uint8Array(Buffer.from('0x01', 'hex'))))
+      }).toThrow('Not able to match by topic for XCM V2 program.')
+    })
+
+    it('should return false V3 program without SetTopic', () => {
+      const v3XcmData =
+        '000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368'
+      const buf = new Uint8Array(Buffer.from(v3XcmData, 'hex'))
+
+      const xcms = fromXcmpFormat(buf, registry)
+      const matched = matchProgramByTopic(
+        xcms[0],
+        new U8aFixed(registry, new Uint8Array(Buffer.from('0x01', 'hex'))),
+      )
+      expect(matched).toBe(false)
+    })
+
+    it('should return true V3 program with SetTopic', () => {
+      const v3XcmData =
+        '03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c'
+      const buf = new Uint8Array(Buffer.from(v3XcmData, 'hex'))
+
+      const xcm = asVersionedXcm(buf, registry)
+      const matched = matchProgramByTopic(
+        xcm,
+        new U8aFixed(
+          registry,
+          new Uint8Array(
+            Buffer.from('185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c', 'hex'),
+          ),
+        ),
+      )
+      expect(matched).toBe(true)
     })
   })
 })

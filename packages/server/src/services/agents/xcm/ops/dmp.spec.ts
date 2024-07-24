@@ -1,7 +1,5 @@
 import { jest } from '@jest/globals'
 
-import { of } from 'rxjs'
-
 import {
   dmpReceive,
   dmpSendMultipleMessagesInQueue,
@@ -14,18 +12,10 @@ import {
 import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 import { extractDmpReceive, extractDmpSend, extractDmpSendByEvent } from './dmp.js'
 
-const getDmp = () =>
-  of([
-    {
-      msg: new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
-      toU8a: () => new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
-    },
-  ] as unknown as any)
-
 describe('dmp operator', () => {
   describe('extractDmpSend', () => {
     it('should extract DMP sent message', (done) => {
-      const { origin, blocks } = dmpSendSingleMessageInQueue
+      const { origin, blocks, getDmp } = dmpSendSingleMessageInQueue
 
       const calls = jest.fn()
 
@@ -50,7 +40,7 @@ describe('dmp operator', () => {
     })
 
     it('should extract DMP sent for multi-leg messages', (done) => {
-      const { origin, blocks } = xcmHopOrigin
+      const { origin, blocks, getDmp } = xcmHopOrigin
 
       const calls = jest.fn()
 
@@ -75,7 +65,7 @@ describe('dmp operator', () => {
     })
 
     it('should extract DMP sent message with multiple messages in the queue', (done) => {
-      const { origin, blocks } = dmpSendMultipleMessagesInQueue
+      const { origin, blocks, getDmp } = dmpSendMultipleMessagesInQueue
 
       const calls = jest.fn()
 
@@ -102,7 +92,7 @@ describe('dmp operator', () => {
 
   describe('extractDmpSendByEvent', () => {
     it('should extract DMP sent message filtered by event', (done) => {
-      const { origin, blocks } = dmpXcmPalletSentEvent
+      const { origin, blocks, getDmp } = dmpXcmPalletSentEvent
 
       const calls = jest.fn()
 

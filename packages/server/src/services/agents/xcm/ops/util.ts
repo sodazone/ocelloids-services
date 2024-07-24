@@ -179,6 +179,17 @@ function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): Ne
   return undefined
 }
 
+function extractV4X1GlobalConsensus(junctions: XcmV4Junctions, n: NetworkId): NetworkURN | undefined {
+  const j = junctions.asX1[0]
+  if (j.isGlobalConsensus) {
+    extractConsensusAndId(j, n)
+    if (n.consensus !== undefined) {
+      return createNetworkId(n.consensus, n.chainId ?? '0')
+    }
+  }
+  return undefined
+}
+
 function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: NetworkId) {
   if (junctions.type === 'X1' || junctions.type === 'Here') {
     return undefined
@@ -203,6 +214,10 @@ function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: N
 
 function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
   const networkId: NetworkId = {}
+
+  if (junctions.type === 'X1') {
+    return extractV4X1GlobalConsensus(junctions, networkId)
+  }
 
   return _networkIdFrom(junctions, networkId)
 }
