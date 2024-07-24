@@ -24,15 +24,12 @@ function cancelable<T>(promise: Promise<T>, onCancel?: () => void): CancelablePr
   return cancelable
 }
 
-export function empty() {
-  return cancelable<void>(Promise.resolve())
-}
-
 export function delay(ms: number) {
-  let timer: any
+  let timer: NodeJS.Timeout
   return cancelable<void>(
     new Promise((resolve) => {
       timer = setTimeout(resolve, ms)
+      timer.unref()
     }),
     () => {
       clearTimeout(timer)

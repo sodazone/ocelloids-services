@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 
 import { NotFound } from '@/errors.js'
 import { Family, LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
-import { CancelablePromise, delay, empty } from './delay.js'
+import { CancelablePromise, delay } from './delay.js'
 
 export type Scheduled<T = any> = {
   // time based key
@@ -29,8 +29,8 @@ export class Scheduler extends EventEmitter {
   readonly #enabled: boolean
 
   #running: boolean
-  #while: Promise<void> = Promise.resolve()
-  #waiting: CancelablePromise<void> = empty()
+  #while?: Promise<void>
+  #waiting?: CancelablePromise<void>
 
   constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
@@ -56,7 +56,9 @@ export class Scheduler extends EventEmitter {
       this.#running = false
 
       await this.#while
-      await this.#waiting.cancel()
+      if (this.#waiting) {
+        await this.#waiting.cancel()
+      }
     }
   }
 
@@ -97,6 +99,8 @@ export class Scheduler extends EventEmitter {
       } catch (error) {
         this.#log.error(error, 'Error while sweeping')
       }
+      await this.#waiting.cancel()
+      this.#waiting = undefined
     }
   }
 
