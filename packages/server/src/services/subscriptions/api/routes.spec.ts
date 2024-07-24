@@ -3,9 +3,9 @@ import { FastifyInstance } from 'fastify'
 import '@/testing/network.js'
 
 import { publicToken, rootToken } from '@/testing/data.js'
+import { flushPromises } from '@/testing/promises.js'
 import { mockServer } from '@/testing/server.js'
 import { Subscription } from '../types.js'
-import { flushPromises } from '@/testing/promises.js'
 
 const testSubContent = {
   id: 'macatron',

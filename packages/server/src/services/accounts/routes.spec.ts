@@ -3,8 +3,8 @@ import { FastifyInstance } from 'fastify'
 import '@/testing/network.js'
 
 import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
-import { mockServer } from '@/testing/server.js'
 import { flushPromises } from '@/testing/promises.js'
+import { mockServer } from '@/testing/server.js'
 
 describe('accounts api', () => {
   let server: FastifyInstance

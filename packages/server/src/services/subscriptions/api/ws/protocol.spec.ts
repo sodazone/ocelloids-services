@@ -3,11 +3,11 @@ import { jest } from '@jest/globals'
 import { ValidationError } from '@/errors.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { flushPromises } from '@/testing/promises.js'
 import { _egress, _services } from '@/testing/services.js'
 import { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import z, { ZodError } from 'zod'
 import WebsocketProtocol from './protocol.js'
-import { flushPromises } from '@/testing/promises.js'
 
 const testSub: Subscription = {
   id: 'test-subscription',

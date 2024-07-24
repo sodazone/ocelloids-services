@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events'
 
 import { NotFound } from '@/errors.js'
 import { Family, LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
+import { CancelablePromise, delay, empty } from './delay.js'
 
 export type Scheduled<T = any> = {
   // time based key
@@ -22,16 +23,14 @@ export type SchedulerOptions = {
  * It uses keys with an ISO 8601 UTC formatted date and time for lexicographic ordering.
  */
 export class Scheduler extends EventEmitter {
-  #log: Logger
-  #tasks: Family
-  #frequency: number
-  #enabled: boolean
+  readonly #log: Logger
+  readonly #tasks: Family
+  readonly #frequency: number
+  readonly #enabled: boolean
 
   #running: boolean
   #while: Promise<void> = Promise.resolve()
-  #cancel = (_?: unknown) => {
-    /* empty */
-  }
+  #waiting: CancelablePromise<void> = empty()
 
   constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
@@ -55,8 +54,9 @@ export class Scheduler extends EventEmitter {
     if (this.#running) {
       this.#log.info('Stopping scheduler')
       this.#running = false
-      this.#cancel()
+
       await this.#while
+      await this.#waiting.cancel()
     }
   }
 
@@ -87,16 +87,11 @@ export class Scheduler extends EventEmitter {
   }
 
   async #run() {
-    const cancellable = new Promise((resolve) => {
-      this.#cancel = resolve
-    })
-    const delay = () =>
-      Promise.race([new Promise((resolve) => setTimeout(resolve, this.#frequency)), cancellable])
-
     this.#running = true
 
     while (this.#running) {
-      await delay()
+      this.#waiting = delay(this.#frequency)
+      await this.#waiting
       try {
         await this.#sched()
       } catch (error) {

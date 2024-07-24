@@ -1,16 +1,16 @@
 import { jest } from '@jest/globals'
 
-import { FastifyBaseLogger } from "fastify"
+import { FastifyBaseLogger } from 'fastify'
 
-import { Subscription as RxSubscription } from "rxjs"
+import { Subscription as RxSubscription } from 'rxjs'
 
-import { XcmAgent } from "./agent.js"
-import { XcmSubscriptionManager } from "./handlers.js"
-import { _ingress, _services } from "@/testing/services.js"
-import { XcmInputs, XcmSubscriptionHandler } from "./types.js"
-import { Subscription } from "@/services/subscriptions/types.js"
-import { ControlQuery } from "@sodazone/ocelloids-sdk"
-import { messageCriteria, sendersCriteria } from "./ops/criteria.js"
+import { Subscription } from '@/services/subscriptions/types.js'
+import { _ingress, _services } from '@/testing/services.js'
+import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { XcmAgent } from './agent.js'
+import { XcmSubscriptionManager } from './handlers.js'
+import { messageCriteria, sendersCriteria } from './ops/criteria.js'
+import { XcmInputs, XcmSubscriptionHandler } from './types.js'
 
 jest.useFakeTimers()
 
@@ -35,36 +35,40 @@ const testSub: Subscription<XcmInputs> = {
 }
 
 const mockOriginSubscription = {
-  unsubscribe: jest.fn()
+  unsubscribe: jest.fn(),
 } as unknown as RxSubscription
 
 const mockDestSubscription = {
-  unsubscribe: jest.fn()
+  unsubscribe: jest.fn(),
 } as unknown as RxSubscription
 
 const mockRelaySubscription = {
-  unsubscribe: jest.fn()
+  unsubscribe: jest.fn(),
 } as unknown as RxSubscription
 
 const testXcmSubscriptionHandler: XcmSubscriptionHandler = {
-  originSubs: [{
-    chainId: 'urn:ocn:local:1000',
-    sub: mockOriginSubscription
-  }],
+  originSubs: [
+    {
+      chainId: 'urn:ocn:local:1000',
+      sub: mockOriginSubscription,
+    },
+  ],
   destinationSubs: [
     {
       chainId: 'urn:ocn:local:2000',
-      sub: mockDestSubscription
-    }
+      sub: mockDestSubscription,
+    },
   ],
   bridgeSubs: [],
   sendersControl: new ControlQuery(sendersCriteria(['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'])),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:0', 'urn:ocn:local:1000', 'urn:ocn:local:2000'])),
+  messageControl: new ControlQuery(
+    messageCriteria(['urn:ocn:local:0', 'urn:ocn:local:1000', 'urn:ocn:local:2000']),
+  ),
   subscription: testSub,
   relaySub: {
     chainId: 'urn:ocn:local:0',
-    sub: mockRelaySubscription
-  }
+    sub: mockRelaySubscription,
+  },
 }
 
 describe('XcmSubscriptionManager', () => {
@@ -96,25 +100,30 @@ describe('XcmSubscriptionManager', () => {
       expect(xcmSubscriptionManager.hasSubscriptionForBridge(testSub.id, 'pk-bridge')).toBeFalsy()
     })
   })
-  
 
   describe('hasSubscriptionForDestination', () => {
     it('should return true for a destination chain', () => {
-      expect(xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:2000')).toBeTruthy()
+      expect(
+        xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:2000'),
+      ).toBeTruthy()
     })
-  
+
     it('should return false for non-destination chains', () => {
-      expect(xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:3000')).toBeFalsy()
-      expect(xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:1000')).toBeFalsy()
+      expect(
+        xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:3000'),
+      ).toBeFalsy()
+      expect(
+        xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:1000'),
+      ).toBeFalsy()
       expect(xcmSubscriptionManager.hasSubscriptionForDestination(testSub.id, 'urn:ocn:local:0')).toBeFalsy()
     })
   })
-  
+
   describe('hasSubscriptionForOrigin', () => {
     it('should return true for an origin chain', () => {
       expect(xcmSubscriptionManager.hasSubscriptionForOrigin(testSub.id, 'urn:ocn:local:1000')).toBeTruthy()
     })
-  
+
     it('should return false for non-origin chains', () => {
       expect(xcmSubscriptionManager.hasSubscriptionForOrigin(testSub.id, 'urn:ocn:local:3000')).toBeFalsy()
       expect(xcmSubscriptionManager.hasSubscriptionForOrigin(testSub.id, 'urn:ocn:local:2000')).toBeFalsy()

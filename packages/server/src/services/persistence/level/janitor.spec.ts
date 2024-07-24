@@ -4,9 +4,9 @@ import { MemoryLevel as Level } from 'memory-level'
 
 import { _config, _log } from '@/testing/services.js'
 
+import { flushPromises } from '@/testing/promises.js'
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'
-import { flushPromises } from '@/testing/promises.js'
 
 jest.useFakeTimers()
 
