@@ -179,7 +179,7 @@ export class XcmSubscriptionManager {
       sub.relaySub?.sub.unsubscribe()
       delete sub.relaySub
 
-      setTimeout(async () => {
+      setTimeout(() => {
         this.#log.info(
           '[%s:%s] UPDATE relay subscription %s due error %s',
           this.#agent.id,
@@ -187,7 +187,7 @@ export class XcmSubscriptionManager {
           id,
           errorMessage(error),
         )
-        const updatedSub = await this.#agent.__monitorRelay(sub.subscription)
+        const updatedSub = this.#agent.__monitorRelay(sub.subscription)
         sub.relaySub = updatedSub
       }, SUB_ERROR_RETRY_MS).unref()
     }

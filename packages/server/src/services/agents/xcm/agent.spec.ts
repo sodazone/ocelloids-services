@@ -1,8 +1,6 @@
 import { jest } from '@jest/globals'
 
-import { from, of, throwError } from 'rxjs'
-
-import { Registry } from '@polkadot/types-codec/types'
+import { from, throwError } from 'rxjs'
 
 import '@/testing/network.js'
 
