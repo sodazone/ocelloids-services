@@ -116,22 +116,26 @@ Run the image mounting the configuration and chain specs as volumes:
 docker run -d \
   -p 3000:3000 \
   -e OC_CONFIG_FILE=./config/<YOUR_CONFIG>.toml \
-  -e OC_SECRET=<YOUR_SECRET> \
+  -e OC_JWT_SIG_KEY_FILE=<PATH_TO_YOUR_PRIVATE_KEY_FILE> \
+  -e OC_JWT_ISSUER=<ISSUER_ID> \
+  -e OC_JWT_ALLOWED_ISSUERS=<ISSUER_ID> \
   -v <YOUR_PATH_TO_CONFIG_DIR>:/opt/oc/config:ro \
   sodazone/ocelloids-integrated-node
 ```
 
-Please replace `YOUR_SECRET` with the secret used to sign the authorization tokens and `YOUR_PATH_TO_CONFIG_DIR` with the path to the directory containing the configuration TOML file.
+Please replace `PATH_TO_YOUR_PRIVATE_KEY_FILE` with the path to a PEM or JWK-encoded [Ed25519](https://ed25519.cr.yp.to/) private key used to sign and verify the authorization tokens, `ISSUER_ID` with the identifier of the issuer (e.g., 'api.mydomain.io'), and `YOUR_PATH_TO_CONFIG_DIR` with the path to the directory containing the configuration TOML file.
 
-> [!CAUTION]
-> For OC_SECRET="abracadabra" the root privileges token is `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiaWF0IjoxNTE2MjM5MDIyfQ.uczrtx6q-6dd3vPK1GT986kQ9IpQ-YYwVOSsv9moZQc`. Just for easy testing. (!) DO NOT USE IN PRODUCTION :D
+> [!HINT]
+> Example development keys and tokens can be found in the `guides/keys` folder.
+> These are provided for testing purposes only.
+> **DO NOT USE IN PRODUCTION**.
 
 Now you can check if the server is running:
 ```shell
 curl \
 -H 'accept: application/json' \
 -H 'content-type: application/json' \
--H 'Authorization: Bearer <YOUR_TOKEN>' \
+-H 'Authorization: Bearer <YOUR_JWT>' \
 http://127.0.0.1:3000/health
 ```
 

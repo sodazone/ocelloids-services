@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "tsc && tsc-alias",
+    "prod:build": "tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
     "start": "node ./dist/main.js",
     "dev": "nodemon --exec tsx ./src/main.ts",
     "dev:inspect": "nodemon --exec tsx --inspect ./src/main.ts",
