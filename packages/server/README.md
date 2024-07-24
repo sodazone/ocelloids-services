@@ -129,7 +129,7 @@ docker run -d \
 
 Please replace `PATH_TO_YOUR_PRIVATE_KEY_FILE` with the path to a PEM or JWK-encoded [Ed25519](https://ed25519.cr.yp.to/) private key used to sign and verify the authorization tokens, `ISSUER_ID` with the identifier of the issuer (e.g., 'api.mydomain.io'), and `YOUR_PATH_TO_CONFIG_DIR` with the path to the directory containing the configuration TOML file.
 
-> [!HINT]
+> [!NOTE]
 > Example development keys and tokens can be found in the `guides/keys` folder.
 > These are provided for testing purposes only.
 > **DO NOT USE IN PRODUCTION**.
