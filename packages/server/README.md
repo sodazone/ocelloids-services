@@ -7,13 +7,14 @@ The Ocelloids Service Node repository provides software components for running p
 
 ## Key Features
 
-- **Subscription Management:** Flexible API for specifying subscription criteria, including origin, destinations, senders, and delivery channels. Supports long-lived and on-demand subscriptions, delivering notifications via webhooks and websockets.
-- **Dynamic Subscription Updates:** Exposes a subscription API for modifying subscription parameters, such as lists of senders and destinations. Seamlessly updates matching criteria in real-time, without need for restarts.
-- **Light client support:** Connects to chains through smoldot, in addition to RPC endpoints, reducing infrastructure needs by eliminating the necessity of running full nodes or relying on RPC providers.
+- **Account Management:** Manages user accounts and API tokens to define permissions and ownership. Check the [accounts service README](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/src/services/accounts).
+- **Subscription Management:** Provides a flexible API for specifying subscription criteria, including origins, destinations, senders, and delivery channels. Supports both long-lived and on-demand subscriptions, with notifications delivered via webhooks and WebSockets.
+- **Dynamic Subscription Updates:** Offers a subscription API for modifying subscription parameters, such as lists of senders and destinations. Seamlessly updates matching criteria in real time without requiring restarts.
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage between restarts. Supports graceful shutdowns, retries employing truncated exponential backoff, reliable webhook delivery, continuous chain tip catch-up, and efficient caching for light clients.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
-- **Scalability:** Can run in a distributed way, decoupling the sourcing of onchain data from the execution of automation programs.
-- **Programmability:** Provides agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the ["agents" section](https://github.com/sodazone/ocelloids-services/tree/main/packages/server#agents) for the currently available agents.
+- **Scalability:** Can run in a distributed manner, decoupling the sourcing of on-chain data from the execution of automation programs.
+- **Programmability:** Provides offchain agents as modular building blocks for automation, with each agent offering specific functionalities. Refer to the ["agents" section](https://github.com/sodazone/ocelloids-services/tree/main/packages/server#agents) for the currently available agents.
+
 
 ## Configuration
 
@@ -219,6 +220,8 @@ Replace `<path/to/your-config.toml>` with a valid configuration file path. Confi
 | `informant` | General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions.     |
 | `xcm`       | XCM Monitor       | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
 | `steward`   | Data Steward      | Aggregates and enriches cross-chain metadata for assets and currencies.                    |
+
+For technical details refer to the [agents service README](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/src/services/agents).
 
 ## HTTP APIs
 
