@@ -45,8 +45,8 @@ export const $CorsServerOptions = z.object({
 export const $JwtServerOptions = z.object({
   jwtAuth: z.boolean(),
   jwtSigKeyFile: z.string().optional(),
-  jwtIss: z.string().default('api.ocelloids.net'),
-  jwtAllowedIss: z.array(z.string().default('api.ocelloids.net')),
+  jwtIss: z.string(),
+  jwtAllowedIss: z.array(z.string()),
 })
 
 export const $SubscriptionServerOptions = z.object({

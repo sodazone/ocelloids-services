@@ -112,9 +112,13 @@ addServerOptions(program)
   .addOption(
     opt('--jwt-sig-key-file <path>', 'path to the EdDSA key in JWK or PEM format', 'OC_JWT_SIG_KEY_FILE'),
   )
-  .addOption(opt('--jwt-iss <issuer>', 'identity of the issuer', 'OC_JWT_ISSUER'))
+  .addOption(opt('--jwt-iss <issuer>', 'identity of the issuer', 'OC_JWT_ISSUER').default('localhost'))
   .addOption(
-    optArr('--jwt-allowed-iss [issuer]', 'allowed issuers', 'OC_JWT_ALLOWED_ISSUERS').default(['/.*/']),
+    optArr(
+      '--jwt-allowed-iss [issuer]',
+      'allowed issuers, accepts regular expressions',
+      'OC_JWT_ALLOWED_ISSUERS',
+    ).default(['localhost']),
   )
   .addOption(
     opt(
