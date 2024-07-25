@@ -26,6 +26,7 @@ export async function AgentsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['agents'],
+        security: [{ BearerAuth: [] }],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -69,6 +70,7 @@ export async function AgentsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['agents'],
+        security: [{ BearerAuth: [] }],
         response: {
           200: {
             type: 'array',
@@ -97,6 +99,7 @@ export async function AgentsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['agents'],
+        security: [{ BearerAuth: [] }],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -127,6 +130,7 @@ export async function AgentsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['agents'],
+        security: [{ BearerAuth: [] }],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },

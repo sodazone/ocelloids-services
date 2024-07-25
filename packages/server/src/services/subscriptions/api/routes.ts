@@ -29,6 +29,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['subscriptions'],
+        security: [{ BearerAuth: [] }],
         params: {
           agentId: zodToJsonSchema($AgentId),
         },
@@ -59,6 +60,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       preHandler: [PublicOrOwner],
       schema: {
         tags: ['subscriptions'],
+        security: [{ BearerAuth: [] }],
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
@@ -85,6 +87,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['subscriptions'],
+        security: [{ BearerAuth: [] }],
         body: {
           oneOf: [
             zodToJsonSchema($NewSubscription),
@@ -122,6 +125,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       preHandler: [OnlyOwner],
       schema: {
         tags: ['subscriptions'],
+        security: [{ BearerAuth: [] }],
         params: {
           subscriptionId: zodToJsonSchema($SubscriptionId),
           agentId: zodToJsonSchema($AgentId),
@@ -159,6 +163,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
       preHandler: [OnlyOwner],
       schema: {
         tags: ['subscriptions'],
+        security: [{ BearerAuth: [] }],
         params: {
           agentId: zodToJsonSchema($AgentId),
           subscriptionId: zodToJsonSchema($SubscriptionId),

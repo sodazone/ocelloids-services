@@ -74,6 +74,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {
@@ -92,6 +93,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {
@@ -109,6 +111,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {
@@ -134,6 +137,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
         body: {
           type: 'object',
           properties: {
@@ -189,6 +193,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
       schema: {
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {
@@ -222,6 +227,7 @@ export async function AccountsApi(api: FastifyInstance) {
           required: ['subject'],
         },
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {
@@ -262,6 +268,7 @@ export async function AccountsApi(api: FastifyInstance) {
       schema: {
         hide: true,
         tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
       },
     },
     async (request, reply) => {

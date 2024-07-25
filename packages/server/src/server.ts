@@ -122,6 +122,10 @@ export async function createServer(opts: ServerOptions) {
         title: 'Ocelloids Execution Node',
         version,
       },
+      externalDocs: {
+        url: 'https://ocelloids.net',
+        description: 'Ocelloids Website',
+      },
       components: {
         securitySchemes: {
           BearerAuth: {
