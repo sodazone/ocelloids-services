@@ -28,6 +28,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        description:
+          'List all readable subscriptions for the given agent; i.e. those that are public or owned by the current account.',
         tags: ['subscriptions'],
         security: [{ BearerAuth: [] }],
         params: {
