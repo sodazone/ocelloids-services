@@ -4,7 +4,7 @@ Ocelloids provides the infrastructure to develop, operate, and deploy offchain a
 
 Agents have access to essential services defined in the `AgentRuntimeContext` from the Ocelloids host.
 
-The `Agent Catalog` implementation manages the lifecycle of the agents.
+The `AgentCatalog` implementation manages the lifecycle of the agents.
 
 ## 1. Runtime Context
 
@@ -34,7 +34,7 @@ The `Queryable` interface enables agents to execute complex data queries in a re
 - **querySchema**: A schema (`z.ZodSchema`) that validates query parameters.
 - **query(params: QueryParams)**: Executes queries asynchronously, returning a `QueryResult`.
 
-This interface supports data retrieval and aggregation, enabling agents to analyze data efficiently.
+This interface supports data retrieval and aggregation.
 
 ## 4. Subscribable Interface
 
