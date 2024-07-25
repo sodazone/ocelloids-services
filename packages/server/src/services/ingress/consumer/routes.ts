@@ -11,6 +11,8 @@ export async function ConsumerApi(api: FastifyInstance) {
         caps: [CAP_READ],
       },
       schema: {
+        tags: ['ingress'],
+        security: [{ BearerAuth: [] }],
         response: {
           200: {
             type: 'array',

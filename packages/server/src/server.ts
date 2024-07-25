@@ -149,6 +149,10 @@ export async function createServer(opts: ServerOptions) {
           name: 'agents',
           description: 'Agent-related endpoints',
         },
+        {
+          name: 'ingress',
+          description: 'Ingress-related endpoints',
+        },
       ],
     },
   })
