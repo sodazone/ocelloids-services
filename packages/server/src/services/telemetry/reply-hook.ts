@@ -21,7 +21,7 @@ export function createReplyHook() {
     if (NO_ROUTE_STATUS.includes(reply.statusCode)) {
       reqHist.labels(statusCode.toString(), request.method, '-').observe(elapsedTime)
     } else {
-      reqHist.labels(statusCode.toString(), request.method, request.originalUrl).observe(elapsedTime)
+      reqHist.labels(statusCode.toString(), request.method, request.routerPath ?? '-').observe(elapsedTime)
     }
   }
 }
