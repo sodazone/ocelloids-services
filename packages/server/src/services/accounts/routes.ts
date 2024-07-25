@@ -28,16 +28,12 @@ async function createUnsignedToken(
 ) {
   const jti = ulid()
 
-  const apiToken = await repository.createApiToken({
+  await repository.createApiToken({
     id: jti,
     account_id: accountId,
     status: 'enabled',
     scope: scope.join(' '),
   })
-
-  if (apiToken === undefined) {
-    throw new ValidationError('token not found')
-  }
 
   const iat = Math.round(Date.now() / 1_000)
   const exp = iat + (expiresIn ?? DEFAULT_EXPIRATION_SECONDS)

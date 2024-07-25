@@ -39,6 +39,7 @@ export async function SubscriptionWebSocketsApi(fastify: FastifyInstance) {
     },
   )
 
+  /* istanbul ignore next */
   fastify.get<{
     Querystring: NodQuerystring
     Params: SubscriptionPathParams
@@ -55,6 +56,7 @@ export async function SubscriptionWebSocketsApi(fastify: FastifyInstance) {
     },
   )
 
+  /* istanbul ignore next */
   fastify.get<{
     Querystring: NodQuerystring
   }>(

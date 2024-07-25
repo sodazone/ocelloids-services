@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals'
+
 import { FastifyInstance } from 'fastify'
 
 import '@/testing/network.js'
@@ -9,6 +11,7 @@ import { mockServer } from '@/testing/server.js'
 describe('accounts api', () => {
   let server: FastifyInstance
   let macarioToken = ''
+  let pepeToken = ''
 
   beforeAll(async () => {
     server = await mockServer({
@@ -29,63 +32,24 @@ describe('accounts api', () => {
         macarioToken = response.json().token
       },
     )
+    server.inject(
+      {
+        method: 'GET',
+        url: '/accounts/invite?subject=pepe@frog.com',
+        headers: {
+          authorization: `Bearer ${rootToken}`,
+        },
+      },
+      (_err, response) => {
+        pepeToken = response.json().token
+      },
+    )
 
     await flushPromises()
   })
 
   afterAll(() => {
     return server.close()
-  })
-
-  describe('GET /accounts/invite', () => {
-    it('should create a token on invite', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=pepe@frog.com',
-          headers: {
-            authorization: `Bearer ${rootToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.json().token).toBeDefined()
-        },
-      )
-    })
-
-    it('should return 401 on invalid token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=macario',
-          headers: {
-            authorization: `Bearer ${invalidToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response.statusCode).toStrictEqual(401)
-        },
-      )
-    })
-
-    it('should return 401 on a valid non-root token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=macario',
-          headers: {
-            authorization: `Bearer ${publicToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response.statusCode).toStrictEqual(401)
-        },
-      )
-    })
   })
 
   describe('/myself/tokens', () => {
@@ -207,7 +171,7 @@ describe('accounts api', () => {
     })
   })
 
-  describe('GET /myself', () => {
+  describe('/myself', () => {
     it('should retrieve account', (done) => {
       server.inject(
         {
@@ -256,6 +220,135 @@ describe('accounts api', () => {
         (_err, response) => {
           done()
           expect(response.statusCode).toStrictEqual(401)
+        },
+      )
+    })
+  })
+
+  describe('/accounts/invite', () => {
+    it('should create a token on invite', (done) => {
+      const createAccountSpy = jest.spyOn(server.accountsRepository, 'createAccount')
+
+      server.inject(
+        {
+          method: 'GET',
+          url: '/accounts/invite?subject=doge@dog.com',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(createAccountSpy).toHaveBeenCalled()
+          expect(response.statusCode).toStrictEqual(200)
+          expect(response.json().token).toBeDefined()
+        },
+      )
+    })
+
+    it('should return 400 if token creation fails', (done) => {
+      jest
+        .spyOn(server.accountsRepository, 'createApiToken')
+        .mockImplementationOnce(() => Promise.reject('test error'))
+      server.inject(
+        {
+          method: 'GET',
+          url: '/accounts/invite?subject=shiba@dog.com',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(400)
+        },
+      )
+    })
+
+    it('should return 401 on invalid token', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/accounts/invite?subject=macario',
+          headers: {
+            authorization: `Bearer ${invalidToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(401)
+        },
+      )
+    })
+
+    it('should return 401 on a valid non-root token', (done) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/accounts/invite?subject=macario',
+          headers: {
+            authorization: `Bearer ${publicToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(401)
+        },
+      )
+    })
+  })
+
+  describe('/account/:subject', () => {
+    it('should not allow non-admin to delete account from this endpoint', (done) => {
+      const deleteAccountSpy = jest.spyOn(server.accountsRepository, 'deleteAccount')
+
+      server.inject(
+        {
+          method: 'DELETE',
+          url: '/account/pepe@frog.com',
+          headers: {
+            authorization: `Bearer ${pepeToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(401)
+          expect(deleteAccountSpy).not.toHaveBeenCalled()
+        },
+      )
+    })
+
+    it('should allow root to delete account', (done) => {
+      const deleteAccountSpy = jest.spyOn(server.accountsRepository, 'deleteAccount')
+
+      server.inject(
+        {
+          method: 'DELETE',
+          url: '/account/pepe@frog.com',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(200)
+          expect(deleteAccountSpy).toHaveBeenCalled()
+        },
+      )
+    })
+
+    it('should return 404 if account to delete is not found', (done) => {
+      server.inject(
+        {
+          method: 'DELETE',
+          url: '/account/pepe@frog.com',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+        },
+        (_err, response) => {
+          done()
+          expect(response.statusCode).toStrictEqual(404)
         },
       )
     })
