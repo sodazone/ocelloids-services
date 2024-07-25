@@ -5,22 +5,25 @@ import { NotFound, ValidationError } from '@/errors.js'
 import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth/index.js'
 import { AccountsRepository } from './repository.js'
 
+const DEFAULT_EXPIRATION_SECONDS = 7_889_400 // 3 months
+
 interface InvitationQueryString {
   subject: string
 }
 
 // Create an unsigned token with specific properties
-// TODO: nbf and expiration properties
 async function createUnsignedToken(
   repository: AccountsRepository,
   {
     accountId,
     subject,
     scope,
+    expiresIn,
   }: {
     accountId: number
     subject: string
     scope: string[]
+    expiresIn?: number
   },
 ) {
   const jti = ulid()
@@ -37,9 +40,11 @@ async function createUnsignedToken(
   }
 
   const iat = Math.round(Date.now() / 1_000)
+  const exp = iat + (expiresIn ?? DEFAULT_EXPIRATION_SECONDS)
 
   return {
     iat,
+    exp,
     jti,
     sub: subject,
   }
@@ -216,29 +221,57 @@ export async function AccountsApi(api: FastifyInstance) {
           },
           required: ['subject'],
         },
+        tags: ['accounts'],
       },
     },
     async (request, reply) => {
       const { subject } = request.query
 
-      const account = await accountsRepository.createAccount({
-        subject,
-        status: 'enabled',
-      })
+      try {
+        const account = await accountsRepository.createAccount({
+          subject,
+          status: 'enabled',
+        })
 
-      if (account === undefined) {
-        throw new ValidationError('account not found')
+        const unsignedToken = await createUnsignedToken(accountsRepository, {
+          accountId: account.id,
+          subject,
+          scope: [CAP_READ, CAP_WRITE, 'invite'],
+        })
+
+        reply.send({
+          token: await reply.jwtSign(unsignedToken),
+        })
+      } catch (error) {
+        throw new ValidationError((error as Error).message)
       }
+    },
+  )
 
-      const unsignedToken = await createUnsignedToken(accountsRepository, {
-        accountId: account.id,
-        subject,
-        scope: [CAP_READ, CAP_WRITE, 'invite'],
-      })
-
-      reply.send({
-        token: await reply.jwtSign(unsignedToken),
-      })
+  // Admin can delete accounts
+  api.delete<{
+    Params: {
+      subject: string
+    }
+  }>(
+    '/account/:subject',
+    {
+      config: {
+        caps: [CAP_ADMIN],
+      },
+      schema: {
+        hide: true,
+        tags: ['accounts'],
+      },
+    },
+    async (request, reply) => {
+      const account = await accountsRepository.findAccountBySubject(request.params.subject)
+      if (account) {
+        await accountsRepository.deleteAccount(account.id)
+        reply.send()
+      } else {
+        throw new NotFound('account not found')
+      }
     },
   )
 }

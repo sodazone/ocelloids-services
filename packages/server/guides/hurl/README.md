@@ -6,7 +6,13 @@ To get started, you need to install Hurl. Visit [hurl.dev](https://hurl.dev) for
 
 ## Example Usage
 
-To run a scenario:
+Run a development server with the dev keys, in the `packages/server` directory:
+
+```shell
+yarn dev -- --jwt-auth --jwt-sig-key-file guides/keys/dev_priv.jwk --config config/polkadot.toml
+```
+
+To run a scenario, in the `guides/hurl` directory:
 
 ```shell
 hurl --very-verbose --variables-file ./dev.env scenarios/transfers/0_create_dev.hurl

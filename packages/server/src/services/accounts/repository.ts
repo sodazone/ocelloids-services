@@ -21,6 +21,7 @@ export class AccountsRepository {
   }
 
   async createAccount(account: NewAccount) {
+    // TODO sanitize subject
     return await this.#db.insertInto('account').values(account).returningAll().executeTakeFirstOrThrow()
   }
 
