@@ -76,7 +76,13 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
 
   async #dispatch(scheduled: Scheduled<WebhookTask>) {
     const {
-      task: { subId, agentId },
+      task: {
+        subId,
+        agentId,
+        msg: {
+          metadata: { type },
+        },
+      },
     } = scheduled
 
     try {
@@ -84,7 +90,9 @@ export class WebhookPublisher extends (EventEmitter as new () => PublisherEmitte
       for (const chan of channels) {
         if (chan.type === 'webhook') {
           const config = chan as WebhookNotification
-          await this.#post(scheduled, config)
+          if (config.events === undefined || config.events === '*' || config.events.includes(type)) {
+            await this.#post(scheduled, config)
+          }
         }
       }
     } catch (error) {

@@ -82,6 +82,7 @@ const $WebhookNotification = z.object({
       .regex(/(?:application|text)\/[a-z0-9-+.]+/i)
       .max(250),
   ),
+  events: z.optional(z.array(z.string()).or(z.literal('*'))),
   template: z.optional(z.string().min(5).max(32_000)),
   bearer: z.optional(z.string().min(1).max(1_000)),
   secret: z.optional(z.string().min(1).max(1_000)),
