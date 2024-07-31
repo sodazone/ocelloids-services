@@ -144,9 +144,9 @@ const mergeMultiLocations = ({
         registry,
         multiLocationKeyPrefix,
         multiLocationKeyType,
-        asset.id,
+        asset.raw.keyArgs,
         multiLocationHashing,
-        false,
+        true,
       )
       return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
         map((buffer) => {
