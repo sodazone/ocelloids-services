@@ -57,10 +57,6 @@ export function getStorageKeysReqKey(chainId: NetworkURN) {
   return 'RQ:STORAGE:KEYS:' + chainId
 }
 
-export function getChainPropsReqKey(chainId: NetworkURN) {
-  return 'RQ:PROPS:' + chainId
-}
-
 export function getReplyToKey(chainId: NetworkURN, ...args: string[]) {
   return `RP:${chainId}:${args.join(':')}`
 }

@@ -65,7 +65,7 @@ export type entryMapper = (
   keyArgs: string,
   assetIdType: string,
   ingress: IngressConsumer,
-) => (source: Observable<Uint8Array>) => Observable<NonNullable<AssetMetadata>>
+) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
 
 export type GeneralKey = {
   data: Uint8Array
@@ -96,7 +96,9 @@ export type AssetMetadata = {
   name?: string
   symbol?: string
   decimals?: number
+  existentialDeposit?: string
+  isSufficient?: boolean
   multiLocation?: Record<string, any> | AnyJson
   updated: number
   raw: Record<string, any>
-} | null
+}

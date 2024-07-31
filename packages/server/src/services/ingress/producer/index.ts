@@ -13,7 +13,6 @@ import {
   RedisDistributor,
   XAddOptions,
   getBlockStreamKey,
-  getChainPropsReqKey,
   getMetadataKey,
   getStorageKeysReqKey,
   getStorageReqKey,
@@ -144,7 +143,6 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
 
       this.#registerStorageRequestHandler(chainId)
       this.#registerStorageKeysRequestHandler(chainId)
-      this.#registerChainPropsRequestHandler(chainId)
     }
   }
 
@@ -192,22 +190,6 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
           this.#log.error(e, '[%s] error reading storage (key=%s)', chainId, request.storageKey)
         },
       })
-    })
-  }
-
-  #registerChainPropsRequestHandler(chainId: NetworkURN) {
-    const key = getChainPropsReqKey(chainId)
-    this.#distributor.read<{
-      replyTo: string
-    }>(key, (request, { client }) => {
-      this.#headCatcher
-        .getChainProperties(chainId)
-        .then((data) => {
-          client.LPUSH(request.replyTo, Buffer.from(JSON.stringify(data)))
-        })
-        .catch((e) => {
-          this.#log.error(e, '[%s] error while reading chain properties', chainId)
-        })
     })
   }
 }
