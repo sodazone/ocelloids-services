@@ -51,7 +51,7 @@ function parseLocalX1Junction(
     // but we should check mapping to be sure
     return {
       network: referenceNetwork,
-      assetId: 'native#0',
+      assetId: 'native',
     }
   }
   if (junction.isGeneralKey) {
@@ -70,7 +70,7 @@ function parseLocalAsset(
   if (junctions.type === 'Here') {
     return {
       network: referenceNetwork,
-      assetId: 'native#0',
+      assetId: 'native',
     }
   }
   if (junctions.type === 'X1') {
@@ -105,7 +105,7 @@ function parseLocalAsset(
       if (!index && !key && !accountId20) {
         return {
           network: referenceNetwork,
-          assetId: 'native#0',
+          assetId: 'native',
         }
       }
 
@@ -141,7 +141,7 @@ function parseCrossChainAsset(
   if (junctions.type === 'Here') {
     return {
       network: getRelayId(referenceNetwork),
-      assetId: 'native#0',
+      assetId: 'native',
     }
   }
   if (junctions.type === 'X1') {
@@ -150,13 +150,13 @@ function parseCrossChainAsset(
       if (junction[0].isParachain) {
         return {
           network: createNetworkId(referenceNetwork, junction[0].asParachain.toString()),
-          assetId: 'native#0',
+          assetId: 'native',
         }
       }
     } else if (junction.isParachain) {
       return {
         network: createNetworkId(referenceNetwork, junction.asParachain.toString()),
-        assetId: 'native#0',
+        assetId: 'native',
       }
     }
   } else {
@@ -189,7 +189,7 @@ function parseCrossChainAsset(
       if (!index && !key && !accountId20) {
         return {
           network,
-          assetId: 'native#0',
+          assetId: 'native',
         }
       }
 
