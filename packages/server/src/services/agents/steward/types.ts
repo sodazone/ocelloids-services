@@ -14,14 +14,25 @@ export type XcmVersions = (typeof xcmVersions)[number]
 
 export const networks = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
-  bifrost: 'urn:ocn:polkadot:2030',
-  assethub: 'urn:ocn:polkadot:1000',
-  hydration: 'urn:ocn:polkadot:2034',
+  assetHub: 'urn:ocn:polkadot:1000',
+  bridgeHub: 'urn:ocn:polkadot:1002',
+  acala: 'urn:ocn:polkadot:2000',
   moonbeam: 'urn:ocn:polkadot:2004',
-  manta: 'urn:ocn:polkadot:2104',
+  composable: 'urn:ocn:polkadot:2019',
+  astar: 'urn:ocn:polkadot:2006',
+  nodle: 'urn:ocn:polkadot:2026',
+  bifrost: 'urn:ocn:polkadot:2030',
   centrifuge: 'urn:ocn:polkadot:2031',
   interlay: 'urn:ocn:polkadot:2032',
-  astar: 'urn:ocn:polkadot:2006',
+  hydration: 'urn:ocn:polkadot:2034',
+  phala: 'urn:ocn:polkadot:2035',
+  manta: 'urn:ocn:polkadot:2104',
+  pendulum: 'urn:ocn:polkadot:2094',
+  mythos: 'urn:ocn:polkadot:3369',
+  kusama: 'urn:ocn::kusama:0',
+  kusamaAssetHub: 'urn:ocn:kusama:1000',
+  kusamaBridgeHub: 'urn:ocn:kusama:1002',
+  kusamaCoretime: 'urn:ocn:kusama:1005',
 })
 
 export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
