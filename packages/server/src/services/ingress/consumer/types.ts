@@ -2,7 +2,6 @@ import { Observable } from 'rxjs'
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Registry } from '@polkadot/types-codec/types'
-import { ChainProperties } from '@polkadot/types/interfaces'
 
 import { NetworkURN } from '@/services/types.js'
 
@@ -26,7 +25,6 @@ export interface IngressConsumer extends TelemetryEventEmitter {
     blockHash?: HexString,
   ): Observable<HexString[]>
   getRegistry(chainId: NetworkURN): Observable<Registry>
-  getChainProperties(chainId: NetworkURN): Promise<ChainProperties>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
   isNetworkDefined(chainId: NetworkURN): boolean

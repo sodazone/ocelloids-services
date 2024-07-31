@@ -34,6 +34,7 @@ import {
   StewardQueryArgs,
   XcmVersions,
 } from './types.js'
+import { extractConstant } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const LEVEL_PREFIX = 'agent:steward:assets:'
@@ -286,33 +287,42 @@ export class DataSteward implements Agent, Queryable {
 
   #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
     this.#ingress
-      .getChainProperties(chainId)
-      .then((props) => {
-        if (props.tokenSymbol.isSome) {
-          const symbols = props.tokenSymbol.unwrap().toArray()
-          const decimals = props.tokenDecimals.unwrap().toArray()
+      .getRegistry(chainId)
+      .pipe(
+        switchMap((registry) => {
+          const assets: AssetMetadata[] = []
+          const existentialDeposit = extractConstant(registry, 'balances', 'existentialDeposit')?.toString()
+          const symbols = registry.chainTokens
+          const decimals = registry.chainDecimals
 
           for (let i = 0; i < symbols.length; i++) {
             const symbol = symbols[i].toString()
-            const id = 'native#' + (mapper.nativeKeyBySymbol ? symbol : i)
+            const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
             const asset: AssetMetadata = {
               id,
               updated: Date.now(),
               symbol,
-              decimals: decimals[i].toNumber(),
+              decimals: decimals[i],
               chainId,
+              existentialDeposit,
               raw: {
                 native: true,
               },
             }
-            this.#db.put(assetMetadataKey(chainId, asset.id), asset).catch((e) => {
-              this.#log.error(e, '[agent:%s] while writing chain properties (chainId=%s)', this.id, chainId)
-            })
+            assets.push(asset)
           }
-        }
-      })
-      .catch((e) => {
-        this.#log.error(e, '[agent:%s] while getting chain properties (chainId=%s)', this.id, chainId)
+          return assets
+        }),
+      )
+      .subscribe({
+        next: (asset: AssetMetadata) => {
+          this.#db.put(assetMetadataKey(chainId, asset.id), asset).catch((e) => {
+            this.#log.error(e, '[agent:%s] while writing chain properties (chainId=%s)', this.id, chainId)
+          })
+        },
+        error: (e) => {
+          this.#log.error(e, '[agent:%s] while getting chain properties (chainId=%s)', this.id, chainId)
+        },
       })
   }
 

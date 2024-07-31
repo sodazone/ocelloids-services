@@ -5,7 +5,6 @@ import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxj
 import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import { Metadata, TypeRegistry } from '@polkadot/types'
 import type { Registry } from '@polkadot/types-codec/types'
-import { ChainProperties } from '@polkadot/types/interfaces'
 
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
@@ -16,7 +15,6 @@ import {
   NetworksKey,
   RedisDistributor,
   getBlockStreamKey,
-  getChainPropsReqKey,
   getMetadataKey,
   getReplyToKey,
   getStorageKeysReqKey,
@@ -150,16 +148,6 @@ export class DistributedIngressConsumer
     }
   }
 
-  async getChainProperties(chainId: NetworkURN): Promise<ChainProperties> {
-    try {
-      return await this.#chainPropertiesFromRedis(chainId)
-    } catch (error) {
-      this.emit('telemetryIngressConsumerError', 'chainPropertiesFromRedis')
-
-      throw error
-    }
-  }
-
   getChainIds(): NetworkURN[] {
     return Object.keys(this.#networks) as NetworkURN[]
   }
@@ -204,24 +192,6 @@ export class DistributedIngressConsumer
       this.#log.error(error, 'Error reading networks from Redis')
       throw error
     }
-  }
-
-  async #chainPropertiesFromRedis(chainId: NetworkURN): Promise<ChainProperties> {
-    const distributor = this.#distributor
-    const replyTo = getReplyToKey(chainId, 'PROPS', '$')
-    const streamKey = getChainPropsReqKey(chainId)
-    const req = { replyTo }
-
-    await distributor.add(streamKey, '*', req, {
-      TRIM: {
-        strategy: 'MAXLEN',
-        strategyModifier: '~',
-        threshold: 50,
-      },
-    })
-
-    const buffer = await distributor.response(replyTo)
-    return buffer === null ? ({} as ChainProperties) : safeDestr<ChainProperties>(buffer.element.toString())
   }
 
   #storageKeysFromRedis(

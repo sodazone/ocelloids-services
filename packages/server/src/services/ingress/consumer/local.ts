@@ -4,7 +4,6 @@ import { Observable, from, map, shareReplay } from 'rxjs'
 
 import type { SignedBlockExtended } from '@polkadot/api-derive/types'
 import type { Registry } from '@polkadot/types-codec/types'
-import { ChainProperties } from '@polkadot/types/interfaces'
 
 import { NetworkURN, Services } from '@/services/types.js'
 
@@ -45,10 +44,6 @@ export class LocalIngressConsumer
 
   async stop() {
     this.#headCatcher.stop()
-  }
-
-  async getChainProperties(chainId: NetworkURN): Promise<ChainProperties> {
-    return await this.#headCatcher.getChainProperties(chainId)
   }
 
   getChainIds(): NetworkURN[] {
