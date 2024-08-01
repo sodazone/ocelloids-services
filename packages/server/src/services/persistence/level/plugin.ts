@@ -77,7 +77,7 @@ const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options)
           })
         })
       } else {
-        instance.log.info('[level] closing database: %s', levelDB.status)
+        instance.log.info('[level] the database is not open: %s', levelDB.status)
       }
     }
   })
