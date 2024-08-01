@@ -103,6 +103,7 @@ export type AssetMapper = {
  */
 export type AssetMetadata = {
   id: string
+  xid: HexString
   chainId: NetworkURN
   name?: string
   symbol?: string

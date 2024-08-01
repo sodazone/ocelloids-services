@@ -300,6 +300,8 @@ export class DataSteward implements Agent, Queryable {
             const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
             const asset: AssetMetadata = {
               id,
+              // id native(0) index(u8)
+              xid: `0x00${i.toString(16)}`,
               updated: Date.now(),
               symbol,
               decimals: decimals[i],

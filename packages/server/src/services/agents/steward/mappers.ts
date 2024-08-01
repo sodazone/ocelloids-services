@@ -260,11 +260,12 @@ const assetHubMapper = (chainId: string) =>
             return source.pipe(
               map((buffer) => {
                 const multiLocation = keyValue(registry, assetIdType, keyArgs, 'blake2-128', true)
-                const assetId = multiLocation.toString()
+                const assetId = multiLocation
                 const assetDetails = registry.createType('PalletAssetsAssetDetails', buffer)
 
                 return {
-                  id: assetId,
+                  id: assetId.toString(),
+                  xid: assetId.toHex(),
                   updated: Date.now(),
                   isSufficient: assetDetails.isSufficient.toPrimitive(),
                   existentialDeposit: assetDetails.minBalance.toString(),
