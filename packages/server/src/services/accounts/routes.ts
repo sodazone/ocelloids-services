@@ -189,6 +189,7 @@ export async function AccountsApi(api: FastifyInstance) {
         caps: [CAP_WRITE],
       },
       schema: {
+        hide: true,
         tags: ['accounts'],
         security: [{ BearerAuth: [] }],
       },
