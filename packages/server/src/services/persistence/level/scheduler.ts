@@ -59,7 +59,7 @@ export class Scheduler extends EventEmitter {
         await this.#waiting.cancel()
       }
 
-      if(this.#while) {
+      if (this.#while) {
         await this.#while
       }
 
