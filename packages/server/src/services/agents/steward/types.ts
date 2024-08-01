@@ -38,7 +38,7 @@ export const networks = setNetworks({
 export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
-    op: z.literal('assets.metadata'),
+    op: z.literal('assets'),
     criteria: z.array(
       z.object({
         network: $NetworkString,
@@ -47,13 +47,13 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
     ),
   }),
   z.object({
-    op: z.literal('assets.metadata.list'),
+    op: z.literal('assets.list'),
     criteria: z.object({
       network: $NetworkString,
     }),
   }),
   z.object({
-    op: z.literal('assets.metadata.by_location'),
+    op: z.literal('assets.by_location'),
     criteria: z.array(
       z.object({
         network: $NetworkString,

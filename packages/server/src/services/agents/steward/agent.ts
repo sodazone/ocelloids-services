@@ -86,11 +86,11 @@ export class DataSteward implements Agent, Queryable {
     const { args, pagination } = params
     $StewardQueryArgs.parse(args)
 
-    if (args.op === 'assets.metadata') {
+    if (args.op === 'assets') {
       return await this.#queryAssetMetadata(args.criteria)
-    } else if (args.op === 'assets.metadata.list') {
+    } else if (args.op === 'assets.list') {
       return await this.#queryAssetMetadataList(args.criteria, pagination)
-    } else if (args.op === 'assets.metadata.by_location') {
+    } else if (args.op === 'assets.by_location') {
       return await this.#queryAssetMetadataByLocation(args.criteria)
     }
 
