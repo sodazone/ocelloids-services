@@ -81,7 +81,7 @@ const interlayMapper: AssetMapper = {
       resolveKey: (registry, keyValue) => {
         const v = registry.createType('InterbtcPrimitivesCurrencyId', keyValue) as unknown as any
         if (v.isToken) {
-          return `native#${v.asToken.toString()}`
+          return `native:${v.asToken.toString()}`
         }
         if (v.isForeignAsset) {
           return v.asForeignAsset.toString()
