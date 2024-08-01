@@ -417,7 +417,7 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/query/steward',
           body: {
             args: {
-              op: 'assets.metadata',
+              op: 'assets',
               criteria: [
                 {
                   network: 'urn:ocn:polkadot:1000',
