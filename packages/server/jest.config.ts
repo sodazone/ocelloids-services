@@ -14,6 +14,7 @@ const jestConfig : JestConfigWithSWCJest = {
   modulePaths: [compilerOptions.baseUrl],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    'web-worker': '<rootDir>/src/testing/shims/web-worker',
     ...pathsToModuleNameMapper(compilerOptions.paths , { useESM: true })
   },
   testEnvironment: "node",
