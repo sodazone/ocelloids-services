@@ -53,6 +53,7 @@ export class Scheduler extends EventEmitter {
   async stop() {
     if (this.#running) {
       this.#log.info('Stopping scheduler')
+
       this.#running = false
 
       if (this.#waiting) {
