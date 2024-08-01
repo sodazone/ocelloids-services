@@ -301,7 +301,7 @@ export class DataSteward implements Agent, Queryable {
             const asset: AssetMetadata = {
               id,
               // id native(aaee) index(u8)
-              xid: `0xaaee${i.toString(16).padEnd(2, '0')}`,
+              xid: `0xaaee${i.toString(16).padStart(2, '0')}`,
               updated: Date.now(),
               symbol,
               decimals: decimals[i],
