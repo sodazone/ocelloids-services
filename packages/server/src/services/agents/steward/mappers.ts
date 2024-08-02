@@ -1,5 +1,5 @@
 import { Registry } from '@polkadot/types-codec/types'
-import { u8aConcat } from '@polkadot/util'
+import { u8aConcat, u8aToNumber } from '@polkadot/util'
 
 import { Observable, map, mergeMap, of } from 'rxjs'
 
@@ -79,7 +79,7 @@ const interlayMapper: AssetMapper = {
       palletInstance: 24,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
       assetIdType: 'u32',
-      resolveKey: (registry, assetIdData) => {
+      resolveAssetId: (registry, assetIdData) => {
         let fullKey = new Uint8Array()
         for (const aidData of assetIdData) {
           const keyValue = aidData.data.slice(0, aidData.length)
@@ -117,7 +117,7 @@ const pendulumMapper: AssetMapper = {
       palletInstance: 53,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
       assetIdType: 'SpacewalkPrimitivesCurrencyId',
-      resolveKey: (registry, assetIdData) => {
+      resolveAssetId: (registry, assetIdData) => {
         let fullKey = new Uint8Array()
         for (const aidData of assetIdData) {
           const keyValue = aidData.data.slice(0, aidData.length)
@@ -154,6 +154,16 @@ const acalaMapper: AssetMapper = {
       palletInstance: 122,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b7affc73a3c113dc6f4c7d986a1ddd88',
       assetIdType: 'AcalaPrimitivesCurrencyAssetIds',
+      resolveAssetId: (_registry, assetIdData) => {
+        // only resolution of native assets supported ATM
+        const aidData = assetIdData[0]       
+        try {
+          const assetIndex = u8aToNumber(aidData.data.slice(0, aidData.length), { isLe: false })
+          return assetIndex === 0 ? 'native' : `native:${assetIndex}`
+        } catch (_error) {
+          return 'none'
+        }
+      },
       mapEntry: (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
         return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
           return source.pipe(

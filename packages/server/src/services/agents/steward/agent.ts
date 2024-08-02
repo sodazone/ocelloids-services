@@ -4,9 +4,7 @@ import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } 
 
 import { Registry } from '@polkadot/types-codec/types'
 
-import { u8aConcat, u8aToHex } from '@polkadot/util'
-
-import { safeDestr } from 'destr'
+import { u8aConcat } from '@polkadot/util'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
@@ -35,7 +33,6 @@ import {
   AssetMapping,
   AssetMetadata,
   StewardQueryArgs,
-  XcmVersions,
 } from './types.js'
 import { limitCap, paginatedResults } from './util.js'
 
@@ -149,15 +146,15 @@ export class DataSteward implements Agent, Queryable {
   // TODO: temporary support for fetching asset metadata from multilocation
   // will be refactored, probably as part of the XCM Humanizer agent
   async #queryAssetMetadataByLocation(
-    criteria: { network: string; locations: string[]; version?: XcmVersions }[],
+    criteria: { destination: string; locations: string[]; }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
-    for (const { network: referenceNetwork, locations, version } of criteria) {
+    for (const { destination: referenceNetwork, locations } of criteria) {
       const relayRegistry = await this.#getRegistry(getRelayId(referenceNetwork as NetworkURN))
 
       for (const loc of locations) {
         try {
-          const parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
+          const parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry)
 
           if (parsed) {
             const { network, assetId, pallet } = parsed
@@ -170,9 +167,9 @@ export class DataSteward implements Agent, Queryable {
                 mappings = mappings.filter(m => m.palletInstance === pallet)
               }
               for (const mapping of mappings) {
-                const id = mapping.resolveKey
-                  ? mapping.resolveKey(registry, assetId.value)
-                  : this.#resolveKey(registry, mapping.assetIdType, assetId.value)
+                const id = mapping.resolveAssetId
+                  ? mapping.resolveAssetId(registry, assetId.value)
+                  : this.#resolveAssetId(registry, mapping.assetIdType, assetId.value)
                 keys.push(assetMetadataKey(network, id))
               }
             }
@@ -382,7 +379,7 @@ export class DataSteward implements Agent, Queryable {
       })
   }
 
-  #resolveKey(registry: Registry, assetIdType: string, assetIdData: AssetIdData[]) {
+  #resolveAssetId(registry: Registry, assetIdType: string, assetIdData: AssetIdData[]) {
     let fullKey = new Uint8Array()
     for (const aidData of assetIdData) {
       const keyValue = aidData.data.slice(0, aidData.length)

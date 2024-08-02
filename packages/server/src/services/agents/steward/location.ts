@@ -7,6 +7,7 @@ import type {
   XcmV2MultilocationJunctions,
   XcmV3Junction,
   XcmV3Junctions,
+  XcmVersionedLocation
 } from '@polkadot/types/lookup'
 import { isInstanceOf } from '@polkadot/util'
 
@@ -14,10 +15,9 @@ import { createNetworkId, getRelayId } from '@/services/config.js'
 import { NetworkURN } from '@/services/types.js'
 import { safeDestr } from 'destr'
 import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../xcm/ops/xcm-types.js'
-import { mappers } from './mappers.js'
-import { AssetIdData, ParsedAsset, XcmVersions } from './types.js'
+import { AssetIdData, ParsedAsset } from './types.js'
 
-function isV3GeneralKey(obj: any): obj is {
+function isV3V4GeneralKey(obj: any): obj is {
   data: U8aFixed
   length: u8
 } {
@@ -26,7 +26,7 @@ function isV3GeneralKey(obj: any): obj is {
 
 function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction): AssetIdData {
   const genKey = junction.asGeneralKey
-  if (isV3GeneralKey(genKey)) {
+  if (isV3V4GeneralKey(genKey)) {
     return {
       data: genKey.data.toU8a(),
       length: genKey.length.toNumber(),
@@ -34,8 +34,8 @@ function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction):
   }
 
   return {
-    data: genKey.toU8a(),
-    length: genKey.length,
+    data: genKey.toU8a(true),
+    length: genKey.toU8a(true).length,
   }
 }
 
@@ -242,21 +242,15 @@ export function parseAssetFromJson(
   network: NetworkURN,
   loc: string,
   registry: Registry,
-  version?: XcmVersions,
 ): ParsedAsset | null {
   const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
-  if (version === 'v4') {
-    const multiLocation = registry.createType(
-      'StagingXcmV4Location',
-      safeDestr(cleansedLoc),
-    ) as unknown as XcmV4Location
-    return parseMultiLocation(network, multiLocation)
+  const versionedLocation = registry.createType(
+    'XcmVersionedLocation',
+    safeDestr(cleansedLoc),
+  ) as unknown as XcmVersionedLocation
+  if (versionedLocation.type === 'V4') {
+    // coerce to our type for V4 until pjs types are fixed
+    return parseMultiLocation(network, versionedLocation.asV4 as unknown as XcmV4Location)
   }
-  if (version === 'v2') {
-    const multiLocation = registry.createType('XcmV2MultiLocation', safeDestr(cleansedLoc))
-    return parseMultiLocation(network, multiLocation)
-  }
-  // Try V3 as fallback if no version passed
-  const multiLocation = registry.createType('StagingXcmV3MultiLocation', safeDestr(cleansedLoc))
-  return parseMultiLocation(network, multiLocation)
+  return parseMultiLocation(network, versionedLocation[`as${versionedLocation.type}`])
 }
