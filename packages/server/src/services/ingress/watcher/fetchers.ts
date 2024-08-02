@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { ApiPromise } from '@polkadot/api'
 
 import { NetworkURN } from '@/lib.js'
