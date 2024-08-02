@@ -6,12 +6,19 @@ import { AbstractIterator } from 'abstract-level'
 import { LevelDB } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 
+const API_LIMIT_DEFAULT = 10
+const API_LIMIT_MAX = 100
+
 export function getLocationIfAny(assetDetails: Record<string, any>) {
   const { location } = assetDetails
   if (location) {
     return location.toJSON === undefined ? location : location.toJSON()
   }
   return undefined
+}
+
+export function limitCap(pagination?: QueryPagination) {
+  return Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX)
 }
 
 export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB, K, V>) {

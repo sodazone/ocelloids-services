@@ -30,7 +30,7 @@ import {
   StewardQueryArgs,
   XcmVersions,
 } from './types.js'
-import { paginatedResults } from './util.js'
+import { limitCap, paginatedResults } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
@@ -51,8 +51,6 @@ const START_DELAY = 30_000 // 5m
 const SCHED_RATE = 43_200_000 // 12h
 
 const OMEGA_250 = Array(250).fill('\uFFFF').join('')
-const API_LIMIT_DEFAULT = 10
-const API_LIMIT_MAX = 100
 
 /**
  * The Data Steward agent.
@@ -194,7 +192,7 @@ export class DataSteward implements Agent, Queryable {
     const iterator = this.#dbChains.iterator<string, NetworkInfo>({
       gte: pagination?.cursor,
       lte: OMEGA_250,
-      limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
+      limit: limitCap(pagination),
     })
     return await paginatedResults<string, NetworkInfo>(iterator)
   }
@@ -221,7 +219,7 @@ export class DataSteward implements Agent, Queryable {
     const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
       gte: cursor,
       lte: network + ':' + OMEGA_250,
-      limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
+      limit: limitCap(pagination),
     })
     return await paginatedResults<string, AssetMetadata>(iterator)
   }
