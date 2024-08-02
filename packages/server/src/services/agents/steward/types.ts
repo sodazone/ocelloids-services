@@ -54,7 +54,7 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('assets.by_location'),
     criteria: z.array(
       z.object({
-        destination: $NetworkString,
+        xcmLocationAnchor: $NetworkString,
         locations: z.array(z.string()).min(1).max(50),
       }),
     ),

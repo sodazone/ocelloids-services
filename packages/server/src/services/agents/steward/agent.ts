@@ -146,15 +146,15 @@ export class DataSteward implements Agent, Queryable {
   // TODO: temporary support for fetching asset metadata from multilocation
   // will be refactored, probably as part of the XCM Humanizer agent
   async #queryAssetMetadataByLocation(
-    criteria: { destination: string; locations: string[]; }[],
+    criteria: { xcmLocationAnchor: string; locations: string[]; }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
-    for (const { destination: referenceNetwork, locations } of criteria) {
-      const relayRegistry = await this.#getRegistry(getRelayId(referenceNetwork as NetworkURN))
+    for (const { xcmLocationAnchor, locations } of criteria) {
+      const relayRegistry = await this.#getRegistry(getRelayId(xcmLocationAnchor as NetworkURN))
 
       for (const loc of locations) {
         try {
-          const parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry)
+          const parsed = parseAssetFromJson(xcmLocationAnchor as NetworkURN, loc, relayRegistry)
 
           if (parsed) {
             const { network, assetId, pallet } = parsed
