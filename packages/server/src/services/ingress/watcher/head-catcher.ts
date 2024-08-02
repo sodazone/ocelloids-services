@@ -293,6 +293,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         : (await api.query.parachainInfo.parachainId()).toString()
 
     return {
+      urn: chainId,
       genesisHash: genesisHash.toHex(),
       existentialDeposit,
       chainTokens,

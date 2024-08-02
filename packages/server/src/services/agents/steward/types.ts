@@ -62,6 +62,15 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       }),
     ),
   }),
+  z.object({
+    op: z.literal('chains.list'),
+  }),
+  z.object({
+    op: z.literal('chains'),
+    criteria: z.object({
+      networks: z.array($NetworkString).min(1).max(50),
+    }),
+  }),
 ])
 
 /**

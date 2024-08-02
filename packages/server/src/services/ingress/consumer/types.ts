@@ -12,6 +12,7 @@ import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/ty
  * Extended Network Information
  */
 export type NetworkInfo = {
+  urn: NetworkURN
   genesisHash: HexString
   chainTokens: string[]
   chainDecimals: number[]

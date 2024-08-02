@@ -30,11 +30,12 @@ import {
   StewardQueryArgs,
   XcmVersions,
 } from './types.js'
+import { paginatedResults } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
-const AGENT_LEVEL_PREFIX = 'agent:steward:'
-const ASSETS_LEVEL_PREFIX = 'agent:steward:assets:'
-const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains:'
+const AGENT_LEVEL_PREFIX = 'agent:steward'
+const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
+const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
 
 function normalize(assetId: string) {
   return assetId.toLowerCase().replaceAll('"', '')
@@ -46,12 +47,12 @@ function assetMetadataKey(chainId: NetworkURN, assetId: string) {
 
 const STORAGE_PAGE_LEN = 100
 
+const START_DELAY = 30_000 // 5m
+const SCHED_RATE = 43_200_000 // 12h
+
 const OMEGA_250 = Array(250).fill('\uFFFF').join('')
 const API_LIMIT_DEFAULT = 10
 const API_LIMIT_MAX = 100
-
-const START_DELAY = 30_000 // 5m
-const SCHED_RATE = 43_200_000 // 12h
 
 /**
  * The Data Steward agent.
@@ -75,7 +76,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbChains = this.#dbAssets = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
+    this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#log = ctx.log
@@ -87,16 +88,21 @@ export class DataSteward implements Agent, Queryable {
     return $StewardQueryArgs
   }
 
-  async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult<AssetMetadata>> {
+  async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
     const { args, pagination } = params
     $StewardQueryArgs.parse(args)
 
+    // TODO extract queries map
     if (args.op === 'assets') {
       return await this.#queryAssetMetadata(args.criteria)
     } else if (args.op === 'assets.list') {
       return await this.#queryAssetMetadataList(args.criteria, pagination)
     } else if (args.op === 'assets.by_location') {
       return await this.#queryAssetMetadataByLocation(args.criteria)
+    } else if (args.op === 'chains') {
+      return await this.#queryChains(args.criteria)
+    } else if (args.op === 'chains.list') {
+      return await this.#queryChainList(pagination)
     }
 
     throw new ValidationError('Unknown query type')
@@ -184,30 +190,40 @@ export class DataSteward implements Agent, Queryable {
     return firstValueFrom(this.#ingress.getRegistry(network))
   }
 
+  async #queryChainList(pagination?: QueryPagination): Promise<QueryResult<NetworkInfo>> {
+    const iterator = this.#dbChains.iterator<string, NetworkInfo>({
+      gte: pagination?.cursor,
+      lte: OMEGA_250,
+      limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
+    })
+    return await paginatedResults<string, NetworkInfo>(iterator)
+  }
+
+  async #queryChains(criteria: {
+    networks: string[]
+  }): Promise<QueryResult<NetworkInfo>> {
+    return {
+      items: await this.#dbChains.getMany<string, NetworkInfo>(criteria.networks, {
+        /** */
+      }),
+    }
+  }
+
   async #queryAssetMetadataList(
     { network }: { network: string },
     pagination?: QueryPagination,
   ): Promise<QueryResult<AssetMetadata>> {
+    const cursor = pagination
+      ? pagination.cursor === undefined || pagination.cursor === ''
+        ? network
+        : pagination.cursor
+      : network
     const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
-      gte: pagination?.cursor ?? network,
+      gte: cursor,
       lte: network + ':' + OMEGA_250,
       limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
     })
-    const entries = await iterator.all()
-
-    if (entries.length === 0) {
-      return {
-        items: [],
-      }
-    }
-
-    return {
-      pageInfo: {
-        endCursor: entries[entries.length - 1][0],
-        hasNextPage: iterator.count >= iterator.limit,
-      },
-      items: entries.map(([_, v]) => v),
-    }
+    return await paginatedResults<string, AssetMetadata>(iterator)
   }
 
   async #queryAssetMetadata(
