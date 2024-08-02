@@ -2,6 +2,12 @@ import { z } from 'zod'
 
 import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 
+import { Registry } from '@polkadot/types-codec/types'
+
+import { u8aConcat, u8aToHex } from '@polkadot/util'
+
+import { safeDestr } from 'destr'
+
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
@@ -20,10 +26,11 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
-import { ParsedAsset, parseAssetFromJson } from './location.js'
+import { parseAssetFromJson } from './location.js'
 import { mappers } from './mappers.js'
 import {
   $StewardQueryArgs,
+  AssetIdData,
   AssetMapper,
   AssetMapping,
   AssetMetadata,
@@ -149,21 +156,23 @@ export class DataSteward implements Agent, Queryable {
       const relayRegistry = await this.#getRegistry(getRelayId(referenceNetwork as NetworkURN))
 
       for (const loc of locations) {
-        let parsed: ParsedAsset | null = null
         try {
-          parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
+          const parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
 
           if (parsed) {
-            const { network, assetId } = parsed
-            if (typeof assetId === 'string') {
-              keys.push(assetMetadataKey(network, assetId))
+            const { network, assetId, pallet } = parsed
+            if (assetId.type === 'string') {
+              keys.push(assetMetadataKey(network, assetId.value))
             } else {
               const registry = await this.#getRegistry(network)
-              for (const mapping of mappers[network].mappings) {
-                const keyValue = assetId.data.slice(0, assetId.length)
+              let mappings = mappers[network].mappings
+              if (pallet) {
+                mappings = mappings.filter(m => m.palletInstance === pallet)
+              }
+              for (const mapping of mappings) {
                 const id = mapping.resolveKey
-                  ? mapping.resolveKey(registry, keyValue)
-                  : registry.createType(mapping.assetIdType, keyValue).toString()
+                  ? mapping.resolveKey(registry, assetId.value)
+                  : this.#resolveKey(registry, mapping.assetIdType, assetId.value)
                 keys.push(assetMetadataKey(network, id))
               }
             }
@@ -371,6 +380,19 @@ export class DataSteward implements Agent, Queryable {
         error: (e) =>
           this.#log.error(e, '[agent:%s] on metadata sync (chainId=%s, key=%s)', this.id, chainId, keyPrefix),
       })
+  }
+
+  #resolveKey(registry: Registry, assetIdType: string, assetIdData: AssetIdData[]) {
+    let fullKey = new Uint8Array()
+    for (const aidData of assetIdData) {
+      const keyValue = aidData.data.slice(0, aidData.length)
+      fullKey = u8aConcat(fullKey, keyValue)
+    }
+    try {
+      return registry.createType(assetIdType, fullKey).toString()
+    } catch (_error) {
+      return 'none'
+    }
   }
 
   async #isNotScheduled() {

@@ -80,6 +80,25 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
+export type AssetIdData = {
+  data: Uint8Array
+  length: number
+}
+
+export type ParsedAsset = {
+  network: NetworkURN
+  assetId:
+    | {
+        type: 'string'
+        value: string
+      }
+    | {
+        type: 'data'
+        value: AssetIdData[]
+      }
+  pallet?: number
+}
+
 export type entryMapper = (
   registry: Registry,
   keyArgs: string,
@@ -87,17 +106,12 @@ export type entryMapper = (
   ingress: IngressConsumer,
 ) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
 
-export type GeneralKey = {
-  data: Uint8Array
-  length: number
-}
-
 export type AssetMapping = {
   keyPrefix: HexString
   palletInstance: number
   assetIdType: string
   mapEntry: entryMapper
-  resolveKey?: (registry: Registry, keyValue: Uint8Array) => string
+  resolveKey?: (registry: Registry, assetIdData: AssetIdData[]) => string
 }
 
 export type AssetMapper = {
