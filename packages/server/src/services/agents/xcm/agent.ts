@@ -568,6 +568,7 @@ export class XcmAgent implements Agent, Subscribable {
             agentId: this.id,
             networkId: payload.waypoint.chainId,
             timestamp: Date.now(),
+            blockTimestamp: payload.waypoint.timestamp,
           },
           payload: payload as unknown as AnyJson,
         })

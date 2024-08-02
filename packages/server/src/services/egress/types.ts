@@ -14,6 +14,7 @@ export type Message<T = AnyJson> = {
     subscriptionId: string
     networkId: NetworkURN
     timestamp: number
+    blockTimestamp?: number
   }
   payload: T
 }

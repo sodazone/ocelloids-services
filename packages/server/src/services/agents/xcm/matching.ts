@@ -784,7 +784,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   #onXcmHopOut(originMsg: XcmSent, hopMsg: XcmSent) {
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg.origin
-      const { instructions, messageData, messageHash, assetsTrapped } = hopMsg.waypoint
+      const { instructions, messageData, messageHash, assetsTrapped, timestamp } = hopMsg.waypoint
       const currentLeg = hopMsg.legs[0]
       const legIndex = originMsg.legs.findIndex((l) => l.from === currentLeg.from && l.to === currentLeg.to)
       const waypointContext: XcmWaypointContext = {
@@ -792,6 +792,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         chainId,
         blockHash,
         blockNumber,
+        timestamp,
         event,
         outcome,
         error,
@@ -819,7 +820,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
 
     try {
-      const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped } = hopMsg
+      const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped, timestamp } = hopMsg
       const { messageData, messageHash, instructions } = originMsg.waypoint
       const legIndex = originMsg.legs.findIndex((l) => l.to === chainId)
       const waypointContext: XcmWaypointContext = {
@@ -827,6 +828,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         chainId,
         blockHash,
         blockNumber,
+        timestamp,
         event,
         outcome,
         error,
@@ -865,7 +867,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   #onXcmBridgeMatched(bridgeOutMsg: XcmBridge, bridgeInMsg: XcmBridgeInboundWithContext) {
     try {
-      const { chainId, blockHash, blockNumber, event, outcome, error, bridgeKey } = bridgeInMsg
+      const { chainId, blockHash, blockNumber, timestamp, event, outcome, error, bridgeKey } = bridgeInMsg
       const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint
       const legIndex = bridgeOutMsg.legs.findIndex((l) => l.to === chainId && l.type === 'bridge')
       const waypointContext: XcmWaypointContext = {
@@ -873,6 +875,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         chainId,
         blockHash,
         blockNumber: blockNumber.toString(),
+        timestamp,
         event,
         messageData,
         messageHash,

@@ -31,6 +31,7 @@ describe('dmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -55,6 +56,7 @@ describe('dmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -81,6 +83,7 @@ describe('dmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -108,6 +111,7 @@ describe('dmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -135,6 +139,7 @@ describe('dmp operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -162,6 +167,7 @@ describe('dmp operator', () => {
           expect(msg.outcome).toBe('Fail')
           expect(msg.error).toBeDefined()
           expect(msg.error).toBe('UntrustedReserveLocation')
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -189,6 +195,7 @@ describe('dmp operator', () => {
           expect(msg.error).toBeDefined()
           expect(msg.error).toBe('FailedToTransactAsset')
           expect(msg.assetsTrapped).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -214,6 +221,7 @@ describe('dmp operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {

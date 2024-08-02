@@ -23,6 +23,7 @@ describe('xcmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -48,6 +49,7 @@ describe('xcmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -74,6 +76,7 @@ describe('xcmp operator', () => {
         expect(msg.messageData).toBeDefined()
         expect(msg.messageHash).toBeDefined()
         expect(msg.recipient).toBeDefined()
+        expect(msg.timestamp).toBeDefined()
         calls()
       },
       complete: () => {
@@ -100,6 +103,7 @@ describe('xcmp operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -126,6 +130,7 @@ describe('xcmp operator', () => {
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Fail')
           expect(msg.error).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -153,6 +158,7 @@ describe('xcmp operator', () => {
           expect(msg.outcome).toBe('Fail')
           expect(msg.error).toBeDefined()
           expect(msg.assetsTrapped).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {

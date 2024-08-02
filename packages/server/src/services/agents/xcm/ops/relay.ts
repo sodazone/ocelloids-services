@@ -34,6 +34,7 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
                 new GenericXcmRelayedWithContext({
                   blockHash: blockHash.toHex(),
                   blockNumber: blockNumber.toPrimitive(),
+                  timestamp: extrinsic.timestamp?.toNumber(),
                   recipient: createNetworkId(origin, message.recipient.toString()),
                   messageHash: xcmProgram.hash.toHex(),
                   messageId: getMessageId(xcmProgram),
