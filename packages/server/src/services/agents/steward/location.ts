@@ -1,4 +1,5 @@
 import { U8aFixed, u8 } from '@polkadot/types-codec'
+import { Registry } from '@polkadot/types-codec/types'
 import type {
   StagingXcmV3MultiLocation,
   XcmV2Junction,
@@ -11,9 +12,10 @@ import { isInstanceOf } from '@polkadot/util'
 
 import { createNetworkId, getRelayId } from '@/services/config.js'
 import { NetworkURN } from '@/services/types.js'
+import { safeDestr } from 'destr'
 import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../xcm/ops/xcm-types.js'
 import { mappers } from './mappers.js'
-import { GeneralKey } from './types.js'
+import { GeneralKey, XcmVersions } from './types.js'
 
 export type ParsedAsset = {
   network: NetworkURN
@@ -218,7 +220,7 @@ function parseCrossChainAsset(
   return null
 }
 
-export function parseMultiLocation(
+function parseMultiLocation(
   referenceNetwork: NetworkURN,
   location: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
 ): ParsedAsset | null {
@@ -233,4 +235,27 @@ export function parseMultiLocation(
   // cross-consensus not supported yet
 
   return null
+}
+
+export function parseAssetFromJson(
+  network: NetworkURN,
+  loc: string,
+  registry: Registry,
+  version?: XcmVersions,
+): ParsedAsset | null {
+  const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
+  if (version === 'v4') {
+    const multiLocation = registry.createType(
+      'StagingXcmV4Location',
+      safeDestr(cleansedLoc),
+    ) as unknown as XcmV4Location
+    return parseMultiLocation(network, multiLocation)
+  }
+  if (version === 'v2') {
+    const multiLocation = registry.createType('XcmV2MultiLocation', safeDestr(cleansedLoc))
+    return parseMultiLocation(network, multiLocation)
+  }
+  // Try V3 as fallback if no version passed
+  const multiLocation = registry.createType('StagingXcmV3MultiLocation', safeDestr(cleansedLoc))
+  return parseMultiLocation(network, multiLocation)
 }
