@@ -17,6 +17,7 @@ export type NetworkInfo = {
   chainTokens: string[]
   chainDecimals: number[]
   runtimeChain: string
+  blockTime: number // in milliseconds
   existentialDeposit?: string
   ss58Prefix?: number
   parachainId?: string
