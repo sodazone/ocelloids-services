@@ -7,7 +7,7 @@ import type {
   XcmV2MultilocationJunctions,
   XcmV3Junction,
   XcmV3Junctions,
-  XcmVersionedLocation
+  XcmVersionedLocation,
 } from '@polkadot/types/lookup'
 import { isInstanceOf } from '@polkadot/util'
 
@@ -238,11 +238,7 @@ function parseMultiLocation(
   return null
 }
 
-export function parseAssetFromJson(
-  network: NetworkURN,
-  loc: string,
-  registry: Registry,
-): ParsedAsset | null {
+export function parseAssetFromJson(network: NetworkURN, loc: string, registry: Registry): ParsedAsset | null {
   const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
   const versionedLocation = registry.createType(
     'XcmVersionedLocation',

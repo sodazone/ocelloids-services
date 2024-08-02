@@ -96,9 +96,9 @@ export class DataSteward implements Agent, Queryable {
 
     // TODO extract queries map
     if (args.op === 'assets') {
-      return await this.#queryAssetMetadata(args.criteria)
+      return await this.#queryAsset(args.criteria)
     } else if (args.op === 'assets.list') {
-      return await this.#queryAssetMetadataList(args.criteria, pagination)
+      return await this.#queryAssetList(args.criteria, pagination)
     } else if (args.op === 'assets.by_location') {
       return await this.#queryAssetMetadataByLocation(args.criteria)
     } else if (args.op === 'chains') {
@@ -146,7 +146,7 @@ export class DataSteward implements Agent, Queryable {
   // TODO: temporary support for fetching asset metadata from multilocation
   // will be refactored, probably as part of the XCM Humanizer agent
   async #queryAssetMetadataByLocation(
-    criteria: { xcmLocationAnchor: string; locations: string[]; }[],
+    criteria: { xcmLocationAnchor: string; locations: string[] }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys: string[] = []
     for (const { xcmLocationAnchor, locations } of criteria) {
@@ -164,7 +164,7 @@ export class DataSteward implements Agent, Queryable {
               const registry = await this.#getRegistry(network)
               let mappings = mappers[network].mappings
               if (pallet) {
-                mappings = mappings.filter(m => m.palletInstance === pallet)
+                mappings = mappings.filter((m) => m.palletInstance === pallet)
               }
               for (const mapping of mappings) {
                 const id = mapping.resolveAssetId
@@ -213,24 +213,24 @@ export class DataSteward implements Agent, Queryable {
     }
   }
 
-  async #queryAssetMetadataList(
-    { network }: { network: string },
+  async #queryAssetList(
+    criteria?: { network: string },
     pagination?: QueryPagination,
   ): Promise<QueryResult<AssetMetadata>> {
     const cursor = pagination
       ? pagination.cursor === undefined || pagination.cursor === ''
-        ? network
+        ? criteria?.network ?? ''
         : pagination.cursor
-      : network
+      : criteria?.network ?? ''
     const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
       gt: cursor,
-      lt: network + ':' + OMEGA_250,
+      lt: criteria?.network ? criteria.network + ':' + OMEGA_250 : OMEGA_250,
       limit: limitCap(pagination),
     })
     return await paginatedResults<string, AssetMetadata>(iterator)
   }
 
-  async #queryAssetMetadata(
+  async #queryAsset(
     criteria: {
       network: string
       assets: string[]

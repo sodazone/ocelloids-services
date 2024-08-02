@@ -46,9 +46,11 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('assets.list'),
-    criteria: z.object({
-      network: $NetworkString,
-    }),
+    criteria: z.optional(
+      z.object({
+        network: $NetworkString,
+      }),
+    ),
   }),
   z.object({
     op: z.literal('assets.by_location'),

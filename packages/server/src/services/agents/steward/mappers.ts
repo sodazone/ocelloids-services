@@ -156,7 +156,7 @@ const acalaMapper: AssetMapper = {
       assetIdType: 'AcalaPrimitivesCurrencyAssetIds',
       resolveAssetId: (_registry, assetIdData) => {
         // only resolution of native assets supported ATM
-        const aidData = assetIdData[0]       
+        const aidData = assetIdData[0]
         try {
           const assetIndex = u8aToNumber(aidData.data.slice(0, aidData.length), { isLe: false })
           return assetIndex === 0 ? 'native' : `native:${assetIndex}`
