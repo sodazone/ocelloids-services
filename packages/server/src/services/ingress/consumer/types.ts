@@ -9,6 +9,19 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
 /**
+ * Extended Network Information
+ */
+export type NetworkInfo = {
+  genesisHash: HexString
+  chainTokens: string[]
+  chainDecimals: number[]
+  runtimeChain: string
+  existentialDeposit?: string
+  ss58Prefix?: number
+  parachainId?: string
+}
+
+/**
  * Interface defining the operations for an IngressConsumer.
  *
  * This interface provides a contract for components functioning both locally
@@ -25,6 +38,7 @@ export interface IngressConsumer extends TelemetryEventEmitter {
     blockHash?: HexString,
   ): Observable<HexString[]>
   getRegistry(chainId: NetworkURN): Observable<Registry>
+  getChainInfo(chainId: NetworkURN): Promise<NetworkInfo>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
   isNetworkDefined(chainId: NetworkURN): boolean

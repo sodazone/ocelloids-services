@@ -2,11 +2,7 @@ import { z } from 'zod'
 
 import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 
-import { Registry } from '@polkadot/types-codec/types'
-
-import { safeDestr } from 'destr'
-
-import { IngressConsumer } from '@/services/ingress/index.js'
+import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
@@ -23,8 +19,8 @@ import {
   Queryable,
   getAgentCapabilities,
 } from '../types.js'
-import { XcmV4Location } from '../xcm/ops/xcm-types.js'
-import { ParsedAsset, parseMultiLocation } from './location.js'
+
+import { ParsedAsset, parseAssetFromJson } from './location.js'
 import { mappers } from './mappers.js'
 import {
   $StewardQueryArgs,
@@ -34,10 +30,11 @@ import {
   StewardQueryArgs,
   XcmVersions,
 } from './types.js'
-import { extractConstant } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
-const LEVEL_PREFIX = 'agent:steward:assets:'
+const AGENT_LEVEL_PREFIX = 'agent:steward:'
+const ASSETS_LEVEL_PREFIX = 'agent:steward:assets:'
+const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains:'
 
 function normalize(assetId: string) {
   return assetId.toLowerCase().replaceAll('"', '')
@@ -62,15 +59,23 @@ const SCHED_RATE = 43_200_000 // 12h
  * Aggregates and enriches cross-chain metadata for assets and currencies.
  */
 export class DataSteward implements Agent, Queryable {
+  readonly #log: Logger
+
   readonly #sched: Scheduler
   readonly #ingress: IngressConsumer
+
   readonly #db: LevelDB
-  readonly #log: Logger
+  readonly #dbAssets: LevelDB
+  readonly #dbChains: LevelDB
 
   constructor(ctx: AgentRuntimeContext) {
     this.#sched = ctx.scheduler
     this.#ingress = ctx.ingress
-    this.#db = ctx.db.sublevel<string, AssetMetadata>(LEVEL_PREFIX, {
+    this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
+    this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
+      valueEncoding: 'json',
+    })
+    this.#dbChains = this.#dbAssets = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#log = ctx.log
@@ -86,11 +91,11 @@ export class DataSteward implements Agent, Queryable {
     const { args, pagination } = params
     $StewardQueryArgs.parse(args)
 
-    if (args.op === 'assets.metadata') {
+    if (args.op === 'assets') {
       return await this.#queryAssetMetadata(args.criteria)
-    } else if (args.op === 'assets.metadata.list') {
+    } else if (args.op === 'assets.list') {
       return await this.#queryAssetMetadataList(args.criteria, pagination)
-    } else if (args.op === 'assets.metadata.by_location') {
+    } else if (args.op === 'assets.by_location') {
       return await this.#queryAssetMetadataByLocation(args.criteria)
     }
 
@@ -142,7 +147,7 @@ export class DataSteward implements Agent, Queryable {
       for (const loc of locations) {
         let parsed: ParsedAsset | null = null
         try {
-          parsed = this.#parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
+          parsed = parseAssetFromJson(referenceNetwork as NetworkURN, loc, relayRegistry, version)
 
           if (parsed) {
             const { network, assetId } = parsed
@@ -169,7 +174,7 @@ export class DataSteward implements Agent, Queryable {
     }
 
     return {
-      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+      items: await this.#dbAssets.getMany<string, AssetMetadata>(keys, {
         /** */
       }),
     }
@@ -179,34 +184,11 @@ export class DataSteward implements Agent, Queryable {
     return firstValueFrom(this.#ingress.getRegistry(network))
   }
 
-  #parseAssetFromJson(
-    network: NetworkURN,
-    loc: string,
-    registry: Registry,
-    version?: XcmVersions,
-  ): ParsedAsset | null {
-    const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
-    if (version === 'v4') {
-      const multiLocation = registry.createType(
-        'StagingXcmV4Location',
-        safeDestr(cleansedLoc),
-      ) as unknown as XcmV4Location
-      return parseMultiLocation(network, multiLocation)
-    }
-    if (version === 'v2') {
-      const multiLocation = registry.createType('XcmV2MultiLocation', safeDestr(cleansedLoc))
-      return parseMultiLocation(network, multiLocation)
-    }
-    // Try V3 as fallback if no version passed
-    const multiLocation = registry.createType('StagingXcmV3MultiLocation', safeDestr(cleansedLoc))
-    return parseMultiLocation(network, multiLocation)
-  }
-
   async #queryAssetMetadataList(
     { network }: { network: string },
     pagination?: QueryPagination,
   ): Promise<QueryResult<AssetMetadata>> {
-    const iterator = this.#db.iterator<string, AssetMetadata>({
+    const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
       gte: pagination?.cursor ?? network,
       lte: network + ':' + OMEGA_250,
       limit: Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX),
@@ -236,7 +218,7 @@ export class DataSteward implements Agent, Queryable {
   ): Promise<QueryResult<AssetMetadata>> {
     const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
     return {
-      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+      items: await this.#dbAssets.getMany<string, AssetMetadata>(keys, {
         /** */
       }),
     }
@@ -287,42 +269,38 @@ export class DataSteward implements Agent, Queryable {
 
   #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
     this.#ingress
-      .getRegistry(chainId)
-      .pipe(
-        switchMap((registry) => {
-          const assets: AssetMetadata[] = []
-          const existentialDeposit = extractConstant(registry, 'balances', 'existentialDeposit')?.toString()
-          const symbols = registry.chainTokens
-          const decimals = registry.chainDecimals
+      .getChainInfo(chainId)
+      .then((chainInfo) => {
+        this.#dbChains.put(chainId, chainInfo).catch((e) => {
+          this.#log.error(e, '[agent:%s] while writing chain info (chainId=%s)', this.id, chainId)
+        })
 
-          for (let i = 0; i < symbols.length; i++) {
-            const symbol = symbols[i].toString()
-            const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
-            const asset: AssetMetadata = {
-              id,
-              updated: Date.now(),
-              symbol,
-              decimals: decimals[i],
-              chainId,
-              existentialDeposit,
-              raw: {
-                native: true,
-              },
-            }
-            assets.push(asset)
+        const batch = this.#dbAssets.batch()
+
+        for (let i = 0; i < chainInfo.chainTokens.length; i++) {
+          const symbol = chainInfo.chainTokens[i].toString()
+          const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
+          const asset: AssetMetadata = {
+            id,
+            // id native(aaee) index(u8)
+            xid: `0xaaee${i.toString(16).padStart(2, '0')}`,
+            updated: Date.now(),
+            symbol,
+            decimals: chainInfo.chainDecimals[i],
+            chainId,
+            existentialDeposit: chainInfo.existentialDeposit,
+            raw: {
+              native: true,
+            },
           }
-          return assets
-        }),
-      )
-      .subscribe({
-        next: (asset: AssetMetadata) => {
-          this.#db.put(assetMetadataKey(chainId, asset.id), asset).catch((e) => {
-            this.#log.error(e, '[agent:%s] while writing chain properties (chainId=%s)', this.id, chainId)
-          })
-        },
-        error: (e) => {
-          this.#log.error(e, '[agent:%s] while getting chain properties (chainId=%s)', this.id, chainId)
-        },
+          batch.put(assetMetadataKey(chainId, asset.id), asset)
+        }
+        batch.write().catch((e) => {
+          this.#log.error(e, '[agent:%s] while writing chain assets (chainId=%s)', this.id, chainId)
+        })
+      })
+      .catch((e) => {
+        this.#log.error(e, '[agent:%s] while fetching chain info (chainId=%s)', this.id, chainId)
       })
   }
 
@@ -357,7 +335,7 @@ export class DataSteward implements Agent, Queryable {
       .subscribe({
         next: (asset) => {
           const assetKey = assetMetadataKey(chainId, asset.id)
-          this.#db.put(assetKey, asset).catch((e) => {
+          this.#dbAssets.put(assetKey, asset).catch((e) => {
             this.#log.error(
               e,
               '[agent:%s] on metadata write (chainId=%s, assetId=%s, key=%s)',

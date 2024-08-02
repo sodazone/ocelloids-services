@@ -9,6 +9,7 @@ import { _configToml, jwtSigKey } from './data.js'
 jest.unstable_mockModule('node:fs', () => {
   return {
     default: {
+      existsSync: () => true,
       readFileSync: (file: string) => {
         if (file === 'keys') {
           return jwtSigKey

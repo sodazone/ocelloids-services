@@ -45,7 +45,7 @@ export const mapAssetsRegistryMetadata = ({
     return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = keyValue(registry, assetIdType, keyArgs, hashing, true).toString()
+          const assetId = keyValue(registry, assetIdType, keyArgs, hashing, true)
           const assetDetails =
             (registry.createType(assetMetadataType, buffer).toHuman() as Record<string, any>) ?? {}
           const existentialDeposit = options?.ed
@@ -63,7 +63,8 @@ export const mapAssetsRegistryMetadata = ({
               })
           return {
             chainId,
-            id: assetId,
+            id: assetId.toString(),
+            xid: assetId.toHex(),
             updated: Date.now(),
             ...extractMetadata(assetDetails),
             multiLocation: getLocationIfAny(assetDetails),
@@ -86,10 +87,11 @@ export const mapAssetsPalletAssets =
     return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = keyValue(registry, assetIdType, keyArgs, 'blake2-128', true).toString()
+          const assetId = keyValue(registry, assetIdType, keyArgs, 'blake2-128', true)
           const assetDetails = registry.createType('PalletAssetsAssetDetails', buffer)
           return {
-            id: assetId,
+            id: assetId.toString(),
+            xid: assetId.toHex(),
             updated: Date.now(),
             existentialDeposit: assetDetails.minBalance.toString(),
             isSufficient: assetDetails.isSufficient.toPrimitive(),

@@ -2,14 +2,15 @@ export interface CancelablePromise<T> extends Promise<T> {
   cancel(): CancelablePromise<T>
 }
 
-function cancelable<T>(promise: Promise<T>, onCancel?: () => void): CancelablePromise<T> {
-  let cancel: (() => CancelablePromise<T>) | null = null
-  let cancelable: CancelablePromise<T>
-  cancelable = <CancelablePromise<T>>new Promise((resolve, reject) => {
+function cancelable(promise: Promise<void>, onCancel?: () => void): CancelablePromise<void> {
+  let cancel: (() => CancelablePromise<void>) | null = null
+  let cancelable: CancelablePromise<void>
+  cancelable = <CancelablePromise<void>>new Promise((resolve, reject) => {
     cancel = () => {
       try {
         if (onCancel) {
           onCancel()
+          resolve()
         }
       } catch (e) {
         reject(e)
@@ -26,7 +27,7 @@ function cancelable<T>(promise: Promise<T>, onCancel?: () => void): CancelablePr
 
 export function delay(ms: number) {
   let timer: NodeJS.Timeout
-  return cancelable<void>(
+  return cancelable(
     new Promise((resolve) => {
       timer = setTimeout(resolve, ms)
       timer.unref()

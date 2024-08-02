@@ -150,12 +150,16 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
     // TODO handle DELETE
     const networks: NetworkEntry[] = []
     for (const network of this.#config.networks) {
+      const chainId = network.id as NetworkURN
+      const info = await this.#headCatcher.fetchNetworkInfo(chainId)
+
       networks.push({
-        id: network.id as NetworkURN,
+        id: chainId,
         isRelay: network.relay === undefined,
+        info,
       })
 
-      this.#log.info('[%s] WRITE network configuration (relay=%s)', network.id, network.relay ?? 'n/a')
+      this.#log.info('[%s] WRITE network configuration (relay=%s)', chainId, network.relay ?? 'n/a')
     }
     await this.#distributor.sadd(
       NetworksKey,

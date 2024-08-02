@@ -35,6 +35,7 @@ import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/s
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
+import { NetworkInfo } from '../index.js'
 import { LocalCache } from './local-cache.js'
 
 // TODO: extract to config
@@ -274,6 +275,32 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
   get chainIds(): NetworkURN[] {
     return this.#apis.chains as NetworkURN[]
+  }
+
+  async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+    const api = await this.getApiPromise(chainId).isReady
+
+    const existentialDeposit = api.consts.balances.existentialDeposit?.toString()
+    const chainTokens = api.registry.chainTokens
+    const chainDecimals = api.registry.chainDecimals
+    const ss58Prefix = api.registry.chainSS58
+
+    const genesisHash = api.genesisHash
+    const runtimeChain = api.runtimeChain.toString()
+    const parachainId =
+      api.query.parachainInfo === undefined
+        ? undefined
+        : (await api.query.parachainInfo.parachainId()).toString()
+
+    return {
+      genesisHash: genesisHash.toHex(),
+      existentialDeposit,
+      chainTokens,
+      chainDecimals,
+      ss58Prefix,
+      parachainId,
+      runtimeChain,
+    }
   }
 
   get #chainTips() {

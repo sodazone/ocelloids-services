@@ -57,22 +57,29 @@ const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options)
   fastify.decorate('scheduler', scheduler)
   fastify.decorate('subsStore', subsStore)
 
-  fastify.addHook('onClose', function onClose(instance, done) {
-    scheduler
-      .stop()
-      .catch((error) => {
-        instance.log.error(error, '[level] error while stopping the scheduler')
-      })
-      .finally(() => {
-        instance.levelDB.close((error) => {
-          instance.log.info('[level] closing database: OK')
-          /* istanbul ignore if */
-          if (error) {
-            instance.log.error(error, '[level] error while closing the database')
-          }
-          done()
+  fastify.addHook('onClose', async (instance) => {
+    try {
+      await scheduler.stop()
+    } catch (error) {
+      instance.log.error(error, '[level] error while stopping the scheduler')
+    } finally {
+      const { levelDB } = instance
+      if (levelDB.status === 'open') {
+        await new Promise<void>((resolve, reject) => {
+          levelDB.close((error) => {
+            instance.log.info('[level] closing database: OK')
+            /* istanbul ignore if */
+            if (error) {
+              instance.log.error(error, '[level] error while closing the database')
+              reject(error)
+            }
+            resolve()
+          })
         })
-      })
+      } else {
+        instance.log.info('[level] the database is not open: %s', levelDB.status)
+      }
+    }
   })
 
   try {

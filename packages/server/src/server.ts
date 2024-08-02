@@ -6,8 +6,8 @@ import Fastify from 'fastify'
 
 import FastifyCors from '@fastify/cors'
 import FastifySwagger from '@fastify/swagger'
-import FastifySwaggerUI from '@fastify/swagger-ui'
 import FastifyWebsocket from '@fastify/websocket'
+import FastifyScalarUI from '@scalar/fastify-api-reference'
 import FastifyHealthcheck from 'fastify-healthcheck'
 
 import { logger } from '@/environment.js'
@@ -157,7 +157,7 @@ export async function createServer(opts: ServerOptions) {
     },
   })
 
-  await server.register(FastifySwaggerUI, {
+  await server.register(FastifyScalarUI, {
     routePrefix: '/documentation',
   })
 

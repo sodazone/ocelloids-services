@@ -29,8 +29,8 @@ export class Scheduler extends EventEmitter {
   readonly #enabled: boolean
 
   #running: boolean
-  #while?: Promise<void>
   #waiting?: CancelablePromise<void>
+  #while?: Promise<void>
 
   constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
@@ -53,12 +53,18 @@ export class Scheduler extends EventEmitter {
   async stop() {
     if (this.#running) {
       this.#log.info('Stopping scheduler')
+
       this.#running = false
 
-      await this.#while
       if (this.#waiting) {
         await this.#waiting.cancel()
       }
+
+      if (this.#while) {
+        await this.#while
+      }
+
+      this.#log.info('Stopped scheduler')
     }
   }
 
