@@ -36,8 +36,8 @@ describe('ws api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(200)
-        expect(response.json().token).toBeDefined()
+        expect(response?.statusCode).toStrictEqual(200)
+        expect(response?.json().token).toBeDefined()
       },
     )
   })
@@ -53,7 +53,7 @@ describe('ws api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(401)
+        expect(response?.statusCode).toStrictEqual(401)
       },
     )
   })
@@ -69,7 +69,7 @@ describe('ws api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(404)
+        expect(response?.statusCode).toStrictEqual(404)
       },
     )
   })

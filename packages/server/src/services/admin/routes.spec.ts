@@ -34,7 +34,7 @@ describe('admin api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(401)
+        expect(response?.statusCode).toStrictEqual(401)
       },
     )
   })
@@ -52,7 +52,7 @@ describe('admin api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response?.statusCode).toStrictEqual(200)
         expect(allTaskTimesSpy).toHaveBeenCalled()
       },
     )
@@ -73,7 +73,7 @@ describe('admin api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response?.statusCode).toStrictEqual(200)
         expect(getByIdSpy).toHaveBeenCalledWith(taskId)
       },
     )
@@ -94,7 +94,7 @@ describe('admin api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response?.statusCode).toStrictEqual(200)
         expect(removeSpy).toHaveBeenCalledWith(taskId)
       },
     )
@@ -110,9 +110,9 @@ describe('admin api', () => {
         },
       },
       (_err, response) => {
-        const cached = response.json()
+        const cached = response?.json()
         done()
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response?.statusCode).toStrictEqual(200)
         expect(cached).toBeDefined()
         expect(cached.length).toBe(0)
       },
@@ -132,7 +132,7 @@ describe('admin api', () => {
       },
       (_err, response) => {
         done()
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response?.statusCode).toStrictEqual(200)
         expect(dbClearSpy).toHaveBeenCalled()
       },
     )

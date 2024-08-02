@@ -45,8 +45,8 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/',
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.headers['content-type']).toStrictEqual('text/plain; charset=utf-8')
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.headers['content-type']).toStrictEqual('text/plain; charset=utf-8')
 
           done()
         },
@@ -60,8 +60,8 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/ingress/networks',
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.json().length).toBeGreaterThan(1)
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.json().length).toBeGreaterThan(1)
 
           done()
         },
@@ -87,7 +87,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
         },
       )
     })
@@ -121,7 +121,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
         },
       )
     })
@@ -135,7 +135,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(201)
+          expect(response?.statusCode).toStrictEqual(201)
         },
       )
     })
@@ -163,7 +163,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(201)
+          expect(response?.statusCode).toStrictEqual(201)
         },
       )
     })
@@ -186,7 +186,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(201)
+          expect(response?.statusCode).toStrictEqual(201)
         },
       )
     })
@@ -202,7 +202,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
         },
       )
     })
@@ -224,7 +224,7 @@ describe('Ocelloids Server HTTP API', () => {
           ],
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
 
           server.inject(
             {
@@ -233,7 +233,7 @@ describe('Ocelloids Server HTTP API', () => {
             },
             (_, r) => {
               done()
-              expect(r.statusCode).toStrictEqual(404)
+              expect(r?.statusCode).toStrictEqual(404)
             },
           )
         },
@@ -248,7 +248,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
         },
       )
     })
@@ -261,8 +261,8 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body)).toEqual(testSubContent)
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(JSON.parse(response!.body)).toEqual(testSubContent)
         },
       )
     })
@@ -275,8 +275,8 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).args.senders).toEqual('*')
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(JSON.parse(response!.body).args.senders).toEqual('*')
         },
       )
     })
@@ -289,7 +289,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(404)
+          expect(response?.statusCode).toStrictEqual(404)
         },
       )
     })
@@ -314,7 +314,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
         },
       )
     })
@@ -334,9 +334,9 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
 
-          expect(JSON.parse(response.body).args.senders).toEqual(['ALICE', 'BOB'])
+          expect(JSON.parse(response!.body).args.senders).toEqual(['ALICE', 'BOB'])
         },
       )
     })
@@ -355,7 +355,7 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
         },
       )
     })
@@ -375,8 +375,8 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).args.destinations).toEqual([
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(JSON.parse(response!.body).args.destinations).toEqual([
             'urn:ocn:local:2000',
             'urn:ocn:local:3000',
           ])
@@ -402,8 +402,9 @@ describe('Ocelloids Server HTTP API', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(JSON.parse(response.body).channels[0].type).toEqual('webhook')
+          expect(response).toBeDefined()
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(JSON.parse(response!.body).channels[0].type).toEqual('webhook')
         },
       )
     })
@@ -428,7 +429,7 @@ describe('Ocelloids Server HTTP API', () => {
           },
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           done()
         },
       )
@@ -443,8 +444,8 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/agents',
         },
         (_err, response) => {
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.json()).toEqual(['xcm', 'informant', 'steward'])
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.json()).toEqual(['xcm', 'informant', 'steward'])
           done()
         },
       )
@@ -457,8 +458,8 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/agents/xcm/inputs',
         },
         (_err, response) => {
-          const schema = response.json()
-          expect(response.statusCode).toStrictEqual(200)
+          const schema = response?.json()
+          expect(response?.statusCode).toStrictEqual(200)
           expect(schema.type).toBe('object')
           expect(schema.properties.origin).toBeDefined()
           expect(schema.properties.senders).toBeDefined()
@@ -478,8 +479,8 @@ describe('Ocelloids Server HTTP API', () => {
           url: '/agents/steward/queries',
         },
         (_err, response) => {
-          const schema = response.json()
-          expect(response.statusCode).toStrictEqual(200)
+          const schema = response?.json()
+          expect(response?.statusCode).toStrictEqual(200)
           expect(schema).toBeDefined()
           done()
         },

@@ -45,7 +45,7 @@ describe('subscription api', () => {
         },
       },
       (_err, response) => {
-        macarioToken = response.json().token
+        macarioToken = response?.json().token
       },
     )
     // create pepe account
@@ -58,7 +58,7 @@ describe('subscription api', () => {
         },
       },
       (_err, response) => {
-        pepeToken = response.json().token
+        pepeToken = response?.json().token
       },
     )
 
@@ -82,7 +82,7 @@ describe('subscription api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(201)
+          expect(response?.statusCode).toStrictEqual(201)
         },
       )
     })
@@ -97,9 +97,9 @@ describe('subscription api', () => {
           },
         },
         (_err, response) => {
-          const sub = response.json()
+          const sub = response?.json()
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(sub).toBeDefined()
           expect(sub.id).toEqual(testSubContent.id)
           expect(sub.args).toEqual(testSubContent.args)
@@ -117,9 +117,9 @@ describe('subscription api', () => {
           },
         },
         (_err, response) => {
-          const sub = response.json()
+          const sub = response?.json()
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(sub).toBeDefined()
           expect(sub.id).toEqual(testSubContent.id)
           expect(sub.args).toEqual(testSubContent.args)
@@ -143,7 +143,7 @@ describe('subscription api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(201)
+          expect(response?.statusCode).toStrictEqual(201)
         },
       )
     })
@@ -158,9 +158,9 @@ describe('subscription api', () => {
           },
         },
         (_err, response) => {
-          const sub = response.json()
+          const sub = response?.json()
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(sub).toBeDefined()
           expect(sub.id).toEqual(privSubId)
           expect(sub.args).toEqual(testSubContent.args)
@@ -179,7 +179,7 @@ describe('subscription api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(401)
+          expect(response?.statusCode).toStrictEqual(401)
         },
       )
     })
