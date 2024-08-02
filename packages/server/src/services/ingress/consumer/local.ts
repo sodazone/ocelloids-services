@@ -11,7 +11,7 @@ import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/conf
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
-import { IngressConsumer } from './index.js'
+import { IngressConsumer, NetworkInfo } from './index.js'
 
 /**
  * Represents an implementation of {@link IngressConsumer} that operates in a local environment
@@ -60,6 +60,10 @@ export class LocalIngressConsumer
 
   isNetworkDefined(chainId: NetworkURN) {
     return isNetworkDefined(this.#config, chainId)
+  }
+
+  async getChainInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+    return await this.#headCatcher.fetchNetworkInfo(chainId)
   }
 
   finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {

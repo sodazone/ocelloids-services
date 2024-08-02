@@ -25,7 +25,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
 import { decodeSignedBlockExtended } from '../watcher/codec.js'
-import { IngressConsumer } from './index.js'
+import { IngressConsumer, NetworkInfo } from './index.js'
 
 /**
  * Creates a type registry with metadata.
@@ -164,6 +164,13 @@ export class DistributedIngressConsumer
 
   isNetworkDefined(chainId: NetworkURN) {
     return this.#networks[chainId] !== undefined
+  }
+
+  getChainInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+    if (this.#networks[chainId] === undefined) {
+      Promise.reject(new Error('unknown network'))
+    }
+    return Promise.resolve(this.#networks[chainId].info)
   }
 
   collectTelemetry(collect: TelemetryCollect): void {
