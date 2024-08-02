@@ -196,8 +196,8 @@ export class DataSteward implements Agent, Queryable {
 
   async #queryChainList(pagination?: QueryPagination): Promise<QueryResult<NetworkInfo>> {
     const iterator = this.#dbChains.iterator<string, NetworkInfo>({
-      gte: pagination?.cursor,
-      lte: OMEGA_250,
+      gt: pagination?.cursor,
+      lt: OMEGA_250,
       limit: limitCap(pagination),
     })
     return await paginatedResults<string, NetworkInfo>(iterator)
@@ -223,8 +223,8 @@ export class DataSteward implements Agent, Queryable {
         : pagination.cursor
       : network
     const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
-      gte: cursor,
-      lte: network + ':' + OMEGA_250,
+      gt: cursor,
+      lt: network + ':' + OMEGA_250,
       limit: limitCap(pagination),
     })
     return await paginatedResults<string, AssetMetadata>(iterator)
