@@ -280,7 +280,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
     const api = await this.getApiPromise(chainId).isReady
 
-    const existentialDeposit = api.consts.balances.existentialDeposit?.toString()
+    const existentialDeposit = api.consts.balances?.existentialDeposit?.toString()
     const chainTokens = api.registry.chainTokens
     const chainDecimals = api.registry.chainDecimals
     const ss58Prefix = api.registry.chainSS58
