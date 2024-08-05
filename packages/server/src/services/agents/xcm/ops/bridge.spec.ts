@@ -48,6 +48,7 @@ describe('xcmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -73,6 +74,7 @@ describe('xcmp operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -98,6 +100,7 @@ describe('xcmp operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -121,6 +124,7 @@ describe('xcmp operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -157,6 +161,7 @@ describe('relay operator', () => {
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
           expect(msg.error).toBeNull()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -189,6 +194,7 @@ describe('relay operator', () => {
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
           expect(msg.error).toBeNull()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -224,6 +230,7 @@ describe('bridge operator', () => {
           expect(msg.forwardId).toBeDefined()
           expect(msg.messageId).toBeDefined()
           expect(msg.bridgeKey).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -253,6 +260,7 @@ describe('bridge operator', () => {
           expect(msg.chainId).toBeDefined()
           expect(msg.chainId).toBe(origin)
           expect(msg.bridgeKey).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {
@@ -282,6 +290,7 @@ describe('bridge operator', () => {
           expect(msg.outcome).toBe('Success')
           expect(msg.error).toBeNull()
           expect(msg.bridgeKey).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {

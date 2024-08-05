@@ -41,6 +41,7 @@ function createUmpReceivedWithContext(
       event: blockEventToHuman(event),
       blockHash: event.blockHash.toHex(),
       blockNumber: event.blockNumber.toPrimitive(),
+      timestamp: event.timestamp?.toNumber(),
       messageHash,
       messageId,
       outcome: success?.isTrue ? 'Success' : 'Fail',

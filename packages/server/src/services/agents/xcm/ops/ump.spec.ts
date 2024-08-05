@@ -24,6 +24,7 @@ describe('ump operator', () => {
           expect(msg.messageData).toBeDefined()
           expect(msg.messageHash).toBeDefined()
           expect(msg.recipient).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -51,6 +52,7 @@ describe('ump operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -76,6 +78,7 @@ describe('ump operator', () => {
           expect(msg.messageHash).toBeDefined()
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Fail')
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
@@ -103,6 +106,7 @@ describe('ump operator', () => {
           expect(msg.outcome).toBe('Success')
           expect(msg.error).toBeNull()
           expect(msg.assetsTrapped).toBeDefined()
+          expect(msg.timestamp).toBeDefined()
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(2)

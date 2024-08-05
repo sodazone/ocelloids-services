@@ -186,6 +186,7 @@ export function xcmMessagesSent() {
           sender: getSendersFromEvent(event),
           blockHash: event.blockHash.toHex(),
           blockNumber: event.blockNumber.toPrimitive(),
+          timestamp: event.timestamp?.toNumber(),
           extrinsicId: event.extrinsicId,
           messageHash: xcmMessage.messageHash?.toHex(),
           messageId: xcmMessage.messageId?.toHex(),

@@ -175,6 +175,7 @@ export class InformantAgent implements Agent, Subscribable {
                         agentId: this.id,
                         networkId: chainId,
                         timestamp: Date.now(),
+                        blockTimestamp: msg.extrinsic.timestamp?.toNumber(),
                       },
                       payload: {
                         events: msg.events.map((e) => e.toHuman()),
@@ -209,6 +210,7 @@ export class InformantAgent implements Agent, Subscribable {
                         agentId: this.id,
                         networkId: chainId,
                         timestamp: Date.now(),
+                        blockTimestamp: msg.timestamp?.toNumber(),
                       },
                       payload: msg.toHuman(),
                     })

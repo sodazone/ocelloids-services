@@ -22,14 +22,12 @@
   "packageManager": "yarn@4.3.1",
   "devDependencies": {
     "@biomejs/biome": "1.8.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.4"
   },
   "resolutions": {
-    "@substrate/connect": "0.8.4",
-    "@polkadot/util": "patch:@polkadot/util@npm%3A12.6.2#~/.yarn/patches/@polkadot-util-npm-12.6.2-95fd84c457.patch",
-    "@polkadot/rpc-core@npm:11.0.2": "patch:@polkadot/rpc-core@npm%3A11.0.2#~/.yarn/patches/@polkadot-rpc-core-npm-11.0.2-abf12dd244.patch",
-    "tar": "^6.2.1",
-    "@polkadot/rpc-core@npm:11.2.1": "patch:@polkadot/rpc-core@npm%3A11.2.1#~/.yarn/patches/@polkadot-rpc-core-npm-11.2.1-b057790f83.patch",
-    "@polkadot/rpc-provider@npm:11.2.1": "patch:@polkadot/rpc-provider@npm%3A11.2.1#~/.yarn/patches/@polkadot-rpc-provider-npm-11.2.1-da70f3b9e8.patch"
+    "@polkadot/util@npm:^13.0.2": "patch:@polkadot/util@npm%3A13.0.2#~/.yarn/patches/@polkadot-util-npm-13.0.2-8789784a95.patch",
+    "@polkadot/util@npm:13.0.2": "patch:@polkadot/util@npm%3A13.0.2#~/.yarn/patches/@polkadot-util-npm-13.0.2-8789784a95.patch",
+    "@polkadot/rpc-core@npm:12.2.3": "patch:@polkadot/rpc-core@npm%3A12.2.3#~/.yarn/patches/@polkadot-rpc-core-npm-12.2.3-3cd1f79047.patch",
+    "@polkadot/rpc-provider@npm:12.2.3": "patch:@polkadot/rpc-provider@npm%3A12.2.3#~/.yarn/patches/@polkadot-rpc-provider-npm-12.2.3-7cef6aba93.patch"
   }
 }

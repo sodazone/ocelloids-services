@@ -107,6 +107,7 @@ export function extractBridgeMessageAccepted(
                   event: blockEvent.toHuman(),
                   blockHash: blockEvent.blockHash.toHex(),
                   blockNumber: blockEvent.blockNumber.toPrimitive(),
+                  timestamp: blockEvent.timestamp?.toNumber(),
                   extrinsicId: blockEvent.extrinsicId,
                   messageData: xcmProgram.toHex(),
                   recipient,
@@ -159,6 +160,7 @@ export function extractBridgeMessageDelivered(origin: NetworkURN, registry: Regi
               extrinsicId: blockEvent.extrinsicId,
               blockNumber: blockEvent.blockNumber.toPrimitive(),
               blockHash: blockEvent.blockHash.toHex(),
+              timestamp: blockEvent.timestamp?.toNumber(),
               sender: getSendersFromEvent(blockEvent),
             }),
           )
@@ -197,6 +199,7 @@ export function extractBridgeReceive(origin: NetworkURN) {
                 extrinsicId: event.extrinsicId,
                 blockNumber: event.blockNumber.toPrimitive(),
                 blockHash: event.blockHash.toHex(),
+                timestamp: event.timestamp?.toNumber(),
                 outcome: result.isDispatched ? 'Success' : 'Fail',
                 error: result.isDispatched ? null : result.type,
               }),

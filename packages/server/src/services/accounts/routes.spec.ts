@@ -29,7 +29,7 @@ describe('accounts api', () => {
         },
       },
       (_err, response) => {
-        macarioToken = response.json().token
+        macarioToken = response?.json().token
       },
     )
     server.inject(
@@ -41,7 +41,7 @@ describe('accounts api', () => {
         },
       },
       (_err, response) => {
-        pepeToken = response.json().token
+        pepeToken = response?.json().token
       },
     )
 
@@ -63,9 +63,9 @@ describe('accounts api', () => {
           },
         },
         (_err, response) => {
-          const tokens = response.json()
+          const tokens = response?.json()
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(tokens).toBeDefined()
           expect(tokens.length).toBe(1)
         },
@@ -86,8 +86,8 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.json().token).toBeDefined()
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.json().token).toBeDefined()
         },
       )
     })
@@ -104,8 +104,8 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
-          expect(response.json().reason).toEqual("body must have required property 'scope'")
+          expect(response?.statusCode).toStrictEqual(400)
+          expect(response?.json().reason).toEqual("body must have required property 'scope'")
         },
       )
     })
@@ -127,8 +127,8 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
-          expect(response.json().reason).toEqual('please, specify the token scope')
+          expect(response?.statusCode).toStrictEqual(400)
+          expect(response?.json().reason).toEqual('please, specify the token scope')
         },
       )
     })
@@ -144,8 +144,8 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(404)
-          expect(response.json().reason).toEqual('token not found')
+          expect(response?.statusCode).toStrictEqual(404)
+          expect(response?.json().reason).toEqual('token not found')
         },
       )
     })
@@ -164,7 +164,7 @@ describe('accounts api', () => {
           },
           (_err, response) => {
             done()
-            expect(response.statusCode).toStrictEqual(200)
+            expect(response?.statusCode).toStrictEqual(200)
           },
         )
       })
@@ -182,9 +182,9 @@ describe('accounts api', () => {
           },
         },
         (_err, response) => {
-          const account = response.json()
+          const account = response?.json()
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(account).toBeDefined()
           expect(account.status).toBe('enabled')
           expect(account.subject).toBe('macario@cheetos.io')
@@ -203,7 +203,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
         },
       )
     })
@@ -219,7 +219,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(401)
+          expect(response?.statusCode).toStrictEqual(401)
         },
       )
     })
@@ -240,8 +240,8 @@ describe('accounts api', () => {
         (_err, response) => {
           done()
           expect(createAccountSpy).toHaveBeenCalled()
-          expect(response.statusCode).toStrictEqual(200)
-          expect(response.json().token).toBeDefined()
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.json().token).toBeDefined()
         },
       )
     })
@@ -260,7 +260,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(400)
+          expect(response?.statusCode).toStrictEqual(400)
         },
       )
     })
@@ -276,7 +276,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(401)
+          expect(response?.statusCode).toStrictEqual(401)
         },
       )
     })
@@ -292,7 +292,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(401)
+          expect(response?.statusCode).toStrictEqual(401)
         },
       )
     })
@@ -312,7 +312,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(401)
+          expect(response?.statusCode).toStrictEqual(401)
           expect(deleteAccountSpy).not.toHaveBeenCalled()
         },
       )
@@ -331,7 +331,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(200)
+          expect(response?.statusCode).toStrictEqual(200)
           expect(deleteAccountSpy).toHaveBeenCalled()
         },
       )
@@ -348,7 +348,7 @@ describe('accounts api', () => {
         },
         (_err, response) => {
           done()
-          expect(response.statusCode).toStrictEqual(404)
+          expect(response?.statusCode).toStrictEqual(404)
         },
       )
     })

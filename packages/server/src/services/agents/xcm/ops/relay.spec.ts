@@ -31,6 +31,7 @@ describe('relay operator', () => {
           expect(msg.outcome).toBeDefined()
           expect(msg.outcome).toBe('Success')
           expect(msg.error).toBeNull()
+          expect(msg.timestamp).toBeDefined()
           calls()
         },
         complete: () => {

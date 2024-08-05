@@ -3,6 +3,7 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 // NOTE: we use Polkadot augmented types
 import '@polkadot/api-augment/polkadot'
 import type { Compact } from '@polkadot/types'
+import type { u64 } from '@polkadot/types-codec'
 import type { IU8a } from '@polkadot/types-codec/types'
 import type { BlockNumber } from '@polkadot/types/interfaces'
 import type { Outcome } from '@polkadot/types/interfaces/xcm'
@@ -52,6 +53,7 @@ type XcmContext = {
   program: XcmVersionedXcm
   blockHash: IU8a
   blockNumber: Compact<BlockNumber>
+  timestamp?: u64
   sender?: SignerData
   event?: types.BlockEvent
 }
@@ -94,6 +96,7 @@ function createXcmMessageSent({
   program,
   blockHash,
   blockNumber,
+  timestamp,
   sender,
   event,
 }: XcmContext): GenericXcmSentWithContext {
@@ -102,6 +105,7 @@ function createXcmMessageSent({
   return new GenericXcmSentWithContext({
     blockHash: blockHash.toHex(),
     blockNumber: blockNumber.toPrimitive(),
+    timestamp: timestamp?.toNumber(),
     event: event ? blockEventToHuman(event) : {},
     recipient,
     instructions: {
@@ -142,13 +146,14 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
       mergeMap(({ tx, recipient, beneficiary, assets }) => {
         return getDmp(tx.extrinsic.blockHash.toHex(), recipient).pipe(
           map((messages) => {
-            const { blockHash, blockNumber } = tx.extrinsic
+            const { blockHash, blockNumber, timestamp } = tx.extrinsic
             if (messages.length === 1) {
               const data = messages[0].msg
               const program = asVersionedXcm(data, registry)
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
+                timestamp,
                 recipient,
                 data,
                 program,
@@ -165,6 +170,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
+                    timestamp,
                     recipient,
                     data,
                     program,
@@ -206,13 +212,14 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
       mergeMap(({ recipient, messageId, event }) => {
         return getDmp(event.blockHash.toHex(), recipient as NetworkURN).pipe(
           map((messages) => {
-            const { blockHash, blockNumber } = event
+            const { blockHash, blockNumber, timestamp } = event
             if (messages.length === 1) {
               const data = messages[0].msg
               const program = asVersionedXcm(data, registry)
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
+                timestamp,
                 recipient,
                 event,
                 data,
@@ -229,6 +236,7 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
+                    timestamp,
                     recipient,
                     event,
                     data,
@@ -309,6 +317,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
     event: blockEventToHuman(event),
     blockHash: event.blockHash.toHex(),
     blockNumber: event.blockNumber.toPrimitive(),
+    timestamp: event.timestamp?.toNumber(),
     extrinsicId: event.extrinsicId,
     messageHash,
     messageId,
