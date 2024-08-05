@@ -14,8 +14,8 @@ import { isInstanceOf } from '@polkadot/util'
 import { createNetworkId, getRelayId } from '@/services/config.js'
 import { NetworkURN } from '@/services/types.js'
 import { safeDestr } from 'destr'
-import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../xcm/ops/xcm-types.js'
-import { AssetIdData, ParsedAsset } from './types.js'
+import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../../../xcm/ops/xcm-types.js'
+import { AssetIdData, ParsedAsset } from '../../types.js'
 
 function isV3V4GeneralKey(obj: any): obj is {
   data: U8aFixed

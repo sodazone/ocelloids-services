@@ -1,60 +1,36 @@
 import { z } from 'zod'
 
-import { EMPTY, expand, firstValueFrom, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
-
-import { Registry } from '@polkadot/types-codec/types'
-
-import { u8aConcat } from '@polkadot/util'
+import { EMPTY, expand, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
-import { ValidationError } from '@/errors.js'
 import { HexString } from '@/lib.js'
-import { getRelayId } from '@/services/config.js'
 import {
   Agent,
   AgentMetadata,
   AgentRuntimeContext,
-  QueryPagination,
   QueryParams,
   QueryResult,
   Queryable,
   getAgentCapabilities,
 } from '../types.js'
 
-import { parseAssetFromJson } from './location.js'
 import { mappers } from './mappers.js'
-import {
-  $StewardQueryArgs,
-  AssetIdData,
-  AssetMapper,
-  AssetMapping,
-  AssetMetadata,
-  StewardQueryArgs,
-} from './types.js'
-import { limitCap, paginatedResults } from './util.js'
+import { Queries } from './queries/index.js'
+import { $StewardQueryArgs, AssetMapper, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
+import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
 
-function normalize(assetId: string) {
-  return assetId.toLowerCase().replaceAll('"', '')
-}
-
-function assetMetadataKey(chainId: NetworkURN, assetId: string) {
-  return `${chainId}:${normalize(assetId)}`
-}
-
 const STORAGE_PAGE_LEN = 100
 
 const START_DELAY = 30_000 // 5m
 const SCHED_RATE = 43_200_000 // 12h
-
-const OMEGA_250 = Array(250).fill('\uFFFF').join('')
 
 /**
  * The Data Steward agent.
@@ -71,7 +47,10 @@ export class DataSteward implements Agent, Queryable {
   readonly #dbAssets: LevelDB
   readonly #dbChains: LevelDB
 
+  readonly #queries: Queries
+
   constructor(ctx: AgentRuntimeContext) {
+    this.#log = ctx.log
     this.#sched = ctx.scheduler
     this.#ingress = ctx.ingress
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
@@ -81,7 +60,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#log = ctx.log
+    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -91,23 +70,7 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
-    const { args, pagination } = params
-    $StewardQueryArgs.parse(args)
-
-    // TODO extract queries map
-    if (args.op === 'assets') {
-      return await this.#queryAsset(args.criteria)
-    } else if (args.op === 'assets.list') {
-      return await this.#queryAssetList(args.criteria, pagination)
-    } else if (args.op === 'assets.by_location') {
-      return await this.#queryAssetMetadataByLocation(args.criteria)
-    } else if (args.op === 'chains') {
-      return await this.#queryChains(args.criteria)
-    } else if (args.op === 'chains.list') {
-      return await this.#queryChainList(pagination)
-    }
-
-    throw new ValidationError('Unknown query type')
+    return this.#queries.dispatch(params)
   }
 
   get id(): string {
@@ -141,107 +104,6 @@ export class DataSteward implements Agent, Queryable {
 
   collectTelemetry() {
     // TODO: impl telemetry
-  }
-
-  // TODO: temporary support for fetching asset metadata from multilocation
-  // will be refactored, probably as part of the XCM Humanizer agent
-  async #queryAssetMetadataByLocation(
-    criteria: { xcmLocationAnchor: string; locations: string[] }[],
-  ): Promise<QueryResult<AssetMetadata>> {
-    const keys: string[] = []
-    for (const { xcmLocationAnchor, locations } of criteria) {
-      const relayRegistry = await this.#getRegistry(getRelayId(xcmLocationAnchor as NetworkURN))
-
-      for (const loc of locations) {
-        try {
-          const parsed = parseAssetFromJson(xcmLocationAnchor as NetworkURN, loc, relayRegistry)
-
-          if (parsed) {
-            const { network, assetId, pallet } = parsed
-            if (assetId.type === 'string') {
-              keys.push(assetMetadataKey(network, assetId.value))
-            } else {
-              const registry = await this.#getRegistry(network)
-              let mappings = mappers[network].mappings
-              if (pallet) {
-                mappings = mappings.filter((m) => m.palletInstance === pallet)
-              }
-              for (const mapping of mappings) {
-                const id = mapping.resolveAssetId
-                  ? mapping.resolveAssetId(registry, assetId.value)
-                  : this.#resolveAssetId(registry, mapping.assetIdType, assetId.value)
-                keys.push(assetMetadataKey(network, id))
-              }
-            }
-          } else {
-            keys.push(loc)
-          }
-        } catch (e) {
-          this.#log.error(e, '[agent:%s] error converting multiLocation to assetId', this.id)
-          keys.push(loc)
-        }
-      }
-    }
-
-    return {
-      items: await this.#dbAssets.getMany<string, AssetMetadata>(keys, {
-        /** */
-      }),
-    }
-  }
-
-  async #getRegistry(network: NetworkURN) {
-    return firstValueFrom(this.#ingress.getRegistry(network))
-  }
-
-  async #queryChainList(pagination?: QueryPagination): Promise<QueryResult<NetworkInfo>> {
-    const iterator = this.#dbChains.iterator<string, NetworkInfo>({
-      gt: pagination?.cursor,
-      lt: OMEGA_250,
-      limit: limitCap(pagination),
-    })
-    return await paginatedResults<string, NetworkInfo>(iterator)
-  }
-
-  async #queryChains(criteria: {
-    networks: string[]
-  }): Promise<QueryResult<NetworkInfo>> {
-    return {
-      items: await this.#dbChains.getMany<string, NetworkInfo>(criteria.networks, {
-        /** */
-      }),
-    }
-  }
-
-  async #queryAssetList(
-    criteria?: { network: string },
-    pagination?: QueryPagination,
-  ): Promise<QueryResult<AssetMetadata>> {
-    const cursor = pagination
-      ? pagination.cursor === undefined || pagination.cursor === ''
-        ? criteria?.network ?? ''
-        : pagination.cursor
-      : criteria?.network ?? ''
-    const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
-      gt: cursor,
-      lt: criteria?.network ? criteria.network + ':' + OMEGA_250 : OMEGA_250,
-      limit: limitCap(pagination),
-    })
-    return await paginatedResults<string, AssetMetadata>(iterator)
-  }
-
-  async #queryAsset(
-    criteria: {
-      network: string
-      assets: string[]
-    }[],
-  ): Promise<QueryResult<AssetMetadata>> {
-    const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
-    return {
-      items: await this.#dbAssets.getMany<string, AssetMetadata>(keys, {
-        /** */
-      }),
-    }
   }
 
   async #scheduleSync() {
@@ -377,19 +239,6 @@ export class DataSteward implements Agent, Queryable {
         error: (e) =>
           this.#log.error(e, '[agent:%s] on metadata sync (chainId=%s, key=%s)', this.id, chainId, keyPrefix),
       })
-  }
-
-  #resolveAssetId(registry: Registry, assetIdType: string, assetIdData: AssetIdData[]) {
-    let fullKey = new Uint8Array()
-    for (const aidData of assetIdData) {
-      const keyValue = aidData.data.slice(0, aidData.length)
-      fullKey = u8aConcat(fullKey, keyValue)
-    }
-    try {
-      return registry.createType(assetIdType, fullKey).toString()
-    } catch (_error) {
-      return 'none'
-    }
   }
 
   async #isNotScheduled() {
