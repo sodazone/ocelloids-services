@@ -41,11 +41,10 @@ export function keyValue(
   )
 }
 
-const keyConcat = (data: string | Buffer | Uint8Array, hashing: Hashing) => {
+const keyConcat = (data: string | Uint8Array, hashing: Hashing) => {
   return hashing === 'xx-64' ? xx64concat(data) : blake2128concat(data)
 }
 
-const blake2128concat = (data: string | Buffer | Uint8Array) =>
-  u8aConcat(blake2AsU8a(data, 128), u8aToU8a(data))
+const blake2128concat = (data: string | Uint8Array) => u8aConcat(blake2AsU8a(data, 128), u8aToU8a(data))
 
-const xx64concat = (data: string | Buffer | Uint8Array) => u8aConcat(xxhashAsU8a(data, 64), u8aToU8a(data))
+const xx64concat = (data: string | Uint8Array) => u8aConcat(xxhashAsU8a(data, 64), u8aToU8a(data))

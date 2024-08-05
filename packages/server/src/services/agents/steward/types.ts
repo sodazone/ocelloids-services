@@ -9,8 +9,6 @@ import { IngressConsumer } from '@/services/ingress/index.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
-const xcmVersions = ['v2', 'v3', 'v4'] as const
-export type XcmVersions = (typeof xcmVersions)[number]
 
 export const networks = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
@@ -48,19 +46,29 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('assets.list'),
-    criteria: z.object({
-      network: $NetworkString,
-    }),
+    criteria: z.optional(
+      z.object({
+        network: $NetworkString,
+      }),
+    ),
   }),
   z.object({
     op: z.literal('assets.by_location'),
     criteria: z.array(
       z.object({
-        network: $NetworkString,
+        xcmLocationAnchor: $NetworkString,
         locations: z.array(z.string()).min(1).max(50),
-        version: z.optional(z.enum(xcmVersions)),
       }),
     ),
+  }),
+  z.object({
+    op: z.literal('chains.list'),
+  }),
+  z.object({
+    op: z.literal('chains'),
+    criteria: z.object({
+      networks: z.array($NetworkString).min(1).max(50),
+    }),
   }),
 ])
 
@@ -71,6 +79,25 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
+export type AssetIdData = {
+  data: Uint8Array
+  length: number
+}
+
+export type ParsedAsset = {
+  network: NetworkURN
+  assetId:
+    | {
+        type: 'string'
+        value: string
+      }
+    | {
+        type: 'data'
+        value: AssetIdData[]
+      }
+  pallet?: number
+}
+
 export type entryMapper = (
   registry: Registry,
   keyArgs: string,
@@ -78,17 +105,12 @@ export type entryMapper = (
   ingress: IngressConsumer,
 ) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
 
-export type GeneralKey = {
-  data: Uint8Array
-  length: number
-}
-
 export type AssetMapping = {
   keyPrefix: HexString
   palletInstance: number
   assetIdType: string
   mapEntry: entryMapper
-  resolveKey?: (registry: Registry, keyValue: Uint8Array) => string
+  resolveAssetId?: (registry: Registry, assetIdData: AssetIdData[]) => string
 }
 
 export type AssetMapper = {

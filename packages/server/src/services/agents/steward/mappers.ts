@@ -1,4 +1,5 @@
 import { Registry } from '@polkadot/types-codec/types'
+import { u8aConcat, u8aToNumber } from '@polkadot/util'
 
 import { Observable, map, mergeMap, of } from 'rxjs'
 
@@ -78,14 +79,24 @@ const interlayMapper: AssetMapper = {
       palletInstance: 24,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
       assetIdType: 'u32',
-      resolveKey: (registry, keyValue) => {
-        const v = registry.createType('InterbtcPrimitivesCurrencyId', keyValue) as unknown as any
-        if (v.isToken) {
-          return `native:${v.asToken.toString()}`
+      resolveAssetId: (registry, assetIdData) => {
+        let fullKey = new Uint8Array()
+        for (const aidData of assetIdData) {
+          const keyValue = aidData.data.slice(0, aidData.length)
+          fullKey = u8aConcat(fullKey, keyValue)
         }
-        if (v.isForeignAsset) {
-          return v.asForeignAsset.toString()
+        try {
+          const v = registry.createType('InterbtcPrimitivesCurrencyId', fullKey) as unknown as any
+          if (v.isToken) {
+            return `native:${v.asToken.toString()}`
+          }
+          if (v.isForeignAsset) {
+            return v.asForeignAsset.toString()
+          }
+        } catch (_error) {
+          //
         }
+
         return 'none'
       },
       mapEntry: mapAssetsRegistryMetadata({
@@ -103,9 +114,28 @@ const interlayMapper: AssetMapper = {
 const pendulumMapper: AssetMapper = {
   mappings: [
     {
-      palletInstance: 91,
+      palletInstance: 53,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b5f3822e35ca2f31ce3526eab1363fd2',
       assetIdType: 'SpacewalkPrimitivesCurrencyId',
+      resolveAssetId: (registry, assetIdData) => {
+        let fullKey = new Uint8Array()
+        for (const aidData of assetIdData) {
+          const keyValue = aidData.data.slice(0, aidData.length)
+          // mapping to Pendulem Asset Enum
+          // ref: https://github.com/pendulum-chain/spacewalk/blob/d74009bf1d8c27fbd1f314c4fe486cd230e8b73f/primitives/src/lib.rs#L471
+          if (aidData.length === 4) {
+            fullKey = u8aConcat(fullKey, Uint8Array.from([1]))
+          } else if (aidData.length === 12) {
+            fullKey = u8aConcat(fullKey, Uint8Array.from([2]))
+          }
+          fullKey = u8aConcat(fullKey, keyValue)
+        }
+        try {
+          return registry.createType('SpacewalkPrimitivesCurrencyId', fullKey).toString()
+        } catch (_error) {
+          return 'none'
+        }
+      },
       mapEntry: mapAssetsRegistryMetadata({
         chainId: networks.pendulum,
         assetMetadataType: 'OrmlTraitsAssetRegistryAssetMetadata',
@@ -124,6 +154,16 @@ const acalaMapper: AssetMapper = {
       palletInstance: 122,
       keyPrefix: '0x6e9a9b71050cd23f2d7d1b72e8c1a625b7affc73a3c113dc6f4c7d986a1ddd88',
       assetIdType: 'AcalaPrimitivesCurrencyAssetIds',
+      resolveAssetId: (_registry, assetIdData) => {
+        // only resolution of native assets supported ATM
+        const aidData = assetIdData[0]
+        try {
+          const assetIndex = u8aToNumber(aidData.data.slice(0, aidData.length), { isLe: false })
+          return assetIndex === 0 ? 'native' : `native:${assetIndex}`
+        } catch (_error) {
+          return 'none'
+        }
+      },
       mapEntry: (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
         return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
           return source.pipe(

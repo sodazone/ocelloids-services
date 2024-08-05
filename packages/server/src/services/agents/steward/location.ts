@@ -7,6 +7,7 @@ import type {
   XcmV2MultilocationJunctions,
   XcmV3Junction,
   XcmV3Junctions,
+  XcmVersionedLocation,
 } from '@polkadot/types/lookup'
 import { isInstanceOf } from '@polkadot/util'
 
@@ -14,24 +15,18 @@ import { createNetworkId, getRelayId } from '@/services/config.js'
 import { NetworkURN } from '@/services/types.js'
 import { safeDestr } from 'destr'
 import { XcmV4Junction, XcmV4Junctions, XcmV4Location } from '../xcm/ops/xcm-types.js'
-import { mappers } from './mappers.js'
-import { GeneralKey, XcmVersions } from './types.js'
+import { AssetIdData, ParsedAsset } from './types.js'
 
-export type ParsedAsset = {
-  network: NetworkURN
-  assetId: string | GeneralKey
-}
-
-function isV3GeneralKey(obj: any): obj is {
+function isV3V4GeneralKey(obj: any): obj is {
   data: U8aFixed
   length: u8
 } {
   return obj.data !== undefined && isInstanceOf(obj.length, u8)
 }
 
-function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction) {
+function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction): AssetIdData {
   const genKey = junction.asGeneralKey
-  if (isV3GeneralKey(genKey)) {
+  if (isV3V4GeneralKey(genKey)) {
     return {
       data: genKey.data.toU8a(),
       length: genKey.length.toNumber(),
@@ -39,8 +34,8 @@ function mapGeneralKey(junction: XcmV2Junction | XcmV3Junction | XcmV4Junction) 
   }
 
   return {
-    data: genKey.toU8a(),
-    length: genKey.length,
+    data: genKey.toU8a(true),
+    length: genKey.toU8a(true).length,
   }
 }
 
@@ -49,17 +44,17 @@ function parseLocalX1Junction(
   junction: XcmV2Junction | XcmV3Junction | XcmV4Junction,
 ): ParsedAsset | null {
   if (junction.isPalletInstance) {
-    // only valid case SHOULD be balances pallet
-    // but we should check mapping to be sure
+    // assuming that only valid case is balances pallet
+    // TODO: resolve and match pallet instance in mapping
     return {
       network: referenceNetwork,
-      assetId: 'native',
+      assetId: { type: 'string', value: 'native' },
     }
   }
   if (junction.isGeneralKey) {
     return {
       network: referenceNetwork,
-      assetId: mapGeneralKey(junction),
+      assetId: { type: 'data', value: [mapGeneralKey(junction)] },
     }
   }
   return null
@@ -72,7 +67,7 @@ function parseLocalAsset(
   if (junctions.type === 'Here') {
     return {
       network: referenceNetwork,
-      assetId: 'native',
+      assetId: { type: 'string', value: 'native' },
     }
   }
   if (junctions.type === 'X1') {
@@ -86,51 +81,32 @@ function parseLocalAsset(
     }
   } else {
     let pallet: number | undefined
-    let index: string | undefined
-    let key: GeneralKey | undefined
+    const assetIdData: AssetIdData[] = []
     let accountId20: string | undefined
 
     for (const junction of junctions[`as${junctions.type}`]) {
       if (junction.isPalletInstance) {
         pallet = junction.asPalletInstance.toNumber()
       } else if (junction.isGeneralIndex) {
-        index = junction.asGeneralIndex.toString()
+        const genIndex = junction.asGeneralIndex
+        const data = genIndex.unwrap().toU8a()
+        assetIdData.push({
+          data,
+          length: genIndex.encodedLength,
+        })
       } else if (junction.isGeneralKey) {
-        key = mapGeneralKey(junction)
+        assetIdData.push(mapGeneralKey(junction))
       } else if (junction.isAccountKey20) {
         accountId20 = junction.asAccountKey20.toString()
       }
     }
 
-    if (pallet) {
-      // assume if there's only pallet instance that it is the balances pallet
-      if (!index && !key && !accountId20) {
-        return {
-          network: referenceNetwork,
-          assetId: 'native',
-        }
-      }
-
-      const palletInstances = mappers[referenceNetwork].mappings.map((m) => m.palletInstance)
-      if (palletInstances.includes(pallet) && index !== undefined) {
-        return {
-          network: referenceNetwork,
-          assetId: index,
-        }
-      }
-      if (palletInstances.includes(pallet) && key !== undefined) {
-        return {
-          network: referenceNetwork,
-          assetId: key,
-        }
-      }
-      // TODO: support EVM contract assets
-    } else if (key) {
-      return {
-        network: referenceNetwork,
-        assetId: key,
-      }
-    }
+    return mapParsedAsset({
+      network: referenceNetwork,
+      pallet,
+      assetIdData,
+      accountId20,
+    })
   }
 
   return null
@@ -143,7 +119,7 @@ function parseCrossChainAsset(
   if (junctions.type === 'Here') {
     return {
       network: getRelayId(referenceNetwork),
-      assetId: 'native',
+      assetId: { type: 'string', value: 'native' },
     }
   }
   if (junctions.type === 'X1') {
@@ -152,20 +128,19 @@ function parseCrossChainAsset(
       if (junction[0].isParachain) {
         return {
           network: createNetworkId(referenceNetwork, junction[0].asParachain.toString()),
-          assetId: 'native',
+          assetId: { type: 'string', value: 'native' },
         }
       }
     } else if (junction.isParachain) {
       return {
         network: createNetworkId(referenceNetwork, junction.asParachain.toString()),
-        assetId: 'native',
+        assetId: { type: 'string', value: 'native' },
       }
     }
   } else {
     let network: NetworkURN | undefined
     let pallet: number | undefined
-    let index: string | undefined
-    let key: GeneralKey | undefined
+    const assetIdData: AssetIdData[] = []
     let accountId20: string | undefined
 
     for (const junction of junctions[`as${junctions.type}`]) {
@@ -174,9 +149,14 @@ function parseCrossChainAsset(
       } else if (junction.isPalletInstance) {
         pallet = junction.asPalletInstance.toNumber()
       } else if (junction.isGeneralIndex) {
-        index = junction.asGeneralIndex.toString()
+        const genIndex = junction.asGeneralIndex
+        const data = genIndex.unwrap().toU8a()
+        assetIdData.push({
+          data,
+          length: genIndex.encodedLength,
+        })
       } else if (junction.isGeneralKey) {
-        key = mapGeneralKey(junction)
+        assetIdData.push(mapGeneralKey(junction))
       } else if (junction.isAccountKey20) {
         accountId20 = junction.asAccountKey20.toString()
       }
@@ -186,37 +166,58 @@ function parseCrossChainAsset(
       return null
     }
 
-    if (pallet) {
-      // assume if there's only pallet instance that it is the balances pallet
-      if (!index && !key && !accountId20) {
-        return {
-          network,
-          assetId: 'native',
-        }
-      }
-
-      const palletInstances = mappers[network].mappings.map((m) => m.palletInstance)
-      if (palletInstances.includes(pallet) && index !== undefined) {
-        return {
-          network,
-          assetId: index,
-        }
-      }
-      if (palletInstances.includes(pallet) && key !== undefined) {
-        return {
-          network,
-          assetId: key,
-        }
-      }
-      // TODO: support EVM contract assets
-    } else if (key) {
-      return {
-        network,
-        assetId: key,
-      }
-    }
+    return mapParsedAsset({
+      network,
+      pallet,
+      assetIdData,
+      accountId20,
+    })
   }
 
+  return null
+}
+
+function mapParsedAsset({
+  network,
+  pallet,
+  assetIdData,
+  accountId20,
+}: {
+  network: NetworkURN
+  pallet: number | undefined
+  assetIdData: AssetIdData[]
+  accountId20: string | undefined
+}): ParsedAsset | null {
+  if (pallet) {
+    // assuming that only valid case is balances pallet
+    // TODO: resolve and match pallet instance in mapping
+    if (!accountId20 && assetIdData.length === 0) {
+      return {
+        network,
+        assetId: { type: 'string', value: 'native' },
+      }
+    }
+
+    if (assetIdData.length > 0) {
+      return {
+        network,
+        assetId: {
+          type: 'data',
+          value: assetIdData,
+        },
+        pallet,
+      }
+    }
+    // TODO: support EVM contract assets
+  } else if (assetIdData.length > 0) {
+    return {
+      network,
+      assetId: {
+        type: 'data',
+        value: assetIdData,
+      },
+    }
+  }
   return null
 }
 
@@ -237,25 +238,15 @@ function parseMultiLocation(
   return null
 }
 
-export function parseAssetFromJson(
-  network: NetworkURN,
-  loc: string,
-  registry: Registry,
-  version?: XcmVersions,
-): ParsedAsset | null {
+export function parseAssetFromJson(network: NetworkURN, loc: string, registry: Registry): ParsedAsset | null {
   const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
-  if (version === 'v4') {
-    const multiLocation = registry.createType(
-      'StagingXcmV4Location',
-      safeDestr(cleansedLoc),
-    ) as unknown as XcmV4Location
-    return parseMultiLocation(network, multiLocation)
+  const versionedLocation = registry.createType(
+    'XcmVersionedLocation',
+    safeDestr(cleansedLoc),
+  ) as unknown as XcmVersionedLocation
+  if (versionedLocation.type === 'V4') {
+    // coerce to our type for V4 until pjs types are fixed
+    return parseMultiLocation(network, versionedLocation.asV4 as unknown as XcmV4Location)
   }
-  if (version === 'v2') {
-    const multiLocation = registry.createType('XcmV2MultiLocation', safeDestr(cleansedLoc))
-    return parseMultiLocation(network, multiLocation)
-  }
-  // Try V3 as fallback if no version passed
-  const multiLocation = registry.createType('StagingXcmV3MultiLocation', safeDestr(cleansedLoc))
-  return parseMultiLocation(network, multiLocation)
+  return parseMultiLocation(network, versionedLocation[`as${versionedLocation.type}`])
 }
