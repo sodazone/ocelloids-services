@@ -3,7 +3,7 @@ import { hexToU8a, stringCamelCase } from '@polkadot/util'
 
 import { AbstractIterator } from 'abstract-level'
 
-import { LevelDB } from '@/services/types.js'
+import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 
 const API_LIMIT_DEFAULT = 10
@@ -56,4 +56,12 @@ export function extractConstant(
     }
   }
   return undefined
+}
+
+function normalize(assetId: string) {
+  return assetId.toLowerCase().replaceAll('"', '')
+}
+
+export function assetMetadataKey(chainId: NetworkURN, assetId: string) {
+  return `${chainId}:${normalize(assetId)}`
 }
