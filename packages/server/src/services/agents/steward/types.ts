@@ -118,21 +118,25 @@ export type AssetMapper = {
   mappings: AssetMapping[]
 }
 
+export type AssetId = {
+  id: string
+  xid: HexString
+  chainId: NetworkURN
+}
+
 /**
  * The asset metadata.
  *
  * @public
  */
-export type AssetMetadata = {
-  id: string
-  xid: HexString
-  chainId: NetworkURN
+export type AssetMetadata = AssetId & {
   name?: string
   symbol?: string
   decimals?: number
   existentialDeposit?: string
   isSufficient?: boolean
   multiLocation?: Record<string, any> | AnyJson
+  externalIds: AssetId[]
   updated: number
   raw: Record<string, any>
 }

@@ -10,7 +10,7 @@ import { LevelDB } from '@/services/types.js'
 
 import { QueryResult } from '../../../types.js'
 import { mappers } from '../../mappers.js'
-import { AssetIdData, AssetMetadata } from '../../types.js'
+import { AssetIdData, AssetMapping, AssetMetadata } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
 import { parseAssetFromJson } from './util.js'
 
@@ -23,49 +23,58 @@ export class LocationQueryHandler {
     this.#ingress = ingress
   }
 
-  // TODO: temporary support for fetching asset metadata from multilocation
-  // will be refactored, probably as part of the XCM Humanizer agent
   async queryAssetByLocation(
     criteria: { xcmLocationAnchor: string; locations: string[] }[],
   ): Promise<QueryResult<AssetMetadata>> {
-    const keys: string[] = []
+    const ids: string[] = []
     for (const { xcmLocationAnchor, locations } of criteria) {
       const relayRegistry = await this.#getRegistry(getRelayId(xcmLocationAnchor as NetworkURN))
 
       for (const loc of locations) {
         try {
-          const parsed = parseAssetFromJson(xcmLocationAnchor as NetworkURN, loc, relayRegistry)
-
-          if (parsed) {
-            const { network, assetId, pallet } = parsed
-            if (assetId.type === 'string') {
-              keys.push(assetMetadataKey(network, assetId.value))
-            } else {
-              const registry = await this.#getRegistry(network)
-              let mappings = mappers[network].mappings
-              if (pallet) {
-                mappings = mappings.filter((m) => m.palletInstance === pallet)
-              }
-              for (const mapping of mappings) {
-                const id = mapping.resolveAssetId
-                  ? mapping.resolveAssetId(registry, assetId.value)
-                  : this.#resolveAssetId(registry, mapping.assetIdType, assetId.value)
-                keys.push(assetMetadataKey(network, id))
-              }
-            }
-          } else {
-            keys.push(loc)
-          }
-        } catch {
-          keys.push(loc)
+          const resolved = await this.resolveAssetIdsFromLocation(xcmLocationAnchor, loc, relayRegistry)
+          ids.push(resolved ?? loc)
+        } catch (_error) {
+          ids.push(loc)
         }
       }
     }
 
     return {
-      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+      items: await this.#db.getMany<string, AssetMetadata>(ids, {
         /** */
       }),
+    }
+  }
+
+  async resolveAssetIdsFromLocation(
+    xcmLocationAnchor: string,
+    loc: string,
+    registry?: Registry,
+  ): Promise<string | undefined> {
+    const reg = registry ?? (await this.#getRegistry(getRelayId(xcmLocationAnchor as NetworkURN)))
+
+    const parsed = parseAssetFromJson(xcmLocationAnchor as NetworkURN, loc, reg)
+
+    if (parsed) {
+      const { network, assetId, pallet } = parsed
+      if (assetId.type === 'string') {
+        return assetMetadataKey(network, assetId.value)
+      } else {
+        const reserveChainRegistry = await this.#getRegistry(network)
+        let mapping: AssetMapping | undefined
+        if (pallet) {
+          mapping = mappers[network].mappings.find((m) => m.palletInstance === pallet)
+        } else {
+          mapping = mappers[network].mappings[0]
+        }
+        if (mapping) {
+          const id = mapping.resolveAssetId
+            ? mapping.resolveAssetId(reserveChainRegistry, assetId.value)
+            : this.#resolveAssetId(reserveChainRegistry, mapping.assetIdType, assetId.value)
+          return assetMetadataKey(network, id)
+        }
+      }
     }
   }
 

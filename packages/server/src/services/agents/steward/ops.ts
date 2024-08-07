@@ -70,6 +70,7 @@ export const mapAssetsRegistryMetadata = ({
             multiLocation: getLocationIfAny(assetDetails),
             existentialDeposit,
             isSufficient,
+            externalIds: [],
             raw: {
               ...assetDetails,
               keyArgs,
@@ -97,6 +98,7 @@ export const mapAssetsPalletAssets =
             isSufficient: assetDetails.isSufficient.toPrimitive(),
             chainId,
             raw: assetDetails.toJSON(),
+            externalIds: [],
           } as AssetMetadata
         }),
         // Assets Metadata
@@ -152,7 +154,11 @@ const mergeMultiLocations = ({
       )
       return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
         map((buffer) => {
+          if (buffer.length === 0) {
+            return asset
+          }
           const maybeLoc = registry.createType(multiLocationDataType, buffer)
+
           if (maybeLoc.toHex() !== '0x0000') {
             const multiLocation =
               onMultiLocationData === undefined

@@ -37,4 +37,12 @@ export class Queries {
 
     throw new ValidationError('Unknown query type')
   }
+
+  async resolveAssetIdFromLocation(xcmLocationAnchor: string, location: string) {
+    try {
+      return await this.#assetsLocationHandler.resolveAssetIdsFromLocation(xcmLocationAnchor, location)
+    } catch (_error) {
+      return undefined
+    }
+  }
 }

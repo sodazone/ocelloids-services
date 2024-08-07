@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { EMPTY, expand, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
+import { AbstractSublevel } from 'abstract-level'
+
+import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
+
+import { u8aConcat } from '@polkadot/util'
+import { xxhashAsU8a } from '@polkadot/util-crypto'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
@@ -19,12 +24,20 @@ import {
 
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import { $StewardQueryArgs, AssetMapper, AssetMapping, AssetMetadata, StewardQueryArgs } from './types.js'
+import {
+  $StewardQueryArgs,
+  AssetId,
+  AssetMapper,
+  AssetMapping,
+  AssetMetadata,
+  StewardQueryArgs,
+} from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
+const ASSETS_MAP_TMP_LEVEL_PREFIX = 'agent:steward:assets-map-tmp'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
 
 const STORAGE_PAGE_LEN = 100
@@ -44,8 +57,9 @@ export class DataSteward implements Agent, Queryable {
   readonly #ingress: IngressConsumer
 
   readonly #db: LevelDB
-  readonly #dbAssets: LevelDB
+  readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: LevelDB
+  readonly #dbAssetsMapTmp: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Uint8Array, AssetId>
 
   readonly #queries: Queries
 
@@ -55,6 +69,9 @@ export class DataSteward implements Agent, Queryable {
     this.#ingress = ctx.ingress
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
+      valueEncoding: 'json',
+    })
+    this.#dbAssetsMapTmp = ctx.db.sublevel<Uint8Array, AssetId>(ASSETS_MAP_TMP_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
@@ -129,6 +146,7 @@ export class DataSteward implements Agent, Queryable {
 
   #syncAssetMetadata() {
     const chainIds = this.#ingress.getChainIds()
+    const allAssetMaps = []
 
     for (const chainId of chainIds) {
       const mapper = mappers[chainId]
@@ -143,10 +161,69 @@ export class DataSteward implements Agent, Queryable {
             chainId,
             mapping.keyPrefix,
           )
-          this.#map(chainId, mapping)
+          allAssetMaps.push(this.#map(chainId, mapping))
         }
       }
     }
+
+    const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
+    allAssetMapsObs.subscribe({
+      next: async ({ chainId, asset }) => {
+        const assetKey = assetMetadataKey(chainId, asset.id)
+        const multilocation = asset.multiLocation
+        if (multilocation) {
+          const resolvedId = await this.#queries.resolveAssetIdFromLocation(
+            chainId,
+            JSON.stringify(multilocation),
+          )
+          if (resolvedId && resolvedId !== assetKey) {
+            const key = u8aConcat(xxhashAsU8a(resolvedId), xxhashAsU8a(assetKey))
+
+            await this.#dbAssetsMapTmp.put(key, {
+              id: asset.id,
+              xid: asset.xid,
+              chainId,
+            })
+          }
+        }
+        this.#dbAssets.put(assetKey, asset).catch((e) => {
+          this.#log.error(
+            e,
+            '[agent:%s] on metadata write (chainId=%s, assetId=%s)',
+            this.id,
+            chainId,
+            asset.id,
+          )
+        })
+      },
+      complete: async () => {
+        this.#log.info('[agent:%s] END synchronizing asset metadata', this.id)
+        const zeroArray = new Uint8Array(8).fill(0)
+        const fArray = new Uint8Array(8).fill(0xff)
+        for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
+          try {
+            const externalIdsMap = await this.#dbAssetsMapTmp
+              .iterator({
+                gt: u8aConcat(xxhashAsU8a(assetKey), zeroArray),
+                lt: u8aConcat(xxhashAsU8a(assetKey), fArray),
+              })
+              .all()
+            const externalIds = externalIdsMap.map(([_key, assetId]) => assetId)
+            if (externalIds.length > 0) {
+              this.#dbAssets.put(assetKey, {
+                ...asset,
+                externalIds,
+              })
+            }
+          } catch (_error) {
+            //
+          }
+        }
+        this.#log.info('[agent:%s] END synchronizing registered chains', this.id)
+        await this.#dbAssetsMapTmp.clear()
+      },
+      error: (e) => this.#log.error(e, '[agent:%s] on metadata sync', this.id),
+    })
   }
 
   #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
@@ -171,6 +248,7 @@ export class DataSteward implements Agent, Queryable {
             decimals: chainInfo.chainDecimals[i],
             chainId,
             existentialDeposit: chainInfo.existentialDeposit,
+            externalIds: [],
             raw: {
               native: true,
             },
@@ -188,57 +266,34 @@ export class DataSteward implements Agent, Queryable {
 
   #map(chainId: NetworkURN, mapping: AssetMapping) {
     const { keyPrefix, assetIdType, mapEntry } = mapping
-    this.#ingress
-      .getRegistry(chainId)
-      .pipe(
-        switchMap((registry) => {
-          return this.#ingress
-            .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
-            .pipe(
-              expand((keys) =>
-                keys.length === STORAGE_PAGE_LEN
-                  ? this.#ingress.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-                  : EMPTY,
-              ),
-              reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
-            )
-            .pipe(
-              mergeMap((keys) => {
-                return keys.map((key) =>
-                  this.#ingress
-                    .getStorage(chainId, key)
-                    .pipe(mapEntry(registry, key.substring(keyPrefix.length), assetIdType, this.#ingress)),
-                )
-              }),
-              mergeAll(),
-            )
-        }),
-      )
-      .subscribe({
-        next: (asset) => {
-          const assetKey = assetMetadataKey(chainId, asset.id)
-          this.#dbAssets.put(assetKey, asset).catch((e) => {
-            this.#log.error(
-              e,
-              '[agent:%s] on metadata write (chainId=%s, assetId=%s, key=%s)',
-              this.id,
-              chainId,
-              asset.id,
-              keyPrefix,
-            )
-          })
-        },
-        complete: () => {
-          this.#log.info(
-            '[agent:%s] END synchronizing asset metadata (chainId=%s, key=%s)',
-            this.id,
-            chainId,
-            keyPrefix,
+    return this.#ingress.getRegistry(chainId).pipe(
+      switchMap((registry) => {
+        return this.#ingress
+          .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
+          .pipe(
+            expand((keys) =>
+              keys.length === STORAGE_PAGE_LEN
+                ? this.#ingress.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+                : EMPTY,
+            ),
+            reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           )
-        },
-        error: (e) =>
-          this.#log.error(e, '[agent:%s] on metadata sync (chainId=%s, key=%s)', this.id, chainId, keyPrefix),
-      })
+          .pipe(
+            mergeMap((keys) => {
+              return keys.map((key) =>
+                this.#ingress
+                  .getStorage(chainId, key)
+                  .pipe(mapEntry(registry, key.substring(keyPrefix.length), assetIdType, this.#ingress)),
+              )
+            }),
+            mergeAll(),
+            map((asset) => ({
+              asset,
+              chainId,
+            })),
+          )
+      }),
+    )
   }
 
   async #isNotScheduled() {

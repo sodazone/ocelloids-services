@@ -240,13 +240,21 @@ function parseMultiLocation(
 
 export function parseAssetFromJson(network: NetworkURN, loc: string, registry: Registry): ParsedAsset | null {
   const cleansedLoc = loc.toLowerCase().replace(/(?<=\d),(?=\d)/g, '')
-  const versionedLocation = registry.createType(
-    'XcmVersionedLocation',
-    safeDestr(cleansedLoc),
-  ) as unknown as XcmVersionedLocation
-  if (versionedLocation.type === 'V4') {
-    // coerce to our type for V4 until pjs types are fixed
-    return parseMultiLocation(network, versionedLocation.asV4 as unknown as XcmV4Location)
+  try {
+    const versionedLocation = registry.createType(
+      'XcmVersionedLocation',
+      safeDestr(cleansedLoc),
+    ) as unknown as XcmVersionedLocation
+    if (versionedLocation.type === 'V4') {
+      // coerce to our type for V4 until pjs types are fixed
+      return parseMultiLocation(network, versionedLocation.asV4 as unknown as XcmV4Location)
+    }
+    return parseMultiLocation(network, versionedLocation[`as${versionedLocation.type}`])
+  } catch (_error) {
+    const v3Location = registry.createType(
+      'StagingXcmV3MultiLocation',
+      safeDestr(cleansedLoc),
+    ) as unknown as StagingXcmV3MultiLocation
+    return parseMultiLocation(network, v3Location)
   }
-  return parseMultiLocation(network, versionedLocation[`as${versionedLocation.type}`])
 }
