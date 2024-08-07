@@ -107,7 +107,7 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async start() {
-    if (await this.#isNotScheduled()) {
+    if (this.#sched.enabled && (await this.#isNotScheduled())) {
       await this.#scheduleSync()
 
       // first-time sync

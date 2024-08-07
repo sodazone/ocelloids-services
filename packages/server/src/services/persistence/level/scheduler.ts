@@ -23,10 +23,11 @@ export type SchedulerOptions = {
  * It uses keys with an ISO 8601 UTC formatted date and time for lexicographic ordering.
  */
 export class Scheduler extends EventEmitter {
+  readonly enabled: boolean
+
   readonly #log: Logger
   readonly #tasks: Family
   readonly #frequency: number
-  readonly #enabled: boolean
 
   #running: boolean
   #waiting?: CancelablePromise<void>
@@ -37,14 +38,14 @@ export class Scheduler extends EventEmitter {
 
     this.#log = log
     this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded)
-    this.#enabled = opts.scheduler
+    this.enabled = opts.scheduler
     this.#frequency = opts.schedulerFrequency
 
     this.#running = false
   }
 
   start() {
-    if (this.#enabled) {
+    if (this.enabled) {
       this.#log.info('Starting scheduler (frequency=%dms)', this.#frequency)
       this.#while = this.#run()
     }

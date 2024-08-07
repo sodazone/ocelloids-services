@@ -75,8 +75,6 @@ describe('informant agent', () => {
   beforeEach(async () => {
     subs = new SubsStore(_services.log, _services.levelDB)
     egress = new Egress(_services)
-    // disable scheduled tasks for syncing assets
-    await _services.levelDB.put('scheduled', true)
     agentService = new LocalAgentCatalog(
       {
         ..._services,
