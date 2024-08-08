@@ -28,7 +28,7 @@ const astarMapper: AssetMapper = {
         chainId: networks.astar,
         multiLocationKeyPrefix: '0x9f5ad049cfbc7f413497855ef0232d4ea6718f60b6df3f6a17994cdf85e14dd4',
         multiLocationKeyType: 'u128',
-        multiLocationDataType: 'XcmVersionedMultiLocation',
+        multiLocationDataType: 'XcmVersionedLocation',
         multiLocationHashing: 'xx-64',
         options: {},
       }),
