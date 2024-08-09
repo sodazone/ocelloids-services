@@ -164,9 +164,17 @@ export async function createServer(opts: ServerOptions) {
     },
   })
 
-  await server.get('/openapi.json', () => {
-    return server.swagger()
-  })
+  await server.get(
+    '/openapi.json',
+    {
+      schema: {
+        hide: true,
+      },
+    },
+    () => {
+      return server.swagger()
+    },
+  )
 
   if (!opts.distributed) {
     await server.register(Configuration, opts)
