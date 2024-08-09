@@ -8,7 +8,7 @@ Explore the [Hurl requests](https://github.com/sodazone/ocelloids-services/tree/
 
 The subscription HTTP API allows you to create and manage subscriptions to XCM interactions of your interest.
 
-The OpenAPI UI is published at the path [/reference](http://localhost:3000/reference) in your running server.
+The OpenAPI UI is published at the path [/api-docs](http://localhost:3000/api-docs) in your running server.
 
 ### Administration API
 
