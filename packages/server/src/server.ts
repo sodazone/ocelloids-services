@@ -158,7 +158,7 @@ export async function createServer(opts: ServerOptions) {
   })
 
   await server.register(FastifyScalarUI, {
-    routePrefix: '/reference',
+    routePrefix: '/api-docs',
     configuration: {
       theme: 'solarized',
     },
