@@ -158,7 +158,14 @@ export async function createServer(opts: ServerOptions) {
   })
 
   await server.register(FastifyScalarUI, {
-    routePrefix: '/documentation',
+    routePrefix: '/reference',
+    configuration: {
+      theme: 'solarized',
+    },
+  })
+
+  await server.get('/openapi.json', () => {
+    return server.swagger()
   })
 
   if (!opts.distributed) {
