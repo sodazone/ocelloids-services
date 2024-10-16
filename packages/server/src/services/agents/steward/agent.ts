@@ -22,6 +22,7 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
+import { Binary } from 'polkadot-api'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
 import {
@@ -265,15 +266,23 @@ export class DataSteward implements Agent, Queryable {
   }
 
   #map(chainId: NetworkURN, mapping: AssetMapping) {
-    const { keyPrefix, assetIdType, mapEntry } = mapping
+    //const { keyPrefix, assetIdType, mapEntry } = mapping
+
     return this.#ingress.getRegistry(chainId).pipe(
       switchMap((registry) => {
+        const assetCodec = registry.storageCodec<{
+          name: Binary
+          symbol: Binary
+          decimals: number
+          minimal_balance: bigint
+        }>('AssetRegistry', 'AssetMetadatas')
+        const prefixKey = assetCodec.enc() as HexString
         return this.#ingress
-          .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
+          .getStorageKeys(chainId, prefixKey, STORAGE_PAGE_LEN)
           .pipe(
             expand((keys) =>
               keys.length === STORAGE_PAGE_LEN
-                ? this.#ingress.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+                ? this.#ingress.getStorageKeys(chainId, prefixKey, STORAGE_PAGE_LEN, keys[keys.length - 1])
                 : EMPTY,
             ),
             reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
@@ -281,9 +290,34 @@ export class DataSteward implements Agent, Queryable {
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>
-                this.#ingress
-                  .getStorage(chainId, key)
-                  .pipe(mapEntry(registry, key.substring(keyPrefix.length), assetIdType, this.#ingress)),
+                this.#ingress.getStorage(chainId, key).pipe(
+                  map((bytes) => {
+                    console.log(key)
+                    const asset = assetCodec.dec(bytes)
+                    console.log(assetCodec.keyDecoder(key), {
+                      id: JSON.stringify(assetCodec.keyDecoder(key)),
+                      xid: '0x0101',
+                      chainId: chainId,
+                      externalIds: [],
+                      updated: 0,
+                      name: asset.name.asText(),
+                      symbol: asset.symbol.asText(),
+                      decimals: asset.decimals,
+                      raw: {},
+                    } as AssetMetadata)
+                    return {
+                      id: JSON.stringify(assetCodec.keyDecoder(key)),
+                      xid: '0x0101',
+                      chainId: chainId,
+                      externalIds: [],
+                      updated: 0,
+                      name: asset.name.asText(),
+                      symbol: asset.symbol.asText(),
+                      decimals: asset.decimals,
+                      raw: {},
+                    } as AssetMetadata
+                  }),
+                ),
               )
             }),
             mergeAll(),

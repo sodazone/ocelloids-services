@@ -1,6 +1,9 @@
-import { ControlQuery, mongoFilter } from '@sodazone/ocelloids-sdk'
+import { ControlQuery } from '@sodazone/ocelloids-sdk'
+
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
+
+import { filter as rxFilter } from 'rxjs'
 
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
@@ -156,7 +159,7 @@ export class InformantAgent implements Agent, Subscribable {
       for (const network of networks) {
         const chainId = network as NetworkURN
 
-        if (filter.type === 'extrinsic') {
+        /*if (filter.type === 'extrinsic') {
           streams.push({
             chainId,
             sub: this.#shared
@@ -191,37 +194,37 @@ export class InformantAgent implements Agent, Subscribable {
                 },
               }),
           })
-        } else {
-          streams.push({
-            chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(mongoFilter(control))
-              .subscribe({
-                error: (error: any) => {
-                  this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
-                },
-                next: (msg) => {
-                  try {
-                    this.#egress.publish(subscription, {
-                      metadata: {
-                        type: 'event',
-                        subscriptionId: id,
-                        agentId: this.id,
-                        networkId: chainId,
-                        timestamp: Date.now(),
-                        blockTimestamp: msg.timestamp?.toNumber(),
-                      },
-                      payload: msg.toHuman(),
-                    })
-                  } catch (error) {
-                    this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
-                  }
-                },
-              }),
-          })
-        }
+        } else {*/
+        streams.push({
+          chainId,
+          sub: this.#shared
+            .blockEvents(chainId)
+            .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
+            .subscribe({
+              error: (error: any) => {
+                this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+              },
+              next: (msg) => {
+                try {
+                  this.#egress.publish(subscription, {
+                    metadata: {
+                      type: 'event',
+                      subscriptionId: id,
+                      agentId: this.id,
+                      networkId: chainId,
+                      timestamp: Date.now(),
+                      blockTimestamp: msg.timestamp,
+                    },
+                    payload: msg,
+                  })
+                } catch (error) {
+                  this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
+                }
+              },
+            }),
+        })
       }
+      //}
       return {
         subscription,
         streams,

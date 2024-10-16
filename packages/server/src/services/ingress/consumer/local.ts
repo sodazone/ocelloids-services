@@ -1,13 +1,11 @@
 import { EventEmitter } from 'node:events'
 
-import { Observable, from, map, shareReplay } from 'rxjs'
-
-import type { SignedBlockExtended } from '@polkadot/api-derive/types'
-import type { Registry } from '@polkadot/types-codec/types'
+import { Observable, map, of, shareReplay } from 'rxjs'
 
 import { NetworkURN, Services } from '@/services/types.js'
 
 import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/config.js'
+import { Block, RuntimeContext } from '@/services/networking/client.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
@@ -27,7 +25,7 @@ export class LocalIngressConsumer
   // readonly #log: Logger;
   readonly #headCatcher: HeadCatcher
   readonly #config: ServiceConfiguration
-  readonly #registries$: Record<NetworkURN, Observable<Registry>>
+  readonly #registries$: Record<NetworkURN, Observable<RuntimeContext>>
 
   constructor(ctx: Services) {
     super()
@@ -66,14 +64,14 @@ export class LocalIngressConsumer
     return await this.#headCatcher.fetchNetworkInfo(chainId)
   }
 
-  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     return this.#headCatcher.finalizedBlocks(chainId)
   }
 
-  getRegistry(chainId: NetworkURN): Observable<Registry> {
+  getRegistry(chainId: NetworkURN): Observable<RuntimeContext> {
     if (this.#registries$[chainId] === undefined) {
-      this.#registries$[chainId] = from(this.#headCatcher.getApiPromise(chainId).isReady).pipe(
-        map((api) => api.registry),
+      this.#registries$[chainId] = of(this.#headCatcher.getApi(chainId)).pipe(
+        map((api) => api.ctx),
         // TODO retry
         shareReplay({
           refCount: true,

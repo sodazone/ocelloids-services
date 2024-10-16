@@ -132,7 +132,7 @@ export class LocalAgentCatalog implements AgentCatalog {
     const steward = new DataSteward(ctx)
 
     return {
-      [xcm.id]: xcm,
+      //[xcm.id]: xcm,
       [informant.id]: informant,
       [steward.id]: steward,
     } as unknown as Record<AgentId, Agent>

@@ -51,7 +51,7 @@ export function isGlobalConsensus(value: string): value is GlobalConsensus {
   return s.includes(value)
 }
 
-const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider])
+const $NetworkProvider = $RpcProvider
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`)
 
@@ -65,8 +65,8 @@ export const $NetworkId = z.string().regex(networkIdRegex)
 
 const $NetworkConfiguration = z.object({
   id: $NetworkId,
-  relay: $NetworkId.optional(),
   provider: $NetworkProvider,
+  relay: $NetworkId.optional(),
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),
 })

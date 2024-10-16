@@ -19,7 +19,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
-import { decodeSignedBlockExtended, encodeSignedBlockExtended } from './codec.js'
+import { decodeBlock, encodeBlock } from './codec.js'
 import { RETRY_INFINITE } from './head-catcher.js'
 
 /**
@@ -153,7 +153,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
   async getBlock(chainId: NetworkURN, api: ApiPromise, hash: HexString) {
     try {
       const buffer = await this.#bufferCache(chainId).get(prefixes.cache.keys.block(hash))
-      const signedBlock = decodeSignedBlockExtended(api.registry, buffer)
+      const signedBlock = decodeBlock(api.registry, buffer)
 
       this.emit('telemetryBlockCacheHit', {
         chainId,
@@ -226,7 +226,7 @@ export class LocalCache extends (EventEmitter as new () => TelemetryEventEmitter
     const key = prefixes.cache.keys.block(hash)
 
     // TODO: review to use SCALE instead of CBOR
-    await this.#bufferCache(chainId).put(key, encodeSignedBlockExtended(block))
+    await this.#bufferCache(chainId).put(key, encodeBlock(block))
 
     await this.#janitor.schedule({
       sublevel: prefixes.cache.family(chainId),

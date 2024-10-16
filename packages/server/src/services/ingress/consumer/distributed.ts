@@ -2,10 +2,6 @@ import { EventEmitter } from 'node:events'
 
 import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types'
-import { Metadata, TypeRegistry } from '@polkadot/types'
-import type { Registry } from '@polkadot/types-codec/types'
-
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
 import { IngressOptions } from '@/types.js'
@@ -21,24 +17,12 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
+import { Block, RuntimeContext } from '@/services/networking/client.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
-import { decodeSignedBlockExtended } from '../watcher/codec.js'
+import { decodeBlock } from '../watcher/codec.js'
 import { IngressConsumer, NetworkInfo } from './index.js'
-
-/**
- * Creates a type registry with metadata.
- *
- * @param bytes - The bytes of the metadata.
- * @returns A new TypeRegistry instance with the provided metadata.
- */
-function createRegistry(bytes: Buffer | Uint8Array) {
-  const typeRegistry = new TypeRegistry()
-  const metadata = new Metadata(typeRegistry, bytes)
-  typeRegistry.setMetadata(metadata)
-  return typeRegistry
-}
 
 /**
  * Represents an implementation of {@link IngressConsumer} that operates in a distributed environment.
@@ -52,8 +36,8 @@ export class DistributedIngressConsumer
 {
   readonly #log: Logger
   readonly #db: LevelDB
-  readonly #blockConsumers: Record<NetworkURN, Subject<SignedBlockExtended>>
-  readonly #registries$: Record<NetworkURN, Observable<Registry>>
+  readonly #blockConsumers: Record<NetworkURN, Subject<Block>>
+  readonly #registries$: Record<NetworkURN, Observable<RuntimeContext>>
   readonly #distributor: RedisDistributor
 
   #networks: NetworkRecord = {}
@@ -73,7 +57,7 @@ export class DistributedIngressConsumer
     await this.#networksFromRedis()
 
     for (const chainId of this.getChainIds()) {
-      this.#blockConsumers[chainId] = new Subject<SignedBlockExtended>()
+      this.#blockConsumers[chainId] = new Subject<Block>()
 
       let lastId = '$'
       // TODO option to omit the stream pointer on start (?)
@@ -92,7 +76,7 @@ export class DistributedIngressConsumer
     await this.#distributor.stop()
   }
 
-  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     const consumer = this.#blockConsumers[chainId]
     if (consumer === undefined) {
       this.emit('telemetryIngressConsumerError', 'missingBlockConsumer')
@@ -102,7 +86,7 @@ export class DistributedIngressConsumer
     return consumer.asObservable()
   }
 
-  getRegistry(chainId: NetworkURN): Observable<Registry> {
+  getRegistry(chainId: NetworkURN): Observable<RuntimeContext> {
     if (this.#registries$[chainId] === undefined) {
       this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
@@ -111,7 +95,7 @@ export class DistributedIngressConsumer
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return createRegistry(metadata)
+          return new RuntimeContext(metadata)
         }),
         // TODO retry
         shareReplay({
@@ -294,16 +278,10 @@ export class DistributedIngressConsumer
       key,
       (message, { lastId }) => {
         const buffer = message['bytes']
-        const signedBlock = decodeSignedBlockExtended(registry, buffer)
-        subject.next(signedBlock)
+        const block = decodeBlock(buffer)
+        subject.next(block)
 
-        this.#log.info(
-          '[%s] INGRESS block #%s %s (%s)',
-          chainId,
-          signedBlock.block.header.number.toString(),
-          signedBlock.block.header.hash.toHex(),
-          lastId,
-        )
+        this.#log.info('[%s] INGRESS block #%s %s (%s)', chainId, block.number, block.hash, lastId)
 
         setImmediate(async () => {
           try {

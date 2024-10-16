@@ -1,14 +1,14 @@
 /* istanbul ignore file */
-import { ApiPromise } from '@polkadot/api'
-
-import { NetworkURN } from '@/lib.js'
+import { HexString, NetworkURN } from '@/lib.js'
+import { PapiClient } from '@/services/networking/client.js'
 import { NetworkInfo } from '../index.js'
 
 // from https://github.com/polkadot-js/apps/blob/master/packages/react-hooks/src/useBlockInterval.ts
 
 const DEFAULT_TIME = 6_000n
 
-async function resolveBlockTime(api: ApiPromise) {
+/*
+async function resolveBlockTime(api: PapiClient) {
   const blockTimeAura = api.call.auraApi?.slotDuration && (await api.call.auraApi.slotDuration<bigint>())
   const blockTimeBabe =
     api.call.babeApi?.configuration && (await api.call.babeApi.configuration())?.slotDuration.toBigInt()
@@ -32,27 +32,43 @@ async function resolveBlockTime(api: ApiPromise) {
             DEFAULT_TIME))
   )
 }
+*/
 
-async function networkInfo(apiPromise: ApiPromise, chainId: NetworkURN): Promise<NetworkInfo> {
-  const api = await apiPromise.isReady
+function getPropertyArray(p: any[] | any) {
+  return p ? (Array.isArray(p) ? p : [p]) : []
+}
 
-  const existentialDeposit = api.consts.balances?.existentialDeposit?.toString()
-  const chainTokens = api.registry.chainTokens
-  const chainDecimals = api.registry.chainDecimals
-  const ss58Prefix = api.registry.chainSS58
+async function networkInfo(api: PapiClient, chainId: NetworkURN): Promise<NetworkInfo> {
+  const chainSpecData = await api.getChainSpecData()
+  const {
+    tokenDecimals,
+    tokenSymbol,
+    ss58Format,
+  }: {
+    ss58Format?: number
+    tokenDecimals?: number[] | number
+    tokenSymbol?: string[] | string
+  } = chainSpecData.properties
 
-  const genesisHash = api.genesisHash
-  const runtimeChain = api.runtimeChain.toString()
-  const parachainId =
-    api.query.parachainInfo === undefined
-      ? undefined
-      : (await api.query.parachainInfo.parachainId()).toString()
+  console.log(chainSpecData.properties, chainSpecData)
 
-  const blockTime = await resolveBlockTime(api)
+  const existentialDeposit = api.ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
+
+  const chainTokens = getPropertyArray(tokenSymbol)
+  const chainDecimals = getPropertyArray(tokenDecimals)
+  const ss58Prefix = ss58Format ?? 42
+
+  const genesisHash = chainSpecData.genesisHash as HexString
+  const runtimeChain = chainSpecData.name
+  const parachainId = api.ctx.hasPallet('ParachainInfo')
+    ? (await api.query<number>('ParachainInfo', 'ParachainId')).toString()
+    : undefined
+
+  const blockTime = 12 //await resolveBlockTime(api)
 
   return {
     urn: chainId,
-    genesisHash: genesisHash.toHex(),
+    genesisHash,
     existentialDeposit,
     chainTokens,
     chainDecimals,

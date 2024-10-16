@@ -21,7 +21,7 @@ import {
 import { HeadCatcher } from '../watcher/head-catcher.js'
 
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { encodeSignedBlockExtended } from '../watcher/codec.js'
+import { encodeBlock } from '../watcher/codec.js'
 
 type StorageRequest = {
   replyTo: string
@@ -109,10 +109,11 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
       this.#log.info('[%s] Block Stream [key=%s]', chainId, key)
 
       // TODO implement using RX + retry
-      const api = await this.#headCatcher.getApiPromise(chainId).isReady
+      const api = await this.#headCatcher.getApi(chainId)
       const versionKey = getVersionKey(chainId)
       const runtimeVersion = await this.#distributor.get(versionKey)
-      const chainRuntimeVersion = await api.rpc.state.getRuntimeVersion()
+
+      const chainRuntimeVersion = await api.getRuntimeVersion()
       const chainSpecVersion = chainRuntimeVersion.specVersion.toString()
 
       this.#log.info(
@@ -125,19 +126,16 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
       if (chainSpecVersion !== runtimeVersion) {
         this.#log.info('[%s] GET metadata', chainId)
 
-        const metadata = await api.rpc.state.getMetadata()
+        const metadata = await api.getMetadata()
         const metadataKey = getMetadataKey(chainId)
 
         this.#log.info('[%s] UPDATE metadata [key=%s,spec=%s]', chainId, metadataKey, chainSpecVersion)
-        await this.#distributor.mset(
-          [metadataKey, Buffer.from(metadata.toU8a())],
-          [versionKey, chainSpecVersion],
-        )
+        await this.#distributor.mset([metadataKey, Buffer.from(metadata)], [versionKey, chainSpecVersion])
       }
 
       this.#rxSubs[chainId] = this.#headCatcher.finalizedBlocks(chainId).subscribe({
         next: (block) => {
-          this.#distributor.addBytes(key, encodeSignedBlockExtended(block), this.#streamOptions)
+          this.#distributor.addBytes(key, encodeBlock(block), this.#streamOptions)
         },
       })
 
