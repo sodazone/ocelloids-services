@@ -1,4 +1,3 @@
-import { IngressConsumer } from '@/services/ingress/index.js'
 import { LevelDB } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
@@ -12,7 +11,7 @@ export class Queries {
   readonly #assetsHandler
   readonly #chainsHandler
 
-  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: IngressConsumer) {
+  constructor(dbAssets: LevelDB, dbChains: LevelDB) {
     this.#assetsHandler = new AssetsQueryHandler(dbAssets)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
   }

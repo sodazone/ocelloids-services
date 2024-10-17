@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { Observable, map, of, shareReplay } from 'rxjs'
+import { Observable, from, map, shareReplay } from 'rxjs'
 
 import { NetworkURN, Services } from '@/services/types.js'
 
@@ -70,7 +70,7 @@ export class LocalIngressConsumer
 
   getContext(chainId: NetworkURN): Observable<ApiContext> {
     if (this.#contexts$[chainId] === undefined) {
-      this.#contexts$[chainId] = of(this.#headCatcher.getApi(chainId)).pipe(
+      this.#contexts$[chainId] = from(this.#headCatcher.getApi(chainId)).pipe(
         map((api) => api.ctx),
         // TODO retry
         shareReplay({

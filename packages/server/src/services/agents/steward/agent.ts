@@ -79,7 +79,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
+    this.#queries = new Queries(this.#dbAssets, this.#dbChains)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -154,7 +154,7 @@ export class DataSteward implements Agent, Queryable {
       const mapper = mappers[chainId]
       if (mapper) {
         this.#log.info('[agent:%s] GET chain properties (chainId=%s)', this.id, chainId)
-        this.#putChainProps(chainId, mapper)
+        this.#putChainProps(chainId)
 
         allAssetMaps.push(this.#map(chainId, mapper))
       }
@@ -212,7 +212,7 @@ export class DataSteward implements Agent, Queryable {
     })
   }
 
-  #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
+  #putChainProps(chainId: NetworkURN) {
     this.#ingress
       .getChainInfo(chainId)
       .then((chainInfo) => {

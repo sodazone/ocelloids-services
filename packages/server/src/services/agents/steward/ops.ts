@@ -24,12 +24,14 @@ type MapMultiLocationOptions = {
 
 export const mapAssetsRegistryMetadata = ({
   chainId,
+  codecs,
   options,
 }: {
   chainId: string
+  codecs: WithRequired<StorageCodecs, 'assets'>
   options?: MapOptions
 }) => {
-  return (codecs: WithRequired<StorageCodecs, 'assets'>, keyArgs: string) => {
+  return (keyArgs: string) => {
     const codec = codecs.assets
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
@@ -165,8 +167,9 @@ export const mapAssetsRegistryAndLocations = (
       return source.pipe(
         mapAssetsRegistryMetadata({
           chainId,
+          codecs,
           options: options.options,
-        })(codecs, keyArgs),
+        })(keyArgs),
         mergeMultiLocations(codecs, options)(ingress),
       )
     }

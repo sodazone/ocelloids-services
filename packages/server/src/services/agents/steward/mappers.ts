@@ -5,7 +5,7 @@ import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext } from '@/services/networking/context.js'
 import { NetworkURN } from '@/services/types.js'
 import { asSerializable } from '../base/util.js'
-import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations } from './ops.js'
+import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations, mapAssetsRegistryMetadata } from './ops.js'
 import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 
 const BYPASS_MAPPER: AssetMapper = () => []
@@ -46,6 +46,32 @@ const hydrationMapper: AssetMapper = (context: ApiContext) => {
         options: {
           ed: 'existential_deposit',
           isSufficient: 'is_sufficient',
+        },
+      }),
+    },
+  ]
+  return mappings
+}
+
+const centrifugeMapper: AssetMapper = (context: ApiContext) => {
+  const codec = context.storageCodec('OrmlAssetRegistry', 'Metadata')
+  const keyPrefix = codec.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets'> = {
+    assets: codec,
+  }
+  const mappings = [
+    {
+      keyPrefix,
+      mapEntry: mapAssetsRegistryMetadata({
+        chainId: networks.centrifuge,
+        codecs,
+        options: {
+          ed: 'existential_deposit',
+          extractMetadata: (data) => ({
+            decimals: data.decimals,
+            name: data.name?.asText(),
+            symbol: data.symbol?.asText(),
+          }),
         },
       }),
     },
@@ -128,16 +154,10 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.nodle]: BYPASS_MAPPER,
   [networks.phala]: BYPASS_MAPPER,
   [networks.mythos]: BYPASS_MAPPER,
-  //[networks.pendulum]: pendulumMapper,
   [networks.assetHub]: assetHubMapper(networks.assetHub),
-  //[networks.acala]: acalaMapper,
   [networks.bifrost]: bifrostMapper,
-  //[networks.astar]: astarMapper,
-  //[networks.interlay]: interlayMapper,
-  //[networks.centrifuge]: centrifugeMapper,
+  [networks.centrifuge]: centrifugeMapper,
   [networks.hydration]: hydrationMapper,
-  //[networks.moonbeam]: moonbeamMapper,
-  //[networks.manta]: mantaMapper,
   [networks.kusama]: BYPASS_MAPPER,
   [networks.kusamaBridgeHub]: BYPASS_MAPPER,
   [networks.kusamaCoretime]: BYPASS_MAPPER,

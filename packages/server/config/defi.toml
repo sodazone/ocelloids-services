@@ -29,6 +29,18 @@ relay = "urn:ocn:polkadot:0"
   type = "rpc"
   url = "wss://bifrost-polkadot-rpc.dwellir.com"
 
+[[networks]]
+id = "urn:ocn:polkadot:2031"
+relay = "urn:ocn:polkadot:0"
+
+  [networks.provider]
+  type = "rpc"
+  url = [
+    "wss://fullnode.centrifuge.io",
+    "wss://centrifuge-rpc.dwellir.com",
+    "wss://rpc-centrifuge.luckyfriday.io"
+  ]
+
 #[[networks]]
 #id = "urn:ocn:polkadot:2004"
 #relay = "urn:ocn:polkadot:0"

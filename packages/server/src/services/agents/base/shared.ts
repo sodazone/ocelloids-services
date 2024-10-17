@@ -1,7 +1,12 @@
 import { Observable, share } from 'rxjs'
 
 import { IngressConsumer } from '@/services/ingress/index.js'
-import { BlockEvent, extractEvents } from '@/services/networking/index.js'
+import {
+  BlockEvent,
+  BlockExtrinsicWithEvents,
+  extractEvents,
+  extractTxWithEvents,
+} from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 
 export class SharedStreams {
@@ -9,12 +14,12 @@ export class SharedStreams {
   readonly #ingress: IngressConsumer
 
   readonly #blockEvents: Record<string, Observable<BlockEvent>>
-  // readonly #blockExtrinsics: Record<string, Observable<BlockExtrinsic>>
+  readonly #blockExtrinsics: Record<string, Observable<BlockExtrinsicWithEvents>>
 
   private constructor(ingress: IngressConsumer) {
     this.#ingress = ingress
     this.#blockEvents = {}
-    //this.#blockExtrinsics = {}
+    this.#blockExtrinsics = {}
   }
 
   static instance(ingress: IngressConsumer) {
@@ -28,13 +33,12 @@ export class SharedStreams {
     return this.#blockEvents[chainId]
   }
 
-  /*
-  blockExtrinsics(chainId: NetworkURN): Observable<BlockExtrinsic> {
+  blockExtrinsics(chainId: NetworkURN): Observable<BlockExtrinsicWithEvents> {
     if (!this.#blockExtrinsics[chainId]) {
       this.#blockExtrinsics[chainId] = this.#ingress
         .finalizedBlocks(chainId)
-        .pipe(extractTxWithEvents(), flattenCalls(), share())
+        .pipe(extractTxWithEvents(), /*flattenCalls(),*/ share())
     }
     return this.#blockExtrinsics[chainId]
-  }*/
+  }
 }

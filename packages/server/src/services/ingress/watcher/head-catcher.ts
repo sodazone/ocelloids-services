@@ -128,8 +128,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return pipe
   }
 
-  getApi(chainId: NetworkURN) {
-    return this.#apis[chainId]
+  getApi(chainId: NetworkURN): Promise<ApiClient> {
+    return this.#apis[chainId].isReady()
   }
 
   /**

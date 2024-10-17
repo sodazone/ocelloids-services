@@ -1,20 +1,20 @@
 import { MetadataLookup, getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
 import { V15, decAnyMetadata } from '@polkadot-api/substrate-bindings'
+import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
 
 import { HexString } from '@/lib.js'
-import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Extrinsic, StorageCodec } from './types.js'
 
 type Call = { type: string; value: { type: string; value: unknown } }
 
 export class ApiContext {
-  #extrinsicDecode: any
-  #dynamicBuilder: any
-  #callCodec: any
-  #lookup: MetadataLookup
+  readonly #extrinsicDecode: any
+  readonly #dynamicBuilder: any
+  readonly #callCodec: any
+  readonly #lookup: MetadataLookup
 
-  events: {
+  readonly events: {
     key: HexString
     dec: any
   }
@@ -77,6 +77,7 @@ export class ApiContext {
 
   typeCodec<T = any>(path: string | string[]): Codec<T> {
     const id = this.getTypeIdByPath(path)
+
     if (id === undefined) {
       throw new Error(`type not found: ${path}`)
     }

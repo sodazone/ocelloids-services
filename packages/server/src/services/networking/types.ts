@@ -44,10 +44,16 @@ export type BlockContext = {
   timestamp?: number
 }
 
-export type ExtrinsicWithContext = Extrinsic & BlockContext
+export type BlockExtrinsic = Extrinsic & BlockContext
 
 export type BlockEvent = Event &
   BlockContext & {
-    extrinsic?: ExtrinsicWithContext
+    extrinsic?: BlockExtrinsic
     extrinsicPosition?: number
   }
+
+export type BlockExtrinsicWithEvents = BlockExtrinsic & {
+  events: BlockEvent[]
+  dispatchInfo: any
+  dispatchError: any
+}

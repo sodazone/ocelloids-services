@@ -1,13 +1,73 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { Block, BlockContext, BlockEvent, Extrinsic, ExtrinsicWithContext } from '../types.js'
+import { getEventValue } from '@/services/agents/base/util.js'
+import {
+  Block,
+  BlockContext,
+  BlockEvent,
+  BlockExtrinsic,
+  BlockExtrinsicWithEvents,
+  EventRecord,
+  Extrinsic,
+} from '../types.js'
 
 function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
-  const setTimestamp = extrinsics.find(
-    ({ module, method }) => module.toLowerCase() === 'timestamp' && method.toLowerCase() === 'set',
-  )
+  const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'Set')
   if (setTimestamp) {
     return Number(setTimestamp.args.now)
+  }
+}
+
+function enhanceTxWithIdAndEvents(
+  ctx: BlockContext,
+  tx: Extrinsic,
+  events: EventRecord[],
+): BlockExtrinsicWithEvents {
+  const { blockHash, blockNumber, blockPosition, timestamp } = ctx
+  const eventsWithId: BlockEvent[] = []
+
+  for (let index = 0; index < events.length; index++) {
+    const { phase, event } = events[index]
+    if (phase.type === 'ApplyExtrinsic' && phase.value === blockPosition) {
+      eventsWithId.push({ ...event, blockHash, blockNumber, blockPosition: index, timestamp })
+    }
+  }
+
+  return {
+    ...tx,
+    blockHash,
+    blockNumber,
+    blockPosition,
+    timestamp,
+    events: eventsWithId,
+    dispatchInfo: getEventValue('System', ['ExtrinsicSuccess', 'ExtrinsicFailed'], eventsWithId)
+      ?.dispatch_info,
+    dispatchError: getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error,
+  } as BlockExtrinsicWithEvents
+}
+
+export function extractTxWithEvents() {
+  return (source: Observable<Block>): Observable<BlockExtrinsicWithEvents> => {
+    return source.pipe(
+      mergeMap(({ hash, number, extrinsics, events }) => {
+        const blockNumber = number
+        const blockHash = hash
+        const timestamp = getTimestampFromBlock(extrinsics)
+        return extrinsics.map((xt, blockPosition) => {
+          return enhanceTxWithIdAndEvents(
+            {
+              blockNumber,
+              blockHash,
+              blockPosition,
+              timestamp,
+            },
+            xt,
+            events,
+          )
+        })
+      }),
+      share(),
+    )
   }
 }
 
@@ -26,7 +86,7 @@ export function extractEvents() {
       mergeMap(({ extrinsics, events, blockHash, blockNumber, timestamp }) => {
         let prevXtIndex = -1
         let xtEventIndex = 0
-        let extrinsicWithId: ExtrinsicWithContext | undefined
+        let extrinsicWithId: BlockExtrinsic | undefined
         // TODO: use inner Observable to stream events
         // Loops through each event record in the block and enhance it with block context.
         // If event is emitted from an extrinsic, enhance also with extrinsic context.

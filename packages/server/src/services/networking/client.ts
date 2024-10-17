@@ -1,23 +1,12 @@
-import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
-import { BlockInfo, ChainHead$, getObservableClient } from '@polkadot-api/observable-client'
-import {
-  Bin,
-  Bytes,
-  Option,
-  Tuple,
-  V14,
-  blockHeader,
-  compact,
-  decAnyMetadata,
-  u32,
-} from '@polkadot-api/substrate-bindings'
-import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
-import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
-import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
-import { fromHex, toHex } from 'polkadot-api/utils'
-import { getWsProvider } from 'polkadot-api/ws-provider/node'
-
+import { EventEmitter } from 'node:events'
 import { firstValueFrom } from 'rxjs'
+
+import { BlockInfo, ChainHead$, getObservableClient } from '@polkadot-api/observable-client'
+import { Bytes, Option, blockHeader, u32 } from '@polkadot-api/substrate-bindings'
+import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
+import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
+import { toHex } from 'polkadot-api/utils'
+import { getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { HexString } from '../subscriptions/types.js'
 import { ApiContext } from './context.js'
@@ -33,15 +22,22 @@ type RawEvent = {
   }
 }
 
-export class ApiClient {
-  #client: { chainHead$: () => ChainHead$; destroy: () => void }
-  #request: <Reply = any, Params extends Array<any> = any[]>(method: string, params: Params) => Promise<Reply>
+export class ApiClient extends EventEmitter {
+  readonly #client: { chainHead$: () => ChainHead$; destroy: () => void }
+  readonly #request: <Reply = any, Params extends Array<any> = any[]>(
+    method: string,
+    params: Params,
+  ) => Promise<Reply>
+  readonly getChainSpecData: () => Promise<ChainSpecData>
+
   #ctx: () => ApiContext
   #head$: ChainHead$
 
-  getChainSpecData: () => Promise<ChainSpecData>
+  isReady: () => Promise<ApiClient>
 
   constructor(url: string | Array<string>) {
+    super()
+
     const provider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
     const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(provider))
@@ -53,6 +49,11 @@ export class ApiClient {
     this.#ctx = () => {
       throw new Error('Runtime context not initialized')
     }
+
+    this.isReady = () =>
+      new Promise<ApiClient>((resolve) => {
+        this.once('connected', () => resolve(this))
+      })
   }
 
   get ctx() {
@@ -60,7 +61,6 @@ export class ApiClient {
   }
 
   async getMetadata(): Promise<Uint8Array> {
-    // TODO: try catch with ctx() first?
     return await this.#getMetadataAtVersion()
   }
 
@@ -104,37 +104,22 @@ export class ApiClient {
     return this.#head$.finalized$
   }
 
-  async v14(finalized: BlockInfo) {
-    // V14
-    const response = await this.#request<{
-      result: HexString
-    }>('archive_unstable_call', [finalized.hash, 'Metadata_metadata', ''])
-    const metadataBytes = Tuple(compact, Bin(Infinity)).dec(response.result)[1].asBytes()
-    const { metadata } = decAnyMetadata(metadataBytes)
-    if (metadata.tag !== 'v14') {
-      throw new Error('Only v15 is supported for the time being')
-    }
-
-    const v14 = metadata.value as V14
-
-    const extrinsicDecode = getExtrinsicDecoder(metadataBytes)
-    const lookup = getLookupFn(v14)
-    const dynamicBuilder = getDynamicBuilder(lookup)
-
-    //
-    // const callDec = Struct.dec({module: u8.dec, function: u8.dec, callArgs: Bin(Infinity).dec })
-    // const xx = callDec(xt.callData.asBytes())
-    // console.log(xx, this.#lookup.metadata.pallets.find(p => p.index === xx.module))
-    // get pallet and function by index, so you can decode
-  }
-
   async connect() {
     // TODO init metadata configurable, could come from redis
-    // this.v14(finalized)
-
-    const metadataBytes = await this.#getMetadataAtVersion()
-    const ctx = new ApiContext(metadataBytes)
-    this.#ctx = () => ctx
+    // TODO: reliable connection and retry
+    try {
+      const { metadataRaw } = await firstValueFrom(this.#head$.getRuntimeContext$(null))
+      const ctx = new ApiContext(metadataRaw)
+      this.#ctx = () => ctx
+      super.emit('connected')
+    } catch (error) {
+      // TODO: emit error and reconnect switch?
+      console.log(error)
+      this.#head$.unfollow()
+      setTimeout(() => {
+        this.#head$ = this.#client.chainHead$()
+      }, 5000).unref()
+    }
   }
 
   async #getMetadataAtVersion(version = argV15) {
@@ -143,8 +128,14 @@ export class ApiClient {
       result: HexString
     }>('archive_unstable_call', [finalized.hash, 'Metadata_metadata_at_version', version])
 
-    const ov15 = Option(Bytes())
-    return ov15.dec(response.result)!
+    const bytes = Option(Bytes())
+    const metadata = bytes.dec(response.result)
+
+    if (metadata === undefined) {
+      throw new Error('Error retrieving metadata')
+    }
+
+    return metadata
   }
 
   async getStorageKeys(

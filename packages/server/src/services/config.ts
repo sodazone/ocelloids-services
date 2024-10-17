@@ -16,14 +16,6 @@ const $RpcProvider = z.object({
     .or(z.array(z.string().min(1)).min(1)),
 })
 
-const wellKnownChains = ['polkadot', 'ksmcc3', 'rococo_v2_2', 'westend2'] as const
-
-const $SmoldotProvider = z.object({
-  type: z.literal('smoldot'),
-  name: z.enum(wellKnownChains).optional(),
-  spec: z.string().min(1).optional(),
-})
-
 const globalConsensus = [
   'local',
   'polkadot',

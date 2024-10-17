@@ -4,8 +4,7 @@ import { hexToU8a, stringCamelCase } from '@polkadot/util'
 import { AbstractIterator } from 'abstract-level'
 
 import { LevelDB, NetworkURN } from '@/services/types.js'
-import { object } from 'zod'
-import { asJSON } from '../base/util.js'
+import { asJSON, asSerializable } from '../base/util.js'
 import { QueryPagination } from '../types.js'
 
 const API_LIMIT_DEFAULT = 10
@@ -14,8 +13,7 @@ const API_LIMIT_MAX = 100
 export function getLocationIfAny(assetDetails: Record<string, any>) {
   const { location } = assetDetails
   if (location) {
-    console.log('LOOOOOOOOOOOOOOOOOO', location)
-    return location.toJSON === undefined ? location : location.toJSON()
+    return asSerializable(location)
   }
   return undefined
 }
