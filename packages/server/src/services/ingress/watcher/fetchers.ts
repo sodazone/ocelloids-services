@@ -1,13 +1,13 @@
 /* istanbul ignore file */
 import { HexString, NetworkURN } from '@/lib.js'
-import { PapiClient } from '@/services/networking/client.js'
+import { ApiClient } from '@/services/networking/client.js'
 import { NetworkInfo } from '../index.js'
 
 // from https://github.com/polkadot-js/apps/blob/master/packages/react-hooks/src/useBlockInterval.ts
 
 const DEFAULT_TIME = 6_000n
 
-/*
+/* TODO: port to new client
 async function resolveBlockTime(api: PapiClient) {
   const blockTimeAura = api.call.auraApi?.slotDuration && (await api.call.auraApi.slotDuration<bigint>())
   const blockTimeBabe =
@@ -38,7 +38,7 @@ function getPropertyArray(p: any[] | any) {
   return p ? (Array.isArray(p) ? p : [p]) : []
 }
 
-async function networkInfo(api: PapiClient, chainId: NetworkURN): Promise<NetworkInfo> {
+async function networkInfo(api: ApiClient, chainId: NetworkURN): Promise<NetworkInfo> {
   const chainSpecData = await api.getChainSpecData()
   const {
     tokenDecimals,
@@ -49,8 +49,6 @@ async function networkInfo(api: PapiClient, chainId: NetworkURN): Promise<Networ
     tokenDecimals?: number[] | number
     tokenSymbol?: string[] | string
   } = chainSpecData.properties
-
-  console.log(chainSpecData.properties, chainSpecData)
 
   const existentialDeposit = api.ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
 

@@ -1,21 +1,6 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { Block, Event, Extrinsic } from '../client.js'
-
-export type BlockContext = {
-  blockNumber: number
-  blockHash: string
-  blockPosition: number
-  timestamp?: number
-}
-
-export type ExtrinsicWithContext = Extrinsic & BlockContext
-
-export type BlockEvent = Event &
-  BlockContext & {
-    extrinsic?: ExtrinsicWithContext
-    extrinsicPosition?: number
-  }
+import { Block, BlockContext, BlockEvent, Extrinsic, ExtrinsicWithContext } from '../types.js'
 
 function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(

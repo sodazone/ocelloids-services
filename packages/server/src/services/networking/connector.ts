@@ -1,23 +1,16 @@
-import fs from 'node:fs'
-
 import { NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger } from '../types.js'
-import { PapiClient } from './client.js'
+import { ApiClient } from './client.js'
 
 /**
- * Handles substrate network connections,
- * with support for light clients.
+ * Handles substrate network connections.
  */
 export default class Connector {
   readonly #log: Logger
-  readonly #config: ServiceConfiguration
-  readonly #chains: Record<string, PapiClient> = {}
+  readonly #chains: Record<string, ApiClient> = {}
 
-  constructor(log: Logger, config: ServiceConfiguration) {
+  constructor(log: Logger, { networks }: ServiceConfiguration) {
     this.#log = log
-    this.#config = config
-
-    const { networks } = config
 
     for (const network of networks) {
       if (this.#chains[network.id] !== undefined) {
@@ -34,16 +27,21 @@ export default class Connector {
     const { id, provider } = network
 
     this.#log.info('Register WS provider: %s', id)
-    this.#chains[id] = new PapiClient(provider.url)
+    this.#chains[id] = new ApiClient(provider.url)
   }
 
-  connect(): Record<string, PapiClient> {
-    this.#log.info('Connect providers')
+  connect(): Record<string, ApiClient> {
+    this.#log.info('Connect clients')
 
     for (const [chain, client] of Object.entries(this.#chains)) {
-      client.connect().then(() => {
-        this.#log.info('connected: [%s]', chain)
-      })
+      client
+        .connect()
+        .then(() => {
+          this.#log.info('Client connected: %s', chain)
+        })
+        .catch((error) => {
+          this.#log.error(error, 'Client failed to connect: %s', chain)
+        })
     }
 
     return this.#chains

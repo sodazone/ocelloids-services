@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
+import { Observable, Subject, from, map, shareReplay } from 'rxjs'
 
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
@@ -17,7 +17,7 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
-import { Block, RuntimeContext } from '@/services/networking/client.js'
+import { ApiContext, Block } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
@@ -37,7 +37,7 @@ export class DistributedIngressConsumer
   readonly #log: Logger
   readonly #db: LevelDB
   readonly #blockConsumers: Record<NetworkURN, Subject<Block>>
-  readonly #registries$: Record<NetworkURN, Observable<RuntimeContext>>
+  readonly #contexts$: Record<NetworkURN, Observable<ApiContext>>
   readonly #distributor: RedisDistributor
 
   #networks: NetworkRecord = {}
@@ -49,7 +49,7 @@ export class DistributedIngressConsumer
     this.#db = ctx.levelDB
     this.#distributor = new RedisDistributor(opts, ctx)
     this.#blockConsumers = {}
-    this.#registries$ = {}
+    this.#contexts$ = {}
   }
 
   async start() {
@@ -86,16 +86,16 @@ export class DistributedIngressConsumer
     return consumer.asObservable()
   }
 
-  getRegistry(chainId: NetworkURN): Observable<RuntimeContext> {
-    if (this.#registries$[chainId] === undefined) {
-      this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
+  getContext(chainId: NetworkURN): Observable<ApiContext> {
+    if (this.#contexts$[chainId] === undefined) {
+      this.#contexts$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
           if (metadata === null) {
             this.emit('telemetryIngressConsumerError', `missingMetadata(${chainId})`)
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return new RuntimeContext(metadata)
+          return new ApiContext(metadata)
         }),
         // TODO retry
         shareReplay({
@@ -103,10 +103,10 @@ export class DistributedIngressConsumer
         }),
       )
     }
-    return this.#registries$[chainId]
+    return this.#contexts$[chainId]
   }
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
     try {
       return this.#storageFromRedis(chainId, storageKey, blockHash)
     } catch (error) {
@@ -232,7 +232,7 @@ export class DistributedIngressConsumer
 
   #storageFromRedis(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     return from(
-      new Promise<Uint8Array>((resolve, reject) => {
+      new Promise<HexString>((resolve, reject) => {
         const distributor = this.#distributor
         const replyTo = getReplyToKey(chainId, storageKey, blockHash ?? '$')
         const streamKey = getStorageReqKey(chainId)
@@ -255,7 +255,7 @@ export class DistributedIngressConsumer
               .response(replyTo)
               .then((buffer) => {
                 if (buffer) {
-                  resolve(buffer.element)
+                  resolve(`0x${buffer.element.toString('hex')}`)
                 } else {
                   reject(`Error retrieving storage value for key ${storageKey} (reply-to=${replyTo})`)
                 }
@@ -270,7 +270,6 @@ export class DistributedIngressConsumer
   async #blockStreamFromRedis(chainId: NetworkURN, id: string = '$') {
     const subject = this.#blockConsumers[chainId]
     const key = getBlockStreamKey(chainId)
-    const registry = await firstValueFrom(this.getRegistry(chainId))
 
     this.#distributor.readBuffers<{
       bytes: Buffer

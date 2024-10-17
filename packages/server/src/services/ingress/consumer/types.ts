@@ -1,12 +1,9 @@
 import { Observable } from 'rxjs'
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types'
-
-import { NetworkURN } from '@/services/types.js'
-
-import { Block, RuntimeContext } from '@/services/networking/client.js'
+import { ApiContext, Block } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { NetworkURN } from '@/services/types.js'
 
 /**
  * Extended Network Information
@@ -31,7 +28,7 @@ export type NetworkInfo = {
  */
 export interface IngressConsumer extends TelemetryEventEmitter {
   finalizedBlocks(chainId: NetworkURN): Observable<Block>
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array>
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString>
   getStorageKeys(
     chainId: NetworkURN,
     keyPrefix: HexString,
@@ -39,7 +36,7 @@ export interface IngressConsumer extends TelemetryEventEmitter {
     startKey?: HexString,
     blockHash?: HexString,
   ): Observable<HexString[]>
-  getRegistry(chainId: NetworkURN): Observable<RuntimeContext>
+  getContext(chainId: NetworkURN): Observable<ApiContext>
   getChainInfo(chainId: NetworkURN): Promise<NetworkInfo>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean

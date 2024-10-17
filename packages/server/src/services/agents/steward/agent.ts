@@ -1,11 +1,9 @@
+import { AbstractSublevel } from 'abstract-level'
+import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 import { z } from 'zod'
 
-import { AbstractSublevel } from 'abstract-level'
-
-import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
-
-import { u8aConcat } from '@polkadot/util'
-import { xxhashAsU8a } from '@polkadot/util-crypto'
+import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { mergeUint8 } from '@polkadot-api/utils'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
@@ -22,7 +20,8 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
-import { Binary } from 'polkadot-api'
+import { TextEncoder } from 'util'
+import { asSerializable } from '../base/util.js'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
 import {
@@ -45,6 +44,8 @@ const STORAGE_PAGE_LEN = 100
 
 const START_DELAY = 30_000 // 5m
 const SCHED_RATE = 43_200_000 // 12h
+
+const textEncoder = new TextEncoder()
 
 /**
  * The Data Steward agent.
@@ -155,39 +156,22 @@ export class DataSteward implements Agent, Queryable {
         this.#log.info('[agent:%s] GET chain properties (chainId=%s)', this.id, chainId)
         this.#putChainProps(chainId, mapper)
 
-        for (const mapping of mapper.mappings) {
-          this.#log.info(
-            '[agent:%s] START synchronizing asset metadata (chainId=%s, key=%s)',
-            this.id,
-            chainId,
-            mapping.keyPrefix,
-          )
-          allAssetMaps.push(this.#map(chainId, mapping))
-        }
+        allAssetMaps.push(this.#map(chainId, mapper))
       }
     }
 
     const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
     allAssetMapsObs.subscribe({
       next: async ({ chainId, asset }) => {
+        const serializableAsset = asSerializable(asset)
         const assetKey = assetMetadataKey(chainId, asset.id)
-        const multilocation = asset.multiLocation
-        if (multilocation) {
-          const resolvedId = await this.#queries.resolveAssetIdFromLocation(
-            chainId,
-            JSON.stringify(multilocation),
-          )
-          if (resolvedId && resolvedId !== assetKey) {
-            const key = u8aConcat(xxhashAsU8a(resolvedId), xxhashAsU8a(assetKey))
 
-            await this.#dbAssetsMapTmp.put(key, {
-              id: asset.id,
-              xid: asset.xid,
-              chainId,
-            })
-          }
-        }
-        this.#dbAssets.put(assetKey, asset).catch((e) => {
+        /*const multilocation = asset.multiLocation
+        if (multilocation) {
+         // TODO: handle multi location specific indexing
+        }*/
+
+        this.#dbAssets.put(assetKey, serializableAsset).catch((e) => {
           this.#log.error(
             e,
             '[agent:%s] on metadata write (chainId=%s, assetId=%s)',
@@ -202,11 +186,12 @@ export class DataSteward implements Agent, Queryable {
         const zeroArray = new Uint8Array(8).fill(0)
         const fArray = new Uint8Array(8).fill(0xff)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
+          const assetHash = Twox128(textEncoder.encode(assetKey))
           try {
             const externalIdsMap = await this.#dbAssetsMapTmp
               .iterator({
-                gt: u8aConcat(xxhashAsU8a(assetKey), zeroArray),
-                lt: u8aConcat(xxhashAsU8a(assetKey), fArray),
+                gt: mergeUint8(assetHash, zeroArray),
+                lt: mergeUint8(assetHash, fArray),
               })
               .all()
             const externalIds = externalIdsMap.map(([_key, assetId]) => assetId)
@@ -239,7 +224,7 @@ export class DataSteward implements Agent, Queryable {
 
         for (let i = 0; i < chainInfo.chainTokens.length; i++) {
           const symbol = chainInfo.chainTokens[i].toString()
-          const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
+          const id = i === 0 ? 'native' : 'native:' + symbol
           const asset: AssetMetadata = {
             id,
             // id native(aaee) index(u8)
@@ -265,24 +250,23 @@ export class DataSteward implements Agent, Queryable {
       })
   }
 
-  #map(chainId: NetworkURN, mapping: AssetMapping) {
-    //const { keyPrefix, assetIdType, mapEntry } = mapping
-
-    return this.#ingress.getRegistry(chainId).pipe(
-      switchMap((registry) => {
-        const assetCodec = registry.storageCodec<{
-          name: Binary
-          symbol: Binary
-          decimals: number
-          minimal_balance: bigint
-        }>('AssetRegistry', 'AssetMetadatas')
-        const prefixKey = assetCodec.enc() as HexString
+  #map(chainId: NetworkURN, mapper: AssetMapper) {
+    return this.#ingress.getContext(chainId).pipe(
+      switchMap((context) => mapper(context).entries()),
+      mergeMap(([index, mapping]) => {
+        this.#log.info(
+          '[agent:%s] START synchronizing asset metadata (chainId=%s,mapping=%s)',
+          this.id,
+          chainId,
+          index,
+        )
+        const { keyPrefix, mapEntry } = mapping
         return this.#ingress
-          .getStorageKeys(chainId, prefixKey, STORAGE_PAGE_LEN)
+          .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
           .pipe(
             expand((keys) =>
               keys.length === STORAGE_PAGE_LEN
-                ? this.#ingress.getStorageKeys(chainId, prefixKey, STORAGE_PAGE_LEN, keys[keys.length - 1])
+                ? this.#ingress.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
                 : EMPTY,
             ),
             reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
@@ -290,34 +274,7 @@ export class DataSteward implements Agent, Queryable {
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>
-                this.#ingress.getStorage(chainId, key).pipe(
-                  map((bytes) => {
-                    console.log(key)
-                    const asset = assetCodec.dec(bytes)
-                    console.log(assetCodec.keyDecoder(key), {
-                      id: JSON.stringify(assetCodec.keyDecoder(key)),
-                      xid: '0x0101',
-                      chainId: chainId,
-                      externalIds: [],
-                      updated: 0,
-                      name: asset.name.asText(),
-                      symbol: asset.symbol.asText(),
-                      decimals: asset.decimals,
-                      raw: {},
-                    } as AssetMetadata)
-                    return {
-                      id: JSON.stringify(assetCodec.keyDecoder(key)),
-                      xid: '0x0101',
-                      chainId: chainId,
-                      externalIds: [],
-                      updated: 0,
-                      name: asset.name.asText(),
-                      symbol: asset.symbol.asText(),
-                      decimals: asset.decimals,
-                      raw: {},
-                    } as AssetMetadata
-                  }),
-                ),
+                this.#ingress.getStorage(chainId, key).pipe(mapEntry(key, this.#ingress)),
               )
             }),
             mergeAll(),

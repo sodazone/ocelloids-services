@@ -285,7 +285,7 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#shared
@@ -305,7 +305,7 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#shared
@@ -325,7 +325,7 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
               switchMap((registry) =>
                 this.#shared
@@ -395,7 +395,7 @@ export class XcmAgent implements Agent, Subscribable {
     return {
       chainId,
       sub: this.#ingress
-        .getRegistry(relayId)
+        .getContext(relayId)
         .pipe(
           switchMap((registry) =>
             this.#shared
@@ -464,7 +464,7 @@ export class XcmAgent implements Agent, Subscribable {
       subs.push({
         chainId: originBridgeHub,
         sub: this.#ingress
-          .getRegistry(originBridgeHub)
+          .getContext(originBridgeHub)
           .pipe(
             switchMap((registry) =>
               this.#shared.blockEvents(originBridgeHub).pipe(
@@ -492,7 +492,7 @@ export class XcmAgent implements Agent, Subscribable {
       subs.push({
         chainId: originBridgeHub,
         sub: this.#ingress
-          .getRegistry(originBridgeHub)
+          .getContext(originBridgeHub)
           .pipe(
             switchMap((registry) =>
               this.#shared

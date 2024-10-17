@@ -20,10 +20,8 @@ import {
 
 import { BlockInfo } from '@polkadot-api/observable-client'
 
-import { retryWithTruncatedExpBackoff } from '@sodazone/ocelloids-sdk'
-
 import { ServiceConfiguration } from '@/services/config.js'
-import { Block, PapiClient } from '@/services/networking/client.js'
+import { ApiClient, Block, retryWithTruncatedExpBackoff } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
@@ -73,7 +71,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: Record<string, PapiClient>
+  readonly #apis: Record<string, ApiClient>
   readonly #log: Logger
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
@@ -117,29 +115,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       this.#tapError(chainId, 'finalizedHeads()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       this.#catchUpHeads(chainId, api),
-      mergeMap((header) => from(api.getSignedBlockFromHash(header))),
+      mergeMap((header) => from(api.getBlock(header))),
       this.#tapError(chainId, 'blockFromHeader()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       share(),
     )
-
-    /*
-    pipe = apiPromise$.pipe(
-      switchMap((api) =>
-        apiRx.pipe(
-          finalizedHeads(),
-          mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
-          this.#tapError(chainId, 'finalizedHeads()'),
-          retryWithTruncatedExpBackoff(RETRY_INFINITE),
-          this.#catchUpHeads(chainId, api),
-          blockFromHeader(api),
-          this.#tapError(chainId, 'blockFromHeader()'),
-          retryWithTruncatedExpBackoff(RETRY_INFINITE),
-        ),
-      ),
-      share(),
-    )
-      */
 
     this.#pipes[chainId] = pipe
 
@@ -169,6 +149,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     startKey?: HexString,
     blockHash?: HexString,
   ): Observable<HexString[]> {
+    // TODO log errors and handle retry
     const resolvedStartKey = startKey === '0x0' ? undefined : startKey
     const at = blockHash === undefined || blockHash === '0x0' ? undefined : blockHash
     return from(this.#apis[chainId].getStorageKeys(keyPrefix, count, resolvedStartKey, at))
@@ -199,7 +180,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     */
   }
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
     return from(this.#apis[chainId].getStorage(storageKey, blockHash))
 
     /*
@@ -248,13 +229,13 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  #catchUpHeads(chainId: NetworkURN, api: PapiClient) {
+  #catchUpHeads(chainId: NetworkURN, api: ApiClient) {
     return (source: Observable<BlockInfo>): Observable<BlockInfo> => {
       return source.pipe(
         tap((header) => {
           this.#log.info('[%s] FINALIZED block #%s %s', chainId, header.number, header.hash)
 
-          // TODO emit
+          // TODO change type in emit event
           /*this.emit('telemetryBlockFinalized', {
             chainId,
             header,
@@ -269,7 +250,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  #recoverBlockRanges(chainId: NetworkURN, api: PapiClient) {
+  #recoverBlockRanges(chainId: NetworkURN, api: ApiClient) {
     return (source: Observable<BlockNumberRange[]>): Observable<BlockInfo> => {
       const batchSize = this.#batchSize(chainId)
       return source.pipe(
@@ -368,7 +349,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #headers(
-    api: PapiClient,
+    api: ApiClient,
     newHead: BlockInfo,
     targetHeight: number,
     prev: BlockInfo[],
@@ -382,7 +363,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     )
   }
 
-  #catchUpToHeight(chainId: NetworkURN, api: PapiClient, newHead: BlockInfo) {
+  #catchUpToHeight(chainId: NetworkURN, api: ApiClient, newHead: BlockInfo) {
     return (source: Observable<number[]>): Observable<BlockInfo> => {
       return source.pipe(
         mergeMap((targets) => {

@@ -4,6 +4,8 @@ import { hexToU8a, stringCamelCase } from '@polkadot/util'
 import { AbstractIterator } from 'abstract-level'
 
 import { LevelDB, NetworkURN } from '@/services/types.js'
+import { object } from 'zod'
+import { asJSON } from '../base/util.js'
 import { QueryPagination } from '../types.js'
 
 const API_LIMIT_DEFAULT = 10
@@ -12,6 +14,7 @@ const API_LIMIT_MAX = 100
 export function getLocationIfAny(assetDetails: Record<string, any>) {
   const { location } = assetDetails
   if (location) {
+    console.log('LOOOOOOOOOOOOOOOOOO', location)
     return location.toJSON === undefined ? location : location.toJSON()
   }
   return undefined
@@ -58,10 +61,11 @@ export function extractConstant(
   return undefined
 }
 
-function normalize(assetId: string) {
-  return assetId.toLowerCase().replaceAll('"', '')
+function normalize(assetId: string | object) {
+  const str = typeof assetId === 'string' ? assetId : asJSON(assetId)
+  return str.toLowerCase().replaceAll('"', '')
 }
 
-export function assetMetadataKey(chainId: NetworkURN, assetId: string) {
+export function assetMetadataKey(chainId: NetworkURN, assetId: string | object) {
   return `${chainId}:${normalize(assetId)}`
 }

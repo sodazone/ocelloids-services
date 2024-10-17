@@ -186,7 +186,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
     this.#distributor.read<StorageRequest>(key, (request, { client }) => {
       this.#headCatcher.getStorage(chainId, request.storageKey, request.at).subscribe({
         next: (data) => {
-          client.LPUSH(request.replyTo, Buffer.from(data))
+          client.LPUSH(request.replyTo, Buffer.from(data.slice(2), 'hex'))
         },
         error: (e) => {
           this.#log.error(e, '[%s] error reading storage (key=%s)', chainId, request.storageKey)

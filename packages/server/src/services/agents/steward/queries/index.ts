@@ -3,20 +3,18 @@ import { LevelDB } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
 import { QueryParams, QueryResult } from '@/lib.js'
+
 import { $StewardQueryArgs, StewardQueryArgs } from '../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
-import { LocationQueryHandler } from './location/handler.js'
 
 export class Queries {
   readonly #assetsHandler
   readonly #chainsHandler
-  readonly #assetsLocationHandler
 
   constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: IngressConsumer) {
     this.#assetsHandler = new AssetsQueryHandler(dbAssets)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
-    this.#assetsLocationHandler = new LocationQueryHandler(dbAssets, ingress)
   }
 
   async dispatch(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
@@ -27,8 +25,6 @@ export class Queries {
       return await this.#assetsHandler.queryAsset(args.criteria)
     } else if (args.op === 'assets.list') {
       return await this.#assetsHandler.queryAssetList(args.criteria, pagination)
-    } else if (args.op === 'assets.by_location') {
-      return await this.#assetsLocationHandler.queryAssetByLocation(args.criteria)
     } else if (args.op === 'chains') {
       return await this.#chainsHandler.queryChains(args.criteria)
     } else if (args.op === 'chains.list') {
@@ -36,13 +32,5 @@ export class Queries {
     }
 
     throw new ValidationError('Unknown query type')
-  }
-
-  async resolveAssetIdFromLocation(xcmLocationAnchor: string, location: string) {
-    try {
-      return await this.#assetsLocationHandler.resolveAssetIdsFromLocation(xcmLocationAnchor, location)
-    } catch (_error) {
-      return undefined
-    }
   }
 }

@@ -1,12 +1,10 @@
-import { Registry } from '@polkadot/types-codec/types'
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString, NetworkURN } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 
-import { Hashing, fromKeyPrefix, keyValue } from './keys.js'
-
-import { AssetMetadata } from './types.js'
+import { asSerializable } from '../base/util.js'
+import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
 import { getLocationIfAny } from './util.js'
 
 type MapOptions = {
@@ -20,61 +18,47 @@ type MapOptions = {
 }
 type MapMultiLocationOptions = {
   chainId: string
-  assetMetadataType: string
-  metadataHashing: Hashing
-  multiLocationHashing?: Hashing
-  multiLocationKeyType: string
-  multiLocationKeyPrefix: HexString
-  multiLocationDataType: string
   options: MapOptions
   onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
 }
 
 export const mapAssetsRegistryMetadata = ({
   chainId,
-  assetMetadataType,
-  hashing,
   options,
 }: {
   chainId: string
-  assetMetadataType: string
-  hashing: Hashing
   options?: MapOptions
 }) => {
-  return (registry: Registry, keyArgs: string, assetIdType: string) => {
-    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+  return (codecs: WithRequired<StorageCodecs, 'assets'>, keyArgs: string) => {
+    const codec = codecs.assets
+    return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = keyValue(registry, assetIdType, keyArgs, hashing, true)
-          const assetDetails =
-            (registry.createType(assetMetadataType, buffer).toHuman() as Record<string, any>) ?? {}
-          const existentialDeposit = options?.ed
-            ? (assetDetails[options.ed] as string).replaceAll(',', '')
-            : undefined
-          const isSufficient = options?.isSufficient
-            ? assetDetails[options.isSufficient] === 'true'
-            : undefined
+          const assetId = codec.keyDecoder(keyArgs)[0]
+          const assetDetails = buffer ? codec.dec(buffer) : {}
+          const existentialDeposit = options?.ed ? assetDetails[options.ed].toString() : undefined
+          const isSufficient = options?.isSufficient ? assetDetails[options.isSufficient] : undefined
           const extractMetadata = options?.extractMetadata
             ? options.extractMetadata
             : (data: Record<string, any>) => ({
-                name: data.name,
-                symbol: data.symbol,
+                name: data.name?.asText(),
+                symbol: data.symbol?.asText(),
                 decimals: data.decimals,
               })
           return {
             chainId,
-            id: assetId.toString(),
-            xid: assetId.toHex(),
+            id: asSerializable(assetId),
+            xid: keyArgs,
             updated: Date.now(),
             ...extractMetadata(assetDetails),
             multiLocation: getLocationIfAny(assetDetails),
             existentialDeposit,
             isSufficient,
             externalIds: [],
-            raw: {
+            raw: asSerializable({
               ...assetDetails,
               keyArgs,
-            },
+            }),
           } as AssetMetadata
         }),
       )
@@ -83,48 +67,42 @@ export const mapAssetsRegistryMetadata = ({
 }
 
 export const mapAssetsPalletAssets =
-  (chainId: string) =>
-  (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
-    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+  (codecs: WithRequired<StorageCodecs, 'assets' | 'metadata'>, chainId: string) =>
+  (keyArgs: string, ingress: IngressConsumer) => {
+    const assetCodec = codecs.assets
+    const assetMetadataCodec = codecs.metadata
+
+    return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = keyValue(registry, assetIdType, keyArgs, 'blake2-128', true)
-          const assetDetails = registry.createType('PalletAssetsAssetDetails', buffer)
+          const assetId = assetCodec.keyDecoder(keyArgs)[0]
+          const assetDetails = assetCodec.dec(buffer)
           return {
             id: assetId.toString(),
-            xid: assetId.toHex(),
+            xid: keyArgs,
             updated: Date.now(),
-            existentialDeposit: assetDetails.minBalance.toString(),
-            isSufficient: assetDetails.isSufficient.toPrimitive(),
+            existentialDeposit: assetDetails.min_balance.toString(),
+            isSufficient: assetDetails.is_sufficient,
             chainId,
-            raw: assetDetails.toJSON(),
+            raw: asSerializable(assetDetails),
             externalIds: [],
           } as AssetMetadata
         }),
         // Assets Metadata
         mergeMap((asset) => {
-          const key = fromKeyPrefix(
-            registry,
-            '0x682a59d51ab9e48a8c8cc418ff9708d2b5f3822e35ca2f31ce3526eab1363fd2',
-            assetIdType,
-            asset.id,
-            'blake2-128',
-            false,
-          )
+          const key = assetMetadataCodec.enc(asset.id) as HexString
           return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
             map((buffer) => {
-              const assetDetails =
-                (registry.createType('PalletAssetsAssetMetadata', buffer).toHuman() as Record<string, any>) ??
-                {}
+              const assetDetails = buffer ? assetMetadataCodec.dec(buffer) : {}
               return {
                 ...asset,
-                name: assetDetails.name,
-                symbol: assetDetails.symbol,
+                name: assetDetails.name?.asText(),
+                symbol: assetDetails.symbol?.asText(),
                 decimals: assetDetails.decimals,
-                raw: {
+                raw: asSerializable({
                   ...asset.raw,
                   ...assetDetails,
-                },
+                }),
               }
             }),
           )
@@ -133,37 +111,26 @@ export const mapAssetsPalletAssets =
     }
   }
 
-const mergeMultiLocations = ({
-  metadataHashing,
-  multiLocationHashing = metadataHashing,
-  multiLocationKeyType,
-  multiLocationKeyPrefix,
-  multiLocationDataType,
-  onMultiLocationData,
-}: MapMultiLocationOptions) => {
-  return (registry: Registry, ingress: IngressConsumer) => {
+const mergeMultiLocations = (
+  codecs: WithRequired<StorageCodecs, 'locations'>,
+  { onMultiLocationData }: MapMultiLocationOptions,
+) => {
+  return (ingress: IngressConsumer) => {
+    const codec = codecs.locations
     return mergeMap((asset: AssetMetadata) => {
       // Expand multilocations
-      const key = fromKeyPrefix(
-        registry,
-        multiLocationKeyPrefix,
-        multiLocationKeyType,
-        asset.raw.keyArgs ?? asset.id,
-        multiLocationHashing,
-        asset.raw.keyArgs !== undefined,
-      )
+      const key = codec.enc(asset.id) as HexString
       return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
         map((buffer) => {
-          if (buffer.length === 0) {
+          if (buffer === null || buffer.length === 0) {
             return asset
           }
-          const maybeLoc = registry.createType(multiLocationDataType, buffer)
-
-          if (maybeLoc.toHex() !== '0x0000') {
+          const maybeLoc = codec.dec(buffer)
+          if (maybeLoc) {
             const multiLocation =
               onMultiLocationData === undefined
-                ? maybeLoc.toJSON()
-                : onMultiLocationData(maybeLoc.toJSON() as Record<string, any>)
+                ? asSerializable(maybeLoc)
+                : onMultiLocationData(asSerializable(maybeLoc) as Record<string, any>)
             return {
               ...asset,
               multiLocation,
@@ -177,35 +144,30 @@ const mergeMultiLocations = ({
   }
 }
 
-export const mapAssetsPalletAndLocations = (
-  options: Omit<MapMultiLocationOptions, 'assetMetadataType' | 'metadataHashing'>,
-) => {
-  return (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
-    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
+export const mapAssetsPalletAndLocations = (options: MapMultiLocationOptions) => {
+  return (codecs: Required<StorageCodecs>, keyArgs: string, ingress: IngressConsumer) => {
+    return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
-        mapAssetsPalletAssets(options.chainId)(registry, keyArgs, assetIdType, ingress),
-        mergeMultiLocations({
-          ...options,
-          assetMetadataType: '',
-          metadataHashing: 'blake2-128',
-        })(registry, ingress),
+        mapAssetsPalletAssets(codecs, options.chainId)(keyArgs, ingress),
+        mergeMultiLocations(codecs, options)(ingress),
       )
     }
   }
 }
 
-export const mapAssetsRegistryAndLocations = (options: MapMultiLocationOptions) => {
-  return (registry: Registry, keyArgs: string, assetIdType: string, ingress: IngressConsumer) => {
-    return (source: Observable<Uint8Array>): Observable<AssetMetadata> => {
-      const { chainId, assetMetadataType, metadataHashing } = options
+export const mapAssetsRegistryAndLocations = (
+  codecs: WithRequired<StorageCodecs, 'assets' | 'locations'>,
+  options: MapMultiLocationOptions,
+) => {
+  return (keyArgs: string, ingress: IngressConsumer) => {
+    return (source: Observable<HexString>): Observable<AssetMetadata> => {
+      const { chainId } = options
       return source.pipe(
         mapAssetsRegistryMetadata({
           chainId,
-          assetMetadataType,
-          hashing: metadataHashing,
           options: options.options,
-        })(registry, keyArgs, assetIdType),
-        mergeMultiLocations(options)(registry, ingress),
+        })(codecs, keyArgs),
+        mergeMultiLocations(codecs, options)(ingress),
       )
     }
   }
