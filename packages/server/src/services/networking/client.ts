@@ -6,7 +6,7 @@ import { Bytes, Option, blockHeader, u32 } from '@polkadot-api/substrate-binding
 import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
 import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { toHex } from 'polkadot-api/utils'
-import { getWsProvider } from 'polkadot-api/ws-provider/node'
+import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { HexString } from '../subscriptions/types.js'
 import { ApiContext } from './context.js'
@@ -23,24 +23,25 @@ type RawEvent = {
 }
 
 export class ApiClient extends EventEmitter {
+  isReady: () => Promise<ApiClient>
+  readonly getChainSpecData: () => Promise<ChainSpecData>
+
+  readonly #wsProvider: WsJsonRpcProvider
   readonly #client: { chainHead$: () => ChainHead$; destroy: () => void }
   readonly #request: <Reply = any, Params extends Array<any> = any[]>(
     method: string,
     params: Params,
   ) => Promise<Reply>
-  readonly getChainSpecData: () => Promise<ChainSpecData>
+  readonly #head$: ChainHead$
 
   #ctx: () => ApiContext
-  #head$: ChainHead$
-
-  isReady: () => Promise<ApiClient>
 
   constructor(url: string | Array<string>) {
     super()
 
-    const provider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
+    this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
-    const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(provider))
+    const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(this.#wsProvider))
     this.getChainSpecData = substrateClient.getChainSpecData
     this.#client = getObservableClient(substrateClient)
     this.#request = substrateClient.request
@@ -117,7 +118,9 @@ export class ApiClient extends EventEmitter {
       console.log(error)
       this.#head$.unfollow()
       setTimeout(() => {
-        this.#head$ = this.#client.chainHead$()
+        //this.#log()
+        console.log('switching provider')
+        this.#wsProvider.switch()
       }, 5000).unref()
     }
   }

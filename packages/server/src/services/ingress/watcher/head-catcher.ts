@@ -102,7 +102,6 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * Returns an observable of extended signed blocks, providing cached block content as needed.
    */
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    const api = this.#apis[chainId]
     let pipe = this.#pipes[chainId]
 
     if (pipe) {
@@ -110,15 +109,19 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       return pipe
     }
 
-    pipe = api.finalizedHeads$.pipe(
-      mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
-      this.#tapError(chainId, 'finalizedHeads()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      this.#catchUpHeads(chainId, api),
-      mergeMap((header) => from(api.getBlock(header))),
-      this.#tapError(chainId, 'blockFromHeader()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      share(),
+    pipe = from(this.#apis[chainId].isReady()).pipe(
+      switchMap((api) =>
+        api.finalizedHeads$.pipe(
+          mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
+          this.#tapError(chainId, 'finalizedHeads()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          this.#catchUpHeads(chainId, api),
+          mergeMap((header) => from(api.getBlock(header))),
+          this.#tapError(chainId, 'blockFromHeader()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          share(),
+        ),
+      ),
     )
 
     this.#pipes[chainId] = pipe
