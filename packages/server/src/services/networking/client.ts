@@ -14,11 +14,13 @@ import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { HexString } from '../subscriptions/types.js'
+import { Logger, NetworkURN } from '../types.js'
 import { ApiContext } from './context.js'
 import { Block, EventRecord } from './types.js'
 
 export class ApiClient extends EventEmitter {
   readonly isReady: () => Promise<ApiClient>
+  readonly chainId: string
   get ctx() {
     return this.#apiContext()
   }
@@ -27,6 +29,7 @@ export class ApiClient extends EventEmitter {
   }
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
+  readonly #log: Logger
   readonly #wsProvider: WsJsonRpcProvider
   readonly #client: { chainHead$: () => ChainHead$; destroy: () => void }
   readonly #request: <Reply = any, Params extends Array<any> = any[]>(
@@ -40,9 +43,12 @@ export class ApiClient extends EventEmitter {
   }
   #apiContext: () => ApiContext
 
-  constructor(url: string | Array<string>) {
+  constructor(log: Logger, chainId: string, url: string | Array<string>) {
     super()
 
+    this.chainId = chainId
+
+    this.#log = log
     this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
     const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(this.#wsProvider))
@@ -103,18 +109,19 @@ export class ApiClient extends EventEmitter {
 
   async connect() {
     try {
-      console.log('Connecting')
+      this.#log.info('[client:%s] connecting', this.chainId)
+
       const ctx = new ApiContext(await this.#runtimeContext)
-      console.log('connected')
       this.#apiContext = () => ctx
       super.emit('connected')
     } catch (error) {
-      console.log(error)
       setTimeout(() => {
-        console.log('switching provider')
+        this.#log.warn('[client:%s] error while connecting %s (reconnecting)', this.chainId, error)
         this.#wsProvider.switch()
       }, 5000).unref()
     }
+
+    this.#log.info('[client:%s] connected', this.chainId)
   }
 
   async getStorageKeys(

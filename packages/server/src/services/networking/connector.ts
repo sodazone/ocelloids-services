@@ -27,7 +27,7 @@ export default class Connector {
     const { id, provider } = network
 
     this.#log.info('Register WS provider: %s', id)
-    this.#chains[id] = new ApiClient(provider.url)
+    this.#chains[id] = new ApiClient(this.#log, id, provider.url)
   }
 
   connect(): Record<string, ApiClient> {
