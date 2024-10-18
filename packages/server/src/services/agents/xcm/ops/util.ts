@@ -1,32 +1,9 @@
-import type { U8aFixed } from '@polkadot/types-codec'
-import type { H256 } from '@polkadot/types/interfaces/runtime'
-import type {
-  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-  StagingXcmV3MultiLocation,
-  XcmV2MultiLocation,
-  XcmV2MultiassetMultiAssets,
-  XcmV2MultilocationJunctions,
-  XcmV3Junction,
-  XcmV3Junctions,
-  XcmV3MultiassetMultiAssets,
-} from '@polkadot/types/lookup'
-
-import { types } from '@sodazone/ocelloids-sdk'
-
 import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '@/services/config.js'
+import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
-import {
-  VersionedInteriorLocation,
-  XcmV4AssetAssets,
-  XcmV4Junction,
-  XcmV4Junctions,
-  XcmV4Location,
-  XcmVersionedAssets,
-  XcmVersionedLocation,
-  XcmVersionedXcm,
-} from './xcm-types.js'
+import { Program } from './xcm-format.js'
 
 // TODO: review this, we don't want to define all not applicable consensus
 const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
@@ -57,35 +34,33 @@ export function getBridgeHubNetworkId(consensus: string | NetworkURN): NetworkUR
   return undefined
 }
 
-function createSignersData(xt: types.ExtrinsicWithId): SignerData | undefined {
+function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   try {
-    if (xt.isSigned) {
+    if (xt.signed) {
       // Signer could be Address or AccountId
-      const accountId = xt.signer.value ?? xt.signer
+      const accountId = xt.signature.value ?? xt.signature
       return {
         signer: {
-          id: accountId.toPrimitive(),
-          publicKey: accountId.toHex(),
+          id: accountId,
+          publicKey: accountId,
         },
-        extraSigners: xt.extraSigners.map((signer) => ({
-          type: signer.type,
-          id: signer.address.value.toPrimitive(),
-          publicKey: signer.address.value.toHex(),
-        })),
+        extraSigners: [],
       }
     }
   } catch (error) {
-    throw new Error(`creating signers data at ${xt.extrinsicId ?? '-1'}`, { cause: error })
+    throw new Error(`creating signers data at ${xt.blockNumber} ${xt.blockPosition ?? '-1'}`, {
+      cause: error,
+    })
   }
 
   return undefined
 }
 
-export function getSendersFromExtrinsic(extrinsic: types.ExtrinsicWithId): SignerData | undefined {
+export function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): SignerData | undefined {
   return createSignersData(extrinsic)
 }
 
-export function getSendersFromEvent(event: types.BlockEvent): SignerData | undefined {
+export function getSendersFromEvent(event: BlockEvent): SignerData | undefined {
   if (event.extrinsic !== undefined) {
     return getSendersFromExtrinsic(event.extrinsic)
   }
@@ -94,14 +69,14 @@ export function getSendersFromEvent(event: types.BlockEvent): SignerData | undef
 /**
  * Gets message id from setTopic.
  */
-export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
-  switch (program.type) {
+export function getMessageId({ instructions }: Program): HexString | undefined {
+  switch (instructions.type) {
     // Only XCM V3+ supports topic ID
     case 'V3':
     case 'V4':
-      for (const instruction of program[`as${program.type}`]) {
-        if (instruction.isSetTopic) {
-          return instruction.asSetTopic.toHex()
+      for (const instruction of instructions.value) {
+        if (instruction.type === 'SetTopic') {
+          return instruction.value.asHex()
         }
       }
       return undefined
@@ -110,13 +85,13 @@ export function getMessageId(program: XcmVersionedXcm): HexString | undefined {
   }
 }
 
-export function getParaIdFromOrigin(
-  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-): string | undefined {
-  if (origin.isUmp) {
-    const umpOrigin = origin.asUmp
-    if (umpOrigin.isPara) {
-      return umpOrigin.asPara.toString()
+export function getParaIdFromOrigin(origin: { type: string; value: { type: string; value: number } }):
+  | string
+  | undefined {
+  if (origin.type === 'Ump') {
+    const umpOrigin = origin.value
+    if (umpOrigin.type === 'Para') {
+      return umpOrigin.value.toString()
     }
   }
 
@@ -345,15 +320,15 @@ export function networkIdFromVersionedMultiLocation(
   }
 }
 
-export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed): boolean {
-  switch (message.type) {
+export function matchProgramByTopic({ instructions }: Program, topicId: HexString): boolean {
+  switch (instructions.type) {
     case 'V2':
       throw new Error('Not able to match by topic for XCM V2 program.')
     case 'V3':
     case 'V4':
-      for (const instruction of message[`as${message.type}`]) {
-        if (instruction.isSetTopic) {
-          return instruction.asSetTopic.eq(topicId)
+      for (const instruction of instructions.value) {
+        if (instruction === 'SetTopic') {
+          return instruction.value.asHex() === topicId
         }
       }
       return false
@@ -362,21 +337,17 @@ export function matchProgramByTopic(message: XcmVersionedXcm, topicId: U8aFixed)
   }
 }
 
-export function matchEvent(event: types.BlockEvent, section: string | string[], method: string | string[]) {
+export function matchEvent(event: BlockEvent, module: string | string[], name: string | string[]) {
   return (
-    (Array.isArray(section) ? section.includes(event.section) : section === event.section) &&
-    (Array.isArray(method) ? method.includes(event.method) : method === event.method)
+    (Array.isArray(module) ? module.includes(event.module) : module === event.module) &&
+    (Array.isArray(name) ? name.includes(event.name) : name === event.name)
   )
 }
 
-export function matchExtrinsic(
-  extrinsic: types.ExtrinsicWithId,
-  section: string,
-  method: string | string[],
-): boolean {
-  return section === extrinsic.method.section && Array.isArray(method)
-    ? method.includes(extrinsic.method.method)
-    : method === extrinsic.method.method
+export function matchExtrinsic(extrinsic: Extrinsic, module: string, method: string | string[]): boolean {
+  return module === extrinsic.module && Array.isArray(method)
+    ? method.includes(extrinsic.method)
+    : method === extrinsic.method
 }
 
 function createTrappedAssetsFromMultiAssets(
@@ -420,24 +391,21 @@ function mapVersionedAssets(assets: XcmVersionedAssets): TrappedAsset[] {
   }
 }
 
-export function mapAssetsTrapped(assetsTrappedEvent?: types.BlockEvent): AssetsTrapped | undefined {
+export function mapAssetsTrapped(assetsTrappedEvent?: BlockEvent): AssetsTrapped | undefined {
   if (assetsTrappedEvent === undefined) {
     return undefined
   }
-  const [hash_, _, assets] = assetsTrappedEvent.data as unknown as [
-    hash_: H256,
-    _origin: any,
-    assets: XcmVersionedAssets,
-  ]
+  console.log(assetsTrappedEvent.value)
+  const [hash_, _, assets] = assetsTrappedEvent.value as [hash_: HexString, _origin: any, assets: any]
   return {
     event: {
-      eventId: assetsTrappedEvent.eventId,
-      blockNumber: assetsTrappedEvent.blockNumber.toPrimitive(),
-      blockHash: assetsTrappedEvent.blockHash.toHex(),
-      section: assetsTrappedEvent.section,
-      method: assetsTrappedEvent.method,
+      eventId: assetsTrappedEvent.blockPosition,
+      blockNumber: assetsTrappedEvent.blockNumber,
+      blockHash: assetsTrappedEvent.blockHash as HexString,
+      section: assetsTrappedEvent.module,
+      method: assetsTrappedEvent.name,
     },
     assets: mapVersionedAssets(assets),
-    hash: hash_.toHex(),
+    hash: hash_,
   }
 }

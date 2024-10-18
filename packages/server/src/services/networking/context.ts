@@ -56,8 +56,8 @@ export class ApiContext {
   }
 
   getTypeIdByPath(path: string | string[]): number | undefined {
-    const target = Array.isArray(path) ? path.join('.').toLowerCase() : path
-    return this.#metadata.lookup.find((ty) => ty.path.join('.').toLowerCase() === target)?.id
+    const target = Array.isArray(path) ? path.join('.') : path
+    return this.#metadata.lookup.find((ty) => ty.path.join('.').toLowerCase() === target.toLowerCase())?.id
   }
 
   decodeExtrinsic(hextBytes: string): Extrinsic {
@@ -82,11 +82,16 @@ export class ApiContext {
     return this.#builder.buildStorage(module, method) as StorageCodec<T>
   }
 
-  typeCodec<T = any>(path: string | string[]): Codec<T> {
-    const id = this.getTypeIdByPath(path)
+  typeCodec<T = any>(path: string | string[] | number): Codec<T> {
+    let id
+    if (typeof path === 'number') {
+      id = path
+    } else {
+      id = this.getTypeIdByPath(path)
 
-    if (id === undefined) {
-      throw new Error(`type not found: ${path}`)
+      if (id === undefined) {
+        throw new Error(`type not found: ${path}`)
+      }
     }
 
     return this.#builder.buildDefinition(id) as Codec<T>

@@ -1,7 +1,8 @@
-import type { Bytes } from '@polkadot/types'
+import { HexString } from '@/lib.js'
+import { ApiContext } from '@/services/networking/context.js'
 
-import type { Registry } from '@polkadot/types/types'
-import { XcmVersionedXcm } from './xcm-types.js'
+import { Blake2256 } from '@polkadot-api/substrate-bindings'
+import { toHex } from 'polkadot-api/utils'
 
 /**
  * Creates a versioned XCM program from bytes.
@@ -10,34 +11,35 @@ import { XcmVersionedXcm } from './xcm-types.js'
  * @param registry - The registry to decode types.
  * @returns a versioned XCM program
  */
-export function asVersionedXcm(data: Bytes | Uint8Array, registry: Registry): XcmVersionedXcm {
-  if (registry.hasType('XcmVersionedXcm')) {
-    // TODO patch types because bundled types are wrong
-    return registry.createType('XcmVersionedXcm', data) as unknown as XcmVersionedXcm
-  } else if (registry.hasType('StagingXcmVersionedXcm')) {
-    return registry.createType('StagingXcmVersionedXcm', data) as XcmVersionedXcm
+export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext): Program {
+  const xcmTypeId =
+    context.getTypeIdByPath('xcm.VersionedXcm') ?? context.getTypeIdByPath('staging.xcm.VersionedXcm')
+  if (xcmTypeId === undefined) {
+    throw new Error('Versioned XCM type not found in chain registry')
   }
-
-  throw new Error('Versioned XCM type not found in chain registry')
-
-  // TODO:does it make sense to default to Polka Reg?
-  /*
-  return polkadotRegistry().createType(
-    'XcmVersionedXcm', data
-  ) as XcmVersionedXcm;
-  */
+  const codec = context.typeCodec(xcmTypeId)
+  const instructions = codec.dec(data)
+  const encoded = codec.enc(instructions)
+  console.log(instructions)
+  return { data: encoded, instructions, hash: toHex(Blake2256(encoded)) as HexString }
 }
 
-function asXcmpVersionedXcms(buffer: Uint8Array, registry: Registry): XcmVersionedXcm[] {
+export type Program = {
+  data: Uint8Array
+  instructions: Record<string, any>
+  hash: HexString
+}
+
+function asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[] {
   const len = buffer.length
-  const xcms: XcmVersionedXcm[] = []
+  const xcms: Program[] = []
   let ptr = 1
 
   while (ptr < len) {
     try {
-      const xcm = asVersionedXcm(buffer.slice(ptr), registry)
+      const xcm = asVersionedXcm(buffer.slice(ptr), context)
       xcms.push(xcm)
-      ptr += xcm.encodedLength
+      ptr += xcm.data.length
     } catch (error) {
       // TODO use logger
       console.error(error)
@@ -52,14 +54,14 @@ function asXcmpVersionedXcms(buffer: Uint8Array, registry: Registry): XcmVersion
  * Decodes XCMP message formats.
  *
  * @param buf The data buffer.
- * @param registry Optional - The registry to decode types.
+ * @param context The registry to decode types.
  * @returns an array of {@link VersionedXcm} programs.
  */
-export function fromXcmpFormat(buf: Uint8Array, registry: Registry): XcmVersionedXcm[] {
+export function fromXcmpFormat(buf: Uint8Array, context: ApiContext): Program[] {
   switch (buf[0]) {
     case 0x00: {
       // Concatenated XCM fragments
-      return asXcmpVersionedXcms(buf, registry)
+      return asXcmpVersionedXcms(buf, context)
     }
     case 0x01: {
       // XCM blobs

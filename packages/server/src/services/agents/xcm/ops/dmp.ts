@@ -1,18 +1,11 @@
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-// NOTE: we use Polkadot augmented types
-import '@polkadot/api-augment/polkadot'
-import type { Compact } from '@polkadot/types'
-import type { u64 } from '@polkadot/types-codec'
-import type { IU8a } from '@polkadot/types-codec/types'
-import type { BlockNumber } from '@polkadot/types/interfaces'
-import type { Outcome } from '@polkadot/types/interfaces/xcm'
-import type { Registry } from '@polkadot/types/types'
+import { filterNonNull } from '@sodazone/ocelloids-sdk'
 
-import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
-
-import { SignerData } from '@/services/subscriptions/types.js'
+import { ApiContext, BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
+import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
+import { asSerializable } from '../../base/util.js'
 import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
@@ -20,7 +13,6 @@ import {
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'
-import { blockEventToHuman } from './common.js'
 import {
   getMessageId,
   getSendersFromEvent,
@@ -32,8 +24,7 @@ import {
   networkIdFromMultiLocation,
   networkIdFromVersionedMultiLocation,
 } from './util.js'
-import { asVersionedXcm } from './xcm-format.js'
-import { XcmVersionedAssets, XcmVersionedLocation, XcmVersionedXcm } from './xcm-types.js'
+import { Program, asVersionedXcm } from './xcm-format.js'
 
 /*
  ==================================================================================
@@ -50,21 +41,21 @@ type Json = { [property: string]: Json }
 type XcmContext = {
   recipient: NetworkURN
   data: Uint8Array
-  program: XcmVersionedXcm
-  blockHash: IU8a
-  blockNumber: Compact<BlockNumber>
-  timestamp?: u64
+  program: Program
+  blockHash: string
+  blockNumber: number
+  timestamp?: number
   sender?: SignerData
-  event?: types.BlockEvent
+  event?: BlockEvent
 }
 
 // eslint-disable-next-line complexity
 function matchInstructions(
-  xcmProgram: XcmVersionedXcm,
+  xcmProgram: Program,
   assets: XcmVersionedAssets,
   beneficiary: XcmVersionedLocation,
 ): boolean {
-  const program = xcmProgram.value.toHuman() as Json[]
+  const program = xcmProgram.instructions.value as Json[]
   let sameAssetFun = false
   let sameBeneficiary = false
 
@@ -103,17 +94,17 @@ function createXcmMessageSent({
   const messageId = getMessageId(program)
 
   return new GenericXcmSentWithContext({
-    blockHash: blockHash.toHex(),
-    blockNumber: blockNumber.toPrimitive(),
-    timestamp: timestamp?.toNumber(),
-    event: event ? blockEventToHuman(event) : {},
+    blockHash: blockHash as HexString,
+    blockNumber: blockNumber,
+    timestamp: timestamp,
+    event: event ? asSerializable(event) : {},
     recipient,
     instructions: {
-      bytes: program.toU8a(),
-      json: program.toHuman(),
+      bytes: program.data,
+      json: asSerializable(program.instructions),
     },
     messageData: data,
-    messageHash: program.hash.toHex(),
+    messageHash: program.hash,
     messageId,
     sender,
   })
@@ -121,13 +112,13 @@ function createXcmMessageSent({
 
 // Will be obsolete after DMP refactor:
 // https://github.com/paritytech/polkadot-sdk/pull/1246
-function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Registry, origin: NetworkURN) {
-  return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
+function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, context: ApiContext, origin: NetworkURN) {
+  return (source: Observable<BlockExtrinsicWithEvents>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((tx) => {
-        const dest = tx.extrinsic.args[0] as XcmVersionedLocation
-        const beneficiary = tx.extrinsic.args[1] as XcmVersionedLocation
-        const assets = tx.extrinsic.args[2] as XcmVersionedAssets
+        const dest = tx.args[0] as XcmVersionedLocation
+        const beneficiary = tx.args[1] as XcmVersionedLocation
+        const assets = tx.args[2] as XcmVersionedAssets
 
         const recipient = networkIdFromVersionedMultiLocation(dest, origin)
 
@@ -144,12 +135,12 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
       }),
       filterNonNull(),
       mergeMap(({ tx, recipient, beneficiary, assets }) => {
-        return getDmp(tx.extrinsic.blockHash.toHex(), recipient).pipe(
+        return getDmp(tx.blockHash as HexString, recipient).pipe(
           map((messages) => {
-            const { blockHash, blockNumber, timestamp } = tx.extrinsic
+            const { blockHash, blockNumber, timestamp } = tx
             if (messages.length === 1) {
-              const data = messages[0].msg
-              const program = asVersionedXcm(data, registry)
+              const data = messages[0].msg.asBytes()
+              const program = asVersionedXcm(data, context)
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
@@ -157,15 +148,15 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                 recipient,
                 data,
                 program,
-                sender: getSendersFromExtrinsic(tx.extrinsic),
+                sender: getSendersFromExtrinsic(tx),
               })
             } else {
               // XXX Temporary matching heuristics until DMP message
               // sent event is implemented.
               // Only matches the first message found.
               for (const message of messages) {
-                const data = message.msg
-                const program = asVersionedXcm(data, registry)
+                const data = message.msg.asBytes()
+                const program = asVersionedXcm(data, context)
                 if (matchInstructions(program, assets, beneficiary)) {
                   return createXcmMessageSent({
                     blockHash,
@@ -174,7 +165,7 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
                     recipient,
                     data,
                     program,
-                    sender: getSendersFromExtrinsic(tx.extrinsic),
+                    sender: getSendersFromExtrinsic(tx),
                   })
                 }
               }
@@ -189,12 +180,12 @@ function findDmpMessagesFromTx(getDmp: GetDownwardMessageQueues, registry: Regis
   }
 }
 
-function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
+function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, context: ApiContext) {
+  return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
-        if (matchEvent(event, 'xcmPallet', 'Sent')) {
-          const { destination, messageId } = event.data as any
+        if (matchEvent(event, 'XcmPallet', 'Sent')) {
+          const { destination, messageId } = event.value
           const recipient = networkIdFromMultiLocation(destination, origin)
 
           if (recipient) {
@@ -210,12 +201,12 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
       }),
       filterNonNull(),
       mergeMap(({ recipient, messageId, event }) => {
-        return getDmp(event.blockHash.toHex(), recipient as NetworkURN).pipe(
+        return getDmp(event.blockHash as HexString, recipient as NetworkURN).pipe(
           map((messages) => {
             const { blockHash, blockNumber, timestamp } = event
             if (messages.length === 1) {
-              const data = messages[0].msg
-              const program = asVersionedXcm(data, registry)
+              const data = messages[0].msg.asBytes()
+              const program = asVersionedXcm(data, context)
               return createXcmMessageSent({
                 blockHash,
                 blockNumber,
@@ -230,9 +221,9 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
               // Since we are matching by topic and it is assumed that the TopicId is unique
               // we can break out of the loop on first matching message found.
               for (const message of messages) {
-                const data = message.msg
-                const program = asVersionedXcm(data, registry)
-                if (matchProgramByTopic(program, messageId)) {
+                const data = message.msg.asBytes()
+                const program = asVersionedXcm(data, context)
+                if (matchProgramByTopic(program, messageId?.asHex())) {
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
@@ -257,21 +248,20 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
 }
 
 const METHODS_DMP = [
-  'limitedReserveTransferAssets',
-  'reserveTransferAssets',
-  'limitedTeleportAssets',
-  'teleportAssets',
+  'LimitedReserveTransferAssets',
+  'ReserveTransferAssets',
+  'LimitedTeleportAssets',
+  'TeleportAssets',
 ]
 
 // legacy support for DMP extrinsics that did not emit xcmPallet.Sent event
-export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQueues, registry: Registry) {
-  return (source: Observable<types.TxWithIdAndEvent>): Observable<XcmSentWithContext> => {
+export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQueues, context: ApiContext) {
+  return (source: Observable<BlockExtrinsicWithEvents>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter((tx) => {
-        const { extrinsic } = tx
-        return tx.dispatchError === undefined && matchExtrinsic(extrinsic, 'xcmPallet', METHODS_DMP)
+        return tx.dispatchError === undefined && matchExtrinsic(tx, 'XcmPallet', METHODS_DMP)
       }),
-      findDmpMessagesFromTx(getDmp, registry, origin),
+      findDmpMessagesFromTx(getDmp, context, origin),
     )
   }
 }
@@ -279,10 +269,10 @@ export function extractDmpSend(origin: NetworkURN, getDmp: GetDownwardMessageQue
 export function extractDmpSendByEvent(
   origin: NetworkURN,
   getDmp: GetDownwardMessageQueues,
-  registry: Registry,
+  context: ApiContext,
 ) {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
-    return source.pipe(findDmpMessagesFromEvent(origin, getDmp, registry))
+  return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
+    return source.pipe(findDmpMessagesFromEvent(origin, getDmp, context))
   }
 }
 
@@ -297,8 +287,8 @@ function extractXcmError(outcome: Outcome) {
   return undefined
 }
 
-function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEvent?: types.BlockEvent) {
-  const xcmMessage = event.data as any
+function createDmpReceivedWithContext(event: BlockEvent, assetsTrappedEvent?: BlockEvent) {
+  const xcmMessage = event.value
   let outcome: 'Success' | 'Fail' = 'Fail'
   let error: AnyJson
   if (xcmMessage.outcome !== undefined) {
@@ -314,11 +304,11 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent)
 
   return new GenericXcmInboundWithContext({
-    event: blockEventToHuman(event),
-    blockHash: event.blockHash.toHex(),
-    blockNumber: event.blockNumber.toPrimitive(),
-    timestamp: event.timestamp?.toNumber(),
-    extrinsicId: event.extrinsicId,
+    event: asSerializable(event),
+    blockHash: event.blockHash as HexString,
+    blockNumber: event.blockNumber,
+    timestamp: event.timestamp,
+    extrinsicPosition: event.extrinsicPosition,
     messageHash,
     messageId,
     outcome,
@@ -328,7 +318,7 @@ function createDmpReceivedWithContext(event: types.BlockEvent, assetsTrappedEven
 }
 
 export function extractDmpReceive() {
-  return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
+  return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),
       map(([maybeAssetTrapEvent, maybeDmpEvent]) => {
@@ -336,10 +326,10 @@ export function extractDmpReceive() {
         // in tests, maybeDmpEvent could be undefined if there are odd number of events
         if (
           maybeDmpEvent &&
-          (matchEvent(maybeDmpEvent, 'dmpQueue', 'ExecutedDownward') ||
-            matchEvent(maybeDmpEvent, 'messageQueue', 'Processed'))
+          (matchEvent(maybeDmpEvent, 'DmpQueue', 'ExecutedDownward') ||
+            matchEvent(maybeDmpEvent, 'MessageQueue', 'Processed'))
         ) {
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'polkadotXcm', 'AssetsTrapped')
+          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'PolkadotXcm', 'AssetsTrapped')
             ? maybeAssetTrapEvent
             : undefined
           return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent)

@@ -22,6 +22,7 @@ import { Block, EventRecord } from './types.js'
  * Substrate API client.
  */
 export class ApiClient extends EventEmitter {
+  #connected: boolean = false
   readonly isReady: () => Promise<ApiClient>
   readonly chainId: string
   get ctx() {
@@ -66,7 +67,13 @@ export class ApiClient extends EventEmitter {
 
     this.isReady = () =>
       new Promise<ApiClient>((resolve) => {
-        this.once('connected', () => resolve(this))
+        if (this.#connected) {
+          resolve(this)
+        }
+        this.once('connected', () => {
+          this.#connected = true
+          resolve(this)
+        })
       })
   }
 

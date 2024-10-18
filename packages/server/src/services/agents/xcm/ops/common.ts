@@ -1,15 +1,13 @@
 import { Observable, map } from 'rxjs'
 
-import type { XcmV2Xcm, XcmV3Instruction, XcmV3Xcm } from '@polkadot/types/lookup'
-import type { Registry } from '@polkadot/types/types'
-import { hexToU8a, stringToU8a, u8aConcat } from '@polkadot/util'
-import { blake2AsHex } from '@polkadot/util-crypto'
-
-import { types } from '@sodazone/ocelloids-sdk'
+import { Binary, Blake2256 } from '@polkadot-api/substrate-bindings'
 
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
+import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
-import { AnyJson, NetworkURN } from '@/services/types.js'
+import { NetworkURN } from '@/services/types.js'
+import { fromHex, mergeUint8, toHex } from 'polkadot-api/utils'
+import { asSerializable } from '../../base/util.js'
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import {
   getBridgeHubNetworkId,
@@ -18,20 +16,16 @@ import {
   networkIdFromMultiLocation,
 } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
-import { XcmV4Instruction, XcmV4Xcm } from './xcm-types.js'
 
 // eslint-disable-next-line complexity
-function recursiveExtractStops(
-  origin: NetworkURN,
-  instructions: XcmV2Xcm | XcmV3Xcm | XcmV4Xcm,
-  stops: NetworkURN[],
-) {
+function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: NetworkURN[]) {
+  console.log(instructions)
   for (const instruction of instructions) {
     let nextStop
     let message
 
-    if (instruction.isDepositReserveAsset) {
-      const { dest, xcm } = instruction.asDepositReserveAsset
+    if (instruction.type === 'DepositReserveAsset') {
+      const { dest, xcm } = instruction.value
       nextStop = dest
       message = xcm
     } else if (instruction.isInitiateReserveWithdraw) {
@@ -46,9 +40,8 @@ function recursiveExtractStops(
       const { dest, xcm } = instruction.asTransferReserveAsset
       nextStop = dest
       message = xcm
-    } else if ((instruction as XcmV3Instruction | XcmV4Instruction).isExportMessage) {
-      const { network, destination, xcm } = (instruction as XcmV3Instruction | XcmV4Instruction)
-        .asExportMessage
+    } else if (instruction.isExportMessage) {
+      const { network, destination, xcm } = instruction.asExportMessage
       const paraId = getParaIdFromJunctions(destination)
       if (paraId) {
         const consensus = network.toString().toLowerCase()
@@ -138,58 +131,42 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
  * @param registry - The type registry
  * @param origin - The origin network URN
  */
-export function mapXcmSent(id: string, registry: Registry, origin: NetworkURN) {
+export function mapXcmSent(id: string, context: ApiContext, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message
         const stops: NetworkURN[] = [recipient]
-        const versionedXcm = asVersionedXcm(instructions.bytes, registry)
-        recursiveExtractStops(origin, versionedXcm[`as${versionedXcm.type}`], stops)
+        const versionedXcm = asVersionedXcm(instructions.bytes, context)
+        recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
         const legs = constructLegs(origin, stops)
 
         let forwardId: HexString | undefined
         // TODO: extract to util?
         if (origin === getBridgeHubNetworkId(origin) && message.messageId !== undefined) {
           const constant = 'forward_id_for'
-          const derivedIdBuf = u8aConcat(stringToU8a(constant), hexToU8a(message.messageId))
-          forwardId = blake2AsHex(derivedIdBuf)
+          const derivedIdBuf = mergeUint8(new TextEncoder().encode(constant), fromHex(message.messageId))
+          forwardId = toHex(Blake2256(derivedIdBuf)) as HexString
         }
         return new GenericXcmSent(id, origin, message, legs, forwardId)
       }),
     )
 }
 
-export function blockEventToHuman(event: types.BlockEvent): AnyJson {
-  return {
-    extrinsicPosition: event.extrinsicPosition,
-    extrinsicId: event.extrinsicId,
-    blockNumber: event.blockNumber.toNumber(),
-    blockHash: event.blockHash.toHex(),
-    blockPosition: event.blockPosition,
-    eventId: event.eventId,
-    data: event.data.toHuman(),
-    index: event.index.toHuman(),
-    meta: event.meta.toHuman(),
-    method: event.method,
-    section: event.section,
-  } as AnyJson
-}
-
 export function xcmMessagesSent() {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
+  return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
-        const xcmMessage = event.data as any
+        const xcmMessage = event.value as { message_hash: Binary; message_id?: Binary }
         return {
-          event: blockEventToHuman(event),
+          event: asSerializable(event),
           sender: getSendersFromEvent(event),
-          blockHash: event.blockHash.toHex(),
-          blockNumber: event.blockNumber.toPrimitive(),
-          timestamp: event.timestamp?.toNumber(),
-          extrinsicId: event.extrinsicId,
-          messageHash: xcmMessage.messageHash?.toHex(),
-          messageId: xcmMessage.messageId?.toHex(),
+          blockHash: event.blockHash as HexString,
+          blockNumber: event.blockNumber,
+          timestamp: event.timestamp,
+          extrinsicPosition: event.extrinsicPosition,
+          messageHash: xcmMessage.message_hash?.asHex() ?? xcmMessage.message_id?.asHex(),
+          messageId: xcmMessage.message_id?.asHex(),
         } as XcmSentWithContext
       }),
     )

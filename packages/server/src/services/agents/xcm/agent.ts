@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events'
 
-import { Registry } from '@polkadot/types-codec/types'
 import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { Operation } from 'rfc6902'
 import { Observable, filter, from, map, switchMap } from 'rxjs'
@@ -18,11 +17,6 @@ import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabi
 
 import { XcmSubscriptionManager } from './handlers.js'
 import { MatchingEngine } from './matching.js'
-import {
-  dmpDownwardMessageQueuesKey,
-  parachainSystemHrmpOutboundMessages,
-  parachainSystemUpwardMessages,
-} from './storage.js'
 import {
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
@@ -59,6 +53,7 @@ import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getBridgeHubNetworkId } from './ops/util.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 
+import { ApiContext } from '@/services/networking/index.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 
@@ -287,12 +282,12 @@ export class XcmAgent implements Agent, Subscribable {
           sub: this.#ingress
             .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractDmpSendByEvent(chainId, this.#getDmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -307,12 +302,12 @@ export class XcmAgent implements Agent, Subscribable {
           sub: this.#ingress
             .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractXcmpSend(chainId, this.#getHrmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractXcmpSend(chainId, this.#getHrmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -327,12 +322,12 @@ export class XcmAgent implements Agent, Subscribable {
           sub: this.#ingress
             .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractUmpSend(chainId, this.#getUmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractUmpSend(chainId, this.#getUmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -397,10 +392,10 @@ export class XcmAgent implements Agent, Subscribable {
       sub: this.#ingress
         .getContext(relayId)
         .pipe(
-          switchMap((registry) =>
+          switchMap((context) =>
             this.#shared
               .blockExtrinsics(relayId)
-              .pipe(extractRelayReceive(chainId, messageControl, registry), emitRelayInbound()),
+              .pipe(extractRelayReceive(chainId, messageControl, context), emitRelayInbound()),
           ),
         )
         .subscribe(relayObserver),
@@ -466,11 +461,11 @@ export class XcmAgent implements Agent, Subscribable {
         sub: this.#ingress
           .getContext(originBridgeHub)
           .pipe(
-            switchMap((registry) =>
+            switchMap((context) =>
               this.#shared.blockEvents(originBridgeHub).pipe(
                 extractBridgeMessageAccepted(
                   originBridgeHub,
-                  registry,
+                  context,
                   (blockHash: HexString, key: HexString) => {
                     return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
                   },
@@ -605,9 +600,9 @@ export class XcmAgent implements Agent, Subscribable {
 
       // Only subscribe to relay events if required by subscription.
       // Contained in its own try-catch so it doesn't prevent origin-destination subs in case of error.
-      if (this.__shouldMonitorRelay(args)) {
-        relaySub = this.__monitorRelay(subscription)
-      }
+      //if (this.__shouldMonitorRelay(args)) {
+      relaySub = this.__monitorRelay(subscription)
+      //}
       if (args.bridges && args.bridges.includes('pk-bridge')) {
         bridgeSubs.push(this.__monitorPkBridge(subscription))
       }
@@ -643,52 +638,56 @@ export class XcmAgent implements Agent, Subscribable {
   #emitOutbound({
     id,
     origin,
-    registry,
+    context,
     messageControl,
     outboundTTL,
   }: {
     id: string
     origin: NetworkURN
-    registry: Registry
+    context: ApiContext
     messageControl: ControlQuery
     outboundTTL?: number
   }) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
-        mapXcmSent(id, registry, origin),
+        mapXcmSent(id, context, origin),
         filter((msg) => matchMessage(messageControl, msg)),
         switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL))),
       )
   }
 
-  #getDmp(chainId: NetworkURN, registry: Registry): GetDownwardMessageQueues {
+  #getDmp(chainId: NetworkURN, context: ApiContext): GetDownwardMessageQueues {
+    const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      return from(
-        this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash),
-      ).pipe(
+      const key = codec.enc(paraId) as HexString
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }
   }
 
-  #getUmp(chainId: NetworkURN, registry: Registry): GetOutboundUmpMessages {
+  #getUmp(chainId: NetworkURN, context: ApiContext): GetOutboundUmpMessages {
+    const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
+    const key = codec.enc() as HexString
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<Bytes>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }
   }
 
-  #getHrmp(chainId: NetworkURN, registry: Registry): GetOutboundHrmpMessages {
+  #getHrmp(chainId: NetworkURN, context: ApiContext): GetOutboundHrmpMessages {
+    const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
+    const key = codec.enc() as HexString
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }
