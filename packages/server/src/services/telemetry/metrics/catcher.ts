@@ -4,11 +4,6 @@ import { TelemetryEventEmitter } from '../types.js'
 export function catcherMetrics(source: TelemetryEventEmitter) {
   const timers: Record<string, () => void> = {}
 
-  const blockSeenHist = new Histogram({
-    name: 'oc_catcher_blocks_seen_seconds',
-    help: 'Blocks seen frequencies in seconds.',
-    labelNames: ['origin'],
-  })
   const blockFinHist = new Histogram({
     name: 'oc_catcher_block_finalized_seconds',
     help: 'Blocks finalized frequencies in seconds.',
@@ -18,11 +13,6 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
   const blockFinCount = new Counter({
     name: 'oc_catcher_blocks_finalized_total',
     help: 'Blocks finalized.',
-    labelNames: ['origin'],
-  })
-  const blockSeenCount = new Counter({
-    name: 'oc_catcher_blocks_seen_total',
-    help: 'Blocks seen.',
     labelNames: ['origin'],
   })
   const blockCacheHitsCount = new Counter({
