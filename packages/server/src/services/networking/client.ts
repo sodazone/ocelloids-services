@@ -1,29 +1,30 @@
 import { EventEmitter } from 'node:events'
-import { firstValueFrom } from 'rxjs'
+import { filter, firstValueFrom } from 'rxjs'
 
-import { BlockInfo, ChainHead$, getObservableClient } from '@polkadot-api/observable-client'
-import { Bytes, Option, blockHeader, u32 } from '@polkadot-api/substrate-bindings'
+import {
+  BlockInfo,
+  ChainHead$,
+  RuntimeContext,
+  SystemEvent,
+  getObservableClient,
+} from '@polkadot-api/observable-client'
+import { blockHeader } from '@polkadot-api/substrate-bindings'
 import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
 import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
-import { toHex } from 'polkadot-api/utils'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { HexString } from '../subscriptions/types.js'
 import { ApiContext } from './context.js'
 import { Block, EventRecord } from './types.js'
 
-const argV15 = toHex(u32.enc(15))
-
-type RawEvent = {
-  type: string
-  value: {
-    type: string
-    value: Record<string, any>
-  }
-}
-
 export class ApiClient extends EventEmitter {
-  isReady: () => Promise<ApiClient>
+  readonly isReady: () => Promise<ApiClient>
+  get ctx() {
+    return this.#apiContext()
+  }
+  get finalizedHeads$() {
+    return this.#head$.finalized$
+  }
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
   readonly #wsProvider: WsJsonRpcProvider
@@ -34,7 +35,10 @@ export class ApiClient extends EventEmitter {
   ) => Promise<Reply>
   readonly #head$: ChainHead$
 
-  #ctx: () => ApiContext
+  get #runtimeContext(): Promise<RuntimeContext> {
+    return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
+  }
+  #apiContext: () => ApiContext
 
   constructor(url: string | Array<string>) {
     super()
@@ -47,7 +51,7 @@ export class ApiClient extends EventEmitter {
     this.#request = substrateClient.request
     this.#head$ = this.#client.chainHead$()
 
-    this.#ctx = () => {
+    this.#apiContext = () => {
       throw new Error('Runtime context not initialized')
     }
 
@@ -57,12 +61,8 @@ export class ApiClient extends EventEmitter {
       })
   }
 
-  get ctx() {
-    return this.#ctx()
-  }
-
   async getMetadata(): Promise<Uint8Array> {
-    return await this.#getMetadataAtVersion()
+    return (await this.#runtimeContext).metadataRaw
   }
 
   async getRuntimeVersion() {
@@ -101,44 +101,20 @@ export class ApiClient extends EventEmitter {
     }
   }
 
-  get finalizedHeads$() {
-    return this.#head$.finalized$
-  }
-
   async connect() {
-    // TODO init metadata configurable, could come from redis
-    // TODO: reliable connection and retry
     try {
-      const { metadataRaw } = await firstValueFrom(this.#head$.getRuntimeContext$(null))
-      const ctx = new ApiContext(metadataRaw)
-      this.#ctx = () => ctx
+      console.log('Connecting')
+      const ctx = new ApiContext(await this.#runtimeContext)
+      console.log('connected')
+      this.#apiContext = () => ctx
       super.emit('connected')
     } catch (error) {
-      // TODO: emit error and reconnect switch?
       console.log(error)
-      this.#head$.unfollow()
       setTimeout(() => {
-        //this.#log()
         console.log('switching provider')
         this.#wsProvider.switch()
       }, 5000).unref()
     }
-  }
-
-  async #getMetadataAtVersion(version = argV15) {
-    const finalized = await firstValueFrom(this.finalizedHeads$)
-    const response = await this.#request<{
-      result: HexString
-    }>('archive_unstable_call', [finalized.hash, 'Metadata_metadata_at_version', version])
-
-    const bytes = Option(Bytes())
-    const metadata = bytes.dec(response.result)
-
-    if (metadata === undefined) {
-      throw new Error('Error retrieving metadata')
-    }
-
-    return metadata
   }
 
   async getStorageKeys(
@@ -169,7 +145,7 @@ export class ApiClient extends EventEmitter {
   }
 
   async #getEvents(hash: string) {
-    const events: EventRecord<RawEvent>[] =
+    const events: SystemEvent[] =
       this.ctx.events.dec(
         (
           await this.#request<
@@ -203,6 +179,7 @@ export class ApiClient extends EventEmitter {
           ])
         ).result[0]?.value,
       ) ?? []
+
     return events.map(
       ({ phase, topics, event }) =>
         ({

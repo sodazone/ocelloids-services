@@ -1,3 +1,4 @@
+import { type SystemEvent } from '@polkadot-api/observable-client'
 import { type Decoder } from '@polkadot-api/substrate-bindings'
 
 export type StorageCodec<T = any> = {
@@ -12,13 +13,8 @@ export type Event = {
   value: Record<string, any>
 }
 
-export type EventRecord<T = Event> = {
-  phase: {
-    type: string
-    value: number
-  }
+export type EventRecord<T = Event> = Omit<SystemEvent, 'event'> & {
   event: T
-  topics: any[]
 }
 
 export type Extrinsic = {
