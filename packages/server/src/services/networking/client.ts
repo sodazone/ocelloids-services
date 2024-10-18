@@ -14,10 +14,13 @@ import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { HexString } from '../subscriptions/types.js'
-import { Logger, NetworkURN } from '../types.js'
+import { Logger } from '../types.js'
 import { ApiContext } from './context.js'
 import { Block, EventRecord } from './types.js'
 
+/**
+ * Substrate API client.
+ */
 export class ApiClient extends EventEmitter {
   readonly isReady: () => Promise<ApiClient>
   readonly chainId: string
@@ -109,8 +112,6 @@ export class ApiClient extends EventEmitter {
 
   async connect() {
     try {
-      this.#log.info('[client:%s] connecting', this.chainId)
-
       const ctx = new ApiContext(await this.#runtimeContext)
       this.#apiContext = () => ctx
       super.emit('connected')
@@ -118,10 +119,8 @@ export class ApiClient extends EventEmitter {
       setTimeout(() => {
         this.#log.warn('[client:%s] error while connecting %s (reconnecting)', this.chainId, error)
         this.#wsProvider.switch()
-      }, 5000).unref()
+      }, 10_000).unref()
     }
-
-    this.#log.info('[client:%s] connected', this.chainId)
   }
 
   async getStorageKeys(

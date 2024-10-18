@@ -238,11 +238,10 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         tap((header) => {
           this.#log.info('[%s] FINALIZED block #%s %s', chainId, header.number, header.hash)
 
-          // TODO change type in emit event
-          /*this.emit('telemetryBlockFinalized', {
+          this.emit('telemetryBlockFinalized', {
             chainId,
-            header,
-          })*/
+            blockNumber: header.number,
+          })
         }),
         mergeMap((header) =>
           from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header)),

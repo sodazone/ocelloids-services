@@ -31,16 +31,18 @@ export default class Connector {
   }
 
   connect(): Record<string, ApiClient> {
-    this.#log.info('Connect clients')
+    this.#log.info('[connector] connect clients: %j', Object.keys(this.#chains))
 
     for (const [chain, client] of Object.entries(this.#chains)) {
+      this.#log.info('[connector:%s] connecting...', chain)
+
       client
         .connect()
         .then(() => {
-          this.#log.info('Client connected: %s', chain)
+          this.#log.info('[connector:%s] connected', chain)
         })
         .catch((error) => {
-          this.#log.error(error, 'Client failed to connect: %s', chain)
+          this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
         })
     }
 
