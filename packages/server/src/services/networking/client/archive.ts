@@ -13,15 +13,16 @@ import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/subs
 import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
-import { HexString } from '../subscriptions/types.js'
-import { Logger } from '../types.js'
-import { ApiContext } from './context.js'
-import { Block, EventRecord } from './types.js'
+import { HexString } from '../../subscriptions/types.js'
+import { Logger } from '../../types.js'
+import { Block, EventRecord } from '../types.js'
+import { RuntimeApiContext } from './context.js'
+import { ApiClient, ApiContext } from './types.js'
 
 /**
- * Substrate API client.
+ * Archive Substrate API client.
  */
-export class ApiClient extends EventEmitter {
+export class ArchiveClient extends EventEmitter implements ApiClient {
   #connected: boolean = false
   readonly isReady: () => Promise<ApiClient>
   readonly chainId: string
@@ -117,19 +118,6 @@ export class ApiClient extends EventEmitter {
     }
   }
 
-  async connect() {
-    try {
-      const ctx = new ApiContext(await this.#runtimeContext)
-      this.#apiContext = () => ctx
-      super.emit('connected')
-    } catch (error) {
-      setTimeout(() => {
-        this.#log.warn('[client:%s] error while connecting %s (reconnecting)', this.chainId, error)
-        this.#wsProvider.switch()
-      }, 10_000).unref()
-    }
-  }
-
   async getStorageKeys(
     keyPrefix: string,
     count: number,
@@ -146,6 +134,16 @@ export class ApiClient extends EventEmitter {
   async query<T = any>(module: string, method: string, ...args: any[]) {
     const codec = this.ctx.storageCodec<T>(module, method)
     return codec.dec(await this.getStorage(codec.enc(...args)))
+  }
+
+  async connect() {
+    try {
+      const ctx = new RuntimeApiContext(await this.#runtimeContext)
+      this.#apiContext = () => ctx
+      super.emit('connected')
+    } catch (error) {
+      this.#log.error(error, '[client:%s] error while connecting %s (should never happen)', this.chainId)
+    }
   }
 
   disconnect() {

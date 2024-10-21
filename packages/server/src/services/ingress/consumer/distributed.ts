@@ -17,7 +17,7 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
-import { ApiContext, Block } from '@/services/networking/index.js'
+import { ApiContext, Block, RuntimeApiContext, createRuntimeApiContext } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
@@ -95,7 +95,7 @@ export class DistributedIngressConsumer
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return new ApiContext(metadata)
+          return createRuntimeApiContext(metadata)
         }),
         // TODO retry
         shareReplay({

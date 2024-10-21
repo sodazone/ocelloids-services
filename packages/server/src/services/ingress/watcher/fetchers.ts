@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { HexString, NetworkURN } from '@/lib.js'
-import { ApiClient } from '@/services/networking/client.js'
+import { ApiClient } from '@/services/networking/client/index.js'
 import { NetworkInfo } from '../index.js'
 
 // from https://github.com/polkadot-js/apps/blob/master/packages/react-hooks/src/useBlockInterval.ts

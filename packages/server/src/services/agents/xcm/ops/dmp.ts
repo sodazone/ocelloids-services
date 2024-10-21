@@ -1,7 +1,6 @@
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { filterNonNull } from '@sodazone/ocelloids-sdk'
-
+import { filterNonNull } from '@/services/networking/client/ops/util.js'
 import { ApiContext, BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'

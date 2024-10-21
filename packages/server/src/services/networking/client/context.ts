@@ -1,54 +1,48 @@
+import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
 import { RuntimeContext, SystemEvent } from '@polkadot-api/observable-client'
-import { Decoder } from '@polkadot-api/substrate-bindings'
+import { Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
 
-import { Extrinsic, StorageCodec } from './types.js'
+import { Extrinsic, StorageCodec } from '../types.js'
+import { ApiContext } from './types.js'
 
-type Call = { type: string; value: { type: string; value: any } }
+export function createRuntimeApiContext(metadataRaw: Uint8Array) {
+  const metadata = metadataCodec.dec(metadataRaw).metadata.value as V14 | V15
+  const lookup = getLookupFn(metadata)
+  const dynamicBuilder = getDynamicBuilder(lookup)
+  const events = dynamicBuilder.buildStorage('System', 'Events')
 
-export class ApiContext {
-  readonly #extrinsicDecoder: Decoder<
-    | {
-        len: number
-        signed: false
-        version: number
-        callData: Binary
-      }
-    | {
-        address: any
-        signature: any
-        extra: Record<string, any>
-        callData: Binary
-        len: number
-        signed: true
-        version: number
-      }
-  >
-  readonly #callCodec: Codec<Call>
-  readonly #runtimeContext: RuntimeContext
+  return new RuntimeApiContext({
+    metadataRaw,
+    lookup,
+    dynamicBuilder,
+    events: {
+      key: events.enc(),
+      dec: events.dec as Decoder<any>,
+    },
+  } as RuntimeContext)
+}
+
+export class RuntimeApiContext implements ApiContext {
+  readonly #extrinsicDecoder: ReturnType<typeof getExtrinsicDecoder>
+  readonly #ctx: RuntimeContext
 
   get #metadata() {
-    return this.#runtimeContext.lookup.metadata
+    return this.#ctx.lookup.metadata
   }
 
   get #builder() {
-    return this.#runtimeContext.dynamicBuilder
+    return this.#ctx.dynamicBuilder
   }
 
   get events() {
-    return this.#runtimeContext.events
+    return this.#ctx.events
   }
 
   constructor(runtimeContext: RuntimeContext) {
-    const { lookup } = runtimeContext
-    if (!('call' in lookup.metadata.extrinsic)) {
-      throw new Error('Only metadata v15 is supported')
-    }
-
-    this.#runtimeContext = runtimeContext
+    this.#ctx = runtimeContext
     this.#extrinsicDecoder = getExtrinsicDecoder(runtimeContext.metadataRaw)
-    this.#callCodec = runtimeContext.dynamicBuilder.buildDefinition(lookup.metadata.extrinsic.call)
   }
 
   hasPallet(name: string) {
@@ -67,7 +61,9 @@ export class ApiContext {
       address?: any
       signature?: any
     } = this.#extrinsicDecoder(hextBytes)
-    const call = this.#callCodec.dec(xt.callData.asBytes())
+
+    const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(xt.callData.asBytes())
+
     return {
       module: call.type,
       method: call.value.type,

@@ -1,9 +1,8 @@
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { filterNonNull } from '@sodazone/ocelloids-sdk'
-
 import { HexString } from '@/lib.js'
 import { createNetworkId } from '@/services/config.js'
+import { filterNonNull } from '@/services/networking/client/ops/util.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 import { asSerializable } from '../../base/util.js'

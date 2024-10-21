@@ -1,5 +1,5 @@
 import { HexString } from '@/lib.js'
-import { ApiContext } from '@/services/networking/context.js'
+import { ApiContext } from '@/services/networking/client/index.js'
 
 import { Blake2256 } from '@polkadot-api/substrate-bindings'
 import { toHex } from 'polkadot-api/utils'

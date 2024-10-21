@@ -1,6 +1,6 @@
 import { NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger } from '../types.js'
-import { ApiClient } from './client.js'
+import { ApiClient, ArchiveClient } from './client/index.js'
 
 /**
  * Handles substrate network connections.
@@ -27,7 +27,7 @@ export default class Connector {
     const { id, provider } = network
 
     this.#log.info('Register WS provider: %s', id)
-    this.#chains[id] = new ApiClient(this.#log, id, provider.url)
+    this.#chains[id] = new ArchiveClient(this.#log, id, provider.url)
   }
 
   connect(): Record<string, ApiClient> {

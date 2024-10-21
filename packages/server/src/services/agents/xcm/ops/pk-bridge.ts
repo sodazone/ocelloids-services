@@ -5,7 +5,7 @@ import { blake2AsHex } from '@polkadot/util-crypto'
 import { Observable, filter, from, mergeMap } from 'rxjs'
 
 import { getConsensus } from '@/services/config.js'
-import { ApiContext } from '@/services/networking/context.js'
+import { ApiContext } from '@/services/networking/client/index.js'
 import { BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
