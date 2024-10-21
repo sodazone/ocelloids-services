@@ -2,7 +2,7 @@ import { Binary } from 'polkadot-api'
 import { Observable, filter, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
-import { ControlQuery, filterNonNull } from '@/sdk/index.js'
+import { ControlQuery, filterNonNull } from '@/rx/index.js'
 import { ApiContext, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 
 import { createNetworkId, getChainId } from '../../../config.js'

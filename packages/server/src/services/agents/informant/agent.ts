@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { filter as rxFilter } from 'rxjs'
 
 import { ValidationError } from '@/errors.js'
-import { ControlQuery } from '@/sdk/index.js'
+import { ControlQuery } from '@/rx/index.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'

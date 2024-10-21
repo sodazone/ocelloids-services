@@ -1,4 +1,4 @@
-import { ControlQuery, Criteria } from '@/sdk/index.js'
+import { ControlQuery, Criteria } from '@/rx/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
 import { NetworkURN } from '../../../types.js'

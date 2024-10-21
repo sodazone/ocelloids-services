@@ -9,7 +9,7 @@ import {
   BlockExtrinsicWithEvents,
   EventRecord,
   Extrinsic,
-} from '../../services/networking/types.js'
+} from '@/services/networking/types.js'
 
 function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'set')

@@ -5,7 +5,7 @@ import { Observable, filter, from, map, switchMap } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '@/errors.js'
-import { ControlQuery } from '@/sdk/index.js'
+import { ControlQuery } from '@/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/hub.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
