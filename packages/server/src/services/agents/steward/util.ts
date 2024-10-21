@@ -1,6 +1,3 @@
-import { Codec, Registry } from '@polkadot/types-codec/types'
-import { hexToU8a, stringCamelCase } from '@polkadot/util'
-
 import { AbstractIterator } from 'abstract-level'
 
 import { LevelDB, NetworkURN } from '@/services/types.js'
@@ -38,25 +35,6 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
     },
     items: entries.map(([_, v]) => v),
   }
-}
-
-export function extractConstant(
-  registry: Registry,
-  palletName: string,
-  constantName: string,
-): Codec | undefined {
-  for (const { constants, name } of registry.metadata.pallets) {
-    if (stringCamelCase(name) === palletName) {
-      const constant = constants.find((constant) => stringCamelCase(constant.name) === constantName)
-      if (constant) {
-        const codec = registry.createTypeUnsafe(registry.createLookupType(constant.type), [
-          hexToU8a(constant.value.toHex()),
-        ])
-        return codec
-      }
-    }
-  }
-  return undefined
 }
 
 function normalize(assetId: string | object) {

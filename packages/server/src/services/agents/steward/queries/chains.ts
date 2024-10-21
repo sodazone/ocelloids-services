@@ -1,6 +1,5 @@
-import { LevelDB } from '@/services/types.js'
-
 import { NetworkInfo } from '@/services/ingress/index.js'
+import { LevelDB } from '@/services/types.js'
 
 import { QueryPagination, QueryResult } from '../../types.js'
 import { limitCap, paginatedResults } from '../util.js'

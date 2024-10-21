@@ -1,11 +1,11 @@
 import { EventEmitter } from 'node:events'
 
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { Operation } from 'rfc6902'
 import { Observable, filter, from, map, switchMap } from 'rxjs'
 import { z } from 'zod'
 
 import { ValidationError } from '@/errors.js'
+import { ControlQuery } from '@/sdk/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/hub.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
@@ -165,11 +165,11 @@ export class XcmAgent implements Agent, Subscribable {
   __monitorDestinations({ id, args: { origin, destinations } }: Subscription<XcmInputs>): Monitor {
     const subs: RxSubscriptionWithId[] = []
     const originId = origin as NetworkURN
-    console.log("MON", origin, destinations)
+    console.log('MON', origin, destinations)
     try {
       for (const dest of destinations as NetworkURN[]) {
         const chainId = dest
-        console.log("DEST", chainId)
+        console.log('DEST', chainId)
         if (this.#subs.hasSubscriptionForDestination(id, chainId)) {
           // Skip existing subscriptions
           // for the same destination chain

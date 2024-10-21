@@ -1,6 +1,6 @@
 import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
-import { filterNonNull } from '@/services/networking/client/ops/util.js'
+import { filterNonNull } from '@/sdk/index.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'

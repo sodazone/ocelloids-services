@@ -24,14 +24,7 @@ import { TextEncoder } from 'util'
 import { asSerializable } from '../base/util.js'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import {
-  $StewardQueryArgs,
-  AssetId,
-  AssetMapper,
-  AssetMapping,
-  AssetMetadata,
-  StewardQueryArgs,
-} from './types.js'
+import { $StewardQueryArgs, AssetId, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'

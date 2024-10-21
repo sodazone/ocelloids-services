@@ -1,9 +1,10 @@
+import { Binary } from 'polkadot-api'
 import { Observable, filter, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
+import { ControlQuery, filterNonNull } from '@/sdk/index.js'
 import { ApiContext, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
-import { ControlQuery, filterNonNull } from '@sodazone/ocelloids-sdk'
-import { Binary } from 'polkadot-api'
+
 import { createNetworkId, getChainId } from '../../../config.js'
 import { NetworkURN } from '../../../types.js'
 import { asSerializable } from '../../base/util.js'

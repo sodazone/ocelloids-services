@@ -1,6 +1,6 @@
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { z } from 'zod'
 
+import { ControlQuery } from '@/sdk/index.js'
 import { createNetworkId } from '@/services/config.js'
 import {
   HexString,

@@ -2,10 +2,11 @@ import { Binary } from 'polkadot-api'
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
+import { filterNonNull } from '@/sdk/index.js'
 import { getChainId, getRelayId } from '@/services/config.js'
-import { filterNonNull } from '@/services/networking/client/ops/util.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
+
 import { asSerializable } from '../../base/util.js'
 import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {

@@ -20,8 +20,9 @@ import {
 
 import { BlockInfo } from '@polkadot-api/observable-client'
 
+import { retryWithTruncatedExpBackoff } from '@/sdk/index.js'
 import { ServiceConfiguration } from '@/services/config.js'
-import { ApiClient, Block, retryWithTruncatedExpBackoff } from '@/services/networking/index.js'
+import { ApiClient, Block } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
