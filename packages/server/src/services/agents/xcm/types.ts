@@ -155,7 +155,7 @@ export interface XcmBridgeInboundWithContext {
 
 export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail'
-  error: AnyJson
+  error?: AnyJson
   assetsTrapped?: AssetsTrapped
 }
 
@@ -217,7 +217,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
   messageHash: HexString
   messageId: HexString
   outcome: 'Success' | 'Fail'
-  error: AnyJson
+  error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
   constructor(msg: XcmInboundWithContext) {

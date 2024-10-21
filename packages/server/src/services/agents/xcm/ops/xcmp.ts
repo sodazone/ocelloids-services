@@ -5,6 +5,7 @@ import { createNetworkId } from '@/services/config.js'
 import { filterNonNull } from '@/services/networking/client/ops/util.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
+
 import { asSerializable } from '../../base/util.js'
 import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
@@ -102,17 +103,17 @@ export function extractXcmpReceive() {
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
             extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
-            messageHash: xcmpQueueData.messageHash,
-            messageId: xcmpQueueData.messageId,
+            messageHash: xcmpQueueData.message_hash,
+            messageId: xcmpQueueData.message_id,
             outcome: maybeXcmpEvent.name === 'Success' ? 'Success' : 'Fail',
             error: xcmpQueueData.error,
             assetsTrapped,
           })
         } else if (matchEvent(maybeXcmpEvent, 'MessageQueue', 'Processed')) {
-          const { id, success, error } = maybeXcmpEvent.value as unknown as any // MessageQueueEventContext
+          const { id, success, error } = maybeXcmpEvent.value
           // Received event only emits field `message_id`,
           // which is actually the message hash in chains that do not yet support Topic ID.
-          const messageId = id
+          const messageId = id.asHex()
           const messageHash = messageId
 
           return new GenericXcmInboundWithContext({

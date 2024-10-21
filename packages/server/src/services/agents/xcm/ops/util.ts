@@ -1,38 +1,11 @@
-import { GlobalConsensus, createNetworkId, getConsensus, isGlobalConsensus } from '@/services/config.js'
+import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
+
+import { asSerializable } from '../../base/util.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
-
-// TODO: review this, we don't want to define all not applicable consensus
-const BRIDGE_HUB_NETWORK_IDS: Record<GlobalConsensus, NetworkURN | undefined> = {
-  polkadot: 'urn:ocn:polkadot:1002',
-  kusama: 'urn:ocn:kusama:1002',
-  rococo: 'urn:ocn:rococo:1013',
-  westend: 'urn:ocn:westend:1002',
-  local: 'urn:ocn:local:2000',
-  wococo: 'urn:ocn:wococo:1002',
-  paseo: undefined,
-  chainflip: undefined,
-  alephzero: undefined,
-  avail: undefined,
-  polymesh: undefined,
-  ternoa: undefined,
-  ethereum: undefined,
-  byfork: undefined,
-  bygenesis: undefined,
-  bitcoincore: undefined,
-  bitcoincash: undefined,
-}
-
-export function getBridgeHubNetworkId(consensus: string | NetworkURN): NetworkURN | undefined {
-  const c = consensus.startsWith('urn:ocn:') ? getConsensus(consensus as NetworkURN) : consensus
-  if (isGlobalConsensus(c)) {
-    return BRIDGE_HUB_NETWORK_IDS[c]
-  }
-  return undefined
-}
 
 function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   try {
@@ -98,65 +71,24 @@ export function getParaIdFromOrigin(origin: { type: string; value: { type: strin
   return undefined
 }
 
-// TODO: revisit Junction guards and conversions
-// TODO: extract in multiple files
-
-function isX1V2Junctions(object: any): object is XcmV2MultilocationJunctions {
-  return (
-    object.asX1 !== undefined &&
-    typeof object.asX1[Symbol.iterator] !== 'function' &&
-    object.asX1.isGlobalConsensus === undefined
-  )
-}
-
-const Xn = ['X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8']
-function isXnV2Junctions(object: any): object is XcmV2MultilocationJunctions {
-  return Xn.every((x) => {
-    const ax = object[`as${x}`]
-    return ax === undefined || (Array.isArray(ax) && ax.every((a) => a.isGlobalConsensus === undefined))
-  })
-}
-
-function isX1V4Junctions(object: any): object is XcmV4Junctions {
-  return object.asX1 !== undefined && typeof object.asX1[Symbol.iterator] === 'function'
-}
-
-function isX1V3Junctions(object: any): object is XcmV3Junctions {
-  return (
-    object.asX1 !== undefined &&
-    typeof object.asX1[Symbol.iterator] !== 'function' &&
-    object.asX1.isGlobalConsensus !== undefined
-  )
-}
-
 type NetworkId = {
   consensus?: string
   chainId?: string
 }
 
-function extractConsensusAndId(j: XcmV3Junction | XcmV4Junction, n: NetworkId) {
-  const network = j.asGlobalConsensus
+function extractConsensusAndId(j: any, n: NetworkId) {
+  const network = j.value
   if (network.type === 'Ethereum') {
     n.consensus = network.type.toLowerCase()
-    n.chainId = network.asEthereum.chainId.toString()
+    n.chainId = network.value.chainId.toString()
   } else if (network.type !== 'ByFork' && network.type !== 'ByGenesis') {
     n.consensus = network.type.toLowerCase()
   }
 }
 
-function extractV3X1GlobalConsensus(junctions: XcmV3Junctions, n: NetworkId): NetworkURN | undefined {
-  if (junctions.asX1.isGlobalConsensus) {
-    extractConsensusAndId(junctions.asX1, n)
-    if (n.consensus !== undefined) {
-      return createNetworkId(n.consensus, n.chainId ?? '0')
-    }
-  }
-  return undefined
-}
-
-function extractV4X1GlobalConsensus(junctions: XcmV4Junctions, n: NetworkId): NetworkURN | undefined {
-  const j = junctions.asX1[0]
-  if (j.isGlobalConsensus) {
+function extractV4X1GlobalConsensus(junctions: any, n: NetworkId): NetworkURN | undefined {
+  const j = junctions.value
+  if (j.type === 'GlobalConsensus') {
     extractConsensusAndId(j, n)
     if (n.consensus !== undefined) {
       return createNetworkId(n.consensus, n.chainId ?? '0')
@@ -165,17 +97,17 @@ function extractV4X1GlobalConsensus(junctions: XcmV4Junctions, n: NetworkId): Ne
   return undefined
 }
 
-function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: NetworkId) {
+function _networkIdFrom(junctions: any, networkId: NetworkId) {
   if (junctions.type === 'X1' || junctions.type === 'Here') {
     return undefined
   }
 
-  for (const j of junctions[`as${junctions.type}`]) {
-    if (j.isGlobalConsensus) {
+  for (const j of junctions.value) {
+    if (j.value) {
       extractConsensusAndId(j, networkId)
     }
 
-    if (j.isParachain) {
+    if (j.type === 'Parachain') {
       networkId.chainId = j.asParachain.toString()
     }
   }
@@ -187,7 +119,7 @@ function _networkIdFrom(junctions: XcmV3Junctions | XcmV4Junctions, networkId: N
   return undefined
 }
 
-function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
+function networkIdFromV4(junctions: any): NetworkURN | undefined {
   const networkId: NetworkId = {}
 
   if (junctions.type === 'X1') {
@@ -197,127 +129,72 @@ function networkIdFromV4(junctions: XcmV4Junctions): NetworkURN | undefined {
   return _networkIdFrom(junctions, networkId)
 }
 
-function networkIdFromV3(junctions: XcmV3Junctions): NetworkURN | undefined {
-  if (junctions.type === 'Here') {
-    return undefined
-  }
-
-  const networkId: NetworkId = {}
-
-  if (junctions.type === 'X1') {
-    return extractV3X1GlobalConsensus(junctions, networkId)
-  }
-
-  return _networkIdFrom(junctions, networkId)
-}
-
 // eslint-disable-next-line complexity
-export function getParaIdFromJunctions(
-  junctions: XcmV2MultilocationJunctions | XcmV3Junctions | XcmV4Junctions,
-): string | undefined {
+export function getParaIdFromJunctions(junctions: { type: string; value: any }): string | undefined {
   if (junctions.type === 'Here') {
     return undefined
   }
 
   if (junctions.type === 'X1') {
-    if (isX1V3Junctions(junctions) || isX1V2Junctions(junctions)) {
-      return junctions.asX1.isParachain ? junctions.asX1.asParachain.toString() : undefined
-    } else {
-      for (const j of junctions[`as${junctions.type}`]) {
-        if (j.isParachain) {
-          return j.asParachain.toString()
-        }
+    for (const j of junctions.value) {
+      if (j.type === 'Parachain') {
+        return j.value.toString()
       }
     }
+
     return undefined
   }
 
-  for (const j of junctions[`as${junctions.type}`]) {
-    if (j.isParachain) {
-      return j.asParachain.toString()
+  for (const j of junctions.value) {
+    if (j.type === 'Parachain') {
+      return j.value.toString()
     }
   }
   return undefined
 }
 
-export function getParaIdFromMultiLocation(
-  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
-): string | undefined {
-  const junctions = loc.interior
-  if (junctions.type === 'Here') {
-    if (loc.parents?.toNumber() === 1) {
+export function getParaIdFromMultiLocation(loc: MultiLocation): string | undefined {
+  if (loc.interior.type === 'Here') {
+    if (loc.parents === 1) {
       return '0'
     }
     return undefined
   }
 
-  return getParaIdFromJunctions(junctions)
+  return getParaIdFromJunctions(loc.interior)
 }
 
-export function networkIdFromInteriorLocation(junctions: VersionedInteriorLocation): NetworkURN | undefined {
-  if (junctions.isV2) {
-    return undefined
-  }
-
-  if (junctions.isV3) {
-    return networkIdFromV3(junctions.asV3)
-  }
-
-  if (junctions.isV4) {
-    return networkIdFromV4(junctions.asV4)
-  }
-  return undefined
+export function networkIdFromInteriorLocation(junctions: {
+  type: string
+  value: { type: string; value: any }
+}): NetworkURN | undefined {
+  return networkIdFromV4(junctions)
 }
 
-// eslint-disable-next-line complexity
+type MultiLocation = { parents: number; interior: any }
+
 export function networkIdFromMultiLocation(
-  loc: XcmV2MultiLocation | StagingXcmV3MultiLocation | XcmV4Location,
+  loc: MultiLocation,
   currentNetworkId: NetworkURN,
 ): NetworkURN | undefined {
-  const { parents, interior: junctions } = loc
-
-  if (parents.toNumber() <= 1) {
+  const { parents, interior } = loc
+  if (parents <= 1) {
     // is within current consensus system
     const paraId = getParaIdFromMultiLocation(loc)
 
     if (paraId !== undefined) {
       return createNetworkId(currentNetworkId, paraId)
     }
-  } else if (parents.toNumber() > 1) {
+  } else if (parents > 1) {
     // is in other consensus system
-    if (junctions.type === 'X1') {
-      if (isX1V2Junctions(junctions)) {
-        return undefined
-      }
-
-      if (isX1V3Junctions(junctions)) {
-        return networkIdFromV3(junctions)
-      }
-
-      if (isX1V4Junctions(junctions)) {
-        return networkIdFromV4(junctions)
-      }
-    } else if (!isXnV2Junctions(junctions)) {
-      return _networkIdFrom(junctions, {})
+    if (interior.type === 'X1') {
+      return networkIdFromV4(interior)
+    } else {
+      return _networkIdFrom(interior, {})
     }
   }
 
   return undefined
-}
-
-export function networkIdFromVersionedMultiLocation(
-  loc: XcmVersionedLocation,
-  currentNetworkId: NetworkURN,
-): NetworkURN | undefined {
-  switch (loc.type) {
-    case 'V2':
-    case 'V3':
-      return networkIdFromMultiLocation(loc[`as${loc.type}`], currentNetworkId)
-    case 'V4':
-      return networkIdFromMultiLocation(loc.asV4, currentNetworkId)
-    default:
-      return undefined
-  }
 }
 
 export function matchProgramByTopic({ instructions }: Program, topicId: HexString): boolean {
@@ -350,42 +227,45 @@ export function matchExtrinsic(extrinsic: Extrinsic, module: string, method: str
     : method === extrinsic.method
 }
 
-function createTrappedAssetsFromMultiAssets(
-  version: number,
-  assets: XcmV2MultiassetMultiAssets | XcmV3MultiassetMultiAssets,
-): TrappedAsset[] {
-  return assets.map((a) => ({
-    version,
-    id: {
-      type: a.id.type,
-      value: a.id.isConcrete ? a.id.asConcrete.toHuman() : a.id.asAbstract.toHex(),
-    },
-    fungible: a.fun.isFungible,
-    amount: a.fun.isFungible ? a.fun.asFungible.toPrimitive() : 1,
-    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman() : undefined,
-  }))
+function createTrappedAssetsFromMultiAssets(version: number, assets: any[]): TrappedAsset[] {
+  return assets.map((a) => {
+    const fungible = a.fun.type === 'Fungible'
+    return {
+      version,
+      id: {
+        type: a.id.type,
+        value: asSerializable(a.id.value),
+      },
+      fungible,
+      amount: fungible ? a.fun.value : 1,
+      assetInstance: a.fun.type === 'NonFungible' ? asSerializable(a.fun.value) : undefined,
+    }
+  })
 }
 
-function createTrappedAssetsFromAssets(version: number, assets: XcmV4AssetAssets): TrappedAsset[] {
-  return assets.map((a) => ({
-    version,
-    id: {
-      type: 'Concrete',
-      value: a.id.toHuman(),
-    },
-    fungible: a.fun.isFungible,
-    amount: a.fun.isFungible ? a.fun.asFungible.toPrimitive() : 1,
-    assetInstance: a.fun.isNonFungible ? a.fun.asNonFungible.toHuman() : undefined,
-  }))
+function createTrappedAssetsFromAssets(version: number, assets: any[]): TrappedAsset[] {
+  return assets.map((a) => {
+    const fungible = a.fun.type === 'Fungible'
+    return {
+      version,
+      id: {
+        type: 'Concrete',
+        value: asSerializable(a.id),
+      },
+      fungible,
+      amount: fungible ? a.fun.value : 1,
+      assetInstance: a.fun.type === 'NonFungible' ? asSerializable(a.fun.value) : undefined,
+    }
+  })
 }
 
-function mapVersionedAssets(assets: XcmVersionedAssets): TrappedAsset[] {
+function mapVersionedAssets(assets: any): TrappedAsset[] {
   switch (assets.type) {
     case 'V2':
     case 'V3':
-      return createTrappedAssetsFromMultiAssets(2, assets[`as${assets.type}`])
+      return createTrappedAssetsFromMultiAssets(2, assets.value)
     case 'V4':
-      return createTrappedAssetsFromAssets(4, assets.asV4)
+      return createTrappedAssetsFromAssets(4, assets.value)
     default:
       throw new Error('XCM version not supported')
   }
@@ -395,7 +275,6 @@ export function mapAssetsTrapped(assetsTrappedEvent?: BlockEvent): AssetsTrapped
   if (assetsTrappedEvent === undefined) {
     return undefined
   }
-  console.log(assetsTrappedEvent.value)
   const [hash_, _, assets] = assetsTrappedEvent.value as [hash_: HexString, _origin: any, assets: any]
   return {
     event: {

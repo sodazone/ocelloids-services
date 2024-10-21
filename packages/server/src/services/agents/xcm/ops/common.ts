@@ -1,25 +1,18 @@
 import { Observable, map } from 'rxjs'
 
-import { Binary, Blake2256 } from '@polkadot-api/substrate-bindings'
+import { Binary } from '@polkadot-api/substrate-bindings'
 
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { fromHex, mergeUint8, toHex } from 'polkadot-api/utils'
 import { asSerializable } from '../../base/util.js'
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
-import {
-  getBridgeHubNetworkId,
-  getParaIdFromJunctions,
-  getSendersFromEvent,
-  networkIdFromMultiLocation,
-} from './util.js'
+import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: NetworkURN[]) {
-  console.log(instructions)
   for (const instruction of instructions) {
     let nextStop
     let message
@@ -28,29 +21,24 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: N
       const { dest, xcm } = instruction.value
       nextStop = dest
       message = xcm
-    } else if (instruction.isInitiateReserveWithdraw) {
-      const { reserve, xcm } = instruction.asInitiateReserveWithdraw
+    } else if (instruction.type === 'InitiateReserveWithdraw') {
+      const { reserve, xcm } = instruction.value
       nextStop = reserve
       message = xcm
-    } else if (instruction.isInitiateTeleport) {
-      const { dest, xcm } = instruction.asInitiateTeleport
+    } else if (instruction.type === 'InitiateTeleport') {
+      const { dest, xcm } = instruction.value
       nextStop = dest
       message = xcm
-    } else if (instruction.isTransferReserveAsset) {
-      const { dest, xcm } = instruction.asTransferReserveAsset
+    } else if (instruction.type === 'TransferReserveAsset') {
+      const { dest, xcm } = instruction.value
       nextStop = dest
       message = xcm
-    } else if (instruction.isExportMessage) {
-      const { network, destination, xcm } = instruction.asExportMessage
+    } else if (instruction.type === 'ExportMessage') {
+      const { network, destination, xcm } = instruction.value
       const paraId = getParaIdFromJunctions(destination)
       if (paraId) {
         const consensus = network.toString().toLowerCase()
         const networkId = createNetworkId(consensus, paraId)
-        const bridgeHubNetworkId = getBridgeHubNetworkId(consensus)
-        // We assume that an ExportMessage will always go through Bridge Hub
-        if (bridgeHubNetworkId !== undefined && networkId !== bridgeHubNetworkId) {
-          stops.push(bridgeHubNetworkId)
-        }
         stops.push(networkId)
         recursiveExtractStops(networkId, xcm, stops)
       }
@@ -140,15 +128,7 @@ export function mapXcmSent(id: string, context: ApiContext, origin: NetworkURN) 
         const versionedXcm = asVersionedXcm(instructions.bytes, context)
         recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
         const legs = constructLegs(origin, stops)
-
-        let forwardId: HexString | undefined
-        // TODO: extract to util?
-        if (origin === getBridgeHubNetworkId(origin) && message.messageId !== undefined) {
-          const constant = 'forward_id_for'
-          const derivedIdBuf = mergeUint8(new TextEncoder().encode(constant), fromHex(message.messageId))
-          forwardId = toHex(Blake2256(derivedIdBuf)) as HexString
-        }
-        return new GenericXcmSent(id, origin, message, legs, forwardId)
+        return new GenericXcmSent(id, origin, message, legs)
       }),
     )
 }

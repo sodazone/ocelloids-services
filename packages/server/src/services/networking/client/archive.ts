@@ -24,7 +24,6 @@ import { ApiClient, ApiContext } from './types.js'
  */
 export class ArchiveClient extends EventEmitter implements ApiClient {
   #connected: boolean = false
-  readonly isReady: () => Promise<ApiClient>
   readonly chainId: string
   get ctx() {
     return this.#apiContext()
@@ -65,17 +64,18 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     this.#apiContext = () => {
       throw new Error('Runtime context not initialized')
     }
+  }
 
-    this.isReady = () =>
-      new Promise<ApiClient>((resolve) => {
-        if (this.#connected) {
-          resolve(this)
-        }
-        this.once('connected', () => {
-          this.#connected = true
-          resolve(this)
-        })
+  isReady() {
+    return new Promise<ApiClient>((resolve) => {
+      if (this.#connected) {
+        resolve(this)
+      }
+      this.once('connected', () => {
+        this.#connected = true
+        resolve(this)
       })
+    })
   }
 
   async getMetadata(): Promise<Uint8Array> {
@@ -141,6 +141,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
       const ctx = new RuntimeApiContext(await this.#runtimeContext)
       this.#apiContext = () => ctx
       super.emit('connected')
+      this.#connected = true
     } catch (error) {
       this.#log.error(error, '[client:%s] error while connecting %s (should never happen)', this.chainId)
     }

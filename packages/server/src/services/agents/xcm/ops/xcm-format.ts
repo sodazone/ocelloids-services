@@ -20,7 +20,6 @@ export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext
   const codec = context.typeCodec(xcmTypeId)
   const instructions = codec.dec(data)
   const encoded = codec.enc(instructions)
-  console.log(instructions)
   return { data: encoded, instructions, hash: toHex(Blake2256(encoded)) as HexString }
 }
 
