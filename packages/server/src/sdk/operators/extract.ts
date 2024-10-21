@@ -76,7 +76,7 @@ export function extractEvents() {
     return source.pipe(
       map(({ hash, number, events, extrinsics }) => {
         return {
-          extrinsics: extrinsics,
+          extrinsics,
           events,
           blockNumber: number,
           blockHash: hash,

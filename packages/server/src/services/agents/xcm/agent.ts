@@ -165,11 +165,9 @@ export class XcmAgent implements Agent, Subscribable {
   __monitorDestinations({ id, args: { origin, destinations } }: Subscription<XcmInputs>): Monitor {
     const subs: RxSubscriptionWithId[] = []
     const originId = origin as NetworkURN
-    console.log('MON', origin, destinations)
     try {
       for (const dest of destinations as NetworkURN[]) {
         const chainId = dest
-        console.log('DEST', chainId)
         if (this.#subs.hasSubscriptionForDestination(id, chainId)) {
           // Skip existing subscriptions
           // for the same destination chain

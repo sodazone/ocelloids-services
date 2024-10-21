@@ -305,22 +305,6 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
     this.messageId = msg.messageId
     this.sender = msg.sender
   }
-
-  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
-    return {
-      messageData: toHexString(this.messageData),
-      recipient: this.recipient,
-      instructions: this.instructions.json,
-      messageHash: this.messageHash,
-      event: this.event,
-      blockHash: this.blockHash,
-      blockNumber: this.blockNumber,
-      timestamp: this.timestamp,
-      extrinsicPosition: this.extrinsicPosition,
-      messageId: this.messageId,
-      senders: this.sender,
-    }
-  }
 }
 
 export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWithContext {

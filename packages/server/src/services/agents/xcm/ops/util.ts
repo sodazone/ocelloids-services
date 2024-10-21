@@ -1,8 +1,11 @@
+import { getSs58AddressInfo } from 'polkadot-api'
+
 import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
+import { toHex } from 'polkadot-api/utils'
 import { asSerializable } from '../../base/util.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
@@ -11,12 +14,17 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   try {
     if (xt.signed) {
       // Signer could be Address or AccountId
-      const accountId = xt.signature.value ?? xt.signature
+      const accountId = typeof xt.address === 'string' ? xt.address : xt.address.value
+      const info = getSs58AddressInfo(accountId)
+      if (!info.isValid) {
+        throw new Error(`invalid address format ${accountId}`)
+      }
       return {
         signer: {
           id: accountId,
-          publicKey: accountId,
+          publicKey: toHex(info.publicKey) as HexString,
         },
+        // TODO: from flat nested calls
         extraSigners: [],
       }
     }
@@ -130,26 +138,24 @@ function networkIdFromV4(junctions: any): NetworkURN | undefined {
 }
 
 // eslint-disable-next-line complexity
-export function getParaIdFromJunctions(junctions: { type: string; value: any }): string | undefined {
+export function getParaIdFromJunctions(junctions: { type: string; value: any | any[] }): string | undefined {
   if (junctions.type === 'Here') {
     return undefined
   }
 
-  if (junctions.type === 'X1') {
+  if (Array.isArray(junctions.value)) {
     for (const j of junctions.value) {
       if (j.type === 'Parachain') {
         return j.value.toString()
       }
     }
-
-    return undefined
-  }
-
-  for (const j of junctions.value) {
+  } else {
+    const j = junctions.value
     if (j.type === 'Parachain') {
       return j.value.toString()
     }
   }
+
   return undefined
 }
 
@@ -250,7 +256,7 @@ function createTrappedAssetsFromAssets(version: number, assets: any[]): TrappedA
       version,
       id: {
         type: 'Concrete',
-        value: asSerializable(a.id),
+        value: asSerializable(a.id.value),
       },
       fungible,
       amount: fungible ? a.fun.value : 1,
@@ -275,7 +281,7 @@ export function mapAssetsTrapped(assetsTrappedEvent?: BlockEvent): AssetsTrapped
   if (assetsTrappedEvent === undefined) {
     return undefined
   }
-  const [hash_, _, assets] = assetsTrappedEvent.value as [hash_: HexString, _origin: any, assets: any]
+  const { hash, assets } = assetsTrappedEvent.value
   return {
     event: {
       eventId: assetsTrappedEvent.blockPosition,
@@ -285,6 +291,6 @@ export function mapAssetsTrapped(assetsTrappedEvent?: BlockEvent): AssetsTrapped
       method: assetsTrappedEvent.name,
     },
     assets: mapVersionedAssets(assets),
-    hash: hash_,
+    hash: hash.asHex(),
   }
 }

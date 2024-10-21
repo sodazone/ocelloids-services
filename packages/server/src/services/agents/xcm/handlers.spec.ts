@@ -4,9 +4,9 @@ import { FastifyBaseLogger } from 'fastify'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
+import { ControlQuery } from '@/sdk/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { _ingress, _services } from '@/testing/services.js'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { XcmAgent } from './agent.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'
