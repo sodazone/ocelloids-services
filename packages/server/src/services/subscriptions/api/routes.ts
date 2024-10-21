@@ -33,7 +33,10 @@ export async function SubscriptionApi(api: FastifyInstance) {
         tags: ['subscriptions'],
         security: [{ BearerAuth: [] }],
         params: {
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         response: {
           200: {
@@ -64,8 +67,11 @@ export async function SubscriptionApi(api: FastifyInstance) {
         tags: ['subscriptions'],
         security: [{ BearerAuth: [] }],
         params: {
-          subscriptionId: zodToJsonSchema($SubscriptionId),
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            subscriptionId: zodToJsonSchema($SubscriptionId),
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         response: {
           200: zodToJsonSchema($Subscription),
@@ -129,8 +135,11 @@ export async function SubscriptionApi(api: FastifyInstance) {
         tags: ['subscriptions'],
         security: [{ BearerAuth: [] }],
         params: {
-          subscriptionId: zodToJsonSchema($SubscriptionId),
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            subscriptionId: zodToJsonSchema($SubscriptionId),
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         body: $JSONPatch,
         response: {
@@ -167,8 +176,11 @@ export async function SubscriptionApi(api: FastifyInstance) {
         tags: ['subscriptions'],
         security: [{ BearerAuth: [] }],
         params: {
-          agentId: zodToJsonSchema($AgentId),
-          subscriptionId: zodToJsonSchema($SubscriptionId),
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+            subscriptionId: zodToJsonSchema($SubscriptionId),
+          },
         },
         response: {
           200: {

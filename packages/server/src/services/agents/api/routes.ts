@@ -28,7 +28,10 @@ export async function AgentsApi(api: FastifyInstance) {
         tags: ['agents'],
         security: [{ BearerAuth: [] }],
         params: {
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         body: {
           type: 'object',
@@ -101,7 +104,10 @@ export async function AgentsApi(api: FastifyInstance) {
         tags: ['agents'],
         security: [{ BearerAuth: [] }],
         params: {
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         response: {
           200: { type: 'object', additionalProperties: true },
@@ -132,7 +138,10 @@ export async function AgentsApi(api: FastifyInstance) {
         tags: ['agents'],
         security: [{ BearerAuth: [] }],
         params: {
-          agentId: zodToJsonSchema($AgentId),
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+          },
         },
         response: {
           200: { type: 'object', additionalProperties: true },

@@ -19,9 +19,9 @@ export class AssetsQueryHandler {
   ): Promise<QueryResult<AssetMetadata>> {
     const cursor = pagination
       ? pagination.cursor === undefined || pagination.cursor === ''
-        ? criteria?.network ?? ''
+        ? (criteria?.network ?? '')
         : pagination.cursor
-      : criteria?.network ?? ''
+      : (criteria?.network ?? '')
     const iterator = this.#db.iterator<string, AssetMetadata>({
       gt: cursor,
       lt: criteria?.network ? criteria.network + ':' + OMEGA_250 : OMEGA_250,
