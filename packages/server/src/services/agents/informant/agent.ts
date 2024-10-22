@@ -3,8 +3,8 @@ import { z } from 'zod'
 
 import { filter as rxFilter } from 'rxjs'
 
+import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
-import { ControlQuery } from '@/rx/index.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
@@ -12,7 +12,6 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 
-import { asSerializable } from '../base/util.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 export const $InformantInputs = z.object({

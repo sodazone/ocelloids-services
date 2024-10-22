@@ -1,3 +1,4 @@
+import { TextEncoder } from 'util'
 import { safeDestr } from 'destr'
 import { Binary } from 'polkadot-api'
 
@@ -15,4 +16,9 @@ export function getEventValue(module: string, name: string | string[], events: E
   return events.find((e) =>
     e.module === module && Array.isArray(name) ? name.includes(e.name) : e.name === name,
   )?.value
+}
+
+const textEncoder = new TextEncoder()
+export function stringToUa8(v: string) {
+  return textEncoder.encode(v)
 }

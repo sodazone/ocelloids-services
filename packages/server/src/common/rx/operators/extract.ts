@@ -1,6 +1,6 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { getEventValue } from '@/services/agents/base/util.js'
+import { getEventValue } from '@/common/util.js'
 import {
   Block,
   BlockContext,
@@ -33,6 +33,17 @@ function enhanceTxWithIdAndEvents(
     }
   }
 
+  const dispatchInfo = getEventValue(
+    'System',
+    ['ExtrinsicSuccess', 'ExtrinsicFailed'],
+    eventsWithId,
+  )?.dispatch_info
+  const dispatchError = getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error
+  // TODO: remove, resolve innerdocs?
+  if (dispatchError) {
+    console.log(dispatchError.type, dispatchError.value.type)
+  }
+
   return {
     ...tx,
     blockHash,
@@ -40,9 +51,8 @@ function enhanceTxWithIdAndEvents(
     blockPosition,
     timestamp,
     events: eventsWithId,
-    dispatchInfo: getEventValue('System', ['ExtrinsicSuccess', 'ExtrinsicFailed'], eventsWithId)
-      ?.dispatch_info,
-    dispatchError: getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error,
+    dispatchInfo,
+    dispatchError,
   } as BlockExtrinsicWithEvents
 }
 

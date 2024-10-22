@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ControlQuery } from '@/rx/index.js'
+import { ControlQuery } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'
 import {
   HexString,

@@ -4,7 +4,7 @@ import { FastifyBaseLogger } from 'fastify'
 
 import { Subscription as RxSubscription } from 'rxjs'
 
-import { ControlQuery } from '@/rx/index.js'
+import { ControlQuery } from '@/common/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { _ingress, _services } from '@/testing/services.js'
 import { XcmAgent } from './agent.js'

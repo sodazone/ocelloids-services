@@ -1,10 +1,10 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext } from '@/services/networking/client/index.js'
 import { NetworkURN } from '@/services/types.js'
-import { asSerializable } from '../base/util.js'
 import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations, mapAssetsRegistryMetadata } from './ops.js'
 import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 

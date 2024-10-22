@@ -1,12 +1,11 @@
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
+import { asSerializable, filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
-import { filterNonNull } from '@/rx/index.js'
 import { createNetworkId } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { asSerializable } from '../../base/util.js'
 import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,

@@ -1,6 +1,6 @@
 import { Observable, share } from 'rxjs'
 
-import { extractEvents, extractTxWithEvents } from '@/rx/index.js'
+import { extractEvents, extractTxWithEvents } from '@/common/index.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'

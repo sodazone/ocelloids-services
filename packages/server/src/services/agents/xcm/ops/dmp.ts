@@ -1,11 +1,11 @@
 import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
-import { filterNonNull } from '@/rx/index.js'
+import { filterNonNull } from '@/common/index.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { asSerializable } from '../../base/util.js'
+import { asSerializable } from '@/common/util.js'
 import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,

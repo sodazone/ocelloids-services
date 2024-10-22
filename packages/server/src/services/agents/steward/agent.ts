@@ -9,6 +9,7 @@ import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
+import { asSerializable, stringToUa8 } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import {
   Agent,
@@ -20,8 +21,6 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
-import { TextEncoder } from 'util'
-import { asSerializable } from '../base/util.js'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
 import { $StewardQueryArgs, AssetId, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
@@ -37,8 +36,6 @@ const STORAGE_PAGE_LEN = 100
 
 const START_DELAY = 30_000 // 5m
 const SCHED_RATE = 43_200_000 // 12h
-
-const textEncoder = new TextEncoder()
 
 /**
  * The Data Steward agent.
@@ -179,7 +176,7 @@ export class DataSteward implements Agent, Queryable {
         const zeroArray = new Uint8Array(8).fill(0)
         const fArray = new Uint8Array(8).fill(0xff)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
-          const assetHash = Twox128(textEncoder.encode(assetKey))
+          const assetHash = Twox128(stringToUa8(assetKey))
           try {
             const externalIdsMap = await this.#dbAssetsMapTmp
               .iterator({

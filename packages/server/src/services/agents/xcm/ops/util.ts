@@ -1,12 +1,12 @@
 import { getSs58AddressInfo } from 'polkadot-api'
+import { toHex } from 'polkadot-api/utils'
 
+import { asSerializable } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { toHex } from 'polkadot-api/utils'
-import { asSerializable } from '../../base/util.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
 

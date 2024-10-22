@@ -1,7 +1,7 @@
 import { AbstractIterator } from 'abstract-level'
 
+import { asJSON, asSerializable } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
-import { asJSON, asSerializable } from '../base/util.js'
 import { QueryPagination } from '../types.js'
 
 const API_LIMIT_DEFAULT = 10

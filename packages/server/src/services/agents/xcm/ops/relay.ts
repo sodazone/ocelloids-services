@@ -1,13 +1,12 @@
 import { Binary } from 'polkadot-api'
 import { Observable, filter, map, mergeMap } from 'rxjs'
 
+import { ControlQuery, asSerializable, filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
-import { ControlQuery, filterNonNull } from '@/rx/index.js'
+import { createNetworkId, getChainId } from '@/services/config.js'
 import { ApiContext, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
+import { NetworkURN } from '@/services/types.js'
 
-import { createNetworkId, getChainId } from '../../../config.js'
-import { NetworkURN } from '../../../types.js'
-import { asSerializable } from '../../base/util.js'
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js'
 import { getMessageId, matchExtrinsic } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'

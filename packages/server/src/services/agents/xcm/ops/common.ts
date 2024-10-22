@@ -2,11 +2,11 @@ import { Observable, map } from 'rxjs'
 
 import { Binary } from '@polkadot-api/substrate-bindings'
 
+import { asSerializable } from '@/common/util.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { asSerializable } from '../../base/util.js'
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
