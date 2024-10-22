@@ -133,8 +133,8 @@ export class LocalAgentCatalog implements AgentCatalog {
 
     return {
       [xcm.id]: xcm,
-      //[informant.id]: informant,
-      //[steward.id]: steward,
+      [informant.id]: informant,
+      [steward.id]: steward,
     } as unknown as Record<AgentId, Agent>
   }
 }

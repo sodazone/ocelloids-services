@@ -1,14 +1,12 @@
-import { jest } from '@jest/globals'
-
 import { MemoryLevel as Level } from 'memory-level'
 
+import { flushPromises } from '@/testing/promises.js'
 import { _config, _log } from '@/testing/services.js'
 
-import { flushPromises } from '@/testing/promises.js'
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'
 
-jest.useFakeTimers()
+vi.useFakeTimers()
 
 describe('janitor service', () => {
   let janitor: Janitor
@@ -25,7 +23,7 @@ describe('janitor service', () => {
     janitor = new Janitor(_log, db, scheduler, {
       sweepExpiry: 500,
     })
-    now = jest.spyOn(Date, 'now').mockImplementation(() => 0)
+    now = vi.spyOn(Date, 'now').mockImplementation(() => 0)
   })
 
   afterEach(() => {
@@ -47,13 +45,13 @@ describe('janitor service', () => {
     await expect(s1.get('k1')).resolves.toBeDefined()
 
     now.mockImplementation(() => 1000)
-    jest.advanceTimersByTime(1000)
+    vi.advanceTimersByTime(1000)
 
     await scheduler.stop()
 
     await flushPromises()
 
-    jest.advanceTimersByTime(1)
+    vi.advanceTimersByTime(1)
     await flushPromises()
 
     await expect(async () => {
@@ -89,7 +87,7 @@ describe('janitor service', () => {
     expect(await s1.get('k1')).toBeDefined()
 
     now.mockImplementation(() => 1000)
-    jest.advanceTimersByTime(1000)
+    vi.advanceTimersByTime(1000)
 
     await scheduler.stop()
 
@@ -104,13 +102,13 @@ describe('janitor service', () => {
 
     scheduler.start()
     now.mockImplementation(() => 2500)
-    jest.advanceTimersByTime(2500)
+    vi.advanceTimersByTime(2500)
 
     await scheduler.stop()
 
     await flushPromises()
 
-    jest.advanceTimersByTime(1)
+    vi.advanceTimersByTime(1)
     await flushPromises()
 
     await expect(async () => {
@@ -156,7 +154,7 @@ describe('janitor service', () => {
     expect((await scheduler.allTaskTimes()).length).toBe(3)
 
     now.mockImplementation(() => 1000)
-    jest.advanceTimersByTime(1000)
+    vi.advanceTimersByTime(1000)
 
     await scheduler.stop()
 

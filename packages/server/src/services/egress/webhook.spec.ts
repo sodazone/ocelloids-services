@@ -1,5 +1,3 @@
-import { jest } from '@jest/globals'
-
 import { MemoryLevel } from 'memory-level'
 import nock from 'nock'
 
@@ -206,7 +204,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)
@@ -221,7 +219,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/, /<sender>w123<\/sender>/gi)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     const xmlNotifyMsg = {
@@ -273,7 +271,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOkAuth, message)
@@ -285,7 +283,7 @@ describe('webhook publisher', () => {
   it('should fail posting to the wrong path', async () => {
     const scope = nock('http://localhost').post(/.+/).reply(404)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subFail, message)
@@ -300,7 +298,7 @@ describe('webhook publisher', () => {
       .times(2)
       .reply(500)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)
@@ -318,7 +316,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)

@@ -14,7 +14,7 @@ export interface ApiClient {
   readonly chainId: string
   readonly isReady: () => Promise<ApiClient>
   readonly getChainSpecData: () => Promise<ChainSpecData>
-  readonly subscribeFinalizedHeads: Observable<BlockInfo>
+  readonly finalizedHeads$: Observable<BlockInfo>
   readonly ctx: ApiContext
 
   connect(): Promise<void>

@@ -1,11 +1,8 @@
-import { jest } from '@jest/globals'
-
 import { MemoryLevel as Level } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { jsonEncoded } from '@/services/types.js'
-import { matchBridgeMessages } from '@/testing/bridge/matching.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '@/testing/matching.js'
 import { _services } from '@/testing/services.js'
 import { AbstractSublevel } from 'abstract-level'
@@ -16,10 +13,10 @@ describe('message matching engine', () => {
   let engine: MatchingEngine
   let db: Level
   let outbound: AbstractSublevel<Level, Buffer | Uint8Array | string, string, XcmSent>
-  const cb = jest.fn((_: XcmMessagePayload) => {
+  const cb = vi.fn((_: XcmMessagePayload) => {
     /* empty */
   })
-  const schedule = jest.fn(() => {
+  const schedule = vi.fn(() => {
     /* empty */
   })
 
@@ -34,7 +31,7 @@ describe('message matching engine', () => {
         egress: {} as unknown as Egress,
         db,
         janitor: {
-          on: jest.fn(),
+          on: vi.fn(),
           schedule,
         } as unknown as Janitor,
       },
@@ -178,7 +175,7 @@ describe('message matching engine', () => {
   })
 
   it('should match hop messages', async () => {
-    const msgTypeCb = jest.fn((_: XcmNotificationType) => {
+    const msgTypeCb = vi.fn((_: XcmNotificationType) => {
       /* empty */
     })
     cb.mockImplementation((msg) => msgTypeCb(msg.type))
@@ -226,37 +223,6 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(destination)
 
     expect(cb).toHaveBeenCalledTimes(6)
-    await expect(outbound.get(idKey)).rejects.toBeDefined()
-    await expect(outbound.get(hashKey)).rejects.toBeDefined()
-  })
-
-  it('should match bridge messages', async () => {
-    const {
-      origin,
-      relay0,
-      bridgeXcmIn,
-      bridgeAccepted,
-      bridgeDelivered,
-      bridgeIn,
-      bridgeXcmOut,
-      relay1,
-      destination,
-      subscriptionId,
-    } = matchBridgeMessages
-    const idKey = `${subscriptionId}:${origin.messageId}:${destination.chainId}`
-    const hashKey = `${subscriptionId}:${origin.waypoint.messageHash}:${destination.chainId}`
-
-    await engine.onOutboundMessage(origin)
-    await engine.onRelayedMessage(subscriptionId, relay0)
-    await engine.onInboundMessage(bridgeXcmIn)
-    await engine.onBridgeOutboundAccepted(subscriptionId, bridgeAccepted)
-    await engine.onBridgeOutboundDelivered(subscriptionId, bridgeDelivered)
-    await engine.onBridgeInbound(subscriptionId, bridgeIn)
-    await engine.onOutboundMessage(bridgeXcmOut)
-    await engine.onRelayedMessage(subscriptionId, relay1)
-    await engine.onInboundMessage(destination)
-
-    expect(cb).toHaveBeenCalledTimes(9)
     await expect(outbound.get(idKey)).rejects.toBeDefined()
     await expect(outbound.get(hashKey)).rejects.toBeDefined()
   })

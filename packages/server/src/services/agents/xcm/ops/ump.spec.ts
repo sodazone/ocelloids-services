@@ -1,7 +1,5 @@
-import { jest } from '@jest/globals'
-import { extractEvents } from '@sodazone/ocelloids-sdk'
-
-import { registry, umpReceive, umpSend } from '@/testing/xcm.js'
+import { extractEvents } from '@/common/index.js'
+import { apiContext, umpReceive, umpSend } from '@/testing/xcm.js'
 
 import { extractUmpReceive, extractUmpSend } from './ump.js'
 
@@ -10,9 +8,9 @@ describe('ump operator', () => {
     it('should extract UMP sent message', (done) => {
       const { origin, blocks, getUmp } = umpSend
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
-      const test$ = extractUmpSend(origin, getUmp, registry)(blocks.pipe(extractEvents()))
+      const test$ = extractUmpSend(origin, getUmp, apiContext)(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -38,7 +36,7 @@ describe('ump operator', () => {
     it('should extract failed UMP received message', (done) => {
       const { successBlocks } = umpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractUmpReceive('urn:ocn:local:1000')(successBlocks.pipe(extractEvents()))
 
@@ -64,7 +62,7 @@ describe('ump operator', () => {
     it('should extract UMP receive with outcome fail', (done) => {
       const { failBlocks } = umpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractUmpReceive('urn:ocn:local:1000')(failBlocks.pipe(extractEvents()))
 
@@ -90,7 +88,7 @@ describe('ump operator', () => {
     it('should extract ump receive with asset trap', (done) => {
       const { trappedBlocks } = umpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractUmpReceive('urn:ocn:local:2004')(trappedBlocks.pipe(extractEvents()))
 

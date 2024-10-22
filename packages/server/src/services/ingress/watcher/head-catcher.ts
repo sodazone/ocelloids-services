@@ -112,7 +112,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     const newPipe = from(this.getApi(chainId)).pipe(
       switchMap((api) => {
-        return api.subscribeFinalizedHeads.pipe(
+        return api.finalizedHeads$.pipe(
           mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
           this.#tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),

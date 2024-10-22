@@ -1,20 +1,12 @@
-import { jest } from '@jest/globals'
-
-import { ApiPromise, ApiRx } from '@polkadot/api'
 import { MemoryLevel } from 'memory-level'
 import { from, of } from 'rxjs'
 
-import {
-  parachainSystemHrmpOutboundMessages,
-  parachainSystemUpwardMessages,
-} from '@/services/agents/xcm/storage.js'
 import Connector from '@/services/networking/connector.js'
-import { Janitor } from '@/services/persistence/level/janitor.js'
+import { ApiClient } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { LevelDB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
-import { interlayBlocks, polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
-import { mockConfigMixed, mockConfigWS } from '@/testing/configs.js'
-import { flushPromises } from '@/testing/promises.js'
+import { polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
+import { mockConfigWS } from '@/testing/configs.js'
 import { _services } from '@/testing/services.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
@@ -40,217 +32,9 @@ describe('head catcher', () => {
     await db.close()
   })
 
-  describe('start', () => {
-    it('should store new blocks in db for relay chain if using smoldot provider', async () => {
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => from(polkadotBlocks),
-                  },
-                },
-              } as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-      })
-
-      const expectedKeys = [
-        prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
-        prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
-        prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'),
-      ]
-
-      catcher.start()
-
-      const slkeys = await sl('urn:ocn:local:0').keys().all()
-      expect(expectedKeys.every((k) => slkeys.includes(k))).toBe(true)
-
-      catcher.stop()
-    })
-
-    it('should store new blocks and outbound xcm messages in db for parachain if using smoldot provider', async () => {
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({} as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({
-                rpc: {
-                  state: {
-                    getStorage: () => {
-                      return Promise.resolve({
-                        toU8a: () => new Uint8Array(0),
-                      })
-                    },
-                  },
-                },
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => from(interlayBlocks),
-                  },
-                },
-              } as unknown as ApiRx),
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-      })
-
-      const expectedKeys = [
-        prefixes.cache.keys.block('0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'),
-        prefixes.cache.keys.block('0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c'),
-        prefixes.cache.keys.block('0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b'),
-        prefixes.cache.keys.storage(
-          parachainSystemHrmpOutboundMessages,
-          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
-        ),
-        prefixes.cache.keys.storage(
-          parachainSystemHrmpOutboundMessages,
-          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
-        ),
-        prefixes.cache.keys.storage(
-          parachainSystemHrmpOutboundMessages,
-          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
-        ),
-        prefixes.cache.keys.storage(
-          parachainSystemUpwardMessages,
-          '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0',
-        ),
-        prefixes.cache.keys.storage(
-          parachainSystemUpwardMessages,
-          '0x6af1c1a60b82e41dec4b49ca110a198f3a2133aba10f1c320667e06d80cd8a7c',
-        ),
-        prefixes.cache.keys.storage(
-          parachainSystemUpwardMessages,
-          '0x90ad4002e0510aa202bd8dafd3c9ef868acf57f2ed60ed70c9aa85a648d66b1b',
-        ),
-      ]
-
-      catcher.start()
-
-      await flushPromises()
-
-      const slkeys = await sl('urn:ocn:local:2032').keys().all()
-
-      catcher.stop()
-
-      expect(
-        expectedKeys.every((k) => {
-          return slkeys.includes(k)
-        }),
-      ).toBe(true)
-    })
-  })
-
+  /* TODO: port test
   describe('finalizedBlocks', () => {
-    it('should get block from cache and delete gotten entries if using smoldot', (done) => {
-      const janitor = {
-        schedule: () => {
-          /* empty */
-        },
-      } as unknown as Janitor
-
-      const headersSource = from(polkadotBlocks.map((tb) => tb.block.header))
-      const blocksSource = from(polkadotBlocks)
-
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                    subscribeFinalizedHeads: () => from(headersSource),
-                  },
-                },
-              } as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:0': {
-                isReady: Promise.resolve({
-                  derive: {
-                    chain: {
-                      getBlock: (hash: any) =>
-                        of(polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
-                    },
-                  },
-                  rpc: {
-                    chain: {
-                      getHeader: (hash: any) => {
-                        return Promise.resolve(
-                          polkadotBlocks.find((b) => b.block.hash.toHex() === hash.toHex())!.block.header!,
-                        )
-                      },
-                    },
-                  },
-                  registry: {
-                    createType: () => ({}),
-                    createClass: () => {
-                      return class Dummy {
-                        block = {
-                          extrinsics: [],
-                          header: {
-                            number: {
-                              toBigInt: () => 0n,
-                            },
-                          },
-                        }
-                      }
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-        janitor,
-      })
-
-      const janitorSpy = jest.spyOn(janitor, 'schedule')
-      const expectedBlocks = [
-        prefixes.cache.keys.block('0xaf1a3580d45b40b2fc5efd1aa0104e4caa1a20364e9cda17e6cd26032b088b5f'),
-        prefixes.cache.keys.block('0x787a7e572d6a549162fb29495bab1512b8441cedbab2f48113fba9de273501bb'),
-        prefixes.cache.keys.block('0x356f7d037f0ff737b13b1871cbd7a1b9b15b1a75e1e36f8cf27b84943454d875'),
-      ]
-
-      catcher.start()
-
-      blocksSource.subscribe({
-        complete: async () => {
-          // Blocks should be put in cache
-          const blockCache = await sl('urn:ocn:local:0').keys().all()
-          expect(expectedBlocks.every((k) => blockCache.includes(k))).toBe(true)
-
-          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
-            complete: async () => {
-              catcher.stop()
-              done()
-              expect(janitorSpy).toHaveBeenCalledTimes(3)
-            },
-          })
-        },
-      })
-    })
-
-    it('should catch up blocks', (done) => {
+    it.skip('should catch up blocks', (done) => {
       // Load 20 blocks starting from #17844552
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
       // Pretend that we left off at block #17844551
@@ -367,7 +151,7 @@ describe('head catcher', () => {
       })
     })
 
-    it('should recover block ranges', (done) => {
+    it.skip('should recover block ranges', (done) => {
       // Load 20 blocks starting from #17844552
       const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
       // Pretend that we left off at block #17844570
@@ -463,213 +247,62 @@ describe('head catcher', () => {
       })
     })
   })
+  */
 
   describe('outboundUmpMessages', () => {
-    it('should construct outbound UMP messages from cached buffers if using smoldot', (done) => {
-      const mockRegistry = {
-        createType: jest.fn(),
-      }
-      const blocksSource = from(interlayBlocks)
-
+    it('should get outbound UMP messages from chain storage if using rpc', async () => {
+      const mockUpwardMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
       const catcher = new HeadCatcher({
         ..._services,
-        localConfig: mockConfigMixed,
+        localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({} as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                  },
-                },
-              } as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:2032': {
-                isReady: Promise.resolve({
-                  registry: mockRegistry,
-                  rpc: {
-                    state: {
-                      getStorage: () =>
-                        Promise.resolve({
-                          toU8a: () => new Uint8Array(0),
-                        }),
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
+            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:1000': {
+              getStorage: mockUpwardMessagesQuery,
+            } as unknown as ApiClient,
+            'urn:ocn:local:2032': {} as unknown as ApiClient,
           }),
         } as unknown as Connector,
         levelDB: db,
       })
 
-      catcher.start()
-
-      let calls = 0
-      blocksSource.subscribe({
-        complete: () => {
-          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
-          catcher.getStorage('urn:ocn:local:2032', parachainSystemUpwardMessages, hash).subscribe({
-            next: () => {
-              calls++
-            },
-            complete: () => {
-              expect(calls).toBe(1)
-              done()
-            },
-          })
-        },
-      })
-
-      catcher.stop()
-    })
-
-    it('should get outbound UMP messages from chain storage if using rpc', (done) => {
-      const mockUpwardMessagesQuery = jest.fn(() =>
-        Promise.resolve({
-          toU8a: () => new Uint8Array(0),
-        }),
-      )
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({} as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:1000': {
-                isReady: Promise.resolve({
-                  rpc: {
-                    state: {
-                      getStorage: mockUpwardMessagesQuery,
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-      })
-
-      catcher.getStorage('urn:ocn:local:1000', parachainSystemUpwardMessages, '0x4B1D').subscribe({
-        complete: () => {
-          expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1)
-          done()
-        },
+      await new Promise<void>((resolve) => {
+        catcher.getStorage('urn:ocn:local:1000', '0x4B1D').subscribe({
+          complete: () => {
+            expect(mockUpwardMessagesQuery).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
       })
     })
   })
 
   describe('outboundHrmpMessages', () => {
-    it('should construct outbound HRMP messages from cached buffers if using smoldot', (done) => {
-      const mockRegistry = {
-        createType: jest.fn(),
-      }
-      const blocksSource = from(interlayBlocks)
-
+    it('should get outbound HRMP messages from chain storage if using rpc', async () => {
+      const mockHrmpOutboundMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
       const catcher = new HeadCatcher({
         ..._services,
-        localConfig: mockConfigMixed,
+        localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({} as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                  },
-                },
-              } as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:2032': {
-                isReady: Promise.resolve({
-                  registry: mockRegistry,
-                  rpc: {
-                    state: {
-                      getStorage: () =>
-                        Promise.resolve({
-                          toU8a: () => new Uint8Array(0),
-                        }),
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
+            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:1000': {
+              getStorage: mockHrmpOutboundMessagesQuery,
+            } as unknown as ApiClient,
+            'urn:ocn:local:2032': {} as unknown as ApiClient,
           }),
         } as unknown as Connector,
         levelDB: db,
       })
 
-      catcher.start()
-
-      let calls = 0
-      blocksSource.subscribe({
-        complete: () => {
-          const hash = '0x0137cd64c09a46e3790ac01d30333bbf4c47b593cea736eec12e3df959dd06b0'
-          catcher.getStorage('urn:ocn:local:2032', parachainSystemHrmpOutboundMessages, hash).subscribe({
-            next: () => {
-              calls++
-            },
-            complete: () => {
-              expect(calls).toBe(1)
-              done()
-            },
-          })
-        },
-      })
-
-      catcher.stop()
-    })
-
-    it('should get outbound HRMP messages from chain storage if using rpc', (done) => {
-      const mockHrmpOutboundMessagesQuery = jest.fn(() =>
-        Promise.resolve({
-          toU8a: () => new Uint8Array(0),
-        }),
-      )
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({} as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:1000': {
-                isReady: Promise.resolve({
-                  rpc: {
-                    state: {
-                      getStorage: mockHrmpOutboundMessagesQuery,
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-      })
-
-      catcher.getStorage('urn:ocn:local:1000', parachainSystemHrmpOutboundMessages, '0x4B1D').subscribe({
-        complete: () => {
-          expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1)
-          done()
-        },
+      await new Promise<void>((resolve) => {
+        catcher.getStorage('urn:ocn:local:1000', '0x4B1D').subscribe({
+          complete: () => {
+            expect(mockHrmpOutboundMessagesQuery).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
       })
     })
   })

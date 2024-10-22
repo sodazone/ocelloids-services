@@ -1,11 +1,11 @@
 import { jest } from '@jest/globals'
 
 import {
+  apiContext,
   dmpReceive,
   dmpSendMultipleMessagesInQueue,
   dmpSendSingleMessageInQueue,
   dmpXcmPalletSentEvent,
-  registry,
   xcmHop,
   xcmHopOrigin,
 } from '@/testing/xcm.js'
@@ -19,7 +19,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn()
 
-      const test$ = extractDmpSend(origin, getDmp, registry)(blocks.pipe(extractTxWithEvents()))
+      const test$ = extractDmpSend(origin, getDmp, apiContext)(blocks.pipe(extractTxWithEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -45,7 +45,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn()
 
-      const test$ = extractDmpSendByEvent(origin, getDmp, registry)(blocks.pipe(extractEvents()))
+      const test$ = extractDmpSendByEvent(origin, getDmp, apiContext)(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -71,7 +71,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn()
 
-      const test$ = extractDmpSend(origin, getDmp, registry)(blocks.pipe(extractTxWithEvents()))
+      const test$ = extractDmpSend(origin, getDmp, apiContext)(blocks.pipe(extractTxWithEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -99,7 +99,7 @@ describe('dmp operator', () => {
 
       const calls = jest.fn()
 
-      const test$ = extractDmpSendByEvent(origin, getDmp, registry)(blocks.pipe(extractEvents()))
+      const test$ = extractDmpSendByEvent(origin, getDmp, apiContext)(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {

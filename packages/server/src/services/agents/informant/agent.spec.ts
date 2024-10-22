@@ -1,12 +1,10 @@
-import { jest } from '@jest/globals'
 import { from } from 'rxjs'
-
-import { extractEvents, extractTxWithEvents } from '@sodazone/ocelloids-sdk'
 
 import { Egress } from '@/services/egress/hub.js'
 import { SubsStore } from '@/services/persistence/level/subs.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
+import { polkadotBlocks } from '@/testing/blocks.js'
 import { _services } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
 import { SharedStreams } from '../base/shared.js'
@@ -15,13 +13,13 @@ import { AgentCatalog } from '../types.js'
 import { InformantAgent, InformantInputs } from './agent.js'
 
 import '@/testing/network.js'
-import { polkadotBlocks } from '@/testing/blocks.js'
+import { extractEvents, extractTxWithEvents } from '@/common/index.js'
 
-jest.spyOn(SharedStreams.prototype, 'blockEvents').mockImplementation((_chainId: NetworkURN) => {
+vi.spyOn(SharedStreams.prototype, 'blockEvents').mockImplementation((_chainId: NetworkURN) => {
   return from(polkadotBlocks).pipe(extractEvents())
 })
 
-jest.spyOn(SharedStreams.prototype, 'blockExtrinsics').mockImplementation((_chainId: NetworkURN) => {
+vi.spyOn(SharedStreams.prototype, 'blockExtrinsics').mockImplementation((_chainId: NetworkURN) => {
   return from(polkadotBlocks).pipe(extractTxWithEvents())
 })
 
@@ -35,8 +33,8 @@ const eventSub: Subscription<InformantInputs> = {
     filter: {
       type: 'event',
       match: {
-        section: 'balances',
-        $or: [{ method: 'Deposit' }, { method: 'Transfer' }],
+        module: 'Balances',
+        $or: [{ name: 'Deposit' }, { name: 'Transfer' }],
       },
     },
   },
@@ -56,7 +54,8 @@ const extrinsicSub: Subscription<InformantInputs> = {
     filter: {
       type: 'extrinsic',
       match: {
-        'extrinsic.call.section': 'xcmPallet',
+        module: 'Balances',
+        method: 'transfer_allow_death',
       },
     },
   },
@@ -106,7 +105,7 @@ describe('informant agent', () => {
   })
 
   it('should subscribe to extrinsic subscriptions', async () => {
-    const spy = jest.spyOn(egress, 'publish')
+    const spy = vi.spyOn(egress, 'publish')
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(extrinsicSub)
@@ -136,12 +135,12 @@ describe('informant agent', () => {
   })
 
   it('should publish to egress for event subscriptions', async () => {
-    const spy = jest.spyOn(egress, 'publish')
+    const spy = vi.spyOn(egress, 'publish')
 
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(eventSub)
-    expect(spy).toHaveBeenCalledTimes(3)
+    expect(spy).toHaveBeenCalledTimes(9)
   })
 
   it('should unsubscribe subscription', async () => {
@@ -169,8 +168,8 @@ describe('informant agent', () => {
       filter: {
         type: 'event',
         match: {
-          section: 'accounts',
-          $or: [{ method: 'Deposit' }, { method: 'Transfer' }],
+          module: 'Balances',
+          $or: [{ name: 'Deposit' }, { name: 'Transfer' }],
         },
       },
     })

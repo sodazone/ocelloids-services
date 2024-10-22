@@ -34,8 +34,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   get ctx() {
     return this.#apiContext()
   }
-  // Not as getter...
-  get subscribeFinalizedHeads() {
+  get finalizedHeads$() {
     return this.#head$.finalized$
   }
   readonly getChainSpecData: () => Promise<ChainSpecData>

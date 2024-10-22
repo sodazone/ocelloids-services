@@ -26,7 +26,7 @@ export const _config = $ServiceConfiguration.parse(toml.parse(_configToml))
 
 function mockApiClient() {
   const _client = {
-    subscribeFinalizedHeads: () => of({}),
+    finalizedHeads$: of({}),
   }
   return {
     ..._client,

@@ -5,9 +5,9 @@ import { ApiClient, ApiContext } from '@/services/networking/index.js'
 
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
 import { NetworkURN } from '../services/types.js'
-import { testBlocksFrom, testRegistryFromMetadata } from './blocks.js'
+import { testApiContextFromMetadata, testBlocksFrom } from './blocks.js'
 
-export const registry: ApiContext = testRegistryFromMetadata('polkadot.json')
+export const apiContext: ApiContext = testApiContextFromMetadata('polkadot.scale')
 
 // XCMP testing mocks
 const xcmpData =

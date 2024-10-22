@@ -1,7 +1,5 @@
-import { jest } from '@jest/globals'
-import { extractEvents } from '@sodazone/ocelloids-sdk'
-
-import { registry, xcmHop, xcmpReceive, xcmpSend } from '@/testing/xcm.js'
+import { extractEvents } from '@/common/index.js'
+import { apiContext, xcmHop, xcmpReceive, xcmpSend } from '@/testing/xcm.js'
 
 import { extractXcmpReceive, extractXcmpSend } from './xcmp.js'
 
@@ -9,10 +7,8 @@ describe('xcmp operator', () => {
   describe('extractXcmpSend', () => {
     it('should extract XCMP sent message', (done) => {
       const { origin, blocks, getHrmp } = xcmpSend
-
-      const calls = jest.fn()
-
-      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()))
+      const calls = vi.fn()
+      const test$ = extractXcmpSend(origin, getHrmp, apiContext)(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -36,9 +32,9 @@ describe('xcmp operator', () => {
     it('should extract XCMP sent on hops', (done) => {
       const { origin, blocks, getHrmp } = xcmHop
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
-      const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()))
+      const test$ = extractXcmpSend(origin, getHrmp, apiContext)(blocks.pipe(extractEvents()))
 
       test$.subscribe({
         next: (msg) => {
@@ -63,9 +59,9 @@ describe('xcmp operator', () => {
   it('should extract XCMP sent message matching by public key', (done) => {
     const { origin, blocks, getHrmp } = xcmpSend
 
-    const calls = jest.fn()
+    const calls = vi.fn()
 
-    const test$ = extractXcmpSend(origin, getHrmp, registry)(blocks.pipe(extractEvents()))
+    const test$ = extractXcmpSend(origin, getHrmp, apiContext)(blocks.pipe(extractEvents()))
 
     test$.subscribe({
       next: (msg) => {
@@ -90,7 +86,7 @@ describe('xcmp operator', () => {
     it('should extract XCMP receive with outcome success', (done) => {
       const { successBlocks } = xcmpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractXcmpReceive()(successBlocks.pipe(extractEvents()))
 
@@ -116,7 +112,7 @@ describe('xcmp operator', () => {
     it('should extract failed XCMP received message with error', (done) => {
       const { failBlocks } = xcmpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractXcmpReceive()(failBlocks.pipe(extractEvents()))
 
@@ -143,7 +139,7 @@ describe('xcmp operator', () => {
     it('should extract assets trapped info on XCMP received message', (done) => {
       const { trappedBlocks } = xcmpReceive
 
-      const calls = jest.fn()
+      const calls = vi.fn()
 
       const test$ = extractXcmpReceive()(trappedBlocks.pipe(extractEvents()))
 

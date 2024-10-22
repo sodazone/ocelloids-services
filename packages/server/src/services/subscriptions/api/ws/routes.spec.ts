@@ -25,52 +25,58 @@ describe('ws api', () => {
     return server.close()
   })
 
-  it('should return jwt in nod protocol', (done) => {
-    server.inject(
-      {
-        method: 'GET',
-        url: '/ws/nod',
-        headers: {
-          authorization: `Bearer ${validToken}`,
+  it('should return jwt in nod protocol', async () => {
+    await new Promise<void>((resolve) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/ws/nod',
+          headers: {
+            authorization: `Bearer ${validToken}`,
+          },
         },
-      },
-      (_err, response) => {
-        done()
-        expect(response?.statusCode).toStrictEqual(200)
-        expect(response?.json().token).toBeDefined()
-      },
-    )
+        (_err, response) => {
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(response?.json().token).toBeDefined()
+          resolve()
+        },
+      )
+    })
   })
 
-  it('should return unauthorized for invalid subject', (done) => {
-    server.inject(
-      {
-        method: 'GET',
-        url: '/ws/nod',
-        headers: {
-          authorization: `Bearer ${invalidToken}`,
+  it('should return unauthorized for invalid subject', async () => {
+    await new Promise<void>((resolve) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: '/ws/nod',
+          headers: {
+            authorization: `Bearer ${invalidToken}`,
+          },
         },
-      },
-      (_err, response) => {
-        done()
-        expect(response?.statusCode).toStrictEqual(401)
-      },
-    )
+        (_err, response) => {
+          expect(response?.statusCode).toStrictEqual(401)
+          resolve()
+        },
+      )
+    })
   })
 
-  it('should return 404 if no subscription is made', (done) => {
-    server.inject(
-      {
-        method: 'GET',
-        url: `/ws/subs/xcm/macatron?nod=${testAntiDosToken}`,
-        headers: {
-          authorization: `Bearer ${validToken}`,
+  it('should return 404 if no subscription is made', async () => {
+    await new Promise<void>((resolve) => {
+      server.inject(
+        {
+          method: 'GET',
+          url: `/ws/subs/xcm/macatron?nod=${testAntiDosToken}`,
+          headers: {
+            authorization: `Bearer ${validToken}`,
+          },
         },
-      },
-      (_err, response) => {
-        done()
-        expect(response?.statusCode).toStrictEqual(404)
-      },
-    )
+        (_err, response) => {
+          expect(response?.statusCode).toStrictEqual(404)
+          resolve()
+        },
+      )
+    })
   })
 })
