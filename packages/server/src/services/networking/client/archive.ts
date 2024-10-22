@@ -19,6 +19,12 @@ import { Block, EventRecord } from '../types.js'
 import { RuntimeApiContext } from './context.js'
 import { ApiClient, ApiContext } from './types.js'
 
+export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
+  const client = new ArchiveClient(log, chainId, url)
+  client.connect()
+  return await client.isReady()
+}
+
 /**
  * Archive Substrate API client.
  */
@@ -28,7 +34,8 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   get ctx() {
     return this.#apiContext()
   }
-  get finalizedHeads$() {
+  // Not as getter...
+  get subscribeFinalizedHeads() {
     return this.#head$.finalized$
   }
   readonly getChainSpecData: () => Promise<ChainSpecData>
@@ -62,7 +69,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     this.#head$ = this.#client.chainHead$()
 
     this.#apiContext = () => {
-      throw new Error('Runtime context not initialized')
+      throw new Error('Runtime context not initialized. Try using awaiting isReady().')
     }
   }
 
@@ -157,52 +164,51 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   }
 
   async #getEvents(hash: string) {
-    const events: SystemEvent[] =
-      this.ctx.events.dec(
-        (
-          await this.#request<
-            {
-              result: [
-                {
-                  key: string
-                  value: string
-                },
-              ]
-            },
-            [
-              hash: string,
-              items: [
-                {
-                  key: string
-                  type: string
-                },
-              ],
-              childTrie: null,
-            ]
-          >('archive_unstable_storage', [
-            hash,
-            [
-              {
-                key: this.ctx.events.key,
-                type: 'value',
-              },
-            ],
-            null,
-          ])
-        ).result[0]?.value,
-      ) ?? []
-
-    return events.map(
-      ({ phase, topics, event }) =>
-        ({
-          phase,
-          topics,
-          event: {
-            module: event.type,
-            name: event.value.type,
-            value: event.value.value,
+    const { result } = await this.#request<
+      {
+        result: [
+          {
+            key: string
+            value: string
           },
-        }) as EventRecord,
-    )
+        ]
+      },
+      [
+        hash: string,
+        items: [
+          {
+            key: string
+            type: string
+          },
+        ],
+        childTrie: null,
+      ]
+    >('archive_unstable_storage', [
+      hash,
+      [
+        {
+          key: this.ctx.events.key,
+          type: 'value',
+        },
+      ],
+      null,
+    ])
+
+    if (result) {
+      const events: SystemEvent[] = this.ctx.events.dec(result[0]?.value) ?? []
+      return events.map(
+        ({ phase, topics, event }) =>
+          ({
+            phase,
+            topics,
+            event: {
+              module: event.type,
+              name: event.value.type,
+              value: event.value.value,
+            },
+          }) as EventRecord,
+      )
+    }
+    return []
   }
 }

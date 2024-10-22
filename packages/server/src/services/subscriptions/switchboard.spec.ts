@@ -1,11 +1,7 @@
 import '@/testing/network.js'
 
-import { LocalAgentCatalog } from '@/services/agents/catalog/local.js'
-import { AgentCatalog } from '@/services/agents/types.js'
 import { SubsStore } from '@/services/persistence/level/subs.js'
-import { Services } from '@/services/types.js'
 import { _services } from '@/testing/services.js'
-import { AgentServiceMode } from '@/types.js'
 
 import type { Switchboard } from './switchboard.js'
 import { Subscription } from './types.js'

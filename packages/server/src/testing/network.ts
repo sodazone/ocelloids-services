@@ -1,12 +1,10 @@
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 
-import * as P from '@polkadot/api'
-import * as C from '@sodazone/ocelloids-sdk'
 import { MemoryLevel } from 'memory-level'
 
 import { _configToml, jwtSigKey } from './data.js'
 
-jest.unstable_mockModule('node:fs', () => {
+vi.mock('node:fs', () => {
   return {
     default: {
       existsSync: () => true,
@@ -20,76 +18,6 @@ jest.unstable_mockModule('node:fs', () => {
   }
 })
 
-jest.unstable_mockModule('level', async () => {
+vi.mock('level', async () => {
   return { Level: MemoryLevel }
-})
-
-jest.unstable_mockModule('@polkadot/api', () => {
-  return {
-    __esModule: true,
-    ...P,
-    WsProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn(),
-      }
-    }),
-    ScProvider: jest.fn(() => {
-      return {
-        hasSubscriptions: jest.fn(() => {
-          return true
-        }),
-        on: jest.fn(),
-        connect: jest.fn(() => Promise.resolve()),
-        disconnect: jest.fn(() => Promise.resolve()),
-        send: jest.fn(),
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn(),
-      }
-    }),
-  }
-})
-
-jest.unstable_mockModule('@sodazone/ocelloids-sdk', () => {
-  return {
-    __esModule: true,
-    ...C,
-    SubstrateApis: class extends C.SubstrateApis {
-      get promise() {
-        const p = Promise.resolve({
-          registry: {
-            hasType: () => true,
-          },
-          derive: {
-            chain: {
-              getBlock: () => {
-                /* empty */
-              },
-            },
-          },
-          rpc: {
-            state: {
-              getMetadata: () => ({
-                toU8a: () => new Uint8Array(0),
-              }),
-            },
-          },
-        } as unknown as P.ApiPromise)
-        const records: Record<string, P.ApiPromise> = {}
-        for (const k of this.chains) {
-          records[k] = {
-            isReady: p,
-          } as unknown as P.ApiPromise
-        }
-        return records
-      }
-    },
-  }
 })

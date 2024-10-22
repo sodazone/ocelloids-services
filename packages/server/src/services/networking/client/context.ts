@@ -54,7 +54,7 @@ export class RuntimeApiContext implements ApiContext {
     return this.#metadata.lookup.find((ty) => ty.path.join('.').toLowerCase() === target.toLowerCase())?.id
   }
 
-  decodeExtrinsic(hextBytes: string): Extrinsic {
+  decodeExtrinsic(hextBytes: string | Uint8Array): Extrinsic {
     const xt: {
       callData: Binary
       signed: boolean

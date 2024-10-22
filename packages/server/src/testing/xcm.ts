@@ -1,23 +1,13 @@
-import '@polkadot/api-augment/polkadot'
-
-import { jest } from '@jest/globals'
-
-import { ApiPromise } from '@polkadot/api'
-import { Metadata, TypeRegistry } from '@polkadot/types'
-import type { Bytes, Vec } from '@polkadot/types'
-import spec from '@polkadot/types-support/metadata/static-polkadot'
-import type { PolkadotCorePrimitivesOutboundHrmpMessage } from '@polkadot/types/lookup'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { from, of } from 'rxjs'
+
+import { ControlQuery } from '@/common/index.js'
+import { ApiClient, ApiContext } from '@/services/networking/index.js'
 
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
 import { NetworkURN } from '../services/types.js'
-import { testBlocksFrom } from './blocks.js'
+import { testBlocksFrom, testRegistryFromMetadata } from './blocks.js'
 
-const _registry = new TypeRegistry()
-const metadata = new Metadata(_registry, spec)
-_registry.setMetadata(metadata)
-export const registry = _registry
+export const registry: ApiContext = testRegistryFromMetadata('polkadot.json')
 
 // XCMP testing mocks
 const xcmpData =
@@ -33,9 +23,9 @@ export const xcmpSend = {
           recipient: {
             toNumber: () => 2032,
           },
-          data: registry.createType('Bytes', xcmpData),
+          data: xcmpData,
         },
-      ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,
+      ],
     ]),
 }
 
@@ -52,7 +42,7 @@ export const umpSend = {
   origin: 'urn:ocn:local:1000' as NetworkURN,
   blocks: from(testBlocksFrom('ump-out-1000.cbor.bin', 'asset-hub.json')),
   sendersControl: new ControlQuery(sendersCriteria(['14dqxCimfu8PEuneBLgZnxgyxPuMoaVto7xozL6rgSo3hGU9'])),
-  getUmp: () => from([[registry.createType('Bytes', umpData)] as Vec<Bytes>]),
+  getUmp: () => from([[umpData]]),
 }
 
 export const umpReceive = {
@@ -114,9 +104,7 @@ export const dmpReceive = {
   successBlocks: from(testBlocksFrom('dmp-in-1000-success.cbor.bin', 'asset-hub.json')),
   failBlocks: from(testBlocksFrom('dmp-in-1000-fail.cbor.bin', 'asset-hub.json')),
   trappedBlocks: from(testBlocksFrom('dmp-2034-trapped-4159643.cbor.bin', 'hydra-201.json')),
-  api: {
-    at: () => jest.fn(),
-  } as unknown as ApiPromise,
+  api: {} as unknown as ApiClient,
 }
 
 export const relayHrmpReceive = {
@@ -142,12 +130,9 @@ export const xcmHop = {
           recipient: {
             toNumber: () => 1000,
           },
-          data: registry.createType(
-            'Bytes',
-            '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34',
-          ),
+          data: '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34',
         },
-      ] as unknown as Vec<PolkadotCorePrimitivesOutboundHrmpMessage>,
+      ],
     ]),
 }
 
@@ -164,7 +149,7 @@ export const xcmHopOrigin = {
     of([
       {
         msg: new Uint8Array(Buffer.from(xcmData, 'hex')),
-        toU8a: () => new Uint8Array(Buffer.from(xcmData, 'hex')),
+        asBinary: () => new Uint8Array(Buffer.from(xcmData, 'hex')),
       },
     ] as unknown as any),
 }

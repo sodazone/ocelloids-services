@@ -1,8 +1,9 @@
-import { ApiPromise, ApiRx } from '@polkadot/api'
 import { MemoryLevel } from 'memory-level'
 import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
+
+import { ApiClient } from '@/services/networking/index.js'
 
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
@@ -23,247 +24,28 @@ export const _log = pino({
 
 export const _config = $ServiceConfiguration.parse(toml.parse(_configToml))
 
-export const _mockApiPromises = {
-  'urn:ocn:local:0': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:local:1000': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-      at: () => {
-        return Promise.resolve({
-          query: {},
-        })
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:local:2000': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:local:3000': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:wococo:1000': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:wococo:1002': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
-  'urn:ocn:paseo:0': {
-    isReady: Promise.resolve({
-      registry: {
-        createType: () => ({
-          type: 'V3',
-          asV3: [],
-        }),
-        hasType: () => true,
-      },
-      derive: {
-        chain: {
-          getBlock: () => {
-            /* empty */
-          },
-        },
-      },
-      rpc: {
-        state: {
-          getMetadata: () => ({
-            toU8a: () => new Uint8Array(0),
-          }),
-        },
-      },
-    } as unknown as ApiPromise),
-  },
+function mockApiClient() {
+  const _client = {
+    subscribeFinalizedHeads: () => of({}),
+  }
+  return {
+    ..._client,
+    isReady: () => of(_client),
+  } as unknown as ApiClient
 }
 
-export const _mockApiRxs = {
-  'urn:ocn:local:0': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
-  'urn:ocn:local:1000': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  }),
-  'urn:ocn:local:2000': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
-  'urn:ocn:local:3000': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
-  'urn:ocn:wococo:1000': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
-  'urn:ocn:wococo:1002': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
-  'urn:ocn:paseo:0': of({
-    rpc: {
-      chain: {
-        subscribeFinalizedHeads: () => of({}),
-      },
-    },
-  } as unknown as ApiRx),
+export const _mockApis = {
+  'urn:ocn:local:0': mockApiClient(),
+  'urn:ocn:local:1000': mockApiClient(),
+  'urn:ocn:local:2000': mockApiClient(),
+  'urn:ocn:local:3000': mockApiClient(),
+  'urn:ocn:wococo:1000': mockApiClient(),
+  'urn:ocn:wococo:1002': mockApiClient(),
+  'urn:ocn:paseo:0': mockApiClient(),
 }
 
 export const _connector = {
-  connect: () => ({
-    promise: _mockApiPromises,
-    rx: _mockApiRxs,
-    chains: Object.keys(_mockApiRxs),
-  }),
+  connect: () => _mockApis,
 } as unknown as Connector
 
 export const _rootDB = new MemoryLevel()

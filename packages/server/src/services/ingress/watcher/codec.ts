@@ -1,5 +1,6 @@
 import { decode, encode } from 'cbor-x'
 
+import { asSerializable } from '@/common/index.js'
 import { Block } from '@/services/networking/types.js'
 
 export function decodeBlock(buffer: Buffer | Uint8Array): Block {
@@ -7,5 +8,5 @@ export function decodeBlock(buffer: Buffer | Uint8Array): Block {
 }
 
 export function encodeBlock(block: Block) {
-  return encode(block)
+  return encode(asSerializable(block))
 }
