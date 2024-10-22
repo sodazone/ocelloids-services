@@ -10,6 +10,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    coverage: {
+      reporter: ['text'],
+      reportOnFailure: true,
+      provider: "v8"
+    },
   },
   resolve: {
     alias: { "@": fileURLToPath(new URL('./src', import.meta.url)) },
