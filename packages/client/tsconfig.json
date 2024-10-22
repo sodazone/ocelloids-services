@@ -9,7 +9,7 @@
     ],
     "baseUrl": "./src",
     "types": [
-      "jest"
+      "vitest/globals"
     ],
     "outDir": "./dist",
     "isolatedModules": true,
@@ -20,14 +20,15 @@
     "sourceMap": true,
     "declarationMap": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "**/*.spec.ts",
+    //"**/*.spec.ts",
     "test", 
     "examples"
   ]

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 
 import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
@@ -8,17 +8,16 @@ import type { QueryResult, Subscription, WsAuthErrorEvent } from './lib'
 import { AssetMetadata, StewardQueryArgs } from './steward/types'
 import { XcmInputs, XcmMessagePayload } from './xcm/types'
 
-jest.unstable_mockModule('isows', () => {
+vi.mock('isows', () => {
   return {
     __esModule: true,
     WebSocket,
   }
 })
 
-//[!] important: requires dynamic imports
-const { OcelloidsClient } = await import('./client')
-const { isSubscriptionError } = await import('./lib')
-const { isXcmReceived, isXcmSent, isXcmRelayed } = await import('./xcm/types')
+import { OcelloidsClient } from './client'
+import { isSubscriptionError } from './lib'
+import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
 
 describe('OcelloidsClient', () => {
   it('should create a client instance', () => {
@@ -50,7 +49,7 @@ describe('OcelloidsClient', () => {
       mockWebSocketServer?.stop()
     })
 
-    it('should connect to a subscription', (done) => {
+    it('should connect to a subscription', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
       const samplesNum = samples.length
@@ -71,30 +70,32 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      let called = 0
-      client.agent('agentid').subscribe<XcmMessagePayload>('subid', {
-        onMessage: (msg) => {
-          expect(msg).toBeDefined()
+      await new Promise<void>((resolve, reject) => {
+        let called = 0
+        client.agent('agentid').subscribe<XcmMessagePayload>('subid', {
+          onMessage: (msg) => {
+            expect(msg).toBeDefined()
 
-          switch (called) {
-            case 1:
-              expect(isXcmSent(msg.payload)).toBeTruthy()
-              break
-            case 2:
-              expect(isXcmReceived(msg.payload)).toBeTruthy()
-              break
-            default:
-            //
-          }
+            switch (called) {
+              case 1:
+                expect(isXcmSent(msg.payload)).toBeTruthy()
+                break
+              case 2:
+                expect(isXcmReceived(msg.payload)).toBeTruthy()
+                break
+              default:
+              //
+            }
 
-          if (++called === samplesNum) {
-            done()
-          }
-        },
+            if (++called === samplesNum) {
+              resolve()
+            }
+          },
+        })
       })
     })
 
-    it('should create on-demand subscription', (done) => {
+    it('should create on-demand subscription', async () => {
       const wsUrl = 'ws://mock/ws/subs'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -109,36 +110,37 @@ describe('OcelloidsClient', () => {
         wsUrl: 'ws://mock',
         httpUrl: 'https://rpc.abc',
       })
-
-      client.agent<XcmInputs>('xcm').subscribe(
-        {
-          origin: 'urn:ocn:local:2004',
-          senders: '*',
-          events: '*',
-          destinations: [
-            'urn:ocn:local:0',
-            'urn:ocn:local:1000',
-            'urn:ocn:local:2000',
-            'urn:ocn:local:2034',
-            'urn:ocn:local:2104',
-          ],
-        },
-        {
-          onMessage: (msg) => {
-            expect(msg).toBeDefined()
-            expect(isXcmRelayed(msg.payload)).toBeTruthy()
-            done()
+      await new Promise<void>((resolve, reject) => {
+        client.agent<XcmInputs>('xcm').subscribe(
+          {
+            origin: 'urn:ocn:local:2004',
+            senders: '*',
+            events: '*',
+            destinations: [
+              'urn:ocn:local:0',
+              'urn:ocn:local:1000',
+              'urn:ocn:local:2000',
+              'urn:ocn:local:2034',
+              'urn:ocn:local:2104',
+            ],
           },
-        },
-        {
-          onSubscriptionCreated: (sub) => {
-            expect(sub.agent).toBe('xcm')
+          {
+            onMessage: (msg) => {
+              expect(msg).toBeDefined()
+              expect(isXcmRelayed(msg.payload)).toBeTruthy()
+              resolve()
+            },
           },
-        },
-      )
+          {
+            onSubscriptionCreated: (sub) => {
+              expect(sub.agent).toBe('xcm')
+            },
+          },
+        )
+      })
     })
 
-    it('should create on-demand subscription with auth', (done) => {
+    it('should create on-demand subscription with auth', async () => {
       const wsUrl = 'ws://mock/ws/subs'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -162,35 +164,37 @@ describe('OcelloidsClient', () => {
         apiKey: 'abracadabra',
       })
 
-      client.agent<XcmInputs>('xcm').subscribe(
-        {
-          origin: 'urn:ocn:local:2004',
-          senders: '*',
-          events: '*',
-          destinations: [
-            'urn:ocn:local:0',
-            'urn:ocn:local:1000',
-            'urn:ocn:local:2000',
-            'urn:ocn:local:2034',
-            'urn:ocn:local:2104',
-          ],
-        },
-        {
-          onMessage: (msg) => {
-            expect(msg).toBeDefined()
-            expect(isXcmRelayed(msg.payload)).toBeTruthy()
-            done()
+      await new Promise<void>((resolve, reject) => {
+        client.agent<XcmInputs>('xcm').subscribe(
+          {
+            origin: 'urn:ocn:local:2004',
+            senders: '*',
+            events: '*',
+            destinations: [
+              'urn:ocn:local:0',
+              'urn:ocn:local:1000',
+              'urn:ocn:local:2000',
+              'urn:ocn:local:2034',
+              'urn:ocn:local:2104',
+            ],
           },
-        },
-        {
-          onSubscriptionCreated: (sub) => {
-            expect(sub.agent).toBe('xcm')
+          {
+            onMessage: (msg) => {
+              expect(msg).toBeDefined()
+              expect(isXcmRelayed(msg.payload)).toBeTruthy()
+              resolve()
+            },
           },
-        },
-      )
+          {
+            onSubscriptionCreated: (sub) => {
+              expect(sub.agent).toBe('xcm')
+            },
+          },
+        )
+      })
     })
 
-    it('should handle on-demand subscription creation errors', (done) => {
+    it('should handle on-demand subscription creation errors', async () => {
       const wsUrl = 'ws://mock/ws/subs'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -218,35 +222,37 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.agent<XcmInputs>('xcm').subscribe(
-        {
-          origin: 'urn:ocn:local:2004',
-          senders: '*',
-          events: '*',
-          destinations: [
-            'urn:ocn:local:0',
-            'urn:ocn:local:1000',
-            'urn:ocn:local:2000',
-            'urn:ocn:local:2034',
-            'urn:ocn:local:2104',
-          ],
-        },
-        {
-          onMessage: (_) => {
-            fail('should not receive messages')
+      await new Promise<void>((resolve, reject) => {
+        client.agent<XcmInputs>('xcm').subscribe(
+          {
+            origin: 'urn:ocn:local:2004',
+            senders: '*',
+            events: '*',
+            destinations: [
+              'urn:ocn:local:0',
+              'urn:ocn:local:1000',
+              'urn:ocn:local:2000',
+              'urn:ocn:local:2034',
+              'urn:ocn:local:2104',
+            ],
           },
-        },
-        {
-          onSubscriptionError: (err) => {
-            expect(err).toBeDefined()
-            expect(isSubscriptionError(err)).toBeTruthy()
-            done()
+          {
+            onMessage: (_) => {
+              reject('should not receive messages')
+            },
           },
-        },
-      )
+          {
+            onSubscriptionError: (err) => {
+              expect(err).toBeDefined()
+              expect(isSubscriptionError(err)).toBeTruthy()
+              resolve()
+            },
+          },
+        )
+      })
     })
 
-    it('should handle socket closed', (done) => {
+    it('should handle socket closed', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -263,21 +269,23 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.agent('agentid').subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive messages')
-        },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (e) => {
-          expect(e).toBeDefined()
-          done()
-        },
+      await new Promise<void>((resolve, reject) => {
+        client.agent('agentid').subscribe('subid', {
+          onMessage: (_) => {
+            reject('should not receive messages')
+          },
+          onError: (_) => {
+            reject('should not receive error')
+          },
+          onClose: (e) => {
+            expect(e).toBeDefined()
+            resolve()
+          },
+        })
       })
     })
 
-    it('should authentitcate for existing subscription', (done) => {
+    it('should authentitcate for existing subscription', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -294,21 +302,22 @@ describe('OcelloidsClient', () => {
         apiKey: 'abracadabra',
         httpUrl: 'https://rpc.abc',
       })
-
-      client.agent('agentid').subscribe('subid', {
-        onMessage: (_) => {
-          done()
-        },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (_) => {
-          fail('should not receive close')
-        },
+      await new Promise<void>((resolve, reject) => {
+        client.agent('agentid').subscribe('subid', {
+          onMessage: (_) => {
+            resolve()
+          },
+          onError: (_) => {
+            reject('should not receive error')
+          },
+          onClose: (_) => {
+            reject('should not receive close')
+          },
+        })
       })
     })
 
-    it('should handle auth error', (done) => {
+    it('should handle auth error', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -324,24 +333,26 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      client.agent('agentid').subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive message')
-        },
-        onAuthError: (r) => {
-          expect(r.error).toBeTruthy()
-          done()
-        },
-        onError: (_) => {
-          fail('should not receive error')
-        },
-        onClose: (_) => {
-          fail('should not receive close')
-        },
+      await new Promise<void>((resolve, reject) => {
+        client.agent('agentid').subscribe('subid', {
+          onMessage: (_) => {
+            reject('should not receive message')
+          },
+          onAuthError: (r) => {
+            expect(r.error).toBeTruthy()
+            resolve()
+          },
+          onError: (_) => {
+            reject('should not receive error')
+          },
+          onClose: (_) => {
+            reject('should not receive close')
+          },
+        })
       })
     })
 
-    it('should throw auth error event', (done) => {
+    it('should throw auth error event', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 
@@ -356,16 +367,17 @@ describe('OcelloidsClient', () => {
         apiKey: 'abracadabra',
         httpUrl: 'https://rpc.abc',
       })
-
-      client.agent('agentid').subscribe('subid', {
-        onMessage: (_) => {
-          fail('should not receive message')
-        },
-        onError: (error) => {
-          const authError = error as WsAuthErrorEvent
-          expect(authError.name).toBe('WsAuthError')
-          done()
-        },
+      await new Promise<void>((resolve, reject) => {
+        client.agent('agentid').subscribe('subid', {
+          onMessage: (_) => {
+            reject('should not receive message')
+          },
+          onError: (error) => {
+            const authError = error as WsAuthErrorEvent
+            expect(authError.name).toBe('WsAuthError')
+            resolve()
+          },
+        })
       })
     })
   })
@@ -377,7 +389,7 @@ describe('OcelloidsClient', () => {
 
     it('should execute a query', async () => {
       const queryArgs: StewardQueryArgs = {
-        op: 'assets.metadata',
+        op: 'assets',
         criteria: [{ network: 'urn:ocn:local:0', assets: ['0'] }],
       }
       const scope = nock('http://mock')
@@ -411,7 +423,7 @@ describe('OcelloidsClient', () => {
 
     it('should execute a query with pagination', async () => {
       const queryArgs: StewardQueryArgs = {
-        op: 'assets.metadata',
+        op: 'assets',
         criteria: [{ network: 'urn:ocn:local:0', assets: ['0'] }],
       }
       const scope = nock('http://mock')
