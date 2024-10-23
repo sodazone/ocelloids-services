@@ -32,9 +32,9 @@
     "clean": true
   },
   "scripts": {
-    "build": "yarn build:ts",
+    "build": "yarn build:ts && yarn build:api",
     "build:ts": "tsup",
-    "build:api": "tsc  && api-extractor run --local --verbose",
+    "build:api": "tsc && api-extractor run --local --verbose",
     "test": "vitest",
     "docs": "typedoc",
     "lint": "biome check --write src/**/*.ts"
