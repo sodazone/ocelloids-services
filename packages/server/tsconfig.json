@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
+    "rootDir": "src",
     "types": ["vitest/globals"],
     "paths": {
       "@/*": ["*"]
@@ -18,7 +19,7 @@
   },
   "include": [
     "src/**/*",
-    "vitest.config.ts"
+    "src/vitest.config.ts"
   ],
   "exclude": [
     "node_modules"
