@@ -1,16 +1,10 @@
 import { vi } from 'vitest'
 
-vi.mock('./client/archive.js', () => {
-  return {
-    ArchiveClient: vi.fn().mockReturnValue({
-      connect: vi.fn().mockResolvedValue(true),
-      disconnect: vi.fn(),
-    }),
-  }
-})
+import '@/testing/network.js'
 
 import { mockConfigRelayLast, mockConfigWS } from '@/testing/configs.js'
 import { _log } from '@/testing/services.js'
+
 import Connector from './connector.js'
 
 describe('connector', () => {

@@ -82,8 +82,8 @@ describe('subscription api', () => {
             },
           },
           (_err, response) => {
-            resolve()
             expect(response?.statusCode).toStrictEqual(201)
+            resolve()
           },
         )
       })
@@ -149,8 +149,8 @@ describe('subscription api', () => {
             },
           },
           (_err, response) => {
-            resolve()
             expect(response?.statusCode).toStrictEqual(201)
+            resolve()
           },
         )
       })
@@ -189,8 +189,8 @@ describe('subscription api', () => {
             },
           },
           (_err, response) => {
-            resolve()
             expect(response?.statusCode).toStrictEqual(401)
+            resolve()
           },
         )
       })
