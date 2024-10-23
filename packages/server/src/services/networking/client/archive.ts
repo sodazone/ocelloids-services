@@ -13,6 +13,7 @@ import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/subs
 import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
+import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { Block, EventRecord } from '../types.js'
@@ -101,12 +102,12 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   async getBlock({ hash, number }: { hash: string; number: number }): Promise<Block> {
     const [txs, events] = await Promise.all([this.#getBody(hash), await this.#getEvents(hash)])
 
-    return {
+    return asSerializable({
       hash,
       number,
       extrinsics: txs.map((tx) => this.ctx.decodeExtrinsic(tx)),
       events,
-    }
+    }) as Block
   }
 
   async getBlockHash(blockNumber: string): Promise<string> {

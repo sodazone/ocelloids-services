@@ -1,7 +1,6 @@
 import { getSs58AddressInfo } from 'polkadot-api'
 import { toHex } from 'polkadot-api/utils'
 
-import { asSerializable } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
@@ -57,7 +56,7 @@ export function getMessageId({ instructions }: Program): HexString | undefined {
     case 'V4':
       for (const instruction of instructions.value) {
         if (instruction.type === 'SetTopic') {
-          return instruction.value.asHex()
+          return instruction.value
         }
       }
       return undefined
@@ -89,17 +88,20 @@ function extractConsensusAndId(j: any, n: NetworkId) {
   if (network.type === 'Ethereum') {
     n.consensus = network.type.toLowerCase()
     n.chainId = network.value.chainId.toString()
-  } else if (network.type !== 'ByFork' && network.type !== 'ByGenesis') {
+  } else if (network.type && network.type !== 'ByFork' && network.type !== 'ByGenesis') {
     n.consensus = network.type.toLowerCase()
   }
 }
 
 function extractV4X1GlobalConsensus(junctions: any, n: NetworkId): NetworkURN | undefined {
-  const j = junctions.value
-  if (j.type === 'GlobalConsensus') {
-    extractConsensusAndId(j, n)
-    if (n.consensus !== undefined) {
-      return createNetworkId(n.consensus, n.chainId ?? '0')
+  const v = junctions.value
+  const js = Array.isArray(v) ? v : [v]
+  for (const j of js) {
+    if (j.type === 'GlobalConsensus') {
+      extractConsensusAndId(j, n)
+      if (n.consensus !== undefined) {
+        return createNetworkId(n.consensus, n.chainId ?? '0')
+      }
     }
   }
   return undefined
@@ -116,7 +118,7 @@ function _networkIdFrom(junctions: any, networkId: NetworkId) {
     }
 
     if (j.type === 'Parachain') {
-      networkId.chainId = j.asParachain.toString()
+      networkId.chainId = j.value.toString()
     }
   }
 
@@ -210,8 +212,8 @@ export function matchProgramByTopic({ instructions }: Program, topicId: HexStrin
     case 'V3':
     case 'V4':
       for (const instruction of instructions.value) {
-        if (instruction === 'SetTopic') {
-          return instruction.value.asHex() === topicId
+        if (instruction.type === 'SetTopic') {
+          return instruction.value === topicId
         }
       }
       return false
@@ -240,11 +242,11 @@ function createTrappedAssetsFromMultiAssets(version: number, assets: any[]): Tra
       version,
       id: {
         type: a.id.type,
-        value: asSerializable(a.id.value),
+        value: a.id.value,
       },
       fungible,
       amount: fungible ? a.fun.value : 1,
-      assetInstance: a.fun.type === 'NonFungible' ? asSerializable(a.fun.value) : undefined,
+      assetInstance: a.fun.type === 'NonFungible' ? a.fun.value : undefined,
     }
   })
 }
@@ -256,11 +258,11 @@ function createTrappedAssetsFromAssets(version: number, assets: any[]): TrappedA
       version,
       id: {
         type: 'Concrete',
-        value: asSerializable(a.id.value),
+        value: a.id.value,
       },
       fungible,
       amount: fungible ? a.fun.value : 1,
-      assetInstance: a.fun.type === 'NonFungible' ? asSerializable(a.fun.value) : undefined,
+      assetInstance: a.fun.type === 'NonFungible' ? a.fun.value : undefined,
     }
   })
 }
@@ -291,6 +293,6 @@ export function mapAssetsTrapped(assetsTrappedEvent?: BlockEvent): AssetsTrapped
       method: assetsTrappedEvent.name,
     },
     assets: mapVersionedAssets(assets),
-    hash: hash.asHex(),
+    hash,
   }
 }

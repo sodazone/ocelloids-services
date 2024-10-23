@@ -20,6 +20,7 @@ describe('relay operator', () => {
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
+            console.log(msg)
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
@@ -29,12 +30,12 @@ describe('relay operator', () => {
             expect(msg.extrinsicPosition).toBeDefined()
             expect(msg.outcome).toBeDefined()
             expect(msg.outcome).toBe('Success')
-            expect(msg.error).toBeNull()
+            expect(msg.error).toBeUndefined()
             expect(msg.timestamp).toBeDefined()
             calls()
           },
           complete: () => {
-            expect(calls).toHaveBeenCalledTimes(2)
+            expect(calls).toHaveBeenCalledTimes(1)
             resolve()
           },
         })
@@ -43,7 +44,6 @@ describe('relay operator', () => {
 
     it('should pass through if messagae control is updated to remove destination', async () => {
       const { blocks, messageControl, origin } = relayHrmpReceive
-
       const calls = vi.fn()
 
       const test$ = extractRelayReceive(
@@ -53,7 +53,7 @@ describe('relay operator', () => {
       )(blocks.pipe(extractTxWithEvents()))
 
       // remove destination from criteria
-      messageControl.change(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2006']))
+      messageControl.change(messageCriteria(['urn:ocn:local:2000', 'urn:ocn:local:2016']))
 
       await new Promise<void>((resolve) => {
         test$.subscribe({

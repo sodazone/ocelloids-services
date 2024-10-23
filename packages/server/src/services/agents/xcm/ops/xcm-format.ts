@@ -1,8 +1,9 @@
-import { HexString } from '@/lib.js'
-import { ApiContext } from '@/services/networking/client/index.js'
-
 import { Blake2256 } from '@polkadot-api/substrate-bindings'
 import { toHex } from 'polkadot-api/utils'
+
+import { asSerializable } from '@/common/index.js'
+import { HexString } from '@/lib.js'
+import { ApiContext } from '@/services/networking/client/index.js'
 
 /**
  * Creates a versioned XCM program from bytes.
@@ -20,7 +21,11 @@ export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext
   const codec = context.typeCodec(xcmTypeId)
   const instructions = codec.dec(data)
   const encoded = codec.enc(instructions)
-  return { data: encoded, instructions, hash: toHex(Blake2256(encoded)) as HexString }
+  return {
+    data: encoded,
+    instructions: asSerializable(instructions),
+    hash: toHex(Blake2256(encoded)) as HexString,
+  }
 }
 
 export type Program = {

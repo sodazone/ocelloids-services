@@ -140,7 +140,7 @@ describe('informant agent', () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(eventSub)
-    expect(spy).toHaveBeenCalledTimes(9)
+    expect(spy).toHaveBeenCalledTimes(15)
   })
 
   it('should unsubscribe subscription', async () => {

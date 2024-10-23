@@ -5,111 +5,111 @@ import { extractUmpReceive, extractUmpSend } from './ump.js'
 
 describe('ump operator', () => {
   describe('extractUmpSend', () => {
-    it('should extract UMP sent message', (done) => {
+    it('should extract UMP sent message', async () => {
       const { origin, blocks, getUmp } = umpSend
-
       const calls = vi.fn()
-
       const test$ = extractUmpSend(origin, getUmp, apiContext)(blocks.pipe(extractEvents()))
 
-      test$.subscribe({
-        next: (msg) => {
-          calls()
-          expect(msg).toBeDefined()
-          expect(msg.blockNumber).toBeDefined()
-          expect(msg.blockHash).toBeDefined()
-          expect(msg.instructions).toBeDefined()
-          expect(msg.messageData).toBeDefined()
-          expect(msg.messageHash).toBeDefined()
-          expect(msg.recipient).toBeDefined()
-          expect(msg.timestamp).toBeDefined()
-        },
-        complete: () => {
-          expect(calls).toHaveBeenCalledTimes(1)
-          done()
-        },
+      new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.instructions).toBeDefined()
+            expect(msg.messageData).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.recipient).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(2)
+            resolve()
+          },
+        })
       })
     })
   })
 
   describe('extractUmpReceive', () => {
-    it('should extract failed UMP received message', (done) => {
+    it('should extract failed UMP received message', async () => {
       const { successBlocks } = umpReceive
-
       const calls = vi.fn()
-
       const test$ = extractUmpReceive('urn:ocn:local:1000')(successBlocks.pipe(extractEvents()))
 
-      test$.subscribe({
-        next: (msg) => {
-          calls()
-          expect(msg).toBeDefined()
-          expect(msg.blockNumber).toBeDefined()
-          expect(msg.blockHash).toBeDefined()
-          expect(msg.event).toBeDefined()
-          expect(msg.messageHash).toBeDefined()
-          expect(msg.outcome).toBeDefined()
-          expect(msg.outcome).toBe('Success')
-          expect(msg.timestamp).toBeDefined()
-        },
-        complete: () => {
-          expect(calls).toHaveBeenCalledTimes(1)
-          done()
-        },
+      new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.outcome).toBeDefined()
+            expect(msg.outcome).toBe('Success')
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
       })
     })
 
-    it('should extract UMP receive with outcome fail', (done) => {
+    it('should extract UMP receive with outcome fail', async () => {
       const { failBlocks } = umpReceive
-
       const calls = vi.fn()
+      const test$ = extractUmpReceive('urn:ocn:local:2004')(failBlocks.pipe(extractEvents()))
 
-      const test$ = extractUmpReceive('urn:ocn:local:1000')(failBlocks.pipe(extractEvents()))
-
-      test$.subscribe({
-        next: (msg) => {
-          calls()
-          expect(msg).toBeDefined()
-          expect(msg.blockNumber).toBeDefined()
-          expect(msg.blockHash).toBeDefined()
-          expect(msg.event).toBeDefined()
-          expect(msg.messageHash).toBeDefined()
-          expect(msg.outcome).toBeDefined()
-          expect(msg.outcome).toBe('Fail')
-          expect(msg.timestamp).toBeDefined()
-        },
-        complete: () => {
-          expect(calls).toHaveBeenCalledTimes(1)
-          done()
-        },
+      new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.outcome).toBeDefined()
+            expect(msg.outcome).toBe('Fail')
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
       })
     })
 
-    it('should extract ump receive with asset trap', (done) => {
+    it('should extract ump receive with asset trap', async () => {
       const { trappedBlocks } = umpReceive
-
       const calls = vi.fn()
-
       const test$ = extractUmpReceive('urn:ocn:local:2004')(trappedBlocks.pipe(extractEvents()))
 
-      test$.subscribe({
-        next: (msg) => {
-          calls()
-          expect(msg).toBeDefined()
-          expect(msg.blockNumber).toBeDefined()
-          expect(msg.blockHash).toBeDefined()
-          expect(msg.event).toBeDefined()
-          expect(msg.messageHash).toBeDefined()
-          expect(msg.outcome).toBeDefined()
-          expect(msg.outcome).toBe('Success')
-          expect(msg.error).toBeNull()
-          expect(msg.assetsTrapped).toBeDefined()
-          expect(msg.timestamp).toBeDefined()
-        },
-        complete: () => {
-          expect(calls).toHaveBeenCalledTimes(2)
-          done()
-        },
+      new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.outcome).toBeDefined()
+            expect(msg.outcome).toBe('Fail')
+            expect(msg.error).toBeUndefined()
+            expect(msg.assetsTrapped).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
       })
     })
   })

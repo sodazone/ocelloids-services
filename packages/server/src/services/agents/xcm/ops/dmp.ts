@@ -5,7 +5,6 @@ import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { asSerializable } from '@/common/util.js'
 import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
@@ -61,11 +60,11 @@ function createXcmMessageSent({
     blockHash: blockHash as HexString,
     blockNumber: blockNumber,
     timestamp: timestamp,
-    event: event ? asSerializable(event) : {},
+    event,
     recipient,
     instructions: {
       bytes: program.data,
-      json: asSerializable(program.instructions),
+      json: program.instructions,
     },
     messageData: data,
     messageHash: program.hash,
@@ -156,12 +155,12 @@ function createDmpReceivedWithContext(event: BlockEvent, assetsTrappedEvent?: Bl
   let outcome: 'Success' | 'Fail' = 'Fail'
   outcome = xcmMessage.success ? 'Success' : 'Fail'
 
-  const messageId = xcmMessage.message_id ? xcmMessage.message_id.asHex() : xcmMessage.id.asHex()
-  const messageHash = xcmMessage.message_hash?.asHex() ?? messageId
+  const messageId = xcmMessage.message_id ? xcmMessage.message_id : xcmMessage.id
+  const messageHash = xcmMessage.message_hash ?? messageId
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent)
 
   return new GenericXcmInboundWithContext({
-    event: asSerializable(event),
+    event,
     blockHash: event.blockHash as HexString,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp,

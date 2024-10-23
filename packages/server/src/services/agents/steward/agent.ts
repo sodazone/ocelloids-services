@@ -9,7 +9,7 @@ import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
-import { asSerializable, stringToUa8 } from '@/common/util.js'
+import { stringToUa8 } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import {
   Agent,
@@ -153,7 +153,6 @@ export class DataSteward implements Agent, Queryable {
     const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
     allAssetMapsObs.subscribe({
       next: async ({ chainId, asset }) => {
-        const serializableAsset = asSerializable(asset)
         const assetKey = assetMetadataKey(chainId, asset.id)
 
         /*const multilocation = asset.multiLocation
@@ -161,7 +160,7 @@ export class DataSteward implements Agent, Queryable {
          // TODO: handle multi location specific indexing
         }*/
 
-        this.#dbAssets.put(assetKey, serializableAsset).catch((e) => {
+        this.#dbAssets.put(assetKey, asset).catch((e) => {
           this.#log.error(
             e,
             '[agent:%s] on metadata write (chainId=%s, assetId=%s)',

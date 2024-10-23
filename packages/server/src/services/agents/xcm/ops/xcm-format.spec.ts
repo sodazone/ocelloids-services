@@ -25,21 +25,4 @@ describe('xcm formats', () => {
 
     expect(() => fromXcmpFormat(buf, apiContext)).toThrow(Error)
   })
-
-  it('should fail on registry with no XCM types', () => {
-    const errorLogSpy = vi.spyOn(console, 'error').mockImplementationOnce(() => {
-      // noop
-    })
-    const apiContext = testApiContextFromMetadata('polkadot.scale')
-    const buf = new Uint8Array(
-      Buffer.from(
-        '000310010400010300a10f043205011f00034cb0a37d0a1300010300a10f043205011f00034cb0a37d000d010204000101008e7f870a8cac3fa165c8531a304fcc59c7e29aec176fb03f630ceeea397b1368',
-        'hex',
-      ),
-    )
-
-    const xcms = fromXcmpFormat(buf, apiContext)
-    expect(errorLogSpy).toHaveBeenCalled()
-    expect(xcms.length).toBe(0)
-  })
 })

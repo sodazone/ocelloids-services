@@ -1,9 +1,8 @@
-import { jest } from '@jest/globals'
-
 import { FastifyInstance } from 'fastify'
 
 import '@/testing/network.js'
 
+import { resolve } from 'path'
 import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
 import { flushPromises } from '@/testing/promises.js'
 import { mockServer } from '@/testing/server.js'
@@ -53,304 +52,335 @@ describe('accounts api', () => {
   })
 
   describe('/myself/tokens', () => {
-    it('should return tokens for macario account', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/myself/tokens',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-        },
-        (_err, response) => {
-          const tokens = response?.json()
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(tokens).toBeDefined()
-          expect(tokens.length).toBe(1)
-        },
-      )
-    })
-
-    it('should create new token for macario account', (done) => {
-      server.inject(
-        {
-          method: 'POST',
-          url: '/myself/tokens',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-          body: {
-            scope: { read: true, write: true },
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(response?.json().token).toBeDefined()
-        },
-      )
-    })
-
-    it('should return 400 if scope is not defined', (done) => {
-      server.inject(
-        {
-          method: 'POST',
-          url: '/myself/tokens',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-          body: {},
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(400)
-          expect(response?.json().reason).toEqual("body must have required property 'scope'")
-        },
-      )
-    })
-
-    it('should return 400 if no scope is enabled', (done) => {
-      server.inject(
-        {
-          method: 'POST',
-          url: '/myself/tokens',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-          body: {
-            scope: {
-              read: false,
-              write: false,
-            },
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(400)
-          expect(response?.json().reason).toEqual('please, specify the token scope')
-        },
-      )
-    })
-
-    it('should return 400 if token ID does not exists', (done) => {
-      server.inject(
-        {
-          method: 'DELETE',
-          url: `/myself/tokens/myfaketoken`,
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(404)
-          expect(response?.json().reason).toEqual('token not found')
-        },
-      )
-    })
-
-    it('should delete token', (done) => {
-      server.accountsRepository.findAccountBySubject('macario@cheetos.io').then((account) => {
-        const tokenId = account?.api_tokens[1].id
-
+    it('should return tokens for macario account', async () => {
+      await new Promise<void>((resolve) => {
         server.inject(
           {
-            method: 'DELETE',
-            url: `/myself/tokens/${tokenId}`,
+            method: 'GET',
+            url: '/myself/tokens',
             headers: {
               authorization: `Bearer ${macarioToken}`,
             },
           },
           (_err, response) => {
-            done()
+            const tokens = response?.json()
             expect(response?.statusCode).toStrictEqual(200)
+            expect(tokens).toBeDefined()
+            expect(tokens.length).toBe(1)
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should create new token for macario account', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/myself/tokens',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+            body: {
+              scope: { read: true, write: true },
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(response?.json().token).toBeDefined()
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should return 400 if scope is not defined', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/myself/tokens',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+            body: {},
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(400)
+            expect(response?.json().reason).toEqual("body must have required property 'scope'")
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should return 400 if no scope is enabled', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/myself/tokens',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+            body: {
+              scope: {
+                read: false,
+                write: false,
+              },
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(400)
+            expect(response?.json().reason).toEqual('please, specify the token scope')
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should return 400 if token ID does not exists', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: `/myself/tokens/myfaketoken`,
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(404)
+            expect(response?.json().reason).toEqual('token not found')
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should delete token', async () => {
+      await new Promise<void>((resolve) => {
+        server.accountsRepository.findAccountBySubject('macario@cheetos.io').then((account) => {
+          const tokenId = account?.api_tokens[1].id
+          server.inject(
+            {
+              method: 'DELETE',
+              url: `/myself/tokens/${tokenId}`,
+              headers: {
+                authorization: `Bearer ${macarioToken}`,
+              },
+            },
+            (_err, response) => {
+              expect(response?.statusCode).toStrictEqual(200)
+              resolve()
+            },
+          )
+        })
+      })
+    })
+  })
+
+  describe('/myself', () => {
+    it('should retrieve account', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/myself',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+          },
+          (_err, response) => {
+            const account = response?.json()
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(account).toBeDefined()
+            expect(account.status).toBe('enabled')
+            expect(account.subject).toBe('macario@cheetos.io')
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should delete account', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: `/myself`,
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(200)
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should not allow account deletion with public token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: `/myself`,
+            headers: {
+              authorization: `Bearer ${publicToken}`,
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            resolve()
           },
         )
       })
     })
   })
 
-  describe('/myself', () => {
-    it('should retrieve account', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/myself',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-        },
-        (_err, response) => {
-          const account = response?.json()
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(account).toBeDefined()
-          expect(account.status).toBe('enabled')
-          expect(account.subject).toBe('macario@cheetos.io')
-        },
-      )
-    })
-
-    it('should delete account', (done) => {
-      server.inject(
-        {
-          method: 'DELETE',
-          url: `/myself`,
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-        },
-      )
-    })
-
-    it('should not allow account deletion with public token', (done) => {
-      server.inject(
-        {
-          method: 'DELETE',
-          url: `/myself`,
-          headers: {
-            authorization: `Bearer ${publicToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(401)
-        },
-      )
-    })
-  })
-
   describe('/accounts/invite', () => {
-    it('should create a token on invite', (done) => {
-      const createAccountSpy = jest.spyOn(server.accountsRepository, 'createAccount')
+    it('should create a token on invite', async () => {
+      const createAccountSpy = vi.spyOn(server.accountsRepository, 'createAccount')
 
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=doge@dog.com',
-          headers: {
-            authorization: `Bearer ${rootToken}`,
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/accounts/invite?subject=doge@dog.com',
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(createAccountSpy).toHaveBeenCalled()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(response?.json().token).toBeDefined()
-        },
-      )
+          (_err, response) => {
+            expect(createAccountSpy).toHaveBeenCalled()
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(response?.json().token).toBeDefined()
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should return 400 if token creation fails', (done) => {
-      jest
-        .spyOn(server.accountsRepository, 'createApiToken')
-        .mockImplementationOnce(() => Promise.reject('test error'))
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=shiba@dog.com',
-          headers: {
-            authorization: `Bearer ${rootToken}`,
-          },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(400)
-        },
+    it('should return 400 if token creation fails', async () => {
+      vi.spyOn(server.accountsRepository, 'createApiToken').mockImplementationOnce(() =>
+        Promise.reject('test error'),
       )
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/accounts/invite?subject=shiba@dog.com',
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(400)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should return 401 on invalid token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=macario',
-          headers: {
-            authorization: `Bearer ${invalidToken}`,
+    it('should return 401 on invalid token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/accounts/invite?subject=macario',
+            headers: {
+              authorization: `Bearer ${invalidToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(401)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should return 401 on a valid non-root token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/accounts/invite?subject=macario',
-          headers: {
-            authorization: `Bearer ${publicToken}`,
+    it('should return 401 on a valid non-root token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/accounts/invite?subject=macario',
+            headers: {
+              authorization: `Bearer ${publicToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(401)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            resolve()
+          },
+        )
+      })
     })
   })
 
   describe('/account/:subject', () => {
-    it('should not allow non-admin to delete account from this endpoint', (done) => {
-      const deleteAccountSpy = jest.spyOn(server.accountsRepository, 'deleteAccount')
+    it('should not allow non-admin to delete account from this endpoint', async () => {
+      const deleteAccountSpy = vi.spyOn(server.accountsRepository, 'deleteAccount')
 
-      server.inject(
-        {
-          method: 'DELETE',
-          url: '/account/pepe@frog.com',
-          headers: {
-            authorization: `Bearer ${pepeToken}`,
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: '/account/pepe@frog.com',
+            headers: {
+              authorization: `Bearer ${pepeToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(401)
-          expect(deleteAccountSpy).not.toHaveBeenCalled()
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            expect(deleteAccountSpy).not.toHaveBeenCalled()
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should allow root to delete account', (done) => {
-      const deleteAccountSpy = jest.spyOn(server.accountsRepository, 'deleteAccount')
+    it('should allow root to delete account', async () => {
+      const deleteAccountSpy = vi.spyOn(server.accountsRepository, 'deleteAccount')
 
-      server.inject(
-        {
-          method: 'DELETE',
-          url: '/account/pepe@frog.com',
-          headers: {
-            authorization: `Bearer ${rootToken}`,
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: '/account/pepe@frog.com',
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(deleteAccountSpy).toHaveBeenCalled()
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(deleteAccountSpy).toHaveBeenCalled()
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should return 404 if account to delete is not found', (done) => {
-      server.inject(
-        {
-          method: 'DELETE',
-          url: '/account/pepe@frog.com',
-          headers: {
-            authorization: `Bearer ${rootToken}`,
+    it('should return 404 if account to delete is not found', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'DELETE',
+            url: '/account/pepe@frog.com',
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(404)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(404)
+            resolve()
+          },
+        )
+      })
     })
   })
 })

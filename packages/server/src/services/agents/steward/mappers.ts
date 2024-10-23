@@ -1,6 +1,5 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
-import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext } from '@/services/networking/client/index.js'
@@ -104,7 +103,7 @@ const assetHubMapper = (chainId: string) => (context: ApiContext) => {
           return source.pipe(
             map((buffer) => {
               const assetId = assetCodec.keyDecoder(keyArgs)[0]
-              const multiLocation = asSerializable(assetId)
+              const multiLocation = assetId
               const assetDetails = assetCodec.dec(buffer)
 
               return {
@@ -115,7 +114,7 @@ const assetHubMapper = (chainId: string) => (context: ApiContext) => {
                 existentialDeposit: assetDetails.min_balance.toString(),
                 chainId,
                 multiLocation,
-                raw: asSerializable(assetDetails),
+                raw: assetDetails,
               } as AssetMetadata
             }),
             mergeMap((asset) => {
@@ -129,10 +128,10 @@ const assetHubMapper = (chainId: string) => (context: ApiContext) => {
                       name: assetDetails.name.asText(),
                       symbol: assetDetails.symbol.asText(),
                       decimals: assetDetails.decimals,
-                      raw: asSerializable({
+                      raw: {
                         ...asset.raw,
                         ...assetDetails,
-                      }),
+                      },
                     }
                   } else {
                     return asset

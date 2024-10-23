@@ -1,7 +1,7 @@
 import { Binary } from 'polkadot-api'
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { asSerializable, filterNonNull } from '@/common/index.js'
+import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { getChainId, getRelayId } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
@@ -26,14 +26,14 @@ function createUmpReceivedWithContext(
   assetsTrappedEvent?: BlockEvent,
 ): XcmInboundWithContext | null {
   const { id, origin, success, error } = event.value as {
-    id: Binary
+    id: HexString
     error?: any
     origin: { type: string; value: { type: string; value: number } }
     success: boolean
   }
   // Received event only emits field `message_id`,
   // which is actually the message hash in the current runtime.
-  const messageId = id.asHex() as HexString
+  const messageId = id
   const messageHash = messageId
   const messageOrigin = getParaIdFromOrigin(origin)
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent)
@@ -41,14 +41,14 @@ function createUmpReceivedWithContext(
   // If no origin, we will return the message without matching with subscription origin
   if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
     return new GenericXcmInboundWithContext({
-      event: asSerializable(event),
+      event,
       blockHash: event.blockHash as HexString,
       blockNumber: event.blockNumber,
       timestamp: event.timestamp,
       messageHash,
       messageId,
       outcome: success ? 'Success' : 'Fail',
-      error: error ? asSerializable(error) : null,
+      error,
       assetsTrapped,
     })
   }
@@ -78,7 +78,7 @@ function findOutboundUmpMessage(
                   messageId: getMessageId(xcmProgram),
                   instructions: {
                     bytes: xcmProgram.data,
-                    json: asSerializable(xcmProgram.instructions),
+                    json: xcmProgram.instructions,
                   },
                 })
               })

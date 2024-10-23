@@ -3,7 +3,6 @@ import { Observable, map, mergeMap } from 'rxjs'
 import { HexString, NetworkURN } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 
-import { asSerializable } from '@/common/util.js'
 import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
 import { getLocationIfAny } from './util.js'
 
@@ -49,7 +48,7 @@ export const mapAssetsRegistryMetadata = ({
               })
           return {
             chainId,
-            id: asSerializable(assetId),
+            id: assetId,
             xid: keyArgs,
             updated: Date.now(),
             ...extractMetadata(assetDetails),
@@ -57,10 +56,10 @@ export const mapAssetsRegistryMetadata = ({
             existentialDeposit,
             isSufficient,
             externalIds: [],
-            raw: asSerializable({
+            raw: {
               ...assetDetails,
               keyArgs,
-            }),
+            },
           } as AssetMetadata
         }),
       )
@@ -86,7 +85,7 @@ export const mapAssetsPalletAssets =
             existentialDeposit: assetDetails.min_balance.toString(),
             isSufficient: assetDetails.is_sufficient,
             chainId,
-            raw: asSerializable(assetDetails),
+            raw: assetDetails,
             externalIds: [],
           } as AssetMetadata
         }),
@@ -101,10 +100,10 @@ export const mapAssetsPalletAssets =
                 name: assetDetails.name?.asText(),
                 symbol: assetDetails.symbol?.asText(),
                 decimals: assetDetails.decimals,
-                raw: asSerializable({
+                raw: {
                   ...asset.raw,
                   ...assetDetails,
-                }),
+                },
               }
             }),
           )
@@ -129,10 +128,7 @@ const mergeMultiLocations = (
           }
           const maybeLoc = codec.dec(buffer)
           if (maybeLoc) {
-            const multiLocation =
-              onMultiLocationData === undefined
-                ? asSerializable(maybeLoc)
-                : onMultiLocationData(asSerializable(maybeLoc) as Record<string, any>)
+            const multiLocation = onMultiLocationData === undefined ? maybeLoc : onMultiLocationData(maybeLoc)
             return {
               ...asset,
               multiLocation,

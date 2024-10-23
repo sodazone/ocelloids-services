@@ -1,6 +1,6 @@
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { asSerializable, filterNonNull } from '@/common/index.js'
+import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { createNetworkId } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
@@ -44,7 +44,7 @@ function findOutboundHrmpMessage(
                       messageHash: xcmProgram.hash,
                       instructions: {
                         bytes: xcmProgram.data,
-                        json: asSerializable(xcmProgram.instructions),
+                        json: xcmProgram.instructions,
                       },
                       messageId: getMessageId(xcmProgram),
                     }),
@@ -97,7 +97,7 @@ export function extractXcmpReceive() {
           const xcmpQueueData = maybeXcmpEvent.value
 
           return new GenericXcmInboundWithContext({
-            event: asSerializable(maybeXcmpEvent),
+            event: maybeXcmpEvent,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
@@ -112,18 +112,18 @@ export function extractXcmpReceive() {
           const { id, success, error } = maybeXcmpEvent.value
           // Received event only emits field `message_id`,
           // which is actually the message hash in chains that do not yet support Topic ID.
-          const messageId = id.asHex()
+          const messageId = id
           const messageHash = messageId
 
           return new GenericXcmInboundWithContext({
-            event: asSerializable(maybeXcmpEvent),
+            event: maybeXcmpEvent,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
             messageHash,
             messageId,
-            outcome: success?.isTrue ? 'Success' : 'Fail',
-            error: error ? asSerializable(error) : null,
+            outcome: success ? 'Success' : 'Fail',
+            error,
             assetsTrapped,
           })
         }

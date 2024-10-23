@@ -1,6 +1,6 @@
 import { AbstractIterator } from 'abstract-level'
 
-import { asJSON, asSerializable } from '@/common/util.js'
+import { asJSON } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 
@@ -10,7 +10,7 @@ const API_LIMIT_MAX = 100
 export function getLocationIfAny(assetDetails: Record<string, any>) {
   const { location } = assetDetails
   if (location) {
-    return asSerializable(location)
+    return location
   }
   return undefined
 }

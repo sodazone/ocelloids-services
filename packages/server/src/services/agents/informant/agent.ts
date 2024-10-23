@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { filter as rxFilter } from 'rxjs'
 
-import { ControlQuery, asSerializable } from '@/common/index.js'
+import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
@@ -180,10 +180,10 @@ export class InformantAgent implements Agent, Subscribable {
                         blockTimestamp: extrinsic.timestamp,
                       },
                       payload: {
-                        events: extrinsic.events.map((e) => asSerializable(e)),
-                        dispatchInfo: asSerializable(extrinsic.dispatchInfo),
-                        dispatchError: asSerializable(extrinsic.dispatchError),
-                        extrinsic: asSerializable(extrinsic),
+                        events: extrinsic.events.map((e) => e),
+                        dispatchInfo: extrinsic.dispatchInfo,
+                        dispatchError: extrinsic.dispatchError,
+                        extrinsic: extrinsic,
                       },
                     })
                   } catch (error) {

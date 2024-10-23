@@ -13,11 +13,12 @@ export function testApiContextFromMetadata(metadataFile: string) {
   return createRuntimeApiContext(m)
 }
 
-export function resolveBlocksPath(file: string) {
-  return path.resolve(blocksDir, file)
+export function testBlocksFrom(file: string) {
+  const bufferBlock = readFileSync(path.resolve(blocksDir, file))
+  return [decodeBlock(bufferBlock)]
 }
 
-export function testBlocksFrom(paths: string[]) {
+function testBlocksFromFiles(paths: string[]) {
   const blocks: Block[] = []
   const files = Array.isArray(paths) ? paths : [paths]
 
@@ -29,13 +30,13 @@ export function testBlocksFrom(paths: string[]) {
   return blocks
 }
 
-export function testBlocksForDirectory(directory: string) {
+export function testBlocksFromDirectory(directory: string) {
   const dir = path.resolve(blocksDir, directory)
   const files = readdirSync(dir)
-  return testBlocksFrom(files.map((f) => path.resolve(dir, f)))
+  return testBlocksFromFiles(files.map((f) => path.resolve(dir, f)))
 }
 
-export const polkadotBlocks = testBlocksForDirectory('polkadot')
+export const polkadotBlocks = testBlocksFromDirectory('polkadot')
 
 //export const polkadotBlocks = testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')
 //export const interlayBlocks = testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')

@@ -2,11 +2,10 @@ import { Observable, map } from 'rxjs'
 
 import { Binary } from '@polkadot-api/substrate-bindings'
 
-import { asSerializable } from '@/common/util.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
-import { NetworkURN } from '@/services/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
@@ -137,16 +136,16 @@ export function xcmMessagesSent() {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
-        const xcmMessage = event.value as { message_hash: Binary; message_id?: Binary }
+        const xcmMessage = event.value as { message_hash: HexString; message_id?: HexString }
         return {
-          event: asSerializable(event),
+          event: event as AnyJson,
           sender: getSendersFromEvent(event),
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
           extrinsicPosition: event.extrinsicPosition,
-          messageHash: xcmMessage.message_hash?.asHex() ?? xcmMessage.message_id?.asHex(),
-          messageId: xcmMessage.message_id?.asHex(),
+          messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
+          messageId: xcmMessage.message_id,
         } as XcmSentWithContext
       }),
     )

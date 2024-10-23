@@ -1,7 +1,7 @@
-import { Binary } from 'polkadot-api'
+import { fromHex } from 'polkadot-api/utils'
 import { Observable, filter, map, mergeMap } from 'rxjs'
 
-import { ControlQuery, asSerializable, filterNonNull } from '@/common/index.js'
+import { ControlQuery, filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { createNetworkId, getChainId } from '@/services/config.js'
 import { ApiContext, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
@@ -24,7 +24,7 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
             commitments: {
               horizontal_messages: {
                 recipient: number
-                data: Binary
+                data: HexString
               }[]
             }
           }
@@ -39,7 +39,7 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
             })
           })
           if (message) {
-            const xcms = fromXcmpFormat(message.data.asBytes(), context)
+            const xcms = fromXcmpFormat(fromHex(message.data), context)
             const { blockHash, blockNumber, blockPosition, dispatchError } = extrinsic
             return xcms.map(
               (xcmProgram) =>
@@ -53,7 +53,7 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
                   origin,
                   extrinsicPosition: blockPosition,
                   outcome: dispatchError ? 'Fail' : 'Success',
-                  error: dispatchError ? asSerializable(dispatchError) : null,
+                  error: dispatchError,
                 }),
             )
           }
