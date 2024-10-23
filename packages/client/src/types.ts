@@ -190,7 +190,7 @@ export type WebSocketHandlers<T = AnyJson> = {
  *
  * @public
  */
-export type OnDemandSubscriptionHandlers<T extends AnySubscriptionInputs> = {
+export type OnDemandSubscriptionHandlers<T> = {
   onSubscriptionCreated?: (sub: Subscription<T>) => void
   onSubscriptionError?: (err: SubscriptionError) => void
   onError?: (err: any) => void
@@ -201,7 +201,7 @@ export type OnDemandSubscriptionHandlers<T extends AnySubscriptionInputs> = {
  *
  * @public
  */
-export function isSubscription<T extends AnySubscriptionInputs>(
+export function isSubscription<T>(
   obj: Subscription<T> | SubscriptionError | Message,
 ): obj is Subscription<T> {
   const maybeSub = obj as Subscription
@@ -213,9 +213,7 @@ export function isSubscription<T extends AnySubscriptionInputs>(
  *
  * @public
  */
-export function isSubscriptionError<T extends AnySubscriptionInputs>(
-  obj: Subscription<T> | SubscriptionError,
-): obj is SubscriptionError {
+export function isSubscriptionError<T>(obj: Subscription<T> | SubscriptionError): obj is SubscriptionError {
   const maybeError = obj as SubscriptionError
   return maybeError.issues !== undefined && maybeError.name !== undefined
 }

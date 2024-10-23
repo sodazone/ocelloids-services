@@ -83,7 +83,7 @@ export function doFetch<T>(headers: Record<string, string>, url: string, init?: 
   })
 }
 
-type OnDemandWithAgent<T extends AnySubscriptionInputs> = {
+type OnDemandWithAgent<T> = {
   agent: string
   args: T
   ephemeral: boolean
@@ -98,7 +98,7 @@ type OnDemandWithAgent<T extends AnySubscriptionInputs> = {
  * @param onDemandSub - Optional on-demand subscription details and handlers.
  * @returns The WebSocket instance.
  */
-export function openWebSocket<T extends AnySubscriptionInputs, P = AnyJson>(
+export function openWebSocket<T, P = AnyJson>(
   config: OcelloidsClientConfig,
   url: string,
   { onMessage, onAuthError, onError, onClose }: WebSocketHandlers<P>,

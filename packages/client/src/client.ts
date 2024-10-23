@@ -47,7 +47,7 @@ const API_HTTP_URL = 'https://api.ocelloids.net'
  *
  * @public
  */
-export class OcelloidsAgentApi<T extends AnySubscriptionInputs> {
+export class OcelloidsAgentApi<T> {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
@@ -154,7 +154,7 @@ export class OcelloidsAgentApi<T extends AnySubscriptionInputs> {
     return isAnySubscriptionInputs(subscription)
       ? openWebSocket<T, P>(this.#config, await this.#withToken(baseUrl), handlers, {
           sub: {
-            args: subscription,
+            args: subscription as any,
             ephemeral: true,
             agent: this.#agentId,
           },
@@ -298,7 +298,7 @@ export class OcelloidsClient {
    * @param agentId - The ID of the agent.
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
-  agent<T extends AnySubscriptionInputs>(agentId: AgentId) {
+  agent<T = AnySubscriptionInputs>(agentId: AgentId) {
     return new OcelloidsAgentApi<T>(this.#config, agentId)
   }
 
