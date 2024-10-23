@@ -29,12 +29,13 @@
     "bundle": true,
     "sourcemap": true,
     "metafile": true,
-    "clean": true
+    "clean": true,
+    "dts": true
   },
   "scripts": {
     "build": "yarn build:ts && yarn build:api",
     "build:ts": "tsup",
-    "build:api": "tsc && api-extractor run --local --verbose",
+    "build:api": "api-extractor run --local --verbose",
     "test": "vitest",
     "docs": "typedoc",
     "lint": "biome check --write src/**/*.ts"
