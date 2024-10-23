@@ -7,6 +7,7 @@
       "esnext",
       "dom"
     ],
+    "rootDir": "src",
     "baseUrl": "./src",
     "types": [
       "vitest/globals"
@@ -24,12 +25,11 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    //"**/*.spec.ts",
-    "test", 
+    "test",
     "examples"
   ]
 }
