@@ -11,4 +11,4 @@ export type {
   AnyQueryArgs,
   NetworkURN,
   AnyQueryResultItem,
-} from '@sodazone/ocelloids-service-node'
+} from '../../server' //from '@sodazone/ocelloids-service-node'

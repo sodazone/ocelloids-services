@@ -1,4 +1,4 @@
-import { steward } from '@sodazone/ocelloids-service-node'
+import { steward } from '../../../server' // from '@sodazone/ocelloids-service-node'
 
 /**
  * @public

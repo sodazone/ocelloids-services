@@ -2,7 +2,6 @@ import { WebSocket } from 'isows'
 
 import {
   AnyJson,
-  AnySubscriptionInputs,
   AuthReply,
   OcelloidsClientConfig,
   OnDemandSubscriptionHandlers,

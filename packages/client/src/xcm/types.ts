@@ -1,4 +1,4 @@
-import type { xcm } from '@sodazone/ocelloids-service-node'
+import type { xcm } from '../../../server' // from '@sodazone/ocelloids-service-node'
 
 /**
  * The XCM event types.
