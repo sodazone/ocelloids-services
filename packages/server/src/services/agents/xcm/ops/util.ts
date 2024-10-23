@@ -1,6 +1,4 @@
-import { getSs58AddressInfo } from 'polkadot-api'
-import { toHex } from 'polkadot-api/utils'
-
+import { asPublicKey } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
@@ -14,14 +12,11 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
     if (xt.signed) {
       // Signer could be Address or AccountId
       const accountId = typeof xt.address === 'string' ? xt.address : xt.address.value
-      const info = getSs58AddressInfo(accountId)
-      if (!info.isValid) {
-        throw new Error(`invalid address format ${accountId}`)
-      }
+      const publicKey = asPublicKey(accountId)
       return {
         signer: {
           id: accountId,
-          publicKey: toHex(info.publicKey) as HexString,
+          publicKey,
         },
         // TODO: from flat nested calls
         extraSigners: [],

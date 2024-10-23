@@ -220,7 +220,7 @@ describe('mingo query ops', () => {
 
   it('should compare neq addresses with different ss58 falsy case', () => {
     const q = new Query({
-      'args.dest.id': { $address_neq: 'dfZvF6iz8qvsdGEWTHBoo2daJWq386QYfDXwfsycTJhicxLcc' },
+      'args.dest.id': { $address_neq: '7LxnZj41HiVCVwEDQ2e6HNTqMJQrs6ph12FjoEufd7mNnsJK' },
     })
 
     expect(q.test(data)).toBeFalsy()
@@ -231,7 +231,7 @@ describe('mingo query ops', () => {
       'args.dest.id': { $address_neq: 'foobar' },
     })
 
-    expect(q.test(data)).toBeFalsy()
+    expect(q.test(data)).toBeTruthy()
   })
 
   it('should return neq if value is not string', () => {
@@ -239,7 +239,7 @@ describe('mingo query ops', () => {
       'args.dest.id': { $address_neq: 111 },
     })
 
-    expect(q.test(data)).toBeFalsy()
+    expect(q.test(data)).toBeTruthy()
   })
 
   it('should be idempotent on ops registration', () => {

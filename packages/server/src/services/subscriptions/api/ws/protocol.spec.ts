@@ -97,7 +97,8 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should send error if throws ZodError on subscribe', async () => {
-        vi.spyOn(testSwitchboard, 'subscribe').mockRejectedValueOnce(
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(
           new ZodError([
             {
               code: z.ZodIssueCode.custom,
@@ -110,7 +111,7 @@ describe('WebsocketProtocol', () => {
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
 
-        expect(vi.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","fatal":true,"message":"test error","path":["ws-test"]}],"name":"ZodError"}',
           expect.any(Function),
@@ -126,9 +127,10 @@ describe('WebsocketProtocol', () => {
           }),
         } as any
 
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
         await websocketProtocol.handle(mockStream, mockRequest)
         await flushPromises()
-        expect(vi.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(0)
+        expect(spy).toHaveBeenCalledTimes(0)
         expect(mockStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","message":"Invalid JSON","path":[]}],"name":"ZodError"}',
           expect.any(Function),
@@ -136,12 +138,11 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should send error if throws ValidationError on subscribe', async () => {
-        vi.spyOn(testSwitchboard, 'subscribe').mockRejectedValueOnce(
-          new ValidationError('test validation error'),
-        )
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(new ValidationError('test validation error'))
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
-        expect(vi.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","path":["filter","match"],"message":"test validation error"}],"name":"ZodError"}',
           expect.any(Function),
@@ -149,10 +150,11 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should close socket stream if throws unknown error on subscribe', async () => {
-        vi.spyOn(testSwitchboard, 'subscribe').mockRejectedValueOnce(new Error('test error'))
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(new Error('test error'))
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
-        expect(vi.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.close).toHaveBeenCalledWith(1011, 'server error')
       })
 
@@ -360,7 +362,8 @@ describe('WebsocketProtocol', () => {
           sub: 'macario@cheeto.io',
           jti: '01000000000000000000000000',
         })
-        vi.spyOn(testSwitchboard, 'findSubscription').mockReturnValueOnce(Promise.resolve(testSub))
+        const spy = vi.spyOn(testSwitchboard, 'findSubscription')
+        spy.mockReturnValueOnce(Promise.resolve(testSub))
 
         await websocketProtocol.handle(testStreamWithAuth, mockRequestWithAuth, {
           subscriptionId: 'test-subscription',
@@ -369,16 +372,17 @@ describe('WebsocketProtocol', () => {
         await new Promise(setImmediate)
         await flushPromises()
 
-        expect(testSwitchboard.findSubscription).toHaveBeenCalled()
+        expect(spy).toHaveBeenCalled()
         expect(emptyStream.close).toHaveBeenCalledWith(1002, 'auth error')
       })
 
       it('should close with auth error if not authorized', async () => {
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
         await websocketProtocol.handle(testStreamWithAuth, mockRequestWithAuth)
         await new Promise(setImmediate)
         await flushPromises()
 
-        expect(vi.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(0)
+        expect(spy).toHaveBeenCalledTimes(0)
         expect(mockVerify).toHaveBeenCalledTimes(1)
         expect(testStreamWithAuth.close).toHaveBeenCalledWith(1002, 'auth error')
       })

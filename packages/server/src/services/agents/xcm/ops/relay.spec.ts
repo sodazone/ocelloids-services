@@ -20,7 +20,6 @@ describe('relay operator', () => {
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
-            console.log(msg)
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()

@@ -1,21 +1,14 @@
 // Copyright 2023-2024 SO/DA zone
 // SPDX-License-Identifier: Apache-2.0
 
-import { AccountId } from '@polkadot-api/substrate-bindings'
-
+import { asPublicKey } from '@/common/util.js'
 import { OperatorType, Options, QueryOperator, getOperator, useOperators } from 'mingo/core'
 import { BASIC_CONTEXT } from 'mingo/init/basic'
 import { AnyVal, Predicate, RawObject } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
-const accountDecoder = AccountId().dec
-
-function addressEq(a: Uint8Array | string, b: Uint8Array | string) {
-  return accountDecoder(a) === accountDecoder(b)
-}
-
-function isU8a(value?: unknown): value is Uint8Array {
-  return (value && (value as Uint8Array).constructor) === Uint8Array || value instanceof Uint8Array
+function addressEq(a: string, b: string) {
+  return a === b || asPublicKey(a) === asPublicKey(b)
 }
 
 function bn(x: AnyVal) {
@@ -58,7 +51,7 @@ function $bn_neq(a: AnyVal, b: AnyVal): boolean {
 }
 
 function $address_eq(a: AnyVal, b: AnyVal): boolean {
-  if ((typeof a === 'string' || isU8a(a)) && (typeof b === 'string' || isU8a(b))) {
+  if (typeof a === 'string' && typeof b === 'string') {
     try {
       return addressEq(a, b)
     } catch (_) {
@@ -69,14 +62,14 @@ function $address_eq(a: AnyVal, b: AnyVal): boolean {
 }
 
 function $address_neq(a: AnyVal, b: AnyVal): boolean {
-  if ((typeof a === 'string' || isU8a(a)) && (typeof b === 'string' || isU8a(b))) {
+  if (typeof a === 'string' && typeof b === 'string') {
     try {
       return !addressEq(a, b)
     } catch (_) {
-      return false
+      return true
     }
   }
-  return false
+  return true
 }
 
 function createQueryOperator(predicate: Predicate<AnyVal>): QueryOperator {

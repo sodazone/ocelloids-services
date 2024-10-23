@@ -1,6 +1,6 @@
 import { Observable, share } from 'rxjs'
 
-import { extractEvents, extractTxWithEvents } from '@/common/index.js'
+import { extractEvents, extractTxWithEvents, installOperators } from '@/common/index.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
@@ -16,6 +16,8 @@ export class SharedStreams {
     this.#ingress = ingress
     this.#blockEvents = {}
     this.#blockExtrinsics = {}
+
+    installOperators()
   }
 
   static instance(ingress: IngressConsumer) {
