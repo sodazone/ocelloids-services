@@ -22,8 +22,7 @@ import { ApiClient, ApiContext } from './types.js'
 
 export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
   const client = new ArchiveClient(log, chainId, url)
-  client.connect()
-  return await client.isReady()
+  return await client.connect()
 }
 
 /**
@@ -143,15 +142,18 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     return codec.dec(await this.getStorage(codec.enc(...args)))
   }
 
-  async connect() {
-    try {
-      const ctx = new RuntimeApiContext(await this.#runtimeContext)
-      this.#apiContext = () => ctx
-      super.emit('connected')
-      this.#connected = true
-    } catch (error) {
-      this.#log.error(error, '[client:%s] error while connecting %s (should never happen)', this.chainId)
-    }
+  connect() {
+    this.#runtimeContext
+      .then((x) => {
+        const ctx = new RuntimeApiContext(x)
+        this.#apiContext = () => ctx
+        super.emit('connected')
+        this.#connected = true
+      })
+      .catch((error) => {
+        this.#log.error(error, '[client:%s] error while connecting %s (should never happen)', this.chainId)
+      })
+    return this.isReady()
   }
 
   disconnect() {

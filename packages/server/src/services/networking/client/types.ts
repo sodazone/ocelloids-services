@@ -17,7 +17,7 @@ export interface ApiClient {
   readonly finalizedHeads$: Observable<BlockInfo>
   readonly ctx: ApiContext
 
-  connect(): Promise<void>
+  connect(): Promise<ApiClient>
   disconnect(): void
 
   getMetadata(): Promise<Uint8Array>
