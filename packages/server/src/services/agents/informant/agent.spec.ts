@@ -5,7 +5,7 @@ import { SubsStore } from '@/services/persistence/level/subs.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
-import { _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
 import { SharedStreams } from '../base/shared.js'
 import { LocalAgentCatalog } from '../catalog/local.js'
@@ -70,13 +70,18 @@ describe('informant agent', () => {
   let subs: SubsStore
   let agentService: AgentCatalog
   let egress: Egress
+  let services: Services
+
+  beforeAll(() => {
+    services = createServices()
+  })
 
   beforeEach(async () => {
-    subs = new SubsStore(_services.log, _services.levelDB)
-    egress = new Egress(_services)
+    subs = new SubsStore(services.log, services.levelDB)
+    egress = new Egress(services)
     agentService = new LocalAgentCatalog(
       {
-        ..._services,
+        ...services,
         subsStore: subs,
         egress,
       } as Services,
@@ -85,7 +90,7 @@ describe('informant agent', () => {
   })
 
   afterEach(async () => {
-    await _services.levelDB.clear()
+    await services.levelDB.clear()
     return agentService.stop()
   })
 

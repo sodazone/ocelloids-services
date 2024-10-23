@@ -1,10 +1,11 @@
 import { FastifyBaseLogger } from 'fastify'
-
 import { Subscription as RxSubscription } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { _ingress, _services } from '@/testing/services.js'
+import { Services } from '@/services/types.js'
+import { createServices } from '@/testing/services.js'
+
 import { XcmAgent } from './agent.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'
@@ -73,23 +74,25 @@ describe('XcmSubscriptionManager', () => {
   let mockLogger
   let xcmAgent: XcmAgent
   let xcmSubscriptionManager: XcmSubscriptionManager
+  let services: Services
 
   beforeEach(() => {
     vi.clearAllTimers()
   })
 
   beforeAll(() => {
+    services = createServices()
     mockLogger = {
       info: vi.fn(),
       error: vi.fn(),
     } as unknown as FastifyBaseLogger
-    xcmAgent = new XcmAgent({ ..._services, db: _services.levelDB })
-    xcmSubscriptionManager = new XcmSubscriptionManager(mockLogger, _ingress, xcmAgent)
+    xcmAgent = new XcmAgent({ ...services, db: services.levelDB })
+    xcmSubscriptionManager = new XcmSubscriptionManager(mockLogger, services.ingress, xcmAgent)
     xcmSubscriptionManager.set(testSub.id, testXcmSubscriptionHandler)
   })
 
   afterAll(async () => {
-    await _services.levelDB.clear()
+    await services.levelDB.clear()
     await xcmAgent.stop()
   })
 

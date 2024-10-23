@@ -48,48 +48,51 @@ export const _connector = {
   connect: () => _mockApis,
 } as unknown as Connector
 
-export const _rootDB = new MemoryLevel()
+export function createServices(): Services {
+  const _rootDB = new MemoryLevel()
 
-const __services = {
-  log: _log,
-  localConfig: _config,
-  connector: _connector,
-  levelDB: _rootDB,
-  subsStore: {} as unknown as SubsStore,
-  ingress: {} as unknown as IngressConsumer,
-  agentCatalog: {} as unknown as AgentCatalog,
-  egress: {} as unknown as Egress,
-  scheduler: {
-    on: () => {
-      /* empty */
-    },
-  } as unknown as Scheduler,
-  janitor: {
-    on: () => {
-      /* empty */
-    },
-    schedule: () => {
-      /* empty */
-    },
-  } as unknown as Janitor,
-}
+  const __services = {
+    log: _log,
+    localConfig: _config,
+    connector: _connector,
+    levelDB: _rootDB,
+    subsStore: {} as unknown as SubsStore,
+    ingress: {} as unknown as IngressConsumer,
+    agentCatalog: {} as unknown as AgentCatalog,
+    egress: {} as unknown as Egress,
+    scheduler: {
+      on: () => {
+        /* empty */
+      },
+    } as unknown as Scheduler,
+    janitor: {
+      on: () => {
+        /* empty */
+      },
+      schedule: () => {
+        /* empty */
+      },
+    } as unknown as Janitor,
+  }
 
-export const _ingress = new LocalIngressConsumer(__services)
-export const _egress = new Egress(__services)
-export const _subsDB = new SubsStore(_log, _rootDB)
-export const _agentService = new LocalAgentCatalog(
-  {
+  const _ingress = new LocalIngressConsumer(__services)
+  const _egress = new Egress(__services)
+  const _subsDB = new SubsStore(_log, _rootDB)
+  const _agentService = new LocalAgentCatalog(
+    {
+      ...__services,
+      ingress: _ingress,
+      egress: _egress,
+      subsStore: _subsDB,
+    } as Services,
+    { mode: AgentServiceMode.local },
+  )
+
+  return {
     ...__services,
     ingress: _ingress,
     egress: _egress,
     subsStore: _subsDB,
-  } as Services,
-  { mode: AgentServiceMode.local },
-)
-
-export const _services = {
-  ...__services,
-  ingress: _ingress,
-  subsStore: _subsDB,
-  agentCatalog: _agentService,
-} as Services
+    agentCatalog: _agentService,
+  } as Services
+}

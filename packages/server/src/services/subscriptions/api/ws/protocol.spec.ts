@@ -1,8 +1,9 @@
 import { ValidationError } from '@/errors.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { Services } from '@/services/types.js'
 import { flushPromises } from '@/testing/promises.js'
-import { _egress, _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 import { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import z, { ZodError } from 'zod'
 import WebsocketProtocol from './protocol.js'
@@ -49,12 +50,17 @@ describe('WebsocketProtocol', () => {
   let mockLogger
   let testSwitchboard: Switchboard
   let websocketProtocol: WebsocketProtocol
+  let services: Services
+
+  beforeAll(() => {
+    services = createServices()
+  })
 
   beforeEach(() => {
     mockLogger = {
       error: vi.fn(),
     } as unknown as FastifyBaseLogger
-    testSwitchboard = new Switchboard(_services, {})
+    testSwitchboard = new Switchboard(services, {})
     websocketProtocol = new WebsocketProtocol(mockLogger, testSwitchboard, {
       wsMaxClients: 2,
     })
@@ -62,8 +68,8 @@ describe('WebsocketProtocol', () => {
 
   afterEach(async () => {
     vi.clearAllMocks()
-    await _services.levelDB.clear()
-    await _services.agentCatalog.stop()
+    await services.levelDB.clear()
+    await services.agentCatalog.stop()
     websocketProtocol.stop()
   })
 
@@ -250,7 +256,7 @@ describe('WebsocketProtocol', () => {
           subscriptionId: testSub.id,
         })
         await flushPromises()
-        _egress.emit('websocket', testSub, msg)
+        services.egress.emit('websocket', testSub, msg)
 
         expect(testSubStream.send).toHaveBeenCalledTimes(1)
         expect(emitSpy).toHaveBeenCalledTimes(2)
@@ -286,7 +292,7 @@ describe('WebsocketProtocol', () => {
           subscriptionId: testSub.id,
         })
         await flushPromises()
-        _egress.emit('websocket', testSub, msg)
+        services.egress.emit('websocket', testSub, msg)
 
         expect(emitSpy).toHaveBeenCalledTimes(2)
         expect(emitSpy).toHaveBeenNthCalledWith(2, 'telemetryPublishError', {

@@ -1,10 +1,11 @@
 import { MemoryLevel } from 'memory-level'
 import nock from 'nock'
 
-import { _log, _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 
 import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { Services } from '../types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { Message } from './types.js'
@@ -168,13 +169,16 @@ const subOkSecret = {
 } as Subscription
 
 describe('webhook publisher', () => {
-  const subs = _services.subsStore
-
+  let subs
   let scheduler: Scheduler
   let publisher: WebhookPublisher
   let egress: Egress
+  let services: Services
 
   beforeAll(async () => {
+    services = createServices()
+    subs = services.subsStore
+
     await subs.insert(subOk)
     await subs.insert(subOkXml)
     await subs.insert(subFail)
@@ -187,13 +191,13 @@ describe('webhook publisher', () => {
   })
 
   beforeEach(() => {
-    scheduler = new Scheduler(_services.log, new MemoryLevel(), {
+    scheduler = new Scheduler(services.log, new MemoryLevel(), {
       scheduler: true,
       schedulerFrequency: 500,
     })
-    egress = new Egress(_services)
+    egress = new Egress(services)
     publisher = new WebhookPublisher(egress, {
-      ..._services,
+      ...services,
       scheduler,
     })
   })

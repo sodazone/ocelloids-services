@@ -98,7 +98,7 @@ type OnDemandWithAgent<T = AnySubscriptionInputs> = {
  * @param onDemandSub - Optional on-demand subscription details and handlers.
  * @returns The WebSocket instance.
  */
-export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
+export function openWebSocket<T extends AnySubscriptionInputs = AnySubscriptionInputs, P = AnyJson>(
   config: OcelloidsClientConfig,
   url: string,
   { onMessage, onAuthError, onError, onClose }: WebSocketHandlers<P>,

@@ -47,7 +47,7 @@ const API_HTTP_URL = 'https://api.ocelloids.net'
  *
  * @public
  */
-export class OcelloidsAgentApi<T = AnySubscriptionInputs> {
+export class OcelloidsAgentApi<T extends AnySubscriptionInputs = AnySubscriptionInputs> {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
@@ -298,7 +298,7 @@ export class OcelloidsClient {
    * @param agentId - The ID of the agent.
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
-  agent<T = AnySubscriptionInputs>(agentId: AgentId) {
+  agent<T extends AnySubscriptionInputs = AnySubscriptionInputs>(agentId: AgentId) {
     return new OcelloidsAgentApi<T>(this.#config, agentId)
   }
 

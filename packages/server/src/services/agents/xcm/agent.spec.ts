@@ -6,9 +6,10 @@ import '@/testing/network.js'
 
 import { extractEvents } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
-import { _ingress, _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
 
+import { IngressConsumer } from '@/services/ingress/index.js'
 import { NetworkURN, Services } from '../../index.js'
 import { SubsStore } from '../../persistence/level/subs.js'
 import { Subscription } from '../../subscriptions/types.js'
@@ -37,22 +38,17 @@ const testSub: Subscription<XcmInputs> = {
 }
 
 describe('xcm agent', () => {
-  let subs: SubsStore
   let agentService: AgentCatalog
+  let ingress: IngressConsumer
 
   beforeEach(async () => {
-    subs = new SubsStore(_services.log, _services.levelDB)
-    agentService = new LocalAgentCatalog(
-      {
-        ..._services,
-        subsStore: subs,
-      } as Services,
-      { mode: AgentServiceMode.local },
-    )
+    const services = createServices()
+    services.levelDB.setMaxListeners(20)
+    ingress = services.ingress
+    agentService = services.agentCatalog
   })
 
   afterEach(async () => {
-    await _services.levelDB.clear()
     return agentService.stop()
   })
 
@@ -99,7 +95,7 @@ describe('xcm agent', () => {
     vi.spyOn(SharedStreams.prototype, 'blockEvents').mockImplementationOnce((_chainId: NetworkURN) =>
       from(polkadotBlocks).pipe(extractEvents()),
     )
-    vi.spyOn(_ingress, 'getContext').mockImplementationOnce(() => throwError(() => new Error('errored')))
+    vi.spyOn(ingress, 'getContext').mockImplementationOnce(() => throwError(() => new Error('errored')))
     const spy = vi.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverOutbound')
 
     await agentService.startAgent('xcm')

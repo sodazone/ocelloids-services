@@ -1,8 +1,9 @@
 import '@/testing/network.js'
 
 import { SubsStore } from '@/services/persistence/level/subs.js'
-import { _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 
+import { Services } from '../types.js'
 import type { Switchboard } from './switchboard.js'
 import { Subscription } from './types.js'
 
@@ -28,17 +29,19 @@ const testSub: Subscription = {
 describe('switchboard service', () => {
   let switchboard: Switchboard
   let subs: SubsStore
+  let services: Services
 
   beforeAll(async () => {
-    subs = new SubsStore(_services.log, _services.levelDB)
-    switchboard = new SwitchboardImpl(_services, {
+    services = createServices()
+    subs = new SubsStore(services.log, services.levelDB)
+    switchboard = new SwitchboardImpl(services, {
       subscriptionMaxEphemeral: 10_00,
       subscriptionMaxPersistent: 10_000,
     })
   })
 
   afterAll(async () => {
-    await _services.levelDB.clear()
+    await services.levelDB.clear()
   })
 
   it('should add a subscription by agent', async () => {

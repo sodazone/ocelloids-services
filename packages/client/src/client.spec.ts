@@ -70,7 +70,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         let called = 0
         client.agent('agentid').subscribe<XcmMessagePayload>('subid', {
           onMessage: (msg) => {
@@ -110,7 +110,7 @@ describe('OcelloidsClient', () => {
         wsUrl: 'ws://mock',
         httpUrl: 'https://rpc.abc',
       })
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         client.agent<XcmInputs>('xcm').subscribe(
           {
             origin: 'urn:ocn:local:2004',
@@ -164,7 +164,7 @@ describe('OcelloidsClient', () => {
         apiKey: 'abracadabra',
       })
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         client.agent<XcmInputs>('xcm').subscribe(
           {
             origin: 'urn:ocn:local:2004',

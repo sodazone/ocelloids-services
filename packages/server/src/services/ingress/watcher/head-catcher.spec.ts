@@ -1,28 +1,26 @@
 import { MemoryLevel } from 'memory-level'
-import { from, of } from 'rxjs'
 
 import Connector from '@/services/networking/connector.js'
 import { ApiClient } from '@/services/networking/index.js'
-import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
-import { LevelDB, NetworkURN, jsonEncoded, prefixes } from '@/services/types.js'
-import { polkadotBlocks, testBlocksFrom } from '@/testing/blocks.js'
+import { LevelDB, Services } from '@/services/types.js'
 import { mockConfigWS } from '@/testing/configs.js'
-import { _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 
 const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 
 describe('head catcher', () => {
   let db: LevelDB
+  let services: Services
 
-  beforeAll(async () => {
+  beforeAll(() => {
+    services = createServices()
+  })
+
+  beforeEach(async () => {
     db = new MemoryLevel()
   })
 
   afterEach(async () => {
-    await db.clear()
-  })
-
-  afterAll(async () => {
     await db.close()
   })
 
@@ -247,7 +245,7 @@ describe('head catcher', () => {
     it('should get outbound UMP messages from chain storage if using rpc', async () => {
       const mockUpwardMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
       const catcher = new HeadCatcher({
-        ..._services,
+        ...services,
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
@@ -276,7 +274,7 @@ describe('head catcher', () => {
     it('should get outbound HRMP messages from chain storage if using rpc', async () => {
       const mockHrmpOutboundMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
       const catcher = new HeadCatcher({
-        ..._services,
+        ...services,
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({

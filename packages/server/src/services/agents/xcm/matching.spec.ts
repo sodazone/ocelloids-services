@@ -2,9 +2,10 @@ import { MemoryLevel as Level } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
-import { jsonEncoded } from '@/services/types.js'
+import { Services, jsonEncoded } from '@/services/types.js'
 import { matchHopMessages, matchMessages, realHopMessages } from '@/testing/matching.js'
-import { _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
+
 import { AbstractSublevel } from 'abstract-level'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmMessagePayload, XcmNotificationType, XcmSent, prefixes } from './types.js'
@@ -12,12 +13,17 @@ import { XcmInbound, XcmMessagePayload, XcmNotificationType, XcmSent, prefixes }
 describe('message matching engine', () => {
   let engine: MatchingEngine
   let db: Level
+  let services: Services
   let outbound: AbstractSublevel<Level, Buffer | Uint8Array | string, string, XcmSent>
   const cb = vi.fn((_: XcmMessagePayload) => {
     /* empty */
   })
   const schedule = vi.fn(() => {
     /* empty */
+  })
+
+  beforeAll(() => {
+    services = createServices()
   })
 
   beforeEach(() => {
@@ -27,7 +33,7 @@ describe('message matching engine', () => {
     db = new Level()
     engine = new MatchingEngine(
       {
-        ..._services,
+        ...services,
         egress: {} as unknown as Egress,
         db,
         janitor: {
