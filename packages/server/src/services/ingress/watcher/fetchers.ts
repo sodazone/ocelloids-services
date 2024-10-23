@@ -5,7 +5,7 @@ import { NetworkInfo } from '../index.js'
 
 // from https://github.com/polkadot-js/apps/blob/master/packages/react-hooks/src/useBlockInterval.ts
 
-const DEFAULT_TIME = 6_000n
+// const DEFAULT_TIME = 6_000n
 
 /* TODO: port to new client
 async function resolveBlockTime(api: PapiClient) {

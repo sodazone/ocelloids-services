@@ -14,12 +14,6 @@ const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
 describe('head catcher', () => {
   let db: LevelDB
 
-  function sl(chainId: NetworkURN) {
-    return db.sublevel<string, Uint8Array>(prefixes.cache.family(chainId), {
-      valueEncoding: 'buffer',
-    })
-  }
-
   beforeAll(async () => {
     db = new MemoryLevel()
   })

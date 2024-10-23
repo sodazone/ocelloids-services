@@ -194,40 +194,6 @@ export class XcmSubscriptionManager {
   }
 
   /**
-   * Attempts to recover a bridge subscription after an error.
-   *
-   * @param {Error} error - The error that occurred.
-   * @param {string} id - The subscription ID.
-   * @param {string} type - The bridge type.
-   * @param {string} originBridgeHub - The origin bridge hub.
-   */
-  tryRecoverBridge(error: Error, id: string, type: string, originBridgeHub: string) {
-    // try recover pk bridge subscription
-    if (this.has(id)) {
-      const sub = this.get(id)
-      const { bridgeSubs } = sub
-      const index = bridgeSubs.findIndex((s) => s.type === type)
-      if (index > -1) {
-        const rmds = bridgeSubs.splice(index, 1)
-        for (const rmd of rmds[0].subs) {
-          rmd.sub.unsubscribe()
-        }
-        setTimeout(() => {
-          this.#log.info(
-            '[%s:%s] UPDATE destination subscription %s due error %s',
-            this.#agent.id,
-            originBridgeHub,
-            id,
-            errorMessage(error),
-          )
-          bridgeSubs.push(this.#agent.__monitorPkBridge(sub.subscription))
-          sub.bridgeSubs = bridgeSubs
-        }, SUB_ERROR_RETRY_MS).unref()
-      }
-    }
-  }
-
-  /**
    * Attempts to recover an inbound subscription after an error.
    *
    * @param {Error} error - The error that occurred.
