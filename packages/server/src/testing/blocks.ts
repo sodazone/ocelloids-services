@@ -37,7 +37,3 @@ export function testBlocksFromDirectory(directory: string) {
 }
 
 export const polkadotBlocks = testBlocksFromDirectory('polkadot')
-
-//export const polkadotBlocks = testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')
-//export const interlayBlocks = testBlocksFrom('hrmp-in-2032-success.cbor.bin', 'interlay.json')
-//export const assetHubBlocks = testBlocksFrom('hrmp-out-1000.cbor.bin', 'asset-hub.json')

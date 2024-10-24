@@ -76,11 +76,12 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     return new Promise<ApiClient>((resolve) => {
       if (this.#connected) {
         resolve(this)
+      } else {
+        this.once('connected', () => {
+          this.#connected = true
+          resolve(this)
+        })
       }
-      this.once('connected', () => {
-        this.#connected = true
-        resolve(this)
-      })
     })
   }
 
@@ -127,8 +128,8 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   async getStorageKeys(
     keyPrefix: string,
     count: number,
-    resolvedStartKey: string | undefined,
-    at: string | undefined,
+    resolvedStartKey?: string,
+    at?: string,
   ): Promise<HexString[]> {
     return await this.#request<HexString[]>('state_getKeysPaged', [keyPrefix, count, resolvedStartKey, at])
   }
