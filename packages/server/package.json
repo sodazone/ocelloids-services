@@ -34,7 +34,6 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@swc/core": "^1.7.39",
     "@types/node": "^22.7.9",
     "@types/ws": "^8.5.12",
     "@vitest/coverage-v8": "2.1.3",

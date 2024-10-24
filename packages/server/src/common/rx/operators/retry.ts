@@ -1,6 +1,3 @@
-// Copyright 2023-2024 SO/DA zone
-// SPDX-License-Identifier: Apache-2.0
-
 import { Observable, SchedulerLike, asyncScheduler, retry } from 'rxjs'
 
 /**

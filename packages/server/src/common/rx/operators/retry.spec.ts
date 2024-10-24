@@ -1,6 +1,3 @@
-// Copyright 2023-2024 SO/DA zone
-// SPDX-License-Identifier: Apache-2.0
-
 import { defer, firstValueFrom, lastValueFrom, of, throwError } from 'rxjs'
 import { retryWithTruncatedExpBackoff, truncatedExpBackoff } from './retry.js'
 

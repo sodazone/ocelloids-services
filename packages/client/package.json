@@ -48,7 +48,6 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@microsoft/api-extractor": "^7.47.11",
-    "@swc/core": "^1.7.39",
     "finalhandler": "^1.3.1",
     "mock-socket": "^9.3.1",
     "nock": "^14.0.0-beta.15",
