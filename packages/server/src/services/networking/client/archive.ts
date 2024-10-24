@@ -159,7 +159,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
         this.#connected = true
       })
       .catch((error) => {
-        this.#log.error(error, '[client:%s] error while connecting %s (should never happen)', this.chainId)
+        this.#log.error(error, '[client:%s] error while connecting (should never happen)', this.chainId)
       })
     return this.isReady()
   }
