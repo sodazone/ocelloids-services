@@ -48,7 +48,7 @@ describe('head catcher', () => {
   })
 
   describe('finalizedBlocks', () => {
-    it.only('should catch up blocks', async () => {
+    it('should catch up blocks', async () => {
       // Pretend that we left off at block #23075457
       db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
         chainId: 'urn:ocn:local:0',
@@ -105,7 +105,7 @@ describe('head catcher', () => {
     })
   })
 
-  it.only('should recover block ranges', async () => {
+  it('should recover block ranges', async () => {
     // Pretend that we left off at block #23075466
     db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
       chainId: 'urn:ocn:local:0',
