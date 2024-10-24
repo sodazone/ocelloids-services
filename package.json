@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-service-root",
-  "version": "1.0.0",
+  "version": "2.3.0-dev.0",
   "description": "Ocelloids Server",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
@@ -23,5 +23,6 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "typescript": "^5.6.3"
-  }
+  },
+  "stableVersion": "1.0.0"
 }
