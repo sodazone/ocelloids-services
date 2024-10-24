@@ -154,56 +154,22 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     startKey?: HexString,
     blockHash?: HexString,
   ): Observable<HexString[]> {
-    // TODO log errors and handle retry
     const resolvedStartKey = startKey === '0x0' ? undefined : startKey
     const at = blockHash === undefined || blockHash === '0x0' ? undefined : blockHash
-    return from(this.#apis[chainId].getStorageKeys(keyPrefix, count, resolvedStartKey, at))
-
-    /*
-    const api$ = from(this.#apis.promise[chainId].isReady)
-    const resolvedStartKey = startKey === '0x0' ? undefined : startKey
-    const getStorageKeys$ = apiPromise$.pipe(
-      switchMap((api) =>
-        from(
-          blockHash === undefined || blockHash === '0x0'
-            ? api.rpc.state.getKeysPaged(keyPrefix, count, resolvedStartKey)
-            : api.rpc.state.getKeysPaged(keyPrefix, count, resolvedStartKey, blockHash),
-        ),
-      ),
-      map((data) =>
-        data.toArray().map((storageKey) => {
-          return storageKey.toHex()
-        }),
-      ),
+    return from(this.#apis[chainId].getStorageKeys(keyPrefix, count, resolvedStartKey, at)).pipe(
       this.#tapError(
         chainId,
-        `rpc.state.getKeysPaged(${keyPrefix}, ${count}, ${startKey ?? 'start'}, ${blockHash ?? 'latest'})`,
+        `state_getKeysPaged(${keyPrefix}, ${count}, ${startKey ?? 'start'}, ${blockHash ?? 'latest'})`,
       ),
+      retryWithTruncatedExpBackoff(RETRY_INFINITE),
     )
-
-    return getStorageKeys$.pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE))
-    */
   }
 
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
-    return from(this.#apis[chainId].getStorage(storageKey, blockHash))
-
-    /*
-    const apiPromise$ = from(this.#apis.promise[chainId].isReady)
-    const getStorage$ = apiPromise$.pipe(
-      switchMap((api) =>
-        from(
-          blockHash === undefined || blockHash === '0x0'
-            ? api.rpc.state.getStorage<Raw>(storageKey)
-            : api.rpc.state.getStorage<Raw>(storageKey, blockHash),
-        ),
-      ),
-      map((data) => data.toU8a(true)),
-      this.#tapError(chainId, `rpc.state.getStorage(${storageKey}, ${blockHash ?? 'latest'})`),
+    return from(this.#apis[chainId].getStorage(storageKey, blockHash)).pipe(
+      this.#tapError(chainId, `state_getStorage(${storageKey}, ${blockHash ?? 'latest'})`),
+      retryWithTruncatedExpBackoff(RETRY_INFINITE),
     )
-
-    return getStorage$.pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE))
-    */
   }
 
   get chainIds(): NetworkURN[] {
