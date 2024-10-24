@@ -30,10 +30,9 @@ function testBlocksFromFiles(paths: string[]) {
   return blocks
 }
 
-export function testBlocksFromDirectory(directory: string) {
+function testBlocksFromDirectory(directory: string, files: string[]) {
   const dir = path.resolve(blocksDir, directory)
-  const files = readdirSync(dir)
   return testBlocksFromFiles(files.map((f) => path.resolve(dir, f)))
 }
 
-export const polkadotBlocks = testBlocksFromDirectory('polkadot')
+export const polkadotBlocks = testBlocksFromDirectory('polkadot', ['23075458.cbor'])

@@ -8,12 +8,13 @@ import {
   SystemEvent,
   getObservableClient,
 } from '@polkadot-api/observable-client'
-import { blockHeader } from '@polkadot-api/substrate-bindings'
+import { blockHeader, u64 } from '@polkadot-api/substrate-bindings'
 import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
 import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { asSerializable } from '@/common/index.js'
+import { toHex } from 'polkadot-api/utils'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { Block, EventRecord } from '../types.js'
@@ -110,8 +111,10 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }) as Block
   }
 
-  async getBlockHash(blockNumber: string): Promise<string> {
-    return await this.#request<string, [height: string]>('archive_unstable_hashByHeight', [blockNumber])
+  async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
+    return (
+      await this.#request<string, [height: number]>('archive_unstable_hashByHeight', [Number(blockNumber)])
+    )[0]
   }
 
   async getHeader(hash: string): Promise<BlockInfo> {
