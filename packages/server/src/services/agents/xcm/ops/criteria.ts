@@ -1,4 +1,5 @@
-import { ControlQuery, Criteria } from '@sodazone/ocelloids-sdk'
+import { ControlQuery, Criteria } from '@/common/index.js'
+
 import { SignerData } from '../../../subscriptions/types.js'
 import { NetworkURN } from '../../../types.js'
 import { XcmSent } from '../types.js'

@@ -16,14 +16,6 @@ const $RpcProvider = z.object({
     .or(z.array(z.string().min(1)).min(1)),
 })
 
-const wellKnownChains = ['polkadot', 'ksmcc3', 'rococo_v2_2', 'westend2'] as const
-
-const $SmoldotProvider = z.object({
-  type: z.literal('smoldot'),
-  name: z.enum(wellKnownChains).optional(),
-  spec: z.string().min(1).optional(),
-})
-
 const globalConsensus = [
   'local',
   'polkadot',
@@ -51,7 +43,7 @@ export function isGlobalConsensus(value: string): value is GlobalConsensus {
   return s.includes(value)
 }
 
-const $NetworkProvider = z.discriminatedUnion('type', [$RpcProvider, $SmoldotProvider])
+const $NetworkProvider = $RpcProvider
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`)
 
@@ -65,8 +57,8 @@ export const $NetworkId = z.string().regex(networkIdRegex)
 
 const $NetworkConfiguration = z.object({
   id: $NetworkId,
-  relay: $NetworkId.optional(),
   provider: $NetworkProvider,
+  relay: $NetworkId.optional(),
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),
 })

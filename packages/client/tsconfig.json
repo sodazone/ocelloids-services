@@ -2,14 +2,14 @@
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig to read more about this file */
     "target": "es6",
-    "moduleResolution": "node",
+    "moduleResolution": "Node",
     "lib": [
       "esnext",
       "dom"
     ],
-    "baseUrl": "./src",
+    "rootDir": "src",
     "types": [
-      "jest"
+      "vitest/globals"
     ],
     "outDir": "./dist",
     "isolatedModules": true,
@@ -20,15 +20,14 @@
     "sourceMap": true,
     "declarationMap": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "**/*.spec.ts",
-    "test", 
-    "examples"
+    "test"
   ]
 }

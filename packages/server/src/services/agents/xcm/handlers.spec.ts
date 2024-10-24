@@ -1,18 +1,17 @@
-import { jest } from '@jest/globals'
-
 import { FastifyBaseLogger } from 'fastify'
-
 import { Subscription as RxSubscription } from 'rxjs'
 
+import { ControlQuery } from '@/common/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { _ingress, _services } from '@/testing/services.js'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
+import { Services } from '@/services/types.js'
+import { createServices } from '@/testing/services.js'
+
 import { XcmAgent } from './agent.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { messageCriteria, sendersCriteria } from './ops/criteria.js'
 import { XcmInputs, XcmSubscriptionHandler } from './types.js'
 
-jest.useFakeTimers()
+vi.useFakeTimers()
 
 const origin = 'urn:ocn:local:1000'
 const destinations = ['urn:ocn:local:2000']
@@ -35,15 +34,15 @@ const testSub: Subscription<XcmInputs> = {
 }
 
 const mockOriginSubscription = {
-  unsubscribe: jest.fn(),
+  unsubscribe: vi.fn(),
 } as unknown as RxSubscription
 
 const mockDestSubscription = {
-  unsubscribe: jest.fn(),
+  unsubscribe: vi.fn(),
 } as unknown as RxSubscription
 
 const mockRelaySubscription = {
-  unsubscribe: jest.fn(),
+  unsubscribe: vi.fn(),
 } as unknown as RxSubscription
 
 const testXcmSubscriptionHandler: XcmSubscriptionHandler = {
@@ -75,23 +74,25 @@ describe('XcmSubscriptionManager', () => {
   let mockLogger
   let xcmAgent: XcmAgent
   let xcmSubscriptionManager: XcmSubscriptionManager
+  let services: Services
 
   beforeEach(() => {
-    jest.clearAllTimers()
+    vi.clearAllTimers()
   })
 
   beforeAll(() => {
+    services = createServices()
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
     } as unknown as FastifyBaseLogger
-    xcmAgent = new XcmAgent({ ..._services, db: _services.levelDB })
-    xcmSubscriptionManager = new XcmSubscriptionManager(mockLogger, _ingress, xcmAgent)
+    xcmAgent = new XcmAgent({ ...services, db: services.levelDB })
+    xcmSubscriptionManager = new XcmSubscriptionManager(mockLogger, services.ingress, xcmAgent)
     xcmSubscriptionManager.set(testSub.id, testXcmSubscriptionHandler)
   })
 
   afterAll(async () => {
-    await _services.levelDB.clear()
+    await services.levelDB.clear()
     await xcmAgent.stop()
   })
 
@@ -139,11 +140,11 @@ describe('XcmSubscriptionManager', () => {
 
   describe('tryRecoverRelay', () => {
     it('should unsubscribe from errored relay subscription and add new subscription', () => {
-      const monitorRelaySpy = jest.spyOn(xcmAgent, '__monitorRelay')
+      const monitorRelaySpy = vi.spyOn(xcmAgent, '__monitorRelay')
 
       xcmSubscriptionManager.tryRecoverRelay(new Error('test error'), testSub.id, origin)
 
-      jest.advanceTimersToNextTimer()
+      vi.advanceTimersToNextTimer()
 
       expect(mockRelaySubscription.unsubscribe).toHaveBeenCalled()
       expect(monitorRelaySpy).toHaveBeenCalled()
@@ -153,11 +154,11 @@ describe('XcmSubscriptionManager', () => {
 
   describe('tryRecoverInbound', () => {
     it('should unsubscribe from errored inbound subscription and add new subscription', () => {
-      const monitorDestinationsSpy = jest.spyOn(xcmAgent, '__monitorDestinations')
+      const monitorDestinationsSpy = vi.spyOn(xcmAgent, '__monitorDestinations')
 
       xcmSubscriptionManager.tryRecoverInbound(new Error('test error'), testSub.id, destinations[0])
 
-      jest.advanceTimersToNextTimer()
+      vi.advanceTimersToNextTimer()
 
       expect(mockDestSubscription.unsubscribe).toHaveBeenCalled()
       expect(monitorDestinationsSpy).toHaveBeenCalled()
@@ -167,11 +168,11 @@ describe('XcmSubscriptionManager', () => {
 
   describe('tryRecoverOutbound', () => {
     it('should unsubscribe from errored outbound subscription and add new subscription', () => {
-      const monitorOriginSpy = jest.spyOn(xcmAgent, '__monitorOrigins')
+      const monitorOriginSpy = vi.spyOn(xcmAgent, '__monitorOrigins')
 
       xcmSubscriptionManager.tryRecoverOutbound(new Error('test error'), testSub.id, origin)
 
-      jest.advanceTimersToNextTimer()
+      vi.advanceTimersToNextTimer()
 
       expect(mockOriginSubscription.unsubscribe).toHaveBeenCalled()
       expect(monitorOriginSpy).toHaveBeenCalled()

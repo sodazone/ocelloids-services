@@ -1,11 +1,9 @@
-import { z } from 'zod'
-
-import { Registry } from '@polkadot/types-codec/types'
-
 import { Observable } from 'rxjs'
+import { z } from 'zod'
 
 import { HexString } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
+import { ApiContext, StorageCodec } from '@/services/networking/index.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
@@ -98,28 +96,24 @@ export type ParsedAsset = {
   pallet?: number
 }
 
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
+type AssetStorageKeys = 'assets' | 'metadata' | 'locations'
+export type StorageCodecs<T = any> = Partial<Record<AssetStorageKeys, StorageCodec<T>>>
+
 export type entryMapper = (
-  registry: Registry,
   keyArgs: string,
-  assetIdType: string,
   ingress: IngressConsumer,
-) => (source: Observable<Uint8Array>) => Observable<AssetMetadata>
+) => (source: Observable<HexString>) => Observable<AssetMetadata>
 
 export type AssetMapping = {
   keyPrefix: HexString
-  palletInstance: number
-  assetIdType: string
   mapEntry: entryMapper
-  resolveAssetId?: (registry: Registry, assetIdData: AssetIdData[]) => string
 }
 
-export type AssetMapper = {
-  nativeKeyBySymbol?: boolean
-  mappings: AssetMapping[]
-}
+export type AssetMapper = (context: ApiContext) => AssetMapping[]
 
 export type AssetId = {
-  id: string
+  id: string | object
   xid: HexString
   chainId: NetworkURN
 }

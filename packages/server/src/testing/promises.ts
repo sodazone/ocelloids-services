@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals'
+const scheduler = typeof setImmediate === 'function' ? setImmediate : setTimeout
 
-export const flushPromises = () =>
-  new Promise((resolve) => jest.requireActual<any>('timers').setImmediate(resolve))
+export const flushPromises = () => new Promise((resolve) => scheduler(resolve))

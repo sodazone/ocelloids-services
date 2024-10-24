@@ -1,5 +1,3 @@
-import type { Header } from '@polkadot/types/interfaces'
-
 import { Message } from '@/services/egress/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { TypedEventEmitter } from '@/services/types.js'
@@ -48,8 +46,7 @@ export type TelemetryIngressProducerEvents = {
 }
 
 export type TelemetryEvents = {
-  telemetryBlockSeen: (msg: { chainId: string; header: Header }) => void
-  telemetryBlockFinalized: (msg: { chainId: string; header: Header }) => void
+  telemetryBlockFinalized: (msg: { chainId: string; blockNumber: number }) => void
   telemetryBlockCacheHit: (msg: { chainId: string }) => void
   telemetrySocketListener: (ip: string, sub: Subscription, close?: boolean) => void
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void

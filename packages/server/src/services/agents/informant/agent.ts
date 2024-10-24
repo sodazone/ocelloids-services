@@ -1,7 +1,9 @@
-import { ControlQuery, mongoFilter } from '@sodazone/ocelloids-sdk'
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
+import { filter as rxFilter } from 'rxjs'
+
+import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
@@ -161,12 +163,12 @@ export class InformantAgent implements Agent, Subscribable {
             chainId,
             sub: this.#shared
               .blockExtrinsics(chainId)
-              .pipe(mongoFilter(control))
+              .pipe(rxFilter((extrinsic) => control.value.test(extrinsic)))
               .subscribe({
                 error: (error: any) => {
                   this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
                 },
-                next: (msg) => {
+                next: (extrinsic) => {
                   try {
                     this.#egress.publish(subscription, {
                       metadata: {
@@ -175,14 +177,13 @@ export class InformantAgent implements Agent, Subscribable {
                         agentId: this.id,
                         networkId: chainId,
                         timestamp: Date.now(),
-                        blockTimestamp: msg.extrinsic.timestamp?.toNumber(),
+                        blockTimestamp: extrinsic.timestamp,
                       },
                       payload: {
-                        events: msg.events.map((e) => e.toHuman()),
-                        levelId: msg.levelId,
-                        dispatchInfo: msg.dispatchInfo?.toHuman(),
-                        dispatchError: msg.dispatchError?.toHuman(),
-                        extrinsic: msg.extrinsic.toHuman(),
+                        events: extrinsic.events.map((e) => e),
+                        dispatchInfo: extrinsic.dispatchInfo,
+                        dispatchError: extrinsic.dispatchError,
+                        extrinsic: extrinsic,
                       },
                     })
                   } catch (error) {
@@ -196,7 +197,7 @@ export class InformantAgent implements Agent, Subscribable {
             chainId,
             sub: this.#shared
               .blockEvents(chainId)
-              .pipe(mongoFilter(control))
+              .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
               .subscribe({
                 error: (error: any) => {
                   this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
@@ -210,9 +211,9 @@ export class InformantAgent implements Agent, Subscribable {
                         agentId: this.id,
                         networkId: chainId,
                         timestamp: Date.now(),
-                        blockTimestamp: msg.timestamp?.toNumber(),
+                        blockTimestamp: msg.timestamp,
                       },
-                      payload: msg.toHuman(),
+                      payload: msg,
                     })
                   } catch (error) {
                     this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)

@@ -1,5 +1,5 @@
+import { ControlQuery } from '@/common/index.js'
 import { matchMessages } from '@/testing/matching.js'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './criteria.js'
 
 describe('control query criteria', () => {

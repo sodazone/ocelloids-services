@@ -1,12 +1,11 @@
-import { jest } from '@jest/globals'
-
 import { MemoryLevel } from 'memory-level'
 import nock from 'nock'
 
-import { _log, _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 
 import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { Services } from '../types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { Message } from './types.js'
@@ -170,13 +169,16 @@ const subOkSecret = {
 } as Subscription
 
 describe('webhook publisher', () => {
-  const subs = _services.subsStore
-
+  let subs
   let scheduler: Scheduler
   let publisher: WebhookPublisher
   let egress: Egress
+  let services: Services
 
   beforeAll(async () => {
+    services = createServices()
+    subs = services.subsStore
+
     await subs.insert(subOk)
     await subs.insert(subOkXml)
     await subs.insert(subFail)
@@ -189,13 +191,13 @@ describe('webhook publisher', () => {
   })
 
   beforeEach(() => {
-    scheduler = new Scheduler(_services.log, new MemoryLevel(), {
+    scheduler = new Scheduler(services.log, new MemoryLevel(), {
       scheduler: true,
       schedulerFrequency: 500,
     })
-    egress = new Egress(_services)
+    egress = new Egress(services)
     publisher = new WebhookPublisher(egress, {
-      ..._services,
+      ...services,
       scheduler,
     })
   })
@@ -206,7 +208,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)
@@ -221,7 +223,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/, /<sender>w123<\/sender>/gi)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     const xmlNotifyMsg = {
@@ -273,7 +275,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOkAuth, message)
@@ -285,7 +287,7 @@ describe('webhook publisher', () => {
   it('should fail posting to the wrong path', async () => {
     const scope = nock('http://localhost').post(/.+/).reply(404)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subFail, message)
@@ -300,7 +302,7 @@ describe('webhook publisher', () => {
       .times(2)
       .reply(500)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)
@@ -318,7 +320,7 @@ describe('webhook publisher', () => {
       .post(/ok\/.+/)
       .reply(200)
 
-    const ok = jest.fn()
+    const ok = vi.fn()
     publisher.on('telemetryPublish', ok)
 
     await publisher.publish(subOk, message)

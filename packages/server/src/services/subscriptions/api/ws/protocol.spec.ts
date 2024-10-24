@@ -1,10 +1,9 @@
-import { jest } from '@jest/globals'
-
 import { ValidationError } from '@/errors.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { Services } from '@/services/types.js'
 import { flushPromises } from '@/testing/promises.js'
-import { _egress, _services } from '@/testing/services.js'
+import { createServices } from '@/testing/services.js'
 import { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import z, { ZodError } from 'zod'
 import WebsocketProtocol from './protocol.js'
@@ -32,17 +31,17 @@ const mockRequest = {
 } as FastifyRequest
 
 const emptyStream = {
-  close: jest.fn(),
-  once: jest.fn(),
-  on: jest.fn(),
-  write: jest.fn(),
-  send: jest.fn(),
+  close: vi.fn(),
+  once: vi.fn(),
+  on: vi.fn(),
+  write: vi.fn(),
+  send: vi.fn(),
 } as any
 
 const testSubData = Buffer.from(JSON.stringify(testSub))
 const testSubStream = {
   ...emptyStream,
-  on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+  on: vi.fn((_: string, fn: (data: Buffer) => void) => {
     fn(testSubData)
   }),
 }
@@ -51,40 +50,45 @@ describe('WebsocketProtocol', () => {
   let mockLogger
   let testSwitchboard: Switchboard
   let websocketProtocol: WebsocketProtocol
+  let services: Services
+
+  beforeAll(() => {
+    services = createServices()
+  })
 
   beforeEach(() => {
     mockLogger = {
-      error: jest.fn(),
+      error: vi.fn(),
     } as unknown as FastifyBaseLogger
-    testSwitchboard = new Switchboard(_services, {})
+    testSwitchboard = new Switchboard(services, {})
     websocketProtocol = new WebsocketProtocol(mockLogger, testSwitchboard, {
       wsMaxClients: 2,
     })
   })
 
   afterEach(async () => {
-    jest.clearAllMocks()
-    await _services.levelDB.clear()
-    await _services.agentCatalog.stop()
+    vi.clearAllMocks()
+    await services.levelDB.clear()
+    await services.agentCatalog.stop()
     websocketProtocol.stop()
   })
 
   describe('handle', () => {
     describe('without auth', () => {
       it('should handle on-demand ephemeral subscriptions', async () => {
-        const subscribeSpy = jest.spyOn(testSwitchboard, 'subscribe')
+        const subscribeSpy = vi.spyOn(testSwitchboard, 'subscribe')
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
         expect(subscribeSpy).toHaveBeenCalledTimes(1)
       })
 
       it('should unsubscribe when socket is closed', async () => {
-        const subscribeSpy = jest.spyOn(testSwitchboard, 'subscribe')
-        const mockSwitchboardUnsubscribe = jest.spyOn(testSwitchboard, 'unsubscribe')
+        const subscribeSpy = vi.spyOn(testSwitchboard, 'subscribe')
+        const mockSwitchboardUnsubscribe = vi.spyOn(testSwitchboard, 'unsubscribe')
         let closeHandler: () => Promise<void> = () => Promise.resolve()
         const mockStream = {
           ...testSubStream,
-          once: jest.fn((event: string, fn: () => Promise<void>) => {
+          once: vi.fn((event: string, fn: () => Promise<void>) => {
             if (event === 'close') {
               closeHandler = fn
             }
@@ -99,7 +103,8 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should send error if throws ZodError on subscribe', async () => {
-        jest.spyOn(testSwitchboard, 'subscribe').mockRejectedValueOnce(
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(
           new ZodError([
             {
               code: z.ZodIssueCode.custom,
@@ -111,7 +116,8 @@ describe('WebsocketProtocol', () => {
         )
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
-        expect(jest.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","fatal":true,"message":"test error","path":["ws-test"]}],"name":"ZodError"}',
           expect.any(Function),
@@ -122,14 +128,15 @@ describe('WebsocketProtocol', () => {
         const mockData = Buffer.from('macario')
         const mockStream = {
           ...emptyStream,
-          on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          on: vi.fn((_: string, fn: (data: Buffer) => void) => {
             fn(mockData)
           }),
         } as any
 
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
         await websocketProtocol.handle(mockStream, mockRequest)
         await flushPromises()
-        expect(jest.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(0)
+        expect(spy).toHaveBeenCalledTimes(0)
         expect(mockStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","message":"Invalid JSON","path":[]}],"name":"ZodError"}',
           expect.any(Function),
@@ -137,12 +144,11 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should send error if throws ValidationError on subscribe', async () => {
-        jest
-          .spyOn(testSwitchboard, 'subscribe')
-          .mockRejectedValueOnce(new ValidationError('test validation error'))
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(new ValidationError('test validation error'))
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
-        expect(jest.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
           '{"issues":[{"code":"custom","path":["filter","match"],"message":"test validation error"}],"name":"ZodError"}',
           expect.any(Function),
@@ -150,16 +156,17 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should close socket stream if throws unknown error on subscribe', async () => {
-        jest.spyOn(testSwitchboard, 'subscribe').mockRejectedValueOnce(new Error('test error'))
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
+        spy.mockRejectedValueOnce(new Error('test error'))
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
-        expect(jest.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(1)
+        expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.close).toHaveBeenCalledWith(1011, 'server error')
       })
 
       it('should handle additional connections to existing subscriptions', async () => {
-        jest.spyOn(testSwitchboard, 'findSubscription').mockReturnValueOnce(Promise.resolve(testSub))
-        const emitSpy = jest.spyOn(websocketProtocol, 'emit')
+        vi.spyOn(testSwitchboard, 'findSubscription').mockReturnValueOnce(Promise.resolve(testSub))
+        const emitSpy = vi.spyOn(websocketProtocol, 'emit')
 
         await websocketProtocol.handle(emptyStream, mockRequest, {
           subscriptionId: 'test-subscription',
@@ -190,11 +197,11 @@ describe('WebsocketProtocol', () => {
         )
         const mockStream = {
           ...emptyStream,
-          on: jest.fn((_: string, fn: (data: Buffer) => void) => {
+          on: vi.fn((_: string, fn: (data: Buffer) => void) => {
             fn(mockData)
           }),
         } as any
-        jest.spyOn(testSwitchboard, 'findSubscription').mockImplementationOnce(() =>
+        vi.spyOn(testSwitchboard, 'findSubscription').mockImplementationOnce(() =>
           Promise.resolve({
             ...testSub,
             channels: [{ type: 'log' }],
@@ -211,7 +218,7 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should close connection with error code if unable to add subscription', async () => {
-        jest.spyOn(testSwitchboard, 'subscribe').mockImplementationOnce(() => {
+        vi.spyOn(testSwitchboard, 'subscribe').mockImplementationOnce(() => {
           throw new Error('Test error')
         })
 
@@ -222,8 +229,8 @@ describe('WebsocketProtocol', () => {
       })
 
       it('should close connection with error code if an error occurs', async () => {
-        const mockStream = { close: jest.fn() } as any
-        jest.spyOn(testSwitchboard, 'findSubscription').mockImplementationOnce(() => {
+        const mockStream = { close: vi.fn() } as any
+        vi.spyOn(testSwitchboard, 'findSubscription').mockImplementationOnce(() => {
           throw new Error('subscription not found')
         })
         await websocketProtocol.handle(mockStream, mockRequest, { subscriptionId: 'testId', agentId: 'xcm' })
@@ -241,7 +248,7 @@ describe('WebsocketProtocol', () => {
           },
           payload: {},
         }
-        const emitSpy = jest.spyOn(websocketProtocol, 'emit')
+        const emitSpy = vi.spyOn(websocketProtocol, 'emit')
         await testSwitchboard.subscribe(testSub)
 
         await websocketProtocol.handle(testSubStream, mockRequest, {
@@ -249,7 +256,7 @@ describe('WebsocketProtocol', () => {
           subscriptionId: testSub.id,
         })
         await flushPromises()
-        _egress.emit('websocket', testSub, msg)
+        services.egress.emit('websocket', testSub, msg)
 
         expect(testSubStream.send).toHaveBeenCalledTimes(1)
         expect(emitSpy).toHaveBeenCalledTimes(2)
@@ -273,8 +280,8 @@ describe('WebsocketProtocol', () => {
           },
           payload: {},
         }
-        const emitSpy = jest.spyOn(websocketProtocol, 'emit')
-        jest.spyOn(testSubStream, 'send').mockImplementationOnce(() => {
+        const emitSpy = vi.spyOn(websocketProtocol, 'emit')
+        vi.spyOn(testSubStream, 'send').mockImplementationOnce(() => {
           throw new Error('test error')
         })
 
@@ -285,7 +292,7 @@ describe('WebsocketProtocol', () => {
           subscriptionId: testSub.id,
         })
         await flushPromises()
-        _egress.emit('websocket', testSub, msg)
+        services.egress.emit('websocket', testSub, msg)
 
         expect(emitSpy).toHaveBeenCalledTimes(2)
         expect(emitSpy).toHaveBeenNthCalledWith(2, 'telemetryPublishError', {
@@ -299,7 +306,7 @@ describe('WebsocketProtocol', () => {
     })
 
     describe('with auth', () => {
-      const mockVerify = jest.fn()
+      const mockVerify = vi.fn()
 
       const mockRequestWithAuth = {
         id: 'mockRequestId',
@@ -313,7 +320,7 @@ describe('WebsocketProtocol', () => {
             verify: mockVerify,
           },
           log: {
-            error: jest.fn(),
+            error: vi.fn(),
           },
           accountsRepository: {
             findApiTokenById: (_jti: string) =>
@@ -337,7 +344,7 @@ describe('WebsocketProtocol', () => {
 
       const testStreamWithAuth = {
         ...testSubStream,
-        once: jest.fn((_: string, fn: (data: Buffer) => void) => {
+        once: vi.fn((_: string, fn: (data: Buffer) => void) => {
           fn(testSubData)
         }),
       } as any
@@ -347,7 +354,7 @@ describe('WebsocketProtocol', () => {
           sub: 'macario@cheeto.io',
           jti: '01000000000000000000000000',
         })
-        const subscribeSpy = jest.spyOn(testSwitchboard, 'subscribe')
+        const subscribeSpy = vi.spyOn(testSwitchboard, 'subscribe')
 
         await websocketProtocol.handle(testStreamWithAuth, mockRequestWithAuth)
         await new Promise(setImmediate)
@@ -361,7 +368,8 @@ describe('WebsocketProtocol', () => {
           sub: 'macario@cheeto.io',
           jti: '01000000000000000000000000',
         })
-        jest.spyOn(testSwitchboard, 'findSubscription').mockReturnValueOnce(Promise.resolve(testSub))
+        const spy = vi.spyOn(testSwitchboard, 'findSubscription')
+        spy.mockReturnValueOnce(Promise.resolve(testSub))
 
         await websocketProtocol.handle(testStreamWithAuth, mockRequestWithAuth, {
           subscriptionId: 'test-subscription',
@@ -370,16 +378,17 @@ describe('WebsocketProtocol', () => {
         await new Promise(setImmediate)
         await flushPromises()
 
-        expect(testSwitchboard.findSubscription).toHaveBeenCalled()
+        expect(spy).toHaveBeenCalled()
         expect(emptyStream.close).toHaveBeenCalledWith(1002, 'auth error')
       })
 
       it('should close with auth error if not authorized', async () => {
+        const spy = vi.spyOn(testSwitchboard, 'subscribe')
         await websocketProtocol.handle(testStreamWithAuth, mockRequestWithAuth)
         await new Promise(setImmediate)
         await flushPromises()
 
-        expect(jest.spyOn(testSwitchboard, 'subscribe')).toHaveBeenCalledTimes(0)
+        expect(spy).toHaveBeenCalledTimes(0)
         expect(mockVerify).toHaveBeenCalledTimes(1)
         expect(testStreamWithAuth.close).toHaveBeenCalledWith(1002, 'auth error')
       })

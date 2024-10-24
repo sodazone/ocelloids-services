@@ -1,12 +1,6 @@
-import type { U8aFixed, bool } from '@polkadot/types-codec'
-import type {
-  FrameSupportMessagesProcessMessageError,
-  PolkadotRuntimeParachainsInclusionAggregateMessageOrigin,
-} from '@polkadot/types/lookup'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { z } from 'zod'
 
-import { time } from 'console'
+import { ControlQuery } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'
 import {
   HexString,
@@ -65,7 +59,7 @@ export type XcmCriteria = {
 
 export type XcmWithContext = {
   event?: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
   blockNumber: string | number
   blockHash: HexString
   timestamp?: number
@@ -128,7 +122,7 @@ export interface XcmBridgeDeliveredWithContext {
   chainId: NetworkURN
   bridgeKey: HexString
   event?: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
   blockNumber: string | number
   blockHash: HexString
   timestamp?: number
@@ -144,7 +138,7 @@ export interface XcmBridgeInboundWithContext {
   outcome: 'Success' | 'Fail'
   error: AnyJson
   event?: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
 }
 
 export interface XcmBridgeInboundWithContext {
@@ -156,12 +150,12 @@ export interface XcmBridgeInboundWithContext {
   outcome: 'Success' | 'Fail'
   error: AnyJson
   event?: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail'
-  error: AnyJson
+  error?: AnyJson
   assetsTrapped?: AssetsTrapped
 }
 
@@ -172,7 +166,7 @@ export interface XcmRelayedWithContext extends XcmInboundWithContext {
 
 export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
   event: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
   blockNumber: string | number
   blockHash: HexString
   timestamp?: number
@@ -190,7 +184,7 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.recipient = msg.recipient
     this.origin = msg.origin
     this.outcome = msg.outcome
@@ -201,7 +195,7 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
     return {
       messageHash: this.messageHash,
       messageId: this.messageId,
-      extrinsicId: this.extrinsicId,
+      extrinsicPosition: this.extrinsicPosition,
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
       timestamp: this.timestamp,
@@ -216,15 +210,15 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
 
 export class GenericXcmInboundWithContext implements XcmInboundWithContext {
   event: AnyJson
-  extrinsicId?: string | undefined
+  extrinsicPosition?: number
   blockNumber: string
   blockHash: HexString
-  timestamp?: number | undefined
+  timestamp?: number
   messageHash: HexString
   messageId: HexString
   outcome: 'Success' | 'Fail'
-  error: AnyJson
-  assetsTrapped?: AssetsTrapped | undefined
+  error?: AnyJson
+  assetsTrapped?: AssetsTrapped
 
   constructor(msg: XcmInboundWithContext) {
     this.event = msg.event
@@ -235,7 +229,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.assetsTrapped = msg.assetsTrapped
   }
 
@@ -243,7 +237,7 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
     return {
       messageHash: this.messageHash,
       messageId: this.messageId,
-      extrinsicId: this.extrinsicId,
+      extrinsicPosition: this.extrinsicPosition,
       blockHash: this.blockHash,
       blockNumber: this.blockNumber,
       timestamp: this.timestamp,
@@ -266,7 +260,7 @@ export class XcmInbound {
   blockHash: HexString
   blockNumber: string
   timestamp?: number
-  extrinsicId?: string
+  extrinsicPosition?: number
   assetsTrapped?: AssetsTrapped
 
   constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
@@ -280,7 +274,7 @@ export class XcmInbound {
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.assetsTrapped = msg.assetsTrapped
   }
 }
@@ -295,7 +289,7 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
   blockNumber: string
   timestamp?: number | undefined
   sender?: SignerData
-  extrinsicId?: string
+  extrinsicPosition?: number
   messageId?: HexString
 
   constructor(msg: XcmSentWithContext) {
@@ -307,25 +301,9 @@ export class GenericXcmSentWithContext implements XcmSentWithContext {
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.messageId = msg.messageId
     this.sender = msg.sender
-  }
-
-  toHuman(_isExpanded?: boolean | undefined): Record<string, AnyJson> {
-    return {
-      messageData: toHexString(this.messageData),
-      recipient: this.recipient,
-      instructions: this.instructions.json,
-      messageHash: this.messageHash,
-      event: this.event,
-      blockHash: this.blockHash,
-      blockNumber: this.blockNumber,
-      timestamp: this.timestamp,
-      extrinsicId: this.extrinsicId,
-      messageId: this.messageId,
-      senders: this.sender,
-    }
   }
 }
 
@@ -340,7 +318,7 @@ export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWit
   blockHash: HexString
   blockNumber: string
   timestamp?: number | undefined
-  extrinsicId?: string
+  extrinsicPosition?: number
   messageId?: HexString
   forwardId?: HexString
 
@@ -355,7 +333,7 @@ export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWit
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.messageId = msg.messageId
     this.forwardId = msg.forwardId
   }
@@ -365,7 +343,7 @@ export class GenericXcmBridgeDeliveredWithContext implements XcmBridgeDeliveredW
   chainId: NetworkURN
   bridgeKey: HexString
   event?: AnyJson
-  extrinsicId?: string
+  extrinsicPosition?: number
   blockNumber: string
   blockHash: HexString
   timestamp?: number | undefined
@@ -375,7 +353,7 @@ export class GenericXcmBridgeDeliveredWithContext implements XcmBridgeDeliveredW
     this.chainId = msg.chainId
     this.bridgeKey = msg.bridgeKey
     this.event = msg.event
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.blockNumber = msg.blockNumber.toString()
     this.blockHash = msg.blockHash
     this.timestamp = msg.timestamp
@@ -387,7 +365,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   chainId: NetworkURN
   bridgeKey: HexString
   event: AnyJson
-  extrinsicId?: string | undefined
+  extrinsicPosition?: number | undefined
   blockNumber: string
   blockHash: HexString
   timestamp?: number | undefined
@@ -402,7 +380,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
-    this.extrinsicId = msg.extrinsicId
+    this.extrinsicPosition = msg.extrinsicPosition
     this.bridgeKey = msg.bridgeKey
   }
 }
@@ -434,7 +412,7 @@ export interface XcmTerminusContext extends XcmTerminus {
   blockNumber: string
   blockHash: HexString
   timestamp?: number
-  extrinsicId?: string
+  extrinsicPosition?: number
   event: AnyJson
   outcome: 'Success' | 'Fail'
   error: AnyJson
@@ -514,7 +492,7 @@ export class GenericXcmSent implements XcmSent {
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
       timestamp: msg.timestamp,
-      extrinsicId: msg.extrinsicId,
+      extrinsicPosition: msg.extrinsicPosition,
       event: msg.event,
       outcome: 'Success',
       error: null,
@@ -605,7 +583,7 @@ export class GenericXcmReceived implements XcmReceived {
       blockNumber: inMsg.blockNumber,
       blockHash: inMsg.blockHash,
       timestamp: inMsg.timestamp,
-      extrinsicId: inMsg.extrinsicId,
+      extrinsicPosition: inMsg.extrinsicPosition,
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
@@ -658,7 +636,7 @@ export class GenericXcmRelayed implements XcmRelayed {
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
       timestamp: relayMsg.timestamp,
-      extrinsicId: relayMsg.extrinsicId,
+      extrinsicPosition: relayMsg.extrinsicPosition,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
       error: relayMsg.error,
@@ -813,10 +791,3 @@ export const $XcmInputs = z.object({
 })
 
 export type XcmInputs = z.infer<typeof $XcmInputs>
-
-export type MessageQueueEventContext = {
-  id: U8aFixed
-  origin: PolkadotRuntimeParachainsInclusionAggregateMessageOrigin
-  success?: bool
-  error?: FrameSupportMessagesProcessMessageError
-}

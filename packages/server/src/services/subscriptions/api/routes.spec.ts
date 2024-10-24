@@ -70,118 +70,130 @@ describe('subscription api', () => {
   })
 
   describe('public subscriptions', () => {
-    it('should create a public subscription', (done) => {
-      server.inject(
-        {
-          method: 'POST',
-          url: '/subs',
-          body: { ...testSubContent, public: true },
-          headers: {
-            authorization: `Bearer ${rootToken}`,
+    it('should create a public subscription', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/subs',
+            body: { ...testSubContent, public: true },
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(201)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(201)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should retrieve a public subscription using public token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/subs/xcm/macatron',
-          headers: {
-            authorization: `Bearer ${publicToken}`,
+    it('should retrieve a public subscription using public token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/subs/xcm/macatron',
+            headers: {
+              authorization: `Bearer ${publicToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          const sub = response?.json()
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(sub).toBeDefined()
-          expect(sub.id).toEqual(testSubContent.id)
-          expect(sub.args).toEqual(testSubContent.args)
-        },
-      )
+          (_err, response) => {
+            const sub = response?.json()
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(sub).toBeDefined()
+            expect(sub.id).toEqual(testSubContent.id)
+            expect(sub.args).toEqual(testSubContent.args)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should retrieve a public subscription using any token with read access', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: '/subs/xcm/macatron',
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
+    it('should retrieve a public subscription using any token with read access', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: '/subs/xcm/macatron',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          const sub = response?.json()
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(sub).toBeDefined()
-          expect(sub.id).toEqual(testSubContent.id)
-          expect(sub.args).toEqual(testSubContent.args)
-        },
-      )
+          (_err, response) => {
+            const sub = response?.json()
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(sub).toBeDefined()
+            expect(sub.id).toEqual(testSubContent.id)
+            expect(sub.args).toEqual(testSubContent.args)
+            resolve()
+          },
+        )
+      })
     })
   })
 
   describe('private subscriptions', () => {
     const privSubId = 'macario-sub'
 
-    it('should create a private subscription', (done) => {
-      server.inject(
-        {
-          method: 'POST',
-          url: '/subs',
-          body: { ...testSubContent, id: privSubId },
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
+    it('should create a private subscription', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/subs',
+            body: { ...testSubContent, id: privSubId },
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(201)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(201)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should retrieve a private subscription using the owner token', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: `/subs/xcm/${privSubId}`,
-          headers: {
-            authorization: `Bearer ${macarioToken}`,
+    it('should retrieve a private subscription using the owner token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: `/subs/xcm/${privSubId}`,
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          const sub = response?.json()
-          done()
-          expect(response?.statusCode).toStrictEqual(200)
-          expect(sub).toBeDefined()
-          expect(sub.id).toEqual(privSubId)
-          expect(sub.args).toEqual(testSubContent.args)
-        },
-      )
+          (_err, response) => {
+            const sub = response?.json()
+            expect(response?.statusCode).toStrictEqual(200)
+            expect(sub).toBeDefined()
+            expect(sub.id).toEqual(privSubId)
+            expect(sub.args).toEqual(testSubContent.args)
+            resolve()
+          },
+        )
+      })
     })
 
-    it('should return 401 when trying to retrieve a private subscription with a token of another account', (done) => {
-      server.inject(
-        {
-          method: 'GET',
-          url: `/subs/xcm/${privSubId}`,
-          headers: {
-            authorization: `Bearer ${pepeToken}`,
+    it('should return 401 when trying to retrieve a private subscription with a token of another account', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'GET',
+            url: `/subs/xcm/${privSubId}`,
+            headers: {
+              authorization: `Bearer ${pepeToken}`,
+            },
           },
-        },
-        (_err, response) => {
-          done()
-          expect(response?.statusCode).toStrictEqual(401)
-        },
-      )
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            resolve()
+          },
+        )
+      })
     })
   })
 })

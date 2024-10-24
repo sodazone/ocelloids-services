@@ -1,11 +1,10 @@
 import { EventEmitter } from 'node:events'
 
-import { Registry } from '@polkadot/types-codec/types'
-import { ControlQuery } from '@sodazone/ocelloids-sdk'
 import { Operation } from 'rfc6902'
 import { Observable, filter, from, map, switchMap } from 'rxjs'
 import { z } from 'zod'
 
+import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/hub.js'
@@ -19,23 +18,14 @@ import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabi
 import { XcmSubscriptionManager } from './handlers.js'
 import { MatchingEngine } from './matching.js'
 import {
-  dmpDownwardMessageQueuesKey,
-  parachainSystemHrmpOutboundMessages,
-  parachainSystemUpwardMessages,
-} from './storage.js'
-import {
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
   GetOutboundUmpMessages,
 } from './types-augmented.js'
 import {
   $XcmInputs,
-  BridgeType,
   Monitor,
   RxBridgeSubscription,
-  XcmBridgeAcceptedWithContext,
-  XcmBridgeDeliveredWithContext,
-  XcmBridgeInboundWithContext,
   XcmInbound,
   XcmInboundWithContext,
   XcmInputs,
@@ -49,16 +39,11 @@ import {
 import { mapXcmSent } from './ops/common.js'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
 import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
-import {
-  extractBridgeMessageAccepted,
-  extractBridgeMessageDelivered,
-  extractBridgeReceive,
-} from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
-import { getBridgeHubNetworkId } from './ops/util.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 
+import { ApiContext } from '@/services/networking/index.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 
@@ -285,14 +270,14 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractDmpSendByEvent(chainId, this.#getDmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractDmpSendByEvent(chainId, this.#getDmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -305,14 +290,14 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractXcmpSend(chainId, this.#getHrmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractXcmpSend(chainId, this.#getHrmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -325,14 +310,14 @@ export class XcmAgent implements Agent, Subscribable {
         subs.push({
           chainId,
           sub: this.#ingress
-            .getRegistry(chainId)
+            .getContext(chainId)
             .pipe(
-              switchMap((registry) =>
+              switchMap((context) =>
                 this.#shared
                   .blockEvents(chainId)
                   .pipe(
-                    extractUmpSend(chainId, this.#getUmp(chainId, registry), registry),
-                    this.#emitOutbound({ id, origin: chainId, registry, messageControl, outboundTTL }),
+                    extractUmpSend(chainId, this.#getUmp(chainId, context), context),
+                    this.#emitOutbound({ id, origin: chainId, context, messageControl, outboundTTL }),
                   ),
               ),
             )
@@ -395,141 +380,15 @@ export class XcmAgent implements Agent, Subscribable {
     return {
       chainId,
       sub: this.#ingress
-        .getRegistry(relayId)
+        .getContext(relayId)
         .pipe(
-          switchMap((registry) =>
+          switchMap((context) =>
             this.#shared
               .blockExtrinsics(relayId)
-              .pipe(extractRelayReceive(chainId, messageControl, registry), emitRelayInbound()),
+              .pipe(extractRelayReceive(chainId, messageControl, context), emitRelayInbound()),
           ),
         )
         .subscribe(relayObserver),
-    }
-  }
-
-  // Assumes only 1 pair of bridge hub origin-destination is possible
-  // TODO: handle possible multiple different consensus utilizing PK bridge e.g. solochains?
-  __monitorPkBridge({ id, args: { origin, destinations } }: Subscription<XcmInputs>) {
-    const originBridgeHub = getBridgeHubNetworkId(origin as NetworkURN)
-    const dest = (destinations as NetworkURN[]).find(
-      (d) => getConsensus(d) !== getConsensus(origin as NetworkURN),
-    )
-
-    if (dest === undefined) {
-      throw new Error(`No destination on different consensus found for bridging (sub=${id})`)
-    }
-
-    const destBridgeHub = getBridgeHubNetworkId(dest)
-
-    if (originBridgeHub === undefined || destBridgeHub === undefined) {
-      throw new Error(
-        `Unable to subscribe to PK bridge due to missing bridge hub network URNs for origin=${origin} and destinations=${destinations}. (sub=${id})`,
-      )
-    }
-
-    const type: BridgeType = 'pk-bridge'
-
-    const subs: RxSubscriptionWithId[] = []
-
-    try {
-      const emitBridgeOutboundAccepted = () => (source: Observable<XcmBridgeAcceptedWithContext>) =>
-        source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundAccepted(id, message))))
-
-      const emitBridgeOutboundDelivered = () => (source: Observable<XcmBridgeDeliveredWithContext>) =>
-        source.pipe(switchMap((message) => from(this.#engine.onBridgeOutboundDelivered(id, message))))
-
-      const emitBridgeInbound = () => (source: Observable<XcmBridgeInboundWithContext>) =>
-        source.pipe(switchMap((message) => from(this.#engine.onBridgeInbound(id, message))))
-
-      const pkBridgeObserver = {
-        error: (error: any) => {
-          this.#log.error(error, '[%s:%s] error on PK bridge subscription %s', this.id, originBridgeHub, id)
-          this.#telemetry.emit('telemetryXcmSubscriptionError', {
-            subscriptionId: id,
-            chainId: originBridgeHub,
-            direction: 'bridge',
-          })
-
-          this.#subs.tryRecoverBridge(error, id, type, originBridgeHub)
-        },
-      }
-
-      this.#log.info(
-        '[%s:%s] subscribe PK bridge outbound accepted events on bridge hub %s (%s)',
-        this.id,
-        origin,
-        originBridgeHub,
-        id,
-      )
-      subs.push({
-        chainId: originBridgeHub,
-        sub: this.#ingress
-          .getRegistry(originBridgeHub)
-          .pipe(
-            switchMap((registry) =>
-              this.#shared.blockEvents(originBridgeHub).pipe(
-                extractBridgeMessageAccepted(
-                  originBridgeHub,
-                  registry,
-                  (blockHash: HexString, key: HexString) => {
-                    return from(this.#ingress.getStorage(originBridgeHub, key, blockHash))
-                  },
-                ),
-                emitBridgeOutboundAccepted(),
-              ),
-            ),
-          )
-          .subscribe(pkBridgeObserver),
-      })
-
-      this.#log.info(
-        '[%s:%s] subscribe PK bridge outbound delivered events on bridge hub %s (%s)',
-        this.id,
-        origin,
-        originBridgeHub,
-        id,
-      )
-      subs.push({
-        chainId: originBridgeHub,
-        sub: this.#ingress
-          .getRegistry(originBridgeHub)
-          .pipe(
-            switchMap((registry) =>
-              this.#shared
-                .blockEvents(originBridgeHub)
-                .pipe(
-                  extractBridgeMessageDelivered(originBridgeHub, registry),
-                  emitBridgeOutboundDelivered(),
-                ),
-            ),
-          )
-          .subscribe(pkBridgeObserver),
-      })
-
-      this.#log.info(
-        '[%s:%s] subscribe PK bridge inbound events on bridge hub %s (%s)',
-        this.id,
-        origin,
-        destBridgeHub,
-        id,
-      )
-      subs.push({
-        chainId: destBridgeHub,
-        sub: this.#shared
-          .blockEvents(destBridgeHub)
-          .pipe(extractBridgeReceive(destBridgeHub), emitBridgeInbound())
-          .subscribe(pkBridgeObserver),
-      })
-
-      return {
-        type,
-        subs,
-      }
-    } catch (error) {
-      for (const s of subs) {
-        s.sub.unsubscribe()
-      }
-      throw error
     }
   }
 
@@ -608,9 +467,6 @@ export class XcmAgent implements Agent, Subscribable {
       if (this.__shouldMonitorRelay(args)) {
         relaySub = this.__monitorRelay(subscription)
       }
-      if (args.bridges && args.bridges.includes('pk-bridge')) {
-        bridgeSubs.push(this.__monitorPkBridge(subscription))
-      }
 
       const { sendersControl, messageControl } = origMonitor.controls
 
@@ -643,52 +499,56 @@ export class XcmAgent implements Agent, Subscribable {
   #emitOutbound({
     id,
     origin,
-    registry,
+    context,
     messageControl,
     outboundTTL,
   }: {
     id: string
     origin: NetworkURN
-    registry: Registry
+    context: ApiContext
     messageControl: ControlQuery
     outboundTTL?: number
   }) {
     return (source: Observable<XcmSentWithContext>) =>
       source.pipe(
-        mapXcmSent(id, registry, origin),
+        mapXcmSent(id, context, origin),
         filter((msg) => matchMessage(messageControl, msg)),
         switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL))),
       )
   }
 
-  #getDmp(chainId: NetworkURN, registry: Registry): GetDownwardMessageQueues {
+  #getDmp(chainId: NetworkURN, context: ApiContext): GetDownwardMessageQueues {
+    const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      return from(
-        this.#ingress.getStorage(chainId, dmpDownwardMessageQueuesKey(registry, paraId), blockHash),
-      ).pipe(
+      const key = codec.enc(paraId) as HexString
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<PolkadotCorePrimitivesInboundDownwardMessage>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }
   }
 
-  #getUmp(chainId: NetworkURN, registry: Registry): GetOutboundUmpMessages {
+  #getUmp(chainId: NetworkURN, context: ApiContext): GetOutboundUmpMessages {
+    const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
+    const key = codec.enc() as HexString
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemUpwardMessages, blockHash)).pipe(
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<Bytes>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }
   }
 
-  #getHrmp(chainId: NetworkURN, registry: Registry): GetOutboundHrmpMessages {
+  #getHrmp(chainId: NetworkURN, context: ApiContext): GetOutboundHrmpMessages {
+    const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
+    const key = codec.enc() as HexString
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, parachainSystemHrmpOutboundMessages, blockHash)).pipe(
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return registry.createType('Vec<PolkadotCorePrimitivesOutboundHrmpMessage>', buffer)
+          return codec.dec(buffer)
         }),
       )
     }

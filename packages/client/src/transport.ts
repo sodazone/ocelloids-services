@@ -2,7 +2,6 @@ import { WebSocket } from 'isows'
 
 import {
   AnyJson,
-  AnySubscriptionInputs,
   AuthReply,
   OcelloidsClientConfig,
   OnDemandSubscriptionHandlers,
@@ -83,7 +82,7 @@ export function doFetch<T>(headers: Record<string, string>, url: string, init?: 
   })
 }
 
-type OnDemandWithAgent<T = AnySubscriptionInputs> = {
+type OnDemandWithAgent<T> = {
   agent: string
   args: T
   ephemeral: boolean
@@ -98,7 +97,7 @@ type OnDemandWithAgent<T = AnySubscriptionInputs> = {
  * @param onDemandSub - Optional on-demand subscription details and handlers.
  * @returns The WebSocket instance.
  */
-export function openWebSocket<T = AnySubscriptionInputs, P = AnyJson>(
+export function openWebSocket<T, P = AnyJson>(
   config: OcelloidsClientConfig,
   url: string,
   { onMessage, onAuthError, onError, onClose }: WebSocketHandlers<P>,

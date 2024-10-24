@@ -2,12 +2,10 @@ import { EventEmitter } from 'node:events'
 
 import { Observable, from, map, shareReplay } from 'rxjs'
 
-import type { SignedBlockExtended } from '@polkadot/api-derive/types'
-import type { Registry } from '@polkadot/types-codec/types'
-
 import { NetworkURN, Services } from '@/services/types.js'
 
 import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/config.js'
+import { ApiContext, Block } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
@@ -27,7 +25,7 @@ export class LocalIngressConsumer
   // readonly #log: Logger;
   readonly #headCatcher: HeadCatcher
   readonly #config: ServiceConfiguration
-  readonly #registries$: Record<NetworkURN, Observable<Registry>>
+  readonly #contexts$: Record<NetworkURN, Observable<ApiContext>>
 
   constructor(ctx: Services) {
     super()
@@ -35,7 +33,7 @@ export class LocalIngressConsumer
     // this.#log = ctx.log;
     this.#config = ctx.localConfig
     this.#headCatcher = new HeadCatcher(ctx)
-    this.#registries$ = {}
+    this.#contexts$ = {}
   }
 
   async start() {
@@ -66,24 +64,24 @@ export class LocalIngressConsumer
     return await this.#headCatcher.fetchNetworkInfo(chainId)
   }
 
-  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     return this.#headCatcher.finalizedBlocks(chainId)
   }
 
-  getRegistry(chainId: NetworkURN): Observable<Registry> {
-    if (this.#registries$[chainId] === undefined) {
-      this.#registries$[chainId] = from(this.#headCatcher.getApiPromise(chainId).isReady).pipe(
-        map((api) => api.registry),
+  getContext(chainId: NetworkURN): Observable<ApiContext> {
+    if (this.#contexts$[chainId] === undefined) {
+      this.#contexts$[chainId] = from(this.#headCatcher.getApi(chainId)).pipe(
+        map((api) => api.ctx),
         // TODO retry
         shareReplay({
           refCount: true,
         }),
       )
     }
-    return this.#registries$[chainId]
+    return this.#contexts$[chainId]
   }
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
     return this.#headCatcher.getStorage(chainId, storageKey, blockHash)
   }
 

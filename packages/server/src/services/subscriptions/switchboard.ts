@@ -2,13 +2,12 @@ import EventEmitter from 'node:events'
 
 import { Operation } from 'rfc6902'
 
-import { Logger, Services } from '@/services/types.js'
-
 import { NotFound } from '@/errors.js'
 import { AgentCatalog, AgentId } from '@/services/agents/types.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { SubsStore } from '@/services/persistence/level/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { Logger, Services } from '@/services/types.js'
 
 import { EgressListener, NewSubscription, Subscription, SubscriptionStats } from './types.js'
 

@@ -1,10 +1,11 @@
-import type { Registry } from '@polkadot/types/types'
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
-import { filterNonNull, types } from '@sodazone/ocelloids-sdk'
-
+import { filterNonNull } from '@/common/index.js'
+import { HexString } from '@/lib.js'
 import { createNetworkId } from '@/services/config.js'
+import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
+
 import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
@@ -12,8 +13,7 @@ import {
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'
-import { MessageQueueEventContext } from '../types.js'
-import { blockEventToHuman, xcmMessagesSent } from './common.js'
+import { xcmMessagesSent } from './common.js'
 import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'
 
@@ -22,7 +22,7 @@ const METHODS_XCMP_QUEUE = ['Success', 'Fail']
 function findOutboundHrmpMessage(
   origin: NetworkURN,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  registry: Registry,
+  context: ApiContext,
 ) {
   return (source: Observable<XcmSentWithContext>): Observable<GenericXcmSentWithContext> => {
     return source.pipe(
@@ -34,17 +34,17 @@ function findOutboundHrmpMessage(
               .flatMap((msg) => {
                 const { data, recipient } = msg
                 // TODO: caching strategy
-                const xcms = fromXcmpFormat(data, registry)
+                const xcms = fromXcmpFormat(data.asBytes(), context)
                 return xcms.map(
                   (xcmProgram) =>
                     new GenericXcmSentWithContext({
                       ...sentMsg,
-                      messageData: xcmProgram.toU8a(),
-                      recipient: createNetworkId(origin, recipient.toNumber().toString()),
-                      messageHash: xcmProgram.hash.toHex(),
+                      messageData: xcmProgram.data,
+                      recipient: createNetworkId(origin, recipient.toString()),
+                      messageHash: xcmProgram.hash,
                       instructions: {
-                        bytes: xcmProgram.toU8a(),
-                        json: xcmProgram.toHuman(),
+                        bytes: xcmProgram.data,
+                        json: xcmProgram.instructions,
                       },
                       messageId: getMessageId(xcmProgram),
                     }),
@@ -64,22 +64,22 @@ function findOutboundHrmpMessage(
 export function extractXcmpSend(
   origin: NetworkURN,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  registry: Registry,
+  context: ApiContext,
 ) {
-  return (source: Observable<types.BlockEvent>): Observable<XcmSentWithContext> => {
+  return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       filter(
         (event) =>
-          matchEvent(event, 'xcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'polkadotXcm', 'Sent'),
+          matchEvent(event, 'XcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'PolkadotXcm', 'Sent'),
       ),
       xcmMessagesSent(),
-      findOutboundHrmpMessage(origin, getOutboundHrmpMessages, registry),
+      findOutboundHrmpMessage(origin, getOutboundHrmpMessages, context),
     )
   }
 }
 
 export function extractXcmpReceive() {
-  return (source: Observable<types.BlockEvent>): Observable<XcmInboundWithContext> => {
+  return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),
       // eslint-disable-next-line complexity
@@ -88,42 +88,42 @@ export function extractXcmpReceive() {
           return null
         }
 
-        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['xcmPallet', 'polkadotXcm'], 'AssetsTrapped')
+        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
           ? maybeAssetTrapEvent
           : undefined
         const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
 
-        if (matchEvent(maybeXcmpEvent, 'xcmpQueue', METHODS_XCMP_QUEUE)) {
-          const xcmpQueueData = maybeXcmpEvent.data as any
+        if (matchEvent(maybeXcmpEvent, 'XcmpQueue', METHODS_XCMP_QUEUE)) {
+          const xcmpQueueData = maybeXcmpEvent.value
 
           return new GenericXcmInboundWithContext({
-            event: blockEventToHuman(maybeXcmpEvent),
-            blockHash: maybeXcmpEvent.blockHash.toHex(),
-            blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
-            timestamp: maybeXcmpEvent.timestamp?.toNumber(),
-            extrinsicId: maybeXcmpEvent.extrinsicId,
-            messageHash: xcmpQueueData.messageHash.toHex(),
-            messageId: xcmpQueueData.messageId?.toHex(),
-            outcome: maybeXcmpEvent.method === 'Success' ? 'Success' : 'Fail',
+            event: maybeXcmpEvent,
+            blockHash: maybeXcmpEvent.blockHash as HexString,
+            blockNumber: maybeXcmpEvent.blockNumber,
+            timestamp: maybeXcmpEvent.timestamp,
+            extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
+            messageHash: xcmpQueueData.message_hash,
+            messageId: xcmpQueueData.message_id,
+            outcome: maybeXcmpEvent.name === 'Success' ? 'Success' : 'Fail',
             error: xcmpQueueData.error,
             assetsTrapped,
           })
-        } else if (matchEvent(maybeXcmpEvent, 'messageQueue', 'Processed')) {
-          const { id, success, error } = maybeXcmpEvent.data as unknown as MessageQueueEventContext
+        } else if (matchEvent(maybeXcmpEvent, 'MessageQueue', 'Processed')) {
+          const { id, success, error } = maybeXcmpEvent.value
           // Received event only emits field `message_id`,
           // which is actually the message hash in chains that do not yet support Topic ID.
-          const messageId = id.toHex()
+          const messageId = id
           const messageHash = messageId
 
           return new GenericXcmInboundWithContext({
-            event: blockEventToHuman(maybeXcmpEvent),
-            blockHash: maybeXcmpEvent.blockHash.toHex(),
-            blockNumber: maybeXcmpEvent.blockNumber.toPrimitive(),
-            timestamp: maybeXcmpEvent.timestamp?.toNumber(),
+            event: maybeXcmpEvent,
+            blockHash: maybeXcmpEvent.blockHash as HexString,
+            blockNumber: maybeXcmpEvent.blockNumber,
+            timestamp: maybeXcmpEvent.timestamp,
             messageHash,
             messageId,
-            outcome: success?.isTrue ? 'Success' : 'Fail',
-            error: error ? error.toHuman() : null,
+            outcome: success ? 'Success' : 'Fail',
+            error,
             assetsTrapped,
           })
         }

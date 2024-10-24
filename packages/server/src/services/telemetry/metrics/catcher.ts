@@ -4,11 +4,6 @@ import { TelemetryEventEmitter } from '../types.js'
 export function catcherMetrics(source: TelemetryEventEmitter) {
   const timers: Record<string, () => void> = {}
 
-  const blockSeenHist = new Histogram({
-    name: 'oc_catcher_blocks_seen_seconds',
-    help: 'Blocks seen frequencies in seconds.',
-    labelNames: ['origin'],
-  })
   const blockFinHist = new Histogram({
     name: 'oc_catcher_block_finalized_seconds',
     help: 'Blocks finalized frequencies in seconds.',
@@ -18,11 +13,6 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
   const blockFinCount = new Counter({
     name: 'oc_catcher_blocks_finalized_total',
     help: 'Blocks finalized.',
-    labelNames: ['origin'],
-  })
-  const blockSeenCount = new Counter({
-    name: 'oc_catcher_blocks_seen_total',
-    help: 'Blocks seen.',
     labelNames: ['origin'],
   })
   const blockCacheHitsCount = new Counter({
@@ -50,21 +40,10 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     blockCacheHitsCount.labels(chainId).inc()
   })
 
-  source.on('telemetryBlockSeen', ({ chainId }) => {
-    blockSeenCount.labels(chainId).inc()
-
-    const timerId = chainId + ':block-seen'
-    const timer = timers[timerId]
-    if (timer) {
-      timer()
-    }
-
-    timers[timerId] = blockSeenHist.labels(chainId).startTimer()
-  })
-  source.on('telemetryBlockFinalized', ({ chainId, header }) => {
+  source.on('telemetryBlockFinalized', ({ chainId, blockNumber }) => {
     blockFinCount.labels(chainId).inc()
 
-    blockHeightGauge.labels(chainId).set(header.number.toNumber())
+    blockHeightGauge.labels(chainId).set(blockNumber)
 
     const timerId = chainId + ':block-fin'
     const timer = timers[timerId]

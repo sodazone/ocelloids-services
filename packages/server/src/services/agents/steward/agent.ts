@@ -1,16 +1,15 @@
+import { AbstractSublevel } from 'abstract-level'
+import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 import { z } from 'zod'
 
-import { AbstractSublevel } from 'abstract-level'
-
-import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
-
-import { u8aConcat } from '@polkadot/util'
-import { xxhashAsU8a } from '@polkadot/util-crypto'
+import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { mergeUint8 } from '@polkadot-api/utils'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
+import { asSerializable, stringToUa8 } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import {
   Agent,
@@ -24,14 +23,7 @@ import {
 
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import {
-  $StewardQueryArgs,
-  AssetId,
-  AssetMapper,
-  AssetMapping,
-  AssetMetadata,
-  StewardQueryArgs,
-} from './types.js'
+import { $StewardQueryArgs, AssetId, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
@@ -77,7 +69,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
+    this.#queries = new Queries(this.#dbAssets, this.#dbChains)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -152,17 +144,9 @@ export class DataSteward implements Agent, Queryable {
       const mapper = mappers[chainId]
       if (mapper) {
         this.#log.info('[agent:%s] GET chain properties (chainId=%s)', this.id, chainId)
-        this.#putChainProps(chainId, mapper)
+        this.#putChainProps(chainId)
 
-        for (const mapping of mapper.mappings) {
-          this.#log.info(
-            '[agent:%s] START synchronizing asset metadata (chainId=%s, key=%s)',
-            this.id,
-            chainId,
-            mapping.keyPrefix,
-          )
-          allAssetMaps.push(this.#map(chainId, mapping))
-        }
+        allAssetMaps.push(this.#map(chainId, mapper))
       }
     }
 
@@ -170,22 +154,12 @@ export class DataSteward implements Agent, Queryable {
     allAssetMapsObs.subscribe({
       next: async ({ chainId, asset }) => {
         const assetKey = assetMetadataKey(chainId, asset.id)
-        const multilocation = asset.multiLocation
-        if (multilocation) {
-          const resolvedId = await this.#queries.resolveAssetIdFromLocation(
-            chainId,
-            JSON.stringify(multilocation),
-          )
-          if (resolvedId && resolvedId !== assetKey) {
-            const key = u8aConcat(xxhashAsU8a(resolvedId), xxhashAsU8a(assetKey))
 
-            await this.#dbAssetsMapTmp.put(key, {
-              id: asset.id,
-              xid: asset.xid,
-              chainId,
-            })
-          }
-        }
+        /*const multilocation = asset.multiLocation
+        if (multilocation) {
+         // TODO: handle multi location specific indexing
+        }*/
+
         this.#dbAssets.put(assetKey, asset).catch((e) => {
           this.#log.error(
             e,
@@ -201,11 +175,12 @@ export class DataSteward implements Agent, Queryable {
         const zeroArray = new Uint8Array(8).fill(0)
         const fArray = new Uint8Array(8).fill(0xff)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
+          const assetHash = Twox128(stringToUa8(assetKey))
           try {
             const externalIdsMap = await this.#dbAssetsMapTmp
               .iterator({
-                gt: u8aConcat(xxhashAsU8a(assetKey), zeroArray),
-                lt: u8aConcat(xxhashAsU8a(assetKey), fArray),
+                gt: mergeUint8(assetHash, zeroArray),
+                lt: mergeUint8(assetHash, fArray),
               })
               .all()
             const externalIds = externalIdsMap.map(([_key, assetId]) => assetId)
@@ -226,7 +201,7 @@ export class DataSteward implements Agent, Queryable {
     })
   }
 
-  #putChainProps(chainId: NetworkURN, mapper: AssetMapper) {
+  #putChainProps(chainId: NetworkURN) {
     this.#ingress
       .getChainInfo(chainId)
       .then((chainInfo) => {
@@ -238,7 +213,7 @@ export class DataSteward implements Agent, Queryable {
 
         for (let i = 0; i < chainInfo.chainTokens.length; i++) {
           const symbol = chainInfo.chainTokens[i].toString()
-          const id = i === 0 ? 'native' : 'native:' + (mapper.nativeKeyBySymbol ? symbol : i)
+          const id = i === 0 ? 'native' : 'native:' + symbol
           const asset: AssetMetadata = {
             id,
             // id native(aaee) index(u8)
@@ -264,10 +239,17 @@ export class DataSteward implements Agent, Queryable {
       })
   }
 
-  #map(chainId: NetworkURN, mapping: AssetMapping) {
-    const { keyPrefix, assetIdType, mapEntry } = mapping
-    return this.#ingress.getRegistry(chainId).pipe(
-      switchMap((registry) => {
+  #map(chainId: NetworkURN, mapper: AssetMapper) {
+    return this.#ingress.getContext(chainId).pipe(
+      switchMap((context) => mapper(context).entries()),
+      mergeMap(([index, mapping]) => {
+        this.#log.info(
+          '[agent:%s] START synchronizing asset metadata (chainId=%s,mapping=%s)',
+          this.id,
+          chainId,
+          index,
+        )
+        const { keyPrefix, mapEntry } = mapping
         return this.#ingress
           .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
           .pipe(
@@ -281,9 +263,10 @@ export class DataSteward implements Agent, Queryable {
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>
-                this.#ingress
-                  .getStorage(chainId, key)
-                  .pipe(mapEntry(registry, key.substring(keyPrefix.length), assetIdType, this.#ingress)),
+                this.#ingress.getStorage(chainId, key).pipe(
+                  mapEntry(key, this.#ingress),
+                  map((x) => asSerializable(x)),
+                ),
               )
             }),
             mergeAll(),

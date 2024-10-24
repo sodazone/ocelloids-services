@@ -1,12 +1,9 @@
-import { jest } from '@jest/globals'
-
 import { MemoryLevel as Level } from 'memory-level'
 
 import { _config, _log } from '@/testing/services.js'
-
 import { Scheduler } from './scheduler.js'
 
-jest.useFakeTimers()
+vi.useFakeTimers()
 
 describe('scheduler service', () => {
   let scheduler: Scheduler
@@ -19,7 +16,7 @@ describe('scheduler service', () => {
       schedulerFrequency: 500,
       scheduler: true,
     })
-    now = jest.spyOn(Date, 'now').mockImplementation(() => 0)
+    now = vi.spyOn(Date, 'now').mockImplementation(() => 0)
   })
 
   afterEach(() => {
@@ -27,7 +24,7 @@ describe('scheduler service', () => {
   })
 
   it('should schedule and execute a task', async () => {
-    const ok = jest.fn()
+    const ok = vi.fn()
     scheduler.start()
     scheduler.on('task', ok)
 
@@ -40,7 +37,7 @@ describe('scheduler service', () => {
     expect((await scheduler.allTaskTimes()).length).toBe(1)
 
     now.mockImplementation(() => 1000)
-    jest.advanceTimersByTime(1000)
+    vi.advanceTimersByTime(1000)
 
     await scheduler.stop()
 
@@ -64,7 +61,7 @@ describe('scheduler service', () => {
   })
 
   it('should schedule and execute due tasks', async () => {
-    const ok = jest.fn()
+    const ok = vi.fn()
     scheduler.start()
     scheduler.on('task', ok)
 
@@ -91,7 +88,7 @@ describe('scheduler service', () => {
     expect((await scheduler.allTaskTimes()).length).toBe(3)
 
     now.mockImplementation(() => 1000)
-    jest.advanceTimersByTime(1000)
+    vi.advanceTimersByTime(1000)
 
     await scheduler.stop()
 

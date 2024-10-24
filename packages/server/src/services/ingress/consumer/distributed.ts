@@ -1,10 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
-
-import type { SignedBlockExtended } from '@polkadot/api-derive/types'
-import { Metadata, TypeRegistry } from '@polkadot/types'
-import type { Registry } from '@polkadot/types-codec/types'
+import { Observable, Subject, from, map, shareReplay } from 'rxjs'
 
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
@@ -21,24 +17,12 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
+import { ApiContext, Block, RuntimeApiContext, createRuntimeApiContext } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
-import { decodeSignedBlockExtended } from '../watcher/codec.js'
+import { decodeBlock } from '../watcher/codec.js'
 import { IngressConsumer, NetworkInfo } from './index.js'
-
-/**
- * Creates a type registry with metadata.
- *
- * @param bytes - The bytes of the metadata.
- * @returns A new TypeRegistry instance with the provided metadata.
- */
-function createRegistry(bytes: Buffer | Uint8Array) {
-  const typeRegistry = new TypeRegistry()
-  const metadata = new Metadata(typeRegistry, bytes)
-  typeRegistry.setMetadata(metadata)
-  return typeRegistry
-}
 
 /**
  * Represents an implementation of {@link IngressConsumer} that operates in a distributed environment.
@@ -52,8 +36,8 @@ export class DistributedIngressConsumer
 {
   readonly #log: Logger
   readonly #db: LevelDB
-  readonly #blockConsumers: Record<NetworkURN, Subject<SignedBlockExtended>>
-  readonly #registries$: Record<NetworkURN, Observable<Registry>>
+  readonly #blockConsumers: Record<NetworkURN, Subject<Block>>
+  readonly #contexts$: Record<NetworkURN, Observable<ApiContext>>
   readonly #distributor: RedisDistributor
 
   #networks: NetworkRecord = {}
@@ -65,7 +49,7 @@ export class DistributedIngressConsumer
     this.#db = ctx.levelDB
     this.#distributor = new RedisDistributor(opts, ctx)
     this.#blockConsumers = {}
-    this.#registries$ = {}
+    this.#contexts$ = {}
   }
 
   async start() {
@@ -73,7 +57,7 @@ export class DistributedIngressConsumer
     await this.#networksFromRedis()
 
     for (const chainId of this.getChainIds()) {
-      this.#blockConsumers[chainId] = new Subject<SignedBlockExtended>()
+      this.#blockConsumers[chainId] = new Subject<Block>()
 
       let lastId = '$'
       // TODO option to omit the stream pointer on start (?)
@@ -92,7 +76,7 @@ export class DistributedIngressConsumer
     await this.#distributor.stop()
   }
 
-  finalizedBlocks(chainId: NetworkURN): Observable<SignedBlockExtended> {
+  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     const consumer = this.#blockConsumers[chainId]
     if (consumer === undefined) {
       this.emit('telemetryIngressConsumerError', 'missingBlockConsumer')
@@ -102,16 +86,16 @@ export class DistributedIngressConsumer
     return consumer.asObservable()
   }
 
-  getRegistry(chainId: NetworkURN): Observable<Registry> {
-    if (this.#registries$[chainId] === undefined) {
-      this.#registries$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
+  getContext(chainId: NetworkURN): Observable<ApiContext> {
+    if (this.#contexts$[chainId] === undefined) {
+      this.#contexts$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
           if (metadata === null) {
             this.emit('telemetryIngressConsumerError', `missingMetadata(${chainId})`)
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return createRegistry(metadata)
+          return createRuntimeApiContext(metadata)
         }),
         // TODO retry
         shareReplay({
@@ -119,10 +103,10 @@ export class DistributedIngressConsumer
         }),
       )
     }
-    return this.#registries$[chainId]
+    return this.#contexts$[chainId]
   }
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<Uint8Array> {
+  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
     try {
       return this.#storageFromRedis(chainId, storageKey, blockHash)
     } catch (error) {
@@ -248,7 +232,7 @@ export class DistributedIngressConsumer
 
   #storageFromRedis(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString) {
     return from(
-      new Promise<Uint8Array>((resolve, reject) => {
+      new Promise<HexString>((resolve, reject) => {
         const distributor = this.#distributor
         const replyTo = getReplyToKey(chainId, storageKey, blockHash ?? '$')
         const streamKey = getStorageReqKey(chainId)
@@ -271,7 +255,7 @@ export class DistributedIngressConsumer
               .response(replyTo)
               .then((buffer) => {
                 if (buffer) {
-                  resolve(buffer.element)
+                  resolve(`0x${buffer.element.toString('hex')}`)
                 } else {
                   reject(`Error retrieving storage value for key ${storageKey} (reply-to=${replyTo})`)
                 }
@@ -286,7 +270,6 @@ export class DistributedIngressConsumer
   async #blockStreamFromRedis(chainId: NetworkURN, id: string = '$') {
     const subject = this.#blockConsumers[chainId]
     const key = getBlockStreamKey(chainId)
-    const registry = await firstValueFrom(this.getRegistry(chainId))
 
     this.#distributor.readBuffers<{
       bytes: Buffer
@@ -294,16 +277,10 @@ export class DistributedIngressConsumer
       key,
       (message, { lastId }) => {
         const buffer = message['bytes']
-        const signedBlock = decodeSignedBlockExtended(registry, buffer)
-        subject.next(signedBlock)
+        const block = decodeBlock(buffer)
+        subject.next(block)
 
-        this.#log.info(
-          '[%s] INGRESS block #%s %s (%s)',
-          chainId,
-          signedBlock.block.header.number.toString(),
-          signedBlock.block.header.hash.toHex(),
-          lastId,
-        )
+        this.#log.info('[%s] INGRESS block #%s %s (%s)', chainId, block.number, block.hash, lastId)
 
         setImmediate(async () => {
           try {

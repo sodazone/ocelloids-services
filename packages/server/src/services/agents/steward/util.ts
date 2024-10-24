@@ -1,8 +1,6 @@
-import { Codec, Registry } from '@polkadot/types-codec/types'
-import { hexToU8a, stringCamelCase } from '@polkadot/util'
-
 import { AbstractIterator } from 'abstract-level'
 
+import { asJSON } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 
@@ -12,7 +10,7 @@ const API_LIMIT_MAX = 100
 export function getLocationIfAny(assetDetails: Record<string, any>) {
   const { location } = assetDetails
   if (location) {
-    return location.toJSON === undefined ? location : location.toJSON()
+    return location
   }
   return undefined
 }
@@ -39,29 +37,11 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
   }
 }
 
-export function extractConstant(
-  registry: Registry,
-  palletName: string,
-  constantName: string,
-): Codec | undefined {
-  for (const { constants, name } of registry.metadata.pallets) {
-    if (stringCamelCase(name) === palletName) {
-      const constant = constants.find((constant) => stringCamelCase(constant.name) === constantName)
-      if (constant) {
-        const codec = registry.createTypeUnsafe(registry.createLookupType(constant.type), [
-          hexToU8a(constant.value.toHex()),
-        ])
-        return codec
-      }
-    }
-  }
-  return undefined
+function normalize(assetId: string | object) {
+  const str = typeof assetId === 'string' ? assetId : asJSON(assetId)
+  return str.toLowerCase().replaceAll('"', '')
 }
 
-function normalize(assetId: string) {
-  return assetId.toLowerCase().replaceAll('"', '')
-}
-
-export function assetMetadataKey(chainId: NetworkURN, assetId: string) {
+export function assetMetadataKey(chainId: NetworkURN, assetId: string | object) {
   return `${chainId}:${normalize(assetId)}`
 }
