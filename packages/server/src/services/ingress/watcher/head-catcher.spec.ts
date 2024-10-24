@@ -7,7 +7,7 @@ import { LevelDB, Services, jsonEncoded, prefixes } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'
-import { Observable, from, of } from 'rxjs'
+import { Observable, from } from 'rxjs'
 import { HeadCatcher } from './head-catcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
