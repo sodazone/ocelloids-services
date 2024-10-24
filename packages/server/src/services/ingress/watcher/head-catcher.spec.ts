@@ -1,12 +1,38 @@
 import { MemoryLevel } from 'memory-level'
 
 import Connector from '@/services/networking/connector.js'
-import { ApiClient } from '@/services/networking/index.js'
-import { LevelDB, Services } from '@/services/types.js'
+import { ApiClient, BlockInfo } from '@/services/networking/index.js'
+import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
+import { LevelDB, Services, jsonEncoded, prefixes } from '@/services/types.js'
+import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'
+import { Observable, from, of } from 'rxjs'
+import { HeadCatcher } from './head-catcher.js'
 
-const HeadCatcher = (await import('./head-catcher.js')).HeadCatcher
+function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
+  const mockApi = {
+    finalizedHeads$: headersSource,
+    getBlock(hash: string) {
+      return Promise.resolve(polkadotBlocks.find((p) => p.hash === hash)!)
+    },
+    getBlockHash(height: string) {
+      return Promise.resolve(polkadotBlocks.find((p) => p.number === Number(height))!.hash)
+    },
+    getHeader(hash: string) {
+      return Promise.resolve(testHeaders.find((p) => p.hash === hash)!)
+    },
+  }
+  return {
+    connect: () => ({
+      'urn:ocn:local:0': {
+        isReady: () => {
+          return Promise.resolve(mockApi)
+        },
+      } as unknown as ApiClient,
+    }),
+  } as unknown as Connector
+}
 
 describe('head catcher', () => {
   let db: LevelDB
@@ -18,209 +44,97 @@ describe('head catcher', () => {
 
   beforeEach(async () => {
     db = new MemoryLevel()
+    return db.open()
   })
 
-  afterEach(async () => {
-    await db.close()
-  })
-
-  /* TODO: port test
   describe('finalizedBlocks', () => {
-    it.skip('should catch up blocks', (done) => {
-      // Load 20 blocks starting from #17844552
-      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
-      // Pretend that we left off at block #17844551
+    it.only('should catch up blocks', async () => {
+      // Pretend that we left off at block #23075457
       db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
         chainId: 'urn:ocn:local:0',
-        blockNumber: '17844551',
+        blockNumber: '23075457',
       } as unknown as ChainHead)
+      const testHeaders = polkadotBlocks.map(
+        ({ hash, number, parent }) => ({ hash, number, parent }) as BlockInfo,
+      )
 
-      const testHeaders = testBlocks.map((tb) => tb.block.header)
       // We will emit finalized headers with gaps to force enter catch-up logic multiple times
-      const headersSource = from([testHeaders[3], testHeaders[9], testHeaders[19]])
-      const blocksSource = from(testBlocks)
-
-      const mockGetHeader = jest.fn((hash: any) => {
-        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex())
-        return found ? Promise.resolve(found) : Promise.reject(`No header for ${hash.toHex()}`)
-      })
-
+      const headersSource = from([testHeaders[3], testHeaders[8]])
       const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigMixed,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                    subscribeFinalizedHeads: () => headersSource,
-                  },
-                },
-              } as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:0': {
-                isReady: Promise.resolve({
-                  rpc: {
-                    chain: {
-                      getHeader: mockGetHeader,
-                    },
-                  },
-                  derive: {
-                    chain: {
-                      getBlock: (hash: any) =>
-                        Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex())),
-                    },
-                  },
-                  registry: {
-                    createType: () => ({}),
-                    createClass: () => {
-                      return class Dummy {
-                        block = {
-                          extrinsics: [],
-                          header: {
-                            number: {
-                              toBigInt: () => 0n,
-                            },
-                          },
-                        }
-                      }
-                    },
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
-          }),
-        } as unknown as Connector,
+        ...services,
+        localConfig: mockConfigWS,
+        connector: createConnector(headersSource, testHeaders),
         levelDB: db,
       })
 
-      const cb = [jest.fn(), jest.fn()]
+      await new Promise<void>((resolve) => {
+        const cb = [vi.fn(), vi.fn()]
+        catcher.start()
 
-      catcher.start()
+        let completes = 0
+        catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
+          next: (_x) => {
+            cb[0]()
+          },
+          complete: async () => {
+            expect(cb[0]).toHaveBeenCalledTimes(9)
 
-      blocksSource.subscribe({
-        complete: async () => {
-          // Blocks should be put in cache
-          const blockCache = await sl('urn:ocn:local:0').keys().all()
-          expect(blockCache.length).toBe(20)
+            completes++
+            if (completes === 2) {
+              catcher.stop()
+              resolve()
+            }
+          },
+        })
 
-          let completes = 0
-          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
-            next: (_) => {
-              cb[0]()
-            },
-            complete: async () => {
-              expect(cb[0]).toHaveBeenCalledTimes(20)
+        catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
+          next: () => {
+            cb[1]()
+          },
+          complete: async () => {
+            expect(cb[1]).toHaveBeenCalledTimes(9)
 
-              completes++
-              if (completes === 2) {
-                catcher.stop()
-                done()
-              }
-            },
-          })
-
-          catcher.finalizedBlocks('urn:ocn:local:0').subscribe({
-            next: () => {
-              cb[1]()
-            },
-            complete: async () => {
-              expect(cb[1]).toHaveBeenCalledTimes(20)
-
-              completes++
-              if (completes === 2) {
-                catcher.stop()
-                done()
-              }
-            },
-          })
-        },
+            completes++
+            if (completes === 2) {
+              catcher.stop()
+              resolve()
+            }
+          },
+        })
       })
     })
+  })
 
-    it.skip('should recover block ranges', (done) => {
-      // Load 20 blocks starting from #17844552
-      const testBlocks = testBlocksFrom('polkadot-17844552-20.cbor.bin', 'polkadot.json')
-      // Pretend that we left off at block #17844570
-      db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
-        chainId: 'urn:ocn:local:0',
-        blockNumber: '17844570',
-      } as unknown as ChainHead)
-      // Pretend that we got interrupted
-      const range: BlockNumberRange = {
-        fromBlockNum: '17844569',
-        toBlockNum: '17844551',
-      }
-      db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
-        prefixes.cache.keys.range(range),
-        range,
-      )
-      const testHeaders = testBlocks.map((tb) => tb.block.header)
-      // We will emit the last finalized headers
-      const headersSource = from([testHeaders[18], testHeaders[19]])
-      const blocksSource = from(testBlocks)
+  it.only('should recover block ranges', async () => {
+    // Pretend that we left off at block #23075466
+    db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
+      chainId: 'urn:ocn:local:0',
+      blockNumber: '23075466',
+    } as unknown as ChainHead)
+    // Pretend that we got interrupted
+    const range: BlockNumberRange = {
+      fromBlockNum: '23075465',
+      toBlockNum: '23075458',
+    }
+    db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
+      prefixes.cache.keys.range(range),
+      range,
+    )
+    const testHeaders = polkadotBlocks.map(
+      ({ hash, number, parent }) => ({ hash, number, parent }) as BlockInfo,
+    )
+    // We will emit the last finalized headers
+    const headersSource = from([testHeaders[7], testHeaders[8]])
+    const blocksSource = from(polkadotBlocks)
+    const catcher = new HeadCatcher({
+      ...services,
+      localConfig: mockConfigWS,
+      connector: createConnector(headersSource, testHeaders),
+      levelDB: db,
+    })
 
-      const mockGetHeader = jest.fn((hash: any) => {
-        const found = testHeaders.find((h) => h.hash.toHex() === hash.toHex())
-        return found ? Promise.resolve(found) : Promise.reject(new Error(`No header for ${hash.toHex()}`))
-      })
-
-      const mockGetHash = jest.fn((blockNumber: any) => {
-        const found = testHeaders.find((h) => h.number.toString() === blockNumber.toString())
-        return found ? Promise.resolve(found.hash) : Promise.reject(new Error(`No hash for ${blockNumber}`))
-      })
-
-      const catcher = new HeadCatcher({
-        ..._services,
-        localConfig: mockConfigWS,
-        connector: {
-          connect: () => ({
-            rx: {
-              'urn:ocn:local:0': of({
-                derive: {
-                  chain: {
-                    subscribeNewBlocks: () => blocksSource,
-                    subscribeFinalizedHeads: () => headersSource,
-                  },
-                },
-              } as unknown as ApiRx),
-              'urn:ocn:local:1000': of({} as unknown as ApiRx),
-              'urn:ocn:local:2032': of({} as unknown as ApiRx),
-            },
-            promise: {
-              'urn:ocn:local:0': {
-                isReady: Promise.resolve({
-                  rpc: {
-                    chain: {
-                      getBlockHash: mockGetHash,
-                      getHeader: mockGetHeader,
-                    },
-                  },
-                  derive: {
-                    chain: {
-                      getBlock: (hash: any) => {
-                        return Promise.resolve(testBlocks.find((b) => b.block.hash.toHex() === hash.toHex()))
-                      },
-                    },
-                  },
-                  registry: {
-                    createType: () => ({}),
-                  },
-                } as unknown as ApiPromise),
-              },
-            },
-          }),
-        } as unknown as Connector,
-        levelDB: db,
-      })
-
-      const cb = jest.fn()
-
+    await new Promise<void>((resolve) => {
+      const cb = vi.fn()
       catcher.start()
 
       blocksSource.subscribe({
@@ -231,15 +145,14 @@ describe('head catcher', () => {
             },
             complete: async () => {
               catcher.stop()
-              done()
-              expect(cb).toHaveBeenCalledTimes(20)
+              expect(cb).toHaveBeenCalledTimes(testHeaders.length)
+              resolve()
             },
           })
         },
       })
     })
   })
-  */
 
   describe('outboundUmpMessages', () => {
     it('should get outbound UMP messages from chain storage if using rpc', async () => {

@@ -35,4 +35,8 @@ function testBlocksFromDirectory(directory: string, files: string[]) {
   return testBlocksFromFiles(files.map((f) => path.resolve(dir, f)))
 }
 
-export const polkadotBlocks = testBlocksFromDirectory('polkadot', ['23075458.cbor'])
+const range = (start: number, end: number) => Array.from({ length: end - start }, (_, k) => k + start)
+export const polkadotBlocks = testBlocksFromDirectory(
+  'polkadot',
+  range(23075458, 23075467).map((n) => n + '.cbor'),
+)

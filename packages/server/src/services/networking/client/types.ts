@@ -29,7 +29,7 @@ export interface ApiClient {
     implVersion: number
   }>
 
-  getBlock(params: { hash: string; number: number }): Promise<Block>
+  getBlock(hash: string): Promise<Block>
   getBlockHash(blockNumber: string): Promise<string>
   getHeader(hash: string): Promise<{ hash: string; number: number; parent: string }>
   getStorageKeys(

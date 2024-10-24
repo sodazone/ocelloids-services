@@ -115,7 +115,7 @@ describe('informant agent', () => {
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(extrinsicSub)
     expect(agent.getSubscriptionHandler(extrinsicSub.id)).toBeDefined()
-    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledTimes(2)
   })
 
   it('should fail on invalid mongo filter inputs', async () => {
@@ -145,7 +145,7 @@ describe('informant agent', () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
     agent.subscribe(eventSub)
-    expect(spy).toHaveBeenCalledTimes(15)
+    expect(spy).toHaveBeenCalledTimes(16)
   })
 
   it('should unsubscribe subscription', async () => {

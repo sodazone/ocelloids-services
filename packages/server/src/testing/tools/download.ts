@@ -24,14 +24,9 @@ async function download([name, ws, height]: [string, string, string]) {
 
   const hash = await client.getBlockHash(height)
 
-  console.log(hash)
-
   logger.info('Block hash %s', hash)
 
-  const block = await client.getBlock({
-    hash,
-    number: Number(height),
-  })
+  const block = await client.getBlock(hash)
 
   const dest = path.resolve(__dirname, `__data__/blocks/${client.chainId}`, `${block.number}.cbor`)
 

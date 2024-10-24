@@ -50,6 +50,7 @@ export const _connector = {
 
 export function createServices(): Services {
   const _rootDB = new MemoryLevel()
+  _rootDB.setMaxListeners(100)
 
   const __services = {
     log: _log,

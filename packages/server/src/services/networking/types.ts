@@ -29,6 +29,7 @@ export type Extrinsic = {
 export type Block = {
   hash: string
   number: number
+  parent: string
   extrinsics: Extrinsic[]
   events: EventRecord[]
 }

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events'
 
+import { BlockInfo } from '@polkadot-api/observable-client'
 import { Mutex } from 'async-mutex'
 import {
   BehaviorSubject,
@@ -18,14 +19,12 @@ import {
   tap,
 } from 'rxjs'
 
-import { BlockInfo } from '@polkadot-api/observable-client'
-
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ServiceConfiguration } from '@/services/config.js'
 import { ApiClient, Block } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
+import { Family, LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
 import { NetworkInfo } from '../index.js'
 import { fetchers } from './fetchers.js'
@@ -79,16 +78,18 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
   readonly #mutex: Record<NetworkURN, Mutex> = {}
   readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
+  readonly #chainTips: Family
 
   constructor(services: Services) {
     super()
 
-    const { log, localConfig, levelDB: rootStore, connector } = services
+    const { log, localConfig, levelDB, connector } = services
 
     this.#log = log
     this.#localConfig = localConfig
     this.#apis = connector.connect()
-    this.#db = rootStore
+    this.#db = levelDB
+    this.#chainTips = levelDB.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded)
   }
 
   start() {
@@ -117,7 +118,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
           this.#tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.#catchUpHeads(chainId, api),
-          mergeMap((header) => from(api.getBlock(header))),
+          mergeMap((header) => from(api.getBlock(header.hash))),
           this.#tapError(chainId, 'blockFromHeader()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
         )
@@ -213,10 +214,6 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return await fetchers.networkInfo(this.#apis[chainId], chainId)
   }
 
-  get #chainTips() {
-    return this.#db.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded)
-  }
-
   #pendingRanges(chainId: NetworkURN) {
     return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded)
   }
@@ -258,8 +255,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       const batchSize = this.#batchSize(chainId)
       return source.pipe(
         mergeAll(),
-        mergeMap((range) =>
-          from(api.getBlockHash(range.fromBlockNum).then((hash) => api.getHeader(hash))).pipe(
+        mergeMap((range) => {
+          return from(api.getBlockHash(range.fromBlockNum).then((hash) => api.getHeader(hash))).pipe(
             catchError((error) => {
               this.#log.warn(
                 '[%s] in #recoverBlockRanges(%s-%s) %s',
@@ -275,8 +272,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                 this.#catchUpToHeight(chainId, api, head),
               ),
             ),
-          ),
-        ),
+          )
+        }),
       )
     }
   }
