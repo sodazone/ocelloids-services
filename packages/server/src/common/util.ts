@@ -11,8 +11,8 @@ export function asJSON(o: unknown) {
     typeof v === 'bigint' ? v.toString() : v instanceof Binary ? v.asHex() : v,
   )
 }
-export function asSerializable(o: unknown) {
-  return typeof o === 'string' ? o : safeDestr<any>(asJSON(o))
+export function asSerializable<T>(o: T) {
+  return typeof o === 'string' ? o : safeDestr<T>(asJSON(o))
 }
 export function getEventValue(module: string, name: string | string[], events: Event[]) {
   return events.find((e) =>

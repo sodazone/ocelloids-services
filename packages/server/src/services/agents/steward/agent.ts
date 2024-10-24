@@ -9,7 +9,7 @@ import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
-import { stringToUa8 } from '@/common/util.js'
+import { asSerializable, stringToUa8 } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import {
   Agent,
@@ -263,7 +263,7 @@ export class DataSteward implements Agent, Queryable {
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>
-                this.#ingress.getStorage(chainId, key).pipe(mapEntry(key, this.#ingress)),
+                this.#ingress.getStorage(chainId, key).pipe(asSerializable(mapEntry(key, this.#ingress))),
               )
             }),
             mergeAll(),
