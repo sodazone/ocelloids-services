@@ -263,7 +263,10 @@ export class DataSteward implements Agent, Queryable {
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>
-                this.#ingress.getStorage(chainId, key).pipe(asSerializable(mapEntry(key, this.#ingress))),
+                this.#ingress.getStorage(chainId, key).pipe(
+                  mapEntry(key, this.#ingress),
+                  map((x) => asSerializable(x)),
+                ),
               )
             }),
             mergeAll(),
