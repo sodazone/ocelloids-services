@@ -37,8 +37,7 @@ async function download([name, ws, height]: [string, string, string]) {
   client.disconnect()
 }
 
-const program = new Command()
-program
+new Command()
   .name('download')
   .description('Download blocks by height')
   .argument('<height>', 'block height')
