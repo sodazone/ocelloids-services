@@ -36,7 +36,7 @@ export const RETRY_INFINITE = {
   maxCount: Infinity,
 }
 
-const RETRY_CAPPED = {
+const _RETRY_CAPPED = {
   baseDelay: 2000,
   maxDelay: 900000,
   maxCount: 3,

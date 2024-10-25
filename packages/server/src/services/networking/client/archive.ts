@@ -165,8 +165,13 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   }
 
   disconnect() {
-    this.#head$.unfollow()
-    this.#client.destroy()
+    try {
+      this.#head$.unfollow()
+    } catch {
+      //
+    } finally {
+      this.#client.destroy()
+    }
   }
 
   async getRpcMethods() {
