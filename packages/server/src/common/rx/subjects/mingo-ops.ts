@@ -1,6 +1,3 @@
-// Copyright 2023-2024 SO/DA zone
-// SPDX-License-Identifier: Apache-2.0
-
 import { asPublicKey } from '@/common/util.js'
 import { OperatorType, Options, QueryOperator, getOperator, useOperators } from 'mingo/core'
 import { BASIC_CONTEXT } from 'mingo/init/basic'
