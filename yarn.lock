@@ -243,6 +243,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/aix-ppc64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/aix-ppc64@npm:0.24.0"
+  conditions: os=aix & cpu=ppc64
+  languageName: node
+  linkType: hard
+
 "@esbuild/android-arm64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/android-arm64@npm:0.21.5"
@@ -260,6 +267,13 @@ __metadata:
 "@esbuild/android-arm64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/android-arm64@npm:0.23.1"
+  conditions: os=android & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@esbuild/android-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/android-arm64@npm:0.24.0"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
@@ -285,6 +299,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/android-arm@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/android-arm@npm:0.24.0"
+  conditions: os=android & cpu=arm
+  languageName: node
+  linkType: hard
+
 "@esbuild/android-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/android-x64@npm:0.21.5"
@@ -302,6 +323,13 @@ __metadata:
 "@esbuild/android-x64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/android-x64@npm:0.23.1"
+  conditions: os=android & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/android-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/android-x64@npm:0.24.0"
   conditions: os=android & cpu=x64
   languageName: node
   linkType: hard
@@ -327,6 +355,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/darwin-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/darwin-arm64@npm:0.24.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@esbuild/darwin-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/darwin-x64@npm:0.21.5"
@@ -344,6 +379,13 @@ __metadata:
 "@esbuild/darwin-x64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/darwin-x64@npm:0.23.1"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/darwin-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/darwin-x64@npm:0.24.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -369,6 +411,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/freebsd-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/freebsd-arm64@npm:0.24.0"
+  conditions: os=freebsd & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@esbuild/freebsd-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/freebsd-x64@npm:0.21.5"
@@ -386,6 +435,13 @@ __metadata:
 "@esbuild/freebsd-x64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/freebsd-x64@npm:0.23.1"
+  conditions: os=freebsd & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/freebsd-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/freebsd-x64@npm:0.24.0"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
@@ -411,6 +467,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/linux-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-arm64@npm:0.24.0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@esbuild/linux-arm@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/linux-arm@npm:0.21.5"
@@ -428,6 +491,13 @@ __metadata:
 "@esbuild/linux-arm@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/linux-arm@npm:0.23.1"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@esbuild/linux-arm@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-arm@npm:0.24.0"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
@@ -453,6 +523,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/linux-ia32@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-ia32@npm:0.24.0"
+  conditions: os=linux & cpu=ia32
+  languageName: node
+  linkType: hard
+
 "@esbuild/linux-loong64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/linux-loong64@npm:0.21.5"
@@ -470,6 +547,13 @@ __metadata:
 "@esbuild/linux-loong64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/linux-loong64@npm:0.23.1"
+  conditions: os=linux & cpu=loong64
+  languageName: node
+  linkType: hard
+
+"@esbuild/linux-loong64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-loong64@npm:0.24.0"
   conditions: os=linux & cpu=loong64
   languageName: node
   linkType: hard
@@ -495,6 +579,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/linux-mips64el@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-mips64el@npm:0.24.0"
+  conditions: os=linux & cpu=mips64el
+  languageName: node
+  linkType: hard
+
 "@esbuild/linux-ppc64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/linux-ppc64@npm:0.21.5"
@@ -512,6 +603,13 @@ __metadata:
 "@esbuild/linux-ppc64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/linux-ppc64@npm:0.23.1"
+  conditions: os=linux & cpu=ppc64
+  languageName: node
+  linkType: hard
+
+"@esbuild/linux-ppc64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-ppc64@npm:0.24.0"
   conditions: os=linux & cpu=ppc64
   languageName: node
   linkType: hard
@@ -537,6 +635,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/linux-riscv64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-riscv64@npm:0.24.0"
+  conditions: os=linux & cpu=riscv64
+  languageName: node
+  linkType: hard
+
 "@esbuild/linux-s390x@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/linux-s390x@npm:0.21.5"
@@ -554,6 +659,13 @@ __metadata:
 "@esbuild/linux-s390x@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/linux-s390x@npm:0.23.1"
+  conditions: os=linux & cpu=s390x
+  languageName: node
+  linkType: hard
+
+"@esbuild/linux-s390x@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-s390x@npm:0.24.0"
   conditions: os=linux & cpu=s390x
   languageName: node
   linkType: hard
@@ -579,6 +691,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/linux-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/linux-x64@npm:0.24.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@esbuild/netbsd-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/netbsd-x64@npm:0.21.5"
@@ -600,6 +719,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/netbsd-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/netbsd-x64@npm:0.24.0"
+  conditions: os=netbsd & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@esbuild/openbsd-arm64@npm:0.23.0":
   version: 0.23.0
   resolution: "@esbuild/openbsd-arm64@npm:0.23.0"
@@ -610,6 +736,13 @@ __metadata:
 "@esbuild/openbsd-arm64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/openbsd-arm64@npm:0.23.1"
+  conditions: os=openbsd & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@esbuild/openbsd-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/openbsd-arm64@npm:0.24.0"
   conditions: os=openbsd & cpu=arm64
   languageName: node
   linkType: hard
@@ -635,6 +768,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/openbsd-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/openbsd-x64@npm:0.24.0"
+  conditions: os=openbsd & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@esbuild/sunos-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/sunos-x64@npm:0.21.5"
@@ -652,6 +792,13 @@ __metadata:
 "@esbuild/sunos-x64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/sunos-x64@npm:0.23.1"
+  conditions: os=sunos & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/sunos-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/sunos-x64@npm:0.24.0"
   conditions: os=sunos & cpu=x64
   languageName: node
   linkType: hard
@@ -677,6 +824,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/win32-arm64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/win32-arm64@npm:0.24.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@esbuild/win32-ia32@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/win32-ia32@npm:0.21.5"
@@ -698,6 +852,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@esbuild/win32-ia32@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/win32-ia32@npm:0.24.0"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
 "@esbuild/win32-x64@npm:0.21.5":
   version: 0.21.5
   resolution: "@esbuild/win32-x64@npm:0.21.5"
@@ -715,6 +876,13 @@ __metadata:
 "@esbuild/win32-x64@npm:0.23.1":
   version: 0.23.1
   resolution: "@esbuild/win32-x64@npm:0.23.1"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@esbuild/win32-x64@npm:0.24.0":
+  version: 0.24.0
+  resolution: "@esbuild/win32-x64@npm:0.24.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -960,7 +1128,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:^1.4.0":
+"@noble/hashes@npm:^1.4.0, @noble/hashes@npm:^1.5.0":
   version: 1.5.0
   resolution: "@noble/hashes@npm:1.5.0"
   checksum: 10c0/1b46539695fbfe4477c0822d90c881a04d4fa2921c08c552375b444a48cac9930cb1ee68de0a3c7859e676554d0f3771999716606dc4d8f826e414c11692cdd9
@@ -1061,17 +1229,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/cli@npm:0.9.10":
-  version: 0.9.10
-  resolution: "@polkadot-api/cli@npm:0.9.10"
+"@polkadot-api/cli@npm:0.9.12":
+  version: 0.9.12
+  resolution: "@polkadot-api/cli@npm:0.9.12"
   dependencies:
     "@commander-js/extra-typings": "npm:^12.1.0"
-    "@polkadot-api/codegen": "npm:0.12.5"
-    "@polkadot-api/ink-contracts": "npm:0.1.0"
+    "@polkadot-api/codegen": "npm:0.12.6"
+    "@polkadot-api/ink-contracts": "npm:0.1.1"
     "@polkadot-api/json-rpc-provider": "npm:0.0.4"
-    "@polkadot-api/known-chains": "npm:0.5.4"
-    "@polkadot-api/metadata-compatibility": "npm:0.1.9"
-    "@polkadot-api/observable-client": "npm:0.5.11"
+    "@polkadot-api/known-chains": "npm:0.5.5"
+    "@polkadot-api/metadata-compatibility": "npm:0.1.10"
+    "@polkadot-api/observable-client": "npm:0.5.13"
     "@polkadot-api/polkadot-sdk-compat": "npm:2.3.1"
     "@polkadot-api/sm-provider": "npm:0.1.3"
     "@polkadot-api/smoldot": "npm:0.3.3"
@@ -1094,32 +1262,32 @@ __metadata:
   bin:
     papi: dist/main.js
     polkadot-api: dist/main.js
-  checksum: 10c0/2ed474c277949946fc067975e2476a00ec38e44b395f5d0e526ac63042d356d7ba207c77bf69db946b94d1a746d9658f85a9061568c2120eafade3ed69e4a85b
+  checksum: 10c0/25782ca0fb36171d611c2360e2f7e9ac732dc27b23af9bba2f2485594100c12c2cc252b33ac2b352537887219e2d4f5a13bce53a8f95783fecc232ae6d910434
   languageName: node
   linkType: hard
 
-"@polkadot-api/codegen@npm:0.12.5":
-  version: 0.12.5
-  resolution: "@polkadot-api/codegen@npm:0.12.5"
+"@polkadot-api/codegen@npm:0.12.6":
+  version: 0.12.6
+  resolution: "@polkadot-api/codegen@npm:0.12.6"
   dependencies:
-    "@polkadot-api/ink-contracts": "npm:0.1.0"
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
-    "@polkadot-api/metadata-compatibility": "npm:0.1.9"
+    "@polkadot-api/ink-contracts": "npm:0.1.1"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
+    "@polkadot-api/metadata-compatibility": "npm:0.1.10"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
-  checksum: 10c0/cc8e6a4f255e5838730b08cbb0fc72cc7398fe774930bd68f5ad39fa3d80e78084f113e2fc09454a4e551db816220ef5bdd6746609a139fdd02a952d44b8f560
+  checksum: 10c0/6748d994a4cf97eb8853d9ae12ade6590727683023d6b6934157e629c4c99f1f49ec9a5f5340c62e652c6a812e326ed72942ea5e0aea2bc437701f4448c7ab06
   languageName: node
   linkType: hard
 
-"@polkadot-api/ink-contracts@npm:0.1.0":
-  version: 0.1.0
-  resolution: "@polkadot-api/ink-contracts@npm:0.1.0"
+"@polkadot-api/ink-contracts@npm:0.1.1":
+  version: 0.1.1
+  resolution: "@polkadot-api/ink-contracts@npm:0.1.1"
   dependencies:
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
     scale-ts: "npm:^1.6.0"
-  checksum: 10c0/e7e22767db5427d50a2b2ca1dc8602416684f3402c925a7bd4b845c4b90ee32b1e81a348779a3b8d299c23faf3d2c69f22a07b179c293df3178957eca3636bac
+  checksum: 10c0/a4963763d562cd147dafaa2975d76c358fbef59e6e22e5c97c83bfd3841df28c87c89e41b79593df54c02cc868639f1edf99e2bb080d0b4c701bfac30b5147a7
   languageName: node
   linkType: hard
 
@@ -1137,10 +1305,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/known-chains@npm:0.5.4":
-  version: 0.5.4
-  resolution: "@polkadot-api/known-chains@npm:0.5.4"
-  checksum: 10c0/1f74015139d6cc1f3019d0960e7d8ef00ffa211e1b97a804e8444cd488656e067cf04601e2070788f44a50d1ab46022b8e686893f5de76a910f14e8d540d119b
+"@polkadot-api/known-chains@npm:0.5.5":
+  version: 0.5.5
+  resolution: "@polkadot-api/known-chains@npm:0.5.5"
+  checksum: 10c0/89ea415b162504f90af3b42a12179256671455691f41e7f927152faa4007e791343fd28af47b80cabdaadca6147206d6db7a24f88ea897dd9e08c4fb1b95a609
   languageName: node
   linkType: hard
 
@@ -1153,49 +1321,50 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/metadata-builders@npm:0.8.2":
-  version: 0.8.2
-  resolution: "@polkadot-api/metadata-builders@npm:0.8.2"
+"@polkadot-api/metadata-builders@npm:0.9.0":
+  version: 0.9.0
+  resolution: "@polkadot-api/metadata-builders@npm:0.9.0"
   dependencies:
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
-  checksum: 10c0/038b7d5ffce244a806dc85f28ac53bc05721bb4e2c67fce4d8268de816694895320831483460341effc945254d5faf2483e3277c408f7e9c3353f1318c7c65ca
+  checksum: 10c0/26f714bea541cbb4e534707561d0b1d1d2322cba6a49b0cb18deac8923fa21b3a172b163380778655cf44c184713656daae3c6d98c1bbc8baca6d6c924d30125
   languageName: node
   linkType: hard
 
-"@polkadot-api/metadata-compatibility@npm:0.1.9":
-  version: 0.1.9
-  resolution: "@polkadot-api/metadata-compatibility@npm:0.1.9"
+"@polkadot-api/metadata-compatibility@npm:0.1.10":
+  version: 0.1.10
+  resolution: "@polkadot-api/metadata-compatibility@npm:0.1.10"
   dependencies:
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
-  checksum: 10c0/593a7de6e05306e4fb42d9ab28baa7e9f6ae6f99b633098d3104e7d192910591e918089b16b95a6b1785223c5a74f3f49c814dd4e582d9ee9af683df39f5a658
+  checksum: 10c0/ede884bc58ce1aee49ab290eb6ec03889cfdde4bc4b5f68efb48d425a226cbf6e3ee98068bc2b685da56bf3adae448214a478faec2034b5fd93476a80ad4e7a7
   languageName: node
   linkType: hard
 
-"@polkadot-api/observable-client@npm:0.5.11":
-  version: 0.5.11
-  resolution: "@polkadot-api/observable-client@npm:0.5.11"
+"@polkadot-api/observable-client@npm:0.5.13":
+  version: 0.5.13
+  resolution: "@polkadot-api/observable-client@npm:0.5.13"
   dependencies:
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
   peerDependencies:
     "@polkadot-api/substrate-client": 0.2.2
     rxjs: ">=7.8.0"
-  checksum: 10c0/a1d7374ab73b801de4ea81f17eac716078c23921e481ca78708747a27fd057568ac36b3d5bc50e0f4b12831779c59e8527fa9509fd199ade37c2b961cdf1370d
+  checksum: 10c0/aa97d9a4c91445b5ba5a0348c700c8f837c5642cdcc75107b63aa3778a25868fa2cc026103a59077e542bced21b6f5a1f1e72b53b12943400ba7af00fbe331c3
   languageName: node
   linkType: hard
 
-"@polkadot-api/pjs-signer@npm:0.5.0":
-  version: 0.5.0
-  resolution: "@polkadot-api/pjs-signer@npm:0.5.0"
+"@polkadot-api/pjs-signer@npm:0.5.1":
+  version: 0.5.1
+  resolution: "@polkadot-api/pjs-signer@npm:0.5.1"
   dependencies:
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/polkadot-signer": "npm:0.1.6"
+    "@polkadot-api/signers-common": "npm:0.1.0"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
-  checksum: 10c0/1eb6fb00253f601bbe45774373c90c489dfc1776e5a5e8be844194ff048a3f3040ca818d017fa33e2e31174d541eab2af915ae60c6d58ba0a1d78f52a90e6934
+  checksum: 10c0/0673b24bd998e4fbf4f8122015c58ea74682191303ec96e6e33b6580c2a9e768e8405a0ea88351a3bdd3511d9ca6e8508c894f5c32032377d79cbaffecfa2253
   languageName: node
   linkType: hard
 
@@ -1215,14 +1384,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/signer@npm:0.1.8":
-  version: 0.1.8
-  resolution: "@polkadot-api/signer@npm:0.1.8"
+"@polkadot-api/signer@npm:0.1.9":
+  version: 0.1.9
+  resolution: "@polkadot-api/signer@npm:0.1.9"
   dependencies:
+    "@noble/hashes": "npm:^1.5.0"
+    "@polkadot-api/polkadot-signer": "npm:0.1.6"
+    "@polkadot-api/signers-common": "npm:0.1.0"
+    "@polkadot-api/substrate-bindings": "npm:0.9.2"
+    "@polkadot-api/utils": "npm:0.1.2"
+  checksum: 10c0/31e3428a316f035f6bf5db2d420b405828cc384aa562cd78d66df7c9e3dc8c780ec3726280b79f71a41b87f83dc4911dc00983e81b8d2633c3a418fc629c650f
+  languageName: node
+  linkType: hard
+
+"@polkadot-api/signers-common@npm:0.1.0":
+  version: 0.1.0
+  resolution: "@polkadot-api/signers-common@npm:0.1.0"
+  dependencies:
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/polkadot-signer": "npm:0.1.6"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
-  checksum: 10c0/ae200b1169ee581611e80070ffdb9108e7bb25eac8a79aa17b50c86f3028c9dfbfd7159777b888f9dffbdee98c373be047d7241ec5074e257f531fafa824c8ae
+  checksum: 10c0/953183756f08c44c37b81dedbdb6a66b39b6e5d040f2a0a01e5445104b90e9419daa66392043e3d5fb3931881fa3bbae36eb070d38181aec7e8baf84c4d2eca3
   languageName: node
   linkType: hard
 
@@ -1270,14 +1453,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/tx-utils@npm:^0.0.2":
-  version: 0.0.2
-  resolution: "@polkadot-api/tx-utils@npm:0.0.2"
+"@polkadot-api/tx-utils@npm:^0.0.3":
+  version: 0.0.3
+  resolution: "@polkadot-api/tx-utils@npm:0.0.3"
   dependencies:
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
     "@polkadot-api/utils": "npm:0.1.2"
-  checksum: 10c0/763cfe565382af957547a07002d9265f5a764fa3cc25d39f8c7aa7848c76b65f28f5009a622fa2516e8e5c346ff23b3153613d92c1097cb95a6707a8b94334fe
+  checksum: 10c0/2c9fbc5085abb7ef2ee7b9da2469eb3f38444015b9e471f4aea9fcc3cd0b48449eace47037b55cfaf126b292bab21cc5f2000b75fb31622bf7f75f9423fbeabe
   languageName: node
   linkType: hard
 
@@ -1644,13 +1827,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scalar/fastify-api-reference@npm:^1.25.48":
-  version: 1.25.48
-  resolution: "@scalar/fastify-api-reference@npm:1.25.48"
+"@scalar/fastify-api-reference@npm:^1.25.49":
+  version: 1.25.49
+  resolution: "@scalar/fastify-api-reference@npm:1.25.49"
   dependencies:
     "@scalar/types": "npm:0.0.17"
     fastify-plugin: "npm:^4.5.1"
-  checksum: 10c0/fc7af5259e58a3d50f8f841eff08e38351e90b220f5ab22d92a1dfdce5a90e640a3c19d2d653d868467b2b99f305368c288d3cea4ef792851798a5a23e26b2d6
+  checksum: 10c0/f0c3adf7c35f6a1458d2853d326f0e92f0c3bdeb0994f5b6c130c0812db5d54815f32309f8deef5745c41715a66e1a6641ffeec284a9d9bebdd12f978d9d9533
   languageName: node
   linkType: hard
 
@@ -1761,7 +1944,7 @@ __metadata:
     isows: "npm:^1.0.6"
     mock-socket: "npm:^9.3.1"
     nock: "npm:^14.0.0-beta.15"
-    tsup: "npm:^8.3.0"
+    tsup: "npm:^8.3.4"
     tsx: "npm:^4.19.1"
     typedoc: "npm:^0.26.10"
     typescript: "npm:^5.6.3"
@@ -1782,8 +1965,8 @@ __metadata:
     "@fastify/rate-limit": "npm:^10.1.1"
     "@fastify/swagger": "npm:^9.2.0"
     "@fastify/websocket": "npm:^11.0.1"
-    "@polkadot-api/tx-utils": "npm:^0.0.2"
-    "@scalar/fastify-api-reference": "npm:^1.25.48"
+    "@polkadot-api/tx-utils": "npm:^0.0.3"
+    "@scalar/fastify-api-reference": "npm:^1.25.49"
     "@types/better-sqlite3": "npm:^7.6.11"
     "@types/node": "npm:^22.7.9"
     "@types/ws": "npm:^8.5.12"
@@ -1809,7 +1992,7 @@ __metadata:
     nock: "npm:^13.5.5"
     nodemon: "npm:^3.1.7"
     pino-pretty: "npm:^11.3.0"
-    polkadot-api: "npm:^1.6.2"
+    polkadot-api: "npm:^1.6.4"
     prom-client: "npm:^15.1.3"
     rave-level: "npm:^1.0.0"
     redis: "npm:^4.7.0"
@@ -1823,7 +2006,7 @@ __metadata:
     vite-tsconfig-paths: "npm:^5.0.1"
     vitest: "npm:^2.1.3"
     zod: "npm:^3.23.8"
-    zod-to-json-schema: "npm:^3.23.3"
+    zod-to-json-schema: "npm:^3.23.5"
   bin:
     oc-ingress: ./dist/services/ingress/server/main.js
     oc-node: ./dist/main.js
@@ -2666,6 +2849,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chokidar@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "chokidar@npm:4.0.1"
+  dependencies:
+    readdirp: "npm:^4.0.1"
+  checksum: 10c0/4bb7a3adc304059810bb6c420c43261a15bb44f610d77c35547addc84faa0374265c3adc67f25d06f363d9a4571962b02679268c40de07676d260de1986efea9
+  languageName: node
+  linkType: hard
+
 "chownr@npm:^1.1.1":
   version: 1.1.4
   resolution: "chownr@npm:1.1.4"
@@ -2858,7 +3050,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:^4.3.6":
+"debug@npm:^4.3.6, debug@npm:^4.3.7":
   version: 4.3.7
   resolution: "debug@npm:4.3.7"
   dependencies:
@@ -3225,6 +3417,89 @@ __metadata:
   languageName: node
   linkType: hard
 
+"esbuild@npm:^0.24.0":
+  version: 0.24.0
+  resolution: "esbuild@npm:0.24.0"
+  dependencies:
+    "@esbuild/aix-ppc64": "npm:0.24.0"
+    "@esbuild/android-arm": "npm:0.24.0"
+    "@esbuild/android-arm64": "npm:0.24.0"
+    "@esbuild/android-x64": "npm:0.24.0"
+    "@esbuild/darwin-arm64": "npm:0.24.0"
+    "@esbuild/darwin-x64": "npm:0.24.0"
+    "@esbuild/freebsd-arm64": "npm:0.24.0"
+    "@esbuild/freebsd-x64": "npm:0.24.0"
+    "@esbuild/linux-arm": "npm:0.24.0"
+    "@esbuild/linux-arm64": "npm:0.24.0"
+    "@esbuild/linux-ia32": "npm:0.24.0"
+    "@esbuild/linux-loong64": "npm:0.24.0"
+    "@esbuild/linux-mips64el": "npm:0.24.0"
+    "@esbuild/linux-ppc64": "npm:0.24.0"
+    "@esbuild/linux-riscv64": "npm:0.24.0"
+    "@esbuild/linux-s390x": "npm:0.24.0"
+    "@esbuild/linux-x64": "npm:0.24.0"
+    "@esbuild/netbsd-x64": "npm:0.24.0"
+    "@esbuild/openbsd-arm64": "npm:0.24.0"
+    "@esbuild/openbsd-x64": "npm:0.24.0"
+    "@esbuild/sunos-x64": "npm:0.24.0"
+    "@esbuild/win32-arm64": "npm:0.24.0"
+    "@esbuild/win32-ia32": "npm:0.24.0"
+    "@esbuild/win32-x64": "npm:0.24.0"
+  dependenciesMeta:
+    "@esbuild/aix-ppc64":
+      optional: true
+    "@esbuild/android-arm":
+      optional: true
+    "@esbuild/android-arm64":
+      optional: true
+    "@esbuild/android-x64":
+      optional: true
+    "@esbuild/darwin-arm64":
+      optional: true
+    "@esbuild/darwin-x64":
+      optional: true
+    "@esbuild/freebsd-arm64":
+      optional: true
+    "@esbuild/freebsd-x64":
+      optional: true
+    "@esbuild/linux-arm":
+      optional: true
+    "@esbuild/linux-arm64":
+      optional: true
+    "@esbuild/linux-ia32":
+      optional: true
+    "@esbuild/linux-loong64":
+      optional: true
+    "@esbuild/linux-mips64el":
+      optional: true
+    "@esbuild/linux-ppc64":
+      optional: true
+    "@esbuild/linux-riscv64":
+      optional: true
+    "@esbuild/linux-s390x":
+      optional: true
+    "@esbuild/linux-x64":
+      optional: true
+    "@esbuild/netbsd-x64":
+      optional: true
+    "@esbuild/openbsd-arm64":
+      optional: true
+    "@esbuild/openbsd-x64":
+      optional: true
+    "@esbuild/sunos-x64":
+      optional: true
+    "@esbuild/win32-arm64":
+      optional: true
+    "@esbuild/win32-ia32":
+      optional: true
+    "@esbuild/win32-x64":
+      optional: true
+  bin:
+    esbuild: bin/esbuild
+  checksum: 10c0/9f1aadd8d64f3bff422ae78387e66e51a5e09de6935a6f987b6e4e189ed00fdc2d1bc03d2e33633b094008529c8b6e06c7ad1a9782fb09fec223bf95998c0683
+  languageName: node
+  linkType: hard
+
 "esbuild@npm:~0.23.0":
   version: 0.23.1
   resolution: "esbuild@npm:0.23.1"
@@ -3585,7 +3860,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fdir@npm:^6.4.0":
+"fdir@npm:^6.4.0, fdir@npm:^6.4.2":
   version: 6.4.2
   resolution: "fdir@npm:6.4.2"
   peerDependencies:
@@ -5381,7 +5656,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"picocolors@npm:^1.1.0":
+"picocolors@npm:^1.1.0, picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
   checksum: 10c0/e2e3e8170ab9d7c7421969adaa7e1b31434f789afb9b3f115f6b96d91945041ac3ceb02e9ec6fe6510ff036bcc0bf91e69a1772edc0b707e12b19c0f2d6bcf58
@@ -5489,22 +5764,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"polkadot-api@npm:^1.6.2":
-  version: 1.6.2
-  resolution: "polkadot-api@npm:1.6.2"
+"polkadot-api@npm:^1.6.4":
+  version: 1.6.4
+  resolution: "polkadot-api@npm:1.6.4"
   dependencies:
-    "@polkadot-api/cli": "npm:0.9.10"
-    "@polkadot-api/ink-contracts": "npm:0.1.0"
+    "@polkadot-api/cli": "npm:0.9.12"
+    "@polkadot-api/ink-contracts": "npm:0.1.1"
     "@polkadot-api/json-rpc-provider": "npm:0.0.4"
-    "@polkadot-api/known-chains": "npm:0.5.4"
+    "@polkadot-api/known-chains": "npm:0.5.5"
     "@polkadot-api/logs-provider": "npm:0.0.6"
-    "@polkadot-api/metadata-builders": "npm:0.8.2"
-    "@polkadot-api/metadata-compatibility": "npm:0.1.9"
-    "@polkadot-api/observable-client": "npm:0.5.11"
-    "@polkadot-api/pjs-signer": "npm:0.5.0"
+    "@polkadot-api/metadata-builders": "npm:0.9.0"
+    "@polkadot-api/metadata-compatibility": "npm:0.1.10"
+    "@polkadot-api/observable-client": "npm:0.5.13"
+    "@polkadot-api/pjs-signer": "npm:0.5.1"
     "@polkadot-api/polkadot-sdk-compat": "npm:2.3.1"
     "@polkadot-api/polkadot-signer": "npm:0.1.6"
-    "@polkadot-api/signer": "npm:0.1.8"
+    "@polkadot-api/signer": "npm:0.1.9"
     "@polkadot-api/sm-provider": "npm:0.1.3"
     "@polkadot-api/smoldot": "npm:0.3.3"
     "@polkadot-api/substrate-bindings": "npm:0.9.2"
@@ -5516,7 +5791,7 @@ __metadata:
   bin:
     papi: bin/cli.mjs
     polkadot-api: bin/cli.mjs
-  checksum: 10c0/005680ed2ff742eee7eae2b9d5daf35818190072cbb63718da8c5cb27aabf94cb1484369b1a562b547c398e07dbcee46ab4c32fd45c3cc0b4734c6523ca457af
+  checksum: 10c0/432c0a8bd4a0ceb0e64ae7203c41b09611caabbbe72db7cc73e6d74e5f441a8a135309903262678949ef6edcdcd83ee4dbe29418af01be50a1faf6345d2d7573
   languageName: node
   linkType: hard
 
@@ -5783,6 +6058,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"readdirp@npm:^4.0.1":
+  version: 4.0.2
+  resolution: "readdirp@npm:4.0.2"
+  checksum: 10c0/a16ecd8ef3286dcd90648c3b103e3826db2b766cdb4a988752c43a83f683d01c7059158d623cbcd8bdfb39e65d302d285be2d208e7d9f34d022d912b929217dd
+  languageName: node
+  linkType: hard
+
 "readdirp@npm:~3.6.0":
   version: 3.6.0
   resolution: "readdirp@npm:3.6.0"
@@ -5991,7 +6273,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:^4.20.0":
+"rollup@npm:^4.20.0, rollup@npm:^4.24.0":
   version: 4.24.0
   resolution: "rollup@npm:4.24.0"
   dependencies:
@@ -6711,20 +6993,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tinyexec@npm:^0.3.0":
+"tinyexec@npm:^0.3.0, tinyexec@npm:^0.3.1":
   version: 0.3.1
   resolution: "tinyexec@npm:0.3.1"
   checksum: 10c0/11e7a7c5d8b3bddf8b5cbe82a9290d70a6fad84d528421d5d18297f165723cb53d2e737d8f58dcce5ca56f2e4aa2d060f02510b1f8971784f97eb3e9aec28f09
   languageName: node
   linkType: hard
 
-"tinyglobby@npm:^0.2.1, tinyglobby@npm:^0.2.6":
+"tinyglobby@npm:^0.2.6":
   version: 0.2.9
   resolution: "tinyglobby@npm:0.2.9"
   dependencies:
     fdir: "npm:^6.4.0"
     picomatch: "npm:^4.0.2"
   checksum: 10c0/f65f847afe70f56de069d4f1f9c3b0c1a76aaf2b0297656754734a83b9bac8e105b5534dfbea8599560476b88f7b747d0855370a957a07246d18b976addb87ec
+  languageName: node
+  linkType: hard
+
+"tinyglobby@npm:^0.2.9":
+  version: 0.2.10
+  resolution: "tinyglobby@npm:0.2.10"
+  dependencies:
+    fdir: "npm:^6.4.2"
+    picomatch: "npm:^4.0.2"
+  checksum: 10c0/ce946135d39b8c0e394e488ad59f4092e8c4ecd675ef1bcd4585c47de1b325e61ec6adfbfbe20c3c2bfa6fd674c5b06de2a2e65c433f752ae170aff11793e5ef
   languageName: node
   linkType: hard
 
@@ -6914,25 +7206,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsup@npm:^8.3.0":
-  version: 8.3.0
-  resolution: "tsup@npm:8.3.0"
+"tsup@npm:^8.3.4":
+  version: 8.3.4
+  resolution: "tsup@npm:8.3.4"
   dependencies:
     bundle-require: "npm:^5.0.0"
     cac: "npm:^6.7.14"
-    chokidar: "npm:^3.6.0"
+    chokidar: "npm:^4.0.1"
     consola: "npm:^3.2.3"
-    debug: "npm:^4.3.5"
-    esbuild: "npm:^0.23.0"
-    execa: "npm:^5.1.1"
+    debug: "npm:^4.3.7"
+    esbuild: "npm:^0.24.0"
     joycon: "npm:^3.1.1"
-    picocolors: "npm:^1.0.1"
+    picocolors: "npm:^1.1.1"
     postcss-load-config: "npm:^6.0.1"
     resolve-from: "npm:^5.0.0"
-    rollup: "npm:^4.19.0"
+    rollup: "npm:^4.24.0"
     source-map: "npm:0.8.0-beta.0"
     sucrase: "npm:^3.35.0"
-    tinyglobby: "npm:^0.2.1"
+    tinyexec: "npm:^0.3.1"
+    tinyglobby: "npm:^0.2.9"
     tree-kill: "npm:^1.2.2"
   peerDependencies:
     "@microsoft/api-extractor": ^7.36.0
@@ -6951,7 +7243,7 @@ __metadata:
   bin:
     tsup: dist/cli-default.js
     tsup-node: dist/cli-node.js
-  checksum: 10c0/7f7132e48fca2284fd721077c6462c440dabdc95bcacf2e9837f81d2ca9771f804ff4f8b81a743e8fc6c3def856cf3ae99421c0568a7f030196abdc9e12e97e8
+  checksum: 10c0/bb60a1ed4edfd6f3c161c002c267e331bcefaf68df572d2a67039b0a85ba70af7ecb6627d6a4166ec1122bac3a06d7eb725113f532c0fa681816daf658eb2732
   languageName: node
   linkType: hard
 
@@ -7561,12 +7853,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod-to-json-schema@npm:^3.23.3":
-  version: 3.23.3
-  resolution: "zod-to-json-schema@npm:3.23.3"
+"zod-to-json-schema@npm:^3.23.5":
+  version: 3.23.5
+  resolution: "zod-to-json-schema@npm:3.23.5"
   peerDependencies:
     zod: ^3.23.3
-  checksum: 10c0/bbea65f28dd009e25940c038c73ad3a9bd5aeffd1a217dba7c44e59f3a3fe0476da3f65bbdde9bf4e65009557489e5b625420d9739871ea0c14e80c99968bf41
+  checksum: 10c0/bf50455f446c96b9a161476347ebab6e3bcae7fdf1376ce0b74248e79db733590164476dac2fc481a921868f705fefdcafd223a98203a700b3f01ba1cda6aa90
   languageName: node
   linkType: hard
 
