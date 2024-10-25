@@ -7,14 +7,9 @@ import { pino } from 'pino'
 
 import { encodeBlock } from '@/services/ingress/watcher/codec.js'
 import { createArchiveClient } from '@/services/networking/index.js'
+import { networks } from './networks.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
-
-const networks = {
-  polkadot: 'wss://rpc.ibp.network/polkadot',
-  assethub: 'wss://polkadot-asset-hub-rpc.polkadot.io',
-  hydra: 'wss://hydradx.paras.ibp.network',
-} as Record<string, string>
 
 async function download([name, ws, height]: [string, string, string]) {
   const logger = pino()

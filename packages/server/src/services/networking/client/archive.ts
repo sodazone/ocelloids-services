@@ -169,6 +169,10 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     this.#client.destroy()
   }
 
+  async getRpcMethods() {
+    return await this.#request<{ methods: string[] }>('rpc_methods', [])
+  }
+
   async #getBody(hash: string) {
     return await this.#request<[tx: string], [hash: string]>('archive_unstable_body', [hash])
   }
