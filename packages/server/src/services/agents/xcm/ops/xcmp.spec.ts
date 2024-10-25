@@ -21,6 +21,7 @@ describe('xcmp operator', () => {
             expect(msg.messageHash).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.timestamp).toBeDefined()
+            expect(msg.sender?.signer.id).toBeDefined()
             calls()
           },
           complete: () => {
