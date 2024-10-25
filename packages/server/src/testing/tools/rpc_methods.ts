@@ -18,7 +18,7 @@ async function checkRpcMethods(url: string) {
   const { methods } = await client.getRpcMethods()
   const supports = (apiPrefix: string, count: number) => {
     const c = methods.filter((m) => m.startsWith(apiPrefix)).length
-    return `${_(c > 1)} [${c},${count}]\t${apiPrefix}`
+    return `${_(c > 1)} [${c},${count}] ${apiPrefix}`
   }
   console.log(
     `${url}
