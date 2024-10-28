@@ -177,7 +177,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
-    return await fetchers.networkInfo(this.#apis[chainId], chainId)
+    return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
   }
 
   #pendingRanges(chainId: NetworkURN) {
