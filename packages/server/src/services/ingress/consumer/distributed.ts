@@ -95,7 +95,7 @@ export class DistributedIngressConsumer
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return createRuntimeApiContext(metadata)
+          return createRuntimeApiContext(metadata, chainId)
         }),
         // TODO retry
         shareReplay({

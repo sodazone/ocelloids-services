@@ -7,24 +7,33 @@ import { Binary, Codec } from 'polkadot-api'
 import { Extrinsic, StorageCodec } from '../types.js'
 import { ApiContext } from './types.js'
 
-export function createRuntimeApiContext(metadataRaw: Uint8Array) {
-  const metadata = metadataCodec.dec(metadataRaw).metadata.value as V14 | V15
+export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: string) {
+  let metadata
+  try {
+    metadata = metadataCodec.dec(metadataRaw).metadata.value as V14 | V15
+  } catch (error) {
+    throw new Error(`[${chainId}] Failed to decode metadata`, { cause: error })
+  }
   const lookup = getLookupFn(metadata)
   const dynamicBuilder = getDynamicBuilder(lookup)
   const events = dynamicBuilder.buildStorage('System', 'Events')
 
-  return new RuntimeApiContext({
-    metadataRaw,
-    lookup,
-    dynamicBuilder,
-    events: {
-      key: events.enc(),
-      dec: events.dec as Decoder<any>,
-    },
-  } as RuntimeContext)
+  return new RuntimeApiContext(
+    {
+      metadataRaw,
+      lookup,
+      dynamicBuilder,
+      events: {
+        key: events.enc(),
+        dec: events.dec as Decoder<any>,
+      },
+    } as RuntimeContext,
+    chainId,
+  )
 }
 
 export class RuntimeApiContext implements ApiContext {
+  readonly chainId?: string
   readonly #extrinsicDecoder: ReturnType<typeof getExtrinsicDecoder>
   readonly #ctx: RuntimeContext
 
@@ -40,7 +49,8 @@ export class RuntimeApiContext implements ApiContext {
     return this.#ctx.events
   }
 
-  constructor(runtimeContext: RuntimeContext) {
+  constructor(runtimeContext: RuntimeContext, chainId?: string) {
+    this.chainId = chainId
     this.#ctx = runtimeContext
     this.#extrinsicDecoder = getExtrinsicDecoder(runtimeContext.metadataRaw)
   }
@@ -55,50 +65,79 @@ export class RuntimeApiContext implements ApiContext {
   }
 
   decodeExtrinsic(hextBytes: string | Uint8Array): Extrinsic {
-    const xt: {
-      callData: Binary
-      signed: boolean
-      address?: any
-      signature?: any
-    } = this.#extrinsicDecoder(hextBytes)
+    try {
+      const xt: {
+        callData: Binary
+        signed: boolean
+        address?: any
+        signature?: any
+      } = this.#extrinsicDecoder(hextBytes)
 
-    const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(xt.callData.asBytes())
+      const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(xt.callData.asBytes())
 
-    return {
-      module: call.type,
-      method: call.value.type,
-      args: call.value.value,
-      signed: xt.signed,
-      address: xt.address,
-      signature: xt.signature,
+      return {
+        module: call.type,
+        method: call.value.type,
+        args: call.value.value,
+        signed: xt.signed,
+        address: xt.address,
+        signature: xt.signature,
+      }
+    } catch (error) {
+      throw new Error(`[${this.chainId}] Failed to decode extrinsic.`, { cause: error })
     }
   }
 
   storageCodec<T = any>(module: string, method: string) {
-    return this.#builder.buildStorage(module, method) as StorageCodec<T>
+    try {
+      return this.#builder.buildStorage(module, method) as StorageCodec<T>
+    } catch (error) {
+      throw new Error(`[${this.chainId}] Failed to build storage codec for ${module}.${method}.`, {
+        cause: error,
+      })
+    }
   }
 
   typeCodec<T = any>(path: string | string[] | number): Codec<T> {
-    let id
+    let id: number | undefined
+
     if (typeof path === 'number') {
       id = path
     } else {
       id = this.getTypeIdByPath(path)
-
       if (id === undefined) {
-        throw new Error(`type not found: ${path}`)
+        throw new Error(
+          `[${this.chainId}] Type not found for path: ${Array.isArray(path) ? path.join('.') : path}`,
+        )
       }
     }
 
-    return this.#builder.buildDefinition(id) as Codec<T>
+    try {
+      return this.#builder.buildDefinition(id) as Codec<T>
+    } catch (error) {
+      throw new Error(`[${this.chainId}] Failed to build type codec for ID ${id}.`, { cause: error })
+    }
   }
 
   getConstant(palletName: string, name: string) {
     const pallet = this.#metadata.pallets.find((p) => p.name === palletName)
-    const constant = pallet?.constants.find((c) => c.name === name)
 
-    return constant === undefined
-      ? undefined
-      : this.#builder.buildConstant(palletName, name).dec(constant.value)
+    if (!pallet) {
+      throw new Error(`Pallet not found: ${palletName}`)
+    }
+
+    const constant = pallet.constants.find((c) => c.name === name)
+
+    if (!constant) {
+      throw new Error(`[${this.chainId}] Constant not found: ${name} in pallet ${palletName}`)
+    }
+
+    try {
+      return this.#builder.buildConstant(palletName, name).dec(constant.value)
+    } catch (error) {
+      throw new Error(`[${this.chainId}] Failed to decode constant ${name} from pallet ${palletName}.`, {
+        cause: error,
+      })
+    }
   }
 }

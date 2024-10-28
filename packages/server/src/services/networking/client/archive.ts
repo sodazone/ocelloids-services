@@ -68,7 +68,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     this.#head$ = this.#client.chainHead$()
 
     this.#apiContext = () => {
-      throw new Error('Runtime context not initialized. Try using awaiting isReady().')
+      throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
     }
   }
 
@@ -153,7 +153,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   connect() {
     this.#runtimeContext
       .then((x) => {
-        const ctx = new RuntimeApiContext(x)
+        const ctx = new RuntimeApiContext(x, this.chainId)
         this.#apiContext = () => ctx
         super.emit('connected')
         this.#connected = true
