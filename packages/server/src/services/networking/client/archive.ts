@@ -16,7 +16,7 @@ import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
-import { Block, EventRecord } from '../types.js'
+import { Block } from '../types.js'
 import { RuntimeApiContext } from './context.js'
 import { ApiClient, ApiContext } from './types.js'
 
@@ -31,12 +31,6 @@ export async function createArchiveClient(log: Logger, chainId: string, url: str
 export class ArchiveClient extends EventEmitter implements ApiClient {
   #connected: boolean = false
   readonly chainId: string
-  get ctx() {
-    return this.#apiContext()
-  }
-  get finalizedHeads$() {
-    return this.#head$.finalized$
-  }
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
   readonly #log: Logger
@@ -47,11 +41,19 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     params: Params,
   ) => Promise<Reply>
   readonly #head$: ChainHead$
+  #apiContext!: () => ApiContext
+
+  get ctx() {
+    return this.#apiContext()
+  }
+
+  get finalizedHeads$() {
+    return this.#head$.finalized$
+  }
 
   get #runtimeContext(): Promise<RuntimeContext> {
     return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
   }
-  #apiContext: () => ApiContext
 
   constructor(log: Logger, chainId: string, url: string | Array<string>) {
     super()
@@ -72,21 +74,19 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }
   }
 
-  isReady() {
-    return new Promise<ApiClient>((resolve) => {
-      if (this.#connected) {
-        resolve(this)
-      } else {
-        this.once('connected', () => {
-          this.#connected = true
-          resolve(this)
-        })
-      }
-    })
+  async isReady(): Promise<ApiClient> {
+    if (this.#connected) {
+      return this
+    }
+    return new Promise<ApiClient>((resolve) => this.once('connected', () => resolve(this)))
   }
 
   async getMetadata(): Promise<Uint8Array> {
-    return (await this.#runtimeContext).metadataRaw
+    try {
+      return (await this.#runtimeContext).metadataRaw
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.`, { cause: error })
+    }
   }
 
   async getRuntimeVersion() {
@@ -100,35 +100,50 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   }
 
   async getBlock(hash: string): Promise<Block> {
-    const [header, txs, events] = await Promise.all([
-      this.getHeader(hash),
-      this.#getBody(hash),
-      await this.#getEvents(hash),
-    ])
+    try {
+      const [header, txs, events] = await Promise.all([
+        this.getHeader(hash),
+        this.#getBody(hash),
+        this.#getEvents(hash),
+      ])
 
-    return asSerializable({
-      hash,
-      number: header.number,
-      parent: header.parent,
-      extrinsics: txs.map((tx) => this.ctx.decodeExtrinsic(tx)),
-      events,
-    }) as Block
+      return asSerializable({
+        hash,
+        number: header.number,
+        parent: header.parent,
+        extrinsics: txs.map((tx) => this.ctx.decodeExtrinsic(tx)),
+        events,
+      }) as Block
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
+    }
   }
 
   async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
-    return (
-      await this.#request<string, [height: number]>('archive_unstable_hashByHeight', [Number(blockNumber)])
-    )[0]
+    try {
+      const result = await this.#request<string[], [height: number]>('archive_unstable_hashByHeight', [
+        Number(blockNumber),
+      ])
+      if (!result || result.length < 1) {
+        throw new Error('Block hash not found')
+      }
+      return result[0]
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch block hash.`, { cause: error })
+    }
   }
 
   async getHeader(hash: string): Promise<BlockInfo> {
-    const header = blockHeader.dec(
-      await this.#request<string, [hash: string]>('archive_unstable_header', [hash]),
-    )
-    return {
-      parent: header.parentHash,
-      hash,
-      number: header.number,
+    try {
+      const encodedHeader = await this.#request<string, [hash: string]>('archive_unstable_header', [hash])
+      const header = blockHeader.dec(encodedHeader)
+      return {
+        parent: header.parentHash,
+        hash,
+        number: header.number,
+      }
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch header for hash ${hash}.`, { cause: error })
     }
   }
 
@@ -138,16 +153,29 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     resolvedStartKey?: string,
     at?: string,
   ): Promise<HexString[]> {
-    return await this.#request<HexString[]>('state_getKeysPaged', [keyPrefix, count, resolvedStartKey, at])
+    try {
+      return await this.#request<HexString[]>('state_getKeysPaged', [keyPrefix, count, resolvedStartKey, at])
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch storage keys.`, { cause: error })
+    }
   }
 
   async getStorage(key: string, at?: string) {
-    return await this.#request<HexString>('state_getStorage', [key, at])
+    try {
+      return await this.#request<HexString>('state_getStorage', [key, at])
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch storage for key ${key}.`, { cause: error })
+    }
   }
 
   async query<T = any>(module: string, method: string, ...args: any[]) {
-    const codec = this.ctx.storageCodec<T>(module, method)
-    return codec.dec(await this.getStorage(codec.enc(...args)))
+    try {
+      const codec = this.ctx.storageCodec<T>(module, method)
+      const data = await this.getStorage(codec.enc(...args))
+      return codec.dec(data)
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to query ${module}.${method}.`, { cause: error })
+    }
   }
 
   connect() {
@@ -175,59 +203,48 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   }
 
   async getRpcMethods() {
-    return await this.#request<{ methods: string[] }>('rpc_methods', [])
+    try {
+      return await this.#request<{ methods: string[] }>('rpc_methods', [])
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch RPC methods.`, { cause: error })
+    }
   }
 
   async #getBody(hash: string) {
-    return await this.#request<[tx: string], [hash: string]>('archive_unstable_body', [hash])
+    try {
+      const result = await this.#request<[tx: string], [hash: string]>('archive_unstable_body', [hash])
+      return result
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch block body for hash ${hash}.`, {
+        cause: error,
+      })
+    }
   }
 
   async #getEvents(hash: string) {
-    const { result } = await this.#request<
-      {
-        result: [
-          {
-            key: string
-            value: string
-          },
-        ]
-      },
-      [
-        hash: string,
-        items: [
-          {
-            key: string
-            type: string
-          },
-        ],
-        childTrie: null,
-      ]
-    >('archive_unstable_storage', [
-      hash,
-      [
-        {
-          key: this.ctx.events.key,
-          type: 'value',
-        },
-      ],
-      null,
-    ])
+    try {
+      const response = await this.#request<
+        { result: [{ key: string; value: string }] },
+        [hash: string, items: [{ key: string; type: string }], null]
+      >('archive_unstable_storage', [hash, [{ key: this.ctx.events.key, type: 'value' }], null])
 
-    if (result) {
-      const events: SystemEvent[] = this.ctx.events.dec(result[0]?.value) ?? []
-      return events.map(
-        ({ phase, topics, event }) =>
-          ({
-            phase,
-            topics,
-            event: {
-              module: event.type,
-              name: event.value.type,
-              value: event.value.value,
-            },
-          }) as EventRecord,
-      )
+      const eventsData = response.result?.[0]?.value
+      if (!eventsData) {
+        return []
+      }
+
+      const systemEvents: SystemEvent[] = this.ctx.events.dec(eventsData)
+      return systemEvents.map(({ phase, topics, event }) => ({
+        phase,
+        topics,
+        event: {
+          module: event.type,
+          name: event.value.type,
+          value: event.value.value,
+        },
+      }))
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch events for hash ${hash}.`, { cause: error })
     }
-    return []
   }
 }
