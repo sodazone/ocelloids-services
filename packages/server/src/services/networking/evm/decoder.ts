@@ -139,6 +139,6 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
       return from
     }
     default:
-      throw new Error('Unkwnon transaction type')
+      throw new Error('Unknown transaction type')
   }
 }
