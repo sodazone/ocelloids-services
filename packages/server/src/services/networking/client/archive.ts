@@ -61,6 +61,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     this.chainId = chainId
 
     this.#log = log
+    // for the type checking... find a cleaner way :/
     this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
     const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(this.#wsProvider))
