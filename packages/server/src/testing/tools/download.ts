@@ -14,6 +14,8 @@ export const networks = {
   polkadot: 'wss://rpc.ibp.network/polkadot',
   assethub: 'wss://polkadot-asset-hub-rpc.polkadot.io',
   hydra: 'wss://hydradx.paras.ibp.network',
+  moonbeam: 'wss://moonbeam.ibp.network',
+  astar: 'wss://rpc.astar.network',
 } as Record<string, string>
 
 async function download([name, ws, height]: [string, string, string]) {

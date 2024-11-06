@@ -1,7 +1,7 @@
 import { from, of } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
-import { ApiClient, ApiContext } from '@/services/networking/index.js'
+import { ApiContext } from '@/services/networking/index.js'
 
 import { Binary } from 'polkadot-api'
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
@@ -60,43 +60,6 @@ export const umpReceive = {
   trappedBlocks: from(testBlocksFrom('polkadot/ump-in-fail_23083486.cbor')),
 }
 
-/*
-// DMP testing mocks
-const dmpData =
-  '031001040001000007504dd1dc090a130001000007504dd1dc09000d01020400010100cc5aa1bd751e2a26534fa5daf5776f63192147310e2b18c52330704f5ed0a257'
-const dmpData2 =
-  '03140104000100000700847207020a1300010000070084720702000d0102040001010016d0e608113c3df4420993d5cc34a8d229c49bde1cad219dd01efffbfaa029032c185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c'
-export const dmpSendSingleMessageInQueue = {
-  origin: 'urn:ocn:local:0' as NetworkURN,
-  blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
-  sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  getDmp: () =>
-    of([
-      {
-        msg: new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
-        toU8a: () => new Uint8Array(Buffer.from('0002100004000000001700004b3471bb156b050a1300000000', 'hex')),
-      },
-    ] as unknown as any),
-}
-
-// Insert a fake message in the queue to simulate mutliple messages in DMP queue
-export const dmpSendMultipleMessagesInQueue = {
-  origin: 'urn:ocn:local:0' as NetworkURN,
-  blocks: from(testBlocksFrom('dmp-out.cbor.bin', 'polkadot.json')),
-  sendersControl: new ControlQuery(sendersCriteria(['15cwh83AvXBbuPpauQBwG1Bms7Zy5rNFeVVwtVmAfwMT8eCV'])),
-  getDmp: () =>
-    of([
-      {
-        msg: new Uint8Array(Buffer.from(dmpData, 'hex')),
-        toU8a: () => new Uint8Array(Buffer.from(dmpData, 'hex')),
-      },
-      {
-        msg: new Uint8Array(Buffer.from(dmpData2, 'hex')),
-        toU8a: () => new Uint8Array(Buffer.from(dmpData2, 'hex')),
-      },
-    ] as unknown as any),
-}
-*/
 export const dmpXcmPalletSentEvent = {
   origin: 'urn:ocn:local:0' as NetworkURN,
   blocks: from(testBlocksFrom('polkadot/dmp-out_23090081.cbor')),
@@ -115,42 +78,3 @@ export const dmpReceive = {
   successBlocks: from(testBlocksFrom('hydra/dmp-in_6258493.cbor')),
   failBlocks: from(testBlocksFrom('hydra/dmp-in-fail_6253890.cbor')),
 }
-
-/*
-// In: DMP receive
-// Out: HRMP send
-export const xcmHop = {
-  blocks: from(testBlocksFrom('hydra-hop-4624161.cbor.bin')),
-  sendersControl: new ControlQuery(sendersCriteria('*')),
-  origin: 'urn:ocn:local:0' as NetworkURN,
-  destination: 'urn:ocn:local:1000' as NetworkURN,
-  getHrmp: () =>
-    from([
-      [
-        {
-          recipient: {
-            toNumber: () => 1000,
-          },
-          data: '0x0003100004000002043205011f0007f1d9052a010a13000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b03100004000002043205011f00022d31010a13000002043205011f00022d3101000d01020400010100080748a58000f274f8847e151f3c47f83aaaf2cb12835f42317de6548dcdfc34',
-        },
-      ],
-    ]),
-}
-
-const xcmData =
-  '0x0310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf'
-// DMP to 2034
-export const xcmHopOrigin = {
-  origin: 'urn:ocn:local:0' as NetworkURN,
-  blocks: from(testBlocksFrom('polkadot-hop-19777220.cbor.bin', 'polkadot-1000001.json')),
-  sendersControl: new ControlQuery(sendersCriteria('*')),
-  messageControl: new ControlQuery(messageCriteria(['urn:ocn:local:1000', 'urn:ocn:local:2034'])),
-  getDmp: () =>
-    of([
-      {
-        msg: new Uint8Array(Buffer.from(xcmData, 'hex')),
-        asBinary: () => new Uint8Array(Buffer.from(xcmData, 'hex')),
-      },
-    ] as unknown as any),
-}
-*/
