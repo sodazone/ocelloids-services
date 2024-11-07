@@ -1,7 +1,20 @@
-import { Signature, TransactionSerializable, keccak256, recoverAddress, serializeTransaction } from 'viem'
+import {
+  Abi,
+  DecodeFunctionDataReturnType,
+  Signature,
+  TransactionSerializable,
+  decodeAbiParameters,
+  decodeFunctionData,
+  keccak256,
+  recoverAddress,
+  serializeTransaction,
+  slice,
+  toFunctionSelector,
+} from 'viem'
 
 import { HexString } from '@/lib.js'
 import { Extrinsic } from '@/services/networking/types.js'
+import { formatAbiItem } from 'viem/utils'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559
@@ -99,6 +112,14 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
 
 export function isFrontierExtrinsic(xt: Extrinsic) {
   return xt.module === 'Ethereum' && xt.method === 'transact'
+}
+
+export function decodeCallData(data: HexString, abi: Abi) {
+  try {
+    return decodeFunctionData({ data, abi })
+  } catch {
+    //
+  }
 }
 
 export function getTxHash(xt: FrontierExtrinsic) {
