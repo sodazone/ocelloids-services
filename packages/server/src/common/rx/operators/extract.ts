@@ -38,11 +38,8 @@ function enhanceTxWithIdAndEvents(
     ['ExtrinsicSuccess', 'ExtrinsicFailed'],
     eventsWithId,
   )?.dispatch_info
+  // TODO: resolve innerdocs?
   const dispatchError = getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error
-  // TODO: remove, resolve innerdocs?
-  if (dispatchError) {
-    console.log(dispatchError.type, dispatchError.value.type)
-  }
 
   return {
     ...tx,
