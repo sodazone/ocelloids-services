@@ -10,6 +10,7 @@ import {
   EventRecord,
   Extrinsic,
 } from '@/services/networking/types.js'
+import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/evm/decoder.js'
 
 function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'set')
@@ -40,6 +41,10 @@ function enhanceTxWithIdAndEvents(
   )?.dispatch_info
   // TODO: resolve innerdocs?
   const dispatchError = getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error
+
+  if(isFrontierExtrinsic(tx)) {
+    tx.address = getFromAddress(tx.args as FrontierExtrinsic)
+  }
 
   return {
     ...tx,
