@@ -8,7 +8,7 @@ import FastifyHealthcheck from 'fastify-healthcheck'
 
 import { logger } from '@/environment.js'
 import { errorHandler } from '@/errors.js'
-import { Auth, Configuration, Connector, LevelDB, Root, Telemetry } from '@/services/index.js'
+import { Configuration, Connector, LevelDB, Root, Telemetry } from '@/services/index.js'
 import {
   $BaseServerOptions,
   $ConfigServerOptions,
@@ -56,7 +56,6 @@ export async function createIngressServer(opts: ServerOptions) {
     exposeUptime: true,
   })
 
-  await server.register(Auth)
   await server.register(Root)
   await server.register(Configuration, opts)
   await server.register(Connector)
