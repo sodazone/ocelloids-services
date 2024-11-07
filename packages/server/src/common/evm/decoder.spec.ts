@@ -4,9 +4,11 @@ import { Block } from '@/services/networking/types.js'
 
 import {
   FrontierExtrinsic,
-  decodeCallData,
+  decodeEvmEventLog,
+  decodeEvmFunctionData,
   getFromAddress,
   getTxHash,
+  isEVMLog,
   isFrontierExtrinsic,
 } from './decoder.js'
 
@@ -29,11 +31,26 @@ describe('connector', () => {
   it('decode moonbeam frontier extrinsics', async () => {
     await expectTxs(moonbeamBlocks(), expectedTxs.moonbeam)
   })
+  it.only('decode evm logs', () => {
+    const abi = stellaFeedsAbi()
+    for (const block of moonbeamBlocks()) {
+      const ev = block.events.filter(isEVMLog)[0]
+      const { _address, topics, data } = ev.event.value.log
+      const decoded = decodeEvmEventLog({
+        topics,
+        data,
+        abi,
+      })
+      expect(decoded).toBeDefined()
+      expect(decoded?.eventName).toBe('PriceData')
+      expect((decoded?.args as any).token).toBe('0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D')
+    }
+  })
   it('decode call data', () => {
     const abi = stellaFeedsAbi()
     for (const block of moonbeamBlocks()) {
       const xt = block.extrinsics.filter(isFrontierExtrinsic)[0].args as FrontierExtrinsic
-      const decoded = decodeCallData(xt.transaction.value.input, abi)
+      const decoded = decodeEvmFunctionData({ data: xt.transaction.value.input, abi })
       expect(decoded).toBeDefined()
       expect(decoded?.functionName).toBe('setPricesWithBits')
       expect(decoded?.args).toStrictEqual([

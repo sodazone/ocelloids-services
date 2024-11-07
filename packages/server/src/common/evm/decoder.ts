@@ -2,6 +2,7 @@ import {
   Abi,
   Signature,
   TransactionSerializable,
+  decodeEventLog,
   decodeFunctionData,
   keccak256,
   recoverAddress,
@@ -9,7 +10,7 @@ import {
 } from 'viem'
 
 import { HexString } from '@/lib.js'
-import { Extrinsic } from '@/services/networking/types.js'
+import { Event, EventRecord, Extrinsic } from '@/services/networking/types.js'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559
@@ -105,13 +106,33 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
   }
 }
 
+export function isEVMLog({ event }: EventRecord<Event>) {
+  return event.module === 'EVM' && event.name === 'Log'
+}
+
 export function isFrontierExtrinsic(xt: Extrinsic) {
   return xt.module === 'Ethereum' && xt.method === 'transact'
 }
 
-export function decodeCallData(data: HexString, abi: Abi) {
+export function decodeEvmFunctionData({ data, abi }: { data: HexString; abi: Abi }) {
   try {
     return decodeFunctionData({ data, abi })
+  } catch {
+    //
+  }
+}
+
+export function decodeEvmEventLog({
+  data,
+  topics,
+  abi,
+}: {
+  data?: HexString
+  topics: [HexString]
+  abi: Abi
+}) {
+  try {
+    return decodeEventLog({ data, topics, abi })
   } catch {
     //
   }
