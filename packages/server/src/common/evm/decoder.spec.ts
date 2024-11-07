@@ -24,7 +24,7 @@ async function expectTxs(blocks: Block[], expected: string[][]) {
   }
 }
 
-describe('connector', () => {
+describe('evm decoder', () => {
   it('decode astar frontier extrinsics', async () => {
     await expectTxs(astarBlocks(), expectedTxs.astar)
   })
@@ -34,7 +34,7 @@ describe('connector', () => {
   it('decode evm logs', () => {
     const abi = stellaFeedsAbi()
     for (const block of moonbeamBlocks()) {
-      const ev = block.events.filter(isEVMLog)[0]
+      const ev = block.events.filter(({ event }) => isEVMLog(event))[0]
       const { _address, topics, data } = ev.event.value.log
       const decoded = decodeEvmEventLog({
         topics,

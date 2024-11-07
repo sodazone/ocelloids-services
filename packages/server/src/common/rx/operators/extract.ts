@@ -1,6 +1,5 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/evm/decoder.js'
 import { getEventValue } from '@/common/util.js'
 import {
   Block,
@@ -41,10 +40,6 @@ function enhanceTxWithIdAndEvents(
   )?.dispatch_info
   // TODO: resolve innerdocs?
   const dispatchError = getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error
-
-  if (isFrontierExtrinsic(tx)) {
-    tx.address = getFromAddress(tx.args as FrontierExtrinsic)
-  }
 
   return {
     ...tx,

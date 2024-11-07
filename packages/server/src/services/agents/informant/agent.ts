@@ -1,16 +1,9 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { mergeMap, filter as rxFilter } from 'rxjs'
+import { filter as rxFilter } from 'rxjs'
 
-import {
-  ControlQuery,
-  FrontierExtrinsic,
-  asSerializable,
-  decodeEvmFunctionData,
-  getFromAddress,
-  isFrontierExtrinsic,
-} from '@/common/index.js'
+import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
@@ -19,6 +12,7 @@ import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 
+import { extractEvmTransactions } from '@/common/rx/operators/evm.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 export const $InformantInputs = z.object({
@@ -35,7 +29,7 @@ export const $InformantInputs = z.object({
     evm: z.optional(
       z.object({
         abi: z.optional(z.array(z.any())),
-        to: z.optional(z.array(z.string())),
+        addresses: z.optional(z.array(z.string())),
       }),
     ),
   }),
@@ -265,28 +259,9 @@ export class InformantAgent implements Agent, Subscribable {
         sub: this.#shared
           .blockExtrinsics(chainId)
           .pipe(
-            rxFilter((extrinsic) => {
-              if (isFrontierExtrinsic(extrinsic)) {
-                const tx = extrinsic.args as FrontierExtrinsic
-                const to = tx.transaction.value.action.value
-                return evm.to === undefined || evm.to.includes(to)
-              }
-              return false
-            }),
-            mergeMap(async (extrinsic) => {
-              const tx = extrinsic.args as FrontierExtrinsic
-              const to = tx.transaction.value.action.value
-              return {
-                to,
-                from: await getFromAddress(tx),
-                value: BigInt(tx.transaction.value.value[0]),
-                input: tx.transaction.value.input,
-                call:
-                  evm.abi &&
-                  evm.to?.includes(to) &&
-                  decodeEvmFunctionData({ data: tx.transaction.value.input, abi: evm.abi }),
-                extrinsic,
-              }
+            extractEvmTransactions({
+              abi: evm.abi,
+              addresses: evm.addresses ?? [],
             }),
             rxFilter((tx) => control.value.test(tx)),
           )
@@ -298,12 +273,12 @@ export class InformantAgent implements Agent, Subscribable {
               try {
                 this.#egress.publish(subscription, {
                   metadata: {
-                    type: 'extrinsic',
+                    type: 'evm-extrinsic',
                     subscriptionId: id,
                     agentId: this.id,
                     networkId: chainId,
                     timestamp: Date.now(),
-                    blockTimestamp: tx.extrinsic.timestamp,
+                    blockTimestamp: tx.timestamp,
                   },
                   payload: asSerializable<AnyJson>(tx as any),
                 })

@@ -10,7 +10,7 @@ import {
 } from 'viem'
 
 import { HexString } from '@/lib.js'
-import { Event, EventRecord, Extrinsic } from '@/services/networking/types.js'
+import { Event, Extrinsic } from '@/services/networking/types.js'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559
@@ -106,7 +106,7 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
   }
 }
 
-export function isEVMLog({ event }: EventRecord<Event>) {
+export function isEVMLog(event: Event) {
   return event.module === 'EVM' && event.name === 'Log'
 }
 

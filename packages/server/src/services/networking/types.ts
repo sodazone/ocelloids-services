@@ -49,8 +49,35 @@ export type BlockEvent = Event &
     extrinsicPosition?: number
   }
 
+export type BlockEvmEvent = BlockEvent & {
+  address: string
+  topics: [string]
+  data?: string
+  decoded?: {
+    eventName: string
+    args?: any
+  }
+}
+
 export type BlockExtrinsicWithEvents = BlockExtrinsic & {
   events: BlockEvent[]
   dispatchInfo: any
   dispatchError: any
+}
+
+export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
+  executed?: {
+    from: string
+    to: string
+    transaction_hash: string
+    exit_reason: { type: string; value: { type: string } }
+    extra_data: string
+  }
+  to: string
+  from: string
+  value: bigint
+  decoded?: {
+    functionName: string
+    args: any
+  }
 }
