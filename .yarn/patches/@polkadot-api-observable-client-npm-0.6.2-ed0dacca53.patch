@@ -1,0 +1,82 @@
+diff --git a/dist/esm/chainHead/chainHead.mjs b/dist/esm/chainHead/chainHead.mjs
+index 43d1b02d7e3346d854971b92c102a61378c4e150..e0eb65d4bc4c52a09ac789e49b8b3b9e171818e1 100644
+--- a/dist/esm/chainHead/chainHead.mjs
++++ b/dist/esm/chainHead/chainHead.mjs
+@@ -222,10 +222,10 @@ const getChainHead$ = (chainHead) => {
+     validateTx$,
+     () => of()
+   );
+-  merge(runtime$, bestBlocks$).subscribe({
+-    error() {
+-    }
+-  });
++  // merge(runtime$, bestBlocks$).subscribe({
++  //  error() {
++  //  }
++  // });
+   let unfollow = noop;
+   let started = false;
+   let nSubscribers = 0;
+diff --git a/dist/esm/chainHead/streams/get-runtime-creator.mjs b/dist/esm/chainHead/streams/get-runtime-creator.mjs
+index 26914d87cbaa650ad22271cb026b1bcccf0a9f12..c1139d14cd46d812eac79eb74d392be54acbd251 100644
+--- a/dist/esm/chainHead/streams/get-runtime-creator.mjs
++++ b/dist/esm/chainHead/streams/get-runtime-creator.mjs
+@@ -98,10 +98,10 @@ const getRuntimeCreator = (call$) => {
+       },
+       usages
+     };
+-    runtimeContext$.subscribe({
+-      error() {
+-      }
+-    });
++    // runtimeContext$.subscribe({
++    //  error() {
++    //  }
++    // });
+     return result;
+   };
+ };
+diff --git a/dist/esm/chainHead/streams/pinned-blocks.mjs b/dist/esm/chainHead/streams/pinned-blocks.mjs
+index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..e8db6f8eda67a5de304724cb6ddd4363fb4e74ab 100644
+--- a/dist/esm/chainHead/streams/pinned-blocks.mjs
++++ b/dist/esm/chainHead/streams/pinned-blocks.mjs
+@@ -13,7 +13,7 @@ const createRuntimeGetter = (pinned, startAt) => {
+   };
+ };
+ const deleteBlock = (blocks, blockHash) => {
+-  blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
++  // blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
+   blocks.delete(blockHash);
+ };
+ const getBlocksToUnpin = (blocks, pruned) => {
+@@ -71,9 +71,9 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
+               acc.blocks.set(hash, {
+                 hash,
+                 parent: i === 0 ? event.parentHash : event.finalizedBlockHashes[i - 1],
+-                children: new Set(
+-                  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
+-                ),
++                // children: new Set(
++                //   i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
++                // ),
+                 runtime: hash,
+                 refCount: 0,
+                 number: event.number + i,
+@@ -100,7 +100,7 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
+             acc.blocks.get(hash).recovering = false;
+           } else {
+             const parentNode = acc.blocks.get(parent);
+-            parentNode.children.add(hash);
++            // parentNode.children.add(hash);
+             if (event.newRuntime) {
+               acc.runtimes[hash] = getRuntime(createRuntimeGetter(acc, hash));
+             }
+@@ -108,7 +108,7 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
+               hash,
+               number: parentNode.number + 1,
+               parent,
+-              children: /* @__PURE__ */ new Set(),
++              // children: /* @__PURE__ */ new Set(),
+               runtime: event.newRuntime ? hash : parentNode.runtime,
+               refCount: 0,
+               recovering: false
