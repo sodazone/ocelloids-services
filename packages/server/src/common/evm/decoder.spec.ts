@@ -32,8 +32,8 @@ describe('connector', () => {
   it('decode call data', () => {
     const abi = stellaFeedsAbi()
     for (const block of moonbeamBlocks()) {
-      const xt = block.extrinsics.filter(isFrontierExtrinsic)[0]
-      const decoded = decodeCallData((xt.args as FrontierExtrinsic).transaction.value.input, abi)
+      const xt = block.extrinsics.filter(isFrontierExtrinsic)[0].args as FrontierExtrinsic
+      const decoded = decodeCallData(xt.transaction.value.input, abi)
       expect(decoded).toBeDefined()
       expect(decoded?.functionName).toBe('setPricesWithBits')
       expect(decoded?.args).toStrictEqual([

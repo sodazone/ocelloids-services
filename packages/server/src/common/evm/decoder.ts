@@ -1,20 +1,15 @@
 import {
   Abi,
-  DecodeFunctionDataReturnType,
   Signature,
   TransactionSerializable,
-  decodeAbiParameters,
   decodeFunctionData,
   keccak256,
   recoverAddress,
   serializeTransaction,
-  slice,
-  toFunctionSelector,
 } from 'viem'
 
 import { HexString } from '@/lib.js'
 import { Extrinsic } from '@/services/networking/types.js'
-import { formatAbiItem } from 'viem/utils'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559
