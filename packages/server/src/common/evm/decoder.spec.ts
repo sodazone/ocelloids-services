@@ -31,7 +31,7 @@ describe('connector', () => {
   it('decode moonbeam frontier extrinsics', async () => {
     await expectTxs(moonbeamBlocks(), expectedTxs.moonbeam)
   })
-  it.only('decode evm logs', () => {
+  it('decode evm logs', () => {
     const abi = stellaFeedsAbi()
     for (const block of moonbeamBlocks()) {
       const ev = block.events.filter(isEVMLog)[0]
