@@ -1,13 +1,20 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { filter as rxFilter } from 'rxjs'
+import { map, mergeMap, filter as rxFilter } from 'rxjs'
 
-import { ControlQuery } from '@/common/index.js'
+import {
+  ControlQuery,
+  FrontierExtrinsic,
+  asSerializable,
+  decodeEvmFunctionData,
+  getFromAddress,
+  isFrontierExtrinsic,
+} from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
-import { Logger, NetworkURN } from '@/services/types.js'
+import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
@@ -25,6 +32,12 @@ export const $InformantInputs = z.object({
   filter: z.object({
     type: z.enum(['event', 'extrinsic']),
     match: z.record(z.any()),
+    evm: z.optional(
+      z.object({
+        abi: z.optional(z.array(z.any())),
+        to: z.optional(z.array(z.string())),
+      }),
+    ),
   }),
 })
 
@@ -147,7 +160,6 @@ export class InformantAgent implements Agent, Subscribable {
 
   #monitor(subscription: Subscription<InformantInputs>): InformantHandler {
     const {
-      id,
       args: { networks, filter },
     } = subscription
 
@@ -159,70 +171,24 @@ export class InformantAgent implements Agent, Subscribable {
         const chainId = network as NetworkURN
 
         if (filter.type === 'extrinsic') {
-          streams.push({
-            chainId,
-            sub: this.#shared
-              .blockExtrinsics(chainId)
-              .pipe(rxFilter((extrinsic) => control.value.test(extrinsic)))
-              .subscribe({
-                error: (error: any) => {
-                  this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
-                },
-                next: (extrinsic) => {
-                  try {
-                    this.#egress.publish(subscription, {
-                      metadata: {
-                        type: 'extrinsic',
-                        subscriptionId: id,
-                        agentId: this.id,
-                        networkId: chainId,
-                        timestamp: Date.now(),
-                        blockTimestamp: extrinsic.timestamp,
-                      },
-                      payload: {
-                        events: extrinsic.events.map((e) => e),
-                        dispatchInfo: extrinsic.dispatchInfo,
-                        dispatchError: extrinsic.dispatchError,
-                        extrinsic: extrinsic,
-                      },
-                    })
-                  } catch (error) {
-                    this.#log.error(error, '[%s:%s] error on notify extrinsic (%s)', this.id, chainId, id)
-                  }
-                },
-              }),
-          })
+          streams.push(
+            this.#createExtrinsicSubscription({
+              chainId,
+              subscription,
+              control,
+            }),
+          )
         } else {
-          streams.push({
-            chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
-              .subscribe({
-                error: (error: any) => {
-                  this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
-                },
-                next: (msg) => {
-                  try {
-                    this.#egress.publish(subscription, {
-                      metadata: {
-                        type: 'event',
-                        subscriptionId: id,
-                        agentId: this.id,
-                        networkId: chainId,
-                        timestamp: Date.now(),
-                        blockTimestamp: msg.timestamp,
-                      },
-                      payload: msg,
-                    })
-                  } catch (error) {
-                    this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
-                  }
-                },
-              }),
-          })
+          streams.push(
+            this.#createEventSubscription({
+              chainId,
+              subscription,
+              control,
+            }),
+          )
         }
       }
+
       return {
         subscription,
         streams,
@@ -234,6 +200,153 @@ export class InformantAgent implements Agent, Subscribable {
         sub.unsubscribe()
       })
       throw error
+    }
+  }
+
+  #createEventSubscription({
+    chainId,
+    subscription,
+    control,
+  }: {
+    control: ControlQuery
+    chainId: NetworkURN
+    subscription: Subscription<InformantInputs>
+  }) {
+    const { id } = subscription
+
+    return {
+      chainId,
+      sub: this.#shared
+        .blockEvents(chainId)
+        .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
+        .subscribe({
+          error: (error: any) => {
+            this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+          },
+          next: (msg) => {
+            try {
+              this.#egress.publish(subscription, {
+                metadata: {
+                  type: 'event',
+                  subscriptionId: id,
+                  agentId: this.id,
+                  networkId: chainId,
+                  timestamp: Date.now(),
+                  blockTimestamp: msg.timestamp,
+                },
+                payload: msg,
+              })
+            } catch (error) {
+              this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
+            }
+          },
+        }),
+    }
+  }
+
+  #createExtrinsicSubscription({
+    chainId,
+    subscription,
+    control,
+  }: {
+    control: ControlQuery
+    chainId: NetworkURN
+    subscription: Subscription<InformantInputs>
+  }) {
+    const {
+      id,
+      args: { filter },
+    } = subscription
+
+    if (filter.evm) {
+      const { evm } = filter
+      return {
+        chainId,
+        sub: this.#shared
+          .blockExtrinsics(chainId)
+          .pipe(
+            rxFilter((extrinsic) => {
+              if (isFrontierExtrinsic(extrinsic)) {
+                const tx = extrinsic.args as FrontierExtrinsic
+                const to = tx.transaction.value.action.value
+                return evm.to === undefined || evm.to.includes(to)
+              }
+              return false
+            }),
+            mergeMap(async (extrinsic) => {
+              const tx = extrinsic.args as FrontierExtrinsic
+              const to = tx.transaction.value.action.value
+              return {
+                to,
+                from: await getFromAddress(tx),
+                value: BigInt(tx.transaction.value.value[0]),
+                input: tx.transaction.value.input,
+                call:
+                  evm.abi &&
+                  evm.to?.includes(to) &&
+                  decodeEvmFunctionData({ data: tx.transaction.value.input, abi: evm.abi }),
+                extrinsic,
+              }
+            }),
+            rxFilter((tx) => control.value.test(tx)),
+          )
+          .subscribe({
+            error: (error: any) => {
+              this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+            },
+            next: (tx) => {
+              try {
+                this.#egress.publish(subscription, {
+                  metadata: {
+                    type: 'extrinsic',
+                    subscriptionId: id,
+                    agentId: this.id,
+                    networkId: chainId,
+                    timestamp: Date.now(),
+                    blockTimestamp: tx.extrinsic.timestamp,
+                  },
+                  payload: asSerializable<AnyJson>(tx as any),
+                })
+              } catch (error) {
+                this.#log.error(error, '[%s:%s] error on notify EVM extrinsic (%s)', this.id, chainId, id)
+              }
+            },
+          }),
+      }
+    } else {
+      return {
+        chainId,
+        sub: this.#shared
+          .blockExtrinsics(chainId)
+          .pipe(rxFilter((extrinsic) => control.value.test(extrinsic)))
+          .subscribe({
+            error: (error: any) => {
+              this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+            },
+            next: (extrinsic) => {
+              try {
+                this.#egress.publish(subscription, {
+                  metadata: {
+                    type: 'extrinsic',
+                    subscriptionId: id,
+                    agentId: this.id,
+                    networkId: chainId,
+                    timestamp: Date.now(),
+                    blockTimestamp: extrinsic.timestamp,
+                  },
+                  payload: {
+                    events: extrinsic.events.map((e) => e),
+                    dispatchInfo: extrinsic.dispatchInfo,
+                    dispatchError: extrinsic.dispatchError,
+                    extrinsic: extrinsic,
+                  },
+                })
+              } catch (error) {
+                this.#log.error(error, '[%s:%s] error on notify extrinsic (%s)', this.id, chainId, id)
+              }
+            },
+          }),
+      }
     }
   }
 
