@@ -1,7 +1,7 @@
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
-import { map, mergeMap, filter as rxFilter } from 'rxjs'
+import { mergeMap, filter as rxFilter } from 'rxjs'
 
 import {
   ControlQuery,
