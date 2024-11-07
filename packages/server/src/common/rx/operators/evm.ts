@@ -19,7 +19,7 @@ import {
 type DecodeContractParams = { abi?: Abi; addresses: string[] }
 
 export function extractEvmLogs(
-  { abi }: DecodeContractParams = {
+  { abi, addresses }: DecodeContractParams = {
     addresses: [],
   },
 ) {
@@ -28,19 +28,20 @@ export function extractEvmLogs(
       filter((ev) => isEVMLog(ev)),
       map((event) => {
         const { address, topics, data } = event.value.log
+        const decoded =
+          abi && addresses.includes(address)
+            ? decodeEvmEventLog({
+                abi,
+                topics,
+                data,
+              })
+            : undefined
         return {
           ...event,
           address,
           topics,
           data,
-          decoded:
-            abi === undefined
-              ? undefined
-              : decodeEvmEventLog({
-                  abi,
-                  topics,
-                  data,
-                }),
+          decoded,
         } as BlockEvmEvent
       }),
     )
