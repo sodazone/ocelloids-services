@@ -9,8 +9,16 @@ import {
   getObservableClient,
 } from '@polkadot-api/observable-client'
 import { blockHeader } from '@polkadot-api/substrate-bindings'
-import { ChainSpecData, SubstrateClient, createClient } from '@polkadot-api/substrate-client'
-import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat'
+import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
+import {
+  fixDescendantValues,
+  fixPrematureBlocks,
+  fixUnorderedEvents,
+  parsed,
+  patchChainHeadEvents,
+  translate,
+  unpinHash,
+} from 'polkadot-api/polkadot-sdk-compat'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { asSerializable } from '@/common/index.js'
@@ -31,7 +39,6 @@ export async function createArchiveClient(log: Logger, chainId: string, url: str
 export class ArchiveClient extends EventEmitter implements ApiClient {
   #connected: boolean = false
   readonly chainId: string
-  readonly getChainSpecData: () => Promise<ChainSpecData>
 
   readonly #log: Logger
   readonly #wsProvider: WsJsonRpcProvider
@@ -64,8 +71,20 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     // for the type checking... find a cleaner way :/
     this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
-    const substrateClient: SubstrateClient = createClient(withPolkadotSdkCompat(this.#wsProvider))
-    this.getChainSpecData = substrateClient.getChainSpecData
+    const withCompat = parsed(
+      // withNumericIds,
+      translate,
+      fixUnorderedEvents,
+      unpinHash,
+      patchChainHeadEvents,
+      fixPrematureBlocks,
+      // fixUnorderedBlocks,
+      // fixChainSpec,
+      fixDescendantValues,
+    )
+    const substrateClient = createClient(withCompat(this.#wsProvider))
+    // TODO: enable when there's more support
+    // this.getChainSpecData = substrateClient.getChainSpecData
     this.#client = getObservableClient(substrateClient)
     this.#request = substrateClient.request
     this.#head$ = this.#client.chainHead$()
@@ -91,12 +110,34 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   }
 
   async getRuntimeVersion() {
-    return (await this.ctx.getConstant('system', 'version')) as {
+    return (await this.ctx.getConstant('System', 'Version')) as {
       specName: string
       implName: string
       authoringVersion: number
       specVersion: number
       implVersion: number
+    }
+  }
+
+  async getChainSpecData() {
+    try {
+      const [name, genesisHash, properties] = await Promise.all([
+        this.#request<string>('system_chain', []),
+        this.#request<string>('chain_getBlockHash', [0]),
+        this.#request<{
+          ss58Format?: string
+          SS58Prefix: number
+          tokenSymbol: string[] | string
+          tokenDecimals: number[] | number
+        }>('system_properties', []),
+      ])
+      return {
+        name,
+        genesisHash,
+        properties,
+      } as ChainSpecData
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to retrieve system properties.`, { cause: error })
     }
   }
 
