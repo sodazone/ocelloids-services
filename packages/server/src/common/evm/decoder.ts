@@ -1,6 +1,7 @@
 import { Signature, TransactionSerializable, keccak256, recoverAddress, serializeTransaction } from 'viem'
 
 import { HexString } from '@/lib.js'
+import { Extrinsic } from '@/services/networking/types.js'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559
@@ -94,6 +95,10 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
     default:
       throw new Error('Unkwnon transaction type')
   }
+}
+
+export function isFrontierExtrinsic(xt: Extrinsic) {
+  return xt.module === 'Ethereum' && xt.method === 'transact'
 }
 
 export function getTxHash(xt: FrontierExtrinsic) {

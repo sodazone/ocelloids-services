@@ -2,7 +2,7 @@ import { astarBlocks, moonbeamBlocks } from '@/testing/blocks.js'
 
 import { Block } from '@/services/networking/types.js'
 
-import { FrontierExtrinsic, getFromAddress, getTxHash } from './decoder.js'
+import { FrontierExtrinsic, getFromAddress, getTxHash, isFrontierExtrinsic } from './decoder.js'
 
 const astarTxs = [
   [
@@ -76,9 +76,7 @@ const moonbeamTxs = [
 
 async function expectTxs(blocks: Block[], expected: string[][]) {
   for (const block of blocks) {
-    for (const [i, xt] of block.extrinsics
-      .filter((x) => x.module === 'Ethereum' && x.method === 'transact')
-      .entries()) {
+    for (const [i, xt] of block.extrinsics.filter(isFrontierExtrinsic).entries()) {
       const tx = xt.args as FrontierExtrinsic
       const from = await getFromAddress(tx)
       const hash = getTxHash(tx)
