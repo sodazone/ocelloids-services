@@ -1,6 +1,7 @@
 import { astarBlocks, moonbeamBlocks } from '@/testing/blocks.js'
 
-import { Block } from '../types.js'
+import { Block } from '@/services/networking/types.js'
+
 import { FrontierExtrinsic, getFromAddress, getTxHash } from './decoder.js'
 
 const astarTxs = [
