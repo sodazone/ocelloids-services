@@ -153,6 +153,8 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.nodle]: BYPASS_MAPPER,
   [networks.phala]: BYPASS_MAPPER,
   [networks.mythos]: BYPASS_MAPPER,
+  [networks.moonbeam]: BYPASS_MAPPER,
+  [networks.astar]: BYPASS_MAPPER,
   [networks.assetHub]: assetHubMapper(networks.assetHub),
   [networks.bifrost]: bifrostMapper,
   [networks.centrifuge]: centrifugeMapper,
