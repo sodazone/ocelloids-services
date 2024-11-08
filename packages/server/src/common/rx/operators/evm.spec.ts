@@ -10,10 +10,12 @@ describe('evm ops', () => {
     const tx = await firstValueFrom(
       from(moonbeamBlocks()).pipe(
         extractTxWithEvents(),
-        extractEvmTransactions({
-          abi,
-          addresses: ['0x7baadbcf1428fb217dec3e5e917c126a5258d4dc'],
-        }),
+        extractEvmTransactions([
+          {
+            abi,
+            addresses: ['0x7baadbcf1428fb217dec3e5e917c126a5258d4dc'],
+          },
+        ]),
       ),
     )
     expect(tx).toBeDefined()
@@ -29,10 +31,12 @@ describe('evm ops', () => {
     const tx = await firstValueFrom(
       from(moonbeamBlocks()).pipe(
         extractEvents(),
-        extractEvmLogs({
-          abi,
-          addresses: ['0x7baadbcf1428fb217dec3e5e917c126a5258d4dc'],
-        }),
+        extractEvmLogs([
+          {
+            abi,
+            addresses: ['0x7baadbcf1428fb217dec3e5e917c126a5258d4dc'],
+          },
+        ]),
       ),
     )
     expect(tx).toBeDefined()

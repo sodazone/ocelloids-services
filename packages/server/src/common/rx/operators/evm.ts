@@ -16,22 +16,25 @@ import {
   BlockExtrinsicWithEvents,
 } from '@/services/networking/types.js'
 
-type DecodeContractParams = { abi?: Abi; addresses?: string[] }
+type DecodeContractParams = { abi: Abi; addresses: string[] }
+const findAbi = (params: DecodeContractParams[] = [], address: string) => {
+  return params.find((p) => p.addresses.includes(address))?.abi
+}
 
-export function extractEvmLogs({ abi, addresses }: DecodeContractParams) {
+export function extractEvmLogs(params: DecodeContractParams[]) {
   return (source: Observable<BlockEvent>): Observable<BlockEvmEvent> => {
     return source.pipe(
       filter((ev) => isEVMLog(ev)),
       map((event) => {
         const { address, topics, data } = event.value.log
-        const decoded =
-          abi && addresses?.includes(address)
-            ? decodeEvmEventLog({
-                abi,
-                topics,
-                data,
-              })
-            : undefined
+        const abi = findAbi(params, address)
+        const decoded = abi
+          ? decodeEvmEventLog({
+              abi,
+              topics,
+              data,
+            })
+          : undefined
         return {
           ...event,
           address,
@@ -44,7 +47,7 @@ export function extractEvmLogs({ abi, addresses }: DecodeContractParams) {
   }
 }
 
-export function extractEvmTransactions({ abi, addresses }: DecodeContractParams) {
+export function extractEvmTransactions(params: DecodeContractParams[]) {
   return (source: Observable<BlockExtrinsicWithEvents>): Observable<BlockEvmTransaction> => {
     return source.pipe(
       filter((xt) => isFrontierExtrinsic(xt)),
@@ -53,18 +56,22 @@ export function extractEvmTransactions({ abi, addresses }: DecodeContractParams)
         const { events } = xt
         const { transaction } = fxt
 
-        const logs = abi
-          ? events
-              .filter(isEVMLog)
-              .map(
-                ({
-                  value: {
-                    log: { address, topics, data },
+        const logs =
+          params.length > 0
+            ? events
+                .filter(isEVMLog)
+                .map(
+                  ({
+                    value: {
+                      log: { address, topics, data },
+                    },
+                  }) => {
+                    const abi = findAbi(params, address)
+                    return abi ? decodeEvmEventLog({ data, topics, abi }) : null
                   },
-                }) => (addresses?.includes(address) ? decodeEvmEventLog({ data, topics, abi }) : null),
-              )
-              .filter(Boolean)
-          : undefined
+                )
+                .filter(Boolean)
+            : undefined
 
         const executed = events.find((ev) => ev.module === 'Ethereum' && ev.name === 'Executed')?.value
 
@@ -73,8 +80,8 @@ export function extractEvmTransactions({ abi, addresses }: DecodeContractParams)
         const value = BigInt(transaction.value.value[0])
         const input = transaction.value.input
 
-        const decoded =
-          abi && addresses?.includes(to) ? decodeEvmFunctionData({ data: input, abi }) : undefined
+        const abi = findAbi(params, to)
+        const decoded = abi ? decodeEvmFunctionData({ data: input, abi }) : undefined
 
         return {
           ...xt,

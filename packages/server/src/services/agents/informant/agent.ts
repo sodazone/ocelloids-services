@@ -27,10 +27,12 @@ export const $InformantInputs = z.object({
     type: z.enum(['event', 'extrinsic']),
     match: z.record(z.any()),
     evm: z.optional(
-      z.object({
-        abi: z.optional(z.array(z.any())),
-        addresses: z.optional(z.array(z.string())),
-      }),
+      z.array(
+        z.object({
+          abi: z.array(z.any()),
+          addresses: z.array(z.string()),
+        }),
+      ),
     ),
   }),
 })
