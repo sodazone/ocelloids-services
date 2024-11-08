@@ -1,4 +1,4 @@
-import { astarBlocks, expectedTxs, moonbeamBlocks, stellaFeedsAbi } from '@/testing/blocks.js'
+import { astarBlocks, expectedTxs, moonbeamAbis, moonbeamBlocks } from '@/testing/blocks.js'
 
 import { Block } from '@/services/networking/types.js'
 
@@ -29,34 +29,29 @@ describe('evm decoder', () => {
     await expectTxs(astarBlocks(), expectedTxs.astar)
   })
   it('decode moonbeam frontier extrinsics', async () => {
-    await expectTxs(moonbeamBlocks(), expectedTxs.moonbeam)
+    await expectTxs(moonbeamBlocks().slice(0, 1), expectedTxs.moonbeam)
   })
   it('decode evm logs', () => {
-    const abi = stellaFeedsAbi()
-    for (const block of moonbeamBlocks()) {
-      const ev = block.events.filter(({ event }) => isEVMLog(event))[0]
-      const { _address, topics, data } = ev.event.value.log
-      const decoded = decodeEvmEventLog({
-        topics,
-        data,
-        abi,
-      })
-      expect(decoded).toBeDefined()
-      expect(decoded?.eventName).toBe('PriceData')
-      expect((decoded?.args as any).token).toBe('0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D')
-    }
+    const abi = moonbeamAbis().prices
+    const block = moonbeamBlocks()[0]
+    const ev = block.events.filter(({ event }) => isEVMLog(event))[0]
+    const { topics, data } = ev.event.value.log
+    const decoded = decodeEvmEventLog({
+      topics,
+      data,
+      abi,
+    })
+    expect(decoded).toBeDefined()
+    expect(decoded?.eventName).toBe('PriceData')
+    expect((decoded?.args as any).token).toBe('0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D')
   })
   it('decode call data', () => {
-    const abi = stellaFeedsAbi()
-    for (const block of moonbeamBlocks()) {
-      const xt = block.extrinsics.filter(isFrontierExtrinsic)[0].args as FrontierExtrinsic
-      const decoded = decodeEvmFunctionData({ data: xt.transaction.value.input, abi })
-      expect(decoded).toBeDefined()
-      expect(decoded?.functionName).toBe('setPricesWithBits')
-      expect(decoded?.args).toStrictEqual([
-        14604785875833318142852275006850560180394230613076272n,
-        1730373270n,
-      ])
-    }
+    const abi = moonbeamAbis().prices
+    const block = moonbeamBlocks()[0]
+    const xt = block.extrinsics.filter(isFrontierExtrinsic)[0].args as FrontierExtrinsic
+    const decoded = decodeEvmFunctionData({ data: xt.transaction.value.input, abi })
+    expect(decoded).toBeDefined()
+    expect(decoded?.functionName).toBe('setPricesWithBits')
+    expect(decoded?.args).toStrictEqual([14604785875833318142852275006850560180394230613076272n, 1730373270n])
   })
 })

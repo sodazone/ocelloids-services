@@ -76,6 +76,10 @@ export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
   to: string
   from: string
   value: bigint
+  logs?: {
+    eventName: string
+    args: any[]
+  }[]
   decoded?: {
     functionName: string
     args: any

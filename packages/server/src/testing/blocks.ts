@@ -43,12 +43,23 @@ export const polkadotBlocks = testBlocksFromDirectory(
   range(23075458, 23075467).map((n) => n + '.cbor'),
 )
 
-export const stellaFeedsAbi = () => {
-  return JSON.parse(readFileSync(resolve(__dirname, '__data__/abis/price_feed.json')).toString()) as Abi
+const loadAbi = (name: string) =>
+  JSON.parse(readFileSync(resolve(__dirname, `__data__/abis/${name}.json`)).toString()) as Abi
+
+export const moonbeamAbis = () => {
+  return {
+    prices: loadAbi('price_feed'),
+    swap: loadAbi('swap'),
+    erc20: loadAbi('erc20'),
+  }
 }
 
 export const moonbeamBlocks = () => {
-  return testBlocksFromFiles([resolve(blocksDir, 'moonbeam', '8124761.cbor')])
+  return testBlocksFromDirectory(
+    'moonbeam',
+    ['8124761', '8238256'].map((n) => n + '.cbor'),
+  )
+  //return testBlocksFromFiles([resolve(blocksDir, 'moonbeam', '8124761.cbor')])
 }
 
 export const astarBlocks = () => {
