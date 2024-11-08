@@ -7,7 +7,7 @@ import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
-import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
+import { Logger, NetworkURN } from '@/services/types.js'
 
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
