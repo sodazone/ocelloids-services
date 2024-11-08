@@ -2,6 +2,7 @@ import { astarBlocks, expectedTxs, moonbeamAbis, moonbeamBlocks } from '@/testin
 
 import { Block } from '@/services/networking/types.js'
 
+import { hexToNumber } from 'viem'
 import {
   FrontierExtrinsic,
   decodeEvmEventLog,
@@ -53,5 +54,31 @@ describe('evm decoder', () => {
     expect(decoded).toBeDefined()
     expect(decoded?.functionName).toBe('setPricesWithBits')
     expect(decoded?.args).toStrictEqual([14604785875833318142852275006850560180394230613076272n, 1730373270n])
+  })
+  it('get address from legacy tx without chain id', async () => {
+    expect(
+      await getFromAddress({
+        transaction: {
+          type: 'Legacy',
+          value: {
+            action: {
+              type: 'Call',
+              value: '0xba6bd2aace40c9a14c4123717119a80e9fe6738a',
+            },
+            gas_limit: ['2000000', '0', '0', '0'],
+            gas_price: ['125000000000', '0', '0', '0'],
+            input:
+              '0x143a28e700000000000000000000000000000000000000000000000000000000000007dd000000000000000000000000000000000000000000000000000000000000002700000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000',
+            nonce: ['1522', '0', '0', '0'],
+            signature: {
+              r: '0x4566f66cd88e7a0dedd30e2d9fed1ef5f7e2a7121d8a191f8480341051f71b89',
+              s: '0x385ebbc70af29fe4a7f70cef6c9abf8d0687aeb1aa41e729ca3b57ae6945d238',
+              v: '27',
+            },
+            value: ['50000000000000000', '0', '0', '0'],
+          },
+        },
+      }),
+    ).toBe('0x95dd265CCC9ef029d2Df1ba982301b68af69bBbB')
   })
 })

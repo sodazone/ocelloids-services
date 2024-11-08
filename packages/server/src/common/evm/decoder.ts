@@ -151,16 +151,32 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
     case 'Legacy': {
       const [tx, sig] = extractTxAndSig(envelope)
       const v = Number(sig.v)
-      const inferredChainId = ((v - 35) / 2) | 0
-      const stx = serializeTransaction({
-        ...tx,
-        chainId: inferredChainId,
-      })
-      const signature = {
-        r: sig.r,
-        s: sig.s,
-        yParity: v - (inferredChainId * 2 + 35),
+
+      let stx
+      let signature
+      let yParity
+
+      if (v === 27 || v === 28) {
+        stx = serializeTransaction(tx)
+        signature = {
+          r: sig.r,
+          s: sig.s,
+          v: BigInt(v),
+        }
+      } else {
+        const chainId = ((v - 35) / 2) | 0
+        yParity = v - (chainId * 2 + 35)
+        stx = serializeTransaction({
+          ...tx,
+          chainId,
+        })
+        signature = {
+          r: sig.r,
+          s: sig.s,
+          yParity,
+        }
       }
+
       const hash = keccak256(stx)
       const from = await recoverAddress({
         hash,

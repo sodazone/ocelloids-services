@@ -8,7 +8,7 @@ describe('evm ops', () => {
   it('decode evm transaction with abi', async () => {
     const abis = moonbeamAbis()
     const tx = await firstValueFrom(
-      from(moonbeamBlocks().slice(1)).pipe(
+      from(moonbeamBlocks()).pipe(
         extractTxWithEvents(),
         extractEvmTransactions([
           {
