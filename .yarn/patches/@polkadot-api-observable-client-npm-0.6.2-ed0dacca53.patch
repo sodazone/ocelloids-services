@@ -1,15 +1,17 @@
 diff --git a/dist/esm/chainHead/chainHead.mjs b/dist/esm/chainHead/chainHead.mjs
-index 43d1b02d7e3346d854971b92c102a61378c4e150..e0eb65d4bc4c52a09ac789e49b8b3b9e171818e1 100644
+index 43d1b02d7e3346d854971b92c102a61378c4e150..d4465b46d01fb0a63d77b947f5e3aa2afd31a44a 100644
 --- a/dist/esm/chainHead/chainHead.mjs
 +++ b/dist/esm/chainHead/chainHead.mjs
-@@ -222,10 +222,10 @@ const getChainHead$ = (chainHead) => {
+@@ -222,10 +222,15 @@ const getChainHead$ = (chainHead) => {
      validateTx$,
      () => of()
    );
 -  merge(runtime$, bestBlocks$).subscribe({
--    error() {
--    }
--  });
++  // XXX rogue
++  pinnedBlocks$.subscribe({
+     error() {
+     }
+   });
 +  // merge(runtime$, bestBlocks$).subscribe({
 +  //  error() {
 +  //  }
@@ -18,7 +20,7 @@ index 43d1b02d7e3346d854971b92c102a61378c4e150..e0eb65d4bc4c52a09ac789e49b8b3b9e
    let started = false;
    let nSubscribers = 0;
 diff --git a/dist/esm/chainHead/streams/get-runtime-creator.mjs b/dist/esm/chainHead/streams/get-runtime-creator.mjs
-index 26914d87cbaa650ad22271cb026b1bcccf0a9f12..c1139d14cd46d812eac79eb74d392be54acbd251 100644
+index 26914d87cbaa650ad22271cb026b1bcccf0a9f12..bf591ef1dc2aba925f03368ddca54d22a0ed60c9 100644
 --- a/dist/esm/chainHead/streams/get-runtime-creator.mjs
 +++ b/dist/esm/chainHead/streams/get-runtime-creator.mjs
 @@ -98,10 +98,10 @@ const getRuntimeCreator = (call$) => {
@@ -29,15 +31,15 @@ index 26914d87cbaa650ad22271cb026b1bcccf0a9f12..c1139d14cd46d812eac79eb74d392be5
 -      error() {
 -      }
 -    });
-+    // runtimeContext$.subscribe({
++    //runtimeContext$.subscribe({
 +    //  error() {
 +    //  }
-+    // });
++    //});
      return result;
    };
  };
 diff --git a/dist/esm/chainHead/streams/pinned-blocks.mjs b/dist/esm/chainHead/streams/pinned-blocks.mjs
-index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..e8db6f8eda67a5de304724cb6ddd4363fb4e74ab 100644
+index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb5db26b21 100644
 --- a/dist/esm/chainHead/streams/pinned-blocks.mjs
 +++ b/dist/esm/chainHead/streams/pinned-blocks.mjs
 @@ -13,7 +13,7 @@ const createRuntimeGetter = (pinned, startAt) => {
@@ -49,6 +51,15 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..e8db6f8eda67a5de304724cb6ddd4363
    blocks.delete(blockHash);
  };
  const getBlocksToUnpin = (blocks, pruned) => {
+@@ -63,7 +63,7 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
+           }
+           const [finalizedHash] = event.finalizedBlockHashes.slice(-1);
+           acc.finalized = acc.best = finalizedHash;
+-          const lastIdx = event.finalizedBlockHashes.length - 1;
++          // const lastIdx = event.finalizedBlockHashes.length - 1;
+           event.finalizedBlockHashes.forEach((hash, i) => {
+             if (acc.blocks.has(hash)) {
+               acc.blocks.get(hash).recovering = false;
 @@ -71,9 +71,9 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
                acc.blocks.set(hash, {
                  hash,
@@ -57,7 +68,7 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..e8db6f8eda67a5de304724cb6ddd4363
 -                  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
 -                ),
 +                // children: new Set(
-+                //   i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
++                //  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
 +                // ),
                  runtime: hash,
                  refCount: 0,
