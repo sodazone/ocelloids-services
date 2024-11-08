@@ -16,20 +16,16 @@ import {
   BlockExtrinsicWithEvents,
 } from '@/services/networking/types.js'
 
-type DecodeContractParams = { abi?: Abi; addresses: string[] }
+type DecodeContractParams = { abi?: Abi; addresses?: string[] }
 
-export function extractEvmLogs(
-  { abi, addresses }: DecodeContractParams = {
-    addresses: [],
-  },
-) {
+export function extractEvmLogs({ abi, addresses }: DecodeContractParams) {
   return (source: Observable<BlockEvent>): Observable<BlockEvmEvent> => {
     return source.pipe(
       filter((ev) => isEVMLog(ev)),
       map((event) => {
         const { address, topics, data } = event.value.log
         const decoded =
-          abi && addresses.includes(address)
+          abi && addresses?.includes(address)
             ? decodeEvmEventLog({
                 abi,
                 topics,
@@ -48,11 +44,7 @@ export function extractEvmLogs(
   }
 }
 
-export function extractEvmTransactions(
-  { abi, addresses }: DecodeContractParams = {
-    addresses: [],
-  },
-) {
+export function extractEvmTransactions({ abi, addresses }: DecodeContractParams) {
   return (source: Observable<BlockExtrinsicWithEvents>): Observable<BlockEvmTransaction> => {
     return source.pipe(
       filter((xt) => isFrontierExtrinsic(xt)),
@@ -69,7 +61,7 @@ export function extractEvmTransactions(
                   value: {
                     log: { address, topics, data },
                   },
-                }) => (addresses.includes(address) ? decodeEvmEventLog({ data, topics, abi }) : null),
+                }) => (addresses?.includes(address) ? decodeEvmEventLog({ data, topics, abi }) : null),
               )
               .filter(Boolean)
           : undefined
@@ -82,7 +74,7 @@ export function extractEvmTransactions(
         const input = transaction.value.input
 
         const decoded =
-          abi && addresses.includes(to) ? decodeEvmFunctionData({ data: input, abi }) : undefined
+          abi && addresses?.includes(to) ? decodeEvmFunctionData({ data: input, abi }) : undefined
 
         return {
           ...xt,

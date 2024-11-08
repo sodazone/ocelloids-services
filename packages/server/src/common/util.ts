@@ -12,8 +12,8 @@ export function asJSON(o: unknown) {
   )
 }
 
-export function asSerializable<T>(o: T) {
-  return typeof o === 'string' ? o : safeDestr<T>(asJSON(o))
+export function asSerializable<T>(o: unknown) {
+  return safeDestr<T>(asJSON(o))
 }
 
 export function getEventValue(module: string, name: string | string[], events: Event[]) {

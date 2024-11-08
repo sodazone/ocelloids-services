@@ -12,7 +12,7 @@ import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { SharedStreams } from '../base/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 
-import { extractEvmTransactions } from '@/common/rx/operators/evm.js'
+import { extractEvmLogs, extractEvmTransactions } from '@/common/rx/operators/evm.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 export const $InformantInputs = z.object({
@@ -206,35 +206,73 @@ export class InformantAgent implements Agent, Subscribable {
     chainId: NetworkURN
     subscription: Subscription<InformantInputs>
   }) {
-    const { id } = subscription
+    const {
+      id,
+      args: { filter },
+    } = subscription
 
-    return {
-      chainId,
-      sub: this.#shared
-        .blockEvents(chainId)
-        .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
-        .subscribe({
-          error: (error: any) => {
-            this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
-          },
-          next: (msg) => {
-            try {
-              this.#egress.publish(subscription, {
-                metadata: {
-                  type: 'event',
-                  subscriptionId: id,
-                  agentId: this.id,
-                  networkId: chainId,
-                  timestamp: Date.now(),
-                  blockTimestamp: msg.timestamp,
-                },
-                payload: msg,
-              })
-            } catch (error) {
-              this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
-            }
-          },
-        }),
+    if (filter.evm) {
+      const { evm } = filter
+      return {
+        chainId,
+        sub: this.#shared
+          .blockEvents(chainId)
+          .pipe(
+            extractEvmLogs(evm),
+            rxFilter((blockEvent) => control.value.test(blockEvent)),
+          )
+          .subscribe({
+            error: (error: any) => {
+              this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+            },
+            next: (msg) => {
+              try {
+                this.#egress.publish(subscription, {
+                  metadata: {
+                    type: 'event',
+                    subscriptionId: id,
+                    agentId: this.id,
+                    networkId: chainId,
+                    timestamp: Date.now(),
+                    blockTimestamp: msg.timestamp,
+                  },
+                  payload: asSerializable(msg),
+                })
+              } catch (error) {
+                this.#log.error(error, '[%s:%s] error on notify EVM event (%s)', this.id, chainId, id)
+              }
+            },
+          }),
+      }
+    } else {
+      return {
+        chainId,
+        sub: this.#shared
+          .blockEvents(chainId)
+          .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
+          .subscribe({
+            error: (error: any) => {
+              this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)
+            },
+            next: (msg) => {
+              try {
+                this.#egress.publish(subscription, {
+                  metadata: {
+                    type: 'event',
+                    subscriptionId: id,
+                    agentId: this.id,
+                    networkId: chainId,
+                    timestamp: Date.now(),
+                    blockTimestamp: msg.timestamp,
+                  },
+                  payload: msg,
+                })
+              } catch (error) {
+                this.#log.error(error, '[%s:%s] error on notify event (%s)', this.id, chainId, id)
+              }
+            },
+          }),
+      }
     }
   }
 
@@ -259,10 +297,7 @@ export class InformantAgent implements Agent, Subscribable {
         sub: this.#shared
           .blockExtrinsics(chainId)
           .pipe(
-            extractEvmTransactions({
-              abi: evm.abi,
-              addresses: evm.addresses ?? [],
-            }),
+            extractEvmTransactions(evm),
             rxFilter((tx) => control.value.test(tx)),
           )
           .subscribe({
@@ -280,7 +315,7 @@ export class InformantAgent implements Agent, Subscribable {
                     timestamp: Date.now(),
                     blockTimestamp: tx.timestamp,
                   },
-                  payload: asSerializable<AnyJson>(tx as any),
+                  payload: asSerializable(tx),
                 })
               } catch (error) {
                 this.#log.error(error, '[%s:%s] error on notify EVM extrinsic (%s)', this.id, chainId, id)

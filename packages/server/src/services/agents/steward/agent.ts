@@ -265,7 +265,7 @@ export class DataSteward implements Agent, Queryable {
               return keys.map((key) =>
                 this.#ingress.getStorage(chainId, key).pipe(
                   mapEntry(key, this.#ingress),
-                  map((x) => asSerializable(x)),
+                  map((x) => asSerializable<AssetMetadata>(x)),
                 ),
               )
             }),
