@@ -19,6 +19,10 @@ export type FrontierExtrinsic = {
 }
 
 type BigNumStringArray = string[]
+type AccessList = {
+  address: HexString
+  storage_keys: HexString[]
+}
 
 type Legacy = {
   type: 'Legacy'
@@ -54,7 +58,7 @@ type EIP1559 = {
     }
     value: BigNumStringArray
     input: HexString
-    access_list: string[]
+    access_list: AccessList[]
     odd_y_parity: boolean
     r: HexString
     s: HexString
@@ -74,10 +78,7 @@ type EIP2930 = {
     }
     value: BigNumStringArray
     input: HexString
-    access_list: {
-      address: HexString
-      storage_keys: HexString[]
-    }[]
+    access_list: AccessList[]
     odd_y_parity: boolean
     r: HexString
     s: HexString
