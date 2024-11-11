@@ -126,6 +126,7 @@ Please replace `PATH_TO_YOUR_PRIVATE_KEY_FILE` with the path to a PEM or JWK-enc
 
 > [!NOTE]
 > Example development keys and tokens can be found in the `guides/keys` folder.
+> You can copy the private key file, `dev_priv.jwk`, into a directory accessible from within the Docker container.
 > These are provided for testing purposes only.
 > **DO NOT USE IN PRODUCTION**.
 
