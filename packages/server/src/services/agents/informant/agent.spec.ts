@@ -105,13 +105,15 @@ describe('informant agent', () => {
   it('should throw error on unsupported network', async () => {
     await agentService.startAgent('informant')
     const agent = agentService.getAgentById<InformantAgent>('informant')
-    expect(() => agent.subscribe({
-      ...eventSub,
-      args: {
-        ...eventSub.args,
-        networks: ['urn:ocn:unsupported:0']
-      }
-    })).toThrow()
+    expect(() =>
+      agent.subscribe({
+        ...eventSub,
+        args: {
+          ...eventSub.args,
+          networks: ['urn:ocn:unsupported:0'],
+        },
+      }),
+    ).toThrow()
   })
 
   it('should subscribe to event subscriptions', async () => {
