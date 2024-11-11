@@ -1,6 +1,7 @@
 import { Observable, share } from 'rxjs'
 
 import { extractEvents, extractTxWithEvents, installOperators } from '@/common/index.js'
+import { ValidationError } from '@/errors.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
@@ -22,6 +23,12 @@ export class SharedStreams {
 
   static instance(ingress: IngressConsumer) {
     return SharedStreams.#instance ?? (SharedStreams.#instance = new SharedStreams(ingress))
+  }
+
+  checkSupportedNetwork(chainId: NetworkURN) {
+    if (!this.#ingress.isNetworkDefined(chainId)) {
+      throw new ValidationError(`Network not supported: ${chainId}`)
+    }
   }
 
   blockEvents(chainId: NetworkURN): Observable<BlockEvent> {

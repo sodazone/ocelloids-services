@@ -166,6 +166,8 @@ export class InformantAgent implements Agent, Subscribable {
       for (const network of networks) {
         const chainId = network as NetworkURN
 
+        this.#shared.checkSupportedNetwork(chainId)
+
         if (filter.type === 'extrinsic') {
           streams.push(
             this.#createExtrinsicSubscription({

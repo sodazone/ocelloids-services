@@ -135,7 +135,6 @@ function extractTxAndSig(
     }
     case 'EIP2930': {
       const v = tx.value
-      console.log(v)
       return [
         {
           chainId: Number(v.chain_id),

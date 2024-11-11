@@ -28,7 +28,7 @@ const eventSub: Subscription<InformantInputs> = {
   agent: 'informant',
   owner: 'test-account',
   args: {
-    networks: ['urn:ocn:polkadot:0'],
+    networks: ['urn:ocn:local:0'],
     // Set the filter criteria for the events
     filter: {
       type: 'event',
@@ -50,7 +50,7 @@ const extrinsicSub: Subscription<InformantInputs> = {
   agent: 'informant',
   owner: 'test-account',
   args: {
-    networks: ['urn:ocn:polkadot:0'],
+    networks: ['urn:ocn:local:0'],
     filter: {
       type: 'extrinsic',
       match: {
@@ -100,6 +100,18 @@ describe('informant agent', () => {
 
     expect(agent.getSubscriptionHandler(eventSub.id)).toBeDefined()
     expect(agent.getSubscriptionHandler(extrinsicSub.id)).toBeDefined()
+  })
+
+  it('should throw error on unsupported network', async () => {
+    await agentService.startAgent('informant')
+    const agent = agentService.getAgentById<InformantAgent>('informant')
+    expect(() => agent.subscribe({
+      ...eventSub,
+      args: {
+        ...eventSub.args,
+        networks: ['urn:ocn:unsupported:0']
+      }
+    })).toThrow()
   })
 
   it('should subscribe to event subscriptions', async () => {
@@ -164,12 +176,12 @@ describe('informant agent', () => {
     expect(agent.getSubscriptionHandler(eventSub.id)).toBeDefined()
 
     const newSub = agent.update(eventSub.id, [
-      { op: 'add', path: '/args/networks/-', value: 'urn:ocn:polkadot:1000' },
+      { op: 'add', path: '/args/networks/-', value: 'urn:ocn:local:1000' },
       { op: 'replace', path: '/args/filter/match/section', value: 'accounts' },
     ])
 
     expect(newSub.args).toEqual({
-      networks: ['urn:ocn:polkadot:0', 'urn:ocn:polkadot:1000'],
+      networks: ['urn:ocn:local:0', 'urn:ocn:local:1000'],
       filter: {
         type: 'event',
         match: {
