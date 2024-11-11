@@ -121,6 +121,10 @@ function extractTxAndSig(
           gas: BigInt(v.gas_limit[0]),
           maxFeePerGas: BigInt(v.max_fee_per_gas[0]),
           maxPriorityFeePerGas: BigInt(v.max_priority_fee_per_gas[0]),
+          accessList: v.access_list?.map(({ address, storage_keys }) => ({
+            address,
+            storageKeys: storage_keys,
+          })),
         } as TransactionSerializableEIP1559,
         {
           r: v.r!,
@@ -139,7 +143,7 @@ function extractTxAndSig(
           gas: BigInt(v.gas_limit[0]),
           gasPrice: BigInt(v.gas_price[0]),
           value: BigInt(v.value[0]),
-          accessList: v.access_list.map(({ address, storage_keys }) => ({
+          accessList: v.access_list?.map(({ address, storage_keys }) => ({
             address,
             storageKeys: storage_keys,
           })),
