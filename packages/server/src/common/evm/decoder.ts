@@ -2,6 +2,8 @@ import {
   Abi,
   Signature,
   TransactionSerializable,
+  TransactionSerializableEIP1559,
+  TransactionSerializableEIP2930,
   decodeEventLog,
   decodeFunctionData,
   keccak256,
@@ -13,7 +15,7 @@ import { HexString } from '@/lib.js'
 import { Event, Extrinsic } from '@/services/networking/types.js'
 
 export type FrontierExtrinsic = {
-  transaction: Legacy | EIP1559
+  transaction: Legacy | EIP1559 | EIP2930
 }
 
 type BigNumStringArray = string[]
@@ -59,7 +61,32 @@ type EIP1559 = {
   }
 }
 
-function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signature] {
+type EIP2930 = {
+  type: 'EIP2930'
+  value: {
+    chain_id: string
+    nonce: BigNumStringArray
+    gas_limit: BigNumStringArray
+    gas_price: BigNumStringArray
+    action: {
+      type: string
+      value: HexString
+    }
+    value: BigNumStringArray
+    input: HexString
+    access_list: {
+      address: HexString
+      storage_keys: HexString[]
+    }[]
+    odd_y_parity: boolean
+    r: HexString
+    s: HexString
+  }
+}
+
+function extractTxAndSig(
+  tx: Legacy | EIP1559 | EIP2930,
+): [TransactionSerializable | TransactionSerializableEIP2930 | TransactionSerializableEIP1559, Signature] {
   switch (tx.type) {
     case 'Legacy': {
       const v = tx.value
@@ -72,7 +99,7 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
           to: v.action.value,
           gas: BigInt(v.gas_limit[0]),
           gasPrice: BigInt(v.gas_price[0]),
-        },
+        } as TransactionSerializable,
         {
           r: v.signature.r,
           s: v.signature.s,
@@ -93,7 +120,32 @@ function extractTxAndSig(tx: Legacy | EIP1559): [TransactionSerializable, Signat
           gas: BigInt(v.gas_limit[0]),
           maxFeePerGas: BigInt(v.max_fee_per_gas[0]),
           maxPriorityFeePerGas: BigInt(v.max_priority_fee_per_gas[0]),
+        } as TransactionSerializableEIP1559,
+        {
+          r: v.r!,
+          s: v.s!,
+          yParity: v.odd_y_parity ? 1 : 0,
         },
+      ]
+    }
+    case 'EIP2930': {
+      const v = tx.value
+      console.log(v)
+      return [
+        {
+          chainId: Number(v.chain_id),
+          nonce: Number(v.nonce[0]),
+          gas: BigInt(v.gas_limit[0]),
+          gasPrice: BigInt(v.gas_price[0]),
+          value: BigInt(v.value[0]),
+          accessList: v.access_list.map(({ address, storage_keys }) => ({
+            address,
+            storageKeys: storage_keys,
+          })),
+          type: 'eip2930',
+          data: v.input,
+          to: v.action.value,
+        } as TransactionSerializableEIP2930,
         {
           r: v.r!,
           s: v.s!,
@@ -185,7 +237,8 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
 
       return from
     }
-    case 'EIP1559': {
+    case 'EIP1559':
+    case 'EIP2930': {
       const [tx, signature] = extractTxAndSig(envelope)
       const stx = serializeTransaction(tx)
       const hash = keccak256(stx)

@@ -55,6 +55,11 @@ describe('evm decoder', () => {
     expect(decoded?.functionName).toBe('setPricesWithBits')
     expect(decoded?.args).toStrictEqual([14604785875833318142852275006850560180394230613076272n, 1730373270n])
   })
+  it('decode EIP2930 transaction without access list', async () => {
+    const block = moonbeamBlocks()[3]
+    const xt = block.extrinsics.filter(isFrontierExtrinsic)[1].args as FrontierExtrinsic
+    expect(await getFromAddress(xt)).toBe('0x771d8910C37cbabCC39ad3aD053d48367E15d8EC')
+  })
   it('get address from legacy tx without chain id', async () => {
     expect(
       await getFromAddress({

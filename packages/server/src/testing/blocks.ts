@@ -57,7 +57,7 @@ export const moonbeamAbis = () => {
 export const moonbeamBlocks = () => {
   return testBlocksFromDirectory(
     'moonbeam',
-    ['8124761', '8238256', '8238763'].map((n) => n + '.cbor'),
+    ['8124761', '8238256', '8238763', '8250243'].map((n) => n + '.cbor'),
   )
 }
 
