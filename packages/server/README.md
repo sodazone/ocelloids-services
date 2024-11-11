@@ -81,9 +81,8 @@ Provider configuration fields:
 
 | Field    | Description                                         |
 | ---------| --------------------------------------------------- |
-| type     | Network type, either `rpc` or `smoldot`.            |
-| url      | WebSocket endpoint URL, applicable when type=`rpc`. |
-| spec     | Path to the chain specs, used when type=`smoldot`. Required when **not** using [well-known chain](https://github.com/paritytech/substrate-connect/blob/main/packages/connect/src/WellKnownChain.ts) names. |
+| type     | Network type is `rpc`.                              |
+| url      | WebSocket endpoint URL.                             |
 
 Example configurations are available in the `config/` directory of this repository for reference.
 
@@ -111,10 +110,7 @@ Alternatively, if you want to build locally, from the root of the project, run:
 docker build . -t ocelloids-integrated-node:develop
 ```
 
-Run the image mounting the configuration and chain specs as volumes:
-
-> [!TIP]
-> Use `-v <PATH_TO_CHAIN_SPECS_DIR>:/opt/oc/chain-specs:ro` if you need to resolve chain specs for light client configurations.
+Run the image mounting the configuration directory as a volume:
 
 ```shell
 docker run -d \
