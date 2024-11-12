@@ -116,7 +116,7 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
               for (const message of messages) {
                 const data = message.msg.asBytes()
                 const program = asVersionedXcm(data, context)
-                if (matchProgramByTopic(program, messageId?.asHex())) {
+                if (matchProgramByTopic(program, messageId)) {
                   return createXcmMessageSent({
                     blockHash,
                     blockNumber,
