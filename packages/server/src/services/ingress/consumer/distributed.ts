@@ -17,7 +17,7 @@ import {
   getStorageReqKey,
 } from '../distributor.js'
 
-import { ApiContext, Block, RuntimeApiContext, createRuntimeApiContext } from '@/services/networking/index.js'
+import { ApiContext, Block, createRuntimeApiContext } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
