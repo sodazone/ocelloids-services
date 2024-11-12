@@ -1385,7 +1385,7 @@ __metadata:
 
 "@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.6.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.6.2-ed0dacca53.patch":
   version: 0.6.2
-  resolution: "@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.6.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.6.2-ed0dacca53.patch::version=0.6.2&hash=779908"
+  resolution: "@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.6.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.6.2-ed0dacca53.patch::version=0.6.2&hash=cfa8d4"
   dependencies:
     "@polkadot-api/metadata-builders": "npm:0.9.1"
     "@polkadot-api/substrate-bindings": "npm:0.9.3"
@@ -1393,7 +1393,7 @@ __metadata:
   peerDependencies:
     "@polkadot-api/substrate-client": 0.3.0
     rxjs: ">=7.8.0"
-  checksum: 10c0/4826a6ac1a4187d4bb0dc29f8a21fee9d71ccbd67fba49b59e7d0013debe1ff3e11106cfb727efb31d2e6f2021327ebe3c7d4c6952576067de0fc6cc744e5e84
+  checksum: 10c0/3bc4cbe60320b750247f3d8849477d0230767d9fb4cb5c49aa394676bbebff9f230d48983dea78690b8953723c8dd0cf02c655a8fd6f4bd9da4d362ea3efd26c
   languageName: node
   linkType: hard
 
