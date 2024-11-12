@@ -1,5 +1,5 @@
 diff --git a/dist/esm/chainHead/chainHead.mjs b/dist/esm/chainHead/chainHead.mjs
-index 43d1b02d7e3346d854971b92c102a61378c4e150..d4465b46d01fb0a63d77b947f5e3aa2afd31a44a 100644
+index 43d1b02d7e3346d854971b92c102a61378c4e150..c120d31ba676e06c1bbb53762a10daaf880e7846 100644
 --- a/dist/esm/chainHead/chainHead.mjs
 +++ b/dist/esm/chainHead/chainHead.mjs
 @@ -222,10 +222,15 @@ const getChainHead$ = (chainHead) => {
@@ -12,10 +12,10 @@ index 43d1b02d7e3346d854971b92c102a61378c4e150..d4465b46d01fb0a63d77b947f5e3aa2a
      error() {
      }
    });
-+  // merge(runtime$, bestBlocks$).subscribe({
++  //merge(runtime$, bestBlocks$).subscribe({
 +  //  error() {
 +  //  }
-+  // });
++  //});
    let unfollow = noop;
    let started = false;
    let nSubscribers = 0;
@@ -39,7 +39,7 @@ index 26914d87cbaa650ad22271cb026b1bcccf0a9f12..bf591ef1dc2aba925f03368ddca54d22
    };
  };
 diff --git a/dist/esm/chainHead/streams/pinned-blocks.mjs b/dist/esm/chainHead/streams/pinned-blocks.mjs
-index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb5db26b21 100644
+index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..24a0f0a2b61a0e28fb8f87b733cfb7c5299a01f5 100644
 --- a/dist/esm/chainHead/streams/pinned-blocks.mjs
 +++ b/dist/esm/chainHead/streams/pinned-blocks.mjs
 @@ -13,7 +13,7 @@ const createRuntimeGetter = (pinned, startAt) => {
@@ -47,19 +47,10 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb
  };
  const deleteBlock = (blocks, blockHash) => {
 -  blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
-+  // blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
++  //blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
    blocks.delete(blockHash);
  };
  const getBlocksToUnpin = (blocks, pruned) => {
-@@ -63,7 +63,7 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
-           }
-           const [finalizedHash] = event.finalizedBlockHashes.slice(-1);
-           acc.finalized = acc.best = finalizedHash;
--          const lastIdx = event.finalizedBlockHashes.length - 1;
-+          // const lastIdx = event.finalizedBlockHashes.length - 1;
-           event.finalizedBlockHashes.forEach((hash, i) => {
-             if (acc.blocks.has(hash)) {
-               acc.blocks.get(hash).recovering = false;
 @@ -71,9 +71,9 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
                acc.blocks.set(hash, {
                  hash,
@@ -67,9 +58,9 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb
 -                children: new Set(
 -                  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
 -                ),
-+                // children: new Set(
++                //children: new Set(
 +                //  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
-+                // ),
++                //),
                  runtime: hash,
                  refCount: 0,
                  number: event.number + i,
@@ -78,7 +69,7 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb
            } else {
              const parentNode = acc.blocks.get(parent);
 -            parentNode.children.add(hash);
-+            // parentNode.children.add(hash);
++            //parentNode.children.add(hash);
              if (event.newRuntime) {
                acc.runtimes[hash] = getRuntime(createRuntimeGetter(acc, hash));
              }
@@ -87,7 +78,16 @@ index bc8ba0dfba69fc867bfab4c01446a5549e42f92a..136a4e0472fe0d07e30501a4d1aa88eb
                number: parentNode.number + 1,
                parent,
 -              children: /* @__PURE__ */ new Set(),
-+              // children: /* @__PURE__ */ new Set(),
++              //children: /* @__PURE__ */ new Set(),
                runtime: event.newRuntime ? hash : parentNode.runtime,
                refCount: 0,
                recovering: false
+@@ -133,7 +133,7 @@ const getPinnedBlocks$ = (follow$, call$, blockUsage$, onUnpin) => {
+         case "finalized": {
+           acc.finalized = event.finalizedBlockHashes.slice(-1)[0];
+           const { blocks } = acc;
+-          if (blocks.get(acc.best).number < blocks.get(acc.finalized).number)
++          if (blocks.get(acc.best) === undefined || blocks.get(acc.best).number < blocks.get(acc.finalized).number)
+             acc.best = acc.finalized;
+           acc.finalizedRuntime = acc.runtimes[blocks.get(acc.finalized).runtime];
+           onUnpin(getBlocksToUnpin(acc, event.prunedBlockHashes));
