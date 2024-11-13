@@ -6,6 +6,7 @@ import { NetworkURN } from '@/services/types.js'
 
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
+import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/index.js'
 
 function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   try {
@@ -31,13 +32,21 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   return undefined
 }
 
-export function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): SignerData | undefined {
+export async function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): Promise<SignerData | undefined> {
+  if (isFrontierExtrinsic(extrinsic)) {
+    const signer = await getFromAddress(extrinsic.args as FrontierExtrinsic)
+    return createSignersData({
+      ...extrinsic,
+      signed: true,
+      address: signer
+    })
+  }
   return createSignersData(extrinsic)
 }
 
-export function getSendersFromEvent(event: BlockEvent): SignerData | undefined {
+export async function getSendersFromEvent(event: BlockEvent): Promise<SignerData | undefined> {
   if (event.extrinsic !== undefined) {
-    return getSendersFromExtrinsic(event.extrinsic)
+    return await getSendersFromExtrinsic(event.extrinsic)
   }
   return undefined
 }
