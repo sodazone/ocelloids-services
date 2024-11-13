@@ -26,7 +26,7 @@ import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Family, LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
 import { NetworkInfo } from '../ingress/types.js'
-import { Block, SubstrateApiClient } from '../types.js'
+import { Block, SubstrateApi } from '../types.js'
 import { fetchers } from './fetchers.js'
 
 // TODO: extract to config
@@ -71,7 +71,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: Record<string, SubstrateApiClient>
+  readonly #apis: Record<string, SubstrateApi>
   readonly #log: Logger
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
@@ -87,7 +87,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     this.#log = log
     this.#localConfig = localConfig
-    this.#apis = connector.connect<SubstrateApiClient>('substrate')
+    this.#apis = connector.connect<SubstrateApi>('substrate')
     this.#db = levelDB
     this.#chainTips = levelDB.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded)
   }
@@ -133,7 +133,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return newPipe
   }
 
-  getApi(chainId: NetworkURN): Promise<SubstrateApiClient> {
+  getApi(chainId: NetworkURN): Promise<SubstrateApi> {
     return this.#apis[chainId].isReady()
   }
 
@@ -196,7 +196,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  #catchUpHeads(chainId: NetworkURN, api: SubstrateApiClient) {
+  #catchUpHeads(chainId: NetworkURN, api: SubstrateApi) {
     return (source: Observable<BlockInfo>): Observable<BlockInfo> => {
       return source.pipe(
         tap((header) => {
@@ -216,7 +216,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  #recoverBlockRanges(chainId: NetworkURN, api: SubstrateApiClient) {
+  #recoverBlockRanges(chainId: NetworkURN, api: SubstrateApi) {
     return (source: Observable<BlockNumberRange[]>): Observable<BlockInfo> => {
       const batchSize = this.#batchSize(chainId)
       return source.pipe(
@@ -315,7 +315,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #headers(
-    api: SubstrateApiClient,
+    api: SubstrateApi,
     newHead: BlockInfo,
     targetHeight: number,
     prev: BlockInfo[],
@@ -329,7 +329,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     )
   }
 
-  #catchUpToHeight(chainId: NetworkURN, api: SubstrateApiClient, newHead: BlockInfo) {
+  #catchUpToHeight(chainId: NetworkURN, api: SubstrateApi, newHead: BlockInfo) {
     return (source: Observable<number[]>): Observable<BlockInfo> => {
       return source.pipe(
         mergeMap((targets) => {

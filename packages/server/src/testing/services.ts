@@ -6,7 +6,7 @@ import toml from 'toml'
 import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
-import { SubstrateApiClient } from '@/services/networking/substrate/types.js'
+import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
@@ -32,7 +32,7 @@ function mockApiClient() {
   return {
     ..._client,
     isReady: () => of(_client),
-  } as unknown as SubstrateApiClient
+  } as unknown as SubstrateApi
 }
 
 export const _mockApis = {

@@ -8,7 +8,7 @@ import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'
 
-import { BlockInfo, SubstrateApiClient } from '../types.js'
+import { BlockInfo, SubstrateApi } from '../types.js'
 import { HeadCatcher } from './head-catcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
@@ -30,7 +30,7 @@ function createConnector(headersSource: Observable<BlockInfo>, testHeaders: Bloc
         isReady: () => {
           return Promise.resolve(mockApi)
         },
-      } as unknown as SubstrateApiClient,
+      } as unknown as SubstrateApi,
     }),
   } as unknown as Connector
 }
@@ -163,11 +163,11 @@ describe('head catcher', () => {
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as SubstrateApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApi,
             'urn:ocn:local:1000': {
               getStorage: mockUpwardMessagesQuery,
-            } as unknown as SubstrateApiClient,
-            'urn:ocn:local:2032': {} as unknown as SubstrateApiClient,
+            } as unknown as SubstrateApi,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApi,
           }),
         } as unknown as Connector,
         levelDB: db,
@@ -192,11 +192,11 @@ describe('head catcher', () => {
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as SubstrateApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApi,
             'urn:ocn:local:1000': {
               getStorage: mockHrmpOutboundMessagesQuery,
-            } as unknown as SubstrateApiClient,
-            'urn:ocn:local:2032': {} as unknown as SubstrateApiClient,
+            } as unknown as SubstrateApi,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApi,
           }),
         } as unknown as Connector,
         levelDB: db,

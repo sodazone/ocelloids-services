@@ -1,6 +1,7 @@
 import { ClientId, NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger } from '../types.js'
-import { ArchiveClient } from './substrate/index.js'
+import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
+import { SubstrateClient } from './substrate/index.js'
 import { ApiClient } from './types.js'
 
 /**
@@ -30,14 +31,15 @@ export default class Connector {
 
     this.#log.info('Register RPC client: %s (%s)', id, client)
 
+    const chainRecord = this.#chains.get(client) ?? this.#chains.set(client, {}).get(client)!
+
     switch (client) {
       case 'bitcoin':
-      // bitcoin
+        chainRecord[id] = new BitcoinClient(this.#log, id, provider.url)
+        break
       case 'substrate':
-        if (!this.#chains.has(client)) {
-          this.#chains.set(client, {})
-        }
-        this.#chains.get(client)![id] = new ArchiveClient(this.#log, id, provider.url)
+        chainRecord[id] = new SubstrateClient(this.#log, id, provider.url)
+        break
     }
   }
 

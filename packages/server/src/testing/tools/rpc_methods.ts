@@ -6,7 +6,7 @@ import { pino } from 'pino'
 import toml from 'toml'
 
 import { $ServiceConfiguration } from '@/services/config.js'
-import { ArchiveClient } from '@/services/networking/substrate/client.js'
+import { SubstrateClient } from '@/services/networking/substrate/client.js'
 import { Command } from 'commander'
 
 async function checkRpcMethods(configFile: string) {
@@ -16,7 +16,7 @@ async function checkRpcMethods(configFile: string) {
   async function check(url: string) {
     const _ = (v: boolean) => (v ? '✅' : '❌')
 
-    const client = new ArchiveClient(pino(), 'chain', url)
+    const client = new SubstrateClient(pino(), 'chain', url)
 
     const { methods } = await client.getRpcMethods()
     const supports = (apiPrefix: string, count: number) => {

@@ -97,9 +97,9 @@ export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
   }
 }
 
-export interface SubstrateApiClient extends ApiClient {
+export interface SubstrateApi extends ApiClient {
   readonly ctx: SubstrateApiContext
-  readonly isReady: () => Promise<SubstrateApiClient>
+  readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
   readonly finalizedHeads$: Observable<BlockInfo>
 

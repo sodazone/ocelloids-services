@@ -25,17 +25,17 @@ import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { RuntimeApiContext } from './context.js'
-import { Block, SubstrateApiClient, SubstrateApiContext } from './types.js'
+import { Block, SubstrateApi, SubstrateApiContext } from './types.js'
 
-export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
-  const client = new ArchiveClient(log, chainId, url)
+export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
+  const client = new SubstrateClient(log, chainId, url)
   return await client.connect()
 }
 
 /**
  * Archive Substrate API client.
  */
-export class ArchiveClient extends EventEmitter implements SubstrateApiClient {
+export class SubstrateClient extends EventEmitter implements SubstrateApi {
   #connected: boolean = false
   readonly chainId: string
 
@@ -93,11 +93,11 @@ export class ArchiveClient extends EventEmitter implements SubstrateApiClient {
     }
   }
 
-  async isReady(): Promise<SubstrateApiClient> {
+  async isReady(): Promise<SubstrateApi> {
     if (this.#connected) {
       return this
     }
-    return new Promise<SubstrateApiClient>((resolve) => this.once('connected', () => resolve(this)))
+    return new Promise<SubstrateApi>((resolve) => this.once('connected', () => resolve(this)))
   }
 
   async getMetadata(): Promise<Uint8Array> {

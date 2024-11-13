@@ -1,74 +1,149 @@
-import { distinctUntilChanged, from, map, mergeMap, shareReplay, timer } from 'rxjs'
+import { distinctUntilChanged, from, mergeMap, shareReplay, timer } from 'rxjs'
 
+import { clearTimeout } from 'timers'
+import { Logger } from '../../types.js'
 import { ApiClient } from '../types.js'
 import { Block, ChainInfo } from './types.js'
 
-// TODO roundobin by providr..
-const RPC = 'https://bitcoin-rpc.publicnode.com'
+const MainnetRPCs = [
+  'https://bitcoin.drpc.org/',
+  'https://bitcoin-rpc.publicnode.com',
+  'https://bitcoin-mainnet.public.blastapi.io/',
+]
+
+const _TestnetRPCs = [
+  'https://bitcoin-testnet.drpc.org/',
+  'https://bitcoin-testnet-rpc.publicnode.com',
+  'https://bitcoin-testnet.public.blastapi.io/',
+]
+
+export class RpcError extends Error {
+  code: number
+
+  constructor(error: RpcReponseError | null) {
+    super(error?.message)
+
+    this.code = error?.code ?? 0
+    Object.setPrototypeOf(this, new.target.prototype)
+  }
+}
+
+type RpcReponseError = {
+  code: number
+  message: string
+}
 
 type RpcResponse<T> = {
-  result: T
-  error: null | string
+  result: null | T
+  error: null | RpcReponseError
   id: string
+}
+
+async function parseBody<T>(
+  response: Response,
+  opts?: {
+    signal?: AbortSignal
+    maxBodyBytes: number
+  },
+): Promise<RpcResponse<T>> {
+  const { maxBodyBytes, signal } = opts ?? {}
+  if (response.body) {
+    let bytes = 0
+    const chunks = []
+    for await (const chunk of response.body) {
+      if (signal?.aborted) {
+        break
+      }
+      bytes += chunk.length
+      if (maxBodyBytes && bytes > maxBodyBytes) {
+        throw new Error(`Maximum body bytes ${maxBodyBytes}`)
+      }
+      chunks.push(chunk)
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf-8')) as RpcResponse<T>
+  } else {
+    throw new Error('Empty body')
+  }
 }
 
 export class BitcoinApi implements ApiClient {
   readonly chainId: string
 
+  #id
+  #urlIndex: number
+
+  readonly #log
   readonly #controller
   readonly #signal
-  #id
 
-  constructor(chainId: string) {
+  readonly #delay: number
+  readonly #maxRetries: number
+  readonly #timeout: number
+  readonly #urls: string[]
+  readonly #maxBodyBytes: number
+
+  constructor(log: Logger, chainId: string, url: string | string[]) {
     this.chainId = chainId
 
+    this.#log = log
+
     this.#id = 0
+    this.#urlIndex = 0
+
+    this.#maxRetries = 2
+    this.#timeout = 10_000
+    this.#delay = 1_000
+    this.#maxBodyBytes = 5_242_880
+
     this.#controller = new AbortController()
     this.#signal = this.#controller.signal
+
+    this.#urls = Array.isArray(url) ? url : [url]
   }
 
   // TODO handle re-orgs in watcher
   follow$ = timer(0, 60_000).pipe(
-    mergeMap(() => from(this.#call<RpcResponse<number>>('getblockcount')).pipe(map((r) => r.result))),
+    mergeMap(() => from(this.getBlockHeight())),
     distinctUntilChanged(),
     mergeMap(async (height) => {
-      //if (this.currentHeight <= height) {
       const newHeight = height
       const currentHash = await this.getBlockHash(newHeight)
       const currentBlock = await this.getBlock(currentHash)
       return currentBlock
-
-      // TODO get from db and calc gap of reorg
-      //}
     }),
     shareReplay(1),
   )
 
+  async getBlockHeight() {
+    return await this.#call<number>('getblockcount')
+  }
+
   async getBlockHash(height: number) {
-    return (await this.#call<RpcResponse<string>>('getblockhash', [height])).result
+    return await this.#call<string>('getblockhash', [height])
   }
 
   async getBlock(hash: string) {
-    return (await this.#call<RpcResponse<Block>>('getblock', [hash])).result
+    return await this.#call<Block>('getblock', [hash])
   }
 
   async getBestBlock() {
-    const blockHash = (await this.#call<RpcResponse<string>>('getbestblockhash')).result
+    const blockHash = await this.#call<string>('getbestblockhash')
     return await this.getBlock(blockHash)
   }
 
   async getChainInfo() {
-    return (await this.#call<RpcResponse<ChainInfo>>('getblockchaininfo')).result
+    return await this.#call<ChainInfo>('getblockchaininfo')
   }
 
   connect() {
     return Promise.resolve(this)
   }
+
   disconnect() {
-    // stateless
+    this.#controller.abort('disconnected')
   }
 
-  async #call<R>(method: string, params: (string | number)[] = []): Promise<R> {
+  async #call<T>(method: string, params: (string | number)[] = []): Promise<T> {
     const body = {
       jsonrpc: '1.0',
       id: this.#id++,
@@ -76,41 +151,43 @@ export class BitcoinApi implements ApiClient {
       params,
     }
 
-    const retries = 2
-
     const fetchWithRety = async (attempt = 0): Promise<Response> => {
       try {
-        const response = await fetch(RPC, {
-          body: JSON.stringify(body),
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-          signal: this.#signal,
-        })
+        let timeout: NodeJS.Timeout | undefined
+
+        const response = (await Promise.race([
+          fetch(this.#url, {
+            body: JSON.stringify(body),
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            method: 'POST',
+            signal: this.#signal,
+          }),
+          new Promise((_, reject) => {
+            timeout = setTimeout(() => reject(new Error('Timeout')), this.#timeout).unref()
+          }),
+        ])) as Response
+
+        clearTimeout(timeout)
 
         if (response.ok) {
           return response
         }
 
-        if (attempt < retries) {
-          // TODO decode body error...
-          return retry(attempt, null, response)
+        throw new RpcError((await parseBody(response)).error)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (attempt < this.#maxRetries && (message === 'Timeout' || message === 'Network request failed')) {
+          return retry(attempt, this.#delay)
         } else {
-          return response
-        }
-      } catch (e) {
-        if (attempt < retries) {
-          return retry(attempt, e as Error)
-        } else {
-          throw e
+          throw error
         }
       }
     }
 
-    function retry(attempt: number, _error: Error | null, _response?: Response) {
-      const delay = 1_000
+    function retry(attempt: number, delay: number) {
       console.log('retrying', attempt, delay)
       return new Promise<Response>((resolve, reject) =>
         setTimeout(() => {
@@ -122,29 +199,21 @@ export class BitcoinApi implements ApiClient {
     }
 
     const response = await fetchWithRety()
-    if (response.body) {
-      let _bytes = 0
-      const chunks = []
-      for await (const chunk of response.body) {
-        if (this.#signal.aborted) {
-          break
-        }
-        _bytes += chunk.length
-        // TODO if more than max bytes throw!
-        chunks.push(chunk)
-      }
-      return JSON.parse(Buffer.concat(chunks).toString('utf-8')) as R
-    } else {
-      throw new Error('empty')
+    return (
+      await parseBody<T>(response, {
+        signal: this.#signal,
+        maxBodyBytes: this.#maxBodyBytes,
+      })
+    ).result!
+  }
+
+  get #url() {
+    if (this.#urlIndex >= this.#urls.length) {
+      this.#urlIndex = 0
     }
+    return this.#urls[this.#urlIndex++]
   }
 }
 
-const client = new BitcoinApi('test')
-client.follow$.subscribe((block) => {
-  console.log(0.001 * block.size, 'KB')
-  console.log(0.001 * block.weight, 'KWU')
-  console.log(
-    `Block: #${block.height} ${block.hash} (${new Date(block.time * 1000)}, ${block.confirmations} / ${block.mediantime} TX:${block.nTx} / parent:${block.previousblockhash})`,
-  )
-})
+const client = new BitcoinApi({} as unknown as Logger, 'test', MainnetRPCs)
+console.log(await client.getBestBlock())

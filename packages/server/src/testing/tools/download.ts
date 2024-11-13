@@ -5,7 +5,7 @@ import * as url from 'node:url'
 import { Command, Option } from 'commander'
 import { pino } from 'pino'
 
-import { createArchiveClient } from '@/services/networking/substrate/client.js'
+import { createSubstrateClient } from '@/services/networking/substrate/client.js'
 import { encodeBlock } from '@/services/networking/substrate/watcher/codec.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
@@ -20,7 +20,7 @@ export const networks = {
 
 async function download([name, ws, height]: [string, string, string]) {
   const logger = pino()
-  const client = await createArchiveClient(logger, name, ws)
+  const client = await createSubstrateClient(logger, name, ws)
 
   logger.info('Downloading %s@%s', name, height)
 
