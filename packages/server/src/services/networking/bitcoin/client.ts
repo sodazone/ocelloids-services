@@ -5,17 +5,18 @@ import { Logger } from '../../types.js'
 import { ApiClient } from '../types.js'
 import { Block, ChainInfo } from './types.js'
 
-const MainnetRPCs = [
-  'https://bitcoin.drpc.org/',
-  'https://bitcoin-rpc.publicnode.com',
-  'https://bitcoin-mainnet.public.blastapi.io/',
-]
-
-const _TestnetRPCs = [
-  'https://bitcoin-testnet.drpc.org/',
-  'https://bitcoin-testnet-rpc.publicnode.com',
-  'https://bitcoin-testnet.public.blastapi.io/',
-]
+export const RPCs = {
+  mainnet: [
+    'https://bitcoin.drpc.org/',
+    'https://bitcoin-rpc.publicnode.com',
+    'https://bitcoin-mainnet.public.blastapi.io/',
+  ],
+  testnet: [
+    'https://bitcoin-testnet.drpc.org/',
+    'https://bitcoin-testnet-rpc.publicnode.com',
+    'https://bitcoin-testnet.public.blastapi.io/',
+  ],
+}
 
 export class RpcError extends Error {
   code: number
@@ -101,7 +102,7 @@ export class BitcoinApi implements ApiClient {
     this.#urls = Array.isArray(url) ? url : [url]
   }
 
-  // TODO handle re-orgs in watcher
+  // TODO handle re-orgs in bitcoin watcher
   follow$ = timer(0, 60_000).pipe(
     mergeMap(() => from(this.getBlockHeight())),
     distinctUntilChanged(),
@@ -215,5 +216,5 @@ export class BitcoinApi implements ApiClient {
   }
 }
 
-const client = new BitcoinApi({} as unknown as Logger, 'test', MainnetRPCs)
+const client = new BitcoinApi({} as unknown as Logger, 'test', RPCs.testnet)
 console.log(await client.getBestBlock())
