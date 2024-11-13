@@ -13,8 +13,8 @@ import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
 
 describe('xcm ops utils', () => {
   describe('getSendersFromExtrinsic', () => {
-    it('should extract signers data for signed extrinsic', () => {
-      const signerData = getSendersFromExtrinsic({
+    it('should extract signers data for signed extrinsic', async () => {
+      const signerData = await getSendersFromExtrinsic({
         signed: true,
         address: '12znMShnYUCy6evsKDwFumafF9WsC2qPVMxLQkioczcjqudf',
         extraSigners: [],
@@ -23,8 +23,8 @@ describe('xcm ops utils', () => {
       expect(signerData).toBeDefined()
     })
 
-    it('should return undefined on unsigned extrinsic', () => {
-      const signerData = getSendersFromExtrinsic({
+    it('should return undefined on unsigned extrinsic', async () => {
+      const signerData = await getSendersFromExtrinsic({
         signed: false,
         extraSigners: [],
       } as unknown as BlockExtrinsic)
@@ -32,17 +32,17 @@ describe('xcm ops utils', () => {
       expect(signerData).toBeUndefined()
     })
 
-    it('should throw error on malformed extrinsic', () => {
-      expect(() =>
+    it('should throw error on malformed extrinsic', async () => {
+      await expect(() =>
         getSendersFromExtrinsic({
           signed: true,
         } as unknown as BlockExtrinsic),
-      ).toThrow()
+      ).rejects.toThrow()
     })
   })
   describe('getSendersFromEvent', () => {
-    it('should extract signers data for an event with signed extrinsic', () => {
-      const signerData = getSendersFromEvent({
+    it('should extract signers data for an event with signed extrinsic', async () => {
+      const signerData = await getSendersFromEvent({
         extrinsic: {
           signed: true,
           address: '12znMShnYUCy6evsKDwFumafF9WsC2qPVMxLQkioczcjqudf',
@@ -52,8 +52,8 @@ describe('xcm ops utils', () => {
 
       expect(signerData).toBeDefined()
     })
-    it('should return undefined for an event without extrinsic', () => {
-      const signerData = getSendersFromEvent({} as unknown as BlockEvent)
+    it('should return undefined for an event without extrinsic', async () => {
+      const signerData = await getSendersFromEvent({} as unknown as BlockEvent)
 
       expect(signerData).toBeUndefined()
     })
