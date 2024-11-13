@@ -4,17 +4,14 @@ import { polkadotBlocks } from '@/testing/blocks.js'
 
 import '@/testing/network.js'
 
-import { extractEvents } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
+import { extractEvents } from '@/services/networking/substrate/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { createServices } from '@/testing/services.js'
-import { AgentServiceMode } from '@/types.js'
 
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { NetworkURN, Services } from '../../index.js'
-import { SubsStore } from '../../persistence/level/subs.js'
+import { NetworkURN } from '../../index.js'
+import { SubstrateSharedStreams } from '../../networking/substrate/shared.js'
 import { Subscription } from '../../subscriptions/types.js'
-import { SharedStreams } from '../base/shared.js'
-import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
 import { XcmSubscriptionManager } from './handlers.js'
@@ -39,12 +36,12 @@ const testSub: Subscription<XcmInputs> = {
 
 describe('xcm agent', () => {
   let agentService: AgentCatalog
-  let ingress: IngressConsumer
+  let ingress: SubstrateIngressConsumer
 
   beforeEach(async () => {
     const services = createServices()
     services.levelDB.setMaxListeners(20)
-    ingress = services.ingress
+    ingress = services.ingress.substrate
     agentService = services.agentCatalog
   })
 
@@ -92,7 +89,7 @@ describe('xcm agent', () => {
   })
 
   it('should handle pipe errors in outbound subscriptions', async () => {
-    vi.spyOn(SharedStreams.prototype, 'blockEvents').mockImplementationOnce((_chainId: NetworkURN) =>
+    vi.spyOn(SubstrateSharedStreams.prototype, 'blockEvents').mockImplementationOnce((_chainId: NetworkURN) =>
       from(polkadotBlocks).pipe(extractEvents()),
     )
     vi.spyOn(ingress, 'getContext').mockImplementationOnce(() => throwError(() => new Error('errored')))
@@ -108,8 +105,8 @@ describe('xcm agent', () => {
   })
 
   it('should handle pipe errors in relay subscriptions', async () => {
-    vi.spyOn(SharedStreams.prototype, 'blockExtrinsics').mockImplementationOnce((_chainId: NetworkURN) =>
-      throwError(() => new Error('errored')),
+    vi.spyOn(SubstrateSharedStreams.prototype, 'blockExtrinsics').mockImplementationOnce(
+      (_chainId: NetworkURN) => throwError(() => new Error('errored')),
     )
     const spy = vi.spyOn(XcmSubscriptionManager.prototype, 'tryRecoverRelay')
 

@@ -1,13 +1,19 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
+import {
+  SubstrateDistributedConsumer,
+  SubstrateLocalConsumer,
+} from '@/services/networking/substrate/ingress/index.js'
 import { IngressOptions } from '@/types.js'
-import { DistributedIngressConsumer, IngressConsumer, LocalIngressConsumer } from './index.js'
+
+import { BitcoinLocalConsumer } from '@/services/networking/bitcoin/ingress/local.js'
 import { ConsumerApi } from './routes.js'
+import { IngressConsumer, IngressConsumers } from './types.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingress: IngressConsumer
+    ingress: IngressConsumers
   }
 }
 
@@ -20,12 +26,18 @@ declare module 'fastify' {
  * @param options - Options for configuring the IngressConsumer.
  */
 const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
-  const consumer: IngressConsumer = options.distributed
-    ? new DistributedIngressConsumer(fastify, options)
-    : new LocalIngressConsumer(fastify)
+  const substrateConsumer = options.distributed
+    ? new SubstrateDistributedConsumer(fastify, options)
+    : new SubstrateLocalConsumer(fastify)
+  const bitcoinConsumer = new BitcoinLocalConsumer(fastify)
+
+  const consumers: IngressConsumers = {
+    substrate: substrateConsumer,
+    bitcoin: bitcoinConsumer,
+  }
 
   fastify.addHook('onClose', (server, done) => {
-    consumer
+    substrateConsumer
       .stop()
       .then(() => {
         server.log.info('Ingress consumer stopped')
@@ -38,11 +50,11 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
       })
   })
 
-  fastify.decorate('ingress', consumer)
+  fastify.decorate('ingress', consumers)
 
   fastify.register(ConsumerApi)
 
-  await consumer.start()
+  await substrateConsumer.start()
 }
 
 export default fp(ingressConsumerPlugin, { fastify: '>=4.x', name: 'ingress-consumer' })

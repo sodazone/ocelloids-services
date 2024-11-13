@@ -1,4 +1,4 @@
-import { BlockEvent, BlockExtrinsic } from '@/services/networking/types.js'
+import { BlockEvent, BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { apiContext } from '@/testing/xcm.js'
 import {
   getMessageId,

@@ -8,11 +8,12 @@ import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/hub.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
-import { SharedStreams } from '../base/shared.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 import { XcmSubscriptionManager } from './handlers.js'
@@ -43,7 +44,6 @@ import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 
-import { ApiContext } from '@/services/networking/index.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 
@@ -56,23 +56,23 @@ export class XcmAgent implements Agent, Subscribable {
   readonly #log: Logger
 
   readonly #notifier: Egress
-  readonly #ingress: IngressConsumer
+  readonly #ingress: SubstrateIngressConsumer
   readonly #engine: MatchingEngine
   readonly #telemetry: TelemetryXcmEventEmitter
 
-  readonly #shared: SharedStreams
+  readonly #shared: SubstrateSharedStreams
   readonly #subs: XcmSubscriptionManager
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
 
     this.#notifier = ctx.egress
-    this.#ingress = ctx.ingress
+    this.#ingress = ctx.ingress.substrate
     this.#engine = new MatchingEngine(ctx, this.#onXcmWaypointReached.bind(this))
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
 
-    this.#subs = new XcmSubscriptionManager(ctx.log, this.#ingress, this)
-    this.#shared = SharedStreams.instance(this.#ingress)
+    this.#subs = new XcmSubscriptionManager(ctx.log, ctx.ingress, this)
+    this.#shared = SubstrateSharedStreams.instance(this.#ingress)
   }
 
   get id() {
@@ -505,7 +505,7 @@ export class XcmAgent implements Agent, Subscribable {
   }: {
     id: string
     origin: NetworkURN
-    context: ApiContext
+    context: SubstrateApiContext
     messageControl: ControlQuery
     outboundTTL?: number
   }) {
@@ -517,7 +517,7 @@ export class XcmAgent implements Agent, Subscribable {
       )
   }
 
-  #getDmp(chainId: NetworkURN, context: ApiContext): GetDownwardMessageQueues {
+  #getDmp(chainId: NetworkURN, context: SubstrateApiContext): GetDownwardMessageQueues {
     const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
@@ -530,7 +530,7 @@ export class XcmAgent implements Agent, Subscribable {
     }
   }
 
-  #getUmp(chainId: NetworkURN, context: ApiContext): GetOutboundUmpMessages {
+  #getUmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundUmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
     const key = codec.enc() as HexString
     return (blockHash: HexString) => {
@@ -542,7 +542,7 @@ export class XcmAgent implements Agent, Subscribable {
     }
   }
 
-  #getHrmp(chainId: NetworkURN, context: ApiContext): GetOutboundHrmpMessages {
+  #getHrmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundHrmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
     const key = codec.enc() as HexString
     return (blockHash: HexString) => {

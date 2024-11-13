@@ -4,7 +4,6 @@ import { Observable, Subject, from, map, shareReplay } from 'rxjs'
 
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
-import { IngressOptions } from '@/types.js'
 import {
   NetworkEntry,
   NetworkRecord,
@@ -15,29 +14,30 @@ import {
   getReplyToKey,
   getStorageKeysReqKey,
   getStorageReqKey,
-} from '../distributor.js'
+} from '@/services/ingress/distributor.js'
+import { IngressOptions } from '@/types.js'
 
-import { ApiContext, Block, createRuntimeApiContext } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
-import { decodeBlock } from '../watcher/codec.js'
-import { IngressConsumer, NetworkInfo } from './index.js'
+import { Block, SubstrateApiContext, createRuntimeApiContext } from '../../index.js'
+import { decodeBlock } from '../../watcher/codec.js'
+import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
- * Represents an implementation of {@link IngressConsumer} that operates in a distributed environment.
+ * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a distributed environment.
  *
  * This class is responsible for managing block consumption and storage retrieval logic,
  * communicating through a distributed middleware.
  */
-export class DistributedIngressConsumer
+export class SubstrateDistributedConsumer
   extends (EventEmitter as new () => TelemetryEventEmitter)
-  implements IngressConsumer
+  implements SubstrateIngressConsumer
 {
   readonly #log: Logger
   readonly #db: LevelDB
   readonly #blockConsumers: Record<NetworkURN, Subject<Block>>
-  readonly #contexts$: Record<NetworkURN, Observable<ApiContext>>
+  readonly #contexts$: Record<NetworkURN, Observable<SubstrateApiContext>>
   readonly #distributor: RedisDistributor
 
   #networks: NetworkRecord = {}
@@ -86,7 +86,7 @@ export class DistributedIngressConsumer
     return consumer.asObservable()
   }
 
-  getContext(chainId: NetworkURN): Observable<ApiContext> {
+  getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
     if (this.#contexts$[chainId] === undefined) {
       this.#contexts$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {
@@ -154,7 +154,7 @@ export class DistributedIngressConsumer
     if (this.#networks[chainId] === undefined) {
       Promise.reject(new Error('unknown network'))
     }
-    return Promise.resolve(this.#networks[chainId].info)
+    return Promise.resolve(this.#networks[chainId].info as NetworkInfo)
   }
 
   collectTelemetry(collect: TelemetryCollect): void {

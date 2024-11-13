@@ -1,4 +1,4 @@
-import { NetworkInfo } from '@/services/ingress/index.js'
+import { NetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 
 import { QueryPagination, QueryResult } from '../../types.js'

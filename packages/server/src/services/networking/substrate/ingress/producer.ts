@@ -17,7 +17,7 @@ import {
   getStorageKeysReqKey,
   getStorageReqKey,
   getVersionKey,
-} from '../distributor.js'
+} from '../../../ingress/distributor.js'
 import { HeadCatcher } from '../watcher/head-catcher.js'
 
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'

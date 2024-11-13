@@ -5,8 +5,8 @@ import * as url from 'node:url'
 import { Command, Option } from 'commander'
 import { pino } from 'pino'
 
-import { encodeBlock } from '@/services/ingress/watcher/codec.js'
-import { createArchiveClient } from '@/services/networking/index.js'
+import { createArchiveClient } from '@/services/networking/substrate/client.js'
+import { encodeBlock } from '@/services/networking/substrate/watcher/codec.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 

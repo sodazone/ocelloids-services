@@ -21,12 +21,12 @@ import {
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ServiceConfiguration } from '@/services/config.js'
-import { ApiClient, Block } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Family, LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
 
-import { NetworkInfo } from '../index.js'
+import { NetworkInfo } from '../ingress/types.js'
+import { Block, SubstrateApiClient } from '../types.js'
 import { fetchers } from './fetchers.js'
 
 // TODO: extract to config
@@ -71,7 +71,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * @see {HeadCatcher.#catchUpHeads}
  */
 export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: Record<string, ApiClient>
+  readonly #apis: Record<string, SubstrateApiClient>
   readonly #log: Logger
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
@@ -87,7 +87,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     this.#log = log
     this.#localConfig = localConfig
-    this.#apis = connector.connect()
+    this.#apis = connector.connect<SubstrateApiClient>('substrate')
     this.#db = levelDB
     this.#chainTips = levelDB.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded)
   }
@@ -133,7 +133,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     return newPipe
   }
 
-  getApi(chainId: NetworkURN): Promise<ApiClient> {
+  getApi(chainId: NetworkURN): Promise<SubstrateApiClient> {
     return this.#apis[chainId].isReady()
   }
 
@@ -173,7 +173,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   get chainIds(): NetworkURN[] {
-    return Object.keys(this.#apis) as NetworkURN[]
+    return (Object.keys(this.#apis) as NetworkURN[]) ?? []
   }
 
   async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
@@ -196,7 +196,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  #catchUpHeads(chainId: NetworkURN, api: ApiClient) {
+  #catchUpHeads(chainId: NetworkURN, api: SubstrateApiClient) {
     return (source: Observable<BlockInfo>): Observable<BlockInfo> => {
       return source.pipe(
         tap((header) => {
@@ -216,7 +216,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  #recoverBlockRanges(chainId: NetworkURN, api: ApiClient) {
+  #recoverBlockRanges(chainId: NetworkURN, api: SubstrateApiClient) {
     return (source: Observable<BlockNumberRange[]>): Observable<BlockInfo> => {
       const batchSize = this.#batchSize(chainId)
       return source.pipe(
@@ -315,7 +315,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #headers(
-    api: ApiClient,
+    api: SubstrateApiClient,
     newHead: BlockInfo,
     targetHeight: number,
     prev: BlockInfo[],
@@ -329,7 +329,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     )
   }
 
-  #catchUpToHeight(chainId: NetworkURN, api: ApiClient, newHead: BlockInfo) {
+  #catchUpToHeight(chainId: NetworkURN, api: SubstrateApiClient, newHead: BlockInfo) {
     return (source: Observable<number[]>): Observable<BlockInfo> => {
       return source.pipe(
         mergeMap((targets) => {

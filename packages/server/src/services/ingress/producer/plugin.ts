@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { IngressOptions } from '@/types.js'
-import IngressProducer from './index.js'
+import IngressProducer from '../../networking/substrate/ingress/producer.js'
 
 declare module 'fastify' {
   interface FastifyInstance {

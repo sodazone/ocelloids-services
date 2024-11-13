@@ -63,7 +63,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
 
     if (ingress) {
       log.info('Enable ingress consumer metrics')
-      ingress.collectTelemetry(collect)
+      Object.values(ingress).forEach((c) => c.collectTelemetry(collect))
     }
 
     if (ingressProducer) {

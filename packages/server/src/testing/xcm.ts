@@ -1,14 +1,14 @@
 import { from, of } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
-import { ApiContext } from '@/services/networking/index.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { Binary } from 'polkadot-api'
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
 import { NetworkURN } from '../services/types.js'
 import { testApiContextFromMetadata, testBlocksFrom } from './blocks.js'
 
-export const apiContext: ApiContext = testApiContextFromMetadata('polkadot.scale')
+export const apiContext: SubstrateApiContext = testApiContextFromMetadata('polkadot.scale')
 
 // XCMP testing mocks
 // from parachainSystem.outboundHrmpMessages 0x45323df7cc47150b3930e2666b0aa3134ec0959dca9d4616632a822d7523ba63

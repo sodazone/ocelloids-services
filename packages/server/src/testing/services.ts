@@ -3,13 +3,14 @@ import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
 
-import { ApiClient } from '@/services/networking/index.js'
-
+import { IngressConsumers } from '@/services/ingress/consumer/types.js'
+import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
+import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
+import { SubstrateApiClient } from '@/services/networking/substrate/types.js'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration } from '../services/config.js'
 import { Egress } from '../services/egress/index.js'
-import { IngressConsumer, LocalIngressConsumer } from '../services/ingress/consumer/index.js'
 import Connector from '../services/networking/connector.js'
 import { Janitor } from '../services/persistence/level/janitor.js'
 import { Scheduler } from '../services/persistence/level/scheduler.js'
@@ -31,7 +32,7 @@ function mockApiClient() {
   return {
     ..._client,
     isReady: () => of(_client),
-  } as unknown as ApiClient
+  } as unknown as SubstrateApiClient
 }
 
 export const _mockApis = {
@@ -58,7 +59,7 @@ export function createServices(): Services {
     connector: _connector,
     levelDB: _rootDB,
     subsStore: {} as unknown as SubsStore,
-    ingress: {} as unknown as IngressConsumer,
+    ingress: {} as unknown as IngressConsumers,
     agentCatalog: {} as unknown as AgentCatalog,
     egress: {} as unknown as Egress,
     scheduler: {
@@ -76,7 +77,15 @@ export function createServices(): Services {
     } as unknown as Janitor,
   }
 
-  const _ingress = new LocalIngressConsumer(__services)
+  const _ingress = {
+    substrate: new SubstrateLocalConsumer(__services),
+    bitcoin: {
+      isNetworkDefined: () => false,
+      collectTelemetry: () => {
+        //
+      },
+    } as unknown as BitcoinIngressConsumer,
+  }
   const _egress = new Egress(__services)
   const _subsDB = new SubsStore(_log, _rootDB)
   const _agentService = new LocalAgentCatalog(

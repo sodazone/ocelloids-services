@@ -8,12 +8,14 @@ export const mockConfigWS: ServiceConfiguration = {
         type: 'rpc',
         url: 'wss://polkadot.io',
       },
+      client: 'substrate',
       recovery: true,
       batchSize: 5,
     },
     {
       id: 'urn:ocn:local:1000',
       relay: 'urn:ocn:local:0',
+      client: 'substrate',
       provider: {
         type: 'rpc',
         url: 'wss://asset-hub.io',
@@ -22,6 +24,7 @@ export const mockConfigWS: ServiceConfiguration = {
     {
       id: 'urn:ocn:local:2006',
       relay: 'urn:ocn:local:0',
+      client: 'substrate',
       provider: {
         type: 'rpc',
         url: 'wss://astar.io',
@@ -35,6 +38,7 @@ export const mockConfigRelayLast: ServiceConfiguration = {
     {
       id: 'urn:ocn:local:1000',
       relay: 'urn:ocn:local:0',
+      client: 'substrate',
       provider: {
         type: 'rpc',
         url: 'wss://asset-hub.io',
@@ -43,6 +47,7 @@ export const mockConfigRelayLast: ServiceConfiguration = {
     {
       id: 'urn:ocn:local:2006',
       relay: 'urn:ocn:local:0',
+      client: 'substrate',
       provider: {
         type: 'rpc',
         url: 'wss://shiden.io',
@@ -50,6 +55,7 @@ export const mockConfigRelayLast: ServiceConfiguration = {
     },
     {
       id: 'urn:ocn:local:0',
+      client: 'substrate',
       provider: {
         type: 'rpc',
         url: 'wss://somewhere.io',

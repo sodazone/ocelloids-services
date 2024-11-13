@@ -24,9 +24,8 @@ import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
-import { Block } from '../types.js'
 import { RuntimeApiContext } from './context.js'
-import { ApiClient, ApiContext } from './types.js'
+import { Block, SubstrateApiClient, SubstrateApiContext } from './types.js'
 
 export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
   const client = new ArchiveClient(log, chainId, url)
@@ -36,7 +35,7 @@ export async function createArchiveClient(log: Logger, chainId: string, url: str
 /**
  * Archive Substrate API client.
  */
-export class ArchiveClient extends EventEmitter implements ApiClient {
+export class ArchiveClient extends EventEmitter implements SubstrateApiClient {
   #connected: boolean = false
   readonly chainId: string
 
@@ -48,7 +47,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     params: Params,
   ) => Promise<Reply>
   readonly #head$: ChainHead$
-  #apiContext!: () => ApiContext
+  #apiContext!: () => SubstrateApiContext
 
   get ctx() {
     return this.#apiContext()
@@ -94,11 +93,11 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }
   }
 
-  async isReady(): Promise<ApiClient> {
+  async isReady(): Promise<SubstrateApiClient> {
     if (this.#connected) {
       return this
     }
-    return new Promise<ApiClient>((resolve) => this.once('connected', () => resolve(this)))
+    return new Promise<SubstrateApiClient>((resolve) => this.once('connected', () => resolve(this)))
   }
 
   async getMetadata(): Promise<Uint8Array> {

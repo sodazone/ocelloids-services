@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 
 import { Abi } from 'viem'
 
-import { decodeBlock } from '@/services/ingress/watcher/codec.js'
-import { Block, createRuntimeApiContext } from '@/services/networking/index.js'
+import { Block, createRuntimeApiContext } from '@/services/networking/substrate/index.js'
+import { decodeBlock } from '@/services/networking/substrate/watcher/codec.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const blocksDir = resolve(__dirname, '__data__/blocks')

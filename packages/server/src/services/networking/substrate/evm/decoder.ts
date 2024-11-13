@@ -12,7 +12,7 @@ import {
 } from 'viem'
 
 import { HexString } from '@/lib.js'
-import { Event, Extrinsic } from '@/services/networking/types.js'
+import { Event, Extrinsic } from '../types.js'
 
 export type FrontierExtrinsic = {
   transaction: Legacy | EIP1559 | EIP2930

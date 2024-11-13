@@ -1,14 +1,14 @@
 /* istanbul ignore file */
 import { HexString, NetworkURN } from '@/lib.js'
-import { ApiClient } from '@/services/networking/client/index.js'
 
-import { NetworkInfo } from '../index.js'
+import { SubstrateApiClient } from '../index.js'
+import { NetworkInfo } from '../ingress/types.js'
 
 function getPropertyArray(p: any[] | any) {
   return p ? (Array.isArray(p) ? p : [p]) : []
 }
 
-async function networkInfo(api: ApiClient, chainId: NetworkURN): Promise<NetworkInfo> {
+async function networkInfo(api: SubstrateApiClient, chainId: NetworkURN): Promise<NetworkInfo> {
   const chainSpecData = await api.getChainSpecData()
   const {
     tokenDecimals,

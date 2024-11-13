@@ -3,7 +3,7 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { createNetworkId } from '@/services/config.js'
-import { ApiContext, BlockEvent } from '@/services/networking/index.js'
+import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
 import { GetOutboundHrmpMessages } from '../types-augmented.js'
@@ -22,7 +22,7 @@ const METHODS_XCMP_QUEUE = ['Success', 'Fail']
 function findOutboundHrmpMessage(
   origin: NetworkURN,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  context: ApiContext,
+  context: SubstrateApiContext,
 ) {
   return (source: Observable<XcmSentWithContext>): Observable<GenericXcmSentWithContext> => {
     return source.pipe(
@@ -64,7 +64,7 @@ function findOutboundHrmpMessage(
 export function extractXcmpSend(
   origin: NetworkURN,
   getOutboundHrmpMessages: GetOutboundHrmpMessages,
-  context: ApiContext,
+  context: SubstrateApiContext,
 ) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(

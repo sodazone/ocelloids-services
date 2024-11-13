@@ -1,13 +1,14 @@
 import { MemoryLevel } from 'memory-level'
+import { Observable, from } from 'rxjs'
 
 import Connector from '@/services/networking/connector.js'
-import { ApiClient, BlockInfo } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { LevelDB, Services, jsonEncoded, prefixes } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'
-import { Observable, from } from 'rxjs'
+
+import { BlockInfo, SubstrateApiClient } from '../types.js'
 import { HeadCatcher } from './head-catcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
@@ -29,7 +30,7 @@ function createConnector(headersSource: Observable<BlockInfo>, testHeaders: Bloc
         isReady: () => {
           return Promise.resolve(mockApi)
         },
-      } as unknown as ApiClient,
+      } as unknown as SubstrateApiClient,
     }),
   } as unknown as Connector
 }
@@ -162,11 +163,11 @@ describe('head catcher', () => {
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApiClient,
             'urn:ocn:local:1000': {
               getStorage: mockUpwardMessagesQuery,
-            } as unknown as ApiClient,
-            'urn:ocn:local:2032': {} as unknown as ApiClient,
+            } as unknown as SubstrateApiClient,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApiClient,
           }),
         } as unknown as Connector,
         levelDB: db,
@@ -191,11 +192,11 @@ describe('head catcher', () => {
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApiClient,
             'urn:ocn:local:1000': {
               getStorage: mockHrmpOutboundMessagesQuery,
-            } as unknown as ApiClient,
-            'urn:ocn:local:2032': {} as unknown as ApiClient,
+            } as unknown as SubstrateApiClient,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApiClient,
           }),
         } as unknown as Connector,
         levelDB: db,

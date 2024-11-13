@@ -6,7 +6,7 @@ import { pino } from 'pino'
 import toml from 'toml'
 
 import { $ServiceConfiguration } from '@/services/config.js'
-import { ArchiveClient } from '@/services/networking/index.js'
+import { ArchiveClient } from '@/services/networking/substrate/client.js'
 import { Command } from 'commander'
 
 async function checkRpcMethods(configFile: string) {

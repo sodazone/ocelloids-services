@@ -3,7 +3,7 @@ import { toHex } from 'polkadot-api/utils'
 
 import { asSerializable } from '@/common/index.js'
 import { HexString } from '@/lib.js'
-import { ApiContext } from '@/services/networking/client/index.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 /**
  * Creates a versioned XCM program from bytes.
@@ -12,7 +12,7 @@ import { ApiContext } from '@/services/networking/client/index.js'
  * @param registry - The registry to decode types.
  * @returns a versioned XCM program
  */
-export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext): Program {
+export function asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
   const xcmTypeId =
     context.getTypeIdByPath('xcm.VersionedXcm') ?? context.getTypeIdByPath('staging.xcm.VersionedXcm')
   if (xcmTypeId === undefined) {
@@ -34,7 +34,7 @@ export type Program = {
   hash: HexString
 }
 
-function asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[] {
+function asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
   const len = buffer.length
   const xcms: Program[] = []
   let ptr = 1
@@ -61,7 +61,7 @@ function asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[]
  * @param context The registry to decode types.
  * @returns an array of {@link VersionedXcm} programs.
  */
-export function fromXcmpFormat(buf: Uint8Array, context: ApiContext): Program[] {
+export function fromXcmpFormat(buf: Uint8Array, context: SubstrateApiContext): Program[] {
   switch (buf[0]) {
     case 0x00: {
       // Concatenated XCM fragments

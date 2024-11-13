@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { Twox128 } from '@polkadot-api/substrate-bindings'
 import { mergeUint8 } from '@polkadot-api/utils'
 
-import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
+import { NetworkInfo, SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
@@ -46,7 +46,7 @@ export class DataSteward implements Agent, Queryable {
   readonly #log: Logger
 
   readonly #sched: Scheduler
-  readonly #ingress: IngressConsumer
+  readonly #ingress: SubstrateIngressConsumer
 
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
@@ -58,7 +58,7 @@ export class DataSteward implements Agent, Queryable {
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
     this.#sched = ctx.scheduler
-    this.#ingress = ctx.ingress
+    this.#ingress = ctx.ingress.substrate
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',

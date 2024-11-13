@@ -1,4 +1,4 @@
-import { extractEvents } from '@/common/index.js'
+import { extractEvents } from '@/services/networking/substrate/index.js'
 import { apiContext, umpReceive, umpSend } from '@/testing/xcm.js'
 
 import { extractUmpReceive, extractUmpSend } from './ump.js'

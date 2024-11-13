@@ -3,11 +3,12 @@ import { z } from 'zod'
 
 import { Egress } from '@/services/egress/hub.js'
 import { PublisherEvents } from '@/services/egress/types.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
+
+import { IngressConsumers } from '../ingress/consumer/types.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -33,7 +34,7 @@ export type AgentId = z.infer<typeof $AgentId>
 export type AgentRuntimeContext = {
   log: Logger
   egress: Egress
-  ingress: IngressConsumer
+  ingress: IngressConsumers
   db: LevelDB
   scheduler: Scheduler
   janitor: Janitor

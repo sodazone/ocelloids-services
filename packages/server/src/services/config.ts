@@ -47,6 +47,8 @@ const $NetworkProvider = $RpcProvider
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`)
 
+export const $ClientId = z.enum(['substrate', 'bitcoin'])
+
 /**
  * The network ID is a URN with the following format: `urn:ocn:<GlobalConsensus>:<ChainId>`.
  *
@@ -58,6 +60,7 @@ export const $NetworkId = z.string().regex(networkIdRegex)
 const $NetworkConfiguration = z.object({
   id: $NetworkId,
   provider: $NetworkProvider,
+  client: $ClientId.default('substrate'),
   relay: $NetworkId.optional(),
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),
@@ -70,6 +73,7 @@ export const $ServiceConfiguration = z.object({
 export type NetworkId = z.infer<typeof $NetworkId>
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>
 export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>
+export type ClientId = z.infer<typeof $ClientId>
 
 export function isRelay({ networks }: ServiceConfiguration, chainId: NetworkURN) {
   return networks.findIndex((n) => n.relay === undefined && n.id === chainId) >= 0

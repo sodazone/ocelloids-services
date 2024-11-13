@@ -1,6 +1,6 @@
 import { asPublicKey } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
-import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/index.js'
+import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 

@@ -1,15 +1,16 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext } from '@/services/networking/client/index.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
+
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations, mapAssetsRegistryMetadata } from './ops.js'
 import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 
 const BYPASS_MAPPER: AssetMapper = () => []
 
-const bifrostMapper: AssetMapper = (context: ApiContext) => {
+const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'CurrencyMetadatas')
   const keyPrefix = codec.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
@@ -30,7 +31,7 @@ const bifrostMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const hydrationMapper: AssetMapper = (context: ApiContext) => {
+const hydrationMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'Assets')
   const keyPrefix = codec.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
@@ -52,7 +53,7 @@ const hydrationMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const centrifugeMapper: AssetMapper = (context: ApiContext) => {
+const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('OrmlAssetRegistry', 'Metadata')
   const keyPrefix = codec.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets'> = {
@@ -78,7 +79,7 @@ const centrifugeMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const assetHubMapper = (chainId: string) => (context: ApiContext) => {
+const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata'> = {
@@ -96,7 +97,7 @@ const assetHubMapper = (chainId: string) => (context: ApiContext) => {
     {
       // Foreign assets pallet
       keyPrefix: foreignAssetsKeyPrefix,
-      mapEntry: (keyArgs: string, ingress: IngressConsumer) => {
+      mapEntry: (keyArgs: string, ingress: SubstrateIngressConsumer) => {
         const assetCodec = foreignAssetsCodec
         const assetMetadataCodec = context.storageCodec('ForeignAssets', 'Metadata')
         return (source: Observable<HexString>): Observable<AssetMetadata> => {

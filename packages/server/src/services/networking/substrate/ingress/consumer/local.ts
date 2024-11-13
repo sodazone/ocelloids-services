@@ -5,27 +5,27 @@ import { Observable, from, map, shareReplay } from 'rxjs'
 import { NetworkURN, Services } from '@/services/types.js'
 
 import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/config.js'
-import { ApiContext, Block } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { HeadCatcher } from '../watcher/head-catcher.js'
-import { IngressConsumer, NetworkInfo } from './index.js'
+import { Block, SubstrateApiContext } from '../../types.js'
+import { HeadCatcher } from '../../watcher/head-catcher.js'
+import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
- * Represents an implementation of {@link IngressConsumer} that operates in a local environment
+ * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a local environment
  * with direct connectivity to blockchain networks.
  *
  * This class is responsible for managing block consumption and storage retrieval logic
  * within a local or integrated environment.
  */
-export class LocalIngressConsumer
+export class SubstrateLocalConsumer
   extends (EventEmitter as new () => TelemetryEventEmitter)
-  implements IngressConsumer
+  implements SubstrateIngressConsumer
 {
   // readonly #log: Logger;
   readonly #headCatcher: HeadCatcher
   readonly #config: ServiceConfiguration
-  readonly #contexts$: Record<NetworkURN, Observable<ApiContext>>
+  readonly #contexts$: Record<NetworkURN, Observable<SubstrateApiContext>>
 
   constructor(ctx: Services) {
     super()
@@ -68,7 +68,7 @@ export class LocalIngressConsumer
     return this.#headCatcher.finalizedBlocks(chainId)
   }
 
-  getContext(chainId: NetworkURN): Observable<ApiContext> {
+  getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
     if (this.#contexts$[chainId] === undefined) {
       this.#contexts$[chainId] = from(this.#headCatcher.getApi(chainId)).pipe(
         map((api) => api.ctx),
