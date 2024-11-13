@@ -77,11 +77,6 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
-export type AssetIdData = {
-  data: Uint8Array
-  length: number
-}
-
 export type ParsedAsset = {
   network: NetworkURN
   assetId:
@@ -91,7 +86,7 @@ export type ParsedAsset = {
       }
     | {
         type: 'data'
-        value: AssetIdData[]
+        value: Uint8Array
       }
   pallet?: number
 }
@@ -108,6 +103,7 @@ export type entryMapper = (
 export type AssetMapping = {
   keyPrefix: HexString
   mapEntry: entryMapper
+  mapAssetId?: (data: Uint8Array) => any[] | undefined
 }
 
 export type AssetMapper = (context: ApiContext) => AssetMapping[]

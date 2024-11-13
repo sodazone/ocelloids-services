@@ -85,3 +85,34 @@ export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
     args: any
   }
 }
+
+export type Hashers = (
+  | {
+      tag: 'Blake2128'
+      value: undefined
+    }
+  | {
+      tag: 'Blake2256'
+      value: undefined
+    }
+  | {
+      tag: 'Blake2128Concat'
+      value: undefined
+    }
+  | {
+      tag: 'Twox128'
+      value: undefined
+    }
+  | {
+      tag: 'Twox256'
+      value: undefined
+    }
+  | {
+      tag: 'Twox64Concat'
+      value: undefined
+    }
+  | {
+      tag: 'Identity'
+      value: undefined
+    }
+)[]

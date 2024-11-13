@@ -98,6 +98,24 @@ export class RuntimeApiContext implements ApiContext {
     }
   }
 
+  getHashers(module: string, method: string) {
+    const pallet = this.#metadata.pallets.find((p) => p.name === module)
+
+    if (!pallet) {
+      throw new Error(`Pallet not found: ${module}`)
+    }
+
+    const storageEntry = pallet.storage!.items.find((s) => s.name === method)!
+
+    if (storageEntry.type.tag === 'plain') {
+      // no hashers
+      return null
+    } else {
+      const { hashers } = storageEntry.type.value
+      return hashers
+    }
+  }
+
   typeCodec<T = any>(path: string | string[] | number): Codec<T> {
     let id: number | undefined
 

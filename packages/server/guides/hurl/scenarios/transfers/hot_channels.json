@@ -12,8 +12,7 @@
         "urn:ocn:polkadot:2030",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2034",
-        "urn:ocn:polkadot:2104"
+        "urn:ocn:polkadot:2034"
       ],
       "events": "*"
     },
@@ -40,8 +39,7 @@
         "urn:ocn:polkadot:2030",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2034",
-        "urn:ocn:polkadot:2104"
+        "urn:ocn:polkadot:2034"
       ],
       "events": "*"
     },
@@ -68,8 +66,7 @@
         "urn:ocn:polkadot:2030",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2034",
-        "urn:ocn:polkadot:2104"
+        "urn:ocn:polkadot:2034"
       ],
       "events": "*"
     },
@@ -122,8 +119,7 @@
         "urn:ocn:polkadot:0",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:2034",
-        "urn:ocn:polkadot:2104"
+        "urn:ocn:polkadot:2034"
       ],
       "events": "*"
     },
@@ -203,32 +199,6 @@
         "urn:ocn:polkadot:2030",
         "urn:ocn:polkadot:2031",
         "urn:ocn:polkadot:2032",
-        "urn:ocn:polkadot:0",
-        "urn:ocn:polkadot:2104"
-      ],
-      "events": "*"
-    },
-    "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
-        "type": "websocket"
-      }
-    ]
-  },
-  {
-    "id": "manta-transfers",
-    "agent": "xcm",
-    "args": {
-      "origin": "urn:ocn:polkadot:2104",
-      "senders": "*",
-      "destinations": [
-        "urn:ocn:polkadot:1000",
-        "urn:ocn:polkadot:2004",
-        "urn:ocn:polkadot:2030",
-        "urn:ocn:polkadot:2034",
         "urn:ocn:polkadot:0"
       ],
       "events": "*"

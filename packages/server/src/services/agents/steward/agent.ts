@@ -2,7 +2,7 @@ import { AbstractSublevel } from 'abstract-level'
 import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
 import { z } from 'zod'
 
-import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { Twox64Concat, Twox128 } from '@polkadot-api/substrate-bindings'
 import { mergeUint8 } from '@polkadot-api/utils'
 
 import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
@@ -69,7 +69,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#queries = new Queries(this.#dbAssets, this.#dbChains)
+    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -155,10 +155,23 @@ export class DataSteward implements Agent, Queryable {
       next: async ({ chainId, asset }) => {
         const assetKey = assetMetadataKey(chainId, asset.id)
 
-        /*const multilocation = asset.multiLocation
+        const multilocation = asset.multiLocation
         if (multilocation) {
-         // TODO: handle multi location specific indexing
-        }*/
+          const resolvedId = await this.#queries.resolveAssetIdFromLocation(
+            chainId,
+            JSON.stringify(multilocation),
+          )
+
+          if (resolvedId && resolvedId !== assetKey) {
+            const key = mergeUint8(Twox128(stringToUa8(resolvedId)), Twox128(stringToUa8(assetKey)))
+
+            await this.#dbAssetsMapTmp.put(key, {
+              id: asset.id,
+              xid: asset.xid,
+              chainId,
+            })
+          }
+        }
 
         this.#dbAssets.put(assetKey, asset).catch((e) => {
           this.#log.error(

@@ -4,7 +4,13 @@ import { HexString } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext } from '@/services/networking/client/index.js'
 import { NetworkURN } from '@/services/types.js'
-import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations, mapAssetsRegistryMetadata } from './ops.js'
+import { toHex } from 'polkadot-api/utils'
+import {
+  hashItemPartialKey,
+  mapAssetsPalletAssets,
+  mapAssetsRegistryAndLocations,
+  mapAssetsRegistryMetadata,
+} from './ops.js'
 import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 
 const BYPASS_MAPPER: AssetMapper = () => []
@@ -25,6 +31,16 @@ const bifrostMapper: AssetMapper = (context: ApiContext) => {
           ed: 'minimal_balance',
         },
       }),
+      mapAssetId: (data: Uint8Array) => {
+        // context get hasher
+        const hashers = context.getHashers('AssetRegistry', 'CurrencyMetadatas')
+        let itemPartialKey = toHex(data)
+        if (hashers !== null) {
+          itemPartialKey = toHex(hashItemPartialKey(data, hashers))
+        }
+        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        return dec
+      },
     },
   ]
   return mappings
@@ -73,6 +89,16 @@ const centrifugeMapper: AssetMapper = (context: ApiContext) => {
           }),
         },
       }),
+      mapAssetId: (data: Uint8Array) => {
+        // context get hasher
+        const hashers = context.getHashers('OrmlAssetRegistry', 'Metadata')
+        let itemPartialKey = toHex(data)
+        if (hashers !== null) {
+          itemPartialKey = toHex(hashItemPartialKey(data, hashers))
+        }
+        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        return dec
+      },
     },
   ]
   return mappings

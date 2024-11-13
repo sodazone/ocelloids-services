@@ -8,7 +8,7 @@ import type { HexString } from '@/lib.js'
 import type { BlockInfo, SystemEvent } from '@polkadot-api/observable-client'
 import type { Codec, Decoder } from '@polkadot-api/substrate-bindings'
 import type { ChainSpecData } from '@polkadot-api/substrate-client'
-import type { Block, Extrinsic, StorageCodec } from '../types.js'
+import type { Block, Extrinsic, Hashers, StorageCodec } from '../types.js'
 
 export interface ApiClient {
   readonly chainId: string
@@ -44,6 +44,7 @@ export interface ApiClient {
 }
 
 export interface ApiContext {
+  getHashers(module: string, method: string): Hashers | null
   hasPallet(name: string): boolean
   getTypeIdByPath(path: string | string[]): number | undefined
   decodeExtrinsic(hextBytes: string): Extrinsic
