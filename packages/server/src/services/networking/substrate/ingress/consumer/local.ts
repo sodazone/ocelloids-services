@@ -61,7 +61,7 @@ export class SubstrateLocalConsumer
   }
 
   async getChainInfo(chainId: NetworkURN): Promise<NetworkInfo> {
-    return await this.#headCatcher.fetchNetworkInfo(chainId)
+    return await this.#headCatcher.getNetworkInfo(chainId)
   }
 
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {

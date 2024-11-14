@@ -18,10 +18,9 @@ import { fetchers } from './fetchers.js'
  * @see {Watcher.#catchUpHeads}
  */
 export class SubstrateWatcher extends Watcher<Block> {
+  readonly chainIds: NetworkURN[]
   readonly #apis: Record<string, SubstrateApi>
   readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
-
-  readonly chainIds: NetworkURN[]
 
   constructor(services: Services) {
     super(services)
@@ -104,7 +103,7 @@ export class SubstrateWatcher extends Watcher<Block> {
     )
   }
 
-  async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+  async getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
     return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
   }
 }

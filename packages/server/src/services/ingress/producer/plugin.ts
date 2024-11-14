@@ -2,23 +2,23 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { IngressOptions } from '@/types.js'
-import IngressProducer from '../../networking/substrate/ingress/producer.js'
+import SubstrateProducer from '../../networking/substrate/ingress/producer.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingressProducer: IngressProducer
+    ingressProducer: SubstrateProducer
   }
 }
 
 // TODO producers per consensus, similar to consumers
 /**
- * Fastify plug-in for the {@link IngressProducer} instance.
+ * Fastify plug-in for the {@link SubstrateProducer} instance.
  *
  * @param fastify - The Fastify instance.
  * @param options - The options for configuring the IngressProducer.
  */
 const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
-  const producer = new IngressProducer(fastify, options)
+  const producer = new SubstrateProducer(fastify, options)
 
   fastify.addHook('onClose', (server, done) => {
     producer

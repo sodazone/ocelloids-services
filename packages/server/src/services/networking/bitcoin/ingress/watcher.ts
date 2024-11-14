@@ -59,7 +59,7 @@ export class BitcoinWatcher extends Watcher<Block> {
     return newPipe
   }
 
-  async getChainInfo(chainId: string) {
-    return await this.#apis[chainId].getChainInfo()
+  async getNetworkInfo(chainId: string) {
+    return await this.#apis[chainId].getNetworkInfo()
   }
 }

@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events'
 
-import { BlockInfo } from '@polkadot-api/observable-client'
 import { Mutex } from 'async-mutex'
 import {
   BehaviorSubject,
@@ -21,7 +20,16 @@ import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ServiceConfiguration } from '@/services/config.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { Family, LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
+import {
+  AnyJson,
+  Family,
+  LevelDB,
+  Logger,
+  NetworkURN,
+  Services,
+  jsonEncoded,
+  prefixes,
+} from '@/services/types.js'
 import { ApiOps, NeutralHeader } from './types.js'
 
 // TODO: extract to config
@@ -89,6 +97,16 @@ export abstract class Watcher<T> extends (EventEmitter as new () => TelemetryEve
   stop() {
     //
   }
+
+  /**
+   * Returns the network information for a given chain.
+   */
+  abstract getNetworkInfo(chainId: string): Promise<AnyJson>
+
+  /**
+   * Returns the supported networks.
+   */
+  abstract get chainIds(): NetworkURN[]
 
   /**
    * Returns an observable of extended signed blocks.

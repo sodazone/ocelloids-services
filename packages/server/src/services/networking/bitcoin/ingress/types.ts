@@ -6,5 +6,5 @@ import { Block, ChainInfo } from '../types.js'
 
 export interface BitcoinIngressConsumer extends IngressConsumer {
   finalizedBlocks(chainId: NetworkURN): Observable<Block>
-  getChainInfo(chainId: NetworkURN): Promise<ChainInfo>
+  getNetworkInfo(chainId: NetworkURN): Promise<ChainInfo>
 }

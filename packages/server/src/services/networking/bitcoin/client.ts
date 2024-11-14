@@ -143,7 +143,7 @@ export class BitcoinApi implements ApiClient {
     return await this.getBlock(blockHash)
   }
 
-  async getChainInfo() {
+  async getNetworkInfo() {
     return await this.#call<ChainInfo>('getblockchaininfo')
   }
 

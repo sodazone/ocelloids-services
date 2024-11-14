@@ -26,8 +26,8 @@ export class BitcoinLocalConsumer
     this.#watcher = new BitcoinWatcher(ctx)
   }
 
-  getChainInfo(chainId: NetworkURN): Promise<ChainInfo> {
-    return this.#watcher.getChainInfo(chainId)
+  getNetworkInfo(chainId: NetworkURN): Promise<ChainInfo> {
+    return this.#watcher.getNetworkInfo(chainId) as Promise<ChainInfo>
   }
 
   isNetworkDefined(chainId: NetworkURN): boolean {
