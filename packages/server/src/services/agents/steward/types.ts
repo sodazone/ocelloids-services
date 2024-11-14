@@ -111,8 +111,9 @@ export type AssetMapping = {
 
 export type AssetMapper = (context: ApiContext) => AssetMapping[]
 
-export type AssetId = {
-  id: string | object
+export type AssetId = string | object | number
+export type AssetIds = {
+  id: AssetId
   xid: HexString
   chainId: NetworkURN
 }
@@ -122,14 +123,14 @@ export type AssetId = {
  *
  * @public
  */
-export type AssetMetadata = AssetId & {
+export type AssetMetadata = AssetIds & {
   name?: string
   symbol?: string
   decimals?: number
   existentialDeposit?: string
   isSufficient?: boolean
   multiLocation?: Record<string, any> | AnyJson
-  externalIds: AssetId[]
+  externalIds: AssetIds[]
   updated: number
   raw: Record<string, any>
 }

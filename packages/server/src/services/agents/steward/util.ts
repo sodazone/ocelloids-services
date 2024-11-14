@@ -3,6 +3,7 @@ import { AbstractIterator } from 'abstract-level'
 import { asJSON } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
+import { AssetId } from './types.js'
 
 const API_LIMIT_DEFAULT = 10
 const API_LIMIT_MAX = 100
@@ -51,7 +52,7 @@ export function toMelburne(o: unknown): string {
   return o.toString()
 }
 
-function normalize(assetId: string | number | object) {
+function normalize(assetId: AssetId) {
   let str
   switch (typeof assetId) {
     case 'string': {
@@ -68,6 +69,6 @@ function normalize(assetId: string | number | object) {
   return str.toLowerCase()
 }
 
-export function assetMetadataKey(chainId: NetworkURN, assetId: string | object) {
+export function assetMetadataKey(chainId: NetworkURN, assetId: AssetId) {
   return `${chainId}:${normalize(assetId)}`
 }

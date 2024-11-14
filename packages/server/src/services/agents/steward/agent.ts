@@ -23,7 +23,7 @@ import {
 
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import { $StewardQueryArgs, AssetId, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
+import { $StewardQueryArgs, AssetIds, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
@@ -51,7 +51,7 @@ export class DataSteward implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: LevelDB
-  readonly #dbAssetsMapTmp: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Uint8Array, AssetId>
+  readonly #dbAssetsMapTmp: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Uint8Array, AssetIds>
 
   readonly #queries: Queries
 
@@ -63,7 +63,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbAssetsMapTmp = ctx.db.sublevel<Uint8Array, AssetId>(ASSETS_MAP_TMP_LEVEL_PREFIX, {
+    this.#dbAssetsMapTmp = ctx.db.sublevel<Uint8Array, AssetIds>(ASSETS_MAP_TMP_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
