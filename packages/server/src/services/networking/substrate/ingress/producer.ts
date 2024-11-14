@@ -18,7 +18,7 @@ import {
   getStorageReqKey,
   getVersionKey,
 } from '../../../ingress/distributor.js'
-import { SubstrateHeadCatcher } from '../watcher/head-catcher.js'
+import { SubstrateWatcher } from '../watcher/watcher.js'
 
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { encodeBlock } from '../watcher/codec.js'
@@ -46,7 +46,7 @@ type StorageKeysRequest = {
  */
 export default class IngressProducer extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
-  readonly #headCatcher: SubstrateHeadCatcher
+  readonly #headCatcher: SubstrateWatcher
   readonly #distributor: RedisDistributor
   readonly #rxSubs: Record<string, RxSubscription> = {}
   readonly #streamOptions: XAddOptions
@@ -58,7 +58,7 @@ export default class IngressProducer extends (EventEmitter as new () => Telemetr
 
     this.#log = ctx.log
 
-    this.#headCatcher = new SubstrateHeadCatcher(ctx)
+    this.#headCatcher = new SubstrateWatcher(ctx)
     this.#config = ctx.localConfig
     this.#streamOptions = {
       TRIM: {

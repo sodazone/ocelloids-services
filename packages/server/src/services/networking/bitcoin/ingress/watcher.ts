@@ -3,14 +3,14 @@ import { Observable, from, mergeMap, mergeWith, share } from 'rxjs'
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
-import { HeadCatcher, RETRY_INFINITE } from '../../catcher.js'
+import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { BitcoinApi } from '../client.js'
 import { Block } from '../types.js'
 
 /**
  * Bitcoin Watcher
  */
-export class BitcoinHeadCatcher extends HeadCatcher<Block> {
+export class BitcoinWatcher extends Watcher<Block> {
   readonly #apis: Record<string, BitcoinApi>
   readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
 
@@ -21,7 +21,7 @@ export class BitcoinHeadCatcher extends HeadCatcher<Block> {
 
     const { connector } = services
 
-    this.#apis = connector.connect<BitcoinApi>('bitcoin')
+    this.#apis = connector.connect('bitcoin')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
   }
 

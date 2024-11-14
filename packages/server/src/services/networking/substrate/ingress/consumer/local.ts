@@ -8,7 +8,7 @@ import { ServiceConfiguration, isNetworkDefined, isRelay } from '@/services/conf
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Block, SubstrateApiContext } from '../../types.js'
-import { SubstrateHeadCatcher } from '../../watcher/head-catcher.js'
+import { SubstrateWatcher } from '../../watcher/watcher.js'
 import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
@@ -23,7 +23,7 @@ export class SubstrateLocalConsumer
   implements SubstrateIngressConsumer
 {
   // readonly #log: Logger;
-  readonly #headCatcher: SubstrateHeadCatcher
+  readonly #headCatcher: SubstrateWatcher
   readonly #config: ServiceConfiguration
   readonly #contexts$: Record<NetworkURN, Observable<SubstrateApiContext>>
 
@@ -32,7 +32,7 @@ export class SubstrateLocalConsumer
 
     // this.#log = ctx.log;
     this.#config = ctx.localConfig
-    this.#headCatcher = new SubstrateHeadCatcher(ctx)
+    this.#headCatcher = new SubstrateWatcher(ctx)
     this.#contexts$ = {}
   }
 

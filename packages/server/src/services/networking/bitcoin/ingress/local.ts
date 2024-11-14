@@ -8,7 +8,7 @@ import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/ty
 
 import { Block, ChainInfo } from '../types.js'
 import { BitcoinIngressConsumer } from './types.js'
-import { BitcoinHeadCatcher } from './watcher.js'
+import { BitcoinWatcher } from './watcher.js'
 
 export class BitcoinLocalConsumer
   extends (EventEmitter as new () => TelemetryEventEmitter)
@@ -16,14 +16,14 @@ export class BitcoinLocalConsumer
 {
   // readonly #log: Logger;
   readonly #config: ServiceConfiguration
-  readonly #watcher: BitcoinHeadCatcher
+  readonly #watcher: BitcoinWatcher
 
   constructor(ctx: Services) {
     super()
 
     // this.#log = ctx.log;
     this.#config = ctx.localConfig
-    this.#watcher = new BitcoinHeadCatcher(ctx)
+    this.#watcher = new BitcoinWatcher(ctx)
   }
 
   getChainInfo(chainId: NetworkURN): Promise<ChainInfo> {

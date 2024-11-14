@@ -4,21 +4,20 @@ import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
-import { HeadCatcher, RETRY_INFINITE } from '../../catcher.js'
+import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { NetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
 import { fetchers } from './fetchers.js'
 
 /**
- * The HeadCatcher performs the following tasks ("moo" 🐮):
+ * The SubstrateWatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
- * - Caches seen extended signed blocks and supplies them when required on finalization.
  * - Caches on-chain storage data.
  *
- * @see {HeadCatcher["finalizedBlocks"]}
- * @see {HeadCatcher.#catchUpHeads}
+ * @see {Watcher["finalizedBlocks"]}
+ * @see {Watcher.#catchUpHeads}
  */
-export class SubstrateHeadCatcher extends HeadCatcher<Block> {
+export class SubstrateWatcher extends Watcher<Block> {
   readonly #apis: Record<string, SubstrateApi>
   readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
 
@@ -29,7 +28,7 @@ export class SubstrateHeadCatcher extends HeadCatcher<Block> {
 
     const { connector } = services
 
-    this.#apis = connector.connect<SubstrateApi>('substrate')
+    this.#apis = connector.connect('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
   }
 

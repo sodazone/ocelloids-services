@@ -10,7 +10,7 @@ import { createServices } from '@/testing/services.js'
 
 import { ApiOps } from '../../types.js'
 import { BlockInfo, SubstrateApi } from '../types.js'
-import { SubstrateHeadCatcher } from './head-catcher.js'
+import { SubstrateWatcher } from './watcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
   const mockApi = {
@@ -73,7 +73,7 @@ describe('head catcher', () => {
 
       // We will emit finalized headers with gaps to force enter catch-up logic multiple times
       const headersSource = from([testHeaders[3], testHeaders[8]])
-      const catcher = new SubstrateHeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: createConnector(headersSource, testHeaders),
@@ -139,7 +139,7 @@ describe('head catcher', () => {
     // We will emit the last finalized headers
     const headersSource = from([testHeaders[7], testHeaders[8]])
     const blocksSource = from(polkadotBlocks)
-    const catcher = new SubstrateHeadCatcher({
+    const catcher = new SubstrateWatcher({
       ...services,
       localConfig: mockConfigWS,
       connector: createConnector(headersSource, testHeaders),
@@ -170,7 +170,7 @@ describe('head catcher', () => {
   describe('outboundUmpMessages', () => {
     it('should get outbound UMP messages from chain storage if using rpc', async () => {
       const mockUpwardMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
-      const catcher = new SubstrateHeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: {
@@ -199,7 +199,7 @@ describe('head catcher', () => {
   describe('outboundHrmpMessages', () => {
     it('should get outbound HRMP messages from chain storage if using rpc', async () => {
       const mockHrmpOutboundMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
-      const catcher = new SubstrateHeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: {

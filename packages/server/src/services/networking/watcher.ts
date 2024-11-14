@@ -57,15 +57,13 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
 }
 
 /**
- * The HeadCatcher performs the following tasks ("moo" 🐮):
+ * The Watcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
- * - Caches seen extended signed blocks and supplies them when required on finalization.
- * - Caches on-chain storage data.
  *
- * @see {HeadCatcher["finalizedBlocks"]}
- * @see {HeadCatcher.#catchUpHeads}
+ * @see {Watcher["finalizedBlocks"]}
+ * @see {Watcher.catchUpHeads}
  */
-export abstract class HeadCatcher<T> extends (EventEmitter as new () => TelemetryEventEmitter) {
+export abstract class Watcher<T> extends (EventEmitter as new () => TelemetryEventEmitter) {
   protected readonly log: Logger
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
