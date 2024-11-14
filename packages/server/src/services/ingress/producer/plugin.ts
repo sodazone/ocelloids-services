@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { IngressOptions } from '@/types.js'
+
 import SubstrateIngressProducer from '../../networking/substrate/ingress/producer.js'
 import { IngressProducers } from './types.js'
 
@@ -12,10 +13,10 @@ declare module 'fastify' {
 }
 
 /**
- * Fastify plug-in for the {@link SubstrateIngressProducer} instance.
+ * Fastify plug-in for {@link IngressProducers}.
  *
  * @param fastify - The Fastify instance.
- * @param options - The options for configuring the IngressProducer.
+ * @param options - The options for configuring an IngressProducer.
  */
 const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
   const substrateProducer = new SubstrateIngressProducer(fastify, options)
