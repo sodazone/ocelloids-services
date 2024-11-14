@@ -25,10 +25,13 @@ export const networks = setNetworks({
   manta: 'urn:ocn:polkadot:2104',
   pendulum: 'urn:ocn:polkadot:2094',
   mythos: 'urn:ocn:polkadot:3369',
+  hyperbridge: 'urn:ocn:polkadot:3367',
   kusama: 'urn:ocn::kusama:0',
   kusamaAssetHub: 'urn:ocn:kusama:1000',
   kusamaBridgeHub: 'urn:ocn:kusama:1002',
   kusamaCoretime: 'urn:ocn:kusama:1005',
+  paseo: 'urn:ocn::paseo:0',
+  paseoAssetHub: 'urn:ocn:paseo:1000',
 })
 
 export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')

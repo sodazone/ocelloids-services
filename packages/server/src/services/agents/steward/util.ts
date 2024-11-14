@@ -37,9 +37,35 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
   }
 }
 
-function normalize(assetId: string | object) {
-  const str = typeof assetId === 'string' ? assetId : asJSON(assetId)
-  return str.toLowerCase().replaceAll('"', '')
+export function toMelburne(o: unknown): string {
+  if (o == null) {
+    return ''
+  }
+
+  if (typeof o === 'object') {
+    return Object.entries(o)
+      .map(([k, v]) => (k === 'type' ? v : k === 'value' ? toMelburne(v) : `${k}:${toMelburne(v)}`))
+      .join(':')
+  }
+
+  return o.toString()
+}
+
+function normalize(assetId: string | number | object) {
+  let str
+  switch (typeof assetId) {
+    case 'string': {
+      str = assetId
+      break
+    }
+    case 'number': {
+      str = assetId.toString()
+      break
+    }
+    default:
+      str = toMelburne(assetId)
+  }
+  return str.toLowerCase()
 }
 
 export function assetMetadataKey(chainId: NetworkURN, assetId: string | object) {

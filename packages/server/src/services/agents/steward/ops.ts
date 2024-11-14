@@ -13,6 +13,7 @@ import {
   Twox256,
 } from '@polkadot-api/substrate-bindings'
 
+import { asSerializable } from '@/common/util.js'
 import { Hashers } from '@/services/networking/types.js'
 import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
 import { getLocationIfAny } from './util.js'
@@ -90,7 +91,7 @@ export const mapAssetsPalletAssets =
           const assetId = assetCodec.keyDecoder(keyArgs)[0]
           const assetDetails = assetCodec.dec(buffer)
           return {
-            id: assetId.toString(),
+            id: assetId,
             xid: keyArgs,
             updated: Date.now(),
             existentialDeposit: assetDetails.min_balance.toString(),
@@ -153,8 +154,11 @@ const mergeMultiLocations = (
   }
 }
 
-export const mapAssetsPalletAndLocations = (options: MapMultiLocationOptions) => {
-  return (codecs: Required<StorageCodecs>, keyArgs: string, ingress: IngressConsumer) => {
+export const mapAssetsPalletAndLocations = (
+  codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'>,
+  options: MapMultiLocationOptions,
+) => {
+  return (keyArgs: string, ingress: IngressConsumer) => {
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         mapAssetsPalletAssets(codecs, options.chainId)(keyArgs, ingress),

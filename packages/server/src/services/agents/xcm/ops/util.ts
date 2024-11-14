@@ -4,9 +4,9 @@ import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/ind
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
+import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/index.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
-import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/index.js'
 
 function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   try {
@@ -38,7 +38,7 @@ export async function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): Promis
     return createSignersData({
       ...extrinsic,
       signed: true,
-      address: signer
+      address: signer,
     })
   }
   return createSignersData(extrinsic)

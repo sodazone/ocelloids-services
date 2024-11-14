@@ -165,15 +165,18 @@ export class DataSteward implements Agent, Queryable {
           if (resolvedId && resolvedId !== assetKey) {
             const key = mergeUint8(Twox128(stringToUa8(resolvedId)), Twox128(stringToUa8(assetKey)))
 
-            await this.#dbAssetsMapTmp.put(key, {
-              id: asset.id,
-              xid: asset.xid,
-              chainId,
-            })
+            await this.#dbAssetsMapTmp.put(
+              key,
+              asSerializable({
+                id: asset.id,
+                xid: asset.xid,
+                chainId,
+              }),
+            )
           }
         }
 
-        this.#dbAssets.put(assetKey, asset).catch((e) => {
+        this.#dbAssets.put(assetKey, asSerializable(asset)).catch((e) => {
           this.#log.error(
             e,
             '[agent:%s] on metadata write (chainId=%s, assetId=%s)',
