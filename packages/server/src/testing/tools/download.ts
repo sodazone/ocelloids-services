@@ -18,7 +18,7 @@ export const networks = {
   astar: 'wss://rpc.astar.network',
 } as Record<string, string>
 
-async function download([name, ws, height]: [string, string, string]) {
+async function download([name, ws, height]: [string, string, number]) {
   const logger = pino()
   const client = await createSubstrateClient(logger, name, ws)
 
@@ -53,7 +53,7 @@ new Command()
 
     const ws = networks[network]
     if (ws) {
-      await download([network, ws, height])
+      await download([network, ws, Number(height)])
     } else {
       throw new Error(`Network name not found: ${network}`)
     }

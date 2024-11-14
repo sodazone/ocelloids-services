@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { filter, firstValueFrom } from 'rxjs'
+import { filter, firstValueFrom, map } from 'rxjs'
 
 import {
   BlockInfo,
@@ -53,8 +53,14 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     return this.#apiContext()
   }
 
-  get finalizedHeads$() {
-    return this.#head$.finalized$
+  get followHeads$() {
+    return this.#head$.finalized$.pipe(
+      map((b) => ({
+        height: b.number,
+        parenthash: b.parent,
+        hash: b.hash,
+      })),
+    )
   }
 
   get #runtimeContext(): Promise<RuntimeContext> {
@@ -143,7 +149,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   async getBlock(hash: string): Promise<Block> {
     try {
       const [header, txs, events] = await Promise.all([
-        this.getHeader(hash),
+        this.getBlockHeader(hash),
         this.#getBody(hash),
         this.#getEvents(hash),
       ])
@@ -174,7 +180,16 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  async getHeader(hash: string): Promise<BlockInfo> {
+  async getNeutralBlockHeader(hash: string) {
+    const header = await this.getBlockHeader(hash)
+    return {
+      parenthash: header.parent,
+      hash: header.hash,
+      height: header.number,
+    }
+  }
+
+  async getBlockHeader(hash: string): Promise<BlockInfo> {
     try {
       const encodedHeader = await this.#request<string, [hash: string]>('archive_unstable_header', [hash])
       const header = blockHeader.dec(encodedHeader)

@@ -10,6 +10,7 @@ declare module 'fastify' {
   }
 }
 
+// TODO producers per consensus, similar to consumers
 /**
  * Fastify plug-in for the {@link IngressProducer} instance.
  *

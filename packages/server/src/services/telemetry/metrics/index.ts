@@ -1,7 +1,7 @@
 import { Egress } from '@/services/egress/hub.js'
 import IngressProducer from '@/services/networking/substrate/ingress/producer.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { HeadCatcher } from '@/services/networking/substrate/watcher/head-catcher.js'
+import { SubstrateHeadCatcher } from '@/services/networking/substrate/watcher/head-catcher.js'
 import { TelemetryEventEmitter } from '../types.js'
 import { catcherMetrics } from './catcher.js'
 import { ingressConsumerMetrics, ingressProducerMetrics } from './ingress.js'
@@ -12,7 +12,7 @@ function isIngressConsumer(o: TelemetryEventEmitter): o is SubstrateIngressConsu
 }
 
 export function collect(observer: TelemetryEventEmitter) {
-  if (observer instanceof HeadCatcher) {
+  if (observer instanceof SubstrateHeadCatcher) {
     catcherMetrics(observer)
   } else if (observer instanceof Egress) {
     egressMetrics(observer)

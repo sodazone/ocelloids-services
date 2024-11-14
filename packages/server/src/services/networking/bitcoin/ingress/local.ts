@@ -6,27 +6,28 @@ import { ServiceConfiguration, isNetworkDefined } from '@/services/config.js'
 import { Services } from '@/services/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
-import { BitcoinApi } from '../client.js'
 import { Block, ChainInfo } from '../types.js'
 import { BitcoinIngressConsumer } from './types.js'
+import { BitcoinHeadCatcher } from './watcher.js'
 
 export class BitcoinLocalConsumer
   extends (EventEmitter as new () => TelemetryEventEmitter)
   implements BitcoinIngressConsumer
 {
   // readonly #log: Logger;
-  readonly #apis: Record<string, BitcoinApi>
   readonly #config: ServiceConfiguration
+  readonly #watcher: BitcoinHeadCatcher
 
   constructor(ctx: Services) {
     super()
 
     // this.#log = ctx.log;
     this.#config = ctx.localConfig
-    this.#apis = ctx.connector.connect<BitcoinApi>('bitcoin')
+    this.#watcher = new BitcoinHeadCatcher(ctx)
   }
+
   getChainInfo(chainId: NetworkURN): Promise<ChainInfo> {
-    return this.#apis[chainId].getChainInfo()
+    return this.#watcher.getChainInfo(chainId)
   }
 
   isNetworkDefined(chainId: NetworkURN): boolean {
@@ -34,7 +35,7 @@ export class BitcoinLocalConsumer
   }
 
   getChainIds(): NetworkURN[] {
-    return Object.keys(this.#apis) as NetworkURN[]
+    return this.#watcher.chainIds
   }
 
   collectTelemetry(collect: TelemetryCollect): void {
@@ -42,7 +43,7 @@ export class BitcoinLocalConsumer
   }
 
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    return this.#apis[chainId].follow$
+    return this.#watcher.finalizedBlocks(chainId)
   }
 
   async start() {

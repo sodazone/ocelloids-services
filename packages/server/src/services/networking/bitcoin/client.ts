@@ -3,7 +3,7 @@ import { distinctUntilChanged, from, mergeMap, shareReplay, timer } from 'rxjs'
 import { clearTimeout } from 'timers'
 import { Logger } from '../../types.js'
 import { ApiClient } from '../types.js'
-import { Block, ChainInfo } from './types.js'
+import { Block, BlockHeader, ChainInfo } from './types.js'
 
 export const RPCs = {
   mainnet: [
@@ -102,15 +102,13 @@ export class BitcoinApi implements ApiClient {
     this.#urls = Array.isArray(url) ? url : [url]
   }
 
-  // TODO handle re-orgs in bitcoin watcher
-  follow$ = timer(0, 60_000).pipe(
+  followHeads$ = timer(0, 60_000).pipe(
     mergeMap(() => from(this.getBlockHeight())),
     distinctUntilChanged(),
     mergeMap(async (height) => {
       const newHeight = height
-      const currentHash = await this.getBlockHash(newHeight)
-      const currentBlock = await this.getBlock(currentHash)
-      return currentBlock
+      const hash = await this.getBlockHash(newHeight)
+      return await this.getNeutralBlockHeader(hash)
     }),
     shareReplay(1),
   )
@@ -121,6 +119,19 @@ export class BitcoinApi implements ApiClient {
 
   async getBlockHash(height: number) {
     return await this.#call<string>('getblockhash', [height])
+  }
+
+  async getBlockHeader(hash: string) {
+    return await this.#call<BlockHeader>('getblockheader', [hash])
+  }
+
+  async getNeutralBlockHeader(hash: string) {
+    const header = await this.getBlockHeader(hash)
+    return {
+      parenthash: header.previousblockhash,
+      hash: header.hash,
+      height: header.height,
+    }
   }
 
   async getBlock(hash: string) {
@@ -216,5 +227,5 @@ export class BitcoinApi implements ApiClient {
   }
 }
 
-const client = new BitcoinApi({} as unknown as Logger, 'test', RPCs.testnet)
-console.log(await client.getBestBlock())
+//const client = new BitcoinApi({} as unknown as Logger, 'test', RPCs.testnet)
+//console.log(await client.getBestBlock())

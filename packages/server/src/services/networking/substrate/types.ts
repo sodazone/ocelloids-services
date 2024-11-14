@@ -101,7 +101,6 @@ export interface SubstrateApi extends ApiClient {
   readonly ctx: SubstrateApiContext
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
-  readonly finalizedHeads$: Observable<BlockInfo>
 
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{
@@ -113,8 +112,8 @@ export interface SubstrateApi extends ApiClient {
   }>
 
   getBlock(hash: string): Promise<Block>
-  getBlockHash(blockNumber: string): Promise<string>
-  getHeader(hash: string): Promise<{ hash: string; number: number; parent: string }>
+  getBlockHeader(hash: string): Promise<BlockInfo>
+
   getStorageKeys(
     keyPrefix: string,
     count: number,
