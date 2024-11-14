@@ -35,7 +35,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
     wsProtocol,
     levelDB: rootStore,
     ingress,
-    ingressProducer,
+    ingressProducers,
     agentCatalog: agentService,
   } = fastify
 
@@ -63,12 +63,16 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
 
     if (ingress) {
       log.info('Enable ingress consumer metrics')
-      Object.values(ingress).forEach((c) => c.collectTelemetry(collect))
+      for (const consumer of Object.values(ingress)) {
+        consumer.collectTelemetry(collect)
+      }
     }
 
-    if (ingressProducer) {
+    if (ingressProducers) {
       log.info('Enable ingress producer metrics')
-      ingressProducer.collectTelemetry(collect)
+      for (const producer of Object.values(ingressProducers)) {
+        producer.collectTelemetry(collect)
+      }
     }
 
     if (agentService) {
