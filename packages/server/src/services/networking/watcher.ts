@@ -71,7 +71,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * @see {Watcher["finalizedBlocks"]}
  * @see {Watcher.catchUpHeads}
  */
-export abstract class Watcher<T> extends (EventEmitter as new () => TelemetryEventEmitter) {
+export abstract class Watcher<T = unknown> extends (EventEmitter as new () => TelemetryEventEmitter) {
   protected readonly log: Logger
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration

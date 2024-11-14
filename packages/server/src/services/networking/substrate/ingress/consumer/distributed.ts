@@ -150,7 +150,7 @@ export class SubstrateDistributedConsumer
     return this.#networks[chainId] !== undefined
   }
 
-  getChainInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+  getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
     if (this.#networks[chainId] === undefined) {
       Promise.reject(new Error('unknown network'))
     }

@@ -17,7 +17,7 @@ import { IngressProducer } from './types.js'
  * - Publishing blocks into Redis streams
  * - Writing network configuration into a Redis set
  */
-export default abstract class BaseIngressProducer<T extends Watcher<unknown>>
+export default abstract class BaseIngressProducer<T extends Watcher>
   extends (EventEmitter as new () => TelemetryEventEmitter)
   implements IngressProducer
 {

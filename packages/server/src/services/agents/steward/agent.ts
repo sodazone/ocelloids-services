@@ -203,7 +203,7 @@ export class DataSteward implements Agent, Queryable {
 
   #putChainProps(chainId: NetworkURN) {
     this.#ingress
-      .getChainInfo(chainId)
+      .getNetworkInfo(chainId)
       .then((chainInfo) => {
         this.#dbChains.put(chainId, chainInfo).catch((e) => {
           this.#log.error(e, '[agent:%s] while writing chain info (chainId=%s)', this.id, chainId)

@@ -36,7 +36,7 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
     blockHash?: HexString,
   ): Observable<HexString[]>
   getContext(chainId: NetworkURN): Observable<SubstrateApiContext>
-  getChainInfo(chainId: NetworkURN): Promise<NetworkInfo>
+  getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
 }
