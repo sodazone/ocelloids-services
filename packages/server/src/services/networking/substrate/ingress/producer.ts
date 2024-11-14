@@ -13,7 +13,7 @@ import {
   getStorageReqKey,
   getVersionKey,
 } from '../../../ingress/distributor.js'
-import { encodeBlock } from '../watcher/codec.js'
+import { encodeBlock } from '../codec.js'
 import { SubstrateWatcher } from '../watcher/watcher.js'
 
 type StorageRequest = {

@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import { pino } from 'pino'
 
 import { createSubstrateClient } from '@/services/networking/substrate/client.js'
-import { encodeBlock } from '@/services/networking/substrate/watcher/codec.js'
+import { encodeBlock } from '@/services/networking/substrate/codec.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 

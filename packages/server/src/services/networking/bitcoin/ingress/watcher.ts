@@ -43,11 +43,11 @@ export class BitcoinWatcher extends Watcher<Block> {
     const api = this.#apis[chainId]
     const newPipe = api.followHeads$.pipe(
       mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
-      this.tapError(chainId, 'finalizedHeads()'),
+      this.tapError(chainId, 'followHeads$()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       this.catchUpHeads(chainId, api),
       mergeMap((header) => from(api.getBlock(header.hash))),
-      this.tapError(chainId, 'blockFromHeader()'),
+      this.tapError(chainId, 'getBlock()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       share(),
     )

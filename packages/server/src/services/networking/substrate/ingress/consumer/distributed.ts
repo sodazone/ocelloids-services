@@ -20,8 +20,8 @@ import { IngressOptions } from '@/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
+import { decodeBlock } from '../../codec.js'
 import { Block, SubstrateApiContext, createRuntimeApiContext } from '../../index.js'
-import { decodeBlock } from '../../watcher/codec.js'
 import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
