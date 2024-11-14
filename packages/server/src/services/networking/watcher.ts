@@ -65,8 +65,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
 }
 
 /**
- * The Watcher performs the following tasks ("moo" 🐮):
- * - Catches up with block headers based on the height gap for finalized blocks.
+ * The Watcher catches up with block headers based on the height gap for finalized blocks.
  *
  * @see {Watcher["finalizedBlocks"]}
  * @see {Watcher.catchUpHeads}
