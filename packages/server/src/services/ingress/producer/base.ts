@@ -13,7 +13,7 @@ import { NetworkEntry, NetworksKey, RedisDistributor, XAddOptions } from '../../
 import { IngressProducer } from './types.js'
 
 /**
- * IngressProducer is responsible for managing the ingress process, including:
+ * BaseIngressProducer is responsible for managing the ingress process, including:
  * - Publishing blocks into Redis streams
  * - Writing network configuration into a Redis set
  */

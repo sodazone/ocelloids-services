@@ -31,13 +31,13 @@ type StorageKeysRequest = {
 }
 
 /**
- * SubstrateProducer is responsible for managing the ingress process, including:
+ * SubstrateIngressProducer is responsible for managing the ingress process, including:
  * - Publishing blocks into Redis streams
  * - Publishing runtime metadata into Redis streams
  * - Providing blockchain storage data through asynchronous request-reply
  * - Writing network configuration into a Redis set
  */
-export default class SubstrateProducer extends BaseIngressProducer<SubstrateWatcher> {
+export default class SubstrateIngressProducer extends BaseIngressProducer<SubstrateWatcher> {
   createBlockStream(chainId: NetworkURN): RxSubscription {
     const key = getBlockStreamKey(chainId)
 

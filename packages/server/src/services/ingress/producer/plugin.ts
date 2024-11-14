@@ -2,41 +2,49 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { IngressOptions } from '@/types.js'
-import SubstrateProducer from '../../networking/substrate/ingress/producer.js'
+import SubstrateIngressProducer from '../../networking/substrate/ingress/producer.js'
+import { IngressProducers } from './types.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    ingressProducer: SubstrateProducer
+    ingressProducers: IngressProducers
   }
 }
 
-// TODO producers per consensus, similar to consumers
 /**
- * Fastify plug-in for the {@link SubstrateProducer} instance.
+ * Fastify plug-in for the {@link SubstrateIngressProducer} instance.
  *
  * @param fastify - The Fastify instance.
  * @param options - The options for configuring the IngressProducer.
  */
 const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify, options) => {
-  const producer = new SubstrateProducer(fastify, options)
+  const substrateProducer = new SubstrateIngressProducer(fastify, options)
+
+  const producers: IngressProducers = {
+    substrate: substrateProducer,
+  }
 
   fastify.addHook('onClose', (server, done) => {
-    producer
-      .stop()
-      .then(() => {
-        server.log.info('Ingress stopped')
-      })
-      .catch((error) => {
-        server.log.error(error, 'Error while stopping ingress')
-      })
-      .finally(() => {
-        done()
-      })
+    for (const [key, producer] of Object.entries(producers)) {
+      producer
+        .stop()
+        .then(() => {
+          server.log.info('[%s] Ingress stopped', key)
+        })
+        .catch((error) => {
+          server.log.error(error, '[%s] Error while stopping ingress', key)
+        })
+        .finally(() => {
+          done()
+        })
+    }
   })
 
-  fastify.decorate('ingressProducer', producer)
+  fastify.decorate('ingressProducers', producers)
 
-  await producer.start()
+  for (const producer of Object.values(producers)) {
+    await producer.start()
+  }
 }
 
 export default fp(IngressProducerPlugin, {

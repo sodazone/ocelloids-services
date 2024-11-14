@@ -37,24 +37,28 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
   }
 
   fastify.addHook('onClose', (server, done) => {
-    substrateConsumer
-      .stop()
-      .then(() => {
-        server.log.info('Ingress consumer stopped')
-      })
-      .catch((error) => {
-        server.log.error(error, 'Error while stopping ingress consumer')
-      })
-      .finally(() => {
-        done()
-      })
+    for (const [key, consumer] of Object.entries(consumers)) {
+      consumer
+        .stop()
+        .then(() => {
+          server.log.info('[%s] Ingress consumer stopped', key)
+        })
+        .catch((error) => {
+          server.log.error(error, '[%s] Error while stopping ingress consumer', key)
+        })
+        .finally(() => {
+          done()
+        })
+    }
   })
 
   fastify.decorate('ingress', consumers)
 
   fastify.register(ConsumerApi)
 
-  await substrateConsumer.start()
+  for (const consumer of Object.values(consumers)) {
+    await consumer.start()
+  }
 }
 
 export default fp(ingressConsumerPlugin, { fastify: '>=4.x', name: 'ingress-consumer' })
