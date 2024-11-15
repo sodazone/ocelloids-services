@@ -9,7 +9,7 @@ import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
-import { $ServiceConfiguration } from '../services/config.js'
+import { $ServiceConfiguration, ServiceConfiguration } from '../services/config.js'
 import { Egress } from '../services/egress/index.js'
 import Connector from '../services/networking/connector.js'
 import { Janitor } from '../services/persistence/level/janitor.js'
@@ -23,7 +23,7 @@ export const _log = pino({
   enabled: false,
 })
 
-export const _config = $ServiceConfiguration.parse(toml.parse(_configToml))
+export const _config = new ServiceConfiguration($ServiceConfiguration.parse(toml.parse(_configToml)))
 
 function mockApiClient() {
   const _client = {

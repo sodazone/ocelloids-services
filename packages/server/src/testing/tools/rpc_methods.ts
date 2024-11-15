@@ -37,7 +37,9 @@ ${supports('chain_', 19)}
 
   await Promise.all(
     Array<Promise<void>>().concat(
-      config.networks.flatMap((network) => Array<string>().concat(network.provider.url).map(check)),
+      config.substrate?.networks.flatMap((network) =>
+        Array<string>().concat(network.provider.url).map(check),
+      ) ?? [],
     ),
   )
   process.exit(0)

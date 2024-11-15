@@ -91,7 +91,7 @@ export default abstract class BaseIngressProducer<T extends Watcher>
   async #writeNetworkConfig() {
     // TODO handle DELETE
     const networks: NetworkEntry[] = []
-    for (const network of this.#config.networks) {
+    for (const network of this.#config.all) {
       const chainId = network.id as NetworkURN
       const info = await this.watcher.getNetworkInfo(chainId)
 

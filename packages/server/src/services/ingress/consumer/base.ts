@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { ServiceConfiguration, isNetworkDefined } from '@/services/config.js'
+import { ServiceConfiguration } from '@/services/config.js'
 import { Watcher } from '@/services/networking/watcher.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Logger, NetworkURN, Services } from '@/services/types.js'
@@ -28,7 +28,7 @@ export abstract class LocalIngressConsumer<T extends Watcher, B, C>
   }
 
   isNetworkDefined(chainId: NetworkURN): boolean {
-    return isNetworkDefined(this.config, chainId)
+    return this.config.isNetworkDefined(chainId)
   }
 
   getChainIds(): NetworkURN[] {

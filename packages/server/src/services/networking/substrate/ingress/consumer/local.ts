@@ -1,6 +1,5 @@
 import { Observable, from, map, shareReplay } from 'rxjs'
 
-import { isRelay } from '@/services/config.js'
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
@@ -29,11 +28,11 @@ export class SubstrateLocalConsumer
   }
 
   getRelayIds(): NetworkURN[] {
-    return this.config.networks.filter((n) => n.relay === undefined).map((n) => n.id) as NetworkURN[]
+    return this.config.substrate.filter((n) => n.relay === undefined).map((n) => n.id) as NetworkURN[]
   }
 
   isRelay(chainId: NetworkURN) {
-    return isRelay(this.config, chainId)
+    return this.config.isRelay(chainId)
   }
 
   getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {

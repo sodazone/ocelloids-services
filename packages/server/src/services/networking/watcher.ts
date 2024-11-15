@@ -72,9 +72,9 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  */
 export abstract class Watcher<T = unknown> extends (EventEmitter as new () => TelemetryEventEmitter) {
   protected readonly log: Logger
+
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
-
   readonly #mutex: Record<NetworkURN, Mutex> = {}
   readonly #chainTips: Family
 
@@ -179,7 +179,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   }
 
   protected async recoverRanges(chainId: NetworkURN) {
-    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId)
+    const networkConfig = this.#localConfig.getNetwork(chainId)
     if (networkConfig && networkConfig.recovery) {
       return await (await this.#pendingRanges(chainId).values()).all()
     } else {
@@ -352,7 +352,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   }
 
   #batchSize(chainId: NetworkURN) {
-    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId)
+    const networkConfig = this.#localConfig.getNetwork(chainId)
     return networkConfig?.batchSize ?? 25
   }
 

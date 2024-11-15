@@ -1,4 +1,4 @@
-import { ClientId, NetworkConfiguration, ServiceConfiguration } from '../config.js'
+import { ClientId, NetworkConfiguration, ServiceConfiguration, clientIds } from '../config.js'
 import { Logger } from '../types.js'
 import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
 import { SubstrateClient } from './substrate/index.js'
@@ -11,23 +11,25 @@ export default class Connector {
   readonly #log: Logger
   readonly #chains: Map<ClientId, Record<string, ApiClient>>
 
-  constructor(log: Logger, { networks }: ServiceConfiguration) {
+  constructor(log: Logger, config: ServiceConfiguration) {
     this.#log = log
     this.#chains = new Map()
 
-    for (const network of networks) {
-      if (this.#chains.has(network.client) && this.#chains.get(network.client)![network.id] !== undefined) {
-        continue
+    for (const clientId of clientIds) {
+      for (const network of config.networks[clientId]) {
+        if (this.#chains.has(clientId) && this.#chains.get(clientId)![network.id] !== undefined) {
+          continue
+        }
+
+        log.info('Register network: %s', network.id)
+
+        this.registerNetwork(clientId, network)
       }
-
-      log.info('Register network: %s', network.id)
-
-      this.registerNetwork(network)
     }
   }
 
-  private registerNetwork(network: NetworkConfiguration) {
-    const { id, provider, client } = network
+  private registerNetwork(client: ClientId, network: NetworkConfiguration) {
+    const { id, provider } = network
 
     this.#log.info('Register RPC client: %s (%s)', id, client)
 
