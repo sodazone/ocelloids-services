@@ -45,7 +45,16 @@ export function toMelburne(o: unknown): string {
 
   if (typeof o === 'object') {
     return Object.entries(o)
-      .map(([k, v]) => (k === 'type' ? v : k === 'value' ? toMelburne(v) : `${k}:${toMelburne(v)}`))
+      .flatMap(([k, v]) => {
+        if (k === 'type') {
+          return v
+        }
+        if (k === 'value') {
+          return v == null ? null : toMelburne(v)
+        }
+        return `${k}:${toMelburne(v)}`
+      })
+      .filter((p) => p !== null)
       .join(':')
   }
 

@@ -190,9 +190,33 @@ function parseCrossChainAsset(
   return null
 }
 
+function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset | null {
+  // not possible
+  if (junctions.type === 'here') {
+    return null
+  }
+  // relay/solo chains
+  if (junctions.type === 'x1') {
+    const junction = junctions.value
+    if (Array.isArray(junction)) {
+      if (junction[0].type === 'globalconsensus') {
+        return {
+          network: createNetworkId((junction[0].value as any).type, '0'),
+          assetId: { type: 'string', value: 'native' },
+        }
+      }
+    } else if (junction.type === 'globalconsensus') {
+      return {
+        network: createNetworkId((junction.value as any).type, '0'),
+        assetId: { type: 'string', value: 'native' },
+      }
+    }
+  }
+  return null
+}
+
 function mapParsedAsset({
   network,
-  pallet,
   assetIdData,
   accountId20,
   assetIndex,
@@ -203,35 +227,27 @@ function mapParsedAsset({
   accountId20?: string
   assetIndex?: string
 }): ParsedAsset | null {
-  if (pallet) {
+  if (!accountId20 && assetIdData.length === 0 && !assetIndex) {
     // assuming that only valid case is balances pallet
     // TODO: resolve and match pallet instance in mapping
-    if (!accountId20 && assetIdData.length === 0 && !assetIndex) {
-      return {
-        network,
-        assetId: { type: 'string', value: 'native' },
-      }
+    return {
+      network,
+      assetId: { type: 'string', value: 'native' },
     }
+  }
 
-    if (assetIndex) {
-      return {
-        network,
-        assetId: { type: 'string', value: assetIndex },
-      }
-    }
+  // // TODO: handle Pendulum assets case
+  // if (assetIndex && assetIdData > 0) {
+  // }
 
-    if (assetIdData.length > 0) {
-      return {
-        network,
-        assetId: {
-          type: 'data',
-          value: assetIdData,
-        },
-        pallet,
-      }
+  if (assetIndex) {
+    return {
+      network,
+      assetId: { type: 'string', value: assetIndex },
     }
-    // TODO: support EVM contract assets
-  } else if (assetIdData.length > 0) {
+  }
+
+  if (assetIdData.length > 0) {
     return {
       network,
       assetId: {
@@ -240,6 +256,9 @@ function mapParsedAsset({
       },
     }
   }
+
+  // TODO: support EVM contract assets
+
   return null
 }
 
@@ -251,8 +270,9 @@ function parseAssetFromMultilocation(network: NetworkURN, location: Multilocatio
     return parseLocalAsset(network, junctions)
   } else if (parents === 1) {
     return parseCrossChainAsset(network, junctions)
+  } else if (parents === 2) {
+    return parseCrossConsensusAsset(junctions)
   }
-  // cross-consensus not supported yet
   return null
 }
 

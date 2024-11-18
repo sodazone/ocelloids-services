@@ -51,6 +51,7 @@ describe('', () => {
         },
       }),
     ).toBe('xyz:u4:0x01010101:u8:0x0202020202020202')
+    expect(toMelburne({ type: 'Native', value: { type: 'BNC', value: undefined } })).toBe('Native:BNC')
   })
 
   it('', () => {
