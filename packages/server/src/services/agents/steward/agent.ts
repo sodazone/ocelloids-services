@@ -29,7 +29,6 @@ import { assetMetadataKey } from './util.js'
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
-const ASSETS_MAP_TMP_LEVEL_PREFIX = 'agent:steward:assets-map-tmp'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
 
 const STORAGE_PAGE_LEN = 100
@@ -51,7 +50,6 @@ export class DataSteward implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: LevelDB
-  readonly #dbAssetsMapTmp: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Uint8Array, AssetIds>
 
   readonly #queries: Queries
 
@@ -61,9 +59,6 @@ export class DataSteward implements Agent, Queryable {
     this.#ingress = ctx.ingress
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
-      valueEncoding: 'json',
-    })
-    this.#dbAssetsMapTmp = ctx.db.sublevel<Uint8Array, AssetIds>(ASSETS_MAP_TMP_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
@@ -150,7 +145,11 @@ export class DataSteward implements Agent, Queryable {
       }
     }
 
+    const tmpMapExternalIds: Record<string, AssetIds[]> = {}
+    const tmpMapSourceIds: Record<string, string> = {}
+
     const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
+
     allAssetMapsObs.subscribe({
       next: async ({ chainId, asset }) => {
         const assetKey = assetMetadataKey(chainId, asset.id)
@@ -163,16 +162,16 @@ export class DataSteward implements Agent, Queryable {
           )
 
           if (resolvedId && resolvedId !== assetKey) {
-            const key = mergeUint8(Twox128(stringToUa8(resolvedId)), Twox128(stringToUa8(assetKey)))
-
-            await this.#dbAssetsMapTmp.put(
-              key,
-              asSerializable({
+            const cur = tmpMapExternalIds[resolvedId] ?? []
+            tmpMapExternalIds[resolvedId] = cur.concat([
+              {
                 id: asset.id,
                 xid: asset.xid,
                 chainId,
-              }),
-            )
+              },
+            ])
+
+            tmpMapSourceIds[assetKey] = resolvedId
           }
         }
 
@@ -188,30 +187,35 @@ export class DataSteward implements Agent, Queryable {
       },
       complete: async () => {
         this.#log.info('[agent:%s] END synchronizing asset metadata', this.id)
-        const zeroArray = new Uint8Array(8).fill(0)
-        const fArray = new Uint8Array(8).fill(0xff)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
-          const assetHash = Twox128(stringToUa8(assetKey))
           try {
-            const externalIdsMap = await this.#dbAssetsMapTmp
-              .iterator({
-                gt: mergeUint8(assetHash, zeroArray),
-                lt: mergeUint8(assetHash, fArray),
-              })
-              .all()
-            const externalIds = externalIdsMap.map(([_key, assetId]) => assetId)
-            if (externalIds.length > 0) {
-              this.#dbAssets.put(assetKey, {
-                ...asset,
-                externalIds,
-              })
+            let updated = false
+            const externalIds = tmpMapExternalIds[assetKey]
+            const updatedAsset = asset
+            if (externalIds) {
+              updatedAsset.externalIds = externalIds
+              updated = true
+            }
+
+            const sourceId = tmpMapSourceIds[assetKey]
+            if (sourceId) {
+              const sourceAsset = await this.#dbAssets.get(sourceId)
+              updatedAsset.sourceId = {
+                chainId: sourceAsset.chainId,
+                id: sourceAsset.id,
+                xid: sourceAsset.xid,
+              }
+              updated = true
+            }
+
+            if (updated) {
+              await this.#dbAssets.put(assetKey, updatedAsset)
             }
           } catch (_error) {
             //
           }
         }
         this.#log.info('[agent:%s] END synchronizing registered chains', this.id)
-        await this.#dbAssetsMapTmp.clear()
       },
       error: (e) => this.#log.error(e, '[agent:%s] on metadata sync', this.id),
     })

@@ -130,6 +130,7 @@ export type AssetMetadata = AssetIds & {
   existentialDeposit?: string
   isSufficient?: boolean
   multiLocation?: Record<string, any> | AnyJson
+  sourceId?: AssetIds
   externalIds: AssetIds[]
   updated: number
   raw: Record<string, any>
