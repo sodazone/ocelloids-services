@@ -1,6 +1,5 @@
 import { AbstractIterator } from 'abstract-level'
 
-import { asJSON } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 import { AssetId } from './types.js'
