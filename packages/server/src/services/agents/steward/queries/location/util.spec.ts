@@ -72,4 +72,10 @@ describe('utility functions', () => {
       },
     })
   })
+
+  it('should return null for wrong multilocation', () => {
+    const locationString =
+      '{"parents":1,"interior":{"type":"X3","value":[{"type":"Parachain","value":0},{"type":"Parachain","value":0},{"type":"Parachain","value":0}]}}'
+    expect(parseAssetFromJson('urn:ocn:polkadot:2034', locationString)).toBeNull()
+  })
 })

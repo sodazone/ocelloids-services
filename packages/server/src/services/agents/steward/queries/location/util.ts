@@ -156,7 +156,11 @@ function parseCrossChainAsset(
 
     for (const junction of junctions.value) {
       if (junction.type === 'parachain') {
-        network = createNetworkId(referenceNetwork, junction.value as string)
+        const paraId = (junction.value as string | number).toString()
+
+        if (paraId !== '0') {
+          network = createNetworkId(referenceNetwork, paraId)
+        }
       } else if (junction.type === 'palletinstance') {
         pallet = junction.value as number
       } else if (junction.type === 'generalindex') {
