@@ -1,3 +1,5 @@
+import { Options } from 'ky'
+
 import type {
   AgentId,
   AnyJson,
@@ -63,17 +65,17 @@ export class OcelloidsAgentApi<T> {
    *
    * @param args - The query arguments.
    * @param pagination - The pagination configuration.
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible).
    * @returns A promise that resolves to the results of the query.
    */
   async query<P = AnyQueryArgs, R = AnyQueryResultItem>(
     args: P,
     pagination?: QueryPagination,
-    init: RequestInit = {},
+    options?: Options,
   ) {
     const url = this.#config.httpUrl + '/query/' + this.#agentId
     return this.#fetch<QueryResult<R>>(url, {
-      ...init,
+      ...options,
       method: 'POST',
       body: JSON.stringify({
         args,
@@ -86,12 +88,12 @@ export class OcelloidsAgentApi<T> {
    * Creates a subscription.
    *
    * @param subscription - The subscription to create.
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves when the subscription is created.
    */
-  async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, init: RequestInit = {}) {
+  async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: Options) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
-      ...init,
+      ...options,
       method: 'POST',
       body: JSON.stringify({
         ...subscription,
@@ -104,12 +106,12 @@ export class OcelloidsAgentApi<T> {
    * Deletes a subscription.
    *
    * @param id - The subscription ID.
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible)
    */
-  async deleteSubscription(id: string, init: RequestInit = {}) {
+  async deleteSubscription(id: string, options?: Options) {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
     return this.#fetch(url, {
-      ...init,
+      ...options,
       method: 'DELETE',
     })
   }
@@ -118,22 +120,22 @@ export class OcelloidsAgentApi<T> {
    * Gets a subscription by its ID.
    *
    * @param id - The subscription ID.
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription(id: string, init?: RequestInit): Promise<Subscription<T>> {
+  async getSubscription(id: string, options?: Options): Promise<Subscription<T>> {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
-    return this.#fetch<Subscription<T>>(url, init)
+    return this.#fetch<Subscription<T>>(url, options)
   }
 
   /**
    * Lists all subscriptions.
    *
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with an array of subscriptions.
    */
-  async allSubscriptions(init?: RequestInit): Promise<Subscription<T>[]> {
-    return this.#fetch<Subscription<T>[]>(this.#config.httpUrl + '/subs/' + this.#agentId, init)
+  async allSubscriptions(options?: Options): Promise<Subscription<T>[]> {
+    return this.#fetch<Subscription<T>[]>(this.#config.httpUrl + '/subs/' + this.#agentId, options)
   }
 
   /**
@@ -305,10 +307,10 @@ export class OcelloidsClient {
   /**
    * Checks the health of the service.
    *
-   * @param init - The fetch request initialization.
+   * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
-  async health(init?: RequestInit): Promise<any> {
-    return this.#fetch(this.#config.httpUrl + '/health', init)
+  async health(options?: Options): Promise<any> {
+    return this.#fetch(this.#config.httpUrl + '/health', options)
   }
 }
