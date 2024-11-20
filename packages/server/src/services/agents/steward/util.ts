@@ -37,7 +37,7 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
   }
 }
 
-export function toMelburne(o: unknown): string {
+export function toMelbourne(o: unknown): string {
   if (o == null) {
     return ''
   }
@@ -49,11 +49,11 @@ export function toMelburne(o: unknown): string {
           return v
         }
         if (k === 'value') {
-          return v == null ? null : toMelburne(v)
+          return v == null ? null : toMelbourne(v)
         }
-        return `${k}:${toMelburne(v)}`
+        return `${k}:${toMelbourne(v)}`
       })
-      .filter((p) => p !== null)
+      .filter(Boolean)
       .join(':')
   }
 
@@ -72,7 +72,7 @@ function normalize(assetId: AssetId) {
       break
     }
     default:
-      str = toMelburne(assetId)
+      str = toMelbourne(assetId)
   }
   return str.toLowerCase()
 }

@@ -1,32 +1,32 @@
-import { toMelburne } from './util.js'
+import { toMelbourne } from './util.js'
 
-describe('', () => {
-  it('', () => {
-    expect(toMelburne(undefined)).toBe('')
-    expect(toMelburne(null)).toBe('')
-    expect(toMelburne('')).toBe('')
-    expect(toMelburne('lol')).toBe('lol')
-    expect(toMelburne('loL')).toBe('loL')
-    expect(toMelburne(100)).toBe('100')
-    expect(toMelburne(200n)).toBe('200')
+describe('Melbourne', () => {
+  it('should work with primitive types', () => {
+    expect(toMelbourne(undefined)).toBe('')
+    expect(toMelbourne(null)).toBe('')
+    expect(toMelbourne('')).toBe('')
+    expect(toMelbourne('lol')).toBe('lol')
+    expect(toMelbourne('loL')).toBe('loL')
+    expect(toMelbourne(100)).toBe('100')
+    expect(toMelbourne(200n)).toBe('200')
   })
 
-  it('', () => {
-    expect(toMelburne({ hey: 'joe' })).toBe('hey:joe')
+  it('should work with structs', () => {
+    expect(toMelbourne({ hey: 'joe' })).toBe('hey:joe')
     expect(
-      toMelburne({
+      toMelbourne({
         type: 'ForeignAsset',
         value: 6,
       }),
     ).toBe('ForeignAsset:6')
     expect(
-      toMelburne({
+      toMelbourne({
         type: 'Token2',
         value: 5,
       }),
     ).toBe('Token2:5')
     expect(
-      toMelburne({
+      toMelbourne({
         type: 'xyz',
         value: {
           type: 'u4',
@@ -35,7 +35,7 @@ describe('', () => {
       }),
     ).toBe('xyz:u4:0x01010101')
     expect(
-      toMelburne({
+      toMelbourne({
         type: 'xyz',
         value: {
           u4: '0x01010101',
@@ -43,7 +43,7 @@ describe('', () => {
       }),
     ).toBe('xyz:u4:0x01010101')
     expect(
-      toMelburne({
+      toMelbourne({
         type: 'xyz',
         value: {
           u4: '0x01010101',
@@ -51,12 +51,12 @@ describe('', () => {
         },
       }),
     ).toBe('xyz:u4:0x01010101:u8:0x0202020202020202')
-    expect(toMelburne({ type: 'Native', value: { type: 'BNC', value: undefined } })).toBe('Native:BNC')
+    expect(toMelbourne({ type: 'Native', value: { type: 'BNC', value: undefined } })).toBe('Native:BNC')
   })
 
-  it('', () => {
+  it('should work with multi-locations', () => {
     expect(
-      toMelburne({
+      toMelbourne({
         parents: 1,
         interior: {
           type: 'X3',
@@ -79,7 +79,7 @@ describe('', () => {
     ).toBe('parents:1:interior:X3:0:Parachain:1000:1:PalletInstance:50:2:GeneralIndex:23')
 
     expect(
-      toMelburne({
+      toMelbourne({
         parents: 2,
         interior: {
           type: 'X1',
@@ -93,7 +93,7 @@ describe('', () => {
       }),
     ).toBe('parents:2:interior:X1:GlobalConsensus:Kusama')
     expect(
-      toMelburne({
+      toMelbourne({
         parents: 1,
         interior: {
           X2: [
