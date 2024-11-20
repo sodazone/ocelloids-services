@@ -773,7 +773,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/rate-limit@npm:^10.1.1":
+"@fastify/rate-limit@npm:^10.2.1":
   version: 10.2.1
   resolution: "@fastify/rate-limit@npm:10.2.1"
   dependencies:
@@ -784,7 +784,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/swagger@npm:^9.2.0":
+"@fastify/swagger@npm:^9.3.0":
   version: 9.3.0
   resolution: "@fastify/swagger@npm:9.3.0"
   dependencies:
@@ -1065,9 +1065,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/cli@npm:0.9.19":
-  version: 0.9.19
-  resolution: "@polkadot-api/cli@npm:0.9.19"
+"@polkadot-api/cli@npm:0.9.20":
+  version: 0.9.20
+  resolution: "@polkadot-api/cli@npm:0.9.20"
   dependencies:
     "@commander-js/extra-typings": "npm:^12.1.0"
     "@polkadot-api/codegen": "npm:0.12.8"
@@ -1078,7 +1078,7 @@ __metadata:
     "@polkadot-api/observable-client": "npm:0.6.2"
     "@polkadot-api/polkadot-sdk-compat": "npm:2.3.1"
     "@polkadot-api/sm-provider": "npm:0.1.7"
-    "@polkadot-api/smoldot": "npm:0.3.6"
+    "@polkadot-api/smoldot": "npm:0.3.7"
     "@polkadot-api/substrate-bindings": "npm:0.9.3"
     "@polkadot-api/substrate-client": "npm:0.3.0"
     "@polkadot-api/utils": "npm:0.1.2"
@@ -1098,7 +1098,7 @@ __metadata:
   bin:
     papi: dist/main.js
     polkadot-api: dist/main.js
-  checksum: 10c0/8f6387797ef6bec991d27ae0e392d5ff5a2e3491a886ec6a555593d21fbaf8444f4c9c0aace7c860543d0bebc314f5116e365952941c076397e696a5c37fb341
+  checksum: 10c0/579b3dbc6c291a80aa4963745db41f2879727c4c811282bea8ba07e45ee130a524f2b9bcd142b9af3aed68740dbdf798a0f9e15a2167d94cf35459f96b7855da
   languageName: node
   linkType: hard
 
@@ -1271,13 +1271,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@polkadot-api/smoldot@npm:0.3.6":
-  version: 0.3.6
-  resolution: "@polkadot-api/smoldot@npm:0.3.6"
+"@polkadot-api/smoldot@npm:0.3.7":
+  version: 0.3.7
+  resolution: "@polkadot-api/smoldot@npm:0.3.7"
   dependencies:
     "@types/node": "npm:^22.9.0"
-    smoldot: "npm:2.0.32"
-  checksum: 10c0/89065680058185b6aa8f160fcbf2bd742fda7685222db669573477cc9df59d8b9bcc7b3bc6c862a7081a72752d40758ddcc6ea6a9f3be1fb6b6e2a1a630134cb
+    smoldot: "npm:2.0.33"
+  checksum: 10c0/edd2e4b31a3f43231e86dc9452c8cf9c126858c48539d35d5f01146a6958db8f530dc01a9aaf01ffb8b7f0b3750cdc16223df80d548e212955de889defced114
   languageName: node
   linkType: hard
 
@@ -1579,13 +1579,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scalar/fastify-api-reference@npm:^1.25.61":
-  version: 1.25.66
-  resolution: "@scalar/fastify-api-reference@npm:1.25.66"
+"@scalar/fastify-api-reference@npm:^1.25.68":
+  version: 1.25.68
+  resolution: "@scalar/fastify-api-reference@npm:1.25.68"
   dependencies:
-    "@scalar/types": "npm:0.0.19"
+    "@scalar/types": "npm:0.0.20"
     fastify-plugin: "npm:^4.5.1"
-  checksum: 10c0/f79981861d5bbaa6c3f093d292b1e40b8d9a26230dc079f862cac177f4f72f3952c01aa7cdede3b922af3195cdaf16034c560ce47c984adcdc87a980e6181059
+  checksum: 10c0/cf01067fb431f59970958ef53c019cdf0df5de7f046e426eaa962b6031f0f8b0f16237aacb654c388c0906c98a91ad86ed2bbbd9e155f99b13ef0dd4c56b0970
   languageName: node
   linkType: hard
 
@@ -1596,13 +1596,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scalar/types@npm:0.0.19":
-  version: 0.0.19
-  resolution: "@scalar/types@npm:0.0.19"
+"@scalar/types@npm:0.0.20":
+  version: 0.0.20
+  resolution: "@scalar/types@npm:0.0.20"
   dependencies:
     "@scalar/openapi-types": "npm:0.1.5"
-    "@unhead/schema": "npm:^1.9.5"
-  checksum: 10c0/bf5cd7c88f401f26f88238fa69ce892d14162683fe4333e29e2ac6dc517c644cc1141057343cc87d1d438f131c6cb882d2434571965c2eba64bef55f94b94dee
+    "@unhead/schema": "npm:^1.11.11"
+  checksum: 10c0/63790e6a07624b32154fa2e6fcffea696855a41c1672c15c8bdae4ac04528fd5e4c1ad8811f2c56a80f0ce18e7953fd55b3afd17abfe5e23ded50cee533c1fc7
   languageName: node
   linkType: hard
 
@@ -1717,12 +1717,12 @@ __metadata:
     isows: "npm:^1.0.6"
     ky: "npm:^1.7.2"
     mock-socket: "npm:^9.3.1"
-    nock: "npm:^14.0.0-beta.15"
+    nock: "npm:^14.0.0-beta.16"
     tsup: "npm:^8.3.5"
     tsx: "npm:^4.19.2"
     typedoc: "npm:^0.26.11"
     typescript: "npm:^5.6.3"
-    vitest: "npm:^2.1.4"
+    vitest: "npm:^2.1.5"
     zod: "npm:^3.23.8"
   peerDependencies:
     ws: "*"
@@ -1736,16 +1736,16 @@ __metadata:
     "@biomejs/biome": "npm:1.9.4"
     "@fastify/cors": "npm:^10.0.1"
     "@fastify/jwt": "npm:^9.0.1"
-    "@fastify/rate-limit": "npm:^10.1.1"
-    "@fastify/swagger": "npm:^9.2.0"
+    "@fastify/rate-limit": "npm:^10.2.1"
+    "@fastify/swagger": "npm:^9.3.0"
     "@fastify/websocket": "npm:^11.0.1"
     "@polkadot-api/tx-utils": "npm:^0.0.4"
-    "@scalar/fastify-api-reference": "npm:^1.25.61"
-    "@types/better-sqlite3": "npm:^7.6.11"
-    "@types/node": "npm:^22.9.0"
+    "@scalar/fastify-api-reference": "npm:^1.25.68"
+    "@types/better-sqlite3": "npm:^7.6.12"
+    "@types/node": "npm:^22.9.1"
     "@types/ws": "npm:^8.5.13"
-    "@vitest/coverage-v8": "npm:2.1.4"
-    "@vitest/ui": "npm:2.1.4"
+    "@vitest/coverage-v8": "npm:2.1.5"
+    "@vitest/ui": "npm:2.1.5"
     async-mutex: "npm:^0.5.0"
     better-sqlite3: "npm:^11.5.0"
     cbor-x: "npm:^1.6.0"
@@ -1763,10 +1763,10 @@ __metadata:
     lru-cache: "npm:^11.0.2"
     memory-level: "npm:^1.0.0"
     mingo: "npm:^6.4.15"
-    nock: "npm:^13.5.5"
+    nock: "npm:^13.5.6"
     nodemon: "npm:^3.1.7"
     pino-pretty: "npm:^13.0.0"
-    polkadot-api: "npm:^1.7.3"
+    polkadot-api: "npm:^1.7.6"
     prom-client: "npm:^15.1.3"
     rave-level: "npm:^1.0.0"
     redis: "npm:^4.7.0"
@@ -1777,9 +1777,9 @@ __metadata:
     tsx: "npm:^4.19.2"
     typescript: "npm:^5.6.3"
     ulidx: "npm:^2.4.1"
-    viem: "npm:^2.21.44"
-    vite-tsconfig-paths: "npm:^5.1.2"
-    vitest: "npm:^2.1.4"
+    viem: "npm:^2.21.48"
+    vite-tsconfig-paths: "npm:^5.1.3"
+    vitest: "npm:^2.1.5"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.23.5"
   bin:
@@ -1813,12 +1813,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/better-sqlite3@npm:^7.6.11":
-  version: 7.6.11
-  resolution: "@types/better-sqlite3@npm:7.6.11"
+"@types/better-sqlite3@npm:^7.6.12":
+  version: 7.6.12
+  resolution: "@types/better-sqlite3@npm:7.6.12"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/6a7b8e5765f872404242ff9626edf4b4dd7974047144ba7254a59f4f1c196d05f8001323d0b526e8bbb3842bf541e341d74ca0164e50bd38fceaf3ef5d2a673d
+  checksum: 10c0/5367de7492e2c697aa20cc4024ba26210971d15f60c01ef691eddfbbfd39ccf9f80d5129fd7fd6c76c98804739325e23d2b156b0eac8f5a7665ba374a08ac1e7
   languageName: node
   linkType: hard
 
@@ -1863,6 +1863,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^22.9.1":
+  version: 22.9.1
+  resolution: "@types/node@npm:22.9.1"
+  dependencies:
+    undici-types: "npm:~6.19.8"
+  checksum: 10c0/ea489ae603aa8874e4e88980aab6f2dad09c755da779c88dd142983bfe9609803c89415ca7781f723072934066f63daf2b3339ef084a8ad1a8079cf3958be243
+  languageName: node
+  linkType: hard
+
 "@types/normalize-package-data@npm:^2.4.3":
   version: 2.4.4
   resolution: "@types/normalize-package-data@npm:2.4.4"
@@ -1893,7 +1902,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@unhead/schema@npm:^1.9.5":
+"@unhead/schema@npm:^1.11.11":
   version: 1.11.11
   resolution: "@unhead/schema@npm:1.11.11"
   dependencies:
@@ -1903,9 +1912,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/coverage-v8@npm:2.1.4":
-  version: 2.1.4
-  resolution: "@vitest/coverage-v8@npm:2.1.4"
+"@vitest/coverage-v8@npm:2.1.5":
+  version: 2.1.5
+  resolution: "@vitest/coverage-v8@npm:2.1.5"
   dependencies:
     "@ampproject/remapping": "npm:^2.3.0"
     "@bcoe/v8-coverage": "npm:^0.2.3"
@@ -1916,16 +1925,16 @@ __metadata:
     istanbul-reports: "npm:^3.1.7"
     magic-string: "npm:^0.30.12"
     magicast: "npm:^0.3.5"
-    std-env: "npm:^3.7.0"
+    std-env: "npm:^3.8.0"
     test-exclude: "npm:^7.0.1"
     tinyrainbow: "npm:^1.2.0"
   peerDependencies:
-    "@vitest/browser": 2.1.4
-    vitest: 2.1.4
+    "@vitest/browser": 2.1.5
+    vitest: 2.1.5
   peerDependenciesMeta:
     "@vitest/browser":
       optional: true
-  checksum: 10c0/f795fdd645ccc46de45baa431a1b3b216d74195b9751cb0498009b8ef929dcd48c2f858570d421908549f5a631ac2931f7c7f3fe4ff0bc80707805beda5c18d7
+  checksum: 10c0/c6870a8714861fafa5114711d9c2ea56525e6a5e2ebf464e0aea1cb8b79a2fe742e239c0ee210c3e8e916646f799b07707c8bf2a7fd33e0d7f2bc9bd9d938d77
   languageName: node
   linkType: hard
 
@@ -1957,15 +1966,6 @@ __metadata:
     vite:
       optional: true
   checksum: 10c0/57034aa3476768133042c6b4193d71dbd4ace98c39241ae2c1fa21c33d5afd6d469de86511cdc59a0d7dd5585c05ac605406c60b0ae3cfbf3f650326642d4aca
-  languageName: node
-  linkType: hard
-
-"@vitest/pretty-format@npm:2.1.4":
-  version: 2.1.4
-  resolution: "@vitest/pretty-format@npm:2.1.4"
-  dependencies:
-    tinyrainbow: "npm:^1.2.0"
-  checksum: 10c0/dc20f04f64c95731bf9640fc53ae918d928ab93e70a56d9e03f201700098cdb041b50a8f6a5f30604d4a048c15f315537453f33054e29590a05d5b368ae6849d
   languageName: node
   linkType: hard
 
@@ -2008,31 +2008,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/ui@npm:2.1.4":
-  version: 2.1.4
-  resolution: "@vitest/ui@npm:2.1.4"
+"@vitest/ui@npm:2.1.5":
+  version: 2.1.5
+  resolution: "@vitest/ui@npm:2.1.5"
   dependencies:
-    "@vitest/utils": "npm:2.1.4"
+    "@vitest/utils": "npm:2.1.5"
     fflate: "npm:^0.8.2"
     flatted: "npm:^3.3.1"
     pathe: "npm:^1.1.2"
     sirv: "npm:^3.0.0"
-    tinyglobby: "npm:^0.2.9"
+    tinyglobby: "npm:^0.2.10"
     tinyrainbow: "npm:^1.2.0"
   peerDependencies:
-    vitest: 2.1.4
-  checksum: 10c0/28bb190a4a077b3511a19312bad06fdf526e0b6d216bc249df7d9f4d214106382da1b5ab1a6893153493150ca13fbeb42222fd4d90e9f41198401734d8662c2d
-  languageName: node
-  linkType: hard
-
-"@vitest/utils@npm:2.1.4":
-  version: 2.1.4
-  resolution: "@vitest/utils@npm:2.1.4"
-  dependencies:
-    "@vitest/pretty-format": "npm:2.1.4"
-    loupe: "npm:^3.1.2"
-    tinyrainbow: "npm:^1.2.0"
-  checksum: 10c0/fd632dbc2496d14bcc609230f1dad73039c9f52f4ca533d6b68fa1a04dd448e03510f2a8e4a368fd274cbb8902a6cd800140ab366dd055256beb2c0dcafcd9f2
+    vitest: 2.1.5
+  checksum: 10c0/73e1bb289bfc190e2fc61cabc8777088c7507b16ff2f695cedaa15a65f5405c84c89c4423b5b63d19953d4b2ec7f0680e05cfcee346d1c5b4099fa0534e8ae9f
   languageName: node
   linkType: hard
 
@@ -4887,7 +4876,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nock@npm:^13.5.5":
+"nock@npm:^13.5.6":
   version: 13.5.6
   resolution: "nock@npm:13.5.6"
   dependencies:
@@ -4898,7 +4887,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nock@npm:^14.0.0-beta.15":
+"nock@npm:^14.0.0-beta.16":
   version: 14.0.0-beta.16
   resolution: "nock@npm:14.0.0-beta.16"
   dependencies:
@@ -5335,11 +5324,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"polkadot-api@npm:^1.7.3":
-  version: 1.7.5
-  resolution: "polkadot-api@npm:1.7.5"
+"polkadot-api@npm:^1.7.6":
+  version: 1.7.6
+  resolution: "polkadot-api@npm:1.7.6"
   dependencies:
-    "@polkadot-api/cli": "npm:0.9.19"
+    "@polkadot-api/cli": "npm:0.9.20"
     "@polkadot-api/ink-contracts": "npm:0.2.1"
     "@polkadot-api/json-rpc-provider": "npm:0.0.4"
     "@polkadot-api/known-chains": "npm:0.5.7"
@@ -5352,7 +5341,7 @@ __metadata:
     "@polkadot-api/polkadot-signer": "npm:0.1.6"
     "@polkadot-api/signer": "npm:0.1.10"
     "@polkadot-api/sm-provider": "npm:0.1.7"
-    "@polkadot-api/smoldot": "npm:0.3.6"
+    "@polkadot-api/smoldot": "npm:0.3.7"
     "@polkadot-api/substrate-bindings": "npm:0.9.3"
     "@polkadot-api/substrate-client": "npm:0.3.0"
     "@polkadot-api/utils": "npm:0.1.2"
@@ -5362,7 +5351,7 @@ __metadata:
   bin:
     papi: bin/cli.mjs
     polkadot-api: bin/cli.mjs
-  checksum: 10c0/6ceedd5d3eeb1fc454b198e37dba6e6cfd46a3135120e5b2829b22f37df91dd94801225ba300f0936647bc33f72dc3899856d8043d060a2dc72b85c4a0629246
+  checksum: 10c0/caa2df461f2a252aeb8b1b9076bc096a4c6952015a88ac004defc2aac2ea385349767db5394e6a98fef8fdf28eaadbfbcc1914fbacc14d108923f13ed6cf1a12
   languageName: node
   linkType: hard
 
@@ -6051,12 +6040,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smoldot@npm:2.0.32":
-  version: 2.0.32
-  resolution: "smoldot@npm:2.0.32"
+"smoldot@npm:2.0.33":
+  version: 2.0.33
+  resolution: "smoldot@npm:2.0.33"
   dependencies:
     ws: "npm:^8.8.1"
-  checksum: 10c0/5be03211f9ea679467bf73bfed56a1e819781685bfc80adb4c1138e200da174666e90549badfe303131bb3fa7afff1e9273121534bd420c9d8c59237693ff73f
+  checksum: 10c0/dada517972924017077b4e8c6f76169ddcd371c270e714db42e034c0c974898a15f640759576b712f9d0aa3e2f1bb01c7e5d2e711e329f0f6837902ac51bb1fa
   languageName: node
   linkType: hard
 
@@ -6207,7 +6196,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"std-env@npm:^3.7.0, std-env@npm:^3.8.0":
+"std-env@npm:^3.8.0":
   version: 3.8.0
   resolution: "std-env@npm:3.8.0"
   checksum: 10c0/f560a2902fd0fa3d648d7d0acecbd19d664006f7372c1fba197ed4c216b4c9e48db6e2769b5fe1616d42a9333c9f066c5011935035e85c59f45dc4f796272040
@@ -6498,7 +6487,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tinyglobby@npm:^0.2.9":
+"tinyglobby@npm:^0.2.10, tinyglobby@npm:^0.2.9":
   version: 0.2.10
   resolution: "tinyglobby@npm:0.2.10"
   dependencies:
@@ -6969,9 +6958,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:^2.21.44":
-  version: 2.21.47
-  resolution: "viem@npm:2.21.47"
+"viem@npm:^2.21.48":
+  version: 2.21.48
+  resolution: "viem@npm:2.21.48"
   dependencies:
     "@noble/curves": "npm:1.6.0"
     "@noble/hashes": "npm:1.5.0"
@@ -6987,7 +6976,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/b39dbae6f6d1712136d3392a22584424c6b7f7eef1c779ebedb58fd696bf0317ce96c6f2f87bbfc30b729ebfe75a0e6e4711279b0b449ca8f9468faa4e82015e
+  checksum: 10c0/e9b2799535263a859bddda25d962b13d2c76aec191e1849dd0f268c32a43eb65932a05cc5be270c92e19d79aafda73884690c0b0fbdb9311266a01ea3f659082
   languageName: node
   linkType: hard
 
@@ -7006,9 +6995,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-tsconfig-paths@npm:^5.1.2":
-  version: 5.1.2
-  resolution: "vite-tsconfig-paths@npm:5.1.2"
+"vite-tsconfig-paths@npm:^5.1.3":
+  version: 5.1.3
+  resolution: "vite-tsconfig-paths@npm:5.1.3"
   dependencies:
     debug: "npm:^4.1.1"
     globrex: "npm:^0.1.2"
@@ -7018,7 +7007,7 @@ __metadata:
   peerDependenciesMeta:
     vite:
       optional: true
-  checksum: 10c0/7db445b6b1f48e7b89f39f5eb8cf4ea645994f581fcc7c9fac721e0c36f8203c0770007ec27825caa6e2566e3127b2b1bfe8be28ca05cd0e9fb67a2943dcdec5
+  checksum: 10c0/fb7480efa31fd50439f4a12c91bc953e5cc09d69fdc7eeb6ffff7cc796bc2c1f2c617c3abfdcbf5d7414848076cea9deb60bc002142f93b6e3131e5458760710
   languageName: node
   linkType: hard
 
@@ -7065,7 +7054,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^2.1.4":
+"vitest@npm:^2.1.5":
   version: 2.1.5
   resolution: "vitest@npm:2.1.5"
   dependencies:
