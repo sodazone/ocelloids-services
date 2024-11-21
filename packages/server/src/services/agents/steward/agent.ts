@@ -35,7 +35,14 @@ import {
 import { SharedStreams } from '../base/shared.js'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import { $StewardQueryArgs, AssetIds, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
+import {
+  $StewardQueryArgs,
+  AssetId,
+  AssetIds,
+  AssetMapper,
+  AssetMetadata,
+  StewardQueryArgs,
+} from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
@@ -51,6 +58,11 @@ const SCHED_RATE = 43_200_000 // 12h
 const ASSET_PALLET_EVENTS = [
   'Created',
   'Issued',
+  'Burned',
+  'Destroyed',
+  // 'Blocked',
+  // 'Thawed',
+  // 'Frozen',
   'MetadataCleared',
   'MetadataSet',
   'OwnerChanged',
@@ -148,8 +160,12 @@ export class DataSteward implements Agent, Queryable {
                   blockEvent.module === 'Assets' && ASSET_PALLET_EVENTS.includes(blockEvent.name),
               ),
             )
-            .subscribe(async ({ value: { asset_id } }) => {
-              await this.#updateAsset(chainId, asset_id)
+            .subscribe(async ({ name, value: { asset_id } }) => {
+              if (name === 'Destroyed') {
+                await this.#removeAsset(chainId, asset_id)
+              } else {
+                await this.#updateAsset(chainId, asset_id)
+              }
             }),
         )
       }
@@ -199,7 +215,7 @@ export class DataSteward implements Agent, Queryable {
     allAssetMapsObs.subscribe(this.#storeAssetMetadata())
   }
 
-  async #updateAsset(chainId: NetworkURN, assetId: any) {
+  async #updateAsset(chainId: NetworkURN, assetId: AssetId) {
     const context = await firstValueFrom(this.#ingress.getContext(chainId))
     const mappings = mappers[chainId](context)
     const { mapEntry } = mappings[0]
@@ -219,6 +235,22 @@ export class DataSteward implements Agent, Queryable {
         })),
       )
       .subscribe(this.#storeAssetMetadata())
+  }
+
+  async #removeAsset(chainId: NetworkURN, assetId: AssetId) {
+    try {
+      const key = assetMetadataKey(chainId, assetId)
+      await this.#dbAssets.del(key)
+      this.#log.info('[agent:%s] delete asset (chainId=%s, assetId=%s)', this.id, chainId, assetId)
+    } catch (error) {
+      this.#log.error(
+        error,
+        '[agent:%s] on destroy asset (chainId=%s, assetId=%s)',
+        this.id,
+        chainId,
+        assetId,
+      )
+    }
   }
 
   #storeAssetMetadata() {
