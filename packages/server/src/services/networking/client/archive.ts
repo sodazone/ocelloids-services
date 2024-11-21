@@ -12,7 +12,6 @@ import { blockHeader } from '@polkadot-api/substrate-bindings'
 import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
-  fixPrematureBlocks,
   fixUnorderedEvents,
   parsed,
   patchChainHeadEvents,
