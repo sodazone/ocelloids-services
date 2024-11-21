@@ -1,6 +1,6 @@
 import { MemoryLevel as Level } from 'memory-level'
 
-import { _config, _log } from '@/testing/services.js'
+import { _log } from '@/testing/services.js'
 import { Scheduler } from './scheduler.js'
 
 vi.useFakeTimers()

@@ -1,5 +1,5 @@
 import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
-import { RuntimeContext, SystemEvent } from '@polkadot-api/observable-client'
+import { RuntimeContext } from '@polkadot-api/observable-client'
 import { Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'

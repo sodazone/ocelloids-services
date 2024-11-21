@@ -1,8 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
 import '@/testing/network.js'
-
-import { resolve } from 'path'
 import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
 import { flushPromises } from '@/testing/promises.js'
 import { mockServer } from '@/testing/server.js'

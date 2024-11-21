@@ -1,8 +1,6 @@
 import { astarBlocks, expectedTxs, moonbeamAbis, moonbeamBlocks } from '@/testing/blocks.js'
 
 import { Block } from '@/services/networking/types.js'
-
-import { hexToNumber } from 'viem'
 import {
   FrontierExtrinsic,
   decodeEvmEventLog,

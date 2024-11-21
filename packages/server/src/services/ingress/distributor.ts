@@ -2,7 +2,6 @@ import { RedisClientType, commandOptions, createClient } from 'redis'
 
 import { Logger, NetworkURN, Services } from '@/services/types.js'
 import { RedisServerOptions } from '@/types.js'
-import { HexString } from '../subscriptions/types.js'
 import { NetworkInfo } from './index.js'
 
 type StreamContext = {

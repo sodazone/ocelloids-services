@@ -1,4 +1,3 @@
-import { testApiContextFromMetadata } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
 import { fromXcmpFormat } from './xcm-format.js'
 

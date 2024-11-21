@@ -3,6 +3,7 @@ import { Observable, map, mergeMap } from 'rxjs'
 import { HexString, NetworkURN } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 
+import { Hashers } from '@/services/networking/types.js'
 import {
   Blake2128,
   Blake2128Concat,
@@ -12,9 +13,6 @@ import {
   Twox128,
   Twox256,
 } from '@polkadot-api/substrate-bindings'
-
-import { asSerializable } from '@/common/util.js'
-import { Hashers } from '@/services/networking/types.js'
 import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
 import { getLocationIfAny } from './util.js'
 

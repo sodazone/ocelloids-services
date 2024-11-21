@@ -2,8 +2,6 @@ import EventEmitter from 'node:events'
 
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, Services } from '@/services/types.js'
-
-import { safeDestr } from 'destr'
 import { Egress } from './hub.js'
 import { Message, Publisher, PublisherEmitter } from './types.js'
 

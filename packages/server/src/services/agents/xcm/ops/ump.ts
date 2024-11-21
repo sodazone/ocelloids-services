@@ -1,4 +1,3 @@
-import { Binary } from 'polkadot-api'
 import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
