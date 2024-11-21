@@ -77,7 +77,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
       fixUnorderedEvents,
       unpinHash,
       patchChainHeadEvents,
-      fixPrematureBlocks,
+      // fixPrematureBlocks,
       // fixUnorderedBlocks,
       // fixChainSpec,
       fixDescendantValues,
