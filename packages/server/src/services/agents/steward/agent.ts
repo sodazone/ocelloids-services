@@ -202,23 +202,23 @@ export class DataSteward implements Agent, Queryable {
   async #updateAsset(chainId: NetworkURN, assetId: any) {
     const context = await firstValueFrom(this.#ingress.getContext(chainId))
     const mappings = mappers[chainId](context)
-    for (const { mapEntry } of mappings) {
-      const codec = context.storageCodec('Assets', 'Asset')
-      const key = codec.enc(assetId) as HexString
-      this.#ingress
-        .getStorage(chainId, key)
-        .pipe(
-          mapEntry(key, this.#ingress),
-          map((x) => asSerializable<AssetMetadata>(x)),
-        )
-        .pipe(
-          map((asset) => ({
-            asset,
-            chainId,
-          })),
-        )
-        .subscribe(this.#storeAssetMetadata())
-    }
+    const { mapEntry } = mappings[0]
+
+    const codec = context.storageCodec('Assets', 'Asset')
+    const key = codec.enc(assetId) as HexString
+    this.#ingress
+      .getStorage(chainId, key)
+      .pipe(
+        mapEntry(key, this.#ingress),
+        map((x) => asSerializable<AssetMetadata>(x)),
+      )
+      .pipe(
+        map((asset) => ({
+          asset,
+          chainId,
+        })),
+      )
+      .subscribe(this.#storeAssetMetadata())
   }
 
   #storeAssetMetadata() {
@@ -261,7 +261,6 @@ export class DataSteward implements Agent, Queryable {
         })
       },
       complete: async () => {
-        this.#log.info('[agent:%s] END synchronizing asset metadata', this.id)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
           try {
             let updated = false
@@ -290,9 +289,9 @@ export class DataSteward implements Agent, Queryable {
             //
           }
         }
-        this.#log.info('[agent:%s] END synchronizing registered chains', this.id)
+        this.#log.info('[agent:%s] END storing metadata', this.id)
       },
-      error: (e) => this.#log.error(e, '[agent:%s] on metadata sync', this.id),
+      error: (e) => this.#log.error(e, '[agent:%s] on metadata store', this.id),
     } as Observer<{ asset: AssetMetadata; chainId: NetworkURN }>
   }
 
