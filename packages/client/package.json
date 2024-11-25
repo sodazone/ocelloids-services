@@ -38,6 +38,7 @@
     "build:api": "tsc && api-extractor run --local --verbose",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "docs": "typedoc",
     "lint": "biome check --write src/**/*.ts"
   },
