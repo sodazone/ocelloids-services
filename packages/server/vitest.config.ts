@@ -24,7 +24,8 @@ export default defineConfig({
         'src/services/ingress/consumer/distributed.ts',
         'src/lib.ts',
         'src/main.ts',
-        'src/cli'
+        'src/cli',
+        '**/*.spec.*'
       ]
     },
   },

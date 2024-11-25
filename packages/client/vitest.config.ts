@@ -8,7 +8,8 @@ export default defineConfig({
         '**/docs/**',
         '**/test/**',
         '**/dist/**',
-        'vitest.config.ts'
+        'vitest.config.ts',
+        '**/*.spec.*'
       ]
     }
   },
