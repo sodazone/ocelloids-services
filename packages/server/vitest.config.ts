@@ -22,6 +22,7 @@ export default defineConfig({
         'src/services/limit.ts',
         'src/services/ingress',
         'src/services/ingress/consumer/distributed.ts',
+        'src/services/networking/client',
         'src/lib.ts',
         'src/main.ts',
         'src/cli',
