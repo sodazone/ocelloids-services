@@ -7,6 +7,8 @@ import { NetworkURN } from '@/services/types.js'
 
 /**
  * Extended Network Information
+ *
+ * @public
  */
 export type NetworkInfo = {
   urn: NetworkURN
