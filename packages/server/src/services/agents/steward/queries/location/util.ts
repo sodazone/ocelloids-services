@@ -146,51 +146,50 @@ function parseCrossChainAsset(
         assetId: { type: 'string', value: 'native' },
       }
     }
-  } else {
-    let network: NetworkURN | undefined
-    let pallet: number | undefined
-    let assetIdData: Uint8Array = new Uint8Array()
-    let accountId20: string | undefined
-    let assetIndex: string | undefined
-
-    for (const junction of junctions.value) {
-      if (junction.type === 'parachain') {
-        const paraId = (junction.value as string | number).toString()
-
-        if (paraId !== '0') {
-          network = createNetworkId(referenceNetwork, paraId)
-        }
-      } else if (junction.type === 'palletinstance') {
-        pallet = junction.value as number
-      } else if (junction.type === 'generalindex') {
-        const genIndex = junction.value
-        assetIndex = genIndex as string
-        // const data = genIndex.unwrap().toU8a()
-        // assetIdData.push({
-        //   data,
-        //   length: genIndex.encodedLength,
-        // })
-      } else if (junction.type === 'generalkey') {
-        assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
-      } else if (junction.type === 'accountkey20') {
-        accountId20 = junction.value as string
-      }
-    }
-
-    if (!network) {
-      return null
-    }
-
-    return mapParsedAsset({
-      network,
-      pallet,
-      assetIdData,
-      accountId20,
-      assetIndex,
-    })
+    return null
   }
 
-  return null
+  let network: NetworkURN | undefined
+  let pallet: number | undefined
+  let assetIdData: Uint8Array = new Uint8Array()
+  let accountId20: string | undefined
+  let assetIndex: string | undefined
+
+  for (const junction of junctions.value) {
+    if (junction.type === 'parachain') {
+      const paraId = (junction.value as string | number).toString()
+
+      if (paraId !== '0') {
+        network = createNetworkId(referenceNetwork, paraId)
+      }
+    } else if (junction.type === 'palletinstance') {
+      pallet = junction.value as number
+    } else if (junction.type === 'generalindex') {
+      const genIndex = junction.value
+      assetIndex = genIndex as string
+      // const data = genIndex.unwrap().toU8a()
+      // assetIdData.push({
+      //   data,
+      //   length: genIndex.encodedLength,
+      // })
+    } else if (junction.type === 'generalkey') {
+      assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
+    } else if (junction.type === 'accountkey20') {
+      accountId20 = junction.value as string
+    }
+  }
+
+  if (!network) {
+    return null
+  }
+
+  return mapParsedAsset({
+    network,
+    pallet,
+    assetIdData,
+    accountId20,
+    assetIndex,
+  })
 }
 
 function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset | null {
