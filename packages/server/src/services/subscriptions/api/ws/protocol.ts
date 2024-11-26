@@ -11,7 +11,7 @@ import { AgentId } from '@/services/agents/types.js'
 import { JwtPayload, ensureAccountAuthorized } from '@/services/auth/index.js'
 import { Message } from '@/services/egress/types.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
-import { $Subscription, EgressListener, Subscription } from '@/services/subscriptions/types.js'
+import { $Subscription, EgressListener, NewSubscription, Subscription } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter, publishTelemetryFrom } from '@/services/telemetry/types.js'
 import { Logger } from '@/services/types.js'
 import { ensureOwnership } from '../handlers.js'
@@ -22,8 +22,9 @@ const $EphemeralSubscription = z
   .transform((str, ctx) => {
     try {
       return {
-        ...safeDestr<Subscription>(str),
+        ...safeDestr<NewSubscription>(str),
         id: ulid(),
+        owner: '',
         ephemeral: true,
         channels: [
           {
