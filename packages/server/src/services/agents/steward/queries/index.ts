@@ -36,6 +36,7 @@ export class Queries {
       return await this.#locationHandler.queryAssetByLocation(args.criteria)
     }
 
+    /* c8 ignore next */
     throw new ValidationError('Unknown query type')
   }
 

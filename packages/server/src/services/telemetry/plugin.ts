@@ -78,7 +78,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
 
     fastify.addHook('onResponse', createReplyHook())
 
-    /* istanbul ignore next */
+    /* c8 ignore next */
     fastify.get(
       '/metrics',
       {

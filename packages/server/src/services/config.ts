@@ -119,13 +119,13 @@ const configPlugin: FastifyPluginAsync<ConfigServerOptions> = async (fastify, op
     const config = $ServiceConfiguration.parse(toml.parse(fs.readFileSync(configPath, 'utf-8')))
     fastify.decorate('localConfig', config)
   } catch (err) {
-    /* istanbul ignore next */
+    /* c8 ignore next */
     if (err instanceof z.ZodError) {
       fastify.log.error(err.issues)
     } else {
       fastify.log.error(err)
     }
-    /* istanbul ignore next */
+    /* c8 ignore next */
     throw new Error('Error while loading configuration.')
   }
 }

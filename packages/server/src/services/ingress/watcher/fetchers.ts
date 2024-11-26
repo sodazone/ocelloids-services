@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 import { HexString, NetworkURN } from '@/lib.js'
 import { ApiClient } from '@/services/networking/client/index.js'
 

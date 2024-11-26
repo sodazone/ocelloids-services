@@ -325,12 +325,12 @@ export class XcmAgent implements Agent, Subscribable {
         })
       }
     } catch (error) {
-      /* istanbul ignore next */
+      /* c8 ignore next */
       // Clean up subscriptions.
       subs.forEach(({ sub }) => {
         sub.unsubscribe()
       })
-      /* istanbul ignore next */
+      /* c8 ignore next */
       throw error
     }
 

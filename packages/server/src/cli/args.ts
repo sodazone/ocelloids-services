@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 import { InvalidArgumentError, Option } from 'commander'
 
 import { FastifyCorsOptions } from '@fastify/cors'

@@ -147,7 +147,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         socket.on('message', (data: Buffer) => {
           setImmediate(async () => {
             if (resolvedId) {
-              /* istanbul ignore next */
+              /* c8 ignore next */
               this.#safeWrite(socket, resolvedId)
             } else {
               const parsed = $EphemeralSubscription.safeParse(data.toString())

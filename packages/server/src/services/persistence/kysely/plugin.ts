@@ -21,7 +21,7 @@ declare module 'fastify' {
 type KyselyOptions = DatabaseOptions & KyselyServerOptions
 
 const kyselyPlugin: FastifyPluginAsync<KyselyOptions> = async (fastify, { data }) => {
-  /* istanbul ignore next */
+  /* c8 ignore next */
   const filename = data && data.length > 0 ? path.join(data, '/db.sqlite') : ':memory:'
 
   fastify.log.info('[kysely] open sqlite database at %s', filename)
