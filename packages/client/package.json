@@ -10,7 +10,7 @@
   ],
   "repository": "https://github.com/sodazone/ocelloids-services",
   "source": "./src/lib.ts",
-  "main": "./dist/lib.cjs",
+  "exports": "./dist/lib.js",
   "module": "./dist/lib.js",
   "types": "./dist/ocelloids-client.d.ts",
   "files": [
@@ -18,13 +18,15 @@
     "/src"
   ],
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
   "tsup": {
     "entry": [
       "src/lib.ts"
     ],
     "format": [
-      "esm",
-      "cjs"
+      "esm"
     ],
     "bundle": true,
     "sourcemap": true,
