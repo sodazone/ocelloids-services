@@ -22,7 +22,7 @@ import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/ty
 import { safeDestr } from 'destr'
 import { decodeBlock } from '../../codec.js'
 import { Block, SubstrateApiContext, createRuntimeApiContext } from '../../index.js'
-import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
+import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
  * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a distributed environment.
@@ -150,11 +150,11 @@ export class SubstrateDistributedConsumer
     return this.#networks[chainId] !== undefined
   }
 
-  getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+  getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo> {
     if (this.#networks[chainId] === undefined) {
       Promise.reject(new Error('unknown network'))
     }
-    return Promise.resolve(this.#networks[chainId].info as NetworkInfo)
+    return Promise.resolve(this.#networks[chainId].info as SubstrateNetworkInfo)
   }
 
   collectTelemetry(collect: TelemetryCollect): void {

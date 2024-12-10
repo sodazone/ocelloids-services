@@ -8,7 +8,7 @@ import { Block, SubstrateApiContext } from '../types.js'
 /**
  * Extended Network Information
  */
-export type NetworkInfo = {
+export type SubstrateNetworkInfo = {
   urn: NetworkURN
   genesisHash: HexString
   chainTokens: string[]
@@ -36,7 +36,7 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
     blockHash?: HexString,
   ): Observable<HexString[]>
   getContext(chainId: NetworkURN): Observable<SubstrateApiContext>
-  getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo>
+  getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
 }

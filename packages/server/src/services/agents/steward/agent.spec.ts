@@ -1,6 +1,6 @@
 import { AbstractSublevel } from 'abstract-level'
 
-import { NetworkInfo } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateNetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 import { createServices } from '@/testing/services.js'
 import { QueryParams } from '../types.js'
@@ -95,7 +95,7 @@ describe('steward agent', () => {
     const services = createServices()
     const db = services.levelDB
     steward = new DataSteward({ ...services, db })
-    dbChains = db.sublevel<string, NetworkInfo>('agent:steward:chains', {
+    dbChains = db.sublevel<string, SubstrateNetworkInfo>('agent:steward:chains', {
       valueEncoding: 'json',
     })
     dbAssets = services.levelDB.sublevel<string, AssetMetadata>('agent:steward:assets', {

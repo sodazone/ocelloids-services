@@ -1,13 +1,13 @@
 import { HexString, NetworkURN } from '@/lib.js'
 
 import { SubstrateApi } from '../index.js'
-import { NetworkInfo } from '../ingress/types.js'
+import { SubstrateNetworkInfo } from '../ingress/types.js'
 
 function getPropertyArray(p: any[] | any) {
   return p ? (Array.isArray(p) ? p : [p]) : []
 }
 
-async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<NetworkInfo> {
+async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<SubstrateNetworkInfo> {
   const chainSpecData = await api.getChainSpecData()
   const {
     tokenDecimals,

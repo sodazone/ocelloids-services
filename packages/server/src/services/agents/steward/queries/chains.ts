@@ -1,4 +1,4 @@
-import { NetworkInfo } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateNetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 
 import { QueryPagination, QueryResult } from '../../types.js'
@@ -12,20 +12,20 @@ export class ChainsQueryHandler {
     this.#db = db
   }
 
-  async queryChainList(pagination?: QueryPagination): Promise<QueryResult<NetworkInfo>> {
-    const iterator = this.#db.iterator<string, NetworkInfo>({
+  async queryChainList(pagination?: QueryPagination): Promise<QueryResult<SubstrateNetworkInfo>> {
+    const iterator = this.#db.iterator<string, SubstrateNetworkInfo>({
       gt: pagination?.cursor,
       lt: OMEGA_250,
       limit: limitCap(pagination),
     })
-    return await paginatedResults<string, NetworkInfo>(iterator)
+    return await paginatedResults<string, SubstrateNetworkInfo>(iterator)
   }
 
   async queryChains(criteria: {
     networks: string[]
-  }): Promise<QueryResult<NetworkInfo>> {
+  }): Promise<QueryResult<SubstrateNetworkInfo>> {
     return {
-      items: await this.#db.getMany<string, NetworkInfo>(criteria.networks, {
+      items: await this.#db.getMany<string, SubstrateNetworkInfo>(criteria.networks, {
         /** */
       }),
     }

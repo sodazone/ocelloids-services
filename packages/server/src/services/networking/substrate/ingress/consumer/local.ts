@@ -6,7 +6,7 @@ import { NetworkURN, Services } from '@/services/types.js'
 
 import { Block, SubstrateApiContext } from '../../types.js'
 import { SubstrateWatcher } from '../../watcher/watcher.js'
-import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
+import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '../types.js'
 
 /**
  * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a local environment
@@ -16,7 +16,7 @@ import { NetworkInfo, SubstrateIngressConsumer } from '../types.js'
  * within a local or integrated environment.
  */
 export class SubstrateLocalConsumer
-  extends LocalIngressConsumer<SubstrateWatcher, Block, NetworkInfo>
+  extends LocalIngressConsumer<SubstrateWatcher, Block, SubstrateNetworkInfo>
   implements SubstrateIngressConsumer
 {
   readonly #contexts$: Record<NetworkURN, Observable<SubstrateApiContext>>

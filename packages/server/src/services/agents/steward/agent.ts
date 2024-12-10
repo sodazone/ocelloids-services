@@ -15,7 +15,7 @@ import {
 } from 'rxjs'
 import { z } from 'zod'
 
-import { NetworkInfo, SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
@@ -98,7 +98,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
+    this.#dbChains = ctx.db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)

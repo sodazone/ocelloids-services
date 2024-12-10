@@ -5,7 +5,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
-import { NetworkInfo } from '../ingress/types.js'
+import { SubstrateNetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
 import { fetchers } from './fetchers.js'
 
@@ -103,7 +103,7 @@ export class SubstrateWatcher extends Watcher<Block> {
     )
   }
 
-  async getNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
+  async getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo> {
     return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
   }
 }
