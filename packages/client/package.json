@@ -1,10 +1,6 @@
 {
   "name": "@sodazone/ocelloids-client",
-<<<<<<< HEAD
-  "version": "2.3.5",
-=======
-  "version": "2.3.4",
->>>>>>> f17b386 (bumped to 2.3.4 🎅)
+  "version": "2.3.5-dev.0",
   "type": "module",
   "description": "Ocelloids client library",
   "author": "SO/DA <projects@soda.zone>",
