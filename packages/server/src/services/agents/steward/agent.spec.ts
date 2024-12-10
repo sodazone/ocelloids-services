@@ -1,6 +1,6 @@
 import { AbstractSublevel } from 'abstract-level'
 
-import { NetworkInfo } from '@/lib.js'
+import { NetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 import { createServices } from '@/testing/services.js'
 import { QueryParams } from '../types.js'
