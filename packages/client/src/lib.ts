@@ -1,13 +1,10 @@
 /**
- * A client library for the XCM Monitoring Server.
+ * A client library for Ocelloids Services.
  *
  * @see {@link OcelloidsClient} to get started.
  *
  * @packageDocumentation
  */
-
-export * from './client'
-export * from './types'
 export * from './server-types'
 
 // The "export * as ___" syntax is not supported yet; as a workaround,

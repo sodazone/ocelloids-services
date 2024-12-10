@@ -1,4 +1,4 @@
-import type { xcm } from '@sodazone/ocelloids-service-node'
+import type { sourceXcm } from '../server-types'
 
 /**
  * The XCM event types.
@@ -18,91 +18,91 @@ export enum XcmNotificationType {
  *
  * @public
  */
-export type XcmSent = xcm.XcmSent
+export type XcmSent = sourceXcm.XcmSent
 
 /**
  * XCM received event.
  *
  * @public
  */
-export type XcmReceived = xcm.XcmReceived
+export type XcmReceived = sourceXcm.XcmReceived
 
 /**
  * XCM relayed event.
  *
  * @public
  */
-export type XcmRelayed = xcm.XcmRelayed
+export type XcmRelayed = sourceXcm.XcmRelayed
 
 /**
  * XCM hop event.
  *
  * @public
  */
-export type XcmHop = xcm.XcmHop
+export type XcmHop = sourceXcm.XcmHop
 
 /**
  * XCM bridge event.
  *
  * @public
  */
-export type XcmBridge = xcm.XcmBridge
+export type XcmBridge = sourceXcm.XcmBridge
 
 /**
  * XCM timeout event.
  *
  * @public
  */
-export type XcmTimeout = xcm.XcmTimeout
+export type XcmTimeout = sourceXcm.XcmTimeout
 
 /**
  * The XCM notification payload.
  *
  * @public
  */
-export type XcmMessagePayload = xcm.XcmMessagePayload
+export type XcmMessagePayload = sourceXcm.XcmMessagePayload
 
 /**
  * XCM assets trapped event.
  *
  * @public
  */
-export type XcmAssetsTrapped = xcm.AssetsTrapped
+export type XcmAssetsTrapped = sourceXcm.AssetsTrapped
 
 /**
  * XCM trapped asset data.
  *
  * @public
  */
-export type XcmTrappedAsset = xcm.TrappedAsset
+export type XcmTrappedAsset = sourceXcm.TrappedAsset
 
 /**
  * The leg of an XCM journey.
  *
  * @public
  */
-export type XcmLeg = xcm.Leg
+export type XcmLeg = sourceXcm.Leg
 
 /**
  * The XcmTerminus contextual information.
  *
  * @public
  */
-export type XcmTerminusContext = xcm.XcmTerminusContext
+export type XcmTerminusContext = sourceXcm.XcmTerminusContext
 
 /**
  * Terminal point of an XCM journey.
  *
  * @public
  */
-export type XcmTerminus = xcm.XcmTerminus
+export type XcmTerminus = sourceXcm.XcmTerminus
 
 /**
  * The XCM waypoint contextual information.
  *
  * @public
  */
-export type XcmWaypointContext = xcm.XcmWaypointContext
+export type XcmWaypointContext = sourceXcm.XcmWaypointContext
 
 /**
  * XCM Agent subscription inputs.
