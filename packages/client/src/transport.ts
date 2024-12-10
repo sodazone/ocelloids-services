@@ -1,4 +1,6 @@
 import { WebSocket } from 'isows'
+import ky from 'ky'
+import { Options } from 'ky'
 
 import {
   AnyJson,
@@ -33,53 +35,29 @@ function headersFromConfig(config: OcelloidsClientConfig): Record<string, string
 /**
  * Curried fetch function.
  */
-export type FetchFn = <T>(url: string, init?: RequestInit | undefined) => Promise<T>
+export type FetchFn = <T>(url: string, init?: Options | undefined) => Promise<T>
 
 /**
  * Returns a {@link FetchFn} from the given config.
  */
 export function doFetchWithConfig<T>(config: OcelloidsClientConfig) {
   const headers = headersFromConfig(config)
-  return (url: string, init?: RequestInit) => doFetch<T>(headers, url, init)
+  return (url: string, options?: Options) => doFetch<T>(url, headers, options)
 }
 
 /**
  * Performs an HTTP fetch request and handles the response.
  *
- * @param headers - The headers to include in the fetch request.
  * @param url - The URL to send the fetch request to.
- * @param init - Optional fetch request initialization parameters.
+ * @param headers - The headers to include in the fetch request.
+ * @param options - Optional ky request initialization parameters.
  * @returns A promise that resolves with the response data or rejects with an error.
  */
-export function doFetch<T>(headers: Record<string, string>, url: string, init?: RequestInit) {
-  return new Promise<T>((resolve, reject) => {
-    fetch(url, {
-      headers,
-      ...init,
-    })
-      .then((res) => {
-        if (res.ok) {
-          res.json().then((j) => {
-            resolve(j as T)
-          })
-        } else {
-          res
-            .json()
-            .then(reject)
-            .catch((_) => {
-              if (res.body === null || res.body.locked) {
-                reject({
-                  status: res.status,
-                  statusText: res.statusText,
-                })
-              } else {
-                res.text().then(reject)
-              }
-            })
-        }
-      })
-      .catch(reject)
-  })
+export function doFetch<T>(url: string, headers: Record<string, string>, options?: Options) {
+  return ky(url, {
+    headers,
+    ...options,
+  }).json<T>()
 }
 
 type OnDemandWithAgent<T> = {

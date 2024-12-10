@@ -17,6 +17,8 @@ export type {
   AnyQueryResultItem,
 } from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
+// TODO remove
+export type { NetworkInfo } from './services/networking/substrate/ingress/types.js'
 
 // ====================================================================
 // Agent-specific support types

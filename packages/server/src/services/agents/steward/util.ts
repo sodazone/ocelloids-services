@@ -1,8 +1,8 @@
 import { AbstractIterator } from 'abstract-level'
 
-import { asJSON } from '@/common/util.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
+import { AssetId } from './types.js'
 
 const API_LIMIT_DEFAULT = 10
 const API_LIMIT_MAX = 100
@@ -37,11 +37,46 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
   }
 }
 
-function normalize(assetId: string | object) {
-  const str = typeof assetId === 'string' ? assetId : asJSON(assetId)
-  return str.toLowerCase().replaceAll('"', '')
+export function toMelbourne(o: unknown): string {
+  if (o == null) {
+    return ''
+  }
+
+  if (typeof o === 'object') {
+    return Object.entries(o)
+      .flatMap(([k, v]) => {
+        if (k === 'type') {
+          return v
+        }
+        if (k === 'value') {
+          return v == null ? null : toMelbourne(v)
+        }
+        return `${k}:${toMelbourne(v)}`
+      })
+      .filter(Boolean)
+      .join(':')
+  }
+
+  return o.toString()
 }
 
-export function assetMetadataKey(chainId: NetworkURN, assetId: string | object) {
+function normalize(assetId: AssetId) {
+  let str
+  switch (typeof assetId) {
+    case 'string': {
+      str = assetId
+      break
+    }
+    case 'number': {
+      str = assetId.toString()
+      break
+    }
+    default:
+      str = toMelbourne(assetId)
+  }
+  return str.toLowerCase()
+}
+
+export function assetMetadataKey(chainId: NetworkURN, assetId: AssetId) {
   return `${chainId}:${normalize(assetId)}`
 }

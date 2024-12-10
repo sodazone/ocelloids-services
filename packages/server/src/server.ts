@@ -73,7 +73,7 @@ export async function createServer(opts: ServerOptions) {
     logger,
   })
 
-  /* istanbul ignore next */
+  /* c8 ignore next */
   process.once('SIGUSR2', async function () {
     await server.close()
     // Controlled shutdown for Nodemon

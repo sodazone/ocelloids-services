@@ -2,18 +2,22 @@ import { LevelDB } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
 import { QueryParams, QueryResult } from '@/lib.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 
 import { $StewardQueryArgs, StewardQueryArgs } from '../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
+import { LocationQueryHandler } from './location/handler.js'
 
 export class Queries {
   readonly #assetsHandler
   readonly #chainsHandler
+  readonly #locationHandler
 
-  constructor(dbAssets: LevelDB, dbChains: LevelDB) {
+  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: SubstrateIngressConsumer) {
     this.#assetsHandler = new AssetsQueryHandler(dbAssets)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
+    this.#locationHandler = new LocationQueryHandler(dbAssets, ingress)
   }
 
   async dispatch(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
@@ -28,8 +32,19 @@ export class Queries {
       return await this.#chainsHandler.queryChains(args.criteria)
     } else if (args.op === 'chains.list') {
       return await this.#chainsHandler.queryChainList(pagination)
+    } else if (args.op === 'assets.by_location') {
+      return await this.#locationHandler.queryAssetByLocation(args.criteria)
     }
 
+    /* c8 ignore next */
     throw new ValidationError('Unknown query type')
+  }
+
+  async resolveAssetIdFromLocation(xcmLocationAnchor: string, location: string) {
+    try {
+      return await this.#locationHandler.resolveAssetIdFromLocation(xcmLocationAnchor, location)
+    } catch (_error) {
+      return undefined
+    }
   }
 }

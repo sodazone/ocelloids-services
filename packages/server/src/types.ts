@@ -7,7 +7,7 @@ export const $BaseServerOptions = z.object({
   address: z.string().min(1),
   grace: z.number().min(1),
   telemetry: z.boolean().default(true),
-  rateLimitMax: z.number().default(60),
+  rateLimitMax: z.number().default(120),
   rateLimitWindow: z.number().default(60_000),
 })
 

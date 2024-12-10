@@ -25,10 +25,13 @@ export const networks = setNetworks({
   manta: 'urn:ocn:polkadot:2104',
   pendulum: 'urn:ocn:polkadot:2094',
   mythos: 'urn:ocn:polkadot:3369',
-  kusama: 'urn:ocn::kusama:0',
+  hyperbridge: 'urn:ocn:polkadot:3367',
+  kusama: 'urn:ocn:kusama:0',
   kusamaAssetHub: 'urn:ocn:kusama:1000',
   kusamaBridgeHub: 'urn:ocn:kusama:1002',
   kusamaCoretime: 'urn:ocn:kusama:1005',
+  paseo: 'urn:ocn:paseo:0',
+  paseoAssetHub: 'urn:ocn:paseo:1000',
 })
 
 export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
@@ -77,11 +80,6 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
-export type AssetIdData = {
-  data: Uint8Array
-  length: number
-}
-
 export type ParsedAsset = {
   network: NetworkURN
   assetId:
@@ -91,7 +89,7 @@ export type ParsedAsset = {
       }
     | {
         type: 'data'
-        value: AssetIdData[]
+        value: Uint8Array
       }
   pallet?: number
 }
@@ -108,12 +106,14 @@ export type entryMapper = (
 export type AssetMapping = {
   keyPrefix: HexString
   mapEntry: entryMapper
+  mapAssetId?: (data: Uint8Array) => any[] | undefined
 }
 
 export type AssetMapper = (context: SubstrateApiContext) => AssetMapping[]
 
-export type AssetId = {
-  id: string | object
+export type AssetId = string | object | number
+export type AssetIds = {
+  id: AssetId
   xid: HexString
   chainId: NetworkURN
 }
@@ -123,14 +123,15 @@ export type AssetId = {
  *
  * @public
  */
-export type AssetMetadata = AssetId & {
+export type AssetMetadata = AssetIds & {
   name?: string
   symbol?: string
   decimals?: number
   existentialDeposit?: string
   isSufficient?: boolean
   multiLocation?: Record<string, any> | AnyJson
-  externalIds: AssetId[]
+  sourceId?: AssetIds
+  externalIds: AssetIds[]
   updated: number
   raw: Record<string, any>
 }

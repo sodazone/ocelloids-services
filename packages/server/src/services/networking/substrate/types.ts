@@ -2,8 +2,6 @@ export type { Decoder, Codec } from '@polkadot-api/substrate-bindings'
 export type { BlockInfo, SystemEvent } from '@polkadot-api/observable-client'
 export type { ChainSpecData } from '@polkadot-api/substrate-client'
 
-import { Observable } from 'rxjs'
-
 import type { BlockInfo, SystemEvent } from '@polkadot-api/observable-client'
 import type { Codec, Decoder } from '@polkadot-api/substrate-bindings'
 import type { ChainSpecData } from '@polkadot-api/substrate-client'
@@ -126,6 +124,7 @@ export interface SubstrateApi extends ApiClient {
 }
 
 export interface SubstrateApiContext {
+  getHashers(module: string, method: string): Hashers | null
   hasPallet(name: string): boolean
   getTypeIdByPath(path: string | string[]): number | undefined
   decodeExtrinsic(hextBytes: string): Extrinsic
@@ -138,3 +137,34 @@ export interface SubstrateApiContext {
     dec: Decoder<Array<SystemEvent>>
   }
 }
+
+export type Hashers = (
+  | {
+      tag: 'Blake2128'
+      value: undefined
+    }
+  | {
+      tag: 'Blake2256'
+      value: undefined
+    }
+  | {
+      tag: 'Blake2128Concat'
+      value: undefined
+    }
+  | {
+      tag: 'Twox128'
+      value: undefined
+    }
+  | {
+      tag: 'Twox256'
+      value: undefined
+    }
+  | {
+      tag: 'Twox64Concat'
+      value: undefined
+    }
+  | {
+      tag: 'Identity'
+      value: undefined
+    }
+)[]

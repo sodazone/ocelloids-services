@@ -1,10 +1,10 @@
 import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
-import { RuntimeContext, SystemEvent } from '@polkadot-api/observable-client'
+import { RuntimeContext } from '@polkadot-api/observable-client'
 import { Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
 
-import { Extrinsic, StorageCodec, SubstrateApiContext } from './types.js'
+import { Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './types.js'
 
 export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: string) {
   let metadata
@@ -94,6 +94,24 @@ export class RuntimeApiContext implements SubstrateApiContext {
       throw new Error(`[${this.chainId}] Failed to build storage codec for ${module}.${method}.`, {
         cause: error,
       })
+    }
+  }
+
+  getHashers(module: string, method: string): Hashers | null {
+    const pallet = this.#metadata.pallets.find((p) => p.name === module)
+
+    if (!pallet) {
+      throw new Error(`Pallet not found: ${module}`)
+    }
+
+    const storageEntry = pallet.storage!.items.find((s) => s.name === method)!
+
+    if (storageEntry.type.tag === 'plain') {
+      // no hashers
+      return null
+    } else {
+      const { hashers } = storageEntry.type.value
+      return hashers
     }
   }
 

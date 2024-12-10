@@ -1,4 +1,4 @@
-/* istanbul ignore next */
+/* c8 ignore next */
 export const environment = process.env.NODE_ENV || 'development'
 
 const NON_PROD = ['test', 'development']

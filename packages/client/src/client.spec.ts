@@ -561,7 +561,7 @@ describe('OcelloidsClient', () => {
       scope.done()
     })
 
-    it('should handle auth error', async () => {
+    it('should throw on auth error', async () => {
       const scope = nock('http://mock').get('/health').reply(401)
 
       const client = new OcelloidsClient({
@@ -570,7 +570,42 @@ describe('OcelloidsClient', () => {
         apiKey: 'abracadabra',
       })
 
-      await expect(client.health()).rejects.toStrictEqual({ status: 401, statusText: 'Unauthorized' })
+      await expect(client.health()).rejects.toThrow()
+
+      scope.done()
+    })
+
+    it('should retry on 429', async () => {
+      const retry = vitest.fn(async () => {
+        /**/
+      })
+      const hooks = {
+        beforeRetry: [retry],
+      }
+
+      const scope = nock('http://mock')
+        .get('/health')
+        .reply(429, undefined, {
+          'Retry-After': '0',
+        })
+        .get('/health')
+        .reply(429, undefined, {
+          'Retry-After': '0',
+        })
+        .get('/health')
+        .reply(200, '{}')
+
+      const client = new OcelloidsClient({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+      })
+
+      expect(
+        await client.health({
+          hooks,
+        }),
+      ).toStrictEqual({})
+      expect(retry).toBeCalledTimes(2)
 
       scope.done()
     })

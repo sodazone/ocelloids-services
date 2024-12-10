@@ -1,5 +1,10 @@
 import { asPublicKey } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
+import {
+  FrontierExtrinsic,
+  getFromAddress,
+  isFrontierExtrinsic,
+} from '@/services/networking/substrate/evm/index.js'
 import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
@@ -31,13 +36,21 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
   return undefined
 }
 
-export function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): SignerData | undefined {
+export async function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): Promise<SignerData | undefined> {
+  if (isFrontierExtrinsic(extrinsic)) {
+    const signer = await getFromAddress(extrinsic.args as FrontierExtrinsic)
+    return createSignersData({
+      ...extrinsic,
+      signed: true,
+      address: signer,
+    })
+  }
   return createSignersData(extrinsic)
 }
 
-export function getSendersFromEvent(event: BlockEvent): SignerData | undefined {
+export async function getSendersFromEvent(event: BlockEvent): Promise<SignerData | undefined> {
   if (event.extrinsic !== undefined) {
-    return getSendersFromExtrinsic(event.extrinsic)
+    return await getSendersFromExtrinsic(event.extrinsic)
   }
   return undefined
 }

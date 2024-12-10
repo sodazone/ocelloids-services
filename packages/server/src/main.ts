@@ -42,7 +42,7 @@ async function startServer(this: Command) {
       },
     )
 
-    /* istanbul ignore next */
+    /* c8 ignore next */
     closeWithGrace(
       {
         delay: opts.grace,

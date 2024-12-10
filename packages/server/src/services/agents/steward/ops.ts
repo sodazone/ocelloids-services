@@ -2,7 +2,17 @@ import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { Hashers } from '@/services/networking/substrate/types.js'
 
+import {
+  Blake2128,
+  Blake2128Concat,
+  Blake2256,
+  Identity,
+  Twox64Concat,
+  Twox128,
+  Twox256,
+} from '@polkadot-api/substrate-bindings'
 import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
 import { getLocationIfAny } from './util.js'
 
@@ -79,7 +89,7 @@ export const mapAssetsPalletAssets =
           const assetId = assetCodec.keyDecoder(keyArgs)[0]
           const assetDetails = assetCodec.dec(buffer)
           return {
-            id: assetId.toString(),
+            id: assetId,
             xid: keyArgs,
             updated: Date.now(),
             existentialDeposit: assetDetails.min_balance.toString(),
@@ -142,8 +152,11 @@ const mergeMultiLocations = (
   }
 }
 
-export const mapAssetsPalletAndLocations = (options: MapMultiLocationOptions) => {
-  return (codecs: Required<StorageCodecs>, keyArgs: string, ingress: SubstrateIngressConsumer) => {
+export const mapAssetsPalletAndLocations = (
+  codecs: Required<StorageCodecs>,
+  options: MapMultiLocationOptions,
+) => {
+  return (keyArgs: string, ingress: SubstrateIngressConsumer) => {
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         mapAssetsPalletAssets(codecs, options.chainId)(keyArgs, ingress),
@@ -169,5 +182,28 @@ export const mapAssetsRegistryAndLocations = (
         mergeMultiLocations(codecs, options)(ingress),
       )
     }
+  }
+}
+
+export const hashItemPartialKey = (data: Uint8Array, hashers: Hashers) => {
+  if (hashers.length > 1) {
+    throw new Error('Multiple hasher not supported')
+  }
+  const hasher = hashers[0]
+  switch (hasher.tag) {
+    case 'Blake2128':
+      return Blake2128(data)
+    case 'Blake2256':
+      return Blake2256(data)
+    case 'Blake2128Concat':
+      return Blake2128Concat(data)
+    case 'Twox128':
+      return Twox128(data)
+    case 'Twox256':
+      return Twox256(data)
+    case 'Twox64Concat':
+      return Twox64Concat(data)
+    case 'Identity':
+      return Identity(data)
   }
 }

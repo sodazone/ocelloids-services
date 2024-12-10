@@ -99,7 +99,7 @@ function findDmpMessagesFromEvent(
       filterNonNull(),
       mergeMap(({ recipient, messageId, event }) => {
         return getDmp(event.blockHash as HexString, recipient as NetworkURN).pipe(
-          map((messages) => {
+          mergeMap(async (messages) => {
             const { blockHash, blockNumber, timestamp } = event
             if (messages.length === 1) {
               const data = messages[0].msg.asBytes()
@@ -112,7 +112,7 @@ function findDmpMessagesFromEvent(
                 event,
                 data,
                 program,
-                sender: getSendersFromEvent(event),
+                sender: await getSendersFromEvent(event),
               })
             } else {
               // Since we are matching by topic and it is assumed that the TopicId is unique
@@ -129,7 +129,7 @@ function findDmpMessagesFromEvent(
                     event,
                     data,
                     program,
-                    sender: getSendersFromEvent(event),
+                    sender: await getSendersFromEvent(event),
                   })
                 }
               }

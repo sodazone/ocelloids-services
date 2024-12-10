@@ -12,7 +12,6 @@ import { blockHeader } from '@polkadot-api/substrate-bindings'
 import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
-  fixPrematureBlocks,
   fixUnorderedEvents,
   parsed,
   patchChainHeadEvents,
@@ -82,7 +81,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       fixUnorderedEvents,
       unpinHash,
       patchChainHeadEvents,
-      fixPrematureBlocks,
+      // fixPrematureBlocks,
       // fixUnorderedBlocks,
       // fixChainSpec,
       fixDescendantValues,
@@ -238,7 +237,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     this.#runtimeContext
       .then((x) => {
         const ctx = new RuntimeApiContext(x, this.chainId)
-        this.#apiContext = () => ctx
+        this.#apiContext = () => ctx as SubstrateApiContext
         super.emit('connected')
         this.#connected = true
       })

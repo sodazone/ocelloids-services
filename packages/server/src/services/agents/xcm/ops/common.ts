@@ -1,4 +1,4 @@
-import { Observable, map } from 'rxjs'
+import { Observable, map, mergeMap } from 'rxjs'
 
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
@@ -134,11 +134,11 @@ export function mapXcmSent(id: string, context: SubstrateApiContext, origin: Net
 export function xcmMessagesSent() {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      map((event) => {
+      mergeMap(async (event) => {
         const xcmMessage = event.value as { message_hash: HexString; message_id?: HexString }
         return {
           event: event as AnyJson,
-          sender: getSendersFromEvent(event),
+          sender: await getSendersFromEvent(event),
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,

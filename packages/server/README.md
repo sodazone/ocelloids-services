@@ -234,7 +234,7 @@ The Ocelloids Service Node exposes observability metrics via Prometheus, enablin
 
 ## Testing
 
-[Run unit tests and explore end-to-end testing guides for Polkadot and Zombienet](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING.md).
+[Run unit tests and explore integration and stress testing](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING.md).
 
 ---
 

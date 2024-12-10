@@ -3,8 +3,14 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     globals: true,
-    exclude: [
-      "**/test/**"
-    ]
+    coverage: {
+      exclude: [
+        '**/docs/**',
+        '**/test/**',
+        '**/dist/**',
+        'vitest.config.ts',
+        '**/*.spec.*'
+      ]
+    }
   },
 })

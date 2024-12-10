@@ -1,14 +1,85 @@
+import { toHex } from 'polkadot-api/utils'
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
-
-import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { mapAssetsPalletAssets, mapAssetsRegistryAndLocations, mapAssetsRegistryMetadata } from './ops.js'
+import {
+  hashItemPartialKey,
+  mapAssetsPalletAndLocations,
+  mapAssetsPalletAssets,
+  mapAssetsRegistryAndLocations,
+  mapAssetsRegistryMetadata,
+} from './ops.js'
 import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 
 const BYPASS_MAPPER: AssetMapper = () => []
+
+const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
+  const codec = context.storageCodec('Assets', 'Asset')
+  const keyPrefix = codec.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
+    assets: codec,
+    metadata: context.storageCodec('Assets', 'Metadata'),
+    locations: context.storageCodec('XcAssetConfig', 'AssetIdToLocation'),
+  }
+  const mappings = [
+    {
+      keyPrefix,
+      mapEntry: mapAssetsPalletAndLocations(codecs, {
+        chainId: networks.astar,
+        options: {},
+      }),
+    },
+  ]
+  return mappings
+}
+
+const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
+  const codec = context.storageCodec('Assets', 'Asset')
+  const keyPrefix = codec.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
+    assets: codec,
+    metadata: context.storageCodec('Assets', 'Metadata'),
+    locations: context.storageCodec('AssetManager', 'AssetIdType'),
+  }
+  const mappings = [
+    {
+      keyPrefix,
+      mapEntry: mapAssetsPalletAndLocations(codecs, {
+        chainId: networks.moonbeam,
+        options: {
+          ed: 'minimal_balance',
+        },
+        onMultiLocationData: (json: Record<string, any>) => json.value,
+      }),
+    },
+  ]
+  return mappings
+}
+
+const hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
+  const codec = context.storageCodec('Assets', 'Asset')
+  const keyPrefix = codec.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
+    assets: codec,
+    metadata: context.storageCodec('TokenGovernor', 'AssetMetadatas'),
+    locations: context.storageCodec('XcmGateway', 'AssetIds'),
+  }
+  const mappings = [
+    {
+      keyPrefix,
+      mapEntry: mapAssetsPalletAndLocations(codecs, {
+        chainId: networks.hyperbridge,
+        options: {
+          ed: 'minimal_balance',
+        },
+      }),
+    },
+  ]
+  return mappings
+}
 
 const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'CurrencyMetadatas')
@@ -26,6 +97,16 @@ const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
           ed: 'minimal_balance',
         },
       }),
+      mapAssetId: (data: Uint8Array) => {
+        // context get hasher
+        const hashers = context.getHashers('AssetRegistry', 'CurrencyMetadatas')
+        let itemPartialKey = toHex(data)
+        if (hashers !== null) {
+          itemPartialKey = toHex(hashItemPartialKey(data, hashers))
+        }
+        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        return dec
+      },
     },
   ]
   return mappings
@@ -74,6 +155,16 @@ const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
           }),
         },
       }),
+      mapAssetId: (data: Uint8Array) => {
+        // context get hasher
+        const hashers = context.getHashers('OrmlAssetRegistry', 'Metadata')
+        let itemPartialKey = toHex(data)
+        if (hashers !== null) {
+          itemPartialKey = toHex(hashItemPartialKey(data, hashers))
+        }
+        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        return dec
+      },
     },
   ]
   return mappings
@@ -154,14 +245,17 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.nodle]: BYPASS_MAPPER,
   [networks.phala]: BYPASS_MAPPER,
   [networks.mythos]: BYPASS_MAPPER,
-  [networks.moonbeam]: BYPASS_MAPPER,
-  [networks.astar]: BYPASS_MAPPER,
+  [networks.moonbeam]: moonbeamMapper,
+  [networks.astar]: astarMapper,
   [networks.assetHub]: assetHubMapper(networks.assetHub),
   [networks.bifrost]: bifrostMapper,
   [networks.centrifuge]: centrifugeMapper,
   [networks.hydration]: hydrationMapper,
+  [networks.hyperbridge]: hyperbridgeMapper,
   [networks.kusama]: BYPASS_MAPPER,
   [networks.kusamaBridgeHub]: BYPASS_MAPPER,
   [networks.kusamaCoretime]: BYPASS_MAPPER,
   [networks.kusamaAssetHub]: assetHubMapper(networks.kusamaAssetHub),
+  [networks.paseo]: BYPASS_MAPPER,
+  [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
 }

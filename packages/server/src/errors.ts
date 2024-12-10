@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 import { FastifyReply } from 'fastify'
 import { ZodError } from 'zod'
 

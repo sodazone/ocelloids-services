@@ -1,16 +1,28 @@
 import { AbstractSublevel } from 'abstract-level'
-import { EMPTY, expand, map, merge, mergeAll, mergeMap, reduce, switchMap } from 'rxjs'
+import {
+  EMPTY,
+  Observer,
+  Subscription,
+  expand,
+  filter,
+  firstValueFrom,
+  map,
+  merge,
+  mergeAll,
+  mergeMap,
+  reduce,
+  switchMap,
+} from 'rxjs'
 import { z } from 'zod'
 
-import { Twox128 } from '@polkadot-api/substrate-bindings'
-import { mergeUint8 } from '@polkadot-api/utils'
-
 import { NetworkInfo, SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
-import { asSerializable, stringToUa8 } from '@/common/util.js'
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+
 import {
   Agent,
   AgentMetadata,
@@ -23,19 +35,42 @@ import {
 
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
-import { $StewardQueryArgs, AssetId, AssetMapper, AssetMetadata, StewardQueryArgs } from './types.js'
+import {
+  $StewardQueryArgs,
+  AssetId,
+  AssetIds,
+  AssetMapper,
+  AssetMetadata,
+  StewardQueryArgs,
+} from './types.js'
 import { assetMetadataKey } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
-const ASSETS_MAP_TMP_LEVEL_PREFIX = 'agent:steward:assets-map-tmp'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
 
 const STORAGE_PAGE_LEN = 100
 
-const START_DELAY = 30_000 // 5m
+const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 43_200_000 // 12h
+
+const ASSET_PALLET_EVENTS = [
+  'Created',
+  'Issued',
+  'Burned',
+  'Destroyed',
+  // 'Blocked',
+  // 'Thawed',
+  // 'Frozen',
+  'MetadataCleared',
+  'MetadataSet',
+  'OwnerChanged',
+  'TeamCheanged',
+  'AssetStatusChanged',
+  'AssetFrozen',
+  'AssetThawed',
+]
 
 /**
  * The Data Steward agent.
@@ -51,9 +86,9 @@ export class DataSteward implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: LevelDB
-  readonly #dbAssetsMapTmp: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Uint8Array, AssetId>
 
   readonly #queries: Queries
+  readonly #rxSubs: Subscription[] = []
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -63,13 +98,10 @@ export class DataSteward implements Agent, Queryable {
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbAssetsMapTmp = ctx.db.sublevel<Uint8Array, AssetId>(ASSETS_MAP_TMP_LEVEL_PREFIX, {
-      valueEncoding: 'json',
-    })
     this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#queries = new Queries(this.#dbAssets, this.#dbChains)
+    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -95,7 +127,9 @@ export class DataSteward implements Agent, Queryable {
   }
 
   stop() {
-    //
+    for (const sub of this.#rxSubs) {
+      sub.unsubscribe()
+    }
   }
 
   async start() {
@@ -108,6 +142,41 @@ export class DataSteward implements Agent, Queryable {
         this.#syncAssetMetadata()
       }, START_DELAY)
       timeout.unref()
+    }
+
+    // TODO generalise for other networks and pallets, similar to mappers but for updates
+    const chainsToWatch: NetworkURN[] = ['urn:ocn:polkadot:1000', 'urn:ocn:kusama:1000', 'urn:ocn:paseo:1000']
+    const streams = SubstrateSharedStreams.instance(this.#ingress)
+
+    for (const chainId of chainsToWatch) {
+      if (this.#ingress.isNetworkDefined(chainId)) {
+        this.#log.info('[agent:%s] watching for asset updates %s', this.id, chainId)
+        this.#rxSubs.push(
+          streams
+            .blockEvents(chainId)
+            .pipe(
+              filter(
+                (blockEvent) =>
+                  blockEvent.module === 'Assets' && ASSET_PALLET_EVENTS.includes(blockEvent.name),
+              ),
+            )
+            .subscribe(async ({ name, value: { asset_id }, blockNumber }) => {
+              this.#log.info(
+                '[agent:%s] asset update (event=%s, chainId=%s, assetId=%s, block=%s)',
+                this.id,
+                name,
+                chainId,
+                asset_id,
+                blockNumber,
+              )
+              if (name === 'Destroyed') {
+                await this.#removeAsset(chainId, asset_id)
+              } else {
+                await this.#updateAsset(chainId, asset_id)
+              }
+            }),
+        )
+      }
     }
   }
 
@@ -151,16 +220,102 @@ export class DataSteward implements Agent, Queryable {
     }
 
     const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
-    allAssetMapsObs.subscribe({
+    allAssetMapsObs.subscribe(this.#storeAssetMetadata())
+  }
+
+  async #updateAsset(chainId: NetworkURN, assetId: AssetId) {
+    try {
+      const context = await firstValueFrom(this.#ingress.getContext(chainId))
+      const mappings = mappers[chainId](context)
+      const { mapEntry } = mappings[0]
+
+      const codec = context.storageCodec('Assets', 'Asset')
+      const key = codec.enc(assetId) as HexString
+      const asset = await firstValueFrom(
+        this.#ingress.getStorage(chainId, key).pipe(
+          mapEntry(key, this.#ingress),
+          map((x) => asSerializable<AssetMetadata>(x)),
+        ),
+      )
+
+      const assetKey = assetMetadataKey(chainId, asset.id)
+      const current = await this.#dbAssets.get(assetKey)
+      await this.#dbAssets.put(assetKey, {
+        ...asset,
+        externalIds: current.externalIds,
+        sourceId: current.sourceId,
+      })
+    } catch (error) {
+      this.#log.error(error, '[agent:%s] on update asset (chainId=%s, assetId=%s)', this.id, chainId, assetId)
+    }
+  }
+
+  async #removeAsset(chainId: NetworkURN, assetId: AssetId) {
+    try {
+      const key = assetMetadataKey(chainId, assetId)
+      await this.#dbAssets.del(key)
+      this.#log.info('[agent:%s] delete asset (chainId=%s, assetId=%s)', this.id, chainId, assetId)
+      // remove asset from external ID mappings
+      for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
+        const updatedIds = [...asset.externalIds]
+        const externalIdIndex = updatedIds.findIndex(
+          (extId) => extId.chainId === chainId && extId.id === assetId,
+        )
+        if (externalIdIndex > -1) {
+          updatedIds.splice(externalIdIndex, 1)
+          await this.#dbAssets.put(assetKey, {
+            ...asset,
+            externalIds: updatedIds,
+          })
+          this.#log.info(
+            '[agent:%s] update external IDs (chainId=%s, assetId=%s)',
+            this.id,
+            asset.chainId,
+            asset.id,
+          )
+        }
+      }
+    } catch (error) {
+      this.#log.error(
+        error,
+        '[agent:%s] on destroy asset (chainId=%s, assetId=%s)',
+        this.id,
+        chainId,
+        assetId,
+      )
+    }
+  }
+
+  #storeAssetMetadata() {
+    const tmpMapExternalIds: Record<string, AssetIds[]> = {}
+    const tmpMapSourceIds: Record<string, string> = {}
+
+    return {
       next: async ({ chainId, asset }) => {
         const assetKey = assetMetadataKey(chainId, asset.id)
+        const multilocation = asset.multiLocation
 
-        /*const multilocation = asset.multiLocation
         if (multilocation) {
-         // TODO: handle multi location specific indexing
-        }*/
+          const resolvedId = await this.#queries.resolveAssetIdFromLocation(
+            chainId,
+            JSON.stringify(multilocation),
+          )
 
-        this.#dbAssets.put(assetKey, asset).catch((e) => {
+          if (resolvedId && resolvedId !== assetKey) {
+            const cur = tmpMapExternalIds[resolvedId] ?? []
+            tmpMapExternalIds[resolvedId] = cur.concat([
+              {
+                id: asset.id,
+                xid: asset.xid,
+                chainId,
+              },
+            ])
+
+            tmpMapSourceIds[assetKey] = resolvedId
+          }
+        }
+
+        this.#dbAssets.put(assetKey, asSerializable(asset)).catch((e) => {
           this.#log.error(
             e,
             '[agent:%s] on metadata write (chainId=%s, assetId=%s)',
@@ -171,34 +326,38 @@ export class DataSteward implements Agent, Queryable {
         })
       },
       complete: async () => {
-        this.#log.info('[agent:%s] END synchronizing asset metadata', this.id)
-        const zeroArray = new Uint8Array(8).fill(0)
-        const fArray = new Uint8Array(8).fill(0xff)
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
-          const assetHash = Twox128(stringToUa8(assetKey))
           try {
-            const externalIdsMap = await this.#dbAssetsMapTmp
-              .iterator({
-                gt: mergeUint8(assetHash, zeroArray),
-                lt: mergeUint8(assetHash, fArray),
-              })
-              .all()
-            const externalIds = externalIdsMap.map(([_key, assetId]) => assetId)
-            if (externalIds.length > 0) {
-              this.#dbAssets.put(assetKey, {
-                ...asset,
-                externalIds,
-              })
+            let updated = false
+            const externalIds = tmpMapExternalIds[assetKey]
+            const updatedAsset = asset
+            if (externalIds) {
+              updatedAsset.externalIds = externalIds
+              updated = true
+            }
+
+            const sourceId = tmpMapSourceIds[assetKey]
+            if (sourceId) {
+              const sourceAsset = await this.#dbAssets.get(sourceId)
+              updatedAsset.sourceId = {
+                chainId: sourceAsset.chainId,
+                id: sourceAsset.id,
+                xid: sourceAsset.xid,
+              }
+              updated = true
+            }
+
+            if (updated) {
+              await this.#dbAssets.put(assetKey, updatedAsset)
             }
           } catch (_error) {
             //
           }
         }
-        this.#log.info('[agent:%s] END synchronizing registered chains', this.id)
-        await this.#dbAssetsMapTmp.clear()
+        this.#log.info('[agent:%s] END storing metadata', this.id)
       },
-      error: (e) => this.#log.error(e, '[agent:%s] on metadata sync', this.id),
-    })
+      error: (e) => this.#log.error(e, '[agent:%s] on metadata store', this.id),
+    } as Observer<{ asset: AssetMetadata; chainId: NetworkURN }>
   }
 
   #putChainProps(chainId: NetworkURN) {

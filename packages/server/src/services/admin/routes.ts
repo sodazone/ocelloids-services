@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { CAP_ADMIN } from '../auth/index.js'
+import { Scheduled } from '../persistence/level/index.js'
 import { NetworkURN, jsonEncoded, prefixes } from '../types.js'
 
 type chainIdParam = {
@@ -26,6 +27,15 @@ async function AdminRoutes(api: FastifyInstance) {
     },
   }
 
+  api.delete<{
+    Params: {
+      prefix: string
+    }
+  }>('/admin/level/:prefix', opts, async (request, reply) => {
+    await rootStore.sublevel(request.params.prefix).clear()
+    reply.send()
+  })
+
   api.get<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded)
     reply.send(await db.iterator(itOps).all())
@@ -34,6 +44,14 @@ async function AdminRoutes(api: FastifyInstance) {
   api.delete<chainIdParam>('/admin/cache/:chainId', opts, async (request, reply) => {
     const db = rootStore.sublevel<string, any>(prefixes.cache.family(request.params.chainId), jsonEncoded)
     await db.clear()
+    reply.send()
+  })
+
+  api.post<{
+    Body: Scheduled
+  }>('/admin/sched', opts, async (request, reply) => {
+    const task = request.body
+    await scheduler.schedule(task)
     reply.send()
   })
 

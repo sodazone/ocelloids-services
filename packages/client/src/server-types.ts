@@ -11,4 +11,5 @@ export type {
   AnyQueryArgs,
   NetworkURN,
   AnyQueryResultItem,
+  NetworkInfo,
 } from '@sodazone/ocelloids-service-node'

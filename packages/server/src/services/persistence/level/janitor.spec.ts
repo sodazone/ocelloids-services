@@ -1,7 +1,7 @@
 import { MemoryLevel as Level } from 'memory-level'
 
 import { flushPromises } from '@/testing/promises.js'
-import { _config, _log } from '@/testing/services.js'
+import { _log } from '@/testing/services.js'
 
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'

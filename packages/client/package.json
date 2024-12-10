@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-client",
-  "version": "2.3.1-dev.0",
+  "version": "2.3.4-dev.0",
   "type": "module",
   "description": "Ocelloids client library",
   "author": "SO/DA <projects@soda.zone>",
@@ -10,7 +10,7 @@
   ],
   "repository": "https://github.com/sodazone/ocelloids-services",
   "source": "./src/lib.ts",
-  "main": "./dist/lib.cjs",
+  "exports": "./dist/lib.js",
   "module": "./dist/lib.js",
   "types": "./dist/ocelloids-client.d.ts",
   "files": [
@@ -18,13 +18,15 @@
     "/src"
   ],
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
   "tsup": {
     "entry": [
       "src/lib.ts"
     ],
     "format": [
-      "esm",
-      "cjs"
+      "esm"
     ],
     "bundle": true,
     "sourcemap": true,
@@ -38,6 +40,7 @@
     "build:api": "tsc && api-extractor run --local --verbose",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "docs": "typedoc",
     "lint": "biome check --write src/**/*.ts"
   },
@@ -50,16 +53,17 @@
     "@microsoft/api-extractor": "^7.47.11",
     "finalhandler": "^1.3.1",
     "mock-socket": "^9.3.1",
-    "nock": "^14.0.0-beta.15",
+    "nock": "^14.0.0-beta.16",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typedoc": "^0.26.11",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "vitest": "^2.1.5"
   },
   "dependencies": {
     "isows": "^1.0.6",
+    "ky": "^1.7.2",
     "zod": "^3.23.8"
   },
-  "stableVersion": "2.3.0"
+  "stableVersion": "2.3.3"
 }

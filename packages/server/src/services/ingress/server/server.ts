@@ -43,7 +43,7 @@ export async function createIngressServer(opts: ServerOptions) {
 
   server.setErrorHandler(errorHandler)
 
-  /* istanbul ignore next */
+  /* c8 ignore next */
   process.once('SIGUSR2', function () {
     server.close().then(() => {
       // Controlled shutdown for Nodemon

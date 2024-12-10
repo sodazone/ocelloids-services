@@ -81,6 +81,12 @@ Run unit tests:
 yarn test
 ```
 
+Run unit tests with coverage report:
+
+```shell
+yarn test:coverage
+```
+
 ## Compatibility
 
 Compatible with [browser environments, Node and Bun](https://github.com/sodazone/ocelloids-services/blob/main/packages/client/test).

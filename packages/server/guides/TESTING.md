@@ -8,6 +8,12 @@ To run unit tests, from `packages/server` execute:
 yarn test
 ```
 
+Run unit tests with coverage report:
+
+```shell
+yarn test:coverage
+```
+
 ## Integration Testing
 
 For HTTP tests please refer to [Hurl Tests](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/guides/hurl/tests).

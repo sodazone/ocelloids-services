@@ -39,6 +39,58 @@ describe('admin api', () => {
     })
   })
 
+  it('should delete a sublevel', async () => {
+    const db = server.levelDB.sublevel('deleteme')
+    await db.put('a', '1')
+    expect(await db.get('a')).toBe('1')
+
+    await new Promise<void>((resolve) => {
+      server.inject(
+        {
+          method: 'DELETE',
+          url: '/admin/level/deleteme',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+        },
+        (_err, response) => {
+          expect(response?.statusCode).toStrictEqual(200)
+          resolve()
+        },
+      )
+    })
+
+    expect(db.get('a')).rejects.toThrow()
+  })
+
+  it('should schedule a task', async () => {
+    const scheduleSpy = vi.spyOn(server.scheduler, 'schedule')
+    const timeString = new Date(Date.now() + 10_000_000).toISOString()
+    const key = timeString + 'something'
+
+    await new Promise<void>((resolve) => {
+      server.inject(
+        {
+          method: 'POST',
+          url: '/admin/sched',
+          headers: {
+            authorization: `Bearer ${rootToken}`,
+          },
+          body: {
+            key,
+            type: 'something',
+            task: null,
+          },
+        },
+        (_err, response) => {
+          expect(response?.statusCode).toStrictEqual(200)
+          expect(scheduleSpy).toHaveBeenCalled()
+          resolve()
+        },
+      )
+    })
+  })
+
   it('should retrieve pending scheduler tasks', async () => {
     const allTaskTimesSpy = vi.spyOn(server.scheduler, 'allTaskTimes')
 
