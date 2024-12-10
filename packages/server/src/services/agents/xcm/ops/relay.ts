@@ -4,14 +4,18 @@ import { Observable, filter, map, mergeMap } from 'rxjs'
 import { ControlQuery, filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { createNetworkId, getChainId } from '@/services/config.js'
-import { ApiContext, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
+import { BlockExtrinsicWithEvents, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
 import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js'
 import { getMessageId, matchExtrinsic } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'
 
-export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQuery, context: ApiContext) {
+export function extractRelayReceive(
+  origin: NetworkURN,
+  messageControl: ControlQuery,
+  context: SubstrateApiContext,
+) {
   return (source: Observable<BlockExtrinsicWithEvents>): Observable<XcmRelayedWithContext> => {
     return source.pipe(
       filter((extrinsic) => matchExtrinsic(extrinsic, 'ParaInherent', 'enter')),
