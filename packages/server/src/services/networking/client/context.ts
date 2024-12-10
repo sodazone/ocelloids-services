@@ -1,9 +1,10 @@
 import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
 import { RuntimeContext } from '@polkadot-api/observable-client'
-import { Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
+import { Blake2256, Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
 
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { Extrinsic, StorageCodec } from '../types.js'
 import { ApiContext } from './types.js'
 
@@ -64,14 +65,14 @@ export class RuntimeApiContext implements ApiContext {
     return this.#metadata.lookup.find((ty) => ty.path.join('.').toLowerCase() === target.toLowerCase())?.id
   }
 
-  decodeExtrinsic(hextBytes: string | Uint8Array): Extrinsic {
+  decodeExtrinsic(hexBytes: string | Uint8Array): Extrinsic {
     try {
       const xt: {
         callData: Binary
         signed: boolean
         address?: any
         signature?: any
-      } = this.#extrinsicDecoder(hextBytes)
+      } = this.#extrinsicDecoder(hexBytes)
 
       const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(xt.callData.asBytes())
 
@@ -82,6 +83,7 @@ export class RuntimeApiContext implements ApiContext {
         signed: xt.signed,
         address: xt.address,
         signature: xt.signature,
+        hash: toHex(Blake2256(typeof hexBytes === 'string' ? fromHex(hexBytes) : hexBytes)),
       }
     } catch (error) {
       throw new Error(`[${this.chainId}] Failed to decode extrinsic.`, { cause: error })

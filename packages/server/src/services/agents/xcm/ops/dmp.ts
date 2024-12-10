@@ -61,6 +61,7 @@ function createXcmMessageSent({
     blockNumber: blockNumber,
     timestamp: timestamp,
     event,
+    extrinsicHash: event?.extrinsic?.hash as HexString,
     recipient,
     instructions: {
       bytes: program.data,
@@ -161,6 +162,7 @@ function createDmpReceivedWithContext(event: BlockEvent, assetsTrappedEvent?: Bl
 
   return new GenericXcmInboundWithContext({
     event,
+    extrinsicHash: event.extrinsic?.hash as HexString,
     blockHash: event.blockHash as HexString,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp,

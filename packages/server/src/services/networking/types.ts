@@ -18,6 +18,7 @@ export type EventRecord<T = Event> = Omit<SystemEvent, 'event'> & {
 }
 
 export type Extrinsic = {
+  hash: string
   module: string
   method: string
   signed: boolean

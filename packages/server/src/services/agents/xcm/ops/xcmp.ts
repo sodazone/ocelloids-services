@@ -98,6 +98,7 @@ export function extractXcmpReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
+            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
@@ -117,6 +118,7 @@ export function extractXcmpReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
+            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,

@@ -41,6 +41,7 @@ function createUmpReceivedWithContext(
   if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
     return new GenericXcmInboundWithContext({
       event,
+      extrinsicHash: event.extrinsic?.hash as HexString,
       blockHash: event.blockHash as HexString,
       blockNumber: event.blockNumber,
       timestamp: event.timestamp,
