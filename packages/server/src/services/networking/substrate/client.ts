@@ -62,10 +62,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     )
   }
 
-  get #runtimeContext(): Promise<RuntimeContext> {
-    return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
-  }
-
   constructor(log: Logger, chainId: string, url: string | Array<string>) {
     super()
 
@@ -263,6 +259,10 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to fetch RPC methods.`, { cause: error })
     }
+  }
+
+  get #runtimeContext(): Promise<RuntimeContext> {
+    return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
   }
 
   async #getBody(hash: string) {
