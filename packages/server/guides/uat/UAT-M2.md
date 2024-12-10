@@ -25,7 +25,7 @@ The following tests use the Swagger UI. Ensure authorization is set up before pr
 eyJhbGciOiJFZERTQSIsImtpZCI6Im92SFVDU3hRM0NiYkJmc01STVh1aVdjQkNZcDVydmpvamphT2J4dUxxRDQ9In0.ewogICJpc3MiOiAiYXBpLm9jZWxsb2lkcy5uZXQiLAogICJqdGkiOiAiMDEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLAogICJzdWIiOiAicHVibGljQG9jZWxsb2lkcyIKfQo.qKSfxo6QYGxzv40Ox7ec6kpt2aVywKmhpg6lue4jqmZyY6y3SwfT-DyX6Niv-ine5k23E0RKGQdm_MbtyPp9CA
 ```
 
-1. Open [https://api.ocelloids.net/documentation](https://api.ocelloids.net/documentation).
+1. Open [https://api.ocelloids.net/api-docs/](https://api.ocelloids.net/api-docs/).
 2. Click the **Authorize** button (lock icon on the right).
 3. Paste the API token into the `value` field in the authorization form pop-up.
 4. Click **Authorize**.
