@@ -385,6 +385,9 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   }
 }
 
+/**
+ * @public
+ */
 export enum XcmNotificationType {
   Sent = 'xcm.sent',
   Received = 'xcm.received',
@@ -684,6 +687,9 @@ export class GenericXcmHop implements XcmHop {
   }
 }
 
+/**
+ * @public
+ */
 export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
 
 /**

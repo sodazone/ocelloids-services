@@ -4,7 +4,7 @@ import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
-import { QueryResult, Subscription, WsAuthErrorEvent } from './lib.js'
+import { QueryResult } from './lib.js'
 import { AssetMetadata, StewardQueryArgs } from './steward/types.js'
 import { XcmInputs, XcmMessagePayload } from './xcm/types.js'
 
@@ -16,7 +16,7 @@ vi.mock('isows', () => {
 })
 
 import { OcelloidsClient } from './client'
-import { isSubscriptionError } from './lib'
+import { Subscription, WsAuthErrorEvent, isSubscriptionError } from './types'
 import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
 
 describe('OcelloidsClient', () => {

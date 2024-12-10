@@ -12,4 +12,6 @@ export type {
   NetworkURN,
   AnyQueryResultItem,
   SubstrateTypes,
+  xcm as sourceXcm,
+  steward as sourceSteward,
 } from '@sodazone/ocelloids-service-node'

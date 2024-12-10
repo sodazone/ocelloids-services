@@ -13,4 +13,6 @@ export type {
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,
+  XcmNotificationType,
+  BridgeMessageType,
 } from './types.js'

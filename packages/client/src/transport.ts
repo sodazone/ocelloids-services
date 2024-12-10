@@ -2,10 +2,12 @@ import { WebSocket } from 'isows'
 import ky from 'ky'
 import { Options } from 'ky'
 
+import { AnyJson } from './lib'
+
+import { OcelloidsClientConfig } from './client'
+import { Protocol } from './protocol'
 import {
-  AnyJson,
   AuthReply,
-  OcelloidsClientConfig,
   OnDemandSubscriptionHandlers,
   Subscription,
   SubscriptionError,
@@ -13,8 +15,7 @@ import {
   WsAuthErrorEvent,
   isSubscription,
   isSubscriptionError,
-} from './lib'
-import { Protocol } from './protocol'
+} from './types'
 
 /**
  * Returns HTTP headers from configuration.

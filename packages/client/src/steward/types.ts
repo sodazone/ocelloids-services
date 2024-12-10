@@ -1,11 +1,11 @@
-import { steward } from '@sodazone/ocelloids-service-node'
+import { sourceSteward } from '../server-types'
 
 /**
  * @public
  */
-export type AssetMetadata = steward.AssetMetadata
+export type AssetMetadata = sourceSteward.AssetMetadata
 
 /**
  * @public
  */
-export type StewardQueryArgs = steward.StewardQueryArgs
+export type StewardQueryArgs = sourceSteward.StewardQueryArgs

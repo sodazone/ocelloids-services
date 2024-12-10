@@ -111,7 +111,13 @@ export type AssetMapping = {
 
 export type AssetMapper = (context: SubstrateApiContext) => AssetMapping[]
 
+/**
+ * @public
+ */
 export type AssetId = string | object | number
+/**
+ * @public
+ */
 export type AssetIds = {
   id: AssetId
   xid: HexString
