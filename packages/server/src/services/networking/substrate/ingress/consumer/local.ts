@@ -6,7 +6,7 @@ import { NetworkURN, Services } from '@/services/types.js'
 
 import { Block, SubstrateApiContext } from '../../types.js'
 import { SubstrateWatcher } from '../../watcher/watcher.js'
-import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '../types.js'
+import { SubstrateIngressConsumer, SubstrateNetworkInfo } from '../types.js'
 
 /**
  * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a local environment

@@ -168,3 +168,5 @@ export type Hashers = (
       value: undefined
     }
 )[]
+
+export type { SubstrateNetworkInfo } from './ingress/types.js'

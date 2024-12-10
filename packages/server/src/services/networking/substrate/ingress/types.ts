@@ -6,7 +6,9 @@ import { NetworkURN } from '@/services/types.js'
 import { Block, SubstrateApiContext } from '../types.js'
 
 /**
- * Extended Network Information
+ * Extended Network Information for Substrate Networks.
+ *
+ * @public
  */
 export type SubstrateNetworkInfo = {
   urn: NetworkURN

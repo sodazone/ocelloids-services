@@ -15,7 +15,10 @@ import {
 } from 'rxjs'
 import { z } from 'zod'
 
-import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import {
+  SubstrateIngressConsumer,
+  SubstrateNetworkInfo,
+} from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'

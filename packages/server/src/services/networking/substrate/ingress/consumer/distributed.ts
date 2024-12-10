@@ -22,7 +22,7 @@ import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/ty
 import { safeDestr } from 'destr'
 import { decodeBlock } from '../../codec.js'
 import { Block, SubstrateApiContext, createRuntimeApiContext } from '../../index.js'
-import { SubstrateNetworkInfo, SubstrateIngressConsumer } from '../types.js'
+import { SubstrateIngressConsumer, SubstrateNetworkInfo } from '../types.js'
 
 /**
  * Represents an implementation of {@link SubstrateIngressConsumer} that operates in a distributed environment.

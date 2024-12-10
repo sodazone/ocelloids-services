@@ -19,7 +19,17 @@ export type {
 export type { Message } from './services/egress/types.js'
 
 // ====================================================================
-// Agent-specific support types
+// Network-specific types
+// ====================================================================
+
+/**
+ * Substrate network types.
+ * @public
+ */
+export * as SubstrateTypes from './services/networking/substrate/public-types.js'
+
+// ====================================================================
+// Agent-specific types
 // NOTE: this will be extracted
 // ====================================================================
 
