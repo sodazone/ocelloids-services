@@ -1,22 +1,22 @@
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://127.0.0.1:9900"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:1000"
 relay = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://127.0.0.1:9910"
   
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:2000"
 relay = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://127.0.0.1:9920"
