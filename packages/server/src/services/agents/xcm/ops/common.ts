@@ -144,6 +144,7 @@ export function xcmMessagesSent() {
           extrinsicPosition: event.extrinsicPosition,
           messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
           messageId: xcmMessage.message_id,
+          extrinsicHash: event.extrinsic?.hash as HexString,
         } as XcmSentWithContext
       }),
     )

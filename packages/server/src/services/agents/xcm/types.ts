@@ -389,6 +389,7 @@ export interface XcmTerminusContext extends XcmTerminus {
   blockNumber: string
   blockHash: HexString
   timestamp?: number
+  extrinsicHash?: HexString
   extrinsicPosition?: number
   event: AnyJson
   outcome: 'Success' | 'Fail'
@@ -468,6 +469,7 @@ export class GenericXcmSent implements XcmSent {
       chainId,
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
+      extrinsicHash: msg.extrinsicHash,
       timestamp: msg.timestamp,
       extrinsicPosition: msg.extrinsicPosition,
       event: msg.event,
@@ -560,6 +562,7 @@ export class GenericXcmReceived implements XcmReceived {
       blockNumber: inMsg.blockNumber,
       blockHash: inMsg.blockHash,
       timestamp: inMsg.timestamp,
+      extrinsicHash: inMsg.extrinsicHash,
       extrinsicPosition: inMsg.extrinsicPosition,
       event: inMsg.event,
       outcome: inMsg.outcome,
@@ -613,6 +616,7 @@ export class GenericXcmRelayed implements XcmRelayed {
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
       timestamp: relayMsg.timestamp,
+      extrinsicHash: relayMsg.extrinsicHash,
       extrinsicPosition: relayMsg.extrinsicPosition,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
