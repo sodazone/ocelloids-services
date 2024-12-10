@@ -4,9 +4,9 @@ import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
-import { QueryResult } from './lib.js'
-import { AssetMetadata, StewardQueryArgs } from './steward/types.js'
-import { XcmInputs, XcmMessagePayload } from './xcm/types.js'
+import type { QueryResult } from './lib'
+import { AssetMetadata, StewardQueryArgs } from './steward/types'
+import { XcmInputs, XcmMessagePayload } from './xcm/types'
 
 vi.mock('isows', () => {
   return {
