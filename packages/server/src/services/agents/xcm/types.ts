@@ -385,11 +385,11 @@ export type Leg = {
 }
 
 /**
- * The generic XCM event.
+ * The basic information of an XCM journey.
  *
  * @public
  */
-export interface XcmEvent {
+export interface XcmJourney {
   type: XcmNotificationType
   subscriptionId: string
   legs: Leg[]
@@ -406,7 +406,7 @@ export interface XcmEvent {
  *
  * @public
  */
-export interface XcmHop extends XcmEvent {
+export interface XcmHop extends XcmJourney {
   direction: 'out' | 'in'
 }
 
@@ -415,21 +415,21 @@ export interface XcmHop extends XcmEvent {
  *
  * @public
  */
-export type XcmReceived = XcmEvent
+export type XcmReceived = XcmJourney
 
 /**
  * Event emitted when an XCM is sent.
  *
  * @public
  */
-export type XcmSent = XcmEvent
+export type XcmSent = XcmJourney
 
 /**
  * Event emitted when an XCM is not received within a specified timeframe.
  *
  * @public
  */
-export type XcmTimeout = XcmEvent
+export type XcmTimeout = XcmJourney
 
 /**
  * Event emitted when an XCM is received on the relay chain
@@ -437,16 +437,16 @@ export type XcmTimeout = XcmEvent
  *
  * @public
  */
-export type XcmRelayed = XcmEvent
+export type XcmRelayed = XcmJourney
 
-abstract class BaseXcmNotify {
+abstract class BaseXcmJourney {
   subscriptionId: string
   legs: Leg[]
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
 
-  constructor(msg: Omit<XcmEvent, 'origin' | 'destination' | 'waypoint' | 'type'>) {
+  constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.subscriptionId = msg.subscriptionId
     this.legs = msg.legs
     this.sender = msg.sender
@@ -455,7 +455,7 @@ abstract class BaseXcmNotify {
   }
 }
 
-export class GenericXcmSent extends BaseXcmNotify implements XcmSent {
+export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   type: XcmNotificationType = XcmNotificationType.Sent
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -503,7 +503,7 @@ export class GenericXcmSent extends BaseXcmNotify implements XcmSent {
   }
 }
 
-export class GenericXcmTimeout extends BaseXcmNotify implements XcmTimeout {
+export class GenericXcmTimeout extends BaseXcmJourney implements XcmTimeout {
   type: XcmNotificationType = XcmNotificationType.Timeout
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -518,7 +518,7 @@ export class GenericXcmTimeout extends BaseXcmNotify implements XcmTimeout {
   }
 }
 
-export class GenericXcmReceived extends BaseXcmNotify implements XcmReceived {
+export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
   type: XcmNotificationType = XcmNotificationType.Received
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -553,7 +553,7 @@ export class GenericXcmReceived extends BaseXcmNotify implements XcmReceived {
   }
 }
 
-export class GenericXcmRelayed extends BaseXcmNotify implements XcmRelayed {
+export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
   type: XcmNotificationType = XcmNotificationType.Relayed
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -582,7 +582,7 @@ export class GenericXcmRelayed extends BaseXcmNotify implements XcmRelayed {
   }
 }
 
-export class GenericXcmHop extends BaseXcmNotify implements XcmHop {
+export class GenericXcmHop extends BaseXcmJourney implements XcmHop {
   type: XcmNotificationType = XcmNotificationType.Hop
   direction: 'out' | 'in'
   waypoint: XcmWaypointContext
@@ -619,7 +619,7 @@ type XcmBridgeContext = {
   forwardId?: HexString
 }
 
-export class GenericXcmBridge extends BaseXcmNotify implements XcmBridge {
+export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   type: XcmNotificationType = XcmNotificationType.Bridge
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
