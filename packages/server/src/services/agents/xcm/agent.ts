@@ -18,12 +18,10 @@ import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabi
 import { XcmSubscriptionManager } from './handlers.js'
 import { MatchingEngine } from './matching.js'
 import {
+  $XcmInputs,
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
   GetOutboundUmpMessages,
-} from './types-augmented.js'
-import {
-  $XcmInputs,
   Monitor,
   RxBridgeSubscription,
   XcmInbound,

@@ -6,10 +6,10 @@ import { getChainId, getRelayId } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  GetOutboundUmpMessages,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'

@@ -6,10 +6,10 @@ import { createNetworkId } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GetOutboundHrmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  GetOutboundHrmpMessages,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'

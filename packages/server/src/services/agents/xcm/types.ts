@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+import { Binary } from 'polkadot-api'
+import { Observable } from 'rxjs'
+
 import { ControlQuery } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'
 import {
@@ -119,35 +122,21 @@ export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   forwardId?: HexString
 }
 
-export interface XcmBridgeDeliveredWithContext {
+export interface XcmBridgeDeliveredWithContext extends XcmWithContext {
   chainId: NetworkURN
   bridgeKey: HexString
-  event?: AnyJson
-  extrinsicPosition?: number
-  blockNumber: string | number
-  blockHash: HexString
-  extrinsicHash?: HexString
-  timestamp?: number
   sender?: SignerData
-}
-
-export interface XcmBridgeInboundWithContext {
-  chainId: NetworkURN
-  bridgeKey: HexString
-  blockNumber: string | number
-  blockHash: HexString
-  timestamp?: number
-  outcome: 'Success' | 'Fail'
-  error: AnyJson
-  event?: AnyJson
-  extrinsicPosition?: number
-  extrinsicHash?: HexString
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
+}
+
+export interface XcmBridgeInboundWithContext extends XcmInboundWithContext {
+  chainId: NetworkURN
+  bridgeKey: HexString
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -185,7 +174,7 @@ export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
   }
 }
 
-export class GenericXcmInboundWithContext implements XcmInboundWithContext {
+export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   event: AnyJson
   extrinsicPosition?: number
   blockNumber: string
@@ -193,169 +182,143 @@ export class GenericXcmInboundWithContext implements XcmInboundWithContext {
   timestamp?: number
   messageHash: HexString
   messageId: HexString
+  extrinsicHash?: HexString
+
+  constructor(msg: XcmWithContext) {
+    this.event = msg.event
+    this.messageHash = msg.messageHash
+    this.messageId = msg.messageId ?? msg.messageHash
+    this.blockHash = msg.blockHash
+    this.blockNumber = msg.blockNumber.toString()
+    this.timestamp = msg.timestamp
+    this.extrinsicPosition = msg.extrinsicPosition
+    this.extrinsicHash = msg.extrinsicHash
+  }
+}
+
+export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
-  extrinsicHash?: HexString
 
   constructor(msg: XcmInboundWithContext) {
-    this.event = msg.event
-    this.messageHash = msg.messageHash
-    this.messageId = msg.messageId ?? msg.messageHash
+    super(msg)
+
     this.outcome = msg.outcome
     this.error = msg.error
-    this.blockHash = msg.blockHash
-    this.blockNumber = msg.blockNumber.toString()
-    this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
     this.assetsTrapped = msg.assetsTrapped
-    this.extrinsicHash = msg.extrinsicHash
   }
 }
 
-export class XcmInbound {
-  subscriptionId: string
-  chainId: NetworkURN
+abstract class BaseXcmEvent {
   event: AnyJson
   messageHash: HexString
-  messageId: HexString
-  outcome: 'Success' | 'Fail'
-  error: AnyJson
+  messageId?: HexString
   blockHash: HexString
   blockNumber: string
   timestamp?: number
   extrinsicPosition?: number
-  assetsTrapped?: AssetsTrapped
   extrinsicHash?: HexString
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
-    this.subscriptionId = subscriptionId
-    this.chainId = chainId
+  constructor(msg: XcmWithContext) {
     this.event = msg.event
     this.messageHash = msg.messageHash
     this.messageId = msg.messageId ?? msg.messageHash
-    this.outcome = msg.outcome
-    this.error = msg.error
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
     this.extrinsicPosition = msg.extrinsicPosition
-    this.assetsTrapped = msg.assetsTrapped
     this.extrinsicHash = msg.extrinsicHash
   }
 }
 
-export class GenericXcmSentWithContext implements XcmSentWithContext {
+export class XcmInbound extends BaseXcmEvent {
+  subscriptionId: string
+  chainId: NetworkURN
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
+  assetsTrapped?: AssetsTrapped
+
+  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
+    super(msg)
+
+    this.subscriptionId = subscriptionId
+    this.chainId = chainId
+    this.outcome = msg.outcome
+    this.error = msg.error
+    this.assetsTrapped = msg.assetsTrapped
+  }
+}
+
+export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWithContext {
   messageData: Uint8Array
   recipient: NetworkURN
   instructions: XcmProgram
-  messageHash: HexString
-  event: AnyJson
-  blockHash: HexString
-  blockNumber: string
-  timestamp?: number | undefined
   sender?: SignerData
-  extrinsicPosition?: number
-  messageId?: HexString
-  extrinsicHash?: HexString
 
   constructor(msg: XcmSentWithContext) {
-    this.event = msg.event
+    super(msg)
+
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-    this.messageHash = msg.messageHash
-    this.blockHash = msg.blockHash
-    this.blockNumber = msg.blockNumber.toString()
-    this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.messageId = msg.messageId
     this.sender = msg.sender
-    this.extrinsicHash = msg.extrinsicHash
   }
 }
 
-export class GenericXcmBridgeAcceptedWithContext implements XcmBridgeAcceptedWithContext {
+export class GenericXcmBridgeAcceptedWithContext
+  extends BaseXcmEvent
+  implements XcmBridgeAcceptedWithContext
+{
   chainId: NetworkURN
   bridgeKey: HexString
   messageData: HexString
   recipient: NetworkURN
   instructions: AnyJson
-  messageHash: HexString
-  event: AnyJson
-  blockHash: HexString
-  blockNumber: string
-  timestamp?: number | undefined
-  extrinsicPosition?: number
-  messageId?: HexString
   forwardId?: HexString
-  extrinsicHash?: HexString
 
   constructor(msg: XcmBridgeAcceptedWithContext) {
+    super(msg)
+
     this.chainId = msg.chainId
     this.bridgeKey = msg.bridgeKey
-    this.event = msg.event
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-    this.messageHash = msg.messageHash
-    this.blockHash = msg.blockHash
-    this.blockNumber = msg.blockNumber.toString()
-    this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.messageId = msg.messageId
     this.forwardId = msg.forwardId
-    this.extrinsicHash = msg.extrinsicHash
   }
 }
 
-export class GenericXcmBridgeDeliveredWithContext implements XcmBridgeDeliveredWithContext {
+export class GenericXcmBridgeDeliveredWithContext
+  extends BaseXcmEvent
+  implements XcmBridgeDeliveredWithContext
+{
   chainId: NetworkURN
   bridgeKey: HexString
-  event?: AnyJson
-  extrinsicPosition?: number
-  blockNumber: string
-  blockHash: HexString
-  timestamp?: number | undefined
   sender?: SignerData
-  extrinsicHash?: HexString
 
   constructor(msg: XcmBridgeDeliveredWithContext) {
+    super(msg)
+
     this.chainId = msg.chainId
     this.bridgeKey = msg.bridgeKey
-    this.event = msg.event
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.blockNumber = msg.blockNumber.toString()
-    this.blockHash = msg.blockHash
-    this.timestamp = msg.timestamp
     this.sender = msg.sender
-    this.extrinsicHash = msg.extrinsicHash
   }
 }
 
-export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements XcmBridgeInboundWithContext {
   chainId: NetworkURN
   bridgeKey: HexString
-  event: AnyJson
-  extrinsicPosition?: number | undefined
-  blockNumber: string
-  blockHash: HexString
-  timestamp?: number | undefined
   outcome: 'Success' | 'Fail'
   error: AnyJson
-  extrinsicHash?: HexString
 
   constructor(msg: XcmBridgeInboundWithContext) {
+    super(msg)
+
     this.chainId = msg.chainId
-    this.event = msg.event
     this.outcome = msg.outcome
     this.error = msg.error
-    this.blockHash = msg.blockHash
-    this.blockNumber = msg.blockNumber.toString()
-    this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
     this.bridgeKey = msg.bridgeKey
-    this.extrinsicHash = msg.extrinsicHash
   }
 }
 
@@ -376,7 +339,7 @@ export enum XcmNotificationType {
  *
  * @public
  */
-export type XcmTerminus = {
+export interface XcmTerminus {
   chainId: NetworkURN
 }
 
@@ -385,16 +348,9 @@ export type XcmTerminus = {
  *
  * @public
  */
-export interface XcmTerminusContext extends XcmTerminus {
-  blockNumber: string
-  blockHash: HexString
-  timestamp?: number
-  extrinsicHash?: HexString
-  extrinsicPosition?: number
-  event: AnyJson
+export interface XcmTerminusContext extends XcmWithContext, XcmTerminus {
   outcome: 'Success' | 'Fail'
   error: AnyJson
-  messageHash: HexString
   messageData: string
   instructions: AnyJson
 }
@@ -429,11 +385,11 @@ export type Leg = {
 }
 
 /**
- * Event emitted when an XCM is sent.
+ * The generic XCM event.
  *
  * @public
  */
-export interface XcmSent {
+export interface XcmEvent {
   type: XcmNotificationType
   subscriptionId: string
   legs: Leg[]
@@ -445,16 +401,65 @@ export interface XcmSent {
   forwardId?: HexString
 }
 
-export class GenericXcmSent implements XcmSent {
-  type: XcmNotificationType = XcmNotificationType.Sent
+/**
+ * Event emitted when an XCM is sent or received on an intermediate stop.
+ *
+ * @public
+ */
+export interface XcmHop extends XcmEvent {
+  direction: 'out' | 'in'
+}
+
+/**
+ * Event emitted when an XCM is received.
+ *
+ * @public
+ */
+export type XcmReceived = XcmEvent
+
+/**
+ * Event emitted when an XCM is sent.
+ *
+ * @public
+ */
+export type XcmSent = XcmEvent
+
+/**
+ * Event emitted when an XCM is not received within a specified timeframe.
+ *
+ * @public
+ */
+export type XcmTimeout = XcmEvent
+
+/**
+ * Event emitted when an XCM is received on the relay chain
+ * for an HRMP message.
+ *
+ * @public
+ */
+export type XcmRelayed = XcmEvent
+
+abstract class BaseXcmNotify {
   subscriptionId: string
   legs: Leg[]
-  waypoint: XcmWaypointContext
-  origin: XcmTerminusContext
-  destination: XcmTerminus
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
+
+  constructor(msg: Omit<XcmEvent, 'origin' | 'destination' | 'waypoint' | 'type'>) {
+    this.subscriptionId = msg.subscriptionId
+    this.legs = msg.legs
+    this.sender = msg.sender
+    this.messageId = msg.messageId
+    this.forwardId = msg.forwardId
+  }
+}
+
+export class GenericXcmSent extends BaseXcmNotify implements XcmSent {
+  type: XcmNotificationType = XcmNotificationType.Sent
+  waypoint: XcmWaypointContext
+  origin: XcmTerminusContext
+  destination: XcmTerminus
 
   constructor(
     subscriptionId: string,
@@ -463,8 +468,14 @@ export class GenericXcmSent implements XcmSent {
     legs: Leg[],
     forwardId?: HexString,
   ) {
-    this.subscriptionId = subscriptionId
-    this.legs = legs
+    super({
+      subscriptionId,
+      legs,
+      forwardId,
+      messageId: msg.messageId,
+      sender: msg.sender,
+    })
+
     this.origin = {
       chainId,
       blockHash: msg.blockHash,
@@ -489,74 +500,33 @@ export class GenericXcmSent implements XcmSent {
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
     }
-
-    this.messageId = msg.messageId
-    this.forwardId = forwardId
-    this.sender = msg.sender
   }
 }
 
-/**
- * Event emitted when an XCM is received.
- *
- * @public
- */
-export interface XcmReceived {
-  type: XcmNotificationType
-  subscriptionId: string
-  legs: Leg[]
-  waypoint: XcmWaypointContext
-  origin: XcmTerminusContext
-  destination: XcmTerminusContext
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
-}
-
-/**
- * Event emitted when an XCM is not received within a specified timeframe.
- *
- * @public
- */
-export type XcmTimeout = XcmSent
-
-export class GenericXcmTimeout implements XcmTimeout {
+export class GenericXcmTimeout extends BaseXcmNotify implements XcmTimeout {
   type: XcmNotificationType = XcmNotificationType.Timeout
-  subscriptionId: string
-  legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
 
   constructor(msg: XcmSent) {
-    this.subscriptionId = msg.subscriptionId
-    this.legs = msg.legs
+    super(msg)
+
     this.origin = msg.origin
     this.destination = msg.destination
     this.waypoint = msg.waypoint
-    this.messageId = msg.messageId
-    this.sender = msg.sender
-    this.forwardId = msg.forwardId
   }
 }
 
-export class GenericXcmReceived implements XcmReceived {
+export class GenericXcmReceived extends BaseXcmNotify implements XcmReceived {
   type: XcmNotificationType = XcmNotificationType.Received
-  subscriptionId: string
-  legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminusContext
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
 
   constructor(outMsg: XcmSent, inMsg: XcmInbound) {
-    this.subscriptionId = outMsg.subscriptionId
-    this.legs = outMsg.legs
+    super(outMsg)
+
     this.destination = {
       chainId: inMsg.chainId,
       blockNumber: inMsg.blockNumber,
@@ -580,34 +550,18 @@ export class GenericXcmReceived implements XcmReceived {
       messageHash: outMsg.waypoint.messageHash,
       assetsTrapped: inMsg.assetsTrapped,
     }
-    this.sender = outMsg.sender
-    this.messageId = outMsg.messageId
-    this.forwardId = outMsg.forwardId
   }
 }
 
-/**
- * Event emitted when an XCM is received on the relay chain
- * for an HRMP message.
- *
- * @public
- */
-export type XcmRelayed = XcmSent
-
-export class GenericXcmRelayed implements XcmRelayed {
+export class GenericXcmRelayed extends BaseXcmNotify implements XcmRelayed {
   type: XcmNotificationType = XcmNotificationType.Relayed
-  subscriptionId: string
-  legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
 
   constructor(outMsg: XcmSent, relayMsg: XcmRelayedWithContext) {
-    this.subscriptionId = outMsg.subscriptionId
-    this.legs = outMsg.legs
+    super(outMsg)
+
     this.destination = outMsg.destination
     this.origin = outMsg.origin
     this.waypoint = {
@@ -625,43 +579,22 @@ export class GenericXcmRelayed implements XcmRelayed {
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
     }
-    this.sender = outMsg.sender
-    this.messageId = outMsg.messageId
-    this.forwardId = outMsg.forwardId
   }
 }
 
-/**
- * Event emitted when an XCM is sent or received on an intermediate stop.
- *
- * @public
- */
-export interface XcmHop extends XcmSent {
-  direction: 'out' | 'in'
-}
-
-export class GenericXcmHop implements XcmHop {
+export class GenericXcmHop extends BaseXcmNotify implements XcmHop {
   type: XcmNotificationType = XcmNotificationType.Hop
   direction: 'out' | 'in'
-  subscriptionId: string
-  legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
 
   constructor(originMsg: XcmSent, hopWaypoint: XcmWaypointContext, direction: 'out' | 'in') {
-    this.subscriptionId = originMsg.subscriptionId
-    this.legs = originMsg.legs
+    super(originMsg)
     this.origin = originMsg.origin
     this.destination = originMsg.destination
     this.waypoint = hopWaypoint
-    this.messageId = originMsg.messageId
-    this.sender = originMsg.sender
     this.direction = direction
-    this.forwardId = originMsg.forwardId
   }
 }
 
@@ -686,34 +619,26 @@ type XcmBridgeContext = {
   forwardId?: HexString
 }
 
-export class GenericXcmBridge implements XcmBridge {
+export class GenericXcmBridge extends BaseXcmNotify implements XcmBridge {
   type: XcmNotificationType = XcmNotificationType.Bridge
   bridgeMessageType: BridgeMessageType
-  subscriptionId: string
   bridgeKey: HexString
-  legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
-  sender?: SignerData
-  messageId?: HexString
-  forwardId?: HexString
 
   constructor(
     originMsg: XcmSent,
     waypoint: XcmWaypointContext,
     { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext,
   ) {
-    this.subscriptionId = originMsg.subscriptionId
+    super({ ...originMsg, forwardId })
+
     this.bridgeMessageType = bridgeMessageType
-    this.legs = originMsg.legs
     this.origin = originMsg.origin
     this.destination = originMsg.destination
     this.waypoint = waypoint
-    this.messageId = originMsg.messageId
-    this.sender = originMsg.sender
     this.bridgeKey = bridgeKey
-    this.forwardId = forwardId
   }
 }
 
@@ -775,3 +700,19 @@ export const $XcmInputs = z.object({
 })
 
 export type XcmInputs = z.infer<typeof $XcmInputs>
+
+export type GetOutboundHrmpMessages = (hash: HexString) => Observable<
+  {
+    recipient: number
+    data: Binary
+  }[]
+>
+
+export type GetOutboundUmpMessages = (hash: HexString) => Observable<Binary[]>
+
+export type GetDownwardMessageQueues = (
+  hash: HexString,
+  networkId: NetworkURN,
+) => Observable<{ sentAt: number; msg: Binary }[]>
+
+export type GetStorageAt = (hash: HexString, key: HexString) => Observable<HexString>

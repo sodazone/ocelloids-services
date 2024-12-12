@@ -187,7 +187,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     await this.#mutex.runExclusive(async () => {
       let hashKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash)
-      let idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId)
+      let idKey = this.#matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId ?? 'unknown')
 
       if (hashKey === idKey) {
         // if hash and id are the same, both could be the message hash or both could be the message id
@@ -457,7 +457,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   async #tryHopMatchOnInbound(msg: XcmInbound) {
     const log = this.#log
     try {
-      const hopKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId)
+      const hopKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId ?? 'unknown')
       const originMsg = await this.#hop.get(hopKey)
       log.info(
         '[%s:h] MATCHED HOP IN origin=%s id=%s (subId=%s, block=%s #%s)',
@@ -473,7 +473,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       this.#onXcmHopIn(originMsg, msg)
     } catch {
       const hashKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageHash)
-      const idKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId)
+      const idKey = this.#matchingKey(msg.subscriptionId, msg.chainId, msg.messageId ?? 'unknown')
 
       if (hashKey === idKey) {
         log.info(

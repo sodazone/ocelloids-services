@@ -5,10 +5,10 @@ import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GetDownwardMessageQueues } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  GetDownwardMessageQueues,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'
