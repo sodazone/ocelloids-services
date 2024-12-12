@@ -144,36 +144,6 @@ export interface XcmRelayedWithContext extends XcmInboundWithContext {
   origin: NetworkURN
 }
 
-export class GenericXcmRelayedWithContext implements XcmRelayedWithContext {
-  event: AnyJson
-  extrinsicPosition?: number
-  blockNumber: string | number
-  blockHash: HexString
-  timestamp?: number
-  messageHash: HexString
-  messageId?: HexString
-  recipient: NetworkURN
-  origin: NetworkURN
-  outcome: 'Success' | 'Fail'
-  error: AnyJson
-  extrinsicHash?: HexString
-
-  constructor(msg: XcmRelayedWithContext) {
-    this.event = msg.event
-    this.messageHash = msg.messageHash
-    this.messageId = msg.messageId ?? msg.messageHash
-    this.blockHash = msg.blockHash
-    this.blockNumber = msg.blockNumber.toString()
-    this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.recipient = msg.recipient
-    this.origin = msg.origin
-    this.outcome = msg.outcome
-    this.error = msg.error
-    this.extrinsicHash = msg.extrinsicHash
-  }
-}
-
 export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   event: AnyJson
   extrinsicPosition?: number
@@ -193,20 +163,6 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
     this.timestamp = msg.timestamp
     this.extrinsicPosition = msg.extrinsicPosition
     this.extrinsicHash = msg.extrinsicHash
-  }
-}
-
-export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
-  outcome: 'Success' | 'Fail'
-  error?: AnyJson
-  assetsTrapped?: AssetsTrapped
-
-  constructor(msg: XcmInboundWithContext) {
-    super(msg)
-
-    this.outcome = msg.outcome
-    this.error = msg.error
-    this.assetsTrapped = msg.assetsTrapped
   }
 }
 
@@ -232,18 +188,30 @@ abstract class BaseXcmEvent {
   }
 }
 
-export class XcmInbound extends BaseXcmEvent {
-  subscriptionId: string
-  chainId: NetworkURN
+export class GenericXcmRelayedWithContext extends BaseGenericXcmWithContext implements XcmRelayedWithContext {
+  recipient: NetworkURN
+  origin: NetworkURN
   outcome: 'Success' | 'Fail'
   error: AnyJson
-  assetsTrapped?: AssetsTrapped
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
+  constructor(msg: XcmRelayedWithContext) {
     super(msg)
 
-    this.subscriptionId = subscriptionId
-    this.chainId = chainId
+    this.recipient = msg.recipient
+    this.origin = msg.origin
+    this.outcome = msg.outcome
+    this.error = msg.error
+  }
+}
+
+export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
+  outcome: 'Success' | 'Fail'
+  error?: AnyJson
+  assetsTrapped?: AssetsTrapped
+
+  constructor(msg: XcmInboundWithContext) {
+    super(msg)
+
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
@@ -438,6 +406,24 @@ export type XcmTimeout = XcmJourney
  * @public
  */
 export type XcmRelayed = XcmJourney
+
+export class XcmInbound extends BaseXcmEvent {
+  subscriptionId: string
+  chainId: NetworkURN
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
+  assetsTrapped?: AssetsTrapped
+
+  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
+    super(msg)
+
+    this.subscriptionId = subscriptionId
+    this.chainId = chainId
+    this.outcome = msg.outcome
+    this.error = msg.error
+    this.assetsTrapped = msg.assetsTrapped
+  }
+}
 
 abstract class BaseXcmJourney {
   subscriptionId: string
