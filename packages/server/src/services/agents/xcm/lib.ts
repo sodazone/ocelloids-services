@@ -1,4 +1,4 @@
-export type {
+export {
   XcmReceived,
   XcmRelayed,
   XcmSent,
@@ -9,7 +9,7 @@ export type {
   TrappedAsset,
   XcmMessagePayload,
   Leg,
-  legType,
+  LegType,
   XcmTerminus,
   XcmTerminusContext,
   XcmWaypointContext,

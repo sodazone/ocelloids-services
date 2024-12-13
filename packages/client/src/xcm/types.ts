@@ -1,17 +1,11 @@
-import type { sourceXcm } from '../server-types'
+import { sourceXcm } from '../server-types'
 
 /**
  * The XCM event types.
  *
  * @public
  */
-export enum XcmNotificationType {
-  Sent = 'xcm.sent',
-  Received = 'xcm.received',
-  Relayed = 'xcm.relayed',
-  Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop',
-}
+export type XcmNotificationType = sourceXcm.XcmNotificationType
 
 /**
  * XCM sent event.
@@ -138,7 +132,7 @@ export type XcmInputs = {
  * @public
  */
 export function isXcmSent(object: any): object is XcmSent {
-  return object.type !== undefined && object.type === XcmNotificationType.Sent
+  return object.type !== undefined && object.type === 'xcm.sent'
 }
 
 /**
@@ -147,7 +141,7 @@ export function isXcmSent(object: any): object is XcmSent {
  * @public
  */
 export function isXcmReceived(object: any): object is XcmReceived {
-  return object.type !== undefined && object.type === XcmNotificationType.Received
+  return object.type !== undefined && object.type === 'xcm.received'
 }
 
 /**
@@ -156,5 +150,5 @@ export function isXcmReceived(object: any): object is XcmReceived {
  * @public
  */
 export function isXcmRelayed(object: any): object is XcmRelayed {
-  return object.type !== undefined && object.type === XcmNotificationType.Relayed
+  return object.type !== undefined && object.type === 'xcm.relayed'
 }

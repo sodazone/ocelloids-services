@@ -290,17 +290,19 @@ export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements 
   }
 }
 
+const XcmNotificationTypes = [
+  'xcm.sent',
+  'xcm.received',
+  'xcm.relayed',
+  'xcm.timeout',
+  'xcm.hop',
+  'xcm.bridge',
+] as const
+
 /**
  * @public
  */
-export enum XcmNotificationType {
-  Sent = 'xcm.sent',
-  Received = 'xcm.received',
-  Relayed = 'xcm.relayed',
-  Timeout = 'xcm.timeout',
-  Hop = 'xcm.hop',
-  Bridge = 'xcm.bridge',
-}
+export type XcmNotificationType = (typeof XcmNotificationTypes)[number]
 
 /**
  * The terminal point of an XCM journey.
@@ -333,12 +335,14 @@ export interface XcmWaypointContext extends XcmTerminusContext {
   assetsTrapped?: AnyJson
 }
 
+const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
+
 /**
  * Type of an XCM journey leg.
  *
  * @public
  */
-export const legType = ['bridge', 'hop', 'hrmp', 'vmp'] as const
+export type LegType = (typeof legTypes)[number]
 
 /**
  * A leg of an XCM journey.
@@ -349,7 +353,7 @@ export type Leg = {
   from: NetworkURN
   to: NetworkURN
   relay?: NetworkURN
-  type: (typeof legType)[number]
+  type: LegType
 }
 
 /**
@@ -442,7 +446,7 @@ abstract class BaseXcmJourney {
 }
 
 export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
-  type: XcmNotificationType = XcmNotificationType.Sent
+  type: XcmNotificationType = 'xcm.sent'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -490,7 +494,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
 }
 
 export class GenericXcmTimeout extends BaseXcmJourney implements XcmTimeout {
-  type: XcmNotificationType = XcmNotificationType.Timeout
+  type: XcmNotificationType = 'xcm.timeout'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -505,7 +509,7 @@ export class GenericXcmTimeout extends BaseXcmJourney implements XcmTimeout {
 }
 
 export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
-  type: XcmNotificationType = XcmNotificationType.Received
+  type: XcmNotificationType = 'xcm.received'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminusContext
@@ -540,7 +544,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
 }
 
 export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
-  type: XcmNotificationType = XcmNotificationType.Relayed
+  type: XcmNotificationType = 'xcm.relayed'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -569,7 +573,7 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
 }
 
 export class GenericXcmHop extends BaseXcmJourney implements XcmHop {
-  type: XcmNotificationType = XcmNotificationType.Hop
+  type: XcmNotificationType = 'xcm.hop'
   direction: 'out' | 'in'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -606,7 +610,7 @@ type XcmBridgeContext = {
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
-  type: XcmNotificationType = XcmNotificationType.Bridge
+  type: XcmNotificationType = 'xcm.bridge'
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
   waypoint: XcmWaypointContext
@@ -636,24 +640,22 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
 export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
 
 export function isXcmSent(object: any): object is XcmSent {
-  return object.type !== undefined && object.type === XcmNotificationType.Sent
+  return object.type !== undefined && object.type === 'xcm.sent'
 }
 
 export function isXcmReceived(object: any): object is XcmReceived {
-  return object.type !== undefined && object.type === XcmNotificationType.Received
+  return object.type !== undefined && object.type === 'xcm.received'
 }
 
 export function isXcmHop(object: any): object is XcmHop {
-  return object.type !== undefined && object.type === XcmNotificationType.Hop
+  return object.type !== undefined && object.type === 'xcm.hop'
 }
 
 export function isXcmRelayed(object: any): object is XcmRelayed {
-  return object.type !== undefined && object.type === XcmNotificationType.Relayed
+  return object.type !== undefined && object.type === 'xcm.relayed'
 }
 
-const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${Object.values(
-  XcmNotificationType,
-).join(',')}]`
+const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${XcmNotificationTypes.join(',')}]`
 
 const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds'
 
@@ -680,7 +682,7 @@ export const $XcmInputs = z.object({
   bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
   // prevent using $refs
   events: z.optional(
-    z.literal('*').or(z.array(z.nativeEnum(XcmNotificationType)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
+    z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
   ),
   outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })

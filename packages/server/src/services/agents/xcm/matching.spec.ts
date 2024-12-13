@@ -194,9 +194,9 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(hopout)
 
     expect(cb).toHaveBeenCalledTimes(3)
-    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(1, XcmNotificationType.Sent)
-    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(2, XcmNotificationType.Hop)
-    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(3, XcmNotificationType.Hop)
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(1, 'xcm.sent')
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(2, 'xcm.hop')
+    expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(3, 'xcm.hop')
   })
 
   it('should match hop messages with concurrent message on hop stop', async () => {
