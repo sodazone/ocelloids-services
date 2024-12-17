@@ -19,19 +19,16 @@ import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabi
 import { XcmSubscriptionManager } from './handlers.js'
 import { MatchingEngine } from './matching.js'
 import {
+  $XcmInputs,
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
   GetOutboundUmpMessages,
-} from './types-augmented.js'
-import {
-  $XcmInputs,
   Monitor,
   RxBridgeSubscription,
   XcmInbound,
   XcmInboundWithContext,
   XcmInputs,
   XcmMessagePayload,
-  XcmNotificationType,
   XcmRelayedWithContext,
   XcmSentWithContext,
   XcmSubscriptionHandler,
@@ -405,7 +402,7 @@ export class XcmAgent implements Agent, Subscribable {
    */
   __shouldMonitorRelay({ origin, destinations, events }: XcmInputs) {
     return (
-      (events === undefined || events === '*' || events.includes(XcmNotificationType.Relayed)) &&
+      (events === undefined || events === '*' || events.includes('xcm.relayed')) &&
       !this.#ingress.isRelay(origin as NetworkURN) &&
       destinations.some((d) => !this.#ingress.isRelay(d as NetworkURN))
     )

@@ -6,10 +6,10 @@ import { getChainId, getRelayId } from '@/services/config.js'
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GetOutboundUmpMessages } from '../types-augmented.js'
 import {
   GenericXcmInboundWithContext,
   GenericXcmSentWithContext,
+  GetOutboundUmpMessages,
   XcmInboundWithContext,
   XcmSentWithContext,
 } from '../types.js'
@@ -41,6 +41,7 @@ function createUmpReceivedWithContext(
   if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
     return new GenericXcmInboundWithContext({
       event,
+      extrinsicHash: event.extrinsic?.hash as HexString,
       blockHash: event.blockHash as HexString,
       blockNumber: event.blockNumber,
       timestamp: event.timestamp,

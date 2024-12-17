@@ -1,6 +1,5 @@
 import {
   XcmInbound,
-  XcmNotificationType,
   XcmRelayedWithContext,
   XcmSent,
   XcmTerminusContext,
@@ -21,7 +20,7 @@ const originContext: XcmTerminusContext = {
 }
 
 const outboundMessage: XcmSent = {
-  type: XcmNotificationType.Sent,
+  type: 'xcm.sent',
   messageId: '0xB000',
   legs: [
     {
@@ -126,7 +125,7 @@ export const matchHopMessages: MatchHopMessages = {
     blockNumber: '2',
   },
   hopout: {
-    type: XcmNotificationType.Sent,
+    type: 'xcm.sent',
     messageId: '0xB000',
     legs: [
       {
@@ -190,7 +189,7 @@ export const matchHopMessages: MatchHopMessages = {
 }
 
 const hopOrigin: XcmSent = {
-  type: XcmNotificationType.Sent,
+  type: 'xcm.sent',
   subscriptionId: 'xxx-1',
   legs: [
     { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
@@ -243,7 +242,7 @@ const hopIB: XcmInbound = {
 }
 
 const hopOB: XcmSent = {
-  type: XcmNotificationType.Sent,
+  type: 'xcm.sent',
   subscriptionId: 'xxx-1',
   legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hrmp' }],
   waypoint: {

@@ -1339,6 +1339,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@polkadot-api/ws-provider@patch:@polkadot-api/ws-provider@npm%3A0.3.6#~/.yarn/patches/@polkadot-api-ws-provider-npm-0.3.6-39c80167fe.patch":
+  version: 0.3.6
+  resolution: "@polkadot-api/ws-provider@patch:@polkadot-api/ws-provider@npm%3A0.3.6#~/.yarn/patches/@polkadot-api-ws-provider-npm-0.3.6-39c80167fe.patch::version=0.3.6&hash=9d1b4c"
+  dependencies:
+    "@polkadot-api/json-rpc-provider": "npm:0.0.4"
+    "@polkadot-api/json-rpc-provider-proxy": "npm:0.2.4"
+    ws: "npm:^8.18.0"
+  checksum: 10c0/8d1c2d5302e447155c654ba73bf885a6165d043ee0410ae8ef0494adacccc7db8c6cd5436714dd67d2ac479a4db474341d642b748b1b8d95f09281d3127e495f
+  languageName: node
+  linkType: hard
+
 "@redis/bloom@npm:1.2.0":
   version: 1.2.0
   resolution: "@redis/bloom@npm:1.2.0"

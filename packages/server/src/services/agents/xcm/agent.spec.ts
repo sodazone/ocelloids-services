@@ -15,7 +15,7 @@ import { Subscription } from '../../subscriptions/types.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
 import { XcmSubscriptionManager } from './handlers.js'
-import { XcmInputs, XcmNotificationType, XcmSubscriptionHandler } from './types.js'
+import { XcmInputs, XcmSubscriptionHandler } from './types.js'
 
 const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',
@@ -222,7 +222,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        events: [XcmNotificationType.Received],
+        events: ['xcm.received'],
       },
     })
 
@@ -239,7 +239,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        events: [XcmNotificationType.Received],
+        events: ['xcm.received'],
       },
     })
 
@@ -251,7 +251,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        events: [XcmNotificationType.Received, XcmNotificationType.Relayed],
+        events: ['xcm.received', 'xcm.relayed'],
       },
     }
 
@@ -259,7 +259,7 @@ describe('xcm agent', () => {
       {
         op: 'add',
         path: '/args/events/-',
-        value: XcmNotificationType.Relayed,
+        value: 'xcm.relayed',
       },
     ])
     const { relaySub: newRelaySub, subscription } = xcmAgent.getSubscriptionHandler(testSub.id)
@@ -276,7 +276,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        events: [XcmNotificationType.Received, XcmNotificationType.Sent, XcmNotificationType.Relayed],
+        events: ['xcm.received', 'xcm.sent', 'xcm.relayed'],
       },
     })
 
@@ -288,7 +288,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        events: [XcmNotificationType.Received, XcmNotificationType.Sent],
+        events: ['xcm.received', 'xcm.sent'],
       },
     }
 

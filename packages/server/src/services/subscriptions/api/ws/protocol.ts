@@ -237,6 +237,8 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     socket.once('close', async () => {
       this.#clientsNum--
 
+      this.emit('telemetrySocketListener', request.ip, subscription, true)
+
       const { id, agent, ephemeral } = subscription
 
       try {
@@ -244,8 +246,6 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
           // TODO clean up pending matches
           await this.#switchboard.unsubscribe(agent, id)
         }
-
-        this.emit('telemetrySocketListener', request.ip, subscription, true)
       } catch (error) {
         this.#log.error(error)
       } finally {
