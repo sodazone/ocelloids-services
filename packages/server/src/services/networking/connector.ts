@@ -1,39 +1,56 @@
-import { NetworkConfiguration, ServiceConfiguration } from '../config.js'
+import { ClientId, NetworkConfiguration, ServiceConfiguration, clientIds } from '../config.js'
 import { Logger } from '../types.js'
-import { ApiClient, ArchiveClient } from './client/index.js'
+import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
+import { SubstrateClient } from './substrate/index.js'
+import { ApiClient } from './types.js'
 
 /**
  * Handles substrate network connections.
  */
 export default class Connector {
   readonly #log: Logger
-  readonly #chains: Record<string, ApiClient> = {}
+  readonly #chains: Map<ClientId, Record<string, ApiClient>>
 
-  constructor(log: Logger, { networks }: ServiceConfiguration) {
+  constructor(log: Logger, config: ServiceConfiguration) {
     this.#log = log
+    this.#chains = new Map()
 
-    for (const network of networks) {
-      if (this.#chains[network.id] !== undefined) {
-        continue
+    for (const clientId of clientIds) {
+      for (const network of config.networks[clientId]) {
+        if (this.#chains.has(clientId) && this.#chains.get(clientId)![network.id] !== undefined) {
+          continue
+        }
+
+        log.info('Register network: %s', network.id)
+
+        this.registerNetwork(clientId, network)
       }
-
-      log.info('Register network: %s', network.id)
-
-      this.registerNetwork(network)
     }
   }
 
-  private registerNetwork(network: NetworkConfiguration) {
+  private registerNetwork(client: ClientId, network: NetworkConfiguration) {
     const { id, provider } = network
 
-    this.#log.info('Register WS provider: %s', id)
-    this.#chains[id] = new ArchiveClient(this.#log, id, provider.url)
+    this.#log.info('Register RPC client: %s (%s)', id, client)
+
+    const chainRecord = this.#chains.get(client) ?? this.#chains.set(client, {}).get(client)!
+
+    switch (client) {
+      case 'bitcoin':
+        chainRecord[id] = new BitcoinClient(this.#log, id, provider.url)
+        break
+      case 'substrate':
+        chainRecord[id] = new SubstrateClient(this.#log, id, provider.url)
+        break
+    }
   }
 
-  connect(): Record<string, ApiClient> {
-    this.#log.info('[connector] connect clients: %j', Object.keys(this.#chains))
+  connect<T extends ApiClient>(clientId: ClientId): Record<string, T> {
+    this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(this.#chains))
 
-    for (const [chain, client] of Object.entries(this.#chains)) {
+    const chains = this.#chains.get(clientId) ?? {}
+
+    for (const [chain, client] of Object.entries(chains)) {
       this.#log.info('[connector:%s] connecting...', chain)
 
       client
@@ -46,11 +63,12 @@ export default class Connector {
         })
     }
 
-    return this.#chains
+    return chains as Record<string, T>
   }
 
   async disconnect() {
-    for (const client of Object.values(this.#chains)) {
+    const clients = new Array(...this.#chains.values()).flatMap((v) => Object.values(v))
+    for (const client of clients) {
       client.disconnect()
     }
 

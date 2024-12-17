@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events'
 
-import { BlockInfo } from '@polkadot-api/observable-client'
 import { Mutex } from 'async-mutex'
 import {
   BehaviorSubject,
@@ -12,22 +11,26 @@ import {
   map,
   mergeAll,
   mergeMap,
-  mergeWith,
   of,
-  share,
   switchMap,
   tap,
 } from 'rxjs'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ServiceConfiguration } from '@/services/config.js'
-import { ApiClient, Block } from '@/services/networking/index.js'
-import { BlockNumberRange, ChainHead as ChainTip, HexString } from '@/services/subscriptions/types.js'
+import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
-import { Family, LevelDB, Logger, NetworkURN, Services, jsonEncoded, prefixes } from '@/services/types.js'
-
-import { NetworkInfo } from '../index.js'
-import { fetchers } from './fetchers.js'
+import {
+  AnyJson,
+  Family,
+  LevelDB,
+  Logger,
+  NetworkURN,
+  Services,
+  jsonEncoded,
+  prefixes,
+} from '@/services/types.js'
+import { ApiOps, NeutralHeader } from './types.js'
 
 // TODO: extract to config
 export const RETRY_INFINITE = {
@@ -62,34 +65,28 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
 }
 
 /**
- * The HeadCatcher performs the following tasks ("moo" 🐮):
- * - Catches up with block headers based on the height gap for finalized blocks.
- * - Caches seen extended signed blocks and supplies them when required on finalization.
- * - Caches on-chain storage data.
+ * The Watcher catches up with block headers based on the height gap for finalized blocks.
  *
- * @see {HeadCatcher["finalizedBlocks"]}
- * @see {HeadCatcher.#catchUpHeads}
+ * @see {Watcher["finalizedBlocks"]}
+ * @see {Watcher.catchUpHeads}
  */
-export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitter) {
-  readonly #apis: Record<string, ApiClient>
-  readonly #log: Logger
+export abstract class Watcher<T = unknown> extends (EventEmitter as new () => TelemetryEventEmitter) {
+  protected readonly log: Logger
+
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
-
   readonly #mutex: Record<NetworkURN, Mutex> = {}
-  readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
   readonly #chainTips: Family
 
   constructor(services: Services) {
     super()
 
-    const { log, localConfig, levelDB, connector } = services
+    const { log, localConfig, levelDB } = services
 
-    this.#log = log
+    this.log = log
     this.#localConfig = localConfig
-    this.#apis = connector.connect()
     this.#db = levelDB
-    this.#chainTips = levelDB.sublevel<string, ChainTip>(prefixes.cache.tips, jsonEncoded)
+    this.#chainTips = levelDB.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded)
   }
 
   start() {
@@ -101,84 +98,19 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   /**
-   * Returns an observable of extended signed blocks, providing cached block content as needed.
+   * Returns the network information for a given chain.
    */
-  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    const pipe = this.#pipes[chainId]
-
-    if (pipe) {
-      this.#log.debug('[%s] returning cached pipe', chainId)
-      return pipe
-    }
-
-    const newPipe = from(this.getApi(chainId)).pipe(
-      switchMap((api) => {
-        return api.finalizedHeads$.pipe(
-          mergeWith(from(this.#recoverRanges(chainId)).pipe(this.#recoverBlockRanges(chainId, api))),
-          this.#tapError(chainId, 'finalizedHeads()'),
-          retryWithTruncatedExpBackoff(RETRY_INFINITE),
-          this.#catchUpHeads(chainId, api),
-          mergeMap((header) => from(api.getBlock(header.hash))),
-          this.#tapError(chainId, 'blockFromHeader()'),
-          retryWithTruncatedExpBackoff(RETRY_INFINITE),
-        )
-      }),
-      share(),
-    )
-
-    this.#pipes[chainId] = newPipe
-
-    this.#log.debug('[%s] created pipe', chainId)
-
-    return newPipe
-  }
-
-  getApi(chainId: NetworkURN): Promise<ApiClient> {
-    return this.#apis[chainId].isReady()
-  }
+  abstract getNetworkInfo(chainId: string): Promise<AnyJson>
 
   /**
-   * Enumerates storage keys by a given key prefix.
-   *
-   * @param chainId The chain identifier.
-   * @param keyPrefix  The storage key hex prefix.
-   * @param count The number of results to get.
-   * @param startKey The key to start from.
-   * @param blockHash The block hash to query at.
-   * @returns an array of storage keys as hex strings
+   * Returns the supported networks.
    */
-  getStorageKeys(
-    chainId: NetworkURN,
-    keyPrefix: HexString,
-    count: number,
-    startKey?: HexString,
-    blockHash?: HexString,
-  ): Observable<HexString[]> {
-    const resolvedStartKey = startKey === '0x0' ? undefined : startKey
-    const at = blockHash === undefined || blockHash === '0x0' ? undefined : blockHash
-    return from(this.#apis[chainId].getStorageKeys(keyPrefix, count, resolvedStartKey, at)).pipe(
-      this.#tapError(
-        chainId,
-        `state_getKeysPaged(${keyPrefix}, ${count}, ${startKey ?? 'start'}, ${blockHash ?? 'latest'})`,
-      ),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-    )
-  }
+  abstract get chainIds(): NetworkURN[]
 
-  getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
-    return from(this.#apis[chainId].getStorage(storageKey, blockHash)).pipe(
-      this.#tapError(chainId, `state_getStorage(${storageKey}, ${blockHash ?? 'latest'})`),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-    )
-  }
-
-  get chainIds(): NetworkURN[] {
-    return Object.keys(this.#apis) as NetworkURN[]
-  }
-
-  async fetchNetworkInfo(chainId: NetworkURN): Promise<NetworkInfo> {
-    return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
-  }
+  /**
+   * Returns an observable of extended signed blocks.
+   */
+  abstract finalizedBlocks(chainId: NetworkURN): Observable<T>
 
   #pendingRanges(chainId: NetworkURN) {
     return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded)
@@ -194,37 +126,39 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
    * It supports block range batching and interruption recovery. Both options are configurable
    * at the network level.
    *
-   * @private
+   * @protected
    */
-  #catchUpHeads(chainId: NetworkURN, api: ApiClient) {
-    return (source: Observable<BlockInfo>): Observable<BlockInfo> => {
+  protected catchUpHeads(chainId: NetworkURN, api: ApiOps) {
+    return (source: Observable<NeutralHeader>): Observable<NeutralHeader> => {
       return source.pipe(
         tap((header) => {
-          this.#log.info('[%s] FINALIZED block #%s %s', chainId, header.number, header.hash)
+          this.log.info('[%s] FINALIZED block #%s %s', chainId, header.height, header.hash)
 
           this.emit('telemetryBlockFinalized', {
             chainId,
-            blockNumber: header.number,
+            blockNumber: header.height,
           })
         }),
         mergeMap((header) =>
           from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header)),
         ),
-        this.#tapError(chainId, '#catchUpHeads()'),
+        this.tapError(chainId, '#catchUpHeads()'),
         retryWithTruncatedExpBackoff(RETRY_INFINITE),
       )
     }
   }
 
-  #recoverBlockRanges(chainId: NetworkURN, api: ApiClient) {
-    return (source: Observable<BlockNumberRange[]>): Observable<BlockInfo> => {
+  protected recoverBlockRanges(chainId: NetworkURN, api: ApiOps) {
+    return (source: Observable<BlockNumberRange[]>): Observable<NeutralHeader> => {
       const batchSize = this.#batchSize(chainId)
       return source.pipe(
         mergeAll(),
         mergeMap((range) => {
-          return from(api.getBlockHash(range.fromBlockNum).then((hash) => api.getHeader(hash))).pipe(
+          return from(
+            api.getBlockHash(range.fromBlockNum).then((hash) => api.getNeutralBlockHeader(hash)),
+          ).pipe(
             catchError((error) => {
-              this.#log.warn(
+              this.log.warn(
                 '[%s] in #recoverBlockRanges(%s-%s) %s',
                 chainId,
                 range.fromBlockNum,
@@ -244,8 +178,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  async #recoverRanges(chainId: NetworkURN) {
-    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId)
+  protected async recoverRanges(chainId: NetworkURN) {
+    const networkConfig = this.#localConfig.getNetwork(chainId)
     if (networkConfig && networkConfig.recovery) {
       return await (await this.#pendingRanges(chainId).values()).all()
     } else {
@@ -253,7 +187,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     }
   }
 
-  async #targetHeights(chainId: NetworkURN, head: BlockInfo) {
+  async #targetHeights(chainId: NetworkURN, head: NeutralHeader) {
     if (this.#mutex[chainId] === undefined) {
       this.#mutex[chainId] = new Mutex()
     }
@@ -261,14 +195,14 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
     const release = await this.#mutex[chainId].acquire()
 
     try {
-      const newHeadNum = head.number
+      const newHeadNum = head.height
       let currentHeight: number
 
-      const chainTip: ChainTip = {
+      const chainTip: ChainHead = {
         chainId,
-        blockNumber: head.number.toString(),
+        blockNumber: head.height.toString(),
         blockHash: head.hash,
-        parentHash: head.parent,
+        parentHash: head.parenthash,
         receivedAt: new Date(),
       }
 
@@ -293,8 +227,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       const targetHeight = max(newHeadNum - MAX_BLOCK_DIST, currentHeight)
 
       const range: BlockNumberRange = {
-        fromBlockNum: newHeadNum.toString(),
-        toBlockNum: targetHeight.toString(),
+        fromBlockNum: newHeadNum,
+        toBlockNum: targetHeight,
       }
       const rangeKey = prefixes.cache.keys.range(range)
 
@@ -302,7 +236,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
       // should be removed on complete
       await this.#pendingRanges(chainId).put(rangeKey, range)
 
-      this.#log.info('[%s] BEGIN RANGE %s', chainId, rangeKey)
+      this.log.info('[%s] BEGIN RANGE %s', chainId, rangeKey)
 
       if (currentHeight < newHeadNum) {
         await this.#chainTips.put(chainId, chainTip)
@@ -315,22 +249,22 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #headers(
-    api: ApiClient,
-    newHead: BlockInfo,
+    api: ApiOps,
+    newHead: NeutralHeader,
     targetHeight: number,
-    prev: BlockInfo[],
-  ): Observable<BlockInfo[]> {
-    return from(api.getHeader(newHead.parent)).pipe(
+    prev: NeutralHeader[],
+  ): Observable<NeutralHeader[]> {
+    return from(api.getNeutralBlockHeader(newHead.parenthash)).pipe(
       switchMap((header) =>
-        header.number - 1 <= targetHeight
+        header.height - 1 <= targetHeight
           ? of([header, ...prev])
           : this.#headers(api, header, targetHeight, [header, ...prev]),
       ),
     )
   }
 
-  #catchUpToHeight(chainId: NetworkURN, api: ApiClient, newHead: BlockInfo) {
-    return (source: Observable<number[]>): Observable<BlockInfo> => {
+  #catchUpToHeight(chainId: NetworkURN, api: ApiOps, newHead: NeutralHeader) {
+    return (source: Observable<number[]>): Observable<NeutralHeader> => {
       return source.pipe(
         mergeMap((targets) => {
           if (targets.length === 0) {
@@ -346,7 +280,7 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
           return batchControl.pipe(
             mergeMap(({ target, head, collect }) =>
-              (head.number - 1 === target ? of([head]) : this.#headers(api, head, target, collect)).pipe(
+              (head.height - 1 === target ? of([head]) : this.#headers(api, head, target, collect)).pipe(
                 map((heads) => {
                   if (batchControl.value.index === targets.length - 1) {
                     batchControl.complete()
@@ -366,31 +300,31 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
               ),
             ),
             catchError((error) => {
-              this.#log.warn('[%s] in #catchUpToHeight(%s) %s', chainId, targets, error)
+              this.log.warn('[%s] in #catchUpToHeight(%s) %s', chainId, targets, error)
               return EMPTY
             }),
             tap({
               complete: async () => {
                 // on complete we will clear the pending range
                 const range: BlockNumberRange = {
-                  fromBlockNum: newHead.number.toString(),
-                  toBlockNum: batchControl.value.target.toString(),
+                  fromBlockNum: newHead.height,
+                  toBlockNum: batchControl.value.target,
                 }
                 const rangeKey = prefixes.cache.keys.range(range)
 
                 await this.#pendingRanges(chainId).del(rangeKey)
 
-                this.#log.info('[%s] COMPLETE RANGE %s', chainId, rangeKey)
+                this.log.info('[%s] COMPLETE RANGE %s', chainId, rangeKey)
               },
             }),
             finalize(async () => {
               const fullRange: BlockNumberRange = {
-                fromBlockNum: newHead.number.toString(),
-                toBlockNum: targets[targets.length - 1].toString(),
+                fromBlockNum: newHead.height,
+                toBlockNum: targets[targets.length - 1],
               }
               const currentRange: BlockNumberRange = {
-                fromBlockNum: batchControl.value.head.number.toString(),
-                toBlockNum: batchControl.value.target.toString(),
+                fromBlockNum: batchControl.value.head.height,
+                toBlockNum: batchControl.value.target,
               }
 
               const fullRangeKey = prefixes.cache.keys.range(fullRange)
@@ -401,14 +335,14 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
                   const dbBatch = this.#pendingRanges(chainId).batch()
                   await dbBatch.del(fullRangeKey).put(currentRangeKey, currentRange).write()
 
-                  this.#log.info(
+                  this.log.info(
                     '[%s] stale range to recover %s',
                     chainId,
                     prefixes.cache.keys.range(currentRange),
                   )
                 }
               } catch (err) {
-                this.#log.warn('Error while writing stale ranges', err)
+                this.log.warn('Error while writing stale ranges', err)
               }
             }),
           )
@@ -418,14 +352,14 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   #batchSize(chainId: NetworkURN) {
-    const networkConfig = this.#localConfig.networks.find((n) => n.id === chainId)
+    const networkConfig = this.#localConfig.getNetwork(chainId)
     return networkConfig?.batchSize ?? 25
   }
 
-  #tapError<T>(chainId: NetworkURN, method: string) {
+  protected tapError<T>(chainId: NetworkURN, method: string) {
     return tap<T>({
       error: (e) => {
-        this.#log.warn(e, 'error on method=%s, chain=%s', method, chainId)
+        this.log.warn(e, 'error on method=%s, chain=%s', method, chainId)
         this.emit('telemetryHeadCatcherError', {
           chainId,
           method,

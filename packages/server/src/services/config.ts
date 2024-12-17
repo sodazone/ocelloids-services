@@ -47,6 +47,8 @@ const $NetworkProvider = $RpcProvider
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`)
 
+export const $ClientId = z.enum(['substrate', 'bitcoin'])
+
 /**
  * The network ID is a URN with the following format: `urn:ocn:<GlobalConsensus>:<ChainId>`.
  *
@@ -58,25 +60,70 @@ export const $NetworkId = z.string().regex(networkIdRegex)
 const $NetworkConfiguration = z.object({
   id: $NetworkId,
   provider: $NetworkProvider,
-  relay: $NetworkId.optional(),
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),
 })
 
-export const $ServiceConfiguration = z.object({
-  networks: z.array($NetworkConfiguration).min(1),
+const $SubstrateNetworkConfiguration = $NetworkConfiguration.extend({
+  relay: $NetworkId.optional(),
 })
 
+export const $ServiceConfiguration = z.object({
+  substrate: z
+    .object({
+      networks: z.array($SubstrateNetworkConfiguration).min(1),
+    })
+    .optional(),
+  bitcoin: z
+    .object({
+      networks: z.array($NetworkConfiguration).min(1),
+    })
+    .optional(),
+})
+
+type SubstrateNetworkConfiguration = z.infer<typeof $SubstrateNetworkConfiguration>
 export type NetworkId = z.infer<typeof $NetworkId>
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>
-export type ServiceConfiguration = z.infer<typeof $ServiceConfiguration>
+export const clientIds = ['substrate', 'bitcoin'] as const
+export type ClientId = (typeof clientIds)[number]
 
-export function isRelay({ networks }: ServiceConfiguration, chainId: NetworkURN) {
-  return networks.findIndex((n) => n.relay === undefined && n.id === chainId) >= 0
-}
+export class ServiceConfiguration {
+  readonly all
+  readonly networks: Record<ClientId, NetworkConfiguration[]>
 
-export function isNetworkDefined({ networks }: ServiceConfiguration, chainId: NetworkURN) {
-  return networks.findIndex((n) => n.id === chainId) >= 0
+  constructor(config: z.infer<typeof $ServiceConfiguration>) {
+    const substrate = config.substrate?.networks ?? []
+    const bitcoin = config.bitcoin?.networks ?? []
+    this.networks = {
+      substrate,
+      bitcoin,
+    }
+    this.all = substrate.concat(bitcoin)
+  }
+
+  get substrate() {
+    return this.networks.substrate as SubstrateNetworkConfiguration[]
+  }
+
+  get bitcoin() {
+    return this.networks.bitcoin as NetworkConfiguration[]
+  }
+
+  getNetwork(chainId: NetworkURN) {
+    return this.all.find((n) => n.id === chainId)
+  }
+
+  isRelay(chainId: NetworkURN) {
+    return (
+      this.substrate.findIndex(
+        (n) => (n as SubstrateNetworkConfiguration).relay === undefined && n.id === chainId,
+      ) >= 0
+    )
+  }
+
+  isNetworkDefined(chainId: NetworkURN) {
+    return this.all.findIndex((n) => n.id === chainId) >= 0
+  }
 }
 
 export function getConsensus(networkId: NetworkURN) {
@@ -117,7 +164,9 @@ const configPlugin: FastifyPluginAsync<ConfigServerOptions> = async (fastify, op
 
   try {
     const config = $ServiceConfiguration.parse(toml.parse(fs.readFileSync(configPath, 'utf-8')))
-    fastify.decorate('localConfig', config)
+    const localConfig = new ServiceConfiguration(config)
+
+    fastify.decorate('localConfig', localConfig)
   } catch (err) {
     /* c8 ignore next */
     if (err instanceof z.ZodError) {

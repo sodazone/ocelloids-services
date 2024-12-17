@@ -80,64 +80,64 @@ export const _subsFix: Subscription[] = [
 ]
 
 export const _configToml = `
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:9000"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:1000"
 relay = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:9001"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:2000"
 relay = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:9002"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:local:3000"
 relay = "urn:ocn:local:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:9003"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:wococo:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:8000"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:wococo:1000"
 relay = "urn:ocn:wococo:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:8001"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:wococo:1002"
 relay = "urn:ocn:wococo:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:8002"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:paseo:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "ws://localhost:6000"
 `

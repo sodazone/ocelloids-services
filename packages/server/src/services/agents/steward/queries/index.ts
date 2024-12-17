@@ -2,8 +2,8 @@ import { LevelDB } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
 import { QueryParams, QueryResult } from '@/lib.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 
-import { IngressConsumer } from '@/services/ingress/index.js'
 import { $StewardQueryArgs, StewardQueryArgs } from '../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
@@ -14,7 +14,7 @@ export class Queries {
   readonly #chainsHandler
   readonly #locationHandler
 
-  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: IngressConsumer) {
+  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: SubstrateIngressConsumer) {
     this.#assetsHandler = new AssetsQueryHandler(dbAssets)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
     this.#locationHandler = new LocationQueryHandler(dbAssets, ingress)

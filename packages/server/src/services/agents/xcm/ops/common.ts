@@ -1,9 +1,10 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
-import { ApiContext, BlockEvent } from '@/services/networking/index.js'
+import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
+
 import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
 import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
@@ -116,7 +117,7 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
  * @param registry - The type registry
  * @param origin - The origin network URN
  */
-export function mapXcmSent(id: string, context: ApiContext, origin: NetworkURN) {
+export function mapXcmSent(id: string, context: SubstrateApiContext, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {

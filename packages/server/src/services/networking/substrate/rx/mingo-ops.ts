@@ -4,6 +4,7 @@ import { BASIC_CONTEXT } from 'mingo/init/basic'
 import { AnyVal, Predicate, RawObject } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
+// TODO extract address to substrate...
 function addressEq(a: string, b: string) {
   return a === b || asPublicKey(a) === asPublicKey(b)
 }
