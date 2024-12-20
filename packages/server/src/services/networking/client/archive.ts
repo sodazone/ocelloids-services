@@ -264,12 +264,8 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
 
   async #getEvents(hash: string) {
     try {
-      const response = await this.#request<
-        { result: [{ key: string; value: string }] },
-        [hash: string, items: [{ key: string; type: string }], null]
-      >('archive_unstable_storage', [hash, [{ key: this.ctx.events.key, type: 'value' }], null])
+      const eventsData = await this.getStorage(this.ctx.events.key, hash)
 
-      const eventsData = response.result?.[0]?.value
       if (!eventsData) {
         return []
       }
