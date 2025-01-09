@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { firstValueFrom, mergeMap } from 'rxjs'
+import { filter, firstValueFrom, interval, map, mergeMap, race, take } from 'rxjs'
 
 import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
@@ -55,14 +55,19 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   get #runtimeContext(): Promise<RuntimeApiContext> {
     // TODO handle errors
     return firstValueFrom(
-      this.#head$.runtime$.pipe(
-        mergeMap(async (runtime) => {
-          if (runtime === null) {
+      race([
+        this.#head$.runtime$.pipe(
+          filter(Boolean),
+          map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
+        ),
+        interval(15_000).pipe(
+          take(1),
+          mergeMap(async () => {
+            this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
             return createRuntimeApiContext(fromHex(await this.#getMetadata()), this.chainId)
-          }
-          return new RuntimeApiContext(runtime, this.chainId)
-        }),
-      ),
+          }),
+        ),
+      ]),
     )
   }
 
