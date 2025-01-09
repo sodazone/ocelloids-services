@@ -61,6 +61,10 @@ export const moonbeamBlocks = () => {
   )
 }
 
+export const moonbeamXcmBlock = () => {
+  return testBlocksFromFiles([resolve(blocksDir, 'moonbeam', '9105566.cbor')])
+}
+
 export const astarBlocks = () => {
   return testBlocksFromFiles([resolve(blocksDir, 'astar', '7391132.cbor')])
 }
