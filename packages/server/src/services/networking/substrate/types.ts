@@ -34,6 +34,7 @@ export type Extrinsic = {
   signature: any
   address: any
   args: Record<string, any>
+  evmTxHash?: string
 }
 
 export type Block = {
