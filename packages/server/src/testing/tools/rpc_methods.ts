@@ -29,6 +29,7 @@ ${supports('archive_unstable', 7)}
 ${supports('chainHead_v1', 9)}
 ${supports('chainSpec_v1', 3)}
 ${supports('chain_', 19)}
+${supports('state_', 23)}
 `,
     )
 
