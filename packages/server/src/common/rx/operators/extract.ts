@@ -1,6 +1,8 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
+import { isFrontierExtrinsic } from '@/common/evm/decoder.js'
 import { getEventValue } from '@/common/util.js'
+import { HexString } from '@/lib.js'
 import {
   Block,
   BlockContext,
@@ -108,12 +110,28 @@ export function extractEvents() {
             const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
             if (extrinsicIndex) {
               if (extrinsicWithId === undefined) {
+                const xt = extrinsics[extrinsicIndex]
                 extrinsicWithId = {
                   ...extrinsics[extrinsicIndex],
                   blockNumber,
                   blockHash,
                   blockPosition: extrinsicIndex,
                   timestamp,
+                }
+                // extract to function if requires more logic
+                if (isFrontierExtrinsic(xt)) {
+                  const evmEvent = events.find(
+                    ({ phase, event }) =>
+                      phase.type === 'ApplyExtrinsic' &&
+                      phase.value === extrinsicIndex &&
+                      event.module === 'Ethereum' &&
+                      event.name === 'Executed',
+                  )
+                  if (evmEvent) {
+                    extrinsicWithId.evmTxHash = (
+                      evmEvent.event.value as { transaction_hash: HexString }
+                    ).transaction_hash
+                  }
                 }
               }
 
