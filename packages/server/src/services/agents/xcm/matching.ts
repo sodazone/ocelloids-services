@@ -41,7 +41,7 @@ export type ChainBlock = {
   blockNumber: string
 }
 
-const DEFAULT_TIMEOUT = 2 * 60000
+const DEFAULT_TIMEOUT = 5 * 60000
 
 /**
  * Matches sent XCM messages on the destination.
