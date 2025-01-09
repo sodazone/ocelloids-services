@@ -24,6 +24,7 @@ export const networks = setNetworks({
   phala: 'urn:ocn:polkadot:2035',
   manta: 'urn:ocn:polkadot:2104',
   pendulum: 'urn:ocn:polkadot:2094',
+  polimec: 'urn:ocn:polkadot:3344',
   mythos: 'urn:ocn:polkadot:3369',
   hyperbridge: 'urn:ocn:polkadot:3367',
   kusama: 'urn:ocn:kusama:0',

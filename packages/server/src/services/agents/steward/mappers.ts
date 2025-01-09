@@ -251,6 +251,8 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.bifrost]: bifrostMapper,
   [networks.centrifuge]: centrifugeMapper,
   [networks.hydration]: hydrationMapper,
+  [networks.interlay]: BYPASS_MAPPER,
+  [networks.polimec]: BYPASS_MAPPER,
   [networks.hyperbridge]: hyperbridgeMapper,
   [networks.kusama]: BYPASS_MAPPER,
   [networks.kusamaBridgeHub]: BYPASS_MAPPER,
