@@ -1,8 +1,9 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { isFrontierExtrinsic } from '@/common/evm/decoder.js'
 import { getEventValue } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+
+import { isFrontierExtrinsic } from '../evm/decoder.js'
 import {
   Block,
   BlockContext,
