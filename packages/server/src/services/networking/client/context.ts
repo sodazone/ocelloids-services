@@ -50,6 +50,10 @@ export class RuntimeApiContext implements ApiContext {
     return this.#ctx.events
   }
 
+  get metadataRaw() {
+    return this.#ctx.metadataRaw
+  }
+
   constructor(runtimeContext: RuntimeContext, chainId?: string) {
     this.chainId = chainId
     this.#ctx = runtimeContext

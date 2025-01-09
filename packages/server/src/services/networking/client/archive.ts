@@ -1,13 +1,7 @@
 import { EventEmitter } from 'node:events'
-import { filter, firstValueFrom } from 'rxjs'
+import { firstValueFrom, mergeMap } from 'rxjs'
 
-import {
-  BlockInfo,
-  ChainHead$,
-  RuntimeContext,
-  SystemEvent,
-  getObservableClient,
-} from '@polkadot-api/observable-client'
+import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
@@ -17,13 +11,15 @@ import {
   translate,
   unpinHash,
 } from 'polkadot-api/polkadot-sdk-compat'
+import { fromHex } from 'polkadot-api/utils'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { asSerializable } from '@/common/index.js'
+
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { Block } from '../types.js'
-import { RuntimeApiContext } from './context.js'
+import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { ApiClient, ApiContext } from './types.js'
 
 export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
@@ -56,8 +52,18 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     return this.#head$.finalized$
   }
 
-  get #runtimeContext(): Promise<RuntimeContext> {
-    return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
+  get #runtimeContext(): Promise<RuntimeApiContext> {
+    // TODO handle errors
+    return firstValueFrom(
+      this.#head$.runtime$.pipe(
+        mergeMap(async (runtime) => {
+          if (runtime === null) {
+            return createRuntimeApiContext(fromHex(await this.#getMetadata()), this.chainId)
+          }
+          return new RuntimeApiContext(runtime, this.chainId)
+        }),
+      ),
+    )
   }
 
   constructor(log: Logger, chainId: string, url: string | Array<string>) {
@@ -268,8 +274,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
 
   connect() {
     this.#runtimeContext
-      .then((x) => {
-        const ctx = new RuntimeApiContext(x, this.chainId)
+      .then((ctx) => {
         this.#apiContext = () => ctx
         super.emit('connected')
         this.#connected = true
@@ -295,6 +300,14 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
       return await this.#request<{ methods: string[] }>('rpc_methods', [])
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to fetch RPC methods.`, { cause: error })
+    }
+  }
+
+  async #getMetadata() {
+    try {
+      return await this.#request<string>('state_getMetadata', [])
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.`, { cause: error })
     }
   }
 
