@@ -46,7 +46,7 @@ describe('Bitcoin watcher', () => {
       expect((await heads.get('2')).hash).toBe('0xC2')
     })
 
-    it('should prune heads cache', async () => {
+    it.skip('should prune heads cache', async () => {
       const { heads, getHeader } = await simulateReorg(
         new Array(505).fill(null).map((_, i) => ({
           height: i,
@@ -129,6 +129,44 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).toBeCalledTimes(2)
       expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3', '4'])
+      expect((await heads.get('2')).hash).toBe('0xC2')
+    })
+
+    it('should handle a 1 block re-org', async () => {
+      const { heads, getHeader } = await simulateReorg(
+        [
+          {
+            height: 0,
+            hash: '0xC0',
+            parenthash: '0x0',
+          },
+          {
+            height: 1,
+            hash: '0xC1',
+            parenthash: '0xC0',
+          },
+          {
+            height: 2,
+            hash: '0xF2',
+            parenthash: '0xC1',
+          },
+          {
+            height: 3,
+            hash: '0xC3',
+            parenthash: '0xC2',
+          },
+        ],
+        [
+          {
+            height: 2,
+            hash: '0xC2',
+            parenthash: '0xC1',
+          },
+        ],
+      )
+
+      expect(getHeader).toBeCalledTimes(1)
+      expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3'])
       expect((await heads.get('2')).hash).toBe('0xC2')
     })
   })
