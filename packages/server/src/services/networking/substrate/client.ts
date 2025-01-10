@@ -1,13 +1,7 @@
 import { EventEmitter } from 'node:events'
-import { filter, firstValueFrom, map } from 'rxjs'
+import { filter, firstValueFrom, interval, map, mergeMap, race, take } from 'rxjs'
 
-import {
-  BlockInfo,
-  ChainHead$,
-  RuntimeContext,
-  SystemEvent,
-  getObservableClient,
-} from '@polkadot-api/observable-client'
+import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
@@ -17,12 +11,14 @@ import {
   translate,
   unpinHash,
 } from 'polkadot-api/polkadot-sdk-compat'
+import { fromHex } from 'polkadot-api/utils'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { asSerializable } from '@/common/index.js'
+
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
-import { RuntimeApiContext } from './context.js'
+import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { Block, SubstrateApi, SubstrateApiContext } from './types.js'
 
 export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
@@ -58,6 +54,25 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
         parenthash: b.parent,
         hash: b.hash,
       })),
+    )
+  }
+
+  get #runtimeContext(): Promise<RuntimeApiContext> {
+    // TODO handle errors
+    return firstValueFrom(
+      race([
+        this.#head$.runtime$.pipe(
+          filter(Boolean),
+          map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
+        ),
+        interval(15_000).pipe(
+          take(1),
+          mergeMap(async () => {
+            this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
+            return createRuntimeApiContext(fromHex(await this.#getMetadata()), this.chainId)
+          }),
+        ),
+      ]),
     )
   }
 
@@ -278,9 +293,8 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   connect() {
     this.#runtimeContext
-      .then((x) => {
-        const ctx = new RuntimeApiContext(x, this.chainId)
-        this.#apiContext = () => ctx as SubstrateApiContext
+      .then((ctx) => {
+        this.#apiContext = () => ctx
         super.emit('connected')
         this.#connected = true
       })
@@ -308,8 +322,12 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  get #runtimeContext(): Promise<RuntimeContext> {
-    return firstValueFrom(this.#head$.runtime$.pipe(filter(Boolean)))
+  async #getMetadata() {
+    try {
+      return await this.#request<string>('state_getMetadata', [])
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.`, { cause: error })
+    }
   }
 
   async #getBlock(hash: string) {
