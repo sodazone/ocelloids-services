@@ -6,6 +6,8 @@ import {
   EMPTY,
   Observable,
   catchError,
+  concatAll,
+  concatMap,
   finalize,
   from,
   map,
@@ -112,8 +114,11 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
    */
   abstract finalizedBlocks(chainId: NetworkURN): Observable<T>
 
-  #pendingRanges(chainId: NetworkURN) {
-    return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded)
+  /**
+   * Exposes the heads cache.
+   */
+  headsCache(chainId: NetworkURN) {
+    return this.#headsFamily(chainId)
   }
 
   /**
@@ -146,6 +151,47 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         retryWithTruncatedExpBackoff(RETRY_INFINITE),
       )
     }
+  }
+
+  protected handleReorgs(chainId: NetworkURN, api: ApiOps) {
+    const db = this.#headsFamily(chainId)
+
+    const rollbackOnReorg =
+      (acc: NeutralHeader[] = []) =>
+      async (head: NeutralHeader): Promise<NeutralHeader[]> => {
+        let entries = 0
+        const batch = db.batch()
+        for await (const k of db.keys({
+          reverse: true,
+        })) {
+          entries++
+          // TODO: max reorg window as config
+          if (entries >= 500) {
+            batch.del(k)
+          }
+        }
+        batch.put(head.height.toString(), head)
+        await batch.write()
+
+        acc.push(head)
+
+        if (head.height === 0) {
+          return acc
+        }
+
+        const prevHeight = head.height - 1
+        const prevHead = await db.get(prevHeight.toString())
+        // TODO handle errors, to stop...
+        if (head.parenthash !== prevHead.hash) {
+          const parentHead = await api.getNeutralBlockHeader(head.parenthash)
+          return rollbackOnReorg(acc)(parentHead)
+        }
+
+        return acc
+      }
+
+    return (source: Observable<NeutralHeader>): Observable<NeutralHeader> =>
+      source.pipe(concatMap(rollbackOnReorg()), concatAll())
   }
 
   protected recoverBlockRanges(chainId: NetworkURN, api: ApiOps) {
@@ -185,6 +231,10 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     } else {
       return []
     }
+  }
+
+  #pendingRanges(chainId: NetworkURN) {
+    return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded)
   }
 
   async #targetHeights(chainId: NetworkURN, head: NeutralHeader) {
@@ -261,6 +311,10 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
           : this.#headers(api, header, targetHeight, [header, ...prev]),
       ),
     )
+  }
+
+  #headsFamily(chainId: NetworkURN) {
+    return this.#db.sublevel<string, NeutralHeader>(prefixes.cache.family(chainId), jsonEncoded)
   }
 
   #catchUpToHeight(chainId: NetworkURN, api: ApiOps, newHead: NeutralHeader) {

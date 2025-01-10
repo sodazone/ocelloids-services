@@ -30,6 +30,19 @@ export const mockConfigWS = new ServiceConfiguration({
       },
     ],
   },
+  bitcoin: {
+    networks: [
+      {
+        id: 'urn:ocn:local:0',
+        provider: {
+          type: 'rpc',
+          url: 'wss://polkadot.io',
+        },
+        recovery: true,
+        batchSize: 5,
+      },
+    ],
+  },
 })
 
 export const mockConfigRelayLast = new ServiceConfiguration({

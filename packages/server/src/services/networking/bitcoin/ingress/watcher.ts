@@ -33,19 +33,13 @@ export class BitcoinWatcher extends Watcher<Block> {
       return pipe
     }
 
-    // TODO: re-org
-    // if current block.parent_hash != known in db hash of block_num -1
-    // => re-org
-    // while get block parent_hash until known hash in db or prune_limit of our db?
-    // reprocess with a hint of re-org?
-    // we need to keep last N headers....
-
     const api = this.#apis[chainId]
     const newPipe = api.followHeads$.pipe(
       mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
       this.tapError(chainId, 'followHeads$()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       this.catchUpHeads(chainId, api),
+      this.handleReorgs(chainId, api),
       mergeMap((header) => from(api.getBlock(header.hash))),
       this.tapError(chainId, 'getBlock()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),

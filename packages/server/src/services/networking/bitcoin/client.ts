@@ -91,7 +91,7 @@ export class BitcoinApi implements ApiClient {
     this.#id = 0
     this.#urlIndex = 0
 
-    this.#maxRetries = 2
+    this.#maxRetries = 5
     this.#timeout = 10_000
     this.#delay = 1_000
     this.#maxBodyBytes = 5_242_880
