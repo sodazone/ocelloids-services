@@ -156,6 +156,8 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   protected handleReorgs(chainId: NetworkURN, api: ApiOps) {
     const db = this.#headsFamily(chainId)
 
+    // TODO signal the blocks that are rolled back, or discarded
+    // and the new ones re-applied
     const rollbackOnReorg =
       (acc: NeutralHeader[] = []) =>
       async (head: NeutralHeader): Promise<NeutralHeader[]> => {
