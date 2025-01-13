@@ -19,7 +19,12 @@ async function networkInfo(api: ApiClient, chainId: NetworkURN): Promise<Network
     tokenSymbol?: string[] | string
   } = chainSpecData.properties
 
-  const existentialDeposit = api.ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
+  let existentialDeposit
+  try {
+    existentialDeposit = api.ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
+  } catch {
+    // ignore
+  }
 
   const chainTokens = getPropertyArray(tokenSymbol)
   const chainDecimals = getPropertyArray(tokenDecimals)
