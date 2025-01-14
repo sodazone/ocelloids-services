@@ -68,9 +68,10 @@ export function extractXcmpSend(
 ) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
-      filter(
-        (event) =>
-          matchEvent(event, 'XcmpQueue', 'XcmpMessageSent') || matchEvent(event, 'PolkadotXcm', 'Sent'),
+      filter((event) =>
+        // note that we extract the message id from
+        // setTopic instruction, if any
+        matchEvent(event, 'XcmpQueue', 'XcmpMessageSent'),
       ),
       xcmMessagesSent(),
       findOutboundHrmpMessage(origin, getOutboundHrmpMessages, context),

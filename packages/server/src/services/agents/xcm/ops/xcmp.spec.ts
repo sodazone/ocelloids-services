@@ -25,7 +25,8 @@ describe('xcmp operator', () => {
             calls()
           },
           complete: () => {
-            expect(calls).toHaveBeenCalledTimes(2)
+            // should be 1 since we don't want dups
+            expect(calls).toHaveBeenCalledTimes(1)
             resolve()
           },
         })

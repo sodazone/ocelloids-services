@@ -22,6 +22,7 @@ export type NetworkURN = `urn:ocn:${string}`
 export type LevelDB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>
 export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<LevelDB, F, K, V>
 export type BatchOperation<K = string, V = any> = AbstractBatchOperation<LevelDB, K, V>
+export type SubLevel<V> = Family<Buffer | Uint8Array | string, string, V>
 
 /**
  * Supported Abstract Level engines.

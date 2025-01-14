@@ -1,13 +1,12 @@
 import EventEmitter from 'node:events'
 
-import { AbstractSublevel } from 'abstract-level'
 import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
 
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId, isOnSameConsensus } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/persistence/level/janitor.js'
-import { LevelDB, Logger, jsonEncoded } from '@/services/types.js'
+import { Logger, SubLevel, jsonEncoded } from '@/services/types.js'
 
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
@@ -37,7 +36,6 @@ import {
 const DEFAULT_TIMEOUT = 5 * 60000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
-type SubLevel<TV> = AbstractSublevel<LevelDB, Buffer | Uint8Array | string, string, TV>
 
 export type ChainBlock = {
   chainId: string
@@ -90,7 +88,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>
   readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
-  readonly #outboundTTL: number
 
   constructor({ log, db, janitor }: AgentRuntimeContext, xcmMatchedReceiver: XcmMatchedReceiver) {
     super()
@@ -124,12 +121,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       jsonEncoded,
     )
 
-    this.#outboundTTL = DEFAULT_TIMEOUT
-
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
   }
 
-  async onOutboundMessage(outMsg: XcmSent) {
+  async onOutboundMessage(outMsg: XcmSent, expiry = DEFAULT_TIMEOUT) {
     const log = this.#log
 
     // Confirmation key at destination
@@ -170,10 +165,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             messageId,
             forwardId,
           }
-          await this.#handleXcmOutbound(bridgedSent)
+          await this.#handleXcmOutbound(bridgedSent, expiry)
           await this.#bridge.del(forwardIdKey)
         } catch {
-          await this.#handleXcmOutbound(outMsg)
+          await this.#handleXcmOutbound(outMsg, expiry)
         }
       } else if (outMsg.messageId) {
         // Is not bridged message
@@ -197,10 +192,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           // do not delete hop key because maybe hop stop inbound hasn't arrived yet
           this.#onXcmHopOut(originMsg, outMsg)
         } catch {
-          await this.#handleXcmOutbound(outMsg)
+          await this.#handleXcmOutbound(outMsg, expiry)
         }
       } else {
-        await this.#handleXcmOutbound(outMsg)
+        await this.#handleXcmOutbound(outMsg, expiry)
       }
     })
 
@@ -215,8 +210,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const log = this.#log
 
     await this.#mutex.runExclusive(async () => {
-      let hashKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash)
-      let idKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId ?? 'unknown')
+      const hashKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageHash)
+      const idKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, inMsg.messageId ?? 'unknown')
 
       if (hasTopicId(hashKey, idKey)) {
         try {
@@ -227,17 +222,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             // 1.2. Try to match outbounds
             const outMsg = await Promise.any([this.#outbound.get(idKey), this.#outbound.get(hashKey)])
             // Reconstruct hashKey with outbound message hash in case of hopped messages
-            hashKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash)
+            const recHashKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash)
             log.info(
-              '[%s:i] MATCHED hash=%s id=%s (subId=%s, block=%s #%s)',
+              '[%s:i] MATCHED hash=%s id=%s rec=%s (subId=%s, block=%s #%s)',
               inMsg.chainId,
               hashKey,
               idKey,
+              recHashKey,
               inMsg.subscriptionId,
               inMsg.blockHash,
               inMsg.blockNumber,
             )
-            await this.#outbound.batch().del(idKey).del(hashKey).write()
+            await this.#outbound.batch().del(idKey).del(hashKey).del(recHashKey).write()
             this.#onXcmMatched(outMsg, inMsg)
           } catch {
             // 1.3. If no matches, store inbound
@@ -262,11 +258,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             // idKey and hashKey are made up of only the message hash.
             // if outbound has messageId, we need to reconstruct idKey and hashKey
             // using outbound values to ensure that no dangling keys will be left on janitor sweep.
+            const batch = this.#outbound.batch().del(hashKey).del(idKey)
             if (outMsg.messageId !== undefined) {
-              idKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageId)
-              hashKey = matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash)
+              batch.del(matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.messageId))
+              batch.del(matchingKey(inMsg.subscriptionId, inMsg.chainId, outMsg.waypoint.messageHash))
             }
-            await this.#outbound.batch().del(idKey).del(hashKey).write()
+            await batch.write()
             this.#onXcmMatched(outMsg, inMsg)
           } catch {
             this.#storeXcmInbound(inMsg)
@@ -593,7 +590,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   // If not found, store outbound message in #outbound to match destination inbound
   // and #hop to match hop outbounds and inbounds.
   // Note: if relay messages arrive after outbound and inbound, it will not match.
-  async #handleXcmOutbound(msg: XcmSent) {
+  async #handleXcmOutbound(msg: XcmSent, expiry: number) {
     // Hop matching heuristic :_
     for await (const originMsg of this.#hop.values(
       matchingRange(msg.subscriptionId, msg.destination.chainId),
@@ -605,7 +602,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         ) !== undefined
       ) {
         this.#onXcmHopOut(originMsg, msg)
-        await this.#storeOnOutbound(msg)
+        await this.#storeOnOutbound(msg, expiry)
         return
       }
     }
@@ -624,7 +621,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg,
       )
     } catch {
-      await this.#storeOnOutbound(msg)
+      await this.#storeOnOutbound(msg, expiry)
     }
   }
 
@@ -670,22 +667,20 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
   }
 
-  async #storeOnOutbound(msg: XcmSent) {
+  async #storeOnOutbound(msg: XcmSent, expiry: number) {
     const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from))
 
     for (const leg of sublegs) {
       if (msg.messageId === undefined) {
-        await this.#storeLegOnOutboundWithHash(msg, leg)
+        await this.#storeLegOnOutboundWithHash(msg, leg, expiry)
       } else {
-        await this.#storeLegOnOutboundWithTopicId(msg as XcmSentWithId, leg)
+        await this.#storeLegOnOutboundWithTopicId(msg as XcmSentWithId, leg, expiry)
       }
     }
   }
 
-  async #storeLegOnOutboundWithTopicId(msg: XcmSentWithId, leg: Leg) {
+  async #storeLegOnOutboundWithTopicId(msg: XcmSentWithId, leg: Leg, expiry: number) {
     const log = this.#log
-    const expiry = this.#outboundTTL
-
     const stop = leg.to
     const hKey = matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash)
     const iKey = matchingKey(msg.subscriptionId, stop, msg.messageId)
@@ -787,10 +782,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
   }
 
-  async #storeLegOnOutboundWithHash(msg: XcmSent, leg: Leg) {
+  async #storeLegOnOutboundWithHash(msg: XcmSent, leg: Leg, expiry: number) {
     const log = this.#log
-    const expiry = this.#outboundTTL
-
     const stop = leg.to
     const hKey = matchingKey(msg.subscriptionId, stop, msg.waypoint.messageHash)
 

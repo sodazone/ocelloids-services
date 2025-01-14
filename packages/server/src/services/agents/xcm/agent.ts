@@ -510,7 +510,7 @@ export class XcmAgent implements Agent, Subscribable {
       source.pipe(
         mapXcmSent(id, context, origin),
         filter((msg) => matchMessage(messageControl, msg)),
-        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound /*,outboundTTL*/))),
+        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL))),
       )
   }
 
