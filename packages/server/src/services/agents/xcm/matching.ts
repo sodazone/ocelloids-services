@@ -52,10 +52,25 @@ export function matchingKey(subscriptionId: string, chainId: string, messageId: 
   return `${subscriptionId}:${chainId}:${messageId}`
 }
 
+function hopMatchingKey(chainId: string, messageId: string) {
+  return `${chainId}:${messageId}`
+}
+
+function stripFirstSegment(key: string) {
+  return key.split(':').slice(1).join(':')
+}
+
 function matchingRange(subscriptionId: string, chainId: string) {
   return {
     gt: matchingKey(subscriptionId, chainId, '0'),
     lt: matchingKey(subscriptionId, chainId, '1'),
+  }
+}
+
+function hopMatchingRange(chainId: string) {
+  return {
+    gt: hopMatchingKey(chainId, '0'),
+    lt: hopMatchingKey(chainId, '1'),
   }
 }
 
@@ -106,7 +121,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     // [subscription-id]:[relay-outbound-chain-id]:[message-id/hash]
     this.#relay = db.sublevel<string, XcmRelayedWithContext>(prefixes.matching.relay, jsonEncoded)
 
-    // [subscription-id]:[hop-stop-chain-id]:[message-id/hash]
+    // [hop-stop-chain-id]:[message-id/hash]
     this.#hop = db.sublevel<string, XcmSent>(prefixes.matching.hop, jsonEncoded)
 
     // [subscription-id]:[bridge-chain-id]:[message-id]
@@ -178,7 +193,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         // We assume that the original origin message is ALWAYS received first.
         // NOTE: hops can only use idKey since message hash will be different on each hop
         try {
-          const hopKey = matchingKey(outMsg.subscriptionId, outMsg.origin.chainId, outMsg.messageId)
+          const hopKey = hopMatchingKey(outMsg.origin.chainId, outMsg.messageId)
           const originMsg = await this.#hop.get(hopKey)
           log.info(
             '[%s:h] MATCHED HOP OUT origin=%s id=%s (subId=%s, block=%s #%s)',
@@ -510,7 +525,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   async #tryHopMatchOnInbound(msg: XcmInbound) {
     const log = this.#log
     try {
-      const hopKey = matchingKey(msg.subscriptionId, msg.chainId, msg.messageId ?? msg.messageHash)
+      const hopKey = hopMatchingKey(msg.chainId, msg.messageId ?? msg.messageHash)
       const originMsg = await this.#hop.get(hopKey)
       log.info(
         '[%s:h] MATCHED HOP IN origin=%s id=%s (subId=%s, block=%s #%s)',
@@ -592,9 +607,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   // Note: if relay messages arrive after outbound and inbound, it will not match.
   async #handleXcmOutbound(msg: XcmSent, expiry: number) {
     // Hop matching heuristic :_
-    for await (const originMsg of this.#hop.values(
-      matchingRange(msg.subscriptionId, msg.destination.chainId),
-    )) {
+    for await (const originMsg of this.#hop.values(hopMatchingRange(msg.origin.chainId))) {
       if (
         originMsg.legs.find(
           ({ partialMessage }) =>
@@ -740,19 +753,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockHash,
         msg.origin.blockNumber,
       )
-      await this.#hop.batch().put(iKey, msg).put(hKey, msg).write()
-      await this.#janitor.schedule(
-        {
-          sublevel: prefixes.matching.hop,
-          key: hKey,
-          expiry,
-        },
-        {
-          sublevel: prefixes.matching.hop,
-          key: iKey,
-          expiry,
-        },
-      )
+      await this.#putHops(expiry, [stripFirstSegment(iKey), msg], [stripFirstSegment(hKey), msg])
     }
 
     if (leg.relay !== undefined || leg.type === 'vmp') {
@@ -808,12 +809,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockHash,
         msg.origin.blockNumber,
       )
-      await this.#hop.put(hKey, msg)
-      await this.#janitor.schedule({
-        sublevel: prefixes.matching.hop,
-        key: hKey,
-        expiry,
-      })
+      await this.#putHops(expiry, [stripFirstSegment(hKey), msg])
     } else {
       log.info(
         '[%s:o] STORED dest=%s hash=%s (subId=%s, block=%s #%s)',
@@ -841,13 +837,19 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           msg.origin.blockHash,
           msg.origin.blockNumber,
         )
-        await this.#hop.put(hKey, msg)
-        await this.#janitor.schedule({
-          sublevel: prefixes.matching.hop,
-          key: hKey,
-          expiry,
-        })
+        await this.#putHops(expiry, [stripFirstSegment(hKey), msg])
       }
+    }
+  }
+
+  async #putHops(expiry: number, ...entries: [string, XcmJourney][]) {
+    for (const [key, journey] of entries) {
+      await this.#hop.put(key, journey)
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.hop,
+        key,
+        expiry,
+      })
     }
   }
 

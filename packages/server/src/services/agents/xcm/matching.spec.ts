@@ -3,15 +3,10 @@ import { MemoryLevel as Level } from 'memory-level'
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { Services, SubLevel, jsonEncoded } from '@/services/types.js'
-import {
-  hydraMoonMessages,
-  matchHopMessages,
-  matchMessages,
-  moonBifrostMessages,
-  realHopMessages,
-} from '@/testing/matching.js'
+import { hydraMoonMessages, matchMessages, moonBifrostMessages, realHopMessages } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
+import { moonbeamHydraCentrifuge } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types.js'
 
@@ -157,15 +152,15 @@ describe('message matching engine', () => {
   })
 
   it('should match hop messages', async () => {
-    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
-    await engine.onOutboundMessage(origin)
-    await engine.onRelayedMessage(subscriptionId, relay0)
+    await engine.onOutboundMessage(sent)
+    await engine.onRelayedMessage(sent.subscriptionId, relay0)
 
-    await engine.onInboundMessage(hopin)
-    await engine.onOutboundMessage(hopout)
-    await engine.onRelayedMessage(subscriptionId, relay2)
-    await engine.onInboundMessage(destination)
+    await engine.onInboundMessage(hopIn)
+    await engine.onOutboundMessage(hopOut)
+    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
+    await engine.onInboundMessage(received)
 
     expect(cb).toHaveBeenCalledTimes(6)
   })
@@ -205,27 +200,27 @@ describe('message matching engine', () => {
   })
 
   it('should match hop messages with concurrent message on hop stop', async () => {
-    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
-    await engine.onOutboundMessage(origin)
-    await engine.onRelayedMessage(subscriptionId, relay0)
-    await Promise.all([engine.onInboundMessage(hopin), engine.onOutboundMessage(hopout)])
-    await engine.onRelayedMessage(subscriptionId, relay2)
-    await engine.onInboundMessage(destination)
+    await engine.onOutboundMessage(sent)
+    await engine.onRelayedMessage(sent.subscriptionId, relay0)
+    await Promise.all([engine.onInboundMessage(hopIn), engine.onOutboundMessage(hopOut)])
+    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
+    await engine.onInboundMessage(received)
 
     expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.relayed', 'xcm.received'])
   })
 
   it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
-    const { origin, relay0, hopin, hopout, relay2, destination, subscriptionId } = matchHopMessages
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
-    await engine.onRelayedMessage(subscriptionId, relay0)
-    await engine.onOutboundMessage(origin)
-    await engine.onRelayedMessage(subscriptionId, relay2)
+    await engine.onRelayedMessage(sent.subscriptionId, relay0)
+    await engine.onOutboundMessage(sent)
+    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
 
-    await Promise.all([engine.onInboundMessage(hopin), engine.onOutboundMessage(hopout)])
+    await Promise.all([engine.onInboundMessage(hopIn), engine.onOutboundMessage(hopOut)])
 
-    await engine.onInboundMessage(destination)
+    await engine.onInboundMessage(received)
 
     expect(cb).toHaveBeenCalledTimes(6)
   })
