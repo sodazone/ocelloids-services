@@ -98,7 +98,7 @@ export const matchHopMessages: MatchHopMessages = {
         from: 'urn:ocn:local:3000',
         to: 'urn:ocn:local:2000',
         relay: 'urn:ocn:local:0',
-        type: 'hop',
+        type: 'hrmp',
       },
     ],
   },
@@ -193,7 +193,14 @@ const hopOrigin: XcmSent = {
   subscriptionId: 'xxx-1',
   legs: [
     { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
-    { from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hop' },
+    {
+      from: 'urn:ocn:local:2034',
+      to: 'urn:ocn:local:1000',
+      relay: 'urn:ocn:local:0',
+      type: 'hrmp',
+      partialMessage:
+        '0x030813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b',
+    },
   ],
   waypoint: {
     chainId: 'urn:ocn:local:0',
@@ -205,7 +212,7 @@ const hopOrigin: XcmSent = {
     error: null,
     legIndex: 0,
     messageData:
-      '0x31020310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+      '0x000310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
     instructions: {},
     messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   },
@@ -218,7 +225,7 @@ const hopOrigin: XcmSent = {
     outcome: 'Success',
     error: null,
     messageData:
-      '0x31020310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
+      '0x000310000400010300a10f043205011f000700f2052a011300010300a10f043205011f000700f2052a010010010204010100a10f0813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b2c2d61ceafa0f62007fe36e1029ed347f974db05be5e5baaff31736202aeaffbdf',
     instructions: {},
     messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
   },

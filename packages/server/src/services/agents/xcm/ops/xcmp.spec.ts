@@ -17,7 +17,7 @@ describe('xcmp operator', () => {
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
             expect(msg.instructions).toBeDefined()
-            expect(msg.messageData).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
             expect(msg.messageHash).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.timestamp).toBeDefined()
@@ -31,33 +31,6 @@ describe('xcmp operator', () => {
         })
       })
     })
-    /*
-    it('should extract XCMP sent on hops', (done) => {
-      const { origin, blocks, getHrmp } = xcmHop
-
-      const calls = vi.fn()
-
-      const test$ = extractXcmpSend(origin, getHrmp, apiContext)(blocks.pipe(extractEvents()))
-
-      test$.subscribe({
-        next: (msg) => {
-          expect(msg).toBeDefined()
-          expect(msg.blockNumber).toBeDefined()
-          expect(msg.blockHash).toBeDefined()
-          expect(msg.instructions).toBeDefined()
-          expect(msg.messageData).toBeDefined()
-          expect(msg.messageHash).toBeDefined()
-          expect(msg.recipient).toBeDefined()
-          expect(msg.timestamp).toBeDefined()
-          calls()
-        },
-        complete: () => {
-          expect(calls).toHaveBeenCalledTimes(2)
-          done()
-        },
-      })
-    })
-      */
   })
 
   describe('extractXcmpReceive', () => {

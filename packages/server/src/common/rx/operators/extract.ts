@@ -13,7 +13,7 @@ import {
   Extrinsic,
 } from '@/services/networking/types.js'
 
-function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
+export function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'set')
   if (setTimestamp) {
     return Number(setTimestamp.args.now)

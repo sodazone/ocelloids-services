@@ -72,7 +72,7 @@ function findOutboundUmpMessage(
                 const xcmProgram = asVersionedXcm(bytes, context)
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
-                  messageData: xcmProgram.data,
+                  messageDataBuffer: xcmProgram.data,
                   recipient: getRelayId(origin), // always relay
                   messageHash: xcmProgram.hash,
                   messageId: getMessageId(xcmProgram),

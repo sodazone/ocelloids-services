@@ -75,6 +75,7 @@ export const dmpXcmPalletSentEvent = {
 }
 
 export const dmpReceive = {
+  dmpByBock: from(testBlocksFrom('moonbeam/9166777.cbor')),
   successBlocks: from(testBlocksFrom('hydra/dmp-in_6258493.cbor')),
   failBlocks: from(testBlocksFrom('hydra/dmp-in-fail_6253890.cbor')),
 }

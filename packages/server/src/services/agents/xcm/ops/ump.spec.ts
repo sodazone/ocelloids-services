@@ -18,7 +18,7 @@ describe('ump operator', () => {
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
             expect(msg.instructions).toBeDefined()
-            expect(msg.messageData).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
             expect(msg.messageHash).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.timestamp).toBeDefined()

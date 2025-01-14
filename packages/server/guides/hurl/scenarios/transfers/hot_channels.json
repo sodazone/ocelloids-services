@@ -18,10 +18,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -44,10 +40,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -72,10 +64,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -97,10 +85,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -125,10 +109,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -150,10 +130,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -178,10 +154,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -204,10 +176,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }

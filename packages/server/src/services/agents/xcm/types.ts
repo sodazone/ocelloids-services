@@ -68,6 +68,7 @@ export type XcmWithContext = {
   timestamp?: number
   messageHash: HexString
   messageId?: HexString
+  messageData?: HexString
   extrinsicHash?: HexString
 }
 
@@ -107,7 +108,7 @@ export type XcmProgram = {
 }
 
 export interface XcmSentWithContext extends XcmWithContext {
-  messageData: Uint8Array
+  messageDataBuffer: Uint8Array
   recipient: NetworkURN
   sender?: SignerData
   instructions: XcmProgram
@@ -170,6 +171,7 @@ abstract class BaseXcmEvent {
   event: AnyJson
   messageHash: HexString
   messageId?: HexString
+  messageData?: HexString
   blockHash: HexString
   blockNumber: string
   timestamp?: number
@@ -181,6 +183,7 @@ abstract class BaseXcmEvent {
     this.messageHash = msg.messageHash
     this.messageId = msg.messageId ?? msg.messageHash
     this.blockHash = msg.blockHash
+    this.messageData = msg.messageData
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
     this.extrinsicPosition = msg.extrinsicPosition
@@ -206,6 +209,7 @@ export class GenericXcmRelayedWithContext extends BaseGenericXcmWithContext impl
 
 export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
   outcome: 'Success' | 'Fail'
+  messageData?: HexString
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
@@ -215,11 +219,12 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
+    this.messageData = msg.messageData
   }
 }
 
 export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWithContext {
-  messageData: Uint8Array
+  messageDataBuffer: Uint8Array
   recipient: NetworkURN
   instructions: XcmProgram
   sender?: SignerData
@@ -227,7 +232,7 @@ export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWi
   constructor(msg: XcmSentWithContext) {
     super(msg)
 
-    this.messageData = msg.messageData
+    this.messageDataBuffer = msg.messageDataBuffer
     this.recipient = msg.recipient
     this.instructions = msg.instructions
     this.sender = msg.sender
@@ -320,8 +325,7 @@ export interface XcmTerminus {
  */
 export interface XcmTerminusContext extends XcmWithContext, XcmTerminus {
   outcome: 'Success' | 'Fail'
-  error: AnyJson
-  messageData: string
+  error?: AnyJson
   instructions: AnyJson
 }
 
@@ -353,6 +357,7 @@ export type Leg = {
   from: NetworkURN
   to: NetworkURN
   relay?: NetworkURN
+  partialMessage?: HexString
   type: LegType
 }
 
@@ -367,7 +372,7 @@ export interface XcmJourney {
   legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
-  destination: XcmTerminus
+  destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
@@ -415,7 +420,7 @@ export class XcmInbound extends BaseXcmEvent {
   subscriptionId: string
   chainId: NetworkURN
   outcome: 'Success' | 'Fail'
-  error: AnyJson
+  error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
   constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
@@ -476,7 +481,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       event: msg.event,
       outcome: 'Success',
       error: null,
-      messageData: toHexString(msg.messageData),
+      messageData: toHexString(msg.messageDataBuffer),
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
     }
@@ -486,7 +491,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
     this.waypoint = {
       ...this.origin,
       legIndex: 0,
-      messageData: toHexString(msg.messageData),
+      messageData: toHexString(msg.messageDataBuffer),
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
     }

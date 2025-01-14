@@ -1,7 +1,7 @@
 import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
-import { filterNonNull } from '@/common/index.js'
-import { ApiContext, BlockEvent } from '@/services/networking/index.js'
+import { filterNonNull, getTimestampFromBlock } from '@/common/index.js'
+import { ApiContext, Block, BlockEvent } from '@/services/networking/index.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -17,10 +17,11 @@ import {
   getSendersFromEvent,
   mapAssetsTrapped,
   matchEvent,
+  matchExtrinsic,
   matchProgramByTopic,
   networkIdFromMultiLocation,
 } from './util.js'
-import { Program, asVersionedXcm } from './xcm-format.js'
+import { Program, asVersionedXcm, messageHash } from './xcm-format.js'
 
 /*
  ==================================================================================
@@ -67,7 +68,7 @@ function createXcmMessageSent({
       bytes: program.data,
       json: program.instructions,
     },
-    messageData: data,
+    messageDataBuffer: data,
     messageHash: program.hash,
     messageId,
     sender,
@@ -151,11 +152,17 @@ export function extractDmpSendByEvent(
   }
 }
 
-function createDmpReceivedWithContext(event: BlockEvent, assetsTrappedEvent?: BlockEvent) {
+function createDmpReceivedWithContext({
+  event,
+  messageData,
+  assetsTrappedEvent,
+}: {
+  event: BlockEvent
+  messageData?: HexString
+  assetsTrappedEvent?: BlockEvent
+}) {
   const xcmMessage = event.value
-  let outcome: 'Success' | 'Fail' = 'Fail'
-  outcome = xcmMessage.success ? 'Success' : 'Fail'
-
+  const outcome: 'Success' | 'Fail' = xcmMessage.success ? 'Success' : 'Fail'
   const messageId = xcmMessage.message_id ? xcmMessage.message_id : xcmMessage.id
   const messageHash = xcmMessage.message_hash ?? messageId
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent)
@@ -168,6 +175,7 @@ function createDmpReceivedWithContext(event: BlockEvent, assetsTrappedEvent?: Bl
     timestamp: event.timestamp,
     extrinsicPosition: event.extrinsicPosition,
     messageHash,
+    messageData,
     messageId,
     outcome,
     assetsTrapped,
@@ -182,12 +190,79 @@ export function extractDmpReceive() {
         // in reality we expect a continuous stream of events but
         // in tests, maybeDmpEvent could be undefined if there are odd number of events
         if (maybeDmpEvent && matchEvent(maybeDmpEvent, 'MessageQueue', 'Processed')) {
-          const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'PolkadotXcm', 'AssetsTrapped')
+          const assetsTrappedEvent = matchEvent(maybeAssetTrapEvent, 'PolkadotXcm', 'AssetsTrapped')
             ? maybeAssetTrapEvent
             : undefined
-          return createDmpReceivedWithContext(maybeDmpEvent, assetTrapEvent)
+          return createDmpReceivedWithContext({ event: maybeDmpEvent, assetsTrappedEvent })
         }
         return null
+      }),
+      filterNonNull(),
+    )
+  }
+}
+
+export function extractDmpReceiveByBlock() {
+  return (source: Observable<Block>): Observable<XcmInboundWithContext> => {
+    return source.pipe(
+      mergeMap(({ hash: blockHash, number: blockNumber, extrinsics, events }) => {
+        const timestamp = getTimestampFromBlock(extrinsics)
+        const dmpReceived: XcmInboundWithContext[] = []
+
+        // xcm events in block
+        const xcmEvents = events.reduce((acc: BlockEvent[], { event }, i) => {
+          if (matchEvent(event, 'MessageQueue', 'Processed')) {
+            acc.push({
+              ...event,
+              blockHash,
+              blockNumber,
+              blockPosition: i,
+              timestamp,
+            })
+          }
+          return acc
+        }, [])
+
+        // find extrinsic paraInherent...
+        const paraExtrinsic = extrinsics.find((ext) =>
+          matchExtrinsic(ext, 'ParachainSystem', 'set_validation_data'),
+        )
+        if (paraExtrinsic) {
+          // extract dmpMessages from params
+          const {
+            data: { downward_messages },
+          } = paraExtrinsic.args as {
+            data: {
+              downward_messages: { msg: HexString; sent_at: number }[]
+            }
+          }
+
+          // collect downward messages correlated with processed events
+          for (const { msg } of downward_messages) {
+            const hash = messageHash(msg)
+            const index = xcmEvents.findIndex((event) => event.value.id === hash)
+            if (index > -1) {
+              const event = xcmEvents.splice(index, 1)[0]
+              dmpReceived.push(
+                createDmpReceivedWithContext({
+                  event,
+                  messageData: msg,
+                }),
+              )
+            }
+          }
+        }
+
+        // push the non-matched events
+        dmpReceived.push(
+          ...xcmEvents.map((event) =>
+            createDmpReceivedWithContext({
+              event,
+            }),
+          ),
+        )
+
+        return dmpReceived
       }),
       filterNonNull(),
     )

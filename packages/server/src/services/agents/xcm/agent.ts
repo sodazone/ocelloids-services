@@ -35,7 +35,7 @@ import {
 
 import { mapXcmSent } from './ops/common.js'
 import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
-import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpReceiveByBlock, extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
@@ -202,9 +202,9 @@ export class XcmAgent implements Agent, Subscribable {
 
           subs.push({
             chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(extractDmpReceive(), this.#emitInbound(id, chainId))
+            sub: this.#ingress
+              .finalizedBlocks(chainId)
+              .pipe(extractDmpReceiveByBlock(), this.#emitInbound(id, chainId))
               .subscribe(inboundObserver),
           })
         } else {
@@ -510,7 +510,7 @@ export class XcmAgent implements Agent, Subscribable {
       source.pipe(
         mapXcmSent(id, context, origin),
         filter((msg) => matchMessage(messageControl, msg)),
-        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound, outboundTTL))),
+        switchMap((outbound) => from(this.#engine.onOutboundMessage(outbound /*,outboundTTL*/))),
       )
   }
 
