@@ -1010,7 +1010,7 @@ describe('message matching engine', () => {
     expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop'])
   })
 
-  it('should match hop messages turbot', async () => {
+  it('should match hop messages without relay', async () => {
     await engine.onOutboundMessage(hydraSent)
     await engine.onInboundMessage(hydraHop)
     await engine.onInboundMessage(moonbeamIn)

@@ -39,7 +39,7 @@ function findOutboundHrmpMessage(
                   (xcmProgram) =>
                     new GenericXcmSentWithContext({
                       ...sentMsg,
-                      messageData: xcmProgram.data,
+                      messageDataBuffer: xcmProgram.data,
                       recipient: createNetworkId(origin, recipient.toString()),
                       messageHash: xcmProgram.hash,
                       instructions: {
