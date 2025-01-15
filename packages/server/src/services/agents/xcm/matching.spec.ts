@@ -166,7 +166,7 @@ describe('message matching engine', () => {
     await engine.onRelayedMessage(relay1)
     await engine.onInboundMessage(received)
 
-    expect(cb).toHaveBeenCalledTimes(6)
+    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.relayed', 'xcm.received'])
   })
 
   it('should match hop messages with topic id', async () => {

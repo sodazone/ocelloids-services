@@ -27,16 +27,7 @@ import {
   XcmSent,
 } from './types.js'
 
-const XCM_CHAINS = [
-  'urn:ocn:polkadot:0',
-  'urn:ocn:polkadot:1000',
-  'urn:ocn:polkadot:2006',
-  'urn:ocn:polkadot:2030',
-  'urn:ocn:polkadot:2031',
-  'urn:ocn:polkadot:2032',
-  'urn:ocn:polkadot:2034',
-  'urn:ocn:polkadot:2004',
-]
+const EXCLUDED_NETWORKS: NetworkURN[] = []
 
 export class XcmTracker {
   readonly #id = 'xcm-tracker'
@@ -69,16 +60,17 @@ export class XcmTracker {
   }
 
   start() {
-    this.#log.info('[agent:%s] subscribe', this.#id)
+    const chainsToTrack = this.#ingress.getChainIds().filter((c) => !EXCLUDED_NETWORKS.includes(c))
 
-    const chainsToTrack = this.#ingress.getChainIds().filter((c) => XCM_CHAINS.includes(c))
+    this.#log.info('[%s] start (%s)', this.#id, chainsToTrack)
+
     this.#monitorOrigins(chainsToTrack)
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
   }
 
   async stop() {
-    this.#log.info('[agent:%s] unsubscribe', this.#id)
+    this.#log.info('[%s] stop', this.#id)
 
     Object.values(this.#streams).forEach((streams) => streams.forEach(({ sub }) => sub.unsubscribe()))
 
@@ -107,7 +99,7 @@ export class XcmTracker {
 
         const inboundObserver = {
           error: (error: any) => {
-            this.#log.error(error, '[%s:%s] error on destination stream', this.#id, chainId)
+            this.#log.error(error, '[%s] %s error on destination stream', this.#id, chainId)
 
             this.#telemetry.emit('telemetryXcmSubscriptionError', {
               chainId,
@@ -119,19 +111,18 @@ export class XcmTracker {
 
         if (this.#ingress.isRelay(chainId)) {
           // VMP UMP
-          this.#log.info('[%s:%s] subscribe inbound UMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe inbound UMP', this.#id, chainId)
 
           subs.push({
             chainId,
             sub: this.#shared
               .blockEvents(chainId)
-              // TODO: any id?
               .pipe(extractUmpReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         } else {
           // VMP DMP
-          this.#log.info('[%s:%s] subscribe inbound DMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe inbound DMP', this.#id, chainId)
 
           subs.push({
             chainId,
@@ -142,7 +133,7 @@ export class XcmTracker {
           })
 
           // Inbound HRMP / XCMP transport
-          this.#log.info('[%s:%s] subscribe inbound HRMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe inbound HRMP', this.#id, chainId)
 
           subs.push({
             chainId,
@@ -179,7 +170,7 @@ export class XcmTracker {
 
       const outboundObserver = {
         error: (error: any) => {
-          this.#log.error(error, '[%s:%s] error on origin stream', this.#id, chainId)
+          this.#log.error(error, '[%s] %s error on origin stream', this.#id, chainId)
           this.#telemetry.emit('telemetryXcmSubscriptionError', {
             chainId,
             direction: 'out',
@@ -191,7 +182,7 @@ export class XcmTracker {
       try {
         if (this.#ingress.isRelay(chainId)) {
           // VMP DMP
-          this.#log.info('[%s:%s] subscribe outbound DMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe outbound DMP', this.#id, chainId)
 
           subs.push({
             chainId,
@@ -211,7 +202,7 @@ export class XcmTracker {
           })
         } else {
           // Outbound HRMP / XCMP transport
-          this.#log.info('[%s:%s] subscribe outbound HRMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe outbound HRMP', this.#id, chainId)
 
           subs.push({
             chainId,
@@ -231,7 +222,7 @@ export class XcmTracker {
           })
 
           // VMP UMP
-          this.#log.info('[%s:%s] subscribe outbound UMP', this.#id, chainId)
+          this.#log.info('[%s] %s subscribe outbound UMP', this.#id, chainId)
 
           subs.push({
             chainId,
@@ -276,7 +267,7 @@ export class XcmTracker {
 
       const relayObserver = {
         error: (error: any) => {
-          this.#log.error(error, '[%s:%s] error on relay stream', this.#id, chainId)
+          this.#log.error(error, '[%s] %s error on relay stream', this.#id, chainId)
           this.#telemetry.emit('telemetryXcmSubscriptionError', {
             chainId,
             direction: 'relay',
@@ -298,7 +289,7 @@ export class XcmTracker {
         continue
       }
 
-      this.#log.info('[%s:%s] subscribe relay %s xcm events', this.#id, chainId, relayId)
+      this.#log.info('[%s] %s subscribe relay %s xcm events', this.#id, chainId, relayId)
 
       this.#streams.r.push({
         chainId,

@@ -559,6 +559,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         ) !== undefined
       ) {
         this.#onXcmHopOut(originMsg, msg)
+        this.#storeOnOutbound(msg)
         return
       }
     }
