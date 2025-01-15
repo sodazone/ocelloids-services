@@ -4,13 +4,22 @@ import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
-
-import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
+import { toHex } from 'polkadot-api/utils'
+import {
+  GenericXcmSent,
+  Leg,
+  XcmInbound,
+  XcmInboundWithContext,
+  XcmSent,
+  XcmSentWithContext,
+} from '../types.js'
 import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
-import { asVersionedXcm } from './xcm-format.js'
+import { raw, versionedXcmCodec } from './xcm-format.js'
+
+type Stop = { networkId: NetworkURN; message?: any[] }
 
 // eslint-disable-next-line complexity
-function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: NetworkURN[]) {
+function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
   for (const instruction of instructions) {
     let nextStop
     let message
@@ -37,7 +46,7 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: N
       if (paraId) {
         const consensus = network.toString().toLowerCase()
         const networkId = createNetworkId(consensus, paraId)
-        stops.push(networkId)
+        stops.push({ networkId })
         recursiveExtractStops(networkId, xcm, stops)
       }
     }
@@ -46,7 +55,7 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: N
       const networkId = networkIdFromMultiLocation(nextStop, origin)
 
       if (networkId) {
-        stops.push(networkId)
+        stops.push({ networkId, message })
         recursiveExtractStops(networkId, message, stops)
       }
     }
@@ -55,16 +64,23 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: N
   return stops
 }
 
-function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
+function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
   const legs: Leg[] = []
-  const nodes = [origin].concat(stops)
-  for (let i = 0; i < nodes.length - 1; i++) {
-    const from = nodes[i]
-    const to = nodes[i + 1]
+  for (let i = 0; i < stops.length - 1; i++) {
+    const { networkId: from } = stops[i]
+    const { networkId: to, message } = stops[i + 1]
+    let partialMessage
+
+    if (message !== undefined) {
+      const partialXcm = { type: version, value: message }
+      partialMessage = toHex(versionedXcmCodec(context).enc(partialXcm))
+    }
+
     const leg = {
       from,
       to,
       type: 'vmp',
+      partialMessage,
     } as Leg
 
     if (getConsensus(from) === getConsensus(to)) {
@@ -88,20 +104,6 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
     const leg2 = legs[i + 1]
     if (isOnSameConsensus(leg1.from, leg2.to)) {
       leg1.type = 'hop'
-      leg2.type = 'hop'
-    }
-  }
-
-  if (legs.length === 1) {
-    return legs
-  }
-
-  for (let i = 0; i < legs.length - 1; i++) {
-    const leg1 = legs[i]
-    const leg2 = legs[i + 1]
-    if (isOnSameConsensus(leg1.from, leg2.to)) {
-      leg1.type = 'hop'
-      leg2.type = 'hop'
     }
   }
 
@@ -113,22 +115,30 @@ function constructLegs(origin: NetworkURN, stops: NetworkURN[]) {
  * Sets the destination as the final stop after recursively extracting all stops from the XCM message,
  * constructs the legs for the message and constructs the waypoint context.
  *
- * @param id - The subscription ID
  * @param registry - The type registry
  * @param origin - The origin network URN
  */
-export function mapXcmSent(id: string, context: SubstrateApiContext, origin: NetworkURN) {
+export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {
         const { instructions, recipient } = message
-        const stops: NetworkURN[] = [recipient]
-        const versionedXcm = asVersionedXcm(instructions.bytes, context)
+        const stops: Stop[] = [{ networkId: recipient }]
+        const versionedXcm = raw.asVersionedXcm(instructions.bytes, context)
         recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
-        const legs = constructLegs(origin, stops)
-        return new GenericXcmSent(id, origin, message, legs)
+        const legs = constructLegs(
+          [{ networkId: origin }].concat(stops),
+          versionedXcm.instructions.type,
+          context,
+        )
+        return new GenericXcmSent(origin, message, legs)
       }),
     )
+}
+
+export function mapXcmInbound(chainId: NetworkURN) {
+  return (source: Observable<XcmInboundWithContext>): Observable<XcmInbound> =>
+    source.pipe(map((msg) => new XcmInbound(chainId, msg)))
 }
 
 export function xcmMessagesSent() {

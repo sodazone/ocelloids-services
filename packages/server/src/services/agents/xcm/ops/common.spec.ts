@@ -15,7 +15,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'))
       const xcms = fromXcmpFormat(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:2004',
       )(
@@ -29,7 +28,7 @@ describe('extract waypoints operator', () => {
                 blockNumber: '32',
                 extrinsicPosition: 4,
                 recipient: 'urn:ocn:local:2104',
-                messageData: buf,
+                messageDataBuffer: buf,
                 messageHash: x.hash,
                 messageId: getMessageId(x),
                 instructions: {
@@ -71,7 +70,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(polka19505060, 'hex'))
       const xcm = asVersionedXcm(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:0',
       )(
@@ -83,7 +81,7 @@ describe('extract waypoints operator', () => {
             blockNumber: '32',
             extrinsicPosition: 4,
             recipient: 'urn:ocn:local:2034',
-            messageData: buf,
+            messageDataBuffer: buf,
             messageHash: xcm.hash,
             messageId: getMessageId(xcm),
             instructions: {
@@ -109,7 +107,9 @@ describe('extract waypoints operator', () => {
               from: 'urn:ocn:local:2034',
               to: 'urn:ocn:local:1000',
               relay: 'urn:ocn:local:0',
-              type: 'hop',
+              partialMessage:
+                '0x030813000002043205011f0002093d00000d0102040001010081bd2c1d40052682633fb3e67eff151b535284d1d1a9633613af14006656f42b',
+              type: 'hrmp',
             })
             expect(msg.destination.chainId).toBe('urn:ocn:local:1000')
             calls()
@@ -129,7 +129,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(heiko5389341, 'hex'))
       const xcms = fromXcmpFormat(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:2085',
       )(
@@ -143,7 +142,7 @@ describe('extract waypoints operator', () => {
                 blockNumber: '32',
                 extrinsicPosition: 4,
                 recipient: 'urn:ocn:local:2004',
-                messageData: buf,
+                messageDataBuffer: buf,
                 messageHash: x.hash,
                 messageId: getMessageId(x),
                 instructions: {
@@ -172,7 +171,9 @@ describe('extract waypoints operator', () => {
               from: 'urn:ocn:local:2004',
               to: 'urn:ocn:local:2000',
               relay: 'urn:ocn:local:0',
-              type: 'hop',
+              partialMessage:
+                '0x03081300010100511f000f120c286411df01000d01020400010100842745b99b8042d28a7c677d9469332bfc24aa5266c7ec57c43c7af125a0c16c',
+              type: 'hrmp',
             })
 
             expect(msg.destination.chainId).toBe('urn:ocn:local:2000')

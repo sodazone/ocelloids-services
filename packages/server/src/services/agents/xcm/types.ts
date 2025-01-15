@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { Binary } from 'polkadot-api'
-import { Observable } from 'rxjs'
+import { Observable, Subscription as RxSubscription } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'
@@ -40,13 +40,12 @@ export type Monitor = {
 }
 
 export type XcmSubscriptionHandler = {
-  originSubs: RxSubscriptionWithId[]
-  destinationSubs: RxSubscriptionWithId[]
-  bridgeSubs: RxBridgeSubscription[]
   sendersControl: ControlQuery
-  messageControl: ControlQuery
+  destinationsControl: ControlQuery
+  originsControl: ControlQuery
+  notificationTypeControl: ControlQuery
   subscription: Subscription<XcmInputs>
-  relaySub?: RxSubscriptionWithId
+  stream: RxSubscription
 }
 
 const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
@@ -54,11 +53,6 @@ const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
 export type BridgeType = (typeof bridgeTypes)[number]
 
 export type RxBridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
-
-export type XcmCriteria = {
-  sendersControl: ControlQuery
-  messageControl: ControlQuery
-}
 
 export type XcmWithContext = {
   event?: AnyJson
@@ -68,6 +62,7 @@ export type XcmWithContext = {
   timestamp?: number
   messageHash: HexString
   messageId?: HexString
+  messageData?: HexString
   extrinsicHash?: HexString
 }
 
@@ -107,7 +102,7 @@ export type XcmProgram = {
 }
 
 export interface XcmSentWithContext extends XcmWithContext {
-  messageData: Uint8Array
+  messageDataBuffer: Uint8Array
   recipient: NetworkURN
   sender?: SignerData
   instructions: XcmProgram
@@ -170,6 +165,7 @@ abstract class BaseXcmEvent {
   event: AnyJson
   messageHash: HexString
   messageId?: HexString
+  messageData?: HexString
   blockHash: HexString
   blockNumber: string
   timestamp?: number
@@ -181,6 +177,7 @@ abstract class BaseXcmEvent {
     this.messageHash = msg.messageHash
     this.messageId = msg.messageId ?? msg.messageHash
     this.blockHash = msg.blockHash
+    this.messageData = msg.messageData
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
     this.extrinsicPosition = msg.extrinsicPosition
@@ -206,6 +203,7 @@ export class GenericXcmRelayedWithContext extends BaseGenericXcmWithContext impl
 
 export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
   outcome: 'Success' | 'Fail'
+  messageData?: HexString
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
@@ -215,11 +213,12 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
+    this.messageData = msg.messageData
   }
 }
 
 export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWithContext {
-  messageData: Uint8Array
+  messageDataBuffer: Uint8Array
   recipient: NetworkURN
   instructions: XcmProgram
   sender?: SignerData
@@ -227,7 +226,7 @@ export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWi
   constructor(msg: XcmSentWithContext) {
     super(msg)
 
-    this.messageData = msg.messageData
+    this.messageDataBuffer = msg.messageDataBuffer
     this.recipient = msg.recipient
     this.instructions = msg.instructions
     this.sender = msg.sender
@@ -320,8 +319,7 @@ export interface XcmTerminus {
  */
 export interface XcmTerminusContext extends XcmWithContext, XcmTerminus {
   outcome: 'Success' | 'Fail'
-  error: AnyJson
-  messageData: string
+  error?: AnyJson
   instructions: AnyJson
 }
 
@@ -353,6 +351,7 @@ export type Leg = {
   from: NetworkURN
   to: NetworkURN
   relay?: NetworkURN
+  partialMessage?: HexString
   type: LegType
 }
 
@@ -363,11 +362,10 @@ export type Leg = {
  */
 export interface XcmJourney {
   type: XcmNotificationType
-  subscriptionId: string
   legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
-  destination: XcmTerminus
+  destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
@@ -412,16 +410,14 @@ export type XcmTimeout = XcmJourney
 export type XcmRelayed = XcmJourney
 
 export class XcmInbound extends BaseXcmEvent {
-  subscriptionId: string
   chainId: NetworkURN
   outcome: 'Success' | 'Fail'
-  error: AnyJson
+  error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
+  constructor(chainId: NetworkURN, msg: XcmInboundWithContext) {
     super(msg)
 
-    this.subscriptionId = subscriptionId
     this.chainId = chainId
     this.outcome = msg.outcome
     this.error = msg.error
@@ -430,14 +426,12 @@ export class XcmInbound extends BaseXcmEvent {
 }
 
 abstract class BaseXcmJourney {
-  subscriptionId: string
   legs: Leg[]
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
-    this.subscriptionId = msg.subscriptionId
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
@@ -451,15 +445,8 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(
-    subscriptionId: string,
-    chainId: NetworkURN,
-    msg: XcmSentWithContext,
-    legs: Leg[],
-    forwardId?: HexString,
-  ) {
+  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], forwardId?: HexString) {
     super({
-      subscriptionId,
       legs,
       forwardId,
       messageId: msg.messageId,
@@ -476,7 +463,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       event: msg.event,
       outcome: 'Success',
       error: null,
-      messageData: toHexString(msg.messageData),
+      messageData: toHexString(msg.messageDataBuffer),
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
     }
@@ -486,7 +473,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
     this.waypoint = {
       ...this.origin,
       legIndex: 0,
-      messageData: toHexString(msg.messageData),
+      messageData: toHexString(msg.messageDataBuffer),
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
     }
@@ -657,34 +644,39 @@ export function isXcmRelayed(object: any): object is XcmRelayed {
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${XcmNotificationTypes.join(',')}]`
 
-const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds'
-
 export const $XcmInputs = z.object({
-  origin: z
-    .string({
-      required_error: 'origin id is required',
-    })
-    .min(1),
+  origins: z.literal('*').or(
+    z
+      .array(
+        z
+          .string({
+            required_error: 'at least 1 origin is required',
+          })
+          .min(1),
+      )
+      .transform(distinct),
+  ),
   senders: z.optional(
     z
       .literal('*')
       .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct)),
   ),
-  destinations: z
-    .array(
-      z
-        .string({
-          required_error: 'destination id is required',
-        })
-        .min(1),
-    )
-    .transform(distinct),
+  destinations: z.literal('*').or(
+    z
+      .array(
+        z
+          .string({
+            required_error: 'at least 1 destination is required',
+          })
+          .min(1),
+      )
+      .transform(distinct),
+  ),
   bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
   // prevent using $refs
   events: z.optional(
     z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
   ),
-  outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })
 
 export type XcmInputs = z.infer<typeof $XcmInputs>

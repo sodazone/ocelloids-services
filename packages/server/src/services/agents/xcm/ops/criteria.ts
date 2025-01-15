@@ -1,29 +1,42 @@
 import { ControlQuery, Criteria } from '@/common/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
-import { NetworkURN } from '../../../types.js'
-import { XcmSent } from '../types.js'
+import { XcmNotificationType, XcmTerminus } from '../types.js'
+
+const MATCH_ANY = {}
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {
-    // match any
-    return {}
-  } else {
-    return {
-      $or: [
-        { 'sender.signer.id': { $in: senders } },
-        { 'sender.signer.publicKey': { $in: senders } },
-        { 'sender.extraSigners.id': { $in: senders } },
-        { 'sender.extraSigners.publicKey': { $in: senders } },
-      ],
-    }
+    return MATCH_ANY
+  }
+
+  return {
+    $or: [
+      { 'sender.signer.id': { $in: senders } },
+      { 'sender.signer.publicKey': { $in: senders } },
+      { 'sender.extraSigners.id': { $in: senders } },
+      { 'sender.extraSigners.publicKey': { $in: senders } },
+    ],
   }
 }
 
-// Assuming we are in the same consensus
-export function messageCriteria(recipients: NetworkURN[]): Criteria {
+export function messageCriteria(chainIds: string[] | '*'): Criteria {
+  if (chainIds === '*') {
+    return MATCH_ANY
+  }
+
   return {
-    recipient: { $in: recipients },
+    chainId: { $in: chainIds },
+  }
+}
+
+export function notificationTypeCriteria(types?: string[] | '*'): Criteria {
+  if (types === undefined || types === '*') {
+    return MATCH_ANY
+  }
+
+  return {
+    notificationType: { $in: types },
   }
 }
 
@@ -43,8 +56,15 @@ export function matchSenders(query: ControlQuery, sender?: SignerData): boolean 
 }
 
 /**
- * Matches outbound XCM recipients.
+ * Matches XCM terminus.
  */
-export function matchMessage(query: ControlQuery, xcm: XcmSent): boolean {
-  return query.value.test({ recipient: xcm.destination.chainId })
+export function matchMessage(query: ControlQuery, xcm: XcmTerminus): boolean {
+  return query.value.test({ chainId: xcm.chainId })
+}
+
+/**
+ * Matches XCM notification types
+ */
+export function matchNotificationType(query: ControlQuery, notificationType: XcmNotificationType) {
+  return query.value.test({ notificationType })
 }

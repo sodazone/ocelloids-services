@@ -3,7 +3,7 @@
     "id": "polkadot-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:0",
+      "origins": ["urn:ocn:polkadot:0"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000",
@@ -17,10 +17,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -30,7 +26,7 @@
     "id": "asset-hub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:1000",
+      "origins": ["urn:ocn:polkadot:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -44,10 +40,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -57,7 +49,7 @@
     "id": "moonbeam-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2004",
+      "origins": ["urn:ocn:polkadot:2004"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000",
@@ -71,10 +63,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }
@@ -84,7 +72,7 @@
     "id": "astar-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2006",
+      "origins": ["urn:ocn:polkadot:2006"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -98,10 +86,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -110,7 +94,7 @@
     "id": "bifrost-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2030",
+      "origins": ["urn:ocn:polkadot:2030"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000",
@@ -125,10 +109,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -137,7 +117,7 @@
     "id": "centrifuge-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2031",
+      "origins": ["urn:ocn:polkadot:2031"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -151,10 +131,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -163,7 +139,7 @@
     "id": "interlay-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2032",
+      "origins": ["urn:ocn:polkadot:2032"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -178,10 +154,6 @@
     },
     "channels": [
       {
-        "type": "webhook",
-        "url": "https://en0wzi8ov6nb5.x.pipedream.net"
-      },
-      {
         "type": "websocket"
       }
     ]
@@ -190,7 +162,7 @@
     "id": "hydra-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2034",
+      "origins": ["urn:ocn:polkadot:2034"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000",
@@ -204,10 +176,6 @@
       "events": "*"
     },
     "channels": [
-      {
-        "type": "webhook",
-        "url": "https://enrycp95owk7o.x.pipedream.net"
-      },
       {
         "type": "websocket"
       }

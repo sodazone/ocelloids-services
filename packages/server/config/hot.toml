@@ -91,6 +91,7 @@ relay = "urn:ocn:polkadot:0"
     "wss://moonbeam-rpc.dwellir.com"
   ]
 
+<<<<<<< HEAD
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2104"
 relay = "urn:ocn:polkadot:0"
@@ -98,3 +99,12 @@ relay = "urn:ocn:polkadot:0"
   [substrate.networks.provider]
   type = "rpc"
   url = "wss://ws.manta.systems"
+=======
+#[[networks]]
+#id = "urn:ocn:polkadot:2104"
+#relay = "urn:ocn:polkadot:0"
+#
+#  [networks.provider]
+#  type = "rpc"
+#  url = "wss://ws.manta.systems"
+>>>>>>> main

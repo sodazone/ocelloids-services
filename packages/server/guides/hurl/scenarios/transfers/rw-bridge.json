@@ -3,7 +3,7 @@
     "id": "rococo-asset-hub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:rococo:1000",
+      "origins": ["urn:ocn:rococo:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:rococo:0",
@@ -34,7 +34,7 @@
     "id": "westend-bridge-hub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:westend:1002",
+      "origins": ["urn:ocn:westend:1002"],
       "senders": "*",
       "destinations": [
         "urn:ocn:westend:1000",

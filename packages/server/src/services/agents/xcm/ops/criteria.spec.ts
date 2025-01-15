@@ -49,16 +49,13 @@ describe('control query criteria', () => {
 
   describe('matchMessage', () => {
     it('should return true if destination is in query', () => {
-      const matched = matchMessage(testMessageQuery, xcmSent)
+      const matched = matchMessage(testMessageQuery, xcmSent.destination)
 
       expect(matched).toBe(true)
     })
 
     it('should return false if destination is not in query', () => {
-      const matched = matchMessage(testMessageQuery, {
-        ...xcmSent,
-        destination: { chainId: 'urn:ocn:local:3000' },
-      })
+      const matched = matchMessage(testMessageQuery, { chainId: 'urn:ocn:local:3000' })
 
       expect(matched).toBe(false)
     })

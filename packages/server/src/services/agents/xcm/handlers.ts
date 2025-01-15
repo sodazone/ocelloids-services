@@ -1,17 +1,22 @@
 import { Operation } from 'rfc6902'
 
-import { errorMessage } from '@/errors.js'
-import { Logger, NetworkURN } from '@/services/index.js'
-import { IngressConsumers } from '@/services/ingress/consumer/types.js'
+import { Logger } from '@/services/index.js'
+import { IngressConsumers } from '@/services/ingress/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 import type { XcmAgent } from './agent.js'
-import { messageCriteria, sendersCriteria } from './ops/criteria.js'
+import { messageCriteria, notificationTypeCriteria, sendersCriteria } from './ops/criteria.js'
 import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types.js'
 
-const SUB_ERROR_RETRY_MS = 5000
-
-const allowedPaths = ['/args/senders', '/args/destinations', '/channels', '/public', '/args/events']
+const ALLOWED_PATHS = [
+  '/args/senders',
+  '/args/destinations',
+  '/args/origins',
+  '/args/events',
+  '/channels',
+  '/public',
+]
 
 /**
  * Manages the XCM agent subscription handlers.
@@ -27,7 +32,7 @@ export class XcmSubscriptionManager {
   constructor(log: Logger, ingress: IngressConsumers, agent: XcmAgent) {
     this.#log = log
     this.#agent = agent
-    this.#updater = new SubscriptionUpdater(ingress, allowedPaths)
+    this.#updater = new SubscriptionUpdater(ingress, ALLOWED_PATHS)
     this.#handlers = {}
   }
 
@@ -46,6 +51,7 @@ export class XcmSubscriptionManager {
    * @param {string} id - The subscription ID.
    */
   delete(id: string) {
+    this.get(id)?.stream.unsubscribe()
     delete this.#handlers[id]
   }
 
@@ -57,17 +63,6 @@ export class XcmSubscriptionManager {
    */
   set(id: string, handler: XcmSubscriptionHandler) {
     this.#handlers[id] = handler
-  }
-
-  /**
-   * Checks if a subscription for a bridge exists.
-   *
-   * @param {string} id - The subscription ID.
-   * @param {string} type - The bridge type.
-   * @returns {boolean} Whether a subscription for the bridge exists.
-   */
-  hasSubscriptionForBridge(id: string, type: string) {
-    return this.#handlers[id]?.bridgeSubs.find((s) => s.type === type) !== undefined
   }
 
   /**
@@ -91,38 +86,6 @@ export class XcmSubscriptionManager {
   }
 
   /**
-   * Checks if a subscription for a destination exists.
-   *
-   * @param {string} id - The subscription ID.
-   * @param {string} chainId - The chain ID.
-   * @returns {boolean} Whether a subscription for the destination exists.
-   */
-  hasSubscriptionForDestination(id: string, chainId: string) {
-    return this.#handlers[id]?.destinationSubs.find((s) => s.chainId === chainId) !== undefined
-  }
-
-  /**
-   * Checks if a subscription for an origin exists.
-   *
-   * @param {string} id - The subscription ID.
-   * @param {string} chainId - The chain ID.
-   * @returns {boolean} Whether a subscription for the origin exists.
-   */
-  hasSubscriptionForOrigin(id: string, chainId: string) {
-    return this.#handlers[id]?.originSubs.find((s) => s.chainId === chainId) !== undefined
-  }
-
-  /**
-   * Checks if a relay subscription exists.
-   *
-   * @param {string} id - The subscription ID.
-   * @returns {boolean} Whether a relay subscription exists.
-   */
-  hasSubscriptionForRelay(id: string) {
-    return this.#handlers[id]?.relaySub !== undefined
-  }
-
-  /**
    * Updates a subscription with a JSON patch.
    *
    * @param {string} subscriptionId - The subscription ID.
@@ -137,14 +100,23 @@ export class XcmSubscriptionManager {
       argsSchema: $XcmInputs,
     })
 
-    this.#updater.validateNetworks(toUpdate.args.destinations)
+    if (toUpdate.args.destinations !== '*') {
+      this.#updater.validateNetworks(toUpdate.args.destinations)
+    }
+    if (toUpdate.args.origins !== '*') {
+      this.#updater.validateNetworks(toUpdate.args.origins)
+    }
 
     if (hasOp(patch, '/args/senders')) {
       this.#updateSenders(toUpdate)
     }
 
     if (hasOp(patch, '/args/destinations')) {
-      this.#updateDestinationMessageControl(toUpdate)
+      this.#updateDestinations(toUpdate)
+    }
+
+    if (hasOp(patch, '/args/origins')) {
+      this.#updateOrigins(toUpdate)
     }
 
     if (hasOp(patch, '/args/events')) {
@@ -160,106 +132,22 @@ export class XcmSubscriptionManager {
    * Stops the handler manager
    */
   stop() {
-    //
+    this.all().forEach((h) => {
+      h.stream.unsubscribe()
+    })
   }
 
   /**
-   * Attempts to recover a relay subscription after an error.
-   *
-   * @param {Error} error - The error that occurred.
-   * @param {string} id - The subscription ID.
-   * @param {string} chainId - The chain ID.
+   * Updates the notification events control handler.
    */
-  tryRecoverRelay(error: Error, id: string, chainId: string) {
-    // try recover relay subscription
-    // there is only one subscription per subscription ID for relay
-    if (this.has(id) && this.hasSubscriptionForRelay(id)) {
-      const sub = this.get(id)
+  #updateEvents(toUpdate: Subscription<XcmInputs>) {
+    const {
+      id,
+      args: { events },
+    } = toUpdate
+    const { notificationTypeControl } = this.#handlers[id]
 
-      sub.relaySub?.sub.unsubscribe()
-      delete sub.relaySub
-
-      setTimeout(() => {
-        this.#log.info(
-          '[%s:%s] UPDATE relay subscription %s due error %s',
-          this.#agent.id,
-          chainId,
-          id,
-          errorMessage(error),
-        )
-        const updatedSub = this.#agent.__monitorRelay(sub.subscription)
-        sub.relaySub = updatedSub
-      }, SUB_ERROR_RETRY_MS).unref()
-    }
-  }
-
-  /**
-   * Attempts to recover an inbound subscription after an error.
-   *
-   * @param {Error} error - The error that occurred.
-   * @param {string} id - The subscription ID.
-   * @param {string} chainId - The chain ID.
-   */
-  tryRecoverInbound(error: Error, id: string, chainId: string) {
-    // try recover inbound subscription
-    if (this.has(id)) {
-      const { destinationSubs } = this.get(id)
-      const index = destinationSubs.findIndex((s) => s.chainId === chainId)
-      if (index > -1) {
-        const rmds = destinationSubs.splice(index, 1)
-        for (const rmd of rmds) {
-          rmd.sub.unsubscribe()
-        }
-        setTimeout(() => {
-          this.#log.info(
-            '[%s:%s] UPDATE destination subscription %s due error %s',
-            this.#agent.id,
-            chainId,
-            id,
-            errorMessage(error),
-          )
-          const updated = this.#updateDestinationSubscriptions(this.#handlers[id].subscription)
-          this.#handlers[id].destinationSubs = updated
-        }, SUB_ERROR_RETRY_MS).unref()
-      }
-    }
-  }
-
-  /**
-   * Attempts to recover an outbound subscription after an error.
-   *
-   * @param {Error} error - The error that occurred.
-   * @param {string} id - The subscription ID.
-   * @param {string} chainId - The chain ID.
-   */
-  tryRecoverOutbound(error: Error, id: string, chainId: string) {
-    // try recover outbound subscription
-    // note: there is a single origin per outbound
-    if (this.has(id)) {
-      const { originSubs, subscription } = this.get(id)
-      const index = originSubs.findIndex((s) => s.chainId === chainId)
-      if (index > -1) {
-        for (const { sub } of this.#handlers[id].originSubs) {
-          sub.unsubscribe()
-        }
-        this.#handlers[id].originSubs = []
-        setTimeout(() => {
-          if (this.#handlers[id]) {
-            this.#log.info(
-              '[%s:%s] UPDATE origin subscription %s due error %s',
-              this.#agent.id,
-              chainId,
-              id,
-              errorMessage(error),
-            )
-            const { streams: updated, controls } = this.#agent.__monitorOrigins(subscription)
-            this.#handlers[id].sendersControl = controls.sendersControl
-            this.#handlers[id].messageControl = controls.messageControl
-            this.#handlers[id].originSubs = updated
-          }
-        }, SUB_ERROR_RETRY_MS).unref()
-      }
-    }
+    notificationTypeControl.change(notificationTypeCriteria(events))
   }
 
   /**
@@ -278,58 +166,29 @@ export class XcmSubscriptionManager {
   }
 
   /**
+   * Updates the oriigins control handler.
+   */
+  #updateOrigins(toUpdate: Subscription<XcmInputs>) {
+    const {
+      id,
+      args: { origins },
+    } = toUpdate
+    const { originsControl } = this.#handlers[id]
+
+    originsControl.change(messageCriteria(origins))
+  }
+
+  /**
    * Updates the message control handler.
    */
-  #updateDestinationMessageControl(toUpdate: Subscription<XcmInputs>) {
+  #updateDestinations(toUpdate: Subscription<XcmInputs>) {
     const {
       id,
       args: { destinations },
     } = toUpdate
-    const { messageControl } = this.#handlers[id]
+    const { destinationsControl } = this.#handlers[id]
 
-    messageControl.change(messageCriteria(destinations as NetworkURN[]))
-
-    const updatedSubs = this.#updateDestinationSubscriptions(toUpdate)
-    this.#handlers[id].destinationSubs = updatedSubs
-  }
-
-  /**
-   * Updates the destination subscriptions.
-   *
-   * @param {Subscription} toUpdate - The subscription to update.
-   * @returns {Subscription[]} The updated destination subscriptions.
-   */
-  #updateDestinationSubscriptions(toUpdate: Subscription<XcmInputs>) {
-    const { id } = toUpdate
-    const { destinationSubs } = this.#handlers[id]
-    // Subscribe to new destinations, if any
-    const { streams: subs } = this.#agent.__monitorDestinations(toUpdate)
-    const updatedSubs = destinationSubs.concat(subs)
-    // Unsubscribe removed destinations, if any
-    const removed = updatedSubs.filter((s) => !toUpdate.args.destinations.includes(s.chainId))
-    removed.forEach(({ sub }) => sub.unsubscribe())
-    // Return list of updated subscriptions
-    return updatedSubs.filter((s) => !removed.includes(s))
-  }
-
-  /**
-   * Updates the subscription to relayed HRMP messages in the relay chain.
-   */
-  #updateEvents(toUpdate: Subscription<XcmInputs>) {
-    const { id } = toUpdate
-    const { relaySub } = this.#handlers[id]
-
-    if (this.#agent.__shouldMonitorRelay(toUpdate.args) && relaySub === undefined) {
-      try {
-        this.#handlers[id].relaySub = this.#agent.__monitorRelay(toUpdate)
-      } catch (error) {
-        // log instead of throw to not block OD subscriptions
-        this.#log.error(error, '[%s] error on relay subscription %s', this.#agent.id, id)
-      }
-    } else if (!this.#agent.__shouldMonitorRelay(toUpdate.args) && relaySub !== undefined) {
-      relaySub.sub.unsubscribe()
-      delete this.#handlers[id].relaySub
-    }
+    destinationsControl.change(messageCriteria(destinations))
   }
 
   #updateDescriptor(toUpdate: Subscription<XcmInputs>) {

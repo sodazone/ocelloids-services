@@ -3,7 +3,7 @@
     "id": "relay-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:local:0",
+      "origins": ["urn:ocn:local:0"],
       "senders": "*",
       "destinations": [
         "urn:ocn:local:1000",
@@ -24,7 +24,7 @@
     "id": "asset-hub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:local:1000",
+      "origins": ["urn:ocn:local:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:local:0",
@@ -45,7 +45,7 @@
     "id": "parachain-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:local:2000",
+      "origins": ["urn:ocn:local:2000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:local:0",

@@ -5,7 +5,7 @@ import {
   getFromAddress,
   isFrontierExtrinsic,
 } from '@/services/networking/substrate/evm/index.js'
-import { BlockEvent, BlockExtrinsic, Extrinsic } from '@/services/networking/substrate/types.js'
+import { BlockEvent, BlockExtrinsic, Event, Extrinsic } from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -230,7 +230,7 @@ export function matchProgramByTopic({ instructions }: Program, topicId: HexStrin
   }
 }
 
-export function matchEvent(event: BlockEvent, module: string | string[], name: string | string[]) {
+export function matchEvent(event: Event, module: string | string[], name: string | string[]) {
   return (
     (Array.isArray(module) ? module.includes(event.module) : module === event.module) &&
     (Array.isArray(name) ? name.includes(event.name) : name === event.name)

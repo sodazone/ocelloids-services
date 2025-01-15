@@ -1,32 +1,8 @@
-import { Blake2256 } from '@polkadot-api/substrate-bindings'
-import { toHex } from 'polkadot-api/utils'
-
-import { asSerializable } from '@/common/index.js'
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-
-/**
- * Creates a versioned XCM program from bytes.
- *
- * @param data - The data bytes.
- * @param registry - The registry to decode types.
- * @returns a versioned XCM program
- */
-export function asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
-  const xcmTypeId =
-    context.getTypeIdByPath('xcm.VersionedXcm') ?? context.getTypeIdByPath('staging.xcm.VersionedXcm')
-  if (xcmTypeId === undefined) {
-    throw new Error('Versioned XCM type not found in chain registry')
-  }
-  const codec = context.typeCodec(xcmTypeId)
-  const instructions = codec.dec(data)
-  const encoded = codec.enc(instructions)
-  return {
-    data: encoded,
-    instructions: asSerializable(instructions),
-    hash: toHex(Blake2256(encoded)) as HexString,
-  }
-}
+import { Blake2256 } from '@polkadot-api/substrate-bindings'
+import { fromHex, toHex } from 'polkadot-api/utils'
 
 export type Program = {
   data: Uint8Array
@@ -34,24 +10,75 @@ export type Program = {
   hash: HexString
 }
 
-function asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
-  const len = buffer.length
-  const xcms: Program[] = []
-  let ptr = 1
+export function messageHash(data: HexString | Uint8Array): HexString {
+  return toHex(Blake2256(typeof data === 'string' ? fromHex(data) : data)) as HexString
+}
 
-  while (ptr < len) {
-    try {
-      const xcm = asVersionedXcm(buffer.slice(ptr), context)
-      xcms.push(xcm)
-      ptr += xcm.data.length
-    } catch (error) {
-      // TODO use logger
-      console.error(error)
-      break
+export const raw = {
+  asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
+    const codec = versionedXcmCodec(context)
+    const instructions = codec.dec(data)
+    const encoded = codec.enc(instructions)
+    return {
+      data: encoded,
+      instructions,
+      hash: messageHash(encoded),
     }
-  }
+  },
+  asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
+    const len = buffer.length
+    const xcms: Program[] = []
+    let ptr = 1
 
-  return xcms
+    while (ptr < len) {
+      try {
+        const xcm = raw.asVersionedXcm(buffer.slice(ptr), context)
+        xcms.push(xcm)
+        ptr += xcm.data.length
+      } catch (error) {
+        // TODO use logger
+        console.error(error)
+        break
+      }
+    }
+
+    return xcms
+  },
+}
+
+/**
+ * Creates a versioned XCM program from bytes.
+ *
+ * @param data - The data bytes.
+ * @param context - The API context.
+ * @returns a versioned XCM program
+ */
+export function asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
+  const xcm = raw.asVersionedXcm(data, context)
+  xcm.instructions = asSerializable(xcm.instructions)
+  return xcm
+}
+
+/**
+ * Creates a type codec for Versioned XCMs.
+ *
+ * @param context - The API context.
+ * @returns the codec
+ */
+export function versionedXcmCodec(context: SubstrateApiContext) {
+  const xcmTypeId =
+    context.getTypeIdByPath('xcm.VersionedXcm') ?? context.getTypeIdByPath('staging.xcm.VersionedXcm')
+  if (xcmTypeId === undefined) {
+    throw new Error('Versioned XCM type not found in chain registry')
+  }
+  return context.typeCodec(xcmTypeId)
+}
+
+function asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
+  return raw.asXcmpVersionedXcms(buffer, context).map((xcm) => {
+    xcm.instructions = asSerializable(xcm.instructions)
+    return xcm
+  })
 }
 
 /**
@@ -74,7 +101,7 @@ export function fromXcmpFormat(buf: Uint8Array, context: SubstrateApiContext): P
     }
     case 0x02: {
       // Signals
-      // TODO handle signals
+      // TODO handle signals (?)
       break
     }
     default: {

@@ -12,7 +12,7 @@ const testSubContent = {
   agent: 'xcm',
   owner: 'unknown',
   args: {
-    origin: 'urn:ocn:local:1000',
+    origins: ['urn:ocn:local:1000'],
     senders: ['ALICE'],
     events: '*',
     destinations: ['urn:ocn:local:2000'],

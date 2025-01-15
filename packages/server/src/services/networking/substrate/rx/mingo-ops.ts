@@ -1,15 +1,16 @@
 import { asPublicKey } from '@/common/util.js'
-import { OperatorType, Options, QueryOperator, getOperator, useOperators } from 'mingo/core'
-import { BASIC_CONTEXT } from 'mingo/init/basic'
-import { AnyVal, Predicate, RawObject } from 'mingo/types'
+import { OperatorType, Options, QueryOperator, useOperators } from 'mingo/core'
+import { Any, AnyObject, Predicate } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
-// TODO extract address to substrate...
+// import all operators
+import 'mingo/init/system'
+
 function addressEq(a: string, b: string) {
   return a === b || asPublicKey(a) === asPublicKey(b)
 }
 
-function bn(x: AnyVal) {
+function bn(x: Any) {
   switch (typeof x) {
     case 'number':
     case 'string':
@@ -20,35 +21,35 @@ function bn(x: AnyVal) {
   }
 }
 
-function compare(a: AnyVal, b: AnyVal, f: Predicate<AnyVal>): boolean {
+function compare(a: Any, b: Any, f: Predicate<Any>): boolean {
   return ensureArray(a).some((x) => f(x, b))
 }
 
-function $bn_lt(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) < bn(y))
+function $bn_lt(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) < bn(y))
 }
 
-function $bn_lte(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) <= bn(y))
+function $bn_lte(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) <= bn(y))
 }
 
-function $bn_gt(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) > bn(y))
+function $bn_gt(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) > bn(y))
 }
 
-function $bn_gte(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) >= bn(y))
+function $bn_gte(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) >= bn(y))
 }
 
-function $bn_eq(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) === bn(y))
+function $bn_eq(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) === bn(y))
 }
 
-function $bn_neq(a: AnyVal, b: AnyVal): boolean {
-  return compare(a, b, (x: AnyVal, y: AnyVal) => bn(x) !== bn(y))
+function $bn_neq(a: Any, b: Any): boolean {
+  return compare(a, b, (x: Any, y: Any) => bn(x) !== bn(y))
 }
 
-function $address_eq(a: AnyVal, b: AnyVal): boolean {
+function $address_eq(a: Any, b: Any): boolean {
   if (typeof a === 'string' && typeof b === 'string') {
     try {
       return addressEq(a, b)
@@ -59,7 +60,7 @@ function $address_eq(a: AnyVal, b: AnyVal): boolean {
   return false
 }
 
-function $address_neq(a: AnyVal, b: AnyVal): boolean {
+function $address_neq(a: Any, b: Any): boolean {
   if (typeof a === 'string' && typeof b === 'string') {
     try {
       return !addressEq(a, b)
@@ -70,11 +71,11 @@ function $address_neq(a: AnyVal, b: AnyVal): boolean {
   return true
 }
 
-function createQueryOperator(predicate: Predicate<AnyVal>): QueryOperator {
-  const f = (selector: string, value: AnyVal, options: Options) => {
+function createQueryOperator(predicate: Predicate<Any>): QueryOperator {
+  const f = (selector: string, value: Any, options: Options) => {
     const opts = { unwrapArray: true }
     const depth = Math.max(1, selector.split('.').length - 1)
-    return (obj: RawObject): boolean => {
+    return (obj: AnyObject): boolean => {
       // value of field must be fully resolved.
       const lhs = resolve(obj, selector, opts)
       return predicate(lhs, value, { ...options, depth })
@@ -84,14 +85,11 @@ function createQueryOperator(predicate: Predicate<AnyVal>): QueryOperator {
   return f // as QueryOperator;
 }
 
+let installed = false
+
 export function installOperators() {
   // Register query operators
-  if (
-    getOperator(OperatorType.QUERY, '$bn_lt', {
-      useGlobalContext: true,
-      context: BASIC_CONTEXT,
-    }) === null
-  ) {
+  if (!installed) {
     useOperators(OperatorType.QUERY, {
       $bn_lt: createQueryOperator($bn_lt),
       $bn_lte: createQueryOperator($bn_lte),
@@ -103,4 +101,5 @@ export function installOperators() {
       $address_neq: createQueryOperator($address_neq),
     })
   }
+  installed = true
 }

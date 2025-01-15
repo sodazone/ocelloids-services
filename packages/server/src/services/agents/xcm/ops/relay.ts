@@ -39,7 +39,7 @@ export function extractRelayReceive(
           const horizontalMessages = backed.candidate.commitments.horizontal_messages
           const message = horizontalMessages.find(({ recipient }) => {
             return messageControl.value.test({
-              recipient: createNetworkId(origin, recipient.toString()),
+              chainId: createNetworkId(origin, recipient.toString()),
             })
           })
           if (message) {

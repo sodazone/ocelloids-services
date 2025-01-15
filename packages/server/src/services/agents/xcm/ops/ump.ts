@@ -2,7 +2,7 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
-import { getChainId, getRelayId } from '@/services/config.js'
+import { getRelayId } from '@/services/config.js'
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -14,17 +14,16 @@ import {
   XcmSentWithContext,
 } from '../types.js'
 import { xcmMessagesSent } from './common.js'
-import { getMessageId, getParaIdFromOrigin, mapAssetsTrapped, matchEvent } from './util.js'
+import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'
 
 const METHODS_MQ_PROCESSED = ['Processed', 'ProcessingFailed']
 
 function createUmpReceivedWithContext(
-  subOrigin: NetworkURN,
   event: BlockEvent,
   assetsTrappedEvent?: BlockEvent,
 ): XcmInboundWithContext | null {
-  const { id, origin, success, error } = event.value as {
+  const { id, success, error } = event.value as {
     id: HexString
     error?: any
     origin: { type: string; value: { type: string; value: number } }
@@ -34,25 +33,20 @@ function createUmpReceivedWithContext(
   // which is actually the message hash in the current runtime.
   const messageId = id
   const messageHash = messageId
-  const messageOrigin = getParaIdFromOrigin(origin)
   const assetsTrapped = mapAssetsTrapped(assetsTrappedEvent)
-  // If we can get message origin, only return message if origin matches with subscription origin
-  // If no origin, we will return the message without matching with subscription origin
-  if (messageOrigin === undefined || messageOrigin === getChainId(subOrigin)) {
-    return new GenericXcmInboundWithContext({
-      event,
-      extrinsicHash: event.extrinsic?.hash as HexString,
-      blockHash: event.blockHash as HexString,
-      blockNumber: event.blockNumber,
-      timestamp: event.timestamp,
-      messageHash,
-      messageId,
-      outcome: success ? 'Success' : 'Fail',
-      error,
-      assetsTrapped,
-    })
-  }
-  return null
+
+  return new GenericXcmInboundWithContext({
+    event,
+    extrinsicHash: event.extrinsic?.hash as HexString,
+    blockHash: event.blockHash as HexString,
+    blockNumber: event.blockNumber,
+    timestamp: event.timestamp,
+    messageHash,
+    messageId,
+    outcome: success ? 'Success' : 'Fail',
+    error,
+    assetsTrapped,
+  })
 }
 
 function findOutboundUmpMessage(
@@ -72,7 +66,7 @@ function findOutboundUmpMessage(
                 const xcmProgram = asVersionedXcm(bytes, context)
                 return new GenericXcmSentWithContext({
                   ...sentMsg,
-                  messageData: xcmProgram.data,
+                  messageDataBuffer: xcmProgram.data,
                   recipient: getRelayId(origin), // always relay
                   messageHash: xcmProgram.hash,
                   messageId: getMessageId(xcmProgram),
@@ -111,7 +105,7 @@ export function extractUmpSend(
   }
 }
 
-export function extractUmpReceive(originId: NetworkURN) {
+export function extractUmpReceive() {
   return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
       bufferCount(2, 1),
@@ -120,7 +114,7 @@ export function extractUmpReceive(originId: NetworkURN) {
           const assetTrapEvent = matchEvent(maybeAssetTrapEvent, 'XcmPallet', 'AssetsTrapped')
             ? maybeAssetTrapEvent
             : undefined
-          return createUmpReceivedWithContext(originId, maybeUmpEvent, assetTrapEvent)
+          return createUmpReceivedWithContext(maybeUmpEvent, assetTrapEvent)
         }
         return null
       }),

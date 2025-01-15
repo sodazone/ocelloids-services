@@ -14,10 +14,10 @@ const testSub: Subscription = {
   agent: 'xcm',
   owner: 'unknown',
   args: {
-    origin: 'urn:ocn:local:1000',
+    origins: ['urn:ocn:local:1000'],
+    destinations: ['urn:ocn:local:2000'],
     senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
     events: '*',
-    destinations: ['urn:ocn:local:2000'],
   },
   channels: [
     {
@@ -57,7 +57,7 @@ describe('switchboard service', () => {
 
     await switchboard.unsubscribe('xcm', testSub.id)
 
-    expect(async () => {
+    await expect(async () => {
       await switchboard.findSubscription('xcm', testSub.id)
     }).rejects.toThrow('Subscription xcm 1000:2000:0 not found.')
   })
