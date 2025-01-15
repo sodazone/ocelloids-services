@@ -504,7 +504,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         }
       }
 
-      throw Error('No matching hops')
+      throw new Error('No matching hops')
     }
   }
 

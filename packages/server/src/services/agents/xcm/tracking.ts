@@ -89,7 +89,7 @@ export class XcmTracker {
    */
   #monitorDestinations(chains: NetworkURN[]) {
     if (this.#streams.d.length > 0) {
-      throw Error('Destination streams already open')
+      throw new Error('Destination streams already open')
     }
 
     const subs: RxSubscriptionWithId[] = []
@@ -161,7 +161,7 @@ export class XcmTracker {
    */
   #monitorOrigins(chains: NetworkURN[]) {
     if (this.#streams.o.length > 0) {
-      throw Error('Origin streams already open')
+      throw new Error('Origin streams already open')
     }
 
     const subs: RxSubscriptionWithId[] = []
