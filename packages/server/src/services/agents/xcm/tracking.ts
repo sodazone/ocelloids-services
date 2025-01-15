@@ -88,15 +88,14 @@ export class XcmTracker {
    * @private
    */
   #monitorDestinations(chains: NetworkURN[]) {
+    if (this.#streams.d.length > 0) {
+      throw Error('Destination streams already open')
+    }
+
     const subs: RxSubscriptionWithId[] = []
+
     try {
       for (const chainId of chains) {
-        if (this.#isTracking('d', chainId)) {
-          // Skip existing streams
-          // for the same destination chain
-          continue
-        }
-
         const inboundObserver = {
           error: (error: any) => {
             this.#log.error(error, '[%s] %s error on destination stream', this.#id, chainId)
@@ -161,25 +160,25 @@ export class XcmTracker {
    * @private
    */
   #monitorOrigins(chains: NetworkURN[]) {
+    if (this.#streams.o.length > 0) {
+      throw Error('Origin streams already open')
+    }
+
     const subs: RxSubscriptionWithId[] = []
 
-    for (const chainId of chains) {
-      if (this.#isTracking('o', chainId)) {
-        continue
-      }
+    try {
+      for (const chainId of chains) {
+        const outboundObserver = {
+          error: (error: any) => {
+            this.#log.error(error, '[%s] %s error on origin stream', this.#id, chainId)
+            this.#telemetry.emit('telemetryXcmSubscriptionError', {
+              chainId,
+              direction: 'out',
+            })
+          },
+          next: (msg: XcmSent) => this.#engine.onOutboundMessage(msg),
+        }
 
-      const outboundObserver = {
-        error: (error: any) => {
-          this.#log.error(error, '[%s] %s error on origin stream', this.#id, chainId)
-          this.#telemetry.emit('telemetryXcmSubscriptionError', {
-            chainId,
-            direction: 'out',
-          })
-        },
-        next: (msg: XcmSent) => this.#engine.onOutboundMessage(msg),
-      }
-
-      try {
         if (this.#ingress.isRelay(chainId)) {
           // VMP DMP
           this.#log.info('[%s] %s subscribe outbound DMP', this.#id, chainId)
@@ -241,15 +240,15 @@ export class XcmTracker {
               .subscribe(outboundObserver),
           })
         }
-      } catch (error) {
-        /* c8 ignore next */
-        // Clean up streams.
-        subs.forEach(({ sub }) => {
-          sub.unsubscribe()
-        })
-        /* c8 ignore next */
-        throw error
       }
+    } catch (error) {
+      /* c8 ignore next */
+      // Clean up streams.
+      subs.forEach(({ sub }) => {
+        sub.unsubscribe()
+      })
+      /* c8 ignore next */
+      throw error
     }
 
     this.#streams.o = subs
@@ -262,8 +261,6 @@ export class XcmTracker {
       if (this.#ingress.isRelay(chainId)) {
         continue
       }
-      //const emitRelayInbound = () => (source: Observable<XcmRelayedWithContext>) =>
-      //  source.pipe(switchMap((message) => from(this.#cb.onRelayed(message))))
 
       const relayObserver = {
         error: (error: any) => {
