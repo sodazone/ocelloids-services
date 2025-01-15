@@ -43,6 +43,7 @@ export type XcmSubscriptionHandler = {
   sendersControl: ControlQuery
   destinationsControl: ControlQuery
   originsControl: ControlQuery
+  notificationTypeControl: ControlQuery
   subscription: Subscription<XcmInputs>
   stream: RxSubscription
 }
@@ -643,34 +644,39 @@ export function isXcmRelayed(object: any): object is XcmRelayed {
 
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${XcmNotificationTypes.join(',')}]`
 
-const XCM_OUTBOUND_TTL_TYPE_ERROR = 'XCM outbound message TTL should be at least 6 seconds'
-
 export const $XcmInputs = z.object({
-  origin: z
-    .string({
-      required_error: 'origin id is required',
-    })
-    .min(1),
+  origins: z.literal('*').or(
+    z
+      .array(
+        z
+          .string({
+            required_error: 'at least 1 origin is required',
+          })
+          .min(1),
+      )
+      .transform(distinct),
+  ),
   senders: z.optional(
     z
       .literal('*')
       .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct)),
   ),
-  destinations: z
-    .array(
-      z
-        .string({
-          required_error: 'destination id is required',
-        })
-        .min(1),
-    )
-    .transform(distinct),
+  destinations: z.literal('*').or(
+    z
+      .array(
+        z
+          .string({
+            required_error: 'at least 1 destination is required',
+          })
+          .min(1),
+      )
+      .transform(distinct),
+  ),
   bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
   // prevent using $refs
   events: z.optional(
     z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
   ),
-  outboundTTL: z.optional(z.number().min(6000, XCM_OUTBOUND_TTL_TYPE_ERROR).max(Number.MAX_SAFE_INTEGER)),
 })
 
 export type XcmInputs = z.infer<typeof $XcmInputs>

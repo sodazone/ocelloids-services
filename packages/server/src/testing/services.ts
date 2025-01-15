@@ -39,6 +39,7 @@ export const _mockApis = {
   'urn:ocn:local:1000': mockApiClient(),
   'urn:ocn:local:2000': mockApiClient(),
   'urn:ocn:local:3000': mockApiClient(),
+  'urn:ocn:wococo:0': mockApiClient(),
   'urn:ocn:wococo:1000': mockApiClient(),
   'urn:ocn:wococo:1002': mockApiClient(),
   'urn:ocn:paseo:0': mockApiClient(),

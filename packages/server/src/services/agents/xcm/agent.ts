@@ -11,7 +11,14 @@ import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabi
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { filter } from 'rxjs'
 import { XcmSubscriptionManager } from './handlers.js'
-import { matchMessage, matchSenders, messageCriteria, sendersCriteria } from './ops/criteria.js'
+import {
+  matchMessage,
+  matchNotificationType,
+  matchSenders,
+  messageCriteria,
+  notificationTypeCriteria,
+  sendersCriteria,
+} from './ops/criteria.js'
 import { XcmTracker } from './tracking.js'
 import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
 
@@ -64,10 +71,9 @@ export class XcmAgent implements Agent, Subscribable {
 
   subscribe(subscription: Subscription<XcmInputs>): void {
     const { id, args } = subscription
-    const origin = args.origin as NetworkURN
-    const dests = args.destinations as NetworkURN[]
 
-    this.#validateChainIds([origin, ...dests])
+    this.#validateChainIds(args)
+
     const handler = this.#monitor(subscription)
     this.#subs.set(id, handler)
   }
@@ -126,21 +132,20 @@ export class XcmAgent implements Agent, Subscribable {
   #monitor(subscription: Subscription<XcmInputs>): XcmSubscriptionHandler {
     const {
       id,
-      args: { origin, destinations, senders },
+      args: { origins, destinations, senders, events },
     } = subscription
 
     const sendersControl = ControlQuery.from(sendersCriteria(senders))
-    const originsControl = ControlQuery.from(messageCriteria([origin] as NetworkURN[]))
-    const destinationsControl = ControlQuery.from(messageCriteria(destinations as NetworkURN[]))
+    const originsControl = ControlQuery.from(messageCriteria(origins))
+    const destinationsControl = ControlQuery.from(messageCriteria(destinations))
+    const notificationTypeControl = ControlQuery.from(notificationTypeCriteria(events))
 
-    // (args.events === undefined || args.events === '*' || args.events.includes(payload.type))
-    // TODO
-    // here with subscription  id
     const stream = this.#tracker.xcm$
       .pipe(
         filter((payload) => {
           return (
-            /*matchEvents &&*/ matchMessage(originsControl, payload.origin) &&
+            matchNotificationType(notificationTypeControl, payload.type) &&
+            matchMessage(originsControl, payload.origin) &&
             matchMessage(destinationsControl, payload.destination) &&
             matchSenders(sendersControl, payload.sender)
           )
@@ -172,14 +177,25 @@ export class XcmAgent implements Agent, Subscribable {
       sendersControl,
       originsControl,
       destinationsControl,
+      notificationTypeControl,
     }
   }
 
-  #validateChainIds(chainIds: NetworkURN[]) {
-    chainIds.forEach((chainId) => {
-      if (!this.#ingress.isNetworkDefined(chainId)) {
-        throw new ValidationError('Invalid chain id:' + chainId)
-      }
-    })
+  #validateChainIds({ destinations, origins }: XcmInputs) {
+    if (destinations !== '*') {
+      destinations.forEach((chainId) => {
+        if (!this.#ingress.isNetworkDefined(chainId as NetworkURN)) {
+          throw new ValidationError('Invalid destination chain id:' + chainId)
+        }
+      })
+    }
+
+    if (origins !== '*') {
+      origins.forEach((chainId) => {
+        if (!this.#ingress.isNetworkDefined(chainId as NetworkURN)) {
+          throw new ValidationError('Invalid origin chain id:' + chainId)
+        }
+      })
+    }
   }
 }

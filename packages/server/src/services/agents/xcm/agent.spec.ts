@@ -13,7 +13,7 @@ const testSub: Subscription<XcmInputs> = {
   agent: 'xcm',
   owner: 'unknown',
   args: {
-    origin: 'urn:ocn:local:1000',
+    origins: ['urn:ocn:local:1000'],
     senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
     events: '*',
     destinations: ['urn:ocn:local:2000'],
@@ -50,15 +50,15 @@ describe('xcm agent', () => {
     const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
     const chainId = 'urn:ocn:local:6001'
 
-    expect(() => {
+    await expect(() => {
       xcmAgent.subscribe({
         ...testSub,
         args: {
           ...testSub.args,
-          origin: chainId,
+          origins: [chainId],
         },
       })
-    }).toThrow(new ValidationError('Invalid chain id:' + chainId))
+    }).toThrow(new ValidationError('Invalid origin chain id:' + chainId))
   })
 
   it('should handle relay subscriptions', async () => {
@@ -70,7 +70,7 @@ describe('xcm agent', () => {
       ...testSub,
       args: {
         ...testSub.args,
-        origin: 'urn:ocn:local:0',
+        origins: ['urn:ocn:local:0'],
       },
     })
 

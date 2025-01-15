@@ -1,14 +1,21 @@
 import { Operation } from 'rfc6902'
 
-import { Logger, NetworkURN } from '@/services/index.js'
+import { Logger } from '@/services/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { IngressConsumer } from 'services/ingress/index.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 import type { XcmAgent } from './agent.js'
-import { messageCriteria, sendersCriteria } from './ops/criteria.js'
+import { messageCriteria, notificationTypeCriteria, sendersCriteria } from './ops/criteria.js'
 import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types.js'
 
-const allowedPaths = ['/args/senders', '/args/destinations', '/channels', '/public', '/args/events']
+const ALLOWED_PATHS = [
+  '/args/senders',
+  '/args/destinations',
+  '/args/origins',
+  '/args/events',
+  '/channels',
+  '/public',
+]
 
 /**
  * Manages the XCM agent subscription handlers.
@@ -24,7 +31,7 @@ export class XcmSubscriptionManager {
   constructor(log: Logger, ingress: IngressConsumer, agent: XcmAgent) {
     this.#log = log
     this.#agent = agent
-    this.#updater = new SubscriptionUpdater(ingress, allowedPaths)
+    this.#updater = new SubscriptionUpdater(ingress, ALLOWED_PATHS)
     this.#handlers = {}
   }
 
@@ -92,18 +99,27 @@ export class XcmSubscriptionManager {
       argsSchema: $XcmInputs,
     })
 
-    this.#updater.validateNetworks(toUpdate.args.destinations)
+    if (toUpdate.args.destinations !== '*') {
+      this.#updater.validateNetworks(toUpdate.args.destinations)
+    }
+    if (toUpdate.args.origins !== '*') {
+      this.#updater.validateNetworks(toUpdate.args.origins)
+    }
 
     if (hasOp(patch, '/args/senders')) {
       this.#updateSenders(toUpdate)
     }
 
     if (hasOp(patch, '/args/destinations')) {
-      this.#updateDestinationMessageControl(toUpdate)
+      this.#updateDestinations(toUpdate)
+    }
+
+    if (hasOp(patch, '/args/origins')) {
+      this.#updateOrigins(toUpdate)
     }
 
     if (hasOp(patch, '/args/events')) {
-      // this.#updateEvents(toUpdate)
+      this.#updateEvents(toUpdate)
     }
 
     this.#updateDescriptor(toUpdate)
@@ -118,6 +134,19 @@ export class XcmSubscriptionManager {
     this.all().forEach((h) => {
       h.stream.unsubscribe()
     })
+  }
+
+  /**
+   * Updates the notification events control handler.
+   */
+  #updateEvents(toUpdate: Subscription<XcmInputs>) {
+    const {
+      id,
+      args: { events },
+    } = toUpdate
+    const { notificationTypeControl } = this.#handlers[id]
+
+    notificationTypeControl.change(notificationTypeCriteria(events))
   }
 
   /**
@@ -136,16 +165,29 @@ export class XcmSubscriptionManager {
   }
 
   /**
+   * Updates the oriigins control handler.
+   */
+  #updateOrigins(toUpdate: Subscription<XcmInputs>) {
+    const {
+      id,
+      args: { origins },
+    } = toUpdate
+    const { originsControl } = this.#handlers[id]
+
+    originsControl.change(messageCriteria(origins))
+  }
+
+  /**
    * Updates the message control handler.
    */
-  #updateDestinationMessageControl(toUpdate: Subscription<XcmInputs>) {
+  #updateDestinations(toUpdate: Subscription<XcmInputs>) {
     const {
       id,
       args: { destinations },
     } = toUpdate
     const { destinationsControl } = this.#handlers[id]
 
-    destinationsControl.change(messageCriteria(destinations as NetworkURN[]))
+    destinationsControl.change(messageCriteria(destinations))
   }
 
   #updateDescriptor(toUpdate: Subscription<XcmInputs>) {

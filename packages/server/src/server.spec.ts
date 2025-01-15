@@ -10,7 +10,7 @@ const testSubContent = {
   agent: 'xcm',
   owner: 'unknown',
   args: {
-    origin: 'urn:ocn:local:1000',
+    origins: ['urn:ocn:local:1000'],
     senders: ['ALICE'],
     events: '*',
     destinations: ['urn:ocn:local:2000'],
@@ -102,7 +102,7 @@ describe('Ocelloids Server HTTP API', () => {
               "id": "poison",
               "agent": "xcm",
               "args": {
-                "origin": "urn:ocn:local:1000",
+                "origins": ["urn:ocn:local:1000"],
                 "senders": "*",
                 "events": "*",
                 "destinations": ["urn:ocn:local:2000"]
@@ -159,7 +159,7 @@ describe('Ocelloids Server HTTP API', () => {
               id: 'wild',
               agent: 'xcm',
               args: {
-                origin: 'urn:ocn:local:1000',
+                origins: ['urn:ocn:local:1000'],
                 senders: '*',
                 events: '*',
                 destinations: ['urn:ocn:local:2000'],
@@ -500,12 +500,11 @@ describe('Ocelloids Server HTTP API', () => {
             const schema = response?.json()
             expect(response?.statusCode).toStrictEqual(200)
             expect(schema.type).toBe('object')
-            expect(schema.properties.origin).toBeDefined()
+            expect(schema.properties.origins).toBeDefined()
             expect(schema.properties.senders).toBeDefined()
             expect(schema.properties.destinations).toBeDefined()
             expect(schema.properties.bridges).toBeDefined()
             expect(schema.properties.events).toBeDefined()
-            expect(schema.properties.outboundTTL).toBeDefined()
             resolve()
           },
         )

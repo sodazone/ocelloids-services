@@ -60,7 +60,7 @@ describe('admin api', () => {
       )
     })
 
-    expect(db.get('a')).rejects.toThrow()
+    await expect(db.get('a')).rejects.toThrow()
   })
 
   it('should schedule a task', async () => {

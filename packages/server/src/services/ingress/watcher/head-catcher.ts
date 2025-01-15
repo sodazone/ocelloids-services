@@ -134,7 +134,11 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
   }
 
   getApi(chainId: NetworkURN): Promise<ApiClient> {
-    return this.#apis[chainId].isReady()
+    const api = this.#apis[chainId]
+    if (api === undefined) {
+      throw new Error(`API not found ${chainId}`)
+    }
+    return api.isReady()
   }
 
   /**

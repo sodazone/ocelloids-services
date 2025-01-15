@@ -13,9 +13,9 @@ const testSub: Subscription = {
   agent: 'xcm',
   owner: 'test-account',
   args: {
-    origin: 'urn:ocn:local:1000',
-    senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
+    origins: ['urn:ocn:local:1000'],
     destinations: ['urn:ocn:local:2000'],
+    senders: ['14DqgdKU6Zfh1UjdU4PYwpoHi2QTp37R6djehfbhXe9zoyQT'],
   },
   channels: [
     {
