@@ -305,12 +305,26 @@ export class OcelloidsClient {
   }
 
   /**
+   * Fetches the list of configured network identifiers (URNs) from the server.
+   *
+   * @param options - The ky request options (fetch compatible)
+   * @returns A promise that resolves to an array of network URNs as strings.
+   */
+  async networks(options?: Options): Promise<string[]> {
+    return this.#fetch(this.#config.httpUrl + '/ingress/networks', options)
+  }
+
+  /**
    * Checks the health of the service.
    *
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
-  async health(options?: Options): Promise<any> {
+  async health(options?: Options): Promise<{
+    statusCode: number
+    status: string
+    uptime: number
+  }> {
     return this.#fetch(this.#config.httpUrl + '/health', options)
   }
 }
