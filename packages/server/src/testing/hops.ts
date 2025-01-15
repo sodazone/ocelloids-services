@@ -1,7 +1,6 @@
 import { XcmInbound, XcmRelayedWithContext, XcmSent } from '@/services/agents/xcm/types.js'
 
 const moonbeamSent: XcmSent = {
-  subscriptionId: 'moonbeam-transfers',
   legs: [
     {
       from: 'urn:ocn:polkadot:2004',
@@ -444,7 +443,6 @@ const moonbeamRelayed: XcmRelayedWithContext = {
 }
 
 const centrifugeHopIn: XcmInbound = {
-  subscriptionId: 'moonbeam-transfers',
   messageId: '0x6b42484b7260c49eb396ddc3a67b6e5838aa4c0209b884450e7add4dada4c06e',
   chainId: 'urn:ocn:polkadot:2031',
   blockHash: '0x1a3db2bd28b4045a9c9d7914d5c27a9706e3b45cbe82b8bc2808fd44e3b8576a',
@@ -491,7 +489,6 @@ const centrifugeRelayed: XcmRelayedWithContext = {
 }
 
 const centrifugeHopOut: XcmSent = {
-  subscriptionId: 'centrifuge-transfers',
   legs: [
     {
       from: 'urn:ocn:polkadot:2031',
@@ -755,7 +752,6 @@ const centrifugeHopOut: XcmSent = {
 }
 
 const hydraReceived: XcmInbound = {
-  subscriptionId: 'centrifuge-transfers',
   messageId: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
   chainId: 'urn:ocn:polkadot:2034',
   blockNumber: '6772320',

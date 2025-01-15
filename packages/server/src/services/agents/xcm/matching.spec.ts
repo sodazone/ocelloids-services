@@ -96,24 +96,28 @@ describe('message matching engine', () => {
   })
 
   it('should match outbound and relay', async () => {
-    await engine.onOutboundMessage(matchMessages.origin)
-    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay)
+    const { origin, relay } = matchMessages
+
+    await engine.onOutboundMessage(origin)
+    await engine.onRelayedMessage(relay)
 
     expect(cb).toHaveBeenCalledTimes(2)
   })
 
   it('should match relay and outbound', async () => {
-    await engine.onRelayedMessage(matchMessages.subscriptionId, matchMessages.relay)
-    await engine.onOutboundMessage(matchMessages.origin)
+    const { origin, relay } = matchMessages
+
+    await engine.onRelayedMessage(relay)
+    await engine.onOutboundMessage(origin)
     expect(schedule).toHaveBeenCalledTimes(2)
 
     expect(cb).toHaveBeenCalledTimes(2)
   })
 
   it('should match relay and outbound and inbound', async () => {
-    const { origin, relay, destination, subscriptionId } = matchMessages
+    const { origin, relay, destination } = matchMessages
 
-    await engine.onRelayedMessage(subscriptionId, relay)
+    await engine.onRelayedMessage(relay)
     await engine.onOutboundMessage(origin)
     await engine.onInboundMessage(destination)
 
@@ -155,11 +159,11 @@ describe('message matching engine', () => {
     const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
     await engine.onOutboundMessage(sent)
-    await engine.onRelayedMessage(sent.subscriptionId, relay0)
+    await engine.onRelayedMessage(relay0)
 
     await engine.onInboundMessage(hopIn)
     await engine.onOutboundMessage(hopOut)
-    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
+    await engine.onRelayedMessage(relay1)
     await engine.onInboundMessage(received)
 
     expect(cb).toHaveBeenCalledTimes(6)
@@ -203,9 +207,9 @@ describe('message matching engine', () => {
     const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
     await engine.onOutboundMessage(sent)
-    await engine.onRelayedMessage(sent.subscriptionId, relay0)
+    await engine.onRelayedMessage(relay0)
     await Promise.all([engine.onInboundMessage(hopIn), engine.onOutboundMessage(hopOut)])
-    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
+    await engine.onRelayedMessage(relay1)
     await engine.onInboundMessage(received)
 
     expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.relayed', 'xcm.received'])
@@ -214,45 +218,14 @@ describe('message matching engine', () => {
   it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
     const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
 
-    await engine.onRelayedMessage(sent.subscriptionId, relay0)
+    await engine.onRelayedMessage(relay0)
     await engine.onOutboundMessage(sent)
-    await engine.onRelayedMessage(hopOut.subscriptionId, relay1)
+    await engine.onRelayedMessage(relay1)
 
     await Promise.all([engine.onInboundMessage(hopIn), engine.onOutboundMessage(hopOut)])
 
     await engine.onInboundMessage(received)
 
     expect(cb).toHaveBeenCalledTimes(6)
-  })
-
-  it('should clean up stale data', async () => {
-    async function count() {
-      const iterator = db.iterator()
-      await iterator.all()
-      return iterator.count
-    }
-
-    for (let i = 0; i < 100; i++) {
-      await engine.onInboundMessage({
-        ...matchMessages.destination,
-        subscriptionId: 'z.transfers:' + i,
-      })
-      await engine.onOutboundMessage({
-        ...matchMessages.origin,
-        subscriptionId: 'baba-yaga-1:' + i,
-      })
-      const r = (Math.random() + 1).toString(36).substring(7)
-      await engine.onOutboundMessage({
-        ...matchMessages.origin,
-        subscriptionId: r + i,
-      })
-    }
-    expect(await count()).toBe(600)
-
-    for (let i = 0; i < 100; i++) {
-      await engine.clearPendingStates('z.transfers:' + i)
-      await engine.clearPendingStates('baba-yaga-1:' + i)
-    }
-    expect(await count()).toBe(200)
   })
 })

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { Binary } from 'polkadot-api'
-import { Observable } from 'rxjs'
+import { Observable, Subscription as RxSubscription } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'
@@ -40,13 +40,11 @@ export type Monitor = {
 }
 
 export type XcmSubscriptionHandler = {
-  originSubs: RxSubscriptionWithId[]
-  destinationSubs: RxSubscriptionWithId[]
-  bridgeSubs: RxBridgeSubscription[]
   sendersControl: ControlQuery
-  messageControl: ControlQuery
+  destinationsControl: ControlQuery
+  originsControl: ControlQuery
   subscription: Subscription<XcmInputs>
-  relaySub?: RxSubscriptionWithId
+  stream: RxSubscription
 }
 
 const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
@@ -54,11 +52,6 @@ const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
 export type BridgeType = (typeof bridgeTypes)[number]
 
 export type RxBridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
-
-export type XcmCriteria = {
-  sendersControl: ControlQuery
-  messageControl: ControlQuery
-}
 
 export type XcmWithContext = {
   event?: AnyJson
@@ -368,7 +361,6 @@ export type Leg = {
  */
 export interface XcmJourney {
   type: XcmNotificationType
-  subscriptionId: string
   legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -417,16 +409,14 @@ export type XcmTimeout = XcmJourney
 export type XcmRelayed = XcmJourney
 
 export class XcmInbound extends BaseXcmEvent {
-  subscriptionId: string
   chainId: NetworkURN
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
-  constructor(subscriptionId: string, chainId: NetworkURN, msg: XcmInboundWithContext) {
+  constructor(chainId: NetworkURN, msg: XcmInboundWithContext) {
     super(msg)
 
-    this.subscriptionId = subscriptionId
     this.chainId = chainId
     this.outcome = msg.outcome
     this.error = msg.error
@@ -435,14 +425,12 @@ export class XcmInbound extends BaseXcmEvent {
 }
 
 abstract class BaseXcmJourney {
-  subscriptionId: string
   legs: Leg[]
   sender?: SignerData
   messageId?: HexString
   forwardId?: HexString
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
-    this.subscriptionId = msg.subscriptionId
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
@@ -456,15 +444,8 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(
-    subscriptionId: string,
-    chainId: NetworkURN,
-    msg: XcmSentWithContext,
-    legs: Leg[],
-    forwardId?: HexString,
-  ) {
+  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], forwardId?: HexString) {
     super({
-      subscriptionId,
       legs,
       forwardId,
       messageId: msg.messageId,

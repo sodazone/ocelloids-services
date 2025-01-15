@@ -15,7 +15,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'))
       const xcms = fromXcmpFormat(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:2004',
       )(
@@ -71,7 +70,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(polka19505060, 'hex'))
       const xcm = asVersionedXcm(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:0',
       )(
@@ -131,7 +129,6 @@ describe('extract waypoints operator', () => {
       const buf = new Uint8Array(Buffer.from(heiko5389341, 'hex'))
       const xcms = fromXcmpFormat(buf, apiContext)
       const test$ = mapXcmSent(
-        'test-sub',
         apiContext,
         'urn:ocn:local:2085',
       )(

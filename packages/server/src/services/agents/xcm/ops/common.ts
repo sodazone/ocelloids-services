@@ -5,7 +5,14 @@ import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { toHex } from 'polkadot-api/utils'
-import { GenericXcmSent, Leg, XcmSent, XcmSentWithContext } from '../types.js'
+import {
+  GenericXcmSent,
+  Leg,
+  XcmInbound,
+  XcmInboundWithContext,
+  XcmSent,
+  XcmSentWithContext,
+} from '../types.js'
 import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
 import { raw, versionedXcmCodec } from './xcm-format.js'
 
@@ -108,11 +115,10 @@ function constructLegs(stops: Stop[], version: string, context: ApiContext) {
  * Sets the destination as the final stop after recursively extracting all stops from the XCM message,
  * constructs the legs for the message and constructs the waypoint context.
  *
- * @param id - The subscription ID
  * @param registry - The type registry
  * @param origin - The origin network URN
  */
-export function mapXcmSent(id: string, context: ApiContext, origin: NetworkURN) {
+export function mapXcmSent(context: ApiContext, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {
@@ -125,9 +131,14 @@ export function mapXcmSent(id: string, context: ApiContext, origin: NetworkURN) 
           versionedXcm.instructions.type,
           context,
         )
-        return new GenericXcmSent(id, origin, message, legs)
+        return new GenericXcmSent(origin, message, legs)
       }),
     )
+}
+
+export function mapXcmInbound(chainId: NetworkURN) {
+  return (source: Observable<XcmInboundWithContext>): Observable<XcmInbound> =>
+    source.pipe(map((msg) => new XcmInbound(chainId, msg)))
 }
 
 export function xcmMessagesSent() {

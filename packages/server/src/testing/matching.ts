@@ -5,8 +5,6 @@ import {
   XcmTerminusContext,
 } from '../services/agents/xcm/types.js'
 
-const subscriptionId = 'manamana-1'
-
 const originContext: XcmTerminusContext = {
   chainId: 'urn:ocn:local:1000',
   event: {},
@@ -38,7 +36,6 @@ const outboundMessage: XcmSent = {
     ...originContext,
     legIndex: 0,
   },
-  subscriptionId: subscriptionId,
   sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
 }
 
@@ -49,7 +46,6 @@ const inboundMessage: XcmInbound = {
   outcome: 'Success',
   error: null,
   event: {},
-  subscriptionId: subscriptionId,
   blockHash: '0xBEEF',
   blockNumber: '2',
 }
@@ -67,7 +63,6 @@ const relayMessage: XcmRelayedWithContext = {
 }
 
 export const matchMessages = {
-  subscriptionId,
   origin: outboundMessage,
   relay: relayMessage,
   destination: inboundMessage,
@@ -75,7 +70,6 @@ export const matchMessages = {
 
 const hopOrigin: XcmSent = {
   type: 'xcm.sent',
-  subscriptionId: 'xxx-1',
   legs: [
     { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
     {
@@ -120,7 +114,6 @@ const hopOrigin: XcmSent = {
 }
 
 const hopIB: XcmInbound = {
-  subscriptionId: 'xxx-1',
   chainId: 'urn:ocn:local:2034',
   event: {},
   messageHash: '0xba3e17a74b5454c96b426c1379e5d9f7acebc3f239bd84b066bad9e5dec26b2f',
@@ -135,7 +128,6 @@ const hopIB: XcmInbound = {
 
 const hopOB: XcmSent = {
   type: 'xcm.sent',
-  subscriptionId: 'xxx-1',
   legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hrmp' }],
   waypoint: {
     chainId: 'urn:ocn:local:2034',
@@ -173,7 +165,6 @@ const hopOB: XcmSent = {
 }
 
 const hydraMoonOut: XcmSent = {
-  subscriptionId: 'hydra-transfers',
   legs: [
     {
       from: 'urn:ocn:polkadot:2034',
@@ -533,7 +524,6 @@ const hydraMoonOut: XcmSent = {
 }
 
 const hydraMoonHop: XcmInbound = {
-  subscriptionId: 'hydra-transfers',
   messageId: '0x14b6fef098897c6d335007cf8dd967edb578bf00a36df5c33c2b3a824661b864',
   chainId: 'urn:ocn:polkadot:0',
   blockHash: '0x5366b3cfbb1f861ecf22d9300b73cda4c7e8e397620b7057bbc7e0c42127d73a',
@@ -574,10 +564,8 @@ const moonBifrostIn: XcmInbound = {
   messageId: '0x240059deb86df51d25fcdcc91940f5c4ba83c174b1091459d9938785f5172484',
   outcome: 'Success',
   chainId: 'urn:ocn:polkadot:0',
-  subscriptionId: 'moonbeam-transfers',
 }
 const moonBifrostOut: XcmSent = {
-  subscriptionId: 'moonbeam-transfers',
   legs: [
     {
       from: 'urn:ocn:polkadot:2004',
@@ -971,7 +959,6 @@ const moonBifrostOut: XcmSent = {
 
 const hydraMoonIn: XcmInbound = {
   chainId: 'urn:ocn:polkadot:2004',
-  subscriptionId: 'hydra-transfers',
   event: {
     module: 'MessageQueue',
     name: 'Processed',
@@ -1012,14 +999,12 @@ export const hydraMoonMessages = {
 }
 
 type RealHopMessages = {
-  subscriptionId: string
   origin: XcmSent
   hopin: XcmInbound
   hopout: XcmSent
 }
 
 export const realHopMessages: RealHopMessages = {
-  subscriptionId: 'xxx-1',
   origin: hopOrigin,
   hopin: hopIB,
   hopout: hopOB,

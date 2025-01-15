@@ -2,7 +2,7 @@ import { ControlQuery, Criteria } from '@/common/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
 import { NetworkURN } from '../../../types.js'
-import { XcmSent } from '../types.js'
+import { XcmTerminus } from '../types.js'
 
 export function sendersCriteria(senders?: string[] | '*'): Criteria {
   if (senders === undefined || senders === '*') {
@@ -21,9 +21,9 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
 }
 
 // Assuming we are in the same consensus
-export function messageCriteria(recipients: NetworkURN[]): Criteria {
+export function messageCriteria(chainIds: NetworkURN[]): Criteria {
   return {
-    recipient: { $in: recipients },
+    chainId: { $in: chainIds },
   }
 }
 
@@ -43,8 +43,8 @@ export function matchSenders(query: ControlQuery, sender?: SignerData): boolean 
 }
 
 /**
- * Matches outbound XCM recipients.
+ * Matches XCM terminus.
  */
-export function matchMessage(query: ControlQuery, xcm: XcmSent): boolean {
-  return query.value.test({ recipient: xcm.destination.chainId })
+export function matchMessage(query: ControlQuery, xcm: XcmTerminus): boolean {
+  return query.value.test({ chainId: xcm.chainId })
 }

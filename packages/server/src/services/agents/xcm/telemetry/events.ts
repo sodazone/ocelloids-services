@@ -11,7 +11,6 @@ export type TelemetryEvents = {
   telemetryXcmBridge: (message: XcmBridge) => void
   telemetryXcmTrapped: (inMsg: XcmInbound, outMsg: XcmSent) => void
   telemetryXcmSubscriptionError: (msg: {
-    subscriptionId: string
     chainId: string
     direction: 'in' | 'out' | 'relay' | 'bridge'
   }) => void
