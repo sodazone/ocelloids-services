@@ -36,7 +36,7 @@ describe('ump operator', () => {
     it('should extract failed UMP received message', async () => {
       const { successBlocks } = umpReceive
       const calls = vi.fn()
-      const test$ = extractUmpReceive('urn:ocn:local:1000')(successBlocks.pipe(extractEvents()))
+      const test$ = extractUmpReceive()(successBlocks.pipe(extractEvents()))
 
       new Promise<void>((resolve) => {
         test$.subscribe({
@@ -62,7 +62,7 @@ describe('ump operator', () => {
     it('should extract UMP receive with outcome fail', async () => {
       const { failBlocks } = umpReceive
       const calls = vi.fn()
-      const test$ = extractUmpReceive('urn:ocn:local:2004')(failBlocks.pipe(extractEvents()))
+      const test$ = extractUmpReceive()(failBlocks.pipe(extractEvents()))
 
       new Promise<void>((resolve) => {
         test$.subscribe({
@@ -88,7 +88,7 @@ describe('ump operator', () => {
     it('should extract ump receive with asset trap', async () => {
       const { trappedBlocks } = umpReceive
       const calls = vi.fn()
-      const test$ = extractUmpReceive('urn:ocn:local:2004')(trappedBlocks.pipe(extractEvents()))
+      const test$ = extractUmpReceive()(trappedBlocks.pipe(extractEvents()))
 
       new Promise<void>((resolve) => {
         test$.subscribe({
