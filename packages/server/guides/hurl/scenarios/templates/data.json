@@ -3,7 +3,7 @@
     "id": "acala-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2000",
+      "origins": ["urn:ocn:polkadot:2000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -27,7 +27,7 @@
     "id": "moonbeam-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2004",
+      "origins": ["urn:ocn:polkadot:2004"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -54,7 +54,7 @@
     "id": "polkadot-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:0",
+      "origins": ["urn:ocn:polkadot:0"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:2000",
@@ -81,7 +81,7 @@
     "id": "asset-hub-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:1000",
+      "origins": ["urn:ocn:polkadot:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:2000",
@@ -108,7 +108,7 @@
     "id": "hydra-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2034",
+      "origins": ["urn:ocn:polkadot:2034"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:2000",
@@ -135,7 +135,7 @@
     "id": "manta-transfers",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:2104",
+      "origins": ["urn:ocn:polkadot:2104"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:2000",

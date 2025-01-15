@@ -33,9 +33,9 @@ const agent = client.agent<xcm.XcmInputs>("xcm");
 
 // subscribe on-demand
 const ws = agent.subscribe({
-  origin: "urn:ocn:polkadot:2004",
   senders: "*",
   events: "*",
+  origins: ["urn:ocn:polkadot:2004"],
   destinations: [ 
     "urn:ocn:polkadot:0",
     "urn:ocn:polkadot:1000",

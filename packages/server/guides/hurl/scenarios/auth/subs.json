@@ -4,7 +4,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:0",
+      "origins": ["urn:ocn:polkadot:0"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000"
@@ -21,7 +21,7 @@
     "id": "default",
     "agent": "xcm",
     "args": {
-      "origin": "urn:ocn:polkadot:1000",
+      "origins": ["urn:ocn:polkadot:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0"
@@ -39,7 +39,7 @@
     "agent": "xcm",
     "public": false,
     "args": {
-      "origin": "urn:ocn:polkadot:1000",
+      "origins": ["urn:ocn:polkadot:1000"],
       "senders": [
         "13vg3Mrxm3GL9eXxLsGgLYRueiwFCiMbkdHBL4ZN5aob5D4N"
       ],

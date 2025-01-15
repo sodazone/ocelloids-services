@@ -206,7 +206,7 @@ export class OcelloidsAgentApi<T> {
  * const reply = await agent.createSubscription({
  *   id: "my-subscription",
  *   args: {
- *     origin: "urn:ocn:polkadot:2004",
+ *     origins: ["urn:ocn:polkadot:2004"],
  *     senders: "*",
  *     events: "*",
  *     destinations: [
@@ -250,7 +250,7 @@ export class OcelloidsAgentApi<T> {
  * ```typescript
  * // subscribe on-demand
  * const ws = agent.subscribe({
- *   origin: "urn:ocn:polkadot:2004",
+ *   origins: ["urn:ocn:polkadot:2004"],
  *   senders: "*",
  *   events: "*",
  *   destinations: [

@@ -4,7 +4,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:0",
+      "origins": ["urn:ocn:polkadot:0"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:1000",
@@ -38,7 +38,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:1000",
+      "origins": ["urn:ocn:polkadot:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -79,7 +79,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2000",
+      "origins": ["urn:ocn:polkadot:2000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -108,7 +108,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2004",
+      "origins": ["urn:ocn:polkadot:2004"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -142,7 +142,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2006",
+      "origins": ["urn:ocn:polkadot:2006"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -173,7 +173,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2019",
+      "origins": ["urn:ocn:polkadot:2019"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -199,7 +199,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2026",
+      "origins": ["urn:ocn:polkadot:2026"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -224,7 +224,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2030",
+      "origins": ["urn:ocn:polkadot:2030"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -253,7 +253,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2031",
+      "origins": ["urn:ocn:polkadot:2031"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -278,7 +278,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2032",
+      "origins": ["urn:ocn:polkadot:2032"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -306,7 +306,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2034",
+      "origins": ["urn:ocn:polkadot:2034"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -337,7 +337,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2035",
+      "origins": ["urn:ocn:polkadot:2035"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -364,7 +364,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2094",
+      "origins": ["urn:ocn:polkadot:2094"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -388,7 +388,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:2104",
+      "origins": ["urn:ocn:polkadot:2104"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -414,7 +414,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:polkadot:1002",
+      "origins": ["urn:ocn:polkadot:1002"],
       "senders": "*",
       "destinations": [
         "urn:ocn:polkadot:0",
@@ -437,7 +437,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:kusama:1000",
+      "origins": ["urn:ocn:kusama:1000"],
       "senders": "*",
       "destinations": [
         "urn:ocn:kusama:0",
@@ -466,7 +466,7 @@
     "agent": "xcm",
     "public": true,
     "args": {
-      "origin": "urn:ocn:kusama:1002",
+      "origins": ["urn:ocn:kusama:1002"],
       "senders": "*",
       "destinations": [
         "urn:ocn:kusama:0",
