@@ -157,6 +157,7 @@ export class XcmTracker {
     }
 
     const subs: RxSubscriptionWithId[] = []
+    const canBeMatched = ({ destination }: XcmSent) => chains.includes(destination.chainId)
 
     try {
       for (const chainId of chains) {
@@ -168,7 +169,11 @@ export class XcmTracker {
               direction: 'out',
             })
           },
-          next: (msg: XcmSent) => this.#engine.onOutboundMessage(msg),
+          next: (msg: XcmSent) => {
+            if (canBeMatched(msg)) {
+              this.#engine.onOutboundMessage(msg)
+            }
+          },
         }
 
         if (this.#ingress.isRelay(chainId)) {
@@ -234,12 +239,10 @@ export class XcmTracker {
         }
       }
     } catch (error) {
-      /* c8 ignore next */
       // Clean up streams.
       subs.forEach(({ sub }) => {
         sub.unsubscribe()
       })
-      /* c8 ignore next */
       throw error
     }
 
