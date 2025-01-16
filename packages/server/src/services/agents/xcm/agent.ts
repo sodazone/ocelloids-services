@@ -1,15 +1,15 @@
 import { Operation } from 'rfc6902'
+import { filter } from 'rxjs'
 import { z } from 'zod'
 
 import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
+import { IngressConsumer } from '@/services/ingress/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
-import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { filter } from 'rxjs'
+import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,

@@ -1,11 +1,13 @@
 import EventEmitter from 'node:events'
+import { Subject, from, map, share, switchMap } from 'rxjs'
+
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext } from '@/services/networking/index.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { Subject, from, map, share, switchMap } from 'rxjs'
+
 import { SharedStreams } from '../base/shared.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
