@@ -122,8 +122,7 @@ export class XcmAgent implements Agent, Subscribable {
    * Main monitoring logic.
    *
    * This method sets up and manages subscriptions for XCM messages based on the provided
-   * subscription information. It creates subscriptions for both the origin and destination
-   * networks, monitors XCM message transfers, and emits events accordingly.
+   * subscription information.
    *
    * @param {Subscription} subscription - The subscription descriptor.
    * @throws {Error} If there is an error during the subscription setup process.

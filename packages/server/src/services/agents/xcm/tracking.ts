@@ -82,11 +82,6 @@ export class XcmTracker {
     xcmAgentMetrics(this.#telemetry)
   }
 
-  /**
-   * Set up inbound monitors for XCM protocols.
-   *
-   * @private
-   */
   #monitorDestinations(chains: NetworkURN[]) {
     if (this.#streams.d.length > 0) {
       throw new Error('Destination streams already open')
@@ -154,11 +149,6 @@ export class XcmTracker {
     this.#streams.d = subs
   }
 
-  /**
-   * Set up outbound monitors for XCM protocols.
-   *
-   * @private
-   */
   #monitorOrigins(chains: NetworkURN[]) {
     if (this.#streams.o.length > 0) {
       throw new Error('Origin streams already open')
