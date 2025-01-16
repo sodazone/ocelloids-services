@@ -1,4 +1,5 @@
 import { Operation } from 'rfc6902'
+import { filter } from 'rxjs'
 import { z } from 'zod'
 
 import { ControlQuery } from '@/common/index.js'
@@ -10,7 +11,6 @@ import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
-import { filter } from 'rxjs'
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,
@@ -123,8 +123,7 @@ export class XcmAgent implements Agent, Subscribable {
    * Main monitoring logic.
    *
    * This method sets up and manages subscriptions for XCM messages based on the provided
-   * subscription information. It creates subscriptions for both the origin and destination
-   * networks, monitors XCM message transfers, and emits events accordingly.
+   * subscription information.
    *
    * @param {Subscription} subscription - The subscription descriptor.
    * @throws {Error} If there is an error during the subscription setup process.

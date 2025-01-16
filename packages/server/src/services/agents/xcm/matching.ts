@@ -125,8 +125,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
-    const log = this.#log
-
     // Confirmation key at destination
     await this.#mutex.runExclusive(async () => {
       const hashKey = matchingKey(outMsg.destination.chainId, outMsg.waypoint.messageHash)
@@ -175,7 +173,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         try {
           const hopKey = matchingKey(outMsg.origin.chainId, outMsg.messageId)
           const originMsg = await this.#hop.get(hopKey)
-          log.info(
+          this.#log.info(
             '[%s:h] MATCHED HOP OUT origin=%s id=%s (block=%s #%s)',
             outMsg.origin.chainId,
             originMsg.origin.chainId,
@@ -196,13 +194,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     return outMsg
   }
 
-  /**
-   *
-   * @param inMsg the inbound message
-   */
   async onInboundMessage(inMsg: XcmInbound) {
-    const log = this.#log
-
     await this.#mutex.runExclusive(async () => {
       const hashKey = matchingKey(inMsg.chainId, inMsg.messageHash)
       const idKey = matchingKey(inMsg.chainId, inMsg.messageId ?? 'unknown')
@@ -217,7 +209,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             const outMsg = await Promise.any([this.#outbound.get(idKey), this.#outbound.get(hashKey)])
             // Reconstruct hashKey with outbound message hash in case of hopped messages
             const recHashKey = matchingKey(inMsg.chainId, outMsg.waypoint.messageHash)
-            log.info(
+            this.#log.info(
               '[%s:i] MATCHED hash=%s id=%s rec=%s (block=%s #%s)',
               inMsg.chainId,
               hashKey,
@@ -239,7 +231,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         } catch {
           try {
             const outMsg = await this.#outbound.get(hashKey)
-            log.info(
+            this.#log.info(
               '[%s:i] MATCHED hash=%s (block=%s #%s)',
               inMsg.chainId,
               hashKey,
@@ -266,8 +258,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onRelayedMessage(relayMsg: XcmRelayedWithContext) {
-    const log = this.#log
-
     const relayId = getRelayId(relayMsg.origin)
     const idKey = relayMsg.messageId
       ? matchingKey(relayMsg.recipient, relayMsg.messageId)
@@ -276,7 +266,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     await this.#mutex.runExclusive(async () => {
       try {
         const outMsg = await this.#outbound.get(idKey)
-        log.info(
+        this.#log.info(
           '[%s:r] RELAYED origin=%s recipient=%s (block=%s #%s)',
           relayId,
           relayMsg.origin,
@@ -290,7 +280,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         const relayKey = relayMsg.messageId
           ? matchingKey(relayMsg.origin, relayMsg.messageId)
           : matchingKey(relayMsg.origin, relayMsg.messageHash)
-        log.info(
+        this.#log.info(
           '[%s:r] STORED relayKey=%s origin=%s recipient=%s (block=%s #%s)',
           relayId,
           relayKey,
@@ -309,11 +299,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
-    const log = this.#log
-
     await this.#mutex.runExclusive(async () => {
       if (msg.forwardId === undefined) {
-        log.error(
+        this.#log.error(
           '[%s] forward_id_to not found for bridge accepted message (block=%s #%s)',
           msg.chainId,
           msg.blockHash,
@@ -352,7 +340,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           sublevel: prefixes.matching.bridgeAccepted,
           key: sublevelBridgeKey,
         })
-        log.info(
+        this.#log.info(
           '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
           chainId,
           sublevelBridgeKey,
@@ -361,7 +349,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         )
         this.#onXcmBridgeAccepted(bridgeOutMsg)
       } catch {
-        log.warn(
+        this.#log.warn(
           '[%s:ba] ORIGIN MSG NOT FOUND id=%s (block=%s #%s)',
           chainId,
           idKey,
@@ -373,8 +361,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeOutboundDelivered(msg: XcmBridgeDeliveredWithContext) {
-    const log = this.#log
-
     await this.#mutex.runExclusive(async () => {
       const { chainId, bridgeKey } = msg
       const sublevelBridgeKey = `${bridgeKey}`
@@ -382,7 +368,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
         try {
           const bridgeInMsg = await this.#bridgeInbound.get(sublevelBridgeKey)
-          log.info(
+          this.#log.info(
             '[%s:bd] BRIDGE MATCHED key=%s (block=%s #%s)',
             chainId,
             sublevelBridgeKey,
@@ -404,7 +390,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           this.#onXcmBridgeDelivered(bridgeOutMsg)
         }
       } catch {
-        log.warn(
+        this.#log.warn(
           '[%s:bd] BRIDGE ACCEPTED MSG NOT FOUND key=%s (block=%s #%s)',
           chainId,
           sublevelBridgeKey,
@@ -416,15 +402,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeInbound(bridgeInMsg: XcmBridgeInboundWithContext) {
-    const log = this.#log
-
     await this.#mutex.runExclusive(async () => {
       const { chainId, bridgeKey } = bridgeInMsg
       const sublevelBridgeKey = `${bridgeKey}`
 
       try {
         const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
-        log.info(
+        this.#log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
           chainId,
           sublevelBridgeKey,
@@ -476,11 +460,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   // We assume that the original origin message is ALWAYS received first.
   // NOTE: hops can only use idKey since message hash will be different on each hop
   async #tryHopMatchOnInbound(msg: XcmInbound) {
-    const log = this.#log
     try {
       const hopKey = matchingKey(msg.chainId, msg.messageId ?? msg.messageHash)
       const originMsg = await this.#hop.get(hopKey)
-      log.info(
+      this.#log.info(
         '[%s:h] MATCHED HOP IN origin=%s id=%s (block=%s #%s)',
         msg.chainId,
         originMsg.origin.chainId,
@@ -504,18 +487,16 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         }
       }
 
-      throw Error('No matching hops')
+      throw new Error('No matching hops')
     }
   }
 
   async #storeXcmInbound(msg: XcmInbound) {
-    const log = this.#log
-
     const hashKey = matchingKey(msg.chainId, msg.messageHash)
     const idKey = matchingKey(msg.chainId, msg.messageId ?? 'unknown')
 
     if (hasTopicId(hashKey, idKey)) {
-      log.info(
+      this.#log.info(
         '[%s:i] STORED hash=%s id=%s (block=%s #%s)',
         msg.chainId,
         hashKey,
@@ -535,7 +516,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         },
       )
     } else {
-      log.info('[%s:i] STORED hash=%s (block=%s #%s)', msg.chainId, hashKey, msg.blockHash, msg.blockNumber)
+      this.#log.info(
+        '[%s:i] STORED hash=%s (block=%s #%s)',
+        msg.chainId,
+        hashKey,
+        msg.blockHash,
+        msg.blockNumber,
+      )
       await this.#inbound.put(hashKey, msg)
       await this.#janitor.schedule({
         sublevel: prefixes.matching.inbound,
@@ -581,11 +568,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #tryMatchOnOutbound(keys: { hash: string; id?: string }, msg: XcmJourney, isHop = false) {
-    const log = this.#log
-
     if (keys.id === undefined) {
       const inMsg = await this.#inbound.get(keys.hash)
-      log.info(
+      this.#log.info(
         '[%s:o] MATCHED hash=%s (block=%s #%s)',
         msg.origin.chainId,
         keys.hash,
@@ -603,7 +588,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       // i.e. if uses message ids
       const inMsg = await Promise.any([this.#inbound.get(keys.id), this.#inbound.get(keys.hash)])
 
-      log.info(
+      this.#log.info(
         '[%s:o] MATCHED hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
         keys.hash,
@@ -633,7 +618,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #storeLegOnOutboundWithTopicId(msg: XcmSentWithId, leg: Leg) {
-    const log = this.#log
     const stop = leg.to
     const hKey = matchingKey(stop, msg.waypoint.messageHash)
     const iKey = matchingKey(stop, msg.messageId)
@@ -643,7 +627,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const bridgeIn = leg.to
       const bridgeOutIdKey = matchingKey(bridgeOut, msg.messageId)
       const bridgeInIdKey = matchingKey(bridgeIn, msg.messageId)
-      log.info(
+      this.#log.info(
         '[%s:b] STORED out=%s outKey=%s in=%s inKey=%s (block=%s #%s)',
         msg.origin.chainId,
         bridgeOut,
@@ -682,7 +666,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       } catch (_e) {
         //
       }
-      log.info(
+      this.#log.info(
         '[%s:h] STORED stop=%s hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
         stop,
@@ -695,7 +679,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
 
     if (leg.relay !== undefined || leg.type === 'vmp') {
-      log.info(
+      this.#log.info(
         '[%s:o] STORED dest=%s hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
         stop,
@@ -721,7 +705,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #storeLegOnOutboundWithHash(msg: XcmSent, leg: Leg) {
-    const log = this.#log
     const stop = leg.to
     const hKey = matchingKey(stop, msg.waypoint.messageHash)
 
@@ -737,7 +720,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       } catch (_e) {
         //
       }
-      log.info(
+      this.#log.info(
         '[%s:h] STORED stop=%s hash=%s(block=%s #%s)',
         msg.origin.chainId,
         stop,
@@ -747,7 +730,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       )
       await this.#putHops([hKey, msg])
     } else {
-      log.info(
+      this.#log.info(
         '[%s:o] STORED dest=%s hash=%s (block=%s #%s)',
         msg.origin.chainId,
         stop,
@@ -763,7 +746,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       })
 
       if (leg.partialMessage !== undefined) {
-        log.info(
+        this.#log.info(
           '[%s:h] STORED stop=%s hash=%s(block=%s #%s)',
           msg.origin.chainId,
           stop,
@@ -788,14 +771,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #findRelayInbound(outMsg: XcmSent) {
-    const log = this.#log
     const relayKey = outMsg.messageId
       ? matchingKey(outMsg.origin.chainId, outMsg.messageId)
       : matchingKey(outMsg.origin.chainId, outMsg.waypoint.messageHash)
 
     try {
       const relayMsg = await this.#relay.get(relayKey)
-      log.info(
+      this.#log.info(
         '[%s:r] RELAYED key=%s (block=%s #%s)',
         outMsg.origin.chainId,
         relayKey,
