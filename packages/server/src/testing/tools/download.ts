@@ -16,6 +16,7 @@ export const networks = {
   hydra: 'wss://hydradx.paras.ibp.network',
   moonbeam: 'wss://moonbeam.ibp.network',
   astar: 'wss://rpc.astar.network',
+  bifrost: 'wss://bifrost-polkadot.ibp.network',
 } as Record<string, string>
 
 async function download([name, ws, height]: [string, string, number]) {

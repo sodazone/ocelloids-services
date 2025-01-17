@@ -18,6 +18,8 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a))
 }
 
+export type MessageHashData = { hash: HexString; data: HexString }
+
 /**
  * XCM storage prefixes.
  */
@@ -31,6 +33,7 @@ export const prefixes = {
     bridgeAccepted: 'xcm:ma:bridgeAccepted',
     bridgeDelivered: 'xcm:ma:bridgeDelivered',
     bridgeIn: 'xcm:ma:bridgeIn',
+    messageData: 'xcm:ma:messageData',
   },
 }
 
@@ -146,12 +149,14 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   blockHash: HexString
   timestamp?: number
   messageHash: HexString
+  messageData?: HexString
   messageId: HexString
   extrinsicHash?: HexString
 
   constructor(msg: XcmWithContext) {
     this.event = msg.event
     this.messageHash = msg.messageHash
+    this.messageData = msg.messageData
     this.messageId = msg.messageId ?? msg.messageHash
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
@@ -203,7 +208,6 @@ export class GenericXcmRelayedWithContext extends BaseGenericXcmWithContext impl
 
 export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext implements XcmInboundWithContext {
   outcome: 'Success' | 'Fail'
-  messageData?: HexString
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
 
@@ -213,7 +217,6 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
-    this.messageData = msg.messageData
   }
 }
 

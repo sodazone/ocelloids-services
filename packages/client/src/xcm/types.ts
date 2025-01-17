@@ -105,19 +105,19 @@ export type XcmWaypointContext = sourceXcm.XcmWaypointContext
  */
 export type XcmInputs = {
   /**
-   * The origin chain id.
+   * An array of origin chain ids or '*' for all.
    */
-  origin: string
+  origins: '*' | string[]
+
+  /**
+   * An array of destination chain ids or '*' for all.
+   */
+  destinations: '*' | string[]
 
   /**
    * An array of sender addresses or '*' for all.
    */
   senders?: '*' | string[]
-
-  /**
-   * An array of destination chain ids.
-   */
-  destinations: string[]
 
   /**
    * An optional array with the events to deliver.

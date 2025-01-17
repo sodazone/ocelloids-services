@@ -6,6 +6,8 @@ import { Services, SubLevel, jsonEncoded } from '@/services/types.js'
 import { hydraMoonMessages, matchMessages, moonBifrostMessages, realHopMessages } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
+import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
+import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamHydraCentrifuge } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types.js'
@@ -17,7 +19,9 @@ describe('message matching engine', () => {
   let services: Services
 
   const msgTypeCb = vi.fn()
-  const cb = vi.fn((msg) => msgTypeCb(msg.type))
+  const cb = vi.fn((msg) => {
+    msgTypeCb(msg.type)
+  })
   const schedule = vi.fn()
 
   function expectEvents(events: XcmNotificationType[]) {
@@ -156,17 +160,40 @@ describe('message matching engine', () => {
   })
 
   it('should match hop messages', async () => {
-    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
+    const { sent, relay0, hopIn, hopOut, relay1, received } = hydraAstarBifrost
 
-    await engine.onOutboundMessage(sent)
     await engine.onRelayedMessage(relay0)
+    await engine.onOutboundMessage(sent)
+    await engine.onMessageData({
+      hash: '0xf61b67b82c5611de54690f204fc358c048cc3c523600604cdff6224d843e89f9',
+      data: '0x04100104010100591f001b063c6c60acd23f191e020a13010100591f001b00002059dd64f00c0f01000d01020400010100d6a5278d06644f0ca64831082203b30484d98d5a34af53f05e41ba6f6a7a8356',
+    })
 
     await engine.onInboundMessage(hopIn)
-    await engine.onOutboundMessage(hopOut)
     await engine.onRelayedMessage(relay1)
+    await engine.onOutboundMessage(hopOut)
+
     await engine.onInboundMessage(received)
 
-    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.relayed', 'xcm.received'])
+    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
+  })
+
+  it('should match hop messages with 2 potential received', async () => {
+    const { sent, hopIn, received0, received1 } = bifrostHydraVmp
+
+    await engine.onOutboundMessage(sent)
+
+    await engine.onMessageData({
+      hash: '0xa01291c635e6a40c554ca9bf098ea09257b14d91d7e0308837b4fdc36953bd9f',
+      data: '0x03140104000100000b0033b48883130a13000100000b097290d1c109000d0102040001010016842e1c98a7990f532c5b814228dc1040af73f227842a82ab6b9bcdab0cba4e2cde234382de1c58721e26dda4f2fed76cfa11ad757616a1ab82979b0e70c2ca2d',
+    })
+
+    await engine.onInboundMessage(hopIn)
+
+    await engine.onInboundMessage(received0)
+    await engine.onInboundMessage(received1)
+
+    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.received'])
   })
 
   it('should match hop messages with topic id', async () => {

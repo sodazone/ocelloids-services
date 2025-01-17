@@ -1,4 +1,4 @@
-import { fromHex } from 'polkadot-api/utils'
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { Observable, filter, map, mergeMap } from 'rxjs'
 
 import { ControlQuery, filterNonNull } from '@/common/index.js'
@@ -42,6 +42,7 @@ export function extractRelayReceive(
               chainId: createNetworkId(origin, recipient.toString()),
             })
           })
+          console.log(message)
           if (message) {
             const xcms = fromXcmpFormat(fromHex(message.data), context)
             const { blockHash, blockNumber, blockPosition, dispatchError } = extrinsic
@@ -53,6 +54,7 @@ export function extractRelayReceive(
                   timestamp: extrinsic.timestamp,
                   recipient: createNetworkId(origin, message.recipient.toString()),
                   messageHash: xcmProgram.hash,
+                  messageData: toHex(xcmProgram.data) as HexString,
                   messageId: getMessageId(xcmProgram),
                   origin,
                   extrinsicPosition: blockPosition,

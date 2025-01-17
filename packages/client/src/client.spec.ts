@@ -113,7 +113,7 @@ describe('OcelloidsClient', () => {
       await new Promise<void>((resolve) => {
         client.agent<XcmInputs>('xcm').subscribe(
           {
-            origin: 'urn:ocn:local:2004',
+            origins: ['urn:ocn:local:2004'],
             senders: '*',
             events: '*',
             destinations: [
@@ -167,7 +167,7 @@ describe('OcelloidsClient', () => {
       await new Promise<void>((resolve) => {
         client.agent<XcmInputs>('xcm').subscribe(
           {
-            origin: 'urn:ocn:local:2004',
+            origins: ['urn:ocn:local:2004'],
             senders: '*',
             events: '*',
             destinations: [
@@ -225,7 +225,7 @@ describe('OcelloidsClient', () => {
       await new Promise<void>((resolve, reject) => {
         client.agent<XcmInputs>('xcm').subscribe(
           {
-            origin: 'urn:ocn:local:2004',
+            origins: ['urn:ocn:local:2004'],
             senders: '*',
             events: '*',
             destinations: [
@@ -470,7 +470,7 @@ describe('OcelloidsClient', () => {
         id: 'my-subscription',
         agent: 'xcm',
         args: {
-          origin: 'urn:ocn:local:2004',
+          origins: ['urn:ocn:local:2004'],
           senders: '*',
           events: '*',
           destinations: [
