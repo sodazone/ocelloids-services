@@ -865,7 +865,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         outMsg.origin.blockNumber,
       )
       await this.#relay.del(relayKey)
-      await this.#onXcmRelayed(origin ?? outMsg, relayMsg)
+      this.#onXcmRelayed(origin ?? outMsg, relayMsg)
     } catch {
       // noop, it's possible that there are no relay subscriptions for an origin.
     }
