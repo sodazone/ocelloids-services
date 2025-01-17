@@ -149,9 +149,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       if (await this.#isOutboundDuplicate(hashKey)) {
         return outMsg
       }
-      // try to get any stored relay messages and notify if found.
-      // do not clean up outbound in case inbound has not arrived yet.
-      await this.#findRelayInbound(outMsg)
 
       if (outMsg.forwardId !== undefined) {
         // Is bridged message
@@ -190,6 +187,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         try {
           const hopKey = matchingKey(outMsg.origin.chainId, outMsg.messageId)
           const originMsg = await this.#hop.get(hopKey)
+
+          await this.#findRelayInbound(outMsg, originMsg)
+
           this.#log.info(
             '[%s:h] MATCHED HOP OUT origin=%s id=%s (block=%s #%s)',
             outMsg.origin.chainId,
@@ -612,6 +612,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             partialMessage && msg.waypoint.messageData?.includes(partialMessage.substring(10)),
         ) !== undefined
       ) {
+        await this.#findRelayInbound(msg, originMsg)
+
         this.#log.info(
           '[%s:h] MATCHED HOP OUT BY HEURISTIC origin=%s (block=%s #%s)',
           msg.waypoint.chainId,
@@ -620,10 +622,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           msg.waypoint.blockNumber,
         )
         this.#onXcmHopOut(originMsg, msg)
-        // this.#storeOnOutbound(msg)
         return
       }
     }
+
+    await this.#findRelayInbound(msg)
 
     // Emit outbound notification
     this.#log.info(
@@ -844,7 +847,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
   }
 
-  async #findRelayInbound(outMsg: XcmSent) {
+  /**
+   * Try to get any stored relay messages and notify if found.
+   * do not clean up outbound in case inbound has not arrived yet.
+   */
+  async #findRelayInbound(outMsg: XcmSent, origin?: XcmSent) {
     const relayKey = outMsg.messageId
       ? matchingKey(outMsg.origin.chainId, outMsg.messageId)
       : matchingKey(outMsg.origin.chainId, outMsg.waypoint.messageHash)
@@ -859,7 +866,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         outMsg.origin.blockNumber,
       )
       await this.#relay.del(relayKey)
-      await this.#onXcmRelayed(outMsg, relayMsg)
+      this.#onXcmRelayed(origin ?? outMsg, relayMsg)
     } catch {
       // noop, it's possible that there are no relay subscriptions for an origin.
     }
