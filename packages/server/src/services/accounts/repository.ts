@@ -2,12 +2,7 @@ import { Expression, Kysely } from 'kysely'
 
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/sqlite'
 
-import {
-  AccountUpdate,
-  Database,
-  NewAccount,
-  NewApiToken,
-} from '@/services/persistence/kysely/database/types.js'
+import { AccountUpdate, Database, NewAccount, NewApiToken } from '@/services/accounts/types.js'
 
 export class AccountsRepository {
   readonly #db: Kysely<Database>

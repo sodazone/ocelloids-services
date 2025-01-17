@@ -21,7 +21,6 @@ import {
   Connector,
   Egress,
   Ingress,
-  Kysely,
   LevelDB,
   Limit,
   Root,
@@ -182,7 +181,6 @@ export async function createServer(opts: ServerOptions) {
   }
 
   await server.register(LevelDB, opts)
-  await server.register(Kysely, opts)
   await server.register(Ingress, opts)
   await server.register(Egress, opts)
   await server.register(Agents, opts)
