@@ -60,7 +60,7 @@ export function getMessageId({ instructions }: Program): HexString | undefined {
     case 'V4':
       for (const instruction of instructions.value) {
         if (instruction.type === 'SetTopic') {
-          return instruction.value.asHex()
+          return typeof instruction.value === 'string' ? instruction.value : instruction.value.asHex()
         }
       }
       return undefined

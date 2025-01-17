@@ -7,7 +7,7 @@ export function xcmAgentMetrics(source: TelemetryXcmEventEmitter) {
   const subsErrors = new Counter({
     name: 'oc_xcm_subscription_errors_count',
     help: 'Subscription errors',
-    labelNames: ['id', 'chainId', 'direction'],
+    labelNames: ['chainId', 'direction'],
   })
 
   source.on('telemetryXcmSubscriptionError', (msg) => {
