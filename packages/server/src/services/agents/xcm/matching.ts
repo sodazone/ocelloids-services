@@ -852,11 +852,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
    * do not clean up outbound in case inbound has not arrived yet.
    */
   async #findRelayInbound(outMsg: XcmSent, origin?: XcmSent) {
-    const relayKey = outMsg.messageId
-      ? matchingKey(outMsg.origin.chainId, outMsg.messageId)
-      : matchingKey(outMsg.origin.chainId, outMsg.waypoint.messageHash)
-
     try {
+      const relayKey = outMsg.messageId
+        ? matchingKey(outMsg.origin.chainId, outMsg.messageId)
+        : matchingKey(outMsg.origin.chainId, outMsg.waypoint.messageHash)
       const relayMsg = await this.#relay.get(relayKey)
       this.#log.info(
         '[%s:r] RELAYED key=%s (block=%s #%s)',
@@ -866,7 +865,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         outMsg.origin.blockNumber,
       )
       await this.#relay.del(relayKey)
-      this.#onXcmRelayed(origin ?? outMsg, relayMsg)
+      await this.#onXcmRelayed(origin ?? outMsg, relayMsg)
     } catch {
       // noop, it's possible that there are no relay subscriptions for an origin.
     }
