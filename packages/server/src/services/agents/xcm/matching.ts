@@ -288,6 +288,25 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     await this.#mutex.runExclusive(async () => {
       try {
+        // Hop relay matching heuristic :_
+        for await (const originMsg of this.#outbound.values(matchingRange(relayMsg.recipient))) {
+          if (
+            originMsg.legs.find(({ partialMessage }) => {
+              return partialMessage && relayMsg.messageData?.includes(partialMessage.substring(10))
+            }) !== undefined
+          ) {
+            this.#log.info(
+              '[%s:r] RELAYED HOP origin=%s recipient=%s (block=%s #%s)',
+              relayId,
+              originMsg.origin.chainId,
+              relayMsg.recipient,
+              relayMsg.blockHash,
+              relayMsg.blockNumber,
+            )
+            this.#onXcmRelayed(originMsg, relayMsg)
+            return
+          }
+        }
         const outMsg = await this.#outbound.get(idKey)
         this.#log.info(
           '[%s:r] RELAYED origin=%s recipient=%s (block=%s #%s)',
@@ -498,6 +517,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       // TO THINK: store in different keys?
       this.#onXcmHopIn(originMsg, msg)
     } catch {
+      // Try to match inbound msg as final destination receive in case of multi-hop xcms
       // Hop matching heuristic :_
       for await (const originMsg of this.#outbound.values(matchingRange(msg.chainId))) {
         if (
@@ -505,6 +525,29 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             return partialMessage && msg.messageData?.includes(partialMessage.substring(10))
           }) !== undefined
         ) {
+          // Matched outbound by heuristic
+          // Need to clean up outbound keys to not trigger timeout
+          this.#log.info(
+            '[%s:i] MATCHED BY HEURISTIC origin=%s (block=%s #%s)',
+            msg.chainId,
+            originMsg.origin.chainId,
+            msg.blockHash,
+            msg.blockNumber,
+          )
+          const legIndex = originMsg.legs.findIndex((l) => l.to === msg.chainId)
+          if (legIndex === originMsg.legs.length - 1) {
+            const batch = this.#outbound.batch()
+            for (const leg of originMsg.legs) {
+              const stop = leg.to
+
+              batch.del(matchingKey(stop, originMsg.waypoint.messageHash))
+              if (originMsg.messageId) {
+                batch.del(matchingKey(stop, originMsg.messageId))
+              }
+            }
+            await batch.write()
+          }
+
           this.#onXcmMatched(originMsg, msg)
           return
         }
@@ -576,7 +619,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           msg.waypoint.blockNumber,
         )
         this.#onXcmHopOut(originMsg, msg)
-        this.#storeOnOutbound(msg)
+        // this.#storeOnOutbound(msg)
         return
       }
     }
@@ -648,7 +691,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from))
 
     for (const leg of sublegs) {
-      if (msg.messageId === undefined) {
+      if (msg.messageId === undefined || msg.messageId === msg.waypoint.messageHash) {
         await this.#storeLegOnOutboundWithHash(msg, leg)
       } else {
         await this.#storeLegOnOutboundWithTopicId(msg as XcmSentWithId, leg)
@@ -747,7 +790,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const stop = leg.to
     const hKey = matchingKey(stop, msg.waypoint.messageHash)
 
-    if (leg.type === 'hop' && leg.relay === undefined) {
+    if (leg.type === 'hop') {
       try {
         await this.#tryMatchOnOutbound(
           {
@@ -760,7 +803,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         //
       }
       this.#log.info(
-        '[%s:h] STORED stop=%s hash=%s(block=%s #%s)',
+        '[%s:h] STORED stop=%s hash=%s (block=%s #%s)',
         msg.origin.chainId,
         stop,
         hKey,
@@ -768,7 +811,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockNumber,
       )
       await this.#putHops([hKey, msg])
-    } else {
+    }
+
+    if (leg.relay !== undefined || leg.type === 'vmp') {
       this.#log.info(
         '[%s:o] STORED dest=%s hash=%s (block=%s #%s)',
         msg.origin.chainId,
@@ -783,18 +828,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         key: hKey,
         expiry: this.#expiry,
       })
-
-      if (leg.partialMessage !== undefined) {
-        this.#log.info(
-          '[%s:h] STORED stop=%s hash=%s(block=%s #%s)',
-          msg.origin.chainId,
-          stop,
-          hKey,
-          msg.origin.blockHash,
-          msg.origin.blockNumber,
-        )
-        await this.#putHops([hKey, msg])
-      }
     }
   }
 

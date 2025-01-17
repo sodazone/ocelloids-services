@@ -38,7 +38,6 @@ export function extractRelayReceive(origin: NetworkURN, messageControl: ControlQ
               chainId: createNetworkId(origin, recipient.toString()),
             })
           })
-          console.log(message)
           if (message) {
             const xcms = fromXcmpFormat(fromHex(message.data), context)
             const { blockHash, blockNumber, blockPosition, dispatchError } = extrinsic

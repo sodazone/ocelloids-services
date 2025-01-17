@@ -429,17 +429,17 @@ const moonbeamSent: XcmSent = {
 }
 
 const moonbeamRelayed: XcmRelayedWithContext = {
-  messageId: '0x6b42484b7260c49eb396ddc3a67b6e5838aa4c0209b884450e7add4dada4c06e',
+  extrinsicPosition: 1,
   blockNumber: '24286514',
   blockHash: '0xb6bc4da1bdfc0b6e63ae00ccbbf51e934a4f28b09bf394a9c3422094796b5ef9',
   timestamp: 1736874144000,
-  extrinsicPosition: 1,
-  outcome: 'Success',
+  messageHash: '0x6b42484b7260c49eb396ddc3a67b6e5838aa4c0209b884450e7add4dada4c06e',
   messageData:
     '0x041000040001060200010000000000000000000000000000000000000000000000000000000000000017878538918bccecf0800a130001060200010000000000000000000000000000000000000000000000000000000000000017c3429cc84566767840000e010204010100c91f0813010200bd1f060200010000000000000000000000000000000000000000000000000000000000000017c4429cc84566767840000d01020400010100842745b99b8042d28a7c677d9469332bfc24aa5266c7ec57c43c7af125a0c16c',
-  messageHash: '0x6b42484b7260c49eb396ddc3a67b6e5838aa4c0209b884450e7add4dada4c06e',
+  messageId: '0x6b42484b7260c49eb396ddc3a67b6e5838aa4c0209b884450e7add4dada4c06e',
+  recipient: 'urn:ocn:polkadot:2031',
   origin: 'urn:ocn:polkadot:2004',
-  recipient: 'urn:ocn:polkadot:2034',
+  outcome: 'Success',
 }
 
 const centrifugeHopIn: XcmInbound = {
@@ -475,17 +475,17 @@ const centrifugeHopIn: XcmInbound = {
 }
 
 const centrifugeRelayed: XcmRelayedWithContext = {
-  messageId: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
+  extrinsicPosition: 1,
   blockNumber: '24286518',
   blockHash: '0x0fa3eba67a26f696b438a031bcb7154ad18f1b848da0df70818da564fec8c508',
   timestamp: 1736874168001,
-  extrinsicPosition: 1,
-  outcome: 'Success',
+  messageHash: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
   messageData:
     '0x0310010400010200bd1f06020001000000000000000000000000000000000000000000000000000000000000001787452ca9dbf4d5f0800a1300010200bd1f060200010000000000000000000000000000000000000000000000000000000000000017c4429cc84566767840000d01020400010100842745b99b8042d28a7c677d9469332bfc24aa5266c7ec57c43c7af125a0c16c',
-  messageHash: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
-  origin: 'urn:ocn:polkadot:2031',
+  messageId: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
   recipient: 'urn:ocn:polkadot:2034',
+  origin: 'urn:ocn:polkadot:2031',
+  outcome: 'Success',
 }
 
 const centrifugeHopOut: XcmSent = {
@@ -783,7 +783,7 @@ const hydraReceived: XcmInbound = {
   messageHash: '0x5d2854398144a9dd7aa9b51a03f40b3344237bfa01d0bcc98250391b61c623d3',
 }
 
-export const moonbeamHydraCentrifuge = {
+export const moonbeamCentrifugeHydra = {
   sent: moonbeamSent,
   relay0: moonbeamRelayed,
   hopIn: centrifugeHopIn,
