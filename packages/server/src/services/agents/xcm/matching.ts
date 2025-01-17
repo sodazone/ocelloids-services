@@ -8,6 +8,7 @@ import { getRelayId, isOnSameConsensus } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/persistence/level/janitor.js'
 import { Logger, SubLevel, jsonEncoded } from '@/services/types.js'
 
+import { HexString } from '@/lib.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
   GenericXcmBridge,
@@ -16,6 +17,7 @@ import {
   GenericXcmRelayed,
   GenericXcmTimeout,
   Leg,
+  MessageHashData,
   XcmBridge,
   XcmBridgeAcceptedWithContext,
   XcmBridgeDeliveredWithContext,
@@ -84,6 +86,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   readonly #bridge: SubLevel<XcmSent>
   readonly #bridgeAccepted: SubLevel<XcmBridge>
   readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>
+  readonly #messageData: SubLevel<HexString>
   readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
   readonly #expiry: number
@@ -120,8 +123,21 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       jsonEncoded,
     )
 
+    this.#messageData = db.sublevel<string, HexString>(prefixes.matching.messageData, {})
+
     this.#expiry = DEFAULT_TIMEOUT
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
+  }
+
+  async onMessageData({ hash, data }: MessageHashData) {
+    await this.#mutex.runExclusive(async () => {
+      await this.#messageData.put(hash, data)
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.messageData,
+        key: hash,
+        expiry: 600_000,
+      })
+    })
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
@@ -196,6 +212,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onInboundMessage(inMsg: XcmInbound) {
     await this.#mutex.runExclusive(async () => {
+      if (inMsg.messageData === undefined) {
+        try {
+          inMsg.messageData = await this.#messageData.get(inMsg.messageHash)
+        } catch {
+          //
+        }
+      }
       const hashKey = matchingKey(inMsg.chainId, inMsg.messageHash)
       const idKey = matchingKey(inMsg.chainId, inMsg.messageId ?? 'unknown')
 
@@ -478,9 +501,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       // Hop matching heuristic :_
       for await (const originMsg of this.#outbound.values(matchingRange(msg.chainId))) {
         if (
-          originMsg.legs.find(
-            ({ partialMessage }) => partialMessage && msg.messageData?.includes(partialMessage.substring(10)),
-          ) !== undefined
+          originMsg.legs.find(({ partialMessage }) => {
+            return partialMessage && msg.messageData?.includes(partialMessage.substring(10))
+          }) !== undefined
         ) {
           this.#onXcmMatched(originMsg, msg)
           return
@@ -545,6 +568,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             partialMessage && msg.waypoint.messageData?.includes(partialMessage.substring(10)),
         ) !== undefined
       ) {
+        this.#log.info(
+          '[%s:h] MATCHED HOP OUT BY HEURISTIC origin=%s (block=%s #%s)',
+          msg.waypoint.chainId,
+          originMsg.origin.chainId,
+          msg.waypoint.blockHash,
+          msg.waypoint.blockNumber,
+        )
         this.#onXcmHopOut(originMsg, msg)
         this.#storeOnOutbound(msg)
         return
@@ -552,6 +582,13 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
 
     // Emit outbound notification
+    this.#log.info(
+      '[%s:o] OUT origin=%s destination=%s (block=%s #%s)',
+      msg.origin.chainId,
+      msg.destination.chainId,
+      msg.waypoint.blockHash,
+      msg.waypoint.blockNumber,
+    )
     this.#onXcmOutbound(msg)
 
     try {
@@ -571,7 +608,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     if (keys.id === undefined) {
       const inMsg = await this.#inbound.get(keys.hash)
       this.#log.info(
-        '[%s:o] MATCHED hash=%s (block=%s #%s)',
+        isHop ? '[%s:o] MATCHED HOP IN hash=%s (block=%s #%s)' : '[%s:o] MATCHED hash=%s (block=%s #%s)',
         msg.origin.chainId,
         keys.hash,
         msg.origin.blockHash,
@@ -589,7 +626,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const inMsg = await Promise.any([this.#inbound.get(keys.id), this.#inbound.get(keys.hash)])
 
       this.#log.info(
-        '[%s:o] MATCHED hash=%s id=%s (block=%s #%s)',
+        isHop
+          ? '[%s:o] MATCHED HOP IN hash=%s id=%s (block=%s #%s)'
+          : '[%s:o] MATCHED hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
         keys.hash,
         keys.id,

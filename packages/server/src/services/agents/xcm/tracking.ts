@@ -1,21 +1,24 @@
 import EventEmitter from 'node:events'
-import { Subject, from, map, share, switchMap } from 'rxjs'
+import { Observable, Subject, from, map, mergeMap, share, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext } from '@/services/networking/index.js'
+import { ApiContext, Block } from '@/services/networking/index.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { SharedStreams } from '../base/shared.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
-import { extractDmpReceiveByBlock, extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
+import { matchExtrinsic } from './ops/util.js'
+import { fromXcmpFormat, messageHash } from './ops/xcm-format.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
@@ -23,6 +26,7 @@ import {
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
   GetOutboundUmpMessages,
+  MessageHashData,
   XcmInbound,
   XcmMessagePayload,
   XcmRelayedWithContext,
@@ -31,6 +35,45 @@ import {
 
 const EXCLUDED_NETWORKS: NetworkURN[] = []
 
+type DmpInQueue = { msg: HexString; sent_at: number }
+type HrmpInQueue = { data: HexString; sent_at: number }
+type HorizontalMessage = [number, HrmpInQueue[]]
+
+export function extractXcmMessageData(apiContext: ApiContext) {
+  return (source: Observable<Block>): Observable<MessageHashData> => {
+    return source.pipe(
+      mergeMap(({ extrinsics }) => {
+        const paraExtrinsic = extrinsics.find((ext) =>
+          matchExtrinsic(ext, 'ParachainSystem', 'set_validation_data'),
+        )
+        if (paraExtrinsic) {
+          // extract dmp and hrmp messages from params
+          const {
+            data: { downward_messages, horizontal_messages },
+          } = paraExtrinsic.args as {
+            data: {
+              downward_messages: DmpInQueue[]
+              horizontal_messages: HorizontalMessage[]
+            }
+          }
+          const messages = horizontal_messages.reduce((acc: MessageHashData[], h) => {
+            const [_chain, msgs] = h
+            for (const m of msgs) {
+              const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
+              for (const xcm of xcms) {
+                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString })
+              }
+            }
+            return acc
+          }, [])
+
+          return messages.concat(downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })))
+        }
+        return []
+      }),
+    )
+  }
+}
 export class XcmTracker {
   readonly #id = 'xcm-tracker'
   readonly #log: Logger
@@ -123,8 +166,18 @@ export class XcmTracker {
           subs.push({
             chainId,
             sub: this.#ingress
-              .finalizedBlocks(chainId)
-              .pipe(extractDmpReceiveByBlock(), mapXcmInbound(chainId))
+              .getContext(chainId)
+              .pipe(switchMap((context) => this.#shared.blocks(chainId).pipe(extractXcmMessageData(context))))
+              .subscribe(({ hash, data }) => {
+                this.#engine.onMessageData({ hash, data })
+              }),
+          })
+
+          subs.push({
+            chainId,
+            sub: this.#shared
+              .blockEvents(chainId)
+              .pipe(extractDmpReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
 

@@ -20,10 +20,13 @@ describe('relay operator', () => {
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
+            console.log(msg)
+            calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
             expect(msg.messageHash).toBeDefined()
+            expect(msg.messageData).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.recipient).toBe(destination)
             expect(msg.extrinsicPosition).toBeDefined()
@@ -31,7 +34,6 @@ describe('relay operator', () => {
             expect(msg.outcome).toBe('Success')
             expect(msg.error).toBeUndefined()
             expect(msg.timestamp).toBeDefined()
-            calls()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
