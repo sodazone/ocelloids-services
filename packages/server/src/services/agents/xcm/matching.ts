@@ -131,10 +131,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onMessageData({ hash, data }: MessageHashData) {
     await this.#mutex.runExclusive(async () => {
-      this.#log.info(
-        '[matching] STORE HASH DATA hash=%s',
-        hash
-      )
+      this.#log.info('[matching] STORE HASH DATA hash=%s', hash)
       await this.#messageData.put(hash, data)
       await this.#janitor.schedule({
         sublevel: prefixes.matching.messageData,
@@ -277,7 +274,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
             await batch.write()
             this.#onXcmMatched(outMsg, inMsg)
           } catch {
-            this.#storeXcmInbound(inMsg)
+            await this.#storeXcmInbound(inMsg)
           }
         }
       }
@@ -631,6 +628,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     // Emit outbound notification
     this.#log.info(
       '[%s:o] OUT origin=%s destination=%s (block=%s #%s)',
+      msg.waypoint.chainId,
       msg.origin.chainId,
       msg.destination.chainId,
       msg.waypoint.blockHash,

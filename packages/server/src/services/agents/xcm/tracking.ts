@@ -14,7 +14,7 @@ import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
-import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { matchExtrinsic } from './ops/util.js'
@@ -185,12 +185,13 @@ export class XcmTracker {
             ),
           )
 
-          subs.push({
-            chainId,
-            sub: messageHashBlocks$
-              .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
-              .subscribe(inboundObserver),
-          })
+          // DMP and HRMP receive matches the same event
+          // subs.push({
+          //   chainId,
+          //   sub: messageHashBlocks$
+          //     .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
+          //     .subscribe(inboundObserver),
+          // })
 
           // Inbound HRMP / XCMP transport
           this.#log.info('[%s] %s subscribe inbound HRMP', this.#id, chainId)
