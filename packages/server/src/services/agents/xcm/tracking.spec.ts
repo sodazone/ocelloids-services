@@ -11,15 +11,17 @@ describe('extractXcmMessageData', () => {
 
     new Promise<void>((resolve) => {
       test$.subscribe({
-        next: (xcm) => {
+        next: ({hashData}) => {
           calls()
-          expect(xcm).toBeDefined()
-          expect(xcm.hash).toBeDefined()
-          expect(xcm.data).toBeDefined()
+          expect(hashData).toBeDefined()
+          expect(hashData[0].hash).toBeDefined()
+          expect(hashData[0].data).toBeDefined()
+          expect(hashData[1].hash).toBeDefined()
+          expect(hashData[1].data).toBeDefined()
         },
         complete: () => {
           resolve()
-          expect(calls).toHaveBeenCalledTimes(2)
+          expect(calls).toHaveBeenCalledTimes(1)
         },
       })
     })
@@ -32,11 +34,11 @@ describe('extractXcmMessageData', () => {
 
     new Promise<void>((resolve) => {
       test$.subscribe({
-        next: (xcm) => {
+        next: ({hashData}) => {
           calls()
-          expect(xcm).toBeDefined()
-          expect(xcm.hash).toBeDefined()
-          expect(xcm.data).toBeDefined()
+          expect(hashData).toBeDefined()
+          expect(hashData[0].hash).toBeDefined()
+          expect(hashData[0].data).toBeDefined()
         },
         complete: () => {
           resolve()
@@ -53,11 +55,11 @@ describe('extractXcmMessageData', () => {
 
     new Promise<void>((resolve) => {
       test$.subscribe({
-        next: (xcm) => {
+        next: ({hashData}) => {
           calls()
-          expect(xcm).toBeDefined()
-          expect(xcm.hash).toBeDefined()
-          expect(xcm.data).toBeDefined()
+          expect(hashData).toBeDefined()
+          expect(hashData[0].hash).toBeDefined()
+          expect(hashData[0].data).toBeDefined()
         },
         complete: () => {
           resolve()

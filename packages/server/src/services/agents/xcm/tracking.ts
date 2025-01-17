@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
-import { Observable, Subject, from, map, mergeMap, share, switchMap } from 'rxjs'
+import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
 
-import { ControlQuery } from '@/common/rx/index.js'
+import { ControlQuery, extractEvents } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { ApiContext, Block } from '@/services/networking/index.js'
@@ -40,10 +40,10 @@ type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
 
 export function extractXcmMessageData(apiContext: ApiContext) {
-  return (source: Observable<Block>): Observable<MessageHashData> => {
+  return (source: Observable<Block>): Observable<{ block: Block; hashData: MessageHashData[] }> => {
     return source.pipe(
-      mergeMap(({ extrinsics }) => {
-        const paraExtrinsic = extrinsics.find((ext) =>
+      map((block) => {
+        const paraExtrinsic = block.extrinsics.find((ext) =>
           matchExtrinsic(ext, 'ParachainSystem', 'set_validation_data'),
         )
         if (paraExtrinsic) {
@@ -67,9 +67,17 @@ export function extractXcmMessageData(apiContext: ApiContext) {
             return acc
           }, [])
 
-          return messages.concat(downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })))
+          return {
+            block,
+            hashData: messages.concat(
+              downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })),
+            ),
+          }
         }
-        return []
+        return {
+          block,
+          hashData: [],
+        }
       }),
     )
   }
@@ -163,21 +171,24 @@ export class XcmTracker {
           // VMP DMP
           this.#log.info('[%s] %s subscribe inbound DMP', this.#id, chainId)
 
-          subs.push({
-            chainId,
-            sub: this.#ingress
-              .getContext(chainId)
-              .pipe(switchMap((context) => this.#shared.blocks(chainId).pipe(extractXcmMessageData(context))))
-              .subscribe(({ hash, data }) => {
-                this.#engine.onMessageData({ hash, data })
-              }),
-          })
+          const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
+            switchMap((context) =>
+              this.#shared.blocks(chainId).pipe(
+                extractXcmMessageData(context),
+                concatMap(async ({ block, hashData }) => {
+                  for (const h of hashData) {
+                    await this.#engine.onMessageData(h)
+                  }
+                  return block
+                }),
+              ),
+            ),
+          )
 
           subs.push({
             chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(extractDmpReceive(), mapXcmInbound(chainId))
+            sub: messageHashBlocks$
+              .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
 
@@ -186,9 +197,8 @@ export class XcmTracker {
 
           subs.push({
             chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(extractXcmpReceive(), mapXcmInbound(chainId))
+            sub: messageHashBlocks$
+              .pipe(extractEvents(), extractXcmpReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         }
