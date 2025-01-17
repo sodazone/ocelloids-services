@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events'
-import { Observable, Subject, from, map, concatMap, share, switchMap } from 'rxjs'
 import { fromHex, toHex } from 'polkadot-api/utils'
+import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
