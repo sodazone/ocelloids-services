@@ -9,12 +9,12 @@ vi.mock('../services/networking/substrate/client.js', () => {
     SubstrateClient: vi.fn().mockReturnValue({
       connect: vi.fn().mockResolvedValue({
         isReady: vi.fn().mockResolvedValue({
-          finalizedHeads$: of({}),
+          followHeads$: of({}),
         }),
         disconnect: vi.fn(),
       }),
       isReady: vi.fn().mockResolvedValue({
-        finalizedHeads$: of({}),
+        followHeads$: of({}),
       }),
       disconnect: vi.fn(),
     }),
