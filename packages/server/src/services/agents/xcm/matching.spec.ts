@@ -268,4 +268,20 @@ describe('message matching engine', () => {
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.received'])
     await expectNoLeftover()
   })
+
+  it('should match hop messages out of order', async () => {
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamCentrifugeHydra
+
+    await engine.onRelayedMessage(relay0)
+    await engine.onOutboundMessage(sent)
+
+    await engine.onInboundMessage(received)
+    await engine.onRelayedMessage(relay1)
+    await engine.onInboundMessage(hopIn)
+    await engine.onOutboundMessage(hopOut)
+
+    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.received', 'xcm.hop', 'xcm.relayed', 'xcm.hop'])
+    expectOd(6, { origin: 'urn:ocn:polkadot:2004', destination: 'urn:ocn:polkadot:2034' })
+    await expectNoLeftover()
+  })
 })
