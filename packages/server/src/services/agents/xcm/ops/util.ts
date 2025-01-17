@@ -262,7 +262,7 @@ function createTrappedAssetsFromAssets(version: number, assets: any[]): TrappedA
       version,
       id: {
         type: 'Concrete',
-        value: a.id.value,
+        value: a.id,
       },
       fungible,
       amount: fungible ? a.fun.value : 1,
