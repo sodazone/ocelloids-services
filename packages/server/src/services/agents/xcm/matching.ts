@@ -129,15 +129,27 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
   }
 
-  async onMessageData({ hash, data }: MessageHashData) {
+  async onMessageData({ hash, data, topicId }: MessageHashData) {
     await this.#mutex.runExclusive(async () => {
       this.#log.info('[matching] STORE HASH DATA hash=%s', hash)
-      await this.#messageData.put(hash, data)
+      const batch = this.#messageData.batch().put(hash, data)
+      if (topicId) {
+        this.#log.info('[matching] STORE HASH DATA topicId=%s', topicId)
+        batch.put(topicId, data)
+      }
+      await batch.write()
       await this.#janitor.schedule({
         sublevel: prefixes.matching.messageData,
         key: hash,
         expiry: 600_000,
       })
+      if (topicId) {
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.messageData,
+          key: topicId,
+          expiry: 600_000,
+        })
+      }
     })
   }
 
@@ -215,7 +227,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     await this.#mutex.runExclusive(async () => {
       if (inMsg.messageData === undefined) {
         try {
-          inMsg.messageData = await this.#messageData.get(inMsg.messageHash)
+          if (inMsg.messageId && inMsg.messageId !== inMsg.messageHash) {
+            inMsg.messageData = await Promise.any([
+              this.#messageData.get(inMsg.messageHash),
+              this.#messageData.get(inMsg.messageId),
+            ])
+          } else {
+            inMsg.messageData = await this.#messageData.get(inMsg.messageHash)
+          }
         } catch {
           //
         }

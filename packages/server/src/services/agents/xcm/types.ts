@@ -18,7 +18,7 @@ function distinct(a: Array<string>) {
   return Array.from(new Set(a))
 }
 
-export type MessageHashData = { hash: HexString; data: HexString }
+export type MessageHashData = { hash: HexString; data: HexString; topicId?: HexString }
 
 /**
  * XCM storage prefixes.

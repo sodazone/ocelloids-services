@@ -48,8 +48,8 @@ describe('extractXcmMessageData', () => {
     })
   })
 
-  it('should extract xcm messages from hrmp bifrost', async () => {
-    const blocks = from(testBlocksFrom('bifrost/6352399.cbor'))
+  it('should extract xcm messages from dmp with topic id', async () => {
+    const blocks = from(testBlocksFrom('bifrost/6360506.cbor'))
     const calls = vi.fn()
     const test$ = extractXcmMessageData(apiContext)(blocks.pipe())
 

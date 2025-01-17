@@ -17,8 +17,8 @@ import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
-import { matchExtrinsic } from './ops/util.js'
-import { fromXcmpFormat, messageHash } from './ops/xcm-format.js'
+import { getMessageId, matchExtrinsic } from './ops/util.js'
+import { fromXcmpFormat, raw } from './ops/xcm-format.js'
 import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
@@ -61,17 +61,20 @@ export function extractXcmMessageData(apiContext: ApiContext) {
             for (const m of msgs) {
               const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
               for (const xcm of xcms) {
-                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString })
+                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString, topicId: getMessageId(xcm) })
               }
             }
             return acc
           }, [])
 
+          const dmpMessages = downward_messages.map((dm) => {
+            const decoded = raw.asVersionedXcm(dm.msg, apiContext)
+            return { hash: decoded.hash, data: dm.msg, topicId: getMessageId(decoded) }
+          })
+
           return {
             block,
-            hashData: messages.concat(
-              downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })),
-            ),
+            hashData: messages.concat(dmpMessages),
           }
         }
         return {
