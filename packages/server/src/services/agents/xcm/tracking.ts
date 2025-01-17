@@ -1,10 +1,11 @@
 import EventEmitter from 'node:events'
-import { Observable, Subject, from, map, mergeMap, share, switchMap } from 'rxjs'
+import { Observable, Subject, from, map, concatMap, share, switchMap } from 'rxjs'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { extractEvents } from '@/services/networking/substrate/rx/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
@@ -14,7 +15,7 @@ import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
-import { extractDmpReceive, extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { matchExtrinsic } from './ops/util.js'
@@ -40,10 +41,10 @@ type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
 
 export function extractXcmMessageData(apiContext: SubstrateApiContext) {
-  return (source: Observable<Block>): Observable<MessageHashData> => {
+  return (source: Observable<Block>): Observable<{ block: Block; hashData: MessageHashData[] }> => {
     return source.pipe(
-      mergeMap(({ extrinsics }) => {
-        const paraExtrinsic = extrinsics.find((ext) =>
+      map((block) => {
+        const paraExtrinsic = block.extrinsics.find((ext) =>
           matchExtrinsic(ext, 'ParachainSystem', 'set_validation_data'),
         )
         if (paraExtrinsic) {
@@ -67,9 +68,17 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
             return acc
           }, [])
 
-          return messages.concat(downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })))
+          return {
+            block,
+            hashData: messages.concat(
+              downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })),
+            ),
+          }
         }
-        return []
+        return {
+          block,
+          hashData: [],
+        }
       }),
     )
   }
@@ -163,32 +172,35 @@ export class XcmTracker {
           // VMP DMP
           this.#log.info('[%s] %s subscribe inbound DMP', this.#id, chainId)
 
-          subs.push({
-            chainId,
-            sub: this.#ingress
-              .getContext(chainId)
-              .pipe(switchMap((context) => this.#shared.blocks(chainId).pipe(extractXcmMessageData(context))))
-              .subscribe(({ hash, data }) => {
-                this.#engine.onMessageData({ hash, data })
-              }),
-          })
+          const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
+            switchMap((context) =>
+              this.#shared.blocks(chainId).pipe(
+                extractXcmMessageData(context),
+                concatMap(async ({ block, hashData }) => {
+                  for (const h of hashData) {
+                    await this.#engine.onMessageData(h)
+                  }
+                  return block
+                }),
+              ),
+            ),
+          )
 
-          subs.push({
-            chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(extractDmpReceive(), mapXcmInbound(chainId))
-              .subscribe(inboundObserver),
-          })
+          // DMP and HRMP receive matches the same event
+          // subs.push({
+          //   chainId,
+          //   sub: messageHashBlocks$
+          //     .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
+          //     .subscribe(inboundObserver),
+          // })
 
           // Inbound HRMP / XCMP transport
           this.#log.info('[%s] %s subscribe inbound HRMP', this.#id, chainId)
 
           subs.push({
             chainId,
-            sub: this.#shared
-              .blockEvents(chainId)
-              .pipe(extractXcmpReceive(), mapXcmInbound(chainId))
+            sub: messageHashBlocks$
+              .pipe(extractEvents(), extractXcmpReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         }

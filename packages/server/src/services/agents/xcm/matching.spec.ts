@@ -3,14 +3,16 @@ import { MemoryLevel as Level } from 'memory-level'
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { Services, SubLevel, jsonEncoded } from '@/services/types.js'
-import { hydraMoonMessages, matchMessages, moonBifrostMessages, realHopMessages } from '@/testing/matching.js'
+import { hydraMoonMessages, matchMessages, moonBifrostMessages } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
-import { moonbeamHydraCentrifuge } from '@/testing/hops.js'
+import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types.js'
+
+type OD = { origin: string; destination: string }
 
 describe('message matching engine', () => {
   let engine: MatchingEngine
@@ -18,9 +20,14 @@ describe('message matching engine', () => {
   let outDb: SubLevel<XcmSent>
   let services: Services
 
+  const msgOdCb = vi.fn()
   const msgTypeCb = vi.fn()
   const cb = vi.fn((msg) => {
     msgTypeCb(msg.type)
+    msgOdCb({
+      origin: msg.origin.chainId,
+      destination: msg.destination.chainId,
+    })
   })
   const schedule = vi.fn()
 
@@ -28,6 +35,17 @@ describe('message matching engine', () => {
     for (const [i, event] of events.entries()) {
       expect(msgTypeCb).toHaveBeenNthCalledWith<[XcmNotificationType]>(i + 1, event)
     }
+  }
+
+  function expectOd(calls: number, od: OD) {
+    for (let i = 0; i < calls; i++) {
+      expect(msgOdCb).toHaveBeenNthCalledWith<[OD]>(i + 1, od)
+    }
+  }
+
+  async function expectNoLeftover() {
+    const leftoverKeys = await outDb.keys().all()
+    expect(leftoverKeys.length).toBe(0)
   }
 
   beforeAll(() => {
@@ -159,7 +177,7 @@ describe('message matching engine', () => {
     expect(cb).toHaveBeenCalledTimes(2)
   })
 
-  it('should match hop messages', async () => {
+  it('should match hop messages with heuristics', async () => {
     const { sent, relay0, hopIn, hopOut, relay1, received } = hydraAstarBifrost
 
     await engine.onRelayedMessage(relay0)
@@ -172,10 +190,11 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(hopIn)
     await engine.onRelayedMessage(relay1)
     await engine.onOutboundMessage(hopOut)
-
     await engine.onInboundMessage(received)
 
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
+    expectOd(6, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:polkadot:2030' })
+    await expectNoLeftover()
   })
 
   it('should match hop messages with 2 potential received', async () => {
@@ -189,35 +208,27 @@ describe('message matching engine', () => {
     })
 
     await engine.onInboundMessage(hopIn)
-
     await engine.onInboundMessage(received0)
     await engine.onInboundMessage(received1)
 
     expectEvents(['xcm.sent', 'xcm.hop', 'xcm.received'])
+    expectOd(3, { origin: 'urn:ocn:polkadot:2030', destination: 'urn:ocn:polkadot:2034' })
+    await expectNoLeftover()
   })
 
   it('should match hop messages with topic id', async () => {
-    const { origin, hopin, hopout } = realHopMessages
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamCentrifugeHydra
 
-    await engine.onOutboundMessage(origin)
-    await engine.onInboundMessage(hopin)
-    await engine.onOutboundMessage(hopout)
+    await engine.onOutboundMessage({ ...sent, messageId: '0x010203' })
+    await engine.onRelayedMessage(relay0)
+    await engine.onRelayedMessage(relay1)
+    await engine.onInboundMessage({ ...hopIn, messageId: '0x010203' })
+    await engine.onOutboundMessage({ ...hopOut, messageId: '0x010203' })
+    await engine.onInboundMessage({ ...received, messageId: '0x010203' })
 
-    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop'])
-  })
-
-  it('should match hop messages without topic id', async () => {
-    const { origin, hopin, hopout } = realHopMessages
-
-    delete origin.messageId
-    delete hopin.messageId
-    delete hopout.messageId
-
-    await engine.onOutboundMessage(origin)
-    await engine.onInboundMessage(hopin)
-    await engine.onOutboundMessage(hopout)
-
-    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop'])
+    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectOd(6, { origin: 'urn:ocn:polkadot:2004', destination: 'urn:ocn:polkadot:2034' })
+    await expectNoLeftover()
   })
 
   it('should match hop messages without relay', async () => {
@@ -231,7 +242,7 @@ describe('message matching engine', () => {
   })
 
   it('should match hop messages with concurrent message on hop stop', async () => {
-    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamCentrifugeHydra
 
     await engine.onOutboundMessage(sent)
     await engine.onRelayedMessage(relay0)
@@ -240,10 +251,11 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(received)
 
     expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.relayed', 'xcm.received'])
+    await expectNoLeftover()
   })
 
   it('should match hop messages with concurrent message on hop stop and relay out of order', async () => {
-    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamHydraCentrifuge
+    const { sent, relay0, hopIn, hopOut, relay1, received } = moonbeamCentrifugeHydra
 
     await engine.onRelayedMessage(relay0)
     await engine.onOutboundMessage(sent)
@@ -253,6 +265,7 @@ describe('message matching engine', () => {
 
     await engine.onInboundMessage(received)
 
-    expect(cb).toHaveBeenCalledTimes(6)
+    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    await expectNoLeftover()
   })
 })

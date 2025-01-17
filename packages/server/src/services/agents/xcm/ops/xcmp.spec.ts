@@ -87,7 +87,7 @@ describe('xcmp operator', () => {
       })
     })
 
-    it('should extract assets trapped info on XCMP received message', async () => {
+    it('should extract assets trapped info on XCMP received message for V4 assets', async () => {
       const { trappedBlocks } = xcmpReceive
       const calls = vi.fn()
       const test$ = extractXcmpReceive()(trappedBlocks.pipe(extractEvents()))
@@ -103,6 +103,7 @@ describe('xcmp operator', () => {
             expect(msg.outcome).toBeDefined()
             expect(msg.outcome).toBe('Fail')
             expect(msg.assetsTrapped).toBeDefined()
+            expect(msg.assetsTrapped?.assets).toBeDefined()
             expect(msg.timestamp).toBeDefined()
             calls()
           },
