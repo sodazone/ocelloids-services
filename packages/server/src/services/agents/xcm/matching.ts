@@ -131,6 +131,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onMessageData({ hash, data }: MessageHashData) {
     await this.#mutex.runExclusive(async () => {
+      this.#log.info(
+        '[matching] STORE HASH DATA hash=%s',
+        hash
+      )
       await this.#messageData.put(hash, data)
       await this.#janitor.schedule({
         sublevel: prefixes.matching.messageData,
