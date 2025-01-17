@@ -27,7 +27,7 @@ export const _config = new ServiceConfiguration($ServiceConfiguration.parse(toml
 
 function mockApiClient() {
   const _client = {
-    finalizedHeads$: of({}),
+    followHeads$: of({}),
   }
   return {
     ..._client,
