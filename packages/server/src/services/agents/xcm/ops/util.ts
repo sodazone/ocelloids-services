@@ -13,7 +13,7 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
     if (xt.signed) {
       // Signer could be Address or AccountId
       const accountId: string = typeof xt.address === 'string' ? xt.address : xt.address.value
-      const publicKey = accountId.startsWith('0x') ? (accountId as HexString) : asPublicKey(accountId)
+      const publicKey = asPublicKey(accountId)
       return {
         signer: {
           id: accountId,

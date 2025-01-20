@@ -22,9 +22,9 @@ export function getEventValue(module: string, name: string | string[], events: E
   )?.value
 }
 
-export function asPublicKey(accountId: string) {
-  if (typeof accountId !== 'string' || accountId.startsWith('0x')) {
-    return accountId
+export function asPublicKey(accountId: string): HexString {
+  if (accountId.startsWith('0x')) {
+    return accountId as HexString
   }
   const info = getSs58AddressInfo(accountId)
   if (!info.isValid) {
