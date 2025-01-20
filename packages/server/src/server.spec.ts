@@ -11,7 +11,7 @@ const testSubContent = {
   owner: 'unknown',
   args: {
     origins: ['urn:ocn:local:1000'],
-    senders: ['ALICE'],
+    senders: ['0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269'],
     events: '*',
     destinations: ['urn:ocn:local:2000'],
   },
@@ -334,7 +334,7 @@ describe('Ocelloids Server HTTP API', () => {
               {
                 op: 'add',
                 path: '/args/senders/-',
-                value: 'BOB',
+                value: '12znMShnYUCy6evsKDwFumafF9WsC2qPVMxLQkioczcjqudf',
               },
             ],
           },
@@ -356,13 +356,16 @@ describe('Ocelloids Server HTTP API', () => {
               {
                 op: 'add',
                 path: '/args/senders/-',
-                value: 'BOB',
+                value: '12znMShnYUCy6evsKDwFumafF9WsC2qPVMxLQkioczcjqudf',
               },
             ],
           },
           (_err, response) => {
             expect(response?.statusCode).toStrictEqual(200)
-            expect(JSON.parse(response!.body).args.senders).toEqual(['ALICE', 'BOB'])
+            expect(JSON.parse(response!.body).args.senders).toEqual([
+              '0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269',
+              '12znMShnYUCy6evsKDwFumafF9WsC2qPVMxLQkioczcjqudf',
+            ])
             resolve()
           },
         )
