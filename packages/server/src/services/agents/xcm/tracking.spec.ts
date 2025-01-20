@@ -48,14 +48,36 @@ describe('extractXcmMessageData', () => {
     })
   })
 
-  it('should extract xcm messages from hrmp bifrost', async () => {
-    const blocks = from(testBlocksFrom('bifrost/6352399.cbor'))
+  it('should extract xcm messages from dmp with topic id', async () => {
+    const blocks = from(testBlocksFrom('bifrost/6360506.cbor'))
     const calls = vi.fn()
     const test$ = extractXcmMessageData(apiContext)(blocks.pipe())
 
     new Promise<void>((resolve) => {
       test$.subscribe({
         next: ({ hashData }) => {
+          calls()
+          expect(hashData).toBeDefined()
+          expect(hashData[0].hash).toBeDefined()
+          expect(hashData[0].data).toBeDefined()
+        },
+        complete: () => {
+          resolve()
+          expect(calls).toHaveBeenCalledTimes(1)
+        },
+      })
+    })
+  })
+
+  it('should extract xcm messages from dmp with topic id that does not accept topic id', async () => {
+    const blocks = from(testBlocksFrom('interlay/7025155.cbor'))
+    const calls = vi.fn()
+    const test$ = extractXcmMessageData(apiContext)(blocks.pipe())
+
+    new Promise<void>((resolve) => {
+      test$.subscribe({
+        next: ({ hashData }) => {
+          console.log(hashData)
           calls()
           expect(hashData).toBeDefined()
           expect(hashData[0].hash).toBeDefined()

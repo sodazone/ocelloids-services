@@ -1,7 +1,17 @@
 import { AnyJson } from '@/lib.js'
-import { asSerializable } from './util.js'
+import { asPublicKey, asSerializable } from './util.js'
 
 describe('utility functions', () => {
+  it('should transform SS58 addresses', () => {
+    expect(asPublicKey('dfZvF6iz8qvsdGEWTHBoo2daJWq386QYfDXwfsycTJhicxLcc')).toBe(
+      '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441',
+    )
+  })
+  it('should bypass hex strings', () => {
+    expect(asPublicKey('0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441')).toBe(
+      '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441',
+    )
+  })
   it('should serialize objecs', () => {
     expect(asSerializable({ one: 1 })).toStrictEqual({ one: 1 })
   })

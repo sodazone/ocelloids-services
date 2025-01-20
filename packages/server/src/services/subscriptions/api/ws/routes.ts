@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
-import { CAP_READ, CAP_WRITE, NodQuerystring } from '@/services/auth/index.js'
+import { CAP_READ, NodQuerystring } from '@/services/auth/index.js'
 
 import { SubscriptionPathParams } from '../handlers.js'
 
@@ -61,7 +61,7 @@ export async function SubscriptionWebSocketsApi(fastify: FastifyInstance) {
     Querystring: NodQuerystring
   }>(
     '/ws/subs',
-    { websocket: true, config: { wsAuth: true, caps: [CAP_WRITE] }, schema: { hide: true } },
+    { websocket: true, config: { wsAuth: true, caps: [CAP_READ] }, schema: { hide: true } },
     (socket, request): void => {
       setImmediate(() => fastify.wsProtocol.handle(socket, request))
     },

@@ -22,6 +22,38 @@ describe('control query criteria', () => {
       expect(matched).toBe(true)
     })
 
+    it('should return true if sender matches query by public key', () => {
+      const matched = matchSenders(
+        new ControlQuery(
+          sendersCriteria(['0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269']),
+        ),
+        {
+          signer: {
+            id: '15tmnFTCArWaxNqxMaK4ey77RoL6c282ho5NnfQuFzgmwLKn',
+            publicKey: '0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269',
+          },
+          extraSigners: [],
+        },
+      )
+
+      expect(matched).toBe(true)
+    })
+
+    it('should return true if sender matches query with different SS58 prefix by public key', () => {
+      const matched = matchSenders(
+        new ControlQuery(sendersCriteria(['25mNNAsE1mFrWxtbQu7JRymMtem39rREbCcgwVqutYdekLBH'])),
+        {
+          signer: {
+            id: '15tmnFTCArWaxNqxMaK4ey77RoL6c282ho5NnfQuFzgmwLKn',
+            publicKey: '0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269',
+          },
+          extraSigners: [],
+        },
+      )
+
+      expect(matched).toBe(true)
+    })
+
     it('should return true if extra signers matches query', () => {
       const matched = matchSenders(testSendersQuery, {
         signer: {

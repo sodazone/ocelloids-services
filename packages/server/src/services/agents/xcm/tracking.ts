@@ -14,13 +14,14 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
+import { extractParachainReceive } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
-import { matchExtrinsic } from './ops/util.js'
-import { fromXcmpFormat, messageHash } from './ops/xcm-format.js'
-import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
+import { getMessageId, matchExtrinsic } from './ops/util.js'
+import { fromXcmpFormat, raw } from './ops/xcm-format.js'
+import { extractXcmpSend } from './ops/xcmp.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 import {
@@ -62,17 +63,20 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
             for (const m of msgs) {
               const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
               for (const xcm of xcms) {
-                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString })
+                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString, topicId: getMessageId(xcm) })
               }
             }
             return acc
           }, [])
 
+          const dmpMessages = downward_messages.map((dm) => {
+            const decoded = raw.asVersionedXcm(dm.msg, apiContext)
+            return { hash: decoded.hash, data: dm.msg, topicId: getMessageId(decoded) }
+          })
+
           return {
             block,
-            hashData: messages.concat(
-              downward_messages.map((dm) => ({ hash: messageHash(dm.msg), data: dm.msg })),
-            ),
+            hashData: messages.concat(dmpMessages),
           }
         }
         return {
@@ -169,8 +173,8 @@ export class XcmTracker {
               .subscribe(inboundObserver),
           })
         } else {
-          // VMP DMP
-          this.#log.info('[%s] %s subscribe inbound DMP', this.#id, chainId)
+          // VMP + HRMP
+          this.#log.info('[%s] %s subscribe inbound DMP + HRMP / XCMP', this.#id, chainId)
 
           const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
             switchMap((context) =>
@@ -186,21 +190,11 @@ export class XcmTracker {
             ),
           )
 
-          // DMP and HRMP receive matches the same event
-          // subs.push({
-          //   chainId,
-          //   sub: messageHashBlocks$
-          //     .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
-          //     .subscribe(inboundObserver),
-          // })
-
-          // Inbound HRMP / XCMP transport
-          this.#log.info('[%s] %s subscribe inbound HRMP', this.#id, chainId)
-
+          // Extract both DMP and HRMP receive
           subs.push({
             chainId,
             sub: messageHashBlocks$
-              .pipe(extractEvents(), extractXcmpReceive(), mapXcmInbound(chainId))
+              .pipe(extractEvents(), extractParachainReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         }
@@ -372,10 +366,10 @@ export class XcmTracker {
     const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      const key = codec.enc(paraId) as HexString
+      const key = codec.keys.enc(paraId) as HexString
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }
@@ -383,11 +377,11 @@ export class XcmTracker {
 
   #getUmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundUmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
-    const key = codec.enc() as HexString
+    const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }
@@ -395,11 +389,11 @@ export class XcmTracker {
 
   #getHrmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundHrmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
-    const key = codec.enc() as HexString
+    const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }

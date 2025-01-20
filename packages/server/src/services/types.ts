@@ -29,7 +29,6 @@ export type SubLevel<V> = Family<Buffer | Uint8Array | string, string, V>
  */
 export enum LevelEngine {
   classic = 'classic',
-  rave = 'rave',
   mem = 'mem',
 }
 

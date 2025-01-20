@@ -43,7 +43,7 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).not.toBeCalled()
       expect((await heads.keys().all()).length).toBe(50)
-      expect((await heads.get('2')).hash).toBe('0xC2')
+      expect((await heads.get('2'))?.hash).toBe('0xC2')
     })
 
     it.skip('should prune heads cache', async () => {
@@ -57,7 +57,7 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).not.toBeCalled()
       expect((await heads.keys().all()).length).toBe(500)
-      expect((await heads.get('504')).hash).toBe('0xC504')
+      expect((await heads.get('504'))?.hash).toBe('0xC504')
     })
 
     it('should handle a 50 blocks re-org', async () => {
@@ -81,7 +81,7 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).toBeCalledTimes(48)
       expect((await heads.keys().all()).length).toBe(51)
-      expect((await heads.get('25')).hash).toBe('0xC25')
+      expect((await heads.get('25'))?.hash).toBe('0xC25')
     })
 
     it('should handle a 2 blocks re-org', async () => {
@@ -129,7 +129,7 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).toBeCalledTimes(2)
       expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3', '4'])
-      expect((await heads.get('2')).hash).toBe('0xC2')
+      expect((await heads.get('2'))?.hash).toBe('0xC2')
     })
 
     it('should handle a 1 block re-org', async () => {
@@ -167,7 +167,7 @@ describe('Bitcoin watcher', () => {
 
       expect(getHeader).toBeCalledTimes(1)
       expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3'])
-      expect((await heads.get('2')).hash).toBe('0xC2')
+      expect((await heads.get('2'))?.hash).toBe('0xC2')
     })
   })
 })

@@ -1,23 +1,10 @@
-import { openDatabase } from '@/services/persistence/kysely/database/db.js'
-import { Migration, Migrator, sql } from 'kysely'
+import { sql } from 'kysely'
 
-import * as initial from '@/services/persistence/kysely/database/migrations/000000_schema.js'
+import { createSystemDatabase } from './db.js'
 import { AccountsRepository } from './repository.js'
 
 describe('AccountsRepository', () => {
-  const db = openDatabase({
-    filename: ':memory:',
-  })
-  const migrator = new Migrator({
-    db,
-    provider: {
-      getMigrations: async (): Promise<Record<string, Migration>> => {
-        return {
-          '000000': initial,
-        }
-      },
-    },
-  })
+  const { db, migrator } = createSystemDatabase(':memory:')
   const repository = new AccountsRepository(db)
 
   beforeAll(async () => {

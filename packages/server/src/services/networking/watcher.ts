@@ -184,7 +184,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         const prevHeight = head.height - 1
         const prevHead = await db.get(prevHeight.toString())
         // TODO handle errors, to stop...
-        if (head.parenthash !== prevHead.hash) {
+        if (prevHead && head.parenthash !== prevHead.hash) {
           const parentHead = await api.getNeutralBlockHeader(head.parenthash)
           return rollbackOnReorg(acc)(parentHead)
         }
@@ -248,7 +248,6 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
     try {
       const newHeadNum = head.height
-      let currentHeight: number
 
       const chainTip: ChainHead = {
         chainId,
@@ -258,12 +257,8 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         receivedAt: new Date(),
       }
 
-      try {
-        const currentTip = await this.#chainTips.get(chainId)
-        currentHeight = Number(currentTip.blockNumber)
-      } catch {
-        currentHeight = newHeadNum
-      }
+      const currentTip = await this.#chainTips.get(chainId)
+      const currentHeight = currentTip === undefined ? newHeadNum : Number(currentTip.blockNumber)
 
       const blockDistance = newHeadNum - currentHeight
 

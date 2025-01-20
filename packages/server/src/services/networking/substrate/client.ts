@@ -284,8 +284,8 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   async query<T = any>(module: string, method: string, ...args: any[]) {
     try {
       const codec = this.ctx.storageCodec<T>(module, method)
-      const data = await this.getStorage(codec.enc(...args))
-      return codec.dec(data)
+      const data = await this.getStorage(codec.keys.enc(...args))
+      return codec.value.dec(data)
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to query ${module}.${method}.`, { cause: error })
     }

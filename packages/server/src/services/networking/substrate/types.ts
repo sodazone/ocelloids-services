@@ -11,9 +11,11 @@ import type { HexString } from '@/lib.js'
 import { ApiClient } from '../types.js'
 
 export type StorageCodec<T = any> = {
-  enc: (...args: any[]) => string
-  dec: Decoder<T>
-  keyDecoder: (value: string) => any[]
+  keys: {
+    enc: (...args: any[]) => string
+    dec: (value: string) => any[]
+  }
+  value: Codec<T>
 }
 
 export type Event = {

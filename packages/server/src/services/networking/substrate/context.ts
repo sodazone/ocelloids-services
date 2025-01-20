@@ -24,8 +24,8 @@ export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: strin
       lookup,
       dynamicBuilder,
       events: {
-        key: events.enc(),
-        dec: events.dec as Decoder<any>,
+        key: events.keys.enc(),
+        dec: events.value.dec as Decoder<any>,
       },
     } as RuntimeContext,
     chainId,

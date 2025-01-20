@@ -13,7 +13,7 @@ const testSubContent = {
   owner: 'unknown',
   args: {
     origins: ['urn:ocn:local:1000'],
-    senders: ['ALICE'],
+    senders: ['0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269'],
     events: '*',
     destinations: ['urn:ocn:local:2000'],
   },

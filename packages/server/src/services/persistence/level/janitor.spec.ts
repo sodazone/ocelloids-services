@@ -14,7 +14,7 @@ describe('janitor service', () => {
   let db: Level
   let now: any
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Level()
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
@@ -24,6 +24,8 @@ describe('janitor service', () => {
       sweepExpiry: 500,
     })
     now = vi.spyOn(Date, 'now').mockImplementation(() => 0)
+
+    return scheduler.__open()
   })
 
   afterEach(() => {
@@ -32,6 +34,7 @@ describe('janitor service', () => {
 
   it('should schedule and execute a task', async () => {
     const s1 = db.sublevel('s1')
+    await s1.open()
     await s1.batch().put('k1', '').put('k2', '').write()
 
     scheduler.start()
@@ -54,15 +57,14 @@ describe('janitor service', () => {
     vi.advanceTimersByTime(1)
     await flushPromises()
 
-    await expect(async () => {
-      await s1.get('k1')
-    }).rejects.toThrow()
+    expect(await s1.get('k1')).toBeFalsy()
 
     await expect(s1.get('k2')).resolves.toBeDefined()
   })
 
   it('should skip future tasks', async () => {
     const s1 = db.sublevel('s1')
+    await s1.open()
     await s1.batch().put('k1', '').put('k2', '').put('k3', '').write()
 
     scheduler.start()
@@ -93,9 +95,7 @@ describe('janitor service', () => {
 
     await flushPromises()
 
-    await expect(async () => {
-      await s1.get('k1')
-    }).rejects.toThrow()
+    expect(await s1.get('k1')).toBeFalsy()
 
     expect((await scheduler.allTaskTimes()).length).toBe(1)
     expect(await s1.get('k3')).toBeDefined()
@@ -111,9 +111,7 @@ describe('janitor service', () => {
     vi.advanceTimersByTime(1)
     await flushPromises()
 
-    await expect(async () => {
-      await s1.get('k3')
-    }).rejects.toThrow()
+    expect(await s1.get('k3')).toBeFalsy()
   })
 
   it('should avoid key collisions', async () => {
@@ -132,6 +130,7 @@ describe('janitor service', () => {
 
   it('should continue if the tasks fails', async () => {
     const s1 = db.sublevel('s1')
+    await s1.open()
     await s1.batch().put('k1', '').put('k2', '').put('k3', '').write()
 
     scheduler.start()

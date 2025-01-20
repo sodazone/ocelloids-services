@@ -36,10 +36,12 @@ export class LocationQueryHandler {
       }
     }
 
+    const assets = await this.#db.getMany<string, AssetMetadata>(keys, {
+      /** */
+    })
+
     return {
-      items: await this.#db.getMany<string, AssetMetadata>(keys, {
-        /** */
-      }),
+      items: assets.filter((a) => a !== undefined),
     }
   }
 

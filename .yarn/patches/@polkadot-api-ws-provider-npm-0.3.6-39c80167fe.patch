@@ -1,8 +1,8 @@
 diff --git a/dist/node/esm/node.mjs b/dist/node/esm/node.mjs
-index 8707f2d1ba22e2f249330c7e59ed039237d4d7b9..d7352d6561977c758cfc69d76c8a7d4bb940e8b5 100644
+index 8707f2d1ba22e2f249330c7e59ed039237d4d7b9..a1212b7cc7e24d79730099e39d3d95816f97adbf 100644
 --- a/dist/node/esm/node.mjs
 +++ b/dist/node/esm/node.mjs
-@@ -2,10 +2,32 @@ import { WebSocket } from 'ws';
+@@ -2,10 +2,33 @@ import { WebSocket } from 'ws';
  import { getInternalWsProvider } from './ws-provider.mjs';
  export { WsEvent } from './types.mjs';
  
@@ -12,7 +12,8 @@ index 8707f2d1ba22e2f249330c7e59ed039237d4d7b9..d7352d6561977c758cfc69d76c8a7d4b
    close() {
      this.terminate();
    }
-+   // Triggers "close" on network failure
++
++  // Triggers "close" on network failure
 +  // (e.g. when pulling the cord, datacenter network infra migrations, &c.)
 +  stayAlive() {
 +    function heartbeat() {

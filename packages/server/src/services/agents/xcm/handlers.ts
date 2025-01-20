@@ -51,8 +51,12 @@ export class XcmSubscriptionManager {
    * @param {string} id - The subscription ID.
    */
   delete(id: string) {
-    this.get(id)?.stream.unsubscribe()
-    delete this.#handlers[id]
+    try {
+      this.get(id).stream.unsubscribe()
+      delete this.#handlers[id]
+    } catch {
+      //
+    }
   }
 
   /**
@@ -82,7 +86,11 @@ export class XcmSubscriptionManager {
    * @returns {XcmSubscriptionHandler} The subscription handler.
    */
   get(id: string) {
-    return this.#handlers[id]
+    const handler = this.#handlers[id]
+    if (handler === undefined) {
+      throw new Error(`Subscription handler not found for ${id}`)
+    }
+    return handler
   }
 
   /**

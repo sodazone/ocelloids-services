@@ -17,7 +17,7 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
     if (xt.signed) {
       // Signer could be Address or AccountId
       const accountId: string = typeof xt.address === 'string' ? xt.address : xt.address.value
-      const publicKey = accountId.startsWith('0x') ? (accountId as HexString) : asPublicKey(accountId)
+      const publicKey = asPublicKey(accountId)
       return {
         signer: {
           id: accountId,
@@ -64,7 +64,7 @@ export function getMessageId({ instructions }: Program): HexString | undefined {
     case 'V4':
       for (const instruction of instructions.value) {
         if (instruction.type === 'SetTopic') {
-          return instruction.value
+          return typeof instruction.value === 'string' ? instruction.value : instruction.value.asHex()
         }
       }
       return undefined

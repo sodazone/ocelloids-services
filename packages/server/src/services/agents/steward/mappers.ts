@@ -18,7 +18,7 @@ const BYPASS_MAPPER: AssetMapper = () => []
 
 const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
     assets: codec,
     metadata: context.storageCodec('Assets', 'Metadata'),
@@ -38,7 +38,7 @@ const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
     assets: codec,
     metadata: context.storageCodec('Assets', 'Metadata'),
@@ -61,7 +61,7 @@ const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
     assets: codec,
     metadata: context.storageCodec('TokenGovernor', 'AssetMetadatas'),
@@ -83,7 +83,7 @@ const hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'CurrencyMetadatas')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
     assets: codec,
     locations: context.storageCodec('AssetRegistry', 'CurrencyIdToLocations'),
@@ -104,7 +104,7 @@ const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
         if (hashers !== null) {
           itemPartialKey = toHex(hashItemPartialKey(data, hashers))
         }
-        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        const dec = codec.keys.dec(keyPrefix + itemPartialKey.slice(2))
         return dec
       },
     },
@@ -114,7 +114,7 @@ const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const hydrationMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'Assets')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
     assets: codec,
     locations: context.storageCodec('AssetRegistry', 'AssetLocations'),
@@ -136,7 +136,7 @@ const hydrationMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('OrmlAssetRegistry', 'Metadata')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets'> = {
     assets: codec,
   }
@@ -162,7 +162,7 @@ const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
         if (hashers !== null) {
           itemPartialKey = toHex(hashItemPartialKey(data, hashers))
         }
-        const dec = codec.keyDecoder(keyPrefix + itemPartialKey.slice(2))
+        const dec = codec.keys.dec(keyPrefix + itemPartialKey.slice(2))
         return dec
       },
     },
@@ -172,14 +172,14 @@ const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
 
 const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
-  const keyPrefix = codec.enc() as HexString
+  const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata'> = {
     assets: codec,
     metadata: context.storageCodec('Assets', 'Metadata'),
   }
 
   const foreignAssetsCodec = context.storageCodec('ForeignAssets', 'Asset')
-  const foreignAssetsKeyPrefix = foreignAssetsCodec.enc() as HexString
+  const foreignAssetsKeyPrefix = foreignAssetsCodec.keys.enc() as HexString
   const mappings = [
     {
       keyPrefix,
@@ -194,9 +194,9 @@ const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
         return (source: Observable<HexString>): Observable<AssetMetadata> => {
           return source.pipe(
             map((buffer) => {
-              const assetId = assetCodec.keyDecoder(keyArgs)[0]
+              const assetId = assetCodec.keys.dec(keyArgs)[0]
               const multiLocation = assetId
-              const assetDetails = assetCodec.dec(buffer)
+              const assetDetails = assetCodec.value.dec(buffer)
 
               return {
                 id: assetId,
@@ -210,10 +210,10 @@ const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
               } as AssetMetadata
             }),
             mergeMap((asset) => {
-              const key = assetMetadataCodec.enc(asset.id) as HexString
+              const key = assetMetadataCodec.keys.enc(asset.id) as HexString
               return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
                 map((buffer) => {
-                  const assetDetails = buffer ? assetMetadataCodec.dec(buffer) : null
+                  const assetDetails = buffer ? assetMetadataCodec.value.dec(buffer) : null
                   if (assetDetails) {
                     return {
                       ...asset,

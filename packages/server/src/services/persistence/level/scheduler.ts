@@ -88,11 +88,19 @@ export class Scheduler extends EventEmitter {
   }
 
   async getById(key: string) {
-    try {
-      return await this.#tasks.get(key)
-    } catch {
-      throw new NotFound('Task no found')
+    const task = await this.#tasks.get(key)
+    if (task === undefined) {
+      throw new NotFound(`Task no found for key ${key}`)
     }
+    return task
+  }
+
+  /**
+   * For use with fake timers.
+   */
+  async __open() {
+    await this.#tasks.db.open()
+    await this.#tasks.open()
   }
 
   async #run() {

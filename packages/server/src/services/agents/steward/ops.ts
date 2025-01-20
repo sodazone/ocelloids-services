@@ -45,8 +45,8 @@ export const mapAssetsRegistryMetadata = ({
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = codec.keyDecoder(keyArgs)[0]
-          const assetDetails = buffer ? codec.dec(buffer) : {}
+          const assetId = codec.keys.dec(keyArgs)[0]
+          const assetDetails = buffer ? codec.value.dec(buffer) : {}
           const existentialDeposit = options?.ed ? assetDetails[options.ed].toString() : undefined
           const isSufficient = options?.isSufficient ? assetDetails[options.isSufficient] : undefined
           const extractMetadata = options?.extractMetadata
@@ -86,8 +86,8 @@ export const mapAssetsPalletAssets =
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         map((buffer) => {
-          const assetId = assetCodec.keyDecoder(keyArgs)[0]
-          const assetDetails = assetCodec.dec(buffer)
+          const assetId = assetCodec.keys.dec(keyArgs)[0]
+          const assetDetails = assetCodec.value.dec(buffer)
           return {
             id: assetId,
             xid: keyArgs,
@@ -101,10 +101,10 @@ export const mapAssetsPalletAssets =
         }),
         // Assets Metadata
         mergeMap((asset) => {
-          const key = assetMetadataCodec.enc(asset.id) as HexString
+          const key = assetMetadataCodec.keys.enc(asset.id) as HexString
           return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
             map((buffer) => {
-              const assetDetails = buffer ? assetMetadataCodec.dec(buffer) : {}
+              const assetDetails = buffer ? assetMetadataCodec.value.dec(buffer) : {}
               return {
                 ...asset,
                 name: assetDetails.name?.asText(),
@@ -130,13 +130,13 @@ const mergeMultiLocations = (
     const codec = codecs.locations
     return mergeMap((asset: AssetMetadata) => {
       // Expand multilocations
-      const key = codec.enc(asset.id) as HexString
+      const key = codec.keys.enc(asset.id) as HexString
       return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
         map((buffer) => {
           if (buffer === null || buffer.length === 0) {
             return asset
           }
-          const maybeLoc = codec.dec(buffer)
+          const maybeLoc = codec.value.dec(buffer)
           if (maybeLoc) {
             const multiLocation = onMultiLocationData === undefined ? maybeLoc : onMultiLocationData(maybeLoc)
             return {

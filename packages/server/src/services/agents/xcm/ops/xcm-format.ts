@@ -67,7 +67,9 @@ export function asVersionedXcm(data: HexString | Uint8Array, context: SubstrateA
  */
 export function versionedXcmCodec(context: SubstrateApiContext) {
   const xcmTypeId =
-    context.getTypeIdByPath('xcm.VersionedXcm') ?? context.getTypeIdByPath('staging.xcm.VersionedXcm')
+    context.getTypeIdByPath('xcm.VersionedXcm') ??
+    context.getTypeIdByPath('staging.xcm.VersionedXcm') ??
+    context.getTypeIdByPath('staging_xcm.VersionedXcm')
   if (xcmTypeId === undefined) {
     throw new Error('Versioned XCM type not found in chain registry')
   }

@@ -74,6 +74,7 @@ export class XcmAgent implements Agent, Subscribable {
     const { id, args } = subscription
 
     this.#validateChainIds(args)
+    this.#validateSenders(args)
 
     const handler = this.#monitor(subscription)
     this.#subs.set(id, handler)
@@ -178,6 +179,14 @@ export class XcmAgent implements Agent, Subscribable {
       originsControl,
       destinationsControl,
       notificationTypeControl,
+    }
+  }
+
+  #validateSenders({ senders }: XcmInputs) {
+    try {
+      sendersCriteria(senders)
+    } catch {
+      throw new ValidationError('Invalid senders')
     }
   }
 
