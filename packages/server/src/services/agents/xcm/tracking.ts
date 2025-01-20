@@ -13,13 +13,14 @@ import { SharedStreams } from '../base/shared.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
+import { extractParachainReceive } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getMessageId, matchExtrinsic } from './ops/util.js'
 import { fromXcmpFormat, raw } from './ops/xcm-format.js'
-import { extractXcmpReceive, extractXcmpSend } from './ops/xcmp.js'
+import { extractXcmpSend } from './ops/xcmp.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
 import {
@@ -171,8 +172,8 @@ export class XcmTracker {
               .subscribe(inboundObserver),
           })
         } else {
-          // VMP DMP
-          this.#log.info('[%s] %s subscribe inbound DMP', this.#id, chainId)
+          // VMP + HRMP
+          this.#log.info('[%s] %s subscribe inbound DMP + HRMP / XCMP', this.#id, chainId)
 
           const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
             switchMap((context) =>
@@ -188,21 +189,11 @@ export class XcmTracker {
             ),
           )
 
-          // DMP and HRMP receive matches the same event
-          // subs.push({
-          //   chainId,
-          //   sub: messageHashBlocks$
-          //     .pipe(extractEvents(), extractDmpReceive(), mapXcmInbound(chainId))
-          //     .subscribe(inboundObserver),
-          // })
-
-          // Inbound HRMP / XCMP transport
-          this.#log.info('[%s] %s subscribe inbound HRMP', this.#id, chainId)
-
+          // Extract both DMP and HRMP receive
           subs.push({
             chainId,
             sub: messageHashBlocks$
-              .pipe(extractEvents(), extractXcmpReceive(), mapXcmInbound(chainId))
+              .pipe(extractEvents(), extractParachainReceive(), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         }

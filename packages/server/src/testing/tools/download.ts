@@ -17,6 +17,7 @@ export const networks = {
   moonbeam: 'wss://moonbeam.ibp.network',
   astar: 'wss://rpc.astar.network',
   bifrost: 'wss://bifrost-polkadot.ibp.network',
+  interlay: 'wss://interlay-rpc.dwellir.com',
 } as Record<string, string>
 
 async function download([name, ws, height]: [string, string, string]) {

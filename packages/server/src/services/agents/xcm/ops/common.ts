@@ -1,11 +1,13 @@
-import { Observable, map, mergeMap } from 'rxjs'
+import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
+import { filterNonNull } from '@/common/index.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { ApiContext, BlockEvent } from '@/services/networking/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { toHex } from 'polkadot-api/utils'
 import {
+  GenericXcmInboundWithContext,
   GenericXcmSent,
   Leg,
   XcmInbound,
@@ -13,8 +15,15 @@ import {
   XcmSent,
   XcmSentWithContext,
 } from '../types.js'
-import { getParaIdFromJunctions, getSendersFromEvent, networkIdFromMultiLocation } from './util.js'
+import {
+  getParaIdFromJunctions,
+  getSendersFromEvent,
+  mapAssetsTrapped,
+  matchEvent,
+  networkIdFromMultiLocation,
+} from './util.js'
 import { raw, versionedXcmCodec } from './xcm-format.js'
+import { METHODS_XCMP_QUEUE } from './xcmp.js'
 
 type Stop = { networkId: NetworkURN; message?: any[] }
 
@@ -158,6 +167,90 @@ export function xcmMessagesSent() {
           extrinsicHash: event.extrinsic?.hash as HexString,
         } as XcmSentWithContext
       }),
+    )
+  }
+}
+
+/**
+ * Extract XCM receive events for both DMP and HRMP in parachains.
+ * Most parachains emit the same event, MessageQueue.Processed, for both DMP and HRMP.
+ * But some, like Interlay, emits a different event DmpQueue.ExecutedDownward for DMP.
+ */
+export function extractParachainReceive() {
+  return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
+    return source.pipe(
+      bufferCount(2, 1),
+      // eslint-disable-next-line complexity
+      map(([maybeAssetTrapEvent, maybeXcmpEvent]) => {
+        if (maybeXcmpEvent === undefined) {
+          return null
+        }
+
+        const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
+          ? maybeAssetTrapEvent
+          : undefined
+        const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+
+        if (matchEvent(maybeXcmpEvent, 'XcmpQueue', METHODS_XCMP_QUEUE)) {
+          const xcmpQueueData = maybeXcmpEvent.value
+
+          return new GenericXcmInboundWithContext({
+            event: maybeXcmpEvent,
+            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            blockHash: maybeXcmpEvent.blockHash as HexString,
+            blockNumber: maybeXcmpEvent.blockNumber,
+            timestamp: maybeXcmpEvent.timestamp,
+            extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
+            messageHash: xcmpQueueData.message_hash,
+            messageId: xcmpQueueData.message_id,
+            outcome: maybeXcmpEvent.name === 'Success' ? 'Success' : 'Fail',
+            error: xcmpQueueData.error,
+            assetsTrapped,
+          })
+        } else if (matchEvent(maybeXcmpEvent, 'MessageQueue', 'Processed')) {
+          const { id, success, error } = maybeXcmpEvent.value
+          // Received event only emits field `message_id`,
+          // which is actually the message hash in chains that do not yet support Topic ID.
+          const messageId = id
+          const messageHash = messageId
+
+          return new GenericXcmInboundWithContext({
+            event: maybeXcmpEvent,
+            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            blockHash: maybeXcmpEvent.blockHash as HexString,
+            blockNumber: maybeXcmpEvent.blockNumber,
+            timestamp: maybeXcmpEvent.timestamp,
+            messageHash,
+            messageId,
+            outcome: success ? 'Success' : 'Fail',
+            error,
+            assetsTrapped,
+          })
+        } else if (matchEvent(maybeXcmpEvent, 'DmpQueue', 'ExecutedDownward')) {
+          const { message_id, outcome } = maybeXcmpEvent.value
+
+          // Received event only emits field `message_id`,
+          // which is actually the message hash in chains that do not yet support Topic ID.
+          const messageId = message_id
+          const messageHash = messageId
+
+          return new GenericXcmInboundWithContext({
+            event: maybeXcmpEvent,
+            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            blockHash: maybeXcmpEvent.blockHash as HexString,
+            blockNumber: maybeXcmpEvent.blockNumber,
+            timestamp: maybeXcmpEvent.timestamp,
+            messageHash,
+            messageId,
+            outcome: outcome.type === 'Complete' ? 'Success' : 'Fail',
+            error: null,
+            assetsTrapped,
+          })
+        }
+
+        return null
+      }),
+      filterNonNull(),
     )
   }
 }
