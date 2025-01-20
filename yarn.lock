@@ -1263,6 +1263,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.7.0#~/.yarn/patches/@polkadot-api-observable-client-npm-0.7.0-f7d2165dea.patch":
+  version: 0.7.0
+  resolution: "@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.7.0#~/.yarn/patches/@polkadot-api-observable-client-npm-0.7.0-f7d2165dea.patch::version=0.7.0&hash=38d82d"
+  dependencies:
+    "@polkadot-api/metadata-builders": "npm:0.10.0"
+    "@polkadot-api/substrate-bindings": "npm:0.11.0"
+    "@polkadot-api/utils": "npm:0.1.2"
+  peerDependencies:
+    "@polkadot-api/substrate-client": 0.3.0
+    rxjs: ">=7.8.0"
+  checksum: 10c0/23c482c28d1fd286f1a0895cb8794a57309a782f74dfe93db26653a05b0b8ba95a40597dac7c1a31240986f501eb8e0b6b0eab9cdebc24c40489be10837d3102
+  languageName: node
+  linkType: hard
+
 "@polkadot-api/pjs-signer@npm:0.6.3":
   version: 0.6.3
   resolution: "@polkadot-api/pjs-signer@npm:0.6.3"
@@ -1399,12 +1413,12 @@ __metadata:
 
 "@polkadot-api/ws-provider@patch:@polkadot-api/ws-provider@npm%3A0.3.6#~/.yarn/patches/@polkadot-api-ws-provider-npm-0.3.6-39c80167fe.patch":
   version: 0.3.6
-  resolution: "@polkadot-api/ws-provider@patch:@polkadot-api/ws-provider@npm%3A0.3.6#~/.yarn/patches/@polkadot-api-ws-provider-npm-0.3.6-39c80167fe.patch::version=0.3.6&hash=9d1b4c"
+  resolution: "@polkadot-api/ws-provider@patch:@polkadot-api/ws-provider@npm%3A0.3.6#~/.yarn/patches/@polkadot-api-ws-provider-npm-0.3.6-39c80167fe.patch::version=0.3.6&hash=bd47c3"
   dependencies:
     "@polkadot-api/json-rpc-provider": "npm:0.0.4"
     "@polkadot-api/json-rpc-provider-proxy": "npm:0.2.4"
     ws: "npm:^8.18.0"
-  checksum: 10c0/8d1c2d5302e447155c654ba73bf885a6165d043ee0410ae8ef0494adacccc7db8c6cd5436714dd67d2ac479a4db474341d642b748b1b8d95f09281d3127e495f
+  checksum: 10c0/b0618b723ac9e75551a1d3a06be28f67ebb9829673ec1227d6db45eb6322487ec3c9817e862861d2115f67bbdb611eeb17aa1a2663ba4b919478a43b7197fd45
   languageName: node
   linkType: hard
 
