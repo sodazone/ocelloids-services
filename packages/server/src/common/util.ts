@@ -23,6 +23,9 @@ export function getEventValue(module: string, name: string | string[], events: E
 }
 
 export function asPublicKey(accountId: string) {
+  if (typeof accountId !== 'string' || accountId.startsWith('0x')) {
+    return accountId
+  }
   const info = getSs58AddressInfo(accountId)
   if (!info.isValid) {
     throw new Error(`invalid address format ${accountId}`)

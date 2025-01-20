@@ -191,6 +191,14 @@ describe('mingo query ops', () => {
     expect(q.test(data)).toBeTruthy()
   })
 
+  it('should compare eq addresses by public key', () => {
+    const q = new Query({
+      'args.dest.id': { $address_eq: '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441' },
+    })
+
+    expect(q.test(data)).toBeTruthy()
+  })
+
   it('should compare eq addresses falsy case', () => {
     const q = new Query({
       'args.dest.id': { $address_eq: '12Dw5aURKmAG8fCRtBa28tEvBVDChnaoKsjpewv53d6e6766' },

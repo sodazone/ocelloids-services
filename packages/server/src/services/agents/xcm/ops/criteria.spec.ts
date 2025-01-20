@@ -6,12 +6,27 @@ describe('control query criteria', () => {
   const testSendersQuery = new ControlQuery(
     sendersCriteria(['15tmnFTCArWaxNqxMaK4ey77RoL6c282ho5NnfQuFzgmwLKn']),
   )
+  const testSendersQueryPubKey = new ControlQuery(
+    sendersCriteria(['0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269']),
+  )
   const testMessageQuery = new ControlQuery(messageCriteria(['urn:ocn:local:0', 'urn:ocn:local:2000']))
   const { origin: xcmSent } = matchMessages
 
   describe('matchSenders', () => {
     it('should return true if sender matches query', () => {
       const matched = matchSenders(testSendersQuery, {
+        signer: {
+          id: '15tmnFTCArWaxNqxMaK4ey77RoL6c282ho5NnfQuFzgmwLKn',
+          publicKey: '0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269',
+        },
+        extraSigners: [],
+      })
+
+      expect(matched).toBe(true)
+    })
+
+    it.only('should return true if sender matches query by public key', () => {
+      const matched = matchSenders(testSendersQueryPubKey, {
         signer: {
           id: '15tmnFTCArWaxNqxMaK4ey77RoL6c282ho5NnfQuFzgmwLKn',
           publicKey: '0xd86d3160d360897d4576e08153bd0a80a5dee1812702c9bfd268c11a83737269',
