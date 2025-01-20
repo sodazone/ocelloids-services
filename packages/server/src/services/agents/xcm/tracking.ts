@@ -365,10 +365,10 @@ export class XcmTracker {
     const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
-      const key = codec.enc(paraId) as HexString
+      const key = codec.keys.enc(paraId) as HexString
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }
@@ -376,11 +376,11 @@ export class XcmTracker {
 
   #getUmp(chainId: NetworkURN, context: ApiContext): GetOutboundUmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
-    const key = codec.enc() as HexString
+    const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }
@@ -388,11 +388,11 @@ export class XcmTracker {
 
   #getHrmp(chainId: NetworkURN, context: ApiContext): GetOutboundHrmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
-    const key = codec.enc() as HexString
+    const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.dec(buffer)
+          return codec.value.dec(buffer)
         }),
       )
     }

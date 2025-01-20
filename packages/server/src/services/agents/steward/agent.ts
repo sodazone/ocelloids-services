@@ -230,7 +230,7 @@ export class DataSteward implements Agent, Queryable {
       const { mapEntry } = mappings[0]
 
       const codec = context.storageCodec('Assets', 'Asset')
-      const key = codec.enc(assetId) as HexString
+      const key = codec.keys.enc(assetId) as HexString
       const asset = await firstValueFrom(
         this.#ingress.getStorage(chainId, key).pipe(
           mapEntry(key, this.#ingress),
@@ -240,6 +240,9 @@ export class DataSteward implements Agent, Queryable {
 
       const assetKey = assetMetadataKey(chainId, asset.id)
       const current = await this.#dbAssets.get(assetKey)
+      if (current === undefined) {
+        throw new Error('Asset not found.')
+      }
       await this.#dbAssets.put(assetKey, {
         ...asset,
         externalIds: current.externalIds,
@@ -329,8 +332,9 @@ export class DataSteward implements Agent, Queryable {
         for await (const [assetKey, asset] of this.#dbAssets.iterator()) {
           try {
             let updated = false
-            const externalIds = tmpMapExternalIds[assetKey]
             const updatedAsset = asset
+
+            const externalIds = tmpMapExternalIds[assetKey]
             if (externalIds) {
               updatedAsset.externalIds = externalIds
               updated = true
@@ -339,12 +343,14 @@ export class DataSteward implements Agent, Queryable {
             const sourceId = tmpMapSourceIds[assetKey]
             if (sourceId) {
               const sourceAsset = await this.#dbAssets.get(sourceId)
-              updatedAsset.sourceId = {
-                chainId: sourceAsset.chainId,
-                id: sourceAsset.id,
-                xid: sourceAsset.xid,
+              if (sourceAsset !== undefined) {
+                updatedAsset.sourceId = {
+                  chainId: sourceAsset.chainId,
+                  id: sourceAsset.id,
+                  xid: sourceAsset.xid,
+                }
+                updated = true
               }
-              updated = true
             }
 
             if (updated) {
@@ -439,11 +445,6 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async #isNotScheduled() {
-    try {
-      await this.#db.get('scheduled')
-      return false
-    } catch {
-      return true
-    }
+    return (await this.#db.get('scheduled')) !== undefined
   }
 }

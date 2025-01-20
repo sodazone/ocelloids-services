@@ -80,27 +80,24 @@ const assetData = [
   },
 ] as AssetMetadata[]
 
-vi.useFakeTimers()
-
 describe('steward agent', () => {
   let steward: DataSteward
   let dbChains: LevelDB
   let dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
 
-  beforeEach(() => {
-    vi.clearAllTimers()
-  })
-
   beforeAll(async () => {
     const services = createServices()
     const db = services.levelDB
+    await db.open()
     steward = new DataSteward({ ...services, db })
     dbChains = db.sublevel<string, NetworkInfo>('agent:steward:chains', {
       valueEncoding: 'json',
     })
+    await dbChains.open()
     dbAssets = services.levelDB.sublevel<string, AssetMetadata>('agent:steward:assets', {
       valueEncoding: 'json',
     })
+    await dbAssets.open()
     // Put mock chain data in db
     const dbBatch = dbChains.batch()
     for (const c of chainData) {

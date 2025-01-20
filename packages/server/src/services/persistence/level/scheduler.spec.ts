@@ -10,13 +10,15 @@ describe('scheduler service', () => {
   let db: Level
   let now: any
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Level()
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
       scheduler: true,
     })
     now = vi.spyOn(Date, 'now').mockImplementation(() => 0)
+
+    return scheduler.__open()
   })
 
   afterEach(() => {

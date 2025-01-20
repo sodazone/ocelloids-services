@@ -54,12 +54,17 @@ export class Janitor extends (EventEmitter as new () => TypedEventEmitter<Janito
 
   async #sweep({ task }: Scheduled<JanitorTask>) {
     const { sublevel, key } = task
-    try {
-      const item = await this.#db.sublevel(sublevel).get(key)
-      await this.#db.sublevel(sublevel).del(key)
+    const db = this.#db.sublevel(sublevel)
+
+    // needed for fake timers
+    if (db.status === 'opening') {
+      await db.open()
+    }
+
+    const item = await db.get(key)
+    if (item !== undefined) {
+      await db.del(key)
       this.emit('sweep', task, item)
-    } catch {
-      //
     }
   }
 }

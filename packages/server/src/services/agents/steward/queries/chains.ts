@@ -24,10 +24,13 @@ export class ChainsQueryHandler {
   async queryChains(criteria: {
     networks: string[]
   }): Promise<QueryResult<NetworkInfo>> {
-    return {
-      items: await this.#db.getMany<string, NetworkInfo>(criteria.networks, {
+    const items = (
+      await this.#db.getMany<string, NetworkInfo>(criteria.networks, {
         /** */
-      }),
+      })
+    ).filter((x) => x !== undefined)
+    return {
+      items,
     }
   }
 }

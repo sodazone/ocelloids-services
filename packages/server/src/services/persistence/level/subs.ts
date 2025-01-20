@@ -47,12 +47,11 @@ export class SubsStore {
    * @throws {NotFound} if the subscription does not exist
    */
   async getById(agentId: AgentId, subscriptionId: string) {
-    try {
-      const subscription = await this.#subsFamily(agentId).get(subscriptionId)
-      return subscription
-    } catch {
+    const subscription = await this.#subsFamily(agentId).get(subscriptionId)
+    if (subscription === undefined) {
       throw new NotFound(`Subscription ${agentId} ${subscriptionId} not found.`)
     }
+    return subscription
   }
 
   /**

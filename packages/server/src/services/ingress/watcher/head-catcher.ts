@@ -266,7 +266,6 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
 
     try {
       const newHeadNum = head.number
-      let currentHeight: number
 
       const chainTip: ChainTip = {
         chainId,
@@ -276,12 +275,8 @@ export class HeadCatcher extends (EventEmitter as new () => TelemetryEventEmitte
         receivedAt: new Date(),
       }
 
-      try {
-        const currentTip = await this.#chainTips.get(chainId)
-        currentHeight = Number(currentTip.blockNumber)
-      } catch {
-        currentHeight = newHeadNum
-      }
+      const currentTip = await this.#chainTips.get(chainId)
+      const currentHeight = currentTip === undefined ? newHeadNum : Number(currentTip.blockNumber)
 
       const blockDistance = newHeadNum - currentHeight
 

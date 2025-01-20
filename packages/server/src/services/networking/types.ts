@@ -1,10 +1,12 @@
 import { type SystemEvent } from '@polkadot-api/observable-client'
-import { type Decoder } from '@polkadot-api/substrate-bindings'
+import { Codec } from '@polkadot-api/substrate-bindings'
 
 export type StorageCodec<T = any> = {
-  enc: (...args: any[]) => string
-  dec: Decoder<T>
-  keyDecoder: (value: string) => any[]
+  keys: {
+    enc: (...args: any[]) => string
+    dec: (value: string) => any[]
+  }
+  value: Codec<T>
 }
 
 export type Event = {

@@ -37,10 +37,13 @@ export class AssetsQueryHandler {
     }[],
   ): Promise<QueryResult<AssetMetadata>> {
     const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
-    return {
-      items: await this.#db.getMany<string, AssetMetadata>(keys, {
+    const items = (
+      await this.#db.getMany<string, AssetMetadata>(keys, {
         /** */
-      }),
+      })
+    ).filter((x) => x !== undefined)
+    return {
+      items,
     }
   }
 }

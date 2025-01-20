@@ -60,7 +60,7 @@ describe('admin api', () => {
       )
     })
 
-    await expect(db.get('a')).rejects.toThrow()
+    expect(await db.get('a')).toBeUndefined()
   })
 
   it('should schedule a task', async () => {

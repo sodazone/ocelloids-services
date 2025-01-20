@@ -5,7 +5,6 @@ import fp from 'fastify-plugin'
 
 import { Level } from 'level'
 import { MemoryLevel } from 'memory-level'
-import { RaveLevel } from 'rave-level'
 
 import { DatabaseOptions, LevelServerOptions } from '@/types.js'
 import { LevelDB, LevelEngine } from '../../types.js'
@@ -33,8 +32,6 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: LevelOptio
   switch (levelEngine) {
     case LevelEngine.mem:
       return new MemoryLevel() as Level
-    case LevelEngine.rave:
-      return new RaveLevel(dbPath) as Level
     default:
       return new Level(dbPath)
   }
@@ -65,17 +62,8 @@ const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options)
     } finally {
       const { levelDB } = instance
       if (levelDB.status === 'open') {
-        await new Promise<void>((resolve, reject) => {
-          levelDB.close((error) => {
-            instance.log.info('[level] closing database: OK')
-            /* istanbul ignore if */
-            if (error) {
-              instance.log.error(error, '[level] error while closing the database')
-              reject(error)
-            }
-            resolve()
-          })
-        })
+        instance.log.info('[level] closing database: OK')
+        await levelDB.close()
       } else {
         instance.log.info('[level] the database is not open: %s', levelDB.status)
       }

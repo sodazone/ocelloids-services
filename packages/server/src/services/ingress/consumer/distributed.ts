@@ -59,13 +59,9 @@ export class DistributedIngressConsumer
     for (const chainId of this.getChainIds()) {
       this.#blockConsumers[chainId] = new Subject<Block>()
 
-      let lastId = '$'
       // TODO option to omit the stream pointer on start (?)
-      try {
-        lastId = await this.#db.get(prefixes.distributor.lastBlockStreamId(chainId))
-      } catch {
-        //
-      }
+      const lastId = (await this.#db.get(prefixes.distributor.lastBlockStreamId(chainId))) ?? '$'
+
       this.#log.info('[%s] Distributed block consumer (lastId=%s)', chainId, lastId)
 
       await this.#blockStreamFromRedis(chainId)
