@@ -77,7 +77,6 @@ describe('extractXcmMessageData', () => {
     new Promise<void>((resolve) => {
       test$.subscribe({
         next: ({ hashData }) => {
-          console.log(hashData)
           calls()
           expect(hashData).toBeDefined()
           expect(hashData[0].hash).toBeDefined()
