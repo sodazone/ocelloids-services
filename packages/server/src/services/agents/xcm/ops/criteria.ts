@@ -1,4 +1,4 @@
-import { ControlQuery, Criteria } from '@/common/index.js'
+import { ControlQuery, Criteria, asPublicKey } from '@/common/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
 import { XcmNotificationType, XcmTerminus } from '../types.js'
@@ -10,12 +10,14 @@ export function sendersCriteria(senders?: string[] | '*'): Criteria {
     return MATCH_ANY
   }
 
+  const sendersPubKeys = senders.map(asPublicKey)
+
   return {
     $or: [
       { 'sender.signer.id': { $in: senders } },
-      { 'sender.signer.publicKey': { $in: senders } },
+      { 'sender.signer.publicKey': { $in: sendersPubKeys } },
       { 'sender.extraSigners.id': { $in: senders } },
-      { 'sender.extraSigners.publicKey': { $in: senders } },
+      { 'sender.extraSigners.publicKey': { $in: sendersPubKeys } },
     ],
   }
 }
