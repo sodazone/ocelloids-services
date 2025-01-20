@@ -75,7 +75,6 @@
     "mingo": "^6.5.2",
     "polkadot-api": "^1.8.2",
     "prom-client": "^15.1.3",
-    "rave-level": "^1.0.0",
     "redis": "^4.7.0",
     "rfc6902": "^5.1.2",
     "rxjs": "^7.8.1",
