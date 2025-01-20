@@ -7,7 +7,6 @@ import Egress from './egress/plugin.js'
 import Ingress from './ingress/consumer/plugin.js'
 import Limit from './limit.js'
 import Connector from './networking/plugin.js'
-import Kysely from './persistence/kysely/plugin.js'
 import LevelDB from './persistence/level/plugin.js'
 import Root from './root.js'
 import Subscriptions from './subscriptions/plugin.js'
@@ -21,7 +20,6 @@ export {
   Auth,
   Administration,
   LevelDB,
-  Kysely,
   Connector,
   Configuration,
   Accounts,
