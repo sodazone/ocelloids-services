@@ -2,7 +2,13 @@ import { Expression, Kysely } from 'kysely'
 
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/sqlite'
 
-import { AccountUpdate, Database, NewAccount, NewApiToken } from '@/services/accounts/types.js'
+import {
+  AccountUpdate,
+  ApiTokenUpdate,
+  Database,
+  NewAccount,
+  NewApiToken,
+} from '@/services/accounts/types.js'
 
 export class AccountsRepository {
   readonly #db: Kysely<Database>
@@ -34,6 +40,10 @@ export class AccountsRepository {
 
   async createApiToken(apiToken: NewApiToken) {
     return await this.#db.insertInto('api-token').values(apiToken).returningAll().executeTakeFirstOrThrow()
+  }
+
+  async updateApiToken(id: string, updateWith: ApiTokenUpdate) {
+    return await this.#db.updateTable('api-token').set(updateWith).where('id', '=', id).execute()
   }
 
   async findApiTokenById(id: string) {

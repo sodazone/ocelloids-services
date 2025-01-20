@@ -6,9 +6,47 @@ import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth/index.js'
 import { AccountsRepository } from './repository.js'
 
 const DEFAULT_EXPIRATION_SECONDS = 7_889_400 // 3 months
+const INVITE_SCOPE = [CAP_READ, CAP_WRITE, 'invite'].join(' ')
 
 interface InvitationQueryString {
   subject: string
+}
+
+type ScopeFlags = {
+  read: boolean
+  write: boolean
+}
+
+const TokenSchema = {
+  type: 'object',
+  properties: {
+    scope: {
+      type: 'object',
+      properties: {
+        read: { type: 'boolean' },
+        write: { type: 'boolean' },
+      },
+    },
+  },
+  required: ['scope'],
+}
+
+function scopeFromFlags(flags: ScopeFlags) {
+  const scope = []
+
+  if (flags.read) {
+    scope.push(CAP_READ)
+  }
+
+  if (flags.write) {
+    scope.push(CAP_WRITE)
+  }
+
+  if (scope.length === 0) {
+    throw new ValidationError('please, specify the token scope')
+  }
+
+  return scope.join(' ')
 }
 
 // Create an unsigned token with specific properties
@@ -22,7 +60,7 @@ async function createUnsignedToken(
   }: {
     accountId: number
     subject: string
-    scope: string[]
+    scope: string
     expiresIn?: number
   },
 ) {
@@ -32,7 +70,7 @@ async function createUnsignedToken(
     id: jti,
     account_id: accountId,
     status: 'enabled',
-    scope: scope.join(' '),
+    scope,
   })
 
   const iat = Math.round(Date.now() / 1_000)
@@ -121,10 +159,7 @@ export async function AccountsApi(api: FastifyInstance) {
   // Route for creating a new API token for the current account
   api.post<{
     Body: {
-      scope: {
-        read: boolean
-        write: boolean
-      }
+      scope: ScopeFlags
     }
   }>(
     '/myself/tokens',
@@ -135,35 +170,12 @@ export async function AccountsApi(api: FastifyInstance) {
       schema: {
         tags: ['accounts'],
         security: [{ BearerAuth: [] }],
-        body: {
-          type: 'object',
-          properties: {
-            scope: {
-              type: 'object',
-              properties: {
-                read: { type: 'boolean' },
-                write: { type: 'boolean' },
-              },
-            },
-          },
-          required: ['scope'],
-        },
+        body: TokenSchema,
       },
     },
     async (request, reply) => {
       const account = accountFromRequest(request)
-      const flags = request.body.scope
-      const scope = []
-
-      if (flags.read) {
-        scope.push(CAP_READ)
-      }
-      if (flags.write) {
-        scope.push(CAP_WRITE)
-      }
-      if (scope.length === 0) {
-        throw new ValidationError('please, specify the token scope')
-      }
+      const scope = scopeFromFlags(request.body.scope)
 
       const unsignedToken = await createUnsignedToken(accountsRepository, {
         accountId: account.id,
@@ -174,6 +186,44 @@ export async function AccountsApi(api: FastifyInstance) {
       reply.send({
         token: await reply.jwtSign(unsignedToken),
       })
+    },
+  )
+
+  api.patch<{
+    Params: {
+      tokenId: string
+    }
+    Body: {
+      scope: {
+        read: boolean
+        write: boolean
+      }
+    }
+  }>(
+    '/accounts/tokens/:tokenId',
+    {
+      config: {
+        caps: [CAP_ADMIN],
+      },
+      schema: {
+        hide: true,
+        tags: ['accounts'],
+        security: [{ BearerAuth: [] }],
+        body: TokenSchema,
+      },
+    },
+    async (request, reply) => {
+      const { tokenId } = request.params
+      const token = await accountsRepository.findApiTokenById(tokenId)
+      if (token) {
+        const scope = scopeFromFlags(request.body.scope)
+
+        await accountsRepository.updateApiToken(tokenId, {
+          scope,
+        })
+        reply.send()
+      }
+      throw new NotFound('token not found')
     },
   )
 
@@ -240,7 +290,7 @@ export async function AccountsApi(api: FastifyInstance) {
         const unsignedToken = await createUnsignedToken(accountsRepository, {
           accountId: account.id,
           subject,
-          scope: [CAP_READ, CAP_WRITE, 'invite'],
+          scope: INVITE_SCOPE,
         })
 
         reply.send({
