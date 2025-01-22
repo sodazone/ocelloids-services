@@ -1,3 +1,4 @@
+import { Message } from '../lib'
 import { sourceXcm } from '../server-types'
 
 /**
@@ -126,13 +127,17 @@ export type XcmInputs = {
   events?: '*' | XcmNotificationType[]
 }
 
+type XcmMessage = Message<{
+  type: XcmNotificationType
+}>
+
 /**
  * Guard condition for XcmSent.
  *
  * @public
  */
-export function isXcmSent(object: any): object is XcmSent {
-  return object.type !== undefined && object.type === 'xcm.sent'
+export function isXcmSent(message: XcmMessage): message is Message<XcmSent> {
+  return message.payload !== undefined && message.payload.type === 'xcm.sent'
 }
 
 /**
@@ -140,8 +145,8 @@ export function isXcmSent(object: any): object is XcmSent {
  *
  * @public
  */
-export function isXcmReceived(object: any): object is XcmReceived {
-  return object.type !== undefined && object.type === 'xcm.received'
+export function isXcmReceived(message: XcmMessage): message is Message<XcmReceived> {
+  return message.payload !== undefined && message.payload.type === 'xcm.received'
 }
 
 /**
@@ -149,6 +154,24 @@ export function isXcmReceived(object: any): object is XcmReceived {
  *
  * @public
  */
-export function isXcmRelayed(object: any): object is XcmRelayed {
-  return object.type !== undefined && object.type === 'xcm.relayed'
+export function isXcmRelayed(message: XcmMessage): message is Message<XcmRelayed> {
+  return message.payload !== undefined && message.payload.type === 'xcm.relayed'
+}
+
+/**
+ * Guard condition for XcmHop.
+ *
+ * @public
+ */
+export function isXcmHop(message: XcmMessage): message is Message<XcmHop> {
+  return message.payload !== undefined && message.payload.type === 'xcm.hop'
+}
+
+/**
+ * Guard condition for XcmTimeout.
+ *
+ * @public
+ */
+export function isXcmTimeout(message: XcmMessage): message is Message<XcmTimeout> {
+  return message.payload !== undefined && message.payload.type === 'xcm.timeout'
 }
