@@ -2,6 +2,13 @@ import { Message } from '../lib'
 import { sourceXcm } from '../server-types'
 
 /**
+ * A generic XCM journey.
+ *
+ * @public
+ */
+export type XcmJourney = sourceXcm.XcmJourney
+
+/**
  * The XCM event types.
  *
  * @public
