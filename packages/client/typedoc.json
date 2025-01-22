@@ -2,11 +2,14 @@
   "entryPoints": [
     "./src/client.ts",
     "./src/types.ts",
+    "./src/xcm/types.ts",
+    "./src/steward/types.ts",
+    "./src/server-types.ts"
   ],
   "darkHighlightTheme": "github-dark",
   "lightHighlightTheme": "github-light",
   "entryPointStrategy": "expand",
-  "excludeNotDocumented": true,
+  "excludeNotDocumented": false,
   "includeVersion": true,
   "excludeExternals": true,
   "excludePrivate": true,

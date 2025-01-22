@@ -1,9 +1,12 @@
 import { FastifyInstance } from 'fastify'
 
 import '@/testing/network.js'
+
 import { invalidToken, publicToken, rootToken } from '@/testing/data.js'
 import { flushPromises } from '@/testing/promises.js'
 import { mockServer } from '@/testing/server.js'
+
+import { CAP_READ, CAP_WRITE } from '../auth/caps.js'
 
 describe('accounts api', () => {
   let server: FastifyInstance
@@ -179,6 +182,67 @@ describe('accounts api', () => {
     })
   })
 
+  describe('/accounts/token', () => {
+    it('should update token scopes', async () => {
+      const { id } = await server.accountsRepository.createAccount({
+        status: 'enabled',
+        subject: 'to-test',
+      })
+      await server.accountsRepository.createApiToken({
+        account_id: id,
+        scope: [CAP_WRITE].join(' '),
+        status: 'enabled',
+        id: 'test-token',
+      })
+
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'PATCH',
+            url: '/accounts/tokens/test-token',
+            headers: {
+              authorization: `Bearer ${rootToken}`,
+            },
+            body: {
+              scope: {
+                read: true,
+              },
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(200)
+            resolve()
+          },
+        )
+      })
+
+      expect((await server.accountsRepository.findApiTokenById('test-token'))?.scope).toBe(CAP_READ)
+    })
+
+    it('only admin can update token scopes', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'PATCH',
+            url: '/accounts/tokens/test-token',
+            headers: {
+              authorization: `Bearer ${macarioToken}`,
+            },
+            body: {
+              scope: {
+                read: true,
+              },
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            resolve()
+          },
+        )
+      })
+    })
+  })
+
   describe('/myself', () => {
     it('should retrieve account', async () => {
       await new Promise<void>((resolve) => {
@@ -321,7 +385,7 @@ describe('accounts api', () => {
   })
 
   describe('/account/:subject', () => {
-    it('should not allow non-admin to delete account from this endpoint', async () => {
+    it('only admin could delete accounts', async () => {
       const deleteAccountSpy = vi.spyOn(server.accountsRepository, 'deleteAccount')
 
       await new Promise<void>((resolve) => {

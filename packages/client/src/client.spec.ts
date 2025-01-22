@@ -78,10 +78,10 @@ describe('OcelloidsClient', () => {
 
             switch (called) {
               case 1:
-                expect(isXcmSent(msg.payload)).toBeTruthy()
+                expect(isXcmSent(msg)).toBeTruthy()
                 break
               case 2:
-                expect(isXcmReceived(msg.payload)).toBeTruthy()
+                expect(isXcmReceived(msg)).toBeTruthy()
                 break
               default:
               //
@@ -111,7 +111,7 @@ describe('OcelloidsClient', () => {
         httpUrl: 'https://rpc.abc',
       })
       await new Promise<void>((resolve) => {
-        client.agent<XcmInputs>('xcm').subscribe(
+        client.agent<XcmInputs>('xcm').subscribe<XcmMessagePayload>(
           {
             origins: ['urn:ocn:local:2004'],
             senders: '*',
@@ -127,7 +127,7 @@ describe('OcelloidsClient', () => {
           {
             onMessage: (msg) => {
               expect(msg).toBeDefined()
-              expect(isXcmRelayed(msg.payload)).toBeTruthy()
+              expect(isXcmRelayed(msg)).toBeTruthy()
               resolve()
             },
           },
@@ -165,7 +165,7 @@ describe('OcelloidsClient', () => {
       })
 
       await new Promise<void>((resolve) => {
-        client.agent<XcmInputs>('xcm').subscribe(
+        client.agent<XcmInputs>('xcm').subscribe<XcmMessagePayload>(
           {
             origins: ['urn:ocn:local:2004'],
             senders: '*',
@@ -181,7 +181,7 @@ describe('OcelloidsClient', () => {
           {
             onMessage: (msg) => {
               expect(msg).toBeDefined()
-              expect(isXcmRelayed(msg.payload)).toBeTruthy()
+              expect(isXcmRelayed(msg)).toBeTruthy()
               resolve()
             },
           },
