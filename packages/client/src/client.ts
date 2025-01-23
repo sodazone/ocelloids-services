@@ -71,19 +71,48 @@ export interface QueryableApi<P = AnyJson, R = AnyJson> {
 }
 
 /**
+ * The server health response.
+ */
+export type HealthResponse = {
+  statusCode: number
+  status: string
+  uptime: number
+}
+
+/**
+ * General client API.
+ *
+ * @public
+ */
+export interface OcelloidsClientApi {
+  networks(options?: Options): Promise<string[]>
+  health(options?: Options): Promise<HealthResponse>
+}
+
+/**
  * Exposes the Ocelloids Agent API.
  *
  * @public
  */
-export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi {
+export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi, OcelloidsClientApi {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
+  readonly #client: OcelloidsClientApi
 
-  constructor(config: Required<OcelloidsClientConfig>, agentId: AgentId) {
+  constructor(config: Required<OcelloidsClientConfig>, agentId: AgentId, clientApi: OcelloidsClientApi) {
     this.#agentId = agentId
     this.#config = config
     this.#fetch = doFetchWithConfig(config)
+    this.#client = clientApi
+  }
+
+  networks(options?: Options): Promise<string[]> {
+    return this.#client.networks(options)
+  }
+
+  health(options?: Options): Promise<HealthResponse> {
+    return this.#client.health(options)
   }
 
   /**
@@ -302,7 +331,7 @@ export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi {
  *
  * @public
  */
-export class OcelloidsClient {
+export class OcelloidsClient implements OcelloidsClientApi {
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
 
@@ -327,7 +356,7 @@ export class OcelloidsClient {
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
   agent<T = AnySubscriptionInputs>(agentId: AgentId) {
-    return new OcelloidsAgentApi<T>(this.#config, agentId)
+    return new OcelloidsAgentApi<T>(this.#config, agentId, this)
   }
 
   /**
@@ -346,11 +375,7 @@ export class OcelloidsClient {
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
-  async health(options?: Options): Promise<{
-    statusCode: number
-    status: string
-    uptime: number
-  }> {
+  async health(options?: Options): Promise<HealthResponse> {
     return this.#fetch(this.#config.httpUrl + '/health', options)
   }
 }

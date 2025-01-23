@@ -6,7 +6,7 @@ import nock from 'nock'
 import samples from '../test/.data/samples.json'
 import { type QueryResult } from './lib'
 import { AssetMetadata, StewardQueryArgs } from './steward/types'
-import { isXcmHop, XcmInputs, XcmMessagePayload, XcmSent } from './xcm/types'
+import { XcmInputs, XcmMessagePayload, isXcmHop } from './xcm/types'
 
 vi.mock('isows', () => {
   return {
@@ -530,6 +530,24 @@ describe('OcelloidsClient', () => {
       const xcm = client.agent('xcm')
       await xcm.allSubscriptions()
       await xcm.getSubscription('id')
+
+      scope.done()
+    })
+
+    it('should use the client API from an agent', async () => {
+      const scope = nock('http://mock')
+        .get('/health')
+        .reply(200, { statusCode: 200, status: 'ok', uptime: 1000 })
+        .get('/ingress/networks')
+        .reply(200, ['urn:ocn:x'])
+
+      const agent = createXcmAgent({
+        wsUrl: 'ws://mock',
+        httpUrl: 'http://mock',
+      })
+
+      expect((await agent.health()).status).toBe('ok')
+      expect(await agent.networks()).toStrictEqual(['urn:ocn:x'])
 
       scope.done()
     })
