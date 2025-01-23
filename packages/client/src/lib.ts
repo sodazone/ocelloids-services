@@ -5,6 +5,7 @@
  *
  * @packageDocumentation
  */
+export * from './agent'
 export * from './client'
 export * from './types'
 export type {

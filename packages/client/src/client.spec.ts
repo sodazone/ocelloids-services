@@ -15,6 +15,7 @@ vi.mock('isows', () => {
   }
 })
 
+import { createXcmAgent } from './agent'
 import { OcelloidsClient } from './client'
 import { Subscription, WsAuthErrorEvent, isSubscriptionError } from './types'
 import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
@@ -106,12 +107,12 @@ describe('OcelloidsClient', () => {
         })
       })
 
-      const client = new OcelloidsClient({
+      const agent = createXcmAgent({
         wsUrl: 'ws://mock',
         httpUrl: 'https://rpc.abc',
       })
       await new Promise<void>((resolve) => {
-        client.agent<XcmInputs>('xcm').subscribe<XcmMessagePayload>(
+        agent.subscribe(
           {
             origins: ['urn:ocn:local:2004'],
             senders: '*',
@@ -127,6 +128,7 @@ describe('OcelloidsClient', () => {
           {
             onMessage: (msg) => {
               expect(msg).toBeDefined()
+              expect(msg.payload.destination).toBeDefined()
               expect(isXcmRelayed(msg)).toBeTruthy()
               resolve()
             },
