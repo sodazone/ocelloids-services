@@ -1,6 +1,7 @@
 {
   "entryPoints": [
     "./src/client.ts",
+    "./src/agent.ts",
     "./src/types.ts",
     "./src/xcm/types.ts",
     "./src/steward/types.ts",

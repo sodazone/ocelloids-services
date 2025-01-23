@@ -45,11 +45,37 @@ const API_WS_URL = 'wss://api.ocelloids.net'
 const API_HTTP_URL = 'https://api.ocelloids.net'
 
 /**
+ * Subscribable Agent API.
+ *
+ * @public
+ */
+export interface SubscribableApi<T = AnySubscriptionInputs, P = AnyJson> {
+  createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: Options): Promise<unknown>
+  deleteSubscription(id: string, options?: Options): Promise<unknown>
+  getSubscription(id: string, options?: Options): Promise<Subscription<T>>
+  allSubscriptions(options?: Options): Promise<Subscription<T>[]>
+  subscribe(
+    subscription: SubscriptionId | T,
+    handlers: WebSocketHandlers<P>,
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
+  ): Promise<WebSocket>
+}
+
+/**
+ * Queryable Agent API.
+ *
+ * @public
+ */
+export interface QueryableApi<P = AnyJson, R = AnyJson> {
+  query(args: P, pagination?: QueryPagination, options?: Options): Promise<QueryResult<R>>
+}
+
+/**
  * Exposes the Ocelloids Agent API.
  *
  * @public
  */
-export class OcelloidsAgentApi<T> {
+export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn

@@ -386,11 +386,15 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           outcome: 'Success', // always 'Success' since it's delivered
           error: null,
         }
-        const bridgeOutMsg: XcmBridge = new GenericXcmBridge(originMsg, waypointContext, {
-          bridgeMessageType: 'accepted',
-          bridgeKey,
-          forwardId,
-        })
+        const bridgeOutMsg: XcmBridge = new GenericXcmBridge(
+          originMsg as unknown as XcmBridge,
+          waypointContext,
+          {
+            bridgeMessageType: 'accepted',
+            bridgeKey,
+            forwardId,
+          },
+        )
         const sublevelBridgeKey = `${bridgeKey}`
         await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg)
         await this.#janitor.schedule({
@@ -682,9 +686,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       )
       await this.#inbound.del(keys.hash)
       if (isHop) {
-        this.#onXcmHopIn(msg, inMsg)
+        this.#onXcmHopIn(msg as XcmSent, inMsg)
       } else {
-        this.#onXcmMatched(msg, inMsg)
+        this.#onXcmMatched(msg as XcmSent, inMsg)
       }
     } else {
       // Still we don't know if the inbound is upgraded, so get both id and hash keys
@@ -707,9 +711,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       )
       await this.#inbound.batch().del(keys.id).del(keys.hash).write()
       if (isHop) {
-        this.#onXcmHopIn(msg, inMsg)
+        this.#onXcmHopIn(msg as XcmSent, inMsg)
       } else {
-        this.#onXcmMatched(msg, inMsg)
+        this.#onXcmMatched(msg as XcmSent, inMsg)
       }
     }
   }
@@ -860,7 +864,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async #putHops(...entries: [string, XcmJourney][]) {
     for (const [key, journey] of entries) {
-      await this.#hop.put(key, journey)
+      await this.#hop.put(key, journey as XcmSent)
       await this.#janitor.schedule({
         sublevel: prefixes.matching.hop,
         key,

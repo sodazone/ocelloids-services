@@ -4,9 +4,9 @@ import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
 
 import samples from '../test/.data/samples.json'
-import type { QueryResult } from './lib'
+import { type QueryResult } from './lib'
 import { AssetMetadata, StewardQueryArgs } from './steward/types'
-import { XcmInputs, XcmMessagePayload } from './xcm/types'
+import { isXcmHop, XcmInputs, XcmMessagePayload, XcmSent } from './xcm/types'
 
 vi.mock('isows', () => {
   return {
@@ -15,6 +15,7 @@ vi.mock('isows', () => {
   }
 })
 
+import { createXcmAgent } from './agent'
 import { OcelloidsClient } from './client'
 import { Subscription, WsAuthErrorEvent, isSubscriptionError } from './types'
 import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
@@ -79,9 +80,11 @@ describe('OcelloidsClient', () => {
             switch (called) {
               case 1:
                 expect(isXcmSent(msg)).toBeTruthy()
+                expect(isXcmHop(msg)).toBeFalsy()
                 break
               case 2:
                 expect(isXcmReceived(msg)).toBeTruthy()
+                expect(isXcmHop(msg)).toBeFalsy()
                 break
               default:
               //
@@ -106,12 +109,12 @@ describe('OcelloidsClient', () => {
         })
       })
 
-      const client = new OcelloidsClient({
+      const agent = createXcmAgent({
         wsUrl: 'ws://mock',
         httpUrl: 'https://rpc.abc',
       })
       await new Promise<void>((resolve) => {
-        client.agent<XcmInputs>('xcm').subscribe<XcmMessagePayload>(
+        agent.subscribe(
           {
             origins: ['urn:ocn:local:2004'],
             senders: '*',
@@ -127,6 +130,7 @@ describe('OcelloidsClient', () => {
           {
             onMessage: (msg) => {
               expect(msg).toBeDefined()
+              expect(msg.payload.destination).toBeDefined()
               expect(isXcmRelayed(msg)).toBeTruthy()
               resolve()
             },
