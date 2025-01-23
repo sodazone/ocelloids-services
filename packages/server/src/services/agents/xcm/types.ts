@@ -380,6 +380,7 @@ export interface XcmJourney {
  * @public
  */
 export interface XcmHop extends XcmJourney {
+  type: 'xcm.hop'
   direction: 'out' | 'in'
 }
 
@@ -388,21 +389,28 @@ export interface XcmHop extends XcmJourney {
  *
  * @public
  */
-export type XcmReceived = XcmJourney
+export interface XcmReceived extends XcmJourney {
+  type: 'xcm.received'
+}
 
 /**
  * Event emitted when an XCM is sent.
  *
  * @public
  */
-export type XcmSent = XcmJourney
+
+export interface XcmSent extends XcmJourney {
+  type: 'xcm.sent'
+}
 
 /**
  * Event emitted when an XCM is not received within a specified timeframe.
  *
  * @public
  */
-export type XcmTimeout = XcmJourney
+export interface XcmTimeout extends XcmJourney {
+  type: 'xcm.timeout'
+}
 
 /**
  * Event emitted when an XCM is received on the relay chain
@@ -410,7 +418,9 @@ export type XcmTimeout = XcmJourney
  *
  * @public
  */
-export type XcmRelayed = XcmJourney
+export interface XcmRelayed extends XcmJourney {
+  type: 'xcm.relayed'
+}
 
 export class XcmInbound extends BaseXcmEvent {
   chainId: NetworkURN
@@ -443,7 +453,7 @@ abstract class BaseXcmJourney {
 }
 
 export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
-  type: XcmNotificationType = 'xcm.sent'
+  type = 'xcm.sent' as const
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -484,7 +494,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
 }
 
 export class GenericXcmTimeout extends BaseXcmJourney implements XcmTimeout {
-  type: XcmNotificationType = 'xcm.timeout'
+  type = 'xcm.timeout' as const
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -499,7 +509,7 @@ export class GenericXcmTimeout extends BaseXcmJourney implements XcmTimeout {
 }
 
 export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
-  type: XcmNotificationType = 'xcm.received'
+  type = 'xcm.received' as const
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminusContext
@@ -534,7 +544,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
 }
 
 export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
-  type: XcmNotificationType = 'xcm.relayed'
+  type = 'xcm.relayed' as const
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -563,7 +573,7 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
 }
 
 export class GenericXcmHop extends BaseXcmJourney implements XcmHop {
-  type: XcmNotificationType = 'xcm.hop'
+  type = 'xcm.hop' as const
   direction: 'out' | 'in'
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -588,7 +598,8 @@ export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
  *
  * @public
  */
-export interface XcmBridge extends XcmSent {
+export interface XcmBridge extends XcmJourney {
+  type: 'xcm.bridge'
   bridgeKey: HexString
   bridgeMessageType: BridgeMessageType
 }
@@ -600,7 +611,7 @@ type XcmBridgeContext = {
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
-  type: XcmNotificationType = 'xcm.bridge'
+  type = 'xcm.bridge' as const
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
   waypoint: XcmWaypointContext
@@ -608,7 +619,7 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   destination: XcmTerminus
 
   constructor(
-    originMsg: XcmSent,
+    originMsg: XcmBridge,
     waypoint: XcmWaypointContext,
     { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext,
   ) {
@@ -627,7 +638,7 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
  *
  * @public
  */
-export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge
+export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge | XcmTimeout
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === 'xcm.sent'
