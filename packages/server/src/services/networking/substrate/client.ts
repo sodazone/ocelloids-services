@@ -18,19 +18,18 @@ import { asSerializable } from '@/common/index.js'
 
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
-import { Block } from '../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
-import { ApiClient, ApiContext } from './types.js'
+import { Block, SubstrateApi, SubstrateApiContext } from './types.js'
 
-export async function createArchiveClient(log: Logger, chainId: string, url: string | Array<string>) {
-  const client = new ArchiveClient(log, chainId, url)
+export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
+  const client = new SubstrateClient(log, chainId, url)
   return await client.connect()
 }
 
 /**
  * Archive Substrate API client.
  */
-export class ArchiveClient extends EventEmitter implements ApiClient {
+export class SubstrateClient extends EventEmitter implements SubstrateApi {
   #connected: boolean = false
   readonly chainId: string
 
@@ -42,14 +41,20 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     params: Params,
   ) => Promise<Reply>
   readonly #head$: ChainHead$
-  #apiContext!: () => ApiContext
+  #apiContext!: () => SubstrateApiContext
 
   get ctx() {
     return this.#apiContext()
   }
 
-  get finalizedHeads$() {
-    return this.#head$.finalized$
+  get followHeads$() {
+    return this.#head$.finalized$.pipe(
+      map((b) => ({
+        height: b.number,
+        parenthash: b.parent,
+        hash: b.hash,
+      })),
+    )
   }
 
   get #runtimeContext(): Promise<RuntimeApiContext> {
@@ -103,11 +108,11 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }
   }
 
-  async isReady(): Promise<ApiClient> {
+  async isReady(): Promise<SubstrateApi> {
     if (this.#connected) {
       return this
     }
-    return new Promise<ApiClient>((resolve) => this.once('connected', () => resolve(this)))
+    return new Promise<SubstrateApi>((resolve) => this.once('connected', () => resolve(this)))
   }
 
   async getMetadata(): Promise<Uint8Array> {
@@ -169,7 +174,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
   async getBlock(hash: string): Promise<Block> {
     try {
       const [header, txs, events] = await Promise.all([
-        this.getHeader(hash),
+        this.getBlockHeader(hash),
         this.#getBody(hash),
         this.#getEvents(hash),
       ])
@@ -215,7 +220,7 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }
   }
 
-  async getHeader(hash: string): Promise<BlockInfo> {
+  async getBlockHeader(hash: string): Promise<BlockInfo> {
     try {
       const header = await this.#request<{ parentHash: string; number: string }, [hash: string]>(
         'chain_getHeader',
@@ -231,8 +236,17 @@ export class ArchiveClient extends EventEmitter implements ApiClient {
     }
   }
 
+  async getNeutralBlockHeader(hash: string) {
+    const header = await this.getBlockHeader(hash)
+    return {
+      parenthash: header.parent,
+      hash: header.hash,
+      height: header.number,
+    }
+  }
+
   /*
-  async getHeader(hash: string): Promise<BlockInfo> {
+  async getBlockHeader(hash: string): Promise<BlockInfo> {
     try {
       const encodedHeader = await this.#request<string, [hash: string]>('archive_unstable_header', [hash])
       const header = blockHeader.dec(encodedHeader)

@@ -1,6 +1,6 @@
 import { decode, encode } from 'cbor-x'
 
-import { Block } from '@/services/networking/types.js'
+import { Block } from './types.js'
 
 export function decodeBlock(buffer: Buffer | Uint8Array): Block {
   return decode(buffer)

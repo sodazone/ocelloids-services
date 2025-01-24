@@ -2,8 +2,8 @@ import { Observable } from 'rxjs'
 import { z } from 'zod'
 
 import { HexString } from '@/lib.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext, StorageCodec } from '@/services/networking/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
@@ -101,7 +101,7 @@ export type StorageCodecs<T = any> = Partial<Record<AssetStorageKeys, StorageCod
 
 export type entryMapper = (
   keyArgs: string,
-  ingress: IngressConsumer,
+  ingress: SubstrateIngressConsumer,
 ) => (source: Observable<HexString>) => Observable<AssetMetadata>
 
 export type AssetMapping = {
@@ -110,7 +110,7 @@ export type AssetMapping = {
   mapAssetId?: (data: Uint8Array) => any[] | undefined
 }
 
-export type AssetMapper = (context: ApiContext) => AssetMapping[]
+export type AssetMapper = (context: SubstrateApiContext) => AssetMapping[]
 
 /**
  * @public

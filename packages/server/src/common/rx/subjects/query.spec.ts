@@ -1,12 +1,8 @@
-import { installOperators } from './mingo-ops.js'
 import { ControlQuery } from './query.js'
 
 const testAddress = '1a1LcBX6hGPKg5aQ6DXZpAHCCzWjckhea4sz3P1PvL3oc4F'
 
 describe('control query', () => {
-  beforeAll(() => {
-    installOperators()
-  })
   it('should filter out dispatch errors', () => {
     const q = ControlQuery.from({
       dispatchError: { $eq: undefined },
@@ -98,11 +94,11 @@ describe('control query', () => {
       section: 'balances',
       args: {
         dest: { id: '14NEHDwc5PPQfEjzLVDbVbi4djQLQZ9u7mMU3BPhTFJf4cD6' },
-        value: '108515280000000000',
+        value: 107,
       },
     }
     const q = ControlQuery.from({
-      'args.value': { $bn_lt: '108515280000000001' },
+      'args.value': { $lt: 108 },
     })
 
     expect(q.getValue().test(data)).toBeTruthy()
@@ -115,7 +111,7 @@ describe('control query', () => {
         section: 'balances',
         args: {
           dest: { id: '14NEHDwc5PPQfEjzLVDbVbi4djQLQZ9u7mMU3BPhTFJf4cD6' },
-          value: '108515280000000000',
+          value: 9,
         },
       },
       {
@@ -123,20 +119,20 @@ describe('control query', () => {
         section: 'balances',
         args: {
           dest: { id: '14NEHDwc5PPQfEjzLVDbVbi4djQLQZ9u7mMU3BPhTFJf4cD6' },
-          value: '108515280000000001',
+          value: 11,
         },
       },
     ]
 
     const q = ControlQuery.from({
-      'args.value': { $bn_lt: '108515280000000001' },
+      'args.value': { $lt: 10 },
     })
 
     expect(q.getValue().test(data[0])).toBeTruthy()
     expect(q.getValue().test(data[1])).toBeFalsy()
 
     q.change({
-      'args.value': { $bn_gt: '108515280000000000' },
+      'args.value': { $gt: 10 },
     })
 
     expect(q.getValue().test(data[0])).toBeFalsy()

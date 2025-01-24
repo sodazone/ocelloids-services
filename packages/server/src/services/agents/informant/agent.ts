@@ -6,13 +6,13 @@ import { filter as rxFilter } from 'rxjs'
 import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
+import { extractEvmLogs, extractEvmTransactions } from '@/services/networking/substrate/rx/evm.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 
-import { SharedStreams } from '../base/shared.js'
+import { SubstrateSharedStreams } from '../../networking/substrate/shared.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 
-import { extractEvmLogs, extractEvmTransactions } from '@/common/rx/operators/evm.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
 export const $InformantInputs = z.object({
@@ -52,14 +52,14 @@ type InformantHandler = {
  */
 export class InformantAgent implements Agent, Subscribable {
   readonly #log: Logger
-  readonly #shared: SharedStreams
+  readonly #shared: SubstrateSharedStreams
   readonly #handlers: Record<string, InformantHandler>
   readonly #egress: Egress
   readonly #updater: SubscriptionUpdater
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
-    this.#shared = SharedStreams.instance(ctx.ingress)
+    this.#shared = SubstrateSharedStreams.instance(ctx.ingress.substrate)
     this.#updater = new SubscriptionUpdater(ctx.ingress, [
       '/args/networks',
       '/args/filter',

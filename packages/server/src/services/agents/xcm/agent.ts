@@ -5,11 +5,12 @@ import { z } from 'zod'
 import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
+
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,
@@ -30,7 +31,7 @@ import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from
 export class XcmAgent implements Agent, Subscribable {
   readonly #log: Logger
 
-  readonly #ingress: IngressConsumer
+  readonly #ingress: SubstrateIngressConsumer
   readonly #notifier: Egress
 
   readonly #subs: XcmSubscriptionManager
@@ -39,7 +40,7 @@ export class XcmAgent implements Agent, Subscribable {
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
 
-    this.#ingress = ctx.ingress
+    this.#ingress = ctx.ingress.substrate
     this.#notifier = ctx.egress
 
     this.#subs = new XcmSubscriptionManager(ctx.log, ctx.ingress, this)

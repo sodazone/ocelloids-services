@@ -1,15 +1,16 @@
 import EventEmitter from 'node:events'
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
 
-import { ControlQuery, extractEvents } from '@/common/rx/index.js'
+import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext, Block } from '@/services/networking/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { extractEvents } from '@/services/networking/substrate/rx/index.js'
+import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 
-import { fromHex, toHex } from 'polkadot-api/utils'
-import { SharedStreams } from '../base/shared.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
@@ -40,7 +41,7 @@ type DmpInQueue = { msg: HexString; sent_at: number }
 type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
 
-export function extractXcmMessageData(apiContext: ApiContext) {
+export function extractXcmMessageData(apiContext: SubstrateApiContext) {
   return (source: Observable<Block>): Observable<{ block: Block; hashData: MessageHashData[] }> => {
     return source.pipe(
       map((block) => {
@@ -96,8 +97,8 @@ export class XcmTracker {
     r: RxSubscriptionWithId[]
   }
   readonly #telemetry: TelemetryXcmEventEmitter
-  readonly #ingress: IngressConsumer
-  readonly #shared: SharedStreams
+  readonly #ingress: SubstrateIngressConsumer
+  readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
   readonly #subject: Subject<XcmMessagePayload>
 
@@ -110,8 +111,8 @@ export class XcmTracker {
     this.xcm$ = this.#subject.pipe(share())
 
     this.#streams = { d: [], o: [], r: [] }
-    this.#ingress = ctx.ingress
-    this.#shared = SharedStreams.instance(this.#ingress)
+    this.#ingress = ctx.ingress.substrate
+    this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
   }
@@ -361,7 +362,7 @@ export class XcmTracker {
     return this.#streams[type].findIndex((s) => s.chainId === chainId) > -1
   }
 
-  #getDmp(chainId: NetworkURN, context: ApiContext): GetDownwardMessageQueues {
+  #getDmp(chainId: NetworkURN, context: SubstrateApiContext): GetDownwardMessageQueues {
     const codec = context.storageCodec('Dmp', 'DownwardMessageQueues')
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
@@ -374,7 +375,7 @@ export class XcmTracker {
     }
   }
 
-  #getUmp(chainId: NetworkURN, context: ApiContext): GetOutboundUmpMessages {
+  #getUmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundUmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
     const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
@@ -386,7 +387,7 @@ export class XcmTracker {
     }
   }
 
-  #getHrmp(chainId: NetworkURN, context: ApiContext): GetOutboundHrmpMessages {
+  #getHrmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundHrmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
     const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
