@@ -445,6 +445,6 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async #isNotScheduled() {
-    return (await this.#db.get('scheduled')) !== undefined
+    return (await this.#db.get('scheduled')) === undefined
   }
 }
