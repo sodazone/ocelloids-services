@@ -10,6 +10,7 @@ const INVITE_SCOPE = [CAP_READ, CAP_WRITE, 'invite'].join(' ')
 
 interface InvitationQueryString {
   subject: string
+  expiresIn?: number
 }
 
 type ScopeFlags = {
@@ -271,6 +272,7 @@ export async function AccountsApi(api: FastifyInstance) {
           type: 'object',
           properties: {
             subject: { type: 'string' },
+            expiresIn: { type: 'number' },
           },
           required: ['subject'],
         },
@@ -279,7 +281,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { subject } = request.query
+      const { subject, expiresIn } = request.query
 
       try {
         const account = await accountsRepository.createAccount({
@@ -291,6 +293,7 @@ export async function AccountsApi(api: FastifyInstance) {
           accountId: account.id,
           subject,
           scope: INVITE_SCOPE,
+          expiresIn,
         })
 
         reply.send({

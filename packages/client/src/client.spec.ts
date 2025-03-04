@@ -169,7 +169,7 @@ describe('OcelloidsClient', () => {
       })
 
       await new Promise<void>((resolve) => {
-        client.agent<XcmInputs>('xcm').subscribe<XcmMessagePayload>(
+        createXcmAgent(client).subscribe(
           {
             origins: ['urn:ocn:local:2004'],
             senders: '*',

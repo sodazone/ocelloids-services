@@ -21,15 +21,13 @@ yarn add @sodazone/ocelloids-client
 ## Usage
 
 ```typescript
-import { OcelloidsClient, xcm } from "@sodazone/ocelloids-client";
+import { createXcmAgent } from "@sodazone/ocelloids-client";
 
-const client = new OcelloidsClient({
+// create an xcm agent client
+const agent = createXcmAgent({
   httpUrl: "http://127.0.0.1:3000",
   wsUrl: "ws://127.0.0.1:3000"
 });
-
-// get the agent API
-const agent = client.agent<xcm.XcmInputs>("xcm");
 
 // subscribe on-demand
 const ws = agent.subscribe({
