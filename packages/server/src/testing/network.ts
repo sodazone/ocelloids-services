@@ -4,17 +4,17 @@ import { vi } from 'vitest'
 
 import { _configToml, jwtSigKey } from './data.js'
 
-vi.mock('../services/networking/client/archive.js', () => {
+vi.mock('../services/networking/substrate/client.js', () => {
   return {
-    ArchiveClient: vi.fn().mockReturnValue({
+    SubstrateClient: vi.fn().mockReturnValue({
       connect: vi.fn().mockResolvedValue({
         isReady: vi.fn().mockResolvedValue({
-          finalizedHeads$: of({}),
+          followHeads$: of({}),
         }),
         disconnect: vi.fn(),
       }),
       isReady: vi.fn().mockResolvedValue({
-        finalizedHeads$: of({}),
+        followHeads$: of({}),
       }),
       disconnect: vi.fn(),
     }),

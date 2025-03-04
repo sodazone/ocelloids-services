@@ -5,7 +5,7 @@ import { FastifyBaseLogger } from 'fastify'
 import { AgentCatalog, AgentId } from './agents/types.js'
 import { ServiceConfiguration } from './config.js'
 import { Egress } from './egress/index.js'
-import { IngressConsumer } from './ingress/consumer/index.js'
+import { IngressConsumers } from './ingress/consumer/types.js'
 import Connector from './networking/connector.js'
 import { Janitor } from './persistence/level/janitor.js'
 import { Scheduler } from './persistence/level/scheduler.js'
@@ -96,7 +96,7 @@ export type Services = {
   janitor: Janitor
   scheduler: Scheduler
   localConfig: ServiceConfiguration
-  ingress: IngressConsumer
+  ingress: IngressConsumers
   egress: Egress
   agentCatalog: AgentCatalog
   connector: Connector

@@ -15,16 +15,18 @@ export async function ConsumerApi(api: FastifyInstance) {
         security: [{ BearerAuth: [] }],
         response: {
           200: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
+            type: 'object',
+            additionalProperties: true,
           },
         },
       },
     },
     (_, reply) => {
-      reply.send(ingress.getChainIds())
+      const { substrate, bitcoin } = ingress
+      reply.send({
+        substrate: substrate.getChainIds(),
+        bitcoin: bitcoin.getChainIds(),
+      })
     },
   )
 }

@@ -1,8 +1,7 @@
 import { RedisClientType, commandOptions, createClient } from 'redis'
 
-import { Logger, NetworkURN, Services } from '@/services/types.js'
+import { AnyJson, Logger, NetworkURN, Services } from '@/services/types.js'
 import { RedisServerOptions } from '@/types.js'
-import { NetworkInfo } from './index.js'
 
 type StreamContext = {
   lastId: string
@@ -32,7 +31,7 @@ export type NetworkEntry = {
   isRelay: boolean
   // TODO: owner to be able to remove owned entries
   // on configuration changes?
-  info: NetworkInfo
+  info: AnyJson
 }
 
 export type NetworkRecord = Record<NetworkURN, NetworkEntry>

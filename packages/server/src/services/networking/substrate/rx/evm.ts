@@ -8,13 +8,8 @@ import {
   getFromAddress,
   isEVMLog,
   isFrontierExtrinsic,
-} from '@/common/evm/index.js'
-import {
-  BlockEvent,
-  BlockEvmEvent,
-  BlockEvmTransaction,
-  BlockExtrinsicWithEvents,
-} from '@/services/networking/types.js'
+} from '../evm/index.js'
+import { BlockEvent, BlockEvmEvent, BlockEvmTransaction, BlockExtrinsicWithEvents } from '../types.js'
 
 type DecodeContractParams = { abi: Abi; addresses: string[] }
 const findAbi = (params: DecodeContractParams[] = [], address: string) => {

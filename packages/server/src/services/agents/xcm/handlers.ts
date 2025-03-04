@@ -1,8 +1,9 @@
 import { Operation } from 'rfc6902'
 
 import { Logger } from '@/services/index.js'
+import { IngressConsumers } from '@/services/ingress/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { IngressConsumer } from 'services/ingress/index.js'
+
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 import type { XcmAgent } from './agent.js'
 import { messageCriteria, notificationTypeCriteria, sendersCriteria } from './ops/criteria.js'
@@ -28,7 +29,7 @@ export class XcmSubscriptionManager {
   readonly #updater: SubscriptionUpdater
   readonly #handlers: Record<string, XcmSubscriptionHandler>
 
-  constructor(log: Logger, ingress: IngressConsumer, agent: XcmAgent) {
+  constructor(log: Logger, ingress: IngressConsumers, agent: XcmAgent) {
     this.#log = log
     this.#agent = agent
     this.#updater = new SubscriptionUpdater(ingress, ALLOWED_PATHS)

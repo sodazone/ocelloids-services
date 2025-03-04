@@ -5,8 +5,8 @@ import * as url from 'node:url'
 import { Command, Option } from 'commander'
 import { pino } from 'pino'
 
-import { encodeBlock } from '@/services/ingress/watcher/codec.js'
-import { createArchiveClient } from '@/services/networking/index.js'
+import { createSubstrateClient } from '@/services/networking/substrate/client.js'
+import { encodeBlock } from '@/services/networking/substrate/codec.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 
@@ -21,9 +21,9 @@ export const networks = {
   acala: 'wss://acala-rpc.dwellir.com',
 } as Record<string, string>
 
-async function download([name, ws, height]: [string, string, string]) {
+async function download([name, ws, height]: [string, string, number]) {
   const logger = pino()
-  const client = await createArchiveClient(logger, name, ws)
+  const client = await createSubstrateClient(logger, name, ws)
 
   logger.info('Downloading %s@%s', name, height)
 
@@ -56,7 +56,7 @@ new Command()
 
     const ws = networks[network]
     if (ws) {
-      await download([network, ws, height])
+      await download([network, ws, Number(height)])
     } else {
       throw new Error(`Network name not found: ${network}`)
     }
