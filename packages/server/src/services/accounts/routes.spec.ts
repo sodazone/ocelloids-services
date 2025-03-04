@@ -35,7 +35,7 @@ describe('accounts api', () => {
     server.inject(
       {
         method: 'GET',
-        url: '/accounts/invite?subject=pepe@frog.com',
+        url: '/accounts/invite?subject=pepe@frog.com&expiresIn=315569520',
         headers: {
           authorization: `Bearer ${rootToken}`,
         },
