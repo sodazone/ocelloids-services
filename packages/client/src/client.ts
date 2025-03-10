@@ -352,6 +352,7 @@ export class OcelloidsClient implements OcelloidsClientApi {
   /**
    * Creates an {@link OcelloidsAgentApi} instance for a specific agent.
    *
+   * @public
    * @param agentId - The ID of the agent.
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
@@ -362,6 +363,7 @@ export class OcelloidsClient implements OcelloidsClientApi {
   /**
    * Fetches the list of configured network identifiers (URNs) from the server.
    *
+   * @public
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves to an array of network URNs as strings.
    */
@@ -372,6 +374,7 @@ export class OcelloidsClient implements OcelloidsClientApi {
   /**
    * Checks the health of the service.
    *
+   * @public
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
