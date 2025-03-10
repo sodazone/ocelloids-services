@@ -1,7 +1,6 @@
 [[substrate.networks]]
 name = "polkadot"
 id = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
@@ -13,7 +12,6 @@ id = "urn:ocn:polkadot:0"
 [[substrate.networks]]
 id = "urn:ocn:polkadot:1000"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
@@ -25,7 +23,6 @@ relay = "urn:ocn:polkadot:0"
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2006"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
@@ -36,7 +33,6 @@ relay = "urn:ocn:polkadot:0"
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2030"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
@@ -45,33 +41,30 @@ relay = "urn:ocn:polkadot:0"
     "wss://hk.p.bifrost-rpc.liebi.com/ws"
   ]
 
-[[substrate.networks]]
-id = "urn:ocn:polkadot:2031"
-relay = "urn:ocn:polkadot:0"
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:2031"
+#relay = "urn:ocn:polkadot:0"
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = [
+#    "wss://fullnode.centrifuge.io",
+#    "wss://centrifuge-rpc.dwellir.com",
+#    "wss://rpc-centrifuge.luckyfriday.io"
+#  ]
 
-  [substrate.networks.provider]
-  type = "rpc"
-  url = [
-    "wss://fullnode.centrifuge.io",
-    "wss://centrifuge-rpc.dwellir.com",
-    "wss://rpc-centrifuge.luckyfriday.io"
-  ]
-
-[[substrate.networks]]
-id = "urn:ocn:polkadot:2032"
-relay = "urn:ocn:polkadot:0"
-
-  [substrate.networks.provider]
-  type = "rpc"
-  url = [
-    "wss://rpc-interlay.luckyfriday.io/",
-    "wss://interlay-rpc.dwellir.com"
-  ]
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:2032"
+#relay = "urn:ocn:polkadot:0"
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = [
+#    "wss://rpc-interlay.luckyfriday.io/",
+#    "wss://interlay-rpc.dwellir.com"
+#  ]
 
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2034"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
@@ -83,28 +76,9 @@ relay = "urn:ocn:polkadot:0"
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2004"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
   url = [
     "wss://wss.api.moonbeam.network",
     "wss://moonbeam-rpc.dwellir.com"
   ]
-
-<<<<<<< HEAD
-[[substrate.networks]]
-id = "urn:ocn:polkadot:2104"
-relay = "urn:ocn:polkadot:0"
-
-  [substrate.networks.provider]
-  type = "rpc"
-  url = "wss://ws.manta.systems"
-=======
-#[[networks]]
-#id = "urn:ocn:polkadot:2104"
-#relay = "urn:ocn:polkadot:0"
-#
-#  [networks.provider]
-#  type = "rpc"
-#  url = "wss://ws.manta.systems"
->>>>>>> main

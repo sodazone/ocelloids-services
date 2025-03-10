@@ -13,7 +13,8 @@ import { Message } from '@/services/egress/types.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import {
   $Subscription,
-  EgressListener,
+  EgressMessageListener,
+  EgressTerminateListener,
   NewSubscription,
   Subscription,
 } from '@/services/subscriptions/types.js'
@@ -58,7 +59,8 @@ type Connection = {
 export default class WebsocketProtocol extends (EventEmitter as new () => TelemetryEventEmitter) {
   readonly #log: Logger
   readonly #switchboard: Switchboard
-  readonly #broadcaster: EgressListener
+  readonly #broadcaster: EgressMessageListener
+  readonly #terminator: EgressTerminateListener
   readonly #maxClients: number
 
   #connections: Map<string, Connection[]>
@@ -90,8 +92,24 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         }
       }
     }
+    this.#terminator = (sub) => {
+      const connections = this.#connections.get(sub.id)
+      if (connections) {
+        for (const connection of connections) {
+          const { socket } = connection
+          try {
+            socket.close(1001)
+          } catch (error) {
+            socket.terminate()
+            this.#log.error(error)
+          }
+        }
+      }
+      this.#connections.delete(sub.id)
+    }
 
     this.#switchboard.addEgressListener('websocket', this.#broadcaster)
+    this.#switchboard.addEgressListener('terminate', this.#terminator)
   }
 
   /**
@@ -210,6 +228,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
   stop() {
     this.#switchboard.removeEgressListener('websocket', this.#broadcaster)
+    this.#switchboard.removeEgressListener('terminate', this.#terminator)
   }
 
   #addSubscriber(subscription: Subscription, socket: WebSocket, request: FastifyRequest) {

@@ -3,6 +3,7 @@ import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstrac
 import { FastifyBaseLogger } from 'fastify'
 
 import { AgentCatalog, AgentId } from './agents/types.js'
+import { ArchiveRepository } from './archive/repository.js'
 import { ServiceConfiguration } from './config.js'
 import { Egress } from './egress/index.js'
 import { IngressConsumers } from './ingress/consumer/types.js'
@@ -93,6 +94,7 @@ export type Services = {
   log: Logger
   levelDB: LevelDB
   subsStore: SubsStore
+  archive: ArchiveRepository
   janitor: Janitor
   scheduler: Scheduler
   localConfig: ServiceConfiguration

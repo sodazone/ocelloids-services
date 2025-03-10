@@ -9,7 +9,7 @@ import { SubsStore } from '@/services/persistence/level/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Logger, Services } from '@/services/types.js'
 
-import { EgressListener, NewSubscription, Subscription, SubscriptionStats } from './types.js'
+import { EgressMessageListener, NewSubscription, Subscription, SubscriptionStats } from './types.js'
 
 /**
  * Custom error class for subscription-related errors.
@@ -91,7 +91,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener) {
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener) {
     this.#agentCatalog.addEgressListener(eventName, listener)
   }
 
@@ -102,7 +102,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * @param listener - The listener function.
    * @see {@link WebsocketProtocol}
    */
-  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener) {
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener) {
     this.#agentCatalog.removeEgressListener(eventName, listener)
   }
 

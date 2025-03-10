@@ -50,5 +50,5 @@ const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fasti
 export default fp(agentServicePlugin, {
   fastify: '>=4.x',
   name: 'agent-service',
-  dependencies: ['egress', 'ingress-consumer'],
+  dependencies: ['egress', 'ingress-consumer', 'archive'],
 })
