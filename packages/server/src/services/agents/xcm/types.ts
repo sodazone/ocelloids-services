@@ -4,6 +4,7 @@ import { Binary } from 'polkadot-api'
 import { Observable, Subscription as RxSubscription } from 'rxjs'
 
 import { ControlQuery } from '@/common/index.js'
+import { $HistoricalQuery } from '@/services/archive/types.js'
 import { createNetworkId } from '@/services/config.js'
 import {
   HexString,
@@ -691,6 +692,7 @@ export const $XcmInputs = z.object({
   events: z.optional(
     z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
   ),
+  history: z.optional($HistoricalQuery),
 })
 
 export type XcmInputs = z.infer<typeof $XcmInputs>

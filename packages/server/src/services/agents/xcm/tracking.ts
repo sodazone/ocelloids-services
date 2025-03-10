@@ -11,6 +11,8 @@ import { Block, SubstrateApiContext } from '@/services/networking/substrate/type
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 
+import { ArchiveRepository } from '@/services/archive/repository.js'
+import { HistoricalQuery } from '@/services/archive/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
@@ -101,6 +103,7 @@ export class XcmTracker {
   readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
   readonly #subject: Subject<XcmMessagePayload>
+  readonly #archive: ArchiveRepository
 
   readonly xcm$
 
@@ -112,6 +115,7 @@ export class XcmTracker {
 
     this.#streams = { d: [], o: [], r: [] }
     this.#ingress = ctx.ingress.substrate
+    this.#archive = ctx.archive
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
@@ -125,6 +129,9 @@ export class XcmTracker {
     this.#monitorOrigins(chainsToTrack)
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
+
+    // TODO configurable
+    this.#storeHistoricalData()
   }
 
   async stop() {
@@ -138,6 +145,10 @@ export class XcmTracker {
   collectTelemetry() {
     xcmMatchingEngineMetrics(this.#engine)
     xcmAgentMetrics(this.#telemetry)
+  }
+
+  historicalXcm$(query: HistoricalQuery) {
+    return this.#archive.withHistory(this.xcm$, query)
   }
 
   #monitorDestinations(chains: NetworkURN[]) {
@@ -397,5 +408,18 @@ export class XcmTracker {
         }),
       )
     }
+  }
+
+  #storeHistoricalData() {
+    this.#log.info('[%s] Tracking historical events', this.#id)
+
+    this.xcm$.subscribe(async (message) => {
+      await this.#archive.insertLogs({
+        network: message.waypoint.chainId,
+        agent: 'xcm',
+        block_number: Number(message.waypoint.blockNumber),
+        payload: JSON.stringify(message),
+      })
+    })
   }
 }

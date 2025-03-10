@@ -133,7 +133,7 @@ export class XcmAgent implements Agent, Subscribable {
   #monitor(subscription: Subscription<XcmInputs>): XcmSubscriptionHandler {
     const {
       id,
-      args: { origins, destinations, senders, events },
+      args: { origins, destinations, senders, events, history },
     } = subscription
 
     const sendersControl = ControlQuery.from(sendersCriteria(senders))
@@ -141,7 +141,8 @@ export class XcmAgent implements Agent, Subscribable {
     const destinationsControl = ControlQuery.from(messageCriteria(destinations))
     const notificationTypeControl = ControlQuery.from(notificationTypeCriteria(events))
 
-    const stream = this.#tracker.xcm$
+    const tracker$ = history === undefined ? this.#tracker.xcm$ : this.#tracker.historicalXcm$(history)
+    const stream = tracker$
       .pipe(
         filter((payload) => {
           return (
@@ -152,24 +153,34 @@ export class XcmAgent implements Agent, Subscribable {
           )
         }),
       )
-      .subscribe((payload: XcmMessagePayload) => {
-        if (this.#subs.has(id)) {
-          const { subscription } = this.#subs.get(id)
-          this.#notifier.publish(subscription, {
-            metadata: {
-              type: payload.type,
-              subscriptionId: id,
-              agentId: this.id,
-              networkId: payload.waypoint.chainId,
-              timestamp: Date.now(),
-              blockTimestamp: payload.waypoint.timestamp,
-            },
-            payload: payload as unknown as AnyJson,
-          })
-        } else {
-          // this could happen with closed ephemeral subscriptions
-          this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
-        }
+      .subscribe({
+        next: (payload: XcmMessagePayload) => {
+          if (this.#subs.has(id)) {
+            const { subscription } = this.#subs.get(id)
+            this.#notifier.publish(subscription, {
+              metadata: {
+                type: payload.type,
+                subscriptionId: id,
+                agentId: this.id,
+                networkId: payload.waypoint.chainId,
+                timestamp: Date.now(),
+                blockTimestamp: payload.waypoint.timestamp,
+              },
+              payload: payload as unknown as AnyJson,
+            })
+          } else {
+            // this could happen with closed ephemeral subscriptions
+            this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
+          }
+        },
+        complete: () => {
+          if (this.#subs.has(id)) {
+            const { subscription } = this.#subs.get(id)
+            if (subscription.ephemeral) {
+              this.#notifier.terminate(subscription)
+            }
+          }
+        },
       })
 
     return {

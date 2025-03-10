@@ -3,6 +3,8 @@ import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
 
+import { createArchiveDatabase } from '@/services/archive/db.js'
+import { ArchiveRepository } from '@/services/archive/repository.js'
 import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
@@ -51,14 +53,16 @@ export const _connector = {
 } as unknown as Connector
 
 export function createServices(): Services {
+  const { db: _archiveDB } = createArchiveDatabase(':memory:')
   const _rootDB = new MemoryLevel()
   _rootDB.setMaxListeners(100)
 
-  const __services = {
+  const __services: Services = {
     log: _log,
     localConfig: _config,
     connector: _connector,
     levelDB: _rootDB,
+    archive: new ArchiveRepository(_archiveDB),
     subsStore: {} as unknown as SubsStore,
     ingress: {} as unknown as IngressConsumers,
     agentCatalog: {} as unknown as AgentCatalog,

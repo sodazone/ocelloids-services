@@ -2,7 +2,7 @@ import { NotFound } from '@/errors.js'
 import { Egress } from '@/services/egress/index.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { Logger, Services } from '@/services/index.js'
-import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
+import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
 import { AgentCatalogOptions } from '@/types.js'
 
@@ -40,6 +40,7 @@ export class LocalAgentCatalog implements AgentCatalog {
     this.#egress = ctx.egress
     this.#agents = this.#loadAgents({
       log: ctx.log,
+      archive: ctx.archive,
       ingress: ctx.ingress,
       janitor: ctx.janitor,
       db: ctx.levelDB,
@@ -48,11 +49,11 @@ export class LocalAgentCatalog implements AgentCatalog {
     })
   }
 
-  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener): Egress {
     return this.#egress.on(eventName, listener)
   }
 
-  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress {
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener): Egress {
     return this.#egress.off(eventName, listener)
   }
 
