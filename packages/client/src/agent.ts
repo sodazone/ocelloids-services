@@ -19,7 +19,8 @@ type KnownAgentIds = 'xcm' | 'steward' | 'informant'
  * It accepts either configuration options for a new OcelloidsClient or an existing
  * client instance. The returned agent provides access to specialized methods
  * (e.g., subscribing to events, querying data) and the general client API.
- *
+ * 
+ * @public
  * @param id - The ID of the agent to create ('xcm', 'steward', or 'informant').
  * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
  * @returns An instance of the specified agent with specific methods and access to the client API.
