@@ -20,8 +20,8 @@ type KnownAgentIds = 'xcm' | 'steward' | 'informant'
  * client instance. The returned agent provides access to specialized methods
  * (e.g., subscribing to events, querying data) and the general client API.
  *
- * @param id The ID of the agent to create ('xcm', 'steward', or 'informant').
- * @param optsOrClient Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @param id - The ID of the agent to create ('xcm', 'steward', or 'informant').
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
  * @returns An instance of the specified agent with specific methods and access to the client API.
  */
 function createAgent<I = AnySubscriptionInputs>(
@@ -48,8 +48,8 @@ function createAgent<I = AnySubscriptionInputs>(
  * // Subscribe to XCM events
  * const ws = await agent.subscribe(...);
  * ```
- *
- * @param optsOrClient Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @public
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
  * @returns An object with methods for subscribing to XCM events and accessing general client API methods.
  */
 export function createXcmAgent(
@@ -72,8 +72,8 @@ export function createXcmAgent(
  * // Query asset metadata
  * const metadata = await agent.query({ ... });
  * ```
- *
- * @param optsOrClient Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @public
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
  * @returns An object with methods for querying asset metadata and accessing general client API methods.
  */
 export function createStewardAgent(
@@ -97,8 +97,8 @@ export function createStewardAgent(
  * // Subscribe to general events
  * const ws = await agent.subscribe(...);
  * ```
- *
- * @param optsOrClient Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @public
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
  * @returns An object with methods for subscribing to events and accessing general client API methods.
  */
 export function createInformantAgent(
