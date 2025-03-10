@@ -4,7 +4,7 @@ import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { toHex } from 'polkadot-api/utils'
 
 import { HexString } from '@/lib.js'
-import { Event } from '@/services/networking/types.js'
+import { Event } from '@/services/networking/substrate/types.js'
 
 export function asJSON(o: unknown) {
   return JSON.stringify(o, (_, v) =>

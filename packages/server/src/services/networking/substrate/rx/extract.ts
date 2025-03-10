@@ -1,8 +1,9 @@
 import { Observable, from, map, mergeMap, share } from 'rxjs'
 
-import { isFrontierExtrinsic } from '@/common/evm/decoder.js'
 import { getEventValue } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+
+import { isFrontierExtrinsic } from '../evm/decoder.js'
 import {
   Block,
   BlockContext,
@@ -11,7 +12,7 @@ import {
   BlockExtrinsicWithEvents,
   EventRecord,
   Extrinsic,
-} from '@/services/networking/types.js'
+} from '../types.js'
 
 export function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'set')

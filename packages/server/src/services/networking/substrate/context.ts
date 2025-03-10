@@ -3,10 +3,9 @@ import { RuntimeContext } from '@polkadot-api/observable-client'
 import { Blake2256, Decoder, V14, V15, metadata as metadataCodec } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
-
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { Extrinsic, StorageCodec } from '../types.js'
-import { ApiContext } from './types.js'
+
+import { Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './types.js'
 
 export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: string) {
   let metadata
@@ -33,7 +32,7 @@ export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: strin
   )
 }
 
-export class RuntimeApiContext implements ApiContext {
+export class RuntimeApiContext implements SubstrateApiContext {
   readonly chainId?: string
   readonly #extrinsicDecoder: ReturnType<typeof getExtrinsicDecoder>
   readonly #ctx: RuntimeContext
@@ -104,7 +103,7 @@ export class RuntimeApiContext implements ApiContext {
     }
   }
 
-  getHashers(module: string, method: string) {
+  getHashers(module: string, method: string): Hashers | null {
     const pallet = this.#metadata.pallets.find((p) => p.name === module)
 
     if (!pallet) {

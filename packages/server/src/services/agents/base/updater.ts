@@ -3,10 +3,10 @@ import { Operation, applyPatch } from 'rfc6902'
 import { ZodSchema } from 'zod'
 
 import { NotFound, ValidationError } from '@/errors.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
 import { $Subscription, Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
+import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { SubscriptionHandler } from '../types.js'
 
 export function hasOp(patch: Operation[], path: string) {
@@ -45,10 +45,10 @@ const deepCopy = <T>(target: T): T => {
 }
 
 export class SubscriptionUpdater {
-  readonly #ingress: IngressConsumer
+  readonly #ingress: IngressConsumers
   readonly #allowedPaths: string[]
 
-  constructor(ingress: IngressConsumer, allowedPaths: string[]) {
+  constructor(ingress: IngressConsumers, allowedPaths: string[]) {
     this.#ingress = ingress
     this.#allowedPaths = allowedPaths
   }
@@ -84,7 +84,8 @@ export class SubscriptionUpdater {
   }
 
   validateNetworks(networks: string[]) {
-    if (!networks.every((n) => this.#ingress.isNetworkDefined(n as NetworkURN))) {
+    const consumers = Object.values(this.#ingress)
+    if (!networks.every((n) => consumers.find((c) => c.isNetworkDefined(n as NetworkURN)))) {
       throw new ValidationError('Invalid network URN')
     }
   }

@@ -15,7 +15,11 @@ import {
 } from 'rxjs'
 import { z } from 'zod'
 
-import { IngressConsumer, NetworkInfo } from '@/services/ingress/index.js'
+import {
+  SubstrateIngressConsumer,
+  SubstrateNetworkInfo,
+} from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
@@ -32,7 +36,6 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
-import { SharedStreams } from '../base/shared.js'
 import { mappers } from './mappers.js'
 import { Queries } from './queries/index.js'
 import {
@@ -81,7 +84,7 @@ export class DataSteward implements Agent, Queryable {
   readonly #log: Logger
 
   readonly #sched: Scheduler
-  readonly #ingress: IngressConsumer
+  readonly #ingress: SubstrateIngressConsumer
 
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
@@ -93,12 +96,12 @@ export class DataSteward implements Agent, Queryable {
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
     this.#sched = ctx.scheduler
-    this.#ingress = ctx.ingress
+    this.#ingress = ctx.ingress.substrate
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbChains = ctx.db.sublevel<string, NetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
+    this.#dbChains = ctx.db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
@@ -146,7 +149,7 @@ export class DataSteward implements Agent, Queryable {
 
     // TODO generalise for other networks and pallets, similar to mappers but for updates
     const chainsToWatch: NetworkURN[] = ['urn:ocn:polkadot:1000', 'urn:ocn:kusama:1000', 'urn:ocn:paseo:1000']
-    const streams = SharedStreams.instance(this.#ingress)
+    const streams = SubstrateSharedStreams.instance(this.#ingress)
 
     for (const chainId of chainsToWatch) {
       if (this.#ingress.isNetworkDefined(chainId)) {
@@ -368,7 +371,7 @@ export class DataSteward implements Agent, Queryable {
 
   #putChainProps(chainId: NetworkURN) {
     this.#ingress
-      .getChainInfo(chainId)
+      .getNetworkInfo(chainId)
       .then((chainInfo) => {
         this.#dbChains.put(chainId, chainInfo).catch((e) => {
           this.#log.error(e, '[agent:%s] while writing chain info (chainId=%s)', this.id, chainId)

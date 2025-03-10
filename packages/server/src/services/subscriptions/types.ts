@@ -17,8 +17,8 @@ export const $ChainHead = z.object({
 export type ChainHead = z.infer<typeof $ChainHead>
 
 export type BlockNumberRange = {
-  fromBlockNum: string
-  toBlockNum: string
+  fromBlockNum: number
+  toBlockNum: number
 }
 
 /**

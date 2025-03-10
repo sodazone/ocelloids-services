@@ -21,7 +21,7 @@ export type {
   AnyQueryArgs,
   NetworkURN,
   AnyQueryResultItem,
-  NetworkInfo,
+  SubstrateTypes,
   sourceSteward,
   sourceXcm,
 } from './server-types'

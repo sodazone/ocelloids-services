@@ -1,10 +1,14 @@
 import { asPublicKey } from '@/common/util.js'
 import { createNetworkId } from '@/services/config.js'
-import { BlockEvent, BlockExtrinsic, Event, Extrinsic } from '@/services/networking/index.js'
+import {
+  FrontierExtrinsic,
+  getFromAddress,
+  isFrontierExtrinsic,
+} from '@/services/networking/substrate/evm/index.js'
+import { BlockEvent, BlockExtrinsic, Event, Extrinsic } from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { FrontierExtrinsic, getFromAddress, isFrontierExtrinsic } from '@/common/index.js'
 import { AssetsTrapped, TrappedAsset } from '../types.js'
 import { Program } from './xcm-format.js'
 

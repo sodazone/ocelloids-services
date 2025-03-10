@@ -1,39 +1,39 @@
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:polkadot:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "wss://rpc.ibp.network/polkadot"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:polkadot:1000"
 relay = "urn:ocn:polkadot:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "wss://polkadot-asset-hub-rpc.polkadot.io"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:polkadot:2034"
 relay = "urn:ocn:polkadot:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "wss://hydradx.paras.dotters.network"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:polkadot:2030"
 relay = "urn:ocn:polkadot:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = "wss://bifrost-polkadot-rpc.dwellir.com"
 
-[[networks]]
+[[substrate.networks]]
 id = "urn:ocn:polkadot:2031"
 relay = "urn:ocn:polkadot:0"
 
-  [networks.provider]
+  [substrate.networks.provider]
   type = "rpc"
   url = [
     "wss://fullnode.centrifuge.io",
@@ -41,18 +41,18 @@ relay = "urn:ocn:polkadot:0"
     "wss://rpc-centrifuge.luckyfriday.io"
   ]
 
-#[[networks]]
+#[[substrate.networks]]
 #id = "urn:ocn:polkadot:2004"
 #relay = "urn:ocn:polkadot:0"
 #
-#  [networks.provider]
+#  [substrate.networks.provider]
 #  type = "rpc"
 #  url = "wss://moonbeam.api.onfinality.io/public-ws"
 
-#[[networks]]
+#[[substrate.networks]]
 #id = "urn:ocn:polkadot:2104"
 #relay = "urn:ocn:polkadot:0"
 #
-#  [networks.provider]
+#  [substrate.networks.provider]
 #  type = "rpc"
 #  url = "wss://ws.manta.systems"

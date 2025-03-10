@@ -1,6 +1,6 @@
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import { ApiContext } from '@/services/networking/client/index.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Blake2256 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
@@ -15,7 +15,7 @@ export function messageHash(data: HexString | Uint8Array): HexString {
 }
 
 export const raw = {
-  asVersionedXcm(data: HexString | Uint8Array, context: ApiContext): Program {
+  asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
     const codec = versionedXcmCodec(context)
     const instructions = codec.dec(data)
     const encoded = codec.enc(instructions)
@@ -25,7 +25,7 @@ export const raw = {
       hash: messageHash(encoded),
     }
   },
-  asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[] {
+  asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
     const len = buffer.length
     const xcms: Program[] = []
     let ptr = 1
@@ -53,7 +53,7 @@ export const raw = {
  * @param context - The API context.
  * @returns a versioned XCM program
  */
-export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext): Program {
+export function asVersionedXcm(data: HexString | Uint8Array, context: SubstrateApiContext): Program {
   const xcm = raw.asVersionedXcm(data, context)
   xcm.instructions = asSerializable(xcm.instructions)
   return xcm
@@ -65,7 +65,7 @@ export function asVersionedXcm(data: HexString | Uint8Array, context: ApiContext
  * @param context - The API context.
  * @returns the codec
  */
-export function versionedXcmCodec(context: ApiContext) {
+export function versionedXcmCodec(context: SubstrateApiContext) {
   const xcmTypeId =
     context.getTypeIdByPath('xcm.VersionedXcm') ??
     context.getTypeIdByPath('staging.xcm.VersionedXcm') ??
@@ -76,7 +76,7 @@ export function versionedXcmCodec(context: ApiContext) {
   return context.typeCodec(xcmTypeId)
 }
 
-function asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[] {
+function asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
   return raw.asXcmpVersionedXcms(buffer, context).map((xcm) => {
     xcm.instructions = asSerializable(xcm.instructions)
     return xcm
@@ -90,7 +90,7 @@ function asXcmpVersionedXcms(buffer: Uint8Array, context: ApiContext): Program[]
  * @param context The registry to decode types.
  * @returns an array of {@link VersionedXcm} programs.
  */
-export function fromXcmpFormat(buf: Uint8Array, context: ApiContext): Program[] {
+export function fromXcmpFormat(buf: Uint8Array, context: SubstrateApiContext): Program[] {
   switch (buf[0]) {
     case 0x00: {
       // Concatenated XCM fragments

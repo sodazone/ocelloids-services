@@ -17,10 +17,19 @@ export type {
   AnyQueryResultItem,
 } from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
-export type { NetworkInfo } from './services/ingress/consumer/types.js'
 
 // ====================================================================
-// Agent-specific support types
+// Network-specific types
+// ====================================================================
+
+/**
+ * Substrate network types.
+ * @public
+ */
+export * as SubstrateTypes from './services/networking/substrate/public-types.js'
+
+// ====================================================================
+// Agent-specific types
 // NOTE: this will be extracted
 // ====================================================================
 

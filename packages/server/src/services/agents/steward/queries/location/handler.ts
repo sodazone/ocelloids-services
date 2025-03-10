@@ -1,7 +1,7 @@
 import { firstValueFrom } from 'rxjs'
 
 import { NetworkURN } from '@/lib.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 
 import { QueryResult } from '../../../types.js'
@@ -12,9 +12,9 @@ import { parseAssetFromJson } from './util.js'
 
 export class LocationQueryHandler {
   readonly #db: LevelDB
-  readonly #ingress: IngressConsumer
+  readonly #ingress: SubstrateIngressConsumer
 
-  constructor(db: LevelDB, ingress: IngressConsumer) {
+  constructor(db: LevelDB, ingress: SubstrateIngressConsumer) {
     this.#db = db
     this.#ingress = ingress
   }

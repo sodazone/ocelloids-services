@@ -1,10 +1,10 @@
+import { toHex } from 'polkadot-api/utils'
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString } from '@/lib.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext } from '@/services/networking/client/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { toHex } from 'polkadot-api/utils'
 import {
   hashItemPartialKey,
   mapAssetsPalletAndLocations,
@@ -16,7 +16,7 @@ import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } fro
 
 const BYPASS_MAPPER: AssetMapper = () => []
 
-const astarMapper: AssetMapper = (context: ApiContext) => {
+const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
@@ -36,7 +36,7 @@ const astarMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const moonbeamMapper: AssetMapper = (context: ApiContext) => {
+const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
@@ -59,7 +59,7 @@ const moonbeamMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const hyperbridgeMapper: AssetMapper = (context: ApiContext) => {
+const hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
@@ -81,7 +81,7 @@ const hyperbridgeMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const bifrostMapper: AssetMapper = (context: ApiContext) => {
+const bifrostMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'CurrencyMetadatas')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
@@ -112,7 +112,7 @@ const bifrostMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const hydrationMapper: AssetMapper = (context: ApiContext) => {
+const hydrationMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'Assets')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
@@ -134,7 +134,7 @@ const hydrationMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const centrifugeMapper: AssetMapper = (context: ApiContext) => {
+const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('OrmlAssetRegistry', 'Metadata')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets'> = {
@@ -170,7 +170,7 @@ const centrifugeMapper: AssetMapper = (context: ApiContext) => {
   return mappings
 }
 
-const assetHubMapper = (chainId: string) => (context: ApiContext) => {
+const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata'> = {
@@ -188,7 +188,7 @@ const assetHubMapper = (chainId: string) => (context: ApiContext) => {
     {
       // Foreign assets pallet
       keyPrefix: foreignAssetsKeyPrefix,
-      mapEntry: (keyArgs: string, ingress: IngressConsumer) => {
+      mapEntry: (keyArgs: string, ingress: SubstrateIngressConsumer) => {
         const assetCodec = foreignAssetsCodec
         const assetMetadataCodec = context.storageCodec('ForeignAssets', 'Metadata')
         return (source: Observable<HexString>): Observable<AssetMetadata> => {

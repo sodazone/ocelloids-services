@@ -1,6 +1,6 @@
 import { astarBlocks, expectedTxs, moonbeamAbis, moonbeamBlocks } from '@/testing/blocks.js'
 
-import { Block } from '@/services/networking/types.js'
+import { Block } from '../types.js'
 import {
   FrontierExtrinsic,
   decodeEvmEventLog,

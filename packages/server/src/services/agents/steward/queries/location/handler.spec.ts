@@ -1,17 +1,18 @@
+import { LevelDB } from '@/services/types.js'
+import { createServices } from '@/testing/services.js'
 import { AbstractSublevel } from 'abstract-level'
 import { of } from 'rxjs'
 
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { ApiContext } from '@/services/networking/index.js'
-import { LevelDB } from '@/services/types.js'
-import { createServices } from '@/testing/services.js'
+import { RuntimeApiContext } from '@/services/networking/substrate/context.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { AssetMetadata } from '../../types.js'
 import { LocationQueryHandler } from './handler.js'
 
 vi.mock('../../mappers.js', () => {
   return {
     mappers: {
-      'urn:ocn:polkadot:2030': (_apiContext: ApiContext) => [
+      'urn:ocn:polkadot:2030': (_apiContext: RuntimeApiContext) => [
         {
           mapAssetId: (_data: Uint8Array) => {
             return [
@@ -30,14 +31,14 @@ vi.mock('../../mappers.js', () => {
 describe('steward location query handler', () => {
   let locationHandler: LocationQueryHandler
   let dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
-  let ingress: IngressConsumer
+  let ingress: SubstrateIngressConsumer
 
   beforeAll(() => {
     const services = createServices()
     dbAssets = services.levelDB.sublevel<string, AssetMetadata>('agent:steward:assets', {
       valueEncoding: 'json',
     })
-    ingress = services.ingress
+    ingress = services.ingress.substrate
     locationHandler = new LocationQueryHandler(dbAssets, ingress)
   })
 
@@ -73,7 +74,7 @@ describe('steward location query handler', () => {
 
   it('should retrieve asset with complex structure as asset ID', async () => {
     const dbGetManySpy = vi.spyOn(dbAssets, 'getMany')
-    vi.spyOn(ingress, 'getContext').mockImplementationOnce(() => of({} as unknown as ApiContext))
+    vi.spyOn(ingress, 'getContext').mockImplementationOnce(() => of({} as unknown as SubstrateApiContext))
 
     await new Promise<void>((resolve) => {
       locationHandler

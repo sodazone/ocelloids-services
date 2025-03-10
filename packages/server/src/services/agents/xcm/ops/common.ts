@@ -2,7 +2,7 @@ import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
-import { ApiContext, BlockEvent } from '@/services/networking/index.js'
+import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { toHex } from 'polkadot-api/utils'
@@ -73,7 +73,7 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
   return stops
 }
 
-function constructLegs(stops: Stop[], version: string, context: ApiContext) {
+function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
   const legs: Leg[] = []
   for (let i = 0; i < stops.length - 1; i++) {
     const { networkId: from } = stops[i]
@@ -127,7 +127,7 @@ function constructLegs(stops: Stop[], version: string, context: ApiContext) {
  * @param registry - The type registry
  * @param origin - The origin network URN
  */
-export function mapXcmSent(context: ApiContext, origin: NetworkURN) {
+export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSent> =>
     source.pipe(
       map((message) => {

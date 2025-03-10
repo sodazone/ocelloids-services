@@ -1,7 +1,8 @@
 import { Observable, bufferCount, map, mergeMap } from 'rxjs'
 
-import { filterNonNull, getTimestampFromBlock } from '@/common/index.js'
-import { ApiContext, Block, BlockEvent } from '@/services/networking/index.js'
+import { filterNonNull } from '@/common/index.js'
+import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
+import { Block, BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -75,7 +76,11 @@ function createXcmMessageSent({
   })
 }
 
-function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessageQueues, context: ApiContext) {
+function findDmpMessagesFromEvent(
+  origin: NetworkURN,
+  getDmp: GetDownwardMessageQueues,
+  context: SubstrateApiContext,
+) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       map((event) => {
@@ -145,7 +150,7 @@ function findDmpMessagesFromEvent(origin: NetworkURN, getDmp: GetDownwardMessage
 export function extractDmpSendByEvent(
   origin: NetworkURN,
   getDmp: GetDownwardMessageQueues,
-  context: ApiContext,
+  context: SubstrateApiContext,
 ) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(findDmpMessagesFromEvent(origin, getDmp, context))

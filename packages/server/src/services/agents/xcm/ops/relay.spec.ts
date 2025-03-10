@@ -1,6 +1,7 @@
-import { extractTxWithEvents } from '@/common/index.js'
+import { extractTxWithEvents } from '@/services/networking/substrate/index.js'
 import { NetworkURN } from '@/services/types.js'
 import { apiContext, relayHrmpReceive } from '@/testing/xcm.js'
+
 import { messageCriteria } from './criteria.js'
 import { extractRelayReceive } from './relay.js'
 

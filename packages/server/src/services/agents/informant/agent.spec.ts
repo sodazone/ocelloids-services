@@ -7,19 +7,19 @@ import { NetworkURN, Services } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
 import { createServices } from '@/testing/services.js'
 import { AgentServiceMode } from '@/types.js'
-import { SharedStreams } from '../base/shared.js'
+import { SubstrateSharedStreams } from '../../networking/substrate/shared.js'
 import { LocalAgentCatalog } from '../catalog/local.js'
 import { AgentCatalog } from '../types.js'
 import { InformantAgent, InformantInputs } from './agent.js'
 
 import '@/testing/network.js'
-import { extractEvents, extractTxWithEvents } from '@/common/index.js'
+import { extractEvents, extractTxWithEvents } from '@/services/networking/substrate/index.js'
 
-vi.spyOn(SharedStreams.prototype, 'blockEvents').mockImplementation((_chainId: NetworkURN) => {
+vi.spyOn(SubstrateSharedStreams.prototype, 'blockEvents').mockImplementation((_chainId: NetworkURN) => {
   return from(polkadotBlocks).pipe(extractEvents())
 })
 
-vi.spyOn(SharedStreams.prototype, 'blockExtrinsics').mockImplementation((_chainId: NetworkURN) => {
+vi.spyOn(SubstrateSharedStreams.prototype, 'blockExtrinsics').mockImplementation((_chainId: NetworkURN) => {
   return from(polkadotBlocks).pipe(extractTxWithEvents())
 })
 

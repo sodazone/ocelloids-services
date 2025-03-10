@@ -1,5 +1,6 @@
-import { extractEvents } from '@/common/index.js'
+import { extractEvents } from '@/services/networking/substrate/index.js'
 import { apiContext, xcmpSend } from '@/testing/xcm.js'
+
 import { extractXcmpSend } from './xcmp.js'
 
 describe('xcmp operator', () => {

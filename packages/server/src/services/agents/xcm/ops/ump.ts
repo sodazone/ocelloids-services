@@ -3,7 +3,7 @@ import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { getRelayId } from '@/services/config.js'
-import { ApiContext, BlockEvent } from '@/services/networking/index.js'
+import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
 import {
@@ -52,7 +52,7 @@ function createUmpReceivedWithContext(
 function findOutboundUmpMessage(
   origin: NetworkURN,
   getOutboundUmpMessages: GetOutboundUmpMessages,
-  context: ApiContext,
+  context: SubstrateApiContext,
 ) {
   return (source: Observable<XcmSentWithContext>): Observable<XcmSentWithContext> => {
     return source.pipe(
@@ -90,7 +90,7 @@ function findOutboundUmpMessage(
 export function extractUmpSend(
   origin: NetworkURN,
   getOutboundUmpMessages: GetOutboundUmpMessages,
-  context: ApiContext,
+  context: SubstrateApiContext,
 ) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(

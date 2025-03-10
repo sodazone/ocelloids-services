@@ -1,9 +1,9 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
 import { HexString, NetworkURN } from '@/lib.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { Hashers } from '@/services/networking/substrate/types.js'
 
-import { Hashers } from '@/services/networking/types.js'
 import {
   Blake2128,
   Blake2128Concat,
@@ -79,7 +79,7 @@ export const mapAssetsRegistryMetadata = ({
 
 export const mapAssetsPalletAssets =
   (codecs: WithRequired<StorageCodecs, 'assets' | 'metadata'>, chainId: string) =>
-  (keyArgs: string, ingress: IngressConsumer) => {
+  (keyArgs: string, ingress: SubstrateIngressConsumer) => {
     const assetCodec = codecs.assets
     const assetMetadataCodec = codecs.metadata
 
@@ -126,7 +126,7 @@ const mergeMultiLocations = (
   codecs: WithRequired<StorageCodecs, 'locations'>,
   { onMultiLocationData }: MapMultiLocationOptions,
 ) => {
-  return (ingress: IngressConsumer) => {
+  return (ingress: SubstrateIngressConsumer) => {
     const codec = codecs.locations
     return mergeMap((asset: AssetMetadata) => {
       // Expand multilocations
@@ -153,10 +153,10 @@ const mergeMultiLocations = (
 }
 
 export const mapAssetsPalletAndLocations = (
-  codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'>,
+  codecs: Required<StorageCodecs>,
   options: MapMultiLocationOptions,
 ) => {
-  return (keyArgs: string, ingress: IngressConsumer) => {
+  return (keyArgs: string, ingress: SubstrateIngressConsumer) => {
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         mapAssetsPalletAssets(codecs, options.chainId)(keyArgs, ingress),
@@ -170,7 +170,7 @@ export const mapAssetsRegistryAndLocations = (
   codecs: WithRequired<StorageCodecs, 'assets' | 'locations'>,
   options: MapMultiLocationOptions,
 ) => {
-  return (keyArgs: string, ingress: IngressConsumer) => {
+  return (keyArgs: string, ingress: SubstrateIngressConsumer) => {
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       const { chainId } = options
       return source.pipe(

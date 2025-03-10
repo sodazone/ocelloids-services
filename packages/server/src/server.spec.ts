@@ -63,7 +63,7 @@ describe('Ocelloids Server HTTP API', () => {
           },
           (_err, response) => {
             expect(response?.statusCode).toStrictEqual(200)
-            expect(response?.json().length).toBeGreaterThan(1)
+            expect(response?.json().substrate.length).toBeGreaterThan(1)
 
             resolve()
           },

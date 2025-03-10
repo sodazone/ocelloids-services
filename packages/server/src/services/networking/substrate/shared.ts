@@ -1,20 +1,21 @@
 import { Observable, share } from 'rxjs'
 
-import { extractEvents, extractTxWithEvents, installOperators } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
-import { IngressConsumer } from '@/services/ingress/index.js'
-import { Block, BlockEvent, BlockExtrinsicWithEvents } from '@/services/networking/index.js'
 import { NetworkURN } from '@/services/types.js'
 
-export class SharedStreams {
-  static #instance: SharedStreams
-  readonly #ingress: IngressConsumer
+import { SubstrateIngressConsumer } from './ingress/types.js'
+import { extractEvents, extractTxWithEvents, installOperators } from './rx/index.js'
+import { Block, BlockEvent, BlockExtrinsicWithEvents } from './types.js'
+
+export class SubstrateSharedStreams {
+  static #instance: SubstrateSharedStreams
+  readonly #ingress: SubstrateIngressConsumer
 
   readonly #blocks: Record<string, Observable<Block>>
   readonly #blockEvents: Record<string, Observable<BlockEvent>>
   readonly #blockExtrinsics: Record<string, Observable<BlockExtrinsicWithEvents>>
 
-  private constructor(ingress: IngressConsumer) {
+  private constructor(ingress: SubstrateIngressConsumer) {
     this.#ingress = ingress
     this.#blocks = {}
     this.#blockEvents = {}
@@ -23,8 +24,11 @@ export class SharedStreams {
     installOperators()
   }
 
-  static instance(ingress: IngressConsumer) {
-    return SharedStreams.#instance ?? (SharedStreams.#instance = new SharedStreams(ingress))
+  static instance(ingress: SubstrateIngressConsumer) {
+    return (
+      SubstrateSharedStreams.#instance ??
+      (SubstrateSharedStreams.#instance = new SubstrateSharedStreams(ingress))
+    )
   }
 
   checkSupportedNetwork(chainId: NetworkURN) {

@@ -1,6 +1,6 @@
 import { from, of } from 'rxjs'
 
-import { extractEvents } from '@/common/index.js'
+import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext, xcmpReceive } from '@/testing/xcm.js'
 import { GenericXcmSentWithContext } from '../types.js'

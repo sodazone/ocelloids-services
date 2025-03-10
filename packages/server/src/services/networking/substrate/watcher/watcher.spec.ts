@@ -1,35 +1,48 @@
 import { MemoryLevel } from 'memory-level'
+import { Observable, from, map } from 'rxjs'
 
 import Connector from '@/services/networking/connector.js'
-import { ApiClient, BlockInfo } from '@/services/networking/index.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
 import { LevelDB, Services, jsonEncoded, prefixes } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'
-import { Observable, from } from 'rxjs'
-import { HeadCatcher } from './head-catcher.js'
+
+import { ApiOps } from '../../types.js'
+import { BlockInfo, SubstrateApi } from '../types.js'
+import { SubstrateWatcher } from './watcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
   const mockApi = {
-    finalizedHeads$: headersSource,
+    followHeads$: headersSource.pipe(
+      map((b) => ({
+        parenthash: b.parent,
+        height: b.number,
+        hash: b.hash,
+      })),
+    ),
     getBlock(hash: string) {
       return Promise.resolve(polkadotBlocks.find((p) => p.hash === hash)!)
     },
-    getBlockHash(height: string) {
-      return Promise.resolve(polkadotBlocks.find((p) => p.number === Number(height))!.hash)
+    getBlockHash(height: number) {
+      return Promise.resolve(polkadotBlocks.find((p) => p.number === height)!.hash)
     },
-    getHeader(hash: string) {
-      return Promise.resolve(testHeaders.find((p) => p.hash === hash)!)
+    getNeutralBlockHeader(hash) {
+      const h = testHeaders.find((p) => p.hash === hash)!
+      return Promise.resolve({
+        parenthash: h.parent,
+        height: h.number,
+        hash: h.hash,
+      })
     },
-  }
+  } as ApiOps
   return {
     connect: () => ({
       'urn:ocn:local:0': {
         isReady: () => {
           return Promise.resolve(mockApi)
         },
-      } as unknown as ApiClient,
+      } as unknown as SubstrateApi,
     }),
   } as unknown as Connector
 }
@@ -60,7 +73,7 @@ describe('head catcher', () => {
 
       // We will emit finalized headers with gaps to force enter catch-up logic multiple times
       const headersSource = from([testHeaders[3], testHeaders[8]])
-      const catcher = new HeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: createConnector(headersSource, testHeaders),
@@ -113,8 +126,8 @@ describe('head catcher', () => {
     } as unknown as ChainHead)
     // Pretend that we got interrupted
     const range: BlockNumberRange = {
-      fromBlockNum: '23075465',
-      toBlockNum: '23075458',
+      fromBlockNum: 23075465,
+      toBlockNum: 23075458,
     }
     db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges('urn:ocn:local:0'), jsonEncoded).put(
       prefixes.cache.keys.range(range),
@@ -126,7 +139,7 @@ describe('head catcher', () => {
     // We will emit the last finalized headers
     const headersSource = from([testHeaders[7], testHeaders[8]])
     const blocksSource = from(polkadotBlocks)
-    const catcher = new HeadCatcher({
+    const catcher = new SubstrateWatcher({
       ...services,
       localConfig: mockConfigWS,
       connector: createConnector(headersSource, testHeaders),
@@ -157,16 +170,16 @@ describe('head catcher', () => {
   describe('outboundUmpMessages', () => {
     it('should get outbound UMP messages from chain storage if using rpc', async () => {
       const mockUpwardMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
-      const catcher = new HeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApi,
             'urn:ocn:local:1000': {
               getStorage: mockUpwardMessagesQuery,
-            } as unknown as ApiClient,
-            'urn:ocn:local:2032': {} as unknown as ApiClient,
+            } as unknown as SubstrateApi,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApi,
           }),
         } as unknown as Connector,
         levelDB: db,
@@ -186,16 +199,16 @@ describe('head catcher', () => {
   describe('outboundHrmpMessages', () => {
     it('should get outbound HRMP messages from chain storage if using rpc', async () => {
       const mockHrmpOutboundMessagesQuery = vi.fn(() => Promise.resolve('0x0'))
-      const catcher = new HeadCatcher({
+      const catcher = new SubstrateWatcher({
         ...services,
         localConfig: mockConfigWS,
         connector: {
           connect: () => ({
-            'urn:ocn:local:0': {} as unknown as ApiClient,
+            'urn:ocn:local:0': {} as unknown as SubstrateApi,
             'urn:ocn:local:1000': {
               getStorage: mockHrmpOutboundMessagesQuery,
-            } as unknown as ApiClient,
-            'urn:ocn:local:2032': {} as unknown as ApiClient,
+            } as unknown as SubstrateApi,
+            'urn:ocn:local:2032': {} as unknown as SubstrateApi,
           }),
         } as unknown as Connector,
         levelDB: db,
