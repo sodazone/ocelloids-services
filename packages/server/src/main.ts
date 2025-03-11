@@ -128,6 +128,7 @@ addServerOptions(program)
     ),
   )
   .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
+  .addOption(opt('--archive', 'enables historical archiving', 'OC_ARCHIVE').default(false))
   .action(startServer)
 
 program.parse()
