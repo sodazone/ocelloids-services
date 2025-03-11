@@ -24,6 +24,8 @@ import {
 import { XcmTracker } from './tracking.js'
 import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
 
+export const XCM_AGENT_ID = 'xcm'
+
 /**
  * The XCM monitoring agent.
  *
@@ -49,7 +51,7 @@ export class XcmAgent implements Agent, Subscribable {
   }
 
   get id() {
-    return 'xcm'
+    return XCM_AGENT_ID
   }
 
   get inputSchema(): z.ZodSchema {
@@ -143,7 +145,10 @@ export class XcmAgent implements Agent, Subscribable {
     const destinationsControl = ControlQuery.from(messageCriteria(destinations))
     const notificationTypeControl = ControlQuery.from(notificationTypeCriteria(events))
 
-    const tracker$ = history === undefined ? this.#tracker.xcm$ : this.#tracker.historicalXcm$(history)
+    const tracker$ =
+      history === undefined
+        ? this.#tracker.xcm$
+        : this.#tracker.historicalXcm$({ ...history, agent: this.id })
     const stream = tracker$
       .pipe(
         filter((payload) => {

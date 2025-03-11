@@ -36,6 +36,7 @@ export type HistoricalQueryOptions = {
 }
 
 export type HistoricalQuery = {
+  agent: string
   timeframe: Partial<Timeframe> | string
   top: number
   options: Partial<HistoricalQueryOptions>

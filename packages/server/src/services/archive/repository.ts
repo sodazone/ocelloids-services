@@ -6,8 +6,12 @@ import { Database, HistoricalQuery, NewHistoricalPayload } from './types.js'
 
 type SelectLog = SelectQueryBuilder<Database, 'archive', unknown>
 
-function withCriteria({ timeframe, top }: Partial<HistoricalQuery>, select: SelectLog) {
+function withCriteria({ timeframe, top, agent }: Partial<HistoricalQuery>, select: SelectLog) {
   let s = select
+
+  if (agent !== undefined) {
+    s.where('agent', '=', agent)
+  }
 
   if (top !== undefined) {
     s.limit(top)
@@ -20,6 +24,7 @@ function withCriteria({ timeframe, top }: Partial<HistoricalQuery>, select: Sele
       s = s.where('created_at', '<=', toUTCString(end))
     }
   }
+
   return s
 }
 

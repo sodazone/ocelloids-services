@@ -66,11 +66,15 @@ websocat -E ws://127.0.0.1:3000/ws/subs | jq .
 # Historical Streams
 
 ```json
-{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "startTime": "2025-03-10T13:58:10.104Z" } } }
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "timeframe": { "start": "2025-03-10T13:58:10.104Z" } } } }
 ```
 
 ```json
-{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "startTime": "2025-03-10T13:58:10.104Z", "endTime": "2025-03-10T17:20:10.104Z" } } }
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "timeframe": { "start": "2025-03-10T13:58:10.104Z", "end": "2025-03-10T17:20:10.104Z" } } } }
+```
+
+```json
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "top": 10 } } }
 ```
 
 # Persistent Subscriptions
