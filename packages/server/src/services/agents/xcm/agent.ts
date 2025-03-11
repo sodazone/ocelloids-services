@@ -11,6 +11,7 @@ import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
+import { asDateRange } from '@/services/archive/time.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,
@@ -73,6 +74,7 @@ export class XcmAgent implements Agent, Subscribable {
   subscribe(subscription: Subscription<XcmInputs>): void {
     const { id, args } = subscription
 
+    this.#validateHistorical(subscription)
     this.#validateChainIds(args)
     this.#validateSenders(args)
 
@@ -198,6 +200,15 @@ export class XcmAgent implements Agent, Subscribable {
       sendersCriteria(senders)
     } catch {
       throw new ValidationError('Invalid senders')
+    }
+  }
+
+  #validateHistorical({ args: { history }, ephemeral }: Subscription<XcmInputs>) {
+    if (history?.timeframe !== undefined) {
+      const { end } = asDateRange(history.timeframe)
+      if (end !== undefined && ephemeral !== true) {
+        throw new ValidationError('Persistent subscriptions cannot specify closed timeframes')
+      }
     }
   }
 

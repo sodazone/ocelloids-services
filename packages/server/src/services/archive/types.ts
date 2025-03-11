@@ -15,14 +15,30 @@ export type NewHistoricalPayload = Insertable<HistoricalPayloadsTable>
 export type HistoricalPayloadUpdate = Updateable<HistoricalPayloadsTable>
 
 export const $HistoricalQuery = z.object({
-  startTime: z.optional(z.number().positive().or(z.string().datetime())),
-  endTime: z.optional(z.number().positive().or(z.string().datetime())),
+  timeframe: z.optional(
+    z.string().or(
+      z.object({
+        start: z.optional(z.number().positive().or(z.string().datetime())),
+        end: z.optional(z.number().positive().or(z.string().datetime())),
+      }),
+    ),
+  ),
+  last: z.optional(z.number().positive()),
 })
 
+export type Timeframe = {
+  start: string | number | Date
+  end?: string | number | Date
+}
+
+export type HistoricalQueryOptions = {
+  chunkSize: number
+}
+
 export type HistoricalQuery = {
-  startTime?: string | number | Date
-  endTime?: string | number | Date
-  chunkSize?: number
+  timeframe: Partial<Timeframe> | string
+  top: number
+  options: Partial<HistoricalQueryOptions>
 }
 
 export interface Database {

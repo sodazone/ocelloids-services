@@ -147,7 +147,7 @@ export class XcmTracker {
     xcmAgentMetrics(this.#telemetry)
   }
 
-  historicalXcm$(query: HistoricalQuery) {
+  historicalXcm$(query: Partial<HistoricalQuery>) {
     return this.#archive.withHistory(this.xcm$, query)
   }
 

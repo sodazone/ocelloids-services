@@ -59,8 +59,10 @@ describe('ArchiveRepository', () => {
     const now = Date.now()
     await repository.insertLogs(..._payloads)
     const logs = await repository.findLogs({
-      startTime: new Date(now - 1_000).toISOString(),
-      endTime: new Date(now + 1_000).toISOString(),
+      timeframe: {
+        start: new Date(now - 1_000).toISOString(),
+        end: new Date(now + 1_000).toISOString(),
+      },
     })
     expect(logs.length).toBeGreaterThan(0)
   })
