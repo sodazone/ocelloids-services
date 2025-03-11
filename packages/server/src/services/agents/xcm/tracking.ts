@@ -103,7 +103,7 @@ export class XcmTracker {
   readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
   readonly #subject: Subject<XcmMessagePayload>
-  readonly #archive: ArchiveRepository
+  readonly #archive?: ArchiveRepository
 
   readonly xcm$
 
@@ -129,8 +129,6 @@ export class XcmTracker {
     this.#monitorOrigins(chainsToTrack)
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
-
-    // TODO configurable
     this.#storeHistoricalData()
   }
 
@@ -148,7 +146,7 @@ export class XcmTracker {
   }
 
   historicalXcm$(query: Partial<HistoricalQuery>) {
-    return this.#archive.withHistory(this.xcm$, query)
+    return this.#archive ? this.#archive.withHistory(this.xcm$, query) : this.xcm$
   }
 
   #monitorDestinations(chains: NetworkURN[]) {
@@ -411,15 +409,17 @@ export class XcmTracker {
   }
 
   #storeHistoricalData() {
-    this.#log.info('[%s] Tracking historical events', this.#id)
+    if (this.#archive) {
+      this.#log.info('[%s] Tracking historical events', this.#id)
 
-    this.xcm$.subscribe(async (message) => {
-      await this.#archive.insertLogs({
-        network: message.waypoint.chainId,
-        agent: 'xcm',
-        block_number: Number(message.waypoint.blockNumber),
-        payload: JSON.stringify(message),
+      this.xcm$.subscribe(async (message) => {
+        await this.#archive?.insertLogs({
+          network: message.waypoint.chainId,
+          agent: 'xcm',
+          block_number: Number(message.waypoint.blockNumber),
+          payload: JSON.stringify(message),
+        })
       })
-    })
+    }
   }
 }

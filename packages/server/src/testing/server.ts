@@ -8,6 +8,7 @@ export function mockServer(overrides?: Record<string, any>) {
     config: 'config/test.toml',
     data: '',
     scheduler: false,
+    archive: true,
     telemetry: true,
     sweepExpiry: 0,
     schedulerFrequency: 0,

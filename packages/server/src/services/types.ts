@@ -94,7 +94,6 @@ export type Services = {
   log: Logger
   levelDB: LevelDB
   subsStore: SubsStore
-  archive: ArchiveRepository
   janitor: Janitor
   scheduler: Scheduler
   localConfig: ServiceConfiguration
@@ -102,6 +101,7 @@ export type Services = {
   egress: Egress
   agentCatalog: AgentCatalog
   connector: Connector
+  archive?: ArchiveRepository
 }
 
 /**

@@ -37,9 +37,9 @@ export type AgentRuntimeContext = {
   egress: Egress
   ingress: IngressConsumers
   db: LevelDB
-  archive: ArchiveRepository
   scheduler: Scheduler
   janitor: Janitor
+  archive?: ArchiveRepository
 }
 
 /**

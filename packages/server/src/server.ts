@@ -33,6 +33,7 @@ import version from '@/version.js'
 import { toCorsOpts } from '@/cli/args.js'
 import {
   $AgentCatalogOptions,
+  $ArchiveOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
@@ -56,6 +57,7 @@ export const $ServerOptions = z
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
   .merge($DatabaseOptions)
+  .merge($ArchiveOptions)
   .merge($LevelServerOptions)
   .merge($KyselyServerOptions)
   .merge($RedisServerOptions)
