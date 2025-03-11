@@ -85,7 +85,7 @@ export type HealthResponse = {
  * @public
  */
 export interface OcelloidsClientApi {
-  networks(options?: Options): Promise<string[]>
+  networks(options?: Options): Promise<Record<string, string[]>>
   health(options?: Options): Promise<HealthResponse>
 }
 
@@ -107,7 +107,7 @@ export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi, O
     this.#client = clientApi
   }
 
-  networks(options?: Options): Promise<string[]> {
+  networks(options?: Options): Promise<Record<string, string[]>> {
     return this.#client.networks(options)
   }
 
@@ -367,7 +367,7 @@ export class OcelloidsClient implements OcelloidsClientApi {
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves to an array of network URNs as strings.
    */
-  async networks(options?: Options): Promise<string[]> {
+  async networks(options?: Options): Promise<Record<string, string[]>> {
     return this.#fetch(this.#config.httpUrl + '/ingress/networks', options)
   }
 

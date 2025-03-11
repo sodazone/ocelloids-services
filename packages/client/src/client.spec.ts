@@ -539,7 +539,7 @@ describe('OcelloidsClient', () => {
         .get('/health')
         .reply(200, { statusCode: 200, status: 'ok', uptime: 1000 })
         .get('/ingress/networks')
-        .reply(200, ['urn:ocn:x'])
+        .reply(200, { x: ['urn:ocn:x'] })
 
       const agent = createXcmAgent({
         wsUrl: 'ws://mock',
@@ -547,7 +547,7 @@ describe('OcelloidsClient', () => {
       })
 
       expect((await agent.health()).status).toBe('ok')
-      expect(await agent.networks()).toStrictEqual(['urn:ocn:x'])
+      expect((await agent.networks()).x).toStrictEqual(['urn:ocn:x'])
 
       scope.done()
     })
