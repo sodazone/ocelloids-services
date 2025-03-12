@@ -54,6 +54,9 @@ The configuration values can be overridden using command line arguments.
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
 | OC_REDIS_URL                      | Redis connection URL.[^1]                      | redis://localhost:6379 |
 | OC_ARCHIVE                        | Enables historical archiving.                  | false     |
+| OC_ARCHIVE_RETENTION              | Enables or disables archive pruning.           | true      |
+| OC_ARCHIVE_RETENTION_PERIOD       | Sets the pruning period.                       | 3_months  |
+| OC_ARCHIVE_TICK                   | Tick frequency.                                | 86400000  |
 
 [^1]: Redis URL format `redis[s]://[[username][:password]@][host][:port][/db-number]`.
 </details>
@@ -199,6 +202,9 @@ Options:
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
   --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
   --archive                               enables historical archiving (default: false, env: OC_ARCHIVE)
+  --archive-retention <boolean>            enables or disables archive pruning (default: true, env: OC_ARCHIVE_RETENTION)
+  --archive-retention-period <expression>  sets the pruning period (default: "3_months", env: OC_ARCHIVE_RETENTION_PERIOD)
+  --archive-tick <milliseconds>            tick frequency (default: 86400000, env: OC_ARCHIVE_TICK)
   -h, --help                              display help for command
 ```
 </details>
