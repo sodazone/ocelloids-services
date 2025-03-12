@@ -74,6 +74,16 @@ describe('ArchiveRepository', () => {
     expect(ts).toBeGreaterThanOrEqual(now)
   })
 
+  it('should throw on last known time not found', async () => {
+    await repository.insertLogs(..._payloads)
+    await expect(async () => await repository.lastKnownTime('none')).rejects.toThrow()
+  })
+
+  it('should return empty array on empty data', async () => {
+    const ts = await repository.findLogs()
+    expect(ts).toStrictEqual([])
+  })
+
   it('should stream payloads', async () => {
     await repository.insertLogs(..._payloads)
 

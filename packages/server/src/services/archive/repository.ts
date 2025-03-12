@@ -126,17 +126,22 @@ export class ArchiveRepository {
           stream.error(err)
         },
         complete: async () => {
-          const lkt = await this.lastKnownTime(q.agent)
-          if (lkt > lastTime) {
-            const nq: Partial<HistoricalQuery> = {
-              options: q.options,
-              agent: q.agent,
-              timeframe: {
-                start: new Date(lastTime).toISOString(),
-              },
+          try {
+            const lkt = await this.lastKnownTime(q.agent)
+            if (lkt > lastTime) {
+              const nq: Partial<HistoricalQuery> = {
+                options: q.options,
+                agent: q.agent,
+                timeframe: {
+                  start: new Date(lastTime).toISOString(),
+                },
+              }
+              followHistorical(await this.logs$(nq))
+            } else {
+              stream.complete()
             }
-            followHistorical(await this.logs$(nq))
-          } else {
+          } catch {
+            // complete on error
             stream.complete()
           }
         },
