@@ -10,11 +10,11 @@ function withCriteria({ timeframe, top, agent }: Partial<HistoricalQuery>, selec
   let s = select
 
   if (agent !== undefined) {
-    s.where('agent', '=', agent)
+    s = s.where('agent', '=', agent)
   }
 
   if (top !== undefined) {
-    s.limit(top)
+    s = s.limit(top)
   } else if (timeframe !== undefined) {
     const { start, end } = asDateRange(timeframe)
     if (start !== undefined) {
@@ -43,13 +43,12 @@ export class ArchiveRepository {
     return await withCriteria(q, this.#db.selectFrom('archive')).selectAll().stream(q.options?.chunkSize)
   }
 
-  async lastKnownTime() {
-    const { created_at } = await this.#db
-      .selectFrom('archive')
-      .select('created_at')
-      .orderBy('id desc')
-      .limit(1)
-      .executeTakeFirstOrThrow()
+  async lastKnownTime(agent?: string) {
+    let s = this.#db.selectFrom('archive').select('created_at')
+    if (agent !== undefined) {
+      s = s.where('agent', '=', agent)
+    }
+    const { created_at } = await s.orderBy('id desc').limit(1).executeTakeFirstOrThrow()
     return asUTC(created_at)
   }
 
@@ -127,10 +126,11 @@ export class ArchiveRepository {
           stream.error(err)
         },
         complete: async () => {
-          const lkt = await this.lastKnownTime()
+          const lkt = await this.lastKnownTime(q.agent)
           if (lkt > lastTime) {
             const nq: Partial<HistoricalQuery> = {
               options: q.options,
+              agent: q.agent,
               timeframe: {
                 start: new Date(lastTime).toISOString(),
               },
