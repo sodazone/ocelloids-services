@@ -22,9 +22,11 @@ export class ArchiveRetentionJob {
   }
 
   start() {
-    this.#log.info('[%s] %s tick every %s', id, this.#policy.period, this.#policy.tickMillis)
-    this.#timeout = setInterval(async () => {
-      await this.#onTick()
+    this.#log.info('[%s] %s tick every %sms', id, this.#policy.period, this.#policy.tickMillis)
+    this.#timeout = setInterval(() => {
+      this.#onTick().catch((error) => {
+        this.#log.error(error, '[%s] error on tick', id)
+      })
     }, this.#policy.tickMillis).unref()
   }
 
@@ -38,9 +40,9 @@ export class ArchiveRetentionJob {
     const deleted = await this.#repository.cleanUpOldLogs(periodToMillis(this.#policy.period))
 
     if (deleted.length > 0) {
-      this.#log.info('[%s] deleted %s records', id, deleted.length)
+      this.#log.info('[%s] deleted %s records', id, Number(deleted[0].numDeletedRows))
     } else {
-      this.#log.info('[%s] no stale records', id)
+      this.#log.warn('[%s] missing delete results', id)
     }
   }
 }

@@ -67,7 +67,7 @@ export const $ArchiveOptions = z.object({
   archive: z.boolean().default(false),
   archiveRetention: z.boolean().default(true),
   archiveRetentionPeriod: z.string().default('3_months'),
-  archiveTick: z.number().default(24 * 60 * 3_600_000), // daily
+  archiveTick: z.number().default(24 * 3_600_000), // daily
 })
 
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
