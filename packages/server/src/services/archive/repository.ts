@@ -52,6 +52,10 @@ export class ArchiveRepository {
     return asUTC(created_at)
   }
 
+  async cleanUpOldLogs(olderThan: Date | number | string) {
+    return await this.#db.deleteFrom('archive').where('created_at', '<', toUTCString(olderThan)).execute()
+  }
+
   withHistory<T>(realTime$: Observable<T>, q: Partial<HistoricalQuery> = {}) {
     if (q.top !== undefined) {
       const stream = new Subject<T>()

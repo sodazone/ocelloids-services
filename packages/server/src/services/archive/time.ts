@@ -7,6 +7,29 @@ type RelativeTimeframe = {
 }
 
 export const RELATIVE_TIMEFRAME_REGEX = /^(this|previous)_(\d+)_(minutes|hours|days|weeks|months|years)$/
+export const PERIOD_REGEX = /^(\d+)_(minutes|hours|days|weeks|months|years)$/
+
+const MUL: Record<string, number> = {
+  minutes: 60_000,
+  hours: 3_600_000,
+  days: 24 * 3_600_000,
+  weeks: 7 * 24 * 3_600_000,
+  months: 30 * 24 * 3_600_000,
+  years: 365 * 24 * 3_600_000,
+}
+
+export function periodToMillis(input: string, from?: number) {
+  const match = input.match(PERIOD_REGEX)
+
+  if (!match) {
+    throw new Error(`invalid period expression: ${input}`)
+  }
+
+  const [, nStr, units] = match
+  const n = parseInt(nStr, 10)
+
+  return (from ?? Date.now()) - Number(n) * MUL[units]
+}
 
 /**
  * Parses a relative timeframe string and returns its structured representation.
@@ -25,26 +48,16 @@ export const RELATIVE_TIMEFRAME_REGEX = /^(this|previous)_(\d+)_(minutes|hours|d
  * @throws {Error} If the input string does not match the expected pattern.
  */
 export function parseRelativeTimeframe(input: string): RelativeTimeframe {
-  const regex = RELATIVE_TIMEFRAME_REGEX
-  const match = input.match(regex)
+  const match = input.match(RELATIVE_TIMEFRAME_REGEX)
 
   if (!match) {
-    throw new Error(`unknown relative timeframe expression: ${input}`)
+    throw new Error(`invalid relative timeframe expression: ${input}`)
   }
 
   const [, rel, nStr, units] = match
   const n = parseInt(nStr, 10)
 
   return { rel: rel as 'this' | 'previous', n, units: units as RelativeTimeframe['units'] }
-}
-
-const MUL: Record<string, number> = {
-  minutes: 60_000,
-  hours: 3_600_000,
-  days: 24 * 3_600_000,
-  weeks: 7 * 24 * 3_600_000,
-  months: 30 * 24 * 3_600_000,
-  years: 365 * 24 * 3_600_000,
 }
 
 export function toAbsoluteTimeframe(timeframe: string): Timeframe {

@@ -36,9 +36,10 @@ export class Scheduler extends EventEmitter {
   constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
 
+    this.enabled = opts.scheduler
+
     this.#log = log
     this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded)
-    this.enabled = opts.scheduler
     this.#frequency = opts.schedulerFrequency
 
     this.#running = false
