@@ -17,7 +17,7 @@ import Connector from '../services/networking/connector.js'
 import { Janitor } from '../services/persistence/level/janitor.js'
 import { Scheduler } from '../services/persistence/level/scheduler.js'
 import { SubsStore } from '../services/persistence/level/subs.js'
-import { Services } from '../services/types.js'
+import { LevelDB, Services } from '../services/types.js'
 import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
 
@@ -54,7 +54,7 @@ export const _connector = {
 
 export function createServices(): Services {
   const { db: _archiveDB } = createArchiveDatabase(':memory:')
-  const _rootDB = new MemoryLevel()
+  const _rootDB = new MemoryLevel<string, any>() as LevelDB
   _rootDB.setMaxListeners(100)
 
   const __services: Services = {

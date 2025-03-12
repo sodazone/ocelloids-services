@@ -1,8 +1,8 @@
-import { MemoryLevel as Level } from 'memory-level'
+import { MemoryLevel } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
-import { Services, SubLevel, jsonEncoded } from '@/services/types.js'
+import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
 import { hydraMoonMessages, matchMessages, moonBifrostMessages } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
@@ -16,7 +16,7 @@ type OD = { origin: string; destination: string }
 
 describe('message matching engine', () => {
   let engine: MatchingEngine
-  let db: Level
+  let db: LevelDB
   let outDb: SubLevel<XcmSent>
   let services: Services
 
@@ -55,8 +55,8 @@ describe('message matching engine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    db = new Level()
-    outDb = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded)
+    db = new MemoryLevel() as LevelDB
+    outDb = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded) as SubLevel<XcmSent>
     engine = new MatchingEngine(
       {
         ...services,

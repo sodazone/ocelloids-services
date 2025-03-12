@@ -56,7 +56,7 @@ describe('head catcher', () => {
   })
 
   beforeEach(async () => {
-    db = new MemoryLevel()
+    db = new MemoryLevel() as LevelDB
     return db.open()
   })
 
