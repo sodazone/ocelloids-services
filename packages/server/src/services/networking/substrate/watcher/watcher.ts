@@ -20,7 +20,7 @@ import { fetchers } from './fetchers.js'
 export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
   readonly #apis: Record<string, SubstrateApi>
-  readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
+  readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
 
   constructor(services: Services) {
     super(services)
@@ -32,17 +32,18 @@ export class SubstrateWatcher extends Watcher<Block> {
   }
 
   /**
-   * Returns an observable of extended signed blocks.
+   * Returns an observable of finalized extended signed blocks.
    */
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    const pipe = this.#pipes[chainId]
+    const cachedFinalized$ = this.#finalized$[chainId]
 
-    if (pipe) {
-      this.log.debug('[%s] returning cached pipe', chainId)
-      return pipe
+    if (cachedFinalized$) {
+      this.log.debug('[%s] returning cached finalized stream', chainId)
+
+      return cachedFinalized$
     }
 
-    const newPipe = from(this.getApi(chainId)).pipe(
+    const finalized$ = from(this.getApi(chainId)).pipe(
       switchMap((api) => {
         return api.followHeads$.pipe(
           mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
@@ -57,11 +58,11 @@ export class SubstrateWatcher extends Watcher<Block> {
       share(),
     )
 
-    this.#pipes[chainId] = newPipe
+    this.#finalized$[chainId] = finalized$
 
-    this.log.debug('[%s] created pipe', chainId)
+    this.log.debug('[%s] created finalized stream', chainId)
 
-    return newPipe
+    return finalized$
   }
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {

@@ -170,42 +170,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  /*
-  async getBlock(hash: string): Promise<Block> {
-    try {
-      const [header, txs, events] = await Promise.all([
-        this.getBlockHeader(hash),
-        this.#getBody(hash),
-        this.#getEvents(hash),
-      ])
-
-      return asSerializable({
-        hash,
-        number: header.number,
-        parent: header.parent,
-        extrinsics: txs.map((tx) => this.ctx.decodeExtrinsic(tx)),
-        events,
-      }) as Block
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
-    }
-  }*/
-
-  /*
-  async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
-    try {
-      const result = await this.#request<string[], [height: number]>('archive_unstable_hashByHeight', [
-        Number(blockNumber),
-      ])
-      if (!result || result.length < 1) {
-        throw new Error('Block hash not found')
-      }
-      return result[0]
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block hash.`, { cause: error })
-    }
-  }*/
-
   async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
     try {
       const result = await this.#request<string, [height: string]>('chain_getBlockHash', [
@@ -244,21 +208,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       height: header.number,
     }
   }
-
-  /*
-  async getBlockHeader(hash: string): Promise<BlockInfo> {
-    try {
-      const encodedHeader = await this.#request<string, [hash: string]>('archive_unstable_header', [hash])
-      const header = blockHeader.dec(encodedHeader)
-      return {
-        parent: header.parentHash,
-        hash,
-        number: header.number,
-      }
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch header for hash ${hash}.`, { cause: error })
-    }
-  }*/
 
   async getStorageKeys(
     keyPrefix: string,
@@ -356,18 +305,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       })
     }
   }
-
-  /*
-  async #getBody(hash: string) {
-    try {
-      const result = await this.#request<[tx: string], [hash: string]>('archive_unstable_body', [hash])
-      return result
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block body for hash ${hash}.`, {
-        cause: error,
-      })
-    }
-  }*/
 
   async #getEvents(hash: string) {
     try {
