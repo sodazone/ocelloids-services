@@ -8,7 +8,8 @@ import type { ChainSpecData } from '@polkadot-api/substrate-client'
 
 import type { HexString } from '@/lib.js'
 
-import { ApiClient } from '../types.js'
+import { Optional } from '@/common/types.js'
+import { ApiClient, BlockStatus } from '../types.js'
 
 export type StorageCodec<T = any> = {
   keys: {
@@ -45,6 +46,11 @@ export type Block = {
   parent: string
   extrinsics: Extrinsic[]
   events: EventRecord[]
+  status: BlockStatus
+}
+
+export type BlockInfoWithStatus = Optional<BlockInfo, 'number' | 'parent'> & {
+  status: BlockStatus
 }
 
 export type BlockContext = {

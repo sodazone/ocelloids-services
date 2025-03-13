@@ -44,6 +44,10 @@ export abstract class LocalIngressConsumer<T extends Watcher, B, C>
     return this.watcher.finalizedBlocks(chainId) as Observable<B>
   }
 
+  newBlocks(chainId: NetworkURN): Observable<B> {
+    return this.watcher.newBlocks(chainId) as Observable<B>
+  }
+
   async start() {
     this.watcher.start()
   }

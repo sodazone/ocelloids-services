@@ -21,6 +21,7 @@ export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
   readonly #apis: Record<string, SubstrateApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
+  readonly #new$: Record<NetworkURN, Observable<Block>> = {}
 
   constructor(services: Services) {
     super(services)
@@ -32,7 +33,37 @@ export class SubstrateWatcher extends Watcher<Block> {
   }
 
   /**
-   * Returns an observable of finalized extended signed blocks.
+   * Returns an observable for new blocks.
+   */
+  newBlocks(chainId: NetworkURN): Observable<Block> {
+    const cachedNew$ = this.#new$[chainId]
+
+    if (cachedNew$) {
+      this.log.debug('[%s] returning cached new blocks stream', chainId)
+
+      return cachedNew$
+    }
+
+    const new$ = from(this.getApi(chainId)).pipe(
+      switchMap((api) => {
+        return api.followHeads$('new').pipe(
+          this.tapError(chainId, 'newHeads()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          mergeMap((header) => from(api.getBlock(header.hash))),
+        )
+      }),
+      share(),
+    )
+
+    this.#new$[chainId] = new$
+
+    this.log.debug('[%s] created new blocks stream', chainId)
+
+    return new$
+  }
+
+  /**
+   * Returns an observable of finalized blocks.
    */
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     const cachedFinalized$ = this.#finalized$[chainId]
@@ -45,7 +76,7 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const finalized$ = from(this.getApi(chainId)).pipe(
       switchMap((api) => {
-        return api.followHeads$.pipe(
+        return api.followHeads$('finalized').pipe(
           mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
           this.tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),

@@ -115,6 +115,11 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   abstract finalizedBlocks(chainId: NetworkURN): Observable<T>
 
   /**
+   * Returns an observable of new blocks.
+   */
+  abstract newBlocks(chainId: NetworkURN): Observable<T>
+
+  /**
    * Exposes the heads cache.
    */
   headsCache(chainId: NetworkURN) {
