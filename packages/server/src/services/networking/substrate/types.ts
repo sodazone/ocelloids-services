@@ -46,6 +46,11 @@ export type Block = {
   parent: string
   extrinsics: Extrinsic[]
   events: EventRecord[]
+  stateRoot: string
+  extrinsicsRoot: string
+  digest?: {
+    logs: any[]
+  }
   status?: BlockStatus
 }
 

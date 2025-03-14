@@ -204,6 +204,9 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
         hash,
         number: BigInt(block.header.number).toString(),
         parent: block.header.parentHash,
+        stateRoot: block.header.stateRoot,
+        extrinsicsRoot: block.header.extrinsicsRoot,
+        disgest: block.header.digest,
         extrinsics: block.extrinsics.map((tx) => this.ctx.decodeExtrinsic(tx)),
         events,
       }) as Block
