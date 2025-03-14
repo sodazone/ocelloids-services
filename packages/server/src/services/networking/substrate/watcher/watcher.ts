@@ -1,4 +1,4 @@
-import { Observable, from, mergeMap, mergeWith, share, switchMap } from 'rxjs'
+import { Observable, from, map, mergeMap, mergeWith, share, switchMap } from 'rxjs'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -13,6 +13,7 @@ import { fetchers } from './fetchers.js'
  * The SubstrateWatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
  * - Caches on-chain storage data.
+ * - Provides a new blocks stream.
  *
  * @see {Watcher["finalizedBlocks"]}
  * @see {Watcher.#catchUpHeads}
@@ -49,7 +50,9 @@ export class SubstrateWatcher extends Watcher<Block> {
         return api.followHeads$('new').pipe(
           this.tapError(chainId, 'newHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
-          mergeMap((header) => from(api.getBlock(header.hash))),
+          mergeMap(({ hash, status }) =>
+            from(api.getBlock(hash)).pipe(map((block) => Object.assign({ status }, block))),
+          ),
         )
       }),
       share(),
@@ -81,7 +84,9 @@ export class SubstrateWatcher extends Watcher<Block> {
           this.tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
-          mergeMap((header) => from(api.getBlock(header.hash))),
+          mergeMap(({ hash, status }) =>
+            from(api.getBlock(hash)).pipe(map((block) => Object.assign({ status }, block))),
+          ),
           this.tapError(chainId, 'blockFromHeader()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
         )

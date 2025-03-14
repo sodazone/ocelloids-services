@@ -46,7 +46,7 @@ export type Block = {
   parent: string
   extrinsics: Extrinsic[]
   events: EventRecord[]
-  status: BlockStatus
+  status?: BlockStatus
 }
 
 export type BlockInfoWithStatus = Optional<BlockInfo, 'number' | 'parent'> & {

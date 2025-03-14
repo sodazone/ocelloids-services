@@ -19,12 +19,20 @@ import {
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
+import { ChainSpy } from '../chainspy/agent.js'
 
 function shouldStart(agent: Agent) {
   const {
     metadata: { capabilities },
   } = agent
   return capabilities.queryable && !capabilities.subscribable
+}
+
+const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
+  xcm: (ctx) => new XcmAgent(ctx),
+  informant: (ctx) => new InformantAgent(ctx),
+  steward: (ctx) => new DataSteward(ctx),
+  chainspy: (ctx) => new ChainSpy(ctx),
 }
 
 /**
@@ -35,18 +43,21 @@ export class LocalAgentCatalog implements AgentCatalog {
   readonly #agents: Record<AgentId, Agent>
   readonly #egress: Egress
 
-  constructor(ctx: Services, _options: AgentCatalogOptions) {
+  constructor(ctx: Services, options: AgentCatalogOptions) {
     this.#log = ctx.log
     this.#egress = ctx.egress
-    this.#agents = this.#loadAgents({
-      log: ctx.log,
-      archive: ctx.archive,
-      ingress: ctx.ingress,
-      janitor: ctx.janitor,
-      db: ctx.levelDB,
-      scheduler: ctx.scheduler,
-      egress: ctx.egress,
-    })
+    this.#agents = this.#loadAgents(
+      {
+        log: ctx.log,
+        archive: ctx.archive,
+        ingress: ctx.ingress,
+        janitor: ctx.janitor,
+        db: ctx.levelDB,
+        scheduler: ctx.scheduler,
+        egress: ctx.egress,
+      },
+      options,
+    )
   }
 
   addEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener): Egress {
@@ -127,15 +138,28 @@ export class LocalAgentCatalog implements AgentCatalog {
     }
   }
 
-  #loadAgents(ctx: AgentRuntimeContext) {
-    const xcm = new XcmAgent(ctx)
-    const informant = new InformantAgent(ctx)
-    const steward = new DataSteward(ctx)
+  #loadAgents(ctx: AgentRuntimeContext, opts: AgentCatalogOptions) {
+    const activations: Record<AgentId, Agent> = {}
 
-    return {
-      [xcm.id]: xcm,
-      [informant.id]: informant,
-      [steward.id]: steward,
-    } as unknown as Record<AgentId, Agent>
+    if (opts.agents === '*') {
+      for (const create of Object.values(registry)) {
+        const agent = create(ctx)
+        activations[agent.id] = agent
+        this.#log.info('[catalog:local] activated agent %s', agent.id)
+      }
+    } else {
+      const agentIds = opts.agents.split(',').map((x) => x.trim())
+      for (const agentId of agentIds) {
+        if (registry[agentId] === undefined) {
+          this.#log.warn('[catalog:local] unknown agent id %s', agentId)
+        } else {
+          const agent = registry[agentId](ctx)
+          activations[agent.id] = agent
+          this.#log.info('[catalog:local] activated agent %s', agent.id)
+        }
+      }
+    }
+
+    return activations
   }
 }

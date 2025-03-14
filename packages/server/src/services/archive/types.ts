@@ -45,3 +45,11 @@ export type HistoricalQuery = {
 export interface Database {
   archive: HistoricalPayloadsTable
 }
+
+export type ArchiveRetentionOptions = {
+  enabled: boolean
+  policy: {
+    period: string
+    tickMillis: number
+  }
+}

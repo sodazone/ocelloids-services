@@ -9,6 +9,7 @@ import { EgressMessageListener, Subscription } from '@/services/subscriptions/ty
 import { LevelDB, Logger } from '@/services/types.js'
 
 import { ArchiveRepository } from '../archive/repository.js'
+import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
 
 /**
@@ -40,6 +41,7 @@ export type AgentRuntimeContext = {
   scheduler: Scheduler
   janitor: Janitor
   archive?: ArchiveRepository
+  archiveRetention?: ArchiveRetentionOptions
 }
 
 /**

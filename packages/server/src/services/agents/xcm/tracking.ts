@@ -12,7 +12,8 @@ import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.
 import { Logger, NetworkURN } from '@/services/types.js'
 
 import { ArchiveRepository } from '@/services/archive/repository.js'
-import { HistoricalQuery } from '@/services/archive/types.js'
+import { ArchiveRetentionJob } from '@/services/archive/retention.js'
+import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
@@ -104,8 +105,11 @@ export class XcmTracker {
   readonly #engine: MatchingEngine
   readonly #subject: Subject<XcmMessagePayload>
   readonly #archive?: ArchiveRepository
+  readonly #retentionOpts?: ArchiveRetentionOptions
 
   readonly xcm$
+
+  #retentionJob?: ArchiveRetentionJob
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -116,6 +120,7 @@ export class XcmTracker {
     this.#streams = { d: [], o: [], r: [] }
     this.#ingress = ctx.ingress.substrate
     this.#archive = ctx.archive
+    this.#retentionOpts = ctx.archiveRetention
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
@@ -129,7 +134,7 @@ export class XcmTracker {
     this.#monitorOrigins(chainsToTrack)
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
-    this.#storeHistoricalData()
+    this.#initHistoricalData()
   }
 
   async stop() {
@@ -138,6 +143,10 @@ export class XcmTracker {
     Object.values(this.#streams).forEach((streams) => streams.forEach(({ sub }) => sub.unsubscribe()))
 
     await this.#engine.stop()
+
+    if (this.#retentionJob !== undefined) {
+      await this.#retentionJob.stop()
+    }
   }
 
   collectTelemetry() {
@@ -408,8 +417,8 @@ export class XcmTracker {
     }
   }
 
-  #storeHistoricalData() {
-    if (this.#archive) {
+  #initHistoricalData() {
+    if (this.#archive !== undefined) {
       this.#log.info('[%s] Tracking historical events', this.#id)
 
       this.xcm$.subscribe(async (message) => {
@@ -420,6 +429,15 @@ export class XcmTracker {
           payload: JSON.stringify(message),
         })
       })
+
+      if (this.#retentionOpts?.enabled) {
+        const { policy } = this.#retentionOpts
+        this.#retentionJob = new ArchiveRetentionJob(this.#log, this.#archive, policy)
+
+        this.#retentionJob.start()
+      } else {
+        this.#log.info('[archive:%s] retention job is not enabled', this.#id)
+      }
     }
   }
 }
