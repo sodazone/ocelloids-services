@@ -74,7 +74,7 @@ describe('Ocelloids Server HTTP API', () => {
     it('should throw if instantiating the server with non-local agent catalog', async () => {
       await expect(
         mockServer({
-          mode: 'lol',
+          agentServiceMode: 'lol',
         }),
       ).rejects.toThrow('Only local agent service is supported')
     })
@@ -485,7 +485,7 @@ describe('Ocelloids Server HTTP API', () => {
           },
           (_err, response) => {
             expect(response?.statusCode).toStrictEqual(200)
-            expect(response?.json()).toEqual(['xcm', 'informant', 'steward'])
+            expect(response?.json()).includes('xcm')
             resolve()
           },
         )

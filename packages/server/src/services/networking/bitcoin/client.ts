@@ -102,16 +102,17 @@ export class BitcoinApi implements ApiClient {
     this.#urls = Array.isArray(url) ? url : [url]
   }
 
-  followHeads$ = timer(0, 60_000).pipe(
-    mergeMap(() => from(this.getBlockHeight())),
-    distinctUntilChanged(),
-    mergeMap(async (height) => {
-      const newHeight = height
-      const hash = await this.getBlockHash(newHeight)
-      return await this.getNeutralBlockHeader(hash)
-    }),
-    shareReplay(1),
-  )
+  followHeads$ = (_finality = 'new') =>
+    timer(0, 60_000).pipe(
+      mergeMap(() => from(this.getBlockHeight())),
+      distinctUntilChanged(),
+      mergeMap(async (height) => {
+        const newHeight = height
+        const hash = await this.getBlockHash(newHeight)
+        return await this.getNeutralBlockHeader(hash)
+      }),
+      shareReplay(1),
+    )
 
   async getBlockHeight() {
     return await this.#call<number>('getblockcount')

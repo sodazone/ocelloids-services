@@ -20,7 +20,7 @@ declare module 'fastify' {
  * @param options - Options for configuring the Agent Service.
  */
 const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fastify, options) => {
-  if (options.mode !== AgentServiceMode.local) {
+  if (options.agentServiceMode !== AgentServiceMode.local) {
     throw new Error('Only local agent service is supported')
   }
 
@@ -50,5 +50,5 @@ const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions> = async (fasti
 export default fp(agentServicePlugin, {
   fastify: '>=4.x',
   name: 'agent-service',
-  dependencies: ['egress', 'ingress-consumer'],
+  dependencies: ['egress', 'ingress-consumer', 'archive'],
 })

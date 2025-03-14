@@ -12,7 +12,7 @@ import { Block } from '../types.js'
  */
 export class BitcoinWatcher extends Watcher<Block> {
   readonly #apis: Record<string, BitcoinApi>
-  readonly #pipes: Record<NetworkURN, Observable<Block>> = {}
+  readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
 
   readonly chainIds: NetworkURN[]
 
@@ -25,18 +25,24 @@ export class BitcoinWatcher extends Watcher<Block> {
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
   }
 
-  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    const pipe = this.#pipes[chainId]
+  // TODO: it's already best block, finalized will be
+  // by configurable number of confirmations.
+  newBlocks(_chainId: NetworkURN): Observable<Block> {
+    throw new Error('Method not implemented.')
+  }
 
-    if (pipe) {
-      this.log.debug('[%s] returning cached pipe', chainId)
-      return pipe
+  finalizedBlocks(chainId: NetworkURN): Observable<Block> {
+    const cachedFinalized$ = this.#finalized$[chainId]
+
+    if (cachedFinalized$) {
+      this.log.debug('[%s] returning cached finalized stream', chainId)
+      return cachedFinalized$
     }
 
     const api = this.#apis[chainId]
-    const newPipe = api.followHeads$.pipe(
+    const finalized$ = api.followHeads$('finalized').pipe(
       mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
-      this.tapError(chainId, 'followHeads$()'),
+      this.tapError(chainId, 'finalizedBlocks()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
       this.catchUpHeads(chainId, api),
       this.handleReorgs(chainId, api),
@@ -46,11 +52,11 @@ export class BitcoinWatcher extends Watcher<Block> {
       share(),
     )
 
-    this.#pipes[chainId] = newPipe
+    this.#finalized$[chainId] = finalized$
 
-    this.log.debug('[%s] created pipe', chainId)
+    this.log.debug('[%s] created finalized stream', chainId)
 
-    return newPipe
+    return finalized$
   }
 
   async getNetworkInfo(chainId: string) {

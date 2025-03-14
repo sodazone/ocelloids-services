@@ -5,7 +5,7 @@ import { createServices } from '@/testing/services.js'
 
 import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { Services } from '../types.js'
+import { LevelDB, Services } from '../types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'
 import { Message } from './types.js'
@@ -191,7 +191,7 @@ describe('webhook publisher', () => {
   })
 
   beforeEach(() => {
-    scheduler = new Scheduler(services.log, new MemoryLevel(), {
+    scheduler = new Scheduler(services.log, new MemoryLevel() as LevelDB, {
       scheduler: true,
       schedulerFrequency: 500,
     })

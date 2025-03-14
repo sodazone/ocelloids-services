@@ -14,13 +14,15 @@ import { SubstrateWatcher } from './watcher.js'
 
 function createConnector(headersSource: Observable<BlockInfo>, testHeaders: BlockInfo[]) {
   const mockApi = {
-    followHeads$: headersSource.pipe(
-      map((b) => ({
-        parenthash: b.parent,
-        height: b.number,
-        hash: b.hash,
-      })),
-    ),
+    followHeads$: (finality = 'finalized') =>
+      headersSource.pipe(
+        map((b) => ({
+          parenthash: b.parent,
+          height: b.number,
+          hash: b.hash,
+          status: finality,
+        })),
+      ),
     getBlock(hash: string) {
       return Promise.resolve(polkadotBlocks.find((p) => p.hash === hash)!)
     },
@@ -56,7 +58,7 @@ describe('head catcher', () => {
   })
 
   beforeEach(async () => {
-    db = new MemoryLevel()
+    db = new MemoryLevel() as LevelDB
     return db.open()
   })
 

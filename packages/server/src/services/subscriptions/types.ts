@@ -126,7 +126,8 @@ export type NewSubscription<T = Record<string, any>> = Omit<z.infer<typeof $NewS
   args: T
 }
 
-export type EgressListener = (sub: Subscription, msg: Message) => void
+export type EgressMessageListener = (sub: Subscription, msg: Message) => void
+export type EgressTerminateListener = (sub: Subscription) => void
 
 export type RxSubscriptionWithId = {
   chainId: string

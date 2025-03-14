@@ -23,7 +23,7 @@ declare module 'fastify' {
 
 type LevelOptions = JanitorOptions & SchedulerOptions & DatabaseOptions & LevelServerOptions
 
-function createLevel({ log }: FastifyInstance, { data, levelEngine }: LevelOptions): Level {
+function createLevelDB({ log }: FastifyInstance, { data, levelEngine }: LevelOptions): LevelDB {
   const dbPath = path.join(data || './.db', 'level')
 
   log.info('[level] engine %s', levelEngine)
@@ -31,9 +31,9 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: LevelOptio
 
   switch (levelEngine) {
     case LevelEngine.mem:
-      return new MemoryLevel() as Level
+      return new MemoryLevel() as LevelDB
     default:
-      return new Level(dbPath)
+      return new Level(dbPath) as LevelDB
   }
 }
 
@@ -44,7 +44,7 @@ function createLevel({ log }: FastifyInstance, { data, levelEngine }: LevelOptio
  * @param options - The persistence options
  */
 const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options) => {
-  const root = createLevel(fastify, options)
+  const root = createLevelDB(fastify, options)
   const scheduler = new Scheduler(fastify.log, root, options)
   const janitor = new Janitor(fastify.log, root, scheduler, options)
   const subsStore = new SubsStore(fastify.log, root)

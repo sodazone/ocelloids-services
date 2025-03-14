@@ -10,6 +10,7 @@ The Ocelloids Service Node repository provides software components for running p
 - **Account Management:** Manages user accounts and API tokens to define permissions and ownership. Check the [accounts service README](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/src/services/accounts).
 - **Subscription Management:** Provides a flexible API for specifying subscription criteria, including origins, destinations, senders, and delivery channels. Supports both long-lived and on-demand subscriptions, with data streams delivered via webhooks and WebSockets.
 - **Dynamic Subscription Updates:** Offers a subscription API for modifying subscription parameters, such as lists of senders and destinations. Seamlessly updates matching criteria in real time without requiring restarts.
+- **Stream-Aware Archiving and Reconsumption:** Continuously archives base stream data, allowing streams to seamlessly switch between historical and live data for uninterrupted consumption.
 - **Aggregated APIs:** Combines multiple data sources and services into unified HTTP endpoints with customizable querying capabilities.
 - **Resilience and Reliability:** Ensures uninterrupted operation with persistent data storage across restarts. Supports graceful shutdowns, retries with truncated exponential backoff, reliable webhook delivery, and continuous catch-up of the finalized chain tip, including during forks.
 - **Observability:** Exports Prometheus-compatible telemetry metrics.
@@ -52,6 +53,10 @@ The configuration values can be overridden using command line arguments.
 | OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
 | OC_REDIS_URL                      | Redis connection URL.[^1]                      | redis://localhost:6379 |
+| OC_ARCHIVE                        | Enables historical archiving.                  | false     |
+| OC_ARCHIVE_RETENTION              | Enables or disables archive pruning.           | true      |
+| OC_ARCHIVE_RETENTION_PERIOD       | Sets the pruning period.                       | 3_months  |
+| OC_ARCHIVE_TICK                   | Tick frequency.                                | 86400000  |
 
 [^1]: Redis URL format `redis[s]://[[username][:password]@][host][:port][/db-number]`.
 </details>
@@ -196,6 +201,10 @@ Options:
   --jwt-allowed-iss [issuer]              allowed issuers, accepts regular expressions (default: ["localhost"], env: OC_JWT_ALLOWED_ISSUERS)
   --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
   --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
+  --archive                               enables historical archiving (default: false, env: OC_ARCHIVE)
+  --archive-retention <boolean>            enables or disables archive pruning (default: true, env: OC_ARCHIVE_RETENTION)
+  --archive-retention-period <expression>  sets the pruning period (default: "3_months", env: OC_ARCHIVE_RETENTION_PERIOD)
+  --archive-tick <milliseconds>            tick frequency (default: 86400000, env: OC_ARCHIVE_TICK)
   -h, --help                              display help for command
 ```
 </details>

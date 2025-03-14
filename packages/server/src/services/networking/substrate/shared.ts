@@ -3,6 +3,7 @@ import { Observable, share } from 'rxjs'
 import { ValidationError } from '@/errors.js'
 import { NetworkURN } from '@/services/types.js'
 
+import { Finality } from '../types.js'
 import { SubstrateIngressConsumer } from './ingress/types.js'
 import { extractEvents, extractTxWithEvents, installOperators } from './rx/index.js'
 import { Block, BlockEvent, BlockExtrinsicWithEvents } from './types.js'
@@ -11,15 +12,24 @@ export class SubstrateSharedStreams {
   static #instance: SubstrateSharedStreams
   readonly #ingress: SubstrateIngressConsumer
 
-  readonly #blocks: Record<string, Observable<Block>>
-  readonly #blockEvents: Record<string, Observable<BlockEvent>>
-  readonly #blockExtrinsics: Record<string, Observable<BlockExtrinsicWithEvents>>
+  readonly #blocks: Record<Finality, Record<string, Observable<Block>>>
+  readonly #blockEvents: Record<Finality, Record<string, Observable<BlockEvent>>>
+  readonly #blockExtrinsics: Record<Finality, Record<string, Observable<BlockExtrinsicWithEvents>>>
 
   private constructor(ingress: SubstrateIngressConsumer) {
     this.#ingress = ingress
-    this.#blocks = {}
-    this.#blockEvents = {}
-    this.#blockExtrinsics = {}
+    this.#blocks = {
+      finalized: {},
+      new: {},
+    }
+    this.#blockEvents = {
+      finalized: {},
+      new: {},
+    }
+    this.#blockExtrinsics = {
+      finalized: {},
+      new: {},
+    }
 
     installOperators()
   }
@@ -37,27 +47,32 @@ export class SubstrateSharedStreams {
     }
   }
 
-  blocks(chainId: NetworkURN): Observable<Block> {
-    if (!this.#blocks[chainId]) {
-      this.#blocks[chainId] = this.#ingress.finalizedBlocks(chainId).pipe(share())
+  blocks(chainId: NetworkURN, finality: Finality = 'finalized'): Observable<Block> {
+    if (!this.#blocks[finality][chainId]) {
+      this.#blocks[finality][chainId] = (
+        finality === 'finalized' ? this.#ingress.finalizedBlocks(chainId) : this.#ingress.newBlocks(chainId)
+      ).pipe(share())
     }
-    return this.#blocks[chainId]
+    return this.#blocks[finality][chainId]
   }
 
-  blockEvents(chainId: NetworkURN): Observable<BlockEvent> {
-    if (!this.#blockEvents[chainId]) {
-      this.#blockEvents[chainId] = this.blocks(chainId).pipe(extractEvents(), share())
+  blockEvents(chainId: NetworkURN, finality: Finality = 'finalized'): Observable<BlockEvent> {
+    if (!this.#blockEvents[finality][chainId]) {
+      this.#blockEvents[finality][chainId] = this.blocks(chainId, finality).pipe(extractEvents(), share())
     }
-    return this.#blockEvents[chainId]
+    return this.#blockEvents[finality][chainId]
   }
 
-  blockExtrinsics(chainId: NetworkURN): Observable<BlockExtrinsicWithEvents> {
-    if (!this.#blockExtrinsics[chainId]) {
-      this.#blockExtrinsics[chainId] = this.blocks(chainId).pipe(
+  blockExtrinsics(
+    chainId: NetworkURN,
+    finality: Finality = 'finalized',
+  ): Observable<BlockExtrinsicWithEvents> {
+    if (!this.#blockExtrinsics[finality][chainId]) {
+      this.#blockExtrinsics[finality][chainId] = this.blocks(chainId, finality).pipe(
         extractTxWithEvents(),
         /*flattenCalls(),*/ share(),
       )
     }
-    return this.#blockExtrinsics[chainId]
+    return this.#blockExtrinsics[finality][chainId]
   }
 }

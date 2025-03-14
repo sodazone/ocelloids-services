@@ -72,6 +72,10 @@ export class SubstrateDistributedConsumer
     await this.#distributor.stop()
   }
 
+  newBlocks(_chainId: NetworkURN): Observable<Block> {
+    throw new Error('Method not implemented.')
+  }
+
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     const consumer = this.#blockConsumers[chainId]
     if (consumer === undefined) {

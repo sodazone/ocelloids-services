@@ -38,6 +38,10 @@ type StorageKeysRequest = {
  * - Writing network configuration into a Redis set
  */
 export default class SubstrateIngressProducer extends BaseIngressProducer<SubstrateWatcher> {
+  constructor(ctx: Services, opts: IngressOptions) {
+    super(ctx, new SubstrateWatcher(ctx), opts)
+  }
+
   createBlockStream(chainId: NetworkURN): RxSubscription {
     const key = getBlockStreamKey(chainId)
 
@@ -49,6 +53,7 @@ export default class SubstrateIngressProducer extends BaseIngressProducer<Substr
       },
     })
   }
+
   async beforeCreateStream(chainId: NetworkURN) {
     // TODO implement using RX + retry
     const api = await this.watcher.getApi(chainId)
@@ -77,9 +82,6 @@ export default class SubstrateIngressProducer extends BaseIngressProducer<Substr
 
     this.#registerStorageRequestHandler(chainId)
     this.#registerStorageKeysRequestHandler(chainId)
-  }
-  constructor(ctx: Services, opts: IngressOptions) {
-    super(ctx, new SubstrateWatcher(ctx), opts)
   }
 
   #registerStorageKeysRequestHandler(chainId: NetworkURN) {

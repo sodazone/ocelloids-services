@@ -1,6 +1,7 @@
 # Development
 
-1) Install `websocat` to interact with the service
+Install `websocat` from releases: https://github.com/vi/websocat/releases
+or install from sources:
 ```shell
 cargo install --features=ssl websocat
 ```
@@ -60,6 +61,20 @@ websocat -E ws://127.0.0.1:3000/ws/subs | jq .
 2) Send this payload
 ```json
 { "agent": "xcm", "args": { "origins": [ "0" ], "senders": "*", "destinations": [ "1000" ] } }
+```
+
+# Historical Streams
+
+```json
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "timeframe": { "start": "2025-03-10T13:58:10.104Z" } } } }
+```
+
+```json
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "timeframe": { "start": "2025-03-10T13:58:10.104Z", "end": "2025-03-10T17:20:10.104Z" } } } }
+```
+
+```json
+{ "agent": "xcm", "args": { "origins": "*", "senders": "*", "destinations": "*", "history": { "top": 10 } } }
 ```
 
 # Persistent Subscriptions
