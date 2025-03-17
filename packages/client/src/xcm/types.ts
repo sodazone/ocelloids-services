@@ -143,7 +143,7 @@ export type XcmInputs = {
    * - `"timeframe"`: Supports open or closed time frames using relative time expressions or explicity start and end dates.
    *
    * Relative timeframe format: `{rel}_{n}_{units}`
-   * - `{rel}`: `"this"` (includes events up to now) or `"previous"` (includes only complete time chunks).
+   * - `{rel}`: "this" (includes events up to now) or "previous" (includes only complete time chunks).
    * - `{n}`: A positive integer.
    * - `{units}`: "minutes", "hours", "days", "weeks", "months", or "years".
    *
