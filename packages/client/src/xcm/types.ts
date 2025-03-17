@@ -132,6 +132,27 @@ export type XcmInputs = {
    * Use '*' for all.
    */
   events?: '*' | XcmNotificationType[]
+
+  /**
+   * Historical Query.
+   *
+   * Enables backfilling historical data up to the server's retention limit in your subscription.
+   *
+   * Modes:
+   * - `"last"`: Retrieves the last N data points and continues the real-time stream.
+   * - `"timeframe"`: Supports open or closed time frames using relative time expressions or explicity start and end dates.
+   *
+   * Relative timeframe format: `{rel}_{n}_{units}`
+   * - `{rel}`: `"this"` (includes events up to now) or `"previous"` (includes only complete time chunks).
+   * - `{n}`: A positive integer.
+   * - `{units}`: "minutes", "hours", "days", "weeks", "months", or "years".
+   *
+   * `"this"` keeps the stream open for real-time updates, while `"previous"` closes it at the end.
+   */
+  history?: {
+    timeframe?: string | { end: string | number; start: string | number }
+    last?: number
+  }
 }
 
 type XcmMessage = Message<{
