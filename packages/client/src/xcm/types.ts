@@ -150,7 +150,7 @@ export type XcmInputs = {
    * `"this"` keeps the stream open for real-time updates, while `"previous"` closes it at the end.
    */
   history?: {
-    timeframe?: string | { end: string | number; start: string | number }
+    timeframe?: string | Partial<{ end: string | number; start: string | number }>
     last?: number
   }
 }
