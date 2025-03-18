@@ -11,6 +11,7 @@ import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 
+import { asDateRange } from '@/services/archive/time.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,
@@ -22,6 +23,8 @@ import {
 } from './ops/criteria.js'
 import { XcmTracker } from './tracking.js'
 import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
+
+export const XCM_AGENT_ID = 'xcm'
 
 /**
  * The XCM monitoring agent.
@@ -48,7 +51,7 @@ export class XcmAgent implements Agent, Subscribable {
   }
 
   get id() {
-    return 'xcm'
+    return XCM_AGENT_ID
   }
 
   get inputSchema(): z.ZodSchema {
@@ -73,6 +76,7 @@ export class XcmAgent implements Agent, Subscribable {
   subscribe(subscription: Subscription<XcmInputs>): void {
     const { id, args } = subscription
 
+    this.#validateHistorical(subscription)
     this.#validateChainIds(args)
     this.#validateSenders(args)
 
@@ -133,7 +137,7 @@ export class XcmAgent implements Agent, Subscribable {
   #monitor(subscription: Subscription<XcmInputs>): XcmSubscriptionHandler {
     const {
       id,
-      args: { origins, destinations, senders, events },
+      args: { origins, destinations, senders, events, history },
     } = subscription
 
     const sendersControl = ControlQuery.from(sendersCriteria(senders))
@@ -141,7 +145,11 @@ export class XcmAgent implements Agent, Subscribable {
     const destinationsControl = ControlQuery.from(messageCriteria(destinations))
     const notificationTypeControl = ControlQuery.from(notificationTypeCriteria(events))
 
-    const stream = this.#tracker.xcm$
+    const tracker$ =
+      history === undefined
+        ? this.#tracker.xcm$
+        : this.#tracker.historicalXcm$({ ...history, agent: this.id })
+    const stream = tracker$
       .pipe(
         filter((payload) => {
           return (
@@ -152,24 +160,34 @@ export class XcmAgent implements Agent, Subscribable {
           )
         }),
       )
-      .subscribe((payload: XcmMessagePayload) => {
-        if (this.#subs.has(id)) {
-          const { subscription } = this.#subs.get(id)
-          this.#notifier.publish(subscription, {
-            metadata: {
-              type: payload.type,
-              subscriptionId: id,
-              agentId: this.id,
-              networkId: payload.waypoint.chainId,
-              timestamp: Date.now(),
-              blockTimestamp: payload.waypoint.timestamp,
-            },
-            payload: payload as unknown as AnyJson,
-          })
-        } else {
-          // this could happen with closed ephemeral subscriptions
-          this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
-        }
+      .subscribe({
+        next: (payload: XcmMessagePayload) => {
+          if (this.#subs.has(id)) {
+            const { subscription } = this.#subs.get(id)
+            this.#notifier.publish(subscription, {
+              metadata: {
+                type: payload.type,
+                subscriptionId: id,
+                agentId: this.id,
+                networkId: payload.waypoint.chainId,
+                timestamp: Date.now(),
+                blockTimestamp: payload.waypoint.timestamp,
+              },
+              payload: payload as unknown as AnyJson,
+            })
+          } else {
+            // this could happen with closed ephemeral subscriptions
+            this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
+          }
+        },
+        complete: () => {
+          if (this.#subs.has(id)) {
+            const { subscription } = this.#subs.get(id)
+            if (subscription.ephemeral) {
+              this.#notifier.terminate(subscription)
+            }
+          }
+        },
       })
 
     return {
@@ -187,6 +205,15 @@ export class XcmAgent implements Agent, Subscribable {
       sendersCriteria(senders)
     } catch {
       throw new ValidationError('Invalid senders')
+    }
+  }
+
+  #validateHistorical({ args: { history }, ephemeral }: Subscription<XcmInputs>) {
+    if (history?.timeframe !== undefined) {
+      const { end } = asDateRange(history.timeframe)
+      if (end !== undefined && ephemeral !== true) {
+        throw new ValidationError('Persistent subscriptions cannot specify closed timeframes')
+      }
     }
   }
 

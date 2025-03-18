@@ -40,43 +40,43 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
   } = fastify
 
   if (options.telemetry) {
-    log.info('Enable default metrics')
+    log.info('[metrics] enable default')
     collectDefaultMetrics()
 
     const pullCollectors: PullCollect[] = []
 
     if (rootStore instanceof Level) {
-      log.info('Enable level DB metrics')
+      log.info('[metrics] enable level DB')
       pullCollectors.push(collectDiskStats(rootStore.location))
     }
 
     if (switchboard) {
-      log.info('Enable switchboard metrics')
+      log.info('[metrics] enable switchboard')
       pullCollectors.push(collectSwitchboardStats(switchboard))
       switchboard.collectTelemetry(collect)
     }
 
     if (wsProtocol) {
-      log.info('Enable websocket subscription metrics')
+      log.info('[metrics] enable websocket subscription')
       wsMetrics(wsProtocol)
     }
 
     if (ingress) {
-      log.info('Enable ingress consumer metrics')
+      log.info('[metrics] enable ingress consumer')
       for (const consumer of Object.values(ingress)) {
         consumer.collectTelemetry(collect)
       }
     }
 
     if (ingressProducers) {
-      log.info('Enable ingress producer metrics')
+      log.info('[metrics] enable ingress producer')
       for (const producer of Object.values(ingressProducers)) {
         producer.collectTelemetry(collect)
       }
     }
 
     if (agentService) {
-      log.info('Enable agent metrics')
+      log.info('[metrics] enable agent')
       agentService.collectTelemetry()
     }
 

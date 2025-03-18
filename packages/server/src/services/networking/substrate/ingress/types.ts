@@ -29,6 +29,7 @@ export type SubstrateNetworkInfo = {
  */
 export interface SubstrateIngressConsumer extends IngressConsumer {
   finalizedBlocks(chainId: NetworkURN): Observable<Block>
+  newBlocks(chainId: NetworkURN): Observable<Block>
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString>
   getStorageKeys(
     chainId: NetworkURN,

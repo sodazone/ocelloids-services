@@ -5,9 +5,11 @@ import { Egress } from '@/services/egress/hub.js'
 import { PublisherEvents } from '@/services/egress/types.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { Scheduler } from '@/services/persistence/level/scheduler.js'
-import { EgressListener, Subscription } from '@/services/subscriptions/types.js'
+import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 
+import { ArchiveRepository } from '../archive/repository.js'
+import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
 
 /**
@@ -38,6 +40,8 @@ export type AgentRuntimeContext = {
   db: LevelDB
   scheduler: Scheduler
   janitor: Janitor
+  archive?: ArchiveRepository
+  archiveRetention?: ArchiveRetentionOptions
 }
 
 /**
@@ -48,19 +52,19 @@ export interface AgentCatalog {
    * Adds a listener for egress message publishing.
    *
    * @param {keyof PublisherEvents} eventName - The name of the event to listen to
-   * @param {EgressListener} listener - The listener to add
+   * @param {EgressMessageListener} listener - The listener to add
    * @returns {Egress} The Egress instance
    */
-  addEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
+  addEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener): Egress
 
   /**
    * Removes a listener for egress message publishing.
    *
    * @param {keyof PublisherEvents} eventName - The name of the event to remove the listener from
-   * @param {EgressListener} listener - The listener to remove
+   * @param {EgressMessageListener} listener - The listener to remove
    * @returns {Egress} The Egress instance
    */
-  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressListener): Egress
+  removeEgressListener(eventName: keyof PublisherEvents, listener: EgressMessageListener): Egress
 
   /**
    * Retrieves an agent by its ID.

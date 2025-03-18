@@ -1,6 +1,7 @@
 import Accounts from './accounts/plugin.js'
 import Administration from './admin/routes.js'
 import Agents from './agents/plugin.js'
+import Archive from './archive/plugin.js'
 import Auth from './auth/plugin.js'
 import Configuration from './config.js'
 import Egress from './egress/plugin.js'
@@ -28,4 +29,5 @@ export {
   Telemetry,
   Ingress,
   Egress,
+  Archive,
 }

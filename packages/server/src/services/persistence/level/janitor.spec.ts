@@ -1,8 +1,9 @@
-import { MemoryLevel as Level } from 'memory-level'
+import { MemoryLevel } from 'memory-level'
 
 import { flushPromises } from '@/testing/promises.js'
 import { _log } from '@/testing/services.js'
 
+import { LevelDB } from '@/services/types.js'
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'
 
@@ -11,11 +12,11 @@ vi.useFakeTimers()
 describe('janitor service', () => {
   let janitor: Janitor
   let scheduler: Scheduler
-  let db: Level
+  let db: LevelDB
   let now: any
 
   beforeEach(async () => {
-    db = new Level()
+    db = new MemoryLevel() as LevelDB
     scheduler = new Scheduler(_log, db, {
       schedulerFrequency: 500,
       scheduler: true,

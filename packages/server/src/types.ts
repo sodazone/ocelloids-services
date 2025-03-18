@@ -60,7 +60,15 @@ export enum AgentServiceMode {
 }
 
 export const $AgentCatalogOptions = z.object({
-  mode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
+  agentServiceMode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
+  agents: z.string().default('*'),
+})
+
+export const $ArchiveOptions = z.object({
+  archive: z.boolean().default(false),
+  archiveRetention: z.boolean().default(true),
+  archiveRetentionPeriod: z.string().default('3_months'),
+  archiveTick: z.number().default(24 * 3_600_000), // daily
 })
 
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
@@ -74,3 +82,4 @@ export type IngressOptions = {
   distributed?: boolean
 } & RedisServerOptions
 export type AgentCatalogOptions = z.infer<typeof $AgentCatalogOptions>
+export type ArchiveOptions = z.infer<typeof $ArchiveOptions>

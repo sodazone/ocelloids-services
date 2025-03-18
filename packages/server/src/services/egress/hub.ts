@@ -50,4 +50,13 @@ export class Egress extends (EventEmitter as new () => PublisherEmitter) impleme
       }
     }
   }
+
+  /**
+   * Terminates a subscription.
+   *
+   * @param sub - The subscription.
+   */
+  terminate(sub: Subscription) {
+    this.emit('terminate', sub)
+  }
 }

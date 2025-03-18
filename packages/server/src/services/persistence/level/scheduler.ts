@@ -36,9 +36,10 @@ export class Scheduler extends EventEmitter {
   constructor(log: Logger, db: LevelDB, opts: SchedulerOptions) {
     super()
 
+    this.enabled = opts.scheduler
+
     this.#log = log
     this.#tasks = db.sublevel<string, Scheduled>(prefixes.sched.tasks, jsonEncoded)
-    this.enabled = opts.scheduler
     this.#frequency = opts.schedulerFrequency
 
     this.#running = false
@@ -46,14 +47,14 @@ export class Scheduler extends EventEmitter {
 
   start() {
     if (this.enabled) {
-      this.#log.info('Starting scheduler (frequency=%dms)', this.#frequency)
+      this.#log.info('[scheduler] starting (frequency=%dms)', this.#frequency)
       this.#while = this.#run()
     }
   }
 
   async stop() {
     if (this.#running) {
-      this.#log.info('Stopping scheduler')
+      this.#log.info('[scheduler] stopping')
 
       this.#running = false
 
@@ -65,7 +66,7 @@ export class Scheduler extends EventEmitter {
         await this.#while
       }
 
-      this.#log.info('Stopped scheduler')
+      this.#log.info('[scheduler] stopped')
     }
   }
 
@@ -112,7 +113,7 @@ export class Scheduler extends EventEmitter {
       try {
         await this.#sched()
       } catch (error) {
-        this.#log.error(error, 'Error while sweeping')
+        this.#log.error(error, '[scheduler] error while sweeping')
       }
       await this.#waiting.cancel()
       this.#waiting = undefined
@@ -129,10 +130,10 @@ export class Scheduler extends EventEmitter {
         await this.#tasks.del(key)
 
         if (this.emit(task.type, task)) {
-          this.#log.debug(task, 'scheduler: Dispatched %s %j', key, task)
+          this.#log.debug(task, '[scheduler] dispatched %s %j', key, task)
         }
       } catch (error) {
-        this.#log.warn(error, 'scheduler: Error scheduling %s %j', key, task)
+        this.#log.warn(error, '[scheduler] error scheduling %s %j', key, task)
       }
     }
   }

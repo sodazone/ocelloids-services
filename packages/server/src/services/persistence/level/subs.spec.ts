@@ -1,15 +1,16 @@
-import { MemoryLevel as Level } from 'memory-level'
+import { MemoryLevel } from 'memory-level'
 
 import { _subsFix, _testAgentId } from '@/testing/data.js'
 import { _log } from '@/testing/services.js'
 
+import { LevelDB } from '@/services/types.js'
 import { SubsStore } from './subs.js'
 
 describe('subscriptions persistence', () => {
   let db: SubsStore
 
   beforeAll(() => {
-    const mem = new Level()
+    const mem = new MemoryLevel() as LevelDB
     db = new SubsStore(_log, mem)
   })
 

@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events'
-import { filter, firstValueFrom, interval, map, mergeMap, race, take } from 'rxjs'
+import { Observable, filter, firstValueFrom, interval, map, mergeMap, of, race, retry, take } from 'rxjs'
 
 import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
-import { ChainSpecData, createClient } from '@polkadot-api/substrate-client'
+import { ChainSpecData, StopError, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
   fixUnorderedEvents,
@@ -18,13 +18,24 @@ import { asSerializable } from '@/common/index.js'
 
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
+import { NeutralHeader } from '../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
-import { Block, SubstrateApi, SubstrateApiContext } from './types.js'
+import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
 
 export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
   const client = new SubstrateClient(log, chainId, url)
   return await client.connect()
 }
+
+const retryOnStopError = <T>() =>
+  retry<T>({
+    delay(error: unknown) {
+      if (error instanceof StopError) {
+        return of(null)
+      }
+      throw error
+    },
+  })
 
 /**
  * Archive Substrate API client.
@@ -40,19 +51,23 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     method: string,
     params: Params,
   ) => Promise<Reply>
-  readonly #head$: ChainHead$
+  readonly #head: ChainHead$
+  readonly #finalized$: Observable<BlockInfoWithStatus>
+  readonly #new$: Observable<BlockInfoWithStatus>
+
   #apiContext!: () => SubstrateApiContext
 
   get ctx() {
     return this.#apiContext()
   }
 
-  get followHeads$() {
-    return this.#head$.finalized$.pipe(
+  followHeads$(finality = 'finalized'): Observable<NeutralHeader> {
+    return (finality === 'finalized' ? this.#finalized$ : this.#new$).pipe(
       map((b) => ({
-        height: b.number,
-        parenthash: b.parent,
         hash: b.hash,
+        height: b.number ?? -1,
+        parenthash: b.parent ?? '0x0',
+        status: b.status,
       })),
     )
   }
@@ -61,7 +76,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     // TODO handle errors
     return firstValueFrom(
       race([
-        this.#head$.runtime$.pipe(
+        this.#head.runtime$.pipe(
           filter(Boolean),
           map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
         ),
@@ -101,11 +116,38 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     // this.getChainSpecData = substrateClient.getChainSpecData
     this.#client = getObservableClient(substrateClient)
     this.#request = substrateClient.request
-    this.#head$ = this.#client.chainHead$()
+    this.#head = this.#client.chainHead$()
 
     this.#apiContext = () => {
       throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
     }
+
+    this.#new$ = this.#head.follow$.pipe(
+      mergeMap((event) => {
+        const blocks: BlockInfoWithStatus[] = []
+        switch (event.type) {
+          case 'newBlock': {
+            const { parentBlockHash: parent, blockHash: hash } = event
+            blocks.push({ hash, parent, number: -1, status: 'new' })
+            break
+          }
+          case 'finalized': {
+            const { prunedBlockHashes, finalizedBlockHashes } = event
+            for (const hash of prunedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'pruned' })
+            }
+            for (const hash of finalizedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'finalized' })
+            }
+            break
+          }
+        }
+        return blocks
+      }),
+      filter((x) => x !== null),
+      retryOnStopError(),
+    )
+    this.#finalized$ = this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
   }
 
   async isReady(): Promise<SubstrateApi> {
@@ -162,6 +204,9 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
         hash,
         number: BigInt(block.header.number).toString(),
         parent: block.header.parentHash,
+        stateRoot: block.header.stateRoot,
+        extrinsicsRoot: block.header.extrinsicsRoot,
+        disgest: block.header.digest,
         extrinsics: block.extrinsics.map((tx) => this.ctx.decodeExtrinsic(tx)),
         events,
       }) as Block
@@ -169,42 +214,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
     }
   }
-
-  /*
-  async getBlock(hash: string): Promise<Block> {
-    try {
-      const [header, txs, events] = await Promise.all([
-        this.getBlockHeader(hash),
-        this.#getBody(hash),
-        this.#getEvents(hash),
-      ])
-
-      return asSerializable({
-        hash,
-        number: header.number,
-        parent: header.parent,
-        extrinsics: txs.map((tx) => this.ctx.decodeExtrinsic(tx)),
-        events,
-      }) as Block
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
-    }
-  }*/
-
-  /*
-  async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
-    try {
-      const result = await this.#request<string[], [height: number]>('archive_unstable_hashByHeight', [
-        Number(blockNumber),
-      ])
-      if (!result || result.length < 1) {
-        throw new Error('Block hash not found')
-      }
-      return result[0]
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block hash.`, { cause: error })
-    }
-  }*/
 
   async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
     try {
@@ -244,21 +253,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       height: header.number,
     }
   }
-
-  /*
-  async getBlockHeader(hash: string): Promise<BlockInfo> {
-    try {
-      const encodedHeader = await this.#request<string, [hash: string]>('archive_unstable_header', [hash])
-      const header = blockHeader.dec(encodedHeader)
-      return {
-        parent: header.parentHash,
-        hash,
-        number: header.number,
-      }
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch header for hash ${hash}.`, { cause: error })
-    }
-  }*/
 
   async getStorageKeys(
     keyPrefix: string,
@@ -306,7 +300,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   disconnect() {
     try {
-      this.#head$.unfollow()
+      this.#head.unfollow()
     } catch {
       //
     } finally {
@@ -356,18 +350,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       })
     }
   }
-
-  /*
-  async #getBody(hash: string) {
-    try {
-      const result = await this.#request<[tx: string], [hash: string]>('archive_unstable_body', [hash])
-      return result
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block body for hash ${hash}.`, {
-        cause: error,
-      })
-    }
-  }*/
 
   async #getEvents(hash: string) {
     try {

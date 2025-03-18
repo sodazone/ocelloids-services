@@ -16,6 +16,7 @@ import {
   Accounts,
   Administration,
   Agents,
+  Archive,
   Auth,
   Configuration,
   Connector,
@@ -32,6 +33,7 @@ import version from '@/version.js'
 import { toCorsOpts } from '@/cli/args.js'
 import {
   $AgentCatalogOptions,
+  $ArchiveOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
   $CorsServerOptions,
@@ -55,6 +57,7 @@ export const $ServerOptions = z
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
   .merge($DatabaseOptions)
+  .merge($ArchiveOptions)
   .merge($LevelServerOptions)
   .merge($KyselyServerOptions)
   .merge($RedisServerOptions)
@@ -181,6 +184,7 @@ export async function createServer(opts: ServerOptions) {
   }
 
   await server.register(LevelDB, opts)
+  await server.register(Archive, opts)
   await server.register(Ingress, opts)
   await server.register(Egress, opts)
   await server.register(Agents, opts)
