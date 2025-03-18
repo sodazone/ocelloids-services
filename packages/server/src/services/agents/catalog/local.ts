@@ -19,7 +19,7 @@ import {
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
-import { ChainSpy } from '../chainspy/agent.js'
+// import { ChainSpy } from '../chainspy/agent.js'
 
 function shouldStart(agent: Agent) {
   const {
@@ -32,7 +32,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
   xcm: (ctx) => new XcmAgent(ctx),
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
-  chainspy: (ctx) => new ChainSpy(ctx),
+  // chainspy: (ctx) => new ChainSpy(ctx),
 }
 
 /**
