@@ -3,7 +3,7 @@ import fp from 'fastify-plugin'
 
 import { DatabaseOptions, KyselyServerOptions } from '@/types.js'
 
-import { resolveDataPath } from '../persistence/kysely/db.js'
+import { resolveDataPath } from '../persistence/util.js'
 import { createSystemDatabase } from './db.js'
 import { AccountsRepository } from './repository.js'
 import { AccountsApi } from './routes.js'

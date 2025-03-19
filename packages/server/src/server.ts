@@ -16,6 +16,7 @@ import {
   Accounts,
   Administration,
   Agents,
+  Analytics,
   Archive,
   Auth,
   Configuration,
@@ -33,6 +34,7 @@ import version from '@/version.js'
 import { toCorsOpts } from '@/cli/args.js'
 import {
   $AgentCatalogOptions,
+  $AnalyticsOptions,
   $ArchiveOptions,
   $BaseServerOptions,
   $ConfigServerOptions,
@@ -47,6 +49,13 @@ import {
 
 const WS_MAX_PAYLOAD = 1048576 // 1MB
 
+const $DatabaseGroup = $DatabaseOptions
+  .merge($AnalyticsOptions)
+  .merge($LevelServerOptions)
+  .merge($KyselyServerOptions)
+  .merge($RedisServerOptions)
+  .merge($ArchiveOptions)
+
 export const $ServerOptions = z
   .object({
     distributed: z.boolean().default(false),
@@ -56,12 +65,8 @@ export const $ServerOptions = z
   .merge($JwtServerOptions)
   .merge($SubscriptionServerOptions)
   .merge($ConfigServerOptions)
-  .merge($DatabaseOptions)
-  .merge($ArchiveOptions)
-  .merge($LevelServerOptions)
-  .merge($KyselyServerOptions)
-  .merge($RedisServerOptions)
   .merge($AgentCatalogOptions)
+  .merge($DatabaseGroup)
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 
@@ -185,6 +190,7 @@ export async function createServer(opts: ServerOptions) {
 
   await server.register(LevelDB, opts)
   await server.register(Archive, opts)
+  await server.register(Analytics, opts)
   await server.register(Ingress, opts)
   await server.register(Egress, opts)
   await server.register(Agents, opts)

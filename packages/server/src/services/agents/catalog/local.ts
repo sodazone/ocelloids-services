@@ -55,6 +55,8 @@ export class LocalAgentCatalog implements AgentCatalog {
         db: ctx.levelDB,
         scheduler: ctx.scheduler,
         egress: ctx.egress,
+        catalog: this,
+        analyticsDB: ctx.analyticsDB,
       },
       options,
     )

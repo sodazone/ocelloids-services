@@ -1,3 +1,4 @@
+import { DuckDBInstance } from '@duckdb/node-api'
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
 import { FastifyBaseLogger } from 'fastify'
@@ -102,6 +103,7 @@ export type Services = {
   agentCatalog: AgentCatalog
   connector: Connector
   archive?: ArchiveRepository
+  analyticsDB?: DuckDBInstance
 }
 
 /**

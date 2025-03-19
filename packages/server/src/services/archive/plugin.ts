@@ -1,7 +1,7 @@
 import { ArchiveOptions, DatabaseOptions } from '@/types.js'
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { resolveDataPath } from '../persistence/kysely/db.js'
+import { resolveDataPath } from '../persistence/util.js'
 import { createArchiveDatabase } from './db.js'
 import { ArchiveRepository } from './repository.js'
 import { ArchiveRetentionOptions } from './types.js'
