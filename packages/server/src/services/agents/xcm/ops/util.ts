@@ -286,8 +286,8 @@ function mapVersionedAssets(assets: any): TrappedAsset[] {
       return createTrappedAssetsFromMultiAssets(2, assets.value)
     case 'V4':
       return createTrappedAssetsFromAssets(4, assets.value)
-    case 'V5': 
-    return createTrappedAssetsFromAssets(5, assets.value)
+    case 'V5':
+      return createTrappedAssetsFromAssets(5, assets.value)
     default:
       throw new Error('XCM version not supported')
   }

@@ -1,5 +1,8 @@
+import { extractEvents } from '@/services/networking/substrate/index.js'
 import { BlockEvent, BlockExtrinsic } from '@/services/networking/substrate/types.js'
+import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
+import { filter, firstValueFrom, from } from 'rxjs'
 import {
   getMessageId,
   getParaIdFromMultiLocation,
@@ -12,9 +15,6 @@ import {
   networkIdFromMultiLocation,
 } from './util.js'
 import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
-import { testBlocksFrom } from '@/testing/blocks.js'
-import { filter, firstValueFrom, from } from 'rxjs'
-import { extractEvents } from '@/services/networking/substrate/index.js'
 
 describe('xcm ops utils', () => {
   describe('getSendersFromExtrinsic', () => {
@@ -389,10 +389,12 @@ describe('xcm ops utils', () => {
 
   describe('mapVersionedAssets', () => {
     it('should map V5 assets', async () => {
-      const assetTrappedEvent = await firstValueFrom(from(testBlocksFrom('mythos/4459187.cbor')).pipe(
-        extractEvents(),
-        filter(e => matchEvent(e, 'PolkadotXcm', 'AssetsTrapped'))
-      ))
+      const assetTrappedEvent = await firstValueFrom(
+        from(testBlocksFrom('mythos/4459187.cbor')).pipe(
+          extractEvents(),
+          filter((e) => matchEvent(e, 'PolkadotXcm', 'AssetsTrapped')),
+        ),
+      )
       const mapped = mapAssetsTrapped(assetTrappedEvent)
       expect(mapped).toBeDefined()
       expect(mapped?.assets).toBeDefined()
