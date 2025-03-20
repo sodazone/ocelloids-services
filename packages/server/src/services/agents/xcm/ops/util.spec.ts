@@ -6,10 +6,15 @@ import {
   getParaIdFromOrigin,
   getSendersFromEvent,
   getSendersFromExtrinsic,
+  mapAssetsTrapped,
+  matchEvent,
   matchProgramByTopic,
   networkIdFromMultiLocation,
 } from './util.js'
 import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
+import { testBlocksFrom } from '@/testing/blocks.js'
+import { filter, firstValueFrom, from } from 'rxjs'
+import { extractEvents } from '@/services/networking/substrate/index.js'
 
 describe('xcm ops utils', () => {
   describe('getSendersFromExtrinsic', () => {
@@ -379,6 +384,18 @@ describe('xcm ops utils', () => {
         '0x185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c',
       )
       expect(matched).toBe(true)
+    })
+  })
+
+  describe('mapVersionedAssets', () => {
+    it('should map V5 assets', async () => {
+      const assetTrappedEvent = await firstValueFrom(from(testBlocksFrom('mythos/4459187.cbor')).pipe(
+        extractEvents(),
+        filter(e => matchEvent(e, 'PolkadotXcm', 'AssetsTrapped'))
+      ))
+      const mapped = mapAssetsTrapped(assetTrappedEvent)
+      expect(mapped).toBeDefined()
+      expect(mapped?.assets).toBeDefined()
     })
   })
 })
