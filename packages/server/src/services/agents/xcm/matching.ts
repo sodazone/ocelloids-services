@@ -306,9 +306,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       // Hop relay matching heuristic :_
       for await (const originMsg of this.#outbound.values(matchingRange(relayMsg.recipient))) {
         if (
-          originMsg.legs.find(({ partialMessage }) => {
-            return partialMessage && relayMsg.messageData?.includes(partialMessage.substring(10))
-          }) !== undefined
+          originMsg.legs.find(({ partialMessage }) =>
+            this.#partialMatched(partialMessage, relayMsg.messageData),
+          ) !== undefined
         ) {
           this.#log.info(
             '[%s:r] RELAYED HOP origin=%s recipient=%s (block=%s #%s)',
@@ -541,9 +541,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       // Hop matching heuristic :_
       for await (const originMsg of this.#outbound.values(matchingRange(msg.chainId))) {
         if (
-          originMsg.legs.find(({ partialMessage }) => {
-            return partialMessage && msg.messageData?.includes(partialMessage.substring(10))
-          }) !== undefined
+          originMsg.legs.find(({ partialMessage }) =>
+            this.#partialMatched(partialMessage, msg.messageData),
+          ) !== undefined
         ) {
           // Matched outbound by heuristic
           // Need to clean up outbound keys to not trigger timeout
@@ -626,9 +626,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     // Hop matching heuristic :_
     for await (const originMsg of this.#hop.values(matchingRange(msg.origin.chainId))) {
       if (
-        originMsg.legs.find(
-          ({ partialMessage }) =>
-            partialMessage && msg.waypoint.messageData?.includes(partialMessage.substring(10)),
+        originMsg.legs.find(({ partialMessage }) =>
+          this.#partialMatched(partialMessage, msg.waypoint.messageData),
         ) !== undefined
       ) {
         await this.#findRelayInbound(msg, originMsg)
@@ -1058,5 +1057,23 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     } catch (e) {
       this.#log.error(e, 'Error on notification')
     }
+  }
+
+  #partialMatched(partialMessage?: HexString, fullMessage?: HexString) {
+    if (partialMessage === undefined || fullMessage === undefined) {
+      return false
+    }
+    const length = partialMessage.length
+    const partialVersion = partialMessage.substring(0, 4)
+    const fullVersion = fullMessage.substring(0, 4)
+    if (partialVersion !== fullVersion) {
+      // fuzzy match due to difference in Multiassets of V2 and V3
+      // tries to match BuyExecution and beneficiary address
+      return (
+        fullMessage.includes(partialMessage.substring(10, 28)) &&
+        fullMessage.includes(partialMessage.substring(length - 65))
+      )
+    }
+    return fullMessage.includes(partialMessage.substring(10))
   }
 }
