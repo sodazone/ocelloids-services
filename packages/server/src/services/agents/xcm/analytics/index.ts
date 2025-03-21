@@ -10,6 +10,7 @@ import { AgentCatalog, QueryParams, QueryResult } from '../../types.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmReceived, XcmTerminusContext } from '../types.js'
+import { normalizeAssetId } from './melburne.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import {
   $XcmQueryArgs,
@@ -86,12 +87,16 @@ export class XcmAnalytics {
       const { args } = params
       $XcmQueryArgs.parse(args)
 
-      if (args.op === 'total_transfers') {
-        return { items: await this.#repository.totalTransfers() }
+      if (args.op === 'transfers_total') {
+        return { items: await this.#repository.totalTransfers(args.criteria) }
       }
 
-      if (args.op === 'transfers') {
-        return { items: await this.#repository.transfers() }
+      if (args.op === 'transfers_count_series') {
+        return { items: await this.#repository.transfers(args.criteria) }
+      }
+
+      if (args.op === 'transfers_amount_by_asset_series') {
+        return { items: await this.#repository.amountByAsset(args.criteria) }
       }
     }
 
@@ -254,42 +259,46 @@ export class XcmAnalytics {
       .filter((_, index) => partiallyResolved[index] === undefined)
       .map((a) => a.location)
 
-    const { items } = (await this.#steward?.query({
-      args: {
-        op: 'assets.by_location',
-        criteria: [
-          {
-            xcmLocationAnchor,
-            locations: toLocationsToResolve,
-          },
-        ],
-      },
-    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata>
-
     const assetsWithMetadata = partiallyResolved.filter((a) => a !== undefined)
 
-    for (const [index, metadata] of items.entries()) {
-      const key = `${xcmLocationAnchor}:${assets[index].location}`
+    if (toLocationsToResolve.length > 0) {
+      const { items } = (await this.#steward?.query({
+        args: {
+          op: 'assets.by_location',
+          criteria: [
+            {
+              xcmLocationAnchor,
+              locations: toLocationsToResolve,
+            },
+          ],
+        },
+      } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata>
 
-      if (metadata !== null) {
-        const resolved = {
-          id: key,
-          amount: assets[index].amount,
-          decimals: metadata.decimals || 0,
-          symbol: metadata.symbol || 'TOKEN',
+      for (const [index, metadata] of items.entries()) {
+        const assetId = `${metadata.chainId}|${normalizeAssetId(metadata.id)}`
+        const key = `${xcmLocationAnchor}:${assets[index].location}`
+
+        if (metadata !== null) {
+          const resolved = {
+            id: assetId,
+            amount: assets[index].amount,
+            decimals: metadata.decimals || 0,
+            symbol: metadata.symbol || 'TOKEN',
+          }
+          assetsWithMetadata.push(resolved)
+          this.#cache.set(key, resolved)
+        } else {
+          // unknown token
+          assetsWithMetadata.push({
+            id: assetId,
+            amount: assets[index].amount,
+            decimals: 0,
+            symbol: 'UNITS',
+          })
         }
-        assetsWithMetadata.push(resolved)
-        this.#cache.set(key, resolved)
-      } else {
-        // unknown token
-        assetsWithMetadata.push({
-          id: key,
-          amount: assets[index].amount,
-          decimals: 0,
-          symbol: 'UNITS',
-        })
       }
     }
+
     return assetsWithMetadata
   }
 }

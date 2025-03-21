@@ -23,6 +23,10 @@ describe('XcmTransfersRepository', async () => {
       })
     }
     console.log(await repository.all())
-    console.log(await repository.amountBySymbol())
+    console.log(
+      await repository.amountByAsset({
+        timeframe: '1 days',
+      }),
+    )
   })
 })

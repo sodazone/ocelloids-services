@@ -1,3 +1,4 @@
+import { $NetworkString } from '@/common/types.js'
 import { AnyJson } from '@/lib.js'
 import { z } from 'zod'
 
@@ -118,19 +119,35 @@ export function isConcrete(object: any): object is Concrete {
   return object.type !== undefined || object.type === 'Concrete'
 }
 
+export const $TimeSelect = z.object({
+  bucket: z.optional(
+    z.enum(['10 minutes', '30 minutes', '1 hours', '6 hours', '12 hours', '1 days', '7 days']),
+  ),
+  timeframe: z.enum(['1 days', '7 days', '15 days', '1 months', '4 months']),
+})
+
+export const $AssetSelect = z.object({
+  asset: z.string(),
+})
+
 export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
-    op: z.literal('total_transfers'),
-    /*criteria: z.array(
-      z.object({
-        network: $NetworkString,
-        assets: z.array(z.string()).min(1).max(50),
-      }),
-    ),*/
+    op: z.literal('transfers_total'),
+    criteria: $TimeSelect,
   }),
   z.object({
-    op: z.literal('transfers'),
+    op: z.literal('transfers_count_series'),
+    criteria: $TimeSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_amount_by_asset_series'),
+    criteria: $TimeSelect.merge(
+      z.object({
+        network: z.optional($NetworkString),
+      }),
+    ),
   }),
 ])
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>
+export type TimeSelect = z.infer<typeof $TimeSelect>
