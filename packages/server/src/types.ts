@@ -71,6 +71,10 @@ export const $ArchiveOptions = z.object({
   archiveTick: z.number().default(24 * 3_600_000), // daily
 })
 
+export const $AnalyticsOptions = z.object({
+  analytics: z.boolean().default(false),
+})
+
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
 export type JwtServerOptions = z.infer<typeof $JwtServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
@@ -83,3 +87,4 @@ export type IngressOptions = {
 } & RedisServerOptions
 export type AgentCatalogOptions = z.infer<typeof $AgentCatalogOptions>
 export type ArchiveOptions = z.infer<typeof $ArchiveOptions>
+export type AnalyticsOptions = z.infer<typeof $AnalyticsOptions>
