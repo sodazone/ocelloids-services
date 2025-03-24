@@ -68,37 +68,38 @@ export class XcmTransfersRepository {
   }
 
   async insert(t: NewXcmTransfer) {
-    let id = 1
     const p = await this.#db.prepare(insertTransferPSql)
-    p.bindVarchar(id++, t.correlationId)
-    p.bindTimestampMilliseconds(id++, new DuckDBTimestampMillisecondsValue(BigInt(t.recvAt)))
-    p.bindTimestampMilliseconds(id++, new DuckDBTimestampMillisecondsValue(BigInt(t.sentAt)))
-    p.bindVarchar(id++, t.asset)
-    p.bindVarchar(id++, t.symbol)
-    p.bindSmallInt(id++, t.decimals)
-    p.bindUHugeInt(id++, t.amount)
-    p.bindVarchar(id++, t.origin)
-    p.bindVarchar(id++, t.destination)
-    p.bindVarchar(id++, t.from)
-    p.bindVarchar(id, t.to)
+    p.bindVarchar(1, t.correlationId)
+    p.bindTimestampMilliseconds(2, new DuckDBTimestampMillisecondsValue(BigInt(t.recvAt)))
+    p.bindTimestampMilliseconds(3, new DuckDBTimestampMillisecondsValue(BigInt(t.sentAt)))
+    p.bindVarchar(4, t.asset)
+    p.bindVarchar(5, t.symbol)
+    p.bindSmallInt(6, t.decimals)
+    p.bindUHugeInt(7, t.amount)
+    p.bindVarchar(8, t.origin)
+    p.bindVarchar(9, t.destination)
+    p.bindVarchar(10, t.from)
+    p.bindVarchar(11, t.to)
     return await p.run()
   }
 
   async totalTransfers(criteria: TimeSelect) {
     const interval = criteria.timeframe
+    const intervalMax = multiplyInterval(interval, 2)
+
     const query = `
       WITH periods AS (
         SELECT 
           COUNT(*) AS current_period_count,
-          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${multiplyInterval(interval, 2)}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
+          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_period_count,
           
           COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${multiplyInterval(interval, 2)}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_unique_accounts,
   
           AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${multiplyInterval(interval, 2)}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_avg_time
         FROM transfers
-        WHERE sent_at > NOW() - INTERVAL '${interval}'
+        WHERE sent_at > NOW() - INTERVAL $1
       )
       SELECT 
         current_period_count,
@@ -115,7 +116,11 @@ export class XcmTransfersRepository {
       FROM periods;
     `.trim()
 
-    const result = await this.#db.run(query)
+    const sql = await this.#db.prepare(query)
+    sql.bindVarchar(1, interval)
+    sql.bindVarchar(2, intervalMax)
+
+    const result = await sql.run()
     const rows = await result.getRows()
 
     return rows.map((row) => ({
@@ -149,34 +154,42 @@ export class XcmTransfersRepository {
     sortBy?: 'highest' | 'lowest',
   ) {
     const bucketInterval = criteria.bucket ?? '1h'
+    const timeframe = criteria.timeframe
+    let sql
 
-    let query = ''
     if (metric === 'txs') {
-      query = `
+      const query = `
         SELECT
-          time_bucket(INTERVAL '${bucketInterval}', sent_at) AS time_range,
+          time_bucket(INTERVAL $1, sent_at) AS time_range,
           COUNT(*) AS value
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${criteria.timeframe}'
-        ${filterChannel ? `AND origin = '${filterChannel.origin}' AND destination = '${filterChannel.destination}'` : ''}
+        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL $2
+        ${filterChannel ? `AND origin = $3 AND destination = $4` : ''}
         GROUP BY time_range
         ORDER BY time_range;
       `
+      sql = await this.#db.prepare(query.trim())
+      sql.bindVarchar(1, bucketInterval)
+      sql.bindVarchar(2, timeframe)
+      if (filterChannel) {
+        sql.bindVarchar(3, filterChannel.origin)
+        sql.bindVarchar(4, filterChannel.destination)
+      }
     } else if (metric === 'amountByAsset') {
-      query = `
+      const query = `
 WITH aggregated AS (
   SELECT
     t.asset,
     ARBITRARY(t.symbol) AS symbol,
-    time_bucket(INTERVAL '${bucketInterval}', t.sent_at) AS time_range,
+    time_bucket(INTERVAL $1, t.sent_at) AS time_range,
     COUNT(*) AS tx_count,
     SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
     ARRAY_AGG(DISTINCT t.origin) AS origins,
     ARRAY_AGG(DISTINCT t.destination) AS destinations
   FROM transfers t
-  WHERE t.sent_at >= NOW() - INTERVAL '${criteria.timeframe}'
-  ${filterAsset ? `AND t.asset = '${filterAsset}'` : ''}
-  ${filterChannel ? `AND t.origin = '${filterChannel.origin}' AND t.destination = '${filterChannel.destination}'` : ''}
+  WHERE t.sent_at >= NOW() - INTERVAL $2
+  ${filterAsset ? `AND t.asset = $3` : ''}
+  ${filterChannel ? `AND t.origin = $4 AND t.destination = $5` : ''}
   GROUP BY t.asset, t.symbol, time_range
 )
 SELECT
@@ -190,23 +203,41 @@ SELECT
 FROM aggregated a
 ORDER BY a.time_range;
       `
+      sql = await this.#db.prepare(query.trim())
+      sql.bindVarchar(1, bucketInterval)
+      sql.bindVarchar(2, timeframe)
+      if (filterAsset) {
+        sql.bindVarchar(3, filterAsset)
+      }
+      if (filterChannel) {
+        sql.bindVarchar(4, filterChannel.origin)
+        sql.bindVarchar(5, filterChannel.destination)
+      }
     } else if (metric === 'amountByChannel') {
-      query = `
+      const query = `
         SELECT
-          time_bucket(INTERVAL '${bucketInterval}', sent_at) AS time_range,
+          time_bucket(INTERVAL $1, sent_at) AS time_range,
           origin,
           destination,
           COUNT(*) AS tx_count,
           SUM(amount) / POWER(10, ARBITRARY(decimals)) AS value
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${criteria.timeframe}'
-        ${filterAsset ? `AND symbol = '${filterAsset}'` : ''}
+        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL $2
+        ${filterAsset ? `AND asset = $3` : ''}
         GROUP BY time_range, origin, destination
         ORDER BY time_range;
       `
+      sql = await this.#db.prepare(query.trim())
+      sql.bindVarchar(1, bucketInterval)
+      sql.bindVarchar(2, timeframe)
+      if (filterAsset) {
+        sql.bindVarchar(3, filterAsset)
+      }
+    } else {
+      throw new Error('unknown query')
     }
 
-    const result = await this.#db.run(query.trim())
+    const result = await sql.run()
     const rows = await result.getRows()
 
     if (metric === 'txs') {
