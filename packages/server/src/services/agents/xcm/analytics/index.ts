@@ -186,7 +186,7 @@ export class XcmAnalytics {
         !bridgeMessage // hops and bridged assets need to be handled differently T.T
       ) {
         const multiAssets = _instruction.value as unknown as MultiAsset[]
-        if (multiAssets !== undefined) {
+        if (multiAssets !== undefined && Array.isArray(multiAssets)) {
           for (const multiAsset of multiAssets) {
             const { id, fun } = multiAsset
             // non-fungible assets not supported

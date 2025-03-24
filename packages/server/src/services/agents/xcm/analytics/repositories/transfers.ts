@@ -91,15 +91,15 @@ export class XcmTransfersRepository {
       WITH periods AS (
         SELECT 
           COUNT(*) AS current_period_count,
-          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_period_count,
+          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_period_count,
           
           COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_unique_accounts,
+          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_unique_accounts,
   
           AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL $2 AND NOW() - INTERVAL $1) AS previous_avg_time
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_avg_time
         FROM transfers
-        WHERE sent_at > NOW() - INTERVAL $1
+        WHERE sent_at > NOW() - $1::INTERVAL
       )
       SELECT 
         current_period_count,
@@ -160,10 +160,10 @@ export class XcmTransfersRepository {
     if (metric === 'txs') {
       const query = `
         SELECT
-          time_bucket(INTERVAL $1, sent_at) AS time_range,
+          time_bucket($1::INTERVAL, sent_at) AS time_range,
           COUNT(*) AS value
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL $2
+        WHERE sent_at >= CURRENT_TIMESTAMP - $2::INTERVAL
         ${filterChannel ? `AND origin = $3 AND destination = $4` : ''}
         GROUP BY time_range
         ORDER BY time_range;
@@ -181,13 +181,13 @@ WITH aggregated AS (
   SELECT
     t.asset,
     ARBITRARY(t.symbol) AS symbol,
-    time_bucket(INTERVAL $1, t.sent_at) AS time_range,
+    time_bucket($1::INTERVAL, t.sent_at) AS time_range,
     COUNT(*) AS tx_count,
     SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
     ARRAY_AGG(DISTINCT t.origin) AS origins,
     ARRAY_AGG(DISTINCT t.destination) AS destinations
   FROM transfers t
-  WHERE t.sent_at >= NOW() - INTERVAL $2
+  WHERE t.sent_at >= NOW() - $2::INTERVAL
   ${filterAsset ? `AND t.asset = $3` : ''}
   ${filterChannel ? `AND t.origin = $4 AND t.destination = $5` : ''}
   GROUP BY t.asset, t.symbol, time_range
@@ -216,13 +216,13 @@ ORDER BY a.time_range;
     } else if (metric === 'amountByChannel') {
       const query = `
         SELECT
-          time_bucket(INTERVAL $1, sent_at) AS time_range,
+          time_bucket($1::INTERVAL, sent_at) AS time_range,
           origin,
           destination,
           COUNT(*) AS tx_count,
           SUM(amount) / POWER(10, ARBITRARY(decimals)) AS value
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL $2
+        WHERE sent_at >= CURRENT_TIMESTAMP - $2::INTERVAL
         ${filterAsset ? `AND asset = $3` : ''}
         GROUP BY time_range, origin, destination
         ORDER BY time_range;
