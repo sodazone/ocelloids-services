@@ -13,20 +13,15 @@ describe('XcmTransfersRepository', async () => {
         recvAt: Date.now() + 60_000 * n + 10_000,
         correlationId: '0x000',
         asset: '0x000',
-        destination: 'polkadot:0',
-        origin: 'polkadot:1',
-        from: 'xxxx',
-        to: 'kkkk',
+        destination: 'urn:ocn:polkadot:0',
+        origin: 'urn:ocn:polkadot:1',
+        from: '0x01',
+        to: '0x02',
         amount: BigInt(101010101010n * BigInt(n)),
         symbol: 'UWT',
         decimals: 10,
       })
     }
-    console.log(await repository.all())
-    console.log(
-      await repository.amountByAsset({
-        timeframe: '1 days',
-      }),
-    )
+    expect((await repository.all()).length).toBeGreaterThan(1)
   })
 })
