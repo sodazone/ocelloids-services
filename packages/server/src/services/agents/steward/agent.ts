@@ -244,13 +244,14 @@ export class DataSteward implements Agent, Queryable {
       const assetKey = assetMetadataKey(chainId, asset.id)
       const current = await this.#dbAssets.get(assetKey)
       if (current === undefined) {
-        throw new Error('Asset not found.')
+        await this.#dbAssets.put(assetKey, asset)
+      } else {
+        await this.#dbAssets.put(assetKey, {
+          ...asset,
+          externalIds: current.externalIds,
+          sourceId: current.sourceId,
+        })
       }
-      await this.#dbAssets.put(assetKey, {
-        ...asset,
-        externalIds: current.externalIds,
-        sourceId: current.sourceId,
-      })
     } catch (error) {
       this.#log.error(error, '[agent:%s] on update asset (chainId=%s, assetId=%s)', this.id, chainId, assetId)
     }
