@@ -1,11 +1,16 @@
+import { extractEvents } from '@/services/networking/substrate/index.js'
 import { BlockEvent, BlockExtrinsic } from '@/services/networking/substrate/types.js'
+import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
+import { filter, firstValueFrom, from } from 'rxjs'
 import {
   getMessageId,
   getParaIdFromMultiLocation,
   getParaIdFromOrigin,
   getSendersFromEvent,
   getSendersFromExtrinsic,
+  mapAssetsTrapped,
+  matchEvent,
   matchProgramByTopic,
   networkIdFromMultiLocation,
 } from './util.js'
@@ -269,6 +274,37 @@ describe('xcm ops utils', () => {
       expect(networkId).toBe('urn:ocn:bitcoin:0')
     })
 
+    it('should get a network id from ethereum native location', () => {
+      const networkId = networkIdFromMultiLocation(
+        {
+          interior: {
+            type: 'X1',
+            value: { type: 'GlobalConsensus', value: { type: 'Ethereum', value: { chain_id: '1' } } },
+          },
+          parents: 2,
+        } as unknown as any,
+        'urn:ocn:polkadot:10',
+      )
+      expect(networkId).toBe('urn:ocn:ethereum:1')
+    })
+
+    it('should get a network id from ethereum contract location', () => {
+      const networkId = networkIdFromMultiLocation(
+        {
+          interior: {
+            type: 'X2',
+            value: [
+              { type: 'GlobalConsensus', value: { type: 'Ethereum', value: { chain_id: '1' } } },
+              { type: 'AccountKey20', value: { key: '0x18084fba666a33d37592fa2633fd49a74dd93a88' } },
+            ],
+          },
+          parents: 2,
+        } as unknown as any,
+        'urn:ocn:polkadot:10',
+      )
+      expect(networkId).toBe('urn:ocn:ethereum:1')
+    })
+
     it('should get a network id from V4 multi location different consensus parachain', () => {
       const networkId = networkIdFromMultiLocation(
         {
@@ -348,6 +384,20 @@ describe('xcm ops utils', () => {
         '0x185f6e6f25b7f940f9dcfb3d7a222b73dea621212273519c9e5cdd8debe0034c',
       )
       expect(matched).toBe(true)
+    })
+  })
+
+  describe('mapVersionedAssets', () => {
+    it('should map V5 assets', async () => {
+      const assetTrappedEvent = await firstValueFrom(
+        from(testBlocksFrom('mythos/4459187.cbor')).pipe(
+          extractEvents(),
+          filter((e) => matchEvent(e, 'PolkadotXcm', 'AssetsTrapped')),
+        ),
+      )
+      const mapped = mapAssetsTrapped(assetTrappedEvent)
+      expect(mapped).toBeDefined()
+      expect(mapped?.assets).toBeDefined()
     })
   })
 })

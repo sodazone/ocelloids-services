@@ -95,7 +95,11 @@ function extractConsensusAndId(j: any, n: NetworkId) {
   const network = j.value
   if (network.type === 'Ethereum') {
     n.consensus = network.type.toLowerCase()
-    n.chainId = network.value.chainId.toString()
+    if ('chainId' in network) {
+      n.chainId = network.value.chainId.toString()
+    } else {
+      n.chainId = network.value.chain_id.toString()
+    }
   } else if (network.type && network.type !== 'ByFork' && network.type !== 'ByGenesis') {
     n.consensus = network.type.toLowerCase()
   }
@@ -282,6 +286,8 @@ function mapVersionedAssets(assets: any): TrappedAsset[] {
       return createTrappedAssetsFromMultiAssets(2, assets.value)
     case 'V4':
       return createTrappedAssetsFromAssets(4, assets.value)
+    case 'V5':
+      return createTrappedAssetsFromAssets(5, assets.value)
     default:
       throw new Error('XCM version not supported')
   }

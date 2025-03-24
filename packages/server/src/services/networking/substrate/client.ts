@@ -279,7 +279,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     try {
       const codec = this.ctx.storageCodec<T>(module, method)
       const data = await this.getStorage(codec.keys.enc(...args))
-      return codec.value.dec(data)
+      return data !== null ? codec.value.dec(data) : null
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to query ${module}.${method}.`, { cause: error })
     }

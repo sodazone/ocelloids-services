@@ -135,7 +135,7 @@ export interface SubstrateApi extends ApiClient {
   ): Promise<HexString[]>
 
   getStorage(key: string, at?: string): Promise<HexString>
-  query<T = any>(module: string, method: string, ...args: any[]): Promise<T>
+  query<T = any>(module: string, method: string, ...args: any[]): Promise<T | null>
 }
 
 export interface SubstrateApiContext {

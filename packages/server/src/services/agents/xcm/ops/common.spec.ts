@@ -1,8 +1,7 @@
-import { from, of } from 'rxjs'
-
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext, xcmpReceive } from '@/testing/xcm.js'
+import { from, of } from 'rxjs'
 import { GenericXcmSentWithContext } from '../types.js'
 import { extractParachainReceive, mapXcmSent } from './common.js'
 import { getMessageId } from './util.js'
@@ -60,6 +59,63 @@ describe('common xcm operators', () => {
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(2)
+              resolve()
+            },
+          })
+        })
+      })
+
+      it('should extract stops for a V2 XCM message hop', async () => {
+        const calls = vi.fn()
+        const aca8222747 =
+          '02100004000000000366d1f5750a1300000000cea2ebeb000e010004000100c91f081300010000cea2ebeb000d01000400010100769cac6c783b28e8ecf3c404af388996435b1f8aba90b0f363928caaf342142f'
+
+        const buf = new Uint8Array(Buffer.from(aca8222747, 'hex'))
+        const xcm = asVersionedXcm(buf, apiContext)
+        const test$ = mapXcmSent(
+          apiContext,
+          'urn:ocn:local:2000',
+        )(
+          of(
+            new GenericXcmSentWithContext({
+              event: {},
+              sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
+              blockHash: '0x01',
+              blockNumber: '32',
+              extrinsicPosition: 4,
+              recipient: 'urn:ocn:local:0',
+              messageDataBuffer: buf,
+              messageHash: xcm.hash,
+              messageId: getMessageId(xcm),
+              instructions: {
+                bytes: xcm.data,
+                json: xcm.instructions,
+              },
+            }),
+          ),
+        )
+
+        await new Promise<void>((resolve) => {
+          test$.subscribe({
+            next: (msg) => {
+              calls()
+              expect(msg).toBeDefined()
+              expect(msg.legs.length).toBe(2)
+              expect(msg.legs[0]).toEqual({
+                from: 'urn:ocn:local:2000',
+                to: 'urn:ocn:local:0',
+                type: 'hop',
+              })
+              expect(msg.legs[1]).toEqual({
+                from: 'urn:ocn:local:0',
+                to: 'urn:ocn:local:2034',
+                type: 'vmp',
+                partialMessage:
+                  '0x02081300010000cea2ebeb000d01000400010100769cac6c783b28e8ecf3c404af388996435b1f8aba90b0f363928caaf342142f',
+              })
+            },
+            complete: () => {
+              expect(calls).toHaveBeenCalledTimes(1)
               resolve()
             },
           })
@@ -274,7 +330,7 @@ describe('common xcm operators', () => {
     })
 
     it('should extract dmpQueue.ExecutedDownward events', async () => {
-      const blocks = from(testBlocksFrom('interlay/7025155.cbor'))
+      const blocks = from(testBlocksFrom('hydra/7179874.cbor'))
       const calls = vi.fn()
       const test$ = extractParachainReceive()(blocks.pipe(extractEvents()))
 

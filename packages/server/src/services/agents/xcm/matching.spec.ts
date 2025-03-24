@@ -6,6 +6,7 @@ import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
 import { hydraMoonMessages, matchMessages, moonBifrostMessages } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
+import { acalaHydra } from '@/testing/hops-acala-hydra.js'
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
@@ -194,6 +195,23 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:polkadot:2030' })
+    await expectNoLeftover()
+  })
+
+  it('should match hop messages with heuristics on different XCM versions', async () => {
+    const { sent, received } = acalaHydra
+
+    await engine.onOutboundMessage(sent)
+    await engine.onMessageData({
+      hash: '0x55e05f9fceada3f9b41bdfc49bb6701a79ac0dd7adac8a9710c4968d32500f3f',
+      data: '0x0314010400010000037bf1bf5b0a1300010000cea2ebeb000d01020400010100769cac6c783b28e8ecf3c404af388996435b1f8aba90b0f363928caaf342142f2c75823bfd849f1325d890a0bf83051831d43785e2f7e5cd21381c330b23aff04f',
+      topicId: '0x75823bfd849f1325d890a0bf83051831d43785e2f7e5cd21381c330b23aff04f',
+    })
+
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.received'])
+    expectOd(2, { origin: 'urn:ocn:local:2000', destination: 'urn:ocn:local:2034' })
     await expectNoLeftover()
   })
 
