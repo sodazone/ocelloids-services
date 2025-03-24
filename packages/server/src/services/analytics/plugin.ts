@@ -27,7 +27,11 @@ const analyticsPlugin: FastifyPluginAsync<AnalyticsPluginOptions> = async (fasti
 
   fastify.log.info('[analytics] database at %s', filename)
 
-  const instance = await DuckDBInstance.create(filename /** config? */)
+  const instance = await DuckDBInstance.create(filename, {
+    max_memory: '256MB',
+  })
+
+  //console.log(configurationOptionDescriptions())
 
   fastify.decorate('analyticsDB', instance)
 }

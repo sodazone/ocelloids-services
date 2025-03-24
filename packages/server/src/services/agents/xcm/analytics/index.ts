@@ -84,19 +84,27 @@ export class XcmAnalytics {
 
   async query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
     if (this.#repository) {
-      const { args } = params
-      $XcmQueryArgs.parse(args)
+      try {
+        const { args } = params
+        $XcmQueryArgs.parse(args)
 
-      if (args.op === 'transfers_total') {
-        return { items: await this.#repository.totalTransfers(args.criteria) }
-      }
+        if (args.op === 'transfers_total') {
+          return { items: await this.#repository.totalTransfers(args.criteria) }
+        }
 
-      if (args.op === 'transfers_count_series') {
-        return { items: await this.#repository.transfers(args.criteria) }
-      }
+        if (args.op === 'transfers_count_series') {
+          return { items: await this.#repository.transfers(args.criteria) }
+        }
 
-      if (args.op === 'transfers_amount_by_asset_series') {
-        return { items: await this.#repository.amountByAsset(args.criteria) }
+        if (args.op === 'transfers_volume_by_asset_series') {
+          return { items: await this.#repository.volumeByAsset(args.criteria) }
+        }
+
+        if (args.op === 'transfers_by_channel_series') {
+          return { items: await this.#repository.transfersByChannel(args.criteria) }
+        }
+      } catch (error) {
+        this.#log.error(error, '[xcm:analytics] error while executing a query')
       }
     }
 

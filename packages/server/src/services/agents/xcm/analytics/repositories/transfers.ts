@@ -148,7 +148,7 @@ export class XcmTransfersRepository {
 
   async getAggregatedData(
     criteria: TimeSelect,
-    metric: 'txs' | 'amountByAsset' | 'amountByChannel',
+    metric: 'txs' | 'volumeByAsset' | 'transfersByChannel',
     filterAsset?: string,
     filterChannel?: { origin: string; destination: string },
     sortBy?: 'highest' | 'lowest',
@@ -175,7 +175,7 @@ export class XcmTransfersRepository {
         sql.bindVarchar(3, filterChannel.origin)
         sql.bindVarchar(4, filterChannel.destination)
       }
-    } else if (metric === 'amountByAsset') {
+    } else if (metric === 'volumeByAsset') {
       const query = `
 WITH aggregated AS (
   SELECT
@@ -213,7 +213,7 @@ ORDER BY a.time_range;
         sql.bindVarchar(4, filterChannel.origin)
         sql.bindVarchar(5, filterChannel.destination)
       }
-    } else if (metric === 'amountByChannel') {
+    } else if (metric === 'transfersByChannel') {
       const query = `
         SELECT
           time_bucket($1::INTERVAL, sent_at) AS time_range,
@@ -260,13 +260,13 @@ ORDER BY a.time_range;
 
     for (const row of rows) {
       const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
-      const key = metric === 'amountByAsset' ? (row[1] as string) : `${row[1]}-${row[2]}`
+      const key = metric === 'volumeByAsset' ? (row[1] as string) : `${row[1]}-${row[2]}`
       const value = Number(row[3])
       const volume = Number(row[4])
 
       if (!data[key]) {
         data[key] =
-          metric === 'amountByAsset'
+          metric === 'volumeByAsset'
             ? { key, symbol: row[2] as string, networks: [], total: 0, volume: 0, percentage: 0, series: [] }
             : { key, total: 0, percentage: 0, volume: 0, series: [] }
       }
@@ -276,7 +276,7 @@ ORDER BY a.time_range;
       grandTotal += value
       data[key].series.push({ time, value })
 
-      if (metric === 'amountByAsset') {
+      if (metric === 'volumeByAsset') {
         const origins = (row[5] as DuckDBArrayValue).items as string[]
         const destinations = (row[6] as DuckDBArrayValue).items as string[]
         const allNetworks = [...origins, ...destinations]
@@ -311,17 +311,17 @@ ORDER BY a.time_range;
     return this.getAggregatedData(criteria, 'txs', undefined, filterChannel)
   }
 
-  async amountByAsset(
+  async volumeByAsset(
     criteria: TimeSelect,
     filterAsset?: string,
     filterChannel?: { origin: string; destination: string },
     sortBy?: 'highest' | 'lowest',
   ) {
-    return this.getAggregatedData(criteria, 'amountByAsset', filterAsset, filterChannel, sortBy)
+    return this.getAggregatedData(criteria, 'volumeByAsset', filterAsset, filterChannel, sortBy)
   }
 
-  async amountByChannel(criteria: TimeSelect, filterAsset?: string, sortBy?: 'highest' | 'lowest') {
-    return this.getAggregatedData(criteria, 'amountByChannel', filterAsset, undefined, sortBy)
+  async transfersByChannel(criteria: TimeSelect, filterAsset?: string, sortBy?: 'highest' | 'lowest') {
+    return this.getAggregatedData(criteria, 'transfersByChannel', filterAsset, undefined, sortBy)
   }
 
   close() {

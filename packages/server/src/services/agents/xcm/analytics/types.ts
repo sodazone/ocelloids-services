@@ -140,12 +140,16 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
     criteria: $TimeSelect,
   }),
   z.object({
-    op: z.literal('transfers_amount_by_asset_series'),
+    op: z.literal('transfers_volume_by_asset_series'),
     criteria: $TimeSelect.merge(
       z.object({
         network: z.optional($NetworkString),
       }),
     ),
+  }),
+  z.object({
+    op: z.literal('transfers_by_channel_series'),
+    criteria: $TimeSelect,
   }),
 ])
 
