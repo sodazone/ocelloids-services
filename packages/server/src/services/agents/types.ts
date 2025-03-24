@@ -41,7 +41,7 @@ export type AgentRuntimeContext = {
   db: LevelDB
   scheduler: Scheduler
   janitor: Janitor
-  catalog: AgentCatalog
+  agentCatalog: AgentCatalog
   archive?: ArchiveRepository
   archiveRetention?: ArchiveRetentionOptions
   analyticsDB?: DuckDBInstance

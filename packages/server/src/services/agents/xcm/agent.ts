@@ -79,7 +79,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       if (ctx.analyticsDB !== undefined) {
         this.#analytics = new XcmAnalytics({
           log: ctx.log,
-          catalog: ctx.catalog,
+          catalog: ctx.agentCatalog,
           db: ctx.analyticsDB,
         })
       }
