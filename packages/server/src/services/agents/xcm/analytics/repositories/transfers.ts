@@ -64,10 +64,10 @@ function safe(s: string) {
   throw new Error('unsafe string')
 }
 
-// Security NOTE
+// (!) Security NOTE
 // Neo DuckDB does not manage properly the prepared statements right now,
-// causing invalid: free() crashes.
-// So, we cannot rely on prepared statements for the moment :/
+// causing "invalid: free()" crashes.
+// So, we cannot rely on prepared query statements for the moment :/
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
   #insert?: DuckDBPreparedStatement
@@ -85,6 +85,7 @@ export class XcmTransfersRepository {
 
   async insert(t: NewXcmTransfer) {
     // TODO: review for problem with prepared
+    // seems working fine
     const p = this.#insert!
     p.bindVarchar(1, t.correlationId)
     p.bindTimestampMilliseconds(2, new DuckDBTimestampMillisecondsValue(BigInt(t.recvAt)))
