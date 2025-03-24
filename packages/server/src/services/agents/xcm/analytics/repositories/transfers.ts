@@ -1,6 +1,7 @@
 import {
   DuckDBArrayValue,
   DuckDBConnection,
+  DuckDBPreparedStatement,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampValue,
 } from '@duckdb/node-api'
@@ -55,8 +56,21 @@ function multiplyInterval(interval: string, times = 2) {
   return `${parseInt(value) * times} ${unit}`
 }
 
+const SAFE_STRING = /^[A-Za-z0-9 ]+$/
+function safe(s: string) {
+  if (SAFE_STRING.test(s)) {
+    return s
+  }
+  throw new Error('unsafe string')
+}
+
+// Security NOTE
+// Neo DuckDB does not manage properly the prepared statements right now,
+// causing invalid: free() crashes.
+// So, we cannot rely on prepared statements for the moment :/
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
+  #insert?: DuckDBPreparedStatement
 
   constructor(db: DuckDBConnection) {
     this.#db = db
@@ -64,11 +78,14 @@ export class XcmTransfersRepository {
 
   async migrate() {
     await this.#db.run(createTransfersSeqSql)
-    return await this.#db.run(createTransfersTableSql)
+    await this.#db.run(createTransfersTableSql)
+
+    this.#insert = await this.#db.prepare(insertTransferPSql)
   }
 
   async insert(t: NewXcmTransfer) {
-    const p = await this.#db.prepare(insertTransferPSql)
+    // TODO: review for problem with prepared
+    const p = this.#insert!
     p.bindVarchar(1, t.correlationId)
     p.bindTimestampMilliseconds(2, new DuckDBTimestampMillisecondsValue(BigInt(t.recvAt)))
     p.bindTimestampMilliseconds(3, new DuckDBTimestampMillisecondsValue(BigInt(t.sentAt)))
@@ -84,22 +101,21 @@ export class XcmTransfersRepository {
   }
 
   async totalTransfers(criteria: TimeSelect) {
-    const interval = criteria.timeframe
-    const intervalMax = multiplyInterval(interval, 2)
-
+    const interval = safe(criteria.timeframe)
+    const intervalMax = safe(multiplyInterval(interval, 2))
     const query = `
       WITH periods AS (
         SELECT 
           COUNT(*) AS current_period_count,
-          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_period_count,
+          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
           
           COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_unique_accounts,
+          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
   
           AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - $2::INTERVAL AND NOW() - $1::INTERVAL) AS previous_avg_time
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time
         FROM transfers
-        WHERE sent_at > NOW() - $1::INTERVAL
+        WHERE sent_at > NOW() - INTERVAL '${interval}'
       )
       SELECT 
         current_period_count,
@@ -116,11 +132,7 @@ export class XcmTransfersRepository {
       FROM periods;
     `.trim()
 
-    const sql = await this.#db.prepare(query)
-    sql.bindVarchar(1, interval)
-    sql.bindVarchar(2, intervalMax)
-
-    const result = await sql.run()
+    const result = await this.#db.run(query)
     const rows = await result.getRows()
 
     return rows.map((row) => ({
@@ -146,98 +158,63 @@ export class XcmTransfersRepository {
     return (await this.#db.run('SELECT * FROM transfers')).getRowsJson()
   }
 
-  async getAggregatedData(
-    criteria: TimeSelect,
-    metric: 'txs' | 'volumeByAsset' | 'transfersByChannel',
-    filterAsset?: string,
-    filterChannel?: { origin: string; destination: string },
-    sortBy?: 'highest' | 'lowest',
-  ) {
+  async getAggregatedData(criteria: TimeSelect, metric: 'txs' | 'volumeByAsset' | 'transfersByChannel') {
     const bucketInterval = criteria.bucket ?? '1h'
     const timeframe = criteria.timeframe
-    let sql
 
+    let query = ''
     if (metric === 'txs') {
-      const query = `
+      query = `
         SELECT
-          time_bucket($1::INTERVAL, sent_at) AS time_range,
-          COUNT(*) AS value
+          time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
+          COUNT(*) AS tx_count
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - $2::INTERVAL
-        ${filterChannel ? `AND origin = $3 AND destination = $4` : ''}
+        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
         GROUP BY time_range
         ORDER BY time_range;
       `
-      sql = await this.#db.prepare(query.trim())
-      sql.bindVarchar(1, bucketInterval)
-      sql.bindVarchar(2, timeframe)
-      if (filterChannel) {
-        sql.bindVarchar(3, filterChannel.origin)
-        sql.bindVarchar(4, filterChannel.destination)
-      }
     } else if (metric === 'volumeByAsset') {
-      const query = `
-WITH aggregated AS (
-  SELECT
-    t.asset,
-    ARBITRARY(t.symbol) AS symbol,
-    time_bucket($1::INTERVAL, t.sent_at) AS time_range,
-    COUNT(*) AS tx_count,
-    SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
-    ARRAY_AGG(DISTINCT t.origin) AS origins,
-    ARRAY_AGG(DISTINCT t.destination) AS destinations
-  FROM transfers t
-  WHERE t.sent_at >= NOW() - $2::INTERVAL
-  ${filterAsset ? `AND t.asset = $3` : ''}
-  ${filterChannel ? `AND t.origin = $4 AND t.destination = $5` : ''}
-  GROUP BY t.asset, t.symbol, time_range
-)
-SELECT
-  a.time_range,
-  a.asset,
-  a.symbol,
-  a.tx_count,
-  a.volume,
-  a.origins,
-  a.destinations
-FROM aggregated a
-ORDER BY a.time_range;
-      `
-      sql = await this.#db.prepare(query.trim())
-      sql.bindVarchar(1, bucketInterval)
-      sql.bindVarchar(2, timeframe)
-      if (filterAsset) {
-        sql.bindVarchar(3, filterAsset)
-      }
-      if (filterChannel) {
-        sql.bindVarchar(4, filterChannel.origin)
-        sql.bindVarchar(5, filterChannel.destination)
-      }
-    } else if (metric === 'transfersByChannel') {
-      const query = `
+      query = `
+        WITH aggregated AS (
+          SELECT
+            t.asset,
+            ARBITRARY(t.symbol) AS symbol,
+            time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+            COUNT(*) AS tx_count,
+            SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
+            ARRAY_AGG(DISTINCT t.origin) AS origins,
+            ARRAY_AGG(DISTINCT t.destination) AS destinations
+          FROM transfers t
+          WHERE t.sent_at >= NOW() - INTERVAL '${safe(timeframe)}'
+          GROUP BY t.asset, t.symbol, time_range
+          ORDER BY volume DESC
+        )
         SELECT
-          time_bucket($1::INTERVAL, sent_at) AS time_range,
+          a.time_range,
+          a.asset,
+          a.symbol,
+          a.tx_count,
+          a.volume,
+          a.origins,
+          a.destinations
+        FROM aggregated a;
+      `
+    } else if (metric === 'transfersByChannel') {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
           origin,
           destination,
           COUNT(*) AS tx_count,
-          SUM(amount) / POWER(10, ARBITRARY(decimals)) AS value
+          SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume
         FROM transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - $2::INTERVAL
-        ${filterAsset ? `AND asset = $3` : ''}
+        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
         GROUP BY time_range, origin, destination
-        ORDER BY time_range;
+        ORDER BY tx_count DESC;
       `
-      sql = await this.#db.prepare(query.trim())
-      sql.bindVarchar(1, bucketInterval)
-      sql.bindVarchar(2, timeframe)
-      if (filterAsset) {
-        sql.bindVarchar(3, filterAsset)
-      }
-    } else {
-      throw new Error('unknown query')
     }
 
-    const result = await sql.run()
+    const result = await this.#db.run(query.trim())
     const rows = await result.getRows()
 
     if (metric === 'txs') {
@@ -261,7 +238,7 @@ ORDER BY a.time_range;
     for (const row of rows) {
       const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
       const key = metric === 'volumeByAsset' ? (row[1] as string) : `${row[1]}-${row[2]}`
-      const value = Number(row[3])
+      const txs = Number(row[3])
       const volume = Number(row[4])
 
       if (!data[key]) {
@@ -271,10 +248,10 @@ ORDER BY a.time_range;
             : { key, total: 0, percentage: 0, volume: 0, series: [] }
       }
 
-      data[key].total += value
+      data[key].total += txs
       data[key].volume += volume
-      grandTotal += value
-      data[key].series.push({ time, value })
+      grandTotal += txs
+      data[key].series.push({ time, value: txs })
 
       if (metric === 'volumeByAsset') {
         const origins = (row[5] as DuckDBArrayValue).items as string[]
@@ -295,33 +272,23 @@ ORDER BY a.time_range;
       data[key].percentage = (data[key].total / grandTotal) * 100
     }
 
-    // Convert to an array and sort if needed
     const dataArray = Object.values(data)
-    if (sortBy === 'highest') {
-      dataArray.sort((a, b) => b.total - a.total)
-    } else if (sortBy === 'lowest') {
-      dataArray.sort((a, b) => a.total - b.total)
-    }
+    dataArray.sort((a, b) => b.total - a.total)
 
     return dataArray
   }
 
   // Wrapper functions
-  async transfers(criteria: TimeSelect, filterChannel?: { origin: string; destination: string }) {
-    return this.getAggregatedData(criteria, 'txs', undefined, filterChannel)
+  async transfers(criteria: TimeSelect) {
+    return this.getAggregatedData(criteria, 'txs')
   }
 
-  async volumeByAsset(
-    criteria: TimeSelect,
-    filterAsset?: string,
-    filterChannel?: { origin: string; destination: string },
-    sortBy?: 'highest' | 'lowest',
-  ) {
-    return this.getAggregatedData(criteria, 'volumeByAsset', filterAsset, filterChannel, sortBy)
+  async volumeByAsset(criteria: TimeSelect) {
+    return this.getAggregatedData(criteria, 'volumeByAsset')
   }
 
-  async transfersByChannel(criteria: TimeSelect, filterAsset?: string, sortBy?: 'highest' | 'lowest') {
-    return this.getAggregatedData(criteria, 'transfersByChannel', filterAsset, undefined, sortBy)
+  async transfersByChannel(criteria: TimeSelect) {
+    return this.getAggregatedData(criteria, 'transfersByChannel')
   }
 
   close() {
