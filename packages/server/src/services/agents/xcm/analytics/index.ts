@@ -10,7 +10,7 @@ import { AgentCatalog, QueryParams, QueryResult } from '../../types.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmReceived, XcmTerminusContext } from '../types.js'
-import { normalizeAssetId } from './melburne.js'
+import { normalizeAssetId } from './melbourne.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import {
   $XcmQueryArgs,
