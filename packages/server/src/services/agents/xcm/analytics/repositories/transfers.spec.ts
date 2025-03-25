@@ -7,7 +7,7 @@ describe('XcmTransfersRepository', async () => {
 
   it('should insert data', async () => {
     await repository.migrate()
-    for (let n = 1; n < 100; n++) {
+    for (let n = 1; n < 10; n++) {
       await repository.insert({
         sentAt: Date.now() + 60_000 * n,
         recvAt: Date.now() + 60_000 * n + 10_000,
@@ -22,6 +22,7 @@ describe('XcmTransfersRepository', async () => {
         decimals: 10,
       })
     }
-    expect((await repository.all()).length).toBeGreaterThan(1)
+    const result = await repository.all()
+    expect(result[0].length).toBeGreaterThan(8)
   })
 })

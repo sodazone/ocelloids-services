@@ -31,8 +31,6 @@ const analyticsPlugin: FastifyPluginAsync<AnalyticsPluginOptions> = async (fasti
     max_memory: '256MB',
   })
 
-  //console.log(configurationOptionDescriptions())
-
   fastify.decorate('analyticsDB', instance)
 }
 

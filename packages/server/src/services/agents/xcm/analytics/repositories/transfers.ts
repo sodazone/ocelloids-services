@@ -1,10 +1,4 @@
-import {
-  DuckDBArrayValue,
-  DuckDBConnection,
-  DuckDBPreparedStatement,
-  DuckDBTimestampMillisecondsValue,
-  DuckDBTimestampValue,
-} from '@duckdb/node-api'
+import { DuckDBArrayValue, DuckDBConnection, DuckDBTimestampValue } from '@duckdb/node-api'
 import { NewXcmTransfer, TimeSelect } from '../types.js'
 
 const createTransfersSeqSql = `
@@ -25,24 +19,6 @@ CREATE TABLE IF NOT EXISTS transfers(
   destination STRING NOT NULL,
   from_address STRING NOT NULL,
   to_address STRING NOT NULL
-);
-`.trim()
-
-const insertTransferPSql = `
-INSERT INTO 
-transfers VALUES (
-  nextval('seq_transfers'),
-  $1,
-  $2,
-  $3,
-  $4,
-  $5,
-  $6,
-  $7,
-  $8,
-  $9,
-  $10,
-  $11
 );
 `.trim()
 
@@ -70,7 +46,6 @@ function safe(s: string) {
 // So, we cannot rely on prepared query statements for the moment :/
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
-  #insert?: DuckDBPreparedStatement
 
   constructor(db: DuckDBConnection) {
     this.#db = db
@@ -79,26 +54,28 @@ export class XcmTransfersRepository {
   async migrate() {
     await this.#db.run(createTransfersSeqSql)
     await this.#db.run(createTransfersTableSql)
-
-    this.#insert = await this.#db.prepare(insertTransferPSql)
   }
 
   async insert(t: NewXcmTransfer) {
-    // TODO: review for problem with prepared
-    // seems working fine
-    const p = this.#insert!
-    p.bindVarchar(1, t.correlationId)
-    p.bindTimestampMilliseconds(2, new DuckDBTimestampMillisecondsValue(BigInt(t.recvAt)))
-    p.bindTimestampMilliseconds(3, new DuckDBTimestampMillisecondsValue(BigInt(t.sentAt)))
-    p.bindVarchar(4, t.asset)
-    p.bindVarchar(5, t.symbol)
-    p.bindSmallInt(6, t.decimals)
-    p.bindUHugeInt(7, t.amount)
-    p.bindVarchar(8, t.origin)
-    p.bindVarchar(9, t.destination)
-    p.bindVarchar(10, t.from)
-    p.bindVarchar(11, t.to)
-    return await p.run()
+    return await this.#db.run(
+      `
+    INSERT INTO 
+    transfers VALUES (
+      nextval('seq_transfers'),
+      '${t.correlationId}',
+      epoch_ms(${t.recvAt}),
+      epoch_ms(${t.sentAt}),
+      '${t.asset.replaceAll(/['\\]/g, '')}',
+      '${t.symbol}',
+      ${t.decimals},
+      ${t.amount}::HUGEINT,
+      '${t.origin}',
+      '${t.destination}',
+      '${t.from}',
+      '${t.to}'
+    );
+    `.trim(),
+    )
   }
 
   async totalTransfers(criteria: TimeSelect) {
@@ -156,7 +133,7 @@ export class XcmTransfersRepository {
   }
 
   async all() {
-    return (await this.#db.run('SELECT * FROM transfers')).getRowsJson()
+    return (await this.#db.run('SELECT * FROM transfers')).getRows()
   }
 
   async getAggregatedData(criteria: TimeSelect, metric: 'txs' | 'volumeByAsset' | 'transfersByChannel') {
@@ -225,7 +202,6 @@ export class XcmTransfersRepository {
       }))
     }
 
-    // Aggregate data per asset or channel
     type Data = {
       key: string
       total: number
@@ -268,7 +244,6 @@ export class XcmTransfersRepository {
       }
     }
 
-    // Calculate relative percentages
     for (const key in data) {
       data[key].percentage = (data[key].total / grandTotal) * 100
     }
@@ -279,7 +254,6 @@ export class XcmTransfersRepository {
     return dataArray
   }
 
-  // Wrapper functions
   async transfers(criteria: TimeSelect) {
     return this.getAggregatedData(criteria, 'txs')
   }
