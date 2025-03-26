@@ -11,6 +11,7 @@ import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria
 import { XcmTracker } from '../tracking.js'
 import { XcmReceived, XcmTerminusContext } from '../types.js'
 import { normalizeAssetId } from './melbourne.js'
+import { DuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import {
   $XcmQueryArgs,
@@ -36,6 +37,7 @@ export class XcmAnalytics {
   #steward?: DataSteward
   #repository?: XcmTransfersRepository
   #sub?: Subscription
+  #exporter?: DuckDBExporter
 
   constructor({ log, catalog, db }: { log: Logger; catalog: AgentCatalog; db: DuckDBInstance }) {
     this.#cache = new LRUCache({
@@ -54,8 +56,13 @@ export class XcmAnalytics {
 
     this.#steward = this.#catalog.getQueryableById<DataSteward>('steward')
 
-    this.#repository = new XcmTransfersRepository(await this.#db.connect())
+    const dbConnection = await this.#db.connect()
+
+    this.#repository = new XcmTransfersRepository(dbConnection)
     await this.#repository.migrate()
+
+    this.#exporter = new DuckDBExporter(this.#log, dbConnection)
+    await this.#exporter.start()
 
     // XXX: experimental phantom subscription
     const typeCriteria = ControlQuery.from(notificationTypeCriteria(['xcm.received']))

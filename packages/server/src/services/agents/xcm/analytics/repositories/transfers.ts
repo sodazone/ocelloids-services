@@ -40,10 +40,16 @@ function safe(s: string) {
   throw new Error('unsafe string')
 }
 
-// (!) Security NOTE
-// Neo DuckDB does not manage properly the prepared statements right now,
-// causing "invalid: free()" crashes.
-// So, we cannot rely on prepared query statements for the moment :/
+/**
+ * This repository provides analytics for XCM transfers, aggregating transaction counts
+ * and volumes by channels and assets. It enables querying transfer data efficiently
+ * for reporting and analysis.
+ *
+ * > ⚠️ Security Note
+ * > **Neo DuckDB does not properly manage prepared statements at the moment,
+ * > causing "invalid: free()" crashes.**
+ * > As a result, we cannot rely on prepared query statements for now.
+ */
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
 
