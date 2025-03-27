@@ -1,6 +1,6 @@
 import { EMPTY, Observable, catchError, from, map, mergeMap, mergeWith, share, switchMap } from 'rxjs'
 
-import { filterNonNull, retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
@@ -59,7 +59,6 @@ export class SubstrateWatcher extends Watcher<Block> {
               }),
             ),
           ),
-          filterNonNull(),
         )
       }),
       share(),
