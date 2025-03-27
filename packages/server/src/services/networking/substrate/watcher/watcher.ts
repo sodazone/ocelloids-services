@@ -1,6 +1,6 @@
-import { Observable, from, map, mergeMap, mergeWith, share, switchMap } from 'rxjs'
+import { EMPTY, Observable, catchError, from, map, mergeMap, mergeWith, share, switchMap } from 'rxjs'
 
-import { retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { filterNonNull, retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
@@ -51,8 +51,15 @@ export class SubstrateWatcher extends Watcher<Block> {
           this.tapError(chainId, 'newHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           mergeMap(({ hash, status }) =>
-            from(api.getBlock(hash)).pipe(map((block) => Object.assign({ status }, block))),
+            from(api.getBlock(hash)).pipe(
+              map((block) => Object.assign({ status }, block)),
+              catchError((error) => {
+                this.log.error(error, 'error while fetching block %s (%s)', hash, status)
+                return EMPTY
+              }),
+            ),
           ),
+          filterNonNull(),
         )
       }),
       share(),
