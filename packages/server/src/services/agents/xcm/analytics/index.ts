@@ -270,9 +270,8 @@ export class XcmAnalytics {
       const key = `${xcmLocationAnchor}:${a.location}`
       return this.#cache.get(key)
     })
-    const toLocationsToResolve = assets
-      .filter((_, index) => partiallyResolved[index] === undefined)
-      .map((a) => a.location)
+    const assetsToResolve = assets.filter((_, index) => partiallyResolved[index] === undefined)
+    const toLocationsToResolve = assetsToResolve.map((a) => a.location)
 
     const assetsWithMetadata = partiallyResolved.filter((a) => a !== undefined)
 
@@ -291,12 +290,13 @@ export class XcmAnalytics {
 
       for (const [index, metadata] of items.entries()) {
         const assetId = `${metadata.chainId}|${normalizeAssetId(metadata.id)}`
-        const key = `${xcmLocationAnchor}:${assets[index].location}`
+        const asset = assetsToResolve[index]
+        const key = `${xcmLocationAnchor}:${asset.location}`
 
         if (metadata !== null) {
           const resolved = {
             id: assetId,
-            amount: assets[index].amount,
+            amount: asset.amount,
             decimals: metadata.decimals || 0,
             symbol: metadata.symbol || 'TOKEN',
           }
@@ -306,7 +306,7 @@ export class XcmAnalytics {
           // unknown token
           assetsWithMetadata.push({
             id: assetId,
-            amount: assets[index].amount,
+            amount: asset.amount,
             decimals: 0,
             symbol: 'UNITS',
           })
