@@ -72,6 +72,8 @@ export interface QueryableApi<P = AnyJson, R = AnyJson> {
 
 /**
  * The server health response.
+ *
+ * @public
  */
 export type HealthResponse = {
   statusCode: number
