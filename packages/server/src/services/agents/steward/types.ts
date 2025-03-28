@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs'
 import { z } from 'zod'
 
+import { $NetworkString } from '@/common/types.js'
 import { HexString } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
@@ -35,7 +36,6 @@ export const networks = setNetworks({
   paseoAssetHub: 'urn:ocn:paseo:1000',
 })
 
-export const $NetworkString = z.string().regex(/urn:ocn:[a-z:0-9]+/, 'The network ID must be a valid URN')
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets'),

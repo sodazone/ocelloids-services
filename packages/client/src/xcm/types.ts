@@ -155,7 +155,12 @@ export type XcmInputs = {
   }
 }
 
-type XcmMessage = Message<{
+/**
+ * An XCM message.
+ *
+ * @public
+ */
+export type XcmMessage = Message<{
   type: XcmNotificationType
 }>
 

@@ -8,6 +8,7 @@ import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 
+import { DuckDBInstance } from '@duckdb/node-api'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
@@ -40,8 +41,10 @@ export type AgentRuntimeContext = {
   db: LevelDB
   scheduler: Scheduler
   janitor: Janitor
+  agentCatalog: AgentCatalog
   archive?: ArchiveRepository
   archiveRetention?: ArchiveRetentionOptions
+  analyticsDB?: DuckDBInstance
 }
 
 /**

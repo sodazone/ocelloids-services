@@ -13,3 +13,4 @@ chain-specs/
 .eslintcache
 .npmrc
 tsconfig*buildinfo
+.env

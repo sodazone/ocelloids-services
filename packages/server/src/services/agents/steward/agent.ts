@@ -13,7 +13,6 @@ import {
   reduce,
   switchMap,
 } from 'rxjs'
-import { z } from 'zod'
 
 import {
   SubstrateIngressConsumer,
@@ -81,6 +80,16 @@ const ASSET_PALLET_EVENTS = [
  * Aggregates and enriches cross-chain metadata for assets and currencies.
  */
 export class DataSteward implements Agent, Queryable {
+  id = 'steward'
+
+  querySchema = $StewardQueryArgs
+
+  metadata: AgentMetadata = {
+    name: 'Data Steward',
+    description: 'Aggregates and enriches cross-chain metadata for assets and currencies.',
+    capabilities: getAgentCapabilities(this),
+  }
+
   readonly #log: Logger
 
   readonly #sched: Scheduler
@@ -109,24 +118,8 @@ export class DataSteward implements Agent, Queryable {
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
 
-  get querySchema(): z.ZodSchema {
-    return $StewardQueryArgs
-  }
-
   async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
     return this.#queries.dispatch(params)
-  }
-
-  get id(): string {
-    return 'steward'
-  }
-
-  get metadata(): AgentMetadata {
-    return {
-      name: 'Data Steward',
-      description: 'Aggregates and enriches cross-chain metadata for assets and currencies.',
-      capabilities: getAgentCapabilities(this),
-    }
   }
 
   stop() {
