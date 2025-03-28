@@ -40,36 +40,56 @@ export function stringToUa8(v: string) {
   return textEncoder.encode(v)
 }
 
+/**
+ * Encodes an input string into a format suitable for storing in a DuckDB BLOB field.
+ *
+ * This function encodes an input string into a hexadecimal representation, adding a flag byte
+ * to indicate whether the input is a hex string or raw text. The flag byte distinguishes between
+ * two types of encoding:
+ * - `0x01` for hex-encoded data (including addresses with the `0x` prefix).
+ * - `0x00` for raw text, which is first converted to a hex string.
+ *
+ * @param {string} input - The input string to be encoded.
+ * @returns {string} - A formatted string for insertion into a DuckDB BLOB field (e.g., `X'01...'` or `X'00...'`).
+ *
+ * @throws {Error} - If the input is a hex string that doesn't have an even number of characters.
+ */
 export function toDuckDBHex(input: string): string {
   if (input.startsWith('0x')) {
-    const hex = input.slice(2) // Remove the "0x" prefix
+    const hex = input.slice(2)
     if (hex.length % 2 !== 0) {
       throw new Error('Invalid hex string: must have an even number of characters')
     }
-    return `X'01${hex.toUpperCase()}'` // Add flag byte and return in correct format
+    return `X'01${hex.toUpperCase()}'`
   }
 
-  // Otherwise, treat it as raw text and encode it to hex
   const hexEncoded = Buffer.from(input, 'utf-8').toString('hex').toUpperCase()
-
-  // Add flag byte to indicate raw text
   return `X'00${hexEncoded}'`
 }
 
+/**
+ * Decodes a BLOB value retrieved from DuckDB into a readable string.
+ *
+ * This function decodes the BLOB data that was encoded using the `toDuckDBHex` function.
+ * The function distinguishes between two types of data:
+ * - Hex-encoded data (indicated by the flag byte `0x01`).
+ * - Raw text data (indicated by the flag byte `0x00`).
+ *
+ * @param {DuckDBBlobValue} blob - The BLOB value to decode.
+ * @returns {string} - The decoded string, which could either be a hex string or raw text.
+ *
+ * @throws {Error} - If the BLOB format is invalid or the flag byte is incorrect.
+ */
 export function fromDuckDBBlob(blob: DuckDBBlobValue): string {
   if (blob.bytes[0] === 0x78) {
     const hexString = blob.toString().slice(1)
-    // Check if the hex string starts with '01' (indicating hex data with the flag)
     if (hexString.startsWith('01')) {
-      // Remove the '01' flag and return the rest of the data as a hex string
-      return `0x${hexString.slice(2)}` // Example: 0x01010203 -> 0x01010203
+      return `0x${hexString.slice(2)}`
     }
 
-    // Check if the hex string starts with '00' (indicating raw text data with the flag)
     if (hexString.startsWith('00')) {
-      // Remove the '00' flag and decode the rest as raw text (UTF-8)
       const rawText = Buffer.from(hexString.slice(2), 'hex').toString('utf-8')
-      return rawText // Example: "Hello" as raw text
+      return rawText
     }
 
     throw new Error('Invalid flag byte or format')
