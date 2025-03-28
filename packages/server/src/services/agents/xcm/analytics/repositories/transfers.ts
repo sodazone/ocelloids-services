@@ -1,24 +1,26 @@
-import { DuckDBArrayValue, DuckDBConnection, DuckDBTimestampValue } from '@duckdb/node-api'
+import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
+import { DuckDBArrayValue, DuckDBBlobValue, DuckDBConnection, DuckDBTimestampValue } from '@duckdb/node-api'
 import { NewXcmTransfer, TimeSelect } from '../types.js'
 
 const createTransfersSeqSql = `
-CREATE SEQUENCE IF NOT EXISTS seq_transfers START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_xcm_transfers START 1;
 `.trim()
 
 const createTransfersTableSql = `
-CREATE TABLE IF NOT EXISTS transfers(
+CREATE TABLE IF NOT EXISTS xcm_transfers(
   id INTEGER PRIMARY KEY,
-  correlation_id STRING NOT NULL,
+  correlation_id BLOB NOT NULL,
   recv_at TIMESTAMP NOT NULL,
   sent_at TIMESTAMP NOT NULL,
-  asset STRING NOT NULL,
+  asset BLOB NOT NULL,
   symbol STRING NOT NULL,
   decimals INTEGER NOT NULL,
   amount UHUGEINT NOT NULL,
   origin STRING NOT NULL,
   destination STRING NOT NULL,
-  from_address STRING NOT NULL,
-  to_address STRING NOT NULL
+  from_address BLOB NOT NULL,
+  to_address BLOB NOT NULL,
+  created_at TIMESTAMP NOT NULL
 );
 `.trim()
 
@@ -66,19 +68,20 @@ export class XcmTransfersRepository {
     return await this.#db.run(
       `
     INSERT INTO 
-    transfers VALUES (
-      nextval('seq_transfers'),
-      '${t.correlationId}',
+    xcm_transfers VALUES (
+      nextval('seq_xcm_transfers'),
+      ${toDuckDBHex(t.correlationId)},
       epoch_ms(${t.recvAt}),
       epoch_ms(${t.sentAt}),
-      '${t.asset.replaceAll(/['\\]/g, '')}',
+      ${toDuckDBHex(t.asset)},
       '${t.symbol}',
       ${t.decimals},
       ${t.amount}::HUGEINT,
       '${t.origin}',
       '${t.destination}',
-      '${t.from}',
-      '${t.to}'
+      ${toDuckDBHex(t.from)},
+      ${toDuckDBHex(t.to)},
+      NOW()
     );
     `.trim(),
     )
@@ -91,14 +94,14 @@ export class XcmTransfersRepository {
       WITH periods AS (
         SELECT 
           COUNT(*) AS current_period_count,
-          (SELECT COUNT(*) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
+          (SELECT COUNT(*) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
           
           COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
   
           AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time
-        FROM transfers
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time
+        FROM xcm_transfers
         WHERE sent_at > NOW() - INTERVAL '${interval}'
       )
       SELECT 
@@ -139,7 +142,7 @@ export class XcmTransfersRepository {
   }
 
   async all() {
-    return (await this.#db.run('SELECT * FROM transfers')).getRows()
+    return (await this.#db.run('SELECT * FROM xcm_transfers')).getRows()
   }
 
   async getAggregatedData(criteria: TimeSelect, metric: 'txs' | 'volumeByAsset' | 'transfersByChannel') {
@@ -152,7 +155,7 @@ export class XcmTransfersRepository {
         SELECT
           time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
           COUNT(*) AS tx_count
-        FROM transfers
+        FROM xcm_transfers
         WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
         GROUP BY time_range
         ORDER BY time_range;
@@ -168,7 +171,7 @@ export class XcmTransfersRepository {
             SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
             ARRAY_AGG(DISTINCT t.origin) AS origins,
             ARRAY_AGG(DISTINCT t.destination) AS destinations
-          FROM transfers t
+          FROM xcm_transfers t
           WHERE t.sent_at >= NOW() - INTERVAL '${safe(timeframe)}'
           GROUP BY t.asset, t.symbol, time_range
           ORDER BY volume DESC
@@ -191,7 +194,7 @@ export class XcmTransfersRepository {
           destination,
           COUNT(*) AS tx_count,
           SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume
-        FROM transfers
+        FROM xcm_transfers
         WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
         GROUP BY time_range, origin, destination
         ORDER BY tx_count DESC;
@@ -220,7 +223,8 @@ export class XcmTransfersRepository {
 
     for (const row of rows) {
       const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
-      const key = metric === 'volumeByAsset' ? (row[1] as string) : `${row[1]}-${row[2]}`
+      const key =
+        metric === 'volumeByAsset' ? fromDuckDBBlob(row[1] as DuckDBBlobValue) : `${row[1]}-${row[2]}`
       const txs = Number(row[3])
       const volume = Number(row[4])
 

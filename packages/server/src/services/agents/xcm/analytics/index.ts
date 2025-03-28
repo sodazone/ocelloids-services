@@ -1,7 +1,7 @@
 import { DuckDBInstance } from '@duckdb/node-api'
 import { LRUCache } from 'lru-cache'
 
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, asPublicKey } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
 import { Subscription, filter } from 'rxjs'
 import { DataSteward } from '../../steward/agent.js'
@@ -179,7 +179,7 @@ export class XcmAnalytics {
         }
 
         if (maybeMultiAddress.type === 'AccountId32') {
-          beneficiary = maybeMultiAddress.value.id
+          beneficiary = asPublicKey(maybeMultiAddress.value.id)
         } else if (maybeMultiAddress.type === 'AccountKey20') {
           beneficiary = maybeMultiAddress.value.key
         } else if (maybeMultiAddress.type === 'Parachain') {
@@ -232,7 +232,7 @@ export class XcmAnalytics {
       }
 
       const signer = sender?.signer
-      const from = signer ? (signer.id as string) : origin.chainId
+      const from = signer ? signer.publicKey : origin.chainId
       const to = beneficiary
       const recvAt = (destination as XcmTerminusContext).timestamp ?? Date.now()
       const sentAt = origin.timestamp ?? Date.now()
