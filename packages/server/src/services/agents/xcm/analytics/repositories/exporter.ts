@@ -53,8 +53,8 @@ export class ExportDateManager {
 
     return this.#applyInterval(nextExport, {
       hourly: 2,
-      daily: 0,
-      weekly: 0,
+      daily: 1,
+      weekly: 5,
     })
   }
 
@@ -194,7 +194,7 @@ export class DuckDBExporter {
     filename += '.parquet'
 
     await this.#db.run(
-      `COPY (SELECT * FROM transfers WHERE sent_at > '${startDate}' AND sent_at <= '${endDate}') TO 'r2://${this.#bucket}/${filename}' (FORMAT parquet);`,
+      `COPY (SELECT * FROM xcm_transfers WHERE sent_at > '${startDate}' AND sent_at <= '${endDate}') TO 'r2://${this.#bucket}/${filename}' (FORMAT parquet);`,
     )
 
     await this.#exportDateManager.setLastExportDate(endDate)
