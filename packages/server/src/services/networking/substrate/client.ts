@@ -4,7 +4,7 @@ import { Observable, filter, firstValueFrom, interval, map, mergeMap, of, race, 
 import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { ChainSpecData, StopError, createClient } from '@polkadot-api/substrate-client'
 import {
-  fixDescendantValues,
+  //fixDescendantValues,
   fixUnorderedEvents,
   parsed,
   patchChainHeadEvents,
@@ -104,12 +104,12 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       // withNumericIds,
       translate,
       fixUnorderedEvents,
-      unpinHash,
       patchChainHeadEvents,
       // fixPrematureBlocks,
       // fixUnorderedBlocks,
       // fixChainSpec,
-      fixDescendantValues,
+      // fixDescendantValues,
+      unpinHash,
     )
     const substrateClient = createClient(withCompat(this.#wsProvider))
     // TODO: enable when there's more support
