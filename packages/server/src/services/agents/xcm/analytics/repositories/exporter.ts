@@ -53,8 +53,8 @@ export class ExportDateManager {
 
     return this.#applyInterval(nextExport, {
       hourly: 2,
-      daily: 2,
-      weekly: 14,
+      daily: 1,
+      weekly: 7,
     })
   }
 
