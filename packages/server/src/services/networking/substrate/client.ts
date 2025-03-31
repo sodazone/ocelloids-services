@@ -94,67 +94,62 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   constructor(log: Logger, chainId: string, url: string | Array<string>) {
     super()
 
-    try {
-      this.chainId = chainId
+    this.chainId = chainId
 
-      this.#log = log
-      // for the type checking... find a cleaner way :/
-      this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
+    this.#log = log
+    // for the type checking... find a cleaner way :/
+    this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
 
-      const withCompat = parsed(
-        // withNumericIds,
-        translate,
-        fixUnorderedEvents,
-        unpinHash,
-        patchChainHeadEvents,
-        // fixPrematureBlocks,
-        // fixUnorderedBlocks,
-        // fixChainSpec,
-        fixDescendantValues,
-      )
+    const withCompat = parsed(
+      // withNumericIds,
+      translate,
+      fixUnorderedEvents,
+      unpinHash,
+      patchChainHeadEvents,
+      // fixPrematureBlocks,
+      // fixUnorderedBlocks,
+      // fixChainSpec,
+      fixDescendantValues,
+    )
 
-      const substrateClient = createClient(withCompat(this.#wsProvider))
+    const substrateClient = createClient(withCompat(this.#wsProvider))
 
-      // TODO: enable when there's more support
-      // this.getChainSpecData = substrateClient.getChainSpecData
-      this.#client = getObservableClient(substrateClient)
-      this.#request = substrateClient.request
-      this.#head = this.#client.chainHead$()
+    // TODO: enable when there's more support
+    // this.getChainSpecData = substrateClient.getChainSpecData
+    this.#client = getObservableClient(substrateClient)
+    this.#request = substrateClient.request
+    this.#head = this.#client.chainHead$()
 
-      this.#apiContext = () => {
-        throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
-      }
-
-      this.#new$ = this.#head.follow$.pipe(
-        mergeMap((event) => {
-          const blocks: BlockInfoWithStatus[] = []
-          switch (event.type) {
-            case 'newBlock': {
-              const { parentBlockHash: parent, blockHash: hash } = event
-              blocks.push({ hash, parent, number: -1, status: 'new' })
-              break
-            }
-            case 'finalized': {
-              const { prunedBlockHashes, finalizedBlockHashes } = event
-              for (const hash of prunedBlockHashes) {
-                blocks.push({ parent: '0x0', hash, number: -1, status: 'pruned' })
-              }
-              for (const hash of finalizedBlockHashes) {
-                blocks.push({ parent: '0x0', hash, number: -1, status: 'finalized' })
-              }
-              break
-            }
-          }
-          return blocks
-        }),
-        filter((x) => x !== null),
-        retryOnStopError(),
-      )
-      this.#finalized$ = this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
-    } catch (error) {
-      log.error(error, 'error creating client %s %s', chainId, url)
-      throw error
+    this.#apiContext = () => {
+      throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
     }
+
+    this.#new$ = this.#head.follow$.pipe(
+      mergeMap((event) => {
+        const blocks: BlockInfoWithStatus[] = []
+        switch (event.type) {
+          case 'newBlock': {
+            const { parentBlockHash: parent, blockHash: hash } = event
+            blocks.push({ hash, parent, number: -1, status: 'new' })
+            break
+          }
+          case 'finalized': {
+            const { prunedBlockHashes, finalizedBlockHashes } = event
+            for (const hash of prunedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'pruned' })
+            }
+            for (const hash of finalizedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'finalized' })
+            }
+            break
+          }
+        }
+        return blocks
+      }),
+      filter((x) => x !== null),
+      retryOnStopError(),
+    )
+    this.#finalized$ = this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
   }
 
   async isReady(): Promise<SubstrateApi> {
