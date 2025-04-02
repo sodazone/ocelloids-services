@@ -78,6 +78,7 @@ type ServerOptions = z.infer<typeof $ServerOptions>
 export async function createServer(opts: ServerOptions) {
   const server = Fastify({
     logger,
+    pluginTimeout: 30_000,
   })
 
   /* c8 ignore next */
