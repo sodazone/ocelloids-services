@@ -1,158 +1,65 @@
 import { Logger } from '@/services/types.js'
 import { DuckDBConnection } from '@duckdb/node-api'
 
-function toISODate(date?: string) {
-  if (date) {
-    return `${date.split(' ').join('T')}Z`
-  }
-  return date
-}
-
-export class ExportDateManager {
-  private db: DuckDBConnection
-  private interval: 'hourly' | 'daily' | 'weekly'
-
-  constructor(db: DuckDBConnection, interval: 'hourly' | 'daily' | 'weekly') {
-    this.db = db
-    this.interval = interval
-  }
-
-  async migrate() {
-    return await this.db.run(
-      'CREATE TABLE IF NOT EXISTS export_log (interval TEXT PRIMARY KEY, last_exported TIMESTAMP);',
-    )
-  }
-
-  getCutoffDate() {
-    const nowUTC = new Date(Date.now())
-
-    return this.#applyInterval(nowUTC, {
-      daily: -1,
-      hourly: -1,
-      weekly: -nowUTC.getUTCDay(),
-    })
-  }
-
-  async getLastExportDate() {
-    const rows = await (
-      await this.db.run('SELECT last_exported FROM export_log WHERE interval = ?;', [this.interval])
-    ).getRows()
-    return toISODate(rows[0]?.[0]?.toString()) ?? null
-  }
-
-  async setLastExportDate(date: string) {
-    await this.db.run(
-      'INSERT INTO export_log (interval, last_exported) VALUES (?, ?) ON CONFLICT(interval) DO UPDATE SET last_exported = excluded.last_exported;',
-      [this.interval, date],
-    )
-  }
-
-  async calculateNextExport() {
-    const lastExport = await this.getLastExportDate()
-    const nextExport = new Date(lastExport ?? Date.now())
-
-    return this.#applyInterval(nextExport, {
-      hourly: 2,
-      daily: 1,
-      weekly: 5,
-    })
-  }
-
-  getMaxStartDate() {
-    const startDateLimit = new Date(this.getCutoffDate())
-
-    return this.#applyInterval(startDateLimit, {
-      hourly: -1,
-      daily: -1,
-      weekly: -7,
-    })
-  }
-
-  #applyInterval(from: Date, increments: { hourly: number; daily: number; weekly: number }) {
-    switch (this.interval) {
-      case 'hourly':
-        from.setUTCMinutes(0, 0, 0)
-        from.setUTCHours(from.getUTCHours() + increments.hourly)
-        break
-      case 'daily':
-        from.setUTCHours(0, 0, 0, 0)
-        from.setUTCDate(from.getUTCDate() + increments.daily)
-        break
-      case 'weekly':
-        from.setUTCHours(0, 0, 0, 0)
-        from.setUTCDate(from.getUTCDate() + increments.weekly)
-        break
-      default:
-        throw new Error(`Unsupported interval: ${this.interval}`)
-    }
-
-    return from
-  }
-}
-
-type Intervals = 'hourly' | 'daily' | 'weekly'
-
-/**
- * Manages periodic exports with interval-based cutoff dates, scheduling,
- * and persistence in DuckDB.
- */
-export class DuckDBExporter {
+export class DailyDuckDBExporter {
   readonly id = 'duckdb:exporter'
-
   readonly #log
   readonly #db
   readonly #bucket
-  readonly #interval: Intervals
-  readonly #exportDateManager
 
   #enabled
+  #lastExportTimestamp: number | null = null
 
-  constructor(log: Logger, db: DuckDBConnection, interval?: Intervals) {
+  constructor(log: Logger, db: DuckDBConnection, fallback = 'false') {
     this.#log = log
     this.#db = db
     this.#bucket = process.env.DUCKDB_EXPORTS_BUCKET ?? 'xcm-data'
-    this.#interval = interval ?? ((process.env.DUCKDB_EXPORTS_INTERVAL ?? 'daily') as Intervals)
-    this.#enabled = (process.env.DUCKDB_EXPORTS ?? 'false') === 'true'
-    this.#exportDateManager = new ExportDateManager(db, this.#interval)
+    this.#enabled = (process.env.DUCKDB_EXPORTS ?? fallback) === 'true'
   }
 
   async start() {
-    const keyId = process.env.R2_KEY_ID
-    const secret = process.env.R2_SECRET
-    const accountId = process.env.R2_ACCOUNT_ID
-
-    if ([keyId, secret, accountId].every(Boolean)) {
-      try {
-        this.#log.info('[%s] Initializing DuckDB R2 exporter', this.id)
-
-        await this.#db.run('INSTALL httpfs;')
-        await this.#db.run('LOAD httpfs;')
-        await this.#db.run(
-          `CREATE SECRET r2exporter (TYPE r2, KEY_ID '${keyId}', SECRET '${secret}', ACCOUNT_ID '${accountId}');`,
-        )
-        await this.#exportDateManager.migrate()
-        await this.#scheduleNextExport()
-      } catch (error) {
-        this.#enabled = false
-        this.#log.error(error, '[%s] Initialization failed', this.id)
-      }
-    } else {
-      this.#enabled = false
-    }
-  }
-
-  async #scheduleNextExport() {
     if (!this.#enabled) {
       return
     }
 
-    const nextExport = await this.#exportDateManager.calculateNextExport()
-    const delay = Math.max(nextExport.getTime() - Date.now(), 1_000)
+    try {
+      this.#log.info('[%s] Initializing DuckDB exporter', this.id)
+      await this.#db.run('INSTALL httpfs;')
+      await this.#db.run('LOAD httpfs;')
+      await this.#migrate()
+      await this._scheduleNextExport()
+    } catch (error) {
+      this.#enabled = false
+      this.#log.error(error, '[%s] Initialization failed', this.id)
+    }
+  }
+
+  async #migrate() {
+    await this.#db.run(
+      'CREATE TABLE IF NOT EXISTS xcm_analytics_export_log (id INTEGER PRIMARY KEY, last_exported BIGINT);',
+    )
+
+    const result = await this.#db.run('SELECT last_exported FROM xcm_analytics_export_log;')
+    const rows = await result.getRows()
+
+    this.#lastExportTimestamp = rows.length > 0 ? Number(rows[0][0]) : null
+  }
+
+  async _scheduleNextExport() {
+    if (!this.#enabled) {
+      return
+    }
+
+    const now = new Date()
+    const nextExport = new Date(now)
+    nextExport.setUTCHours(0, 0, 0, 0) // Set to midnight UTC
+    nextExport.setUTCDate(nextExport.getUTCDate() + 1) // Schedule for next day
+
+    const delay = Math.max(nextExport.getTime() - now.getTime(), 1000)
 
     this.#log.info(
-      '[%s] Scheduled next export for %s at %s in %d ms (%s)',
+      '[%s] Scheduled next export at %s in %d ms (%s)',
       this.id,
-      this.#interval,
       nextExport.toISOString(),
       delay,
       new Date(Date.now() + delay).toISOString(),
@@ -160,44 +67,51 @@ export class DuckDBExporter {
 
     setTimeout(async () => {
       try {
-        await this.exportData()
-        await this.#scheduleNextExport()
+        await this.exportData(async ({ filename, startTimestamp, endTimestamp }) => {
+          await this.#db.run(
+            `COPY (SELECT * FROM xcm_transfers WHERE sent_at >= epoch_ms(${startTimestamp}) AND sent_at < epoch_ms(${endTimestamp}))
+             TO 'r2://${this.#bucket}/${filename}' (FORMAT parquet);`,
+          )
+        })
+        await this._scheduleNextExport()
       } catch (error) {
         this.#log.error(error, '[%s] While executing scheduled export', this.id)
       }
     }, delay).unref()
   }
 
-  async exportData() {
+  async exportData(
+    onExport: (args: { filename: string; startTimestamp: number; endTimestamp: number }) => Promise<void>,
+  ) {
     if (!this.#enabled) {
       return
     }
 
-    const interval = this.#interval
-    const cutoffDate = this.#exportDateManager.getCutoffDate()
-    const lastExportDate = await this.#exportDateManager.getLastExportDate()
+    const now = new Date()
+    now.setUTCHours(0, 0, 0, 0) // Start of today (UTC)
+    const startDate = new Date(now)
+    startDate.setUTCDate(startDate.getUTCDate() - 1) // Previous day
 
-    const startDate = lastExportDate
-      ? lastExportDate
-      : this.#exportDateManager.getMaxStartDate().toISOString()
-    const endDate = cutoffDate.toISOString()
+    const startTimestamp = startDate.getTime()
+    const endTimestamp = now.getTime()
 
-    this.#log.info('[%s] Exporting %s from %s to %s', this.id, interval, startDate, endDate)
-
-    let filename = `xcm-transfers_v1_${interval}_${endDate.slice(0, 10).replace(/-/g, '')}`
-
-    if (interval === 'hourly') {
-      const hour = endDate.slice(11, 13)
-      filename += `_${hour}`
+    if (this.#lastExportTimestamp && this.#lastExportTimestamp >= endTimestamp) {
+      this.#log.info('[%s] No new data to export. Skipping.', this.id)
+      return
     }
 
-    filename += '.parquet'
+    this.#log.info('[%s] Exporting from %d to %d', this.id, startTimestamp, endTimestamp)
+
+    const filename = `xcm-transfers_${startDate.toISOString().slice(0, 10).replace(/-/g, '')}.parquet`
+
+    await onExport({ filename, startTimestamp, endTimestamp })
 
     await this.#db.run(
-      `COPY (SELECT * FROM xcm_transfers WHERE sent_at > '${startDate}' AND sent_at <= '${endDate}') TO 'r2://${this.#bucket}/${filename}' (FORMAT parquet);`,
+      'INSERT INTO xcm_analytics_export_log VALUES (?, ?) ON CONFLICT DO UPDATE SET last_exported = EXCLUDED.last_exported;',
+      [1, BigInt(endTimestamp)],
     )
 
-    await this.#exportDateManager.setLastExportDate(endDate)
+    this.#lastExportTimestamp = endTimestamp
 
     this.#log.info('[%s] Exported to %s', this.id, filename)
   }
