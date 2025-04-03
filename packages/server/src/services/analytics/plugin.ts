@@ -30,6 +30,7 @@ const analyticsPlugin: FastifyPluginAsync<AnalyticsPluginOptions> = async (fasti
   const instance = await DuckDBInstance.create(filename, {
     max_memory: '1GB',
     wal_autocheckpoint: '5MB',
+    TimeZone: 'UTC',
   })
 
   fastify.decorate('analyticsDB', instance)
