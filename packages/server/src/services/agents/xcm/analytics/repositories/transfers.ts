@@ -146,17 +146,18 @@ export class XcmTransfersRepository {
   }
 
   async getAggregatedData(criteria: TimeSelect, metric: 'txs' | 'volumeByAsset' | 'transfersByChannel') {
-    const bucketInterval = criteria.bucket ?? '1h'
+    const bucketInterval = criteria.bucket ?? '1 hours'
     const timeframe = criteria.timeframe
 
     let query = ''
+    const unit = getUnit(bucketInterval)
     if (metric === 'txs') {
       query = `
         SELECT
           time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
           COUNT(*) AS tx_count
         FROM xcm_transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
+        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
         GROUP BY time_range
         ORDER BY time_range;
       `
@@ -172,7 +173,7 @@ export class XcmTransfersRepository {
             ARRAY_AGG(DISTINCT t.origin) AS origins,
             ARRAY_AGG(DISTINCT t.destination) AS destinations
           FROM xcm_transfers t
-          WHERE t.sent_at >= NOW() - INTERVAL '${safe(timeframe)}'
+          WHERE t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           GROUP BY t.asset, t.symbol, time_range
           ORDER BY volume DESC
         )
@@ -195,7 +196,7 @@ export class XcmTransfersRepository {
           COUNT(*) AS tx_count,
           SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume
         FROM xcm_transfers
-        WHERE sent_at >= CURRENT_TIMESTAMP - INTERVAL '${safe(timeframe)}'
+        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
         GROUP BY time_range, origin, destination
         ORDER BY tx_count DESC;
       `
@@ -279,4 +280,17 @@ export class XcmTransfersRepository {
   close() {
     this.#db.close()
   }
+}
+
+function getUnit(bucketInterval: string) {
+  if (bucketInterval.endsWith('hours')) {
+    return 'hour'
+  }
+  if (bucketInterval.endsWith('days')) {
+    return 'day'
+  }
+  if (bucketInterval.endsWith('minutes')) {
+    return 'minute'
+  }
+  throw new Error(`unsupported unit ${bucketInterval}`)
 }
