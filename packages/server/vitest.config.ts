@@ -30,6 +30,7 @@ export default defineConfig({
         'src/services/networking/substrate/client',
         'src/services/networking/substrate/client.ts',
         'src/services/networking/substrate/context.ts',
+        'src/services/networking/substrate/watcher/fetchers.ts',
         'src/services/networking/bitcoin',
         'src/services/networking/index.ts',
         'src/services/agents/steward/*.ts',
