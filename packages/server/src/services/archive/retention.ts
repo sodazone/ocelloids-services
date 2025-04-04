@@ -10,10 +10,11 @@ export type RetentionPolicy = {
 const id = 'archive:retention'
 
 export class ArchiveRetentionJob {
+  _timeout?: NodeJS.Timeout
+
   readonly #log: Logger
   readonly #policy: RetentionPolicy
   readonly #repository: ArchiveRepository
-  #timeout?: NodeJS.Timeout
 
   constructor(log: Logger, repository: ArchiveRepository, policy: RetentionPolicy) {
     this.#log = log
@@ -23,7 +24,7 @@ export class ArchiveRetentionJob {
 
   start() {
     this.#log.info('[%s] %s tick every %sms', id, this.#policy.period, this.#policy.tickMillis)
-    this.#timeout = setInterval(() => {
+    this._timeout = setInterval(() => {
       this.#onTick().catch((error) => {
         this.#log.error(error, '[%s] error on tick', id)
       })
@@ -33,7 +34,7 @@ export class ArchiveRetentionJob {
   stop() {
     this.#log.info('[%s] stop', id)
 
-    clearInterval(this.#timeout)
+    clearInterval(this._timeout)
   }
 
   async #onTick() {
