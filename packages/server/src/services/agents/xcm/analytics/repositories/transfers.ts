@@ -2,6 +2,14 @@ import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
 import { DuckDBArrayValue, DuckDBBlobValue, DuckDBConnection, DuckDBTimestampValue } from '@duckdb/node-api'
 import { NewXcmTransfer, TimeSelect } from '../types.js'
 
+export type AggregatedData = {
+  key: string
+  total: number
+  volume: number
+  percentage: number
+  series: { time: number; value: number }[]
+}
+
 const createTransfersSeqSql = `
 CREATE SEQUENCE IF NOT EXISTS seq_xcm_transfers START 1;
 `.trim()
@@ -212,14 +220,8 @@ export class XcmTransfersRepository {
       }))
     }
 
-    type Data = {
-      key: string
-      total: number
-      volume: number
-      percentage: number
-      series: { time: number; value: number }[]
-    }
-    const data: Record<string, Data | (Data & { symbol: string; networks: string[] })> = {}
+    const data: Record<string, AggregatedData | (AggregatedData & { symbol: string; networks: string[] })> =
+      {}
     let grandTotal = 0
 
     for (const row of rows) {
@@ -247,7 +249,7 @@ export class XcmTransfersRepository {
         const allNetworks = [...origins, ...destinations]
 
         allNetworks.forEach((network) => {
-          const d = data[key] as Data & { networks: string[] }
+          const d = data[key] as AggregatedData & { networks: string[] }
           if (!d.networks.includes(network)) {
             d.networks.push(network)
           }
