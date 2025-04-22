@@ -57,6 +57,7 @@ export class LocalAgentCatalog implements AgentCatalog {
         egress: ctx.egress,
         agentCatalog: this,
         analyticsDB: ctx.analyticsDB,
+        archiveRetention: ctx.archiveRetention,
       },
       options,
     )

@@ -33,9 +33,18 @@ const archivePlugin: FastifyPluginAsync<ArchivePluginOptions> = async (
   fastify.decorate('archive', archiveRepository)
   fastify.decorate('archiveRetention', {
     enabled: archiveRetention,
-    period: archiveRetentionPeriod,
-    tick: archiveTick,
-  })
+    policy: {
+      period: archiveRetentionPeriod,
+      tickMillis: archiveTick,
+    },
+  } as ArchiveRetentionOptions)
+
+  fastify.log.info(
+    '[archive] retention enabled=%s, period=%s, tick=%s',
+    archiveRetention,
+    archiveRetentionPeriod,
+    archiveTick,
+  )
 
   fastify.addHook('onClose', () => {
     fastify.log.info('[archive] closing logs database')

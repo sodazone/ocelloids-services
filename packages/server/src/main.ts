@@ -145,7 +145,7 @@ addServerOptions(program)
       '--archive-retention-period <expression>',
       'sets the pruning period',
       'OC_ARCHIVE_RETENTION_PERIOD',
-    ).default('3_months'),
+    ).default('1_months'),
   )
   .addOption(
     opt('--archive-tick <milliseconds>', 'tick frequency', 'OC_ARCHIVE_TICK').default(24 * 3_600_000),
