@@ -50,20 +50,20 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@microsoft/api-extractor": "^7.52.1",
+    "@microsoft/api-extractor": "^7.52.5",
     "finalhandler": "^2.1.0",
     "mock-socket": "^9.3.1",
-    "nock": "^14.0.1",
+    "nock": "^14.0.4",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
-    "typedoc": "^0.27.9",
-    "typescript": "^5.8.2",
-    "vitest": "^3.0.8"
+    "typedoc": "^0.28.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
   },
   "dependencies": {
     "isows": "^1.0.6",
-    "ky": "^1.7.5",
-    "zod": "^3.24.2"
+    "ky": "^1.8.1",
+    "zod": "^3.24.3"
   },
   "stableVersion": "2.5.0"
 }

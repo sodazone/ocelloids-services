@@ -1,5 +1,5 @@
 import { asPublicKey } from '@/common/util.js'
-import { OperatorType, Options, QueryOperator, useOperators } from 'mingo/core'
+import { OpType, Options, QueryOperator, useOperators } from 'mingo/core'
 import { Any, AnyObject, Predicate } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
@@ -90,7 +90,7 @@ let installed = false
 export function installOperators() {
   // Register query operators
   if (!installed) {
-    useOperators(OperatorType.QUERY, {
+    useOperators(OpType.QUERY, {
       $bn_lt: createQueryOperator($bn_lt),
       $bn_lte: createQueryOperator($bn_lte),
       $bn_gt: createQueryOperator($bn_gt),

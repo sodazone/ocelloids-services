@@ -22,7 +22,7 @@
   "packageManager": "yarn@4.3.1",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "resolutions": {
     "@polkadot-api/observable-client@npm:0.6.2": "patch:@polkadot-api/observable-client@npm%3A0.6.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.6.2-ed0dacca53.patch",
