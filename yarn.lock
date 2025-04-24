@@ -1944,7 +1944,7 @@ __metadata:
     level: "npm:^10.0.0"
     lru-cache: "npm:^11.1.0"
     memory-level: "npm:^3.1.0"
-    mingo: "npm:^6.6.0"
+    mingo: "npm:6.5.6"
     nock: "npm:^14.0.4"
     nodemon: "npm:^3.1.10"
     pino-pretty: "npm:^13.0.0"
@@ -4605,10 +4605,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mingo@npm:^6.6.0":
-  version: 6.6.0
-  resolution: "mingo@npm:6.6.0"
-  checksum: 10c0/f4fe5a400fc3d79ce85cec19a2589d15cc0fe958629bef79cf7dede93084649660bfb5040752400f84c471b58da903f002f4767cd1541f0533bba486378bb426
+"mingo@npm:6.5.6":
+  version: 6.5.6
+  resolution: "mingo@npm:6.5.6"
+  checksum: 10c0/ff2fb1996fc01b5de8165c4696821a7f15cf0b621bf52d9a795cdcb67009136fe76d7e7304971f5d35a1e0f1d7027acc2dbc75b7579a503767df39594c931921
   languageName: node
   linkType: hard
 
