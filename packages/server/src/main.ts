@@ -131,6 +131,7 @@ addServerOptions(program)
     ),
   )
   .addOption(opt('--distributed', 'distributed mode', 'OC_DISTRIBUTED').default(false))
+  .addOption(opt('--analytics', 'enables analytics database (experimental)', 'OC_ANALYTICS').default(false))
   .addOption(opt('--archive', 'enables historical archiving', 'OC_ARCHIVE').default(false))
   .addOption(
     optBool(
@@ -144,7 +145,7 @@ addServerOptions(program)
       '--archive-retention-period <expression>',
       'sets the pruning period',
       'OC_ARCHIVE_RETENTION_PERIOD',
-    ).default('3_months'),
+    ).default('1_months'),
   )
   .addOption(
     opt('--archive-tick <milliseconds>', 'tick frequency', 'OC_ARCHIVE_TICK').default(24 * 3_600_000),

@@ -1,7 +1,7 @@
 import { ArchiveOptions, DatabaseOptions } from '@/types.js'
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { resolveDataPath } from '../persistence/kysely/db.js'
+import { resolveDataPath } from '../persistence/util.js'
 import { createArchiveDatabase } from './db.js'
 import { ArchiveRepository } from './repository.js'
 import { ArchiveRetentionOptions } from './types.js'
@@ -33,9 +33,18 @@ const archivePlugin: FastifyPluginAsync<ArchivePluginOptions> = async (
   fastify.decorate('archive', archiveRepository)
   fastify.decorate('archiveRetention', {
     enabled: archiveRetention,
-    period: archiveRetentionPeriod,
-    tick: archiveTick,
-  })
+    policy: {
+      period: archiveRetentionPeriod,
+      tickMillis: archiveTick,
+    },
+  } as ArchiveRetentionOptions)
+
+  fastify.log.info(
+    '[archive] retention enabled=%s, period=%s, tick=%s',
+    archiveRetention,
+    archiveRetentionPeriod,
+    archiveTick,
+  )
 
   fastify.addHook('onClose', () => {
     fastify.log.info('[archive] closing logs database')

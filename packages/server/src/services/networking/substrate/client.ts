@@ -111,7 +111,9 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       // fixChainSpec,
       fixDescendantValues,
     )
+
     const substrateClient = createClient(withCompat(this.#wsProvider))
+
     // TODO: enable when there's more support
     // this.getChainSpecData = substrateClient.getChainSpecData
     this.#client = getObservableClient(substrateClient)

@@ -18,6 +18,30 @@ const MUL: Record<string, number> = {
   years: 365 * 24 * 3_600_000,
 }
 
+/**
+ * Converts a period string (e.g., "5_days", "3_hours") into milliseconds.
+ *
+ * The input period should match the regex pattern `/^(\d+)_(minutes|hours|days|weeks|months|years)$/`,
+ * which expects a number followed by an underscore and a valid unit (minutes, hours, days, weeks, months, years).
+ *
+ * The optional `from` parameter allows specifying a starting timestamp from which the period is subtracted.
+ * If not provided, `Date.now()` is used by default.
+ *
+ * @param input - A string representing the period. It should contain a number followed by an underscore
+ *                and a valid unit (e.g., "5_days", "3_hours").
+ *                Example: "3_days" for 3 days, "5_hours" for 5 hours.
+ * @param from - (Optional) The starting timestamp to subtract the period from. Defaults to the current timestamp
+ *               (`Date.now()`).
+ *
+ * @returns The resulting timestamp in milliseconds after subtracting the period from `from`.
+ *
+ * @throws {Error} If the `input` string does not match the expected format or if an invalid period expression is provided.
+ *
+ * @example
+ * // Convert a period of 5 days into milliseconds from now
+ * const millis = periodToMillis("5_days");
+ * console.log(millis); // Logs the current timestamp minus 5 days in milliseconds
+ */
 export function periodToMillis(input: string, from?: number) {
   const match = input.match(PERIOD_REGEX)
 

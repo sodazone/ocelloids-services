@@ -1,9 +1,11 @@
+import { DuckDBInstance } from '@duckdb/node-api'
 import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstract-level'
 
 import { FastifyBaseLogger } from 'fastify'
 
 import { AgentCatalog, AgentId } from './agents/types.js'
 import { ArchiveRepository } from './archive/repository.js'
+import { ArchiveRetentionOptions } from './archive/types.js'
 import { ServiceConfiguration } from './config.js'
 import { Egress } from './egress/index.js'
 import { IngressConsumers } from './ingress/consumer/types.js'
@@ -102,6 +104,8 @@ export type Services = {
   agentCatalog: AgentCatalog
   connector: Connector
   archive?: ArchiveRepository
+  archiveRetention?: ArchiveRetentionOptions
+  analyticsDB?: DuckDBInstance
 }
 
 /**

@@ -1,6 +1,5 @@
 import { Operation } from 'rfc6902'
 import { filter } from 'rxjs'
-import { z } from 'zod'
 
 import { ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
@@ -9,9 +8,20 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 
-import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
+import {
+  Agent,
+  AgentMetadata,
+  AgentRuntimeContext,
+  QueryParams,
+  QueryResult,
+  Queryable,
+  Subscribable,
+  getAgentCapabilities,
+} from '../types.js'
 
 import { asDateRange } from '@/services/archive/time.js'
+import { XcmAnalytics } from './analytics/index.js'
+import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import {
   matchMessage,
@@ -31,7 +41,21 @@ export const XCM_AGENT_ID = 'xcm'
  *
  * Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
  */
-export class XcmAgent implements Agent, Subscribable {
+export class XcmAgent implements Agent, Subscribable, Queryable {
+  id = XCM_AGENT_ID
+
+  querySchema = $XcmQueryArgs
+  inputSchema = $XcmInputs
+
+  metadata: AgentMetadata = {
+    name: 'XCM Agent',
+    description: `
+      Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
+      Currently supports XCMP-lite (HRMP) and VMP.
+      `,
+    capabilities: getAgentCapabilities(this),
+  }
+
   readonly #log: Logger
 
   readonly #ingress: SubstrateIngressConsumer
@@ -39,6 +63,8 @@ export class XcmAgent implements Agent, Subscribable {
 
   readonly #subs: XcmSubscriptionManager
   readonly #tracker: XcmTracker
+
+  #analytics?: XcmAnalytics
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -48,24 +74,17 @@ export class XcmAgent implements Agent, Subscribable {
 
     this.#subs = new XcmSubscriptionManager(ctx.log, ctx.ingress, this)
     this.#tracker = new XcmTracker(ctx)
-  }
 
-  get id() {
-    return XCM_AGENT_ID
-  }
-
-  get inputSchema(): z.ZodSchema {
-    return $XcmInputs
-  }
-
-  get metadata(): AgentMetadata {
-    return {
-      name: 'XCM Agent',
-      description: `
-      Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
-      Currently supports XCMP-lite (HRMP) and VMP.
-      `,
-      capabilities: getAgentCapabilities(this),
+    try {
+      if (ctx.analyticsDB !== undefined) {
+        this.#analytics = new XcmAnalytics({
+          log: ctx.log,
+          catalog: ctx.agentCatalog,
+          db: ctx.analyticsDB,
+        })
+      }
+    } catch (error: unknown) {
+      this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
   }
 
@@ -97,7 +116,7 @@ export class XcmAgent implements Agent, Subscribable {
     }
   }
 
-  async start(subs: Subscription<XcmInputs>[] = []): Promise<void> {
+  start(subs: Subscription<XcmInputs>[] = []) {
     this.#tracker.start()
 
     this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
@@ -109,11 +128,15 @@ export class XcmAgent implements Agent, Subscribable {
         this.#log.error(error, '[agent:%s] unable to create subscription: %j', this.id, sub)
       }
     }
+
+    this.#analytics?.start(this.#tracker)
   }
 
   async stop(): Promise<void> {
     this.#subs.stop()
     await this.#tracker.stop()
+
+    this.#analytics?.stop()
   }
 
   getSubscriptionHandler(subscriptionId: string): XcmSubscriptionHandler {
@@ -122,6 +145,14 @@ export class XcmAgent implements Agent, Subscribable {
 
   collectTelemetry(): void {
     this.#tracker.collectTelemetry()
+  }
+
+  query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
+    if (this.#analytics) {
+      return this.#analytics.query(params)
+    }
+
+    throw new Error('analytics are not enabled')
   }
 
   /**
