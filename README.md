@@ -41,7 +41,7 @@ The Ocelloids Service Node provides:
 - Multi-chain agents for automation
 - Ingress services for sourcing onchain data
 - Persistent and on-demand subscription management
-- Stream data replay
+- Historical data replay
 - Delivery channels including websockets and webhooks
 - Data aggregation APIs
 
