@@ -48,7 +48,7 @@ export class ArchiveRepository {
     if (agent !== undefined) {
       s = s.where('agent', '=', agent)
     }
-    const { created_at } = await s.orderBy('id desc').limit(1).executeTakeFirstOrThrow()
+    const { created_at } = await s.orderBy('id', 'desc').limit(1).executeTakeFirstOrThrow()
     return asUTC(created_at)
   }
 

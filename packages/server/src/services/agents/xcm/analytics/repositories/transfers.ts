@@ -280,7 +280,7 @@ export class XcmTransfersRepository {
   }
 
   close() {
-    this.#db.close()
+    this.#db.closeSync()
   }
 }
 
