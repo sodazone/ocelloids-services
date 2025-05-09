@@ -239,8 +239,6 @@ The Ocelloids Service Node offers convenient APIs for seamless interaction.
 
 The Ocelloids Service Node exposes observability metrics via Prometheus, enabling visualization through Grafana dashboards and the configuration of alerts via Alertmanager.
 
-[Setup Prometheus, Grafana and Alertmanager](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/OBSERVABILITY.md).
-
 ## Testing
 
 [Run unit tests and explore integration and stress testing](https://github.com/sodazone/ocelloids-services/blob/main/packages/server/guides/TESTING.md).
