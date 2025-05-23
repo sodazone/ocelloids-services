@@ -90,7 +90,7 @@ let installed = false
 export function installOperators() {
   // Register query operators
   if (!installed) {
-    useOperators("query", {
+    useOperators('query', {
       $bn_lt: createQueryOperator($bn_lt),
       $bn_lte: createQueryOperator($bn_lte),
       $bn_gt: createQueryOperator($bn_gt),
