@@ -30,6 +30,33 @@ type CGMarketData = {
   last_updated: string
 }
 
+const CG_ID_MAP: Record<string, string> = {
+  DOT: 'polkadot',
+  ETH: 'ethereum',
+  WETH: 'weth',
+  WBTC: 'wrapped-bitcoin',
+  TBTC: 'tbtc',
+  LINK: 'chainlink',
+  SKY: 'sky',
+  LDO: 'lido-dao',
+  AAVE: 'aave',
+  LBTC: 'lombard-staked-btc',
+  GLMR: 'moonbeam',
+  ASTR: 'astar',
+  ACA: 'aca',
+  BNC: 'bifrost-native-coin',
+  HDX: 'hydradx',
+  MYTH: 'mythos',
+  CFG: 'centrifuge',
+  PHA: 'pha',
+  USDT: 'tether',
+  USDC: 'usd-coin',
+  VDOT: 'voucher-dot',
+  VASTR: 'bifrost-voucher-astr',
+  VGLMR: 'voucher-glmr',
+  KSM: 'kusama',
+}
+
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
 
 export class CoinGeckoPriceScout implements PriceScout {
@@ -38,8 +65,12 @@ export class CoinGeckoPriceScout implements PriceScout {
   }
 
   async fetchPrices(tickers: string[]): Promise<TickerPriceData[]> {
-    const ids = tickers.join(',')
-    const url = `${ENDPOINT}/coins/markets?vs_currency=usd&symbols=${encodeURIComponent(ids)}`
+    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()]).filter((id) => id !== undefined) // Filter out undefined mappings
+
+    if (ids.length === 0) {
+      throw new Error('No valid CoinGecko IDs found for the provided tickers')
+    }
+    const url = `${ENDPOINT}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(ids.join(','))}`
 
     if (!process.env.OC_CG_API_KEY) {
       throw new Error('CoinGecko API key not configured')

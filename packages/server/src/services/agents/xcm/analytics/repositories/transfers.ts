@@ -333,7 +333,7 @@ export class XcmTransfersRepository {
       volumeUsd: Number(row[2]),
       volumeIn: Number(row[3]),
       volumeOut: Number(row[4]),
-      netFlow: Number(row[3]) - Number(row[4])
+      netFlow: Number(row[3]) - Number(row[4]),
     }))
   }
 
