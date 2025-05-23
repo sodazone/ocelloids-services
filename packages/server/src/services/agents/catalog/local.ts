@@ -18,8 +18,8 @@ import {
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
-import { TickerAgent } from '../ticker/agent.js'
 import { DataSteward } from '../steward/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
 // import { ChainSpy } from '../chainspy/agent.js'
 
 function shouldStart(agent: Agent) {

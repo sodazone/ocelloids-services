@@ -1,5 +1,11 @@
 import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
-import { DuckDBArrayValue, DuckDBBlobValue, DuckDBConnection, DuckDBDecimalValue, DuckDBTimestampValue } from '@duckdb/node-api'
+import {
+  DuckDBArrayValue,
+  DuckDBBlobValue,
+  DuckDBConnection,
+  DuckDBDecimalValue,
+  DuckDBTimestampValue,
+} from '@duckdb/node-api'
 import { NewXcmTransfer, TimeSelect } from '../types.js'
 
 export type AggregatedData = {
@@ -143,7 +149,7 @@ export class XcmTransfersRepository {
         current: Number(row[6] as number),
         previous: Number(row[7] as number),
         diff: Number(row[6] as number) - Number(row[7] as number),
-      }
+      },
     }))
   }
 
@@ -219,7 +225,7 @@ export class XcmTransfersRepository {
       return rows.map((row) => ({
         time: Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000),
         value: Number(row[1]),
-        volumeUsd: Number(row[2])
+        volumeUsd: Number(row[2]),
       }))
     }
 
@@ -238,15 +244,24 @@ export class XcmTransfersRepository {
       if (!data[key]) {
         data[key] =
           metric === 'volumeByAsset'
-            ? { key, symbol: row[2] as string, networks: [], total: 0, volume: 0, volumeUsd: 0, percentage: 0, series: [] }
+            ? {
+                key,
+                symbol: row[2] as string,
+                networks: [],
+                total: 0,
+                volume: 0,
+                volumeUsd: 0,
+                percentage: 0,
+                series: [],
+              }
             : { key, total: 0, percentage: 0, volume: 0, volumeUsd: 0, series: [] }
       }
 
       data[key].total += txs
       data[key].volume += volume
       data[key].volumeUsd += volumeUsd
-      grandTotal += volumeUsd
-      data[key].series.push({ time, value: volumeUsd })
+      grandTotal += txs
+      data[key].series.push({ time, value: txs })
 
       if (metric === 'volumeByAsset') {
         const origins = (row[5] as DuckDBArrayValue).items as string[]
@@ -263,13 +278,64 @@ export class XcmTransfersRepository {
     }
 
     for (const key in data) {
-      data[key].percentage = (data[key].volumeUsd / grandTotal) * 100
+      data[key].percentage = (data[key].total / grandTotal) * 100
     }
 
     const dataArray = Object.values(data)
-    dataArray.sort((a, b) => b.volumeUsd - a.volumeUsd)
+    dataArray.sort((a, b) => b.total - a.total)
 
     return dataArray
+  }
+
+  async getVolumeByNetwork(criteria: TimeSelect) {
+    const bucketInterval = criteria.bucket ?? '1 hours'
+    const timeframe = criteria.timeframe
+    const unit = getUnit(bucketInterval)
+
+    const query = `
+        WITH network_data AS (
+          SELECT
+            origin AS network,
+            COUNT(*) AS tx_count,
+            SUM(COALESCE(volume, 0)) AS volume_usd,
+            0 AS inflow_usd,
+            SUM(COALESCE(volume, 0)) AS outflow_usd
+          FROM xcm_transfers
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          GROUP BY origin
+
+          UNION ALL
+
+          SELECT
+            destination AS network,
+            COUNT(*) AS tx_count,
+            SUM(COALESCE(volume, 0)) AS volume_usd,
+            SUM(COALESCE(volume, 0)) AS inflow_usd,
+            0 AS outflow_usd
+          FROM xcm_transfers
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          GROUP BY destination
+        )
+        SELECT
+          network,
+          SUM(tx_count) AS tx_count,
+          SUM(volume_usd) AS volume_usd,
+          SUM(inflow_usd) AS inflow_usd,
+          SUM(outflow_usd) AS outflow_usd
+        FROM network_data
+        GROUP BY network
+        ORDER BY volume_usd DESC;
+      `
+    const result = await this.#db.run(query.trim())
+    const rows = await result.getRows()
+    return rows.map((row) => ({
+      network: row[0],
+      value: Number(row[1]),
+      volumeUsd: Number(row[2]),
+      volumeIn: Number(row[3]),
+      volumeOut: Number(row[4]),
+      netFlow: Number(row[3]) - Number(row[4])
+    }))
   }
 
   async transfers(criteria: TimeSelect) {
@@ -282,6 +348,10 @@ export class XcmTransfersRepository {
 
   async transfersByChannel(criteria: TimeSelect) {
     return this.getAggregatedData(criteria, 'transfersByChannel')
+  }
+
+  async volumeByNetwork(criteria: TimeSelect) {
+    return this.getVolumeByNetwork(criteria)
   }
 
   close() {

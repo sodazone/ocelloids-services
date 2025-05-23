@@ -114,6 +114,10 @@ export class XcmAnalytics {
         if (args.op === 'transfers_by_channel_series') {
           return { items: await this.#repository.transfersByChannel(args.criteria) }
         }
+
+        if (args.op === 'transfers_by_network') {
+          return { items: await this.#repository.volumeByNetwork(args.criteria) }
+        }
       } catch (error) {
         this.#log.error(error, '[xcm:analytics] error while executing a query')
       }
