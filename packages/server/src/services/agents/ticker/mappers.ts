@@ -73,6 +73,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier> = {
     chainId: 'urn:ocn:polkadot:2035',
     assetId: 'native',
   },
+  USDT: {
+    chainId: 'urn:ocn:polkadot:1000',
+    assetId: '1984',
+  },
+  USDC: {
+    chainId: 'urn:ocn:polkadot:1000',
+    assetId: '1337',
+  },
   VDOT: {
     chainId: 'urn:ocn:polkadot:2030',
     assetId: {
