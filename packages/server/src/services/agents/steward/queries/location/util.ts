@@ -68,6 +68,15 @@ function parseLocalX1Junction(referenceNetwork: NetworkURN, junction: DecodedObj
       assetId: { type: 'data', value: mapGeneralKey(junction.value) },
     }
   }
+  if (junction.type === 'generalindex') {
+    if (junction.value === undefined || junction.value === null) {
+      return null
+    }
+    return {
+      network: referenceNetwork,
+      assetId: { type: 'string', value: junction.value.toString() },
+    }
+  }
   return null
 }
 
@@ -192,6 +201,43 @@ function parseCrossChainAsset(
   })
 }
 
+function parseGlobalConsensusJuntion(junction: DecodedObject): ParsedAsset | null {
+  if (junction.type === 'globalconsensus') {
+    if (junction.value === null || junction.value === undefined || Array.isArray(junction.value)) {
+      return null
+    } else if (typeof junction.value === 'string') {
+      const network = (junction.value as string).toLowerCase()
+      return {
+        network: `urn:ocn:${network}:0`,
+        assetId: { type: 'string', value: 'native' },
+      }
+    } else if (
+      typeof junction.value === 'object' &&
+      'type' in junction.value &&
+      junction.value.type === 'ethereum'
+    ) {
+      const chainId =
+        typeof junction.value.value === 'object' &&
+        junction.value.value !== null &&
+        !Array.isArray(junction.value.value)
+          ? junction.value.value.chain_id
+          : 1
+      return {
+        network: `urn:ocn:ethereum:${chainId}`,
+        assetId: { type: 'string', value: 'native' },
+      }
+    } else if (typeof junction.value === 'object' && 'type' in junction.value) {
+      const network = junction.value.type
+
+      return {
+        network: `urn:ocn:${network}:0`,
+        assetId: { type: 'string', value: 'native' },
+      }
+    }
+  }
+  return null
+}
+
 function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset | null {
   // not possible
   if (junctions.type === 'here') {
@@ -201,17 +247,9 @@ function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset
   if (junctions.type === 'x1') {
     const junction = junctions.value
     if (Array.isArray(junction)) {
-      if (junction[0].type === 'globalconsensus') {
-        return {
-          network: createNetworkId((junction[0].value as any).type, '0'),
-          assetId: { type: 'string', value: 'native' },
-        }
-      }
+      return parseGlobalConsensusJuntion(junction[0])
     } else if (junction.type === 'globalconsensus') {
-      return {
-        network: createNetworkId((junction.value as any).type, '0'),
-        assetId: { type: 'string', value: 'native' },
-      }
+      return parseGlobalConsensusJuntion(junction)
     }
   }
   return null

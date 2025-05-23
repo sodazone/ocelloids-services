@@ -13,6 +13,8 @@ export const networks = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
   assetHub: 'urn:ocn:polkadot:1000',
   bridgeHub: 'urn:ocn:polkadot:1002',
+  people: 'urn:ocn:polkadot:1004',
+  coretime: 'urn:ocn:polkadot:1005',
   acala: 'urn:ocn:polkadot:2000',
   moonbeam: 'urn:ocn:polkadot:2004',
   composable: 'urn:ocn:polkadot:2019',
