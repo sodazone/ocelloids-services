@@ -6,6 +6,8 @@ import { Logger } from '@/services/types.js'
 import { Subscription, filter } from 'rxjs'
 import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
+import { TickerAgent } from '../../ticker/agent.js'
+import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
 import { AgentCatalog, QueryParams, QueryResult } from '../../types.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
@@ -35,6 +37,7 @@ export class XcmAnalytics {
   readonly #catalog: AgentCatalog
 
   #steward?: DataSteward
+  #ticker?: TickerAgent
   #repository?: XcmTransfersRepository
   #sub?: Subscription
   #exporter?: DailyDuckDBExporter
@@ -55,6 +58,7 @@ export class XcmAnalytics {
     this.#log.info('[xcm:analytics] start')
 
     this.#steward = this.#catalog.getQueryableById<DataSteward>('steward')
+    this.#ticker = this.#catalog.getQueryableById<TickerAgent>('ticker')
 
     const dbConnection = await this.#db.connect()
 
@@ -239,11 +243,24 @@ export class XcmAnalytics {
       const resolvedAssets = await this.#resolveAssetsMetadata(destination.chainId, assets)
 
       for (const asset of resolvedAssets) {
+        const normalisedAmount = Number(asset.amount) / 10 ** asset.decimals
+        const { items } = (await this.#ticker?.query({
+          args: {
+            op: 'prices.by_ticker',
+            criteria: [
+              {
+                ticker: asset.symbol.toUpperCase(),
+              },
+            ],
+          },
+        } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
+
         transfers.push({
           from,
           to,
           recvAt,
           sentAt,
+          volume: items.length > 0 ? normalisedAmount * items[0].aggregatedPrice : undefined,
           asset: asset.id,
           symbol: asset.symbol,
           decimals: asset.decimals,

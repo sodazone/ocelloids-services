@@ -7,7 +7,6 @@ import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
 import { AgentCatalogOptions } from '@/types.js'
 
 import { InformantAgent } from '@/services/agents/informant/agent.js'
-import { DataSteward } from '@/services/agents/steward/agent.js'
 import {
   Agent,
   AgentCatalog,
@@ -19,6 +18,8 @@ import {
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
+import { DataSteward } from '../steward/agent.js'
 // import { ChainSpy } from '../chainspy/agent.js'
 
 function shouldStart(agent: Agent) {
@@ -32,6 +33,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
   xcm: (ctx) => new XcmAgent(ctx),
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
+  reporter: (ctx) => new TickerAgent(ctx),
   // chainspy: (ctx) => new ChainSpy(ctx),
 }
 

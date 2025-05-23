@@ -1,11 +1,12 @@
 import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
-import { DuckDBArrayValue, DuckDBBlobValue, DuckDBConnection, DuckDBTimestampValue } from '@duckdb/node-api'
+import { DuckDBArrayValue, DuckDBBlobValue, DuckDBConnection, DuckDBDecimalValue, DuckDBTimestampValue } from '@duckdb/node-api'
 import { NewXcmTransfer, TimeSelect } from '../types.js'
 
 export type AggregatedData = {
   key: string
   total: number
   volume: number
+  volumeUsd: number
   percentage: number
   series: { time: number; value: number }[]
 }
@@ -28,7 +29,8 @@ CREATE TABLE IF NOT EXISTS xcm_transfers(
   destination STRING NOT NULL,
   from_address BLOB NOT NULL,
   to_address BLOB NOT NULL,
-  created_at TIMESTAMP NOT NULL
+  created_at TIMESTAMP NOT NULL,
+  volume DECIMAL(18,4)
 );
 `.trim()
 
@@ -73,6 +75,7 @@ export class XcmTransfersRepository {
   }
 
   async insert(t: NewXcmTransfer) {
+    console.log('INSERT TRANSFER ---------', t.origin, t.destination, t.symbol, t.volume)
     return await this.#db.run(
       `
     INSERT INTO 
@@ -89,7 +92,8 @@ export class XcmTransfersRepository {
       '${t.destination}',
       ${toDuckDBHex(t.from)},
       ${toDuckDBHex(t.to)},
-      NOW()
+      NOW(),
+      ${t.volume ? DuckDBDecimalValue.fromDouble(t.volume, 18, 4) : 'NULL'}
     );
     `.trim(),
     )
@@ -99,32 +103,20 @@ export class XcmTransfersRepository {
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
     const query = `
-      WITH periods AS (
-        SELECT 
-          COUNT(*) AS current_period_count,
-          (SELECT COUNT(*) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
-          
-          COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-          (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
-  
-          AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time
-        FROM xcm_transfers
-        WHERE sent_at > NOW() - INTERVAL '${interval}'
-      )
       SELECT 
-        current_period_count,
-        previous_period_count,
-        current_period_count - previous_period_count AS diff,
-  
-        current_unique_accounts,
-        previous_unique_accounts,
-        current_unique_accounts - previous_unique_accounts AS diff_accounts,
-  
-        current_avg_time,
-        previous_avg_time,
-        current_avg_time - previous_avg_time AS diff_avg_time
-      FROM periods;
+        COUNT(*) AS current_period_count,
+        (SELECT COUNT(*) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
+        
+        COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
+        (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+
+        AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
+        (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time,
+
+        SUM(COALESCE(volume, 0)) AS current_volume_usd,
+        (SELECT SUM(COALESCE(volume, 0)) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_volume_usd
+      FROM xcm_transfers
+      WHERE sent_at > NOW() - INTERVAL '${interval}';
     `.trim()
 
     const result = await this.#db.run(query)
@@ -133,19 +125,25 @@ export class XcmTransfersRepository {
     return rows.map((row) => ({
       current: Number(row[0] as bigint),
       previous: Number(row[1] as bigint),
-      diff: Number(row[2] as bigint),
+      diff: Number(row[0] as number) - Number(row[1] as number),
 
       accounts: {
-        current: Number(row[3] as bigint),
-        previous: Number(row[4] as bigint),
-        diff: Number(row[5] as bigint),
+        current: Number(row[2] as bigint),
+        previous: Number(row[3] as bigint),
+        diff: Number(row[2] as number) - Number(row[3] as number),
       },
 
       avgTimeSpent: {
+        current: Number(row[4] as number),
+        previous: Number(row[5] as number),
+        diff: Number(row[4] as number) - Number(row[5] as number),
+      },
+
+      volumeUsd: {
         current: Number(row[6] as number),
         previous: Number(row[7] as number),
-        diff: Number(row[8] as number),
-      },
+        diff: Number(row[6] as number) - Number(row[7] as number),
+      }
     }))
   }
 
@@ -163,7 +161,8 @@ export class XcmTransfersRepository {
       query = `
         SELECT
           time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
-          COUNT(*) AS tx_count
+          COUNT(*) AS tx_count,
+          SUM(COALESCE(volume, 0)) AS volume_usd
         FROM xcm_transfers
         WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
         GROUP BY time_range
@@ -179,7 +178,8 @@ export class XcmTransfersRepository {
             COUNT(*) AS tx_count,
             SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
             ARRAY_AGG(DISTINCT t.origin) AS origins,
-            ARRAY_AGG(DISTINCT t.destination) AS destinations
+            ARRAY_AGG(DISTINCT t.destination) AS destinations,
+            SUM(COALESCE(volume, 0)) AS volume_usd
           FROM xcm_transfers t
           WHERE t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           GROUP BY t.asset, t.symbol, time_range
@@ -192,7 +192,8 @@ export class XcmTransfersRepository {
           a.tx_count,
           a.volume,
           a.origins,
-          a.destinations
+          a.destinations,
+          a.volume_usd,
         FROM aggregated a;
       `
     } else if (metric === 'transfersByChannel') {
@@ -202,7 +203,8 @@ export class XcmTransfersRepository {
           origin,
           destination,
           COUNT(*) AS tx_count,
-          SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume
+          SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume,
+          SUM(COALESCE(volume, 0)) AS volume_usd
         FROM xcm_transfers
         WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
         GROUP BY time_range, origin, destination
@@ -217,6 +219,7 @@ export class XcmTransfersRepository {
       return rows.map((row) => ({
         time: Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000),
         value: Number(row[1]),
+        volumeUsd: Number(row[2])
       }))
     }
 
@@ -230,18 +233,20 @@ export class XcmTransfersRepository {
         metric === 'volumeByAsset' ? fromDuckDBBlob(row[1] as DuckDBBlobValue) : `${row[1]}-${row[2]}`
       const txs = Number(row[3])
       const volume = Number(row[4])
+      const volumeUsd = metric === 'volumeByAsset' ? Number(row[7]) : Number(row[5])
 
       if (!data[key]) {
         data[key] =
           metric === 'volumeByAsset'
-            ? { key, symbol: row[2] as string, networks: [], total: 0, volume: 0, percentage: 0, series: [] }
-            : { key, total: 0, percentage: 0, volume: 0, series: [] }
+            ? { key, symbol: row[2] as string, networks: [], total: 0, volume: 0, volumeUsd: 0, percentage: 0, series: [] }
+            : { key, total: 0, percentage: 0, volume: 0, volumeUsd: 0, series: [] }
       }
 
       data[key].total += txs
       data[key].volume += volume
-      grandTotal += txs
-      data[key].series.push({ time, value: txs })
+      data[key].volumeUsd += volumeUsd
+      grandTotal += volumeUsd
+      data[key].series.push({ time, value: volumeUsd })
 
       if (metric === 'volumeByAsset') {
         const origins = (row[5] as DuckDBArrayValue).items as string[]
@@ -258,11 +263,11 @@ export class XcmTransfersRepository {
     }
 
     for (const key in data) {
-      data[key].percentage = (data[key].total / grandTotal) * 100
+      data[key].percentage = (data[key].volumeUsd / grandTotal) * 100
     }
 
     const dataArray = Object.values(data)
-    dataArray.sort((a, b) => b.total - a.total)
+    dataArray.sort((a, b) => b.volumeUsd - a.volumeUsd)
 
     return dataArray
   }

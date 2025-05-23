@@ -128,7 +128,6 @@ export class XcmTracker {
 
   start() {
     const chainsToTrack = this.#ingress.getChainIds().filter((c) => !EXCLUDED_NETWORKS.includes(c))
-
     this.#log.info('[%s] start (%s)', this.#id, chainsToTrack)
 
     this.#monitorOrigins(chainsToTrack)

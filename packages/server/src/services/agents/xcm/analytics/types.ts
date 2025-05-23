@@ -111,6 +111,7 @@ export type XcmTransfer = {
   destination: string
   from: string
   to: string
+  volume?: number
 }
 
 export type NewXcmTransfer = Omit<XcmTransfer, 'id'>
