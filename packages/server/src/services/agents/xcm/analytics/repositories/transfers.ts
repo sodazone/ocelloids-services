@@ -81,7 +81,6 @@ export class XcmTransfersRepository {
   }
 
   async insert(t: NewXcmTransfer) {
-    console.log('INSERT TRANSFER ---------', t.origin, t.destination, t.symbol, t.volume)
     return await this.#db.run(
       `
     INSERT INTO 
