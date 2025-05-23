@@ -26,6 +26,18 @@ describe('parseAssetFromJson', () => {
         },
       })
     })
+
+    it('should parse local Hydration asset', () => {
+      const locationString =
+        '{"parents":0,"interior":{"type":"X1","value":{"type":"GeneralIndex","value":0}}}'
+      expect(parseAssetFromJson('urn:ocn:polkadot:2034', locationString)).toEqual({
+        network: 'urn:ocn:polkadot:2034',
+        assetId: {
+          type: 'string',
+          value: '0',
+        },
+      })
+    })
   })
 
   describe('parents 1', () => {
@@ -167,6 +179,31 @@ describe('parseAssetFromJson', () => {
         }
       }`
       expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toBeNull()
+    })
+
+    it('should parse native ETH', () => {
+      const locationString = `{
+        "parents": 2,
+        "interior": {
+          "type": "X1",
+          "value": {
+            "type": "GlobalConsensus",
+            "value": {
+              "type": "Ethereum",
+              "value": {
+                "chain_id": "1"
+              }
+            }
+          }
+        }
+      }`
+      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'string',
+          value: 'native',
+        },
+      })
     })
 
     it('should return null for interior type "here"', () => {
