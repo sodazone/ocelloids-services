@@ -242,6 +242,9 @@ const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
 export const mappers: Record<string, AssetMapper> = {
   [networks.polkadot]: BYPASS_MAPPER,
   [networks.bridgeHub]: BYPASS_MAPPER,
+  [networks.people]: BYPASS_MAPPER,
+  [networks.coretime]: BYPASS_MAPPER,
+  [networks.acala]: BYPASS_MAPPER,
   [networks.nodle]: BYPASS_MAPPER,
   [networks.phala]: BYPASS_MAPPER,
   [networks.mythos]: BYPASS_MAPPER,
