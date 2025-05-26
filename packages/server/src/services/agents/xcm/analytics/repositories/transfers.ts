@@ -13,7 +13,8 @@ export type AggregatedData = {
   total: number
   volume: number
   volumeUsd: number
-  percentage: number
+  percentageTx: number
+  percentageVol: number
   series: { time: number; value: number }[]
 }
 
@@ -231,6 +232,7 @@ export class XcmTransfersRepository {
     const data: Record<string, AggregatedData | (AggregatedData & { symbol: string; networks: string[] })> =
       {}
     let grandTotal = 0
+    let volTotal = 0
 
     for (const row of rows) {
       const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
@@ -250,16 +252,18 @@ export class XcmTransfersRepository {
                 total: 0,
                 volume: 0,
                 volumeUsd: 0,
-                percentage: 0,
+                percentageTx: 0,
+                percentageVol: 0,
                 series: [],
               }
-            : { key, total: 0, percentage: 0, volume: 0, volumeUsd: 0, series: [] }
+            : { key, total: 0, percentageTx: 0, percentageVol: 0, volume: 0, volumeUsd: 0, series: [] }
       }
 
       data[key].total += txs
       data[key].volume += volume
       data[key].volumeUsd += volumeUsd
       grandTotal += txs
+      volTotal += volumeUsd
       data[key].series.push({ time, value: txs })
 
       if (metric === 'volumeByAsset') {
@@ -277,7 +281,8 @@ export class XcmTransfersRepository {
     }
 
     for (const key in data) {
-      data[key].percentage = (data[key].total / grandTotal) * 100
+      data[key].percentageTx = (data[key].total / grandTotal) * 100
+      data[key].percentageVol = (data[key].volumeUsd / volTotal) * 100
     }
 
     const dataArray = Object.values(data)
