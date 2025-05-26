@@ -33,7 +33,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
   xcm: (ctx) => new XcmAgent(ctx),
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
-  reporter: (ctx) => new TickerAgent(ctx),
+  ticker: (ctx) => new TickerAgent(ctx),
   // chainspy: (ctx) => new ChainSpy(ctx),
 }
 

@@ -73,7 +73,7 @@ addServerOptions(program)
   .description('Ocelloids Service Node')
   .version(version)
   .addOption(
-    opt('--agents', 'agents to activate, comma separated list or wildcard for all', 'OC_AGENTS').default('*'),
+    opt('--agents <agentIds>', 'agents to activate, comma separated list or wildcard for all', 'OC_AGENTS').default('*'),
   )
   .addOption(
     optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(
