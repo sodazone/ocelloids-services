@@ -89,7 +89,7 @@ export class TickerAgent implements Agent, Queryable {
     if (params.args.op === 'prices.sources') {
       return Promise.resolve({ items: this.#scouts.map((scout) => scout.source) })
     }
-    if (params.args.op === 'prices.assets') {
+    if (params.args.op === 'prices.tickers') {
       return Promise.resolve({
         items: Object.entries(tickerToAssetIdMap).map(([ticker, asset]) => ({ ticker, asset })),
       })
