@@ -49,9 +49,9 @@ export class LocationQueryHandler {
     const parsed = parseAssetFromJson(xcmLocationAnchor as NetworkURN, loc)
     if (parsed) {
       const { network, assetId } = parsed
-      if (assetId.type === 'string') {
+      if (assetId.type === 'string' || assetId.type === 'contract') {
         return assetMetadataKey(network, assetId.value)
-      } else {
+      } else if (assetId.type === 'data') {
         const mappings = mappers[network](await this.#getApiContext(network))
         const { mapAssetId } = mappings[0]
         if (mapAssetId) {

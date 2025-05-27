@@ -154,7 +154,7 @@ describe('parseAssetFromJson', () => {
       })
     })
 
-    it('should return null multilocation between Polkadot and Ethereum', () => {
+    it('should parse Ethereum ERC20 tokens', () => {
       const locationString = `{
         "parents": 2,
         "interior": {
@@ -178,7 +178,13 @@ describe('parseAssetFromJson', () => {
           ]
         }
       }`
-      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toBeNull()
+      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'contract',
+          value: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+        },
+      })
     })
 
     it('should parse native ETH', () => {

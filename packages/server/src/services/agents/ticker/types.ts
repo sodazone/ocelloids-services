@@ -23,7 +23,7 @@ export const $TickerQueryArgs = z.discriminatedUnion('op', [
       .max(20),
   }),
   z.object({
-    op: z.literal('prices.assets'),
+    op: z.literal('prices.tickers'),
   }),
   z.object({
     op: z.literal('prices.sources'),

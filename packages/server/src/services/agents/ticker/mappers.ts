@@ -102,6 +102,13 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier> = {
       value: 1,
     },
   },
+  VMANTA: {
+    chainId: 'urn:ocn:polkadot:2030',
+    assetId: {
+      type: 'VToken2',
+      value: 8,
+    },
+  },
   KSM: {
     chainId: 'urn:ocn:kusama:0',
     assetId: 'native',

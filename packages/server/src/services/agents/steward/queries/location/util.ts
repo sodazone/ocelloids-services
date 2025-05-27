@@ -201,16 +201,13 @@ function parseCrossChainAsset(
   })
 }
 
-function parseGlobalConsensusJuntion(junction: DecodedObject): ParsedAsset | null {
+function parseGlobalConsensusNetwork(junction: DecodedObject): NetworkURN | null {
   if (junction.type === 'globalconsensus') {
     if (junction.value === null || junction.value === undefined || Array.isArray(junction.value)) {
       return null
     } else if (typeof junction.value === 'string') {
       const network = (junction.value as string).toLowerCase()
-      return {
-        network: `urn:ocn:${network}:0`,
-        assetId: { type: 'string', value: 'native' },
-      }
+      return `urn:ocn:${network}:0`
     } else if (
       typeof junction.value === 'object' &&
       'type' in junction.value &&
@@ -222,17 +219,11 @@ function parseGlobalConsensusJuntion(junction: DecodedObject): ParsedAsset | nul
         !Array.isArray(junction.value.value)
           ? junction.value.value.chain_id
           : 1
-      return {
-        network: `urn:ocn:ethereum:${chainId}`,
-        assetId: { type: 'string', value: 'native' },
-      }
+      return `urn:ocn:ethereum:${chainId}`
     } else if (typeof junction.value === 'object' && 'type' in junction.value) {
       const network = junction.value.type
 
-      return {
-        network: `urn:ocn:${network}:0`,
-        assetId: { type: 'string', value: 'native' },
-      }
+      return `urn:ocn:${network}:0`
     }
   }
   return null
@@ -243,13 +234,37 @@ function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset
   if (junctions.type === 'here') {
     return null
   }
-  // relay/solo chains
+  // relay/solo chains native asset
   if (junctions.type === 'x1') {
     const junction = junctions.value
+    let network: NetworkURN | null = null
     if (Array.isArray(junction)) {
-      return parseGlobalConsensusJuntion(junction[0])
+      network = parseGlobalConsensusNetwork(junction[0])
     } else if (junction.type === 'globalconsensus') {
-      return parseGlobalConsensusJuntion(junction)
+      network = parseGlobalConsensusNetwork(junction)
+    }
+    if (network === null) {
+      return null
+    }
+    return {
+      network,
+      assetId: { type: 'string', value: 'native' },
+    }
+  }
+
+  // External network tokens
+  if (junctions.type === 'x2') {
+    const interiorJunctions = junctions.value
+    const network = parseGlobalConsensusNetwork(interiorJunctions[0])
+    const contract =
+      interiorJunctions[1].type === 'accountkey20'
+        ? (interiorJunctions[1].value! as { key: string }).key
+        : null
+    if (network !== null && contract !== null) {
+      return {
+        network,
+        assetId: { type: 'contract', value: contract },
+      }
     }
   }
   return null

@@ -54,6 +54,7 @@ const CG_ID_MAP: Record<string, string> = {
   VDOT: 'voucher-dot',
   VASTR: 'bifrost-voucher-astr',
   VGLMR: 'voucher-glmr',
+  VMANTA: 'bifrost-voucher-manta',
   KSM: 'kusama',
 }
 
@@ -65,7 +66,7 @@ export class CoinGeckoPriceScout implements PriceScout {
   }
 
   async fetchPrices(tickers: string[]): Promise<TickerPriceData[]> {
-    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()]).filter((id) => id !== undefined) // Filter out undefined mappings
+    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()]).filter((id) => id !== undefined)
 
     if (ids.length === 0) {
       throw new Error('No valid CoinGecko IDs found for the provided tickers')

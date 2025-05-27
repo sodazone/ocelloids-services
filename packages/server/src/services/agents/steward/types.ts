@@ -94,6 +94,10 @@ export type ParsedAsset = {
         type: 'data'
         value: Uint8Array
       }
+    | {
+        type: 'contract'
+        value: string
+      }
   pallet?: number
 }
 
