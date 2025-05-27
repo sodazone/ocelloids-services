@@ -1,6 +1,6 @@
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
-import { apiContext, xcmpReceive } from '@/testing/xcm.js'
+import { apiContext, apiContext_xcmv2, xcmpReceive } from '@/testing/xcm.js'
 import { from, of } from 'rxjs'
 import { GenericXcmSentWithContext } from '../types.js'
 import { extractParachainReceive, mapXcmSent } from './common.js'
@@ -15,9 +15,9 @@ describe('common xcm operators', () => {
         const moon5531424 =
           '0002100004000000001700004b3471bb156b050a13000000001700004b3471bb156b05010300286bee0d010004000101001e08eb75720cb63fbfcbe7237c6d9b7cf6b4953518da6b38731d5bc65b9ffa32021000040000000017206d278c7e297945030a130000000017206d278c7e29794503010300286bee0d010004000101000257fd81d0a71b094c2c8d3e6c93a9b01a31a43d38408bb2c4c2b49a4c58eb01'
         const buf = new Uint8Array(Buffer.from(moon5531424, 'hex'))
-        const xcms = fromXcmpFormat(buf, apiContext)
+        const xcms = fromXcmpFormat(buf, apiContext_xcmv2)
         const test$ = mapXcmSent(
-          apiContext,
+          apiContext_xcmv2,
           'urn:ocn:local:2004',
         )(
           from(
@@ -71,9 +71,9 @@ describe('common xcm operators', () => {
           '02100004000000000366d1f5750a1300000000cea2ebeb000e010004000100c91f081300010000cea2ebeb000d01000400010100769cac6c783b28e8ecf3c404af388996435b1f8aba90b0f363928caaf342142f'
 
         const buf = new Uint8Array(Buffer.from(aca8222747, 'hex'))
-        const xcm = asVersionedXcm(buf, apiContext)
+        const xcm = asVersionedXcm(buf, apiContext_xcmv2)
         const test$ = mapXcmSent(
-          apiContext,
+          apiContext_xcmv2,
           'urn:ocn:local:2000',
         )(
           of(

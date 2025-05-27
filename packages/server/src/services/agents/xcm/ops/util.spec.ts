@@ -1,7 +1,7 @@
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { BlockEvent, BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
-import { apiContext } from '@/testing/xcm.js'
+import { apiContext, apiContext_xcmv2 } from '@/testing/xcm.js'
 import { filter, firstValueFrom, from } from 'rxjs'
 import {
   getMessageId,
@@ -357,7 +357,7 @@ describe('xcm ops utils', () => {
         '0002100004000000001700004b3471bb156b050a13000000001700004b3471bb156b05010300286bee0d010004000101001e08eb75720cb63fbfcbe7237c6d9b7cf6b4953518da6b38731d5bc65b9ffa32021000040000000017206d278c7e297945030a130000000017206d278c7e29794503010300286bee0d010004000101000257fd81d0a71b094c2c8d3e6c93a9b01a31a43d38408bb2c4c2b49a4c58eb01'
       const buf = new Uint8Array(Buffer.from(v2XcmData, 'hex'))
 
-      const xcms = fromXcmpFormat(buf, apiContext)
+      const xcms = fromXcmpFormat(buf, apiContext_xcmv2)
       expect(() => {
         matchProgramByTopic(xcms[0], '0x01')
       }).toThrow('Not able to match by topic for XCM V2 program.')
