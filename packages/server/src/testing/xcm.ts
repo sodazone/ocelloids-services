@@ -9,6 +9,7 @@ import { NetworkURN } from '../services/types.js'
 import { testApiContextFromMetadata, testBlocksFrom } from './blocks.js'
 
 export const apiContext: SubstrateApiContext = testApiContextFromMetadata('polkadot.scale')
+export const apiContext_xcmv2: SubstrateApiContext = testApiContextFromMetadata('polkadot.xcmv2.scale')
 
 // XCMP testing mocks
 // from parachainSystem.outboundHrmpMessages 0x45323df7cc47150b3930e2666b0aa3134ec0959dca9d4616632a822d7523ba63
@@ -54,8 +55,17 @@ export const umpSend = {
   getUmp: () => from([[Binary.fromHex(umpData)]]),
 }
 
+const umpV5Instructions =
+  '0x051402040000000ba3a4233a8c040a130000000ba3a4233a8c04000d0102040001010060775b26d682d631278127b4f2b6c3b9f4382497c566c9c9fab2e9d73119875c2c25bf077c7a169516951c5f9959af38729757d61da4e2389da703ec04beb79b12'
+export const umpV5Send = {
+  origin: 'urn:ocn:local:1000' as NetworkURN,
+  blocks: from(testBlocksFrom('assethub/8933756.cbor')),
+  sendersControl: new ControlQuery(sendersCriteria(['13BV45b5dHe3EAsVJ3qDq4VA671nwyyk51UU31no7Kx1CCnF'])),
+  getUmp: () => from([[Binary.fromHex(umpV5Instructions)]]),
+}
+
 export const umpReceive = {
-  successBlocks: from(testBlocksFrom('polkadot/ump-in_23088963.cbor')),
+  successBlocks: from(testBlocksFrom('polkadot/26185925.cbor')),
   failBlocks: from(testBlocksFrom('polkadot/ump-in-fail_23083486.cbor')),
   trappedBlocks: from(testBlocksFrom('polkadot/ump-in-fail_23083486.cbor')),
 }

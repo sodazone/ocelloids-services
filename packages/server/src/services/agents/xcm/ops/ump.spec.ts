@@ -1,5 +1,5 @@
 import { extractEvents } from '@/services/networking/substrate/index.js'
-import { apiContext, umpReceive, umpSend } from '@/testing/xcm.js'
+import { apiContext, umpReceive, umpSend, umpV5Send } from '@/testing/xcm.js'
 
 import { extractUmpReceive, extractUmpSend } from './ump.js'
 
@@ -30,10 +30,37 @@ describe('ump operator', () => {
         })
       })
     })
+
+    it('should extract message ID in XCM v5 sent message', async () => {
+      const { origin, blocks, getUmp } = umpV5Send
+      const calls = vi.fn()
+      const test$ = extractUmpSend(origin, getUmp, apiContext)(blocks.pipe(extractEvents()))
+
+      new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.instructions).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.messageId).toBeDefined()
+            expect(msg.recipient).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(2)
+            resolve()
+          },
+        })
+      })
+    })
   })
 
   describe('extractUmpReceive', () => {
-    it('should extract failed UMP received message', async () => {
+    it('should extract UMP receive with outcome success', async () => {
       const { successBlocks } = umpReceive
       const calls = vi.fn()
       const test$ = extractUmpReceive()(successBlocks.pipe(extractEvents()))
@@ -41,7 +68,6 @@ describe('ump operator', () => {
       new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
-            calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
@@ -50,6 +76,7 @@ describe('ump operator', () => {
             expect(msg.outcome).toBeDefined()
             expect(msg.outcome).toBe('Success')
             expect(msg.timestamp).toBeDefined()
+            calls()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)

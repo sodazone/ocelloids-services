@@ -1,6 +1,6 @@
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import {
-  apiContext,
+  apiContext_xcmv2,
   dmpReceive,
   dmpXcmPalletSentEvent,
   //xcmHop,
@@ -13,7 +13,7 @@ describe('dmp operator', () => {
     it('should extract DMP sent message filtered by event', async () => {
       const { origin, blocks, getDmp } = dmpXcmPalletSentEvent
       const calls = vi.fn()
-      const test$ = extractDmpSendByEvent(origin, getDmp, apiContext)(blocks.pipe(extractEvents()))
+      const test$ = extractDmpSendByEvent(origin, getDmp, apiContext_xcmv2)(blocks.pipe(extractEvents()))
 
       await new Promise<void>((resolve) => {
         test$.subscribe({

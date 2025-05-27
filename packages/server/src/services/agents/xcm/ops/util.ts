@@ -62,6 +62,7 @@ export function getMessageId({ instructions }: Program): HexString | undefined {
     // Only XCM V3+ supports topic ID
     case 'V3':
     case 'V4':
+    case 'V5':
       for (const instruction of instructions.value) {
         if (instruction.type === 'SetTopic') {
           return typeof instruction.value === 'string' ? instruction.value : instruction.value.asHex()
