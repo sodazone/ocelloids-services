@@ -25,10 +25,10 @@ export function toMelbourne(o: unknown, s = ':'): string {
 
 export function normalizeAssetId(id: AssetId): string {
   if (typeof id === 'string') {
-    return id
+    return id.toLowerCase()
   }
   if (typeof id === 'object') {
-    return toMelbourne(id)
+    return toMelbourne(id).toLowerCase()
   }
-  return id.toString()
+  return id.toString().toLowerCase()
 }
