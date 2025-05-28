@@ -1,6 +1,6 @@
 import { AssetIdentifier } from './types.js'
 
-export const tickerToAssetIdMap: Record<string, AssetIdentifier> = {
+export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifier[]> = {
   DOT: {
     chainId: 'urn:ocn:polkadot:0',
     assetId: 'native',
@@ -57,10 +57,16 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier> = {
     chainId: 'urn:ocn:polkadot:2030',
     assetId: 'native',
   },
-  HDX: {
-    chainId: 'urn:ocn:polkadot:2034',
-    assetId: 'native',
-  },
+  HDX: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: 0,
+    },
+  ],
   MYTH: {
     chainId: 'urn:ocn:polkadot:3369',
     assetId: 'native',

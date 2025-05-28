@@ -1,4 +1,4 @@
-import { AssetId } from '../../steward/types.js'
+import { AssetId } from '../steward/types.js'
 
 export function toMelbourne(o: unknown, s = ':'): string {
   if (o == null) {
@@ -30,5 +30,5 @@ export function normalizeAssetId(id: AssetId): string {
   if (typeof id === 'object') {
     return toMelbourne(id)
   }
-  return id ? (id as any).toString() : ''
+  return id.toString()
 }

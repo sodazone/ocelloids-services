@@ -3,6 +3,7 @@ import { LevelDB, Logger } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
 import { AbstractSublevel } from 'abstract-level'
+import { normalizeAssetId } from '../common/melbourne.js'
 import { OMEGA_250 } from '../steward/queries/consts.js'
 import {
   Agent,
@@ -86,10 +87,10 @@ export class TickerAgent implements Agent, Queryable {
   query(
     params: QueryParams<TickerQueryArgs>,
   ): Promise<QueryResult<string | AssetTickerData | AggregatedPriceData>> {
-    if (params.args.op === 'prices.sources') {
+    if (params.args.op === 'sources.list') {
       return Promise.resolve({ items: this.#scouts.map((scout) => scout.source) })
     }
-    if (params.args.op === 'prices.tickers') {
+    if (params.args.op === 'tickers.list') {
       return Promise.resolve({
         items: Object.entries(tickerToAssetIdMap).map(([ticker, asset]) => ({ ticker, asset })),
       })
@@ -100,6 +101,9 @@ export class TickerAgent implements Agent, Queryable {
     if (params.args.op === 'prices.by_ticker') {
       return this.#queryPriceByTicker(params.args.criteria)
     }
+    if (params.args.op === 'prices.by_asset') {
+      return this.#queryPriceByAsset(params.args.criteria)
+    }
 
     /* c8 ignore next */
     throw new ValidationError('Unknown query type')
@@ -108,6 +112,26 @@ export class TickerAgent implements Agent, Queryable {
   async #queryPrices(criteria?: { sources: string[] | '*' }): Promise<QueryResult<AggregatedPriceData>> {
     const tickers = Object.keys(tickerToAssetIdMap)
     return await this.#queryPriceByTicker(tickers.map((t) => ({ ticker: t, sources: criteria?.sources })))
+  }
+
+  async #queryPriceByAsset(
+    criteria: { chainId: string; assetId: string | number | object; sources?: string[] | '*' }[],
+  ) {
+    const tickerCriteria = criteria
+      .map(({ chainId, assetId, sources }) => {
+        const tickerMapObj = Object.entries(tickerToAssetIdMap).find(([_ticker, asset]) =>
+          Array.isArray(asset)
+            ? asset.some(
+                (a) => this.#isSameChainId(a.chainId, chainId) && this.#isSameAssetId(a.assetId, assetId),
+              )
+            : this.#isSameChainId(asset.chainId, chainId) && this.#isSameAssetId(asset.assetId, assetId),
+        )
+        if (tickerMapObj) {
+          return { ticker: tickerMapObj[0], sources }
+        }
+      })
+      .filter((c) => c !== undefined)
+    return this.#queryPriceByTicker(tickerCriteria)
   }
 
   async #queryPriceByTicker(
@@ -208,5 +232,13 @@ export class TickerAgent implements Agent, Queryable {
 
   #toPriceKey(ticker: string, source: string) {
     return `${ticker.toLowerCase()}:${source.toLowerCase()}`
+  }
+
+  #isSameChainId(chainA: string, chainB: string) {
+    return chainA.toLowerCase() === chainB.toLowerCase()
+  }
+
+  #isSameAssetId(idA: string | number | object, idB: string | number | object) {
+    return normalizeAssetId(idA).toLowerCase() === normalizeAssetId(idB).toLowerCase()
   }
 }

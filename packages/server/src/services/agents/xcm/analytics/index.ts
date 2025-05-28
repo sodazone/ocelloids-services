@@ -4,6 +4,7 @@ import { LRUCache } from 'lru-cache'
 import { ControlQuery, asPublicKey } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
 import { Subscription, filter } from 'rxjs'
+import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
@@ -12,7 +13,6 @@ import { AgentCatalog, QueryParams, QueryResult } from '../../types.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmReceived, XcmTerminusContext } from '../types.js'
-import { normalizeAssetId } from './melbourne.js'
 import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import {
@@ -247,13 +247,15 @@ export class XcmAnalytics {
       const resolvedAssets = await this.#resolveAssetsMetadata(destination.chainId, assets)
 
       for (const asset of resolvedAssets) {
+        const [chainId, assetId] = asset.id.split('|')
         const normalisedAmount = Number(asset.amount) / 10 ** asset.decimals
         const { items } = (await this.#ticker?.query({
           args: {
-            op: 'prices.by_ticker',
+            op: 'prices.by_asset',
             criteria: [
               {
-                ticker: asset.symbol.toUpperCase(),
+                chainId,
+                assetId,
               },
             ],
           },

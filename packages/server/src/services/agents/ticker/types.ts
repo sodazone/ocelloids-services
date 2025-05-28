@@ -1,3 +1,4 @@
+import { $NetworkString } from '@/common/types.js'
 import { NetworkURN } from '@/lib.js'
 import { z } from 'zod'
 
@@ -20,13 +21,26 @@ export const $TickerQueryArgs = z.discriminatedUnion('op', [
         }),
       )
       .min(1)
-      .max(20),
+      .max(50),
   }),
   z.object({
-    op: z.literal('prices.tickers'),
+    op: z.literal('prices.by_asset'),
+    criteria: z
+      .array(
+        z.object({
+          chainId: $NetworkString,
+          assetId: z.string().or(z.number()).or(z.record(z.any())),
+          sources: z.optional(z.literal('*').or(z.array(z.string()).min(1).max(50))),
+        }),
+      )
+      .min(1)
+      .max(50),
   }),
   z.object({
-    op: z.literal('prices.sources'),
+    op: z.literal('tickers.list'),
+  }),
+  z.object({
+    op: z.literal('sources.list'),
   }),
 ])
 
@@ -50,17 +64,17 @@ export type TickerPriceData = {
 }
 
 export type AssetPriceData = TickerPriceData & {
-  asset: AssetIdentifier
+  asset: AssetIdentifier | AssetIdentifier[]
 }
 
 export type AssetTickerData = {
   ticker: string
-  asset: AssetIdentifier
+  asset: AssetIdentifier | AssetIdentifier[]
 }
 
 export type AggregatedPriceData = {
   ticker: string
-  asset: AssetIdentifier
+  asset: AssetIdentifier | AssetIdentifier[]
   aggregatedPrice: number
   updated: number
   sources: {
