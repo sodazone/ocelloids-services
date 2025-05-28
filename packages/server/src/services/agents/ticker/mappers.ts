@@ -75,10 +75,16 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:polkadot:2000',
     assetId: 'native',
   },
-  BNC: {
-    chainId: 'urn:ocn:polkadot:2030',
-    assetId: 'native',
-  },
+  BNC: [
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: 'native:BNC',
+    },
+  ],
   HDX: [
     {
       chainId: 'urn:ocn:polkadot:2034',
