@@ -35,6 +35,7 @@ const CG_ID_MAP: Record<string, string> = {
   ETH: 'ethereum',
   WETH: 'weth',
   WBTC: 'wrapped-bitcoin',
+  DAI: 'dai',
   TBTC: 'tbtc',
   LINK: 'chainlink',
   SKY: 'sky',
@@ -66,7 +67,7 @@ export class CoinGeckoPriceScout implements PriceScout {
   }
 
   async fetchPrices(tickers: string[]): Promise<TickerPriceData[]> {
-    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()]).filter((id) => id !== undefined)
+    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()] || ticker.toLowerCase())
 
     if (ids.length === 0) {
       throw new Error('No valid CoinGecko IDs found for the provided tickers')

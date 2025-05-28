@@ -9,14 +9,36 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: 'native',
   },
-  WETH: {
-    chainId: 'urn:ocn:ethereum:1',
-    assetId: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-  },
-  WBTC: {
-    chainId: 'urn:ocn:ethereum:1',
-    assetId: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-  },
+  WETH: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
+    },
+  ],
+  WBTC: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D',
+    },
+  ],
+  DAI: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x6b175474e89094c44da98b954eedeac495271d0f',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x06e605775296e851ff43b4daa541bb0984e9d6fd',
+    },
+  ],
   TBTC: {
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x18084fba666a33d37592fa2633fd49a74dd93a88',
@@ -79,14 +101,26 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:polkadot:2035',
     assetId: 'native',
   },
-  USDT: {
-    chainId: 'urn:ocn:polkadot:1000',
-    assetId: '1984',
-  },
-  USDC: {
-    chainId: 'urn:ocn:polkadot:1000',
-    assetId: '1337',
-  },
+  USDT: [
+    {
+      chainId: 'urn:ocn:polkadot:1000',
+      assetId: '1984',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xc30E9cA94CF52f3Bf5692aaCF81353a27052c46f',
+    },
+  ],
+  USDC: [
+    {
+      chainId: 'urn:ocn:polkadot:1000',
+      assetId: '1337',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x931715fee2d06333043d11f658c8ce934ac61d0c',
+    },
+  ],
   VDOT: {
     chainId: 'urn:ocn:polkadot:2030',
     assetId: {
