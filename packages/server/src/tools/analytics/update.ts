@@ -41,7 +41,6 @@ async function updateAssetsColumn(db: DuckDBConnection) {
   console.log('Asset column updated successfully.')
 }
 
-
 updateAssetsColumn(connection)
   .catch((error) => {
     console.error('Error updating asset column:', error)
@@ -50,4 +49,3 @@ updateAssetsColumn(connection)
     connection.closeSync()
     process.exit(0)
   })
-
