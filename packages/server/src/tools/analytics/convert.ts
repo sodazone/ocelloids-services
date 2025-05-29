@@ -1,6 +1,6 @@
-import { DuckDBBlobValue, DuckDBConnection, DuckDBInstance } from '@duckdb/node-api'
+import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api'
 
-import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
+import { toDuckDBHex } from '@/common/util.js'
 
 const filePath = process.env.ANALYTICS_DB_PATH
 if (filePath === undefined) {
@@ -17,11 +17,13 @@ const connection = await instance.connect()
 
 async function updateAssetsColumn(db: DuckDBConnection) {
   // Fetch all transfers where asset matches 'urn:ocn:polkadot:2034|'
-  const transfers = await db.run(`
+  const transfers = await db
+    .run(`
     SELECT id, asset
     FROM xcm_transfers
     WHERE asset = ${toDuckDBHex('urn:ocn:polkadot:2034|')}
-  `).then((result) => result.getRows())
+  `)
+    .then((result) => result.getRows())
 
   for (const [i, transfer] of transfers.entries()) {
     if (i % 200 === 0) {
