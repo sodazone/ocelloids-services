@@ -5,6 +5,7 @@ import { HexString } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
+import { mapAssetsLocationsAndErc20Metadata } from './moonbeam.js'
 import {
   hashItemPartialKey,
   mapAssetsPalletAndLocations,
@@ -37,22 +38,13 @@ const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
 }
 
 const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
-  const codec = context.storageCodec('Assets', 'Asset')
+  const codec = context.storageCodec('AssetManager', 'AssetTypeId')
   const keyPrefix = codec.keys.enc() as HexString
-  const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
-    assets: codec,
-    metadata: context.storageCodec('Assets', 'Metadata'),
-    locations: context.storageCodec('AssetManager', 'AssetIdType'),
-  }
   const mappings = [
     {
       keyPrefix,
-      mapEntry: mapAssetsPalletAndLocations(codecs, {
-        chainId: networks.moonbeam,
-        options: {
-          ed: 'minimal_balance',
-        },
-        onMultiLocationData: (json: Record<string, any>) => json.value,
+      mapEntry: mapAssetsLocationsAndErc20Metadata({
+        locations: codec,
       }),
     },
   ]
