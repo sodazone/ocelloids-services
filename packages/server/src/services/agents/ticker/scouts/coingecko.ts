@@ -57,7 +57,7 @@ const CG_ID_MAP: Record<string, string> = {
   VGLMR: 'voucher-glmr',
   VMANTA: 'bifrost-voucher-manta',
   KSM: 'kusama',
-  SOL: 'solana'
+  SOL: 'solana',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
