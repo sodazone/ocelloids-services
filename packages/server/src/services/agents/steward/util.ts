@@ -1,5 +1,6 @@
 import { AbstractIterator } from 'abstract-level'
 
+import { HexString } from '@/lib.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
 import { AssetId } from './types.js'
@@ -79,4 +80,11 @@ function normalize(assetId: AssetId) {
 
 export function assetMetadataKey(chainId: NetworkURN, assetId: AssetId) {
   return `${chainId}:${normalize(assetId)}`
+}
+
+export function toPaddedHex(bn: bigint): HexString {
+  const hex = bn.toString(16)
+  const padLength = Math.max(0, 40 - hex.length)
+  const ffPadding = 'FF'.repeat(Math.ceil(padLength / 2)).slice(0, padLength)
+  return `0x${ffPadding}${hex}`
 }
