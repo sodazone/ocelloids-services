@@ -114,7 +114,7 @@ function parseLocalAsset(referenceNetwork: NetworkURN, junctions: MultilocationI
       } else if (junction.type === 'generalkey') {
         assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
       } else if (junction.type === 'accountkey20') {
-        accountId20 = junction.value as string
+        accountId20 = (junction.value as { key: string }).key as string
       }
     }
 
@@ -184,7 +184,7 @@ function parseCrossChainAsset(
     } else if (junction.type === 'generalkey') {
       assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
     } else if (junction.type === 'accountkey20') {
-      accountId20 = junction.value as string
+      accountId20 = (junction.value as { key: string }).key as string
     }
   }
 
@@ -313,6 +313,15 @@ function mapParsedAsset({
   }
 
   // TODO: support EVM contract assets
+  if (accountId20 !== undefined) {
+    return {
+      network,
+      assetId: {
+        type: 'contract',
+        value: accountId20,
+      },
+    }
+  }
 
   return null
 }
