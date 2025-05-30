@@ -111,6 +111,7 @@ export type XcmTransfer = {
   destination: string
   from: string
   to: string
+  volume?: number
 }
 
 export type NewXcmTransfer = Omit<XcmTransfer, 'id'>
@@ -149,6 +150,10 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('transfers_by_channel_series'),
+    criteria: $TimeSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_by_network'),
     criteria: $TimeSelect,
   }),
 ])
