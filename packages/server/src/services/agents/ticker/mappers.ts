@@ -127,6 +127,12 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0x931715fee2d06333043d11f658c8ce934ac61d0c',
     },
   ],
+  SOL: [
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x99fec54a5ad36d50a4bba3a41cab983a5bb86a7d',
+    },
+  ],
   VDOT: {
     chainId: 'urn:ocn:polkadot:2030',
     assetId: {
