@@ -245,6 +245,72 @@ describe('common xcm operators', () => {
           })
         })
       })
+
+      it.only('should extract stops for XCM v5 bridge hop', async () => {
+        const calls = vi.fn()
+        const v5Msg =
+          '00052402040100000327d33b511301000002286bee000b010450250907040104020209070403007fc66500c84a76ad7e9c93437bfc5ac33e2ddae90013000010433510e9fa0a16040d01020802010907040e010208010100c91f0c130100009e248456000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc481292cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc48129'
+        const buf = new Uint8Array(Buffer.from(v5Msg, 'hex'))
+        const xcms = fromXcmpFormat(buf, apiContext)
+
+        const test$ = mapXcmSent(
+          apiContext,
+          'urn:ocn:local:1002',
+        )(
+          from(
+            xcms.map(
+              (x) =>
+                new GenericXcmSentWithContext({
+                  event: {},
+                  sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
+                  blockHash: '0x01',
+                  blockNumber: '32',
+                  extrinsicPosition: 4,
+                  recipient: 'urn:ocn:local:1000',
+                  messageDataBuffer: buf,
+                  messageHash: x.hash,
+                  messageId: getMessageId(x),
+                  instructions: {
+                    bytes: x.data,
+                    json: x.instructions,
+                  },
+                }),
+            ),
+          ),
+        )
+
+        await new Promise<void>((resolve) => {
+          test$.subscribe({
+            next: (msg) => {
+              calls()
+              expect(msg).toBeDefined()
+              expect(msg.waypoint.chainId).toBe('urn:ocn:local:1002')
+
+              expect(msg.legs.length).toBe(2)
+              expect(msg.legs[0]).toEqual({
+                from: 'urn:ocn:local:1002',
+                to: 'urn:ocn:local:1000',
+                relay: 'urn:ocn:local:0',
+                type: 'hop',
+              })
+              expect(msg.legs[1]).toEqual({
+                from: 'urn:ocn:local:1000',
+                to: 'urn:ocn:local:2034',
+                relay: 'urn:ocn:local:0',
+                partialMessage:
+                  '0x050c130100009e248456000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc48129',
+                type: 'hrmp',
+              })
+
+              expect(msg.destination.chainId).toBe('urn:ocn:local:2034')
+            },
+            complete: () => {
+              expect(calls).toHaveBeenCalledTimes(1)
+              resolve()
+            },
+          })
+        })
+      })
     })
   })
 
