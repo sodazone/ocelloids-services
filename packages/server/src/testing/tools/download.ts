@@ -13,6 +13,7 @@ const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 export const networks = {
   polkadot: 'wss://rpc.ibp.network/polkadot',
   assethub: 'wss://polkadot-asset-hub-rpc.polkadot.io',
+  bridgehub: 'wss://sys.ibp.network/bridgehub-polkadot',
   hydra: 'wss://hydradx.paras.ibp.network',
   moonbeam: 'wss://moonbeam.ibp.network',
   astar: 'wss://rpc.astar.network',
