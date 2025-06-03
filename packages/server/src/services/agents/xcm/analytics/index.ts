@@ -197,17 +197,17 @@ export class XcmAnalytics {
 
       // Extract assets
       const assets: QueryableXcmAsset[] = []
-      const _instruction = versioned.find(
+      const _instructions = versioned.filter(
         (op) =>
-          (op.type === 'ReserveAssetDeposited') !== undefined ||
-          (op.type === 'ReceiveTeleportedAsset') !== undefined ||
-          (op.type === 'WithdrawAsset') !== undefined,
+          op.type === 'ReserveAssetDeposited' ||
+          op.type === 'ReceiveTeleportedAsset' ||
+          op.type === 'WithdrawAsset',
       )
       if (
-        _instruction !== undefined &&
-        !bridgeMessage // hops and bridged assets need to be handled differently T.T
+        _instructions.length > 0 &&
+        !bridgeMessage // bridged assets need to be handled differently T.T
       ) {
-        const multiAssets = _instruction.value as unknown as MultiAsset[]
+        const multiAssets = _instructions.flatMap((i) => i.value as unknown as MultiAsset[])
         if (multiAssets !== undefined && Array.isArray(multiAssets)) {
           for (const multiAsset of multiAssets) {
             const { id, fun } = multiAsset
