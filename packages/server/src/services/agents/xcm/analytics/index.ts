@@ -32,7 +32,7 @@ import {
 
 export class XcmAnalytics {
   readonly #log: Logger
-  readonly #cache: LRUCache<string, XcmAssetWithMetadata, unknown>
+  readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
   readonly #db: DuckDBInstance
   readonly #catalog: AgentCatalog
 
@@ -145,7 +145,7 @@ export class XcmAnalytics {
   async #fromXcmReceived(message: XcmReceived): Promise<NewXcmTransfer[]> {
     const transfers: NewXcmTransfer[] = []
 
-    const { sender, origin, destination, messageId } = message
+    const { sender, origin, destination, messageId, legs } = message
     const versioned = (origin.instructions as unknown as XcmVersionedInstructions).value
 
     const hopTransfer = versioned.find(
@@ -205,7 +205,6 @@ export class XcmAnalytics {
       )
       if (
         _instruction !== undefined &&
-        !hopTransfer &&
         !bridgeMessage // hops and bridged assets need to be handled differently T.T
       ) {
         const multiAssets = _instruction.value as unknown as MultiAsset[]
@@ -244,7 +243,12 @@ export class XcmAnalytics {
       const to = beneficiary
       const recvAt = (destination as XcmTerminusContext).timestamp ?? Date.now()
       const sentAt = origin.timestamp ?? Date.now()
-      const resolvedAssets = await this.#resolveAssetsMetadata(destination.chainId, assets)
+      let resolvedAssets: XcmAssetWithMetadata[]
+      if (hopTransfer) {
+        resolvedAssets = await this.#resolveAssetsMetadata(legs[0].to, assets)
+      } else {
+        resolvedAssets = await this.#resolveAssetsMetadata(destination.chainId, assets)
+      }
 
       for (const asset of resolvedAssets) {
         const [chainId, assetId] = asset.id.split('|')
@@ -291,7 +295,14 @@ export class XcmAnalytics {
 
     const partiallyResolved = assets.map((a) => {
       const key = `${xcmLocationAnchor}:${a.location}`
-      return this.#cache.get(key)
+      const cached = this.#cache.get(key)
+
+      return cached
+        ? {
+            ...cached,
+            amount: a.amount,
+          }
+        : undefined
     })
     const assetsToResolve = assets.filter((_, index) => partiallyResolved[index] === undefined)
     const toLocationsToResolve = assetsToResolve.map((a) => a.location)
