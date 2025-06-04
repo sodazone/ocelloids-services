@@ -95,10 +95,16 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: 0,
     },
   ],
-  MYTH: {
-    chainId: 'urn:ocn:polkadot:3369',
-    assetId: 'native',
-  },
+  MYTH: [
+    {
+      chainId: 'urn:ocn:polkadot:3369',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0xba41ddf06b7ffd89d1267b5a93bfef2424eb2003',
+    },
+  ],
   CFG: {
     chainId: 'urn:ocn:polkadot:2031',
     assetId: 'native',
@@ -116,6 +122,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       chainId: 'urn:ocn:polkadot:2004',
       assetId: '0xc30E9cA94CF52f3Bf5692aaCF81353a27052c46f',
     },
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    },
   ],
   USDC: [
     {
@@ -125,6 +135,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:polkadot:2004',
       assetId: '0x931715fee2d06333043d11f658c8ce934ac61d0c',
+    },
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
     },
   ],
   SOL: [
