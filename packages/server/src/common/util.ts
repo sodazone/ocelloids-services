@@ -97,3 +97,25 @@ export function fromDuckDBBlob(blob: DuckDBBlobValue): string {
     throw new Error('Invalid varchar encoding')
   }
 }
+
+export function toSafeAsciiText(input: string | null | undefined): string {
+  if (input == null) return 'NULL';
+  if (!/^[\x20-\x7E]+$/.test(input)) {
+    throw new Error('Unsafe characters in ASCII string');
+  }
+  return `'${input.replace(/'/g, "''")}'`;
+}
+
+export function toSqlText(input: string | null | undefined): string {
+  if (input == null) return 'NULL';
+
+  // Reject null characters (can break SQL parsing)
+  if (input.includes('\x00')) {
+    throw new Error('Invalid string: contains null character');
+  }
+
+  // Escape single quotes by doubling them
+  const escaped = input.replace(/'/g, "''");
+
+  return `'${escaped}'`;
+}

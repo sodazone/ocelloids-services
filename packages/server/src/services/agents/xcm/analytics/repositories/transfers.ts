@@ -1,4 +1,4 @@
-import { fromDuckDBBlob, toDuckDBHex } from '@/common/util.js'
+import { fromDuckDBBlob, toDuckDBHex, toSafeAsciiText, toSqlText } from '@/common/util.js'
 import {
   DuckDBArrayValue,
   DuckDBBlobValue,
@@ -91,11 +91,11 @@ export class XcmTransfersRepository {
       epoch_ms(${t.recvAt}),
       epoch_ms(${t.sentAt}),
       ${toDuckDBHex(t.asset)},
-      '${t.symbol}',
+      ${toSqlText(t.symbol)},
       ${t.decimals},
       ${t.amount}::HUGEINT,
-      '${t.origin}',
-      '${t.destination}',
+      ${toSafeAsciiText(t.origin)},
+      ${toSafeAsciiText(t.destination)},
       ${toDuckDBHex(t.from)},
       ${toDuckDBHex(t.to)},
       NOW(),
