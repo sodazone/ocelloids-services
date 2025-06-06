@@ -29,11 +29,15 @@ function shouldStart(agent: Agent) {
   return capabilities.queryable && !capabilities.subscribable
 }
 
-const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
-  xcm: (ctx) => new XcmAgent(ctx),
+const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<AgentId, Agent>) => Agent> = {
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
   ticker: (ctx) => new TickerAgent(ctx),
+  xcm: (ctx, activations) =>
+    new XcmAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
+    }),
   // chainspy: (ctx) => new ChainSpy(ctx),
 }
 
@@ -148,7 +152,7 @@ export class LocalAgentCatalog implements AgentCatalog {
 
     if (opts.agents === '*') {
       for (const create of Object.values(registry)) {
-        const agent = create(ctx)
+        const agent = create(ctx, activations)
         activations[agent.id] = agent
         this.#log.info('[catalog:local] activated agent %s', agent.id)
       }
@@ -158,7 +162,7 @@ export class LocalAgentCatalog implements AgentCatalog {
         if (registry[agentId] === undefined) {
           this.#log.warn('[catalog:local] unknown agent id %s', agentId)
         } else {
-          const agent = registry[agentId](ctx)
+          const agent = registry[agentId](ctx, activations)
           activations[agent.id] = agent
           this.#log.info('[catalog:local] activated agent %s', agent.id)
         }

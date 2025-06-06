@@ -38,6 +38,18 @@ describe('parseAssetFromJson', () => {
         },
       })
     })
+
+    it('should parse local Ethereum asset', () => {
+      const locationString =
+        '{"parents":0,"interior":{"type":"X1","value":{"type":"AccountKey20","value":{"key":"0x56072c95faa701256059aa122697b133aded9279"}}}}'
+      expect(parseAssetFromJson('urn:ocn:ethereum:1', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'contract',
+          value: '0x56072c95faa701256059aa122697b133aded9279',
+        },
+      })
+    })
   })
 
   describe('parents 1', () => {

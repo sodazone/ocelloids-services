@@ -9,40 +9,39 @@ import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
-import { AgentCatalog, QueryParams, QueryResult } from '../../types.js'
+import { QueryParams, QueryResult } from '../../types.js'
+import { XcmHumanizer } from '../humanize/index.js'
+import {
+  DepositAsset,
+  ExportMessage,
+  HopTransfer,
+  MultiAsset,
+  QueryableXcmAsset,
+  XcmAssetWithMetadata,
+  XcmV3MultiLocation,
+  XcmVersionedInstructions,
+  isConcrete,
+} from '../humanize/types.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmReceived, XcmTerminusContext } from '../types.js'
 import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
-import {
-  $XcmQueryArgs,
-  DepositAsset,
-  ExportMessage,
-  HopTransfer,
-  MultiAsset,
-  NewXcmTransfer,
-  QueryableXcmAsset,
-  XcmAssetWithMetadata,
-  XcmQueryArgs,
-  XcmV3MultiLocation,
-  XcmVersionedInstructions,
-  isConcrete,
-} from './types.js'
+import { $XcmQueryArgs, NewXcmTransfer, XcmQueryArgs } from './types.js'
 
 export class XcmAnalytics {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
   readonly #db: DuckDBInstance
-  readonly #catalog: AgentCatalog
 
   #steward?: DataSteward
   #ticker?: TickerAgent
   #repository?: XcmTransfersRepository
   #sub?: Subscription
   #exporter?: DailyDuckDBExporter
+  #humanizer: XcmHumanizer
 
-  constructor({ log, catalog, db }: { log: Logger; catalog: AgentCatalog; db: DuckDBInstance }) {
+  constructor({ log, humanizer, db }: { log: Logger; humanizer: XcmHumanizer; db: DuckDBInstance }) {
     this.#cache = new LRUCache({
       ttl: 3_600_000,
       ttlResolution: 1_000,
@@ -51,14 +50,11 @@ export class XcmAnalytics {
     })
     this.#db = db
     this.#log = log
-    this.#catalog = catalog
+    this.#humanizer = humanizer
   }
 
   async start(tracker: XcmTracker) {
     this.#log.info('[xcm:analytics] start')
-
-    this.#steward = this.#catalog.getQueryableById<DataSteward>('steward')
-    this.#ticker = this.#catalog.getQueryableById<TickerAgent>('ticker')
 
     const dbConnection = await this.#db.connect()
 

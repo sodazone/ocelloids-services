@@ -77,6 +77,12 @@ function parseLocalX1Junction(referenceNetwork: NetworkURN, junction: DecodedObj
       assetId: { type: 'string', value: junction.value.toString() },
     }
   }
+  if (junction.type === 'accountkey20') {
+    return {
+      network: referenceNetwork,
+      assetId: { type: 'contract', value: (junction.value as { key: string }).key as string },
+    }
+  }
   return null
 }
 
