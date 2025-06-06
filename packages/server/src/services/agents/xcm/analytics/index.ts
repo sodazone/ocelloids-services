@@ -2,11 +2,12 @@ import { DuckDBInstance } from '@duckdb/node-api'
 
 import { ControlQuery } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
-import { Subscription, filter } from 'rxjs'
+import { Subscription, filter, from, map, mergeMap } from 'rxjs'
 import { QueryParams, QueryResult } from '../../types.js'
+import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
-import { HumanizedXcmPayload, XcmTerminusContext } from '../types.js'
+import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext } from '../types.js'
 import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import { $XcmQueryArgs, NewXcmTransfer, XcmQueryArgs } from './types.js'
@@ -18,10 +19,12 @@ export class XcmAnalytics {
   #repository?: XcmTransfersRepository
   #sub?: Subscription
   #exporter?: DailyDuckDBExporter
+  #humanizer: XcmHumanizer
 
-  constructor({ log, db }: { log: Logger; db: DuckDBInstance }) {
+  constructor({ log, db, humanizer }: { log: Logger; db: DuckDBInstance; humanizer: XcmHumanizer }) {
     this.#db = db
     this.#log = log
+    this.#humanizer = humanizer
   }
 
   async start(tracker: XcmTracker) {
@@ -42,10 +45,20 @@ export class XcmAnalytics {
         filter((payload) => {
           return matchNotificationType(typeCriteria, payload.type)
         }),
+        mergeMap((payload: XcmMessagePayload) =>
+          from(this.#humanizer.humanize(payload)).pipe(
+            map((humanized) => {
+              return {
+                ...payload,
+                humanized,
+              }
+            }),
+          ),
+        ),
       )
       .subscribe({
         next: (message) => {
-          this.#onXcmReceived(message as HumanizedXcmPayload)
+          this.#onXcmReceived(message)
         },
         error: (error) => {
           this.#log.error(error, '[xcm:analytics] error on tracker stream')

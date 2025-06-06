@@ -100,6 +100,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
         this.#analytics = new XcmAnalytics({
           log: ctx.log,
           db: ctx.analyticsDB,
+          humanizer: this.#humanizer,
         })
       }
     } catch (error: unknown) {
