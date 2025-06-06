@@ -7,7 +7,7 @@ import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
-import { XcmMessagePayload } from '../types.js'
+import { HumanizedXcmPayload, XcmMessagePayload } from '../types.js'
 import {
   DepositAsset,
   ExportMessage,
@@ -58,7 +58,14 @@ export class XcmHumanizer {
     })
   }
 
-  async humanize(message: XcmMessagePayload): Promise<HumanizedXcm> {
+  async humanize(message: XcmMessagePayload): Promise<HumanizedXcmPayload> {
+    return {
+      ...message,
+      humanized: await this.#humanizePayload(message),
+    }
+  }
+
+  async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
     const { sender, origin, destination, legs } = message
     const versioned = origin.instructions as XcmVersionedInstructions
     const version = versioned.type

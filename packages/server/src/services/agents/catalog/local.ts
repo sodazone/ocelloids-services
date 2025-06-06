@@ -4,7 +4,7 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Logger, Services } from '@/services/index.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
-import { AgentCatalogOptions } from '@/types.js'
+import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 
 import { InformantAgent } from '@/services/agents/informant/agent.js'
 import {
@@ -49,7 +49,7 @@ export class LocalAgentCatalog implements AgentCatalog {
   readonly #agents: Record<AgentId, Agent>
   readonly #egress: Egress
 
-  constructor(ctx: Services, options: AgentCatalogOptions) {
+  constructor(ctx: Services, options: AgentCatalogOptions & DatabaseOptions) {
     this.#log = ctx.log
     this.#egress = ctx.egress
     this.#agents = this.#loadAgents(
@@ -64,6 +64,9 @@ export class LocalAgentCatalog implements AgentCatalog {
         agentCatalog: this,
         analyticsDB: ctx.analyticsDB,
         archiveRetention: ctx.archiveRetention,
+        environment: {
+          dataPath: options.data,
+        },
       },
       options,
     )

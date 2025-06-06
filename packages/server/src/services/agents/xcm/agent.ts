@@ -1,5 +1,5 @@
 import { Operation } from 'rfc6902'
-import { filter, from, map, mergeMap } from 'rxjs'
+import { filter, mergeMap } from 'rxjs'
 
 import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
@@ -24,6 +24,7 @@ import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { XcmAnalytics } from './analytics/index.js'
 import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
+import { XcmExplorer } from './explorer/index.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { XcmHumanizer } from './humanize/index.js'
 import {
@@ -72,9 +73,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
 
   readonly #subs: XcmSubscriptionManager
   readonly #tracker: XcmTracker
+  readonly #humanizer: XcmHumanizer
+  readonly #explorer: XcmExplorer
 
   #analytics?: XcmAnalytics
-  #humanizer: XcmHumanizer
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -106,6 +108,12 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     } catch (error: unknown) {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
+
+    this.#explorer = new XcmExplorer({
+      log: ctx.log,
+      dataPath: ctx.environment?.dataPath,
+      humanizer: this.#humanizer,
+    })
   }
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
@@ -150,11 +158,15 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     }
 
     this.#analytics?.start(this.#tracker)
+
+    this.#explorer.start(this.#tracker)
   }
 
   async stop(): Promise<void> {
     this.#subs.stop()
+
     await this.#tracker.stop()
+    await this.#explorer.stop()
 
     this.#analytics?.stop()
   }
@@ -210,16 +222,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
             matchSenders(sendersControl, payload.sender)
           )
         }),
-        mergeMap((payload: XcmMessagePayload) =>
-          from(this.#humanizer.humanize(payload)).pipe(
-            map((humanized) => {
-              return {
-                ...payload,
-                humanized,
-              }
-            }),
-          ),
-        ),
+        mergeMap((payload: XcmMessagePayload) => this.#humanizer.humanize(payload)),
       )
       .subscribe({
         next: (payload: HumanizedXcmPayload) => {

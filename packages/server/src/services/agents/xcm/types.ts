@@ -649,6 +649,10 @@ export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | Xc
  */
 export type HumanizedXcmPayload = XcmMessagePayload & { humanized: HumanizedXcm }
 
+export function isHumanizedXcmPayload(object: any): object is HumanizedXcmPayload {
+  return object.humanized !== undefined
+}
+
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === 'xcm.sent'
 }

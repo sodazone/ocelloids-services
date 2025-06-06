@@ -2,7 +2,7 @@ import { DuckDBInstance } from '@duckdb/node-api'
 
 import { ControlQuery } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
-import { Subscription, filter, from, map, mergeMap } from 'rxjs'
+import { Subscription, filter, mergeMap } from 'rxjs'
 import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
@@ -45,16 +45,7 @@ export class XcmAnalytics {
         filter((payload) => {
           return matchNotificationType(typeCriteria, payload.type)
         }),
-        mergeMap((payload: XcmMessagePayload) =>
-          from(this.#humanizer.humanize(payload)).pipe(
-            map((humanized) => {
-              return {
-                ...payload,
-                humanized,
-              }
-            }),
-          ),
-        ),
+        mergeMap((payload: XcmMessagePayload) => this.#humanizer.humanize(payload)),
       )
       .subscribe({
         next: (message) => {

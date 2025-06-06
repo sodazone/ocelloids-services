@@ -9,11 +9,12 @@ export interface XcmJourneyTable {
   destination: ColumnType<string>
   from: ColumnType<string>
   to: ColumnType<string>
-  sent_at: ColumnType<Date, number, never>
-  recv_at: ColumnType<Date, number | undefined, never>
+  sent_at: ColumnType<Date, number | undefined, never>
+  recv_at: ColumnType<Date, number | undefined, number | undefined>
   created_at: ColumnType<Date, number, never>
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
+  origin_extrinsic_hash: ColumnType<string | undefined>
 }
 
 export type XcmJourney = Selectable<XcmJourneyTable>
@@ -24,9 +25,10 @@ export interface XcmAssetTable {
   id: Generated<number>
   journey_id: ColumnType<number>
   asset: ColumnType<string>
-  symbol: ColumnType<string>
+  symbol: ColumnType<string | undefined>
   amount: ColumnType<bigint>
-  decimals: ColumnType<number>
+  decimals: ColumnType<number | undefined>
+  usd: ColumnType<number | undefined>
 }
 
 export type XcmAsset = Selectable<XcmAssetTable>
