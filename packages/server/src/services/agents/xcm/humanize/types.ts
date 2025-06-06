@@ -111,13 +111,13 @@ export enum XcmJourneyType {
 }
 
 export type XcmAsset = XcmAssetWithMetadata & {
-  volume: number | null
+  volume?: number
 }
 
 export type HumanizedXcm = {
   type: XcmJourneyType
-  to?: string
-  from?: string
+  to: string
+  from: string
   assets: XcmAsset[]
   version?: string
   transactCall?: string

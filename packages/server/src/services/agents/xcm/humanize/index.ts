@@ -173,7 +173,7 @@ export class XcmHumanizer {
     }
   }
 
-  private async resolveVolume(asset: XcmAssetWithMetadata): Promise<number | null> {
+  private async resolveVolume(asset: XcmAssetWithMetadata): Promise<number | undefined> {
     const cachedPrice = this.#priceCache.get(asset.id)
     if (cachedPrice !== undefined) {
       return this.calculateVolume(asset, cachedPrice)
@@ -184,7 +184,7 @@ export class XcmHumanizer {
       this.#priceCache.set(asset.id, price)
     }
 
-    return price !== null ? this.calculateVolume(asset, price) : null
+    return price !== null ? this.calculateVolume(asset, price) : undefined
   }
 
   private async fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {

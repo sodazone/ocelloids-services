@@ -26,7 +26,6 @@ import { XcmAnalytics } from './analytics/index.js'
 import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { XcmHumanizer } from './humanize/index.js'
-import { HumanizedXcm } from './humanize/types.js'
 import {
   matchMessage,
   matchNotificationType,
@@ -36,7 +35,13 @@ import {
   sendersCriteria,
 } from './ops/criteria.js'
 import { XcmTracker } from './tracking.js'
-import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
+import {
+  $XcmInputs,
+  HumanizedXcmPayload,
+  XcmInputs,
+  XcmMessagePayload,
+  XcmSubscriptionHandler,
+} from './types.js'
 
 export const XCM_AGENT_ID = 'xcm'
 
@@ -95,7 +100,6 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
         this.#analytics = new XcmAnalytics({
           log: ctx.log,
           db: ctx.analyticsDB,
-          humanizer: this.#humanizer,
         })
       }
     } catch (error: unknown) {
@@ -217,7 +221,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
         ),
       )
       .subscribe({
-        next: (payload: XcmMessagePayload & { humanized: HumanizedXcm }) => {
+        next: (payload: HumanizedXcmPayload) => {
           if (this.#subs.has(id)) {
             const { subscription } = this.#subs.get(id)
             this.#notifier.publish(subscription, {

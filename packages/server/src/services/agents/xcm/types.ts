@@ -14,6 +14,7 @@ import {
   toHexString,
 } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
+import { HumanizedXcm } from './humanize/types.js'
 
 function distinct(a: Array<string>) {
   return Array.from(new Set(a))
@@ -640,6 +641,13 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
  * @public
  */
 export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge | XcmTimeout
+
+/**
+ * The humanized XCM payloads.
+ *
+ * @public
+ */
+export type HumanizedXcmPayload = XcmMessagePayload & { humanized: HumanizedXcm }
 
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === 'xcm.sent'
