@@ -100,7 +100,7 @@ export function createServices(): Services {
       egress: _egress,
       subsStore: _subsDB,
     } as Services,
-    { agentServiceMode: AgentServiceMode.local, agents: '*' },
+    { agentServiceMode: AgentServiceMode.local, agents: '*', data: ':memory:' },
   )
 
   return {
