@@ -53,11 +53,39 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('xcm_journeys_origin_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('origin')
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_destination_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('destination')
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_origin_extrinsic_hash_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('origin_extrinsic_hash')
+      .execute()  
+
+    await db.schema
       .createIndex('xcm_assets_journey_id_index')
       .ifNotExists()
       .on('xcm_assets')
       .column('journey_id')
       .execute()
+
+    await db.schema
+    .createIndex('xcm_assets_asset_index')
+    .ifNotExists()
+    .on('xcm_assets')
+    .column('asset')
+    .execute()
   } catch (error) {
     console.error(error)
     throw error

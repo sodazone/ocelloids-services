@@ -180,11 +180,16 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   }
 
   query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
-    if (this.#analytics) {
-      return this.#analytics.query(params)
-    }
+    switch (params.args.op) {
+      case 'journeys.list':
+        return this.#explorer.listJourneys(params.args.criteria, params.pagination)
 
-    throw new Error('analytics are not enabled')
+      default:
+        if (this.#analytics) {
+          return this.#analytics.query(params)
+        }
+        throw new Error('analytics are not enabled')
+    }
   }
 
   /**

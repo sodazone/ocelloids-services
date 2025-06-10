@@ -3,6 +3,8 @@ import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
 import { Migrator } from 'kysely'
 import { Subscription, concatMap } from 'rxjs'
+import { QueryPagination, QueryResult } from '../../types.js'
+import { JourneyFilters } from '../analytics/types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmAsset } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
@@ -21,7 +23,7 @@ function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination && payload.destination.outcome === 'Success') {
     return 'received'
   }
-  if (payload.type === 'xcm.sent') {
+  if (['xcm.sent', 'xcm.relayed'].includes(payload.type)) {
     return 'sent'
   }
   return 'unknown'
@@ -105,7 +107,7 @@ function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
 function toNewAssets(assets: XcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
   return assets.map((asset) => ({
     symbol: asset.symbol,
-    amount: asset.amount,
+    amount: asset.amount.toString(),
     asset: asset.id,
     decimals: asset.decimals,
     usd: asset.volume,
@@ -158,8 +160,32 @@ export class XcmExplorer {
     await this.#repository.close()
   }
 
-  async getJJ() {
-    return this.#repository.listFullJourneys()
+  async listJourneys(filters?: JourneyFilters, pagination?: QueryPagination): Promise<QueryResult> {
+    const result = await this.#repository.listFullJourneys(filters, pagination)
+
+    return {
+      pageInfo: {
+        hasNextPage: result.pageInfo.hasNextPage,
+        endCursor: result.pageInfo.endCursor,
+      },
+      items: result.nodes.map((journey) => ({
+        id: journey.id,
+        correlationId: journey.correlation_id,
+        status: journey.status,
+        type: journey.type,
+        origin: journey.origin,
+        destination: journey.destination,
+        from: journey.from,
+        to: journey.to,
+        sentAt: journey.sent_at,
+        recvAt: journey.recv_at,
+        createdAt: journey.created_at,
+        stops: journey.stops,
+        instructions: journey.instructions,
+        originExtrinsicHash: journey.origin_extrinsic_hash,
+        assets: journey.assets,
+      })),
+    }
   }
 
   async #onXcmMessage(message: XcmMessagePayload) {

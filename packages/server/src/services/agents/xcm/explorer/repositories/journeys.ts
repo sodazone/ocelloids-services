@@ -1,5 +1,17 @@
+import { Buffer } from 'buffer'
+import { QueryPagination } from '@/lib.js'
 import { Kysely, sql } from 'kysely'
+import { JourneyFilters } from '../../analytics/types.js'
 import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmDatabase, XcmJourneyUpdate } from './types.js'
+
+function encodeCursor(date: number | Date): string {
+  const timestamp = typeof date === 'number' ? date : date.getTime() // Convert Date to Unix epoch
+  return Buffer.from(timestamp.toString()).toString('base64') // Encode Unix epoch as Base64
+}
+
+function decodeCursor(cursor: string): number {
+  return parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
+}
 
 export class XcmRepository {
   readonly #db: Kysely<XcmDatabase>
@@ -49,7 +61,7 @@ export class XcmRepository {
       assets: rows.map((row) => ({
         asset: row.asset ?? 'unknown',
         symbol: row.symbol ?? undefined,
-        amount: row.amount ?? 0n,
+        amount: row.amount ?? '0',
         decimals: row.decimals ?? undefined,
         usd: row.usd ?? undefined,
       })),
@@ -62,8 +74,20 @@ export class XcmRepository {
     await this.#db.deleteFrom('xcm_journeys').where('id', '=', id).execute()
   }
 
-  async listFullJourneys(limit: number = 50, afterCreatedAt?: Date): Promise<Array<FullXcmJourney>> {
-    const query = this.#db
+  async listFullJourneys(
+    filters?: JourneyFilters,
+    pagination?: QueryPagination,
+  ): Promise<{
+    nodes: Array<FullXcmJourney>
+    pageInfo: {
+      hasNextPage: boolean
+      endCursor: string
+    }
+  }> {
+    const limit = Math.min(pagination?.limit ?? 50, 100)
+    const realLimit = limit + 1
+
+    let query = this.#db
       .selectFrom('xcm_journeys')
       .select([
         'xcm_journeys.id',
@@ -81,25 +105,37 @@ export class XcmRepository {
         'xcm_journeys.instructions',
         'xcm_journeys.origin_extrinsic_hash',
         sql`json_group_array(json_object(
-          'asset', xcm_assets.asset,
-          'symbol', xcm_assets.symbol,
-          'amount', xcm_assets.amount,
-          'decimals', xcm_assets.decimals,
-          'usd', xcm_assets.usd
-        ))`.as('assets'),
+        'asset', xcm_assets.asset,
+        'symbol', xcm_assets.symbol,
+        'amount', xcm_assets.amount,
+        'decimals', xcm_assets.decimals,
+        'usd', xcm_assets.usd
+      ))`.as('assets'),
       ])
       .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
       .groupBy('xcm_journeys.id')
       .orderBy('xcm_journeys.sent_at', 'desc')
-      .limit(limit)
+      .limit(realLimit)
 
-    if (afterCreatedAt) {
-      query.where('xcm_journeys.created_at', '<', afterCreatedAt)
+    if (pagination?.cursor) {
+      const afterDate = decodeCursor(pagination.cursor)
+      query = query.where('xcm_journeys.sent_at', '<', afterDate)
+    }
+
+    if (filters?.asset) {
+      query = query.where('xcm_assets.asset', 'in', filters.asset)
+    }
+
+    if (filters?.origin) {
+      query = query.where('xcm_journeys.origin', 'in', filters.origin)
     }
 
     const rows = await query.execute()
 
-    return rows.map((row) => ({
+    const hasNextPage = rows.length > limit
+    const limitedRows = hasNextPage ? rows.slice(0, limit) : rows
+
+    const nodes = limitedRows.map((row) => ({
       id: row.id,
       correlation_id: row.correlation_id,
       status: row.status,
@@ -116,6 +152,16 @@ export class XcmRepository {
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       assets: Array.isArray(row.assets) ? row.assets : [],
     }))
+
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
+
+    return {
+      nodes,
+      pageInfo: {
+        hasNextPage,
+        endCursor,
+      },
+    }
   }
 
   async insertJourneyWithAssets(
@@ -123,7 +169,6 @@ export class XcmRepository {
     assets: Array<Omit<NewXcmAsset, 'journey_id'>>,
   ): Promise<number> {
     return await this.#db.transaction().execute(async (trx) => {
-      console.log('INS START', journey.correlation_id, '....')
       const insertedJourney = await trx
         .insertInto('xcm_journeys')
         .values(journey)
@@ -141,8 +186,6 @@ export class XcmRepository {
         journey_id: journeyId,
       }))
       await trx.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
-
-      console.log('INS END', journey.correlation_id, '....')
 
       return journeyId
     })
@@ -185,7 +228,7 @@ export class XcmRepository {
       assets: rows.map((row) => ({
         asset: row.asset ?? 'unknown',
         symbol: row.symbol ?? undefined,
-        amount: row.amount ?? 0n,
+        amount: row.amount ?? '0',
         decimals: row.decimals ?? undefined,
         usd: row.usd ?? undefined,
       })),

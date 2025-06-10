@@ -9,9 +9,9 @@ export interface XcmJourneyTable {
   destination: ColumnType<string>
   from: ColumnType<string>
   to: ColumnType<string>
-  sent_at: ColumnType<Date, number | undefined, never>
-  recv_at: ColumnType<Date, number | undefined, number | undefined>
-  created_at: ColumnType<Date, number, never>
+  sent_at: ColumnType<number, number | undefined, never>
+  recv_at: ColumnType<number, number | undefined, number | undefined>
+  created_at: ColumnType<number, number, never>
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
   origin_extrinsic_hash: ColumnType<string | undefined>
@@ -26,7 +26,7 @@ export interface XcmAssetTable {
   journey_id: ColumnType<number>
   asset: ColumnType<string>
   symbol: ColumnType<string | undefined>
-  amount: ColumnType<bigint>
+  amount: ColumnType<string>
   decimals: ColumnType<number | undefined>
   usd: ColumnType<number | undefined>
 }

@@ -30,6 +30,13 @@ export const $AssetSelect = z.object({
   asset: z.string(),
 })
 
+export const $JourneyFilters = z.optional(
+  z.object({
+    asset: z.optional(z.array(z.string())),
+    origin: z.optional(z.array(z.string())),
+  }),
+)
+
 export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('transfers_total'),
@@ -55,7 +62,12 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('transfers_by_network'),
     criteria: $TimeSelect,
   }),
+  z.object({
+    op: z.literal('journeys.list'),
+    criteria: $JourneyFilters,
+  }),
 ])
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>
 export type TimeSelect = z.infer<typeof $TimeSelect>
+export type JourneyFilters = z.infer<typeof $JourneyFilters>
