@@ -7,10 +7,16 @@ import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
 import { XcmTracker } from '../tracking.js'
-import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext } from '../types.js'
+import {
+  $XcmQueryArgs,
+  HumanizedXcmPayload,
+  XcmMessagePayload,
+  XcmQueryArgs,
+  XcmTerminusContext,
+} from '../types/index.js'
 import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
-import { $XcmQueryArgs, NewXcmTransfer, XcmQueryArgs } from './types.js'
+import { NewXcmTransfer } from './types.js'
 
 export class XcmAnalytics {
   readonly #log: Logger

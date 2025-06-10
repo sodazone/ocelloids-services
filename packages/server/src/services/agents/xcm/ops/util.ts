@@ -9,7 +9,7 @@ import { BlockEvent, BlockExtrinsic, Event, Extrinsic } from '@/services/network
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { AssetsTrapped, TrappedAsset } from '../types.js'
+import { AssetsTrapped, TrappedAsset } from '../types/index.js'
 import { Program } from './xcm-format.js'
 
 function createSignersData(xt: BlockExtrinsic): SignerData | undefined {

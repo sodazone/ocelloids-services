@@ -1,4 +1,4 @@
-import { XcmInbound, XcmRelayedWithContext, XcmSent } from '@/services/agents/xcm/types.js'
+import { XcmInbound, XcmRelayedWithContext, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const moonbeamSent: XcmSent = {
   legs: [

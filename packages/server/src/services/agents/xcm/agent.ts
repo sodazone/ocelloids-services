@@ -23,7 +23,6 @@ import { asDateRange } from '@/services/archive/time.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { XcmAnalytics } from './analytics/index.js'
-import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
 import { XcmExplorer } from './explorer/index.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { XcmHumanizer } from './humanize/index.js'
@@ -42,7 +41,8 @@ import {
   XcmInputs,
   XcmMessagePayload,
   XcmSubscriptionHandler,
-} from './types.js'
+} from './types/index.js'
+import { $XcmQueryArgs, XcmQueryArgs } from './types/index.js'
 
 export const XCM_AGENT_ID = 'xcm'
 

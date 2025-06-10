@@ -7,7 +7,7 @@ import { createNetworkId, getChainId } from '@/services/config.js'
 import { BlockExtrinsicWithEvents, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types.js'
+import { GenericXcmRelayedWithContext, XcmRelayedWithContext } from '../types/index.js'
 import { getMessageId, matchExtrinsic } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'
 

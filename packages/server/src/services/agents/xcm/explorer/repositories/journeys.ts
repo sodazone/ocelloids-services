@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
 import { Kysely, sql } from 'kysely'
-import { JourneyFilters } from '../../analytics/types.js'
+import { JourneyFilters } from '../../types/index.js'
 import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmDatabase, XcmJourneyUpdate } from './types.js'
 
 function encodeCursor(date: number | Date): string {

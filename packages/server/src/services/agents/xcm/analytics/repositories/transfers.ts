@@ -6,7 +6,8 @@ import {
   DuckDBDecimalValue,
   DuckDBTimestampValue,
 } from '@duckdb/node-api'
-import { NewXcmTransfer, TimeSelect } from '../types.js'
+import { TimeSelect } from '../../types/index.js'
+import { NewXcmTransfer } from '../types.js'
 
 export type AggregatedData = {
   key: string

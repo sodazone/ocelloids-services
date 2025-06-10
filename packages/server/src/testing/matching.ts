@@ -3,7 +3,7 @@ import {
   XcmRelayedWithContext,
   XcmSent,
   XcmTerminusContext,
-} from '../services/agents/xcm/types.js'
+} from '../services/agents/xcm/types/index.js'
 
 const originContext: XcmTerminusContext = {
   chainId: 'urn:ocn:local:1000',

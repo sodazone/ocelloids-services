@@ -36,7 +36,7 @@ import {
   XcmMessagePayload,
   XcmRelayedWithContext,
   XcmSent,
-} from './types.js'
+} from './types/index.js'
 
 const EXCLUDED_NETWORKS: NetworkURN[] = []
 

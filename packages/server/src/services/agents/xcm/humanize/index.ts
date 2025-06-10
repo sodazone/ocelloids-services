@@ -7,7 +7,7 @@ import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
-import { HumanizedXcmPayload, XcmMessagePayload } from '../types.js'
+import { HumanizedXcmPayload, XcmMessagePayload } from '../types/index.js'
 import {
   DepositAsset,
   ExportMessage,

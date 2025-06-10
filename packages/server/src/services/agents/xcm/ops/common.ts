@@ -14,7 +14,7 @@ import {
   XcmInboundWithContext,
   XcmSent,
   XcmSentWithContext,
-} from '../types.js'
+} from '../types/index.js'
 import {
   getParaIdFromJunctions,
   getSendersFromEvent,

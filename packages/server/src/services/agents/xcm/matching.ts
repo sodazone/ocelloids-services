@@ -33,7 +33,7 @@ import {
   XcmTimeout,
   XcmWaypointContext,
   prefixes,
-} from './types.js'
+} from './types/index.js'
 
 const DEFAULT_TIMEOUT = 10 * 60000
 
