@@ -142,7 +142,7 @@ export class XcmExplorer {
     this.#sub = tracker.xcm$
       .pipe(
         concatMap(async (message) => {
-          await this.#onXcmMessage(message) // Processes events sequentially
+          await this.#onXcmMessage(message)
         }),
       )
       .subscribe({
@@ -293,36 +293,4 @@ export class XcmExplorer {
       console.log(error)
     }
   }
-
-  /*async #onXcmMessage(message: XcmMessagePayload) {
-    const filePath = './msgs.jsonl'
-    let serializedMessage
-
-    switch (message.type) {
-      case 'xcm.sent':
-      case 'xcm.relayed': {
-        const humanizedXcm = await this.#humanizer.humanize(message)
-        serializedMessage = asJSON(humanizedXcm)
-        break
-      }
-      case 'xcm.received':
-
-      case 'xcm.hop':
-      case 'xcm.bridge':
-      case 'xcm.timeout':
-        serializedMessage = JSON.stringify(message)
-    }
-
-    try {
-      writeFileSync(filePath, `${serializedMessage}\n`, { flag: 'a' }) // Append the message to the file
-      this.#log.info('[xcm:explorer] Message written to %s', filePath)
-    } catch (error) {
-      this.#log.error(error, '[xcm:explorer] Failed to write message to file')
-    }
-  }*/
-
-  // on Sent ito Recived like in the anaylitcs
-  // on other update....
-  // SSE -> to refech and maybe the update?
-  // expose the API, list with filters (address, extrinsic, assets, etc) and pages, and the journey single one by correlation id (hash id)
 }
