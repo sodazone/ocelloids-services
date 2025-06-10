@@ -14,8 +14,12 @@ export const $AssetSelect = z.object({
 
 export const $JourneyFilters = z.optional(
   z.object({
-    asset: z.optional(z.array(z.string())),
-    origin: z.optional(z.array(z.string())),
+    assets: z.optional(z.array(z.string()).min(1).max(50)),
+    origins: z.optional(z.array($NetworkString).min(1).max(50)),
+    destinations: z.optional(z.array($NetworkString).min(1).max(50)),
+    address: z.optional(z.string()),
+    extrinsicHash: z.optional(z.string()),
+    evmTxHash: z.optional(z.string()),
   }),
 )
 

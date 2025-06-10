@@ -20,6 +20,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('stops', 'json', (cb) => cb.notNull())
       .addColumn('instructions', 'json', (cb) => cb.notNull())
       .addColumn('origin_extrinsic_hash', 'varchar(255)')
+      .addColumn('origin_evm_tx_hash', 'varchar(255)')
       .execute()
 
     // Create xcm_assets table
@@ -71,6 +72,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xcm_journeys')
       .column('origin_extrinsic_hash')
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_origin_evm_tx_hash_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('origin_evm_tx_hash')
       .execute()
 
     await db.schema

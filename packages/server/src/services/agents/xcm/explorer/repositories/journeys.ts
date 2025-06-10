@@ -58,6 +58,7 @@ export class XcmRepository {
       stops: rows[0].stops,
       instructions: rows[0].instructions,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
+      origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
       assets: rows.map((row) => ({
         asset: row.asset ?? 'unknown',
         symbol: row.symbol ?? undefined,
@@ -104,6 +105,7 @@ export class XcmRepository {
         'xcm_journeys.stops',
         'xcm_journeys.instructions',
         'xcm_journeys.origin_extrinsic_hash',
+        'xcm_journeys.origin_evm_tx_hash',
         sql`json_group_array(json_object(
         'asset', xcm_assets.asset,
         'symbol', xcm_assets.symbol,
@@ -122,12 +124,30 @@ export class XcmRepository {
       query = query.where('xcm_journeys.sent_at', '<', afterDate)
     }
 
-    if (filters?.asset) {
-      query = query.where('xcm_assets.asset', 'in', filters.asset)
+    if (filters?.assets) {
+      query = query.where('xcm_assets.asset', 'in', filters.assets)
     }
 
-    if (filters?.origin) {
-      query = query.where('xcm_journeys.origin', 'in', filters.origin)
+    if (filters?.origins) {
+      query = query.where('xcm_journeys.origin', 'in', filters.origins)
+    }
+
+    if (filters?.destinations) {
+      query = query.where('xcm_journeys.destination', 'in', filters.destinations)
+    }
+
+    if (filters?.address !== undefined) {
+      query = query.where((eb) =>
+        eb.or([eb('xcm_journeys.from', '=', filters.address!), eb('xcm_journeys.to', '=', filters.address!)]),
+      )
+    }
+
+    if (filters?.extrinsicHash) {
+      query = query.where('xcm_journeys.origin_extrinsic_hash', '=', filters.extrinsicHash)
+    }
+
+    if (filters?.evmTxHash) {
+      query = query.where('xcm_journeys.origin_evm_tx_hash', '=', filters.evmTxHash)
     }
 
     const rows = await query.execute()
@@ -150,6 +170,7 @@ export class XcmRepository {
       stops: row.stops,
       instructions: row.instructions,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
+      origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
       assets: Array.isArray(row.assets) ? row.assets : [],
     }))
 
@@ -225,6 +246,7 @@ export class XcmRepository {
       stops: rows[0].stops,
       instructions: rows[0].instructions,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
+      origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
       assets: rows.map((row) => ({
         asset: row.asset ?? 'unknown',
         symbol: row.symbol ?? undefined,

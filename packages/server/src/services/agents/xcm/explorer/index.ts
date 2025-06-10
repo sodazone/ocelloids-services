@@ -1,4 +1,5 @@
 import { asJSON } from '@/common/util.js'
+import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
 import { Migrator } from 'kysely'
@@ -48,6 +49,7 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
             hash: waypoint.extrinsicHash,
             module: extrinsic?.module,
             method: extrinsic?.method,
+            evmTxHash: extrinsic?.evmTxHash
           },
           event: {
             blockPosition: event?.blockPosition,
@@ -87,6 +89,10 @@ function toCorrelationId(payload: XcmMessagePayload): string {
   return payload.messageId ?? payload.origin.messageHash
 }
 
+function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
+  return (payload.origin.event as BlockEvent)?.extrinsic?.evmTxHash
+}
+
 function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
   return {
     correlation_id: toCorrelationId(payload),
@@ -96,6 +102,7 @@ function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
     instructions: asJSON(payload.origin.instructions),
     origin: payload.origin.chainId,
     origin_extrinsic_hash: payload.origin.extrinsicHash,
+    origin_evm_tx_hash: toEvmTxHash(payload),
     from: payload.humanized.from,
     to: payload.humanized.to,
     sent_at: payload.origin.timestamp,
@@ -140,6 +147,10 @@ export class XcmExplorer {
     await this.#migrator.migrateToLatest()
 
     this.#sub = tracker.xcm$
+      // .historicalXcm$({
+      //   agent: 'xcm',
+      //   timeframe: 'this_2_days',
+      // })
       .pipe(
         concatMap(async (message) => {
           await this.#onXcmMessage(message)
@@ -183,6 +194,7 @@ export class XcmExplorer {
         stops: journey.stops,
         instructions: journey.instructions,
         originExtrinsicHash: journey.origin_extrinsic_hash,
+        originEvmTxHash: journey.origin_evm_tx_hash,
         assets: journey.assets,
       })),
     }

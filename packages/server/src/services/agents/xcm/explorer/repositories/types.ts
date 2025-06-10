@@ -15,6 +15,7 @@ export interface XcmJourneyTable {
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
   origin_extrinsic_hash: ColumnType<string | undefined>
+  origin_evm_tx_hash: ColumnType<string | undefined>
 }
 
 export type XcmJourney = Selectable<XcmJourneyTable>
