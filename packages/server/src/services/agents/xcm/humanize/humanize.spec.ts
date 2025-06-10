@@ -66,11 +66,11 @@ describe('XcmHumanizer', () => {
         blockNumber: 1,
       },
     })
-    expect(results).toBeDefined()
-    expect(results.type).toBe('transfer')
-    expect(results.from).toBeDefined()
-    expect(results.to).toBeDefined()
-    expect(results.version).toBe('V5')
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transfer')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.version).toBe('V5')
   })
 
   it('should parse assets in assethub to bridgehub message', async () => {
@@ -220,8 +220,8 @@ describe('XcmHumanizer', () => {
         blockNumber: 1,
       },
     })
-    expect(results).toBeDefined()
-    expect(results.type).toBe('transfer')
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transfer')
   })
 
   it('should humanize transact from Bifrost to Hydration', async () => {
@@ -261,8 +261,8 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:polkadot:2034',
       },
     })
-    expect(results).toBeDefined()
-    expect(results.type).toBe('transact')
-    expect(results.transactCall).toBeDefined()
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.transactCall).toBeDefined()
   })
 })
