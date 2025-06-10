@@ -40,7 +40,7 @@ describe('XcmExplorer', () => {
     explorer = new XcmExplorer({
       log,
       humanizer: {
-        humanize: (msg: any) => msg, // Mock humanizer
+        humanize: (msg: any) => msg,
       } as unknown as XcmHumanizer,
     })
   })
@@ -57,6 +57,8 @@ describe('XcmExplorer', () => {
 
     await streamCompleted
 
-    console.log(JSON.stringify(await explorer.getJJ()))
+    const {items} = await explorer.listJourneys()
+    expect(items).toBeDefined()
+    expect(items.length).toBeGreaterThan(0)
   })
 })
