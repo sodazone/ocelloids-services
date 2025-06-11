@@ -1,15 +1,22 @@
 import { Observable, map, mergeMap } from 'rxjs'
 
-import { http, createPublicClient, erc20Abi, getAddress, getContract } from 'viem'
+import { http, createPublicClient, erc20Abi, fallback, getAddress, getContract } from 'viem'
+import { moonbeam } from 'viem/chains'
 
 import { HexString } from '@/lib.js'
-import { moonbeam } from 'viem/chains'
 import { AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 import { toPaddedHex } from './util.js'
 
 const client = createPublicClient({
   chain: moonbeam,
-  transport: http(),
+  transport: fallback([
+    http('https://moonbeam-rpc.dwellir.com'),
+    http('https://moonbeam.api.onfinality.io/public'),
+    http('https://moonbeam.unitedbloc.com'),
+    http('https://moonbeam.public.curie.radiumblock.co/http'),
+    http('https://moonbeam.public.blastapi.io'),
+    http('https://1rpc.io/glmr'),
+  ]),
 })
 
 async function getErc20Metadata(address: HexString) {
