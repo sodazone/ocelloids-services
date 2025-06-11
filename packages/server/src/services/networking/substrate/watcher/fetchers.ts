@@ -41,7 +41,7 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
     existentialDeposit,
     chainTokens,
     chainDecimals,
-    ss58Prefix: ss58Format ?? 42,
+    ss58Prefix: ss58Format,
     parachainId,
     runtimeChain,
   }
