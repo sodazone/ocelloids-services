@@ -195,6 +195,8 @@ export class XcmExplorer {
         destination: journey.destination,
         from: journey.from,
         to: journey.to,
+        fromFormatted: journey.from_formatted,
+        toFormatted: journey.to_formatted,
         sentAt: journey.sent_at,
         recvAt: journey.recv_at,
         createdAt: journey.created_at,

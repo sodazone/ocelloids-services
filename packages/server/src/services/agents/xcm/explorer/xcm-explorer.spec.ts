@@ -59,7 +59,6 @@ describe('XcmExplorer', () => {
     await streamCompleted
 
     const { items } = await explorer.listJourneys()
-    console.log(asJSON(items))
     expect(items).toBeDefined()
     expect(items.length).toBeGreaterThan(0)
   })
