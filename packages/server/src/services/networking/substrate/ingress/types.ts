@@ -17,7 +17,7 @@ export type SubstrateNetworkInfo = {
   chainDecimals: number[]
   runtimeChain: string
   existentialDeposit?: string
-  ss58Prefix?: number
+  ss58Prefix?: number | null
   parachainId?: string
 }
 
