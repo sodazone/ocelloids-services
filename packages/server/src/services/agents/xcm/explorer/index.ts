@@ -49,7 +49,7 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
             hash: waypoint.extrinsicHash,
             module: extrinsic?.module,
             method: extrinsic?.method,
-            evmTxHash: extrinsic?.evmTxHash
+            evmTxHash: extrinsic?.evmTxHash,
           },
           event: {
             blockPosition: event?.blockPosition,
@@ -103,8 +103,10 @@ function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
     origin: payload.origin.chainId,
     origin_extrinsic_hash: payload.origin.extrinsicHash,
     origin_evm_tx_hash: toEvmTxHash(payload),
-    from: payload.humanized.from,
-    to: payload.humanized.to,
+    from: payload.humanized.from.key,
+    to: payload.humanized.to.key,
+    from_formatted: payload.humanized.from.formatted,
+    to_formatted: payload.humanized.to.formatted,
     sent_at: payload.origin.timestamp,
     status: toStatus(payload),
     stops: asJSON(toStops(payload)),

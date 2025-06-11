@@ -14,6 +14,8 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('destination', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('from', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('to', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('from_formatted', 'varchar(255)')
+      .addColumn('to_formatted', 'varchar(255)')
       .addColumn('sent_at', 'timestamp')
       .addColumn('recv_at', 'timestamp')
       .addColumn('created_at', 'timestamp', (cb) => cb.notNull().defaultTo(sql`current_timestamp`))

@@ -1,7 +1,11 @@
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
-import { AnyJson, Logger } from '@/services/types.js'
+import { getRelayId } from '@/services/config.js'
+import { SubstrateNetworkInfo } from '@/services/networking/substrate/types.js'
+import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { LRUCache } from 'lru-cache'
+import { fromHex } from 'polkadot-api/utils'
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
@@ -12,6 +16,7 @@ import {
   DepositAsset,
   ExportMessage,
   HopTransfer,
+  HumanizedAddresses,
   MultiAsset,
   QueryableXcmAsset,
   Transact,
@@ -27,6 +32,7 @@ export class XcmHumanizer {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
   readonly #priceCache: LRUCache<string, number, unknown>
+  readonly #ss58Cache: LRUCache<string, number, unknown>
   readonly #steward: DataSteward
   readonly #ticker: TickerAgent
 
@@ -56,6 +62,23 @@ export class XcmHumanizer {
       ttlAutopurge: false,
       max: 100,
     })
+    this.#ss58Cache = new LRUCache({
+      ttl: 86_400_000,
+      ttlResolution: 300_000,
+      ttlAutopurge: false,
+      max: 100,
+    })
+  }
+
+  async start() {
+    const { items } = (await this.#steward.query({
+      args: { op: 'chains.list' },
+    })) as QueryResult<SubstrateNetworkInfo>
+
+    items.forEach(({ ss58Prefix, urn }) => {
+      const prefix = ss58Prefix ?? this.resolveRelayPrefix(urn, items)
+      this.#ss58Cache.set(urn, prefix)
+    })
   }
 
   async humanize(message: XcmMessagePayload): Promise<HumanizedXcmPayload> {
@@ -74,9 +97,8 @@ export class XcmHumanizer {
     const beneficiary = this.extractBeneficiary(instructions)
     const transactCall = this.extractTransactCall(instructions)
 
-    const from = sender?.signer?.publicKey ?? origin.chainId
-    const to = beneficiary ?? destination.chainId
-
+    const from = await this.toAddresses(origin.chainId, sender?.signer?.publicKey)
+    const to = await this.toAddresses(destination.chainId, beneficiary)
     const exportMessage = this.findExportMessage(instructions)
     if (exportMessage) {
       return this.handleBridgeMessage(exportMessage, type, from, to, version)
@@ -312,8 +334,8 @@ export class XcmHumanizer {
   private handleBridgeMessage(
     exportMessage: XcmInstruction,
     type: XcmJourneyType,
-    from: string,
-    to: string,
+    from: HumanizedAddresses,
+    to: HumanizedAddresses,
     version: string,
   ): Promise<HumanizedXcm> {
     const { network, xcm } = exportMessage.value as ExportMessage
@@ -342,5 +364,52 @@ export class XcmHumanizer {
   private extractTransactCall(instructions: XcmInstruction[]): string | undefined {
     const transact = instructions.find((op) => op.type === 'Transact')
     return transact ? (transact.value as Transact).call : undefined
+  }
+
+  private async toAddresses(chainId: NetworkURN, publicKey?: string | null): Promise<HumanizedAddresses> {
+    if (publicKey) {
+      if (publicKey.length === 42) {
+        // EVM address
+        return {
+          key: publicKey,
+        }
+      }
+      let prefix = this.#ss58Cache.get(chainId)
+
+      if (prefix === undefined) {
+        prefix = await this.fetchPrefix(chainId)
+        if (prefix !== undefined) {
+          this.#ss58Cache.set(chainId, prefix)
+        }
+      }
+
+      return {
+        key: publicKey,
+        formatted: fromBufferToBase58(prefix ?? 42)(fromHex(publicKey)),
+      }
+    }
+
+    return {
+      key: chainId,
+    }
+  }
+
+  private resolveRelayPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number | undefined {
+    const relay = getRelayId(urn)
+    return this.#ss58Cache.get(relay) ?? items.find((i) => i.urn === relay)?.ss58Prefix
+  }
+
+  private async fetchPrefix(chainId: NetworkURN): Promise<number | undefined> {
+    const { items } = (await this.#steward.query({
+      args: {
+        op: 'chains',
+        criteria: {
+          networks: [chainId],
+        },
+      },
+    })) as QueryResult<SubstrateNetworkInfo>
+
+    const chainInfo = items.find((item) => item.urn === chainId)
+    return chainInfo?.ss58Prefix
   }
 }

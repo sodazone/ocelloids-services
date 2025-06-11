@@ -114,10 +114,15 @@ export type XcmAsset = XcmAssetWithMetadata & {
   volume?: number
 }
 
+export type HumanizedAddresses = {
+  key: string
+  formatted?: string
+}
+
 export type HumanizedXcm = {
   type: XcmJourneyType
-  to: string
-  from: string
+  to: HumanizedAddresses
+  from: HumanizedAddresses
   assets: XcmAsset[]
   version?: string
   transactCall?: string

@@ -9,6 +9,8 @@ export interface XcmJourneyTable {
   destination: ColumnType<string>
   from: ColumnType<string>
   to: ColumnType<string>
+  from_formatted: ColumnType<string | undefined>
+  to_formatted: ColumnType<string | undefined>
   sent_at: ColumnType<number, number | undefined, never>
   recv_at: ColumnType<number, number | undefined, number | undefined>
   created_at: ColumnType<number, number, never>
