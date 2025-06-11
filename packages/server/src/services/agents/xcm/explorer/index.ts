@@ -1,4 +1,4 @@
-import { asJSON, asPublicKey } from '@/common/util.js'
+import { DeepCamelize, asJSON, asPublicKey, deepCamelize } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
@@ -12,7 +12,7 @@ import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext, isXcmReceiv
 import { JourneyFilters } from '../types/index.js'
 import { createXcmDatabase } from './repositories/db.js'
 import { XcmRepository } from './repositories/journeys.js'
-import { NewXcmAsset, NewXcmJourney, XcmJourneyUpdate } from './repositories/types.js'
+import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmJourneyUpdate } from './repositories/types.js'
 
 function toStatus(payload: XcmMessagePayload) {
   if (payload.waypoint.outcome === 'Fail') {
@@ -174,7 +174,10 @@ export class XcmExplorer {
     await this.#repository.close()
   }
 
-  async listJourneys(filters?: JourneyFilters, pagination?: QueryPagination): Promise<QueryResult> {
+  async listJourneys(
+    filters?: JourneyFilters,
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
     // convert address filters to public key for matching
     if (filters?.address) {
       filters.address = asPublicKey(filters.address)
@@ -186,27 +189,7 @@ export class XcmExplorer {
         hasNextPage: result.pageInfo.hasNextPage,
         endCursor: result.pageInfo.endCursor,
       },
-      items: result.nodes.map((journey) => ({
-        id: journey.id,
-        correlationId: journey.correlation_id,
-        status: journey.status,
-        type: journey.type,
-        origin: journey.origin,
-        destination: journey.destination,
-        from: journey.from,
-        to: journey.to,
-        fromFormatted: journey.from_formatted,
-        toFormatted: journey.to_formatted,
-        sentAt: journey.sent_at,
-        recvAt: journey.recv_at,
-        createdAt: journey.created_at,
-        stops: journey.stops,
-        instructions: journey.instructions,
-        transactCalls: journey.transact_calls,
-        originExtrinsicHash: journey.origin_extrinsic_hash,
-        originEvmTxHash: journey.origin_evm_tx_hash,
-        assets: journey.assets,
-      })),
+      items: result.nodes.map((journey) => deepCamelize<FullXcmJourney>(journey)),
     }
   }
 

@@ -123,3 +123,33 @@ export function toSqlText(input: string | null | undefined): string {
 
   return `'${escaped}'`
 }
+
+export function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+}
+
+export function deepCamelize<T>(input: any): DeepCamelize<T> {
+  if (Array.isArray(input)) {
+    return input.map(deepCamelize) as DeepCamelize<T>
+  }
+
+  if (input !== null && typeof input === 'object') {
+    return Object.fromEntries(
+      Object.entries(input).map(([key, value]) => [snakeToCamel(key), deepCamelize(value)]),
+    ) as DeepCamelize<T>
+  }
+
+  return input
+}
+
+export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
+  ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
+  : S
+
+export type DeepCamelize<T> = T extends Array<infer U>
+  ? DeepCamelize<U>[]
+  : T extends object
+    ? {
+        [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
+      }
+    : T
