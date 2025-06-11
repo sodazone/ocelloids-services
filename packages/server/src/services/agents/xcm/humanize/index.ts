@@ -1,11 +1,13 @@
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getRelayId } from '@/services/config.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateNetworkInfo } from '@/services/networking/substrate/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
+import { firstValueFrom } from 'rxjs'
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
@@ -17,6 +19,7 @@ import {
   ExportMessage,
   HopTransfer,
   HumanizedAddresses,
+  HumanizedTransactCall,
   MultiAsset,
   QueryableXcmAsset,
   Transact,
@@ -35,18 +38,22 @@ export class XcmHumanizer {
   readonly #ss58Cache: LRUCache<string, number, unknown>
   readonly #steward: DataSteward
   readonly #ticker: TickerAgent
+  readonly #ingress: SubstrateIngressConsumer
 
   constructor({
     log,
+    ingress,
     deps,
   }: {
     log: Logger
+    ingress: SubstrateIngressConsumer
     deps: {
       steward: DataSteward
       ticker: TickerAgent
     }
   }) {
     this.#log = log
+    this.#ingress = ingress
     this.#steward = deps.steward
     this.#ticker = deps.ticker
 
@@ -95,7 +102,7 @@ export class XcmHumanizer {
     const instructions = versioned.value
     const type = this.determineJourneyType(instructions)
     const beneficiary = this.extractBeneficiary(instructions)
-    const transactCall = this.extractTransactCall(instructions)
+    const transactCalls = await this.extractTransactCall(instructions, destination.chainId)
 
     const from = await this.toAddresses(origin.chainId, sender?.signer?.publicKey)
     const to = await this.toAddresses(destination.chainId, beneficiary)
@@ -107,7 +114,7 @@ export class XcmHumanizer {
     const assets = this.extractAssets(instructions)
     const resolvedAssets = await this.resolveAssets(legs, destination.chainId, assets)
 
-    return { type, from, to, assets: resolvedAssets, version, transactCall }
+    return { type, from, to, assets: resolvedAssets, version, transactCalls }
   }
 
   private async resolveAssets(
@@ -341,7 +348,7 @@ export class XcmHumanizer {
     const { network, xcm } = exportMessage.value as ExportMessage
     const anchor = this.extractExportDestination(network)
     if (!anchor) {
-      return Promise.resolve({ type, from, to, assets: [], version })
+      return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })
     }
 
     return this.resolveAssetsMetadata(anchor, this.extractAssets(xcm)).then((bridgeAssets) =>
@@ -350,7 +357,7 @@ export class XcmHumanizer {
           ...asset,
           volume: await this.resolveVolume(asset),
         })),
-      ).then((assets) => ({ type, from, to, assets, version })),
+      ).then((assets) => ({ type, from, to, assets, version, transactCalls: [] })),
     )
   }
 
@@ -361,9 +368,28 @@ export class XcmHumanizer {
     return `urn:ocn:${network.type.toLowerCase()}:${network.value.chain_id}`
   }
 
-  private extractTransactCall(instructions: XcmInstruction[]): string | undefined {
-    const transact = instructions.find((op) => op.type === 'Transact')
-    return transact ? (transact.value as Transact).call : undefined
+  private async extractTransactCall(
+    instructions: XcmInstruction[],
+    chainId: NetworkURN,
+  ): Promise<HumanizedTransactCall[]> {
+    const humanized: HumanizedTransactCall[] = []
+    const transacts = instructions.filter((op) => op.type === 'Transact')
+    if (transacts.length > 0) {
+      for (const t of transacts) {
+        const callData = (t.value as Transact).call
+        try {
+          const apiContext = this.#ingress.getContext(chainId)
+          const decodedCall = (await firstValueFrom(apiContext)).decodeCall(callData)
+          humanized.push({ ...decodedCall, raw: callData })
+        } catch (error) {
+          this.#log.error(error, 'Error decoding call from data %s (chainId: %s)', callData, chainId)
+          humanized.push({
+            raw: callData,
+          })
+        }
+      }
+    }
+    return humanized
   }
 
   private async toAddresses(chainId: NetworkURN, publicKey?: string | null): Promise<HumanizedAddresses> {

@@ -1,4 +1,5 @@
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
+import { HumanizedTransactCall } from '../../humanize/types.js'
 
 export interface XcmJourneyTable {
   id: Generated<number>
@@ -16,6 +17,7 @@ export interface XcmJourneyTable {
   created_at: ColumnType<number, number, never>
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
+  transact_calls: JSONColumnType<HumanizedTransactCall[]>
   origin_extrinsic_hash: ColumnType<string | undefined>
   origin_evm_tx_hash: ColumnType<string | undefined>
 }

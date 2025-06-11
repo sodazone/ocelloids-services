@@ -119,13 +119,20 @@ export type HumanizedAddresses = {
   formatted?: string
 }
 
+export type HumanizedTransactCall = {
+  raw: string
+  module?: string
+  method?: string
+  args?: AnyJson
+}
+
 export type HumanizedXcm = {
   type: XcmJourneyType
   to: HumanizedAddresses
   from: HumanizedAddresses
   assets: XcmAsset[]
   version?: string
-  transactCall?: string
+  transactCalls: HumanizedTransactCall[]
 }
 
 export function isConcrete(object: any): object is Concrete {

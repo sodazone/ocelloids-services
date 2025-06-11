@@ -5,7 +5,7 @@ import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Binary, Codec } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
-import { Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './types.js'
+import { Call, Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './types.js'
 
 export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: string) {
   let metadata
@@ -68,6 +68,15 @@ export class RuntimeApiContext implements SubstrateApiContext {
     return this.#metadata.lookup.find((ty) => ty.path.join('.').toLowerCase() === target.toLowerCase())?.id
   }
 
+  decodeCall(callData: string | Uint8Array): Call {
+    const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(callData)
+    return {
+      module: call.type,
+      method: call.value.type,
+      args: call.value.value,
+    }
+  }
+
   decodeExtrinsic(hexBytes: string | Uint8Array): Extrinsic {
     try {
       const xt: {
@@ -77,12 +86,10 @@ export class RuntimeApiContext implements SubstrateApiContext {
         signature?: any
       } = this.#extrinsicDecoder(hexBytes)
 
-      const call = this.#builder.buildDefinition(this.#ctx.lookup.call!).dec(xt.callData.asBytes())
+      const call = this.decodeCall(xt.callData.asBytes())
 
       return {
-        module: call.type,
-        method: call.value.type,
-        args: call.value.value,
+        ...call,
         signed: xt.signed,
         address: xt.address,
         signature: xt.signature,

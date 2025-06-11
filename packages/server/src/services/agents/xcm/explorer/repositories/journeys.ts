@@ -59,6 +59,7 @@ export class XcmRepository {
       created_at: rows[0].created_at,
       stops: rows[0].stops,
       instructions: rows[0].instructions,
+      transact_calls: rows[0].transact_calls,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
       origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
       assets: rows.map((row) => ({
@@ -108,6 +109,7 @@ export class XcmRepository {
         'xcm_journeys.created_at',
         'xcm_journeys.stops',
         'xcm_journeys.instructions',
+        'xcm_journeys.transact_calls',
         'xcm_journeys.origin_extrinsic_hash',
         'xcm_journeys.origin_evm_tx_hash',
         sql`json_group_array(json_object(
@@ -175,6 +177,7 @@ export class XcmRepository {
       created_at: row.created_at,
       stops: row.stops,
       instructions: row.instructions,
+      transact_calls: rows[0].transact_calls,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
       assets: Array.isArray(row.assets) ? row.assets : [],
@@ -253,6 +256,7 @@ export class XcmRepository {
       created_at: rows[0].created_at,
       stops: rows[0].stops,
       instructions: rows[0].instructions,
+      transact_calls: rows[0].transact_calls,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
       origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
       assets: rows.map((row) => ({

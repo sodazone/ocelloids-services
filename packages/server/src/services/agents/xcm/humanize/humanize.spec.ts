@@ -11,6 +11,7 @@ describe('XcmHumanizer', () => {
     const services = createServices()
     humanizer = new XcmHumanizer({
       log: services.log,
+      ingress: services.ingress.substrate,
       deps: {
         steward: services.agentCatalog.getAgentById('steward'),
         ticker: services.agentCatalog.getAgentById('ticker'),
@@ -266,7 +267,8 @@ describe('XcmHumanizer', () => {
     })
     expect(results.humanized).toBeDefined()
     expect(results.humanized.type).toBe('transact')
-    expect(results.humanized.transactCall).toBeDefined()
+    expect(results.humanized.transactCalls[0]).toBeDefined()
+    expect(results.humanized.transactCalls[0].raw).toBeDefined()
     expect(results.humanized.from).toBeDefined()
     expect(results.humanized.from.key).toBeDefined()
     expect(results.humanized.to).toBeDefined()

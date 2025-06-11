@@ -21,6 +21,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('created_at', 'timestamp', (cb) => cb.notNull().defaultTo(sql`current_timestamp`))
       .addColumn('stops', 'json', (cb) => cb.notNull())
       .addColumn('instructions', 'json', (cb) => cb.notNull())
+      .addColumn('transact_calls', 'json', (cb) => cb.notNull())
       .addColumn('origin_extrinsic_hash', 'varchar(255)')
       .addColumn('origin_evm_tx_hash', 'varchar(255)')
       .execute()

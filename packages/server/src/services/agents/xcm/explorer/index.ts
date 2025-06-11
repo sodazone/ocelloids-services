@@ -100,6 +100,7 @@ function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
     type: payload.humanized.type,
     destination: payload.destination.chainId,
     instructions: asJSON(payload.origin.instructions),
+    transact_calls: asJSON(payload.humanized.transactCalls),
     origin: payload.origin.chainId,
     origin_extrinsic_hash: payload.origin.extrinsicHash,
     origin_evm_tx_hash: toEvmTxHash(payload),
@@ -307,4 +308,33 @@ export class XcmExplorer {
       console.log(error)
     }
   }
+
+  /*
+  async #capture(message: XcmMessagePayload) {
+    const filePath = './msgs.jsonl'
+    let serializedMessage
+
+    switch (message.type) {
+      case 'xcm.sent':
+      case 'xcm.relayed': {
+        const humanizedXcm = await this.#humanizer.humanize(message)
+        serializedMessage = asJSON(humanizedXcm)
+        break
+      }
+      case 'xcm.received':
+
+      case 'xcm.hop':
+      case 'xcm.bridge':
+      case 'xcm.timeout':
+        serializedMessage = JSON.stringify(message)
+    }
+
+    try {
+      writeFileSync(filePath, `${serializedMessage}\n`, { flag: 'a' }) // Append the message to the file
+      this.#log.info('[xcm:explorer] Message written to %s', filePath)
+    } catch (error) {
+      this.#log.error(error, '[xcm:explorer] Failed to write message to file')
+    }
+  }
+    */
 }

@@ -94,6 +94,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     this.#tracker = new XcmTracker(ctx)
     this.#humanizer = new XcmHumanizer({
       log: ctx.log,
+      ingress: this.#ingress,
       deps,
     })
 
