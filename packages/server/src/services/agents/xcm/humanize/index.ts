@@ -31,6 +31,8 @@ import {
 } from './types.js'
 import { HumanizedXcm, XcmJourneyType } from './types.js'
 
+const DEFAULT_SS58_PREFIX = 42
+
 export class XcmHumanizer {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
@@ -79,11 +81,14 @@ export class XcmHumanizer {
 
   async start() {
     const { items } = (await this.#steward.query({
+      pagination: {
+        limit: 100
+      },
       args: { op: 'chains.list' },
     })) as QueryResult<SubstrateNetworkInfo>
 
     items.forEach(({ ss58Prefix, urn }) => {
-      const prefix = ss58Prefix ?? this.resolveRelayPrefix(urn, items)
+      const prefix = ss58Prefix === undefined || ss58Prefix === null ? this.resolveRelayPrefix(urn, items) : ss58Prefix
       this.#ss58Cache.set(urn, prefix)
     })
   }
@@ -404,14 +409,12 @@ export class XcmHumanizer {
 
       if (prefix === undefined) {
         prefix = await this.fetchPrefix(chainId)
-        if (prefix !== undefined) {
-          this.#ss58Cache.set(chainId, prefix)
-        }
+        this.#ss58Cache.set(chainId, prefix)
       }
 
       return {
         key: publicKey,
-        formatted: fromBufferToBase58(prefix ?? 42)(fromHex(publicKey)),
+        formatted: fromBufferToBase58(prefix)(fromHex(publicKey)),
       }
     }
 
@@ -420,12 +423,12 @@ export class XcmHumanizer {
     }
   }
 
-  private resolveRelayPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number | undefined {
+  private resolveRelayPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
     const relay = getRelayId(urn)
-    return this.#ss58Cache.get(relay) ?? items.find((i) => i.urn === relay)?.ss58Prefix
+    return this.#ss58Cache.get(relay) ?? items.find((i) => i.urn === relay)?.ss58Prefix ?? DEFAULT_SS58_PREFIX
   }
 
-  private async fetchPrefix(chainId: NetworkURN): Promise<number | undefined> {
+  private async fetchPrefix(chainId: NetworkURN): Promise<number> {
     const { items } = (await this.#steward.query({
       args: {
         op: 'chains',
@@ -436,6 +439,6 @@ export class XcmHumanizer {
     })) as QueryResult<SubstrateNetworkInfo>
 
     const chainInfo = items.find((item) => item.urn === chainId)
-    return chainInfo?.ss58Prefix
+    return chainInfo?.ss58Prefix ?? DEFAULT_SS58_PREFIX
   }
 }
