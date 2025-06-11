@@ -215,7 +215,9 @@ export class XcmRepository {
         ...asset,
         journey_id: journeyId,
       }))
-      await trx.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
+      if (assetsWithJourneyId.length > 0) {
+        await trx.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
+      }
 
       return journeyId
     })

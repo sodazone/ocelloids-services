@@ -295,7 +295,7 @@ export class XcmExplorer {
           this.#log.warn('[xcm:explorer] Unhandled message %j', message)
       }
     } catch (error) {
-      console.log(error)
+      this.#log.error(error, 'Error processing XCM message %j', asJSON(message))
     }
   }
 

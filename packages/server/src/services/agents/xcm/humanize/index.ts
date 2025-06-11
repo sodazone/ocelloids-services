@@ -82,13 +82,14 @@ export class XcmHumanizer {
   async start() {
     const { items } = (await this.#steward.query({
       pagination: {
-        limit: 100
+        limit: 100,
       },
       args: { op: 'chains.list' },
     })) as QueryResult<SubstrateNetworkInfo>
 
     items.forEach(({ ss58Prefix, urn }) => {
-      const prefix = ss58Prefix === undefined || ss58Prefix === null ? this.resolveRelayPrefix(urn, items) : ss58Prefix
+      const prefix =
+        ss58Prefix === undefined || ss58Prefix === null ? this.resolveRelayPrefix(urn, items) : ss58Prefix
       this.#ss58Cache.set(urn, prefix)
     })
   }

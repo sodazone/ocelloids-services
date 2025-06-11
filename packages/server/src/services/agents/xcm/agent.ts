@@ -159,7 +159,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     }
 
     this.#humanizer.start()
-    
+
     this.#analytics?.start(this.#tracker)
 
     this.#explorer.start(this.#tracker)
