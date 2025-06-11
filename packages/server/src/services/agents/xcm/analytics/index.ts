@@ -133,8 +133,8 @@ export class XcmAnalytics {
 
     for (const asset of assets) {
       transfers.push({
-        from,
-        to,
+        from: from.key,
+        to: to.key,
         recvAt,
         sentAt,
         volume: asset.volume,
