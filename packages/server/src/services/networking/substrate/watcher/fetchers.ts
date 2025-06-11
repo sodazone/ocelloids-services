@@ -12,9 +12,9 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
   const {
     tokenDecimals,
     tokenSymbol,
-    SS58Prefix,
+    ss58Format,
   }: {
-    SS58Prefix?: number
+    ss58Format?: number | null
     tokenDecimals?: number[] | number
     tokenSymbol?: string[] | string
   } = chainSpecData.properties
@@ -28,7 +28,6 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
 
   const chainTokens = getPropertyArray(tokenSymbol)
   const chainDecimals = getPropertyArray(tokenDecimals)
-  const ss58Prefix = SS58Prefix ?? 42
 
   const genesisHash = chainSpecData.genesisHash as HexString
   const runtimeChain = chainSpecData.name
@@ -42,7 +41,7 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
     existentialDeposit,
     chainTokens,
     chainDecimals,
-    ss58Prefix,
+    ss58Prefix: ss58Format ?? 42,
     parachainId,
     runtimeChain,
   }

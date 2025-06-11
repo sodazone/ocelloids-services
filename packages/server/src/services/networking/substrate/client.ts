@@ -183,8 +183,8 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
         this.#request<string>('system_chain', []),
         this.#request<string>('chain_getBlockHash', [0]),
         this.#request<{
-          ss58Format?: string
-          SS58Prefix: number
+          ss58Format?: string | null
+          isEthereum: boolean
           tokenSymbol: string[] | string
           tokenDecimals: number[] | number
         }>('system_properties', []),
