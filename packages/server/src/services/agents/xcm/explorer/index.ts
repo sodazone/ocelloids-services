@@ -1,4 +1,4 @@
-import { asJSON } from '@/common/util.js'
+import { asJSON, asPublicKey } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
@@ -175,6 +175,10 @@ export class XcmExplorer {
   }
 
   async listJourneys(filters?: JourneyFilters, pagination?: QueryPagination): Promise<QueryResult> {
+    // convert address filters to public key for matching
+    if (filters?.address) {
+      filters.address = asPublicKey(filters.address)
+    }
     const result = await this.#repository.listFullJourneys(filters, pagination)
 
     return {
@@ -196,6 +200,7 @@ export class XcmExplorer {
         createdAt: journey.created_at,
         stops: journey.stops,
         instructions: journey.instructions,
+        transactCalls: journey.transact_calls,
         originExtrinsicHash: journey.origin_extrinsic_hash,
         originEvmTxHash: journey.origin_evm_tx_hash,
         assets: journey.assets,

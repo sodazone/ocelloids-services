@@ -1,6 +1,7 @@
 import { createReadStream } from 'fs'
 import { resolve } from 'path'
 import { createInterface } from 'readline'
+import { asJSON } from '@/common/util.js'
 import { createServices } from '@/testing/services.js'
 import { xcmDataDir } from '@/testing/xcm.js'
 import { Observable, share } from 'rxjs'
@@ -58,6 +59,7 @@ describe('XcmExplorer', () => {
     await streamCompleted
 
     const { items } = await explorer.listJourneys()
+    console.log(asJSON(items))
     expect(items).toBeDefined()
     expect(items.length).toBeGreaterThan(0)
   })
