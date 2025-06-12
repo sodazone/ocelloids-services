@@ -87,19 +87,22 @@ describe('xcmp operator', () => {
             {
               recipient: 2000,
               data: Binary.fromHex(
-                '0x0004140104010200511f040a00130000b2d3595bf0060a13010200511f040a00130000b2d3595bf006000d010204000101005a071f642798f89d68b050384132eea7b65db483b00dbb05548d3ce472cfef482cfffc1445e3d88a8a8a26a65de4cbed2af329009aec64884a91c7d6009d0b30ae59'
+                '0x0004140104010200511f040a00130000b2d3595bf0060a13010200511f040a00130000b2d3595bf006000d010204000101005a071f642798f89d68b050384132eea7b65db483b00dbb05548d3ce472cfef482cfffc1445e3d88a8a26a65de4cbed2af329009aec64884a91c7d6009d0b30ae59',
               ),
             },
           ],
         ])
 
       const calls = vi.fn()
-      const test$ = extractXcmpSend(origin, getHrmp, testApiContextFromMetadata('moonbeam.xcmv4.scale'))(blocks.pipe(extractEvents()))
+      const test$ = extractXcmpSend(
+        origin,
+        getHrmp,
+        testApiContextFromMetadata('moonbeam.xcmv4.scale'),
+      )(blocks.pipe(extractEvents()))
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
-            console.log(msg)
             calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
