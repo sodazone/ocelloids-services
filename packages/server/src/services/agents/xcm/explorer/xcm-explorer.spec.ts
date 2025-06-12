@@ -58,11 +58,15 @@ describe('XcmExplorer', () => {
     await streamCompleted
 
     const { items } = await explorer.listJourneys()
+    const { items: journey0 } = await explorer.getJourneyById({ id: 0 })
+
     expect(items).toBeDefined()
     expect(items.length).toBeGreaterThan(0)
     expect(items.filter((i) => i.transactCalls.length > 0).length).toBeGreaterThan(0)
     expect(items.filter((i) => i.assets.length > 0).length).toBeGreaterThan(0)
     expect(items.filter((i) => i.type === 'transfer').length).toBeGreaterThan(0)
     expect(items.filter((i) => i.type === 'transact').length).toBeGreaterThan(0)
+
+    expect(journey0).toBeDefined()
   })
 })
