@@ -52,6 +52,12 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('journeys.list'),
     criteria: $JourneyFilters,
   }),
+  z.object({
+    op: z.literal('journeys.by_id'),
+    criteria: z.object({
+      id: z.number(),
+    }),
+  }),
 ])
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>

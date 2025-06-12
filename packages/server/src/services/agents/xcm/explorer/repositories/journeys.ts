@@ -211,11 +211,12 @@ export class XcmRepository {
 
       const journeyId = insertedJourney.id
 
-      const assetsWithJourneyId = assets.map((asset) => ({
-        ...asset,
-        journey_id: journeyId,
-      }))
-      if (assetsWithJourneyId.length > 0) {
+      if (assets.length > 0) {
+        const assetsWithJourneyId = assets.map((asset) => ({
+          ...asset,
+          journey_id: journeyId,
+        }))
+
         await trx.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
       }
 

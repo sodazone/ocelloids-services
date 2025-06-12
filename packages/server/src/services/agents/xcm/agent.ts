@@ -186,7 +186,8 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     switch (params.args.op) {
       case 'journeys.list':
         return this.#explorer.listJourneys(params.args.criteria, params.pagination)
-
+      case 'journeys.by_id':
+        return this.#explorer.getJourneyById(params.args.criteria)
       default:
         if (this.#analytics) {
           return this.#analytics.query(params)

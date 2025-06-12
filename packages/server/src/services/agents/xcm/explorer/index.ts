@@ -185,12 +185,14 @@ export class XcmExplorer {
     const result = await this.#repository.listFullJourneys(filters, pagination)
 
     return {
-      pageInfo: {
-        hasNextPage: result.pageInfo.hasNextPage,
-        endCursor: result.pageInfo.endCursor,
-      },
+      pageInfo: result.pageInfo,
       items: result.nodes.map((journey) => deepCamelize<FullXcmJourney>(journey)),
     }
+  }
+
+  async getJourneyById({ id }: { id: number }): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
+    const journey = await this.#repository.getJourneyById(id)
+    return journey ? { items: [deepCamelize<FullXcmJourney>(journey)] } : { items: [] }
   }
 
   async #onXcmMessage(message: XcmMessagePayload) {
