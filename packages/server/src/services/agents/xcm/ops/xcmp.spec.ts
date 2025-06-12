@@ -2,7 +2,7 @@ import { extractEvents } from '@/services/networking/substrate/index.js'
 import { apiContext, xcmpSend } from '@/testing/xcm.js'
 
 import { NetworkURN } from '@/lib.js'
-import { testBlocksFrom } from '@/testing/blocks.js'
+import { testApiContextFromMetadata, testBlocksFrom } from '@/testing/blocks.js'
 import { Binary } from 'polkadot-api'
 import { from } from 'rxjs'
 import { extractXcmpSend } from './xcmp.js'
@@ -58,6 +58,48 @@ describe('xcmp operator', () => {
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.instructions).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.recipient).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.sender?.signer.id).toBeDefined()
+          },
+          complete: () => {
+            // should be 1 since we don't want dups
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should extract moonbeam xcmp sent', async () => {
+      const origin = 'urn:ocn:local:2004' as NetworkURN
+      const blocks = from(testBlocksFrom('moonbeam/11272812.cbor'))
+      const getHrmp = () =>
+        from([
+          [
+            {
+              recipient: 2000,
+              data: Binary.fromHex(
+                '0x0004140104010200511f040a00130000b2d3595bf0060a13010200511f040a00130000b2d3595bf006000d010204000101005a071f642798f89d68b050384132eea7b65db483b00dbb05548d3ce472cfef482cfffc1445e3d88a8a8a26a65de4cbed2af329009aec64884a91c7d6009d0b30ae59'
+              ),
+            },
+          ],
+        ])
+
+      const calls = vi.fn()
+      const test$ = extractXcmpSend(origin, getHrmp, testApiContextFromMetadata('moonbeam.xcmv4.scale'))(blocks.pipe(extractEvents()))
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            console.log(msg)
             calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
