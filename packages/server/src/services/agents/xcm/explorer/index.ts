@@ -1,8 +1,10 @@
-import { DeepCamelize, asJSON, asPublicKey, deepCamelize } from '@/common/util.js'
+import { DeepCamelize, asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
+import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { Migrator } from 'kysely'
+import { toHex } from 'polkadot-api/utils'
 import { Subscription, concatMap } from 'rxjs'
 import { QueryPagination, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
@@ -24,7 +26,7 @@ function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination && payload.destination.outcome === 'Success') {
     return 'received'
   }
-  if (['xcm.sent', 'xcm.relayed'].includes(payload.type)) {
+  if (['xcm.sent', 'xcm.relayed', 'xcm.hop'].includes(payload.type)) {
     return 'sent'
   }
   return 'unknown'
@@ -86,7 +88,12 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
 }
 
 function toCorrelationId(payload: XcmMessagePayload): string {
-  return payload.messageId ?? payload.origin.messageHash
+  const id = payload.messageId ?? payload.origin.messageHash
+  const originEvent = payload.origin.event ? (payload.origin.event as BlockEvent) : undefined
+  const eventId = originEvent
+    ? `${originEvent.blockNumber}-${originEvent.blockPosition}`
+    : `${payload.origin.blockNumber}`
+  return toHex(Twox256(stringToUa8(`${id}${payload.origin.chainId}${eventId}`)))
 }
 
 function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
@@ -152,7 +159,7 @@ export class XcmExplorer {
     this.#sub = tracker.xcm$
       // .historicalXcm$({
       //   agent: 'xcm',
-      //   timeframe: 'this_2_days',
+      //   timeframe: 'this_1_hours',
       // })
       .pipe(
         concatMap(async (message) => {
@@ -260,7 +267,6 @@ export class XcmExplorer {
               JSON.parse(newJourney.stops),
             ),
           )
-
           await this.#repository.insertJourneyWithAssets(
             newJourney,
             toNewAssets(humanizedXcm.humanized.assets),
@@ -288,7 +294,6 @@ export class XcmExplorer {
           if (isXcmReceived(message)) {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
-
           await this.#repository.updateJourney(existingJourney.id, updateWith)
           break
         }
@@ -328,5 +333,5 @@ export class XcmExplorer {
       this.#log.error(error, '[xcm:explorer] Failed to write message to file')
     }
   }
-    */
+  */
 }

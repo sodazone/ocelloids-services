@@ -19,7 +19,7 @@ describe('XcmExplorer', () => {
     // Mock tracker with RxJS Observable
     tracker = {
       xcm$: new Observable((subscriber) => {
-        const filePath = resolve(xcmDataDir, '001.jsonl')
+        const filePath = resolve(xcmDataDir, '002.jsonl')
         const stream = createReadStream(filePath, { encoding: 'utf-8' })
         const rl = createInterface({ input: stream })
 
