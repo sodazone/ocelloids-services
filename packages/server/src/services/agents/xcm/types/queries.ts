@@ -18,8 +18,7 @@ export const $JourneyFilters = z.optional(
     origins: z.optional(z.array($NetworkString).min(1).max(50)),
     destinations: z.optional(z.array($NetworkString).min(1).max(50)),
     address: z.optional(z.string()),
-    extrinsicHash: z.optional(z.string()),
-    evmTxHash: z.optional(z.string()),
+    txHash: z.optional(z.string()),
   }),
 )
 

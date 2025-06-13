@@ -148,12 +148,13 @@ export class XcmRepository {
       )
     }
 
-    if (filters?.extrinsicHash) {
-      query = query.where('xcm_journeys.origin_extrinsic_hash', '=', filters.extrinsicHash)
-    }
-
-    if (filters?.evmTxHash) {
-      query = query.where('xcm_journeys.origin_evm_tx_hash', '=', filters.evmTxHash)
+    if (filters?.txHash !== undefined) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('xcm_journeys.origin_extrinsic_hash', '=', filters.txHash!),
+          eb('xcm_journeys.origin_evm_tx_hash', '=', filters.txHash!),
+        ]),
+      )
     }
 
     const rows = await query.execute()
