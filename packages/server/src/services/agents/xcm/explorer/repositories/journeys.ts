@@ -181,7 +181,9 @@ export class XcmRepository {
       transact_calls: row.transact_calls,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
-      assets: Array.isArray(row.assets) ? row.assets : [],
+      assets: Array.isArray(row.assets)
+        ? row.assets.filter((a) => a.asset !== null && a.amount !== null)
+        : [],
     }))
 
     const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
