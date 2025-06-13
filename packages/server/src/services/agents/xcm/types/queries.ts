@@ -19,6 +19,7 @@ export const $JourneyFilters = z.optional(
     destinations: z.optional(z.array($NetworkString).min(1).max(50)),
     address: z.optional(z.string()),
     txHash: z.optional(z.string()),
+    status: z.optional(z.enum(['sent', 'received', 'timeout', 'failed'])),
   }),
 )
 
