@@ -6,7 +6,7 @@ import { createServices } from '@/testing/services.js'
 import { Subscription } from '../../subscriptions/types.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
-import { XcmInputs } from './types.js'
+import { XcmInputs } from './types/index.js'
 
 const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',

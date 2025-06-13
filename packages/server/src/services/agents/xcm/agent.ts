@@ -1,7 +1,7 @@
 import { Operation } from 'rfc6902'
-import { filter } from 'rxjs'
+import { filter, mergeMap } from 'rxjs'
 
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -20,9 +20,12 @@ import {
 } from '../types.js'
 
 import { asDateRange } from '@/services/archive/time.js'
+import { DataSteward } from '../steward/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
 import { XcmAnalytics } from './analytics/index.js'
-import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
+import { XcmExplorer } from './explorer/index.js'
 import { XcmSubscriptionManager } from './handlers.js'
+import { XcmHumanizer } from './humanize/index.js'
 import {
   matchMessage,
   matchNotificationType,
@@ -32,7 +35,14 @@ import {
   sendersCriteria,
 } from './ops/criteria.js'
 import { XcmTracker } from './tracking.js'
-import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
+import {
+  $XcmInputs,
+  HumanizedXcmPayload,
+  XcmInputs,
+  XcmMessagePayload,
+  XcmSubscriptionHandler,
+} from './types/index.js'
+import { $XcmQueryArgs, XcmQueryArgs } from './types/index.js'
 
 export const XCM_AGENT_ID = 'xcm'
 
@@ -63,10 +73,18 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
 
   readonly #subs: XcmSubscriptionManager
   readonly #tracker: XcmTracker
+  readonly #humanizer: XcmHumanizer
+  readonly #explorer: XcmExplorer
 
   #analytics?: XcmAnalytics
 
-  constructor(ctx: AgentRuntimeContext) {
+  constructor(
+    ctx: AgentRuntimeContext,
+    deps: {
+      steward: DataSteward
+      ticker: TickerAgent
+    },
+  ) {
     this.#log = ctx.log
 
     this.#ingress = ctx.ingress.substrate
@@ -74,18 +92,29 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
 
     this.#subs = new XcmSubscriptionManager(ctx.log, ctx.ingress, this)
     this.#tracker = new XcmTracker(ctx)
+    this.#humanizer = new XcmHumanizer({
+      log: ctx.log,
+      ingress: this.#ingress,
+      deps,
+    })
 
     try {
       if (ctx.analyticsDB !== undefined) {
         this.#analytics = new XcmAnalytics({
           log: ctx.log,
-          catalog: ctx.agentCatalog,
           db: ctx.analyticsDB,
+          humanizer: this.#humanizer,
         })
       }
     } catch (error: unknown) {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
+
+    this.#explorer = new XcmExplorer({
+      log: ctx.log,
+      dataPath: ctx.environment?.dataPath,
+      humanizer: this.#humanizer,
+    })
   }
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
@@ -129,12 +158,18 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       }
     }
 
+    this.#humanizer.start()
+
     this.#analytics?.start(this.#tracker)
+
+    this.#explorer.start(this.#tracker)
   }
 
   async stop(): Promise<void> {
     this.#subs.stop()
+
     await this.#tracker.stop()
+    await this.#explorer.stop()
 
     this.#analytics?.stop()
   }
@@ -148,11 +183,17 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   }
 
   query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
-    if (this.#analytics) {
-      return this.#analytics.query(params)
+    switch (params.args.op) {
+      case 'journeys.list':
+        return this.#explorer.listJourneys(params.args.criteria, params.pagination)
+      case 'journeys.by_id':
+        return this.#explorer.getJourneyById(params.args.criteria)
+      default:
+        if (this.#analytics) {
+          return this.#analytics.query(params)
+        }
+        throw new Error('analytics are not enabled')
     }
-
-    throw new Error('analytics are not enabled')
   }
 
   /**
@@ -190,9 +231,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
             matchSenders(sendersControl, payload.sender)
           )
         }),
+        mergeMap((payload: XcmMessagePayload) => this.#humanizer.humanize(payload)),
       )
       .subscribe({
-        next: (payload: XcmMessagePayload) => {
+        next: (payload: HumanizedXcmPayload) => {
           if (this.#subs.has(id)) {
             const { subscription } = this.#subs.get(id)
             this.#notifier.publish(subscription, {
@@ -204,7 +246,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
                 timestamp: Date.now(),
                 blockTimestamp: payload.waypoint.timestamp,
               },
-              payload: payload as unknown as AnyJson,
+              payload: asSerializable(payload) as unknown as AnyJson,
             })
           } else {
             // this could happen with closed ephemeral subscriptions

@@ -226,6 +226,7 @@ Replace `<path/to/your-config.toml>` with a valid configuration file path. Confi
 | `informant` | General Informant | Fetches transactions and events using custom MongoQL-compatible filtering expressions.     |
 | `xcm`       | XCM Monitor       | Monitors Cross-consensus Message Format (XCM) program executions across consensus systems. |
 | `steward`   | Data Steward      | Aggregates and enriches cross-chain metadata for assets and currencies.                    |
+| `ticker`    | Ticker Agent      | Fetches and aggregates asset prices from multiple sources.                                 |
 
 For technical details refer to the [agents service README](https://github.com/sodazone/ocelloids-services/tree/main/packages/server/src/services/agents).
 

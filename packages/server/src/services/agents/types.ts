@@ -42,6 +42,9 @@ export type AgentRuntimeContext = {
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog
+  environment?: {
+    dataPath?: string
+  }
   archive?: ArchiveRepository
   archiveRetention?: ArchiveRetentionOptions
   analyticsDB?: DuckDBInstance
