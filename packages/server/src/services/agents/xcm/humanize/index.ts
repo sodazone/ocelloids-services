@@ -32,6 +32,9 @@ import {
 import { HumanizedXcm, XcmJourneyType } from './types.js'
 
 const DEFAULT_SS58_PREFIX = 42
+const SS58_PREFIX_OVERRIDES: Record<NetworkURN, number> = {
+  'urn:ocn:polkadot:2031': 36,
+}
 
 export class XcmHumanizer {
   readonly #log: Logger
@@ -89,7 +92,7 @@ export class XcmHumanizer {
 
     items.forEach(({ ss58Prefix, urn }) => {
       const prefix =
-        ss58Prefix === undefined || ss58Prefix === null ? this.resolveRelayPrefix(urn, items) : ss58Prefix
+        ss58Prefix === undefined || ss58Prefix === null ? this.resolveFallbackPrefix(urn, items) : ss58Prefix
       this.#ss58Cache.set(urn, prefix)
     })
   }
@@ -424,7 +427,10 @@ export class XcmHumanizer {
     }
   }
 
-  private resolveRelayPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
+  private resolveFallbackPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
+    if (SS58_PREFIX_OVERRIDES[urn] !== undefined) {
+      return SS58_PREFIX_OVERRIDES[urn]
+    }
     const relay = getRelayId(urn)
     return this.#ss58Cache.get(relay) ?? items.find((i) => i.urn === relay)?.ss58Prefix ?? DEFAULT_SS58_PREFIX
   }
@@ -440,6 +446,6 @@ export class XcmHumanizer {
     })) as QueryResult<SubstrateNetworkInfo>
 
     const chainInfo = items.find((item) => item.urn === chainId)
-    return chainInfo?.ss58Prefix ?? DEFAULT_SS58_PREFIX
+    return chainInfo?.ss58Prefix ?? this.resolveFallbackPrefix(chainId, items)
   }
 }
