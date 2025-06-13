@@ -1016,6 +1016,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.11.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.11.2-8ffc55ebc9.patch":
+  version: 0.11.2
+  resolution: "@polkadot-api/observable-client@patch:@polkadot-api/observable-client@npm%3A0.11.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.11.2-8ffc55ebc9.patch::version=0.11.2&hash=ec2783"
+  dependencies:
+    "@polkadot-api/metadata-builders": "npm:0.12.2"
+    "@polkadot-api/substrate-bindings": "npm:0.14.0"
+    "@polkadot-api/utils": "npm:0.2.0"
+  peerDependencies:
+    "@polkadot-api/substrate-client": 0.4.0
+    rxjs: ">=7.8.0"
+  checksum: 10c0/27bb2c1c57df16a35ce7ca1bc66f12431afc56d4b9ff4d2c401405bf5a067199369fbb0e1af6e1077de80556afda798282efa530d9235fca1a80b2a184eaa169
+  languageName: node
+  linkType: hard
+
 "@polkadot-api/pjs-signer@npm:0.6.9":
   version: 0.6.9
   resolution: "@polkadot-api/pjs-signer@npm:0.6.9"
