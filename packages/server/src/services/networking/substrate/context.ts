@@ -1,13 +1,12 @@
 import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
 import { RuntimeContext } from '@polkadot-api/observable-client'
 import {
+  Binary,
   Blake2256,
   Decoder,
   V14,
   V15,
-  V16,
   metadata as metadataCodec,
-  unifyMetadata,
 } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Codec } from 'polkadot-api'
@@ -18,11 +17,11 @@ import { Call, Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './t
 export function createRuntimeApiContext(metadataRaw: Uint8Array, chainId?: string) {
   let metadata
   try {
-    metadata = metadataCodec.dec(metadataRaw).metadata.value as V14 | V15 | V16
+    metadata = metadataCodec.dec(metadataRaw).metadata.value as V14 | V15
   } catch (error) {
     throw new Error(`[${chainId}] Failed to decode metadata`, { cause: error })
   }
-  const lookup = getLookupFn(unifyMetadata(metadata))
+  const lookup = getLookupFn(metadata)
   const dynamicBuilder = getDynamicBuilder(lookup)
   const events = dynamicBuilder.buildStorage('System', 'Events')
 
@@ -87,15 +86,19 @@ export class RuntimeApiContext implements SubstrateApiContext {
 
   decodeExtrinsic(hexBytes: string | Uint8Array): Extrinsic {
     try {
-      const xt = this.#extrinsicDecoder(hexBytes)
+      const xt: {
+        callData: Binary
+        signed: boolean
+        address?: any
+        signature?: any
+      } = this.#extrinsicDecoder(hexBytes)
 
       const call = this.decodeCall(xt.callData.asBytes())
-      // TODO: add extras if useful?
       return {
         ...call,
-        signed: xt.type === 'signed',
-        address: xt.type === 'signed' ? xt.address : undefined,
-        signature: xt.type === 'signed' ? xt.signature : undefined,
+        signed: xt.signed,
+        address: xt.address,
+        signature: xt.signature,
         hash: toHex(Blake2256(typeof hexBytes === 'string' ? fromHex(hexBytes) : hexBytes)),
       }
     } catch (error) {
