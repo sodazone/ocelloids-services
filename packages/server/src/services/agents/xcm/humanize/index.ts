@@ -347,7 +347,7 @@ export class XcmHumanizer {
     return instructions.find((op) => op.type === 'ExportMessage')
   }
 
-  private handleBridgeMessage(
+  private async handleBridgeMessage(
     exportMessage: XcmInstruction,
     type: XcmJourneyType,
     from: HumanizedAddresses,
@@ -355,10 +355,13 @@ export class XcmHumanizer {
     version: string,
   ): Promise<HumanizedXcm> {
     const { network, xcm } = exportMessage.value as ExportMessage
+    const beneficiary = this.extractBeneficiary(xcm) 
     const anchor = this.extractExportDestination(network)
     if (!anchor) {
       return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })
     }
+
+    const bridgedBeneficiary = beneficiary ? await this.toAddresses(anchor as NetworkURN, beneficiary) : to
 
     return this.resolveAssetsMetadata(anchor, this.extractAssets(xcm)).then((bridgeAssets) =>
       Promise.all(
@@ -366,7 +369,7 @@ export class XcmHumanizer {
           ...asset,
           volume: await this.resolveVolume(asset),
         })),
-      ).then((assets) => ({ type, from, to, assets, version, transactCalls: [] })),
+      ).then((assets) => ({ type, from, to: bridgedBeneficiary, assets, version, transactCalls: [] })),
     )
   }
 
