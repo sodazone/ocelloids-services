@@ -175,6 +175,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       value: 8,
     },
   },
+  MANTA: {
+    chainId: 'urn:ocn:polkadot:2104',
+    assetId: 'native',
+  },
   KSM: {
     chainId: 'urn:ocn:kusama:0',
     assetId: 'native',

@@ -56,6 +56,7 @@ const CG_ID_MAP: Record<string, string> = {
   VASTR: 'bifrost-voucher-astr',
   VGLMR: 'voucher-glmr',
   VMANTA: 'bifrost-voucher-manta',
+  MANTA: 'manta-network',
   KSM: 'kusama',
   SOL: 'solana',
 }
