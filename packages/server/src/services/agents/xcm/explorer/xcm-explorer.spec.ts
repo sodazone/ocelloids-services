@@ -13,6 +13,8 @@ import { XcmExplorer } from './index.js'
 describe('XcmExplorer', () => {
   let explorer: XcmExplorer
   let tracker: XcmTracker
+  let broadcaster: ServerSideEventsBroadcaster
+  let sendSpy: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     const { log } = createServices()
@@ -38,14 +40,19 @@ describe('XcmExplorer', () => {
       }).pipe(share()),
     } as unknown as XcmTracker
 
+    sendSpy = vi.fn()
+    broadcaster = {
+      send: sendSpy,
+      stream: vi.fn(),
+      close: vi.fn(),
+    } as unknown as ServerSideEventsBroadcaster
+
     explorer = new XcmExplorer({
       log,
       humanizer: {
         humanize: (msg: any) => msg,
       } as unknown as XcmHumanizer,
-      broadcaster: {
-        //
-      } as unknown as ServerSideEventsBroadcaster,
+      broadcaster,
     })
   })
 
@@ -63,6 +70,12 @@ describe('XcmExplorer', () => {
 
     const { items } = await explorer.listJourneys()
     const { items: journey0 } = await explorer.getJourneyById({ id: 0 })
+
+    const eventTypes = sendSpy.mock.calls.map((call) => call[0]?.event)
+
+    expect(sendSpy).toHaveBeenCalled()
+    expect(eventTypes).toContain('new_journey')
+    expect(eventTypes).toContain('update_journey')
 
     expect(items).toBeDefined()
     expect(items.length).toBeGreaterThan(0)
