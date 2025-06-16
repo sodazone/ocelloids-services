@@ -1,7 +1,7 @@
 import { Operation } from 'rfc6902'
 import { filter, mergeMap } from 'rxjs'
 
-import { ControlQuery, asSerializable } from '@/common/index.js'
+import { ControlQuery, asPublicKey, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -15,15 +15,21 @@ import {
   QueryParams,
   QueryResult,
   Queryable,
+  ServerSideEvent,
+  ServerSideEventsBroadcaster,
+  ServerSideEventsRequest,
+  Streamable,
   Subscribable,
   getAgentCapabilities,
 } from '../types.js'
 
 import { asDateRange } from '@/services/archive/time.js'
+import { createServerSideEventsBroadcaster } from '../api/sse.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { XcmAnalytics } from './analytics/index.js'
 import { XcmExplorer } from './explorer/index.js'
+import { FullXcmJourneyResponse } from './explorer/repositories/types.js'
 import { XcmSubscriptionManager } from './handlers.js'
 import { XcmHumanizer } from './humanize/index.js'
 import {
@@ -43,19 +49,61 @@ import {
   XcmSubscriptionHandler,
 } from './types/index.js'
 import { $XcmQueryArgs, XcmQueryArgs } from './types/index.js'
+import { $XcmServerSideEventArgs, XcmServerSideEventArgs } from './types/sse.js'
 
 export const XCM_AGENT_ID = 'xcm'
+
+function applySseFilters(
+  filters: XcmServerSideEventArgs,
+  { data: journey }: ServerSideEvent<FullXcmJourneyResponse>,
+): boolean {
+  if (filters.id && filters.id !== journey.id) {
+    return false
+  }
+  if (filters.origins && !filters.origins.includes(journey.origin)) {
+    return false
+  }
+  if (filters.destinations && !filters.destinations.includes(journey.destination)) {
+    return false
+  }
+  if (filters.assets) {
+    const journeySymbols = journey.assets.map((a) => a.asset.toLowerCase())
+    const hasAsset = filters.assets.some((a) => journeySymbols.includes(a.toLowerCase()))
+    if (!hasAsset) {
+      return false
+    }
+  }
+  if (filters.status && filters.status !== journey.status) {
+    return false
+  }
+  if (filters.address) {
+    const pubKeyOrEvmAddress = asPublicKey(filters.address)
+    if (pubKeyOrEvmAddress !== journey.from && pubKeyOrEvmAddress !== journey.to) {
+      return false
+    }
+  }
+  if (
+    filters.txHash &&
+    filters.txHash !== journey.originExtrinsicHash &&
+    filters.txHash !== journey.originEvmTxHash
+  ) {
+    return false
+  }
+
+  return true
+}
 
 /**
  * The XCM monitoring agent.
  *
  * Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
  */
-export class XcmAgent implements Agent, Subscribable, Queryable {
+export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
   id = XCM_AGENT_ID
 
   querySchema = $XcmQueryArgs
   inputSchema = $XcmInputs
+  streamFilterSchema = $XcmServerSideEventArgs
 
   metadata: AgentMetadata = {
     name: 'XCM Agent',
@@ -75,6 +123,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   readonly #tracker: XcmTracker
   readonly #humanizer: XcmHumanizer
   readonly #explorer: XcmExplorer
+  readonly #sseBroadcaster: ServerSideEventsBroadcaster
 
   #analytics?: XcmAnalytics
 
@@ -110,10 +159,12 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
 
+    this.#sseBroadcaster = createServerSideEventsBroadcaster<XcmServerSideEventArgs>(applySseFilters)
     this.#explorer = new XcmExplorer({
       log: ctx.log,
       dataPath: ctx.environment?.dataPath,
       humanizer: this.#humanizer,
+      broadcaster: this.#sseBroadcaster,
     })
   }
 
@@ -166,6 +217,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   }
 
   async stop(): Promise<void> {
+    this.#sseBroadcaster.close()
     this.#subs.stop()
 
     await this.#tracker.stop()
@@ -194,6 +246,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
         }
         throw new Error('analytics are not enabled')
     }
+  }
+
+  onServerSideEventsRequest(request: ServerSideEventsRequest<XcmServerSideEventArgs>) {
+    this.#sseBroadcaster.stream(request)
   }
 
   /**

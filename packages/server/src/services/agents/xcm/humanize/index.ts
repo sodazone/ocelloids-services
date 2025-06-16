@@ -355,7 +355,7 @@ export class XcmHumanizer {
     version: string,
   ): Promise<HumanizedXcm> {
     const { network, xcm } = exportMessage.value as ExportMessage
-    const beneficiary = this.extractBeneficiary(xcm) 
+    const beneficiary = this.extractBeneficiary(xcm)
     const anchor = this.extractExportDestination(network)
     if (!anchor) {
       return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })

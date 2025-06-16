@@ -6,7 +6,7 @@ import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { Migrator } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { Subscription, concatMap } from 'rxjs'
-import { QueryPagination, QueryResult } from '../../types.js'
+import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmAsset } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
@@ -136,10 +136,16 @@ export class XcmExplorer {
   readonly #humanizer: XcmHumanizer
   readonly #repository: XcmRepository
   readonly #migrator: Migrator
+  readonly #broadcaster: ServerSideEventsBroadcaster
 
   #sub?: Subscription
 
-  constructor({ log, dataPath, humanizer }: { log: Logger; dataPath?: string; humanizer: XcmHumanizer }) {
+  constructor({
+    log,
+    dataPath,
+    humanizer,
+    broadcaster,
+  }: { log: Logger; dataPath?: string; humanizer: XcmHumanizer; broadcaster: ServerSideEventsBroadcaster }) {
     this.#log = log
     this.#humanizer = humanizer
 
@@ -149,6 +155,7 @@ export class XcmExplorer {
     const { db, migrator } = createXcmDatabase(filename)
     this.#migrator = migrator
     this.#repository = new XcmRepository(db)
+    this.#broadcaster = broadcaster
   }
 
   async start(tracker: XcmTracker) {
@@ -216,10 +223,17 @@ export class XcmExplorer {
 
           // Insert a new journey with assets if no existing journey
           const humanizedXcm = await this.#humanizer.humanize(message)
-          await this.#repository.insertJourneyWithAssets(
-            toNewJourney(humanizedXcm),
-            toNewAssets(humanizedXcm.humanized.assets),
-          )
+          const journey = toNewJourney(humanizedXcm)
+          const assets = toNewAssets(humanizedXcm.humanized.assets)
+          const id = await this.#repository.insertJourneyWithAssets(journey, assets)
+          this.#broadcaster.send({
+            event: 'new_journey',
+            data: deepCamelize<FullXcmJourney>({
+              ...journey,
+              assets,
+              id,
+            }),
+          })
           break
         }
 
@@ -234,6 +248,13 @@ export class XcmExplorer {
             }
 
             await this.#repository.updateJourney(existingJourney.id, updateWith)
+            const { items } = await this.getJourneyById({ id: existingJourney.id })
+            if (items.length > 0) {
+              this.#broadcaster.send({
+                event: 'update_journey',
+                data: items[0],
+              })
+            }
             break
           }
           // Insert a new journey with assets if no existing journey
@@ -267,10 +288,17 @@ export class XcmExplorer {
               JSON.parse(newJourney.stops),
             ),
           )
-          await this.#repository.insertJourneyWithAssets(
-            newJourney,
-            toNewAssets(humanizedXcm.humanized.assets),
-          )
+
+          const assets = toNewAssets(humanizedXcm.humanized.assets)
+          const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
+          this.#broadcaster.send({
+            event: 'new_journey',
+            data: deepCamelize<FullXcmJourney>({
+              ...newJourney,
+              assets,
+              id,
+            }),
+          })
           break
         }
 
@@ -295,6 +323,13 @@ export class XcmExplorer {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
           await this.#repository.updateJourney(existingJourney.id, updateWith)
+          const { items } = await this.getJourneyById({ id: existingJourney.id })
+          if (items.length > 0) {
+            this.#broadcaster.send({
+              event: 'update_journey',
+              data: items[0],
+            })
+          }
           break
         }
 

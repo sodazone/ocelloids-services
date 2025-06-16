@@ -13,8 +13,10 @@ import {
   AgentId,
   AgentRuntimeContext,
   Queryable,
+  Streamable,
   Subscribable,
   isQueryable,
+  isStreamable,
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
@@ -105,6 +107,14 @@ export class LocalAgentCatalog implements AgentCatalog {
       return agent as A
     }
     throw new NotFound(`Not queryable (agent=${agentId})`)
+  }
+
+  getStreamableById<A extends Agent & Streamable = Agent & Streamable>(agentId: AgentId): A {
+    const agent = this.getAgentById(agentId)
+    if (isStreamable(agent)) {
+      return agent as A
+    }
+    throw new NotFound(`Not streamable (agent=${agentId})`)
   }
 
   getAgentInputSchema(agentId: AgentId) {

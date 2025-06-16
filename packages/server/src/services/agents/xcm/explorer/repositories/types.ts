@@ -50,7 +50,7 @@ export type FullXcmJourney = XcmJourney & {
   assets: Omit<XcmAsset, 'id' | 'journey_id'>[]
 }
 
-export type XcmJourneyClient = DeepCamelize<XcmJourney>
-export type XcmAssetClient = DeepCamelize<XcmAsset>
+export type XcmJourneyResponse = DeepCamelize<XcmJourney>
+export type XcmAssetResponse = DeepCamelize<XcmAsset>
 
-export type FullXcmJourneyClient = DeepCamelize<FullXcmJourney>
+export type FullXcmJourneyResponse = DeepCamelize<FullXcmJourney>

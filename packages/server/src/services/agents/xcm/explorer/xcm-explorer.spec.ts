@@ -5,6 +5,7 @@ import { createServices } from '@/testing/services.js'
 import { xcmDataDir } from '@/testing/xcm.js'
 import { Observable, share } from 'rxjs'
 import { beforeEach, describe, it } from 'vitest'
+import { ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmExplorer } from './index.js'
@@ -42,6 +43,9 @@ describe('XcmExplorer', () => {
       humanizer: {
         humanize: (msg: any) => msg,
       } as unknown as XcmHumanizer,
+      broadcaster: {
+        //
+      } as unknown as ServerSideEventsBroadcaster,
     })
   })
 
