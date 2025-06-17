@@ -439,16 +439,20 @@ export class XcmHumanizer {
   }
 
   private async fetchPrefix(chainId: NetworkURN): Promise<number> {
-    const { items } = (await this.#steward.query({
-      args: {
-        op: 'chains',
-        criteria: {
-          networks: [chainId],
+    try {
+      const { items } = (await this.#steward.query({
+        args: {
+          op: 'chains',
+          criteria: {
+            networks: [chainId],
+          },
         },
-      },
-    })) as QueryResult<SubstrateNetworkInfo>
-
-    const chainInfo = items.find((item) => item.urn === chainId)
-    return chainInfo?.ss58Prefix ?? this.resolveFallbackPrefix(chainId, items)
+      })) as QueryResult<SubstrateNetworkInfo>
+      const chainInfo = items.find((item) => item.urn === chainId)
+      return chainInfo?.ss58Prefix ?? this.resolveFallbackPrefix(chainId, items)
+    } catch (error) {
+      this.#log.warn(error, 'Error on fetch prefix [%s]', chainId)
+      return this.resolveFallbackPrefix(chainId, [])
+    }
   }
 }

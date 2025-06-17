@@ -196,7 +196,13 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
     }
   }
 
-  start(subs: Subscription<XcmInputs>[] = []) {
+  async start(subs: Subscription<XcmInputs>[] = []) {
+    this.#log.info('[agent:%s] wait APIs ready', this.id)
+
+    await this.#ingress.isReady()
+
+    this.#log.info('[agent:%s] APIs ready', this.id)
+
     this.#tracker.start()
 
     this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
@@ -209,11 +215,9 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
       }
     }
 
-    this.#humanizer.start()
-
-    this.#analytics?.start(this.#tracker)
-
-    this.#explorer.start(this.#tracker)
+    await this.#humanizer.start()
+    await this.#analytics?.start(this.#tracker)
+    await this.#explorer.start(this.#tracker)
   }
 
   async stop(): Promise<void> {

@@ -35,6 +35,10 @@ export class SubstrateLocalConsumer
     return this.config.isRelay(chainId)
   }
 
+  async isReady() {
+    await this.watcher.isReady()
+  }
+
   getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
     if (this.#contexts$[chainId] === undefined) {
       this.#contexts$[chainId] = from(this.watcher.getApi(chainId)).pipe(

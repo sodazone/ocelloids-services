@@ -112,6 +112,13 @@ export class SubstrateWatcher extends Watcher<Block> {
   }
 
   /**
+   * Waits for all API clients to be ready.
+   */
+  async isReady() {
+    return await Promise.all(Object.values(this.#apis).map((api) => api.isReady()))
+  }
+
+  /**
    * Enumerates storage keys by a given key prefix.
    *
    * @param chainId The chain identifier.
