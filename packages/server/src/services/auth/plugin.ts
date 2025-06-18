@@ -8,7 +8,7 @@ import { expandRegExps } from '@/cli/index.js'
 import { environment, isNonProdEnv } from '@/environment.js'
 import { JwtServerOptions } from '@/types.js'
 
-import { Account } from '../accounts/types.js'
+import { AccountWithCaps } from '../accounts/types.js'
 import { importKeys } from './keys.js'
 import { ensureAccountAuthorized } from './rules.js'
 import { JwtPayload, NodQuerystring } from './types.js'
@@ -22,7 +22,7 @@ declare module 'fastify' {
     wsAuth?: boolean
   }
   interface FastifyRequest {
-    account?: Account
+    account?: AccountWithCaps
   }
 }
 

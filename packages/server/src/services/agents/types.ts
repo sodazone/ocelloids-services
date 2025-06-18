@@ -9,6 +9,7 @@ import { EgressMessageListener, Subscription } from '@/services/subscriptions/ty
 import { LevelDB, Logger } from '@/services/types.js'
 
 import { DuckDBInstance } from '@duckdb/node-api'
+import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
@@ -182,9 +183,10 @@ export interface Subscribable {
    * Subscribes to updates with a given subscription.
    *
    * @param {Subscription} subscription - The subscription to add
+   * @param {AccountWithCaps} account - The requesting account
    * @returns {Promise<void> | void} A promise that resolves when the subscription is added, or void if synchronous
    */
-  subscribe(subscription: Subscription): Promise<void> | void
+  subscribe(subscription: Subscription, account?: AccountWithCaps): Promise<void> | void
 
   /**
    * Unsubscribes from updates using the subscription ID.

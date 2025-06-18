@@ -10,6 +10,9 @@ export interface AccountTable {
 export type Account = Selectable<AccountTable>
 export type NewAccount = Insertable<AccountTable>
 export type AccountUpdate = Updateable<AccountTable>
+export type AccountWithCaps = Account & {
+  caps: string[]
+}
 
 export interface ApiTokenTable {
   id: ColumnType<string>

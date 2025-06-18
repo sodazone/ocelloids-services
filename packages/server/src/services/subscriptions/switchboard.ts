@@ -9,6 +9,7 @@ import { SubsStore } from '@/services/persistence/level/index.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Logger, Services } from '@/services/types.js'
 
+import { AccountWithCaps } from '../accounts/types.js'
 import { EgressMessageListener, NewSubscription, Subscription, SubscriptionStats } from './types.js'
 
 /**
@@ -61,14 +62,15 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    * Subscribes to the given subscription(s).
    *
    * @param {NewSubscription | NewSubscription[]} subscription - The subscription(s).
+   * @param {AccountWithCaps} account - The requesting account.
    * @throws {SubscribeError | Error} If there is an error creating the subscription.
    */
-  async subscribe(subscription: NewSubscription | NewSubscription[], subject: string = 'unknown') {
+  async subscribe(subscription: NewSubscription | NewSubscription[], account?: AccountWithCaps) {
     if (Array.isArray(subscription)) {
       const tmp = []
       try {
         for (const s of subscription) {
-          await this.#subscribe(s, subject)
+          await this.#subscribe(s, account)
           tmp.push(s)
         }
       } catch (error) {
@@ -78,7 +80,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
         throw error
       }
     } else {
-      await this.#subscribe(subscription, subject)
+      await this.#subscribe(subscription, account)
     }
   }
 
@@ -228,7 +230,7 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
    *
    * @private
    */
-  async #subscribe(newSubscription: NewSubscription, subject: string) {
+  async #subscribe(newSubscription: NewSubscription, account?: AccountWithCaps) {
     if (this.#stats.ephemeral >= this.#maxEphemeral || this.#stats.persistent >= this.#maxPersistent) {
       throw new SubscribeError('too many subscriptions')
     }
@@ -240,9 +242,9 @@ export class Switchboard extends (EventEmitter as new () => TelemetryEventEmitte
     agent.inputSchema.parse(newSubscription.args)
 
     const ownedSubscription = newSubscription as Subscription
-    ownedSubscription.owner = subject
+    ownedSubscription.owner = account?.subject ?? 'unknown'
 
-    await agent.subscribe(ownedSubscription)
+    await agent.subscribe(ownedSubscription, account)
 
     this.#log.info('[%s] new subscription: %j', ownedSubscription.agent, ownedSubscription)
 

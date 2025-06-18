@@ -19,7 +19,9 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
+import { AccountWithCaps } from '@/services/accounts/types.js'
 import { asDateRange } from '@/services/archive/time.js'
+import { CAP_WRITE } from '@/services/auth/caps.js'
 import { XcmAnalytics } from './analytics/index.js'
 import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
 import { XcmSubscriptionManager } from './handlers.js'
@@ -92,14 +94,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     return this.#subs.update(subscriptionId, patch)
   }
 
-  subscribe(subscription: Subscription<XcmInputs>): void {
+  subscribe(subscription: Subscription<XcmInputs>, account?: AccountWithCaps): void {
     const { id, args } = subscription
 
-    // TODO: verify by subject permissions
-    // for the time being we disable
-    // unrestricted historical subscriptions
-    this.#validateAllowances(subscription)
-
+    this.#validateAllowances(subscription, account)
     this.#validateHistorical(subscription)
     this.#validateChainIds(args)
     this.#validateSenders(args)
@@ -253,9 +251,14 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     }
   }
 
-  #validateAllowances({ args }: Subscription<XcmInputs>) {
-    if (args.history !== undefined || args.history !== null) {
-      throw new ValidationError('Historical subscriptions are not allowed')
+  #validateAllowances({ args }: Subscription<XcmInputs>, account?: AccountWithCaps) {
+    // for the time being to keep it simple, we just allow historical subscriptions
+    // to write capabilities
+    if (args.history !== undefined && args.history !== null) {
+      if (account !== undefined && account.caps.includes(CAP_WRITE)) {
+        return
+      }
+      throw new ValidationError('Historical subscriptions are not allowed for read-only accounts')
     }
   }
 
