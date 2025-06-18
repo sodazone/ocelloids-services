@@ -95,6 +95,11 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   subscribe(subscription: Subscription<XcmInputs>): void {
     const { id, args } = subscription
 
+    // TODO: verify by subject permissions
+    // for the time being we disable
+    // unrestricted historical subscriptions
+    this.#validateAllowances(subscription)
+
     this.#validateHistorical(subscription)
     this.#validateChainIds(args)
     this.#validateSenders(args)
@@ -245,6 +250,12 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       if (end !== undefined && ephemeral !== true) {
         throw new ValidationError('Persistent subscriptions cannot specify closed timeframes')
       }
+    }
+  }
+
+  #validateAllowances({ args }: Subscription<XcmInputs>) {
+    if (args.history !== undefined || args.history !== null) {
+      throw new ValidationError('Historical subscriptions are not allowed')
     }
   }
 
