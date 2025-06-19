@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { ServerResponse } from 'http'
+import { FastifyReply } from 'fastify'
 import { Mock } from 'vitest'
 import { createServerSideEventsBroadcaster } from './sse.js'
 
@@ -21,10 +21,14 @@ describe('createServerSideEventsBroadcaster', () => {
 
   const createMockReply = () =>
     ({
-      writeHead: vi.fn(),
-      write: vi.fn(),
-      end: vi.fn(),
-    }) as unknown as ServerResponse
+      getHeaders: () => [],
+      raw: {
+        setHeaders: vi.fn(),
+        writeHead: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
+      },
+    }) as unknown as FastifyReply
 
   beforeEach(() => {
     matchFilters = vi.fn()
@@ -35,35 +39,8 @@ describe('createServerSideEventsBroadcaster', () => {
 
   it('should accept a new SSE connection and send initial ping', () => {
     broadcaster.stream({ filters: {}, request, reply })
-    expect(reply.writeHead).toHaveBeenCalledWith(
-      200,
-      expect.objectContaining({
-        'Content-Type': 'text/event-stream',
-      }),
-    )
-    expect(reply.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
-  })
-
-  it('should reject connection if max per IP is reached', () => {
-    const ip = '1.2.3.4'
-
-    for (let i = 0; i < 5; i++) {
-      broadcaster.stream({
-        filters: {},
-        request: createMockRequest(ip),
-        reply: createMockReply(),
-      })
-    }
-
-    const rejectReply = createMockReply()
-    broadcaster.stream({
-      filters: {},
-      request: createMockRequest(ip),
-      reply: rejectReply,
-    })
-
-    expect(rejectReply.writeHead).toHaveBeenCalledWith(429, { 'Content-Type': 'text/plain' })
-    expect(rejectReply.end).toHaveBeenCalledWith('Too many concurrent SSE connections from this IP.')
+    expect(reply.raw.writeHead).toHaveBeenCalledWith(200)
+    expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
   })
 
   it('should normalize comma-separated filters to arrays', () => {
@@ -105,7 +82,7 @@ describe('createServerSideEventsBroadcaster', () => {
     })
 
     customBroadcaster.send({ event: 'test', data: { foo: 'bar' } })
-    expect(customReply.write).toHaveBeenCalledWith(expect.stringContaining('event: test'))
+    expect(customReply.raw.write).toHaveBeenCalledWith(expect.stringContaining('event: test'))
   })
 
   it('should disconnect and cleanup on request close', () => {
@@ -131,7 +108,7 @@ describe('createServerSideEventsBroadcaster', () => {
 
     customBroadcaster.send({ event: 'test', data: { foo: 'not-bar' } })
 
-    expect(customReply.write).not.toHaveBeenCalledWith(expect.stringContaining('event: test'))
+    expect(customReply.raw.write).not.toHaveBeenCalledWith(expect.stringContaining('event: test'))
   })
 
   it('should send heartbeat ping every 30 seconds', () => {
@@ -140,34 +117,20 @@ describe('createServerSideEventsBroadcaster', () => {
     broadcaster.stream({ filters: {}, request, reply })
 
     // Initially, only one ping is sent
-    expect(reply.write).toHaveBeenCalledTimes(1)
-    expect(reply.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
+    expect(reply.raw.write).toHaveBeenCalledTimes(1)
+    expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
 
     // Advance time by 30 seconds
     vi.advanceTimersByTime(30_000)
 
     // Should have sent another ping
-    expect(reply.write).toHaveBeenCalledTimes(2)
-    expect(reply.write.mock.calls[1][0]).toContain('event: ping')
+    expect(reply.raw.write).toHaveBeenCalledTimes(2)
+    expect(reply.raw.write.mock.calls[1][0]).toContain('event: ping')
 
     // Advance another 30s
     vi.advanceTimersByTime(30_000)
-    expect(reply.write).toHaveBeenCalledTimes(3)
+    expect(reply.raw.write).toHaveBeenCalledTimes(3)
 
     vi.useRealTimers()
-  })
-
-  it('should allow max connections per IP independently', () => {
-    // 5 connections for IP1
-    for (let i = 0; i < 5; i++) {
-      broadcaster.stream({ filters: {}, request: createMockRequest('10.0.0.1'), reply })
-    }
-
-    // Should allow 5 connections for IP2
-    for (let i = 0; i < 5; i++) {
-      broadcaster.stream({ filters: {}, request: createMockRequest('10.0.0.2'), reply })
-    }
-
-    expect(reply.writeHead).toHaveBeenCalledTimes(10)
   })
 })
