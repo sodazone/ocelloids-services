@@ -2,16 +2,19 @@ import { FastifyInstance, FastifyRequest } from 'fastify'
 import { CAP_ADMIN } from './caps.js'
 import { JwtPayload } from './types.js'
 
-/**
- * Ensure the requested capabilities are present in the scope.
- */
-function ensureCapabilities(scope: string, requestedCaps: string[] = [CAP_ADMIN]) {
-  if (scope) {
-    const caps = scope.split(' ')
+function scopeToCaps(scope?: string) {
+  if (scope !== undefined && scope !== null) {
+    return scope.split(' ')
+  }
+  return []
+}
 
-    if (requestedCaps.length === 0 || requestedCaps.every((required) => caps.includes(required))) {
-      return
-    }
+/**
+ * Ensure the requested capabilities are present in the granted capabilities.
+ */
+function ensureCapabilities(grantedCaps: string[], requestedCaps: string[] = [CAP_ADMIN]) {
+  if (requestedCaps.length === 0 || requestedCaps.every((required) => grantedCaps.includes(required))) {
+    return
   }
 
   throw new Error('Not allowed')
@@ -40,10 +43,14 @@ export async function ensureAccountAuthorized(
             },
           } = request
 
-          ensureCapabilities(apiToken.scope, caps)
+          const grantedCaps = scopeToCaps(apiToken.scope)
+          ensureCapabilities(grantedCaps, caps)
 
           // all OK
-          request.account = account
+          request.account = {
+            ...account,
+            caps: grantedCaps,
+          }
           return
         } else {
           log.warn('[authorization] disabled account attempt %j', apiToken)

@@ -23,7 +23,9 @@ import {
   getAgentCapabilities,
 } from '../types.js'
 
+import { AccountWithCaps } from '@/services/accounts/types.js'
 import { asDateRange } from '@/services/archive/time.js'
+import { CAP_WRITE } from '@/services/auth/caps.js'
 import { createServerSideEventsBroadcaster } from '../api/sse.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
@@ -172,9 +174,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
     return this.#subs.update(subscriptionId, patch)
   }
 
-  subscribe(subscription: Subscription<XcmInputs>): void {
+  subscribe(subscription: Subscription<XcmInputs>, account?: AccountWithCaps): void {
     const { id, args } = subscription
 
+    this.#validateAllowances(subscription, account)
     this.#validateHistorical(subscription)
     this.#validateChainIds(args)
     this.#validateSenders(args)
@@ -347,6 +350,17 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
       if (end !== undefined && ephemeral !== true) {
         throw new ValidationError('Persistent subscriptions cannot specify closed timeframes')
       }
+    }
+  }
+
+  #validateAllowances({ args }: Subscription<XcmInputs>, account?: AccountWithCaps) {
+    // for the time being to keep it simple, we just allow historical subscriptions
+    // to write capabilities
+    if (args.history !== undefined && args.history !== null) {
+      if (account !== undefined && account.caps.includes(CAP_WRITE)) {
+        return
+      }
+      throw new ValidationError('Historical subscriptions are not allowed for read-only accounts')
     }
   }
 

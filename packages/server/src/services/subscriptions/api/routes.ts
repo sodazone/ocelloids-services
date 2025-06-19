@@ -115,7 +115,7 @@ export async function SubscriptionApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const subs = request.body
-      await switchboard.subscribe(subs, request.account?.subject)
+      await switchboard.subscribe(subs, request.account)
       reply.status(201).send()
     },
   )
