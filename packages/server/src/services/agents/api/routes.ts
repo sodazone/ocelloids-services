@@ -202,7 +202,7 @@ export async function AgentsApi(api: FastifyInstance) {
       agent.onServerSideEventsRequest({
         filters: request.query,
         request: request.raw,
-        reply: reply.raw,
+        reply,
       })
     },
   )

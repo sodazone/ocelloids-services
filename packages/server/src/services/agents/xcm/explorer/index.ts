@@ -57,6 +57,23 @@ function toStatus(payload: XcmMessagePayload) {
   return 'unknown'
 }
 
+function asNewJourneyObject(
+  newJourney: NewXcmJourney,
+  assets: Omit<NewXcmAsset, 'journey_id'>[],
+  id: number,
+) {
+  return deepCamelize<FullXcmJourney>({
+    ...{
+      ...newJourney,
+      transactCalls: JSON.parse(newJourney.transact_calls),
+      instructions: JSON.parse(newJourney.instructions),
+      stops: JSON.parse(newJourney.stops),
+    },
+    assets,
+    id,
+  })
+}
+
 function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
   const updatedStops = payload.legs.map((leg, index) => {
     const existingStop = existingStops[index]
@@ -193,8 +210,7 @@ export class XcmExplorer {
 
     await this.#migrator.migrateToLatest()
 
-    this.#sub = tracker
-      .xcm$
+    this.#sub = tracker.xcm$
       // .historicalXcm$({
       //   agent: 'xcm',
       //   timeframe: {
@@ -275,11 +291,7 @@ export class XcmExplorer {
             const id = await this.#repository.insertJourneyWithAssets(journey, assets)
             this.#broadcaster.send({
               event: 'new_journey',
-              data: deepCamelize<FullXcmJourney>({
-                ...journey,
-                assets,
-                id,
-              }),
+              data: asNewJourneyObject(journey, assets, id),
             })
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
@@ -349,11 +361,7 @@ export class XcmExplorer {
             const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
             this.#broadcaster.send({
               event: 'new_journey',
-              data: deepCamelize<FullXcmJourney>({
-                ...newJourney,
-                assets,
-                id,
-              }),
+              data: asNewJourneyObject(newJourney, assets, id),
             })
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {

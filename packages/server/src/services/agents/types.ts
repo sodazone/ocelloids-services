@@ -1,3 +1,6 @@
+import { IncomingMessage } from 'node:http'
+import { DuckDBInstance } from '@duckdb/node-api'
+import { FastifyReply } from 'fastify'
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
@@ -8,8 +11,6 @@ import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 
-import { IncomingMessage, ServerResponse } from 'node:http'
-import { DuckDBInstance } from '@duckdb/node-api'
 import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
@@ -278,7 +279,7 @@ export interface Queryable {
 export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
   filters: T
   request: IncomingMessage
-  reply: ServerResponse
+  reply: FastifyReply
 }
 
 export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
