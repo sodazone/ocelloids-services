@@ -194,7 +194,7 @@ export class XcmExplorer {
     await this.#migrator.migrateToLatest()
 
     this.#sub = tracker
-    // .xcm$
+      // .xcm$
       .historicalXcm$({
         agent: 'xcm',
         timeframe: {
