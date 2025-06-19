@@ -51,6 +51,20 @@ export class SubstrateDistributedConsumer
     this.#blockConsumers = {}
     this.#contexts$ = {}
   }
+  /**
+   * TODO: review
+   * Waits until the distributed consumer is ready to serve requests.
+   * This means the underlying distributor is started and networks are loaded.
+   */
+  async isReady(): Promise<void> {
+    const start = Date.now()
+    while (Object.keys(this.#networks).length === 0) {
+      if (Date.now() - start > 10_000) {
+        throw new Error('SubstrateDistributedConsumer is not ready: no networks loaded')
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300))
+    }
+  }
 
   async start() {
     await this.#distributor.start()
