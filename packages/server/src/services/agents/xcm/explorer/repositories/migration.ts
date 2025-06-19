@@ -7,7 +7,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .createTable('xcm_journeys')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement().notNull())
-      .addColumn('correlation_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('correlation_id', 'varchar(255)', (cb) => cb.notNull().unique())
       .addColumn('status', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('type', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('origin', 'varchar(255)', (cb) => cb.notNull())
@@ -24,7 +24,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('transact_calls', 'json', (cb) => cb.notNull())
       .addColumn('origin_extrinsic_hash', 'varchar(255)')
       .addColumn('origin_evm_tx_hash', 'varchar(255)')
-      .addUniqueConstraint('xcm_journeys_correlation_id_unique', ['correlation_id'])
       .execute()
 
     // Create xcm_assets table
@@ -48,13 +47,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xcm_journeys')
       .column('sent_at')
-      .execute()
-
-    await db.schema
-      .createIndex('xcm_journeys_correlation_id_index')
-      .ifNotExists()
-      .on('xcm_journeys')
-      .column('correlation_id')
       .execute()
 
     await db.schema

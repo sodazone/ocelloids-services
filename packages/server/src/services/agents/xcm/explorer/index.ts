@@ -193,16 +193,15 @@ export class XcmExplorer {
 
     await this.#migrator.migrateToLatest()
 
-    this.#sub = tracker.xcm$
-      // .historicalXcm$({
-      //   agent: 'xcm',
-      //   // top: 200
-      //   // timeframe: 'previous_1_hours'
-      //   timeframe: {
-      //     start: 1747597460000, // <- first message in archive
-      //     end: 1750157634000, // <- last message
-      //   },
-      // })
+    this.#sub = tracker
+    // .xcm$
+      .historicalXcm$({
+        agent: 'xcm',
+        timeframe: {
+          start: 1747597460000, // <- first message in archive
+          end: 1750157634000, // <- last message
+        },
+      })
       .pipe(
         concatMap((message) => {
           const correlationId = toCorrelationId(message)
@@ -243,7 +242,7 @@ export class XcmExplorer {
     }
   }
 
-  async getJourneyById({ id }: { id: number }): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
+  async getJourneyById({ id }: { id: string }): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
     const journey = await this.#repository.getJourneyById(id)
     return journey ? { items: [deepCamelize<FullXcmJourney>(journey)] } : { items: [] }
   }
@@ -304,7 +303,7 @@ export class XcmExplorer {
             }
 
             await this.#repository.updateJourney(existingJourney.id, updateWith)
-            const { items } = await this.getJourneyById({ id: existingJourney.id })
+            const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {
               this.#broadcaster.send({
                 event: 'update_journey',
@@ -387,7 +386,7 @@ export class XcmExplorer {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
           await this.#repository.updateJourney(existingJourney.id, updateWith)
-          const { items } = await this.getJourneyById({ id: existingJourney.id })
+          const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {
             this.#broadcaster.send({
               event: 'update_journey',

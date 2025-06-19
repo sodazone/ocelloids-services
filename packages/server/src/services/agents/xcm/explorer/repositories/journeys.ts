@@ -24,7 +24,7 @@ export class XcmRepository {
     await this.#db.updateTable('xcm_journeys').set(updateWith).where('id', '=', id).execute()
   }
 
-  async getJourneyById(id: number): Promise<FullXcmJourney | undefined> {
+  async getJourneyById(id: string): Promise<FullXcmJourney | undefined> {
     const rows = await this.#db
       .selectFrom('xcm_journeys')
       .selectAll('xcm_journeys')
@@ -36,7 +36,7 @@ export class XcmRepository {
         'xcm_assets.decimals',
         'xcm_assets.usd',
       ])
-      .where('xcm_journeys.id', '=', id)
+      .where('xcm_journeys.correlation_id', '=', id)
       .execute()
 
     if (rows.length === 0) {

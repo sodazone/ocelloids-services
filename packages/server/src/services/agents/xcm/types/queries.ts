@@ -60,7 +60,7 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('journeys.by_id'),
     criteria: z.object({
-      id: z.number(),
+      id: z.string(),
     }),
   }),
 ])
