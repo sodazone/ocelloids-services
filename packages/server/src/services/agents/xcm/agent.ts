@@ -75,7 +75,7 @@ function applySseFilters(
       return false
     }
   }
-  if (filters.status && filters.status !== journey.status) {
+  if (filters.status && !filters.status.map((s) => s as typeof journey.status).includes(journey.status)) {
     return false
   }
   if (filters.address) {
