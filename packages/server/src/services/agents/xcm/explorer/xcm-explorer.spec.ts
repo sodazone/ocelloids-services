@@ -69,7 +69,7 @@ describe('XcmExplorer', () => {
     await streamCompleted
 
     const { items } = await explorer.listJourneys()
-    const { items: journey0 } = await explorer.getJourneyById({ id: 0 })
+    const { items: journey0 } = await explorer.getJourneyById({ id: items[1].correlationId })
 
     const eventTypes = sendSpy.mock.calls.map((call) => call[0]?.event)
 
