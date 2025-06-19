@@ -1,3 +1,5 @@
+import { SqliteError } from 'better-sqlite3'
+
 import { DeepCamelize, asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
@@ -16,15 +18,38 @@ import { createXcmDatabase } from './repositories/db.js'
 import { XcmRepository } from './repositories/journeys.js'
 import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmJourneyUpdate } from './repositories/types.js'
 
+const locks = new Map<string, Promise<void>>()
+
+function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = locks.get(key) ?? Promise.resolve()
+  let resolve: () => void
+  const next = new Promise<void>((r) => (resolve = r!))
+  locks.set(
+    key,
+    prev.then(() => next),
+  )
+
+  return prev.then(async () => {
+    try {
+      return await fn()
+    } finally {
+      resolve!()
+      if (locks.get(key) === next) {
+        locks.delete(key)
+      }
+    }
+  })
+}
+
 function toStatus(payload: XcmMessagePayload) {
+  if ('outcome' in payload.destination) {
+    return payload.destination.outcome === 'Success' ? 'received' : 'failed'
+  }
   if (payload.waypoint.outcome === 'Fail') {
     return 'failed'
   }
   if (payload.type === 'xcm.timeout') {
     return 'timeout'
-  }
-  if ('outcome' in payload.destination && payload.destination.outcome === 'Success') {
-    return 'received'
   }
   if (['xcm.sent', 'xcm.relayed', 'xcm.hop'].includes(payload.type)) {
     return 'sent'
@@ -89,11 +114,14 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
 
 function toCorrelationId(payload: XcmMessagePayload): string {
   const id = payload.messageId ?? payload.origin.messageHash
-  const originEvent = payload.origin.event ? (payload.origin.event as BlockEvent) : undefined
-  const eventId = originEvent
-    ? `${originEvent.blockNumber}-${originEvent.blockPosition}`
-    : `${payload.origin.blockNumber}`
-  return toHex(Twox256(stringToUa8(`${id}${payload.origin.chainId}${eventId}`)))
+
+  return toHex(
+    Twox256(
+      stringToUa8(
+        `${id}${payload.origin.chainId}${payload.origin.blockNumber}${payload.destination.chainId}`,
+      ),
+    ),
+  )
 }
 
 function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
@@ -138,6 +166,8 @@ export class XcmExplorer {
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSideEventsBroadcaster
 
+  // Keep in memory journey correlation ids that are being written in db
+  #dbWrites: Map<string, NewXcmJourney> = new Map()
   #sub?: Subscription
 
   constructor({
@@ -166,16 +196,25 @@ export class XcmExplorer {
     this.#sub = tracker.xcm$
       // .historicalXcm$({
       //   agent: 'xcm',
-      //   timeframe: 'this_1_hours',
+      //   // top: 200
+      //   // timeframe: 'previous_1_hours'
+      //   timeframe: {
+      //     start: 1747597460000, // <- first message in archive
+      //     end: 1750157634000, // <- last message
+      //   },
       // })
       .pipe(
-        concatMap(async (message) => {
-          await this.#onXcmMessage(message)
+        concatMap((message) => {
+          const correlationId = toCorrelationId(message)
+          return withLock(correlationId, () => this.#onXcmMessage(message))
         }),
       )
       .subscribe({
         error: (error) => {
           this.#log.error(error, '[xcm:explorer] error on tracker stream')
+        },
+        complete: () => {
+          this.#log.info('[xcm:explorer] tracker stream complete')
         },
       })
   }
@@ -213,11 +252,19 @@ export class XcmExplorer {
     try {
       const correlationId = toCorrelationId(message)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
+      if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
+        // this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
+        return
+      }
 
       switch (message.type) {
         case 'xcm.sent': {
           if (existingJourney) {
-            this.#log.info('[xcm:explorer] Journey already exists for correlationId: %s', correlationId)
+            this.#log.info(
+              '[xcm:explorer] Journey already exists for correlationId: %s (sent_at: %s)',
+              correlationId,
+              existingJourney.sent_at,
+            )
             return
           }
 
@@ -225,15 +272,24 @@ export class XcmExplorer {
           const humanizedXcm = await this.#humanizer.humanize(message)
           const journey = toNewJourney(humanizedXcm)
           const assets = toNewAssets(humanizedXcm.humanized.assets)
-          const id = await this.#repository.insertJourneyWithAssets(journey, assets)
-          this.#broadcaster.send({
-            event: 'new_journey',
-            data: deepCamelize<FullXcmJourney>({
-              ...journey,
-              assets,
-              id,
-            }),
-          })
+          try {
+            const id = await this.#repository.insertJourneyWithAssets(journey, assets)
+            this.#broadcaster.send({
+              event: 'new_journey',
+              data: deepCamelize<FullXcmJourney>({
+                ...journey,
+                assets,
+                id,
+              }),
+            })
+          } catch (err: any) {
+            if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
+              this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
+              return
+            }
+            throw err
+          }
+
           break
         }
 
@@ -290,15 +346,23 @@ export class XcmExplorer {
           )
 
           const assets = toNewAssets(humanizedXcm.humanized.assets)
-          const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
-          this.#broadcaster.send({
-            event: 'new_journey',
-            data: deepCamelize<FullXcmJourney>({
-              ...newJourney,
-              assets,
-              id,
-            }),
-          })
+          try {
+            const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
+            this.#broadcaster.send({
+              event: 'new_journey',
+              data: deepCamelize<FullXcmJourney>({
+                ...newJourney,
+                assets,
+                id,
+              }),
+            })
+          } catch (err: any) {
+            if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
+              this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
+              return
+            }
+            throw err
+          }
           break
         }
 

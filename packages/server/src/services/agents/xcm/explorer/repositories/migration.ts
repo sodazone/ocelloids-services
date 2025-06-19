@@ -24,6 +24,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('transact_calls', 'json', (cb) => cb.notNull())
       .addColumn('origin_extrinsic_hash', 'varchar(255)')
       .addColumn('origin_evm_tx_hash', 'varchar(255)')
+      .addUniqueConstraint('xcm_journeys_correlation_id_unique', ['correlation_id'])
       .execute()
 
     // Create xcm_assets table
