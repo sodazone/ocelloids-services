@@ -142,6 +142,10 @@ export class XcmRepository {
       query = query.where('xcm_journeys.destination', 'in', filters.destinations)
     }
 
+    if (filters?.status) {
+      query = query.where('xcm_journeys.status', 'in', filters.status)
+    }
+
     if (filters?.address !== undefined) {
       query = query.where((eb) =>
         eb.or([eb('xcm_journeys.from', '=', filters.address!), eb('xcm_journeys.to', '=', filters.address!)]),
