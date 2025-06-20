@@ -21,7 +21,7 @@ describe('XcmExplorer', () => {
 
     // Mock tracker with RxJS Observable
     tracker = {
-      xcm$: new Observable((subscriber) => {
+      historicalXcm$: () => new Observable((subscriber) => {
         const filePath = resolve(xcmDataDir, '002.jsonl')
         const stream = createReadStream(filePath, { encoding: 'utf-8' })
         const rl = createInterface({ input: stream })
@@ -60,7 +60,7 @@ describe('XcmExplorer', () => {
     await explorer.start(tracker)
 
     const streamCompleted = new Promise<void>((resolve, reject) => {
-      tracker.xcm$.subscribe({
+      tracker.historicalXcm$({}).subscribe({
         complete: () => resolve(),
         error: (error) => reject(error),
       })

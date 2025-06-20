@@ -211,11 +211,10 @@ export class XcmExplorer {
     await this.#migrator.migrateToLatest()
 
     this.#sub = tracker
-    // .xcm$
       .historicalXcm$({
         agent: 'xcm',
         timeframe: {
-          start: 1750430759000, // <- first message in archive
+          start: Date.now() - (60_000 * 10),
         },
       })
       .pipe(
