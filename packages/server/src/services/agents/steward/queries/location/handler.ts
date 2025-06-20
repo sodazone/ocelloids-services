@@ -6,7 +6,7 @@ import { LevelDB } from '@/services/types.js'
 
 import { QueryResult } from '../../../types.js'
 import { mappers } from '../../mappers.js'
-import { AssetMetadata } from '../../types.js'
+import { AssetMetadata, Empty } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
 import { parseAssetFromJson } from './util.js'
 
@@ -23,25 +23,32 @@ export class LocationQueryHandler {
   // will be refactored, probably as part of the XCM Humanizer agent
   async queryAssetByLocation(
     criteria: { xcmLocationAnchor: string; locations: string[] }[],
-  ): Promise<QueryResult<AssetMetadata>> {
-    const keys: string[] = []
-    for (const { xcmLocationAnchor, locations } of criteria) {
-      for (const loc of locations) {
-        try {
-          const resolved = await this.resolveAssetIdFromLocation(xcmLocationAnchor, loc)
-          keys.push(resolved ?? loc)
-        } catch (_error) {
-          keys.push(loc)
-        }
-      }
-    }
+  ): Promise<QueryResult<AssetMetadata | Empty>> {
+    const queries = criteria.flatMap(({ xcmLocationAnchor, locations }) =>
+      locations.map((location) => ({ xcmLocationAnchor, location })),
+    )
+    const results = await Promise.allSettled(
+      queries.map(({ xcmLocationAnchor, location }) =>
+        this.resolveAssetIdFromLocation(xcmLocationAnchor, location),
+      ),
+    )
+    const keys = results.map((result, i) =>
+      result.status === 'fulfilled' ? (result.value ?? queries[i].location) : queries[i].location,
+    )
 
     const assets = await this.#db.getMany<string, AssetMetadata>(keys, {
       /** */
     })
 
     return {
-      items: assets.filter((a) => a !== undefined),
+      items: assets.map((a, i) =>
+        a !== undefined
+          ? a
+          : {
+              isNotResolved: true,
+              query: queries[i],
+            },
+      ),
     }
   }
 

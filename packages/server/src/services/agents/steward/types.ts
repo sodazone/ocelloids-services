@@ -148,3 +148,13 @@ export type AssetMetadata = AssetIds & {
   updated: number
   raw: Record<string, any>
 }
+
+/**
+ * Return type for assets that cannot be resolved.
+ *
+ * @public
+ */
+export type Empty = {
+  isNotResolved: boolean
+  query: Record<string, any>
+}

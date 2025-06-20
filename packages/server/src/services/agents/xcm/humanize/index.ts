@@ -10,10 +10,10 @@ import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom } from 'rxjs'
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
-import { AssetMetadata, StewardQueryArgs } from '../../steward/types.js'
+import { AssetMetadata, Empty, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
-import { HumanizedXcmPayload, XcmMessagePayload } from '../types/index.js'
+import { HumanizedXcmPayload, Leg, XcmMessagePayload } from '../types/index.js'
 import {
   DepositAsset,
   ExportMessage,
@@ -127,8 +127,8 @@ export class XcmHumanizer {
   }
 
   private async resolveAssets(
-    legs: any[],
-    destinationChainId: string,
+    legs: Leg[],
+    destinationChainId: NetworkURN,
     assets: QueryableXcmAsset[],
   ): Promise<XcmAsset[]> {
     const anchor = legs.length === 1 ? destinationChainId : legs[0]?.to
@@ -145,7 +145,7 @@ export class XcmHumanizer {
   }
 
   private async resolveAssetsMetadata(
-    anchor: string,
+    anchor: NetworkURN,
     assets: QueryableXcmAsset[],
   ): Promise<XcmAssetWithMetadata[]> {
     if (assets.length === 0) {
@@ -153,12 +153,30 @@ export class XcmHumanizer {
     }
 
     const partiallyResolved = this.getCachedAssets(anchor, assets)
-    const assetsToResolve = this.getAssetsToResolve(assets, partiallyResolved)
+    const assetsToResolve = assets.filter((_, index) => partiallyResolved[index] === undefined)
     const resolvedAssets = partiallyResolved.filter((asset) => asset !== undefined)
 
     if (assetsToResolve.length > 0) {
       const metadataItems = await this.fetchAssetMetadata(anchor, assetsToResolve)
-      this.updateCacheAndResolveAssets(anchor, assetsToResolve, metadataItems, resolvedAssets)
+      for (const [index, asset] of assetsToResolve.entries()) {
+        const metadata = metadataItems[index]
+
+        if ('id' in metadata && 'chainId' in metadata) {
+          const resolved = {
+            id: `${metadata.chainId}|${normalizeAssetId(metadata.id)}`,
+            amount: asset.amount,
+            decimals: metadata.decimals,
+            symbol: metadata.symbol,
+          }
+          resolvedAssets.push(resolved)
+          this.#cache.set(`${anchor}:${asset.location}`, resolved)
+        } else {
+          resolvedAssets.push({
+            id: `${anchor}|${normalizeAssetId(asset.location)}`,
+            amount: asset.amount,
+          })
+        }
+      }
     }
 
     return resolvedAssets
@@ -172,50 +190,18 @@ export class XcmHumanizer {
     })
   }
 
-  private getAssetsToResolve(
-    assets: QueryableXcmAsset[],
-    partiallyResolved: (XcmAssetWithMetadata | undefined)[],
-  ): QueryableXcmAsset[] {
-    return assets.filter((_, index) => partiallyResolved[index] === undefined)
-  }
-
   private async fetchAssetMetadata(
     anchor: string,
     assetsToResolve: QueryableXcmAsset[],
-  ): Promise<AssetMetadata[]> {
+  ): Promise<(AssetMetadata | Empty)[]> {
     const locations = assetsToResolve.map((asset) => asset.location)
     const { items } = (await this.#steward.query({
       args: {
         op: 'assets.by_location',
         criteria: [{ xcmLocationAnchor: anchor, locations }],
       },
-    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata>
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
     return items
-  }
-
-  private updateCacheAndResolveAssets(
-    anchor: string,
-    assetsToResolve: QueryableXcmAsset[],
-    metadataItems: AssetMetadata[],
-    resolvedAssets: XcmAssetWithMetadata[],
-  ): void {
-    for (const [index, metadata] of metadataItems.entries()) {
-      const asset = assetsToResolve[index]
-      const key = `${anchor}:${asset.location}`
-      const assetId = `${metadata.chainId}|${normalizeAssetId(metadata.id)}`
-
-      const resolved = metadata
-        ? {
-            id: assetId,
-            amount: asset.amount,
-            decimals: metadata.decimals || 0,
-            symbol: metadata.symbol || 'TOKEN',
-          }
-        : { id: assetId, amount: asset.amount, decimals: 0, symbol: 'UNITS' }
-
-      resolvedAssets.push(resolved)
-      this.#cache.set(key, resolved)
-    }
   }
 
   private async resolveVolume(asset: XcmAssetWithMetadata): Promise<number | undefined> {
@@ -229,7 +215,7 @@ export class XcmHumanizer {
       this.#priceCache.set(asset.id, price)
     }
 
-    return price !== null ? this.calculateVolume(asset, price) : undefined
+    return this.calculateVolume(asset, price)
   }
 
   private async fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
@@ -243,7 +229,10 @@ export class XcmHumanizer {
     return items.length > 0 ? items[0].aggregatedPrice : null
   }
 
-  private calculateVolume(asset: XcmAssetWithMetadata, price: number): number {
+  private calculateVolume(asset: XcmAssetWithMetadata, price: number | null): number | undefined {
+    if (price === null || asset.decimals === undefined) {
+      return
+    }
     const normalizedAmount = Number(asset.amount) / 10 ** asset.decimals
     return normalizedAmount * price
   }

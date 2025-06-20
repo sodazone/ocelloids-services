@@ -276,6 +276,56 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.to.formatted).toBeDefined()
   })
 
+  it('should return raw asset data if unable to resolve', async () => {
+    const msgData =
+      '0003140004000100000786b7de790313000100000786b7de79030016040d010204010100a10f260704001401040001010903000f46733b8a5d30010a130001010903000f46733b8a5d3001000d01020400010300326e5e5024e1ad738ebd3a1a724d51a94d68d3152c7692df632bb2114f55e6497579596504d207fd7cb808c593ab2a07279659898c2c7692df632bb2114f55e6497579596504d207fd7cb808c593ab2a07279659898c'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
+
+    const results = await humanizer.humanize({
+      type: 'xcm.received',
+      legs: [
+        {
+          from: 'urn:ocn:polkadot:1000',
+          to: 'urn:ocn:polkadot:1002',
+          type: 'hrmp',
+          relay: 'urn:ocn:polkadot:0',
+        },
+      ],
+      origin: {
+        chainId: 'urn:ocn:polkadot:1000',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+      },
+      waypoint: {
+        chainId: 'urn:ocn:polkadot:1002',
+        blockHash: '0x02',
+        blockNumber: 1,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+        legIndex: 1,
+      },
+      destination: {
+        chainId: 'urn:ocn:polkadot:1002',
+        blockHash: '0x02',
+        blockNumber: 1,
+      },
+    })
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transfer')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.assets.length).toBe(1)
+    expect(results.humanized.assets[0].id).toBeDefined()
+    expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
   it('should humanize parachain as beneficiary', async () => {
     const msgData =
       '0418000400000003005ed0b21300000003005ed0b20006010700e40b5402020004002d011a010200630803000100b91f03000101006d6f646c62662f76746b696e0000000000000000000000000000000000000000030400000000032e57549900000000010700e40b540202000400140d010220000100b91f2ccd2964a6197dc158997fac6648b9759f6285088966952b593718f7ca6fbe3a45'

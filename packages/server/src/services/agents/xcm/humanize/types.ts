@@ -4,13 +4,13 @@ export type XcmV3MultiLocation = AnyJson
 
 export type XcmAssetWithMetadata = {
   id: string
-  symbol: string
+  symbol?: string
   amount: bigint
-  decimals: number
+  decimals?: number
 }
 
 export type QueryableXcmAsset = {
-  location: AnyJson
+  location: string
   amount: bigint
 }
 
