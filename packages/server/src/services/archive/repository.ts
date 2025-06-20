@@ -180,7 +180,7 @@ export class ArchiveRepository {
       })
     }
 
-    followHistorical(this.logs$())
+    followHistorical(this.logs$(q))
 
     return merge(
       stream,
