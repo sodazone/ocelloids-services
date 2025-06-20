@@ -214,8 +214,8 @@ export class XcmExplorer {
       // .historicalXcm$({
       //   agent: 'xcm',
       //   timeframe: {
-      //     start: 1747597460000, // <- first message in archive
-      //     end: 1750157634000, // <- last message
+      //     start: 1750032010000, // <- first message in archive
+      //     end: 1750350239000, // <- last message
       //   },
       // })
       .pipe(
@@ -268,7 +268,7 @@ export class XcmExplorer {
       const correlationId = toCorrelationId(message)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
-        // this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
+        this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
         return
       }
 

@@ -250,8 +250,18 @@ export class XcmHumanizer {
 
   private determineJourneyType(instructions: XcmInstruction[]): XcmJourneyType {
     const exportMessage = this.findExportMessage(instructions)
+    const hopMessage = this.findHopMessage(instructions)
     if (exportMessage) {
       return this.determineJourneyType((exportMessage.value as ExportMessage).xcm)
+    }
+    if (
+      hopMessage &&
+      instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
+      (hopMessage.value as unknown as HopTransfer).xcm.some((op) =>
+        ['DepositAsset', 'DepositReserveAsset'].includes(op.type),
+      )
+    ) {
+      return XcmJourneyType.Transfer
     }
 
     if (instructions.some((op) => op.type === 'Transact')) {
@@ -299,11 +309,7 @@ export class XcmHumanizer {
   }
 
   private findDeposit(instructions: XcmInstruction[]): XcmInstruction | undefined {
-    const hopTransfer = instructions.find((op) =>
-      ['InitiateReserveWithdraw', 'InitiateTeleport', 'DepositReserveAsset', 'TransferReserveAsset'].includes(
-        op.type,
-      ),
-    )
+    const hopTransfer = this.findHopMessage(instructions)
     const bridgeMessage = this.findExportMessage(instructions)
 
     let deposit = instructions.find((op) => op.type === 'DepositAsset')
@@ -345,6 +351,14 @@ export class XcmHumanizer {
 
   private findExportMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
     return instructions.find((op) => op.type === 'ExportMessage')
+  }
+
+  private findHopMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
+    return instructions.find((op) =>
+      ['InitiateReserveWithdraw', 'InitiateTeleport', 'DepositReserveAsset', 'TransferReserveAsset'].includes(
+        op.type,
+      ),
+    )
   }
 
   private async handleBridgeMessage(

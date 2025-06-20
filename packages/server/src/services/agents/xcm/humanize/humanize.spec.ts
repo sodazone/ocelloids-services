@@ -275,4 +275,160 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.to.key).toBeDefined()
     expect(results.humanized.to.formatted).toBeDefined()
   })
+
+  it('should humanize hop transfer', async () => {
+    const instructions = [
+      {
+        type: 'WithdrawAsset',
+        value: [
+          {
+            id: {
+              parents: 0,
+              interior: {
+                type: 'Here',
+              },
+            },
+            fun: {
+              type: 'Fungible',
+              value: '10000000',
+            },
+          },
+        ],
+      },
+      {
+        type: 'ClearOrigin',
+      },
+      {
+        type: 'BuyExecution',
+        value: {
+          fees: {
+            id: {
+              parents: 0,
+              interior: {
+                type: 'Here',
+              },
+            },
+            fun: {
+              type: 'Fungible',
+              value: '5000000',
+            },
+          },
+          weight_limit: {
+            type: 'Unlimited',
+          },
+        },
+      },
+      {
+        type: 'InitiateTeleport',
+        value: {
+          assets: {
+            type: 'Wild',
+            value: {
+              type: 'All',
+            },
+          },
+          dest: {
+            parents: 0,
+            interior: {
+              type: 'X1',
+              value: {
+                type: 'Parachain',
+                value: 1000,
+              },
+            },
+          },
+          xcm: [
+            {
+              type: 'BuyExecution',
+              value: {
+                fees: {
+                  id: {
+                    parents: 1,
+                    interior: {
+                      type: 'Here',
+                    },
+                  },
+                  fun: {
+                    type: 'Fungible',
+                    value: '5000000',
+                  },
+                },
+                weight_limit: {
+                  type: 'Unlimited',
+                },
+              },
+            },
+            {
+              type: 'DepositAsset',
+              value: {
+                assets: {
+                  type: 'Wild',
+                  value: {
+                    type: 'AllCounted',
+                    value: 1,
+                  },
+                },
+                beneficiary: {
+                  parents: 1,
+                  interior: {
+                    type: 'X1',
+                    value: {
+                      type: 'Parachain',
+                      value: 2000,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ]
+
+    const results = await humanizer.humanize({
+      type: 'xcm.received',
+      legs: [
+        {
+          from: 'urn:ocn:polkadot:2000',
+          to: 'urn:ocn:polkadot:0',
+          type: 'hop',
+        },
+        {
+          from: 'urn:ocn:polkadot:0',
+          to: 'urn:ocn:polkadot:1000',
+          type: 'vmp',
+        },
+      ],
+      origin: {
+        chainId: 'urn:ocn:polkadot:2000',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions: {
+          type: 'V5',
+          value: instructions,
+        },
+      },
+      waypoint: {
+        chainId: 'urn:ocn:polkadot:0',
+        blockHash: '0x02',
+        blockNumber: 1,
+        outcome: 'Fail',
+        messageHash: '0xBEEF',
+        instructions: {
+          type: 'V5',
+          value: instructions,
+        },
+        legIndex: 1,
+      },
+      destination: {
+        chainId: 'urn:ocn:polkadot:1000',
+        blockHash: '0x02',
+        blockNumber: 1,
+      },
+    })
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transfer')
+  })
 })
