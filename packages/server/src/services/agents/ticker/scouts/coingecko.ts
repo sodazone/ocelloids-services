@@ -61,7 +61,7 @@ const CG_ID_MAP: Record<string, string> = {
   KSM: 'kusama',
   SOL: 'solana',
   IBTC: 'interbtc',
-  INTR: 'interlay'
+  INTR: 'interlay',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'

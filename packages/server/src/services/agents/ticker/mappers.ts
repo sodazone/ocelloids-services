@@ -199,10 +199,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   },
   IBTC: {
     chainId: 'urn:ocn:polkadot:2032',
-    assetId: 'native:IBTC'
+    assetId: 'native:IBTC',
   },
   INTR: {
     chainId: 'urn:ocn:polkadot:2032',
-    assetId: 'native'
-  }
+    assetId: 'native',
+  },
 }
