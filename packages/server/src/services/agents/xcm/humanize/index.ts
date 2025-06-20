@@ -1,6 +1,6 @@
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
-import { getRelayId } from '@/services/config.js'
+import { getConsensus, getRelayId } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateNetworkInfo } from '@/services/networking/substrate/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
@@ -110,7 +110,7 @@ export class XcmHumanizer {
     const version = versioned.type
     const instructions = versioned.value
     const type = this.determineJourneyType(instructions)
-    const beneficiary = this.extractBeneficiary(instructions)
+    const beneficiary = this.extractBeneficiary(instructions, destination.chainId)
     const transactCalls = await this.extractTransactCall(instructions, destination.chainId)
 
     const from = await this.toAddresses(origin.chainId, sender?.signer?.publicKey)
@@ -283,7 +283,7 @@ export class XcmHumanizer {
     return XcmJourneyType.Unknown
   }
 
-  private extractBeneficiary(instructions: XcmInstruction[]): string | null {
+  private extractBeneficiary(instructions: XcmInstruction[], network: NetworkURN): string | null {
     const deposit = this.findDeposit(instructions)
     if (!deposit) {
       return null
@@ -291,6 +291,10 @@ export class XcmHumanizer {
 
     const interiorValue = (deposit.value as DepositAsset).beneficiary.interior.value
     const multiAddress = Array.isArray(interiorValue) ? interiorValue[0] : interiorValue
+
+    if (multiAddress.type === 'Parachain') {
+      return `urn:ocn:${getConsensus(network)}:${multiAddress.value}`
+    }
 
     return this.resolveMultiAddress(multiAddress)
   }
@@ -301,9 +305,6 @@ export class XcmHumanizer {
     }
     if (multiAddress.type === 'AccountKey20') {
       return multiAddress.value.key
-    }
-    if (multiAddress.type === 'Parachain') {
-      return `paraid:${multiAddress.value}`
     }
     return null
   }
@@ -369,12 +370,11 @@ export class XcmHumanizer {
     version: string,
   ): Promise<HumanizedXcm> {
     const { network, xcm } = exportMessage.value as ExportMessage
-    const beneficiary = this.extractBeneficiary(xcm)
     const anchor = this.extractExportDestination(network)
     if (!anchor) {
       return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })
     }
-
+    const beneficiary = this.extractBeneficiary(xcm, anchor)
     const bridgedBeneficiary = beneficiary ? await this.toAddresses(anchor as NetworkURN, beneficiary) : to
 
     return this.resolveAssetsMetadata(anchor, this.extractAssets(xcm)).then((bridgeAssets) =>
@@ -387,7 +387,7 @@ export class XcmHumanizer {
     )
   }
 
-  private extractExportDestination(network?: { type: string; value: AnyJson }): string | null {
+  private extractExportDestination(network?: { type: string; value: AnyJson }): NetworkURN | null {
     if (!network?.value || typeof network.value !== 'object' || !('chain_id' in network.value)) {
       return null
     }
@@ -418,12 +418,20 @@ export class XcmHumanizer {
     return humanized
   }
 
-  private async toAddresses(chainId: NetworkURN, publicKey?: string | null): Promise<HumanizedAddresses> {
-    if (publicKey) {
-      if (publicKey.length === 42) {
+  private async toAddresses(
+    chainId: NetworkURN,
+    publicKeyOrParachain?: string | null,
+  ): Promise<HumanizedAddresses> {
+    if (publicKeyOrParachain) {
+      if (publicKeyOrParachain.startsWith('urn:ocn')) {
+        return {
+          key: publicKeyOrParachain,
+        }
+      }
+      if (publicKeyOrParachain.length === 42) {
         // EVM address
         return {
-          key: publicKey,
+          key: publicKeyOrParachain,
         }
       }
       let prefix = this.#ss58Cache.get(chainId)
@@ -434,8 +442,8 @@ export class XcmHumanizer {
       }
 
       return {
-        key: publicKey,
-        formatted: fromBufferToBase58(prefix)(fromHex(publicKey)),
+        key: publicKeyOrParachain,
+        formatted: fromBufferToBase58(prefix)(fromHex(publicKeyOrParachain)),
       }
     }
 

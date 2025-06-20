@@ -1,7 +1,7 @@
 import { createServices } from '@/testing/services.js'
 import { apiContext } from '@/testing/xcm.js'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { fromXcmpFormat } from '../ops/xcm-format.js'
+import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
 
 describe('XcmHumanizer', () => {
@@ -274,6 +274,53 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.to).toBeDefined()
     expect(results.humanized.to.key).toBeDefined()
     expect(results.humanized.to.formatted).toBeDefined()
+  })
+
+  it('should humanize parachain as beneficiary', async () => {
+    const msgData =
+      '0418000400000003005ed0b21300000003005ed0b20006010700e40b5402020004002d011a010200630803000100b91f03000101006d6f646c62662f76746b696e0000000000000000000000000000000000000000030400000000032e57549900000000010700e40b540202000400140d010220000100b91f2ccd2964a6197dc158997fac6648b9759f6285088966952b593718f7ca6fbe3a45'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = asVersionedXcm(buf, apiContext).instructions
+
+    const results = await humanizer.humanize({
+      type: 'xcm.sent',
+      legs: [
+        {
+          from: 'urn:ocn:polkadot:2030',
+          to: 'urn:ocn:polkadot:0',
+          type: 'vmp',
+        },
+      ],
+      origin: {
+        chainId: 'urn:ocn:polkadot:2030',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+      },
+      waypoint: {
+        chainId: 'urn:ocn:polkadot:2030',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+        legIndex: 0,
+      },
+      destination: {
+        chainId: 'urn:ocn:polkadot:0',
+      },
+    })
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.transactCalls[0]).toBeDefined()
+    expect(results.humanized.transactCalls[0].raw).toBeDefined()
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.to.key).toBe('urn:ocn:polkadot:2030')
   })
 
   it('should humanize hop transfer', async () => {
