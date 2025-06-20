@@ -45,6 +45,7 @@ const CG_ID_MAP: Record<string, string> = {
   GLMR: 'moonbeam',
   ASTR: 'astar',
   ACA: 'aca',
+  ASEED: 'ausd-seed-acala',
   BNC: 'bifrost-native-coin',
   HDX: 'hydradx',
   MYTH: 'mythos',

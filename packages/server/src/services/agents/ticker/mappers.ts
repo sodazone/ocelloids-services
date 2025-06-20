@@ -71,10 +71,24 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:polkadot:2006',
     assetId: 'native',
   },
-  ACA: {
-    chainId: 'urn:ocn:polkadot:2000',
-    assetId: 'native',
-  },
+  ACA: [
+    {
+      chainId: 'urn:ocn:polkadot:2000',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2000',
+      assetId: {
+        type: 'NativeAssetId',
+        value: {
+          type: 'Token',
+          value: {
+            type: 'ACA',
+          },
+        },
+      },
+    },
+  ],
   BNC: [
     {
       chainId: 'urn:ocn:polkadot:2030',
