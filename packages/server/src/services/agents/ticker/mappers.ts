@@ -197,4 +197,12 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:kusama:0',
     assetId: 'native',
   },
+  IBTC: {
+    chainId: 'urn:ocn:polkadot:2032',
+    assetId: 'native:IBTC'
+  },
+  INTR: {
+    chainId: 'urn:ocn:polkadot:2032',
+    assetId: 'native'
+  }
 }
