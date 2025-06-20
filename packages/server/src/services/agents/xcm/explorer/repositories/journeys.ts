@@ -269,13 +269,21 @@ export class XcmRepository {
       transact_calls: rows[0].transact_calls,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
       origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
-      assets: rows.map((row) => ({
-        asset: row.asset ?? 'unknown',
-        symbol: row.symbol ?? undefined,
-        amount: row.amount ?? '0',
-        decimals: row.decimals ?? undefined,
-        usd: row.usd ?? undefined,
-      })),
+      assets: rows
+        .map((row) => {
+          if (row.asset && row.amount) {
+            return {
+              asset: row.asset,
+              symbol: row.symbol ?? undefined,
+              amount: row.amount,
+              decimals: row.decimals ?? undefined,
+              usd: row.usd ?? undefined,
+            }
+          } else {
+            return null
+          }
+        })
+        .filter((a) => a !== null),
     }
 
     return journey
