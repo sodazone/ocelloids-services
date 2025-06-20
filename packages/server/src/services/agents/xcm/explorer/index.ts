@@ -210,14 +210,14 @@ export class XcmExplorer {
 
     await this.#migrator.migrateToLatest()
 
-    this.#sub = tracker.xcm$
-      // .historicalXcm$({
-      //   agent: 'xcm',
-      //   timeframe: {
-      //     start: 1750032010000, // <- first message in archive
-      //     end: 1750350239000, // <- last message
-      //   },
-      // })
+    this.#sub = tracker
+    // .xcm$
+      .historicalXcm$({
+        agent: 'xcm',
+        timeframe: {
+          start: 1750430759000,
+        },
+      })
       .pipe(
         concatMap((message) => {
           const correlationId = toCorrelationId(message)
