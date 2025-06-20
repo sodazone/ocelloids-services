@@ -162,6 +162,74 @@ const centrifugeMapper: AssetMapper = (context: SubstrateApiContext) => {
   return mappings
 }
 
+const interlayMapper: AssetMapper = (context: SubstrateApiContext) => {
+  const codec = context.storageCodec('AssetRegistry', 'Metadata')
+  const keyPrefix = codec.keys.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets'> = {
+    assets: codec,
+  }
+
+  const mappings = [
+    {
+      keyPrefix,
+      mapEntry: mapAssetsRegistryMetadata({
+        chainId: networks.interlay,
+        codecs,
+        options: {
+          ed: 'existential_deposit',
+        },
+      }),
+      mapAssetId: (data: Uint8Array) => {
+        const interbtcTypeId = context.getTypeIdByPath('interbtc_primitives.CurrencyId')
+        if (interbtcTypeId !== undefined) {
+          const codec = context.typeCodec(interbtcTypeId)
+          const dec = codec.dec(data)
+          if (dec.type === 'Token') {
+            return dec.value.type.toLowerCase() === 'intr' ? ['native'] : [`native:${dec.value.type}`]
+          }
+        }
+      },
+    },
+  ]
+  return mappings
+}
+
+const acalaMapper: AssetMapper = (context: SubstrateApiContext) => {
+  const codec = context.storageCodec('AssetRegistry', 'AssetMetadatas')
+  const keyPrefix = codec.keys.enc() as HexString
+  const codecs: WithRequired<StorageCodecs, 'assets'> = {
+    assets: codec,
+  }
+  const mappings = [
+    {
+      keyPrefix,
+      mapAssetId: (data: Uint8Array) => {
+        const acalaCurrencyTypeId = context.getTypeIdByPath('acala_primitives.Currency.CurrencyId')
+        if (acalaCurrencyTypeId !== undefined) {
+          const codec = context.typeCodec(acalaCurrencyTypeId)
+          const dec = codec.dec(data)
+          if (dec.type === 'Token') {
+            return [
+              {
+                type: 'NativeAssetId',
+                value: dec,
+              },
+            ]
+          }
+        }
+      },
+      mapEntry: mapAssetsRegistryMetadata({
+        chainId: networks.acala,
+        codecs,
+        options: {
+          ed: 'minimal_balance',
+        },
+      }),
+    },
+  ]
+  return mappings
+}
+
 const assetHubMapper = (chainId: string) => (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
@@ -236,7 +304,7 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.bridgeHub]: BYPASS_MAPPER,
   [networks.people]: BYPASS_MAPPER,
   [networks.coretime]: BYPASS_MAPPER,
-  [networks.acala]: BYPASS_MAPPER,
+  [networks.acala]: acalaMapper,
   [networks.nodle]: BYPASS_MAPPER,
   [networks.phala]: BYPASS_MAPPER,
   [networks.mythos]: BYPASS_MAPPER,
@@ -246,7 +314,7 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.bifrost]: bifrostMapper,
   [networks.centrifuge]: centrifugeMapper,
   [networks.hydration]: hydrationMapper,
-  [networks.interlay]: BYPASS_MAPPER,
+  [networks.interlay]: interlayMapper,
   [networks.manta]: BYPASS_MAPPER,
   [networks.polimec]: BYPASS_MAPPER,
   [networks.hyperbridge]: hyperbridgeMapper,
