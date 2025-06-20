@@ -7,7 +7,7 @@ import { Subscription } from '@/services/subscriptions/types.js'
 import { SubscriptionUpdater, hasOp } from '../base/updater.js'
 import type { XcmAgent } from './agent.js'
 import { messageCriteria, notificationTypeCriteria, sendersCriteria } from './ops/criteria.js'
-import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types.js'
+import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types/index.js'
 
 const ALLOWED_PATHS = [
   '/args/senders',

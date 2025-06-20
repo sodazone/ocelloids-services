@@ -5,7 +5,7 @@ import { createNetworkId } from '@/services/config.js'
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { GenericXcmSentWithContext, GetOutboundHrmpMessages, XcmSentWithContext } from '../types.js'
+import { GenericXcmSentWithContext, GetOutboundHrmpMessages, XcmSentWithContext } from '../types/index.js'
 import { xcmMessagesSent } from './common.js'
 import { getMessageId, matchEvent } from './util.js'
 import { fromXcmpFormat } from './xcm-format.js'

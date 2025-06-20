@@ -97,3 +97,59 @@ export function fromDuckDBBlob(blob: DuckDBBlobValue): string {
     throw new Error('Invalid varchar encoding')
   }
 }
+
+export function toSafeAsciiText(input: string | null | undefined): string {
+  if (input === null || input === undefined) {
+    return 'NULL'
+  }
+  if (!/^[\x20-\x7E]+$/.test(input)) {
+    throw new Error('Unsafe characters in ASCII string')
+  }
+  return `'${input.replace(/'/g, "''")}'`
+}
+
+export function toSqlText(input: string | null | undefined): string {
+  if (input === null || input === undefined) {
+    return 'NULL'
+  }
+
+  // Reject null characters (can break SQL parsing)
+  if (input.includes('\x00')) {
+    throw new Error('Invalid string: contains null character')
+  }
+
+  // Escape single quotes by doubling them
+  const escaped = input.replace(/'/g, "''")
+
+  return `'${escaped}'`
+}
+
+export function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+}
+
+export function deepCamelize<T>(input: any): DeepCamelize<T> {
+  if (Array.isArray(input)) {
+    return input.map(deepCamelize) as DeepCamelize<T>
+  }
+
+  if (input !== null && typeof input === 'object') {
+    return Object.fromEntries(
+      Object.entries(input).map(([key, value]) => [snakeToCamel(key), deepCamelize(value)]),
+    ) as DeepCamelize<T>
+  }
+
+  return input
+}
+
+export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
+  ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
+  : S
+
+export type DeepCamelize<T> = T extends Array<infer U>
+  ? DeepCamelize<U>[]
+  : T extends object
+    ? {
+        [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
+      }
+    : T

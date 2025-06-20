@@ -13,6 +13,8 @@ export const networks = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
   assetHub: 'urn:ocn:polkadot:1000',
   bridgeHub: 'urn:ocn:polkadot:1002',
+  people: 'urn:ocn:polkadot:1004',
+  coretime: 'urn:ocn:polkadot:1005',
   acala: 'urn:ocn:polkadot:2000',
   moonbeam: 'urn:ocn:polkadot:2004',
   composable: 'urn:ocn:polkadot:2019',
@@ -92,6 +94,10 @@ export type ParsedAsset = {
         type: 'data'
         value: Uint8Array
       }
+    | {
+        type: 'contract'
+        value: string
+      }
   pallet?: number
 }
 
@@ -141,4 +147,14 @@ export type AssetMetadata = AssetIds & {
   externalIds: AssetIds[]
   updated: number
   raw: Record<string, any>
+}
+
+/**
+ * Return type for assets that cannot be resolved.
+ *
+ * @public
+ */
+export type Empty = {
+  isNotResolved: boolean
+  query: Record<string, any>
 }

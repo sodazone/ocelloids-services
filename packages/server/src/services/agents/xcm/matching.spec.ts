@@ -11,7 +11,7 @@ import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types.js'
+import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types/index.js'
 
 type OD = { origin: string; destination: string }
 

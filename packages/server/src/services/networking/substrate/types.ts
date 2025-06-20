@@ -29,14 +29,17 @@ export type EventRecord<T = Event> = Omit<SystemEvent, 'event'> & {
   event: T
 }
 
-export type Extrinsic = {
-  hash: string
+export type Call = {
   module: string
   method: string
+  args: Record<string, any>
+}
+
+export type Extrinsic = Call & {
+  hash: string
   signed: boolean
   signature: any
   address: any
-  args: Record<string, any>
   evmTxHash?: string
 }
 
@@ -142,6 +145,7 @@ export interface SubstrateApiContext {
   getHashers(module: string, method: string): Hashers | null
   hasPallet(name: string): boolean
   getTypeIdByPath(path: string | string[]): number | undefined
+  decodeCall(callData: string | Uint8Array): Call
   decodeExtrinsic(hextBytes: string): Extrinsic
   storageCodec<T = any>(module: string, method: string): StorageCodec<T>
   typeCodec<T = any>(path: string | string[] | number): Codec<T>

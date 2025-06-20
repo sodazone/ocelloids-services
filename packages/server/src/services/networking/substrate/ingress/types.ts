@@ -42,4 +42,5 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
   getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo>
   getRelayIds(): NetworkURN[]
   isRelay(chainId: NetworkURN): boolean
+  isReady(): Promise<void>
 }

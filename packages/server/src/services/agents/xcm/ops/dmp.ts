@@ -12,7 +12,7 @@ import {
   GetDownwardMessageQueues,
   XcmInboundWithContext,
   XcmSentWithContext,
-} from '../types.js'
+} from '../types/index.js'
 import {
   getMessageId,
   getSendersFromEvent,

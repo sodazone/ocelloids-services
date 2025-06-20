@@ -1,6 +1,6 @@
 import { Counter } from 'prom-client'
 
-import { XcmBridge, XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../types.js'
+import { XcmBridge, XcmHop, XcmInbound, XcmRelayed, XcmSent, XcmTimeout } from '../types/index.js'
 import { TelemetryXcmEventEmitter } from './events.js'
 
 export function xcmAgentMetrics(source: TelemetryXcmEventEmitter) {
