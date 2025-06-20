@@ -3,7 +3,7 @@ import { $JourneyFilters } from './queries.js'
 
 export const $XcmServerSideEventArgs = $JourneyFilters.and(
   z.object({
-    id: z.number().optional(),
+    id: z.string().optional(),
   }),
 )
 

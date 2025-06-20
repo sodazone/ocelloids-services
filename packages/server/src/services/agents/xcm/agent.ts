@@ -59,7 +59,7 @@ function applySseFilters(
   filters: XcmServerSideEventArgs,
   { data: journey }: ServerSideEvent<FullXcmJourneyResponse>,
 ): boolean {
-  if (filters.id && filters.id !== journey.id) {
+  if (filters.id && filters.id !== journey.correlationId) {
     return false
   }
   if (filters.origins && !filters.origins.includes(journey.origin)) {
