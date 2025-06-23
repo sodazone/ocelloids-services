@@ -62,6 +62,8 @@ const CG_ID_MAP: Record<string, string> = {
   SOL: 'solana',
   IBTC: 'interbtc',
   INTR: 'interlay',
+  UNQ: 'unique-network',
+  KILT: 'kilt-protocol', // old token contract, new not yet available
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'

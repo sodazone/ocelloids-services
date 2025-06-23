@@ -21,23 +21,24 @@ describe('XcmExplorer', () => {
 
     // Mock tracker with RxJS Observable
     tracker = {
-      historicalXcm$: () => new Observable((subscriber) => {
-        const filePath = resolve(xcmDataDir, '002.jsonl')
-        const stream = createReadStream(filePath, { encoding: 'utf-8' })
-        const rl = createInterface({ input: stream })
+      historicalXcm$: () =>
+        new Observable((subscriber) => {
+          const filePath = resolve(xcmDataDir, '002.jsonl')
+          const stream = createReadStream(filePath, { encoding: 'utf-8' })
+          const rl = createInterface({ input: stream })
 
-        rl.on('line', (line) => {
-          try {
-            const message = JSON.parse(line)
-            subscriber.next(message)
-          } catch (error) {
-            subscriber.error(error)
-          }
-        })
+          rl.on('line', (line) => {
+            try {
+              const message = JSON.parse(line)
+              subscriber.next(message)
+            } catch (error) {
+              subscriber.error(error)
+            }
+          })
 
-        rl.on('close', () => subscriber.complete())
-        rl.on('error', (error) => subscriber.error(error))
-      }).pipe(share()),
+          rl.on('close', () => subscriber.complete())
+          rl.on('error', (error) => subscriber.error(error))
+        }).pipe(share()),
     } as unknown as XcmTracker
 
     sendSpy = vi.fn()

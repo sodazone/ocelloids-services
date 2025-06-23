@@ -205,4 +205,18 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:polkadot:2032',
     assetId: 'native',
   },
+  KILT: [
+    {
+      chainId: 'urn:ocn:polkadot:2086',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x5d3d01fd6d2ad1169b17918eb4f153c6616288eb',
+    },
+  ],
+  UNQ: {
+    chainId: 'urn:ocn:polkadot:2037',
+    assetId: 'native',
+  },
 }

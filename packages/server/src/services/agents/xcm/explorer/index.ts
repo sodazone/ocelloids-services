@@ -214,7 +214,7 @@ export class XcmExplorer {
       .historicalXcm$({
         agent: 'xcm',
         timeframe: {
-          start: Date.now() - (60_000 * 10),
+          start: Date.now() - 60_000 * 10,
         },
       })
       .pipe(
