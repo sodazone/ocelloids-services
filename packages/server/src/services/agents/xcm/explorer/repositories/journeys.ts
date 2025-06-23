@@ -91,27 +91,81 @@ export class XcmRepository {
     const limit = Math.min(pagination?.limit ?? 50, 100)
     const realLimit = limit + 1
 
-    let query = this.#db
+    // STEP 1: Get journey IDs for pagination
+    let idQuery = this.#db.selectFrom('xcm_journeys').select(['id', 'sent_at'])
+
+    if (pagination?.cursor) {
+      const afterDate = decodeCursor(pagination.cursor)
+      idQuery = idQuery.where('sent_at', '<', afterDate)
+    }
+
+    if (filters?.origins) {
+      idQuery = idQuery.where('origin', 'in', filters.origins)
+    }
+
+    if (filters?.destinations) {
+      idQuery = idQuery.where('destination', 'in', filters.destinations)
+    }
+
+    if (filters?.status) {
+      idQuery = idQuery.where('status', 'in', filters.status)
+    }
+
+    if (filters?.address) {
+      idQuery = idQuery.where((eb) =>
+        eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
+      )
+    }
+
+    if (filters?.txHash) {
+      idQuery = idQuery.where((eb) =>
+        eb.or([
+          eb('origin_extrinsic_hash', '=', filters.txHash!),
+          eb('origin_evm_tx_hash', '=', filters.txHash!),
+        ]),
+      )
+    }
+
+    idQuery = idQuery.orderBy('sent_at', 'desc').limit(realLimit)
+
+    const journeyIdsResult = await idQuery.execute()
+    const hasNextPage = journeyIdsResult.length > limit
+    const limitedJourneys = hasNextPage ? journeyIdsResult.slice(0, limit) : journeyIdsResult
+
+    const journeyIds = limitedJourneys.map((j) => j.id)
+
+    if (journeyIds.length === 0) {
+      return {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: '',
+        },
+      }
+    }
+
+    // STEP 2: Fetch full journey data + assets
+    let fullQuery = this.#db
       .selectFrom('xcm_journeys')
       .select([
         'xcm_journeys.id',
-        'xcm_journeys.correlation_id',
-        'xcm_journeys.status',
-        'xcm_journeys.type',
-        'xcm_journeys.origin',
-        'xcm_journeys.destination',
-        'xcm_journeys.from',
-        'xcm_journeys.to',
-        'xcm_journeys.from_formatted',
-        'xcm_journeys.to_formatted',
-        'xcm_journeys.sent_at',
-        'xcm_journeys.recv_at',
-        'xcm_journeys.created_at',
-        'xcm_journeys.stops',
-        'xcm_journeys.instructions',
-        'xcm_journeys.transact_calls',
-        'xcm_journeys.origin_extrinsic_hash',
-        'xcm_journeys.origin_evm_tx_hash',
+        'correlation_id',
+        'status',
+        'type',
+        'origin',
+        'destination',
+        'from',
+        'to',
+        'from_formatted',
+        'to_formatted',
+        'sent_at',
+        'recv_at',
+        'created_at',
+        'stops',
+        'instructions',
+        'transact_calls',
+        'origin_extrinsic_hash',
+        'origin_evm_tx_hash',
         sql`json_group_array(json_object(
         'asset', xcm_assets.asset,
         'symbol', xcm_assets.symbol,
@@ -121,52 +175,16 @@ export class XcmRepository {
       ))`.as('assets'),
       ])
       .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
+      .where('xcm_journeys.id', 'in', journeyIds)
       .groupBy('xcm_journeys.id')
-      .orderBy('xcm_journeys.sent_at', 'desc')
-      .limit(realLimit)
-
-    if (pagination?.cursor) {
-      const afterDate = decodeCursor(pagination.cursor)
-      query = query.where('xcm_journeys.sent_at', '<', afterDate)
-    }
 
     if (filters?.assets) {
-      query = query.where('xcm_assets.asset', 'in', filters.assets)
+      fullQuery = fullQuery.where('xcm_assets.asset', 'in', filters.assets)
     }
 
-    if (filters?.origins) {
-      query = query.where('xcm_journeys.origin', 'in', filters.origins)
-    }
+    const rows = await fullQuery.execute()
 
-    if (filters?.destinations) {
-      query = query.where('xcm_journeys.destination', 'in', filters.destinations)
-    }
-
-    if (filters?.status) {
-      query = query.where('xcm_journeys.status', 'in', filters.status)
-    }
-
-    if (filters?.address !== undefined) {
-      query = query.where((eb) =>
-        eb.or([eb('xcm_journeys.from', '=', filters.address!), eb('xcm_journeys.to', '=', filters.address!)]),
-      )
-    }
-
-    if (filters?.txHash !== undefined) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('xcm_journeys.origin_extrinsic_hash', '=', filters.txHash!),
-          eb('xcm_journeys.origin_evm_tx_hash', '=', filters.txHash!),
-        ]),
-      )
-    }
-
-    const rows = await query.execute()
-
-    const hasNextPage = rows.length > limit
-    const limitedRows = hasNextPage ? rows.slice(0, limit) : rows
-
-    const nodes = limitedRows.map((row) => ({
+    const nodes = rows.map((row) => ({
       id: row.id,
       correlation_id: row.correlation_id,
       status: row.status,
@@ -185,9 +203,10 @@ export class XcmRepository {
       transact_calls: row.transact_calls,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
-      assets: Array.isArray(row.assets)
-        ? row.assets.filter((a) => a.asset !== null && a.amount !== null)
-        : [],
+      assets:
+        typeof row.assets === 'string'
+          ? JSON.parse(row.assets).filter((a: any) => a.asset !== null && a.amount !== null)
+          : [],
     }))
 
     const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
