@@ -87,7 +87,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   readonly #bridgeAccepted: SubLevel<XcmBridge>
   readonly #bridgeInbound: SubLevel<XcmBridgeInboundWithContext>
   readonly #messageData: SubLevel<HexString>
-  readonly #mutexes: Map<string, Mutex>
+  readonly #mutex: Mutex
   readonly #xcmMatchedReceiver: XcmMatchedReceiver
   readonly #expiry: number
 
@@ -96,7 +96,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     this.#log = log
     this.#janitor = janitor
-    this.#mutexes = new Map()
+    this.#mutex = new Mutex()
     this.#xcmMatchedReceiver = xcmMatchedReceiver
 
     // Key format: [destination-chain-id]:[message-id/hash]
@@ -127,19 +127,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
     this.#expiry = DEFAULT_TIMEOUT
     this.#janitor.on('sweep', this.#onXcmSwept.bind(this))
-
-    setInterval(() => {
-      for (const [key, mutex] of this.#mutexes.entries()) {
-        if (!mutex.isLocked()) {
-          this.#mutexes.delete(key)
-        }
-      }
-    }, 60_000)
   }
 
   async onMessageData({ hash, data, topicId }: MessageHashData) {
-    const mutex = this.#getMutex(hash)
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       this.#log.info('[matching] STORE HASH DATA hash=%s', hash)
       const batch = this.#messageData.batch().put(hash, data)
       if (topicId) {
@@ -163,9 +154,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onOutboundMessage(outMsg: XcmSent) {
-    const mutex = this.#getMutex(outMsg.origin.messageHash)
     // Confirmation key at destination
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       const hashKey = matchingKey(outMsg.destination.chainId, outMsg.waypoint.messageHash)
       // check first if there is already an outbound msg stored with the same key
       if (await this.#isOutboundDuplicate(hashKey)) {
@@ -234,8 +224,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onInboundMessage(inMsg: XcmInbound) {
-    const mutex = this.#getMutex(inMsg.messageHash)
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       if (inMsg.messageData === undefined) {
         if (inMsg.messageId && inMsg.messageId !== inMsg.messageHash) {
           inMsg.messageData = await Promise.any([
@@ -312,8 +301,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const idKey = relayMsg.messageId
       ? matchingKey(relayMsg.recipient, relayMsg.messageId)
       : matchingKey(relayMsg.recipient, relayMsg.messageHash)
-    const mutex = this.#getMutex(relayMsg.messageHash)
-    await mutex.runExclusive(async () => {
+
+    await this.#mutex.runExclusive(async () => {
       // Hop relay matching heuristic :_
       for await (const originMsg of this.#outbound.values(matchingRange(relayMsg.recipient))) {
         if (
@@ -368,8 +357,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
-    const mutex = this.#getMutex(msg.messageHash)
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       if (msg.forwardId === undefined) {
         this.#log.error(
           '[%s] forward_id_to not found for bridge accepted message (block=%s #%s)',
@@ -434,8 +422,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeOutboundDelivered(msg: XcmBridgeDeliveredWithContext) {
-    const mutex = this.#getMutex(msg.messageHash)
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       const { chainId, bridgeKey } = msg
       const sublevelBridgeKey = `${bridgeKey}`
 
@@ -477,8 +464,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async onBridgeInbound(bridgeInMsg: XcmBridgeInboundWithContext) {
-    const mutex = this.#getMutex(bridgeInMsg.messageHash)
-    await mutex.runExclusive(async () => {
+    await this.#mutex.runExclusive(async () => {
       const { chainId, bridgeKey } = bridgeInMsg
       const sublevelBridgeKey = `${bridgeKey}`
 
@@ -527,9 +513,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async stop() {
-    for (const mutex of this.#mutexes.values()) {
-      await mutex.waitForUnlock()
-    }
+    await this.#mutex.waitForUnlock()
   }
 
   // try to find in DB by hop key
@@ -1091,12 +1075,5 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       )
     }
     return fullMessage.includes(partialMessage.substring(10))
-  }
-
-  #getMutex(id: string): Mutex {
-    if (!this.#mutexes.has(id)) {
-      this.#mutexes.set(id, new Mutex())
-    }
-    return this.#mutexes.get(id)!
   }
 }
