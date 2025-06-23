@@ -214,7 +214,7 @@ export class XcmExplorer {
       .historicalXcm$({
         agent: 'xcm',
         timeframe: {
-          start: Date.now() - 60_000 * 10,
+          start: 1750584941000, // Date.now() - 60_000 * 10,
         },
       })
       .pipe(
@@ -266,6 +266,36 @@ export class XcmExplorer {
     try {
       const correlationId = toCorrelationId(message)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
+      if (
+        existingJourney &&
+        existingJourney.origin === 'urn:ocn:polkadot:2034' &&
+        existingJourney.from_formatted &&
+        existingJourney.from_formatted.startsWith('5')
+      ) {
+        const { humanized } = await this.#humanizer.humanize(message)
+        await this.#repository.updateJourney(existingJourney.id, { from_formatted: humanized.from.formatted })
+        this.#log.info(
+          '[xcm:explorer] Updated Hydration address at origin: addr=%s (%s)',
+          humanized.from.formatted,
+          correlationId,
+        )
+      }
+
+      if (
+        existingJourney &&
+        existingJourney.destination === 'urn:ocn:polkadot:2034' &&
+        existingJourney.to_formatted &&
+        existingJourney.to_formatted.startsWith('5')
+      ) {
+        const { humanized } = await this.#humanizer.humanize(message)
+        await this.#repository.updateJourney(existingJourney.id, { to_formatted: humanized.to.formatted })
+        this.#log.info(
+          '[xcm:explorer] Updated Hydration address at destination: addr=%s (%s)',
+          humanized.to.formatted,
+          correlationId,
+        )
+      }
+
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
         this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
         return
