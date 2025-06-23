@@ -34,6 +34,7 @@ import { HumanizedXcm, XcmJourneyType } from './types.js'
 const DEFAULT_SS58_PREFIX = 42
 const SS58_PREFIX_OVERRIDES: Record<NetworkURN, number> = {
   'urn:ocn:polkadot:2031': 36,
+  'urn:ocn:polkadot:2034': 0,
 }
 
 export class XcmHumanizer {
@@ -427,9 +428,7 @@ export class XcmHumanizer {
 
       if (prefix === undefined) {
         prefix = await this.fetchPrefix(chainId)
-        this.#ss58Cache.set(chainId, prefix)
       }
-
       return {
         key: publicKeyOrParachain,
         formatted: fromBufferToBase58(prefix)(fromHex(publicKeyOrParachain)),
@@ -442,14 +441,23 @@ export class XcmHumanizer {
   }
 
   private resolveFallbackPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
-    if (SS58_PREFIX_OVERRIDES[urn] !== undefined) {
-      return SS58_PREFIX_OVERRIDES[urn]
-    }
     const relay = getRelayId(urn)
-    return this.#ss58Cache.get(relay) ?? items.find((i) => i.urn === relay)?.ss58Prefix ?? DEFAULT_SS58_PREFIX
+    const relayPrefix = this.#ss58Cache.get(relay)
+    if (relayPrefix !== undefined) {
+      return relayPrefix
+    }
+    const filtered = items.find((i) => i.urn === relay)?.ss58Prefix
+    if (filtered !== undefined && filtered !== null) {
+      return filtered
+    }
+    return DEFAULT_SS58_PREFIX
   }
 
   private async fetchPrefix(chainId: NetworkURN): Promise<number> {
+    if (SS58_PREFIX_OVERRIDES[chainId] !== undefined) {
+      this.#ss58Cache.set(chainId, SS58_PREFIX_OVERRIDES[chainId])
+      return SS58_PREFIX_OVERRIDES[chainId]
+    }
     try {
       const { items } = (await this.#steward.query({
         args: {
@@ -460,7 +468,11 @@ export class XcmHumanizer {
         },
       })) as QueryResult<SubstrateNetworkInfo>
       const chainInfo = items.find((item) => item.urn === chainId)
-      return chainInfo?.ss58Prefix ?? this.resolveFallbackPrefix(chainId, items)
+      if (chainInfo?.ss58Prefix === undefined || chainInfo?.ss58Prefix === null) {
+        return this.resolveFallbackPrefix(chainId, items)
+      }
+      this.#ss58Cache.set(chainId, chainInfo.ss58Prefix)
+      return chainInfo.ss58Prefix
     } catch (error) {
       this.#log.warn(error, 'Error on fetch prefix [%s]', chainId)
       return this.resolveFallbackPrefix(chainId, [])
