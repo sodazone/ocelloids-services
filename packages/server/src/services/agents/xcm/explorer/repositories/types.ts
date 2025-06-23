@@ -46,8 +46,10 @@ export interface XcmDatabase {
   xcm_assets: XcmAssetTable
 }
 
+export type FullXcmJourneyAsset = Omit<XcmAsset, 'id' | 'journey_id'>
+
 export type FullXcmJourney = XcmJourney & {
-  assets: Omit<XcmAsset, 'id' | 'journey_id'>[]
+  assets: FullXcmJourneyAsset[]
 }
 
 export type XcmJourneyResponse = DeepCamelize<XcmJourney>

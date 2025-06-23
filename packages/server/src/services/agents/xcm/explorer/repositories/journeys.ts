@@ -2,7 +2,14 @@ import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
 import { Kysely, sql } from 'kysely'
 import { JourneyFilters } from '../../types/index.js'
-import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmDatabase, XcmJourneyUpdate } from './types.js'
+import {
+  FullXcmJourney,
+  FullXcmJourneyAsset,
+  NewXcmAsset,
+  NewXcmJourney,
+  XcmDatabase,
+  XcmJourneyUpdate,
+} from './types.js'
 
 function encodeCursor(date: number | Date): string {
   const timestamp = typeof date === 'number' ? date : date.getTime() // Convert Date to Unix epoch
@@ -203,10 +210,12 @@ export class XcmRepository {
       transact_calls: row.transact_calls,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
-      assets:
-        typeof row.assets === 'string'
-          ? JSON.parse(row.assets).filter((a: any) => a.asset !== null && a.amount !== null)
-          : [],
+      assets: (Array.isArray(row.assets)
+        ? row.assets
+        : typeof row.assets === 'string'
+          ? (JSON.parse(row.assets) as FullXcmJourneyAsset[])
+          : []
+      ).filter((a: FullXcmJourneyAsset) => a.asset !== null && a.amount !== null),
     }))
 
     const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
