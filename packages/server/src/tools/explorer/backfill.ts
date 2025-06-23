@@ -41,7 +41,7 @@ if (dbPath === undefined || startBlock < 0 || endBlock <= startBlock) {
   process.exit(1)
 }
 
-const filename = resolveDataPath('lilp.xcm-explorer.sqlite', dbPath)
+const filename = resolveDataPath('db.xcm-explorer.sqlite', dbPath)
 log.info('[xcm:explorer] database at %s', filename)
 
 const { db, migrator: _migrator } = createXcmDatabase(filename)
