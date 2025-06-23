@@ -184,6 +184,7 @@ export class XcmRepository {
       .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
       .where('xcm_journeys.id', 'in', journeyIds)
       .groupBy('xcm_journeys.id')
+      .orderBy('xcm_journeys.sent_at', 'desc')
 
     if (filters?.assets) {
       fullQuery = fullQuery.where('xcm_assets.asset', 'in', filters.assets)
