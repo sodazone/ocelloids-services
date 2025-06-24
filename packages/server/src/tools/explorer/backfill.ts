@@ -10,8 +10,42 @@ import { resolveDataPath } from '@/services/persistence/util.js'
 import { pino } from 'pino'
 import { Observable, concatMap, filter, from, map, takeWhile, timer } from 'rxjs'
 
+export const networks = {
+  'urn:ocn:polkadot:0': 'wss://rpc.ibp.network/polkadot',
+  'urn:ocn:polkadot:1000': 'wss://polkadot-asset-hub-rpc.polkadot.io',
+  'urn:ocn:polkadot:1002': 'wss://sys.ibp.network/bridgehub-polkadot',
+  'urn:ocn:polkadot:2034': 'wss://hydradx.paras.ibp.network',
+  'urn:ocn:polkadot:2004': 'wss://moonbeam.ibp.network',
+  'urn:ocn:polkadot:2006': 'wss://rpc.astar.network',
+  'urn:ocn:polkadot:2030': 'wss://bifrost-polkadot.ibp.network',
+  'urn:ocn:polkadot:2032': 'wss://interlay-rpc.dwellir.com',
+  'urn:ocn:polkadot:2000': 'wss://acala-rpc.dwellir.com',
+  'urn:ocn:polkadot:3369': 'wss://mythos.ibp.network',
+} as Record<string, string>
+
+const [, , dbPathArg, startArg, endArg, chain] = process.argv
+const dbPath = dbPathArg
+const startBlock = startArg ? Number(startArg) : -1
+const endBlock = endArg ? Number(endArg) : -1
+
+if (
+  dbPath === undefined ||
+  startBlock < 0 ||
+  endBlock <= startBlock ||
+  chain === undefined ||
+  !chain.startsWith('urn:ocn')
+) {
+  console.log('usage: backfill.js /db/path 12000000 12000100 urn:ocn:polkadot:0')
+  process.exit(1)
+}
+
+const ws = networks[chain]
+if (!ws) {
+  throw new Error(`Network not found: ${chain}`)
+}
+
 const log = pino()
-const moon = await createSubstrateClient(log, 'urn:ocn:polkadot:2004', 'wss://moonbeam.ibp.network')
+const moon = await createSubstrateClient(log, chain, ws)
 
 function backfillBlocks$({ start, end }: { start: number; end: number }): Observable<Block> {
   return timer(0, 100).pipe(
@@ -31,16 +65,6 @@ function getMessageId(instructions: any) {
   }
 }
 
-const [, , dbPathArg, startArg, endArg] = process.argv
-const dbPath = dbPathArg
-const startBlock = startArg ? Number(startArg) : -1
-const endBlock = endArg ? Number(endArg) : -1
-
-if (dbPath === undefined || startBlock < 0 || endBlock <= startBlock) {
-  console.log('usage: backfill.js /db/path 12000000 12000100')
-  process.exit(1)
-}
-
 const filename = resolveDataPath('db.xcm-explorer.sqlite', dbPath)
 log.info('[xcm:explorer] database at %s', filename)
 
@@ -51,7 +75,7 @@ await migrator.migrateToLatest()
 
 const { nodes } = await repository.listFullJourneys(
   {
-    destinations: ['urn:ocn:polkadot:2004'],
+    destinations: [chain],
     status: ['timeout'],
   },
   {
