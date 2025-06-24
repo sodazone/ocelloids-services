@@ -4,6 +4,7 @@ import {
   Observable,
   Subject,
   concatMap,
+  defaultIfEmpty,
   defer,
   delay,
   expand,
@@ -14,7 +15,7 @@ import {
   of,
 } from 'rxjs'
 
-import { asDateRange, asUTC, toUTCString } from './time.js'
+import { asDateRange, asUTC, toUTCMillis, toUTCString } from './time.js'
 import { Database, HistoricalPayload, HistoricalQuery, NewHistoricalPayload } from './types.js'
 
 type SelectLog = SelectQueryBuilder<Database, 'archive', unknown>
@@ -147,7 +148,8 @@ export class ArchiveRepository {
 
   #historicalAndFollow<T>(q: Partial<HistoricalQuery>, realTime$: Observable<T>) {
     const stream = new Subject<T>()
-    let lastTime = 0
+    const startDate = q.timeframe === undefined ? 0 : (asDateRange(q.timeframe).start ?? 0)
+    let lastTime = toUTCMillis(startDate)
     const followHistorical = (from$: Awaited<ReturnType<typeof this.logs$>>) => {
       from$.subscribe({
         next: ({ created_at, payload }) => {
@@ -185,7 +187,7 @@ export class ArchiveRepository {
     return merge(
       stream,
       stream.pipe(
-        last(),
+        defaultIfEmpty(null),
         mergeMap(() => realTime$),
       ),
     )
