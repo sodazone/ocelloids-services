@@ -3,8 +3,8 @@ import {
   EMPTY,
   Observable,
   Subject,
+  catchError,
   concatMap,
-  defaultIfEmpty,
   defer,
   delay,
   expand,
@@ -13,6 +13,7 @@ import {
   merge,
   mergeMap,
   of,
+  throwError,
 } from 'rxjs'
 
 import { asDateRange, asUTC, toUTCMillis, toUTCString } from './time.js'
@@ -187,8 +188,14 @@ export class ArchiveRepository {
     return merge(
       stream,
       stream.pipe(
-        defaultIfEmpty(null),
+        last(),
         mergeMap(() => realTime$),
+        catchError((err) => {
+          if (err.name === 'EmptyError') {
+            return realTime$
+          }
+          return throwError(() => err)
+        }),
       ),
     )
   }
