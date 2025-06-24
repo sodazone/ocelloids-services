@@ -52,8 +52,13 @@ async function startServer(this: Command) {
           server.log.error(err)
         }
 
-        server.log.info('Closing with grace')
+        server.log.info('Closing with grace (%sms)', opts.grace)
 
+        // trigger shutdown signal
+        server.log.info('Trigger stream shutdown')
+        // triggerShutdown()
+
+        server.log.info('Await server close')
         await server.close()
       },
     )

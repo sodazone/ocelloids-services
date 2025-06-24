@@ -34,7 +34,7 @@ export function addServerOptions(command: Command) {
         '-g, --grace <milliseconds>',
         'milliseconds for the graceful close to finish',
         'OC_CLOSE_GRACE_DELAY',
-      ).default(5_000),
+      ).default(10_000),
     )
     .addOption(
       optBool(

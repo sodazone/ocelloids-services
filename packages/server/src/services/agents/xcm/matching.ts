@@ -513,6 +513,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async stop() {
+    this.#log.info('[matching] stop')
     await this.#mutex.waitForUnlock()
   }
 

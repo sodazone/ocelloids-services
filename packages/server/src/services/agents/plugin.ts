@@ -36,10 +36,12 @@ const agentServicePlugin: FastifyPluginAsync<AgentCatalogOptions & DatabaseOptio
   await catalog.start()
 
   fastify.addHook('onClose', (server, done) => {
+    server.log.info('[agent:catalog] service stopping')
+
     catalog
       .stop()
       .then(() => {
-        server.log.info('Agent service stopped')
+        server.log.info('[agent:catalog] service stopped')
       })
       .catch((error: any) => {
         server.log.error(error, 'Error while stopping agent service')

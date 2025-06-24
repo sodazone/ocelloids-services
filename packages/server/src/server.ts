@@ -202,6 +202,8 @@ export async function createServer(opts: ServerOptions) {
   await server.register(Auth, opts)
 
   server.addHook('onClose', function (_, done) {
+    server.log.info('Closing websockets')
+
     const { websocketServer } = server
     if (websocketServer.clients) {
       for (const client of websocketServer.clients) {

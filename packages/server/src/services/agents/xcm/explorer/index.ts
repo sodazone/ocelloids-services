@@ -41,6 +41,10 @@ function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   })
 }
 
+async function waitForAllLocks() {
+  await Promise.all([...locks.values()])
+}
+
 function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
     return payload.destination.outcome === 'Success' ? 'received' : 'failed'
@@ -237,6 +241,12 @@ export class XcmExplorer {
     this.#log.info('[xcm:explorer] stop')
 
     this.#sub?.unsubscribe()
+
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Shutdown timeout waiting for locks')), 5000),
+    )
+
+    await Promise.race([waitForAllLocks(), timeout])
 
     await this.#repository.close()
   }

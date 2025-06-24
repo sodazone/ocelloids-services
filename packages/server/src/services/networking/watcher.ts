@@ -94,7 +94,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     //
   }
 
-  stop() {
+  async stop() {
     //
   }
 

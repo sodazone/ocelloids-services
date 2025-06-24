@@ -83,6 +83,8 @@ export class SubstrateDistributedConsumer
   }
 
   async stop() {
+    this.#log.info('[distributor] stop')
+
     await this.#distributor.stop()
   }
 
