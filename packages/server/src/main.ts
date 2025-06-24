@@ -11,6 +11,8 @@ import { $ServerOptions, createServer } from '@/server.js'
 import version from '@/version.js'
 import closeWithGrace from 'close-with-grace'
 
+import { triggerShutdown } from './common/index.js'
+
 /**
  * Starts an Ocelloids Execution Server from the command line.
  */
@@ -56,7 +58,7 @@ async function startServer(this: Command) {
 
         // trigger shutdown signal
         server.log.info('Trigger stream shutdown')
-        // triggerShutdown()
+        triggerShutdown()
 
         server.log.info('Await server close')
         await server.close()
