@@ -3,7 +3,12 @@ import { MemoryLevel } from 'memory-level'
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
-import { hydraMoonMessages, matchMessages, moonBifrostMessages } from '@/testing/matching.js'
+import {
+  hydraMoonMessages,
+  matchMessages,
+  moonBifrostMessages,
+  umpHydraPolkadotMessages,
+} from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
 import { acalaHydra } from '@/testing/hops-acala-hydra.js'
@@ -82,13 +87,17 @@ describe('message matching engine', () => {
     expect((await outDb.keys().all()).length).toBe(0)
   })
 
-  it('should match inbound and outbound', async () => {
-    const { origin, destination } = matchMessages
+  it('should match out of order', async () => {
+    const { origin, received } = umpHydraPolkadotMessages
 
-    await engine.onInboundMessage(destination)
+    await engine.onInboundMessage(received)
     await engine.onOutboundMessage(origin)
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
 
-    expectEvents(['xcm.sent', 'xcm.received'])
+    expect(cb).toHaveBeenCalledTimes(8)
+
     expect((await outDb.keys().all()).length).toBe(0)
   })
 

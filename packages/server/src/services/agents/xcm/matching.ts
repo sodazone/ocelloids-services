@@ -63,6 +63,11 @@ function hasTopicId(hashKey: string, idKey?: string) {
   return hashKey !== idKey
 }
 
+function delay(ms: number) {
+  return new Promise((res) => setTimeout(res, ms))
+}
+const MAX_MATCH_RETRIES = 5
+
 /**
  * Matches sent XCM messages on the destination.
  * It does not assume any ordering.
@@ -138,6 +143,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         batch.put(topicId, data)
       }
       await batch.write()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.messageData,
         key: hash,
@@ -348,6 +354,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           relayMsg.blockNumber,
         )
         await this.#relay.put(relayKey, relayMsg)
+        await new Promise((res) => setImmediate(res)) // allow event loop tick
         await this.#janitor.schedule({
           sublevel: prefixes.matching.relay,
           key: relayKey,
@@ -397,6 +404,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         )
         const sublevelBridgeKey = `${bridgeKey}`
         await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg)
+        await new Promise((res) => setImmediate(res)) // allow event loop tick
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeAccepted,
           key: sublevelBridgeKey,
@@ -488,6 +496,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           bridgeInMsg.blockNumber,
         )
         this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg)
+        await new Promise((res) => setImmediate(res)) // allow event loop tick
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeIn,
           key: sublevelBridgeKey,
@@ -592,6 +601,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.blockNumber,
       )
       await this.#inbound.batch().put(idKey, msg).put(hashKey, msg).write()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule(
         {
           sublevel: prefixes.matching.inbound,
@@ -611,6 +621,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.blockNumber,
       )
       await this.#inbound.put(hashKey, msg)
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.inbound,
         key: hashKey,
@@ -659,7 +670,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     this.#onXcmOutbound(msg)
 
     try {
-      await this.#tryMatchOnOutbound(
+      await this.#tryMatchWithDelayedRetries(
         {
           hash: matchingKey(msg.destination.chainId, msg.waypoint.messageHash),
           id: msg.messageId ? matchingKey(msg.destination.chainId, msg.messageId) : undefined,
@@ -751,6 +762,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockNumber,
       )
       await this.#bridge.batch().put(bridgeOutIdKey, msg).put(bridgeInIdKey, msg).write()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule(
         {
           sublevel: prefixes.matching.bridge,
@@ -802,6 +814,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockNumber,
       )
       await this.#outbound.batch().put(iKey, msg).put(hKey, msg).write()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule(
         {
           sublevel: prefixes.matching.outbound,
@@ -854,6 +867,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockNumber,
       )
       await this.#outbound.put(hKey, msg)
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.outbound,
         key: hKey,
@@ -865,6 +879,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   async #putHops(...entries: [string, XcmJourney][]) {
     for (const [key, journey] of entries) {
       await this.#hop.put(key, journey as XcmSent)
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.hop,
         key,
@@ -1076,5 +1091,28 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       )
     }
     return fullMessage.includes(partialMessage.substring(10))
+  }
+
+  async #tryMatchWithDelayedRetries(
+    keys: {
+      hash: string
+      id?: string | undefined
+    },
+    msg: XcmSent,
+  ) {
+    let matched = false
+    for (let i = 0; i < MAX_MATCH_RETRIES; i++) {
+      try {
+        await this.#tryMatchOnOutbound(keys, msg)
+        matched = true
+        break
+      } catch {
+        await delay(10 * (i + 1))
+      }
+    }
+
+    if (!matched) {
+      throw new Error('No match found')
+    }
   }
 }

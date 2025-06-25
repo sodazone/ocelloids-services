@@ -22,7 +22,7 @@ export const networks = {
   'urn:ocn:polkadot:2000': 'wss://acala-rpc.dwellir.com',
   'urn:ocn:polkadot:3369': 'wss://mythos.ibp.network',
   'urn:ocn:kusama:0': 'wss://rpc.ibp.network/kusama',
-  'urn:ocn:kusama:1000': 'wss://asset-hub-kusama.dotters.network'
+  'urn:ocn:kusama:1000': 'wss://asset-hub-kusama.dotters.network',
 } as Record<string, string>
 
 const [, , dbPathArg, startArg, endArg, chain] = process.argv

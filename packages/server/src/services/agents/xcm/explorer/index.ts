@@ -187,8 +187,6 @@ export class XcmExplorer {
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSideEventsBroadcaster
 
-  // Keep in memory journey correlation ids that are being written in db
-  #dbWrites: Map<string, NewXcmJourney> = new Map()
   #sub?: Subscription
 
   constructor({
