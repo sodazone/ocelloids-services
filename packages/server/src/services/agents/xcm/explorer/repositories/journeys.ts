@@ -139,7 +139,7 @@ export class XcmRepository {
     const realLimit = limit + 1
 
     // Determine whether we need to pre-filter via xcm_assets
-    const useAssetSubquery = !!filters?.assets || !!filters?.usdAmount
+    const useAssetSubquery = !!filters?.assets || !!filters?.usdAmountGte || !!filters?.usdAmountLte
 
     // STEP 1: Get paginated journey IDs
     const journeyIdsResult = useAssetSubquery
@@ -161,7 +161,7 @@ export class XcmRepository {
     }
 
     // STEP 2: Fetch full journey data
-    const rows = await this.#getFullJourneyData(journeyIds, filters)
+    const rows = await this.#getFullJourneyData(journeyIds)
 
     const nodes = rows.map((row) => ({
       id: row.id,
@@ -198,13 +198,20 @@ export class XcmRepository {
   }
 
   #parseAssets(assets: any): FullXcmJourneyAsset[] {
-    return (
-      Array.isArray(assets)
-        ? assets
-        : typeof assets === 'string'
-          ? (JSON.parse(assets) as FullXcmJourneyAsset[])
-          : []
-    ).filter((a: FullXcmJourneyAsset) => a.asset !== null && a.amount !== null)
+    try {
+      const parsed = Array.isArray(assets) ? assets : typeof assets === 'string' ? JSON.parse(assets) : []
+
+      if (!Array.isArray(parsed)) {
+        return []
+      }
+
+      return parsed.filter(
+        (a: any): a is FullXcmJourneyAsset =>
+          a && typeof a === 'object' && a.asset != null && a.amount != null,
+      )
+    } catch {
+      return []
+    }
   }
 
   async #filterJourneyIds(limit: number, filters?: JourneyFilters, cursor?: string) {
@@ -256,36 +263,63 @@ export class XcmRepository {
         eb.fn.max('xcm_journeys.sent_at').as('sent_at'),
       ])
 
+    // ASSET filters
     if (filters?.assets) {
       query = query.where('xcm_assets.asset', 'in', filters.assets)
     }
-
-    if (filters?.usdAmount?.gte !== undefined) {
-      query = query.where('xcm_assets.usd', '>=', filters.usdAmount.gte)
+    if (filters?.usdAmountGte !== undefined) {
+      query = query.where('xcm_assets.usd', '>=', filters.usdAmountGte)
+    }
+    if (filters?.usdAmountLte !== undefined) {
+      query = query.where('xcm_assets.usd', '<=', filters.usdAmountLte)
     }
 
-    if (filters?.usdAmount?.lte !== undefined) {
-      query = query.where('xcm_assets.usd', '<=', filters.usdAmount.lte)
+    // JOURNEY filters
+    if (filters?.origins) {
+      query = query.where('xcm_journeys.origin', 'in', filters.origins)
+    }
+    if (filters?.destinations) {
+      query = query.where('xcm_journeys.destination', 'in', filters.destinations)
+    }
+    if (filters?.address) {
+      query = query.where((eb) =>
+        eb.or([eb('xcm_journeys.from', '=', filters.address!), eb('xcm_journeys.to', '=', filters.address!)]),
+      )
+    }
+    if (filters?.txHash) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('xcm_journeys.origin_extrinsic_hash', '=', filters.txHash!),
+          eb('xcm_journeys.origin_evm_tx_hash', '=', filters.txHash!),
+        ]),
+      )
+    }
+    if (filters?.actions) {
+      query = query.where('xcm_journeys.type', 'in', filters.actions)
+    }
+    if (filters?.status) {
+      query = query.where('xcm_journeys.status', 'in', filters.status)
     }
 
+    // CURSOR (pagination)
     if (cursor) {
       const afterDate = decodeCursor(cursor)
-      query = query.where('sent_at', '<', afterDate)
+      query = query.where('xcm_journeys.sent_at', '<', afterDate)
     }
 
     return query.groupBy('xcm_assets.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
   }
 
-  async #getFullJourneyData(journeyIds: number[], filters?: JourneyFilters) {
+  async #getFullJourneyData(journeyIds: number[]) {
     const assetSubquery = this.#db
       .selectFrom('xcm_assets')
       .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
       .groupBy('journey_id')
       .as('asset_totals')
 
-    let query = this.#db
+    const query = this.#db
       .selectFrom('xcm_journeys')
-      .innerJoin(assetSubquery, 'xcm_journeys.id', 'asset_totals.journey_id')
+      .leftJoin(assetSubquery, 'xcm_journeys.id', 'asset_totals.journey_id') // changed to LEFT JOIN
       .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
       .select([
         'xcm_journeys.id',
@@ -306,30 +340,24 @@ export class XcmRepository {
         'transact_calls',
         'origin_extrinsic_hash',
         'origin_evm_tx_hash',
-        sql`asset_totals.total_usd`.as('total_usd'),
-        sql`json_group_array(json_object(
-        'asset', xcm_assets.asset,
-        'symbol', xcm_assets.symbol,
-        'amount', xcm_assets.amount,
-        'decimals', xcm_assets.decimals,
-        'usd', xcm_assets.usd
-      ))`.as('assets'),
+        sql`IFNULL(asset_totals.total_usd, 0)`.as('total_usd'),
+        sql`IFNULL(json_group_array(
+        CASE
+          WHEN xcm_assets.asset IS NOT NULL THEN
+            json_object(
+              'asset', xcm_assets.asset,
+              'symbol', xcm_assets.symbol,
+              'amount', xcm_assets.amount,
+              'decimals', xcm_assets.decimals,
+              'usd', xcm_assets.usd
+            )
+          ELSE NULL
+        END
+      ), json('[]'))`.as('assets'),
       ])
       .where('xcm_journeys.id', 'in', journeyIds)
       .groupBy('xcm_journeys.id')
       .orderBy('xcm_journeys.sent_at', 'desc')
-
-    if (filters?.assets) {
-      query = query.where('xcm_assets.asset', 'in', filters.assets)
-    }
-
-    if (filters?.usdAmount?.gte !== undefined) {
-      query = query.where('asset_totals.total_usd', '>=', filters.usdAmount.gte)
-    }
-
-    if (filters?.usdAmount?.lte !== undefined) {
-      query = query.where('asset_totals.total_usd', '<=', filters.usdAmount.lte)
-    }
 
     return query.execute()
   }

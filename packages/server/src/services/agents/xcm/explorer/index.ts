@@ -74,6 +74,10 @@ function asNewJourneyObject(
       stops: JSON.parse(newJourney.stops),
     },
     assets,
+    totalUsd: assets.reduce((sum, row) => {
+      const usd = typeof row.usd === 'number' ? row.usd : Number(row.usd ?? 0)
+      return sum + (isNaN(usd) ? 0 : usd)
+    }, 0),
     id,
   })
 }

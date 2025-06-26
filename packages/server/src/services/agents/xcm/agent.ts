@@ -81,12 +81,24 @@ function applySseFilters(
   if (filters.destinations && !filters.destinations.includes(journey.destination)) {
     return false
   }
-  if (filters.usdAmount) {
-    if (filters.usdAmount.gte && journey.totalUsd < filters.usdAmount.gte) {
-      return false
+  if (filters.usdAmountGte !== undefined) {
+    try {
+      const parsedAmount = parseInt(filters.usdAmountGte as unknown as string)
+      if (journey.totalUsd < parsedAmount) {
+        return false
+      }
+    } catch {
+      //
     }
-    if (filters.usdAmount.lte && journey.totalUsd > filters.usdAmount.lte) {
-      return false
+  }
+  if (filters.usdAmountLte !== undefined) {
+    try {
+      const parsedAmount = parseInt(filters.usdAmountLte as unknown as string)
+      if (journey.totalUsd > parsedAmount) {
+        return false
+      }
+    } catch {
+      //
     }
   }
   if (filters.assets) {
@@ -99,8 +111,11 @@ function applySseFilters(
   if (filters.actions && !filters.actions.includes(journey.type)) {
     return false
   }
-  if (filters.status && !filters.status.map((s) => s as typeof journey.status).includes(journey.status)) {
-    return false
+  if (filters.status !== undefined) {
+    const toCheck = Array.isArray(filters.status) ? filters.status : [filters.status]
+    if (!toCheck.map((s) => s as typeof journey.status).includes(journey.status)) {
+      return false
+    }
   }
 
   return true

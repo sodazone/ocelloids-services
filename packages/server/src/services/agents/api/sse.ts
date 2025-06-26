@@ -9,6 +9,45 @@ import {
   ServerSideEventsRequest,
 } from '../types.js'
 
+function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, unknown>): T {
+  const safeFilters: Record<string, unknown> = {}
+
+  for (const [key, rawValue] of Object.entries(filters)) {
+    if (!Object.prototype.hasOwnProperty.call(filters, key)) {
+      continue
+    }
+
+    // Disallow dangerous keys like __proto__, constructor, prototype
+    if (['__proto__', 'constructor', 'prototype'].includes(key)) {
+      continue
+    }
+
+    if (typeof rawValue === 'string') {
+      // Treat comma-separated strings as arrays
+      if (rawValue.includes(',')) {
+        safeFilters[key] = rawValue
+          .split(',')
+          .map((v) => v.trim())
+          .filter((v) => v.length > 0)
+      } else {
+        safeFilters[key] = rawValue.trim()
+      }
+    } else if (Array.isArray(rawValue)) {
+      // Clean up arrays
+      safeFilters[key] = rawValue
+        .map((v) => (typeof v === 'string' ? v.trim() : v))
+        .filter((v) => typeof v === 'string' || typeof v === 'number')
+    } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+      safeFilters[key] = rawValue
+    } else {
+      // For any other type, ignore or handle as needed (could also throw)
+      continue
+    }
+  }
+
+  return safeFilters as T
+}
+
 export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQueryArgs>(
   matchFilters: (filters: T, event: ServerSideEvent) => boolean = () => true,
 ) {
@@ -62,14 +101,7 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     })
     request.socket.on('error', () => disconnect(connections.get(id)!))
 
-    const normalizedFilters = Object.fromEntries(
-      Object.entries(filters).map(([key, value]) => {
-        if (typeof value === 'string' && value.includes(',')) {
-          return [key, value.split(',').map((v) => v.trim())]
-        }
-        return [key, value]
-      }),
-    ) as T
+    const normalizedFilters = sanitizeFilters(filters) as T
 
     connections.set(id, {
       id,
