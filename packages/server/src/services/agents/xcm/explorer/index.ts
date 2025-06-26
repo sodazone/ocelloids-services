@@ -323,11 +323,11 @@ export class XcmExplorer {
             }
 
             await this.#repository.updateJourney(existingJourney.id, updateWith)
-            const updatedJourney = await this.#repository.getJourneyById(existingJourney.correlation_id)
-            if (updatedJourney !== undefined) {
+            const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
+            if (items.length > 0) {
               this.#broadcaster.send({
                 event: 'update_journey',
-                data: updatedJourney,
+                data: items[0],
               })
             }
             break
@@ -402,11 +402,11 @@ export class XcmExplorer {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
           await this.#repository.updateJourney(existingJourney.id, updateWith)
-          const updatedJourney = await this.#repository.getJourneyById(existingJourney.correlation_id)
-          if (updatedJourney !== undefined) {
+          const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
+          if (items.length > 0) {
             this.#broadcaster.send({
               event: 'update_journey',
-              data: updatedJourney,
+              data: items[0],
             })
           }
           break
