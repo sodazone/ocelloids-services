@@ -18,7 +18,7 @@ export const networks = {
   'urn:ocn:polkadot:2004': 'wss://moonbeam.ibp.network',
   'urn:ocn:polkadot:2006': 'wss://rpc.astar.network',
   'urn:ocn:polkadot:2030': 'wss://bifrost-polkadot.ibp.network',
-  'urn:ocn:polkadot:2032': 'wss://interlay-rpc.dwellir.com',
+  'urn:ocn:polkadot:2032': 'wss://api.interlay.io/parachain',
   'urn:ocn:polkadot:2000': 'wss://acala-rpc.dwellir.com',
   'urn:ocn:polkadot:3369': 'wss://mythos.ibp.network',
   'urn:ocn:kusama:0': 'wss://rpc.ibp.network/kusama',
