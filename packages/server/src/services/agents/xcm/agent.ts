@@ -88,7 +88,7 @@ function applySseFilters(
       return false
     }
   }
-  if (filters.type && !filters.type.includes(journey.type)) {
+  if (filters.actions && !filters.actions.includes(journey.type)) {
     return false
   }
   if (filters.status && !filters.status.map((s) => s as typeof journey.status).includes(journey.status)) {

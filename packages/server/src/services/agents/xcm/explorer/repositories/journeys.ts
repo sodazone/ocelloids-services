@@ -124,8 +124,8 @@ export class XcmRepository {
       idQuery = idQuery.where('destination', 'in', filters.destinations)
     }
 
-    if (filters?.type) {
-      idQuery = idQuery.where('type', 'in', filters.type)
+    if (filters?.actions) {
+      idQuery = idQuery.where('type', 'in', filters.actions)
     }
 
     if (filters?.status) {
