@@ -50,6 +50,11 @@ export class XcmRepository {
       return undefined
     }
 
+    const totalUsd = rows.reduce((sum, row) => {
+      const usd = typeof row.usd === 'number' ? row.usd : Number(row.usd ?? 0)
+      return sum + (isNaN(usd) ? 0 : usd)
+    }, 0)
+
     const journey = {
       id: rows[0].id,
       correlation_id: rows[0].correlation_id,
@@ -69,6 +74,7 @@ export class XcmRepository {
       transact_calls: rows[0].transact_calls,
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
       origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
+      totalUsd,
       assets: rows.map((row) => ({
         asset: row.asset ?? 'unknown',
         symbol: row.symbol ?? undefined,
@@ -155,9 +161,16 @@ export class XcmRepository {
       }
     }
 
-    // STEP 2: Fetch full journey data + assets
+    const assetSubquery = this.#db
+      .selectFrom('xcm_assets')
+      .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
+      .groupBy('journey_id')
+      .as('asset_totals')
+
     let fullQuery = this.#db
       .selectFrom('xcm_journeys')
+      .innerJoin(assetSubquery, 'xcm_journeys.id', 'asset_totals.journey_id')
+      .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
       .select([
         'xcm_journeys.id',
         'correlation_id',
@@ -177,21 +190,27 @@ export class XcmRepository {
         'transact_calls',
         'origin_extrinsic_hash',
         'origin_evm_tx_hash',
+        sql`asset_totals.total_usd`.as('total_usd'),
         sql`json_group_array(json_object(
-        'asset', xcm_assets.asset,
-        'symbol', xcm_assets.symbol,
-        'amount', xcm_assets.amount,
-        'decimals', xcm_assets.decimals,
-        'usd', xcm_assets.usd
-      ))`.as('assets'),
+          'asset', xcm_assets.asset,
+          'symbol', xcm_assets.symbol,
+          'amount', xcm_assets.amount,
+          'decimals', xcm_assets.decimals,
+          'usd', xcm_assets.usd
+        ))`.as('assets'),
       ])
-      .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
       .where('xcm_journeys.id', 'in', journeyIds)
       .groupBy('xcm_journeys.id')
       .orderBy('xcm_journeys.sent_at', 'desc')
 
     if (filters?.assets) {
       fullQuery = fullQuery.where('xcm_assets.asset', 'in', filters.assets)
+    }
+    if (filters?.usdAmount?.gte !== undefined) {
+      fullQuery = fullQuery.where('asset_totals.total_usd', '>=', filters.usdAmount.gte)
+    }
+    if (filters?.usdAmount?.lte !== undefined) {
+      fullQuery = fullQuery.where('asset_totals.total_usd', '<=', filters.usdAmount.lte)
     }
 
     const rows = await fullQuery.execute()
@@ -215,6 +234,7 @@ export class XcmRepository {
       transact_calls: row.transact_calls,
       origin_extrinsic_hash: row.origin_extrinsic_hash,
       origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
+      totalUsd: typeof row.total_usd === 'number' ? row.total_usd : Number(row.total_usd ?? 0),
       assets: (Array.isArray(row.assets)
         ? row.assets
         : typeof row.assets === 'string'
@@ -262,64 +282,6 @@ export class XcmRepository {
 
       return journeyId
     })
-  }
-
-  async getJourneyByCorrelationId(correlationId: string): Promise<FullXcmJourney | undefined> {
-    const rows = await this.#db
-      .selectFrom('xcm_journeys')
-      .selectAll('xcm_journeys')
-      .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
-      .select([
-        'xcm_assets.asset',
-        'xcm_assets.symbol',
-        'xcm_assets.amount',
-        'xcm_assets.decimals',
-        'xcm_assets.usd',
-      ])
-      .where('xcm_journeys.correlation_id', '=', correlationId)
-      .execute()
-
-    if (rows.length === 0) {
-      return undefined
-    }
-
-    const journey = {
-      id: rows[0].id,
-      correlation_id: rows[0].correlation_id,
-      status: rows[0].status,
-      type: rows[0].type,
-      origin: rows[0].origin,
-      destination: rows[0].destination,
-      from: rows[0].from,
-      to: rows[0].to,
-      from_formatted: rows[0].from_formatted,
-      to_formatted: rows[0].to_formatted,
-      sent_at: rows[0].sent_at,
-      recv_at: rows[0].recv_at,
-      created_at: rows[0].created_at,
-      stops: rows[0].stops,
-      instructions: rows[0].instructions,
-      transact_calls: rows[0].transact_calls,
-      origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
-      origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
-      assets: rows
-        .map((row) => {
-          if (row.asset && row.amount) {
-            return {
-              asset: row.asset,
-              symbol: row.symbol ?? undefined,
-              amount: row.amount,
-              decimals: row.decimals ?? undefined,
-              usd: row.usd ?? undefined,
-            }
-          } else {
-            return null
-          }
-        })
-        .filter((a) => a !== null),
-    }
-
-    return journey
   }
 
   async close() {

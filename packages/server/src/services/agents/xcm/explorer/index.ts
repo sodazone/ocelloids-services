@@ -273,7 +273,7 @@ export class XcmExplorer {
   async #onXcmMessage(message: XcmMessagePayload) {
     try {
       const correlationId = toCorrelationId(message)
-      const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
+      const existingJourney = await this.#repository.getJourneyById(correlationId)
 
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
         this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
@@ -323,11 +323,11 @@ export class XcmExplorer {
             }
 
             await this.#repository.updateJourney(existingJourney.id, updateWith)
-            const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
-            if (items.length > 0) {
+            const updatedJourney = await this.#repository.getJourneyById(existingJourney.correlation_id)
+            if (updatedJourney !== undefined) {
               this.#broadcaster.send({
                 event: 'update_journey',
-                data: items[0],
+                data: updatedJourney,
               })
             }
             break
@@ -402,11 +402,11 @@ export class XcmExplorer {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
           await this.#repository.updateJourney(existingJourney.id, updateWith)
-          const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
-          if (items.length > 0) {
+          const updatedJourney = await this.#repository.getJourneyById(existingJourney.correlation_id)
+          if (updatedJourney !== undefined) {
             this.#broadcaster.send({
               event: 'update_journey',
-              data: items[0],
+              data: updatedJourney,
             })
           }
           break
@@ -419,33 +419,4 @@ export class XcmExplorer {
       this.#log.error(error, 'Error processing XCM message %j', asJSON(message))
     }
   }
-
-  /*
-  async #capture(message: XcmMessagePayload) {
-    const filePath = './msgs.jsonl'
-    let serializedMessage
-
-    switch (message.type) {
-      case 'xcm.sent':
-      case 'xcm.relayed': {
-        const humanizedXcm = await this.#humanizer.humanize(message)
-        serializedMessage = asJSON(humanizedXcm)
-        break
-      }
-      case 'xcm.received':
-
-      case 'xcm.hop':
-      case 'xcm.bridge':
-      case 'xcm.timeout':
-        serializedMessage = JSON.stringify(message)
-    }
-
-    try {
-      writeFileSync(filePath, `${serializedMessage}\n`, { flag: 'a' }) // Append the message to the file
-      this.#log.info('[xcm:explorer] Message written to %s', filePath)
-    } catch (error) {
-      this.#log.error(error, '[xcm:explorer] Failed to write message to file')
-    }
-  }
-  */
 }

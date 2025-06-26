@@ -162,7 +162,7 @@ backfillBlocks$({ start: startBlock, end: endBlock })
       try {
         const found = mappedNodes.find((n) => n.messageId === msg.messageId)
         if (found) {
-          const journey = await repository.getJourneyByCorrelationId(found.correlationId)
+          const journey = await repository.getJourneyById(found.correlationId)
           if (!journey) {
             throw new Error(`Journey not found for correlation id ${found.correlationId}`)
           }

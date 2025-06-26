@@ -81,6 +81,14 @@ function applySseFilters(
   if (filters.destinations && !filters.destinations.includes(journey.destination)) {
     return false
   }
+  if (filters.usdAmount) {
+    if (filters.usdAmount.gte && journey.totalUsd < filters.usdAmount.gte) {
+      return false
+    }
+    if (filters.usdAmount.lte && journey.totalUsd > filters.usdAmount.lte) {
+      return false
+    }
+  }
   if (filters.assets) {
     const journeySymbols = journey.assets.map((a) => a.asset.toLowerCase())
     const hasAsset = filters.assets.some((a) => journeySymbols.includes(a.toLowerCase()))

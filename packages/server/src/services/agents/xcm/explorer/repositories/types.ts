@@ -49,6 +49,7 @@ export interface XcmDatabase {
 export type FullXcmJourneyAsset = Omit<XcmAsset, 'id' | 'journey_id'>
 
 export type FullXcmJourney = XcmJourney & {
+  totalUsd: number
   assets: FullXcmJourneyAsset[]
 }
 
