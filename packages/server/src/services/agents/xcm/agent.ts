@@ -62,6 +62,19 @@ function applySseFilters(
   if (filters.id && filters.id !== journey.correlationId) {
     return false
   }
+  if (
+    filters.txHash &&
+    filters.txHash !== journey.originExtrinsicHash &&
+    filters.txHash !== journey.originEvmTxHash
+  ) {
+    return false
+  }
+  if (filters.address) {
+    const pubKeyOrEvmAddress = asPublicKey(filters.address)
+    if (pubKeyOrEvmAddress !== journey.from && pubKeyOrEvmAddress !== journey.to) {
+      return false
+    }
+  }
   if (filters.origins && !filters.origins.includes(journey.origin)) {
     return false
   }
@@ -75,20 +88,10 @@ function applySseFilters(
       return false
     }
   }
-  if (filters.status && !filters.status.map((s) => s as typeof journey.status).includes(journey.status)) {
+  if (filters.type && !filters.type.includes(journey.type)) {
     return false
   }
-  if (filters.address) {
-    const pubKeyOrEvmAddress = asPublicKey(filters.address)
-    if (pubKeyOrEvmAddress !== journey.from && pubKeyOrEvmAddress !== journey.to) {
-      return false
-    }
-  }
-  if (
-    filters.txHash &&
-    filters.txHash !== journey.originExtrinsicHash &&
-    filters.txHash !== journey.originEvmTxHash
-  ) {
+  if (filters.status && !filters.status.map((s) => s as typeof journey.status).includes(journey.status)) {
     return false
   }
 

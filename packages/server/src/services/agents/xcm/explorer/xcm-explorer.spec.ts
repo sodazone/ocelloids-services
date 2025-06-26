@@ -71,6 +71,7 @@ describe('XcmExplorer', () => {
 
     const { items } = await explorer.listJourneys()
     const { items: journey0 } = await explorer.getJourneyById({ id: items[1].correlationId })
+    const { items: filteredByType } = await explorer.listJourneys({ type: ['transfer', 'teleport'] })
 
     const eventTypes = sendSpy.mock.calls.map((call) => call[0]?.event)
 
@@ -86,5 +87,6 @@ describe('XcmExplorer', () => {
     expect(items.filter((i) => i.type === 'transact').length).toBeGreaterThan(0)
 
     expect(journey0).toBeDefined()
+    expect(filteredByType.length).toBeGreaterThan(0)
   })
 })

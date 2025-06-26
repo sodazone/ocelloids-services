@@ -85,6 +85,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('xcm_journeys_type_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('type')
+      .execute()
+
+    await db.schema
       .createIndex('xcm_assets_asset_index')
       .ifNotExists()
       .on('xcm_assets')

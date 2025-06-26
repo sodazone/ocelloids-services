@@ -25,6 +25,7 @@ export const $JourneyFilters = z.optional(
         .min(1)
         .max(4),
     ),
+    type: z.optional(z.array(z.string()).min(1).max(4)),
   }),
 )
 

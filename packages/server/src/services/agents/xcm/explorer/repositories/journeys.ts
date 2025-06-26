@@ -101,9 +101,19 @@ export class XcmRepository {
     // STEP 1: Get journey IDs for pagination
     let idQuery = this.#db.selectFrom('xcm_journeys').select(['id', 'sent_at'])
 
-    if (pagination?.cursor) {
-      const afterDate = decodeCursor(pagination.cursor)
-      idQuery = idQuery.where('sent_at', '<', afterDate)
+    if (filters?.txHash) {
+      idQuery = idQuery.where((eb) =>
+        eb.or([
+          eb('origin_extrinsic_hash', '=', filters.txHash!),
+          eb('origin_evm_tx_hash', '=', filters.txHash!),
+        ]),
+      )
+    }
+
+    if (filters?.address) {
+      idQuery = idQuery.where((eb) =>
+        eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
+      )
     }
 
     if (filters?.origins) {
@@ -114,23 +124,17 @@ export class XcmRepository {
       idQuery = idQuery.where('destination', 'in', filters.destinations)
     }
 
+    if (filters?.type) {
+      idQuery = idQuery.where('type', 'in', filters.type)
+    }
+
     if (filters?.status) {
       idQuery = idQuery.where('status', 'in', filters.status)
     }
 
-    if (filters?.address) {
-      idQuery = idQuery.where((eb) =>
-        eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
-      )
-    }
-
-    if (filters?.txHash) {
-      idQuery = idQuery.where((eb) =>
-        eb.or([
-          eb('origin_extrinsic_hash', '=', filters.txHash!),
-          eb('origin_evm_tx_hash', '=', filters.txHash!),
-        ]),
-      )
+    if (pagination?.cursor) {
+      const afterDate = decodeCursor(pagination.cursor)
+      idQuery = idQuery.where('sent_at', '<', afterDate)
     }
 
     idQuery = idQuery.orderBy('sent_at', 'desc').limit(realLimit)
