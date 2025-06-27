@@ -13,6 +13,7 @@ import { DataSteward } from '../../steward/agent.js'
 import { AssetMetadata, Empty, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
+import { getParaIdFromJunctions } from '../ops/util.js'
 import { HumanizedXcmPayload, Leg, XcmMessagePayload } from '../types/index.js'
 import {
   DepositAsset,
@@ -359,8 +360,8 @@ export class XcmHumanizer {
     to: HumanizedAddresses,
     version: string,
   ): Promise<HumanizedXcm> {
-    const { network, xcm } = exportMessage.value as ExportMessage
-    const anchor = this.extractExportDestination(network)
+    const { network, xcm, destination } = exportMessage.value as ExportMessage
+    const anchor = this.extractExportDestination(network, destination)
     if (!anchor) {
       return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })
     }
@@ -377,11 +378,24 @@ export class XcmHumanizer {
     )
   }
 
-  private extractExportDestination(network?: { type: string; value: AnyJson }): NetworkURN | null {
-    if (!network?.value || typeof network.value !== 'object' || !('chain_id' in network.value)) {
+  private extractExportDestination(
+    network?: { type: string; value: AnyJson },
+    destination?: {
+      type: string
+      value: AnyJson
+    },
+  ): NetworkURN | null {
+    if (network === undefined) {
       return null
     }
-    return `urn:ocn:${network.type.toLowerCase()}:${network.value.chain_id}`
+    if (!network?.value && destination !== undefined) {
+      const paraId = getParaIdFromJunctions(destination)
+      return `urn:ocn:${network.type.toLowerCase()}:${paraId ?? 0}`
+    }
+    if (network.value !== null && typeof network.value === 'object' && 'chain_id' in network.value) {
+      return `urn:ocn:${network.type.toLowerCase()}:${network.value.chain_id}`
+    }
+    return null
   }
 
   private async extractTransactCall(
