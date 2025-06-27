@@ -1,5 +1,5 @@
 import { XcmSent } from '@/services/agents/xcm/lib.js'
-import { XcmInbound } from '@/services/agents/xcm/types.js'
+import { XcmInbound } from '@/services/agents/xcm/types/messages.js'
 
 const hydraSent: XcmSent = {
   legs: [
