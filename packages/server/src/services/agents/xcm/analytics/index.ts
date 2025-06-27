@@ -105,17 +105,17 @@ export class XcmAnalytics {
 
   #onXcmReceived(message: HumanizedXcmPayload) {
     this.#fromXcmReceived(message)
-      .then((transfers) => {
+      .then(async (transfers) => {
         for (const transfer of transfers) {
           try {
-            this.#repository?.insert(transfer)
+            await this.#repository?.insert(transfer)
           } catch (error) {
-            this.#log.error(error, '[xcm:analytics] error while inserting')
+            this.#log.error(error, '[xcm:analytics] error while inserting transfer %j', transfer)
           }
         }
       })
       .catch((error: unknown) => {
-        this.#log.error(error)
+        this.#log.error(error, '[xcm:analytics] error in processing received message %j', message)
       })
   }
 

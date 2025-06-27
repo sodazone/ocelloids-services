@@ -263,7 +263,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
               inMsg.blockHash,
               inMsg.blockNumber,
             )
-            await this.#outbound.batch().del(idKey).del(hashKey).del(recHashKey).write()
+            const legIndex = outMsg.legs.findIndex((l) => l.to === inMsg.chainId)
+            if (legIndex === outMsg.legs.length - 1) {
+              await this.#deleteMatchedKeys(outMsg)
+            }
             this.#onXcmMatched(outMsg, inMsg)
           } else {
             // 1.3. If no matches, store inbound
@@ -283,16 +286,11 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
               inMsg.blockHash,
               inMsg.blockNumber,
             )
-            // if outbound has no messageId, we can safely assume that
-            // idKey and hashKey are made up of only the message hash.
-            // if outbound has messageId, we need to reconstruct idKey and hashKey
-            // using outbound values to ensure that no dangling keys will be left on janitor sweep.
-            const batch = this.#outbound.batch().del(hashKey).del(idKey)
-            if (outMsg.messageId !== undefined) {
-              batch.del(matchingKey(inMsg.chainId, outMsg.messageId))
-              batch.del(matchingKey(inMsg.chainId, outMsg.waypoint.messageHash))
+
+            const legIndex = outMsg.legs.findIndex((l) => l.to === inMsg.chainId)
+            if (legIndex === outMsg.legs.length - 1) {
+              await this.#deleteMatchedKeys(outMsg)
             }
-            await batch.write()
             this.#onXcmMatched(outMsg, inMsg)
           } else {
             await this.#storeXcmInbound(inMsg)
@@ -566,16 +564,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           )
           const legIndex = originMsg.legs.findIndex((l) => l.to === msg.chainId)
           if (legIndex === originMsg.legs.length - 1) {
-            const batch = this.#outbound.batch()
-            for (const leg of originMsg.legs) {
-              const stop = leg.to
-
-              batch.del(matchingKey(stop, originMsg.waypoint.messageHash))
-              if (originMsg.messageId) {
-                batch.del(matchingKey(stop, originMsg.messageId))
-              }
-            }
-            await batch.write()
+            await this.#deleteMatchedKeys(originMsg)
           }
 
           this.#onXcmMatched(originMsg, msg)
@@ -585,6 +574,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
       throw new Error('No matching hops')
     }
+  }
+
+  async #deleteMatchedKeys(originMsg: XcmSent) {
+    const batch = this.#outbound.batch()
+    for (const leg of originMsg.legs) {
+      const stop = leg.to
+      batch.del(matchingKey(stop, originMsg.waypoint.messageHash))
+      if (originMsg.messageId) {
+        batch.del(matchingKey(stop, originMsg.messageId))
+      }
+    }
+    await batch.write()
   }
 
   async #storeXcmInbound(msg: XcmInbound) {
