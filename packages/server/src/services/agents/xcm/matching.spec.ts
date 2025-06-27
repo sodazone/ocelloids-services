@@ -8,6 +8,7 @@ import { createServices } from '@/testing/services.js'
 
 import { acalaHydra } from '@/testing/hops-acala-hydra.js'
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
+import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
@@ -195,6 +196,19 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:polkadot:2030' })
+    await expectNoLeftover()
+  })
+
+  it('should match hop messages hydra to bridgehub', async () => {
+    const { sent, hopIn, hopOut, received } = hydraAssetHubBridgeHub
+
+    await engine.onOutboundMessage(sent)
+    await engine.onOutboundMessage(hopOut)
+    await engine.onInboundMessage(hopIn)
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectOd(4, { origin: 'urn:ocn:local:2034', destination: 'urn:ocn:local:1002' })
     await expectNoLeftover()
   })
 

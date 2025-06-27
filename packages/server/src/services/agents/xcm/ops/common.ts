@@ -97,6 +97,12 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.relay = createNetworkId(from, '0')
         leg.type = 'hrmp'
       }
+    } else if (getChainId(from) === '1000' && to === 'urn:ocn:ethereum:1') {
+      // TODO: Pending bridge support
+      // Since we don't support bridges yet, all bridged transfers through assethub should end in bridgehub
+      leg.to = `urn:ocn:${getConsensus(from)}:1002`
+      leg.relay = createNetworkId(from, '0')
+      leg.type = 'hrmp'
     } else {
       leg.type = 'bridge'
     }
