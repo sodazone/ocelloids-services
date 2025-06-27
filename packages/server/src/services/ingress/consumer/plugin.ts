@@ -37,6 +37,8 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
   }
 
   fastify.addHook('onClose', (server, done) => {
+    server.log.info('[ingress:consumer] plugin stop')
+
     for (const [key, consumer] of Object.entries(consumers)) {
       consumer
         .stop()

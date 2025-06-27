@@ -46,9 +46,9 @@ export default class Connector {
   }
 
   connect<T extends ApiClient>(clientId: ClientId): Record<string, T> {
-    this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(this.#chains))
-
     const chains = this.#chains.get(clientId) ?? {}
+
+    this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(chains))
 
     for (const [chain, client] of Object.entries(chains)) {
       this.#log.info('[connector:%s] connecting...', chain)

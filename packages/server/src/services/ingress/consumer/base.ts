@@ -53,6 +53,7 @@ export abstract class LocalIngressConsumer<T extends Watcher, B, C>
   }
 
   async stop() {
-    this.watcher.stop()
+    this.log.info('[consumer:base] stop')
+    await this.watcher.stop()
   }
 }

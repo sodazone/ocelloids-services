@@ -29,6 +29,7 @@ export function mockServer(overrides?: Record<string, any>) {
     distributed: false,
     levelEngine: LevelEngine.mem,
     agentServiceMode: AgentServiceMode.local,
+    agentConfigs: {},
     rateLimitMax: 10_000,
     rateLimitWindow: 10_000,
     jwtAuth: false,

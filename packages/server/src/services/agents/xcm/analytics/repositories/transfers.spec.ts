@@ -1,6 +1,6 @@
 import { fromDuckDBBlob } from '@/common/util.js'
 import { DuckDBBlobValue, DuckDBInstance } from '@duckdb/node-api'
-import { TimeSelect } from '../types.js'
+import { TimeSelect } from '../../types/index.js'
 import { AggregatedData, XcmTransfersRepository } from './transfers.js'
 
 describe('XcmTransfersRepository', async () => {

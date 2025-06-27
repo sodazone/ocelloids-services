@@ -12,7 +12,7 @@ import {
   GetOutboundUmpMessages,
   XcmInboundWithContext,
   XcmSentWithContext,
-} from '../types.js'
+} from '../types/index.js'
 import { xcmMessagesSent } from './common.js'
 import { getMessageId, mapAssetsTrapped, matchEvent } from './util.js'
 import { asVersionedXcm } from './xcm-format.js'

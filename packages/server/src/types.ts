@@ -62,6 +62,7 @@ export enum AgentServiceMode {
 export const $AgentCatalogOptions = z.object({
   agentServiceMode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
   agents: z.string().default('*'),
+  agentConfigs: z.record(z.string(), z.any()).default({}),
 })
 
 export const $ArchiveOptions = z.object({

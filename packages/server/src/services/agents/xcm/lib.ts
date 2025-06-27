@@ -16,4 +16,4 @@ export {
   XcmWaypointContext,
   XcmNotificationType,
   BridgeMessageType,
-} from './types.js'
+} from './types/index.js'

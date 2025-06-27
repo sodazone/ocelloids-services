@@ -4,21 +4,24 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Logger, Services } from '@/services/index.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
-import { AgentCatalogOptions } from '@/types.js'
+import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 
 import { InformantAgent } from '@/services/agents/informant/agent.js'
-import { DataSteward } from '@/services/agents/steward/agent.js'
 import {
   Agent,
   AgentCatalog,
   AgentId,
   AgentRuntimeContext,
   Queryable,
+  Streamable,
   Subscribable,
   isQueryable,
+  isStreamable,
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
+import { DataSteward } from '../steward/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
 // import { ChainSpy } from '../chainspy/agent.js'
 
 function shouldStart(agent: Agent) {
@@ -28,10 +31,15 @@ function shouldStart(agent: Agent) {
   return capabilities.queryable && !capabilities.subscribable
 }
 
-const registry: Record<AgentId, (ctx: AgentRuntimeContext) => Agent> = {
-  xcm: (ctx) => new XcmAgent(ctx),
+const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<AgentId, Agent>) => Agent> = {
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
+  ticker: (ctx) => new TickerAgent(ctx),
+  xcm: (ctx, activations) =>
+    new XcmAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
+    }),
   // chainspy: (ctx) => new ChainSpy(ctx),
 }
 
@@ -43,7 +51,7 @@ export class LocalAgentCatalog implements AgentCatalog {
   readonly #agents: Record<AgentId, Agent>
   readonly #egress: Egress
 
-  constructor(ctx: Services, options: AgentCatalogOptions) {
+  constructor(ctx: Services, options: AgentCatalogOptions & DatabaseOptions) {
     this.#log = ctx.log
     this.#egress = ctx.egress
     this.#agents = this.#loadAgents(
@@ -58,6 +66,9 @@ export class LocalAgentCatalog implements AgentCatalog {
         agentCatalog: this,
         analyticsDB: ctx.analyticsDB,
         archiveRetention: ctx.archiveRetention,
+        environment: {
+          dataPath: options.data,
+        },
       },
       options,
     )
@@ -96,6 +107,14 @@ export class LocalAgentCatalog implements AgentCatalog {
       return agent as A
     }
     throw new NotFound(`Not queryable (agent=${agentId})`)
+  }
+
+  getStreamableById<A extends Agent & Streamable = Agent & Streamable>(agentId: AgentId): A {
+    const agent = this.getAgentById(agentId)
+    if (isStreamable(agent)) {
+      return agent as A
+    }
+    throw new NotFound(`Not streamable (agent=${agentId})`)
   }
 
   getAgentInputSchema(agentId: AgentId) {
@@ -144,23 +163,20 @@ export class LocalAgentCatalog implements AgentCatalog {
   #loadAgents(ctx: AgentRuntimeContext, opts: AgentCatalogOptions) {
     const activations: Record<AgentId, Agent> = {}
 
-    if (opts.agents === '*') {
-      for (const create of Object.values(registry)) {
-        const agent = create(ctx)
-        activations[agent.id] = agent
-        this.#log.info('[catalog:local] activated agent %s', agent.id)
+    const requested =
+      opts.agents === '*' ? Object.keys(registry) : opts.agents.split(',').map((id) => id.trim())
+
+    for (const agentId of requested) {
+      const create = registry[agentId]
+      if (!create) {
+        this.#log.warn('[catalog:local] unknown agent id %s', agentId)
+        continue
       }
-    } else {
-      const agentIds = opts.agents.split(',').map((x) => x.trim())
-      for (const agentId of agentIds) {
-        if (registry[agentId] === undefined) {
-          this.#log.warn('[catalog:local] unknown agent id %s', agentId)
-        } else {
-          const agent = registry[agentId](ctx)
-          activations[agent.id] = agent
-          this.#log.info('[catalog:local] activated agent %s', agent.id)
-        }
-      }
+
+      const config = opts.agentConfigs?.[agentId] ?? {}
+      const agent = create({ ...ctx, config }, activations)
+      activations[agent.id] = agent
+      this.#log.info('[catalog:local] activated agent %s', agent.id)
     }
 
     return activations

@@ -1,3 +1,6 @@
+import { IncomingMessage } from 'node:http'
+import { DuckDBInstance } from '@duckdb/node-api'
+import { FastifyReply } from 'fastify'
 import { Operation } from 'rfc6902'
 import { z } from 'zod'
 
@@ -8,11 +11,11 @@ import { Scheduler } from '@/services/persistence/level/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 
-import { DuckDBInstance } from '@duckdb/node-api'
 import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
+import { createServerSideEventsBroadcaster } from './api/sse.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -43,9 +46,13 @@ export type AgentRuntimeContext = {
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog
+  environment?: {
+    dataPath?: string
+  }
   archive?: ArchiveRepository
   archiveRetention?: ArchiveRetentionOptions
   analyticsDB?: DuckDBInstance
+  config?: Record<string, any>
 }
 
 /**
@@ -111,6 +118,14 @@ export interface AgentCatalog {
   getQueryableById<A extends Agent & Queryable = Agent & Queryable>(agentId: AgentId): A
 
   /**
+   * Retrieves a streamable agent by id.
+   *
+   * @param {AgentId} agentId - The ID of the agent to retrieve
+   * @returns {A} The agent instance
+   */
+  getStreamableById<A extends Agent & Streamable = Agent & Streamable>(agentId: AgentId): A
+
+  /**
    * Gets a list of all agent IDs.
    *
    * @returns {AgentId[]} An array of agent IDs
@@ -150,6 +165,7 @@ export interface AgentCatalog {
 export type AgentCapabilities = {
   subscribable: boolean
   queryable: boolean
+  streamable: boolean
 }
 
 /**
@@ -261,6 +277,43 @@ export interface Queryable {
   query(params: QueryParams): Promise<QueryResult<AnyQueryResultItem | unknown>>
 }
 
+export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+  filters: T
+  request: IncomingMessage
+  reply: FastifyReply
+}
+
+export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
+  id: string
+  filters: T
+  request: IncomingMessage
+  send: (event: ServerSideEvent) => void
+}
+
+export type ServerSideEvent<T = any> = {
+  event: string
+  data: T
+}
+
+export type ServerSideEventsBroadcaster = ReturnType<typeof createServerSideEventsBroadcaster>
+
+/**
+ * Interface defining the capabilities needed to handle SSE.
+ */
+export interface Streamable {
+  /**
+   * Returns the Zod schema for filtering incoming event stream subscriptions.
+   */
+  get streamFilterSchema(): z.ZodSchema
+
+  /**
+   * Called by the HTTP server when server side events request.
+   *
+   * @param request - Info about the server side request (filters, metadata, etc.)
+   */
+  onServerSideEventsRequest<T extends AnyQueryArgs>(request: ServerSideEventsRequest<T>): void
+}
+
 /**
  * Interface defining the structure and behavior of an agent.
  */
@@ -317,11 +370,19 @@ export function isQueryable(object: any): object is Queryable {
 }
 
 /**
+ * Streamable guard condition.
+ */
+export function isStreamable(object: any): object is Streamable {
+  return 'onServerSideEventsRequest' in object
+}
+
+/**
  * Returns the agent capabilities based on the implemented interfaces.
  */
 export function getAgentCapabilities(agent: Agent): AgentCapabilities {
   return {
     subscribable: isSubscribable(agent),
     queryable: isQueryable(agent),
+    streamable: isStreamable(agent),
   }
 }

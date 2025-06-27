@@ -34,6 +34,12 @@ const analyticsPlugin: FastifyPluginAsync<AnalyticsPluginOptions> = async (fasti
   })
 
   fastify.decorate('analyticsDB', instance)
+
+  fastify.addHook('onClose', () => {
+    fastify.log.info('[analytics] closing database')
+
+    instance.closeSync()
+  })
 }
 
 export default fp(analyticsPlugin, { fastify: '>=4.x', name: 'analytics' })

@@ -26,6 +26,8 @@ const IngressProducerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
   }
 
   fastify.addHook('onClose', (server, done) => {
+    server.log.info('[ingress:producer] plugin stop')
+
     for (const [key, producer] of Object.entries(producers)) {
       producer
         .stop()

@@ -19,7 +19,7 @@ type KyselyOptions = DatabaseOptions & KyselyServerOptions
 const accountsPlugin: FastifyPluginAsync<KyselyOptions> = async (fastify, { data }) => {
   const filename = resolveDataPath('db.sqlite', data)
 
-  fastify.log.info('[accounts] system database at %s', filename)
+  fastify.log.info('[accounts] database at %s', filename)
 
   const { db, migrator } = createSystemDatabase(filename)
   const accountsRepository = new AccountsRepository(db)
@@ -29,7 +29,7 @@ const accountsPlugin: FastifyPluginAsync<KyselyOptions> = async (fastify, { data
   fastify.register(AccountsApi)
 
   fastify.addHook('onClose', async () => {
-    fastify.log.info('[accounts] closing system database')
+    fastify.log.info('[accounts] closing database')
 
     return db.destroy()
   })

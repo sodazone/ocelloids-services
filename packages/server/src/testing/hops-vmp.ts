@@ -1,4 +1,4 @@
-import { XcmInbound, XcmSent } from '@/services/agents/xcm/types.js'
+import { XcmInbound, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const bifrostSent: XcmSent = {
   legs: [

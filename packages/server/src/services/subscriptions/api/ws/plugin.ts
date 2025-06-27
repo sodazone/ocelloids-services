@@ -30,7 +30,7 @@ const websocketProtocolPlugin: FastifyPluginAsync<WebsocketProtocolOptions> = as
   fastify.decorate('wsProtocol', protocol)
 
   fastify.addHook('onClose', async () => {
-    log.info('Shutting down websockets protocol')
+    log.info('[ws] shutting down websockets protocol')
 
     await protocol.stop()
   })

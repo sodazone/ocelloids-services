@@ -55,6 +55,8 @@ const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options)
   fastify.decorate('subsStore', subsStore)
 
   fastify.addHook('onClose', async (instance) => {
+    fastify.log.info('[scheduler] plugin stop')
+
     try {
       await scheduler.stop()
     } catch (error) {

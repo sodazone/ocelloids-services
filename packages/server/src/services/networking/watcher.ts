@@ -14,7 +14,6 @@ import {
   mergeAll,
   mergeMap,
   of,
-  switchMap,
   tap,
 } from 'rxjs'
 
@@ -95,7 +94,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     //
   }
 
-  stop() {
+  async stop() {
     //
   }
 
@@ -307,7 +306,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     prev: NeutralHeader[],
   ): Observable<NeutralHeader[]> {
     return from(api.getNeutralBlockHeader(newHead.parenthash)).pipe(
-      switchMap((header) =>
+      concatMap((header) =>
         header.height - 1 <= targetHeight
           ? of([header, ...prev])
           : this.#headers(api, header, targetHeight, [header, ...prev]),

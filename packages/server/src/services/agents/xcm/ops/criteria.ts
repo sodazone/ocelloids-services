@@ -1,7 +1,7 @@
 import { ControlQuery, Criteria, asPublicKey } from '@/common/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
-import { XcmNotificationType, XcmTerminus } from '../types.js'
+import { XcmNotificationType, XcmTerminus } from '../types/index.js'
 
 const MATCH_ANY = {}
 
