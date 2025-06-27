@@ -150,9 +150,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
   readonly #subs: XcmSubscriptionManager
   readonly #tracker: XcmTracker
   readonly #humanizer: XcmHumanizer
-  readonly #explorer: XcmExplorer
-  readonly #sseBroadcaster: ServerSideEventsBroadcaster
+  readonly #config: Record<string, any>
 
+  #explorer?: XcmExplorer
+  #sseBroadcaster?: ServerSideEventsBroadcaster
   #analytics?: XcmAnalytics
 
   constructor(
@@ -163,6 +164,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
     },
   ) {
     this.#log = ctx.log
+    this.#config = ctx.config ?? {}
 
     this.#ingress = ctx.ingress.substrate
     this.#notifier = ctx.egress
@@ -187,13 +189,17 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
 
-    this.#sseBroadcaster = createServerSideEventsBroadcaster<XcmServerSideEventArgs>(applySseFilters)
-    this.#explorer = new XcmExplorer({
-      log: ctx.log,
-      dataPath: ctx.environment?.dataPath,
-      humanizer: this.#humanizer,
-      broadcaster: this.#sseBroadcaster,
-    })
+    if ('explorer' in this.#config && this.#config['explorer']) {
+      this.#sseBroadcaster = createServerSideEventsBroadcaster<XcmServerSideEventArgs>(applySseFilters)
+      this.#explorer = new XcmExplorer({
+        log: ctx.log,
+        dataPath: ctx.environment?.dataPath,
+        humanizer: this.#humanizer,
+        broadcaster: this.#sseBroadcaster,
+      })
+    }
+
+    this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
@@ -246,15 +252,15 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
 
     await this.#humanizer.start()
     await this.#analytics?.start(this.#tracker)
-    await this.#explorer.start(this.#tracker)
+    await this.#explorer?.start(this.#tracker)
   }
 
   async stop(): Promise<void> {
-    this.#sseBroadcaster.close()
+    this.#sseBroadcaster?.close()
     this.#subs.stop()
 
     await this.#tracker.stop()
-    await this.#explorer.stop()
+    await this.#explorer?.stop()
 
     this.#analytics?.stop()
   }
@@ -270,9 +276,17 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
   query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
     switch (params.args.op) {
       case 'journeys.list':
-        return this.#explorer.listJourneys(params.args.criteria, params.pagination)
+        if (this.#explorer) {
+          return this.#explorer.listJourneys(params.args.criteria, params.pagination)
+        } else {
+          throw new Error('explorer is not enabled')
+        }
       case 'journeys.by_id':
-        return this.#explorer.getJourneyById(params.args.criteria)
+        if (this.#explorer) {
+          return this.#explorer.getJourneyById(params.args.criteria)
+        } else {
+          throw new Error('explorer is not enabled')
+        }
       default:
         if (this.#analytics) {
           return this.#analytics.query(params)
@@ -282,7 +296,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
   }
 
   onServerSideEventsRequest(request: ServerSideEventsRequest<XcmServerSideEventArgs>) {
-    this.#sseBroadcaster.stream(request)
+    this.#sseBroadcaster?.stream(request)
   }
 
   /**

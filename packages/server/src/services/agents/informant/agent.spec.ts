@@ -85,7 +85,7 @@ describe('informant agent', () => {
         subsStore: subs,
         egress,
       } as Services,
-      { agentServiceMode: AgentServiceMode.local, agents: '*', data: '' },
+      { agentServiceMode: AgentServiceMode.local, agents: '*', data: '', agentConfigs: {} },
     )
   })
 

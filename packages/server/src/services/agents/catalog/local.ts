@@ -163,23 +163,20 @@ export class LocalAgentCatalog implements AgentCatalog {
   #loadAgents(ctx: AgentRuntimeContext, opts: AgentCatalogOptions) {
     const activations: Record<AgentId, Agent> = {}
 
-    if (opts.agents === '*') {
-      for (const create of Object.values(registry)) {
-        const agent = create(ctx, activations)
-        activations[agent.id] = agent
-        this.#log.info('[catalog:local] activated agent %s', agent.id)
+    const requested =
+      opts.agents === '*' ? Object.keys(registry) : opts.agents.split(',').map((id) => id.trim())
+
+    for (const agentId of requested) {
+      const create = registry[agentId]
+      if (!create) {
+        this.#log.warn('[catalog:local] unknown agent id %s', agentId)
+        continue
       }
-    } else {
-      const agentIds = opts.agents.split(',').map((x) => x.trim())
-      for (const agentId of agentIds) {
-        if (registry[agentId] === undefined) {
-          this.#log.warn('[catalog:local] unknown agent id %s', agentId)
-        } else {
-          const agent = registry[agentId](ctx, activations)
-          activations[agent.id] = agent
-          this.#log.info('[catalog:local] activated agent %s', agent.id)
-        }
-      }
+
+      const config = opts.agentConfigs?.[agentId] ?? {}
+      const agent = create({ ...ctx, config }, activations)
+      activations[agent.id] = agent
+      this.#log.info('[catalog:local] activated agent %s', agent.id)
     }
 
     return activations

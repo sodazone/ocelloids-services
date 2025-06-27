@@ -52,6 +52,7 @@ export type AgentRuntimeContext = {
   archive?: ArchiveRepository
   archiveRetention?: ArchiveRetentionOptions
   analyticsDB?: DuckDBInstance
+  config?: Record<string, any>
 }
 
 /**

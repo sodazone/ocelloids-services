@@ -42,18 +42,19 @@ export function toCorsOpts({ corsOrigin, corsCredentials }: CorsServerOptions): 
   }
 }
 
-export function opt(name: string, description: string, env: string): Option {
-  return new Option(name, description).env(env)
+export function opt(name: string, description: string, env?: string): Option {
+  const opt = new Option(name, description)
+  return env === undefined ? opt : opt.env(env)
 }
 
-export function optInt(name: string, description: string, env: string) {
+export function optInt(name: string, description: string, env?: string) {
   return opt(name, description, env).argParser(positiveInt)
 }
 
-export function optBool(name: string, description: string, env: string) {
+export function optBool(name: string, description: string, env?: string) {
   return opt(name, description, env).argParser((v) => v === 'true')
 }
 
-export function optArr(name: string, description: string, env: string) {
+export function optArr(name: string, description: string, env?: string) {
   return opt(name, description, env).argParser(collect)
 }
