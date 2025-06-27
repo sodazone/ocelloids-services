@@ -21,6 +21,7 @@ export const networks = {
   interlay: 'wss://interlay-rpc.dwellir.com',
   acala: 'wss://acala-rpc.dwellir.com',
   mythos: 'wss://mythos.ibp.network',
+  kassethub: 'wss://sys.ibp.network/asset-hub-kusama'
 } as Record<string, string>
 
 async function download([name, ws, height]: [string, string, number]) {
