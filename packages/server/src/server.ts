@@ -70,6 +70,8 @@ export const $ServerOptions = z
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 
+const pluginTimeout = process.env.FASTIFY_PLUGIN_TIMEOUT ? Number(process.env.FASTIFY_PLUGIN_TIMEOUT) : 45_000
+
 /**
  * Creates and starts the Ocelloids Execution Server with specified options.
  *
@@ -78,7 +80,7 @@ type ServerOptions = z.infer<typeof $ServerOptions>
 export async function createServer(opts: ServerOptions) {
   const server = Fastify({
     logger,
-    pluginTimeout: 30_000,
+    pluginTimeout,
   })
 
   /* c8 ignore next */
