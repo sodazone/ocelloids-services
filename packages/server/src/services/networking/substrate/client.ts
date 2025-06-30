@@ -1,5 +1,17 @@
 import { EventEmitter } from 'node:events'
-import { Observable, filter, firstValueFrom, interval, map, mergeMap, of, race, retry, take } from 'rxjs'
+import {
+  Observable,
+  filter,
+  firstValueFrom,
+  map,
+  mergeMap,
+  of,
+  race,
+  retry,
+  shareReplay,
+  take,
+  timer,
+} from 'rxjs'
 
 import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { ChainSpecData, StopError, createClient } from '@polkadot-api/substrate-client'
@@ -52,42 +64,51 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     params: Params,
   ) => Promise<Reply>
   readonly #head: ChainHead$
-  readonly #finalized$: Observable<BlockInfoWithStatus>
-  readonly #new$: Observable<BlockInfoWithStatus>
+
+  #sharedRuntime$?: Observable<any>
+  #runtimeContextCache?: Promise<RuntimeApiContext>
 
   #apiContext!: () => SubstrateApiContext
 
-  get ctx() {
-    return this.#apiContext()
+  get _sharedRuntime$(): Observable<any> {
+    if (!this.#sharedRuntime$) {
+      this.#sharedRuntime$ = this.#head.runtime$.pipe(
+        filter(Boolean),
+        shareReplay({ bufferSize: 1, refCount: true }),
+      )
+    }
+    return this.#sharedRuntime$
   }
 
-  followHeads$(finality = 'finalized'): Observable<NeutralHeader> {
-    return (finality === 'finalized' ? this.#finalized$ : this.#new$).pipe(
-      map((b) => ({
-        hash: b.hash,
-        height: b.number ?? -1,
-        parenthash: b.parent ?? '0x0',
-        status: b.status,
-      })),
-    )
+  get #finalized$(): Observable<BlockInfoWithStatus> {
+    return this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
   }
 
-  get #runtimeContext(): Promise<RuntimeApiContext> {
-    // TODO handle errors
-    return firstValueFrom(
-      race([
-        this.#head.runtime$.pipe(
-          filter(Boolean),
-          map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
-        ),
-        interval(15_000).pipe(
-          take(1),
-          mergeMap(async () => {
-            this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
-            return createRuntimeApiContext(fromHex(await this.#getMetadata()), this.chainId)
-          }),
-        ),
-      ]),
+  get #new$(): Observable<BlockInfoWithStatus> {
+    return this.#head.follow$.pipe(
+      mergeMap((event) => {
+        const blocks: BlockInfoWithStatus[] = []
+        switch (event.type) {
+          case 'newBlock': {
+            const { parentBlockHash: parent, blockHash: hash } = event
+            blocks.push({ hash, parent, number: -1, status: 'new' })
+            break
+          }
+          case 'finalized': {
+            const { prunedBlockHashes, finalizedBlockHashes } = event
+            for (const hash of prunedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'pruned' })
+            }
+            for (const hash of finalizedBlockHashes) {
+              blocks.push({ parent: '0x0', hash, number: -1, status: 'finalized' })
+            }
+            break
+          }
+        }
+        return blocks
+      }),
+      filter((x) => x !== null),
+      retryOnStopError(),
     )
   }
 
@@ -123,33 +144,52 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     this.#apiContext = () => {
       throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
     }
+  }
 
-    this.#new$ = this.#head.follow$.pipe(
-      mergeMap((event) => {
-        const blocks: BlockInfoWithStatus[] = []
-        switch (event.type) {
-          case 'newBlock': {
-            const { parentBlockHash: parent, blockHash: hash } = event
-            blocks.push({ hash, parent, number: -1, status: 'new' })
-            break
-          }
-          case 'finalized': {
-            const { prunedBlockHashes, finalizedBlockHashes } = event
-            for (const hash of prunedBlockHashes) {
-              blocks.push({ parent: '0x0', hash, number: -1, status: 'pruned' })
-            }
-            for (const hash of finalizedBlockHashes) {
-              blocks.push({ parent: '0x0', hash, number: -1, status: 'finalized' })
-            }
-            break
-          }
-        }
-        return blocks
-      }),
-      filter((x) => x !== null),
-      retryOnStopError(),
+  get ctx() {
+    return this.#apiContext()
+  }
+
+  followHeads$(finality = 'finalized'): Observable<NeutralHeader> {
+    return (finality === 'finalized' ? this.#finalized$ : this.#new$).pipe(
+      map((b) => ({
+        hash: b.hash,
+        height: b.number ?? -1,
+        parenthash: b.parent ?? '0x0',
+        status: b.status,
+      })),
     )
-    this.#finalized$ = this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
+  }
+
+  get #runtimeContext(): Promise<RuntimeApiContext> {
+    if (this.#runtimeContextCache === undefined) {
+      this.#runtimeContextCache = this.#loadRuntimeContext()
+    }
+    return this.#runtimeContextCache
+  }
+
+  async #loadRuntimeContext(): Promise<RuntimeApiContext> {
+    try {
+      return await firstValueFrom(
+        race([
+          this._sharedRuntime$.pipe(
+            filter(Boolean),
+            take(1),
+            map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
+          ),
+          timer(15_000).pipe(
+            mergeMap(async () => {
+              this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
+              const metadata = await this.#getMetadata()
+              return createRuntimeApiContext(fromHex(metadata), this.chainId)
+            }),
+          ),
+        ]),
+      )
+    } catch (err) {
+      this.#runtimeContextCache = undefined
+      throw err
+    }
   }
 
   async isReady(): Promise<SubstrateApi> {
