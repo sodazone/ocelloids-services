@@ -50,17 +50,21 @@ export default class Connector {
 
     this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(chains))
 
+    let i = 0
     for (const [chain, client] of Object.entries(chains)) {
       this.#log.info('[connector:%s] connecting...', chain)
 
-      client
-        .connect()
-        .then(() => {
-          this.#log.info('[connector:%s] connected', chain)
-        })
-        .catch((error) => {
-          this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
-        })
+      i++
+      setTimeout(() => {
+        client
+          .connect()
+          .then(() => {
+            this.#log.info('[connector:%s] connected', chain)
+          })
+          .catch((error) => {
+            this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
+          })
+      }, i * 100)
     }
 
     return chains as Record<string, T>
