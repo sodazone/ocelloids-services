@@ -45,6 +45,14 @@ export async function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): Promis
       address: signer,
     })
   }
+  if (matchExtrinsic(extrinsic, 'MultiTransactionPayment', 'dispatch_permit')) {
+    const signer = extrinsic.args.from
+    return createSignersData({
+      ...extrinsic,
+      signed: true,
+      address: signer,
+    })
+  }
   return createSignersData(extrinsic)
 }
 
