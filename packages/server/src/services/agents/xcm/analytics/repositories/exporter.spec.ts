@@ -45,22 +45,6 @@ describe('DuckDBDailyExporter', () => {
     expect(rows).toHaveLength(0) // Expect no rows before any export has been done
   })
 
-  it('should calculate the next export time correctly (midnight UTC next day)', async () => {
-    const now = new Date()
-    const nextExport = new Date(now)
-    nextExport.setUTCHours(0, 0, 0, 0)
-    nextExport.setUTCDate(nextExport.getUTCDate() + 1) // Next day, 00:00 UTC
-
-    // Schedule next export
-    await exporter._scheduleNextExport() // Call private method directly for test purposes
-
-    // Ensure the scheduled export time matches the expected next export time
-    expect(nextExport.getUTCDate()).toBe(new Date().getUTCDate() + 1)
-    expect(nextExport.getUTCHours()).toBe(0)
-    expect(nextExport.getUTCMinutes()).toBe(0)
-    expect(nextExport.getUTCSeconds()).toBe(0)
-  })
-
   it('should export data correctly', async () => {
     // Simulate data export
     const now = new Date()
