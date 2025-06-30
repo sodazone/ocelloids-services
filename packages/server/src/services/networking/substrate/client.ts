@@ -34,6 +34,8 @@ import { NeutralHeader } from '../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
 
+const RUNTIME_STREAM_TIMEOUT_MILLIS = 20_000
+
 export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
   const client = new SubstrateClient(log, chainId, url)
   return await client.connect()
@@ -177,7 +179,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
             take(1),
             map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
           ),
-          timer(15_000).pipe(
+          timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(
             mergeMap(async () => {
               this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
               const metadata = await this.#getMetadata()

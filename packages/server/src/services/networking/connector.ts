@@ -4,6 +4,8 @@ import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
 import { SubstrateClient } from './substrate/index.js'
 import { ApiClient } from './types.js'
 
+const INC_CONNECTION_MILLIS = 100
+
 /**
  * Handles substrate network connections.
  */
@@ -64,7 +66,7 @@ export default class Connector {
           .catch((error) => {
             this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
           })
-      }, i * 100)
+      }, i * INC_CONNECTION_MILLIS)
     }
 
     return chains as Record<string, T>
