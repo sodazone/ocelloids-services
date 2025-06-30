@@ -77,6 +77,70 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.version).toBe('V5')
   })
 
+  it('should humanize hydration evm address correctly', async () => {
+    const msg =
+      '0005240204010000033328164e1301000002286bee000b010450250907040104020209070403007fc66500c84a76ad7e9c93437bfc5ac33e2ddae900170040bddafe858715010a16040d01020802010907040e010208010100c91f0c13010000ce78ed49000d01020800010100455448001cc082fbc2b3a9a6456c63fec13e739c7bebc1ee00000000000000002c7a3e6325ea2b02d9ade90e5a3fcde263030085ffdf7f84dfd1217136b9a688942c7a3e6325ea2b02d9ade90e5a3fcde263030085ffdf7f84dfd1217136b9a68894'
+    const buf = new Uint8Array(Buffer.from(msg, 'hex'))
+    const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
+
+    const results = await humanizer.humanize({
+      type: 'xcm.sent',
+      legs: [
+        {
+          from: 'urn:ocn:polkadot:1002',
+          to: 'urn:ocn:polkadot:1000',
+          type: 'hop',
+          relay: 'urn:ocn:polkadot:0',
+        },
+        {
+          from: 'urn:ocn:polkadot:1000',
+          to: 'urn:ocn:polkadot:2034',
+          type: 'hrmp',
+          relay: 'urn:ocn:polkadot:0',
+        },
+      ],
+      origin: {
+        chainId: 'urn:ocn:polkadot:1002',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+      },
+      waypoint: {
+        legIndex: 0,
+        chainId: 'urn:ocn:polkadot:1002',
+        blockHash: '0x01',
+        blockNumber: 33,
+        outcome: 'Success',
+        messageHash: '0xBEEF',
+        instructions,
+      },
+      destination: {
+        chainId: 'urn:ocn:polkadot:2034',
+      },
+      sender: {
+        signer: {
+          id: '13Dbqvh6nLCRckyfsBr8wEJzxbi34KELwdYQFKKchN4NedGh',
+          publicKey: '0x6214b4a1b4f6c2bb01a84d6f74a63c1ba72292cdecc9595e666069652189c70f',
+        },
+        extraSigners: [],
+      },
+    })
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transfer')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.to.key.length).toBe(42)
+    expect(results.humanized.to.key.toLowerCase()).toBe(
+      '0x1cc082fbC2b3a9A6456C63FEC13E739c7bebC1ee'.toLowerCase(),
+    )
+    expect(results.humanized.to.formatted).toBeUndefined()
+    expect(results.humanized.version).toBe('V5')
+  })
+
   it('should parse assets in assethub to bridgehub message', async () => {
     const instructions = [
       {

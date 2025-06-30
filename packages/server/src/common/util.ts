@@ -2,7 +2,7 @@ import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
-import { toHex } from 'polkadot-api/utils'
+import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'
@@ -25,19 +25,31 @@ export function getEventValue(module: string, name: string | string[], events: E
 
 export function asPublicKey(accountId: string): HexString {
   if (accountId.startsWith('0x')) {
-    return accountId as HexString
+    return normalizePublicKey(accountId as HexString)
   }
   const info = getSs58AddressInfo(accountId)
   if (!info.isValid) {
     throw new Error(`invalid address format ${accountId}`)
   }
-  return toHex(info.publicKey) as HexString
+
+  return normalizePublicKey(info.publicKey)
 }
 
 const textEncoder = new TextEncoder()
 
 export function stringToUa8(v: string) {
   return textEncoder.encode(v)
+}
+
+function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
+  const publicKeyBuffer = typeof publicKey === 'string' ? fromHex(publicKey) : publicKey
+  // Handle Hydration EVM prefix
+  const ethPrefix = Buffer.concat([textEncoder.encode('ETH'), new Uint8Array([0])])
+  if (publicKeyBuffer.slice(0, 4).every((value, index) => value === ethPrefix[index])) {
+    const stripped = publicKeyBuffer.slice(4, 24)
+    return toHex(stripped) as HexString
+  }
+  return toHex(publicKeyBuffer) as HexString
 }
 
 /**
