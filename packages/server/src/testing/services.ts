@@ -34,6 +34,7 @@ function mockApiClient() {
   return {
     ..._client,
     isReady: () => of(_client),
+    connect: () => Promise.resolve(_client)
   } as unknown as SubstrateApi
 }
 
