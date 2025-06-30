@@ -295,18 +295,15 @@ export class XcmRepository {
       query = query.where('xcm_journeys.destination', 'in', filters.destinations)
     }
     if (filters?.address) {
-      const addressPrefix = filters.address.slice(0, 42)
+      const addressPrefix = filters.address.length >= 42 ? filters.address.slice(0, 42) : filters.address
       const paraId = 'urn:ocn:polkadot:2034'
 
       query = query.where((eb) =>
         eb.or([
           eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
           eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
-          eb.and([
-            eb('origin', '!=', paraId),
-            eb('destination', '!=', paraId),
-            eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
-          ]),
+          eb.and([eb('origin', '!=', paraId), eb('from', '=', filters.address!)]),
+          eb.and([eb('destination', '!=', paraId), eb('to', '=', filters.address!)])
         ]),
       )
     }
