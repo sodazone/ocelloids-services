@@ -71,7 +71,18 @@ function applySseFilters(
   }
   if (filters.address) {
     const pubKeyOrEvmAddress = asPublicKey(filters.address)
-    if (pubKeyOrEvmAddress !== journey.from && pubKeyOrEvmAddress !== journey.to) {
+
+    const matchFrom =
+      journey.origin === 'urn:ocn:polkadot:2034'
+        ? journey.from?.slice(0, 42) === pubKeyOrEvmAddress.slice(0, 42)
+        : journey.from === pubKeyOrEvmAddress
+
+    const matchTo =
+      journey.destination === 'urn:ocn:polkadot:2034'
+        ? journey.to?.slice(0, 42) === pubKeyOrEvmAddress.slice(0, 42)
+        : journey.to === pubKeyOrEvmAddress
+
+    if (!matchFrom && !matchTo) {
       return false
     }
   }

@@ -30,7 +30,7 @@ export const _config = new ServiceConfiguration($ServiceConfiguration.parse(toml
 function mockApiClient() {
   const _client = {
     followHeads$: of({}),
-    connect: () => Promise.resolve(_client)
+    connect: () => Promise.resolve(_client),
   }
   return {
     ..._client,

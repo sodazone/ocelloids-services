@@ -78,17 +78,45 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xcm_assets_journey_id_index')
-      .ifNotExists()
-      .on('xcm_assets')
-      .column('journey_id')
-      .execute()
-
-    await db.schema
       .createIndex('xcm_journeys_type_index')
       .ifNotExists()
       .on('xcm_journeys')
       .column('type')
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_status_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .column('status')
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_origin_from_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .columns(['origin', 'from'])
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_destination_to_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .columns(['destination', 'to'])
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_journeys_from_to_index')
+      .ifNotExists()
+      .on('xcm_journeys')
+      .columns(['from', 'to'])
+      .execute()
+
+    await db.schema
+      .createIndex('xcm_assets_journey_id_index')
+      .ifNotExists()
+      .on('xcm_assets')
+      .column('journey_id')
       .execute()
 
     await db.schema

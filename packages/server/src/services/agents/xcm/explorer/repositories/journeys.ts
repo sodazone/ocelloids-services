@@ -227,7 +227,20 @@ export class XcmRepository {
     }
 
     if (filters?.address) {
-      query = query.where((eb) => eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]))
+      const addressPrefix = filters.address.slice(0, 42)
+      const paraId = 'urn:ocn:polkadot:2034'
+
+      query = query.where((eb) =>
+        eb.or([
+          eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
+          eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
+          eb.and([
+            eb('origin', '!=', paraId),
+            eb('destination', '!=', paraId),
+            eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
+          ]),
+        ]),
+      )
     }
 
     if (filters?.origins) {
@@ -282,8 +295,19 @@ export class XcmRepository {
       query = query.where('xcm_journeys.destination', 'in', filters.destinations)
     }
     if (filters?.address) {
+      const addressPrefix = filters.address.slice(0, 42)
+      const paraId = 'urn:ocn:polkadot:2034'
+
       query = query.where((eb) =>
-        eb.or([eb('xcm_journeys.from', '=', filters.address!), eb('xcm_journeys.to', '=', filters.address!)]),
+        eb.or([
+          eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
+          eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
+          eb.and([
+            eb('origin', '!=', paraId),
+            eb('destination', '!=', paraId),
+            eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
+          ]),
+        ]),
       )
     }
     if (filters?.txHash) {
