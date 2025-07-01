@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-service-root",
-  "version": "2.5.1-dev.0",
+  "version": "2.6.0",
   "description": "Ocelloids Server",
   "author": "SO/DA <projects@soda.zone>",
   "contributors": [
@@ -32,6 +32,5 @@
     "@polkadot-api/observable-client@npm:0.8.2": "patch:@polkadot-api/observable-client@npm%3A0.8.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.8.2-16f58abb2e.patch",
     "@polkadot-api/observable-client@npm:0.8.6": "patch:@polkadot-api/observable-client@npm%3A0.8.6#~/.yarn/patches/@polkadot-api-observable-client-npm-0.8.6-fb4507721f.patch",
     "@polkadot-api/observable-client@npm:0.11.2": "patch:@polkadot-api/observable-client@npm%3A0.11.2#~/.yarn/patches/@polkadot-api-observable-client-npm-0.11.2-8ffc55ebc9.patch"
-  },
-  "stableVersion": "2.5.0"
+  }
 }
