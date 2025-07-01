@@ -58,7 +58,7 @@ export default abstract class BaseIngressProducer<T extends Watcher>
   }
 
   async stop() {
-    this.log.info('Stopping ingress producer')
+    this.log.info('[ingress:producer] Stopping ingress producer')
 
     for (const [chainId, rxSub] of Object.entries(this.#rxSubs)) {
       this.log.info('[%s] RX Unsubscribe', chainId)
@@ -66,7 +66,7 @@ export default abstract class BaseIngressProducer<T extends Watcher>
       rxSub.unsubscribe()
     }
 
-    this.watcher.stop()
+    await this.watcher.stop()
 
     await this.distributor.stop()
   }

@@ -113,6 +113,11 @@ function p(n: number, max = 2) {
   return n.toString().padStart(max, '0')
 }
 
+export function toUTCMillis(date: Date | string | number) {
+  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
+  return d.getTime()
+}
+
 export function toUTCString(date: Date | string | number) {
   const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}.${p(d.getUTCMilliseconds(), 3)}`

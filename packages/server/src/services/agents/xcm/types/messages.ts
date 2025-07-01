@@ -1,63 +1,11 @@
-import { z } from 'zod'
-
-import { Binary } from 'polkadot-api'
-import { Observable, Subscription as RxSubscription } from 'rxjs'
-
-import { ControlQuery } from '@/common/index.js'
-import { $HistoricalQuery } from '@/services/archive/types.js'
 import { createNetworkId } from '@/services/config.js'
-import {
-  HexString,
-  RxSubscriptionWithId,
-  SignerData,
-  Subscription,
-  toHexString,
-} from '@/services/subscriptions/types.js'
+import { HexString, SignerData, toHexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
-
-function distinct(a: Array<string>) {
-  return Array.from(new Set(a))
-}
-
-export type MessageHashData = { hash: HexString; data: HexString; topicId?: HexString }
+import { HumanizedXcm } from '../humanize/types.js'
 
 /**
- * XCM storage prefixes.
+ * @public
  */
-export const prefixes = {
-  matching: {
-    outbound: 'xcm:ma:out',
-    inbound: 'xcm:ma:in',
-    relay: 'xcm:ma:relay',
-    hop: 'xcm:ma:hop',
-    bridge: 'xcm:ma:bridge',
-    bridgeAccepted: 'xcm:ma:bridgeAccepted',
-    bridgeDelivered: 'xcm:ma:bridgeDelivered',
-    bridgeIn: 'xcm:ma:bridgeIn',
-    messageData: 'xcm:ma:messageData',
-  },
-}
-
-export type Monitor = {
-  streams: RxSubscriptionWithId[]
-  controls: Record<string, ControlQuery>
-}
-
-export type XcmSubscriptionHandler = {
-  sendersControl: ControlQuery
-  destinationsControl: ControlQuery
-  originsControl: ControlQuery
-  notificationTypeControl: ControlQuery
-  subscription: Subscription<XcmInputs>
-  stream: RxSubscription
-}
-
-const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
-
-export type BridgeType = (typeof bridgeTypes)[number]
-
-export type RxBridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
-
 export type XcmWithContext = {
   event?: AnyJson
   extrinsicPosition?: number
@@ -293,7 +241,8 @@ export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements 
   }
 }
 
-const XcmNotificationTypes = [
+// no public export
+export const XcmNotificationTypes = [
   'xcm.sent',
   'xcm.received',
   'xcm.relayed',
@@ -641,6 +590,17 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
  */
 export type XcmMessagePayload = XcmSent | XcmReceived | XcmRelayed | XcmHop | XcmBridge | XcmTimeout
 
+/**
+ * The humanized XCM payloads.
+ *
+ * @public
+ */
+export type HumanizedXcmPayload = XcmMessagePayload & { humanized: HumanizedXcm }
+
+export function isHumanizedXcmPayload(object: any): object is HumanizedXcmPayload {
+  return object.humanized !== undefined
+}
+
 export function isXcmSent(object: any): object is XcmSent {
   return object.type !== undefined && object.type === 'xcm.sent'
 }
@@ -656,59 +616,3 @@ export function isXcmHop(object: any): object is XcmHop {
 export function isXcmRelayed(object: any): object is XcmRelayed {
   return object.type !== undefined && object.type === 'xcm.relayed'
 }
-
-const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${XcmNotificationTypes.join(',')}]`
-
-export const $XcmInputs = z.object({
-  origins: z.literal('*').or(
-    z
-      .array(
-        z
-          .string({
-            required_error: 'at least 1 origin is required',
-          })
-          .min(1),
-      )
-      .transform(distinct),
-  ),
-  senders: z.optional(
-    z
-      .literal('*')
-      .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct)),
-  ),
-  destinations: z.literal('*').or(
-    z
-      .array(
-        z
-          .string({
-            required_error: 'at least 1 destination is required',
-          })
-          .min(1),
-      )
-      .transform(distinct),
-  ),
-  bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
-  // prevent using $refs
-  events: z.optional(
-    z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),
-  ),
-  history: z.optional($HistoricalQuery),
-})
-
-export type XcmInputs = z.infer<typeof $XcmInputs>
-
-export type GetOutboundHrmpMessages = (hash: HexString) => Observable<
-  {
-    recipient: number
-    data: Binary
-  }[]
->
-
-export type GetOutboundUmpMessages = (hash: HexString) => Observable<Binary[]>
-
-export type GetDownwardMessageQueues = (
-  hash: HexString,
-  networkId: NetworkURN,
-) => Observable<{ sentAt: number; msg: Binary }[]>
-
-export type GetStorageAt = (hash: HexString, key: HexString) => Observable<HexString>

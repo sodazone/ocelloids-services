@@ -68,6 +68,21 @@ function parseLocalX1Junction(referenceNetwork: NetworkURN, junction: DecodedObj
       assetId: { type: 'data', value: mapGeneralKey(junction.value) },
     }
   }
+  if (junction.type === 'generalindex') {
+    if (junction.value === undefined || junction.value === null) {
+      return null
+    }
+    return {
+      network: referenceNetwork,
+      assetId: { type: 'string', value: junction.value.toString() },
+    }
+  }
+  if (junction.type === 'accountkey20') {
+    return {
+      network: referenceNetwork,
+      assetId: { type: 'contract', value: (junction.value as { key: string }).key as string },
+    }
+  }
   return null
 }
 
@@ -105,7 +120,7 @@ function parseLocalAsset(referenceNetwork: NetworkURN, junctions: MultilocationI
       } else if (junction.type === 'generalkey') {
         assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
       } else if (junction.type === 'accountkey20') {
-        accountId20 = junction.value as string
+        accountId20 = (junction.value as { key: string }).key as string
       }
     }
 
@@ -175,7 +190,7 @@ function parseCrossChainAsset(
     } else if (junction.type === 'generalkey') {
       assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
     } else if (junction.type === 'accountkey20') {
-      accountId20 = junction.value as string
+      accountId20 = (junction.value as { key: string }).key as string
     }
   }
 
@@ -192,25 +207,69 @@ function parseCrossChainAsset(
   })
 }
 
+function parseGlobalConsensusNetwork(junction: DecodedObject): NetworkURN | null {
+  if (junction.type === 'globalconsensus') {
+    if (junction.value === null || junction.value === undefined || Array.isArray(junction.value)) {
+      return null
+    } else if (typeof junction.value === 'string') {
+      const network = (junction.value as string).toLowerCase()
+      return `urn:ocn:${network}:0`
+    } else if (
+      typeof junction.value === 'object' &&
+      'type' in junction.value &&
+      junction.value.type === 'ethereum'
+    ) {
+      const chainId =
+        typeof junction.value.value === 'object' &&
+        junction.value.value !== null &&
+        !Array.isArray(junction.value.value)
+          ? junction.value.value.chain_id
+          : 1
+      return `urn:ocn:ethereum:${chainId}`
+    } else if (typeof junction.value === 'object' && 'type' in junction.value) {
+      const network = junction.value.type
+
+      return `urn:ocn:${network}:0`
+    }
+  }
+  return null
+}
+
 function parseCrossConsensusAsset(junctions: MultilocationInterior): ParsedAsset | null {
   // not possible
   if (junctions.type === 'here') {
     return null
   }
-  // relay/solo chains
+  // relay/solo chains native asset
   if (junctions.type === 'x1') {
     const junction = junctions.value
+    let network: NetworkURN | null = null
     if (Array.isArray(junction)) {
-      if (junction[0].type === 'globalconsensus') {
-        return {
-          network: createNetworkId((junction[0].value as any).type, '0'),
-          assetId: { type: 'string', value: 'native' },
-        }
-      }
+      network = parseGlobalConsensusNetwork(junction[0])
     } else if (junction.type === 'globalconsensus') {
+      network = parseGlobalConsensusNetwork(junction)
+    }
+    if (network === null) {
+      return null
+    }
+    return {
+      network,
+      assetId: { type: 'string', value: 'native' },
+    }
+  }
+
+  // External network tokens
+  if (junctions.type === 'x2') {
+    const interiorJunctions = junctions.value
+    const network = parseGlobalConsensusNetwork(interiorJunctions[0])
+    const contract =
+      interiorJunctions[1].type === 'accountkey20'
+        ? (interiorJunctions[1].value! as { key: string }).key
+        : null
+    if (network !== null && contract !== null) {
       return {
-        network: createNetworkId((junction.value as any).type, '0'),
-        assetId: { type: 'string', value: 'native' },
+        network,
+        assetId: { type: 'contract', value: contract },
       }
     }
   }
@@ -260,6 +319,15 @@ function mapParsedAsset({
   }
 
   // TODO: support EVM contract assets
+  if (accountId20 !== undefined) {
+    return {
+      network,
+      assetId: {
+        type: 'contract',
+        value: accountId20,
+      },
+    }
+  }
 
   return null
 }

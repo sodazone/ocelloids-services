@@ -9,7 +9,7 @@ import { BlockEvent, BlockExtrinsic, Event, Extrinsic } from '@/services/network
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
-import { AssetsTrapped, TrappedAsset } from '../types.js'
+import { AssetsTrapped, TrappedAsset } from '../types/index.js'
 import { Program } from './xcm-format.js'
 
 function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
@@ -39,6 +39,14 @@ function createSignersData(xt: BlockExtrinsic): SignerData | undefined {
 export async function getSendersFromExtrinsic(extrinsic: BlockExtrinsic): Promise<SignerData | undefined> {
   if (isFrontierExtrinsic(extrinsic)) {
     const signer = await getFromAddress(extrinsic.args as FrontierExtrinsic)
+    return createSignersData({
+      ...extrinsic,
+      signed: true,
+      address: signer,
+    })
+  }
+  if (matchExtrinsic(extrinsic, 'MultiTransactionPayment', 'dispatch_permit')) {
+    const signer = extrinsic.args.from
     return createSignersData({
       ...extrinsic,
       signed: true,

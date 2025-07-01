@@ -1,11 +1,13 @@
 import { AbstractSublevel } from 'abstract-level'
 import {
   EMPTY,
+  Observable,
   Observer,
   Subscription,
   expand,
   filter,
   firstValueFrom,
+  from,
   map,
   merge,
   mergeAll,
@@ -36,6 +38,7 @@ import {
 } from '../types.js'
 
 import { mappers } from './mappers.js'
+import { assetOverrides } from './overrides.js'
 import { Queries } from './queries/index.js'
 import {
   $StewardQueryArgs,
@@ -129,6 +132,8 @@ export class DataSteward implements Agent, Queryable {
   }
 
   async start() {
+    await this.#ingress.isReady()
+
     if (this.#sched.enabled && (await this.#isNotScheduled())) {
       await this.#scheduleSync()
 
@@ -203,7 +208,7 @@ export class DataSteward implements Agent, Queryable {
 
   #syncAssetMetadata() {
     const chainIds = this.#ingress.getChainIds()
-    const allAssetMaps = []
+    const allAssetMaps = [this.#mapOverrides()]
 
     for (const chainId of chainIds) {
       const mapper = mappers[chainId]
@@ -215,7 +220,7 @@ export class DataSteward implements Agent, Queryable {
       }
     }
 
-    const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
+    const allAssetMapsObs = merge(...allAssetMaps)
     allAssetMapsObs.subscribe(this.#storeAssetMetadata())
   }
 
@@ -399,6 +404,21 @@ export class DataSteward implements Agent, Queryable {
       .catch((e) => {
         this.#log.error(e, '[agent:%s] while fetching chain info (chainId=%s)', this.id, chainId)
       })
+  }
+
+  #mapOverrides(): Observable<{
+    asset: AssetMetadata
+    chainId: NetworkURN
+  }> {
+    return from(assetOverrides).pipe(
+      map((a) => ({
+        asset: {
+          ...a,
+          updated: Date.now(),
+        },
+        chainId: a.chainId,
+      })),
+    )
   }
 
   #map(chainId: NetworkURN, mapper: AssetMapper) {

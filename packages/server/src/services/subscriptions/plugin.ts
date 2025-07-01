@@ -29,7 +29,7 @@ const subscriptionsPlugin: FastifyPluginAsync<SubscriptionsOptions> = async (fas
   await switchboard.start()
 
   fastify.addHook('onClose', async () => {
-    log.info('Shutting down monitoring service')
+    log.info('[subscriptions] shutting down switchboard')
 
     await switchboard.stop()
   })

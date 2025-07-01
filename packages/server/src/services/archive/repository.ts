@@ -1,8 +1,23 @@
 import { Kysely, SelectQueryBuilder } from 'kysely'
-import { Observable, Subject, from, last, merge, mergeMap } from 'rxjs'
+import {
+  EMPTY,
+  Observable,
+  Subject,
+  catchError,
+  concatMap,
+  defer,
+  delay,
+  expand,
+  from,
+  last,
+  merge,
+  mergeMap,
+  of,
+  throwError,
+} from 'rxjs'
 
-import { asDateRange, asUTC, toUTCString } from './time.js'
-import { Database, HistoricalQuery, NewHistoricalPayload } from './types.js'
+import { asDateRange, asUTC, toUTCMillis, toUTCString } from './time.js'
+import { Database, HistoricalPayload, HistoricalQuery, NewHistoricalPayload } from './types.js'
 
 type SelectLog = SelectQueryBuilder<Database, 'archive', unknown>
 
@@ -39,8 +54,30 @@ export class ArchiveRepository {
     return await this.#db.insertInto('archive').values(log).returningAll().executeTakeFirstOrThrow()
   }
 
-  async iterateLogs(q: Partial<HistoricalQuery> = {}) {
-    return await withCriteria(q, this.#db.selectFrom('archive')).selectAll().stream(q.options?.chunkSize)
+  logs$(q: Partial<HistoricalQuery> = {}, chunkSize = 20): Observable<HistoricalPayload> {
+    let offset = 0
+
+    const fetchPage = (offset: number) =>
+      defer(() =>
+        from(
+          withCriteria(q, this.#db.selectFrom('archive'))
+            .selectAll()
+            .limit(chunkSize)
+            .offset(offset)
+            .execute(),
+        ),
+      )
+
+    return fetchPage(offset).pipe(
+      expand((rows) => {
+        if (rows.length < chunkSize) {
+          return EMPTY
+        }
+        offset += chunkSize
+        return fetchPage(offset).pipe(delay(0))
+      }),
+      concatMap((rows) => from(rows).pipe(concatMap((row) => of(row).pipe(delay(0))))),
+    )
   }
 
   async lastKnownTime(agent?: string) {
@@ -59,19 +96,17 @@ export class ArchiveRepository {
   withHistory<T>(realTime$: Observable<T>, q: Partial<HistoricalQuery> = {}) {
     if (q.top !== undefined) {
       const stream = new Subject<T>()
-      this.logs$(q).then((from$) =>
-        from$.subscribe({
-          next: ({ payload }) => {
-            stream.next(payload)
-          },
-          error: (err) => {
-            stream.error(err)
-          },
-          complete: () => {
-            stream.complete()
-          },
-        }),
-      )
+      this.logs$(q).subscribe({
+        next: ({ payload }) => {
+          stream.next(payload)
+        },
+        error: (err) => {
+          stream.error(err)
+        },
+        complete: () => {
+          stream.complete()
+        },
+      })
 
       return merge(
         stream,
@@ -90,27 +125,22 @@ export class ArchiveRepository {
 
     if (dateRange.end !== undefined) {
       const stream = new Subject<T>()
-      this.logs$(q).then((from$) =>
-        from$.subscribe({
-          next: ({ payload }) => {
-            stream.next(payload)
-          },
-          error: (err) => {
-            stream.error(err)
-          },
-          complete: () => {
-            stream.complete()
-          },
-        }),
-      )
+      this.logs$(q).subscribe({
+        next: ({ payload }) => {
+          stream.next(payload)
+        },
+        error: (err) => {
+          stream.error(err)
+        },
+        complete: () => {
+          stream.complete()
+        },
+      })
+
       return stream
     } else {
       return this.#historicalAndFollow(q, realTime$)
     }
-  }
-
-  async logs$(q: Partial<HistoricalQuery> = {}) {
-    return from(await this.iterateLogs(q))
   }
 
   async findLogs(q: Partial<HistoricalQuery> = {}) {
@@ -119,7 +149,8 @@ export class ArchiveRepository {
 
   #historicalAndFollow<T>(q: Partial<HistoricalQuery>, realTime$: Observable<T>) {
     const stream = new Subject<T>()
-    let lastTime = 0
+    const startDate = q.timeframe === undefined ? 0 : (asDateRange(q.timeframe).start ?? 0)
+    let lastTime = toUTCMillis(startDate)
     const followHistorical = (from$: Awaited<ReturnType<typeof this.logs$>>) => {
       from$.subscribe({
         next: ({ created_at, payload }) => {
@@ -140,7 +171,7 @@ export class ArchiveRepository {
                   start: new Date(lastTime).toISOString(),
                 },
               }
-              followHistorical(await this.logs$(nq))
+              followHistorical(this.logs$(nq))
             } else {
               stream.complete()
             }
@@ -152,13 +183,19 @@ export class ArchiveRepository {
       })
     }
 
-    this.logs$(q).then(followHistorical)
+    followHistorical(this.logs$(q))
 
     return merge(
       stream,
       stream.pipe(
         last(),
         mergeMap(() => realTime$),
+        catchError((err) => {
+          if (err.name === 'EmptyError') {
+            return realTime$
+          }
+          return throwError(() => err)
+        }),
       ),
     )
   }

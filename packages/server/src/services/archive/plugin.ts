@@ -48,6 +48,7 @@ const archivePlugin: FastifyPluginAsync<ArchivePluginOptions> = async (
 
   fastify.addHook('onClose', () => {
     fastify.log.info('[archive] closing logs database')
+
     return db.destroy()
   })
 

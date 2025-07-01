@@ -3,15 +3,21 @@ import { MemoryLevel } from 'memory-level'
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/persistence/level/janitor.js'
 import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
-import { hydraMoonMessages, matchMessages, moonBifrostMessages } from '@/testing/matching.js'
+import {
+  hydraMoonMessages,
+  matchMessages,
+  moonBifrostMessages,
+  umpHydraPolkadotMessages,
+} from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
 import { acalaHydra } from '@/testing/hops-acala-hydra.js'
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
+import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types.js'
+import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types/index.js'
 
 type OD = { origin: string; destination: string }
 
@@ -82,13 +88,17 @@ describe('message matching engine', () => {
     expect((await outDb.keys().all()).length).toBe(0)
   })
 
-  it('should match inbound and outbound', async () => {
-    const { origin, destination } = matchMessages
+  it('should match out of order', async () => {
+    const { origin, received } = umpHydraPolkadotMessages
 
-    await engine.onInboundMessage(destination)
+    await engine.onInboundMessage(received)
     await engine.onOutboundMessage(origin)
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
+    await Promise.all([engine.onInboundMessage(received), engine.onOutboundMessage(origin)])
 
-    expectEvents(['xcm.sent', 'xcm.received'])
+    expect(cb).toHaveBeenCalledTimes(8)
+
     expect((await outDb.keys().all()).length).toBe(0)
   })
 
@@ -195,6 +205,19 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:polkadot:2030' })
+    await expectNoLeftover()
+  })
+
+  it('should match hop messages hydra to bridgehub', async () => {
+    const { sent, hopIn, hopOut, received } = hydraAssetHubBridgeHub
+
+    await engine.onOutboundMessage(sent)
+    await engine.onOutboundMessage(hopOut)
+    await engine.onInboundMessage(hopIn)
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectOd(4, { origin: 'urn:ocn:local:2034', destination: 'urn:ocn:local:1002' })
     await expectNoLeftover()
   })
 

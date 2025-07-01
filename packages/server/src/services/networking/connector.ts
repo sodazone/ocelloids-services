@@ -4,6 +4,8 @@ import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
 import { SubstrateClient } from './substrate/index.js'
 import { ApiClient } from './types.js'
 
+const INC_CONNECTION_MILLIS = 100
+
 /**
  * Handles substrate network connections.
  */
@@ -46,21 +48,25 @@ export default class Connector {
   }
 
   connect<T extends ApiClient>(clientId: ClientId): Record<string, T> {
-    this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(this.#chains))
-
     const chains = this.#chains.get(clientId) ?? {}
 
+    this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(chains))
+
+    let i = 0
     for (const [chain, client] of Object.entries(chains)) {
       this.#log.info('[connector:%s] connecting...', chain)
 
-      client
-        .connect()
-        .then(() => {
-          this.#log.info('[connector:%s] connected', chain)
-        })
-        .catch((error) => {
-          this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
-        })
+      i++
+      setTimeout(() => {
+        client
+          .connect()
+          .then(() => {
+            this.#log.info('[connector:%s] connected', chain)
+          })
+          .catch((error) => {
+            this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
+          })
+      }, i * INC_CONNECTION_MILLIS)
     }
 
     return chains as Record<string, T>

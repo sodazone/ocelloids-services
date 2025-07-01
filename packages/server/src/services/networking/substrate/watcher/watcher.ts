@@ -1,6 +1,20 @@
-import { EMPTY, Observable, catchError, from, map, mergeMap, mergeWith, share, switchMap } from 'rxjs'
+import {
+  EMPTY,
+  Observable,
+  catchError,
+  from,
+  lastValueFrom,
+  map,
+  mergeMap,
+  mergeWith,
+  of,
+  share,
+  switchMap,
+  takeUntil,
+  timeout,
+} from 'rxjs'
 
-import { retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
@@ -41,13 +55,13 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     if (cachedNew$) {
       this.log.debug('[%s] returning cached new blocks stream', chainId)
-
       return cachedNew$
     }
 
     const new$ = from(this.getApi(chainId)).pipe(
       switchMap((api) => {
         return api.followHeads$('new').pipe(
+          takeUntil(shutdown$),
           this.tapError(chainId, 'newHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           mergeMap(({ hash, status }) =>
@@ -79,19 +93,31 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     if (cachedFinalized$) {
       this.log.debug('[%s] returning cached finalized stream', chainId)
-
       return cachedFinalized$
     }
 
     const finalized$ = from(this.getApi(chainId)).pipe(
       switchMap((api) => {
+        // Recovery always starts, but stops if shutdown$ emits
+        const recovery$ = from(this.recoverRanges(chainId)).pipe(
+          this.recoverBlockRanges(chainId, api),
+          takeUntil(shutdown$),
+        )
+
         return api.followHeads$('finalized').pipe(
-          mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
+          mergeWith(recovery$),
           this.tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
+          takeUntil(shutdown$), // on shutdown
           mergeMap(({ hash, status }) =>
-            from(api.getBlock(hash)).pipe(map((block) => Object.assign({ status }, block))),
+            from(api.getBlock(hash)).pipe(
+              map((block) => Object.assign({ status }, block)),
+              catchError((error) => {
+                this.log.error(error, 'error fetching block %s (%s)', hash, status)
+                return EMPTY
+              }),
+            ),
           ),
           this.tapError(chainId, 'blockFromHeader()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
@@ -109,6 +135,34 @@ export class SubstrateWatcher extends Watcher<Block> {
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {
     return this.#apis[chainId].isReady()
+  }
+
+  async stop() {
+    this.log.info('[watcher:substrate] shutdown in-flight block streams')
+
+    function safeLastValueFrom<T>(obs: Observable<T>, ms = 1000): Promise<T | null> {
+      return lastValueFrom(
+        obs.pipe(
+          timeout({ each: ms }),
+          catchError(() => of(null)), // fallback if timeout or empty
+        ),
+      )
+    }
+
+    const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(finalizeds)
+
+    const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(news)
+
+    this.log.info('[watcher:substrate] shutdown OK')
+  }
+
+  /**
+   * Waits for all API clients to be ready.
+   */
+  async isReady() {
+    return await Promise.all(Object.values(this.#apis).map((api) => api.isReady()))
   }
 
   /**

@@ -26,6 +26,30 @@ describe('parseAssetFromJson', () => {
         },
       })
     })
+
+    it('should parse local Hydration asset', () => {
+      const locationString =
+        '{"parents":0,"interior":{"type":"X1","value":{"type":"GeneralIndex","value":0}}}'
+      expect(parseAssetFromJson('urn:ocn:polkadot:2034', locationString)).toEqual({
+        network: 'urn:ocn:polkadot:2034',
+        assetId: {
+          type: 'string',
+          value: '0',
+        },
+      })
+    })
+
+    it('should parse local Ethereum asset', () => {
+      const locationString =
+        '{"parents":0,"interior":{"type":"X1","value":{"type":"AccountKey20","value":{"key":"0x56072c95faa701256059aa122697b133aded9279"}}}}'
+      expect(parseAssetFromJson('urn:ocn:ethereum:1', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'contract',
+          value: '0x56072c95faa701256059aa122697b133aded9279',
+        },
+      })
+    })
   })
 
   describe('parents 1', () => {
@@ -65,7 +89,7 @@ describe('parseAssetFromJson', () => {
       })
     })
 
-    it('should return null for erc20 tokens', () => {
+    it('should parse Moonbeam erc20 token from Hydration', () => {
       const locationString = `{"parents":1,"interior":{"type":"X3","value":[
           {
             "type": "Parachain",
@@ -82,7 +106,35 @@ describe('parseAssetFromJson', () => {
             }
           }
         ]}}`
-      expect(parseAssetFromJson('urn:ocn:polkadot:2034', locationString)).toBeNull()
+      expect(parseAssetFromJson('urn:ocn:polkadot:2034', locationString)).toEqual({
+        network: 'urn:ocn:polkadot:2004',
+        assetId: {
+          type: 'contract',
+          value: '0x931715fee2d06333043d11f658c8ce934ac61d0c',
+        },
+      })
+    })
+
+    it('should parse Moonbeam erc20 from Moonbeam', () => {
+      const locationString = `{"parents":0,"interior":{"type":"X2","value":[
+        {
+          "type": "PalletInstance",
+          "value": 110
+        },
+        {
+          "type":"AccountKey20",
+          "value": {
+            "key": "0xca01a1d0993565291051daff390892518acfad3a"
+          }
+        }
+      ]}}`
+      expect(parseAssetFromJson('urn:ocn:polkadot:2004', locationString)).toEqual({
+        network: 'urn:ocn:polkadot:2004',
+        assetId: {
+          type: 'contract',
+          value: '0xca01a1d0993565291051daff390892518acfad3a',
+        },
+      })
     })
 
     it('should parse Moonbeam native asset from Hydration', () => {
@@ -142,7 +194,7 @@ describe('parseAssetFromJson', () => {
       })
     })
 
-    it('should return null multilocation between Polkadot and Ethereum', () => {
+    it('should parse Ethereum ERC20 tokens', () => {
       const locationString = `{
         "parents": 2,
         "interior": {
@@ -166,7 +218,38 @@ describe('parseAssetFromJson', () => {
           ]
         }
       }`
-      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toBeNull()
+      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'contract',
+          value: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+        },
+      })
+    })
+
+    it('should parse native ETH', () => {
+      const locationString = `{
+        "parents": 2,
+        "interior": {
+          "type": "X1",
+          "value": {
+            "type": "GlobalConsensus",
+            "value": {
+              "type": "Ethereum",
+              "value": {
+                "chain_id": "1"
+              }
+            }
+          }
+        }
+      }`
+      expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toEqual({
+        network: 'urn:ocn:ethereum:1',
+        assetId: {
+          type: 'string',
+          value: 'native',
+        },
+      })
     })
 
     it('should return null for interior type "here"', () => {

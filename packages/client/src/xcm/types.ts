@@ -65,6 +65,13 @@ export type XcmTimeout = sourceXcm.XcmTimeout
 export type XcmMessagePayload = sourceXcm.XcmMessagePayload
 
 /**
+ * The XCM notification payload extended with humanized data.
+ *
+ * @public
+ */
+export type HumanizedXcmPayload = sourceXcm.HumanizedXcmPayload
+
+/**
  * XCM assets trapped event.
  *
  * @public
@@ -207,4 +214,13 @@ export function isXcmHop(message: XcmMessage): message is Message<XcmHop> {
  */
 export function isXcmTimeout(message: XcmMessage): message is Message<XcmTimeout> {
   return message.payload !== undefined && message.payload.type === 'xcm.timeout'
+}
+
+/**
+ * Guard conditions for HumanizedXcmPayload.
+ *
+ * @public
+ */
+export function isHumanized(payload: any): payload is HumanizedXcmPayload {
+  return payload.humanized !== undefined
 }

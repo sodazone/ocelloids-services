@@ -1,7 +1,7 @@
 import { Operation } from 'rfc6902'
-import { filter } from 'rxjs'
+import { filter, mergeMap } from 'rxjs'
 
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, asPublicKey, asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -15,6 +15,10 @@ import {
   QueryParams,
   QueryResult,
   Queryable,
+  ServerSideEvent,
+  ServerSideEventsBroadcaster,
+  ServerSideEventsRequest,
+  Streamable,
   Subscribable,
   getAgentCapabilities,
 } from '../types.js'
@@ -22,9 +26,14 @@ import {
 import { AccountWithCaps } from '@/services/accounts/types.js'
 import { asDateRange } from '@/services/archive/time.js'
 import { CAP_WRITE } from '@/services/auth/caps.js'
+import { createServerSideEventsBroadcaster } from '../api/sse.js'
+import { DataSteward } from '../steward/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
 import { XcmAnalytics } from './analytics/index.js'
-import { $XcmQueryArgs, XcmQueryArgs } from './analytics/types.js'
+import { XcmExplorer } from './explorer/index.js'
+import { FullXcmJourneyResponse } from './explorer/repositories/types.js'
 import { XcmSubscriptionManager } from './handlers.js'
+import { XcmHumanizer } from './humanize/index.js'
 import {
   matchMessage,
   matchNotificationType,
@@ -34,20 +43,106 @@ import {
   sendersCriteria,
 } from './ops/criteria.js'
 import { XcmTracker } from './tracking.js'
-import { $XcmInputs, XcmInputs, XcmMessagePayload, XcmSubscriptionHandler } from './types.js'
+import {
+  $XcmInputs,
+  HumanizedXcmPayload,
+  XcmInputs,
+  XcmMessagePayload,
+  XcmSubscriptionHandler,
+} from './types/index.js'
+import { $XcmQueryArgs, XcmQueryArgs } from './types/index.js'
+import { $XcmServerSideEventArgs, XcmServerSideEventArgs } from './types/sse.js'
 
 export const XCM_AGENT_ID = 'xcm'
+
+function applySseFilters(
+  filters: XcmServerSideEventArgs,
+  { data: journey }: ServerSideEvent<FullXcmJourneyResponse>,
+): boolean {
+  if (filters.id && filters.id !== journey.correlationId) {
+    return false
+  }
+  if (
+    filters.txHash &&
+    filters.txHash !== journey.originExtrinsicHash &&
+    filters.txHash !== journey.originEvmTxHash
+  ) {
+    return false
+  }
+  if (filters.address) {
+    const pubKeyOrEvmAddress = asPublicKey(filters.address)
+
+    const matchFrom =
+      journey.origin === 'urn:ocn:polkadot:2034'
+        ? journey.from?.slice(0, 42) === pubKeyOrEvmAddress.slice(0, 42)
+        : journey.from === pubKeyOrEvmAddress
+
+    const matchTo =
+      journey.destination === 'urn:ocn:polkadot:2034'
+        ? journey.to?.slice(0, 42) === pubKeyOrEvmAddress.slice(0, 42)
+        : journey.to === pubKeyOrEvmAddress
+
+    if (!matchFrom && !matchTo) {
+      return false
+    }
+  }
+  if (filters.origins && !filters.origins.includes(journey.origin)) {
+    return false
+  }
+  if (filters.destinations && !filters.destinations.includes(journey.destination)) {
+    return false
+  }
+  if (filters.usdAmountGte !== undefined) {
+    try {
+      const parsedAmount = parseInt(filters.usdAmountGte as unknown as string)
+      if (journey.totalUsd < parsedAmount) {
+        return false
+      }
+    } catch {
+      //
+    }
+  }
+  if (filters.usdAmountLte !== undefined) {
+    try {
+      const parsedAmount = parseInt(filters.usdAmountLte as unknown as string)
+      if (journey.totalUsd > parsedAmount) {
+        return false
+      }
+    } catch {
+      //
+    }
+  }
+  if (filters.assets) {
+    const journeySymbols = journey.assets.map((a) => a.asset.toLowerCase())
+    const hasAsset = filters.assets.some((a) => journeySymbols.includes(a.toLowerCase()))
+    if (!hasAsset) {
+      return false
+    }
+  }
+  if (filters.actions && !filters.actions.includes(journey.type)) {
+    return false
+  }
+  if (filters.status !== undefined) {
+    const toCheck = Array.isArray(filters.status) ? filters.status : [filters.status]
+    if (!toCheck.map((s) => s as typeof journey.status).includes(journey.status)) {
+      return false
+    }
+  }
+
+  return true
+}
 
 /**
  * The XCM monitoring agent.
  *
  * Monitors Cross-consensus Message Format (XCM) program executions across consensus systems.
  */
-export class XcmAgent implements Agent, Subscribable, Queryable {
+export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
   id = XCM_AGENT_ID
 
   querySchema = $XcmQueryArgs
   inputSchema = $XcmInputs
+  streamFilterSchema = $XcmServerSideEventArgs
 
   metadata: AgentMetadata = {
     name: 'XCM Agent',
@@ -65,29 +160,57 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
 
   readonly #subs: XcmSubscriptionManager
   readonly #tracker: XcmTracker
+  readonly #humanizer: XcmHumanizer
+  readonly #config: Record<string, any>
 
+  #explorer?: XcmExplorer
+  #sseBroadcaster?: ServerSideEventsBroadcaster
   #analytics?: XcmAnalytics
 
-  constructor(ctx: AgentRuntimeContext) {
+  constructor(
+    ctx: AgentRuntimeContext,
+    deps: {
+      steward: DataSteward
+      ticker: TickerAgent
+    },
+  ) {
     this.#log = ctx.log
+    this.#config = ctx.config ?? {}
 
     this.#ingress = ctx.ingress.substrate
     this.#notifier = ctx.egress
 
     this.#subs = new XcmSubscriptionManager(ctx.log, ctx.ingress, this)
     this.#tracker = new XcmTracker(ctx)
+    this.#humanizer = new XcmHumanizer({
+      log: ctx.log,
+      ingress: this.#ingress,
+      deps,
+    })
 
     try {
       if (ctx.analyticsDB !== undefined) {
         this.#analytics = new XcmAnalytics({
           log: ctx.log,
-          catalog: ctx.agentCatalog,
           db: ctx.analyticsDB,
+          humanizer: this.#humanizer,
         })
       }
     } catch (error: unknown) {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
+
+    if ('explorer' in this.#config && this.#config['explorer']) {
+      this.#sseBroadcaster = createServerSideEventsBroadcaster<XcmServerSideEventArgs>(applySseFilters)
+      this.#explorer = new XcmExplorer({
+        log: ctx.log,
+        dataPath: ctx.environment?.dataPath,
+        humanizer: this.#humanizer,
+        broadcaster: this.#sseBroadcaster,
+      })
+    }
+
+    this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
@@ -119,7 +242,13 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
     }
   }
 
-  start(subs: Subscription<XcmInputs>[] = []) {
+  async start(subs: Subscription<XcmInputs>[] = []) {
+    this.#log.info('[agent:%s] wait APIs ready', this.id)
+
+    await this.#ingress.isReady()
+
+    this.#log.info('[agent:%s] APIs ready', this.id)
+
     this.#tracker.start()
 
     this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
@@ -132,12 +261,17 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       }
     }
 
-    this.#analytics?.start(this.#tracker)
+    await this.#humanizer.start()
+    await this.#analytics?.start(this.#tracker)
+    await this.#explorer?.start(this.#tracker)
   }
 
   async stop(): Promise<void> {
+    this.#sseBroadcaster?.close()
     this.#subs.stop()
+
     await this.#tracker.stop()
+    await this.#explorer?.stop()
 
     this.#analytics?.stop()
   }
@@ -151,11 +285,29 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
   }
 
   query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
-    if (this.#analytics) {
-      return this.#analytics.query(params)
+    switch (params.args.op) {
+      case 'journeys.list':
+        if (this.#explorer) {
+          return this.#explorer.listJourneys(params.args.criteria, params.pagination)
+        } else {
+          throw new Error('explorer is not enabled')
+        }
+      case 'journeys.by_id':
+        if (this.#explorer) {
+          return this.#explorer.getJourneyById(params.args.criteria)
+        } else {
+          throw new Error('explorer is not enabled')
+        }
+      default:
+        if (this.#analytics) {
+          return this.#analytics.query(params)
+        }
+        throw new Error('analytics are not enabled')
     }
+  }
 
-    throw new Error('analytics are not enabled')
+  onServerSideEventsRequest(request: ServerSideEventsRequest<XcmServerSideEventArgs>) {
+    this.#sseBroadcaster?.stream(request)
   }
 
   /**
@@ -193,9 +345,10 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
             matchSenders(sendersControl, payload.sender)
           )
         }),
+        mergeMap((payload: XcmMessagePayload) => this.#humanizer.humanize(payload)),
       )
       .subscribe({
-        next: (payload: XcmMessagePayload) => {
+        next: (payload: HumanizedXcmPayload) => {
           if (this.#subs.has(id)) {
             const { subscription } = this.#subs.get(id)
             this.#notifier.publish(subscription, {
@@ -207,7 +360,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
                 timestamp: Date.now(),
                 blockTimestamp: payload.waypoint.timestamp,
               },
-              payload: payload as unknown as AnyJson,
+              payload: asSerializable(payload) as unknown as AnyJson,
             })
           } else {
             // this could happen with closed ephemeral subscriptions

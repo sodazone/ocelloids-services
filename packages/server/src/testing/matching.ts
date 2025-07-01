@@ -3,7 +3,7 @@ import {
   XcmRelayedWithContext,
   XcmSent,
   XcmTerminusContext,
-} from '../services/agents/xcm/types.js'
+} from '../services/agents/xcm/types/index.js'
 
 const originContext: XcmTerminusContext = {
   chainId: 'urn:ocn:local:1000',
@@ -1008,4 +1008,123 @@ export const realHopMessages: RealHopMessages = {
   origin: hopOrigin,
   hopin: hopIB,
   hopout: hopOB,
+}
+
+export const umpHydraPolkadotMessages: {
+  origin: XcmSent
+  received: XcmInbound
+} = {
+  origin: {
+    type: 'xcm.sent',
+    legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0', type: 'vmp' }],
+    waypoint: {
+      chainId: 'urn:ocn:local:2034',
+      legIndex: 0,
+      outcome: 'Success',
+      instructions: {},
+      event: {
+        module: 'ParachainSystem',
+        name: 'UpwardMessageSent',
+        value: {
+          message_hash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
+        },
+        blockNumber: '8064673',
+        blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+        blockPosition: 9,
+        timestamp: 1750837134000,
+        extrinsic: {
+          module: 'XTokens',
+          method: 'transfer',
+          signed: true,
+          address: '13b6hRRYPHTxFzs9prvL2YGHQepvd4YhdDb9Tc7khySp3hMN',
+          hash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+          blockNumber: '8064673',
+          blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+          blockPosition: 2,
+          timestamp: 1750837134000,
+        },
+        extrinsicPosition: 5,
+      },
+      messageData: undefined,
+      blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+      blockNumber: '8064673',
+      timestamp: 1750837134000,
+      extrinsicPosition: 5,
+      extrinsicHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+      messageHash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
+    },
+    origin: {
+      chainId: 'urn:ocn:local:2034',
+      outcome: 'Success',
+      instructions: {},
+      event: {
+        module: 'ParachainSystem',
+        name: 'UpwardMessageSent',
+        value: {
+          message_hash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
+        },
+        blockNumber: '8064673',
+        blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+        blockPosition: 9,
+        timestamp: 1750837134000,
+        extrinsic: {
+          module: 'XTokens',
+          method: 'transfer',
+          signed: true,
+          address: '13b6hRRYPHTxFzs9prvL2YGHQepvd4YhdDb9Tc7khySp3hMN',
+          hash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+          blockNumber: '8064673',
+          blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+          blockPosition: 2,
+          timestamp: 1750837134000,
+        },
+        extrinsicPosition: 5,
+      },
+      messageData: undefined,
+      blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
+      blockNumber: '8064673',
+      timestamp: 1750837134000,
+      extrinsicPosition: 5,
+      extrinsicHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+      messageHash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
+    },
+    destination: {
+      chainId: 'urn:ocn:local:0',
+    },
+    messageId: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
+
+    sender: {
+      signer: {
+        id: '13b6hRRYPHTxFzs9prvL2YGHQepvd4YhdDb9Tc7khySp3hMN',
+        publicKey: '0x7279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b',
+      },
+      extraSigners: [],
+    },
+  },
+  received: {
+    chainId: 'urn:ocn:local:0',
+    event: {
+      module: 'MessageQueue',
+      name: 'Processed',
+      value: {
+        id: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
+        success: true,
+      },
+      blockNumber: '26600356',
+      blockHash: '0x77c59e5c12d5e87cc4f3a30f469a89701688ae29780394a3ea8c3cd781180277',
+      blockPosition: 62,
+      timestamp: 1750837152000,
+    },
+    extrinsicPosition: undefined,
+    blockNumber: '26600356',
+    blockHash: '0x77c59e5c12d5e87cc4f3a30f469a89701688ae29780394a3ea8c3cd781180277',
+    timestamp: 1750837152000,
+    messageHash: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
+    messageData: undefined,
+    messageId: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
+    extrinsicHash: undefined,
+    outcome: 'Success',
+    error: undefined,
+    assetsTrapped: undefined,
+  },
 }

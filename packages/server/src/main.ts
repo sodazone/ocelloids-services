@@ -3,20 +3,27 @@
 import 'dotenv/config'
 import process from 'node:process'
 
+import closeWithGrace from 'close-with-grace'
 import { Command, program } from 'commander'
 import z from 'zod'
 
-import { addServerOptions, opt, optArr, optBool, optInt } from '@/cli/index.js'
+import { addServerOptions, opt, optArr, optBool, optInt, parseAgentConfigs } from '@/cli/index.js'
+import { triggerShutdown } from '@/common/index.js'
 import { $ServerOptions, createServer } from '@/server.js'
 import version from '@/version.js'
-import closeWithGrace from 'close-with-grace'
 
 /**
  * Starts an Ocelloids Execution Server from the command line.
  */
 async function startServer(this: Command) {
   try {
-    const opts = $ServerOptions.parse(this.opts())
+    const commandOpts = this.opts()
+    const agentConfigs = parseAgentConfigs(commandOpts)
+    const opts = $ServerOptions.parse({
+      ...commandOpts,
+      agentConfigs,
+    })
+
     if (opts.config === undefined && !opts.distributed) {
       throw new z.ZodError([
         {
@@ -52,8 +59,13 @@ async function startServer(this: Command) {
           server.log.error(err)
         }
 
-        server.log.info('Closing with grace')
+        server.log.info('Closing with grace (%sms)', opts.grace)
 
+        // trigger shutdown signal
+        server.log.info('Trigger stream shutdown')
+        triggerShutdown()
+
+        server.log.info('Await server close')
         await server.close()
       },
     )
@@ -78,6 +90,13 @@ addServerOptions(program)
       'agents to activate, comma separated list or wildcard for all',
       'OC_AGENTS',
     ).default('*'),
+  )
+  .addOption(
+    optArr(
+      '--agent-config [agent:key1=val1,key2=val2]',
+      'per-agent config overrides; example: xcm:explorer=true,ticker=false',
+      'OC_AGENT_CONFIG',
+    ).default([]),
   )
   .addOption(
     optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(

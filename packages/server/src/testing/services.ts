@@ -30,10 +30,12 @@ export const _config = new ServiceConfiguration($ServiceConfiguration.parse(toml
 function mockApiClient() {
   const _client = {
     followHeads$: of({}),
+    connect: () => Promise.resolve(_client),
   }
   return {
     ..._client,
     isReady: () => of(_client),
+    connect: () => Promise.resolve(_client),
   } as unknown as SubstrateApi
 }
 
@@ -100,7 +102,7 @@ export function createServices(): Services {
       egress: _egress,
       subsStore: _subsDB,
     } as Services,
-    { agentServiceMode: AgentServiceMode.local, agents: '*' },
+    { agentServiceMode: AgentServiceMode.local, agents: '*', data: '', agentConfigs: {} },
   )
 
   return {
