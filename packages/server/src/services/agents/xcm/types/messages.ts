@@ -3,6 +3,9 @@ import { HexString, SignerData, toHexString } from '@/services/subscriptions/typ
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { HumanizedXcm } from '../humanize/types.js'
 
+/**
+ * @public
+ */
 export type XcmWithContext = {
   event?: AnyJson
   extrinsicPosition?: number
@@ -238,6 +241,7 @@ export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements 
   }
 }
 
+// no public export
 export const XcmNotificationTypes = [
   'xcm.sent',
   'xcm.received',

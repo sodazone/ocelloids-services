@@ -1,15 +1,15 @@
-import { OcelloidsClient, xcm } from '../..'
+import { createXcmAgent, xcm } from '../..'
 
-const client = new OcelloidsClient({
+const client = createXcmAgent({
   httpUrl: 'http://127.0.0.1:3000',
   wsUrl: 'ws://127.0.0.1:3000',
 })
 
 client.health().then(console.log).catch(console.error)
 
-client.agent<xcm.XcmInputs>("xcm").subscribe(
+client.subscribe(
   {
-    origin: 'urn:ocn:polkadot:0',
+    origins: ['urn:ocn:polkadot:0'],
     senders: '*',
     events: '*',
     destinations: [
@@ -19,9 +19,9 @@ client.agent<xcm.XcmInputs>("xcm").subscribe(
   {
     onMessage: (msg, ws) => {
       if (xcm.isXcmReceived(msg)) {
-        console.log('RECV', msg.subscriptionId)
+        console.log('RECV', msg.metadata.subscriptionId)
       } else if (xcm.isXcmSent(msg)) {
-        console.log('SENT', msg.subscriptionId)
+        console.log('SENT', msg.metadata.subscriptionId)
       }
       console.log(msg)
       ws.close(1001, 'bye!')

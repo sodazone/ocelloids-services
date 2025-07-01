@@ -8,7 +8,7 @@ import {
 import { AnySubscriptionInputs } from './types'
 
 import { AssetMetadata, StewardQueryArgs } from './steward/types'
-import { XcmInputs, XcmMessagePayload } from './xcm/types'
+import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
 type KnownAgentIds = 'xcm' | 'steward' | 'informant'
 
@@ -55,7 +55,7 @@ function createAgent<I = AnySubscriptionInputs>(
  */
 export function createXcmAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): SubscribableApi<XcmInputs, XcmMessagePayload> & OcelloidsClientApi {
+): SubscribableApi<XcmInputs, XcmMessagePayload | HumanizedXcmPayload> & OcelloidsClientApi {
   return createAgent<XcmInputs>('xcm', optsOrClient)
 }
 

@@ -2,6 +2,9 @@ import { AnyJson } from '@/lib.js'
 
 export type XcmV3MultiLocation = AnyJson
 
+/**
+ * @public
+ */
 export type XcmAssetWithMetadata = {
   id: string
   symbol?: string
@@ -102,6 +105,9 @@ export type XcmVersionedInstructions = {
   value: XcmInstruction[]
 }
 
+/**
+ * @public
+ */
 export enum XcmJourneyType {
   Transfer = 'transfer',
   Teleport = 'teleport',
@@ -110,15 +116,24 @@ export enum XcmJourneyType {
   Unknown = '??',
 }
 
+/**
+ * @public
+ */
 export type XcmAsset = XcmAssetWithMetadata & {
   volume?: number
 }
 
+/**
+ * @public
+ */
 export type HumanizedAddresses = {
   key: string
   formatted?: string
 }
 
+/**
+ * @public
+ */
 export type HumanizedTransactCall = {
   raw: string
   module?: string
@@ -126,6 +141,9 @@ export type HumanizedTransactCall = {
   args?: AnyJson
 }
 
+/**
+ * @public
+ */
 export type HumanizedXcm = {
   type: XcmJourneyType
   to: HumanizedAddresses
