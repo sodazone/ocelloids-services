@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
-import { Kysely, sql } from 'kysely'
+import { Kysely, SelectQueryBuilder, sql } from 'kysely'
 import { JourneyFilters } from '../../types/index.js'
 import {
   FullXcmJourney,
@@ -217,52 +217,7 @@ export class XcmRepository {
   async #filterJourneyIds(limit: number, filters?: JourneyFilters, cursor?: string) {
     let query = this.#db.selectFrom('xcm_journeys').select(['id', 'sent_at'])
 
-    if (filters?.txHash) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('origin_extrinsic_hash', '=', filters.txHash!),
-          eb('origin_evm_tx_hash', '=', filters.txHash!),
-        ]),
-      )
-    }
-
-    if (filters?.address) {
-      const addressPrefix = filters.address.slice(0, 42)
-      const paraId = 'urn:ocn:polkadot:2034'
-
-      query = query.where((eb) =>
-        eb.or([
-          eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
-          eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
-          eb.and([
-            eb('origin', '!=', paraId),
-            eb('destination', '!=', paraId),
-            eb.or([eb('from', '=', filters.address!), eb('to', '=', filters.address!)]),
-          ]),
-        ]),
-      )
-    }
-
-    if (filters?.origins) {
-      query = query.where('origin', 'in', filters.origins)
-    }
-
-    if (filters?.destinations) {
-      query = query.where('destination', 'in', filters.destinations)
-    }
-
-    if (filters?.actions) {
-      query = query.where('type', 'in', filters.actions)
-    }
-
-    if (filters?.status) {
-      query = query.where('status', 'in', filters.status)
-    }
-
-    if (cursor) {
-      const afterDate = decodeCursor(cursor)
-      query = query.where('sent_at', '<', afterDate)
-    }
+    query = this.#applyJourneyFilters(query, filters, cursor)
 
     return query.orderBy('sent_at', 'desc').limit(limit).execute()
   }
@@ -288,47 +243,79 @@ export class XcmRepository {
     }
 
     // JOURNEY filters
-    if (filters?.origins) {
-      query = query.where('xcm_journeys.origin', 'in', filters.origins)
+    query = this.#applyJourneyFilters(query, filters, cursor)
+
+    return query.groupBy('xcm_assets.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
+  }
+
+  #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
+    query: T,
+    filters?: JourneyFilters,
+    cursor?: string,
+    prefix = '',
+  ): T {
+    if (filters === undefined && cursor === undefined) {
+      return query
     }
-    if (filters?.destinations) {
-      query = query.where('xcm_journeys.destination', 'in', filters.destinations)
+
+    let extendedQuery = query
+
+    const field = (col: string) => (prefix ? `${prefix}.${col}` : col)
+
+    if (filters?.txHash) {
+      extendedQuery = extendedQuery.where((eb) =>
+        eb.or([
+          eb(field('origin_extrinsic_hash'), '=', filters.txHash!),
+          eb(field('origin_evm_tx_hash'), '=', filters.txHash!),
+        ]),
+      ) as T
     }
+
     if (filters?.address) {
       const addressPrefix = filters.address.length >= 42 ? filters.address.slice(0, 42) : filters.address
       const paraId = 'urn:ocn:polkadot:2034'
 
-      query = query.where((eb) =>
+      extendedQuery = extendedQuery.where((eb) =>
         eb.or([
-          eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
-          eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
-          eb.and([eb('origin', '!=', paraId), eb('from', '=', filters.address!)]),
-          eb.and([eb('destination', '!=', paraId), eb('to', '=', filters.address!)]),
+          eb.and([eb(field('origin'), '=', paraId), eb(field('from'), 'like', `${addressPrefix}%`)]),
+          eb.and([eb(field('destination'), '=', paraId), eb(field('to'), 'like', `${addressPrefix}%`)]),
+          eb.and([eb(field('origin'), '!=', paraId), eb(field('from'), '=', filters.address!)]),
+          eb.and([eb(field('destination'), '!=', paraId), eb(field('to'), '=', filters.address!)]),
         ]),
-      )
-    }
-    if (filters?.txHash) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('xcm_journeys.origin_extrinsic_hash', '=', filters.txHash!),
-          eb('xcm_journeys.origin_evm_tx_hash', '=', filters.txHash!),
-        ]),
-      )
-    }
-    if (filters?.actions) {
-      query = query.where('xcm_journeys.type', 'in', filters.actions)
-    }
-    if (filters?.status) {
-      query = query.where('xcm_journeys.status', 'in', filters.status)
+      ) as T
     }
 
-    // CURSOR (pagination)
+    if (filters?.origins) {
+      extendedQuery = extendedQuery.where(field('origin'), 'in', filters.origins) as T
+    }
+
+    if (filters?.destinations) {
+      extendedQuery = extendedQuery.where(field('destination'), 'in', filters.destinations) as T
+    }
+
+    if (filters?.networks) {
+      extendedQuery = extendedQuery.where((eb) =>
+        eb.or([
+          eb(field('origin'), 'in', filters.networks!),
+          eb(field('destination'), 'in', filters.networks!),
+        ]),
+      ) as T
+    }
+
+    if (filters?.actions) {
+      extendedQuery = extendedQuery.where(field('type'), 'in', filters.actions) as T
+    }
+
+    if (filters?.status) {
+      extendedQuery = extendedQuery.where(field('status'), 'in', filters.status) as T
+    }
+
     if (cursor) {
       const afterDate = decodeCursor(cursor)
-      query = query.where('xcm_journeys.sent_at', '<', afterDate)
+      extendedQuery = extendedQuery.where(field('sent_at'), '<', afterDate) as T
     }
 
-    return query.groupBy('xcm_assets.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
+    return extendedQuery
   }
 
   async #getFullJourneyData(journeyIds: number[]) {

@@ -88,5 +88,8 @@ describe('XcmExplorer', () => {
 
     expect(journey0).toBeDefined()
     expect(filteredByType.length).toBeGreaterThan(0)
+    expect(filteredByType).toSatisfy((items) =>
+      items.every((j: any) => j.type === 'teleport' || j.type === 'transfer'),
+    )
   })
 })

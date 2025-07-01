@@ -92,6 +92,13 @@ function applySseFilters(
   if (filters.destinations && !filters.destinations.includes(journey.destination)) {
     return false
   }
+  if (
+    filters.networks &&
+    !filters.networks.includes(journey.origin) &&
+    !filters.networks.includes(journey.destination)
+  ) {
+    return false
+  }
   if (filters.usdAmountGte !== undefined) {
     try {
       const parsedAmount = parseInt(filters.usdAmountGte as unknown as string)

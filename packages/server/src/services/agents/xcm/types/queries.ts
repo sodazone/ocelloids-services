@@ -12,11 +12,12 @@ export const $AssetSelect = z.object({
   asset: z.string(),
 })
 
-export const $JourneyFilters = z.optional(
-  z.object({
+export const $JourneyFilters = z
+  .object({
     assets: z.optional(z.array(z.string()).min(1).max(50)),
     origins: z.optional(z.array($NetworkString).min(1).max(50)),
     destinations: z.optional(z.array($NetworkString).min(1).max(50)),
+    networks: z.optional(z.array($NetworkString).min(1).max(50)),
     address: z.optional(z.string().min(3).max(100)),
     txHash: z.optional(z.string().min(3).max(100)),
     status: z.optional(
@@ -28,8 +29,19 @@ export const $JourneyFilters = z.optional(
     actions: z.optional(z.array(z.string()).min(1).max(4)),
     usdAmountGte: z.optional(z.number()),
     usdAmountLte: z.optional(z.number()),
-  }),
-)
+  })
+  .refine(
+    (data) => {
+      const hasNetworks = !!data.networks
+      const hasOriginsOrDestinations = !!data.origins || !!data.destinations
+      return !(hasNetworks && hasOriginsOrDestinations)
+    },
+    {
+      message: '`networks` cannot be used together with `origins` or `destinations`',
+      path: ['networks'], // shows the error on the networks field
+    },
+  )
+  .optional()
 
 export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
