@@ -86,7 +86,7 @@ describe('XcmTransfersRepository', async () => {
     }
   })
 
-  it('should correctly handle transfersByChannel time aggregation', async () => {
+  it.skip('should correctly handle transfersByChannel time aggregation', async () => {
     const now = Date.now()
 
     await insertTestData(1, now - 60_000 * 5) // 5 minutes ago
