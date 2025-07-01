@@ -303,7 +303,7 @@ export class XcmRepository {
           eb.and([eb('origin', '=', paraId), eb('from', 'like', `${addressPrefix}%`)]),
           eb.and([eb('destination', '=', paraId), eb('to', 'like', `${addressPrefix}%`)]),
           eb.and([eb('origin', '!=', paraId), eb('from', '=', filters.address!)]),
-          eb.and([eb('destination', '!=', paraId), eb('to', '=', filters.address!)])
+          eb.and([eb('destination', '!=', paraId), eb('to', '=', filters.address!)]),
         ]),
       )
     }

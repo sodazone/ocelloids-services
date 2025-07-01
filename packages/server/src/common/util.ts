@@ -41,7 +41,7 @@ export function stringToUa8(v: string) {
   return textEncoder.encode(v)
 }
 
-function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
+export function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
   const publicKeyBuffer = typeof publicKey === 'string' ? fromHex(publicKey) : publicKey
   // Handle Hydration EVM prefix
   const ethPrefix = Buffer.concat([textEncoder.encode('ETH'), new Uint8Array([0])])
