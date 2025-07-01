@@ -220,7 +220,7 @@ export class DataSteward implements Agent, Queryable {
       }
     }
 
-    const allAssetMapsObs = merge(allAssetMaps).pipe(mergeAll())
+    const allAssetMapsObs = merge(...allAssetMaps)
     allAssetMapsObs.subscribe(this.#storeAssetMetadata())
   }
 
