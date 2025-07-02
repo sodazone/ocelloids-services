@@ -23,6 +23,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
   },
   {
     chainId: 'urn:ocn:ethereum:1',
+    id: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
+    xid: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
+    name: 'Wrapped liquid staked Ether 2.0',
+    symbol: 'wstETH',
+    decimals: 18,
+    raw: {},
+    externalIds: [],
+  },
+  {
+    chainId: 'urn:ocn:ethereum:1',
     id: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     xid: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     name: 'Wrapped BTC',
