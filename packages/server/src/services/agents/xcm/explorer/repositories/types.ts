@@ -57,3 +57,8 @@ export type XcmJourneyResponse = DeepCamelize<XcmJourney>
 export type XcmAssetResponse = DeepCamelize<XcmAsset>
 
 export type FullXcmJourneyResponse = DeepCamelize<FullXcmJourney>
+
+export type ListAsset = {
+  asset: string
+  symbol?: string | undefined
+}

@@ -134,6 +134,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema.createIndex('xcm_assets_usd_index').ifNotExists().on('xcm_assets').column('usd').execute()
+
+    await db.schema
+      .createIndex('xcm_assets_asset_symbol_index')
+      .ifNotExists()
+      .on('xcm_assets')
+      .columns(['asset', 'symbol'])
+      .execute()
   } catch (error) {
     console.error(error)
     throw error

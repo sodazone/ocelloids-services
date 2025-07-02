@@ -1,5 +1,6 @@
 import { SqliteError } from 'better-sqlite3'
 
+import { SimpleCache, createCache } from '@/common/cache.js'
 import { DeepCamelize, asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
@@ -16,7 +17,13 @@ import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext, isXcmReceiv
 import { JourneyFilters } from '../types/index.js'
 import { createXcmDatabase } from './repositories/db.js'
 import { XcmRepository } from './repositories/journeys.js'
-import { FullXcmJourney, NewXcmAsset, NewXcmJourney, XcmJourneyUpdate } from './repositories/types.js'
+import {
+  FullXcmJourney,
+  ListAsset,
+  NewXcmAsset,
+  NewXcmJourney,
+  XcmJourneyUpdate,
+} from './repositories/types.js'
 
 const locks = new Map<string, Promise<void>>()
 
@@ -190,6 +197,7 @@ export class XcmExplorer {
   readonly #repository: XcmRepository
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSideEventsBroadcaster
+  readonly #assetsQueryCache: SimpleCache<QueryResult<ListAsset>>
 
   #sub?: Subscription
 
@@ -209,6 +217,7 @@ export class XcmExplorer {
     this.#migrator = migrator
     this.#repository = new XcmRepository(db)
     this.#broadcaster = broadcaster
+    this.#assetsQueryCache = createCache<QueryResult<ListAsset>>(3600_000)
   }
 
   async start(tracker: XcmTracker) {
@@ -251,6 +260,21 @@ export class XcmExplorer {
     await Promise.race([waitForAllLocks(), timeout])
 
     await this.#repository.close()
+  }
+
+  async listAssets(pagination?: QueryPagination): Promise<QueryResult<ListAsset>> {
+    const cursor = pagination?.cursor ?? '0' // use '0' as default cursor key
+    const cached = this.#assetsQueryCache.get(cursor)
+
+    if (cached) {
+      return cached
+    }
+
+    const results = await this.#repository.listAssets(pagination)
+
+    this.#assetsQueryCache.set(cursor, results)
+
+    return results
   }
 
   async listJourneys(

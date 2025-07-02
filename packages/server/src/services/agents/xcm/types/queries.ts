@@ -78,6 +78,9 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
       id: z.string(),
     }),
   }),
+  z.object({
+    op: z.literal('assets.list'),
+  }),
 ])
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>

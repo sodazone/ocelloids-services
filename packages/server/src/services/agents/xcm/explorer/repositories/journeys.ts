@@ -5,11 +5,14 @@ import { JourneyFilters } from '../../types/index.js'
 import {
   FullXcmJourney,
   FullXcmJourneyAsset,
+  ListAsset,
   NewXcmAsset,
   NewXcmJourney,
   XcmDatabase,
   XcmJourneyUpdate,
 } from './types.js'
+
+const MAX_LIMIT = 100
 
 function encodeCursor(date: number | Date): string {
   const timestamp = typeof date === 'number' ? date : date.getTime() // Convert Date to Unix epoch
@@ -125,6 +128,37 @@ export class XcmRepository {
     await this.#db.destroy()
   }
 
+  async listAssets(pagination?: QueryPagination): Promise<{
+    items: Array<ListAsset>
+    pageInfo: {
+      hasNextPage: boolean
+      endCursor: string
+    }
+  }> {
+    const limit = Math.min(pagination?.limit ?? MAX_LIMIT, MAX_LIMIT)
+
+    const parsedOffset = parseInt(pagination?.cursor ?? '0', 10)
+    const offset = Number.isNaN(parsedOffset) || parsedOffset < 0 ? 0 : parsedOffset
+
+    const rows = await this.#db
+      .selectFrom('xcm_assets')
+      .select(['asset', this.#db.fn.max('symbol').as('symbol')])
+      .where('symbol', 'is not', null)
+      .groupBy('asset')
+      .orderBy('asset', 'asc')
+      .limit(100)
+      .offset(offset)
+      .execute()
+
+    return {
+      items: rows.slice(0, limit),
+      pageInfo: {
+        hasNextPage: rows.length > limit,
+        endCursor: (offset + limit).toString(),
+      },
+    }
+  }
+
   async listFullJourneys(
     filters?: JourneyFilters,
     pagination?: QueryPagination,
@@ -135,7 +169,7 @@ export class XcmRepository {
       endCursor: string
     }
   }> {
-    const limit = Math.min(pagination?.limit ?? 50, 100)
+    const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const realLimit = limit + 1
 
     // Determine whether we need to pre-filter via xcm_assets

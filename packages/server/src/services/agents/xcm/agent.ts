@@ -305,6 +305,12 @@ export class XcmAgent implements Agent, Subscribable, Queryable, Streamable {
         } else {
           throw new Error('explorer is not enabled')
         }
+      case 'assets.list':
+        if (this.#explorer) {
+          return this.#explorer.listAssets(params.pagination)
+        } else {
+          throw new Error('explorer is not enabled')
+        }
       default:
         if (this.#analytics) {
           return this.#analytics.query(params)
