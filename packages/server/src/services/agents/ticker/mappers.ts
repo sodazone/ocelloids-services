@@ -21,7 +21,7 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   ],
   WSTETH: {
     chainId: 'urn:ocn:ethereum:1',
-    assetId: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'
+    assetId: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
   },
   WBTC: [
     {
