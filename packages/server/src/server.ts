@@ -26,6 +26,7 @@ import {
   LevelDB,
   Limit,
   Root,
+  Scheduling,
   Subscriptions,
   Telemetry,
 } from '@/services/index.js'
@@ -192,6 +193,7 @@ export async function createServer(opts: ServerOptions) {
   }
 
   await server.register(LevelDB, opts)
+  await server.register(Scheduling, opts)
   await server.register(Archive, opts)
   await server.register(Analytics, opts)
   await server.register(Ingress, opts)

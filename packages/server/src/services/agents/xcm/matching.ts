@@ -5,7 +5,7 @@ import { safeDestr } from 'destr'
 
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId, isOnSameConsensus } from '@/services/config.js'
-import { Janitor, JanitorTask } from '@/services/persistence/level/janitor.js'
+import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { Logger, SubLevel, jsonEncoded } from '@/services/types.js'
 
 import { HexString } from '@/lib.js'

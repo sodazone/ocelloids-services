@@ -1,7 +1,7 @@
 import { MemoryLevel } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
-import { Janitor } from '@/services/persistence/level/janitor.js'
+import { Janitor } from '@/services/scheduling/janitor.js'
 import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
 import {
   hydraMoonMessages,

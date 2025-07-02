@@ -11,6 +11,7 @@ import Limit from './limit.js'
 import Connector from './networking/plugin.js'
 import LevelDB from './persistence/level/plugin.js'
 import Root from './root.js'
+import Scheduling from './scheduling/plugin.js'
 import Subscriptions from './subscriptions/plugin.js'
 import Telemetry from './telemetry/plugin.js'
 
@@ -32,4 +33,5 @@ export {
   Egress,
   Archive,
   Analytics,
+  Scheduling,
 }

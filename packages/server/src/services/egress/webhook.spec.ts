@@ -3,7 +3,7 @@ import nock from 'nock'
 
 import { createServices } from '@/testing/services.js'
 
-import { Scheduler } from '@/services/persistence/level/scheduler.js'
+import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Services } from '../types.js'
 import { hmac256 } from './hmac.js'

@@ -6,8 +6,8 @@ import { z } from 'zod'
 
 import { Egress } from '@/services/egress/hub.js'
 import { PublisherEvents } from '@/services/egress/types.js'
-import { Janitor } from '@/services/persistence/level/janitor.js'
-import { Scheduler } from '@/services/persistence/level/scheduler.js'
+import { Janitor } from '@/services/scheduling/janitor.js'
+import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 

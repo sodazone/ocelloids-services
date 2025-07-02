@@ -1,4 +1,4 @@
-import { Scheduled, Scheduler } from '@/services/persistence/level/scheduler.js'
+import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { LevelDB, Logger } from '@/services/types.js'
 
 import { ValidationError } from '@/errors.js'
@@ -69,7 +69,7 @@ export class TickerAgent implements Agent, Queryable {
   }
 
   async start(): Promise<void> {
-    if (this.#sched.enabled /*&& (await this.#isNotScheduled())*/) {
+    if (this.#sched.enabled && (await this.#isNotScheduled())) {
       await this.#scheduleUpdate()
 
       // first-time sync

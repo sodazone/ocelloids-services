@@ -10,9 +10,9 @@ import { ServiceConfiguration } from './config.js'
 import { Egress } from './egress/index.js'
 import { IngressConsumers } from './ingress/consumer/types.js'
 import Connector from './networking/connector.js'
-import { Janitor } from './persistence/level/janitor.js'
-import { Scheduler } from './persistence/level/scheduler.js'
 import { SubsStore } from './persistence/level/subs.js'
+import { Janitor } from './scheduling/janitor.js'
+import { Scheduler } from './scheduling/scheduler.js'
 import { BlockNumberRange, HexString } from './subscriptions/types.js'
 
 /**
