@@ -6,7 +6,7 @@ import {
   DuckDBDecimalValue,
   DuckDBTimestampValue,
 } from '@duckdb/node-api'
-import { TimeSelect } from '../../types/index.js'
+import { TimeAndMaybeNetworkSelect, TimeAndNetworkSelect, TimeSelect } from '../../types/index.js'
 import { NewXcmTransfer } from '../types.js'
 
 export type AggregatedData = {
@@ -16,6 +16,16 @@ export type AggregatedData = {
   volumeUsd: number
   percentageTx: number
   percentageVol: number
+  series: { time: number; value: number }[]
+}
+
+export type NetworkAssetData = {
+  key: string
+  symbol: string
+  total: number
+  inflow: number
+  outflow: number
+  netflow: number
   series: { time: number; value: number }[]
 }
 
@@ -106,7 +116,10 @@ export class XcmTransfersRepository {
     )
   }
 
-  async totalTransfers(criteria: TimeSelect) {
+  async totalTransfers(criteria: TimeAndMaybeNetworkSelect) {
+    if (criteria.network !== undefined) {
+      return this.totalTransfersByNetwork(criteria as TimeAndNetworkSelect)
+    }
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
     const query = `
@@ -154,6 +167,65 @@ export class XcmTransfersRepository {
     }))
   }
 
+  async totalTransfersByNetwork(criteria: TimeAndNetworkSelect) {
+    const interval = safe(criteria.timeframe)
+    const intervalMax = safe(multiplyInterval(interval, 2))
+    const network = criteria.network
+
+    const query = `
+      SELECT 
+        COUNT(*) AS current_period_count,
+        (SELECT COUNT(*) FROM xcm_transfers 
+          WHERE (origin = '${network}' OR destination = '${network}')
+          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
+
+        COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
+        (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers 
+          WHERE (origin = '${network}' OR destination = '${network}')
+          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+
+        AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
+        (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers 
+          WHERE (origin = '${network}' OR destination = '${network}')
+          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time,
+
+        SUM(COALESCE(volume, 0)) AS current_volume_usd,
+        (SELECT SUM(COALESCE(volume, 0)) FROM xcm_transfers 
+          WHERE (origin = '${network}' OR destination = '${network}')
+          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_volume_usd
+      FROM xcm_transfers
+      WHERE (origin = '${network}' OR destination = '${network}')
+      AND sent_at > NOW() - INTERVAL '${interval}';
+    `.trim()
+
+    const result = await this.#db.run(query)
+    const rows = await result.getRows()
+
+    return rows.map((row) => ({
+      current: Number(row[0] as bigint),
+      previous: Number(row[1] as bigint),
+      diff: Number(row[0] as number) - Number(row[1] as number),
+
+      accounts: {
+        current: Number(row[2] as bigint),
+        previous: Number(row[3] as bigint),
+        diff: Number(row[2] as number) - Number(row[3] as number),
+      },
+
+      avgTimeSpent: {
+        current: Number(row[4] as number),
+        previous: Number(row[5] as number),
+        diff: Number(row[4] as number) - Number(row[5] as number),
+      },
+
+      volumeUsd: {
+        current: Number(row[6] as number),
+        previous: Number(row[7] as number),
+        diff: Number(row[6] as number) - Number(row[7] as number),
+      },
+    }))
+  }
+
   async all() {
     return (await this.#db.run('SELECT * FROM xcm_transfers')).getRows()
   }
@@ -164,6 +236,7 @@ export class XcmTransfersRepository {
 
     let query = ''
     const unit = getUnit(bucketInterval)
+    console.log('AGG', bucketInterval, timeframe, unit)
     if (metric === 'txs') {
       query = `
         SELECT
@@ -292,7 +365,7 @@ export class XcmTransfersRepository {
     return dataArray
   }
 
-  async getVolumeByNetwork(criteria: TimeSelect) {
+  async volumeByNetwork(criteria: TimeSelect) {
     const bucketInterval = criteria.bucket ?? '1 hours'
     const timeframe = criteria.timeframe
     const unit = getUnit(bucketInterval)
@@ -343,6 +416,209 @@ export class XcmTransfersRepository {
     }))
   }
 
+  async networkVolumeSeries(criteria: TimeAndNetworkSelect) {
+    const bucketInterval = criteria.bucket ?? '1 hours'
+    const timeframe = criteria.timeframe
+    const unit = getUnit(bucketInterval)
+    const network = criteria.network
+    console.log('NETWORK', bucketInterval, timeframe, unit)
+    const query = `
+    WITH network_data AS (
+      SELECT
+        time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
+        origin AS network,
+        COUNT(*) AS tx_count,
+        SUM(COALESCE(volume, 0)) AS outflow_usd,
+        0 AS inflow_usd
+      FROM xcm_transfers
+      WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+      GROUP BY time_range, network
+
+      UNION ALL
+
+      SELECT
+        time_bucket(INTERVAL '${safe(bucketInterval)}', sent_at) AS time_range,
+        destination AS network,
+        COUNT(*) AS tx_count,
+        0 AS outflow_usd,
+        SUM(COALESCE(volume, 0)) AS inflow_usd
+      FROM xcm_transfers
+      WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+      GROUP BY time_range, network
+    ),
+
+    aggregated AS (
+      SELECT
+        time_range,
+        network,
+        SUM(tx_count) AS tx_count,
+        SUM(inflow_usd) AS inflow_usd,
+        SUM(outflow_usd) AS outflow_usd,
+        SUM(inflow_usd + outflow_usd) AS total_volume_usd
+      FROM network_data
+      GROUP BY time_range, network
+    ),
+
+    total_volume_per_bucket AS (
+      SELECT
+        time_range,
+        SUM(total_volume_usd) AS bucket_total_volume
+      FROM aggregated
+      GROUP BY time_range
+    )
+
+    SELECT
+      a.time_range,
+      a.network,
+      a.tx_count,
+      a.inflow_usd,
+      a.outflow_usd,
+      a.total_volume_usd,
+      t.bucket_total_volume,
+      CASE WHEN t.bucket_total_volume > 0 THEN (a.total_volume_usd / t.bucket_total_volume) * 100 ELSE 0 END AS share_pct
+    FROM aggregated a
+    JOIN total_volume_per_bucket t ON a.time_range = t.time_range
+    WHERE a.network = '${network}'
+    ORDER BY a.time_range, network;
+  `
+
+    const result = await this.#db.run(query.trim())
+    const rows = await result.getRows()
+
+    // Format output: grouped by time_range, each with network shares
+    const series: Record<
+      string,
+      Array<{
+        time: number
+        txCount: number
+        inflowUsd: number
+        outflowUsd: number
+        totalVolumeUsd: number
+        sharePct: number
+      }>
+    > = {}
+
+    for (const row of rows) {
+      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const network = row[1] as string
+
+      if (!series[network]) {
+        series[network] = []
+      }
+
+      series[network].push({
+        time,
+        txCount: Number(row[2]),
+        inflowUsd: Number(row[3]),
+        outflowUsd: Number(row[4]),
+        totalVolumeUsd: Number(row[5]),
+        sharePct: Number(row[7]),
+      })
+    }
+
+    return Object.entries(series).map(([network, series]) => ({
+      network,
+      series,
+    }))
+  }
+
+  async networkAssetsSeries(criteria: TimeAndNetworkSelect, metric: 'tx' | 'usdVolume' | 'assetVolume') {
+    const bucketInterval = criteria.bucket ?? '1 hours'
+    const timeframe = criteria.timeframe
+    const unit = getUnit(bucketInterval)
+    const network = criteria.network
+    let query = ''
+
+    if (metric === 'usdVolume') {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          t.asset,
+          ANY_VALUE(t.symbol) AS symbol,
+          SUM(COALESCE(t.volume, 0)) AS total_volume_usd,
+          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.destination = '${network}') AS inflow_usd,
+          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.origin = '${network}') AS outflow_usd
+        FROM xcm_transfers t
+        WHERE 
+          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          AND ('${network}' = t.origin OR '${network}' = t.destination)
+
+        GROUP BY t.asset, time_range
+        ORDER BY total_volume_usd DESC;
+      `
+    } else if (metric === 'assetVolume') {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          t.asset,
+          ANY_VALUE(t.symbol) AS symbol,   
+          SUM(t.amount) / POWER(10, ANY_VALUE(t.decimals)) AS total_volume,
+          SUM(t.amount) FILTER (WHERE t.destination = '${network}') / POWER(10, ANY_VALUE(t.decimals)) AS inflow,
+          SUM(t.amount) FILTER (WHERE t.origin = '${network}') / POWER(10, ANY_VALUE(t.decimals)) AS outflow,
+        FROM xcm_transfers t
+        WHERE 
+          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          AND ('${network}' = t.origin OR '${network}' = t.destination)
+        GROUP BY t.asset, time_range
+        ORDER BY total_volume DESC;
+      `
+    } else {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          t.asset,
+          ANY_VALUE(t.symbol) AS symbol,
+          COUNT(*) AS tx_count,
+          COUNT(*) FILTER (WHERE t.destination = '${network}') AS in_tx_count,
+          COUNT(*) FILTER (WHERE t.origin = '${network}') AS out_tx_count,
+        FROM xcm_transfers t
+        WHERE 
+          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          AND ('${network}' = t.origin OR '${network}' = t.destination)
+
+        GROUP BY t.asset, time_range
+        ORDER BY tx_count DESC;
+      `
+    }
+    
+    const result = await this.#db.run(query.trim())
+    const rows = await result.getRows()
+
+    const data: Record<string, NetworkAssetData> = {}
+
+    for (const row of rows) {
+      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const key = fromDuckDBBlob(row[1] as DuckDBBlobValue)
+      const total = Number(row[3])
+      const inflow = Number(row[4])
+      const outflow = Number(row[5])
+      const netflow = inflow - outflow
+
+      if (!data[key]) {
+        data[key] = {
+          key,
+          symbol: row[2] as string,
+          total: 0,
+          inflow: 0,
+          outflow: 0,
+          netflow: 0,
+          series: []
+        }
+      }
+
+      data[key].total += total
+      data[key].inflow += inflow
+      data[key].outflow += outflow
+      data[key].netflow += netflow
+      data[key].series.push({ time, value: total })
+    }
+
+    const dataArray = Object.values(data)
+    dataArray.sort((a, b) => b.total - a.total)
+
+    return dataArray
+  }
+
   async transfers(criteria: TimeSelect) {
     return this.getAggregatedData(criteria, 'txs')
   }
@@ -355,8 +631,16 @@ export class XcmTransfersRepository {
     return this.getAggregatedData(criteria, 'transfersByChannel')
   }
 
-  async volumeByNetwork(criteria: TimeSelect) {
-    return this.getVolumeByNetwork(criteria)
+  async networkAssetsByUsd(criteria: TimeAndNetworkSelect) {
+    return this.networkAssetsSeries(criteria, 'usdVolume')
+  }
+
+  async networkAssetsByAsset(criteria: TimeAndNetworkSelect) {
+    return this.networkAssetsSeries(criteria, 'assetVolume')
+  }
+
+  async networkAssetsByTx(criteria: TimeAndNetworkSelect) {
+    return this.networkAssetsSeries(criteria, 'tx')
   }
 
   close() {

@@ -8,6 +8,18 @@ export const $TimeSelect = z.object({
   timeframe: z.enum(['1 days', '7 days', '15 days', '1 months', '3 months', '4 months']),
 })
 
+export const $TimeAndMaybeNetworkSelect = $TimeSelect.merge(
+      z.object({
+        network: z.optional($NetworkString),
+      }),
+    )
+
+export const $TimeAndNetworkSelect = $TimeSelect.merge(
+      z.object({
+        network: $NetworkString,
+      }),
+    )
+
 export const $AssetSelect = z.object({
   asset: z.string(),
 })
@@ -46,7 +58,7 @@ export const $JourneyFilters = z
 export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('transfers_total'),
-    criteria: $TimeSelect,
+    criteria: $TimeAndMaybeNetworkSelect,
   }),
   z.object({
     op: z.literal('transfers_count_series'),
@@ -54,11 +66,7 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('transfers_volume_by_asset_series'),
-    criteria: $TimeSelect.merge(
-      z.object({
-        network: z.optional($NetworkString),
-      }),
-    ),
+    criteria: $TimeAndMaybeNetworkSelect,
   }),
   z.object({
     op: z.literal('transfers_by_channel_series'),
@@ -67,6 +75,22 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('transfers_by_network'),
     criteria: $TimeSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_series.by_network'),
+    criteria: $TimeAndNetworkSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_assets_series.by_network.usd'),
+    criteria: $TimeAndNetworkSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_assets_series.by_network.asset'),
+    criteria: $TimeAndNetworkSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_assets_series.by_network.tx'),
+    criteria: $TimeAndNetworkSelect,
   }),
   z.object({
     op: z.literal('journeys.list'),
@@ -85,4 +109,6 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>
 export type TimeSelect = z.infer<typeof $TimeSelect>
+export type TimeAndMaybeNetworkSelect = z.infer<typeof $TimeAndMaybeNetworkSelect>
+export type TimeAndNetworkSelect = z.infer<typeof $TimeAndNetworkSelect>
 export type JourneyFilters = z.infer<typeof $JourneyFilters>
