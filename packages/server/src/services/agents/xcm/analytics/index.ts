@@ -111,6 +111,14 @@ export class XcmAnalytics {
         if (args.op === 'transfers_assets_series.by_network.tx') {
           return { items: await this.#repository.networkAssetsByTx(args.criteria) }
         }
+
+        if (args.op === 'transfers_channels_series.by_network.usd') {
+          return { items: await this.#repository.networkChannelsByUsd(args.criteria) }
+        }
+
+        if (args.op === 'transfers_channels_series.by_network.tx') {
+          return { items: await this.#repository.networkChannelsByTx(args.criteria) }
+        }
       } catch (error) {
         this.#log.error(error, '[xcm:analytics] error while executing a query')
       }

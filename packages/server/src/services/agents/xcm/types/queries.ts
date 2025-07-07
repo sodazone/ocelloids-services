@@ -9,16 +9,16 @@ export const $TimeSelect = z.object({
 })
 
 export const $TimeAndMaybeNetworkSelect = $TimeSelect.merge(
-      z.object({
-        network: z.optional($NetworkString),
-      }),
-    )
+  z.object({
+    network: z.optional($NetworkString),
+  }),
+)
 
 export const $TimeAndNetworkSelect = $TimeSelect.merge(
-      z.object({
-        network: $NetworkString,
-      }),
-    )
+  z.object({
+    network: $NetworkString,
+  }),
+)
 
 export const $AssetSelect = z.object({
   asset: z.string(),
@@ -90,6 +90,14 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('transfers_assets_series.by_network.tx'),
+    criteria: $TimeAndNetworkSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_channels_series.by_network.usd'),
+    criteria: $TimeAndNetworkSelect,
+  }),
+  z.object({
+    op: z.literal('transfers_channels_series.by_network.tx'),
     criteria: $TimeAndNetworkSelect,
   }),
   z.object({

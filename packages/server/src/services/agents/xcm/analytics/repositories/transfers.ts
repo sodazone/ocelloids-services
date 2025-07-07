@@ -12,21 +12,23 @@ import { NewXcmTransfer } from '../types.js'
 export type AggregatedData = {
   key: string
   total: number
-  volume: number
   volumeUsd: number
   percentageTx: number
   percentageVol: number
   series: { time: number; value: number }[]
 }
 
-export type NetworkAssetData = {
+export type NetworkFlowData = {
   key: string
-  symbol: string
   total: number
   inflow: number
   outflow: number
   netflow: number
   series: { time: number; value: number }[]
+}
+
+export type NetworkAssetData = NetworkFlowData & {
+  symbol: string
 }
 
 const createTransfersSeqSql = `
@@ -236,7 +238,6 @@ export class XcmTransfersRepository {
 
     let query = ''
     const unit = getUnit(bucketInterval)
-    console.log('AGG', bucketInterval, timeframe, unit)
     if (metric === 'txs') {
       query = `
         SELECT
@@ -256,7 +257,11 @@ export class XcmTransfersRepository {
             ARBITRARY(t.symbol) AS symbol,
             time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
             COUNT(*) AS tx_count,
-            SUM(t.amount) / POWER(10, ARBITRARY(t.decimals)) AS volume,
+            CASE
+              WHEN ARBITRARY(t.symbol) != '' THEN
+                SUM(t.amount) / POWER(10, ARBITRARY(t.decimals))
+              ELSE 0
+            END AS volume,
             ARRAY_AGG(DISTINCT t.origin) AS origins,
             ARRAY_AGG(DISTINCT t.destination) AS destinations,
             SUM(COALESCE(volume, 0)) AS volume_usd
@@ -283,7 +288,6 @@ export class XcmTransfersRepository {
           origin,
           destination,
           COUNT(*) AS tx_count,
-          SUM(amount) / POWER(10, ARBITRARY(decimals)) AS volume,
           SUM(COALESCE(volume, 0)) AS volume_usd
         FROM xcm_transfers
         WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
@@ -303,8 +307,10 @@ export class XcmTransfersRepository {
       }))
     }
 
-    const data: Record<string, AggregatedData | (AggregatedData & { symbol: string; networks: string[] })> =
-      {}
+    const data: Record<
+      string,
+      AggregatedData | (AggregatedData & { symbol: string; volume: number; networks: string[] })
+    > = {}
     let grandTotal = 0
     let volTotal = 0
 
@@ -313,8 +319,8 @@ export class XcmTransfersRepository {
       const key =
         metric === 'volumeByAsset' ? fromDuckDBBlob(row[1] as DuckDBBlobValue) : `${row[1]}-${row[2]}`
       const txs = Number(row[3])
-      const volume = Number(row[4])
-      const volumeUsd = metric === 'volumeByAsset' ? Number(row[7]) : Number(row[5])
+      const volume = metric === 'volumeByAsset' ? Number(row[4]) : 0
+      const volumeUsd = metric === 'volumeByAsset' ? Number(row[7]) : Number(row[4])
 
       if (!data[key]) {
         data[key] =
@@ -330,11 +336,13 @@ export class XcmTransfersRepository {
                 percentageVol: 0,
                 series: [],
               }
-            : { key, total: 0, percentageTx: 0, percentageVol: 0, volume: 0, volumeUsd: 0, series: [] }
+            : { key, total: 0, percentageTx: 0, percentageVol: 0, volumeUsd: 0, series: [] }
       }
 
       data[key].total += txs
-      data[key].volume += volume
+      if ('volume' in data[key]) {
+        data[key].volume += volume
+      }
       data[key].volumeUsd += volumeUsd
       grandTotal += txs
       volTotal += volumeUsd
@@ -421,7 +429,7 @@ export class XcmTransfersRepository {
     const timeframe = criteria.timeframe
     const unit = getUnit(bucketInterval)
     const network = criteria.network
-    console.log('NETWORK', bucketInterval, timeframe, unit)
+
     const query = `
     WITH network_data AS (
       SELECT
@@ -548,18 +556,38 @@ export class XcmTransfersRepository {
       `
     } else if (metric === 'assetVolume') {
       query = `
+        WITH base AS (
+          SELECT
+            time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+            t.asset,
+            ARBITRARY(t.symbol) AS symbol,
+            ARBITRARY(t.decimals) AS decimals,
+            SUM(t.amount) AS total_amount,
+            SUM(t.amount) FILTER (WHERE t.destination = '${network}') AS inflow_amount,
+            SUM(t.amount) FILTER (WHERE t.origin = '${network}') AS outflow_amount
+          FROM xcm_transfers t
+          WHERE 
+            t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+            AND ('${network}' = t.origin OR '${network}' = t.destination)
+          GROUP BY t.asset, time_range
+        )
         SELECT
-          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
-          t.asset,
-          ANY_VALUE(t.symbol) AS symbol,   
-          SUM(t.amount) / POWER(10, ANY_VALUE(t.decimals)) AS total_volume,
-          SUM(t.amount) FILTER (WHERE t.destination = '${network}') / POWER(10, ANY_VALUE(t.decimals)) AS inflow,
-          SUM(t.amount) FILTER (WHERE t.origin = '${network}') / POWER(10, ANY_VALUE(t.decimals)) AS outflow,
-        FROM xcm_transfers t
-        WHERE 
-          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
-          AND ('${network}' = t.origin OR '${network}' = t.destination)
-        GROUP BY t.asset, time_range
+          b.time_range,
+          b.asset,
+          b.symbol,
+          CASE
+            WHEN b.symbol != '' THEN b.total_amount / POWER(10, b.decimals)
+            ELSE NULL
+          END AS total_volume,
+          CASE
+            WHEN b.symbol != '' THEN b.inflow_amount / POWER(10, b.decimals)
+            ELSE NULL
+          END AS inflow,
+          CASE
+            WHEN b.symbol != '' THEN b.outflow_amount / POWER(10, b.decimals)
+            ELSE NULL
+          END AS outflow
+        FROM base b
         ORDER BY total_volume DESC;
       `
     } else {
@@ -580,7 +608,7 @@ export class XcmTransfersRepository {
         ORDER BY tx_count DESC;
       `
     }
-    
+
     const result = await this.#db.run(query.trim())
     const rows = await result.getRows()
 
@@ -602,7 +630,91 @@ export class XcmTransfersRepository {
           inflow: 0,
           outflow: 0,
           netflow: 0,
-          series: []
+          series: [],
+        }
+      }
+
+      data[key].total += total
+      data[key].inflow += inflow
+      data[key].outflow += outflow
+      data[key].netflow += netflow
+      data[key].series.push({ time, value: total })
+    }
+
+    const dataArray = Object.values(data)
+    dataArray.sort((a, b) => b.total - a.total)
+
+    return dataArray
+  }
+
+  async networkChannelSeries(criteria: TimeAndNetworkSelect, metric: 'tx' | 'usdVolume') {
+    const bucketInterval = criteria.bucket ?? '1 hours'
+    const timeframe = criteria.timeframe
+    const unit = getUnit(bucketInterval)
+    const network = criteria.network
+    let query = ''
+    if (metric === 'usdVolume') {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          CASE
+            WHEN t.origin = '${network}' THEN t.destination
+            ELSE t.origin
+          END AS counterparty_network,
+          SUM(COALESCE(t.volume, 0)) AS total_volume_usd,
+          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.destination = '${network}') AS inflow_usd,
+          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.origin = '${network}') AS outflow_usd
+        FROM xcm_transfers t
+        WHERE 
+          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          AND ('${network}' = t.origin OR '${network}' = t.destination)
+          AND t.destination IS NOT NULL
+          AND t.origin IS NOT NULL
+        GROUP BY counterparty_network, time_range
+        ORDER BY time_range;
+      `
+    } else if (metric === 'tx') {
+      query = `
+        SELECT
+          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          CASE
+            WHEN t.origin = '${network}' THEN t.destination
+            ELSE t.origin
+          END AS counterparty_network,
+          COUNT(*) AS tx_count,
+          COUNT(*) FILTER (WHERE t.destination = '${network}') AS in_tx_count,
+          COUNT(*) FILTER (WHERE t.origin = '${network}') AS out_tx_count
+        FROM xcm_transfers t
+        WHERE 
+          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+          AND ('${network}' = t.origin OR '${network}' = t.destination)
+          AND t.destination IS NOT NULL
+          AND t.origin IS NOT NULL
+        GROUP BY counterparty_network, time_range
+        ORDER BY time_range;
+      `
+    }
+    const result = await this.#db.run(query.trim())
+    const rows = await result.getRows()
+
+    const data: Record<string, NetworkFlowData> = {}
+
+    for (const row of rows) {
+      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const key = row[1] as string
+      const total = Number(row[2])
+      const inflow = Number(row[3])
+      const outflow = Number(row[4])
+      const netflow = inflow - outflow
+
+      if (!data[key]) {
+        data[key] = {
+          key,
+          total: 0,
+          inflow: 0,
+          outflow: 0,
+          netflow: 0,
+          series: [],
         }
       }
 
@@ -641,6 +753,14 @@ export class XcmTransfersRepository {
 
   async networkAssetsByTx(criteria: TimeAndNetworkSelect) {
     return this.networkAssetsSeries(criteria, 'tx')
+  }
+
+  async networkChannelsByUsd(criteria: TimeAndNetworkSelect) {
+    return this.networkChannelSeries(criteria, 'usdVolume')
+  }
+
+  async networkChannelsByTx(criteria: TimeAndNetworkSelect) {
+    return this.networkChannelSeries(criteria, 'tx')
   }
 
   close() {
