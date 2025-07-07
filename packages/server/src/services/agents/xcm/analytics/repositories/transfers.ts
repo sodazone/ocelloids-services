@@ -5,6 +5,7 @@ import {
   DuckDBConnection,
   DuckDBDecimalValue,
   DuckDBTimestampValue,
+  DuckDBValue,
 } from '@duckdb/node-api'
 import { TimeAndMaybeNetworkSelect, TimeAndNetworkSelect, TimeSelect } from '../../types/index.js'
 import { NewXcmTransfer } from '../types.js'
@@ -12,18 +13,18 @@ import { NewXcmTransfer } from '../types.js'
 export type AggregatedData = {
   key: string
   total: number
-  volumeUsd: number
+  volumeUsd: number | null
   percentageTx: number
-  percentageVol: number
+  percentageVol: number | null
   series: { time: number; value: number }[]
 }
 
 export type NetworkFlowData = {
   key: string
-  total: number
-  inflow: number
-  outflow: number
-  netflow: number
+  total: number | null
+  inflow: number | null
+  outflow: number | null
+  netflow: number | null
   series: { time: number; value: number }[]
 }
 
@@ -260,11 +261,14 @@ export class XcmTransfersRepository {
             CASE
               WHEN ARBITRARY(t.symbol) != '' THEN
                 SUM(t.amount) / POWER(10, ARBITRARY(t.decimals))
-              ELSE 0
+              ELSE NULL
             END AS volume,
             ARRAY_AGG(DISTINCT t.origin) AS origins,
             ARRAY_AGG(DISTINCT t.destination) AS destinations,
-            SUM(COALESCE(volume, 0)) AS volume_usd
+            CASE 
+              WHEN COUNT(volume) = 0 THEN NULL
+              ELSE SUM(volume)
+            END AS volume_usd
           FROM xcm_transfers t
           WHERE t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           GROUP BY t.asset, t.symbol, time_range
@@ -288,7 +292,10 @@ export class XcmTransfersRepository {
           origin,
           destination,
           COUNT(*) AS tx_count,
-          SUM(COALESCE(volume, 0)) AS volume_usd
+          CASE 
+            WHEN COUNT(volume) = 0 THEN NULL
+            ELSE SUM(volume)
+          END AS volume_usd
         FROM xcm_transfers
         WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
         GROUP BY time_range, origin, destination
@@ -309,18 +316,18 @@ export class XcmTransfersRepository {
 
     const data: Record<
       string,
-      AggregatedData | (AggregatedData & { symbol: string; volume: number; networks: string[] })
+      AggregatedData | (AggregatedData & { symbol: string; volume: number | null; networks: string[] })
     > = {}
     let grandTotal = 0
     let volTotal = 0
 
     for (const row of rows) {
-      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const time = toUnix(row[0] as DuckDBTimestampValue)
       const key =
         metric === 'volumeByAsset' ? fromDuckDBBlob(row[1] as DuckDBBlobValue) : `${row[1]}-${row[2]}`
       const txs = Number(row[3])
-      const volume = metric === 'volumeByAsset' ? Number(row[4]) : 0
-      const volumeUsd = metric === 'volumeByAsset' ? Number(row[7]) : Number(row[4])
+      const volume = metric === 'volumeByAsset' ? toNullableNumber(row[4]) : null
+      const volumeUsd = metric === 'volumeByAsset' ? toNullableNumber(row[7]) : toNullableNumber(row[4])
 
       if (!data[key]) {
         data[key] =
@@ -330,22 +337,25 @@ export class XcmTransfersRepository {
                 symbol: row[2] as string,
                 networks: [],
                 total: 0,
-                volume: 0,
-                volumeUsd: 0,
+                volume: null,
+                volumeUsd: null,
                 percentageTx: 0,
-                percentageVol: 0,
+                percentageVol: null,
                 series: [],
               }
-            : { key, total: 0, percentageTx: 0, percentageVol: 0, volumeUsd: 0, series: [] }
+            : { key, total: 0, percentageTx: 0, percentageVol: null, volumeUsd: null, series: [] }
       }
 
       data[key].total += txs
-      if ('volume' in data[key]) {
-        data[key].volume += volume
+      if (volume !== null && 'volume' in data[key]) {
+        data[key].volume = (data[key].volume ?? 0) + volume
       }
-      data[key].volumeUsd += volumeUsd
+      if (volumeUsd !== null) {
+        data[key].volumeUsd = (data[key].volumeUsd ?? 0) + volumeUsd
+        volTotal += volumeUsd
+      }
+
       grandTotal += txs
-      volTotal += volumeUsd
       data[key].series.push({ time, value: txs })
 
       if (metric === 'volumeByAsset') {
@@ -364,7 +374,7 @@ export class XcmTransfersRepository {
 
     for (const key in data) {
       data[key].percentageTx = (data[key].total / grandTotal) * 100
-      data[key].percentageVol = (data[key].volumeUsd / volTotal) * 100
+      data[key].percentageVol = data[key].volumeUsd !== null ? (data[key].volumeUsd / volTotal) * 100 : null
     }
 
     const dataArray = Object.values(data)
@@ -383,9 +393,9 @@ export class XcmTransfersRepository {
           SELECT
             origin AS network,
             COUNT(*) AS tx_count,
-            SUM(COALESCE(volume, 0)) AS volume_usd,
+            SUM(volume) AS volume_usd,
             0 AS inflow_usd,
-            SUM(COALESCE(volume, 0)) AS outflow_usd
+            SUM(volume) AS outflow_usd
           FROM xcm_transfers
           WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           GROUP BY origin
@@ -395,8 +405,8 @@ export class XcmTransfersRepository {
           SELECT
             destination AS network,
             COUNT(*) AS tx_count,
-            SUM(COALESCE(volume, 0)) AS volume_usd,
-            SUM(COALESCE(volume, 0)) AS inflow_usd,
+            SUM(volume) AS volume_usd,
+            SUM(volume) AS inflow_usd,
             0 AS outflow_usd
           FROM xcm_transfers
           WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
@@ -405,23 +415,27 @@ export class XcmTransfersRepository {
         SELECT
           network,
           SUM(tx_count) AS tx_count,
-          SUM(volume_usd) AS volume_usd,
-          SUM(inflow_usd) AS inflow_usd,
-          SUM(outflow_usd) AS outflow_usd
+          CASE WHEN COUNT(volume_usd) FILTER (WHERE volume_usd IS NOT NULL) = 0 THEN NULL ELSE SUM(volume_usd) END AS volume_usd,
+          CASE WHEN COUNT(inflow_usd) FILTER (WHERE volume_usd IS NOT NULL) = 0 THEN NULL ELSE SUM(inflow_usd) END AS inflow_usd,
+          CASE WHEN COUNT(outflow_usd) FILTER (WHERE volume_usd IS NOT NULL) = 0 THEN NULL ELSE SUM(outflow_usd) END AS outflow_usd
         FROM network_data
         GROUP BY network
         ORDER BY volume_usd DESC;
       `
     const result = await this.#db.run(query.trim())
     const rows = await result.getRows()
-    return rows.map((row) => ({
-      network: row[0],
-      value: Number(row[1]),
-      volumeUsd: Number(row[2]),
-      volumeIn: Number(row[3]),
-      volumeOut: Number(row[4]),
-      netFlow: Number(row[3]) - Number(row[4]),
-    }))
+    return rows.map((row) => {
+      const volumeIn = toNullableNumber(row[3])
+      const volumeOut = toNullableNumber(row[4])
+      return {
+        network: row[0],
+        value: Number(row[1]),
+        volumeUsd: toNullableNumber(row[2]),
+        volumeIn,
+        volumeOut,
+        netFlow: volumeIn !== null && volumeOut !== null ? volumeIn - volumeOut : null,
+      }
+    })
   }
 
   async networkVolumeSeries(criteria: TimeAndNetworkSelect) {
@@ -507,7 +521,7 @@ export class XcmTransfersRepository {
     > = {}
 
     for (const row of rows) {
-      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const time = toUnix(row[0] as DuckDBTimestampValue)
       const network = row[1] as string
 
       if (!series[network]) {
@@ -539,19 +553,34 @@ export class XcmTransfersRepository {
 
     if (metric === 'usdVolume') {
       query = `
+        WITH base AS (
+          SELECT
+            time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+            t.asset,
+            t.symbol,
+            t.volume,
+            t.origin,
+            t.destination
+          FROM xcm_transfers t
+          WHERE 
+            t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+            AND ('${network}' = t.origin OR '${network}' = t.destination)
+        )
         SELECT
-          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
-          t.asset,
-          ANY_VALUE(t.symbol) AS symbol,
-          SUM(COALESCE(t.volume, 0)) AS total_volume_usd,
-          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.destination = '${network}') AS inflow_usd,
-          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.origin = '${network}') AS outflow_usd
-        FROM xcm_transfers t
-        WHERE 
-          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
-          AND ('${network}' = t.origin OR '${network}' = t.destination)
-
-        GROUP BY t.asset, time_range
+          time_range,
+          asset,
+          ARBITRARY(symbol) AS symbol,
+          CASE WHEN COUNT(volume) = 0 THEN NULL ELSE SUM(volume) END AS total_volume_usd,
+          CASE 
+            WHEN COUNT(volume) = 0 THEN NULL
+            ELSE COALESCE(SUM(volume) FILTER (WHERE destination = '${network}'), 0)
+          END AS inflow_usd,
+          CASE 
+            WHEN COUNT(volume) = 0 THEN NULL
+            ELSE COALESCE(SUM(volume) FILTER (WHERE origin = '${network}'), 0)
+          END AS outflow_usd
+        FROM base
+        GROUP BY time_range, asset
         ORDER BY total_volume_usd DESC;
       `
     } else if (metric === 'assetVolume') {
@@ -615,34 +644,33 @@ export class XcmTransfersRepository {
     const data: Record<string, NetworkAssetData> = {}
 
     for (const row of rows) {
-      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const time = toUnix(row[0] as DuckDBTimestampValue)
       const key = fromDuckDBBlob(row[1] as DuckDBBlobValue)
-      const total = Number(row[3])
-      const inflow = Number(row[4])
-      const outflow = Number(row[5])
-      const netflow = inflow - outflow
+      const total = toNullableNumber(row[3])
+      const inflow = toNullableNumber(row[4])
+      const outflow = toNullableNumber(row[5])
+      const netflow = inflow !== null && outflow !== null ? inflow - outflow : null
 
-      if (!data[key]) {
-        data[key] = {
-          key,
-          symbol: row[2] as string,
-          total: 0,
-          inflow: 0,
-          outflow: 0,
-          netflow: 0,
-          series: [],
-        }
-      }
+      const item = (data[key] ??= {
+        key,
+        symbol: row[2] as string,
+        total: null,
+        inflow: null,
+        outflow: null,
+        netflow: null,
+        series: [],
+      })
 
-      data[key].total += total
-      data[key].inflow += inflow
-      data[key].outflow += outflow
-      data[key].netflow += netflow
-      data[key].series.push({ time, value: total })
+      accumulate('total', total, item)
+      accumulate('inflow', inflow, item)
+      accumulate('outflow', outflow, item)
+      accumulate('netflow', netflow, item)
+
+      item.series.push({ time, value: total ?? 0 })
     }
 
     const dataArray = Object.values(data)
-    dataArray.sort((a, b) => b.total - a.total)
+    dataArray.sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
 
     return dataArray
   }
@@ -655,22 +683,35 @@ export class XcmTransfersRepository {
     let query = ''
     if (metric === 'usdVolume') {
       query = `
+        WITH base AS (
+          SELECT
+            time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+            CASE
+              WHEN t.origin = '${network}' THEN t.destination
+              ELSE t.origin
+            END AS counterparty_network,
+            t.volume,
+            t.origin,
+            t.destination
+          FROM xcm_transfers t
+          WHERE 
+            t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+            AND ('${network}' = t.origin OR '${network}' = t.destination)
+        )
         SELECT
-          time_bucket(INTERVAL '${safe(bucketInterval)}', t.sent_at) AS time_range,
+          time_range,
+          counterparty_network,
+          CASE WHEN COUNT(volume) = 0 THEN NULL ELSE SUM(volume) END AS total_volume_usd,
           CASE
-            WHEN t.origin = '${network}' THEN t.destination
-            ELSE t.origin
-          END AS counterparty_network,
-          SUM(COALESCE(t.volume, 0)) AS total_volume_usd,
-          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.destination = '${network}') AS inflow_usd,
-          SUM(COALESCE(t.volume, 0)) FILTER (WHERE t.origin = '${network}') AS outflow_usd
-        FROM xcm_transfers t
-        WHERE 
-          t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
-          AND ('${network}' = t.origin OR '${network}' = t.destination)
-          AND t.destination IS NOT NULL
-          AND t.origin IS NOT NULL
-        GROUP BY counterparty_network, time_range
+            WHEN COUNT(volume) = 0 THEN NULL
+            ELSE COALESCE(SUM(volume) FILTER (WHERE destination = '${network}'), 0)
+          END AS inflow_usd,
+          CASE
+            WHEN COUNT(volume) = 0 THEN NULL
+            ELSE COALESCE(SUM(volume) FILTER (WHERE origin = '${network}'), 0)
+          END AS outflow_usd
+        FROM base
+        GROUP BY time_range, counterparty_network
         ORDER BY time_range;
       `
     } else if (metric === 'tx') {
@@ -700,33 +741,32 @@ export class XcmTransfersRepository {
     const data: Record<string, NetworkFlowData> = {}
 
     for (const row of rows) {
-      const time = Math.floor(new Date((row[0] as DuckDBTimestampValue).toString()).getTime() / 1000)
+      const time = toUnix(row[0] as DuckDBTimestampValue)
       const key = row[1] as string
-      const total = Number(row[2])
-      const inflow = Number(row[3])
-      const outflow = Number(row[4])
-      const netflow = inflow - outflow
+      const total = toNullableNumber(row[2])
+      const inflow = toNullableNumber(row[3])
+      const outflow = toNullableNumber(row[4])
+      const netflow = inflow !== null && outflow !== null ? inflow - outflow : null
 
-      if (!data[key]) {
-        data[key] = {
-          key,
-          total: 0,
-          inflow: 0,
-          outflow: 0,
-          netflow: 0,
-          series: [],
-        }
-      }
+      const item = (data[key] ??= {
+        key,
+        total: null,
+        inflow: null,
+        outflow: null,
+        netflow: null,
+        series: [],
+      })
 
-      data[key].total += total
-      data[key].inflow += inflow
-      data[key].outflow += outflow
-      data[key].netflow += netflow
-      data[key].series.push({ time, value: total })
+      accumulate('total', total, item)
+      accumulate('inflow', inflow, item)
+      accumulate('outflow', outflow, item)
+      accumulate('netflow', netflow, item)
+
+      item.series.push({ time, value: total ?? 0 })
     }
 
     const dataArray = Object.values(data)
-    dataArray.sort((a, b) => b.total - a.total)
+    dataArray.sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
 
     return dataArray
   }
@@ -779,4 +819,23 @@ function getUnit(bucketInterval: string) {
     return 'minute'
   }
   throw new Error(`unsupported unit ${bucketInterval}`)
+}
+
+function accumulate<T extends NetworkFlowData>(
+  prop: 'total' | 'inflow' | 'outflow' | 'netflow',
+  value: number | null,
+  item: T,
+) {
+  if (value === null) {
+    return
+  }
+  item[prop] = item[prop] === null ? value : item[prop]! + value
+}
+
+function toUnix(value: DuckDBTimestampValue): number {
+  return Math.floor(new Date(value.toString()).getTime() / 1000)
+}
+
+function toNullableNumber(value: DuckDBValue): number | null {
+  return value !== null ? Number(value) : null
 }
