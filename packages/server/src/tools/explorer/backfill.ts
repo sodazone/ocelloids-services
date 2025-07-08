@@ -32,7 +32,7 @@ const endBlock = endArg ? Number(endArg) : -1
 const chain = chainArg
 
 const allowedStatuses = ['received', 'failed', 'sent', 'timeout'] as const
-type StatusType = typeof allowedStatuses[number]
+type StatusType = (typeof allowedStatuses)[number]
 
 let statusList: StatusType[] = ['timeout']
 if (statusArg) {
@@ -105,6 +105,8 @@ const mappedNodes = nodes.map((journey) => ({
   id: journey.id,
   correlationId: journey.correlation_id,
   messageId: getMessageId(journey.instructions),
+  destination: journey.destination,
+  stops: journey.stops,
 }))
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail']
@@ -173,15 +175,15 @@ backfillBlocks$({ start: startBlock, end: endBlock })
   )
   .subscribe({
     next: async (msg) => {
-      console.log('RECEIVED', msg)
+      log.info('RECEIVED id=%s, outcome=%s (#%s)', msg.messageId, msg.outcome, msg.blockNumber)
       try {
         const found = mappedNodes.find((n) => n.messageId === msg.messageId)
         if (found) {
-          const journey = await repository.getJourneyById(found.correlationId)
-          if (!journey) {
-            throw new Error(`Journey not found for correlation id ${found.correlationId}`)
+          if (found.destination !== chain) {
+            log.info('Destination %s different from chainId %s, skipping', found.destination, chain)
+            return
           }
-          journey.stops[journey.stops.length - 1].to = {
+          found.stops[found.stops.length - 1].to = {
             chainId: chain,
             blockHash: msg.blockHash,
             blockNumber: msg.blockNumber,
@@ -200,14 +202,15 @@ backfillBlocks$({ start: startBlock, end: endBlock })
           await repository.updateJourney(found.id, {
             status: msg.outcome === 'Success' ? 'received' : 'failed',
             recv_at: msg.timestamp,
-            stops: asJSON(journey.stops),
+            stops: asJSON(found.stops),
           })
+          log.info('Updated %s', found.id)
         }
       } catch (error) {
         log.error(error)
       }
     },
     complete: () => {
-      console.log('STREAM COMPLETE')
+      log.info('STREAM COMPLETE')
     },
   })
