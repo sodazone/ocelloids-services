@@ -25,10 +25,26 @@ export const networks = {
   'urn:ocn:kusama:1000': 'wss://asset-hub-kusama.dotters.network',
 } as Record<string, string>
 
-const [, , dbPathArg, startArg, endArg, chain] = process.argv
+const [, , dbPathArg, startArg, endArg, chainArg, statusArg] = process.argv
 const dbPath = dbPathArg
 const startBlock = startArg ? Number(startArg) : -1
 const endBlock = endArg ? Number(endArg) : -1
+const chain = chainArg
+
+const allowedStatuses = ['received', 'failed', 'sent', 'timeout'] as const
+type StatusType = typeof allowedStatuses[number]
+
+let statusList: StatusType[] = ['timeout']
+if (statusArg) {
+  statusList = statusArg
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s): s is StatusType => allowedStatuses.includes(s as StatusType))
+  if (statusList.length === 0) {
+    console.error(`Invalid status list. Allowed: ${allowedStatuses.join(', ')}`)
+    process.exit(1)
+  }
+}
 
 if (
   dbPath === undefined ||
@@ -47,14 +63,14 @@ if (!ws) {
 }
 
 const log = pino()
-const moon = await createSubstrateClient(log, chain, ws)
+const api = await createSubstrateClient(log, chain, ws)
 
 function backfillBlocks$({ start, end }: { start: number; end: number }): Observable<Block> {
   return timer(0, 100).pipe(
     map((index) => start + index),
     takeWhile((blockNumber) => blockNumber <= end),
     concatMap((blockNumber) =>
-      from(moon.getBlockHash(blockNumber)).pipe(concatMap((blockHash) => from(moon.getBlock(blockHash)))),
+      from(api.getBlockHash(blockNumber)).pipe(concatMap((blockHash) => from(api.getBlock(blockHash)))),
     ),
   )
 }
@@ -69,6 +85,7 @@ function getMessageId(instructions: any) {
 
 const filename = resolveDataPath('db.xcm-explorer.sqlite', dbPath)
 log.info('[xcm:explorer] database at %s', filename)
+log.info('[xcm:explorer] backfilling for status %s', statusList)
 
 const { db, migrator: _migrator } = createXcmDatabase(filename)
 const migrator = _migrator
@@ -78,7 +95,7 @@ await migrator.migrateToLatest()
 const { nodes } = await repository.listFullJourneys(
   {
     destinations: [chain],
-    status: ['sent', 'timeout'],
+    status: statusList,
   },
   {
     limit: 100,
