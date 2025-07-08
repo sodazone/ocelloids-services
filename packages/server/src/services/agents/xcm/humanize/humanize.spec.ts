@@ -670,7 +670,7 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets[0].amount).toBeDefined()
   })
 
-  it.only('should not parse empty assets when there is no asset', async () => {
+  it('should not parse empty assets when there is no asset', async () => {
     const instructions = {
       type: 'V5',
       value: [
