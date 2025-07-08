@@ -605,15 +605,15 @@ export class XcmTransfersRepository {
           b.asset,
           b.symbol,
           CASE
-            WHEN b.symbol != '' THEN b.total_amount / POWER(10, b.decimals)
+            WHEN b.symbol != '' THEN COALESCE(b.total_amount / POWER(10, b.decimals), 0)
             ELSE NULL
           END AS total_volume,
           CASE
-            WHEN b.symbol != '' THEN b.inflow_amount / POWER(10, b.decimals)
+            WHEN b.symbol != '' THEN COALESCE(b.inflow_amount / POWER(10, b.decimals), 0)
             ELSE NULL
           END AS inflow,
           CASE
-            WHEN b.symbol != '' THEN b.outflow_amount / POWER(10, b.decimals)
+            WHEN b.symbol != '' THEN COALESCE(b.outflow_amount / POWER(10, b.decimals), 0)
             ELSE NULL
           END AS outflow
         FROM base b
