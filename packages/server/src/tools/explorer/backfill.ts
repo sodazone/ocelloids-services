@@ -90,8 +90,6 @@ const mappedNodes = nodes.map((journey) => ({
   messageId: getMessageId(journey.instructions),
 }))
 
-console.log('MMMM', mappedNodes.length, mappedNodes)
-
 const METHODS_XCMP_QUEUE = ['Success', 'Fail']
 
 backfillBlocks$({ start: startBlock, end: endBlock })
@@ -167,7 +165,7 @@ backfillBlocks$({ start: startBlock, end: endBlock })
             throw new Error(`Journey not found for correlation id ${found.correlationId}`)
           }
           journey.stops[journey.stops.length - 1].to = {
-            chainId: 'urn:ocn:polkadot:2004',
+            chainId: chain,
             blockHash: msg.blockHash,
             blockNumber: msg.blockNumber,
             timestamp: msg.timestamp,
