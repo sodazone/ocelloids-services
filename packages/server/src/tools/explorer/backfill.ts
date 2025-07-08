@@ -78,7 +78,7 @@ await migrator.migrateToLatest()
 const { nodes } = await repository.listFullJourneys(
   {
     destinations: [chain],
-    status: ['timeout'],
+    status: ['sent', 'timeout'],
   },
   {
     limit: 100,
