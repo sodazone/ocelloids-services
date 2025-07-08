@@ -123,7 +123,8 @@ export class XcmHumanizer {
     }
 
     const assets = this.extractAssets(instructions)
-    const resolvedAssets = await this.resolveAssets(legs, destination.chainId, assets)
+    const resolvedAssets =
+      assets.length > 0 ? await this.resolveAssets(legs, destination.chainId, assets) : []
 
     return { type, from, to, assets: resolvedAssets, version, transactCalls }
   }

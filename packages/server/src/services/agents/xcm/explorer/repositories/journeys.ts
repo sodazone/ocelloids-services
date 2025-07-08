@@ -78,13 +78,15 @@ export class XcmRepository {
       origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
       origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
       totalUsd,
-      assets: rows.map((row) => ({
-        asset: row.asset ?? 'unknown',
-        symbol: row.symbol ?? undefined,
-        amount: row.amount ?? '0',
-        decimals: row.decimals ?? undefined,
-        usd: row.usd ?? undefined,
-      })),
+      assets: rows
+        .filter((row) => row.asset !== undefined && row.asset !== null)
+        .map((row) => ({
+          asset: row.asset ?? 'unknown',
+          symbol: row.symbol ?? undefined,
+          amount: row.amount ?? '0',
+          decimals: row.decimals ?? undefined,
+          usd: row.usd ?? undefined,
+        })),
     }
 
     return journey

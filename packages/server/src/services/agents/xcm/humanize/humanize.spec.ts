@@ -669,4 +669,99 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets[0].id).toBeDefined()
     expect(results.humanized.assets[0].amount).toBeDefined()
   })
+
+  it.only('should not parse empty assets when there is no asset', async () => {
+    const instructions = {
+      type: 'V5',
+      value: [
+        {
+          type: 'UnpaidExecution',
+          value: {
+            weightLimit: {
+              type: 'Unlimited',
+            },
+          },
+        },
+        {
+          type: 'Transact',
+          value: {
+            originKind: {
+              type: 'Native',
+            },
+            fallbackMaxWeight: {
+              refTime: '1000000000',
+              proofSize: '9216',
+            },
+            call: '0x4a027077bc01',
+          },
+        },
+        {
+          type: 'SetTopic',
+          value: '0x1a4da89d738d711e284e71d640b8ed244e7a72a7d088aaeecdba0e934aa9417e',
+        },
+      ],
+    }
+    const { humanized } = await humanizer.humanize({
+      legs: [
+        {
+          from: 'urn:ocn:local:1000',
+          to: 'urn:ocn:local:1002',
+          type: 'hrmp',
+          partialMessage: undefined,
+          relay: 'urn:ocn:local:0',
+        },
+        {
+          from: 'urn:ocn:local:1002',
+          to: 'urn:ocn:kusama:1000',
+          type: 'vmp',
+          partialMessage: undefined,
+        },
+      ],
+      sender: {
+        signer: {
+          id: '13b6hRRYPHTxFzs9prvL2YGHQepvd4YhdDb9Tc7khySp3hMN',
+          publicKey: '0x7279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b',
+        },
+        extraSigners: [],
+      },
+      messageId: '0x0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
+      forwardId: undefined,
+      type: 'xcm.sent',
+      waypoint: {
+        chainId: 'urn:ocn:local:1000',
+        blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
+        blockNumber: '9153185',
+        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        timestamp: 1751014380000,
+        extrinsicPosition: 6,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x0003140004000100002ee6f94f13000100002ee6f94f0016040d010204010100a10f26030100a10f140004000100000b46b79033fbc40a13000100000b46b79033fbc4000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd16733562c0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
+        instructions,
+        messageHash: '0x63267ebd16aa5913f636a0872d4248af6b06d63299a2e365d82f401fc66fce37',
+        legIndex: 0,
+      },
+      origin: {
+        chainId: 'urn:ocn:local:1000',
+        blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
+        blockNumber: '9153185',
+        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        timestamp: 1751014380000,
+        extrinsicPosition: 6,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x0003140004000100002ee6f94f13000100002ee6f94f0016040d010204010100a10f26030100a10f140004000100000b46b79033fbc40a13000100000b46b79033fbc4000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd16733562c0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
+        instructions,
+        messageHash: '0x63267ebd16aa5913f636a0872d4248af6b06d63299a2e365d82f401fc66fce37',
+      },
+      destination: { chainId: 'urn:ocn:kusama:1000' },
+    })
+
+    expect(humanized).toBeDefined()
+    expect(humanized.assets.length).toBe(0)
+  })
 })
