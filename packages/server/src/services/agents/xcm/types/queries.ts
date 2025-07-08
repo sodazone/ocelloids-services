@@ -41,6 +41,8 @@ export const $JourneyFilters = z
     actions: z.optional(z.array(z.string()).min(1).max(4)),
     usdAmountGte: z.optional(z.number()),
     usdAmountLte: z.optional(z.number()),
+    sentAtGte: z.optional(z.number()),
+    sentAtLte: z.optional(z.number()),
   })
   .refine(
     (data) => {

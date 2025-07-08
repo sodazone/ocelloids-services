@@ -321,6 +321,14 @@ export class XcmRepository {
       ) as T
     }
 
+    if (filters?.sentAtGte) {
+      extendedQuery = extendedQuery.where(field('sent_at'), '>=', filters.sentAtGte) as T
+    }
+
+    if (filters?.sentAtLte) {
+      extendedQuery = extendedQuery.where(field('sent_at'), '<=', filters.sentAtLte) as T
+    }
+
     if (filters?.origins) {
       extendedQuery = extendedQuery.where(field('origin'), 'in', filters.origins) as T
     }

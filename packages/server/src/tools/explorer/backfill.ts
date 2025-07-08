@@ -5,7 +5,7 @@ import { XcmRepository } from '@/services/agents/xcm/explorer/repositories/journ
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { GenericXcmInboundWithContext } from '@/services/agents/xcm/types/messages.js'
 import { createSubstrateClient } from '@/services/networking/substrate/client.js'
-import { Block, extractEvents } from '@/services/networking/substrate/index.js'
+import { Block, extractEvents, getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { pino } from 'pino'
 import { Observable, concatMap, filter, from, map, takeWhile, timer } from 'rxjs'
@@ -75,6 +75,12 @@ function backfillBlocks$({ start, end }: { start: number; end: number }): Observ
   )
 }
 
+async function getTimestampFromHeight(height: number) {
+  const blockHash = await api.getBlockHash(height)
+  const block = await api.getBlock(blockHash)
+  return getTimestampFromBlock(block.extrinsics)
+}
+
 function getMessageId(instructions: any) {
   for (const instruction of instructions.value) {
     if (instruction.type === 'SetTopic') {
@@ -85,17 +91,33 @@ function getMessageId(instructions: any) {
 
 const filename = resolveDataPath('db.xcm-explorer.sqlite', dbPath)
 log.info('[xcm:explorer] database at %s', filename)
-log.info('[xcm:explorer] backfilling for status %s', statusList)
 
 const { db, migrator: _migrator } = createXcmDatabase(filename)
 const migrator = _migrator
 const repository = new XcmRepository(db)
 await migrator.migrateToLatest()
 
+const startTime = await getTimestampFromHeight(startBlock)
+const endTime = await getTimestampFromHeight(endBlock)
+
+if (startTime === undefined || endTime === undefined) {
+  log.error('Timestamps not found from blocks start=%s end=%s', startTime, endTime)
+  process.exit(1)
+}
+
+log.info(
+  '[xcm:explorer] backfilling for status %s from %s to %s',
+  statusList,
+  new Date(startTime).toISOString(),
+  new Date(endTime).toISOString(),
+)
+
 const { nodes } = await repository.listFullJourneys(
   {
     destinations: [chain],
     status: statusList,
+    sentAtGte: startTime,
+    sentAtLte: endTime,
   },
   {
     limit: 100,
@@ -108,6 +130,8 @@ const mappedNodes = nodes.map((journey) => ({
   destination: journey.destination,
   stops: journey.stops,
 }))
+
+log.info('[xcm:explorer] %s journeys found', mappedNodes.length)
 
 const METHODS_XCMP_QUEUE = ['Success', 'Fail']
 
@@ -205,6 +229,8 @@ backfillBlocks$({ start: startBlock, end: endBlock })
             stops: asJSON(found.stops),
           })
           log.info('Updated %s', found.id)
+        } else {
+          log.info('Journey not found (timestamp=%s)', msg.timestamp)
         }
       } catch (error) {
         log.error(error)
