@@ -173,6 +173,7 @@ export class XcmTransfersRepository {
   async totalTransfersByNetwork(criteria: TimeAndNetworkSelect) {
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
+    const unit = getUnit(criteria.bucket ?? '1 hours')
     const network = criteria.network
 
     const query = `
@@ -198,7 +199,7 @@ export class XcmTransfersRepository {
           AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_volume_usd
       FROM xcm_transfers
       WHERE (origin = '${network}' OR destination = '${network}')
-      AND sent_at > NOW() - INTERVAL '${interval}';
+      AND sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}');
     `.trim()
 
     const result = await this.#db.run(query)
