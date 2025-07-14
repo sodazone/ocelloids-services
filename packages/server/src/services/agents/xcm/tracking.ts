@@ -19,7 +19,7 @@ import { MatchingEngine } from './matching.js'
 import { mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { extractParachainReceive } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
-import { extractDmpSendByEvent } from './ops/dmp.js'
+import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getMessageId, matchExtrinsic } from './ops/util.js'
@@ -266,6 +266,23 @@ export class XcmTracker {
                     .blockEvents(chainId)
                     .pipe(
                       extractDmpSendByEvent(chainId, this.#getDmp(chainId, context), context),
+                      mapXcmSent(context, chainId),
+                    ),
+                ),
+              )
+              .subscribe(outboundObserver),
+          })
+
+          subs.push({
+            chainId,
+            sub: this.#ingress
+              .getContext(chainId)
+              .pipe(
+                switchMap((context) =>
+                  this.#shared
+                    .blockExtrinsics(chainId)
+                    .pipe(
+                      extractDmpSendByTx(chainId, this.#getDmp(chainId, context), context),
                       mapXcmSent(context, chainId),
                     ),
                 ),

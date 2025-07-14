@@ -1,12 +1,18 @@
-import { extractEvents } from '@/services/networking/substrate/index.js'
+import { extractEvents, extractTxWithEvents } from '@/services/networking/substrate/index.js'
 import {
   apiContext_xcmv2,
   dmpReceive,
   dmpXcmPalletSentEvent,
+  dmpXcmPalletSentTx,
   //xcmHop,
   //xcmHopOrigin,
 } from '@/testing/xcm.js'
-import { extractDmpReceive, extractDmpReceiveByBlock, extractDmpSendByEvent } from './dmp.js'
+import {
+  extractDmpReceive,
+  extractDmpReceiveByBlock,
+  extractDmpSendByEvent,
+  extractDmpSendByTx,
+} from './dmp.js'
 
 describe('dmp operator', () => {
   describe('extractDmpSendByEvent', () => {
@@ -14,6 +20,34 @@ describe('dmp operator', () => {
       const { origin, blocks, getDmp } = dmpXcmPalletSentEvent
       const calls = vi.fn()
       const test$ = extractDmpSendByEvent(origin, getDmp, apiContext_xcmv2)(blocks.pipe(extractEvents()))
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.instructions).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.recipient).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+  })
+
+  describe('extractDmpSend', () => {
+    it('should extract DMP sent message filtered by tx', async () => {
+      const { origin, blocks, getDmp } = dmpXcmPalletSentTx
+      const calls = vi.fn()
+      const test$ = extractDmpSendByTx(origin, getDmp, apiContext_xcmv2)(blocks.pipe(extractTxWithEvents()))
 
       await new Promise<void>((resolve) => {
         test$.subscribe({

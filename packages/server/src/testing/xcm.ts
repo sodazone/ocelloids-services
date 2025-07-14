@@ -88,6 +88,20 @@ export const dmpXcmPalletSentEvent = {
     ] as unknown as any),
 }
 
+export const dmpXcmPalletSentTx = {
+  origin: 'urn:ocn:local:0' as NetworkURN,
+  blocks: from(testBlocksFrom('polkadot/26781678.cbor')),
+  sendersControl: new ControlQuery(sendersCriteria('*')),
+  getDmp: () =>
+    of([
+      {
+        msg: Binary.fromHex(
+          '0x03140104000100000bcc614b5019030a13000100000bc6d109b48c01000d01020400010100988d262502e6b6324252899373211c442c396e686e3ced94cbaa0e5b0ff9ed1a2c61519fa7b9547c463dacf66216c2732ff543ee7a27e7e9e0d724ce357d2ef5f2',
+        ),
+      },
+    ] as unknown as any),
+}
+
 export const dmpReceive = {
   dmpByBock: from(testBlocksFrom('moonbeam/9166777.cbor')),
   successBlocks: from(testBlocksFrom('hydra/dmp-in_6258493.cbor')),

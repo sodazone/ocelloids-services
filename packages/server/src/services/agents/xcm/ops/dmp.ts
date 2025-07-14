@@ -1,8 +1,13 @@
-import { Observable, bufferCount, map, mergeMap } from 'rxjs'
+import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
-import { Block, BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import {
+  Block,
+  BlockEvent,
+  BlockExtrinsicWithEvents,
+  SubstrateApiContext,
+} from '@/services/networking/substrate/types.js'
 import { HexString, SignerData } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -12,10 +17,12 @@ import {
   GetDownwardMessageQueues,
   XcmInboundWithContext,
   XcmSentWithContext,
+  XcmVersionedInstructions,
 } from '../types/index.js'
 import {
   getMessageId,
   getSendersFromEvent,
+  getSendersFromExtrinsic,
   mapAssetsTrapped,
   matchEvent,
   matchExtrinsic,
@@ -143,6 +150,105 @@ function findDmpMessagesFromEvent(
           filterNonNull(),
         )
       }),
+    )
+  }
+}
+
+function findDmpMessagesFromTx(
+  getDmp: GetDownwardMessageQueues,
+  context: SubstrateApiContext,
+  origin: NetworkURN,
+) {
+  return (source: Observable<BlockExtrinsicWithEvents>): Observable<XcmSentWithContext> => {
+    return source.pipe(
+      map((tx) => {
+        const instructions = (tx.args.message as XcmVersionedInstructions).value
+        let recipientLoc
+        for (const instruction of instructions) {
+          if (instruction.type === 'DepositReserveAsset') {
+            const { dest } = instruction.value as any
+            recipientLoc = dest
+          } else if (instruction.type === 'InitiateReserveWithdraw') {
+            const { reserve } = instruction.value as any
+            recipientLoc = reserve
+          } else if (instruction.type === 'InitiateTeleport') {
+            const { dest } = instruction.value as any
+            recipientLoc = dest
+          } else if (instruction.type === 'TransferReserveAsset') {
+            const { dest } = instruction.value as any
+            recipientLoc = dest
+          }
+        }
+        const recipient = networkIdFromMultiLocation(recipientLoc, origin)
+
+        if (recipient) {
+          return {
+            tx,
+            recipient,
+          }
+        }
+
+        return null
+      }),
+      filterNonNull(),
+      mergeMap(({ tx, recipient }) => {
+        return getDmp(tx.blockHash as HexString, recipient).pipe(
+          mergeMap(async (messages) => {
+            const { blockHash, blockNumber, timestamp } = tx
+            if (messages.length === 1) {
+              const data = messages[0].msg.asBytes()
+              const program = asVersionedXcm(data, context)
+              return createXcmMessageSent({
+                blockHash,
+                blockNumber,
+                timestamp,
+                recipient,
+                data,
+                program,
+                sender: await getSendersFromExtrinsic(tx),
+              })
+            } else {
+              // Since we are matching by topic and it is assumed that the TopicId is unique
+              // we can break out of the loop on first matching message found.
+              for (const message of messages) {
+                const data = message.msg.asBytes()
+                const program = asVersionedXcm(data, context)
+                const messageId = getMessageId(program)
+                if (messageId && matchProgramByTopic(program, messageId)) {
+                  return createXcmMessageSent({
+                    blockHash,
+                    blockNumber,
+                    timestamp,
+                    recipient,
+                    data,
+                    program,
+                    sender: await getSendersFromExtrinsic(tx),
+                  })
+                }
+              }
+
+              return null
+            }
+          }),
+          filterNonNull(),
+        )
+      }),
+    )
+  }
+}
+
+// Needed for XcmPallet execute that doesn't emit events
+export function extractDmpSendByTx(
+  origin: NetworkURN,
+  getDmp: GetDownwardMessageQueues,
+  context: SubstrateApiContext,
+) {
+  return (source: Observable<BlockExtrinsicWithEvents>): Observable<XcmSentWithContext> => {
+    return source.pipe(
+      filter((tx) => {
+        return tx.dispatchError === undefined && matchExtrinsic(tx, 'XcmPallet', 'execute')
+      }),
+      findDmpMessagesFromTx(getDmp, context, origin),
     )
   }
 }
