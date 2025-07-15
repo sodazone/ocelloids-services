@@ -1,7 +1,7 @@
 import { SqliteError } from 'better-sqlite3'
 
 import { SimpleCache, createCache } from '@/common/cache.js'
-import { DeepCamelize, asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
+import { asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
@@ -19,6 +19,7 @@ import { createXcmDatabase } from './repositories/db.js'
 import { XcmRepository } from './repositories/journeys.js'
 import {
   FullXcmJourney,
+  FullXcmJourneyResponse,
   ListAsset,
   NewXcmAsset,
   NewXcmJourney,
@@ -292,7 +293,7 @@ export class XcmExplorer {
   async listJourneys(
     filters?: JourneyFilters,
     pagination?: QueryPagination,
-  ): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
+  ): Promise<QueryResult<FullXcmJourneyResponse>> {
     // convert address filters to public key for matching
     if (filters?.address) {
       filters.address = asPublicKey(filters.address)
@@ -305,7 +306,7 @@ export class XcmExplorer {
     }
   }
 
-  async getJourneyById({ id }: { id: string }): Promise<QueryResult<DeepCamelize<FullXcmJourney>>> {
+  async getJourneyById({ id }: { id: string }): Promise<QueryResult<FullXcmJourneyResponse>> {
     const journey = await this.#repository.getJourneyById(id)
     return journey ? { items: [deepCamelize<FullXcmJourney>(journey)] } : { items: [] }
   }
@@ -448,15 +449,15 @@ export class XcmExplorer {
     }
   }
 
-  #broadcastUpdateJourney(journey: DeepCamelize<FullXcmJourney>) {
+  #broadcastUpdateJourney(journey: FullXcmJourneyResponse) {
     this.#broadcastJourney('update_journey', journey)
   }
 
-  #broadcastNewJourney(journey: DeepCamelize<FullXcmJourney>) {
+  #broadcastNewJourney(journey: FullXcmJourneyResponse) {
     this.#broadcastJourney('new_journey', journey)
   }
 
-  #broadcastJourney(event: 'new_journey' | 'update_journey', data: DeepCamelize<FullXcmJourney>) {
+  #broadcastJourney(event: 'new_journey' | 'update_journey', data: FullXcmJourneyResponse) {
     if (shouldBroadcastJourney(data)) {
       this.#broadcaster.send({
         event,
