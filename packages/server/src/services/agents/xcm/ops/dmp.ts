@@ -154,6 +154,31 @@ function findDmpMessagesFromEvent(
   }
 }
 
+function findRecipientLocation(instructions: { type: string; value: any }[]): any {
+  for (const instruction of instructions) {
+    let dest
+
+    switch (instruction.type) {
+      case 'DepositReserveAsset':
+      case 'InitiateTeleport':
+      case 'TransferReserveAsset':
+        dest = instruction.value.dest
+        break
+      case 'InitiateReserveWithdraw':
+        dest = instruction.value.reserve
+        break
+      default:
+        continue
+    }
+
+    if (dest) {
+      return dest
+    }
+  }
+
+  return null
+}
+
 function findDmpMessagesFromTx(
   getDmp: GetDownwardMessageQueues,
   context: SubstrateApiContext,
@@ -163,22 +188,7 @@ function findDmpMessagesFromTx(
     return source.pipe(
       map((tx) => {
         const instructions = (tx.args.message as XcmVersionedInstructions).value
-        let recipientLoc
-        for (const instruction of instructions) {
-          if (instruction.type === 'DepositReserveAsset') {
-            const { dest } = instruction.value as any
-            recipientLoc = dest
-          } else if (instruction.type === 'InitiateReserveWithdraw') {
-            const { reserve } = instruction.value as any
-            recipientLoc = reserve
-          } else if (instruction.type === 'InitiateTeleport') {
-            const { dest } = instruction.value as any
-            recipientLoc = dest
-          } else if (instruction.type === 'TransferReserveAsset') {
-            const { dest } = instruction.value as any
-            recipientLoc = dest
-          }
-        }
+        const recipientLoc = findRecipientLocation(instructions)
         const recipient = networkIdFromMultiLocation(recipientLoc, origin)
 
         if (recipient) {
@@ -194,7 +204,8 @@ function findDmpMessagesFromTx(
       mergeMap(({ tx, recipient }) => {
         return getDmp(tx.blockHash as HexString, recipient).pipe(
           mergeMap(async (messages) => {
-            const { blockHash, blockNumber, timestamp } = tx
+            const { blockHash, blockNumber, blockPosition, timestamp, events } = tx
+            const xcmPalletAttemptedEvent = events.find((e) => matchEvent(e, 'XcmPallet', 'Attempted'))
             if (messages.length === 1) {
               const data = messages[0].msg.asBytes()
               const program = asVersionedXcm(data, context)
@@ -205,6 +216,10 @@ function findDmpMessagesFromTx(
                 recipient,
                 data,
                 program,
+                event:
+                  xcmPalletAttemptedEvent !== undefined
+                    ? { ...xcmPalletAttemptedEvent, extrinsic: tx, extrinsicPosition: blockPosition }
+                    : undefined,
                 sender: await getSendersFromExtrinsic(tx),
               })
             } else {
@@ -222,6 +237,10 @@ function findDmpMessagesFromTx(
                     recipient,
                     data,
                     program,
+                    event:
+                      xcmPalletAttemptedEvent !== undefined
+                        ? { ...xcmPalletAttemptedEvent, extrinsic: tx, extrinsicPosition: blockPosition }
+                        : undefined,
                     sender: await getSendersFromExtrinsic(tx),
                   })
                 }

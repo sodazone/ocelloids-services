@@ -1,10 +1,11 @@
 import { NetworkURN } from '@/lib.js'
-import { extractEvents } from '@/services/networking/substrate/index.js'
+import { extractEvents, extractTxWithEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
 import { Binary } from 'polkadot-api'
-import { from } from 'rxjs'
+import { from, of } from 'rxjs'
 import { mapXcmSent } from './ops/common.js'
+import { extractDmpSendByTx } from './ops/dmp.js'
 import { extractXcmpSend } from './ops/xcmp.js'
 import { extractXcmMessageData } from './tracking.js'
 
@@ -132,6 +133,50 @@ describe('extractXcmMessageData', () => {
         },
         complete: () => {
           // should be 1 since we don't want dups
+          expect(calls).toHaveBeenCalledTimes(1)
+          resolve()
+        },
+      })
+    })
+  })
+
+  it('should emit outbound for Polkadot with ExchangeAsset', async () => {
+    const origin = 'urn:ocn:local:0' as NetworkURN
+    const blocks = from(testBlocksFrom('polkadot/26879273.cbor'))
+    const getDmp = () =>
+      of([
+        {
+          msg: Binary.fromHex(
+            '0x031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+          ),
+        },
+      ] as unknown as any)
+
+    const test$ = blocks.pipe(
+      extractTxWithEvents(),
+      extractDmpSendByTx(origin, getDmp, apiContext),
+      mapXcmSent(apiContext, origin),
+    )
+    const calls = vi.fn()
+    await new Promise<void>((resolve) => {
+      test$.subscribe({
+        next: (msg) => {
+          calls()
+          expect(msg).toBeDefined()
+          expect(msg.legs.length).toBe(2)
+          expect(msg.legs[0].to).toBe('urn:ocn:local:1000')
+          expect(msg.legs[0].type).toBe('hop')
+          expect(msg.origin.blockNumber).toBeDefined()
+          expect(msg.origin.blockHash).toBeDefined()
+          expect(msg.origin.instructions).toBeDefined()
+          expect(msg.origin.messageData).toBeDefined()
+          expect(msg.origin.messageHash).toBeDefined()
+          expect(msg.destination.chainId).toBeDefined()
+          expect(msg.destination.chainId).toBe('urn:ocn:local:2030')
+          expect(msg.origin.timestamp).toBeDefined()
+          expect(msg.sender?.signer.id).toBeDefined()
+        },
+        complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
           resolve()
         },

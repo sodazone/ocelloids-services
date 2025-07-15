@@ -102,6 +102,20 @@ export const dmpXcmPalletSentTx = {
     ] as unknown as any),
 }
 
+export const dmpXcmPalletSentTxWithExchangeAsset = {
+  origin: 'urn:ocn:local:0' as NetworkURN,
+  blocks: from(testBlocksFrom('polkadot/26879273.cbor')),
+  sendersControl: new ControlQuery(sendersCriteria('*')),
+  getDmp: () =>
+    of([
+      {
+        msg: Binary.fromHex(
+          '0x031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        ),
+      },
+    ] as unknown as any),
+}
+
 export const dmpReceive = {
   dmpByBock: from(testBlocksFrom('moonbeam/9166777.cbor')),
   successBlocks: from(testBlocksFrom('hydra/dmp-in_6258493.cbor')),

@@ -4,6 +4,7 @@ import {
   dmpReceive,
   dmpXcmPalletSentEvent,
   dmpXcmPalletSentTx,
+  dmpXcmPalletSentTxWithExchangeAsset,
   //xcmHop,
   //xcmHopOrigin,
 } from '@/testing/xcm.js'
@@ -43,7 +44,7 @@ describe('dmp operator', () => {
     })
   })
 
-  describe('extractDmpSend', () => {
+  describe('extractDmpSendByTx', () => {
     it('should extract DMP sent message filtered by tx', async () => {
       const { origin, blocks, getDmp } = dmpXcmPalletSentTx
       const calls = vi.fn()
@@ -61,6 +62,36 @@ describe('dmp operator', () => {
             expect(msg.messageHash).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.timestamp).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.sender?.signer.id).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should extract DMP sent message filtered by tx with ExchangeAsset', async () => {
+      const { origin, blocks, getDmp } = dmpXcmPalletSentTxWithExchangeAsset
+      const calls = vi.fn()
+      const test$ = extractDmpSendByTx(origin, getDmp, apiContext_xcmv2)(blocks.pipe(extractTxWithEvents()))
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.instructions).toBeDefined()
+            expect(msg.messageDataBuffer).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.recipient).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.sender?.signer.id).toBeDefined()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
