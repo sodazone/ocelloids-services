@@ -2,6 +2,7 @@ import {
   EMPTY,
   Observable,
   catchError,
+  defer,
   from,
   lastValueFrom,
   map,
@@ -21,6 +22,7 @@ import { NetworkURN, Services } from '@/services/types.js'
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { SubstrateNetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
+import { backfillBlocks$, getBackfillRangesSync, loadGapsFileSync } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
 /**
@@ -45,6 +47,12 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     this.#apis = connector.connect('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
+  }
+
+  start() {
+    super.start()
+
+    loadGapsFileSync(process.env.OC_SUBSTRATE_BACKFILL_FILE)
   }
 
   /**
@@ -90,29 +98,37 @@ export class SubstrateWatcher extends Watcher<Block> {
    */
   finalizedBlocks(chainId: NetworkURN): Observable<Block> {
     const cachedFinalized$ = this.#finalized$[chainId]
-
     if (cachedFinalized$) {
       this.log.debug('[%s] returning cached finalized stream', chainId)
       return cachedFinalized$
     }
 
-    const finalized$ = from(this.getApi(chainId)).pipe(
+    const api$ = from(this.getApi(chainId))
+
+    const backfill$ = defer(() => {
+      const range = getBackfillRangesSync(chainId)
+      if (range === null) {
+        return EMPTY
+      }
+      return backfillBlocks$(this.log, { api$, chainId, start: range[0], end: range[1] })
+    })
+
+    const finalized$ = api$.pipe(
       switchMap((api) => {
-        // Recovery always starts, but stops if shutdown$ emits
         const recovery$ = from(this.recoverRanges(chainId)).pipe(
           this.recoverBlockRanges(chainId, api),
           takeUntil(shutdown$),
         )
 
-        return api.followHeads$('finalized').pipe(
+        const liveFinalized$ = api.followHeads$('finalized').pipe(
           mergeWith(recovery$),
           this.tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
-          takeUntil(shutdown$), // on shutdown
+          takeUntil(shutdown$),
           mergeMap(({ hash, status }) =>
             from(api.getBlock(hash)).pipe(
-              map((block) => Object.assign({ status }, block)),
+              map((block) => ({ status, ...block })),
               catchError((error) => {
                 this.log.error(error, 'error fetching block %s (%s)', hash, status)
                 return EMPTY
@@ -122,6 +138,8 @@ export class SubstrateWatcher extends Watcher<Block> {
           this.tapError(chainId, 'blockFromHeader()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
         )
+
+        return backfill$.pipe(mergeWith(liveFinalized$))
       }),
       share(),
     )
