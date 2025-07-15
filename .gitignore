@@ -5,6 +5,7 @@ deno_dist/
 docs/
 db*/
 .db*/
+*.session.sql
 .clinic/
 chain-specs/
 **/.yarn/cache
@@ -14,3 +15,4 @@ chain-specs/
 .npmrc
 tsconfig*buildinfo
 .env
+settings.json
