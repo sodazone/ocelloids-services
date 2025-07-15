@@ -191,6 +191,18 @@ function toNewAssets(assets: XcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
   }))
 }
 
+const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
+const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
+function shouldBroadcastJourney({ sentAt, recvAt }: { sentAt?: number; recvAt?: number }): boolean {
+  if (hasBackfilling) {
+    const timeAgo = Date.now() - BACKFILL_MIN_TIME_AGO_MILLIS
+    const isRecent =
+      (sentAt !== undefined && sentAt >= timeAgo) || (recvAt !== undefined && recvAt >= timeAgo)
+    return isRecent
+  }
+  return true
+}
+
 export class XcmExplorer {
   readonly #log: Logger
   readonly #humanizer: XcmHumanizer
@@ -325,10 +337,7 @@ export class XcmExplorer {
           const assets = toNewAssets(humanizedXcm.humanized.assets)
           try {
             const id = await this.#repository.insertJourneyWithAssets(journey, assets)
-            this.#broadcaster.send({
-              event: 'new_journey',
-              data: asNewJourneyObject(journey, assets, id),
-            })
+            this.#broadcastNewJourney(asNewJourneyObject(journey, assets, id))
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
               this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
@@ -353,10 +362,7 @@ export class XcmExplorer {
             await this.#repository.updateJourney(existingJourney.id, updateWith)
             const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {
-              this.#broadcaster.send({
-                event: 'update_journey',
-                data: items[0],
-              })
+              this.#broadcastUpdateJourney(items[0])
             }
             break
           }
@@ -395,10 +401,7 @@ export class XcmExplorer {
           const assets = toNewAssets(humanizedXcm.humanized.assets)
           try {
             const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
-            this.#broadcaster.send({
-              event: 'new_journey',
-              data: asNewJourneyObject(newJourney, assets, id),
-            })
+            this.#broadcastNewJourney(asNewJourneyObject(newJourney, assets, id))
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
               this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
@@ -432,10 +435,7 @@ export class XcmExplorer {
           await this.#repository.updateJourney(existingJourney.id, updateWith)
           const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {
-            this.#broadcaster.send({
-              event: 'update_journey',
-              data: items[0],
-            })
+            this.#broadcastUpdateJourney(items[0])
           }
           break
         }
@@ -445,6 +445,23 @@ export class XcmExplorer {
       }
     } catch (error) {
       this.#log.error(error, 'Error processing XCM message %j', asJSON(message))
+    }
+  }
+
+  #broadcastUpdateJourney(journey: DeepCamelize<FullXcmJourney>) {
+    this.#broadcastJourney('update_journey', journey)
+  }
+
+  #broadcastNewJourney(journey: DeepCamelize<FullXcmJourney>) {
+    this.#broadcastJourney('new_journey', journey)
+  }
+
+  #broadcastJourney(event: 'new_journey' | 'update_journey', data: DeepCamelize<FullXcmJourney>) {
+    if (shouldBroadcastJourney(data)) {
+      this.#broadcaster.send({
+        event,
+        data,
+      })
     }
   }
 }
