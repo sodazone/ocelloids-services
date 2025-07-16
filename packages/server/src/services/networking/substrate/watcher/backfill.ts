@@ -20,7 +20,7 @@ export function backfillBlocks$(
     start,
     end,
     chainId,
-  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number; },
+  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number },
 ): Observable<Block> {
   const total = end - start + 1
   let count = 0

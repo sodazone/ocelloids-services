@@ -5,6 +5,7 @@ import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import {
   Block,
+  BlockContext,
   BlockEvent,
   Event,
   EventRecord,
@@ -35,6 +36,29 @@ import { raw, versionedXcmCodec } from './xcm-format.js'
 import { METHODS_XCMP_QUEUE } from './xcmp.js'
 
 type Stop = { networkId: NetworkURN; message?: any[] }
+
+const swapMapping: Record<
+  NetworkURN,
+  { match: (event: Event) => boolean; transform: (event: BlockEvent) => AssetSwap }
+> = {
+  'urn:ocn:polkadot:1000': {
+    match: (event: Event) => matchEvent(event, 'AssetConversion', 'SwapCreditExecuted'),
+    transform: (event: BlockEvent): AssetSwap => {
+      const { amount_in, amount_out, path } = event.value
+      return {
+        assetIn: {
+          amount: amount_in,
+          location: path[0][0],
+        },
+        assetOut: {
+          amount: amount_out,
+          location: path[path.length - 1][0],
+        },
+        event,
+      } as AssetSwap
+    },
+  },
+}
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
@@ -276,29 +300,6 @@ export function extractParachainReceive() {
   }
 }
 
-const swapMapping: Record<
-  NetworkURN,
-  { match: (event: Event) => boolean; transform: (event: BlockEvent) => AssetSwap }
-> = {
-  'urn:ocn:polkadot:1000': {
-    match: (event: Event) => matchEvent(event, 'AssetConversion', 'SwapCreditExecuted'),
-    transform: (event: BlockEvent): AssetSwap => {
-      const { amount_in, amount_out, path } = event.value
-      return {
-        assetIn: {
-          amount: amount_in,
-          location: path[0][0],
-        },
-        assetOut: {
-          amount: amount_out,
-          location: path[path.length - 1][0],
-        },
-        event,
-      } as AssetSwap
-    },
-  },
-}
-
 function extractAssetContext({
   chainId,
   prevEvents,
@@ -317,13 +318,12 @@ function extractAssetContext({
   assetsTrapped?: AssetsTrapped
   assetSwaps: AssetSwap[]
 } {
-  const maybeAssetTrapEvent: BlockEvent = {
-    ...prevEvents[prevEvents.length - 1].event,
+  const maybeAssetTrapEvent: BlockEvent = toBlockEvent(prevEvents[prevEvents.length - 1].event, {
     blockNumber,
     blockHash,
     blockPosition: prevEvents[prevEvents.length - 1].index,
     timestamp,
-  }
+  })
 
   const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
     ? maybeAssetTrapEvent
@@ -338,13 +338,9 @@ function extractAssetContext({
       .reverse()
       .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
       .map((record) =>
-        mapping.transform({
-          ...record.event,
-          blockNumber,
-          blockHash,
-          blockPosition: record.index,
-          timestamp,
-        }),
+        mapping.transform(
+          toBlockEvent(record.event, { blockNumber, blockHash, blockPosition: record.index, timestamp }),
+        ),
       )
   }
 
@@ -375,7 +371,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
             pointer = i
             parachainReceived.push(
               new GenericXcmInboundWithContext({
-                event: event,
+                event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
                 blockHash: blockHash as HexString,
                 blockNumber: blockNumber,
                 timestamp: timestamp,
@@ -407,7 +403,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
 
             parachainReceived.push(
               new GenericXcmInboundWithContext({
-                event,
+                event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
                 blockHash: blockHash as HexString,
                 blockNumber: blockNumber,
                 timestamp: timestamp,
@@ -440,7 +436,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
 
             parachainReceived.push(
               new GenericXcmInboundWithContext({
-                event,
+                event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
                 blockHash: blockHash as HexString,
                 blockNumber: blockNumber,
                 timestamp: timestamp,
@@ -457,5 +453,18 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
         return parachainReceived
       }),
     )
+  }
+}
+
+function toBlockEvent(
+  event: Event,
+  { blockHash, blockNumber, blockPosition, timestamp }: BlockContext,
+): BlockEvent {
+  return {
+    ...event,
+    blockNumber,
+    blockHash,
+    blockPosition,
+    timestamp,
   }
 }
