@@ -232,6 +232,7 @@ export function matchProgramByTopic({ instructions }: Program, topicId: HexStrin
       throw new Error('Not able to match by topic for XCM V2 program.')
     case 'V3':
     case 'V4':
+    case 'V5':
       for (const instruction of instructions.value) {
         if (instruction.type === 'SetTopic') {
           return instruction.value === topicId
