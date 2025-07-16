@@ -2,6 +2,16 @@ import { DeepCamelize } from '@/common/util.js'
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
 import { HumanizedTransactCall } from '../../humanize/types.js'
 
+export type XcmAssetRole =
+  | 'transfer'
+  | 'swap_in'
+  | 'swap_out'
+  | 'fee'
+  | 'trapped'
+  | 'refunded'
+  | 'intermediate'
+  | null
+
 export interface XcmJourneyTable {
   id: Generated<number>
   correlation_id: ColumnType<string>
@@ -35,6 +45,8 @@ export interface XcmAssetTable {
   amount: ColumnType<string>
   decimals: ColumnType<number | undefined>
   usd: ColumnType<number | undefined>
+  role: ColumnType<XcmAssetRole | undefined>
+  sequence: ColumnType<number | undefined>
 }
 
 export type XcmAsset = Selectable<XcmAssetTable>
@@ -61,4 +73,11 @@ export type FullXcmJourneyResponse = DeepCamelize<FullXcmJourney>
 export type ListAsset = {
   asset: string
   symbol?: string | undefined
+}
+
+export type XcmAssetKey = {
+  journeyId: number
+  assetId: string
+  role?: XcmAssetRole
+  sequence?: number
 }

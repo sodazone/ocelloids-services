@@ -39,6 +39,8 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('amount', 'bigint', (cb) => cb.notNull())
       .addColumn('decimals', 'integer')
       .addColumn('usd', 'decimal')
+      .addColumn('role', 'varchar(20)')
+      .addColumn('sequence', 'integer')
       .execute()
 
     // Create indexes

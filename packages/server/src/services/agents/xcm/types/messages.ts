@@ -45,6 +45,22 @@ export type AssetsTrapped = {
   event: AnyJson
 }
 
+export type SwappedAsset = {
+  location: AnyJson
+  amount: string | number
+}
+
+/**
+ * Emitted when assets are swapped with ExchangeAsset instruction.
+ *
+ * @public
+ */
+export type AssetSwap = {
+  assetIn: SwappedAsset
+  assetOut: SwappedAsset
+  event: AnyJson
+}
+
 /**
  * Represents an XCM program bytes and human JSON.
  */
@@ -79,6 +95,7 @@ export interface XcmInboundWithContext extends XcmWithContext {
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
+  assetSwaps?: AssetSwap[]
 }
 
 export interface XcmBridgeInboundWithContext extends XcmInboundWithContext {
@@ -159,6 +176,7 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
+  assetSwaps?: AssetSwap[]
 
   constructor(msg: XcmInboundWithContext) {
     super(msg)
@@ -166,6 +184,7 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
+    this.assetSwaps = msg.assetSwaps
   }
 }
 
@@ -284,6 +303,7 @@ export interface XcmTerminusContext extends XcmWithContext, XcmTerminus {
 export interface XcmWaypointContext extends XcmTerminusContext {
   legIndex: number
   assetsTrapped?: AnyJson
+  assetSwaps?: AssetSwap[]
 }
 
 const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
@@ -377,6 +397,7 @@ export class XcmInbound extends BaseXcmEvent {
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
+  assetSwaps?: AssetSwap[]
 
   constructor(chainId: NetworkURN, msg: XcmInboundWithContext) {
     super(msg)
@@ -385,6 +406,7 @@ export class XcmInbound extends BaseXcmEvent {
     this.outcome = msg.outcome
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
+    this.assetSwaps = msg.assetSwaps
   }
 }
 
@@ -489,6 +511,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
       assetsTrapped: inMsg.assetsTrapped,
+      assetSwaps: inMsg.assetSwaps,
     }
   }
 }

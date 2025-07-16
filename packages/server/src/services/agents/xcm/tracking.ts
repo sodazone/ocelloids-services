@@ -5,7 +5,6 @@ import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxj
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { extractEvents } from '@/services/networking/substrate/rx/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
@@ -16,8 +15,7 @@ import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
-import { mapXcmInbound, mapXcmSent } from './ops/common.js'
-import { extractParachainReceive } from './ops/common.js'
+import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
 import { extractRelayReceive } from './ops/relay.js'
@@ -211,7 +209,7 @@ export class XcmTracker {
           subs.push({
             chainId,
             sub: messageHashBlocks$
-              .pipe(extractEvents(), extractParachainReceive(), mapXcmInbound(chainId))
+              .pipe(extractParachainReceiveByBlock(chainId), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
         }

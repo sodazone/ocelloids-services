@@ -1,4 +1,5 @@
 import { AnyJson } from '@/lib.js'
+import { XcmAssetRole } from '../explorer/repositories/types.js'
 
 export type XcmV3MultiLocation = AnyJson
 
@@ -10,11 +11,15 @@ export type XcmAssetWithMetadata = {
   symbol?: string
   amount: bigint
   decimals?: number
+  role?: XcmAssetRole
+  sequence?: number
 }
 
 export type QueryableXcmAsset = {
   location: string
   amount: bigint
+  role?: XcmAssetRole
+  sequence?: number
 }
 
 type Concrete = {
@@ -33,6 +38,46 @@ export interface MultiAsset {
     value: string
   }
 }
+
+type DefiniteMultiAssetFilter = {
+  type: 'Definite'
+  value: MultiAsset[]
+}
+
+type WildMultiAsset =
+  | {
+      type: 'All'
+    }
+  | {
+      type: 'AllOf'
+      value: {
+        id: Concrete | Abstract
+        fun: {
+          type: string
+        }
+      }
+    }
+  | {
+      type: 'AllCounted'
+      value: string
+    }
+  | {
+      type: 'AllOfCounted'
+      value: {
+        id: Concrete | Abstract
+        fun: {
+          type: string
+        }
+        count: string
+      }
+    }
+
+type WildMultiAssetFilter = {
+  type: 'Wild'
+  value: WildMultiAsset
+}
+
+export type MultiAssetFilter = WildMultiAssetFilter | DefiniteMultiAssetFilter
 
 type InitiateReserveWithdraw = {
   assets: MultiAsset[]
@@ -59,6 +104,12 @@ export type ExportMessage = {
   network?: { type: string; value: AnyJson }
   destination?: { type: string; value: AnyJson }
   xcm: XcmInstruction[]
+}
+
+export type ExchangeAsset = {
+  give: MultiAssetFilter
+  want: MultiAsset[]
+  maximal: boolean
 }
 
 export type Transact = {
@@ -113,6 +164,7 @@ export enum XcmJourneyType {
   Teleport = 'teleport',
   Transact = 'transact',
   QueryResponse = 'queryResponse',
+  Swap = 'swap',
   Unknown = '??',
 }
 

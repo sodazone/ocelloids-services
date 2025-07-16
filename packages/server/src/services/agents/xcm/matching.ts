@@ -949,7 +949,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   #onXcmHopOut(originMsg: XcmSent, hopMsg: XcmSent) {
     try {
       const { chainId, blockHash, blockNumber, event, outcome, error } = hopMsg.origin
-      const { instructions, messageData, messageHash, assetsTrapped, timestamp } = hopMsg.waypoint
+      const { instructions, messageData, messageHash, assetsTrapped, assetSwaps, timestamp } = hopMsg.waypoint
       const currentLeg = hopMsg.legs[0]
       const legIndex = originMsg.legs.findIndex((l) => l.from === currentLeg.from && l.to === currentLeg.to)
       const waypointContext: XcmWaypointContext = {
@@ -965,6 +965,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         messageHash,
         instructions,
         assetsTrapped,
+        assetSwaps,
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out')
 
@@ -985,7 +986,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
 
     try {
-      const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped, timestamp } = hopMsg
+      const { chainId, blockHash, blockNumber, event, outcome, error, assetsTrapped, assetSwaps, timestamp } =
+        hopMsg
       const { messageData, messageHash, instructions } = originMsg.waypoint
       const legIndex = originMsg.legs.findIndex((l) => l.to === chainId)
       const waypointContext: XcmWaypointContext = {
@@ -1001,6 +1003,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         messageHash,
         instructions,
         assetsTrapped,
+        assetSwaps,
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in')
 

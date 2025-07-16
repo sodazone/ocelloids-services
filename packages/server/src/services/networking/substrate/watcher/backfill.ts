@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { Observable, from, range } from 'rxjs'
-import { map, mergeMap, switchMap, tap } from 'rxjs/operators'
+import { concatMap, map, switchMap, tap } from 'rxjs/operators'
 
 import { Logger } from '@/services/types.js'
 import { BlockStatus } from '../../types.js'
@@ -20,39 +20,36 @@ export function backfillBlocks$(
     start,
     end,
     chainId,
-    concurrency = 4,
-  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number; concurrency?: number },
+  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number; },
 ): Observable<Block> {
   const total = end - start + 1
   let count = 0
 
-  log.info('[%s] backfilling stream %s-%s (c:%s)', chainId, start, end, concurrency)
+  log.info('[%s] backfilling stream %s-%s', chainId, start, end)
 
   return api$.pipe(
     switchMap((api) =>
       range(start, total).pipe(
-        mergeMap(
-          (blockNumber) =>
-            from(api.getBlockHash(blockNumber)).pipe(
-              mergeMap((hash) =>
-                from(api.getBlock(hash)).pipe(
-                  map(
-                    (block): Block => ({
-                      status: 'finalized' as BlockStatus,
-                      ...block,
-                    }),
-                  ),
+        concatMap((blockNumber) =>
+          from(api.getBlockHash(blockNumber)).pipe(
+            concatMap((hash) =>
+              from(api.getBlock(hash)).pipe(
+                map(
+                  (block): Block => ({
+                    status: 'finalized' as BlockStatus,
+                    ...block,
+                  }),
                 ),
               ),
-              tap(() => {
-                count++
-                if (count % 10 === 0 || count === total) {
-                  const pct = ((count / total) * 100).toFixed(1)
-                  log.info('[%s] backfilling block %s (%s/%s, %s%)', chainId, blockNumber, count, total, pct)
-                }
-              }),
             ),
-          concurrency,
+            tap(() => {
+              count++
+              if (count % 10 === 0 || count === total) {
+                const pct = ((count / total) * 100).toFixed(1)
+                log.info('[%s] backfilling block %s (%s/%s, %s%)', chainId, blockNumber, count, total, pct)
+              }
+            }),
+          ),
         ),
       ),
     ),

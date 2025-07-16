@@ -14,9 +14,10 @@ import { AssetMetadata, Empty, StewardQueryArgs } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
 import { getParaIdFromJunctions } from '../ops/util.js'
-import { HumanizedXcmPayload, Leg, XcmMessagePayload } from '../types/index.js'
+import { AssetSwap, AssetsTrapped, HumanizedXcmPayload, XcmMessagePayload } from '../types/index.js'
 import {
   DepositAsset,
+  ExchangeAsset,
   ExportMessage,
   HopTransfer,
   HumanizedAddresses,
@@ -28,9 +29,9 @@ import {
   XcmAssetWithMetadata,
   XcmInstruction,
   XcmVersionedInstructions,
-  isConcrete,
 } from './types.js'
 import { HumanizedXcm, XcmJourneyType } from './types.js'
+import { extractMultiAssetFilterAssets, parseMultiAsset, stringifyMultilocation } from './utils.js'
 
 const DEFAULT_SS58_PREFIX = 42
 const SS58_PREFIX_OVERRIDES: Record<NetworkURN, number> = {
@@ -94,7 +95,7 @@ export class XcmHumanizer {
 
     items.forEach(({ ss58Prefix, urn }) => {
       const prefix =
-        ss58Prefix === undefined || ss58Prefix === null ? this.resolveFallbackPrefix(urn, items) : ss58Prefix
+        ss58Prefix === undefined || ss58Prefix === null ? this.#resolveFallbackPrefix(urn, items) : ss58Prefix
       this.#ss58Cache.set(urn, prefix)
     })
   }
@@ -107,38 +108,169 @@ export class XcmHumanizer {
   }
 
   async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
-    const { sender, origin, destination, legs } = message
-    const versioned = origin.instructions as XcmVersionedInstructions
+    const { sender, origin, destination, legs, waypoint } = message
+    const { assetSwaps, assetsTrapped } = waypoint
+    const versioned = waypoint.instructions as XcmVersionedInstructions
     const version = versioned.type
     const instructions = versioned.value
-    const type = this.determineJourneyType(instructions)
-    const beneficiary = this.extractBeneficiary(instructions, destination.chainId)
-    const transactCalls = await this.extractTransactCall(instructions, destination.chainId)
+    const type = this.#determineJourneyType(instructions)
+    const beneficiary = this.#extractBeneficiary(instructions, destination.chainId)
+    const transactCalls = await this.#extractTransactCall(instructions, destination.chainId)
 
-    const from = await this.toAddresses(origin.chainId, sender?.signer?.publicKey)
-    const to = await this.toAddresses(destination.chainId, beneficiary)
-    const exportMessage = this.findExportMessage(instructions)
+    const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
+    const to = await this.#toAddresses(destination.chainId, beneficiary)
+    const exportMessage = this.#findExportMessage(instructions)
     if (exportMessage) {
-      return this.handleBridgeMessage(exportMessage, type, from, to, version)
+      return this.#handleBridgeMessage(exportMessage, type, from, to, version)
     }
 
-    const assets = this.extractAssets(instructions)
+    const assets = this.#extractAssetsFromTransfer(instructions)
     const resolvedAssets =
-      assets.length > 0 ? await this.resolveAssets(legs, destination.chainId, assets) : []
+      assets.length > 0
+        ? await this.#resolveAssets(legs.length === 1 ? destination.chainId : legs[0]?.to, assets)
+        : []
+
+    // Assumption: Swap instruction is on the top level
+    // TODO: recursive extract of exchange instructions
+    // will need to correlate the swap location to assetSwap waypoint location
+    if (type === XcmJourneyType.Swap) {
+      const swapAssetsFromInstructions = this.#extractExchangeAssets(instructions)
+      let swappedAssets: QueryableXcmAsset[] = []
+      if (assetSwaps !== undefined && assetSwaps.length > 0) {
+        swappedAssets = this.#mapSwappedValue(swapAssetsFromInstructions, assetSwaps)
+      } else {
+        swappedAssets = swapAssetsFromInstructions
+      }
+      if (swappedAssets.length > 0) {
+        // TODO: anchor should be the network where swap is done
+        // current implementation won't work for nested ExchangeAsset instructions
+        resolvedAssets.push(
+          ...(await this.#resolveAssets(
+            legs.length === 1 ? destination.chainId : legs[0]?.to,
+            swappedAssets,
+          )),
+        )
+      }
+    }
+
+    if (assetsTrapped !== undefined && assetsTrapped !== null) {
+      const trapped = this.#extractTrappedAssets(assetsTrapped as AssetsTrapped)
+      if (trapped.length > 0) {
+        resolvedAssets.push(...(await this.#resolveAssets(waypoint.chainId, trapped)))
+      }
+    }
 
     return { type, from, to, assets: resolvedAssets, version, transactCalls }
   }
 
-  private async resolveAssets(
-    legs: Leg[],
-    destinationChainId: NetworkURN,
-    assets: QueryableXcmAsset[],
-  ): Promise<XcmAsset[]> {
-    const anchor = legs.length === 1 ? destinationChainId : legs[0]?.to
-    if (!anchor) {
-      return []
+  #extractTrappedAssets(assetsTrapped: AssetsTrapped): QueryableXcmAsset[] {
+    const trappedQueryableAssets: QueryableXcmAsset[] = []
+
+    for (const asset of assetsTrapped.assets) {
+      if (asset.fungible && asset.id?.type === 'Concrete') {
+        trappedQueryableAssets.push({
+          location: stringifyMultilocation(asset.id.value),
+          amount: BigInt(asset.amount),
+          role: 'trapped',
+        })
+      }
     }
-    const resolved = await this.resolveAssetsMetadata(anchor, assets)
+    return trappedQueryableAssets
+  }
+
+  #mapSwappedValue(
+    swapAssetsFromInstructions: QueryableXcmAsset[],
+    assetSwaps: AssetSwap[],
+  ): QueryableXcmAsset[] {
+    const swappedAssets: QueryableXcmAsset[] = []
+
+    // Group assets by sequence into pairs
+    const groupedBySequence = new Map<number, { swap_in?: QueryableXcmAsset; swap_out?: QueryableXcmAsset }>()
+    for (const asset of swapAssetsFromInstructions) {
+      if (asset.sequence !== undefined) {
+        if (!groupedBySequence.has(asset.sequence)) {
+          groupedBySequence.set(asset.sequence, {})
+        }
+        const pair = groupedBySequence.get(asset.sequence)!
+        if (asset.role === 'swap_in') {
+          pair.swap_in = asset
+        } else if (asset.role === 'swap_out') {
+          pair.swap_out = asset
+        }
+      } else {
+        // Keep assets without sequence (e.g. 'transfer') as-is
+        swappedAssets.push(asset)
+      }
+    }
+
+    for (const pair of groupedBySequence.values()) {
+      const { swap_in, swap_out } = pair
+      if (!swap_in || !swap_out) {
+        // Incomplete pair, push original (fallback)
+        if (swap_in) {
+          swappedAssets.push(swap_in)
+        }
+        if (swap_out) {
+          swappedAssets.push(swap_out)
+        }
+        continue
+      }
+
+      // Try to match this pair against a real swap
+      const match = assetSwaps?.find(
+        (swap) =>
+          stringifyMultilocation(swap.assetIn.location) === swap_in.location &&
+          stringifyMultilocation(swap.assetOut.location) === swap_out.location,
+      )
+
+      if (match) {
+        swappedAssets.push({
+          ...swap_in,
+          amount: BigInt(match.assetIn.amount),
+        })
+        swappedAssets.push({
+          ...swap_out,
+          amount: BigInt(match.assetOut.amount),
+        })
+      } else {
+        // No match found, fallback to original
+        swappedAssets.push(swap_in)
+        swappedAssets.push(swap_out)
+      }
+    }
+    return swappedAssets
+  }
+
+  #extractExchangeAssets(instructions: XcmInstruction[]): QueryableXcmAsset[] {
+    const exchangeAssetInstructions = this.#findExchangeAssets(instructions)
+
+    if (exchangeAssetInstructions.length === 0) {
+      throw new Error('No ExchangeAsset instruction found in swap journey')
+    }
+
+    const transferredAssets = this.#extractAssetsFromTransfer(instructions)
+    const assets: QueryableXcmAsset[] = []
+
+    for (const [i, instruction] of exchangeAssetInstructions.entries()) {
+      const { give, want } = instruction.value as unknown as ExchangeAsset
+
+      assets.push(
+        ...extractMultiAssetFilterAssets(give, transferredAssets).map(
+          (a) => ({ ...a, role: 'swap_in', sequence: i }) as QueryableXcmAsset,
+        ),
+      )
+      assets.push(
+        ...parseMultiAsset(want as MultiAsset[]).map(
+          (a) => ({ ...a, role: 'swap_out', sequence: i }) as QueryableXcmAsset,
+        ),
+      )
+    }
+
+    return assets
+  }
+
+  async #resolveAssets(anchor: NetworkURN, assets: QueryableXcmAsset[]): Promise<XcmAsset[]> {
+    const resolved = await this.#resolveAssetsMetadata(anchor, assets)
     return Promise.all(
       resolved.map(async (asset) => ({
         ...asset,
@@ -147,7 +279,7 @@ export class XcmHumanizer {
     )
   }
 
-  private async resolveAssetsMetadata(
+  async #resolveAssetsMetadata(
     anchor: NetworkURN,
     assets: QueryableXcmAsset[],
   ): Promise<XcmAssetWithMetadata[]> {
@@ -155,12 +287,12 @@ export class XcmHumanizer {
       return []
     }
 
-    const partiallyResolved = this.getCachedAssets(anchor, assets)
+    const partiallyResolved = this.#getCachedAssets(anchor, assets)
     const assetsToResolve = assets.filter((_, index) => partiallyResolved[index] === undefined)
     const resolvedAssets = partiallyResolved.filter((asset) => asset !== undefined)
 
     if (assetsToResolve.length > 0) {
-      const metadataItems = await this.fetchAssetMetadata(anchor, assetsToResolve)
+      const metadataItems = await this.#fetchAssetMetadata(anchor, assetsToResolve)
       for (const [index, asset] of assetsToResolve.entries()) {
         const metadata = metadataItems[index]
 
@@ -170,6 +302,8 @@ export class XcmHumanizer {
             amount: asset.amount,
             decimals: metadata.decimals,
             symbol: metadata.symbol,
+            role: asset.role,
+            sequence: asset.sequence,
           }
           resolvedAssets.push(resolved)
           this.#cache.set(`${anchor}:${asset.location}`, resolved)
@@ -177,6 +311,8 @@ export class XcmHumanizer {
           resolvedAssets.push({
             id: `${anchor}|${normalizeAssetId(asset.location)}`,
             amount: asset.amount,
+            role: asset.role,
+            sequence: asset.sequence,
           })
         }
       }
@@ -185,15 +321,17 @@ export class XcmHumanizer {
     return resolvedAssets
   }
 
-  private getCachedAssets(anchor: string, assets: QueryableXcmAsset[]): (XcmAssetWithMetadata | undefined)[] {
+  #getCachedAssets(anchor: string, assets: QueryableXcmAsset[]): (XcmAssetWithMetadata | undefined)[] {
     return assets.map((asset) => {
       const key = `${anchor}:${asset.location}`
       const cached = this.#cache.get(key)
-      return cached ? { ...cached, amount: asset.amount } : undefined
+      return cached
+        ? { ...cached, amount: asset.amount, role: asset.role, sequence: asset.sequence }
+        : undefined
     })
   }
 
-  private async fetchAssetMetadata(
+  async #fetchAssetMetadata(
     anchor: string,
     assetsToResolve: QueryableXcmAsset[],
   ): Promise<(AssetMetadata | Empty)[]> {
@@ -210,18 +348,18 @@ export class XcmHumanizer {
   private async resolveVolume(asset: XcmAssetWithMetadata): Promise<number | undefined> {
     const cachedPrice = this.#priceCache.get(asset.id)
     if (cachedPrice !== undefined) {
-      return this.calculateVolume(asset, cachedPrice)
+      return this.#calculateVolume(asset, cachedPrice)
     }
 
-    const price = await this.fetchAssetPrice(asset)
+    const price = await this.#fetchAssetPrice(asset)
     if (price !== null) {
       this.#priceCache.set(asset.id, price)
     }
 
-    return this.calculateVolume(asset, price)
+    return this.#calculateVolume(asset, price)
   }
 
-  private async fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
+  async #fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
     const [chainId, assetId] = asset.id.split('|')
     const { items } = (await this.#ticker.query({
       args: {
@@ -232,7 +370,7 @@ export class XcmHumanizer {
     return items.length > 0 ? items[0].aggregatedPrice : null
   }
 
-  private calculateVolume(asset: XcmAssetWithMetadata, price: number | null): number | undefined {
+  #calculateVolume(asset: XcmAssetWithMetadata, price: number | null): number | undefined {
     if (price === null || asset.decimals === undefined) {
       return
     }
@@ -240,12 +378,18 @@ export class XcmHumanizer {
     return normalizedAmount * price
   }
 
-  private determineJourneyType(instructions: XcmInstruction[]): XcmJourneyType {
-    const exportMessage = this.findExportMessage(instructions)
-    const hopMessage = this.findHopMessage(instructions)
+  #determineJourneyType(instructions: XcmInstruction[]): XcmJourneyType {
+    const exportMessage = this.#findExportMessage(instructions)
     if (exportMessage) {
-      return this.determineJourneyType((exportMessage.value as ExportMessage).xcm)
+      return this.#determineJourneyType((exportMessage.value as ExportMessage).xcm)
     }
+
+    const swapMessages = this.#findExchangeAssets(instructions)
+    if (swapMessages.length > 0) {
+      return XcmJourneyType.Swap
+    }
+
+    const hopMessage = this.#findHopMessage(instructions)
     if (
       hopMessage &&
       instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
@@ -275,8 +419,8 @@ export class XcmHumanizer {
     return XcmJourneyType.Unknown
   }
 
-  private extractBeneficiary(instructions: XcmInstruction[], network: NetworkURN): string | null {
-    const deposit = this.findDeposit(instructions)
+  #extractBeneficiary(instructions: XcmInstruction[], network: NetworkURN): string | null {
+    const deposit = this.#findDeposit(instructions)
     if (!deposit) {
       return null
     }
@@ -288,10 +432,10 @@ export class XcmHumanizer {
       return `urn:ocn:${getConsensus(network)}:${multiAddress.value}`
     }
 
-    return this.resolveMultiAddress(multiAddress)
+    return this.#resolveMultiAddress(multiAddress)
   }
 
-  private resolveMultiAddress(multiAddress: any): string | null {
+  #resolveMultiAddress(multiAddress: any): string | null {
     if (multiAddress.type === 'AccountId32') {
       return asPublicKey(multiAddress.value.id)
     }
@@ -301,9 +445,9 @@ export class XcmHumanizer {
     return null
   }
 
-  private findDeposit(instructions: XcmInstruction[]): XcmInstruction | undefined {
-    const hopTransfer = this.findHopMessage(instructions)
-    const bridgeMessage = this.findExportMessage(instructions)
+  #findDeposit(instructions: XcmInstruction[]): XcmInstruction | undefined {
+    const hopTransfer = this.#findHopMessage(instructions)
+    const bridgeMessage = this.#findExportMessage(instructions)
 
     let deposit = instructions.find((op) => op.type === 'DepositAsset')
     if (!deposit && hopTransfer) {
@@ -316,7 +460,7 @@ export class XcmHumanizer {
     return deposit
   }
 
-  private extractAssets(instructions: XcmInstruction[]): QueryableXcmAsset[] {
+  #extractAssetsFromTransfer(instructions: XcmInstruction[]): QueryableXcmAsset[] {
     const filteredOps = instructions.filter((op) =>
       ['ReserveAssetDeposited', 'ReceiveTeleportedAsset', 'WithdrawAsset'].includes(op.type),
     )
@@ -325,28 +469,14 @@ export class XcmHumanizer {
     }
 
     const multiAssets = filteredOps.flatMap((op) => op.value as unknown as MultiAsset[])
-    return multiAssets
-      .filter((asset) => asset.fun.type === 'Fungible')
-      .map((asset) => ({
-        location: this.extractLocation(asset.id),
-        amount: BigInt(asset.fun.value.replaceAll(',', '')),
-      }))
+    return parseMultiAsset(multiAssets, 'transfer')
   }
 
-  private extractLocation(id: MultiAsset['id']): string {
-    const multiLocation = isConcrete(id) ? id.value : id
-    return multiLocation
-      ? JSON.stringify(multiLocation, (_, value) =>
-          typeof value === 'string' ? value.replaceAll(',', '') : value,
-        )
-      : ''
-  }
-
-  private findExportMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
+  #findExportMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
     return instructions.find((op) => op.type === 'ExportMessage')
   }
 
-  private findHopMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
+  #findHopMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
     return instructions.find((op) =>
       ['InitiateReserveWithdraw', 'InitiateTeleport', 'DepositReserveAsset', 'TransferReserveAsset'].includes(
         op.type,
@@ -354,7 +484,11 @@ export class XcmHumanizer {
     )
   }
 
-  private async handleBridgeMessage(
+  #findExchangeAssets(instructions: XcmInstruction[]): XcmInstruction[] {
+    return instructions.filter((op) => op.type === 'ExchangeAsset')
+  }
+
+  async #handleBridgeMessage(
     exportMessage: XcmInstruction,
     type: XcmJourneyType,
     from: HumanizedAddresses,
@@ -362,14 +496,14 @@ export class XcmHumanizer {
     version: string,
   ): Promise<HumanizedXcm> {
     const { network, xcm, destination } = exportMessage.value as ExportMessage
-    const anchor = this.extractExportDestination(network, destination)
+    const anchor = this.#extractExportDestination(network, destination)
     if (!anchor) {
       return Promise.resolve({ type, from, to, assets: [], version, transactCalls: [] })
     }
-    const beneficiary = this.extractBeneficiary(xcm, anchor)
-    const bridgedBeneficiary = beneficiary ? await this.toAddresses(anchor as NetworkURN, beneficiary) : to
+    const beneficiary = this.#extractBeneficiary(xcm, anchor)
+    const bridgedBeneficiary = beneficiary ? await this.#toAddresses(anchor as NetworkURN, beneficiary) : to
 
-    return this.resolveAssetsMetadata(anchor, this.extractAssets(xcm)).then((bridgeAssets) =>
+    return this.#resolveAssetsMetadata(anchor, this.#extractAssetsFromTransfer(xcm)).then((bridgeAssets) =>
       Promise.all(
         bridgeAssets.map(async (asset) => ({
           ...asset,
@@ -379,7 +513,7 @@ export class XcmHumanizer {
     )
   }
 
-  private extractExportDestination(
+  #extractExportDestination(
     network?: { type: string; value: AnyJson },
     destination?: {
       type: string
@@ -399,7 +533,7 @@ export class XcmHumanizer {
     return null
   }
 
-  private async extractTransactCall(
+  async #extractTransactCall(
     instructions: XcmInstruction[],
     chainId: NetworkURN,
   ): Promise<HumanizedTransactCall[]> {
@@ -423,10 +557,7 @@ export class XcmHumanizer {
     return humanized
   }
 
-  private async toAddresses(
-    chainId: NetworkURN,
-    publicKeyOrParachain?: string | null,
-  ): Promise<HumanizedAddresses> {
+  async #toAddresses(chainId: NetworkURN, publicKeyOrParachain?: string | null): Promise<HumanizedAddresses> {
     if (publicKeyOrParachain) {
       if (publicKeyOrParachain.startsWith('urn:ocn')) {
         return {
@@ -442,7 +573,7 @@ export class XcmHumanizer {
       let prefix = this.#ss58Cache.get(chainId)
 
       if (prefix === undefined) {
-        prefix = await this.fetchPrefix(chainId)
+        prefix = await this.#fetchPrefix(chainId)
       }
       return {
         key: publicKeyOrParachain,
@@ -455,7 +586,7 @@ export class XcmHumanizer {
     }
   }
 
-  private resolveFallbackPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
+  #resolveFallbackPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
     const relay = getRelayId(urn)
     const relayPrefix = this.#ss58Cache.get(relay)
     if (relayPrefix !== undefined) {
@@ -468,7 +599,7 @@ export class XcmHumanizer {
     return DEFAULT_SS58_PREFIX
   }
 
-  private async fetchPrefix(chainId: NetworkURN): Promise<number> {
+  async #fetchPrefix(chainId: NetworkURN): Promise<number> {
     if (SS58_PREFIX_OVERRIDES[chainId] !== undefined) {
       this.#ss58Cache.set(chainId, SS58_PREFIX_OVERRIDES[chainId])
       return SS58_PREFIX_OVERRIDES[chainId]
@@ -484,13 +615,13 @@ export class XcmHumanizer {
       })) as QueryResult<SubstrateNetworkInfo>
       const chainInfo = items.find((item) => item.urn === chainId)
       if (chainInfo?.ss58Prefix === undefined || chainInfo?.ss58Prefix === null) {
-        return this.resolveFallbackPrefix(chainId, items)
+        return this.#resolveFallbackPrefix(chainId, items)
       }
       this.#ss58Cache.set(chainId, chainInfo.ss58Prefix)
       return chainInfo.ss58Prefix
     } catch (error) {
       this.#log.warn(error, 'Error on fetch prefix [%s]', chainId)
-      return this.resolveFallbackPrefix(chainId, [])
+      return this.#resolveFallbackPrefix(chainId, [])
     }
   }
 }

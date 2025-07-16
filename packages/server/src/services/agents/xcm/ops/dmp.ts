@@ -312,6 +312,7 @@ function createDmpReceivedWithContext({
   })
 }
 
+// Not used. DMP receive is streamed with extractParachainReceive
 export function extractDmpReceive() {
   return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
     return source.pipe(
@@ -332,6 +333,7 @@ export function extractDmpReceive() {
   }
 }
 
+// Not used. DMP receive is streamed with extractParachainReceive
 export function extractDmpReceiveByBlock() {
   return (source: Observable<Block>): Observable<XcmInboundWithContext> => {
     return source.pipe(

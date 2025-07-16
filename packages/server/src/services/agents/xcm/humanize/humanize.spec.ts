@@ -55,10 +55,7 @@ describe('XcmHumanizer', () => {
         blockNumber: 1,
         outcome: 'Success',
         messageHash: '0xBEEF',
-        instructions: {
-          type: 'V5',
-          value: instructions,
-        },
+        instructions,
         legIndex: 1,
       },
       destination: {
@@ -763,5 +760,200 @@ describe('XcmHumanizer', () => {
 
     expect(humanized).toBeDefined()
     expect(humanized.assets.length).toBe(0)
+  })
+
+  it('should resolve humanize ExchangeAsset instruction', async () => {
+    const msgData =
+      '031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = asVersionedXcm(buf, apiContext).instructions
+
+    const results = await humanizer.humanize({
+      legs: [
+        {
+          from: 'urn:ocn:local:0',
+          to: 'urn:ocn:local:1000',
+          type: 'hop',
+          partialMessage: undefined,
+        },
+        {
+          from: 'urn:ocn:local:1000',
+          to: 'urn:ocn:local:2030',
+          type: 'hrmp',
+          partialMessage:
+            '0x03081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d37',
+          relay: 'urn:ocn:local:0',
+        },
+      ],
+      sender: {
+        signer: {
+          id: '1phKfRLnZm8iWTq5ki2xAPf5uwxjBrEe6Bc3Tw2bxPLx3t8',
+          publicKey: '0x246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d37',
+        },
+        extraSigners: [],
+      },
+      messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+      forwardId: undefined,
+      type: 'xcm.sent',
+      waypoint: {
+        chainId: 'urn:ocn:local:0',
+        blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
+        blockNumber: '26879273',
+        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        timestamp: 1752521214000,
+        extrinsicPosition: undefined,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        instructions,
+        messageHash: '0x4a77c2eed7731aa13e441cf50c827b1b53e2e93b1c7421874aa14e2e1502c059',
+        legIndex: 0,
+      },
+      origin: {
+        chainId: 'urn:ocn:local:0',
+        blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
+        blockNumber: '26879273',
+        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        timestamp: 1752521214000,
+        extrinsicPosition: undefined,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        instructions,
+        messageHash: '0x4a77c2eed7731aa13e441cf50c827b1b53e2e93b1c7421874aa14e2e1502c059',
+      },
+      destination: { chainId: 'urn:ocn:local:2030' },
+    })
+
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('swap')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.assets.length).toBe(3)
+    expect(results.humanized.assets[0].id).toBeDefined()
+    expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
+  it('should humanize ExchangeAsset instruction with actual swap values', async () => {
+    const msgData =
+      '031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = asVersionedXcm(buf, apiContext).instructions
+
+    const results = await humanizer.humanize({
+      legs: [
+        {
+          from: 'urn:ocn:local:0',
+          to: 'urn:ocn:local:1000',
+          type: 'hop',
+          partialMessage: undefined,
+        },
+        {
+          from: 'urn:ocn:local:1000',
+          to: 'urn:ocn:local:2030',
+          type: 'hrmp',
+          partialMessage:
+            '0x03081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d37',
+          relay: 'urn:ocn:local:0',
+        },
+      ],
+      sender: {
+        signer: {
+          id: '1phKfRLnZm8iWTq5ki2xAPf5uwxjBrEe6Bc3Tw2bxPLx3t8',
+          publicKey: '0x246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d37',
+        },
+        extraSigners: [],
+      },
+      messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+      forwardId: undefined,
+      type: 'xcm.sent',
+      waypoint: {
+        chainId: 'urn:ocn:local:1000',
+        extrinsicPosition: undefined,
+        blockNumber: '9276853',
+        blockHash: '0xe87831f4abe5bf52a019eb0bb529092c767feb7cc91869c0b42f20618722e85e',
+        timestamp: 1752521220000,
+        messageHash: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        messageData: undefined,
+        messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        extrinsicHash: undefined,
+        outcome: 'Success',
+        instructions,
+        assetsTrapped: {
+          event: {
+            eventId: 14,
+            blockNumber: '9276853',
+            blockHash: '0xe87831f4abe5bf52a019eb0bb529092c767feb7cc91869c0b42f20618722e85e',
+            section: 'PolkadotXcm',
+            method: 'AssetsTrapped',
+          },
+          assets: [
+            {
+              version: 5,
+              id: { type: 'Concrete', value: { parents: 1, interior: { type: 'Here' } } },
+              fungible: true,
+              amount: '144215091',
+              assetInstance: undefined,
+            },
+          ],
+          hash: '0x4ab6053ec6b034404748bc384b6c92bd3c2351c92cdbdb4f1ac87374394b4d9d',
+        },
+        assetSwaps: [
+          {
+            assetIn: {
+              amount: '2497489909',
+              location: { parents: 1, interior: { type: 'Here' } },
+            },
+            assetOut: {
+              amount: '1028763',
+              location: {
+                parents: 0,
+                interior: {
+                  type: 'X2',
+                  value: [
+                    { type: 'PalletInstance', value: 50 },
+                    { type: 'GeneralIndex', value: '1984' },
+                  ],
+                },
+              },
+            },
+            event: {},
+          },
+        ],
+        legIndex: 0,
+      },
+      origin: {
+        chainId: 'urn:ocn:local:0',
+        blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
+        blockNumber: '26879273',
+        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        timestamp: 1752521214000,
+        extrinsicPosition: undefined,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x031802040001000003005ed0b20a130001000003005ed0b2000f01010001000004000002043205011f006eca3e00000e0101000002043205011f00010100b91f081300010300a10f043205011f006eca3e00000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372cd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
+        instructions,
+        messageHash: '0x4a77c2eed7731aa13e441cf50c827b1b53e2e93b1c7421874aa14e2e1502c059',
+      },
+      destination: { chainId: 'urn:ocn:local:2030' },
+    })
+
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('swap')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.assets.length).toBe(4)
+    expect(results.humanized.assets[0].id).toBeDefined()
+    expect(results.humanized.assets[0].amount).toBeDefined()
   })
 })

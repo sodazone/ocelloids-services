@@ -13,12 +13,12 @@ import { Logger } from '@/services/types.js'
 
 import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
-import { XcmAsset } from '../humanize/types.js'
+import { XcmAsset, XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
 import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext, isXcmReceived } from '../types/index.js'
 import { JourneyFilters } from '../types/index.js'
 import { createXcmDatabase } from './repositories/db.js'
-import { XcmRepository } from './repositories/journeys.js'
+import { XcmRepository, calculateTotalUsd } from './repositories/journeys.js'
 import {
   FullXcmJourney,
   FullXcmJourneyResponse,
@@ -84,10 +84,7 @@ function asNewJourneyObject(
       stops: JSON.parse(newJourney.stops),
     },
     assets,
-    totalUsd: assets.reduce((sum, row) => {
-      const usd = typeof row.usd === 'number' ? row.usd : Number(row.usd ?? 0)
-      return sum + (isNaN(usd) ? 0 : usd)
-    }, 0),
+    totalUsd: calculateTotalUsd(assets),
     id,
   })
 }
@@ -191,6 +188,8 @@ function toNewAssets(assets: XcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
     asset: asset.id,
     decimals: asset.decimals,
     usd: asset.volume,
+    role: asset.role,
+    sequence: asset.sequence,
   }))
 }
 
@@ -420,22 +419,41 @@ export class XcmExplorer {
         case 'xcm.bridge':
         case 'xcm.timeout': {
           if (!existingJourney) {
-            this.#log.warn('[xcm:explorer] Journey not found for correlationId: %s', correlationId)
+            this.#log.warn(
+              '[xcm:explorer] Journey not found for correlationId: %s (%s)',
+              correlationId,
+              message.type,
+            )
             return
           }
 
           const updatedStops = toStops(message, existingJourney.stops)
-
           const updateWith: Partial<XcmJourneyUpdate> = {
             status: toStatus(message),
             stops: asJSON(updatedStops),
           }
-
           // Update recv_at only for 'xcm.received'
           if (isXcmReceived(message)) {
             updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
           }
           await this.#repository.updateJourney(existingJourney.id, updateWith)
+
+          const { humanized } = await this.#humanizer.humanize(message)
+
+          if (!isXcmReceived(message) && humanized.type === XcmJourneyType.Swap) {
+            const swapAssets = humanized.assets.filter((a) => a.role === 'swap_in' || a.role === 'swap_out')
+            const assetUpdates = swapAssets.map((asset) =>
+              this.#repository.updateAsset(existingJourney.id, asset, {
+                amount: asset.amount.toString(),
+                usd: asset.volume,
+              }),
+            )
+            await Promise.all(assetUpdates)
+          }
+
+          const trappedAssets = toNewAssets(humanized.assets.filter((a) => a.role === 'trapped'))
+          await this.#repository.insertAssetsForJourney(existingJourney.id, trappedAssets)
+
           const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {
             this.#broadcastUpdateJourney(items[0])

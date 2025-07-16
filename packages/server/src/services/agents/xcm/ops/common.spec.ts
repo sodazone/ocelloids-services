@@ -3,7 +3,7 @@ import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext, apiContext_xcmv2, xcmpReceive } from '@/testing/xcm.js'
 import { from, of } from 'rxjs'
 import { GenericXcmSentWithContext } from '../types/index.js'
-import { extractParachainReceive, mapXcmSent } from './common.js'
+import { extractParachainReceive, extractParachainReceiveByBlock, mapXcmSent } from './common.js'
 import { getMessageId } from './util.js'
 import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
 
@@ -417,6 +417,32 @@ describe('common xcm operators', () => {
           complete: () => {
             resolve()
             expect(calls).toHaveBeenCalledTimes(1)
+          },
+        })
+      })
+    })
+
+    it('should extract DMP receive by block', async () => {
+      const blocks = from(testBlocksFrom('assethub/9276853.cbor'))
+      const calls = vi.fn()
+      const test$ = extractParachainReceiveByBlock('urn:ocn:polkadot:1000')(blocks)
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.outcome).toBeDefined()
+            expect(msg.outcome).toBe('Success')
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
           },
         })
       })

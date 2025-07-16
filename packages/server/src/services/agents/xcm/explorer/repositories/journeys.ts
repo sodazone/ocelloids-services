@@ -1,13 +1,15 @@
 import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
-import { Kysely, SelectQueryBuilder, sql } from 'kysely'
-import { JourneyFilters } from '../../types/index.js'
+import { Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
+import { JourneyFilters, XcmAsset } from '../../types/index.js'
 import {
   FullXcmJourney,
   FullXcmJourneyAsset,
   ListAsset,
   NewXcmAsset,
   NewXcmJourney,
+  XcmAssetRole,
+  XcmAssetUpdate,
   XcmDatabase,
   XcmJourneyUpdate,
 } from './types.js'
@@ -23,6 +25,16 @@ function decodeCursor(cursor: string): number {
   return parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
 }
 
+export function calculateTotalUsd(assets: { usd?: number | null; role?: XcmAssetRole }[]) {
+  return assets.reduce((sum, row) => {
+    if (row.role !== undefined && row.role !== 'transfer') {
+      return sum
+    }
+    const usd = typeof row.usd === 'number' ? row.usd : Number(row.usd ?? 0)
+    return sum + (isNaN(usd) ? 0 : usd)
+  }, 0)
+}
+
 export class XcmRepository {
   readonly #db: Kysely<XcmDatabase>
 
@@ -32,6 +44,24 @@ export class XcmRepository {
 
   async updateJourney(id: number, updateWith: XcmJourneyUpdate): Promise<void> {
     await this.#db.updateTable('xcm_journeys').set(updateWith).where('id', '=', id).execute()
+  }
+
+  async updateAsset(journeyId: number, asset: XcmAsset, updateWith: XcmAssetUpdate): Promise<void> {
+    let query = this.#db
+      .updateTable('xcm_assets')
+      .set(updateWith)
+      .where('journey_id', '=', journeyId)
+      .where('asset', '=', asset.id)
+
+    if (asset.role !== undefined) {
+      query = query.where('role', '=', asset.role)
+    }
+
+    if (asset.sequence !== undefined) {
+      query = query.where('sequence', '=', asset.sequence)
+    }
+
+    await query.execute()
   }
 
   async getJourneyById(id: string): Promise<FullXcmJourney | undefined> {
@@ -45,6 +75,8 @@ export class XcmRepository {
         'xcm_assets.amount',
         'xcm_assets.decimals',
         'xcm_assets.usd',
+        'xcm_assets.role',
+        'xcm_assets.sequence',
       ])
       .where('xcm_journeys.correlation_id', '=', id)
       .execute()
@@ -53,10 +85,7 @@ export class XcmRepository {
       return undefined
     }
 
-    const totalUsd = rows.reduce((sum, row) => {
-      const usd = typeof row.usd === 'number' ? row.usd : Number(row.usd ?? 0)
-      return sum + (isNaN(usd) ? 0 : usd)
-    }, 0)
+    const totalUsd = calculateTotalUsd(rows)
 
     const journey = {
       id: rows[0].id,
@@ -86,6 +115,8 @@ export class XcmRepository {
           amount: row.amount ?? '0',
           decimals: row.decimals ?? undefined,
           usd: row.usd ?? undefined,
+          role: row.role ?? undefined,
+          sequence: row.sequence ?? undefined,
         })),
     }
 
@@ -113,17 +144,26 @@ export class XcmRepository {
 
       const journeyId = insertedJourney.id
 
-      if (assets.length > 0) {
-        const assetsWithJourneyId = assets.map((asset) => ({
-          ...asset,
-          journey_id: journeyId,
-        }))
-
-        await trx.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
-      }
+      await this.insertAssetsForJourney(journeyId, assets, trx)
 
       return journeyId
     })
+  }
+
+  async insertAssetsForJourney(
+    journeyId: number,
+    assets: Omit<NewXcmAsset, 'journey_id'>[],
+    db: Kysely<XcmDatabase> | Transaction<XcmDatabase> = this.#db,
+  ): Promise<void> {
+    if (assets.length === 0) {
+      return
+    }
+    const assetsWithJourneyId = assets.map((asset) => ({
+      ...asset,
+      journey_id: journeyId,
+    }))
+
+    await db.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
   }
 
   async close() {
@@ -366,6 +406,7 @@ export class XcmRepository {
     const assetSubquery = this.#db
       .selectFrom('xcm_assets')
       .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
+      .where('role', '=', 'transfer')
       .groupBy('journey_id')
       .as('asset_totals')
 
@@ -401,7 +442,9 @@ export class XcmRepository {
               'symbol', xcm_assets.symbol,
               'amount', xcm_assets.amount,
               'decimals', xcm_assets.decimals,
-              'usd', xcm_assets.usd
+              'usd', xcm_assets.usd,
+              'role', xcm_assets.role,
+              'sequence', xcm_assets.sequence
             )
           ELSE NULL
         END
