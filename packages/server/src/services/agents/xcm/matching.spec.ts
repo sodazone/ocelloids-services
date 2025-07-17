@@ -11,6 +11,7 @@ import {
 } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
 
+import { twoHopSwap } from '@/testing/2-hop-swap.js'
 import { acalaHydra } from '@/testing/hops-acala-hydra.js'
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
 import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
@@ -323,6 +324,31 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.received', 'xcm.hop', 'xcm.relayed', 'xcm.hop'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2004', destination: 'urn:ocn:polkadot:2034' })
+    await expectNoLeftover()
+  })
+
+  it('should match 2 hops', async () => {
+    const { sent, hopIn2034, hopOut2034, hopIn1000, hopOut1000, received } = twoHopSwap
+
+    await engine.onOutboundMessage(sent)
+    await engine.onOutboundMessage(hopOut2034)
+    await engine.onInboundMessage(hopIn2034)
+    await engine.onMessageData({
+      hash: '0xe5464e6ca180782f200980a7d8a419e7a73dcbef1342c92a81d55e58212349e3',
+      data: '0x041400040002043205011f00f2a641000a130002043205011f00eaa64100000e01010002043205011f00010100591f0813010300a10f043205011f00b6e13600000d0101010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372c3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
+      topicId: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
+    })
+    await engine.onInboundMessage(hopIn1000)
+    await engine.onOutboundMessage(hopOut1000)
+    await engine.onMessageData({
+      hash: '0xa6a9047ac211d27c2ed28b65e9db76e1dc76266feeabd2b2ee0f46e6bf485648',
+      topicId: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
+      data: '0x05140104010300a10f043205011f003ead38000a13010300a10f043205011f00b6e13600000d0101010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372c3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
+    })
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectOd(6, { origin: 'urn:ocn:local:0', destination: 'urn:ocn:local:2006' })
     await expectNoLeftover()
   })
 })

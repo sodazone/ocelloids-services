@@ -231,23 +231,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onInboundMessage(inMsg: XcmInbound) {
     await this.#mutex.runExclusive(async () => {
-      if (inMsg.messageData === undefined) {
-        if (inMsg.messageId && inMsg.messageId !== inMsg.messageHash) {
-          inMsg.messageData = await Promise.any([
-            this.#messageData.get(inMsg.messageHash),
-            this.#messageData.get(inMsg.messageId),
-          ])
-        } else {
-          inMsg.messageData = await this.#messageData.get(inMsg.messageHash)
-        }
-      }
+      await this.#enhanceInboundWithMessageData(inMsg)
       const hashKey = matchingKey(inMsg.chainId, inMsg.messageHash)
       const idKey = matchingKey(inMsg.chainId, inMsg.messageId ?? 'unknown')
 
       if (hasTopicId(hashKey, idKey)) {
         try {
           // 1.1. Try to match any hops
-          await this.#tryHopMatchOnInbound(inMsg)
+          await this.#tryHopMatchOnInboundWithRetries(inMsg)
         } catch {
           // 1.2. Try to match outbounds
           const outMsg = await Promise.any([this.#outbound.get(idKey), this.#outbound.get(hashKey)])
@@ -275,7 +266,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         }
       } else {
         try {
-          await this.#tryHopMatchOnInbound(inMsg)
+          await this.#tryHopMatchOnInboundWithRetries(inMsg)
         } catch {
           const outMsg = await this.#outbound.get(hashKey)
           if (outMsg !== undefined) {
@@ -565,9 +556,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           const legIndex = originMsg.legs.findIndex((l) => l.to === msg.chainId)
           if (legIndex === originMsg.legs.length - 1) {
             await this.#deleteMatchedKeys(originMsg)
+            this.#onXcmMatched(originMsg, msg)
+          } else {
+            const legType = originMsg.legs[legIndex].type
+            if (legType === 'hop') {
+              this.#onXcmHopIn(originMsg, msg)
+            }
           }
 
-          this.#onXcmMatched(originMsg, msg)
           return
         }
       }
@@ -1097,6 +1093,49 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     return fullMessage.includes(partialMessage.substring(10))
   }
 
+  async #enhanceInboundWithMessageData(inMsg: XcmInbound) {
+    if (inMsg.messageData !== undefined) {
+      return
+    }
+    for (let i = 0; i < MAX_MATCH_RETRIES; i++) {
+      try {
+        const data =
+          inMsg.messageId && inMsg.messageId !== inMsg.messageHash
+            ? await Promise.any([
+                this.#messageData.get(inMsg.messageHash),
+                this.#messageData.get(inMsg.messageId),
+              ])
+            : await this.#messageData.get(inMsg.messageHash)
+
+        if (data) {
+          inMsg.messageData = data
+          return
+        }
+      } catch {
+        // Ignore errors, will retry
+      }
+
+      await delay(10 * (i + 1))
+    }
+  }
+
+  async #withRetries<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = MAX_MATCH_RETRIES,
+    delayMs: (attempt: number) => number = (i) => 10 * (i + 1),
+  ): Promise<T> {
+    let lastError: unknown
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn()
+      } catch (err) {
+        lastError = err
+        await delay(delayMs(i))
+      }
+    }
+    throw lastError ?? new Error('Failed after retries')
+  }
+
   async #tryMatchWithDelayedRetries(
     keys: {
       hash: string
@@ -1104,19 +1143,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     },
     msg: XcmSent,
   ) {
-    let matched = false
-    for (let i = 0; i < MAX_MATCH_RETRIES; i++) {
-      try {
-        await this.#tryMatchOnOutbound(keys, msg)
-        matched = true
-        break
-      } catch {
-        await delay(10 * (i + 1))
-      }
-    }
+    await this.#withRetries(() => this.#tryMatchOnOutbound(keys, msg))
+  }
 
-    if (!matched) {
-      throw new Error('No match found')
-    }
+  async #tryHopMatchOnInboundWithRetries(msg: XcmInbound): Promise<void> {
+    await this.#withRetries(() => this.#tryHopMatchOnInbound(msg))
   }
 }

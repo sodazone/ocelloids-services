@@ -158,3 +158,16 @@ export type Empty = {
   isNotResolved: boolean
   query: Record<string, any>
 }
+
+export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'xid' in obj &&
+    'chainId' in obj &&
+    typeof (obj as any).id !== 'undefined' &&
+    typeof (obj as any).xid !== 'undefined' &&
+    typeof (obj as any).chainId !== 'undefined'
+  )
+}

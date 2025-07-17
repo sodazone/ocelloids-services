@@ -46,7 +46,7 @@ export type AssetsTrapped = {
 }
 
 export type SwappedAsset = {
-  location: AnyJson
+  localAssetId: AnyJson
   amount: string | number
 }
 

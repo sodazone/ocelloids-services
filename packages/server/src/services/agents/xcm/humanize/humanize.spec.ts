@@ -3,6 +3,7 @@ import { apiContext } from '@/testing/xcm.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
+import { twoHopSwap } from '@/testing/2-hop-swap.js'
 
 describe('XcmHumanizer', () => {
   let humanizer: XcmHumanizer
@@ -908,11 +909,11 @@ describe('XcmHumanizer', () => {
           {
             assetIn: {
               amount: '2497489909',
-              location: { parents: 1, interior: { type: 'Here' } },
+              localAssetId: { parents: 1, interior: { type: 'Here' } },
             },
             assetOut: {
               amount: '1028763',
-              location: {
+              localAssetId: {
                 parents: 0,
                 interior: {
                   type: 'X2',
@@ -953,6 +954,28 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.to).toBeDefined()
     expect(results.humanized.to.key).toBeDefined()
     expect(results.humanized.assets.length).toBe(4)
+    expect(results.humanized.assets[0].id).toBeDefined()
+    expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
+  it('should extract right beneficiary from 2 hop messages', async () => {
+    const { sent } = twoHopSwap
+    const msgData =
+      '031801040001000003005ed0b20a130001000003005ed0b2000f0101000100000400010300a10f043205011f00f2a641000010010100010300a10f043205011f00010100a10f0813000002043205011f00eaa64100000e0101000002043205011f00010100591f081300010300a10f043205011f00b6e13600000d010100010300a10f043205011f0000010100246044e82dcb430908830f90e8c668b02544004d66eab58af5124b953ef57d372c7b234b757a973d3ffcfeca9e1a077e2c83dca86667c4d375b4eac52ab108d60c'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = asVersionedXcm(buf, apiContext).instructions
+
+    sent.origin.instructions = instructions
+    sent.waypoint.instructions = instructions
+
+    const results = await humanizer.humanize(sent)
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('swap')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.assets.length).toBe(3)
     expect(results.humanized.assets[0].id).toBeDefined()
     expect(results.humanized.assets[0].amount).toBeDefined()
   })

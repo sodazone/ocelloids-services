@@ -4,25 +4,27 @@ import { MultiAsset, MultiAssetFilter, QueryableXcmAsset, isConcrete } from './t
 
 export function extractMultiAssetFilterAssets(
   multiAssetFilter: MultiAssetFilter,
-  assetsToFilter: QueryableXcmAsset[],
+  assetsInHolding: QueryableXcmAsset[],
 ): QueryableXcmAsset[] {
   if (multiAssetFilter.type === 'Wild') {
     if (multiAssetFilter.value.type === 'All') {
-      return assetsToFilter
+      return assetsInHolding
     } else if (multiAssetFilter.value.type === 'AllOf') {
       const wildMultiAsset = multiAssetFilter.value.value
-      const asset = assetsToFilter.find(
+      const asset = assetsInHolding.find(
         (transferred) => transferred.location === extractLocation(wildMultiAsset.id),
       )
       if (asset) {
         return [asset]
       }
+      // not able to match assets in filter to assets in holding register
+      return []
     } else if (multiAssetFilter.value.type === 'AllCounted') {
       const count = Number(multiAssetFilter.value.value)
-      return assetsToFilter.slice(0, count)
+      return assetsInHolding.slice(0, count)
     } else if (multiAssetFilter.value.type === 'AllOfCounted') {
       const wildMultiAsset = multiAssetFilter.value.value
-      return assetsToFilter
+      return assetsInHolding
         .filter((transferred) => transferred.location === extractLocation(wildMultiAsset.id))
         .slice(0, Number(wildMultiAsset.count))
     }

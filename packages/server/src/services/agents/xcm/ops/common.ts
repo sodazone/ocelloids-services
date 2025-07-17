@@ -48,11 +48,28 @@ const swapMapping: Record<
       return {
         assetIn: {
           amount: amount_in,
-          location: path[0][0],
+          localAssetId: path[0][0],
         },
         assetOut: {
           amount: amount_out,
-          location: path[path.length - 1][0],
+          localAssetId: path[path.length - 1][0],
+        },
+        event,
+      } as AssetSwap
+    },
+  },
+  'urn:ocn:polkadot:2034': {
+    match: (event: Event) => matchEvent(event, 'Router', 'Executed'),
+    transform: (event: BlockEvent): AssetSwap => {
+      const { amount_in, amount_out, asset_in, asset_out } = event.value
+      return {
+        assetIn: {
+          amount: amount_in,
+          localAssetId: asset_in,
+        },
+        assetOut: {
+          amount: amount_out,
+          localAssetId: asset_out,
         },
         event,
       } as AssetSwap

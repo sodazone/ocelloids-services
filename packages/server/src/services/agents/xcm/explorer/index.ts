@@ -115,6 +115,7 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
             module: event?.module,
             name: event?.name,
           },
+          assetsTrapped: waypoint.assetsTrapped,
         }
       : null
 
