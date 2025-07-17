@@ -156,6 +156,9 @@ export class XcmAnalytics {
     const sentAt = origin.timestamp ?? Date.now()
 
     for (const asset of assets) {
+      if (asset.role !== undefined && asset.role !== 'transfer') {
+        continue
+      }
       transfers.push({
         from: from.key,
         to: to.key,
