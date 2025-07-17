@@ -1,12 +1,15 @@
 import fs from 'fs'
 import path from 'path'
 
-import { Observable, from, range } from 'rxjs'
-import { concatMap, map, switchMap, tap } from 'rxjs/operators'
+import { Observable, from, interval, range, zip } from 'rxjs'
+import { concatMap, delay, map, switchMap, tap } from 'rxjs/operators'
 
 import { Logger } from '@/services/types.js'
 import { BlockStatus } from '../../types.js'
 import { Block, SubstrateApi } from '../types.js'
+
+const INITIAL_DELAY_MS = 300_000 // 5 minutes
+const EMIT_INTERVAL_MS = 1_000 // 1s
 
 type GapRange = [number, number]
 type GapsMap = Record<string, GapRange>
@@ -28,8 +31,10 @@ export function backfillBlocks$(
   log.info('[%s] backfilling stream %s-%s', chainId, start, end)
 
   return api$.pipe(
+    delay(INITIAL_DELAY_MS),
     switchMap((api) =>
-      range(start, total).pipe(
+      zip(range(start, total), interval(EMIT_INTERVAL_MS)).pipe(
+        map(([blockNumber]) => blockNumber),
         concatMap((blockNumber) =>
           from(api.getBlockHash(blockNumber)).pipe(
             concatMap((hash) =>
