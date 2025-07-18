@@ -36,8 +36,13 @@ import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from '.
 
 const RUNTIME_STREAM_TIMEOUT_MILLIS = 20_000
 
-export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
-  const client = new SubstrateClient(log, chainId, url)
+export async function createSubstrateClient(
+  log: Logger,
+  chainId: string,
+  url: string | Array<string>,
+  forceRuntimeAt?: string,
+) {
+  const client = new SubstrateClient(log, chainId, url, forceRuntimeAt)
   return await client.connect()
 }
 
@@ -114,7 +119,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     )
   }
 
-  constructor(log: Logger, chainId: string, url: string | Array<string>) {
+  constructor(log: Logger, chainId: string, url: string | Array<string>, forceRuntimeAt?: string) {
     super()
 
     this.chainId = chainId
@@ -142,6 +147,18 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     this.#client = getObservableClient(substrateClient)
     this.#request = substrateClient.request
     this.#head = this.#client.chainHead$()
+
+    if (forceRuntimeAt !== undefined) {
+      this.#log.warn('[%s] forced runtime at %s', this.chainId, forceRuntimeAt)
+      this.#runtimeContextCache = new Promise((resolve, reject) => {
+        this.#log.warn('[%s] resolving runtime at %s', this.chainId, forceRuntimeAt)
+        this.#getMetadata(forceRuntimeAt)
+          .then((meta) => {
+            resolve(createRuntimeApiContext(fromHex(meta)))
+          })
+          .catch(reject)
+      })
+    }
 
     this.#apiContext = () => {
       throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
