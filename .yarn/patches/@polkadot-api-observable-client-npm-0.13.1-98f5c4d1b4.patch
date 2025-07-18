@@ -1,0 +1,90 @@
+diff --git a/dist/esm/chainHead/chainHead.mjs b/dist/esm/chainHead/chainHead.mjs
+index c9b4a67ca04f12e2169c38c70f584d8c34dc8d4c..e9e29c6fdc2464b4aa1157938e71ddbd6493079d 100644
+--- a/dist/esm/chainHead/chainHead.mjs
++++ b/dist/esm/chainHead/chainHead.mjs
+@@ -266,10 +266,15 @@ const getChainHead$ = (chainHead, getCachedMetadata, setCachedMetadata) => {
+     }),
+     shareReplay(1)
+   );
+-  merge(runtime$, bestBlocks$).subscribe({
++  // XXX rogue
++  pinnedBlocks$.subscribe({
+     error() {
+     }
+   });
++  // merge(runtime$, bestBlocks$).subscribe({
++  //   error() {
++  //   }
++  // });
+   let unfollow = noop;
+   let started = false;
+   let nSubscribers = 0;
+diff --git a/dist/esm/chainHead/streams/get-runtime-creator.mjs b/dist/esm/chainHead/streams/get-runtime-creator.mjs
+index 9e147f92b8b3c862b6124d2d198faf557d1a55fb..b9fde66961ac6ee5a746ea1827124de3ebc05a9e 100644
+--- a/dist/esm/chainHead/streams/get-runtime-creator.mjs
++++ b/dist/esm/chainHead/streams/get-runtime-creator.mjs
+@@ -69,10 +69,10 @@ const getRuntimeCreator = (call$, getCodeHash$, getCachedMetadata, setCachedMeta
+       },
+       usages
+     };
+-    runtimeContext$.subscribe({
+-      error() {
+-      }
+-    });
++    // runtimeContext$.subscribe({
++    //   error() {
++    //   }
++    // });
+     return result;
+   };
+ };
+diff --git a/dist/esm/chainHead/streams/pinned-blocks.mjs b/dist/esm/chainHead/streams/pinned-blocks.mjs
+index 0a8bf42e9d515b801e0ef10075b6ded9745667ac..c811b2b179c677d32acd8408ea7167f221f11537 100644
+--- a/dist/esm/chainHead/streams/pinned-blocks.mjs
++++ b/dist/esm/chainHead/streams/pinned-blocks.mjs
+@@ -13,7 +13,7 @@ const createRuntimeGetter = (pinned, startAt) => {
+   };
+ };
+ const deleteBlock = (blocks, blockHash) => {
+-  blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
++  // blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
+   blocks.delete(blockHash);
+ };
+ const deleteBlocks = (blocks, toDelete) => {
+@@ -69,9 +69,9 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+               acc.blocks.set(hash, {
+                 hash,
+                 parent: i === 0 ? event.parentHash : event.finalizedBlockHashes[i - 1],
+-                children: new Set(
+-                  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
+-                ),
++                // children: new Set(
++                //   i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
++                // ),
+                 unpinnable: i !== lastIdx,
+                 runtime: hash,
+                 refCount: 0,
+@@ -99,12 +99,12 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+             acc.blocks.get(hash).recovering = false;
+           } else {
+             const parentNode = acc.blocks.get(parent);
+-            parentNode.children.add(hash);
++            // parentNode.children.add(hash);
+             const block = {
+               hash,
+               number: parentNode.number + 1,
+               parent,
+-              children: /* @__PURE__ */ new Set(),
++              // children: /* @__PURE__ */ new Set(),
+               runtime: event.newRuntime ? hash : parentNode.runtime,
+               unpinnable: false,
+               refCount: 0,
+@@ -134,7 +134,7 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+         case "finalized": {
+           acc.finalized = event.finalizedBlockHashes.slice(-1)[0];
+           const { blocks } = acc;
+-          if (blocks.get(acc.best).number < blocks.get(acc.finalized).number)
++          if (blocks.get(acc.best) === undefined || blocks.get(acc.best).number < blocks.get(acc.finalized).number)
+             acc.best = acc.finalized;
+           acc.finalizedRuntime = acc.runtimes[blocks.get(acc.finalized).runtime];
+           event.prunedBlockHashes.forEach((hash) => {

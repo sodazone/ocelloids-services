@@ -360,11 +360,13 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  async #getMetadata() {
+  async #getMetadata(at?: string) {
     try {
-      return await this.#request<string>('state_getMetadata', [])
+      return await this.#request<string>('state_getMetadata', [at])
     } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.`, { cause: error })
+      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.${at ? ` (${at})` : ''}`, {
+        cause: error,
+      })
     }
   }
 

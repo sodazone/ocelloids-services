@@ -40,10 +40,10 @@ export const RETRY_INFINITE = {
   maxCount: Infinity,
 }
 
-const _RETRY_CAPPED = {
+export const RETRY_CAPPED = {
   baseDelay: 2000,
   maxDelay: 900000,
-  maxCount: 3,
+  maxCount: 1,
 }
 
 const MAX_BLOCK_DIST: number = process.env.OC_MAX_BLOCK_DIST ? Number(process.env.OC_MAX_BLOCK_DIST) : 50 // maximum distance in #blocks

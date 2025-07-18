@@ -1,20 +1,22 @@
 import fs from 'fs'
 import path from 'path'
 
-import { Observable, from, interval, range, zip } from 'rxjs'
-import { concatMap, delay, map, switchMap, tap } from 'rxjs/operators'
+import { EMPTY, Observable, defer, from, interval, range } from 'rxjs'
+import { catchError, delay, map, mergeMap, switchMap, tap, zipWith } from 'rxjs/operators'
 
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
-import { BlockStatus } from '../../types.js'
+import { RETRY_CAPPED } from '../../watcher.js'
 import { Block, SubstrateApi } from '../types.js'
-
-const INITIAL_DELAY_MS = 300_000 // 5 minutes
-const EMIT_INTERVAL_MS = 1_000 // 1s
 
 type GapRange = [number, number]
 type GapsMap = Record<string, GapRange>
 
 let cachedGapsMap: GapsMap = {}
+
+const INITIAL_DELAY_MS = 5 * 60 * 1_000 // 5 minutes
+const EMIT_INTERVAL_MS = 1_000 // 1s
+const MAX_CONCURRENT_BLOCK_REQUESTS = 2
 
 export function backfillBlocks$(
   log: Logger,
@@ -33,28 +35,42 @@ export function backfillBlocks$(
   return api$.pipe(
     delay(INITIAL_DELAY_MS),
     switchMap((api) =>
-      zip(range(start, total), interval(EMIT_INTERVAL_MS)).pipe(
+      range(start, total).pipe(
+        zipWith(interval(EMIT_INTERVAL_MS)), // throttle emissions
         map(([blockNumber]) => blockNumber),
-        concatMap((blockNumber) =>
-          from(api.getBlockHash(blockNumber)).pipe(
-            concatMap((hash) =>
-              from(api.getBlock(hash)).pipe(
-                map(
-                  (block): Block => ({
-                    status: 'finalized' as BlockStatus,
-                    ...block,
-                  }),
+        mergeMap(
+          // use controlled concurrency
+          (blockNumber) =>
+            defer(() =>
+              from(api.getBlockHash(blockNumber)).pipe(
+                retryWithTruncatedExpBackoff(RETRY_CAPPED),
+                tapError(log, chainId, 'getBlockHash'),
+                mergeMap(
+                  (hash) =>
+                    defer(() => from(api.getBlock(hash))).pipe(
+                      retryWithTruncatedExpBackoff(RETRY_CAPPED),
+                      map((block): Block => ({ status: 'finalized', ...block })),
+                      catchError((err) => {
+                        log.warn(err, '[backfill] Failed to getBlock for %s (%s)', blockNumber, hash)
+                        return EMPTY
+                      }),
+                    ),
+                  MAX_CONCURRENT_BLOCK_REQUESTS,
                 ),
+                tap(() => {
+                  count++
+                  if (count % 10 === 0 || count === total) {
+                    const pct = ((count / total) * 100).toFixed(1)
+                    log.info('[%s] BACKFILLED block %s (%s/%s, %s%)', chainId, blockNumber, count, total, pct)
+                  }
+                }),
+                catchError((err) => {
+                  log.warn(err, '[%s] Dropping block %s due to error', chainId, blockNumber)
+                  return EMPTY
+                }),
               ),
             ),
-            tap(() => {
-              count++
-              if (count % 10 === 0 || count === total) {
-                const pct = ((count / total) * 100).toFixed(1)
-                log.info('[%s] backfilling block %s (%s/%s, %s%)', chainId, blockNumber, count, total, pct)
-              }
-            }),
-          ),
+          MAX_CONCURRENT_BLOCK_REQUESTS,
         ),
       ),
     ),
@@ -86,4 +102,12 @@ export function loadGapsFileSync(filePath?: string) {
 
 export function getBackfillRangesSync(chainId: string): GapRange | null {
   return cachedGapsMap[chainId] ?? null
+}
+
+function tapError<T>(log: Logger, chainId: string, method: string) {
+  return tap<T>({
+    error: (e) => {
+      log.warn(e, '[%s] error in backfill stream on method=%s', chainId, method)
+    },
+  })
 }
