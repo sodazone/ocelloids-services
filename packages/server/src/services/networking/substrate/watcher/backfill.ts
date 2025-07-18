@@ -9,14 +9,14 @@ import { Logger } from '@/services/types.js'
 import { RETRY_CAPPED } from '../../watcher.js'
 import { Block, SubstrateApi } from '../types.js'
 
-type GapRange = [number, number]
+type GapRange = [number, number, number]
 type GapsMap = Record<string, GapRange>
 
 let cachedGapsMap: GapsMap = {}
 
-const INITIAL_DELAY_MS = 5 * 60 * 1_000 // 5 minutes
+const INITIAL_DELAY_MS = 0.1 * 60 * 1_000 // 5 minutes
 const EMIT_INTERVAL_MS = 1_000 // 1s
-const MAX_CONCURRENT_BLOCK_REQUESTS = 2
+const MAX_CONCURRENT_BLOCK_REQUESTS = 1
 
 export function backfillBlocks$(
   log: Logger,
@@ -25,7 +25,8 @@ export function backfillBlocks$(
     start,
     end,
     chainId,
-  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number },
+    rate,
+  }: { api$: Observable<SubstrateApi>; chainId: string; start: number; end: number; rate: number },
 ): Observable<Block> {
   const total = end - start + 1
   let count = 0
@@ -36,7 +37,7 @@ export function backfillBlocks$(
     delay(INITIAL_DELAY_MS),
     switchMap((api) =>
       range(start, total).pipe(
-        zipWith(interval(EMIT_INTERVAL_MS)), // throttle emissions
+        zipWith(interval(EMIT_INTERVAL_MS * rate)),
         map(([blockNumber]) => blockNumber),
         mergeMap(
           // use controlled concurrency

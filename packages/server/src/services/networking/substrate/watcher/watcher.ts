@@ -110,7 +110,7 @@ export class SubstrateWatcher extends Watcher<Block> {
       if (range === null) {
         return EMPTY
       }
-      return backfillBlocks$(this.log, { api$, chainId, start: range[0], end: range[1] })
+      return backfillBlocks$(this.log, { api$, chainId, start: range[0], end: range[1], rate: range[2] })
     })
 
     const finalized$ = api$.pipe(
