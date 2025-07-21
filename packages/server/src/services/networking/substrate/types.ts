@@ -114,10 +114,10 @@ export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
 }
 
 export interface SubstrateApi extends ApiClient {
-  readonly ctx: SubstrateApiContext
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
+  ctx(): Promise<SubstrateApiContext>
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{
     specName: string

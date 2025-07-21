@@ -1,4 +1,4 @@
-import { Observable, from, map, shareReplay } from 'rxjs'
+import { Observable, from, shareReplay, switchMap } from 'rxjs'
 
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -42,7 +42,7 @@ export class SubstrateLocalConsumer
   getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
     if (this.#contexts$[chainId] === undefined) {
       this.#contexts$[chainId] = from(this.watcher.getApi(chainId)).pipe(
-        map((api) => api.ctx),
+        switchMap((api) => from(api.ctx())),
         // TODO retry
         shareReplay({
           refCount: true,

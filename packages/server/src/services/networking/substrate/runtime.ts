@@ -1,6 +1,6 @@
 import { RuntimeContext } from '@polkadot-api/observable-client'
 import { fromHex } from 'polkadot-api/utils'
-import { Observable, filter, firstValueFrom, map, race, take, timer } from 'rxjs'
+import { Observable, filter, firstValueFrom, map, race, shareReplay, take, tap, timer } from 'rxjs'
 
 import { Logger } from '../../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
@@ -27,7 +27,7 @@ export async function getRuntimeVersion(runtime: SubstrateApiContext | RuntimeAp
 }
 
 export interface RuntimeManager {
-  runtime$: Observable<RuntimeContext>
+  runtime$: Observable<RuntimeApiContext>
   getCurrent: () => Promise<RuntimeApiContext>
   getRuntimeForBlock: (hash: string) => Promise<RuntimeApiContext>
   init: () => Promise<RuntimeApiContext>
@@ -54,19 +54,27 @@ export function createRuntimeManager({
   const runtimeCache = new Map<number, RuntimeApiContext>()
   let currentRuntime: Promise<RuntimeApiContext> | undefined
 
+  function updateCache(runtime: RuntimeApiContext) {
+    getRuntimeVersion(runtime)
+      .then((v) => {
+        runtimeCache.set(v.specVersion, runtime)
+        log.info('[%s] Updated spec version %O', chainId, v)
+      })
+      .catch((e) => log.error(e))
+  }
+
   const shared$ = runtime$.pipe(
-    filter(Boolean),
-    map((rt) => rt),
+    filter((rt): rt is RuntimeContext => !!rt),
+    map((rt) => new RuntimeApiContext(rt, chainId)),
+    tap((runtime) => updateCache(runtime)),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   async function loadInitialRuntime(): Promise<RuntimeApiContext> {
     try {
       return await firstValueFrom(
         race([
-          shared$.pipe(
-            take(1),
-            map((rt) => new RuntimeApiContext(rt, chainId)),
-          ),
+          shared$.pipe(take(1)),
           timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(
             map(async () => {
               log.warn('[%s] Fallback to state_getMetadata', chainId)
@@ -80,15 +88,6 @@ export function createRuntimeManager({
       currentRuntime = undefined
       throw err
     }
-  }
-
-  function updateCache(runtime: RuntimeApiContext) {
-    getRuntimeVersion(runtime)
-      .then((v) => {
-        runtimeCache.set(v.specVersion, runtime)
-        log.info('[%s] Updated spec version %O', chainId, v)
-      })
-      .catch((e) => log.error(e))
   }
 
   async function getRuntimeForBlock(blockHash: string): Promise<RuntimeApiContext> {

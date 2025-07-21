@@ -19,9 +19,10 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
     tokenSymbol?: string[] | string
   } = chainSpecData.properties
 
+  const ctx = await api.ctx()
   let existentialDeposit
   try {
-    existentialDeposit = api.ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
+    existentialDeposit = ctx.getConstant('Balances', 'ExistentialDeposit')?.toString()
   } catch {
     // ignore
   }
@@ -31,7 +32,7 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
 
   const genesisHash = chainSpecData.genesisHash as HexString
   const runtimeChain = chainSpecData.name
-  const parachainId = api.ctx.hasPallet('ParachainInfo')
+  const parachainId = ctx.hasPallet('ParachainInfo')
     ? ((await api.query<number>('ParachainInfo', 'ParachainId'))?.toString() ?? undefined)
     : undefined
 

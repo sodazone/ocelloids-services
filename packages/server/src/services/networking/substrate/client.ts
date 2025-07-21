@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { Observable, filter, map, mergeMap, of, retry, skip } from 'rxjs'
+import { Observable, filter, map, mergeMap, of, retry } from 'rxjs'
 
 import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { StopError, createClient } from '@polkadot-api/substrate-client'
@@ -18,7 +18,7 @@ import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { NeutralHeader } from '../types.js'
-import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
+import { RuntimeApiContext } from './context.js'
 import { RpcApi, createRpcApi } from './rpc.js'
 import { RuntimeManager, createRuntimeManager, getRuntimeVersion } from './runtime.js'
 import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
@@ -51,7 +51,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   readonly #rpc: RpcApi
   readonly #head: ChainHead$
 
-  #apiContext!: () => SubstrateApiContext
   #runtimeManager: RuntimeManager
 
   get #finalized$(): Observable<BlockInfoWithStatus> {
@@ -120,14 +119,10 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       log: this.#log,
       rpc: this.#rpc,
     })
-
-    this.#apiContext = () => {
-      throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
-    }
   }
 
-  get ctx() {
-    return this.#apiContext()
+  async ctx() {
+    return this.#runtimeManager.getCurrent()
   }
 
   followHeads$(finality = 'finalized'): Observable<NeutralHeader> {
@@ -157,12 +152,13 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   }
 
   async getRuntimeVersion() {
-    return await getRuntimeVersion(this.ctx)
+    return await getRuntimeVersion(await this.ctx())
   }
 
   async getChainSpecData() {
     return this.#rpc.getChainSpecData()
   }
+
   async getBlockHeader(hash: string) {
     return this.#rpc.getBlockHeader(hash)
   }
@@ -191,7 +187,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   async query<T = any>(module: string, method: string, ...args: any[]) {
     try {
-      const codec = this.ctx.storageCodec<T>(module, method)
+      const codec = (await this.ctx()).storageCodec<T>(module, method)
       const data = await this.getStorage(codec.keys.enc(...args))
       return data !== null ? codec.value.dec(data) : null
     } catch (error) {
@@ -202,11 +198,9 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   connect() {
     this.#runtimeManager
       .init()
-      .then((ctx) => {
-        this.#apiContext = () => ctx
+      .then(() => {
         super.emit('connected')
         this.#connected = true
-        this.#subscribeToRuntimeUpgrades()
       })
       .catch((error) => {
         this.#log.error(error, '[client:%s] error while connecting', this.chainId)
@@ -234,7 +228,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   async getBlock(hash: string, isFollowing = true): Promise<Block> {
     try {
-      const runtimeCtx = isFollowing ? this.ctx : await this.#runtimeManager.getRuntimeForBlock(hash)
+      const runtimeCtx = isFollowing ? await this.ctx() : await this.#runtimeManager.getRuntimeForBlock(hash)
       const [block, events] = await Promise.all([this.#rpc.getBlock(hash), this.#getEvents(hash, runtimeCtx)])
       return asSerializable({
         hash,
@@ -272,16 +266,5 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to fetch events for hash ${hash}.`, { cause: error })
     }
-  }
-
-  #subscribeToRuntimeUpgrades() {
-    // TODO: probably a race condition with the finalized stream.
-    // Check this out, to use the runtime from pinned blocks or blocks with runtime.
-    // We don't want to add an additional call to get the spec version
-    // per block (we do it only for backfills)
-    this.#runtimeManager.runtime$.pipe(skip(1)).subscribe((runtime) => {
-      const ctx = createRuntimeApiContext(runtime.metadataRaw, this.chainId)
-      this.#runtimeManager.updateCache(ctx)
-    })
   }
 }
