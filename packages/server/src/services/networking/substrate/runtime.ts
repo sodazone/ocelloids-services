@@ -56,9 +56,11 @@ export function createRuntimeManager({
 
   function updateCache(runtime: RuntimeApiContext) {
     getRuntimeVersion(runtime)
-      .then((v) => {
-        runtimeCache.set(v.specVersion, runtime)
-        log.info('[%s] Updated spec version %O', chainId, v)
+      .then(({ specVersion }) => {
+        if (!runtimeCache.has(specVersion)) {
+          runtimeCache.set(specVersion, runtime)
+          log.info('[%s] Updated spec version %s', chainId, specVersion)
+        }
       })
       .catch((e) => log.error(e))
   }

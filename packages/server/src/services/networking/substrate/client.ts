@@ -138,7 +138,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   async isReady(): Promise<SubstrateApi> {
     if (this.#connected) {
-      return this
+      return Promise.resolve(this)
     }
     return new Promise<SubstrateApi>((resolve) => this.once('connected', () => resolve(this)))
   }
