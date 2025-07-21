@@ -67,6 +67,18 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x8236a87084f8b84306f72007f36f2618a5634494',
   },
+  TRAC: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f',
+  },
+  'CGT2.0': {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x0e186357c323c806c1efdad36d217f7a54b63d18',
+  },
+  XRT: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x7de91b204c1c737bcee6f000aaa6569cf7061cb7',
+  },
   GLMR: {
     chainId: 'urn:ocn:polkadot:2004',
     assetId: 'native',
