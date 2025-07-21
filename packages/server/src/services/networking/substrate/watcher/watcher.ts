@@ -22,8 +22,14 @@ import { NetworkURN, Services } from '@/services/types.js'
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { SubstrateNetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
-import { backfillBlocks$, getBackfillRangesSync, loadGapsFileSync } from './backfill.js'
+import { backfillBlocks$, loadGapsFileSync } from './backfill.js'
 import { fetchers } from './fetchers.js'
+
+const f: Record<string, number[]> = {
+  'urn:ocn:polkadot:0': [26871130, 26879283, 1],
+  'urn:ocn:polkadot:1000': [9272904, 9276857, 2],
+  'urn:ocn:polkadot:2034': [8332326, 8340371, 1],
+}
 
 /**
  * The SubstrateWatcher performs the following tasks ("moo" 🐮):
@@ -106,7 +112,8 @@ export class SubstrateWatcher extends Watcher<Block> {
     const api$ = from(this.getApi(chainId))
 
     const backfill$ = defer(() => {
-      const range = getBackfillRangesSync(chainId)
+      const range = f[chainId] /*getBackfillRangesSync(chainId)*/
+
       if (range === null) {
         return EMPTY
       }

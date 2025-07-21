@@ -48,7 +48,7 @@ export function backfillBlocks$(
                 tapError(log, chainId, 'getBlockHash'),
                 mergeMap(
                   (hash) =>
-                    defer(() => from(api.getBlock(hash))).pipe(
+                    defer(() => from(api.getBlock(hash, false))).pipe(
                       retryWithTruncatedExpBackoff(RETRY_CAPPED),
                       map((block): Block => ({ status: 'finalized', ...block })),
                       catchError((err) => {

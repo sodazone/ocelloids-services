@@ -1,20 +1,8 @@
 import { EventEmitter } from 'node:events'
-import {
-  Observable,
-  filter,
-  firstValueFrom,
-  map,
-  mergeMap,
-  of,
-  race,
-  retry,
-  shareReplay,
-  take,
-  timer,
-} from 'rxjs'
+import { Observable, filter, map, mergeMap, of, retry, skip } from 'rxjs'
 
-import { BlockInfo, ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
-import { ChainSpecData, StopError, createClient } from '@polkadot-api/substrate-client'
+import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
+import { StopError, createClient } from '@polkadot-api/substrate-client'
 import {
   fixDescendantValues,
   fixUnorderedEvents,
@@ -23,7 +11,6 @@ import {
   translate,
   unpinHash,
 } from 'polkadot-api/polkadot-sdk-compat'
-import { fromHex } from 'polkadot-api/utils'
 import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
 
 import { asSerializable } from '@/common/index.js'
@@ -32,17 +19,12 @@ import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { NeutralHeader } from '../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
+import { RpcApi, createRpcApi } from './rpc.js'
+import { RuntimeManager, createRuntimeManager, getRuntimeVersion } from './runtime.js'
 import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
 
-const RUNTIME_STREAM_TIMEOUT_MILLIS = 20_000
-
-export async function createSubstrateClient(
-  log: Logger,
-  chainId: string,
-  url: string | Array<string>,
-  forceRuntimeAt?: string,
-) {
-  const client = new SubstrateClient(log, chainId, url, forceRuntimeAt)
+export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
+  const client = new SubstrateClient(log, chainId, url)
   return await client.connect()
 }
 
@@ -66,26 +48,11 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   readonly #log: Logger
   readonly #wsProvider: WsJsonRpcProvider
   readonly #client: { chainHead$: () => ChainHead$; destroy: () => void }
-  readonly #request: <Reply = any, Params extends Array<any> = any[]>(
-    method: string,
-    params: Params,
-  ) => Promise<Reply>
+  readonly #rpc: RpcApi
   readonly #head: ChainHead$
 
-  #sharedRuntime$?: Observable<any>
-  #runtimeContextCache?: Promise<RuntimeApiContext>
-
   #apiContext!: () => SubstrateApiContext
-
-  get _sharedRuntime$(): Observable<any> {
-    if (!this.#sharedRuntime$) {
-      this.#sharedRuntime$ = this.#head.runtime$.pipe(
-        filter(Boolean),
-        shareReplay({ bufferSize: 1, refCount: true }),
-      )
-    }
-    return this.#sharedRuntime$
-  }
+  #runtimeManager: RuntimeManager
 
   get #finalized$(): Observable<BlockInfoWithStatus> {
     return this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
@@ -119,7 +86,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     )
   }
 
-  constructor(log: Logger, chainId: string, url: string | Array<string>, forceRuntimeAt?: string) {
+  constructor(log: Logger, chainId: string, url: string | Array<string>) {
     super()
 
     this.chainId = chainId
@@ -145,20 +112,14 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     // TODO: enable when there's more support
     // this.getChainSpecData = substrateClient.getChainSpecData
     this.#client = getObservableClient(substrateClient)
-    this.#request = substrateClient.request
     this.#head = this.#client.chainHead$()
-
-    if (forceRuntimeAt !== undefined) {
-      this.#log.warn('[%s] forced runtime at %s', this.chainId, forceRuntimeAt)
-      this.#runtimeContextCache = new Promise((resolve, reject) => {
-        this.#log.warn('[%s] resolving runtime at %s', this.chainId, forceRuntimeAt)
-        this.#getMetadata(forceRuntimeAt)
-          .then((meta) => {
-            resolve(createRuntimeApiContext(fromHex(meta)))
-          })
-          .catch(reject)
-      })
-    }
+    this.#rpc = createRpcApi(chainId, substrateClient.request)
+    this.#runtimeManager = createRuntimeManager({
+      chainId: this.chainId,
+      runtime$: this.#head.runtime$,
+      log: this.#log,
+      rpc: this.#rpc,
+    })
 
     this.#apiContext = () => {
       throw new Error(`[${this.chainId}] Runtime context not initialized. Try using awaiting isReady().`)
@@ -180,37 +141,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     )
   }
 
-  get #runtimeContext(): Promise<RuntimeApiContext> {
-    if (this.#runtimeContextCache === undefined) {
-      this.#runtimeContextCache = this.#loadRuntimeContext()
-    }
-    return this.#runtimeContextCache
-  }
-
-  async #loadRuntimeContext(): Promise<RuntimeApiContext> {
-    try {
-      return await firstValueFrom(
-        race([
-          this._sharedRuntime$.pipe(
-            filter(Boolean),
-            take(1),
-            map((runtime) => new RuntimeApiContext(runtime, this.chainId)),
-          ),
-          timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(
-            mergeMap(async () => {
-              this.#log.warn('[%s] Fallback to state_getMetadata', this.chainId)
-              const metadata = await this.#getMetadata()
-              return createRuntimeApiContext(fromHex(metadata), this.chainId)
-            }),
-          ),
-        ]),
-      )
-    } catch (err) {
-      this.#runtimeContextCache = undefined
-      throw err
-    }
-  }
-
   async isReady(): Promise<SubstrateApi> {
     if (this.#connected) {
       return this
@@ -220,90 +150,21 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   async getMetadata(): Promise<Uint8Array> {
     try {
-      return (await this.#runtimeContext).metadataRaw
+      return (await this.#runtimeManager.getCurrent()).metadataRaw
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to fetch metadata.`, { cause: error })
     }
   }
 
   async getRuntimeVersion() {
-    return (await this.ctx.getConstant('System', 'Version')) as {
-      specName: string
-      implName: string
-      authoringVersion: number
-      specVersion: number
-      implVersion: number
-    }
+    return await getRuntimeVersion(this.ctx)
   }
 
   async getChainSpecData() {
-    try {
-      const [name, genesisHash, properties] = await Promise.all([
-        this.#request<string>('system_chain', []),
-        this.#request<string>('chain_getBlockHash', [0]),
-        this.#request<{
-          ss58Format?: string | null
-          isEthereum: boolean
-          tokenSymbol: string[] | string
-          tokenDecimals: number[] | number
-        }>('system_properties', []),
-      ])
-      return {
-        name,
-        genesisHash,
-        properties,
-      } as ChainSpecData
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to retrieve system properties.`, { cause: error })
-    }
+    return this.#rpc.getChainSpecData()
   }
-
-  async getBlock(hash: string): Promise<Block> {
-    try {
-      const [block, events] = await Promise.all([this.#getBlock(hash), this.#getEvents(hash)])
-      return asSerializable({
-        hash,
-        number: BigInt(block.header.number).toString(),
-        parent: block.header.parentHash,
-        stateRoot: block.header.stateRoot,
-        extrinsicsRoot: block.header.extrinsicsRoot,
-        disgest: block.header.digest,
-        extrinsics: block.extrinsics.map((tx) => this.ctx.decodeExtrinsic(tx)),
-        events,
-      }) as Block
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
-    }
-  }
-
-  async getBlockHash(blockNumber: string | number | bigint): Promise<string> {
-    try {
-      const result = await this.#request<string, [height: string]>('chain_getBlockHash', [
-        '0x' + Number(blockNumber).toString(16),
-      ])
-      if (result === null) {
-        throw new Error('Block hash not found')
-      }
-      return result
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block hash.`, { cause: error })
-    }
-  }
-
-  async getBlockHeader(hash: string): Promise<BlockInfo> {
-    try {
-      const header = await this.#request<{ parentHash: string; number: string }, [hash: string]>(
-        'chain_getHeader',
-        [hash],
-      )
-      return {
-        parent: header.parentHash,
-        hash,
-        number: Number(BigInt(header.number)),
-      }
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch header for hash ${hash}.`, { cause: error })
-    }
+  async getBlockHeader(hash: string) {
+    return this.#rpc.getBlockHeader(hash)
   }
 
   async getNeutralBlockHeader(hash: string) {
@@ -321,19 +182,11 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     resolvedStartKey?: string,
     at?: string,
   ): Promise<HexString[]> {
-    try {
-      return await this.#request<HexString[]>('state_getKeysPaged', [keyPrefix, count, resolvedStartKey, at])
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch storage keys.`, { cause: error })
-    }
+    return this.#rpc.getStorageKeys(keyPrefix, count, resolvedStartKey, at)
   }
 
   async getStorage(key: string, at?: string) {
-    try {
-      return await this.#request<HexString>('state_getStorage', [key, at])
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch storage for key ${key}.`, { cause: error })
-    }
+    return this.#rpc.getStorage(key, at)
   }
 
   async query<T = any>(module: string, method: string, ...args: any[]) {
@@ -347,14 +200,16 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   }
 
   connect() {
-    this.#runtimeContext
+    this.#runtimeManager
+      .init()
       .then((ctx) => {
         this.#apiContext = () => ctx
         super.emit('connected')
         this.#connected = true
+        this.#subscribeToRuntimeUpgrades()
       })
       .catch((error) => {
-        this.#log.error(error, '[client:%s] error while connecting (should never happen)', this.chainId)
+        this.#log.error(error, '[client:%s] error while connecting', this.chainId)
       })
     return this.isReady()
   }
@@ -370,59 +225,41 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   }
 
   async getRpcMethods() {
+    return this.#rpc.getRpcMethods()
+  }
+
+  getBlockHash(height: number): Promise<string> {
+    return this.#rpc.getBlockHash(height)
+  }
+
+  async getBlock(hash: string, isFollowing = true): Promise<Block> {
     try {
-      return await this.#request<{ methods: string[] }>('rpc_methods', [])
+      const runtimeCtx = isFollowing ? this.ctx : await this.#runtimeManager.getRuntimeForBlock(hash)
+      const [block, events] = await Promise.all([this.#rpc.getBlock(hash), this.#getEvents(hash, runtimeCtx)])
+      return asSerializable({
+        hash,
+        number: BigInt(block.header.number).toString(),
+        parent: block.header.parentHash,
+        stateRoot: block.header.stateRoot,
+        extrinsicsRoot: block.header.extrinsicsRoot,
+        digest: block.header.digest,
+        extrinsics: block.extrinsics.map((tx) => runtimeCtx.decodeExtrinsic(tx)),
+        events,
+      }) as Block
     } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch RPC methods.`, { cause: error })
+      throw new Error(`[client:${this.chainId}] Failed to fetch block ${hash}.`, { cause: error })
     }
   }
 
-  async #getMetadata(at?: string) {
+  async #getEvents(hash: string, ctx: RuntimeApiContext | SubstrateApiContext) {
     try {
-      return await this.#request<string>('state_getMetadata', [at])
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch metadata.${at ? ` (${at})` : ''}`, {
-        cause: error,
-      })
-    }
-  }
-
-  async #getBlock(hash: string) {
-    try {
-      const result = await this.#request<
-        {
-          block: {
-            header: {
-              parentHash: string
-              number: string
-              stateRoot: string
-              extrinsicsRoot: string
-              digest?: {
-                logs: any[]
-              }
-            }
-            extrinsics: string[]
-          }
-        },
-        [hash: string]
-      >('chain_getBlock', [hash])
-      return result?.block
-    } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to fetch block body for hash ${hash}.`, {
-        cause: error,
-      })
-    }
-  }
-
-  async #getEvents(hash: string) {
-    try {
-      const eventsData = await this.getStorage(this.ctx.events.key, hash)
+      const eventsData = await this.getStorage((ctx ?? this.ctx).events.key, hash)
 
       if (!eventsData) {
         return []
       }
 
-      const systemEvents: SystemEvent[] = this.ctx.events.dec(eventsData)
+      const systemEvents: SystemEvent[] = (ctx ?? this.ctx).events.dec(eventsData)
       return systemEvents.map(({ phase, topics, event }) => ({
         phase,
         topics,
@@ -435,5 +272,16 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to fetch events for hash ${hash}.`, { cause: error })
     }
+  }
+
+  #subscribeToRuntimeUpgrades() {
+    // TODO: probably a race condition with the finalized stream.
+    // Check this out, to use the runtime from pinned blocks or blocks with runtime.
+    // We don't want to add an additional call to get the spec version
+    // per block (we do it only for backfills)
+    this.#runtimeManager.runtime$.pipe(skip(1)).subscribe((runtime) => {
+      const ctx = createRuntimeApiContext(runtime.metadataRaw, this.chainId)
+      this.#runtimeManager.updateCache(ctx)
+    })
   }
 }
