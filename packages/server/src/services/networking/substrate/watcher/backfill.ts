@@ -28,7 +28,7 @@ const BackfillConfigsSchema = z.record(
 type BackfillConfig = z.infer<typeof BackfillConfigSchema>
 type BackfillConfigs = z.infer<typeof BackfillConfigsSchema>
 
-const INITIAL_DELAY_MS = 0.1 * 60 * 1_000
+const INITIAL_DELAY_MS = 5 * 60 * 1_000
 const EMIT_INTERVAL_MS = 1_000
 const MAX_CONCURRENT_BLOCK_REQUESTS = 2
 
