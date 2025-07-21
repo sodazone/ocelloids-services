@@ -35,7 +35,7 @@ export interface RuntimeManager {
 }
 
 /**
- * Creates runtime manager.
+ * Creates a Runtime Updates Manager.
  *
  * NOTE: we cannot rely on the follow heads streams to update the runtimes,
  * since we need to support backfilling and catch ups.

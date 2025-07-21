@@ -113,6 +113,43 @@ export type BlockEvmTransaction = BlockExtrinsicWithEvents & {
   }
 }
 
+export type BackedCandidate = {
+  candidate: {
+    descriptor: {
+      core_index: number
+      erasure_root: string
+      para_head: string
+      para_id: number
+      persisted_validation_data_hash: string
+      pov_hash: string
+      relay_parent: string
+      reserved1: string
+      reserved2: string
+      session_index: number
+      validation_code_hash: string
+      version: number
+    }
+    commitments: {
+      head_data: string
+      horizontal_messages:
+        | {
+            data: string
+            recipient: number
+          }[]
+        | null
+      hrmp_watermark: number
+      new_validation_code: string | null
+      processed_downward_messages: number
+      upward_messages: string[] | null
+    }
+  }
+  validator_indices: string
+  validity_votes: {
+    Explicit?: string
+    Implicit?: string
+  }[]
+}
+
 export interface SubstrateApi extends ApiClient {
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
