@@ -2,6 +2,7 @@ import { RuntimeContext } from '@polkadot-api/observable-client'
 import { fromHex } from 'polkadot-api/utils'
 import { Observable, filter, firstValueFrom, map, race, shareReplay, take, tap, timer } from 'rxjs'
 
+import { LRUCache } from 'lru-cache'
 import { Logger } from '../../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { RpcApi } from './rpc.js'
@@ -51,7 +52,11 @@ export function createRuntimeManager({
   log: Logger
   rpc: RpcApi
 }): RuntimeManager {
-  const runtimeCache = new Map<number, RuntimeApiContext>()
+  const runtimeCache: LRUCache<number, RuntimeApiContext> = new LRUCache({
+    ttl: 3_600_000, // 1 hour
+    ttlResolution: 10 * 60 * 1000, // 10 minutes
+    ttlAutopurge: true,
+  })
   let currentRuntime: Promise<RuntimeApiContext> | undefined
 
   function updateCache(runtime: RuntimeApiContext) {
