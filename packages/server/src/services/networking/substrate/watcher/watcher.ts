@@ -48,7 +48,7 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     this.#apis = connector.connect('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
-    this.#backfill = new SubstrateBackfill(log, this.getApi)
+    this.#backfill = new SubstrateBackfill(log, this.getApi.bind(this))
   }
 
   start() {
