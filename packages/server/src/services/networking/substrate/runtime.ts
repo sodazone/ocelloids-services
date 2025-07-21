@@ -101,10 +101,11 @@ export function createRuntimeManager({
 
   function ensureRuntimeLoaded(): Promise<RuntimeApiContext> {
     if (!currentRuntime) {
-      currentRuntime = loadInitialRuntime().then((ctx) => {
+      currentRuntime = (async () => {
+        const ctx = await loadInitialRuntime()
         updateCache(ctx)
         return ctx
-      })
+      })()
     }
     return currentRuntime
   }
