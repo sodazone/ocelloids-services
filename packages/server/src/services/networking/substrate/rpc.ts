@@ -126,8 +126,8 @@ export function createRpcApi(
   }
 
   async function getSpecVersionAt(hash: string): Promise<number> {
-    const version = await request<{ spec_version: number }>('state_getRuntimeVersion', [hash])
-    return version.spec_version
+    const version = await request<{ specVersion: number }>('state_getRuntimeVersion', [hash])
+    return version.specVersion
   }
 
   return {
