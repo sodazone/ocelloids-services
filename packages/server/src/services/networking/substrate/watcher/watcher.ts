@@ -2,7 +2,6 @@ import {
   EMPTY,
   Observable,
   catchError,
-  defer,
   from,
   lastValueFrom,
   map,
@@ -22,7 +21,7 @@ import { NetworkURN, Services } from '@/services/types.js'
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { SubstrateNetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
-import { backfillBlocks$, getBackfillRangesSync, loadGapsFileSync } from './backfill.js'
+import { SubstrateBackfill } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
 /**
@@ -40,19 +39,21 @@ export class SubstrateWatcher extends Watcher<Block> {
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
 
+  #backfill: SubstrateBackfill
+
   constructor(services: Services) {
     super(services)
 
-    const { connector } = services
+    const { log, connector, localConfig } = services
 
     this.#apis = connector.connect('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
+    this.#backfill = new SubstrateBackfill(log, localConfig)
   }
 
   start() {
     super.start()
-
-    loadGapsFileSync(process.env.OC_SUBSTRATE_BACKFILL_FILE)
+    this.#backfill.start()
   }
 
   /**
@@ -105,13 +106,7 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const api$ = from(this.getApi(chainId))
 
-    const backfill$ = defer(() => {
-      const range = getBackfillRangesSync(chainId)
-      if (range === null) {
-        return EMPTY
-      }
-      return backfillBlocks$(this.log, { api$, chainId, start: range[0], end: range[1], rate: range[2] })
-    })
+    const backfill$ = this.#backfill.getBackfill$(chainId)
 
     const finalized$ = api$.pipe(
       switchMap((api) => {
@@ -166,6 +161,8 @@ export class SubstrateWatcher extends Watcher<Block> {
         ),
       )
     }
+
+    this.#backfill.stop()
 
     const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
     await Promise.allSettled(finalizeds)
