@@ -99,23 +99,21 @@ export function createRuntimeManager({
     return runtimeCache.get(version)!
   }
 
+  function ensureRuntimeLoaded(): Promise<RuntimeApiContext> {
+    if (!currentRuntime) {
+      currentRuntime = loadInitialRuntime().then((ctx) => {
+        updateCache(ctx)
+        return ctx
+      })
+    }
+    return currentRuntime
+  }
+
   return {
     runtime$: shared$,
-    getCurrent: () => {
-      if (!currentRuntime) {
-        currentRuntime = loadInitialRuntime()
-        currentRuntime.then(updateCache)
-      }
-      return currentRuntime
-    },
+    getCurrent: ensureRuntimeLoaded,
+    init: ensureRuntimeLoaded,
     updateCache,
     getRuntimeForBlock,
-    init: () => {
-      if (!currentRuntime) {
-        currentRuntime = loadInitialRuntime()
-        currentRuntime.then(updateCache)
-      }
-      return currentRuntime
-    },
   }
 }
