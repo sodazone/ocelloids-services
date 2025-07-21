@@ -65,6 +65,9 @@ const CG_ID_MAP: Record<string, string> = {
   INTR: 'interlay',
   UNQ: 'unique-network',
   KILT: 'kilt-protocol', // old token contract, new not yet available
+  TRAC: 'origintrail',
+  'CGT2.0': 'curio-gas-token',
+  XRT: 'robonomics-network',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
