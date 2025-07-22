@@ -99,17 +99,19 @@ export class SubstrateBackfill {
     const { start, end } = config
     const totalBlocks = end - start + 1
 
-    const relayBlock$ = from(this.#getApi(relayId as NetworkURN)).pipe(
-      delay(INITIAL_DELAY_MS),
-      switchMap((api) =>
-        range(start, totalBlocks).pipe(
-          zipWith(interval(EMIT_INTERVAL_MS)),
-          map(([blockNumber]) => blockNumber),
-          concatMap((blockNumber) => this.#getBlockWithHash(api, relayId, blockNumber)),
+    const relayBlock$ = defer(() => {
+      return from(this.#getApi(relayId as NetworkURN)).pipe(
+        delay(INITIAL_DELAY_MS),
+        switchMap((api) =>
+          range(start, totalBlocks).pipe(
+            zipWith(interval(EMIT_INTERVAL_MS)),
+            map(([blockNumber]) => blockNumber),
+            concatMap((blockNumber) => this.#getBlockWithHash(api, relayId, blockNumber)),
+          ),
         ),
-      ),
-      share(),
-    )
+        share(),
+      )
+    })
 
     this.#chainBlock$.set(relayId, relayBlock$)
 

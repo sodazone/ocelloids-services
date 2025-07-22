@@ -28,10 +28,10 @@ import {
   HopTransfer,
   HumanizedAddresses,
   HumanizedTransactCall,
+  HumanizedXcmAsset,
   MultiAsset,
   QueryableXcmAsset,
   Transact,
-  XcmAsset,
   XcmAssetWithMetadata,
   XcmInstruction,
   XcmVersionedInstructions,
@@ -245,10 +245,6 @@ export class XcmHumanizer {
           ...swap_out,
           amount: BigInt(match.assetOut.amount),
         })
-      } else {
-        // No match found, fallback to original
-        swappedAssets.push(swap_in)
-        swappedAssets.push(swap_out)
       }
     }
     return swappedAssets
@@ -338,7 +334,7 @@ export class XcmHumanizer {
     return assets
   }
 
-  async #resolveAssets(anchor: NetworkURN, assets: QueryableXcmAsset[]): Promise<XcmAsset[]> {
+  async #resolveAssets(anchor: NetworkURN, assets: QueryableXcmAsset[]): Promise<HumanizedXcmAsset[]> {
     const resolved = await this.#resolveAssetsMetadata(anchor, assets)
     return Promise.all(
       resolved.map(async (asset) => ({

@@ -171,7 +171,7 @@ export enum XcmJourneyType {
 /**
  * @public
  */
-export type XcmAsset = XcmAssetWithMetadata & {
+export type HumanizedXcmAsset = XcmAssetWithMetadata & {
   volume?: number
 }
 
@@ -200,7 +200,7 @@ export type HumanizedXcm = {
   type: XcmJourneyType
   to: HumanizedAddresses
   from: HumanizedAddresses
-  assets: XcmAsset[]
+  assets: HumanizedXcmAsset[]
   version?: string
   transactCalls: HumanizedTransactCall[]
 }

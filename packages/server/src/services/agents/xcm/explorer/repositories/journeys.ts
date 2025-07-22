@@ -1,13 +1,14 @@
 import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
 import { Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
-import { JourneyFilters, XcmAsset } from '../../types/index.js'
+import { HumanizedXcmAsset, JourneyFilters } from '../../types/index.js'
 import {
   FullXcmJourney,
   FullXcmJourneyAsset,
   ListAsset,
   NewXcmAsset,
   NewXcmJourney,
+  XcmAsset,
   XcmAssetRole,
   XcmAssetUpdate,
   XcmDatabase,
@@ -46,7 +47,15 @@ export class XcmRepository {
     await this.#db.updateTable('xcm_journeys').set(updateWith).where('id', '=', id).execute()
   }
 
-  async updateAsset(journeyId: number, asset: XcmAsset, updateWith: XcmAssetUpdate): Promise<void> {
+  async getAssetIdentifiers(journeyId: number): Promise<Pick<XcmAsset, 'asset' | 'role' | 'sequence'>[]> {
+    return this.#db
+      .selectFrom('xcm_assets')
+      .select(['asset', 'role', 'sequence'])
+      .where('journey_id', '=', journeyId)
+      .execute()
+  }
+
+  async updateAsset(journeyId: number, asset: HumanizedXcmAsset, updateWith: XcmAssetUpdate): Promise<void> {
     let query = this.#db
       .updateTable('xcm_assets')
       .set(updateWith)
