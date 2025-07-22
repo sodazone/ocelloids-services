@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { EMPTY, Observable, Subject, Subscription, defer, from, interval, range } from 'rxjs'
-import { catchError, concatMap, delay, map, mergeMap, share, switchMap, tap, zipWith } from 'rxjs/operators'
+import { catchError, concatMap, delay, map, share, switchMap, tap, zipWith } from 'rxjs/operators'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/lib.js'
@@ -16,19 +16,15 @@ import { BackedCandidate, Block, SubstrateApi } from '../types.js'
 const BackfillConfigSchema = z.object({
   start: z.number(),
   end: z.number(),
-  paraIds: z.array(z.string()), // NetworkURN[]
+  paraIds: z.array(z.string()),
 })
-const BackfillConfigsSchema = z.record(
-  z.string(), // NetworkURN
-  BackfillConfigSchema,
-)
+const BackfillConfigsSchema = z.record(z.string(), BackfillConfigSchema)
 
 type BackfillConfig = z.infer<typeof BackfillConfigSchema>
 type BackfillConfigs = z.infer<typeof BackfillConfigsSchema>
 
 const INITIAL_DELAY_MS = 5 * 60 * 1_000
 const EMIT_INTERVAL_MS = 1_000
-const MAX_CONCURRENT_BLOCK_REQUESTS = 2
 
 export class SubstrateBackfill {
   readonly #log: Logger
@@ -85,11 +81,10 @@ export class SubstrateBackfill {
     const subject = new Subject<HexString>()
     this.#chainBlockHash$.set(paraId, subject)
 
-    // Allow 2 concurrent block requests in parachains since block hash emission order is already controlled by relay stream
     const observable$ = subject.pipe(
-      mergeMap((hash) => {
+      concatMap((hash) => {
         return from(this.#getApi(paraId as NetworkURN)).pipe(switchMap((api) => this.#getBlock(api, hash)))
-      }, MAX_CONCURRENT_BLOCK_REQUESTS),
+      }),
     )
 
     this.#chainBlock$.set(paraId, observable$)
