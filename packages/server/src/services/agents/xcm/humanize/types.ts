@@ -79,13 +79,13 @@ type WildMultiAssetFilter = {
 
 export type MultiAssetFilter = WildMultiAssetFilter | DefiniteMultiAssetFilter
 
-type InitiateReserveWithdraw = {
+export type InitiateReserveWithdraw = {
   assets: MultiAsset[]
   reserve: AnyJson
   xcm: XcmInstruction[]
 }
 
-type InitiateTeleport = {
+export type InitiateTeleport = {
   assets: MultiAsset[]
   dest: AnyJson
   xcm: XcmInstruction[]

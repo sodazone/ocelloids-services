@@ -958,6 +958,76 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets[0].amount).toBeDefined()
   })
 
+  it('should extract inner nested ExchangeAsset assets', async () => {
+    const msgData =
+      '031402040001000003005ed0b20a130001000003005ed0b2000e010100010000010100c91f081300010000038020998e000f0101000100000400010300a10f043205011f002eaf3a00002c4e24a286b1c562a8fc1e594bc3046b3486511c64da61f9dc064896022d447a94'
+    const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+    const instructions = asVersionedXcm(buf, apiContext).instructions
+    const results = await humanizer.humanize({
+      legs: [
+        {
+          from: 'urn:ocn:local:0',
+          to: 'urn:ocn:local:1000',
+          type: 'hop',
+          partialMessage: undefined,
+        },
+        {
+          from: 'urn:ocn:local:1000',
+          to: 'urn:ocn:local:2034',
+          type: 'hrmp',
+          partialMessage: '0x03081300010000038020998e000f0101000100000400010300a10f043205011f002eaf3a0000',
+          relay: 'urn:ocn:local:0',
+        },
+      ],
+      sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
+      messageId: '0x4e24a286b1c562a8fc1e594bc3046b3486511c64da61f9dc064896022d447a94',
+      forwardId: undefined,
+      type: 'xcm.sent',
+      waypoint: {
+        chainId: 'urn:ocn:local:0',
+        blockHash: '0xe2953a3d353b1de2128451b584754737808c4e285c0cab83658a137581b92a1c',
+        blockNumber: '26875503',
+        extrinsicHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
+        timestamp: 1752498492001,
+        extrinsicPosition: undefined,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x031402040001000003005ed0b20a130001000003005ed0b2000e010100010000010100c91f081300010000038020998e000f0101000100000400010300a10f043205011f002eaf3a00002c4e24a286b1c562a8fc1e594bc3046b3486511c64da61f9dc064896022d447a94',
+        instructions,
+        messageHash: '0x9a6aaaab796191dc5cdf8e5e35efa20ff087b430491f86cb930885656073b3d2',
+        legIndex: 0,
+      },
+      origin: {
+        chainId: 'urn:ocn:local:0',
+        blockHash: '0xe2953a3d353b1de2128451b584754737808c4e285c0cab83658a137581b92a1c',
+        blockNumber: '26875503',
+        extrinsicHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
+        timestamp: 1752498492001,
+        extrinsicPosition: undefined,
+        event: {},
+        outcome: 'Success',
+        error: null,
+        messageData:
+          '0x031402040001000003005ed0b20a130001000003005ed0b2000e010100010000010100c91f081300010000038020998e000f0101000100000400010300a10f043205011f002eaf3a00002c4e24a286b1c562a8fc1e594bc3046b3486511c64da61f9dc064896022d447a94',
+        instructions,
+        messageHash: '0x9a6aaaab796191dc5cdf8e5e35efa20ff087b430491f86cb930885656073b3d2',
+      },
+      destination: { chainId: 'urn:ocn:local:2034' },
+    })
+
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('swap')
+    expect(results.humanized.from).toBeDefined()
+    expect(results.humanized.from.key).toBeDefined()
+    expect(results.humanized.to).toBeDefined()
+    expect(results.humanized.to.key).toBeDefined()
+    expect(results.humanized.assets.length).toBe(3)
+    expect(results.humanized.assets[0].id).toBeDefined()
+    expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
   it('should extract right beneficiary from 2 hop messages', async () => {
     const { sent } = twoHopSwap
     const msgData =
