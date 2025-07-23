@@ -55,7 +55,7 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x56072c95faa701256059aa122697b133aded9279',
   },
-  LIDO: {
+  LDO: {
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x5a98fcbea516cf06857215779fd812ca3bef1b32',
   },
