@@ -19,7 +19,7 @@ export class SubstrateLocalConsumer
   extends LocalIngressConsumer<SubstrateWatcher, Block, SubstrateNetworkInfo>
   implements SubstrateIngressConsumer
 {
-  readonly #contexts$: Record<NetworkURN, Observable<SubstrateApiContext>>
+  readonly #contexts$: Record<string, Observable<SubstrateApiContext>>
 
   constructor(ctx: Services) {
     super(ctx, new SubstrateWatcher(ctx))
@@ -39,17 +39,18 @@ export class SubstrateLocalConsumer
     await this.watcher.isReady()
   }
 
-  getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
-    if (this.#contexts$[chainId] === undefined) {
-      this.#contexts$[chainId] = from(this.watcher.getApi(chainId)).pipe(
-        switchMap((api) => from(api.ctx())),
+  getContext(chainId: NetworkURN, specVersion?: number): Observable<SubstrateApiContext> {
+    const contextKey = `${chainId}:${specVersion ?? 0}`
+    if (this.#contexts$[contextKey] === undefined) {
+      this.#contexts$[contextKey] = from(this.watcher.getApi(chainId)).pipe(
+        switchMap((api) => from(api.ctx(specVersion))),
         // TODO retry
         shareReplay({
           refCount: true,
         }),
       )
     }
-    return this.#contexts$[chainId]
+    return this.#contexts$[contextKey]
   }
 
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {

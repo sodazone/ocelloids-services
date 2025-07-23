@@ -223,6 +223,7 @@ export function xcmMessagesSent() {
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
+          specVersion: event.specVersion,
           extrinsicPosition: event.extrinsicPosition,
           messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
           messageId: xcmMessage.message_id,
@@ -262,6 +263,7 @@ export function extractParachainReceive() {
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
+            specVersion: maybeXcmpEvent.specVersion,
             extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
             messageHash: xcmpQueueData.message_hash,
             messageId: xcmpQueueData.message_id,
@@ -281,6 +283,7 @@ export function extractParachainReceive() {
             extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
+            specVersion: maybeXcmpEvent.specVersion,
             timestamp: maybeXcmpEvent.timestamp,
             messageHash,
             messageId,
@@ -301,6 +304,7 @@ export function extractParachainReceive() {
             extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
+            specVersion: maybeXcmpEvent.specVersion,
             timestamp: maybeXcmpEvent.timestamp,
             messageHash,
             messageId,
@@ -323,6 +327,7 @@ function extractAssetContext({
   phase,
   blockNumber,
   blockHash,
+  specVersion,
   timestamp,
 }: {
   chainId: NetworkURN
@@ -330,6 +335,7 @@ function extractAssetContext({
   phase: string
   blockNumber: number
   blockHash: string
+  specVersion?: number
   timestamp?: number
 }): {
   assetsTrapped?: AssetsTrapped
@@ -339,6 +345,7 @@ function extractAssetContext({
     blockNumber,
     blockHash,
     blockPosition: prevEvents[prevEvents.length - 1].index,
+    specVersion,
     timestamp,
   })
 
@@ -356,7 +363,13 @@ function extractAssetContext({
       .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
       .map((record) =>
         mapping.transform(
-          toBlockEvent(record.event, { blockNumber, blockHash, blockPosition: record.index, timestamp }),
+          toBlockEvent(record.event, {
+            blockNumber,
+            blockHash,
+            blockPosition: record.index,
+            timestamp,
+            specVersion,
+          }),
         ),
       )
   }
@@ -367,7 +380,7 @@ function extractAssetContext({
 export function extractParachainReceiveByBlock(chainId: NetworkURN) {
   return (source: Observable<Block>): Observable<XcmInboundWithContext> => {
     return source.pipe(
-      mergeMap(({ hash: blockHash, number: blockNumber, extrinsics, events }) => {
+      mergeMap(({ hash: blockHash, number: blockNumber, extrinsics, events, specVersion }) => {
         let pointer = 0
         const timestamp = getTimestampFromBlock(extrinsics)
         const recordsWithIndex = events.map((record, index) => ({ ...record, index }))
@@ -382,6 +395,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
               phase: phase.type,
               blockNumber,
               blockHash,
+              specVersion,
               timestamp,
             })
 
@@ -390,8 +404,9 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
               new GenericXcmInboundWithContext({
                 event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
                 blockHash: blockHash as HexString,
-                blockNumber: blockNumber,
-                timestamp: timestamp,
+                blockNumber,
+                specVersion,
+                timestamp,
                 messageHash: xcmpQueueData.message_hash,
                 messageId: xcmpQueueData.message_id,
                 outcome: event.name === 'Success' ? 'Success' : 'Fail',
@@ -414,16 +429,24 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
               phase: phase.type,
               blockNumber,
               blockHash,
+              specVersion,
               timestamp,
             })
             pointer = i
 
             parachainReceived.push(
               new GenericXcmInboundWithContext({
-                event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
+                event: toBlockEvent(event, {
+                  blockHash,
+                  blockNumber,
+                  blockPosition: i,
+                  timestamp,
+                  specVersion,
+                }),
                 blockHash: blockHash as HexString,
-                blockNumber: blockNumber,
-                timestamp: timestamp,
+                blockNumber,
+                specVersion,
+                timestamp,
                 messageHash,
                 messageId,
                 outcome: success ? 'Success' : 'Fail',
@@ -447,16 +470,24 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
               phase: phase.type,
               blockNumber,
               blockHash,
+              specVersion,
               timestamp,
             })
             pointer = i
 
             parachainReceived.push(
               new GenericXcmInboundWithContext({
-                event: toBlockEvent(event, { blockHash, blockNumber, blockPosition: i, timestamp }),
+                event: toBlockEvent(event, {
+                  blockHash,
+                  blockNumber,
+                  blockPosition: i,
+                  timestamp,
+                  specVersion,
+                }),
                 blockHash: blockHash as HexString,
-                blockNumber: blockNumber,
-                timestamp: timestamp,
+                blockNumber,
+                timestamp,
+                specVersion,
                 messageHash,
                 messageId,
                 outcome: outcome.type === 'Complete' ? 'Success' : 'Fail',
@@ -475,13 +506,14 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
 
 function toBlockEvent(
   event: Event,
-  { blockHash, blockNumber, blockPosition, timestamp }: BlockContext,
+  { blockHash, blockNumber, blockPosition, timestamp, specVersion }: BlockContext,
 ): BlockEvent {
   return {
     ...event,
     blockNumber,
     blockHash,
     blockPosition,
+    specVersion,
     timestamp,
   }
 }

@@ -102,7 +102,8 @@ export class SubstrateDistributedConsumer
     return consumer.asObservable()
   }
 
-  getContext(chainId: NetworkURN): Observable<SubstrateApiContext> {
+  // TODO support specVersion
+  getContext(chainId: NetworkURN, _specVersion?: number): Observable<SubstrateApiContext> {
     if (this.#contexts$[chainId] === undefined) {
       this.#contexts$[chainId] = from(this.#distributor.getBuffers(getMetadataKey(chainId))).pipe(
         map((metadata) => {

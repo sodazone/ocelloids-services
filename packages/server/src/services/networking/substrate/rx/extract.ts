@@ -26,13 +26,13 @@ function enhanceTxWithIdAndEvents(
   tx: Extrinsic,
   events: EventRecord[],
 ): BlockExtrinsicWithEvents {
-  const { blockHash, blockNumber, blockPosition, timestamp } = ctx
+  const { blockHash, blockNumber, blockPosition, timestamp, specVersion } = ctx
   const eventsWithId: BlockEvent[] = []
 
   for (let index = 0; index < events.length; index++) {
     const { phase, event } = events[index]
     if (phase.type === 'ApplyExtrinsic' && phase.value === blockPosition) {
-      eventsWithId.push({ ...event, blockHash, blockNumber, blockPosition: index, timestamp })
+      eventsWithId.push({ ...event, blockHash, blockNumber, blockPosition: index, specVersion, timestamp })
     }
   }
 
@@ -49,6 +49,7 @@ function enhanceTxWithIdAndEvents(
     blockHash,
     blockNumber,
     blockPosition,
+    specVersion,
     timestamp,
     events: eventsWithId,
     dispatchInfo,
@@ -59,7 +60,7 @@ function enhanceTxWithIdAndEvents(
 export function extractTxWithEvents() {
   return (source: Observable<Block>): Observable<BlockExtrinsicWithEvents> => {
     return source.pipe(
-      mergeMap(({ hash, number, extrinsics, events }) => {
+      mergeMap(({ hash, number, extrinsics, events, specVersion }) => {
         const blockNumber = number
         const blockHash = hash
         const timestamp = getTimestampFromBlock(extrinsics)
@@ -69,6 +70,7 @@ export function extractTxWithEvents() {
               blockNumber,
               blockHash,
               blockPosition,
+              specVersion,
               timestamp,
             },
             xt,
@@ -84,16 +86,17 @@ export function extractTxWithEvents() {
 export function extractEvents() {
   return (source: Observable<Block>): Observable<BlockEvent> => {
     return source.pipe(
-      map(({ hash, number, events, extrinsics }) => {
+      map(({ hash, number, events, extrinsics, specVersion }) => {
         return {
           extrinsics,
           events,
           blockNumber: number,
           blockHash: hash,
+          specVersion,
           timestamp: getTimestampFromBlock(extrinsics),
         }
       }),
-      mergeMap(({ extrinsics, events, blockHash, blockNumber, timestamp }) => {
+      mergeMap(({ extrinsics, events, blockHash, blockNumber, specVersion, timestamp }) => {
         let prevXtIndex = -1
         let xtEventIndex = 0
         let extrinsicWithId: BlockExtrinsic | undefined
@@ -106,6 +109,7 @@ export function extractEvents() {
               blockNumber,
               blockHash,
               blockPosition: index,
+              specVersion,
               timestamp,
             }
             const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
@@ -117,6 +121,7 @@ export function extractEvents() {
                   blockNumber,
                   blockHash,
                   blockPosition: extrinsicIndex,
+                  specVersion,
                   timestamp,
                 }
                 // extract to function if requires more logic

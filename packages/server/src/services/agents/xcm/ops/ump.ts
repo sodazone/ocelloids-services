@@ -41,6 +41,7 @@ function createUmpReceivedWithContext(
     blockHash: event.blockHash as HexString,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp,
+    specVersion: event.specVersion,
     messageHash,
     messageId,
     outcome: success ? 'Success' : 'Fail',

@@ -20,6 +20,8 @@ import {
   HumanizedXcmPayload,
   SwappedAsset,
   XcmMessagePayload,
+  XcmTerminus,
+  XcmTerminusContext,
 } from '../types/index.js'
 import {
   DepositAsset,
@@ -141,7 +143,7 @@ export class XcmHumanizer {
     const instructions = versioned.value
     const type = this.#determineJourneyType(instructions)
     const beneficiary = this.#extractBeneficiary(instructions, destination.chainId)
-    const transactCalls = await this.#extractTransactCall(instructions, destination.chainId)
+    const transactCalls = await this.#extractTransactCall(instructions, destination)
 
     const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
     const to = await this.#toAddresses(destination.chainId, beneficiary)
@@ -717,23 +719,26 @@ export class XcmHumanizer {
 
   async #extractTransactCall(
     instructions: XcmInstruction[],
-    chainId: NetworkURN,
+    destination: XcmTerminusContext | XcmTerminus,
   ): Promise<HumanizedTransactCall[]> {
+    const { chainId } = destination
+    const specVersion = 'specVersion' in destination ? destination.specVersion : undefined
     const humanized: HumanizedTransactCall[] = []
     const transacts = instructions.filter((op) => op.type === 'Transact')
     if (transacts.length > 0) {
       for (const t of transacts) {
         const callData = (t.value as Transact).call
         try {
-          const apiContext = this.#ingress.getContext(chainId)
+          const apiContext = this.#ingress.getContext(chainId, specVersion)
           const decodedCall = (await firstValueFrom(apiContext)).decodeCall(callData)
           humanized.push({ ...decodedCall, raw: callData })
         } catch (error) {
           this.#log.error(
             error,
-            '[humanizer] Error decoding call from data %s (chainId: %s)',
+            '[humanizer] Error decoding call from data %s (chainId: %s, specVersion: %s)',
             callData,
             chainId,
+            specVersion ?? 'none',
           )
           humanized.push({
             raw: callData,

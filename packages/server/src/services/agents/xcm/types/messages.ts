@@ -11,6 +11,7 @@ export type XcmWithContext = {
   extrinsicPosition?: number
   blockNumber: string | number
   blockHash: HexString
+  specVersion?: number
   timestamp?: number
   messageHash: HexString
   messageId?: HexString
@@ -113,6 +114,7 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   extrinsicPosition?: number
   blockNumber: string
   blockHash: HexString
+  specVersion?: number
   timestamp?: number
   messageHash: HexString
   messageData?: HexString
@@ -127,6 +129,7 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
     this.blockHash = msg.blockHash
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
+    this.specVersion = msg.specVersion
     this.extrinsicPosition = msg.extrinsicPosition
     this.extrinsicHash = msg.extrinsicHash
   }
@@ -139,6 +142,7 @@ abstract class BaseXcmEvent {
   messageData?: HexString
   blockHash: HexString
   blockNumber: string
+  specVersion?: number
   timestamp?: number
   extrinsicPosition?: number
   extrinsicHash?: HexString
@@ -150,6 +154,7 @@ abstract class BaseXcmEvent {
     this.blockHash = msg.blockHash
     this.messageData = msg.messageData
     this.blockNumber = msg.blockNumber.toString()
+    this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
     this.extrinsicPosition = msg.extrinsicPosition
     this.extrinsicHash = msg.extrinsicHash
@@ -443,6 +448,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
       extrinsicHash: msg.extrinsicHash,
+      specVersion: msg.specVersion,
       timestamp: msg.timestamp,
       extrinsicPosition: msg.extrinsicPosition,
       event: msg.event,
@@ -493,6 +499,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       chainId: inMsg.chainId,
       blockNumber: inMsg.blockNumber,
       blockHash: inMsg.blockHash,
+      specVersion: inMsg.specVersion,
       timestamp: inMsg.timestamp,
       extrinsicHash: inMsg.extrinsicHash,
       extrinsicPosition: inMsg.extrinsicPosition,
@@ -532,6 +539,7 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
       chainId: createNetworkId(relayMsg.origin, '0'), // relay waypoint always at relay chain
       blockNumber: relayMsg.blockNumber.toString(),
       blockHash: relayMsg.blockHash,
+      specVersion: relayMsg.specVersion,
       timestamp: relayMsg.timestamp,
       extrinsicHash: relayMsg.extrinsicHash,
       extrinsicPosition: relayMsg.extrinsicPosition,

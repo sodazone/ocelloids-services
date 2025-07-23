@@ -121,8 +121,10 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     })
   }
 
-  async ctx() {
-    return this.#runtimeManager.getCurrent()
+  async ctx(specVersion?: number) {
+    return specVersion === undefined
+      ? this.#runtimeManager.getCurrent()
+      : this.#runtimeManager.getByVersion(specVersion)
   }
 
   followHeads$(finality = 'finalized'): Observable<NeutralHeader> {
@@ -229,9 +231,11 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
   async getBlock(hash: string, isFollowing = true): Promise<Block> {
     try {
       const runtimeCtx = isFollowing ? await this.ctx() : await this.#runtimeManager.getRuntimeForBlock(hash)
+      const specVersion = (await getRuntimeVersion(runtimeCtx))?.specVersion
       const [block, events] = await Promise.all([this.#rpc.getBlock(hash), this.#getEvents(hash, runtimeCtx)])
       return asSerializable({
         hash,
+        specVersion,
         number: BigInt(block.header.number).toString(),
         parent: block.header.parentHash,
         stateRoot: block.header.stateRoot,

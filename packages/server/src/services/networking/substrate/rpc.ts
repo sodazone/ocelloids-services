@@ -127,7 +127,11 @@ export function createRpcApi(
 
   async function getSpecVersionAt(hash: string): Promise<number> {
     const version = await request<{ specVersion: number }>('state_getRuntimeVersion', [hash])
-    return version.specVersion
+    if ('specVersion' in version) {
+      return version.specVersion
+    } else {
+      throw new Error(`[client:${chainId}] Unexpected specVersion ${version}`)
+    }
   }
 
   return {

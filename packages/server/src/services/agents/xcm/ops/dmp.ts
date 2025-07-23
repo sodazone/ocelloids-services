@@ -302,6 +302,7 @@ function createDmpReceivedWithContext({
     extrinsicHash: event.extrinsic?.hash as HexString,
     blockHash: event.blockHash as HexString,
     blockNumber: event.blockNumber,
+    specVersion: event.specVersion,
     timestamp: event.timestamp,
     extrinsicPosition: event.extrinsicPosition,
     messageHash,

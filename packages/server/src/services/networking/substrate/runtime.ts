@@ -29,6 +29,7 @@ export async function getRuntimeVersion(runtime: SubstrateApiContext | RuntimeAp
 
 export interface RuntimeManager {
   runtime$: Observable<RuntimeApiContext>
+  getByVersion: (specVersion: number) => Promise<RuntimeApiContext>
   getCurrent: () => Promise<RuntimeApiContext>
   getRuntimeForBlock: (hash: string) => Promise<RuntimeApiContext>
   init: () => Promise<RuntimeApiContext>
@@ -73,7 +74,9 @@ export function createRuntimeManager({
   const shared$ = runtime$.pipe(
     filter((rt): rt is RuntimeContext => !!rt),
     map((rt) => new RuntimeApiContext(rt, chainId)),
-    tap((runtime) => updateCache(runtime)),
+    tap(async (runtime) => {
+      updateCache(runtime)
+    }),
     shareReplay({ bufferSize: 1, refCount: true }),
   )
 
@@ -101,6 +104,7 @@ export function createRuntimeManager({
     const version = await rpc.getSpecVersionAt(blockHash)
     if (!runtimeCache.has(version)) {
       const meta = await rpc.getMetadata(blockHash)
+      log.info('[%s] Backfill spec version %s', chainId, version)
       runtimeCache.set(version, createRuntimeApiContext(fromHex(meta), chainId))
     }
     return runtimeCache.get(version)!
@@ -119,6 +123,15 @@ export function createRuntimeManager({
 
   return {
     runtime$: shared$,
+    getByVersion: (specVersion: number) =>
+      new Promise((resolve, reject) => {
+        const rt = runtimeCache.get(specVersion)
+        if (rt === undefined) {
+          reject(`No runtime in cache for version ${specVersion}`)
+        } else {
+          resolve(rt)
+        }
+      }),
     getCurrent: ensureRuntimeLoaded,
     init: ensureRuntimeLoaded,
     updateCache,

@@ -51,6 +51,7 @@ export type Block = {
   events: EventRecord[]
   stateRoot: string
   extrinsicsRoot: string
+  specVersion?: number
   digest?: {
     logs: any[]
   }
@@ -65,6 +66,7 @@ export type BlockContext = {
   blockNumber: number
   blockHash: string
   blockPosition: number
+  specVersion?: number
   timestamp?: number
 }
 
@@ -154,7 +156,7 @@ export interface SubstrateApi extends ApiClient {
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
-  ctx(): Promise<SubstrateApiContext>
+  ctx(specVersion?: number): Promise<SubstrateApiContext>
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{
     specName: string

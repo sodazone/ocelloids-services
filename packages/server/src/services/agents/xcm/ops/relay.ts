@@ -44,13 +44,14 @@ export function extractRelayReceive(
           })
           if (message) {
             const xcms = fromXcmpFormat(fromHex(message.data), context)
-            const { blockHash, blockNumber, blockPosition, dispatchError } = extrinsic
+            const { blockHash, blockNumber, specVersion, timestamp, blockPosition, dispatchError } = extrinsic
             return xcms.map(
               (xcmProgram) =>
                 new GenericXcmRelayedWithContext({
                   blockHash: blockHash as HexString,
-                  blockNumber: blockNumber,
-                  timestamp: extrinsic.timestamp,
+                  blockNumber,
+                  specVersion,
+                  timestamp,
                   recipient: createNetworkId(origin, message.recipient.toString()),
                   messageHash: xcmProgram.hash,
                   messageData: toHex(xcmProgram.data) as HexString,
