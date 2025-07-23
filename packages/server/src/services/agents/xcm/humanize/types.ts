@@ -79,13 +79,13 @@ type WildMultiAssetFilter = {
 
 export type MultiAssetFilter = WildMultiAssetFilter | DefiniteMultiAssetFilter
 
-type InitiateReserveWithdraw = {
+export type InitiateReserveWithdraw = {
   assets: MultiAsset[]
   reserve: AnyJson
   xcm: XcmInstruction[]
 }
 
-type InitiateTeleport = {
+export type InitiateTeleport = {
   assets: MultiAsset[]
   dest: AnyJson
   xcm: XcmInstruction[]
@@ -171,7 +171,7 @@ export enum XcmJourneyType {
 /**
  * @public
  */
-export type XcmAsset = XcmAssetWithMetadata & {
+export type HumanizedXcmAsset = XcmAssetWithMetadata & {
   volume?: number
 }
 
@@ -200,7 +200,7 @@ export type HumanizedXcm = {
   type: XcmJourneyType
   to: HumanizedAddresses
   from: HumanizedAddresses
-  assets: XcmAsset[]
+  assets: HumanizedXcmAsset[]
   version?: string
   transactCalls: HumanizedTransactCall[]
 }

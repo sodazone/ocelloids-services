@@ -5,18 +5,20 @@ import { vi } from 'vitest'
 import { _configToml, jwtSigKey } from './data.js'
 
 vi.mock('../services/networking/substrate/client.js', () => {
+  const isReady = () =>
+    Promise.resolve({
+      followHeads$: of({}),
+    })
+  const disconnect = vi.fn()
   return {
     SubstrateClient: vi.fn().mockReturnValue({
-      connect: vi.fn().mockResolvedValue({
-        isReady: vi.fn().mockResolvedValue({
-          followHeads$: of({}),
+      connect: () =>
+        Promise.resolve({
+          isReady,
+          disconnect,
         }),
-        disconnect: vi.fn(),
-      }),
-      isReady: vi.fn().mockResolvedValue({
-        followHeads$: of({}),
-      }),
-      disconnect: vi.fn(),
+      isReady,
+      disconnect,
     }),
   }
 })

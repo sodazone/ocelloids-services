@@ -2,50 +2,43 @@ import fs from 'fs'
 import path from 'path'
 
 import { EMPTY, Observable, Subject, Subscription, defer, from, interval, range } from 'rxjs'
-import { catchError, concatMap, delay, map, mergeMap, share, switchMap, tap, zipWith } from 'rxjs/operators'
+import { catchError, concatMap, delay, map, share, switchMap, tap, zipWith } from 'rxjs/operators'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { matchExtrinsic } from '@/services/agents/xcm/ops/util.js'
-import { ServiceConfiguration, createNetworkId, getConsensus } from '@/services/config.js'
+import { createNetworkId, getConsensus } from '@/services/config.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { z } from 'zod'
 import { RETRY_CAPPED } from '../../watcher.js'
-import { createSubstrateClient } from '../client.js'
 import { BackedCandidate, Block, SubstrateApi } from '../types.js'
 
 const BackfillConfigSchema = z.object({
   start: z.number(),
   end: z.number(),
-  initialBlockHash: z.optional(z.string()),
-  paraIds: z.array(z.string()), // NetworkURN[]
+  paraIds: z.array(z.string()),
 })
-const BackfillConfigsSchema = z.record(
-  z.string(), // NetworkURN
-  BackfillConfigSchema,
-)
+const BackfillConfigsSchema = z.record(z.string(), BackfillConfigSchema)
 
 type BackfillConfig = z.infer<typeof BackfillConfigSchema>
 type BackfillConfigs = z.infer<typeof BackfillConfigsSchema>
 
 const INITIAL_DELAY_MS = 5 * 60 * 1_000
 const EMIT_INTERVAL_MS = 1_000
-const MAX_CONCURRENT_BLOCK_REQUESTS = 2
 
 export class SubstrateBackfill {
   readonly #log: Logger
   readonly #chainBlock$ = new Map<string, Observable<Block>>()
   readonly #chainBlockHash$ = new Map<string, Subject<HexString>>()
-  readonly #chainApi$ = new Map<string, Observable<SubstrateApi>>()
   readonly #relaySubscriptions = new Map<string, Subscription>()
 
-  readonly #serviceConfig: ServiceConfiguration
   readonly #backfillConfig?: BackfillConfigs
+  #getApi: (chainId: NetworkURN) => Promise<SubstrateApi>
 
-  constructor(log: Logger, serviceConfig: ServiceConfiguration) {
+  constructor(log: Logger, getApi: (chainId: NetworkURN) => Promise<SubstrateApi>) {
     this.#log = log
-    this.#serviceConfig = serviceConfig
     this.#backfillConfig = this.#loadConfig(process.env.OC_SUBSTRATE_BACKFILL_FILE)
+    this.#getApi = getApi
   }
 
   getBackfill$(chainId: string) {
@@ -67,22 +60,13 @@ export class SubstrateBackfill {
     }
 
     for (const [relayId, config] of Object.entries(this.#backfillConfig)) {
-      const relayApiConfig = this.#serviceConfig.substrate.find(({ id }) => id === relayId)
-      if (!relayApiConfig) {
-        continue
-      }
-
-      const api$ = from(
-        createSubstrateClient(this.#log, relayId, relayApiConfig.provider.url, config.initialBlockHash),
-      )
-
       // Create para chain streams
       for (const paraId of config.paraIds) {
         this.#initParaChainStream(paraId)
       }
 
       // Create relay chain block stream
-      this.#initRelayChainStream(relayId, config, api$)
+      this.#initRelayChainStream(relayId, config)
     }
   }
 
@@ -97,31 +81,20 @@ export class SubstrateBackfill {
     const subject = new Subject<HexString>()
     this.#chainBlockHash$.set(paraId, subject)
 
-    // Allow 2 concurrent block requests in parachains since block hash emission order is already controlled by relay stream
     const observable$ = subject.pipe(
-      mergeMap((hash) => {
-        let api$ = this.#chainApi$.get(paraId)
-        if (!api$) {
-          const config = this.#serviceConfig.substrate.find(({ id }) => id === paraId)
-          if (!config) {
-            return EMPTY
-          }
-          api$ = from(createSubstrateClient(this.#log, paraId, config.provider.url, hash))
-          this.#chainApi$.set(paraId, api$)
-        }
-
-        return api$.pipe(switchMap((api) => this.#getBlock(api, hash)))
-      }, MAX_CONCURRENT_BLOCK_REQUESTS),
+      concatMap((hash) => {
+        return from(this.#getApi(paraId as NetworkURN)).pipe(switchMap((api) => this.#getBlock(api, hash)))
+      }),
     )
 
     this.#chainBlock$.set(paraId, observable$)
   }
 
-  #initRelayChainStream(relayId: string, config: BackfillConfig, api$: Observable<SubstrateApi>) {
+  #initRelayChainStream(relayId: string, config: BackfillConfig) {
     const { start, end } = config
     const totalBlocks = end - start + 1
 
-    const relayBlock$ = api$.pipe(
+    const relayBlock$ = from(this.#getApi(relayId as NetworkURN)).pipe(
       delay(INITIAL_DELAY_MS),
       switchMap((api) =>
         range(start, totalBlocks).pipe(
@@ -183,7 +156,7 @@ export class SubstrateBackfill {
   }
 
   #getBlock(api: SubstrateApi, hash: string): Observable<Block> {
-    return defer(() => from(api.getBlock(hash))).pipe(
+    return defer(() => from(api.getBlock(hash, false))).pipe(
       retryWithTruncatedExpBackoff(RETRY_CAPPED),
       map((block): Block => ({ status: 'finalized', ...block })),
       catchError((err) => {

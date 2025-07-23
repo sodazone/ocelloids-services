@@ -21,7 +21,7 @@ export {
   HumanizedXcm,
   HumanizedAddresses,
   HumanizedTransactCall,
-  XcmAsset,
+  HumanizedXcmAsset,
   XcmJourneyType,
   XcmAssetWithMetadata,
 } from './types/index.js'

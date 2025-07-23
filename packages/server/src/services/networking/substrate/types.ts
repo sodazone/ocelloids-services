@@ -151,10 +151,10 @@ export type BackedCandidate = {
 }
 
 export interface SubstrateApi extends ApiClient {
-  readonly ctx: SubstrateApiContext
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
+  ctx(): Promise<SubstrateApiContext>
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{
     specName: string
@@ -164,7 +164,7 @@ export interface SubstrateApi extends ApiClient {
     implVersion: number
   }>
 
-  getBlock(hash: string): Promise<Block>
+  getBlock(hash: string, isFollowing?: boolean): Promise<Block>
   getBlockHeader(hash: string): Promise<BlockInfo>
 
   getStorageKeys(

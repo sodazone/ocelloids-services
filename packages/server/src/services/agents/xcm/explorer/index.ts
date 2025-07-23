@@ -13,7 +13,7 @@ import { Logger } from '@/services/types.js'
 
 import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
-import { XcmAsset, XcmJourneyType } from '../humanize/types.js'
+import { HumanizedXcmAsset, XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
 import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext, isXcmReceived } from '../types/index.js'
 import { JourneyFilters } from '../types/index.js'
@@ -182,7 +182,7 @@ function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
   }
 }
 
-function toNewAssets(assets: XcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
+function toNewAssets(assets: HumanizedXcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
   return assets.map((asset) => ({
     symbol: asset.symbol,
     amount: asset.amount.toString(),
@@ -441,7 +441,7 @@ export class XcmExplorer {
 
           const { humanized } = await this.#humanizer.humanize(message)
 
-          if (!isXcmReceived(message) && humanized.type === XcmJourneyType.Swap) {
+          if (humanized.type === XcmJourneyType.Swap) {
             const swapAssets = humanized.assets.filter((a) => a.role === 'swap_in' || a.role === 'swap_out')
             const assetUpdates = swapAssets.map((asset) =>
               this.#repository.updateAsset(existingJourney.id, asset, {
@@ -453,7 +453,20 @@ export class XcmExplorer {
           }
 
           const trappedAssets = toNewAssets(humanized.assets.filter((a) => a.role === 'trapped'))
-          await this.#repository.insertAssetsForJourney(existingJourney.id, trappedAssets)
+
+          if (trappedAssets.length > 0) {
+            const existingAssets = await this.#repository.getAssetIdentifiers(existingJourney.id)
+            const existingKeySet = new Set(
+              existingAssets.map((a) => `${a.asset}-${a.role ?? ''}-${a.sequence ?? ''}`),
+            )
+            const newAssets = trappedAssets.filter((asset) => {
+              const key = `${asset.asset}-${asset.role ?? ''}-${asset.sequence ?? ''}`
+              return !existingKeySet.has(key)
+            })
+            if (newAssets.length > 0) {
+              await this.#repository.insertAssetsForJourney(existingJourney.id, newAssets)
+            }
+          }
 
           const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {

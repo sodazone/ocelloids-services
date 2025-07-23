@@ -35,20 +35,20 @@ import { fetchers } from './fetchers.js'
  */
 export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
+
   readonly #apis: Record<string, SubstrateApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
-
-  #backfill: SubstrateBackfill
+  readonly #backfill: SubstrateBackfill
 
   constructor(services: Services) {
     super(services)
 
-    const { log, connector, localConfig } = services
+    const { log, connector } = services
 
     this.#apis = connector.connect('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
-    this.#backfill = new SubstrateBackfill(log, localConfig)
+    this.#backfill = new SubstrateBackfill(log, this.getApi.bind(this))
   }
 
   start() {
