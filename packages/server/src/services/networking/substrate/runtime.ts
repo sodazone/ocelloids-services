@@ -56,26 +56,29 @@ export function createRuntimeManager({
   const runtimeCache: LRUCache<number, RuntimeApiContext> = new LRUCache({
     ttl: 3_600_000, // 1 hour
     ttlResolution: 10 * 60 * 1000, // 10 minutes
-    ttlAutopurge: true,
+    ttlAutopurge: false,
   })
-  let currentRuntime: Promise<RuntimeApiContext> | undefined
+  let currentSpecVersion: number | undefined
 
-  function updateCache(runtime: RuntimeApiContext) {
-    getRuntimeVersion(runtime)
-      .then(({ specVersion }) => {
-        if (!runtimeCache.has(specVersion)) {
-          runtimeCache.set(specVersion, runtime)
-          log.info('[%s] Updated spec version %s', chainId, specVersion)
-        }
-      })
-      .catch((e) => log.error(e))
+  async function updateCache(runtime: RuntimeApiContext): Promise<number> {
+    try {
+      const { specVersion } = await getRuntimeVersion(runtime)
+      if (!runtimeCache.has(specVersion)) {
+        runtimeCache.set(specVersion, runtime)
+        log.info('[%s] Updated spec version %s', chainId, specVersion)
+      }
+      return specVersion
+    } catch (e) {
+      log.error(e)
+      return 0
+    }
   }
 
   const shared$ = runtime$.pipe(
     filter((rt): rt is RuntimeContext => !!rt),
     map((rt) => new RuntimeApiContext(rt, chainId)),
     tap(async (runtime) => {
-      updateCache(runtime)
+      currentSpecVersion = await updateCache(runtime)
     }),
     shareReplay({ bufferSize: 1, refCount: true }),
   )
@@ -95,7 +98,7 @@ export function createRuntimeManager({
         ]),
       )
     } catch (err) {
-      currentRuntime = undefined
+      currentSpecVersion = undefined
       throw err
     }
   }
@@ -111,14 +114,20 @@ export function createRuntimeManager({
   }
 
   function ensureRuntimeLoaded(): Promise<RuntimeApiContext> {
-    if (!currentRuntime) {
-      currentRuntime = (async () => {
+    if (currentSpecVersion === undefined) {
+      return (async () => {
         const ctx = await loadInitialRuntime()
-        updateCache(ctx)
+        currentSpecVersion = await updateCache(ctx)
         return ctx
       })()
     }
-    return currentRuntime
+    return new Promise((resolve, reject) => {
+      if (currentSpecVersion !== undefined && runtimeCache.has(currentSpecVersion)) {
+        resolve(runtimeCache.get(currentSpecVersion)!)
+      } else {
+        reject(`No runtime in cache for version ${currentSpecVersion}`)
+      }
+    })
   }
 
   return {
