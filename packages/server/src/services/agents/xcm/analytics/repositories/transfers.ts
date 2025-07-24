@@ -357,7 +357,7 @@ export class XcmTransfersRepository {
       }
 
       grandTotal += txs
-      data[key].series.push({ time, value: txs })
+      data[key].series.push({ time, value: volumeUsd ?? 0 })
 
       if (metric === 'volumeByAsset') {
         const origins = (row[5] as DuckDBArrayValue).items as string[]
@@ -434,7 +434,7 @@ export class XcmTransfersRepository {
         volumeUsd: toNullableNumber(row[2]),
         volumeIn,
         volumeOut,
-        netFlow: volumeIn !== null && volumeOut !== null ? volumeIn - volumeOut : null,
+        netflow: volumeIn !== null && volumeOut !== null ? volumeIn - volumeOut : null,
       }
     })
   }
