@@ -1,6 +1,7 @@
 import { RuntimeContext } from '@polkadot-api/observable-client'
+import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
-import { Observable, filter, firstValueFrom, map, race, shareReplay, take, tap, timer } from 'rxjs'
+import { Observable, filter, firstValueFrom, map, race, shareReplay, switchMap, take, tap, timer } from 'rxjs'
 import { Logger } from '../../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { RpcApi } from './rpc.js'
@@ -31,14 +32,10 @@ export interface RuntimeManager {
   getCurrent: () => Promise<RuntimeApiContext>
   getRuntimeForBlock: (hash: string) => Promise<RuntimeApiContext>
   init: () => Promise<RuntimeApiContext>
-  updateCache: (runtime: RuntimeApiContext) => void
 }
 
 /**
  * Creates a Runtime Updates Manager.
- *
- * NOTE: we cannot rely on the follow heads streams to update the runtimes,
- * since we need to support backfilling and catch ups.
  */
 export function createRuntimeManager({
   chainId,
@@ -51,52 +48,51 @@ export function createRuntimeManager({
   log: Logger
   rpc: RpcApi
 }): RuntimeManager {
-  const runtimeCache = new Map<
-    number,
-    RuntimeApiContext
-  >() /*LRUCache<number, RuntimeApiContext> = new LRUCache({
+  const runtimeCache = new LRUCache<number, RuntimeApiContext>({
     ttl: 3_600_000, // 1 hour
     ttlResolution: 10 * 60 * 1000, // 10 minutes
-    ttlAutopurge: false,
-  })*/
-  let currentSpecVersion: number | undefined
+    ttlAutopurge: true,
+    max: 50,
+  })
 
-  async function updateCache(runtime: RuntimeApiContext): Promise<number> {
-    try {
-      const { specVersion } = await getRuntimeVersion(runtime)
-      if (!runtimeCache.has(specVersion)) {
-        runtimeCache.set(specVersion, runtime)
-        log.info('[%s] Updated spec version %s', chainId, specVersion)
-      }
-      return specVersion
-    } catch (e) {
-      log.error(e)
-      return 0
+  let currentSpecVersion: number | undefined
+  let initPromise: Promise<RuntimeApiContext> | null = null
+
+  async function addToCache(runtime: RuntimeApiContext): Promise<number> {
+    const { specVersion } = await getRuntimeVersion(runtime)
+    if (!runtimeCache.has(specVersion)) {
+      runtimeCache.set(specVersion, runtime)
+      log.info('[%s] Cached spec version %s', chainId, specVersion)
     }
+    return specVersion
+  }
+
+  async function updateCurrentRuntime(runtime: RuntimeApiContext): Promise<number> {
+    const specVersion = await addToCache(runtime)
+    currentSpecVersion = specVersion
+    log.debug?.('[%s] Updated current spec version to %s', chainId, specVersion)
+    return specVersion
   }
 
   const shared$ = runtime$.pipe(
     filter((rt): rt is RuntimeContext => !!rt),
     map((rt) => new RuntimeApiContext(rt, chainId)),
-    tap(async (runtime) => {
-      currentSpecVersion = await updateCache(runtime)
+    tap((runtime) => {
+      void updateCurrentRuntime(runtime)
     }),
     shareReplay({ bufferSize: 1, refCount: true }),
   )
 
+  async function fallbackRuntime(): Promise<RuntimeApiContext> {
+    log.warn('[%s] Fallback to state_getMetadata', chainId)
+    const metadata = await rpc.getMetadata()
+    return createRuntimeApiContext(fromHex(metadata), chainId)
+  }
+
   async function loadInitialRuntime(): Promise<RuntimeApiContext> {
     try {
       return await firstValueFrom(
-        race([
-          shared$.pipe(take(1)),
-          timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(
-            map(async () => {
-              log.warn('[%s] Fallback to state_getMetadata', chainId)
-              const metadata = await rpc.getMetadata()
-              return createRuntimeApiContext(fromHex(metadata), chainId)
-            }),
-          ),
-        ]),
+        race([shared$.pipe(take(1)), timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(switchMap(fallbackRuntime))]),
       )
     } catch (err) {
       currentSpecVersion = undefined
@@ -106,45 +102,66 @@ export function createRuntimeManager({
 
   async function getRuntimeForBlock(blockHash: string): Promise<RuntimeApiContext> {
     const version = await rpc.getSpecVersionAt(blockHash)
-    if (!runtimeCache.has(version)) {
-      const meta = await rpc.getMetadata(blockHash)
-      log.info('[%s] Backfill spec version %s', chainId, version)
-      runtimeCache.set(version, createRuntimeApiContext(fromHex(meta), chainId))
+    const existing = runtimeCache.get(version)
+    if (existing) {
+      return existing
     }
-    return runtimeCache.get(version)!
+
+    log.info('[%s] Backfill spec version %s', chainId, version)
+    const meta = await rpc.getMetadata(blockHash)
+    const ctx = createRuntimeApiContext(fromHex(meta), chainId)
+    await addToCache(ctx)
+    return ctx
   }
 
-  function ensureRuntimeLoaded(): Promise<RuntimeApiContext> {
+  async function ensureRuntimeLoaded(): Promise<RuntimeApiContext> {
     if (currentSpecVersion === undefined) {
-      return (async () => {
-        const ctx = await loadInitialRuntime()
-        currentSpecVersion = await updateCache(ctx)
-        return ctx
-      })()
-    }
-    return new Promise((resolve, reject) => {
-      if (currentSpecVersion !== undefined && runtimeCache.has(currentSpecVersion)) {
-        resolve(runtimeCache.get(currentSpecVersion)!)
-      } else {
-        reject(`No runtime in cache for version ${currentSpecVersion}`)
+      if (!initPromise) {
+        initPromise = (async () => {
+          const ctx = await loadInitialRuntime()
+          await updateCurrentRuntime(ctx)
+          initPromise = null
+          return ctx
+        })()
       }
-    })
+      return initPromise
+    }
+
+    const cached = runtimeCache.get(currentSpecVersion)
+    if (cached) {
+      return cached
+    }
+
+    log.warn('[%s] Reloading current runtime (evicted from cache)', chainId)
+    const metadata = await rpc.getMetadata()
+    const ctx = createRuntimeApiContext(fromHex(metadata), chainId)
+    await updateCurrentRuntime(ctx)
+    return ctx
+  }
+
+  async function getByVersion(specVersion: number): Promise<RuntimeApiContext> {
+    const rt = runtimeCache.get(specVersion)
+    if (rt !== undefined) {
+      return rt
+    }
+
+    log.warn(
+      '[%s] Backfilling runtime for version %s - metadata may not match the requested version',
+      chainId,
+      specVersion,
+    )
+
+    const meta = await rpc.getMetadata()
+    const ctx = createRuntimeApiContext(fromHex(meta), chainId)
+    runtimeCache.set(specVersion, ctx)
+    return ctx
   }
 
   return {
     runtime$: shared$,
-    getByVersion: (specVersion: number) =>
-      new Promise((resolve, reject) => {
-        const rt = runtimeCache.get(specVersion)
-        if (rt === undefined) {
-          reject(`No runtime in cache for version ${specVersion}`)
-        } else {
-          resolve(rt)
-        }
-      }),
+    getByVersion,
     getCurrent: ensureRuntimeLoaded,
     init: ensureRuntimeLoaded,
-    updateCache,
     getRuntimeForBlock,
   }
 }
