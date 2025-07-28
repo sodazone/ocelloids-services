@@ -20,5 +20,6 @@ export interface ApiClient extends ApiOps {
   readonly chainId: string
 
   connect(): Promise<ApiClient>
-  disconnect(): void
+  disconnect(): Promise<void>
+  reconnect(): Promise<ApiClient>
 }

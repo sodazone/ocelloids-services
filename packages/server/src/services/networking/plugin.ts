@@ -21,7 +21,7 @@ const connectorPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onClose', (_, done) => {
     fastify.log.info('[connector] stopping')
 
-    connector.disconnect().finally(done)
+    connector.disconnectAll().finally(done)
   })
 }
 

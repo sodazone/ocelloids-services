@@ -34,7 +34,7 @@ function mockApiClient() {
   }
   return {
     ..._client,
-    isReady: () => of(_client),
+    isReady: () => Promise.resolve(_client),
     connect: () => Promise.resolve(_client),
   } as unknown as SubstrateApi
 }
@@ -51,7 +51,8 @@ export const _mockApis = {
 }
 
 export const _connector = {
-  connect: () => _mockApis,
+  connectAll: () => _mockApis,
+  disconnectAll: () => Promise.resolve(),
 } as unknown as Connector
 
 export function createServices(): Services {

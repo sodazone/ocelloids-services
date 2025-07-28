@@ -47,7 +47,7 @@ export default class Connector {
     }
   }
 
-  connect<T extends ApiClient>(clientId: ClientId): Record<string, T> {
+  connectAll<T extends ApiClient>(clientId: ClientId): Record<string, T> {
     const chains = this.#chains.get(clientId) ?? {}
 
     this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(chains))
@@ -72,10 +72,10 @@ export default class Connector {
     return chains as Record<string, T>
   }
 
-  async disconnect() {
+  async disconnectAll() {
     const clients = new Array(...this.#chains.values()).flatMap((v) => Object.values(v))
     for (const client of clients) {
-      client.disconnect()
+      await client.disconnect()
     }
 
     this.#log.info('Closing connections: OK')

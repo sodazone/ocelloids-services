@@ -21,7 +21,7 @@ export class BitcoinWatcher extends Watcher<Block> {
 
     const { connector } = services
 
-    this.#apis = connector.connect('bitcoin')
+    this.#apis = connector.connectAll('bitcoin')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
   }
 

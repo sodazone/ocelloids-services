@@ -1,7 +1,9 @@
 import {
   EMPTY,
   Observable,
+  Subject,
   catchError,
+  defer,
   from,
   lastValueFrom,
   map,
@@ -24,6 +26,8 @@ import { Block, SubstrateApi } from '../types.js'
 import { SubstrateBackfill } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
+const API_TIMEOUT_MS = 5 * 60_000
+
 /**
  * The SubstrateWatcher performs the following tasks ("moo" 🐮):
  * - Catches up with block headers based on the height gap for finalized blocks.
@@ -36,6 +40,7 @@ import { fetchers } from './fetchers.js'
 export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
 
+  readonly #api$ = {} as Record<NetworkURN, Subject<SubstrateApi>>
   readonly #apis: Record<string, SubstrateApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
@@ -46,7 +51,7 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const { log, connector } = services
 
-    this.#apis = connector.connect('substrate')
+    this.#apis = connector.connectAll('substrate')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
     this.#backfill = new SubstrateBackfill(log, this.getApi.bind(this))
   }
@@ -54,6 +59,31 @@ export class SubstrateWatcher extends Watcher<Block> {
   start() {
     super.start()
     this.#backfill.start()
+  }
+
+  async stop() {
+    this.log.info('[watcher:substrate] shutdown in-flight block streams')
+
+    function safeLastValueFrom<T>(obs: Observable<T>, ms = 1000): Promise<T | null> {
+      return lastValueFrom(
+        obs.pipe(
+          timeout({ each: ms }),
+          catchError(() => of(null)), // fallback if timeout or empty
+        ),
+      )
+    }
+
+    this.#backfill.stop()
+
+    const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(finalizeds)
+
+    const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(news)
+
+    Object.values(this.#api$).forEach((subject) => subject?.complete())
+
+    this.log.info('[watcher:substrate] shutdown OK')
   }
 
   /**
@@ -104,11 +134,14 @@ export class SubstrateWatcher extends Watcher<Block> {
       return cachedFinalized$
     }
 
-    const api$ = from(this.getApi(chainId))
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new Subject<SubstrateApi>()
+      void this.getApi(chainId).then((api) => this.#api$[chainId].next(api))
+    }
 
     const backfill$ = this.#backfill.getBackfill$(chainId)
 
-    const finalized$ = api$.pipe(
+    const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
         const recovery$ = from(this.recoverRanges(chainId)).pipe(
           this.recoverBlockRanges(chainId, api),
@@ -136,6 +169,20 @@ export class SubstrateWatcher extends Watcher<Block> {
 
         return backfill$.pipe(mergeWith(liveFinalized$))
       }),
+      timeout({
+        each: API_TIMEOUT_MS,
+        with: () => {
+          this.log.warn('[%s] no finalized block for 5min, reconnecting...', chainId)
+          return defer(() => {
+            void this.#reconnect(chainId)
+            return new Observable<never>((subscriber) => subscriber.complete())
+          })
+        },
+      }),
+      catchError((err, caught) => {
+        this.log.error('[%s] finalizedBlocks error: %s', chainId, err)
+        return caught
+      }),
       share(),
     )
 
@@ -148,29 +195,6 @@ export class SubstrateWatcher extends Watcher<Block> {
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {
     return this.#apis[chainId].isReady()
-  }
-
-  async stop() {
-    this.log.info('[watcher:substrate] shutdown in-flight block streams')
-
-    function safeLastValueFrom<T>(obs: Observable<T>, ms = 1000): Promise<T | null> {
-      return lastValueFrom(
-        obs.pipe(
-          timeout({ each: ms }),
-          catchError(() => of(null)), // fallback if timeout or empty
-        ),
-      )
-    }
-
-    this.#backfill.stop()
-
-    const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
-    await Promise.allSettled(finalizeds)
-
-    const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
-    await Promise.allSettled(news)
-
-    this.log.info('[watcher:substrate] shutdown OK')
   }
 
   /**
@@ -217,5 +241,14 @@ export class SubstrateWatcher extends Watcher<Block> {
 
   async getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo> {
     return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
+  }
+
+  async #reconnect(chainId: NetworkURN) {
+    this.log.info('[watcher:substrate] %s reconnecting API', chainId)
+    if (this.#apis[chainId]) {
+      await this.#apis[chainId].reconnect()
+      this.log.info('[watcher:substrate] %s reconnect OK', chainId)
+      this.#api$[chainId].next(this.#apis[chainId])
+    }
   }
 }

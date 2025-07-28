@@ -197,7 +197,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  connect() {
+  async connect() {
     this.#runtimeManager
       .init()
       .then(() => {
@@ -210,7 +210,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     return this.isReady()
   }
 
-  disconnect() {
+  async disconnect() {
     try {
       this.#head.unfollow()
     } catch {
@@ -218,6 +218,11 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     } finally {
       this.#client.destroy()
     }
+  }
+
+  async reconnect() {
+    await this.disconnect()
+    return this.connect()
   }
 
   async getRpcMethods() {
