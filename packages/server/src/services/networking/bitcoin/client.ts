@@ -148,12 +148,17 @@ export class BitcoinApi implements ApiClient {
     return await this.#call<ChainInfo>('getblockchaininfo')
   }
 
-  connect() {
+  async connect() {
     return Promise.resolve(this)
   }
 
-  disconnect() {
+  async disconnect() {
     this.#controller.abort('disconnected')
+  }
+
+  async reconnect() {
+    await this.disconnect()
+    return this.connect()
   }
 
   async #call<T>(method: string, params: (string | number)[] = []): Promise<T> {

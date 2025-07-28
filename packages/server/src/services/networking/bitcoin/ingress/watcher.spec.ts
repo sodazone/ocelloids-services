@@ -15,7 +15,7 @@ async function simulateReorg(tracked: NeutralHeader[], replaced: NeutralHeader[]
   })
   const mockServices = createServices()
   mockServices.connector = {
-    connect: () => ({
+    connectAll: () => ({
       'urn:ocn:bitcoin:0': {
         followHeads$: () => from(tracked),
         getBlock: (hash: string) => {
