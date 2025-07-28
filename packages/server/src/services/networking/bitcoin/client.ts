@@ -156,11 +156,6 @@ export class BitcoinApi implements ApiClient {
     this.#controller.abort('disconnected')
   }
 
-  async reconnect() {
-    await this.disconnect()
-    return this.connect()
-  }
-
   async #call<T>(method: string, params: (string | number)[] = []): Promise<T> {
     const body = {
       jsonrpc: '1.0',

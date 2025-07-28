@@ -21,5 +21,4 @@ export interface ApiClient extends ApiOps {
 
   connect(): Promise<ApiClient>
   disconnect(): Promise<void>
-  reconnect(): Promise<ApiClient>
 }

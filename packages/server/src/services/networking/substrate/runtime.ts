@@ -1,7 +1,19 @@
 import { RuntimeContext } from '@polkadot-api/observable-client'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
-import { Observable, filter, firstValueFrom, map, race, shareReplay, switchMap, take, tap, timer } from 'rxjs'
+import {
+  Observable,
+  catchError,
+  filter,
+  firstValueFrom,
+  map,
+  race,
+  shareReplay,
+  switchMap,
+  take,
+  tap,
+  timer,
+} from 'rxjs'
 import { Logger } from '../../types.js'
 import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
 import { RpcApi } from './rpc.js'
@@ -85,14 +97,25 @@ export function createRuntimeManager({
 
   async function fallbackRuntime(): Promise<RuntimeApiContext> {
     log.warn('[%s] Fallback to state_getMetadata', chainId)
-    const metadata = await rpc.getMetadata()
+    const metadata = await Promise.race([
+      rpc.getMetadata(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('getMetadata timeout')), 5000)),
+    ])
     return createRuntimeApiContext(fromHex(metadata), chainId)
   }
 
   async function loadInitialRuntime(): Promise<RuntimeApiContext> {
     try {
       return await firstValueFrom(
-        race([shared$.pipe(take(1)), timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(switchMap(fallbackRuntime))]),
+        race([
+          shared$.pipe(take(1)),
+          timer(RUNTIME_STREAM_TIMEOUT_MILLIS).pipe(switchMap(fallbackRuntime)),
+        ]).pipe(
+          catchError((err) => {
+            log.error(err, '[%s] Error in load initial runtime', chainId)
+            throw err
+          }),
+        ),
       )
     } catch (err) {
       currentSpecVersion = undefined

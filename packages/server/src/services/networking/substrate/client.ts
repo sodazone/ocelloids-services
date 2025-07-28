@@ -220,11 +220,6 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
-  async reconnect() {
-    await this.disconnect()
-    return this.connect()
-  }
-
   async getRpcMethods() {
     return this.#rpc.getRpcMethods()
   }
