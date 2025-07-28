@@ -3,7 +3,6 @@ import {
   Observable,
   Subject,
   catchError,
-  defer,
   from,
   lastValueFrom,
   map,
@@ -11,8 +10,10 @@ import {
   mergeWith,
   of,
   share,
+  shareReplay,
   switchMap,
   takeUntil,
+  tap,
   timeout,
 } from 'rxjs'
 
@@ -20,13 +21,14 @@ import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
+import Connector from '../../connector.js'
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { SubstrateNetworkInfo } from '../ingress/types.js'
 import { Block, SubstrateApi } from '../types.js'
 import { SubstrateBackfill } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
-const API_TIMEOUT_MS = 5 * 60_000
+const API_TIMEOUT_MS = 20_000 // 5 * 60_000
 
 /**
  * The SubstrateWatcher performs the following tasks ("moo" 🐮):
@@ -40,11 +42,13 @@ const API_TIMEOUT_MS = 5 * 60_000
 export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
 
+  readonly #watchdogTimers: Record<NetworkURN, NodeJS.Timeout> = {}
   readonly #api$ = {} as Record<NetworkURN, Subject<SubstrateApi>>
   readonly #apis: Record<string, SubstrateApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
   readonly #backfill: SubstrateBackfill
+  readonly #connector: Connector
 
   constructor(services: Services) {
     super(services)
@@ -52,6 +56,7 @@ export class SubstrateWatcher extends Watcher<Block> {
     const { log, connector } = services
 
     this.#apis = connector.connectAll('substrate')
+    this.#connector = connector
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
     this.#backfill = new SubstrateBackfill(log, this.getApi.bind(this))
   }
@@ -158,32 +163,23 @@ export class SubstrateWatcher extends Watcher<Block> {
             from(api.getBlock(hash)).pipe(
               map((block) => ({ status, ...block })),
               catchError((error) => {
-                this.log.error(error, 'error fetching block %s (%s)', hash, status)
+                this.log.error(error, '[%s] error fetching block %s (%s)', chainId, hash, status)
                 return EMPTY
               }),
             ),
           ),
           this.tapError(chainId, 'blockFromHeader()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          tap(() => this.#resetWatchdog(chainId)), // Reset watchdog on every block
         )
 
         return backfill$.pipe(mergeWith(liveFinalized$))
-      }),
-      timeout({
-        each: API_TIMEOUT_MS,
-        with: () => {
-          this.log.warn('[%s] no finalized block for 5min, reconnecting...', chainId)
-          return defer(() => {
-            void this.#reconnect(chainId)
-            return new Observable<never>((subscriber) => subscriber.complete())
-          })
-        },
       }),
       catchError((err, caught) => {
         this.log.error('[%s] finalizedBlocks error: %s', chainId, err)
         return caught
       }),
-      share(),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.#finalized$[chainId] = finalized$
@@ -246,9 +242,29 @@ export class SubstrateWatcher extends Watcher<Block> {
   async #reconnect(chainId: NetworkURN) {
     this.log.info('[watcher:substrate] %s reconnecting API', chainId)
     if (this.#apis[chainId]) {
-      await this.#apis[chainId].reconnect()
-      this.log.info('[watcher:substrate] %s reconnect OK', chainId)
-      this.#api$[chainId].next(this.#apis[chainId])
+      try {
+        await this.#apis[chainId].disconnect()
+        delete this.#apis[chainId]
+        this.#apis[chainId] = (await this.#connector
+          .replaceNetwork('substrate', chainId)
+          .connect()) as SubstrateApi
+        this.log.info('[watcher:substrate] %s reconnect OK', chainId)
+        this.#api$[chainId].next(this.#apis[chainId])
+        this.log.info('[watcher:substrate] %s emit API', chainId)
+      } catch (error) {
+        this.log.error(error, 'error')
+      }
     }
+  }
+
+  #resetWatchdog(chainId: NetworkURN) {
+    if (this.#watchdogTimers[chainId]) {
+      clearTimeout(this.#watchdogTimers[chainId])
+    }
+
+    this.#watchdogTimers[chainId] = setTimeout(() => {
+      this.log.warn('[%s] no finalized block for %dms, reconnecting...', chainId, API_TIMEOUT_MS)
+      void this.#reconnect(chainId)
+    }, API_TIMEOUT_MS)
   }
 }
