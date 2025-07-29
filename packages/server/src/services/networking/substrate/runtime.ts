@@ -15,7 +15,7 @@ import {
   timer,
 } from 'rxjs'
 import { Logger } from '../../types.js'
-import { RuntimeApiContext, createRuntimeApiContext } from './context.js'
+import { RuntimeApiContext, createContextFromOpaqueMetadata } from './context.js'
 import { RpcApi } from './rpc.js'
 import { SubstrateApiContext } from './types.js'
 
@@ -96,17 +96,14 @@ export function createRuntimeManager({
   )
 
   async function fallbackRuntime(): Promise<RuntimeApiContext> {
-    // NOTE: whilst is lighter to get the metadata suing state get_Metadata,
-    // Acala in particular, returns an outdated version.
-    // So, for safety we fetch it from the runtime itself.
-    log.warn('[%s] Fallback to runtime call Metadata_metadata', chainId)
+    log.warn('[%s] Fallback to runtime call get metadata', chainId)
     const metadata = await Promise.race([
-      rpc.runtimeCall('Metadata_metadata'),
+      rpc.getMetadata(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Runtime call Metadata_metadata failed')), 5000),
+        setTimeout(() => reject(new Error('Runtime call get metadata failed')), 5000),
       ),
     ])
-    return createRuntimeApiContext(fromHex(metadata), chainId)
+    return createContextFromOpaqueMetadata(fromHex(metadata), chainId)
   }
 
   async function loadInitialRuntime(): Promise<RuntimeApiContext> {
@@ -137,7 +134,7 @@ export function createRuntimeManager({
 
     log.info('[%s] Backfill spec version %s', chainId, version)
     const meta = await rpc.getMetadata(blockHash)
-    const ctx = createRuntimeApiContext(fromHex(meta), chainId)
+    const ctx = createContextFromOpaqueMetadata(fromHex(meta), chainId)
     await addToCache(ctx)
     return ctx
   }
@@ -162,7 +159,7 @@ export function createRuntimeManager({
 
     log.warn('[%s] Reloading current runtime (evicted from cache)', chainId)
     const metadata = await rpc.getMetadata()
-    const ctx = createRuntimeApiContext(fromHex(metadata), chainId)
+    const ctx = createContextFromOpaqueMetadata(fromHex(metadata), chainId)
     await updateCurrentRuntime(ctx)
     return ctx
   }
@@ -180,7 +177,7 @@ export function createRuntimeManager({
     )
 
     const meta = await rpc.getMetadata()
-    const ctx = createRuntimeApiContext(fromHex(meta), chainId)
+    const ctx = createContextFromOpaqueMetadata(fromHex(meta), chainId)
     runtimeCache.set(specVersion, ctx)
     return ctx
   }
