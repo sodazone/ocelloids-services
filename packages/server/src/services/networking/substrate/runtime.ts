@@ -96,10 +96,15 @@ export function createRuntimeManager({
   )
 
   async function fallbackRuntime(): Promise<RuntimeApiContext> {
-    log.warn('[%s] Fallback to state_getMetadata', chainId)
+    // NOTE: whilst is lighter to get the metadata suing state get_Metadata,
+    // Acala in particular, returns an outdated version.
+    // So, for safety we fetch it from the runtime itself.
+    log.warn('[%s] Fallback to runtime call Metadata_metadata', chainId)
     const metadata = await Promise.race([
-      rpc.getMetadata(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('getMetadata timeout')), 5000)),
+      rpc.runtimeCall('Metadata_metadata'),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Runtime call Metadata_metadata failed')), 5000),
+      ),
     ])
     return createRuntimeApiContext(fromHex(metadata), chainId)
   }
