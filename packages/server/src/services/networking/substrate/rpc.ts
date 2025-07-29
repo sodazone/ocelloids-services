@@ -1,6 +1,8 @@
 import { HexString } from '@/lib.js'
 import { BlockInfo, ChainSpecData } from './types.js'
 
+const RUNTIME_CODE_KEY = '0x3a636f6465'
+
 export type RpcApi = ReturnType<typeof createRpcApi>
 
 export function createRpcApi(
@@ -115,6 +117,26 @@ export function createRpcApi(
     }
   }
 
+  async function getRuntimeWasm(at?: string) {
+    const wasmHex = await getStorage(RUNTIME_CODE_KEY, at)
+    if (!wasmHex) {
+      throw new Error(`[client:${chainId}] No runtime code found at key ${RUNTIME_CODE_KEY}`)
+    }
+    return wasmHex
+  }
+
+  async function runtimeCall(functionName: string, callParameters: string = '0x', at?: string) {
+    try {
+      const params = at ? [functionName, callParameters, at] : [functionName, callParameters]
+      return await request<string>('state_call', params)
+    } catch (error) {
+      throw new Error(
+        `[client:${chainId}] Failed to call runtime function ${functionName} with params ${callParameters}.`,
+        { cause: error },
+      )
+    }
+  }
+
   async function getMetadata(at?: string) {
     try {
       return await request<string>('state_getMetadata', [at])
@@ -144,5 +166,7 @@ export function createRpcApi(
     getStorageKeys,
     getMetadata,
     getSpecVersionAt,
+    getRuntimeWasm,
+    runtimeCall,
   }
 }
