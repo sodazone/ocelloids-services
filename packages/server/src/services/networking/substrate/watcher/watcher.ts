@@ -69,6 +69,10 @@ export class SubstrateWatcher extends Watcher<Block> {
   async stop() {
     this.log.info('[watcher:substrate] shutdown in-flight block streams')
 
+    for (const timer of Object.values(this.#watchdogTimers)) {
+      clearTimeout(timer)
+    }
+
     function safeLastValueFrom<T>(obs: Observable<T>, ms = 1000): Promise<T | null> {
       return lastValueFrom(
         obs.pipe(
