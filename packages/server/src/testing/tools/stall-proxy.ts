@@ -1,53 +1,68 @@
 import WebSocket, { WebSocketServer } from 'ws'
 
-const upstreamUrl = 'wss://rpc.ibp.network/polkadot'
-const proxyPort = 9999
+export function createProxy({
+  upstreamUrl = 'wss://rpc.ibp.network/polkadot',
+  proxyPort = 9999,
+}: {
+  upstreamUrl?: string
+  proxyPort?: number
+} = {}) {
+  const wss = new WebSocketServer({ port: proxyPort })
 
-const wss = new WebSocketServer({ port: proxyPort })
+  const connections = new Set<{
+    client: WebSocket
+    upstream: WebSocket
+    stalled: boolean
+    messageQueue: string[]
+  }>()
 
-let stall = false
+  console.log(`> Proxy running on ws://127.0.0.1:${proxyPort}`)
 
-console.log(`Proxy running on ws://127.0.0.1:${proxyPort}`)
+  wss.on('connection', (client) => {
+    const upstream = new WebSocket(upstreamUrl)
+    const messageQueue: string[] = []
 
-wss.on('connection', (client) => {
-  const upstream = new WebSocket(upstreamUrl)
+    const connection = { client, upstream, stalled: false, messageQueue }
+    connections.add(connection)
 
-  const messageQueue: string[] = []
-
-  upstream.on('open', () => {
-    console.log('Connected to upstream')
-
-    while (messageQueue.length > 0) {
-      const msg = messageQueue.shift()
-      if (msg) {
-        upstream.send(msg)
+    upstream.on('open', () => {
+      while (messageQueue.length > 0) {
+        const msg = messageQueue.shift()
+        if (msg) {
+          upstream.send(msg)
+        }
       }
-    }
+    })
+
+    upstream.on('message', (msg) => {
+      if (!connection.stalled && client.readyState === WebSocket.OPEN) {
+        client.send(msg.toString())
+      }
+    })
+
+    client.on('message', (msg) => {
+      if (upstream.readyState === WebSocket.OPEN) {
+        upstream.send(msg.toString())
+      } else {
+        messageQueue.push(msg.toString())
+      }
+    })
+
+    client.on('close', () => {
+      upstream.close()
+      connections.delete(connection)
+    })
   })
 
-  upstream.on('message', (msg) => {
-    if (!stall && client.readyState === WebSocket.OPEN) {
-      client.send(msg.toString())
-    }
-  })
-
-  client.on('message', (msg) => {
-    if (upstream.readyState === WebSocket.OPEN) {
-      upstream.send(msg.toString())
-    } else {
-      messageQueue.push(msg.toString())
-    }
-  })
-
-  client.on('close', () => upstream.close())
-})
-
-setTimeout(() => {
-  console.log('Stalling upstream messages...')
-  stall = true
-}, 10_000)
-
-setTimeout(() => {
-  console.log('Recovering upstream messages...')
-  stall = false
-}, 31_000)
+  return {
+    toggle: () => {
+      for (const conn of connections) {
+        conn.stalled = !conn.stalled
+      }
+      console.log(
+        '> Proxy toggled stalled for connections:',
+        Array.from(connections).map((c) => c.stalled),
+      )
+    },
+  }
+}
