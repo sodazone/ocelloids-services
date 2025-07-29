@@ -100,7 +100,7 @@ export function createRuntimeManager({
     const metadata = await Promise.race([
       rpc.getMetadata(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Runtime call get metadata failed')), 5000),
+        setTimeout(() => reject(new Error('Runtime call get metadata failed')), 20_000),
       ),
     ])
     return createContextFromOpaqueMetadata(fromHex(metadata), chainId)

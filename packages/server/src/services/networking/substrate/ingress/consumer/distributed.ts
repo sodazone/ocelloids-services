@@ -21,7 +21,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { safeDestr } from 'destr'
 import { decodeBlock } from '../../codec.js'
-import { Block, SubstrateApiContext, createRuntimeApiContext } from '../../index.js'
+import { Block, SubstrateApiContext, createContextFromOpaqueMetadata } from '../../index.js'
 import { SubstrateIngressConsumer, SubstrateNetworkInfo } from '../types.js'
 
 /**
@@ -112,7 +112,7 @@ export class SubstrateDistributedConsumer
 
             throw new Error(`No metadata found for ${chainId}`)
           }
-          return createRuntimeApiContext(metadata, chainId)
+          return createContextFromOpaqueMetadata(metadata, chainId)
         }),
         // TODO retry
         shareReplay({

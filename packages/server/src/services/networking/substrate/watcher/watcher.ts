@@ -28,7 +28,7 @@ import { Block, SubstrateApi } from '../types.js'
 import { SubstrateBackfill } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
-const API_TIMEOUT_MS = 20_000 // 5 * 60_000
+const API_TIMEOUT_MS = 5 * 60_000
 
 /**
  * The SubstrateWatcher performs the following tasks ("moo" 🐮):
