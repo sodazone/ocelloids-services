@@ -1,3 +1,6 @@
+import { u32 } from '@polkadot-api/substrate-bindings'
+import { toHex } from 'polkadot-api/utils'
+
 import { HexString } from '@/lib.js'
 import { BlockInfo, ChainSpecData } from './types.js'
 
@@ -137,7 +140,24 @@ export function createRpcApi(
     }
   }
 
+  async function getMetadataAtVersion(version: number, at?: string) {
+    return runtimeCall('Metadata_metadata_at_version', toHex(u32.enc(version)), at)
+  }
+
+  // TODO: review
   async function getMetadata(at?: string) {
+    // NOTE: whilst is lighter to get the metadata using state get_Metadata,
+    // Acala in particular, returns an outdated version.
+    // So, for safety we fetch it from the runtime itself.
+    const metadata = await getMetadataAtVersion(15, at)
+    if (metadata === '0x00') {
+      // well... fallback to v14
+      return await getMetadataAtVersion(14, at)
+    }
+    return metadata
+  }
+
+  async function getMetadataFromState(at?: string) {
     try {
       return await request<string>('state_getMetadata', [at])
     } catch (error) {
@@ -167,6 +187,7 @@ export function createRpcApi(
     getMetadata,
     getSpecVersionAt,
     getRuntimeWasm,
+    getMetadataFromState,
     runtimeCall,
   }
 }

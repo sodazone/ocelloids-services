@@ -5,14 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { Abi } from 'viem'
 
 import { decodeBlock } from '@/services/networking/substrate/codec.js'
-import { Block, createRuntimeApiContext } from '@/services/networking/substrate/index.js'
+import { Block, createContextFromMetadata } from '@/services/networking/substrate/index.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const blocksDir = resolve(__dirname, '__data__/blocks')
 
 export function testApiContextFromMetadata(metadataFile: string) {
   const m = readFileSync(resolve(__dirname, '__data__/metadata', metadataFile))
-  return createRuntimeApiContext(m)
+  return createContextFromMetadata(m)
 }
 
 export function testBlocksFrom(file: string) {

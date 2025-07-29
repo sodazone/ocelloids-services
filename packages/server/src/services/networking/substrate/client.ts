@@ -53,6 +53,10 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   #runtimeManager: RuntimeManager
 
+  get rpc() {
+    return this.#rpc
+  }
+
   get #finalized$(): Observable<BlockInfoWithStatus> {
     return this.#head.finalized$.pipe(map((b) => ({ ...b, status: 'finalized' })))
   }
