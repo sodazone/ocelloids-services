@@ -6,9 +6,13 @@ import { SubstrateWatcher } from '@/services/networking/substrate/watcher/watche
 import { Services } from '@/services/types.js'
 import { MemoryLevel } from 'memory-level'
 import { EMPTY, catchError } from 'rxjs'
+import { createProxy } from './stall-proxy.js'
 
 function createWatcher() {
   const log = pino()
+
+  const proxy = createProxy()
+
   const localConfig = new ServiceConfiguration({
     substrate: {
       networks: [
@@ -29,6 +33,8 @@ function createWatcher() {
     localConfig,
   } as unknown as Services)
 
+  let blocks = 0
+
   watcher
     .finalizedBlocks('urn:ocn:polkadot:0')
     .pipe(
@@ -38,7 +44,13 @@ function createWatcher() {
       }),
     )
     .subscribe({
-      next: (block) => console.log('B', block.number),
+      next: (block) => {
+        blocks++
+        if (blocks % 5 === 0) {
+          proxy.toggle()
+        }
+        console.log('BLOCK', block.number, blocks)
+      },
       error: (err) => console.error('OBSERVABLE ERROR', err),
       complete: () => console.log('OBSERVABLE COMPLETE! <<<'),
     })
