@@ -457,6 +457,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       messageData: toHexString(msg.messageDataBuffer),
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
+      messageId: msg.messageId,
     }
     this.destination = {
       chainId: legs[legs.length - 1].to, // last stop is the destination
@@ -464,9 +465,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
     this.waypoint = {
       ...this.origin,
       legIndex: 0,
-      messageData: toHexString(msg.messageDataBuffer),
-      instructions: msg.instructions.json,
-      messageHash: msg.messageHash,
+      messageId: msg.messageId,
     }
   }
 }

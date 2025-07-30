@@ -93,7 +93,7 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
   const updatedStops = payload.legs.map((leg, index) => {
     const existingStop = existingStops[index]
 
-    const waypoint = payload.waypoint && payload.waypoint.legIndex === index ? payload.waypoint : null
+    const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
     const extrinsic = event ? (event.extrinsic as any) : undefined
     const context = waypoint
@@ -124,6 +124,9 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
       if (waypoint) {
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
+          existingStop.messageHash = waypoint.messageHash
+          existingStop.messageId = waypoint.messageId ?? payload.messageId
+          existingStop.instructions = waypoint.instructions
         } else if (existingStop.to.chainId === waypoint.chainId) {
           existingStop.to = { ...existingStop.to, ...context }
         } else if (existingStop.relay?.chainId === waypoint.chainId) {
@@ -133,11 +136,15 @@ function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
       return existingStop
     } else {
       // Create a new stop if no existing stop is found
+      const isOutbound = leg.from === waypoint?.chainId
       return {
         type: leg.type,
-        from: leg.from === waypoint?.chainId ? context : { chainId: leg.from },
+        from: isOutbound ? context : { chainId: leg.from },
         to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
         relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
+        messageHash: isOutbound ? waypoint.messageHash : undefined,
+        messageId: isOutbound ? (waypoint.messageId ?? payload.messageId) : undefined,
+        instructions: isOutbound ? waypoint.instructions : undefined,
       }
     }
   })

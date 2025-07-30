@@ -204,7 +204,7 @@ describe('message matching engine', () => {
     await engine.onOutboundMessage(hopOut)
     await engine.onInboundMessage(received)
 
-    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
+    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.relayed', 'xcm.hop', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:polkadot:2030' })
     await expectNoLeftover()
   })
@@ -307,7 +307,7 @@ describe('message matching engine', () => {
 
     await engine.onInboundMessage(received)
 
-    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.relayed', 'xcm.hop', 'xcm.hop', 'xcm.received'])
     await expectNoLeftover()
   })
 
@@ -322,7 +322,7 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(hopIn)
     await engine.onOutboundMessage(hopOut)
 
-    expectEvents(['xcm.relayed', 'xcm.sent', 'xcm.received', 'xcm.hop', 'xcm.relayed', 'xcm.hop'])
+    expectEvents(['xcm.sent', 'xcm.relayed', 'xcm.received', 'xcm.hop', 'xcm.relayed', 'xcm.hop'])
     expectOd(6, { origin: 'urn:ocn:polkadot:2004', destination: 'urn:ocn:polkadot:2034' })
     await expectNoLeftover()
   })

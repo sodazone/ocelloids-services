@@ -664,8 +664,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       }
     }
 
-    await this.#findRelayInbound(msg)
-
     // Emit outbound notification
     this.#log.info(
       '[%s:o] OUT origin=%s destination=%s (block=%s #%s)',
@@ -676,6 +674,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       msg.waypoint.blockNumber,
     )
     this.#onXcmOutbound(msg)
+
+    await this.#findRelayInbound(msg)
 
     try {
       await this.#tryMatchWithDelayedRetries(
@@ -972,6 +972,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         error,
         messageData,
         messageHash,
+        messageId: hopMsg.messageId,
         instructions,
         assetsTrapped,
         assetSwaps,
