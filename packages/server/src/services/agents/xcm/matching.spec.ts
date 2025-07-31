@@ -15,6 +15,7 @@ import { twoHopSwap } from '@/testing/2-hop-swap.js'
 import { acalaHydra } from '@/testing/hops-acala-hydra.js'
 import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
 import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
+import { hydraPolkadotInterlay } from '@/testing/hops-ump-dmp.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
@@ -349,6 +350,23 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:local:0', destination: 'urn:ocn:local:2006' })
+    await expectNoLeftover()
+  })
+
+  it('should match ump-dmp hops when hop is emitted first', async () => {
+    const { sent, hopIn, hopOut, received } = hydraPolkadotInterlay
+
+    await engine.onInboundMessage(hopIn)
+    await engine.onOutboundMessage(hopOut)
+    await engine.onOutboundMessage(sent)
+    await engine.onMessageData({
+      hash: '0xec2bc1953d032d6ac959ff711e0df632251b75a61bec7a6e103f775db2f4a462',
+      topicId: '0x404e53863c9cc30ca3426c3f92a4eb84ba8c6bdd8cb2a0084cfc20d314c15f9d',
+      data: '0x031401040001000007bcef0ba2280a130001000007fcb9575e14000d010204000101009a4aeae262919949aafad880ef2c9560ce3697027ec2435b3353dd126d2ee53a2c404e53863c9cc30ca3426c3f92a4eb84ba8c6bdd8cb2a0084cfc20d314c15f9d',
+    })
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.received'])
     await expectNoLeftover()
   })
 })

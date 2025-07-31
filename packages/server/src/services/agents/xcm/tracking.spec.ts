@@ -5,7 +5,8 @@ import { apiContext } from '@/testing/xcm.js'
 import { Binary } from 'polkadot-api'
 import { from, of } from 'rxjs'
 import { mapXcmSent } from './ops/common.js'
-import { extractDmpSendByTx } from './ops/dmp.js'
+import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
+import { extractUmpSend } from './ops/ump.js'
 import { extractXcmpSend } from './ops/xcmp.js'
 import { extractXcmMessageData } from './tracking.js'
 
@@ -173,6 +174,85 @@ describe('extractXcmMessageData', () => {
           expect(msg.origin.messageHash).toBeDefined()
           expect(msg.destination.chainId).toBeDefined()
           expect(msg.destination.chainId).toBe('urn:ocn:local:2030')
+          expect(msg.origin.timestamp).toBeDefined()
+          expect(msg.sender?.signer.id).toBeDefined()
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1)
+          resolve()
+        },
+      })
+    })
+  })
+
+  it('should emit outbound for dmp by event', async () => {
+    const origin = 'urn:ocn:local:0' as NetworkURN
+    const blocks = from(testBlocksFrom('polkadot/27105430.cbor'))
+    const getDmp = () =>
+      of([
+        {
+          msg: Binary.fromHex(
+            '0x031401040001000007bcef0ba2280a130001000007fcb9575e14000d010204000101009a4aeae262919949aafad880ef2c9560ce3697027ec2435b3353dd126d2ee53a2c404e53863c9cc30ca3426c3f92a4eb84ba8c6bdd8cb2a0084cfc20d314c15f9d',
+          ),
+        },
+      ] as unknown as any)
+
+    const test$ = blocks.pipe(
+      extractEvents(),
+      extractDmpSendByEvent(origin, getDmp, apiContext),
+      mapXcmSent(apiContext, origin),
+    )
+    const calls = vi.fn()
+    await new Promise<void>((resolve) => {
+      test$.subscribe({
+        next: (msg) => {
+          calls()
+          expect(msg).toBeDefined()
+          expect(msg.origin.blockNumber).toBeDefined()
+          expect(msg.origin.blockHash).toBeDefined()
+          expect(msg.origin.instructions).toBeDefined()
+          expect(msg.origin.messageData).toBeDefined()
+          expect(msg.origin.messageHash).toBeDefined()
+          expect(msg.destination.chainId).toBeDefined()
+          expect(msg.origin.timestamp).toBeDefined()
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(1)
+          resolve()
+        },
+      })
+    })
+  })
+
+  it('should emit outbound for ump', async () => {
+    const origin = 'urn:ocn:local:2034' as NetworkURN
+    const blocks = from(testBlocksFrom('hydra/8564507.cbor'))
+    const getUmp = () =>
+      from([
+        [
+          Binary.fromHex(
+            '0x0414000400000007f873afbc280a1300000007fcb9575e14000e010204000100c11f081301000007fcb9575e14000d010204000101009a4aeae262919949aafad880ef2c9560ce3697027ec2435b3353dd126d2ee53a2c404e53863c9cc30ca3426c3f92a4eb84ba8c6bdd8cb2a0084cfc20d314c15f9d',
+          ),
+        ],
+      ])
+
+    const test$ = blocks.pipe(
+      extractEvents(),
+      extractUmpSend(origin, getUmp, apiContext),
+      mapXcmSent(apiContext, origin),
+    )
+    const calls = vi.fn()
+    await new Promise<void>((resolve) => {
+      test$.subscribe({
+        next: (msg) => {
+          calls()
+          expect(msg).toBeDefined()
+          expect(msg.origin.blockNumber).toBeDefined()
+          expect(msg.origin.blockHash).toBeDefined()
+          expect(msg.origin.instructions).toBeDefined()
+          expect(msg.origin.messageData).toBeDefined()
+          expect(msg.origin.messageHash).toBeDefined()
+          expect(msg.destination.chainId).toBeDefined()
           expect(msg.origin.timestamp).toBeDefined()
           expect(msg.sender?.signer.id).toBeDefined()
         },

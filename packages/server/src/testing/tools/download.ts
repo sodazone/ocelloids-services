@@ -18,7 +18,7 @@ export const networks = {
   moonbeam: 'wss://moonbeam.ibp.network',
   astar: 'wss://rpc.astar.network',
   bifrost: 'wss://bifrost-polkadot.ibp.network',
-  interlay: 'wss://interlay-rpc.dwellir.com',
+  interlay: 'wss://api.interlay.io/parachain',
   acala: 'wss://acala-rpc.dwellir.com',
   mythos: 'wss://mythos.ibp.network',
   kassethub: 'wss://sys.ibp.network/asset-hub-kusama',

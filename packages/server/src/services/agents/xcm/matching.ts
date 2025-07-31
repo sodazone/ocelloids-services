@@ -528,9 +528,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   // try to find in DB by hop key
   // if found, emit hop, and do not store anything
-  // if no matching hop key, assume is destination inbound and store.
-  // We assume that the original origin message is ALWAYS received first.
-  // NOTE: hops can only use idKey since message hash will be different on each hop
+  // if no matching hop key, store as inbound.
   async #tryHopMatchOnInbound(msg: XcmInbound) {
     const hopKey = matchingKey(msg.chainId, msg.messageId ?? msg.messageHash)
     const originMsg = await this.#hop.get(hopKey)
@@ -799,6 +797,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       } catch (_e) {
         //
       }
+
+      await this.#tryHopOutMatchOnOutboundWithTopicId(msg, iKey)
+
       this.#log.info(
         '[%s:h] STORED stop=%s hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
@@ -812,6 +813,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
 
     if (leg.relay !== undefined || leg.type === 'vmp') {
+      await this.#tryHopOutMatchOnOutboundWithTopicId(msg, iKey)
+
       this.#log.info(
         '[%s:o] STORED dest=%s hash=%s id=%s (block=%s #%s)',
         msg.origin.chainId,
@@ -835,6 +838,24 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           expiry: this.#expiry,
         },
       )
+    }
+  }
+
+  // In the case that we have the topic ID, check if there are any outbound messages with same ID key.
+  // Could happen when hop chain is the relay, and the hop events are received before any others
+  async #tryHopOutMatchOnOutboundWithTopicId(msg: XcmSent, idKey: string) {
+    const hopOutMsg = await this.#outbound.get(idKey)
+    if (hopOutMsg) {
+      this.#log.info(
+        '[%s:h] MATCHED HOP OUT origin=%s id=%s (block=%s #%s)',
+        msg.origin.chainId,
+        msg.origin.chainId,
+        idKey,
+        hopOutMsg.origin.blockHash,
+        hopOutMsg.origin.blockNumber,
+      )
+      await this.#deleteMatchedKeys(hopOutMsg)
+      this.#onXcmHopOut(msg, hopOutMsg)
     }
   }
 
