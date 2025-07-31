@@ -255,6 +255,9 @@ export class SubstrateWatcher extends Watcher<Block> {
         this.log.info('[watcher:substrate] %s reconnect OK', chainId)
         this.#api$[chainId].next(this.#apis[chainId])
         this.log.info('[watcher:substrate] %s emit API', chainId)
+        this.emit('telemetryApiReconnect', {
+          chainId,
+        })
       } catch (error) {
         this.log.error(error, 'error')
       }

@@ -25,6 +25,11 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     help: 'Head catcher errors.',
     labelNames: ['origin', 'step'],
   })
+  const apiReconnectsCount = new Counter({
+    name: 'oc_api_reconnects_total',
+    help: 'Number of API reconnects.',
+    labelNames: ['origin'],
+  })
 
   const blockHeightGauge = new Gauge({
     name: 'oc_catcher_block_height',
@@ -52,5 +57,9 @@ export function catcherMetrics(source: TelemetryEventEmitter) {
     }
 
     timers[timerId] = blockFinHist.labels(chainId).startTimer()
+  })
+
+  source.on('telemetryApiReconnect', ({ chainId }) => {
+    apiReconnectsCount.labels(chainId).inc()
   })
 }

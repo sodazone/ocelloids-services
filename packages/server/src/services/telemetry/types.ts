@@ -51,6 +51,7 @@ export type TelemetryEvents = {
   telemetrySocketListener: (ip: string, sub: Subscription, close?: boolean) => void
   telemetryHeadCatcherError: (msg: { chainId: string; method: string }) => void
   telemetryBlockCacheError: (msg: { chainId: string; method: string }) => void
+  telemetryApiReconnect: (msg: { chainId: string }) => void
 } & TelemetryPublisherEvents &
   TelemetryIngressConsumerEvents &
   TelemetryIngressProducerEvents
