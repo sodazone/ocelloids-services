@@ -97,10 +97,10 @@ describe('head catcher', () => {
 
   describe('finalizedBlocks', () => {
     it('should catch up blocks', async () => {
-      // Pretend that we left off at block #23075457
+      // Pretend that we left off at block #23075458
       db.sublevel<string, ChainHead>(prefixes.cache.tips, jsonEncoded).put('urn:ocn:local:0', {
         chainId: 'urn:ocn:local:0',
-        blockNumber: '23075457',
+        blockNumber: '23075458',
       } as unknown as ChainHead)
       const testHeaders = polkadotBlocks.map(
         ({ hash, number, parent }) => ({ hash, number, parent }) as BlockInfo,
