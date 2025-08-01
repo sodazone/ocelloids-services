@@ -120,8 +120,12 @@ function applySseFilters(
     }
   }
   if (filters.assets) {
-    const journeySymbols = journey.assets.map((a) => a.asset.toLowerCase())
-    const hasAsset = filters.assets.some((a) => journeySymbols.includes(a.toLowerCase()))
+    const assetsInJourney = journey.assets.map((a) => a.asset.toLowerCase())
+    const filterAssets = Array.isArray(filters.assets)
+      ? filters.assets.map((a) => a.toLowerCase())
+      : [filters.assets.toLowerCase()]
+
+    const hasAsset = filterAssets.some((a) => assetsInJourney.includes(a))
     if (!hasAsset) {
       return false
     }

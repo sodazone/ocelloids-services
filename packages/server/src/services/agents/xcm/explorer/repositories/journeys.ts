@@ -196,7 +196,7 @@ export class XcmRepository {
       .select(['asset', this.#db.fn.max('symbol').as('symbol')])
       .where('symbol', 'is not', null)
       .groupBy('asset')
-      .orderBy('asset', 'asc')
+      .orderBy('symbol', 'asc')
       .limit(100)
       .offset(offset)
       .execute()
