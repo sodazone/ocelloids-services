@@ -56,6 +56,7 @@ export type XcmAssetUpdate = Updateable<XcmAssetTable>
 export interface XcmDatabase {
   xcm_journeys: XcmJourneyTable
   xcm_assets: XcmAssetTable
+  xcm_asset_volume_cache: XcmAssetVolumeCache
 }
 
 export type FullXcmJourneyAsset = Omit<XcmAsset, 'id' | 'journey_id'>
@@ -81,3 +82,15 @@ export type XcmAssetKey = {
   role?: XcmAssetRole
   sequence?: number
 }
+
+export interface XcmAssetVolumeCache {
+  asset: ColumnType<string>
+  symbol: ColumnType<string | undefined>
+  usd_volume: ColumnType<number>
+  snapshot_start: ColumnType<number>
+  snapshot_end: ColumnType<number>
+}
+
+export type XcmAssetVolumeCacheRow = Selectable<XcmAssetVolumeCache>
+export type NewXcmAssetVolumeCache = Insertable<XcmAssetVolumeCache>
+export type XcmAssetVolumeCacheUpdate = Updateable<XcmAssetVolumeCache>

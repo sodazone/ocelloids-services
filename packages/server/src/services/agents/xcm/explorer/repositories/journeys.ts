@@ -26,6 +26,30 @@ function decodeCursor(cursor: string): number {
   return parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
 }
 
+function encodeAssetsListCursor(
+  row: { asset: string; usd_volume: number },
+  snapshotStart: number,
+  snapshotEnd: number,
+): string {
+  return Buffer.from(
+    JSON.stringify({
+      asset: row.asset,
+      usd_volume: row.usd_volume,
+      snapshotStart,
+      snapshotEnd,
+    }),
+  ).toString('base64')
+}
+
+function decodeAssetsListCursor(cursor: string): {
+  asset: string
+  usd_volume: number
+  snapshotStart: number
+  snapshotEnd: number
+} {
+  return JSON.parse(Buffer.from(cursor, 'base64').toString())
+}
+
 export function calculateTotalUsd(assets: { usd?: number | null; role?: XcmAssetRole }[]) {
   return assets.reduce((sum, row) => {
     if (row.role !== undefined && row.role !== 'transfer') {
@@ -179,6 +203,58 @@ export class XcmRepository {
     await this.#db.destroy()
   }
 
+  async refreshAssetSnapshot() {
+    const snapshot_end = Date.now()
+    const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
+
+    // Subquery: sum usd per asset within snapshot window
+    const volumeSubquery = this.#db
+      .selectFrom('xcm_assets as recent_assets')
+      .innerJoin('xcm_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
+      .select((eb) => [
+        eb.ref('recent_assets.asset').as('asset'),
+        eb.fn.sum(eb.fn.coalesce('recent_assets.usd', eb.val(0))).as('usd_volume'),
+      ])
+      .where('recent_journeys.sent_at', '>=', snapshot_start)
+      .where('recent_journeys.sent_at', '<=', snapshot_end)
+      .where('recent_journeys.status', '=', 'received')
+      .groupBy('recent_assets.asset')
+      .as('volumes')
+
+    // Left join on all known assets
+    const results = await this.#db
+      .selectFrom('xcm_assets')
+      .leftJoin(volumeSubquery, 'xcm_assets.asset', 'volumes.asset')
+      .select((eb) => [
+        eb.ref('xcm_assets.asset').as('asset'),
+        eb.fn.max('xcm_assets.symbol').as('symbol'),
+        eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
+      ])
+      .where('xcm_assets.symbol', 'is not', null)
+      .groupBy('xcm_assets.asset')
+      .execute()
+
+    // Upsert into snapshot table
+    await this.#db.transaction().execute(async (trx) => {
+      // Insert new snapshot rows
+      for (const row of results) {
+        await trx
+          .insertInto('xcm_asset_volume_cache')
+          .values({
+            asset: row.asset,
+            symbol: row.symbol,
+            usd_volume: Number(row.usd_volume),
+            snapshot_start,
+            snapshot_end,
+          })
+          .execute()
+      }
+
+      // Delete old snapshot(s)
+      await trx.deleteFrom('xcm_asset_volume_cache').where('snapshot_start', '<', snapshot_start).execute()
+    })
+  }
+
   async listAssets(pagination?: QueryPagination): Promise<{
     items: Array<ListAsset>
     pageInfo: {
@@ -188,26 +264,85 @@ export class XcmRepository {
   }> {
     const limit = Math.min(pagination?.limit ?? MAX_LIMIT, MAX_LIMIT)
 
-    const parsedOffset = parseInt(pagination?.cursor ?? '0', 10)
-    const offset = Number.isNaN(parsedOffset) || parsedOffset < 0 ? 0 : parsedOffset
+    let snapshotStart: number | undefined
+    let snapshotEnd: number | undefined
+    let afterAsset: string | undefined
+    let afterUsdVolume: number | undefined
 
-    const rows = await this.#db
-      .selectFrom('xcm_assets')
-      .select(['asset', this.#db.fn.max('symbol').as('symbol')])
-      .where('symbol', 'is not', null)
-      .groupBy('asset')
-      .orderBy('symbol', 'asc')
-      .limit(100)
-      .offset(offset)
-      .execute()
+    if (pagination?.cursor) {
+      const decoded = decodeAssetsListCursor(pagination.cursor)
+      snapshotStart = decoded.snapshotStart
+      snapshotEnd = decoded.snapshotEnd
+      afterAsset = decoded.asset
+      afterUsdVolume = decoded.usd_volume
+    }
+
+    // Fetch the current snapshot bounds if cursor is not provided
+    if (!snapshotStart || !snapshotEnd) {
+      const latestSnapshot = await this.getLastestSnapshot()
+
+      if (!latestSnapshot) {
+        return {
+          items: [],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: '',
+          },
+        }
+      }
+
+      snapshotStart = latestSnapshot.snapshot_start
+      snapshotEnd = latestSnapshot.snapshot_end
+    }
+
+    let query = this.#db
+      .selectFrom('xcm_asset_volume_cache')
+      .select(['asset', 'symbol', 'usd_volume'])
+      .where('snapshot_start', '=', snapshotStart)
+      .where('snapshot_end', '=', snapshotEnd)
+
+    // Cursor filtering
+    if (afterAsset && afterUsdVolume !== undefined) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('usd_volume', '<', afterUsdVolume),
+          eb.and([eb('usd_volume', '=', afterUsdVolume), eb('asset', '>', afterAsset)]),
+        ]),
+      )
+    }
+
+    query = query
+      .orderBy('usd_volume', 'desc')
+      .orderBy('asset', 'asc')
+      .limit(limit + 1)
+
+    const rows = await query.execute()
+
+    const hasNextPage = rows.length > limit
+    const items = rows.slice(0, limit)
+
+    const endCursor = hasNextPage
+      ? encodeAssetsListCursor(items[items.length - 1], snapshotStart, snapshotEnd)
+      : ''
 
     return {
-      items: rows.slice(0, limit),
+      items: items.map((row) => ({
+        asset: row.asset,
+        symbol: row.symbol,
+      })),
       pageInfo: {
-        hasNextPage: rows.length > limit,
-        endCursor: (offset + limit).toString(),
+        hasNextPage,
+        endCursor,
       },
     }
+  }
+
+  async getLastestSnapshot() {
+    return await this.#db
+      .selectFrom('xcm_asset_volume_cache')
+      .select(['snapshot_start', 'snapshot_end'])
+      .limit(1)
+      .executeTakeFirst()
   }
 
   async listFullJourneys(

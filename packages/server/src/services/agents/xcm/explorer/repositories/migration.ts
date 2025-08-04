@@ -43,6 +43,16 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('sequence', 'integer')
       .execute()
 
+    await db.schema
+      .createTable('xcm_asset_volume_cache')
+      .ifNotExists()
+      .addColumn('asset', 'varchar(255)', (col) => col.primaryKey().notNull())
+      .addColumn('symbol', 'varchar(50)')
+      .addColumn('usd_volume', 'decimal', (col) => col.notNull().defaultTo('0'))
+      .addColumn('snapshot_start', 'timestamp', (col) => col.notNull())
+      .addColumn('snapshot_end', 'timestamp', (col) => col.notNull())
+      .execute()
+
     // Create indexes
     await db.schema
       .createIndex('xcm_journeys_sent_at_index')
@@ -129,6 +139,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('xcm_assets_symbol_index')
+      .ifNotExists()
+      .on('xcm_assets')
+      .column('symbol')
+      .execute()
+
+    await db.schema
       .createIndex('xcm_assets_journey_usd_index')
       .ifNotExists()
       .on('xcm_assets')
@@ -143,6 +160,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .on('xcm_assets')
       .columns(['asset', 'symbol'])
       .execute()
+
+    await db.schema
+      .createIndex('xcm_asset_volume_cache_snapshot_volume_index')
+      .ifNotExists()
+      .on('xcm_asset_volume_cache')
+      .columns(['snapshot_start', 'usd_volume', 'asset'])
+      .execute()
   } catch (error) {
     console.error(error)
     throw error
@@ -152,4 +176,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('xcm_assets').execute()
   await db.schema.dropTable('xcm_journeys').execute()
+  await db.schema.dropTable('xcm_asset_volume_cache').execute()
 }

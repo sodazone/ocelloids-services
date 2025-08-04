@@ -1,15 +1,13 @@
 import { SqliteError } from 'better-sqlite3'
 
-import { Twox256 } from '@polkadot-api/substrate-bindings'
-import { Migrator } from 'kysely'
-import { toHex } from 'polkadot-api/utils'
-import { Subscription, concatMap } from 'rxjs'
-
-import { SimpleCache, createCache } from '@/common/cache.js'
 import { asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Logger } from '@/services/types.js'
+import { Twox256 } from '@polkadot-api/substrate-bindings'
+import { Migrator } from 'kysely'
+import { toHex } from 'polkadot-api/utils'
+import { Subscription, concatMap } from 'rxjs'
 
 import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
@@ -27,6 +25,10 @@ import {
   NewXcmJourney,
   XcmJourneyUpdate,
 } from './repositories/types.js'
+
+const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
+const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
+const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
 
 const locks = new Map<string, Promise<void>>()
 
@@ -201,8 +203,6 @@ function toNewAssets(assets: HumanizedXcmAsset[]): Omit<NewXcmAsset, 'journey_id
   }))
 }
 
-const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
-const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
 function shouldBroadcastJourney({ sentAt, recvAt }: { sentAt?: number; recvAt?: number }): boolean {
   if (hasBackfilling) {
     const timeAgo = Date.now() - BACKFILL_MIN_TIME_AGO_MILLIS
@@ -219,9 +219,9 @@ export class XcmExplorer {
   readonly #repository: XcmRepository
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSideEventsBroadcaster
-  readonly #assetsQueryCache: SimpleCache<QueryResult<ListAsset>>
 
   #sub?: Subscription
+  #assetCacheRefreshTask?: NodeJS.Timeout
 
   constructor({
     log,
@@ -239,13 +239,18 @@ export class XcmExplorer {
     this.#migrator = migrator
     this.#repository = new XcmRepository(db)
     this.#broadcaster = broadcaster
-    this.#assetsQueryCache = createCache<QueryResult<ListAsset>>(3600_000)
   }
 
   async start(tracker: XcmTracker) {
     this.#log.info('[xcm:explorer] start')
 
     await this.#migrator.migrateToLatest()
+
+    if ((await this.#repository.getLastestSnapshot()) === undefined) {
+      await this.#refreshAssetCache()
+    }
+
+    this.#assetCacheRefreshTask = setInterval(this.#refreshAssetCache, ASSET_CACHE_REFRESH).unref()
 
     this.#sub = tracker
       .historicalXcm$({
@@ -274,6 +279,7 @@ export class XcmExplorer {
     this.#log.info('[xcm:explorer] stop')
 
     this.#sub?.unsubscribe()
+    clearInterval(this.#assetCacheRefreshTask)
 
     const timeout = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Shutdown timeout waiting for locks')), 5000),
@@ -285,18 +291,7 @@ export class XcmExplorer {
   }
 
   async listAssets(pagination?: QueryPagination): Promise<QueryResult<ListAsset>> {
-    const cursor = pagination?.cursor ?? '0' // use '0' as default cursor key
-    const cached = this.#assetsQueryCache.get(cursor)
-
-    if (cached) {
-      return cached
-    }
-
-    const results = await this.#repository.listAssets(pagination)
-
-    this.#assetsQueryCache.set(cursor, results)
-
-    return results
+    return await this.#repository.listAssets(pagination)
   }
 
   async listJourneys(
@@ -504,6 +499,15 @@ export class XcmExplorer {
         event,
         data,
       })
+    }
+  }
+
+  async #refreshAssetCache() {
+    try {
+      await this.#repository.refreshAssetSnapshot()
+      this.#log.info('[xcm:explorer] asset volume cache table refreshed')
+    } catch (error) {
+      this.#log.error(error, '[xcm:explorer] error on refreshing asset volume cache table')
     }
   }
 }
