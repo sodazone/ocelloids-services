@@ -13,7 +13,13 @@ import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../..
 import { XcmHumanizer } from '../humanize/index.js'
 import { HumanizedXcmAsset, XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
-import { HumanizedXcmPayload, XcmMessagePayload, XcmTerminusContext, isXcmReceived } from '../types/index.js'
+import {
+  HumanizedXcmPayload,
+  XcmMessagePayload,
+  XcmTerminusContext,
+  isXcmHop,
+  isXcmReceived,
+} from '../types/index.js'
 import { JourneyFilters } from '../types/index.js'
 import { createXcmDatabase } from './repositories/db.js'
 import { XcmRepository, calculateTotalUsd } from './repositories/journeys.js'
@@ -356,15 +362,8 @@ export class XcmExplorer {
 
         case 'xcm.relayed': {
           if (existingJourney) {
-            // Update the existing journey for xcm.relayed
-            const updatedStops = toStops(message, existingJourney.stops)
+            await this.#updateJourney(message, existingJourney)
 
-            const updateWith: Partial<XcmJourneyUpdate> = {
-              status: toStatus(message),
-              stops: asJSON(updatedStops),
-            }
-
-            await this.#repository.updateJourney(existingJourney.id, updateWith)
             const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {
               this.#broadcastUpdateJourney(items[0])
@@ -430,49 +429,35 @@ export class XcmExplorer {
             return
           }
 
-          const updatedStops = toStops(message, existingJourney.stops)
-          const updateWith: Partial<XcmJourneyUpdate> = {
-            status: toStatus(message),
-            stops: asJSON(updatedStops),
-          }
-          // Update recv_at only for 'xcm.received'
-          if (isXcmReceived(message)) {
-            updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
-          }
-          await this.#repository.updateJourney(existingJourney.id, updateWith)
+          await this.#updateJourney(message, existingJourney)
 
-          const { humanized } = await this.#humanizer.humanize(message)
-
-          if (humanized.type === XcmJourneyType.Swap) {
-            const swapAssets = humanized.assets.filter((a) => a.role === 'swap_in' || a.role === 'swap_out')
-            const assetUpdates = swapAssets.map((asset) =>
-              this.#repository.updateAsset(existingJourney.id, asset, {
-                amount: asset.amount.toString(),
-                usd: asset.volume,
-              }),
-            )
-            await Promise.all(assetUpdates)
-          }
-
-          const trappedAssets = toNewAssets(humanized.assets.filter((a) => a.role === 'trapped'))
-
-          if (trappedAssets.length > 0) {
-            const existingAssets = await this.#repository.getAssetIdentifiers(existingJourney.id)
-            const existingKeySet = new Set(
-              existingAssets.map((a) => `${a.asset}-${a.role ?? ''}-${a.sequence ?? ''}`),
-            )
-            const newAssets = trappedAssets.filter((asset) => {
-              const key = `${asset.asset}-${asset.role ?? ''}-${asset.sequence ?? ''}`
-              return !existingKeySet.has(key)
-            })
-            if (newAssets.length > 0) {
-              await this.#repository.insertAssetsForJourney(existingJourney.id, newAssets)
-            }
-          }
+          await this.#updateSwapAndTrapAssets(message, existingJourney)
 
           const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {
             this.#broadcastUpdateJourney(items[0])
+          }
+
+          // On hop outs, check that we don't have any journeys stored that has the hop out as origin
+          if (isXcmHop(message) && message.direction === 'out') {
+            // Assign the waypoint to origin to get the correlation ID if hop out was emitted as origin sent message
+            const cid = toCorrelationId({ ...message, origin: message.waypoint })
+            const { items } = await this.getJourneyById({ id: cid })
+            if (items.length > 0) {
+              try {
+                for (const i of items) {
+                  await this.#repository.deleteJourney(i.id)
+                }
+                this.#log.info(
+                  `[xcm:explorer] ${items.length} duplicate hop journeys deleted with correlation ID ${cid} and networkId ${message.waypoint.chainId}`,
+                )
+              } catch (error) {
+                this.#log.error(
+                  error,
+                  `[xcm:explorer] Error deleting duplicate hop journeys with correlation ID ${cid}`,
+                )
+              }
+            }
           }
           break
         }
@@ -482,6 +467,50 @@ export class XcmExplorer {
       }
     } catch (error) {
       this.#log.error(error, 'Error processing XCM message %j', asJSON(message))
+    }
+  }
+
+  async #updateJourney(message: XcmMessagePayload, existingJourney: FullXcmJourney) {
+    const updatedStops = toStops(message, existingJourney.stops)
+    const updateWith: Partial<XcmJourneyUpdate> = {
+      status: toStatus(message),
+      stops: asJSON(updatedStops),
+    }
+    // Update recv_at only for 'xcm.received'
+    if (isXcmReceived(message)) {
+      updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
+    }
+    await this.#repository.updateJourney(existingJourney.id, updateWith)
+  }
+
+  async #updateSwapAndTrapAssets(message: XcmMessagePayload, existingJourney: FullXcmJourney) {
+    const { humanized } = await this.#humanizer.humanize(message)
+
+    if (humanized.type === XcmJourneyType.Swap) {
+      const swapAssets = humanized.assets.filter((a) => a.role === 'swap_in' || a.role === 'swap_out')
+      const assetUpdates = swapAssets.map((asset) =>
+        this.#repository.updateAsset(existingJourney.id, asset, {
+          amount: asset.amount.toString(),
+          usd: asset.volume,
+        }),
+      )
+      await Promise.all(assetUpdates)
+    }
+
+    const trappedAssets = toNewAssets(humanized.assets.filter((a) => a.role === 'trapped'))
+
+    if (trappedAssets.length > 0) {
+      const existingAssets = await this.#repository.getAssetIdentifiers(existingJourney.id)
+      const existingKeySet = new Set(
+        existingAssets.map((a) => `${a.asset}-${a.role ?? ''}-${a.sequence ?? ''}`),
+      )
+      const newAssets = trappedAssets.filter((asset) => {
+        const key = `${asset.asset}-${asset.role ?? ''}-${asset.sequence ?? ''}`
+        return !existingKeySet.has(key)
+      })
+      if (newAssets.length > 0) {
+        await this.#repository.insertAssetsForJourney(existingJourney.id, newAssets)
+      }
     }
   }
 
