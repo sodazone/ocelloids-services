@@ -250,7 +250,7 @@ export class XcmExplorer {
       await this.#refreshAssetCache()
     }
 
-    this.#assetCacheRefreshTask = setInterval(this.#refreshAssetCache, ASSET_CACHE_REFRESH).unref()
+    this.#assetCacheRefreshTask = setInterval(this.#refreshAssetCache.bind(this), ASSET_CACHE_REFRESH).unref()
 
     this.#sub = tracker
       .historicalXcm$({

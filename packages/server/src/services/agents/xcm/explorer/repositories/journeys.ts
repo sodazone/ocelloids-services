@@ -235,24 +235,20 @@ export class XcmRepository {
       .execute()
 
     // Upsert into snapshot table
-    await this.#db.transaction().execute(async (trx) => {
-      // Insert new snapshot rows
-      for (const row of results) {
-        await trx
-          .insertInto('xcm_asset_volume_cache')
-          .values({
-            asset: row.asset,
-            symbol: row.symbol,
-            usd_volume: Number(row.usd_volume),
-            snapshot_start,
-            snapshot_end,
-          })
-          .execute()
-      }
-
-      // Delete old snapshot(s)
-      await trx.deleteFrom('xcm_asset_volume_cache').where('snapshot_start', '<', snapshot_start).execute()
-    })
+    await this.#db
+      .insertInto('xcm_asset_volume_cache')
+      .values(
+        results.map((row) => ({ ...row, usd_volume: Number(row.usd_volume), snapshot_end, snapshot_start })),
+      )
+      .onConflict((oc) =>
+        oc.column('asset').doUpdateSet((eb) => ({
+          symbol: eb.ref('excluded.symbol'),
+          usd_volume: eb.ref('excluded.usd_volume'),
+          snapshot_start: eb.ref('excluded.snapshot_start'),
+          snapshot_end: eb.ref('excluded.snapshot_end'),
+        })),
+      )
+      .execute()
   }
 
   async listAssets(pagination?: QueryPagination): Promise<{
