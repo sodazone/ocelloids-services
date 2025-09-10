@@ -41,6 +41,19 @@ const EXCLUDED_NETWORKS: NetworkURN[] = []
 type DmpInQueue = { msg: HexString; sent_at: number }
 type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
+type ParachainValidationData =
+  | {
+      data: {
+        downward_messages: DmpInQueue[]
+        horizontal_messages: HorizontalMessage[]
+      }
+    }
+  | {
+      inbound_messages_data: {
+        downward_messages: { full_messages: DmpInQueue[] }
+        horizontal_messages: { full_messages: HorizontalMessage[] }
+      }
+    }
 
 export function extractXcmMessageData(apiContext: SubstrateApiContext) {
   return (source: Observable<Block>): Observable<{ block: Block; hashData: MessageHashData[] }> => {
@@ -51,15 +64,20 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
         )
         if (paraExtrinsic) {
           // extract dmp and hrmp messages from params
-          const {
-            data: { downward_messages, horizontal_messages },
-          } = paraExtrinsic.args as {
-            data: {
-              downward_messages: DmpInQueue[]
-              horizontal_messages: HorizontalMessage[]
-            }
+          const args = paraExtrinsic.args as ParachainValidationData
+
+          let downwardMessages: DmpInQueue[]
+          let horizontalMessages: HorizontalMessage[]
+
+          if ('inbound_messages_data' in args) {
+            downwardMessages = args.inbound_messages_data.downward_messages.full_messages
+            horizontalMessages = args.inbound_messages_data.horizontal_messages.full_messages
+          } else {
+            downwardMessages = args.data.downward_messages
+            horizontalMessages = args.data.horizontal_messages
           }
-          const messages = horizontal_messages.reduce((acc: MessageHashData[], h) => {
+
+          const messages = horizontalMessages.reduce((acc: MessageHashData[], h) => {
             const [_chain, msgs] = h
             for (const m of msgs) {
               const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
@@ -70,7 +88,7 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
             return acc
           }, [])
 
-          const dmpMessages = downward_messages.map((dm) => {
+          const dmpMessages = downwardMessages.map((dm) => {
             const decoded = raw.asVersionedXcm(dm.msg, apiContext)
             return { hash: decoded.hash, data: dm.msg, topicId: getMessageId(decoded) }
           })
