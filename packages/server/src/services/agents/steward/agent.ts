@@ -42,6 +42,7 @@ import { assetOverrides } from './overrides.js'
 import { Queries } from './queries/index.js'
 import {
   $StewardQueryArgs,
+  AssetBalance,
   AssetId,
   AssetIds,
   AssetMapper,
@@ -54,6 +55,7 @@ const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
+const BALANCES_LEVEL_PREFIX = 'agent:steward:balances'
 
 const STORAGE_PAGE_LEN = 100
 
@@ -101,6 +103,7 @@ export class DataSteward implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: LevelDB
+  readonly #dbBalances: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetBalance>
 
   readonly #queries: Queries
   readonly #rxSubs: Subscription[] = []
@@ -114,6 +117,9 @@ export class DataSteward implements Agent, Queryable {
       valueEncoding: 'json',
     })
     this.#dbChains = ctx.db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
+      valueEncoding: 'json',
+    })
+    this.#dbBalances = ctx.db.sublevel<string, AssetBalance>(BALANCES_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
     this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
@@ -145,40 +151,7 @@ export class DataSteward implements Agent, Queryable {
       timeout.unref()
     }
 
-    // TODO generalise for other networks and pallets, similar to mappers but for updates
-    const chainsToWatch: NetworkURN[] = ['urn:ocn:polkadot:1000', 'urn:ocn:kusama:1000', 'urn:ocn:paseo:1000']
-    const streams = SubstrateSharedStreams.instance(this.#ingress)
-
-    for (const chainId of chainsToWatch) {
-      if (this.#ingress.isNetworkDefined(chainId)) {
-        this.#log.info('[agent:%s] watching for asset updates %s', this.id, chainId)
-        this.#rxSubs.push(
-          streams
-            .blockEvents(chainId)
-            .pipe(
-              filter(
-                (blockEvent) =>
-                  blockEvent.module === 'Assets' && ASSET_PALLET_EVENTS.includes(blockEvent.name),
-              ),
-            )
-            .subscribe(async ({ name, value: { asset_id }, blockNumber }) => {
-              this.#log.info(
-                '[agent:%s] asset update (event=%s, chainId=%s, assetId=%s, block=%s)',
-                this.id,
-                name,
-                chainId,
-                asset_id,
-                blockNumber,
-              )
-              if (name === 'Destroyed') {
-                await this.#removeAsset(chainId, asset_id)
-              } else {
-                await this.#updateAsset(chainId, asset_id)
-              }
-            }),
-        )
-      }
-    }
+    this.#subscribeAssetMetadataEvents()
   }
 
   collectTelemetry() {
@@ -222,6 +195,43 @@ export class DataSteward implements Agent, Queryable {
 
     const allAssetMapsObs = merge(...allAssetMaps)
     allAssetMapsObs.subscribe(this.#storeAssetMetadata())
+  }
+
+  #subscribeAssetMetadataEvents() {
+    // TODO generalise for other networks and pallets, similar to mappers but for updates
+    const chainsToWatch: NetworkURN[] = ['urn:ocn:polkadot:1000', 'urn:ocn:kusama:1000', 'urn:ocn:paseo:1000']
+    const streams = SubstrateSharedStreams.instance(this.#ingress)
+
+    for (const chainId of chainsToWatch) {
+      if (this.#ingress.isNetworkDefined(chainId)) {
+        this.#log.info('[agent:%s] watching for asset updates %s', this.id, chainId)
+        this.#rxSubs.push(
+          streams
+            .blockEvents(chainId)
+            .pipe(
+              filter(
+                (blockEvent) =>
+                  blockEvent.module === 'Assets' && ASSET_PALLET_EVENTS.includes(blockEvent.name),
+              ),
+            )
+            .subscribe(async ({ name, value: { asset_id }, blockNumber }) => {
+              this.#log.info(
+                '[agent:%s] asset update (event=%s, chainId=%s, assetId=%s, block=%s)',
+                this.id,
+                name,
+                chainId,
+                asset_id,
+                blockNumber,
+              )
+              if (name === 'Destroyed') {
+                await this.#removeAsset(chainId, asset_id)
+              } else {
+                await this.#updateAsset(chainId, asset_id)
+              }
+            }),
+        )
+      }
+    }
   }
 
   async #updateAsset(chainId: NetworkURN, assetId: AssetId) {

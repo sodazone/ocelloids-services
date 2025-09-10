@@ -159,6 +159,19 @@ export type Empty = {
   query: Record<string, any>
 }
 
+/**
+ * The asset balance.
+ *
+ * @public
+ */
+export type AssetBalance = AssetIds & {
+  name?: string
+  symbol?: string
+  decimals?: number
+  balance: string
+  updated: number
+}
+
 export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
   return (
     typeof obj === 'object' &&
