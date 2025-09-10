@@ -278,6 +278,7 @@ export interface Queryable {
 }
 
 export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+  streamName: string
   filters: T
   request: IncomingMessage
   reply: FastifyReply
