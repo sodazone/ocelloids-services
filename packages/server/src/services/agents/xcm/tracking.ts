@@ -41,6 +41,7 @@ const EXCLUDED_NETWORKS: NetworkURN[] = []
 type DmpInQueue = { msg: HexString; sent_at: number }
 type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
+type AbridgedHorizontalMessage = [number, HrmpInQueue]
 type ParachainValidationData =
   | {
       data: {
@@ -51,7 +52,7 @@ type ParachainValidationData =
   | {
       inbound_messages_data: {
         downward_messages: { full_messages: DmpInQueue[] }
-        horizontal_messages: { full_messages: HorizontalMessage[] }
+        horizontal_messages: { full_messages: AbridgedHorizontalMessage[] }
       }
     }
 
@@ -62,50 +63,45 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
         const paraExtrinsic = block.extrinsics.find((ext) =>
           matchExtrinsic(ext, 'ParachainSystem', 'set_validation_data'),
         )
-        if (paraExtrinsic) {
-          // extract dmp and hrmp messages from params
-          const args = paraExtrinsic.args as ParachainValidationData
-
-          let downwardMessages: DmpInQueue[]
-          let horizontalMessages: HorizontalMessage[]
-
-          if ('inbound_messages_data' in args) {
-            downwardMessages = args.inbound_messages_data.downward_messages.full_messages
-            horizontalMessages = args.inbound_messages_data.horizontal_messages.full_messages
-          } else {
-            downwardMessages = args.data.downward_messages
-            horizontalMessages = args.data.horizontal_messages
-          }
-
-          const messages = horizontalMessages.reduce((acc: MessageHashData[], h) => {
-            const [_chain, msgs] = h
-            for (const m of msgs) {
-              const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
-              for (const xcm of xcms) {
-                acc.push({ hash: xcm.hash, data: toHex(xcm.data) as HexString, topicId: getMessageId(xcm) })
-              }
-            }
-            return acc
-          }, [])
-
-          const dmpMessages = downwardMessages.map((dm) => {
-            const decoded = raw.asVersionedXcm(dm.msg, apiContext)
-            return { hash: decoded.hash, data: dm.msg, topicId: getMessageId(decoded) }
-          })
-
-          return {
-            block,
-            hashData: messages.concat(dmpMessages),
-          }
+        if (!paraExtrinsic) {
+          return { block, hashData: [] }
         }
+
+        const args = paraExtrinsic.args as ParachainValidationData
+
+        const downwardMessages: DmpInQueue[] =
+          'inbound_messages_data' in args
+            ? args.inbound_messages_data.downward_messages.full_messages
+            : args.data.downward_messages
+
+        const horizontalMessages: HrmpInQueue[] =
+          'inbound_messages_data' in args
+            ? args.inbound_messages_data.horizontal_messages.full_messages.map(([, msg]) => msg)
+            : args.data.horizontal_messages.flatMap(([, msgs]) => msgs)
+
+        const messages: MessageHashData[] = horizontalMessages.flatMap((m) => {
+          const xcms = fromXcmpFormat(fromHex(m.data), apiContext)
+          return xcms.map((xcm) => ({
+            hash: xcm.hash,
+            data: toHex(xcm.data) as HexString,
+            topicId: getMessageId(xcm),
+          }))
+        })
+
+        const dmpMessages: MessageHashData[] = downwardMessages.map((dm) => {
+          const decoded = raw.asVersionedXcm(dm.msg, apiContext)
+          return { hash: decoded.hash, data: dm.msg, topicId: getMessageId(decoded) }
+        })
+
         return {
           block,
-          hashData: [],
+          hashData: [...messages, ...dmpMessages],
         }
       }),
     )
   }
 }
+
 export class XcmTracker {
   readonly #id = 'xcm-tracker'
   readonly #log: Logger
