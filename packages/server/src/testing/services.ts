@@ -9,6 +9,7 @@ import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
+import { DatabaseOptions } from 'level'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration, ServiceConfiguration } from '../services/config.js'
@@ -65,7 +66,8 @@ export function createServices(): Services {
     localConfig: _config,
     connector: _connector,
     levelDB: _rootDB,
-    openLevelDB: (_name) => new MemoryLevel<string, any>() as LevelDB,
+    openLevelDB: <K, V>(_name: string, options?: DatabaseOptions<K, V>) =>
+      new MemoryLevel<K, V>(options) as LevelDB<K, V>,
     archive: new ArchiveRepository(_archiveDB),
     subsStore: {} as unknown as SubsStore,
     ingress: {} as unknown as IngressConsumers,

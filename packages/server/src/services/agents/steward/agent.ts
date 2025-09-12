@@ -101,7 +101,7 @@ export class DataSteward implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
   readonly #dbChains: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, SubstrateNetworkInfo>
-  readonly #dbBalances: LevelDB
+  readonly #dbBalances: LevelDB<Buffer, Buffer>
 
   readonly #queries: Queries
   readonly #rxSubs: Subscription[] = []
@@ -117,7 +117,7 @@ export class DataSteward implements Agent, Queryable {
     this.#dbChains = ctx.db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#dbBalances = ctx.openLevelDB('steward:balances')
+    this.#dbBalances = ctx.openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' })
     this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))

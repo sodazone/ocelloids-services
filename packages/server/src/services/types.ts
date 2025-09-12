@@ -3,6 +3,7 @@ import { AbstractBatchOperation, AbstractLevel, AbstractSublevel } from 'abstrac
 
 import { FastifyBaseLogger } from 'fastify'
 
+import { DatabaseOptions } from 'level'
 import { AgentCatalog, AgentId } from './agents/types.js'
 import { ArchiveRepository } from './archive/repository.js'
 import { ArchiveRetentionOptions } from './archive/types.js'
@@ -22,10 +23,12 @@ import { BlockNumberRange, HexString } from './subscriptions/types.js'
  */
 export type NetworkURN = `urn:ocn:${string}`
 
-export type LevelDB<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractLevel<F, K, V>
-export type Family<F = Buffer | Uint8Array | string, K = string, V = any> = AbstractSublevel<LevelDB, F, K, V>
+type F = Buffer | Uint8Array | string
+
+export type LevelDB<K = any, V = any> = AbstractLevel<F, K, V>
+export type Family<K = string, V = any> = AbstractSublevel<LevelDB, F, K, V>
 export type BatchOperation<K = string, V = any> = AbstractBatchOperation<LevelDB, K, V>
-export type SubLevel<V> = Family<Buffer | Uint8Array | string, string, V>
+export type SubLevel<V> = Family<string, V>
 
 /**
  * Supported Abstract Level engines.
@@ -92,10 +95,11 @@ export interface TypedEventEmitter<Events extends EventMap> {
 }
 
 export type Logger = FastifyBaseLogger
+export type OpenLevelDB = <K, V>(name: string, options?: DatabaseOptions<K, V>) => LevelDB<K, V>
 export type Services = {
   log: Logger
   levelDB: LevelDB
-  openLevelDB: (name?: string) => LevelDB
+  openLevelDB: OpenLevelDB
   subsStore: SubsStore
   janitor: Janitor
   scheduler: Scheduler
