@@ -43,6 +43,7 @@ export type AgentRuntimeContext = {
   egress: Egress
   ingress: IngressConsumers
   db: LevelDB
+  openLevelDB: (name?: string) => LevelDB
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog

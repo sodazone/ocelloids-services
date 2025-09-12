@@ -95,6 +95,7 @@ export type Logger = FastifyBaseLogger
 export type Services = {
   log: Logger
   levelDB: LevelDB
+  openLevelDB: (name?: string) => LevelDB
   subsStore: SubsStore
   janitor: Janitor
   scheduler: Scheduler

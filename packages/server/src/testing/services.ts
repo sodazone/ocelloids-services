@@ -65,6 +65,7 @@ export function createServices(): Services {
     localConfig: _config,
     connector: _connector,
     levelDB: _rootDB,
+    openLevelDB: (_name) => new MemoryLevel<string, any>() as LevelDB,
     archive: new ArchiveRepository(_archiveDB),
     subsStore: {} as unknown as SubsStore,
     ingress: {} as unknown as IngressConsumers,

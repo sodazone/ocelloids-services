@@ -14,13 +14,14 @@ declare module 'fastify' {
   interface FastifyInstance {
     levelDB: LevelDB
     subsStore: SubsStore
+    openLevelDB: (name?: string) => LevelDB
   }
 }
 
 type LevelOptions = DatabaseOptions & LevelServerOptions
 
-function createLevelDB({ log }: FastifyInstance, { data, levelEngine }: LevelOptions): LevelDB {
-  const dbPath = path.join(data || './.db', 'level')
+function createLevelDB({ log }: FastifyInstance, name: string, { data, levelEngine }: LevelOptions): LevelDB {
+  const dbPath = path.join(data || './.db', name)
 
   log.info('[level] engine %s', levelEngine)
   log.info('[level] open database at %s', dbPath)
@@ -33,37 +34,36 @@ function createLevelDB({ log }: FastifyInstance, { data, levelEngine }: LevelOpt
   }
 }
 
-/**
- * LevelDB related services.
- *
- * @param fastify - The Fastify instance
- * @param options - The persistence options
- */
 const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options) => {
-  const root = createLevelDB(fastify, options)
-  const subsStore = new SubsStore(fastify.log, root)
+  const dbs = new Map<string, LevelDB>()
+
+  const root = createLevelDB(fastify, 'level', options)
+  await root.open()
+  dbs.set('level', root)
 
   fastify.decorate('levelDB', root)
-  fastify.decorate('subsStore', subsStore)
+  fastify.decorate('subsStore', new SubsStore(fastify.log, root))
 
-  fastify.addHook('onClose', async (instance) => {
-    fastify.log.info('[scheduler] plugin stop')
-
-    const { levelDB } = instance
-    if (levelDB.status === 'open') {
-      instance.log.info('[level] closing database: OK')
-      await levelDB.close()
-    } else {
-      instance.log.info('[level] the database is not open: %s', levelDB.status)
+  fastify.decorate('openLevelDB', (name: string = 'level') => {
+    if (!dbs.has(name)) {
+      const db = createLevelDB(fastify, name, options)
+      db.open()
+      dbs.set(name, db)
     }
+    return dbs.get(name)!
   })
 
-  try {
-    await root.open()
-  } catch (err) {
-    fastify.log.error(err, '[level] error opening database')
-    throw err
-  }
+  fastify.addHook('onClose', async () => {
+    fastify.log.info('[scheduler] plugin stop')
+    for (const [name, db] of dbs) {
+      if (db.status === 'open') {
+        fastify.log.info('[level] closing database %s: OK', name)
+        await db.close()
+      } else {
+        fastify.log.info('[level] database %s is not open: %s', name, db.status)
+      }
+    }
+  })
 }
 
 export default fp(levelDBPlugin, { fastify: '>=4.x', name: 'leveldb' })
