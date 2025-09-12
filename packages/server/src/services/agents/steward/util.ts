@@ -1,5 +1,7 @@
 import { AbstractIterator } from 'abstract-level'
 
+import { Twox128 } from '@polkadot-api/substrate-bindings'
+
 import { HexString } from '@/lib.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
@@ -80,6 +82,10 @@ function normalize(assetId: AssetId) {
 
 export function assetMetadataKey(chainId: NetworkURN, assetId: AssetId) {
   return `${chainId}:${normalize(assetId)}`
+}
+
+export function assetMetadataKeyHash(key: string) {
+  return Buffer.from(Twox128(Buffer.from(key)))
 }
 
 export function toPaddedHex(bn: bigint): HexString {

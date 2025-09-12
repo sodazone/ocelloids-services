@@ -48,12 +48,13 @@ import {
   AssetMetadata,
   StewardQueryArgs,
 } from './types.js'
-import { assetMetadataKey } from './util.js'
+import { assetMetadataKey, assetMetadataKeyHash } from './util.js'
 
 const ASSET_METADATA_SYNC_TASK = 'task:steward:assets-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ASSETS_LEVEL_PREFIX = 'agent:steward:assets'
 const CHAIN_INFO_LEVEL_PREFIX = 'agent:steward:chains'
+const ASSETS_HASH_INDEX_LEVEL_PREFIX = 'agent:steward:assets-hidx'
 
 const STORAGE_PAGE_LEN = 100
 
@@ -100,6 +101,7 @@ export class DataSteward implements Agent, Queryable {
 
   readonly #db: LevelDB
   readonly #dbAssets: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetMetadata>
+  readonly #dbAssetsHashIndex: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Buffer, string>
   readonly #dbChains: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, SubstrateNetworkInfo>
   readonly #dbBalances: LevelDB<Buffer, Buffer>
 
@@ -113,6 +115,10 @@ export class DataSteward implements Agent, Queryable {
     this.#db = ctx.db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAssets = ctx.db.sublevel<string, AssetMetadata>(ASSETS_LEVEL_PREFIX, {
       valueEncoding: 'json',
+    })
+    this.#dbAssetsHashIndex = ctx.db.sublevel<Buffer, string>(ASSETS_HASH_INDEX_LEVEL_PREFIX, {
+      valueEncoding: 'utf8',
+      keyEncoding: 'buffer',
     })
     this.#dbChains = ctx.db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
@@ -330,6 +336,16 @@ export class DataSteward implements Agent, Queryable {
           this.#log.error(
             e,
             '[agent:%s] on metadata write (chainId=%s, assetId=%s)',
+            this.id,
+            chainId,
+            asset.id,
+          )
+        })
+
+        this.#dbAssetsHashIndex.put(assetMetadataKeyHash(assetKey), assetKey).catch((e) => {
+          this.#log.error(
+            e,
+            '[agent:%s] on asset hash index write (chainId=%s, assetId=%s)',
             this.id,
             chainId,
             asset.id,

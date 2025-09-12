@@ -164,10 +164,7 @@ export type Empty = {
  *
  * @public
  */
-export type AssetBalance = AssetIds & {
-  name?: string
-  symbol?: string
-  decimals?: number
+export type AssetBalance = {
   balance: string
   updated: number
 }
