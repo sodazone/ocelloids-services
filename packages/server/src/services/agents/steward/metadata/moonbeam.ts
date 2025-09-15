@@ -4,8 +4,8 @@ import { http, createPublicClient, erc20Abi, fallback, getAddress, getContract }
 import { moonbeam } from 'viem/chains'
 
 import { HexString } from '@/lib.js'
-import { AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
-import { toPaddedHex } from './util.js'
+import { AssetMetadata, StorageCodecs, WithRequired, networks } from '../types.js'
+import { toPaddedHex } from '../util.js'
 
 const client = createPublicClient({
   chain: moonbeam,

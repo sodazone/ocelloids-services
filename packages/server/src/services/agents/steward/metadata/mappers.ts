@@ -5,6 +5,7 @@ import { HexString } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
+import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from '../types.js'
 import { mapAssetsLocationsAndErc20Metadata } from './moonbeam.js'
 import {
   hashItemPartialKey,
@@ -13,7 +14,6 @@ import {
   mapAssetsRegistryAndLocations,
   mapAssetsRegistryMetadata,
 } from './ops.js'
-import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
 
 const BYPASS_MAPPER: AssetMapper = () => []
 

@@ -1,10 +1,10 @@
 import { NetworkURN } from '@/lib.js'
 import { LevelDB } from '@/services/types.js'
 
-import { QueryPagination, QueryResult } from '../../types.js'
-import { AssetMetadata } from '../types.js'
-import { assetMetadataKey, limitCap, paginatedResults } from '../util.js'
-import { OMEGA_250 } from './consts.js'
+import { OMEGA_250 } from '../../../consts.js'
+import { QueryPagination, QueryResult } from '../../../types.js'
+import { AssetMetadata } from '../../types.js'
+import { assetMetadataKey, limitCap, paginatedResults } from '../../util.js'
 
 export class AssetsQueryHandler {
   readonly #db: LevelDB

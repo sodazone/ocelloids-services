@@ -1,9 +1,9 @@
 import { SubstrateNetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 
-import { QueryPagination, QueryResult } from '../../types.js'
-import { limitCap, paginatedResults } from '../util.js'
-import { OMEGA_250 } from './consts.js'
+import { OMEGA_250 } from '../../../consts.js'
+import { QueryPagination, QueryResult } from '../../../types.js'
+import { limitCap, paginatedResults } from '../../util.js'
 
 export class ChainsQueryHandler {
   readonly #db: LevelDB

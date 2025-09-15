@@ -3,9 +3,11 @@ import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
 import { HexString } from '@/lib.js'
+import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { AnyJson, NetworkURN } from '@/services/types.js'
+import { Scheduler } from '@/services/scheduling/scheduler.js'
+import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
 
@@ -180,4 +182,12 @@ export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
     typeof (obj as any).xid !== 'undefined' &&
     typeof (obj as any).chainId !== 'undefined'
   )
+}
+
+export type StewardManagerContext = {
+  log: Logger
+  db: LevelDB
+  openLevelDB: OpenLevelDB
+  scheduler: Scheduler
+  ingress: IngressConsumers
 }

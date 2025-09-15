@@ -1,4 +1,4 @@
-import { AssetMetadata } from './types.js'
+import { AssetMetadata } from '../types.js'
 
 export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
   {
