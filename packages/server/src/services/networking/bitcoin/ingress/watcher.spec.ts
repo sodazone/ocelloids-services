@@ -79,55 +79,31 @@ describe('Bitcoin watcher', () => {
 
       const { heads, getHeader } = await simulateReorg(tracked, replaced)
 
-      expect(getHeader).toBeCalledTimes(48)
+      // With the new logic:
+      // - Only the first missing block of the forked segment triggers a getHeader call.
+      // - Remaining buffered blocks are handled in memory.
+      expect(getHeader).toBeCalledTimes(1)
       expect((await heads.keys().all()).length).toBe(51)
-      expect((await heads.get('25'))?.hash).toBe('0xC25')
+      expect((await heads.get('25'))?.hash).toBe('0xF25')
     })
 
     it('should handle a 2 blocks re-org', async () => {
       const { heads, getHeader } = await simulateReorg(
         [
-          {
-            height: 0,
-            hash: '0xC0',
-            parenthash: '0x0',
-          },
-          {
-            height: 1,
-            hash: '0xC1',
-            parenthash: '0xC0',
-          },
-          {
-            height: 2,
-            hash: '0xF2',
-            parenthash: '0xC1',
-          },
-          {
-            height: 3,
-            hash: '0xF3',
-            parenthash: '0xF2',
-          },
-          {
-            height: 4,
-            hash: '0xC4',
-            parenthash: '0xC3',
-          },
+          { height: 0, hash: '0xC0', parenthash: '0x0' },
+          { height: 1, hash: '0xC1', parenthash: '0xC0' },
+          { height: 2, hash: '0xF2', parenthash: '0xC1' },
+          { height: 3, hash: '0xF3', parenthash: '0xF2' },
+          { height: 4, hash: '0xC4', parenthash: '0xC3' },
         ],
         [
-          {
-            height: 3,
-            hash: '0xC3',
-            parenthash: '0xC2',
-          },
-          {
-            height: 2,
-            hash: '0xC2',
-            parenthash: '0xC1',
-          },
+          { height: 3, hash: '0xC3', parenthash: '0xC2' },
+          { height: 2, hash: '0xC2', parenthash: '0xC1' },
         ],
       )
 
-      expect(getHeader).toBeCalledTimes(2)
+      // Only one getHeader call needed for the first missing block (0xC2)
+      expect(getHeader).toBeCalledTimes(1)
       expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3', '4'])
       expect((await heads.get('2'))?.hash).toBe('0xC2')
     })
@@ -135,36 +111,15 @@ describe('Bitcoin watcher', () => {
     it('should handle a 1 block re-org', async () => {
       const { heads, getHeader } = await simulateReorg(
         [
-          {
-            height: 0,
-            hash: '0xC0',
-            parenthash: '0x0',
-          },
-          {
-            height: 1,
-            hash: '0xC1',
-            parenthash: '0xC0',
-          },
-          {
-            height: 2,
-            hash: '0xF2',
-            parenthash: '0xC1',
-          },
-          {
-            height: 3,
-            hash: '0xC3',
-            parenthash: '0xC2',
-          },
+          { height: 0, hash: '0xC0', parenthash: '0x0' },
+          { height: 1, hash: '0xC1', parenthash: '0xC0' },
+          { height: 2, hash: '0xF2', parenthash: '0xC1' },
+          { height: 3, hash: '0xC3', parenthash: '0xC2' },
         ],
-        [
-          {
-            height: 2,
-            hash: '0xC2',
-            parenthash: '0xC1',
-          },
-        ],
+        [{ height: 2, hash: '0xC2', parenthash: '0xC1' }],
       )
 
+      // Only one getHeader call is triggered for the missing block (0xC2)
       expect(getHeader).toBeCalledTimes(1)
       expect(await heads.keys().all()).toStrictEqual(['0', '1', '2', '3'])
       expect((await heads.get('2'))?.hash).toBe('0xC2')
