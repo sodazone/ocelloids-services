@@ -164,39 +164,35 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
     const rollbackOnReorg = (head: NeutralHeader): Observable<NeutralHeader> =>
       new Observable<NeutralHeader>((subscriber) => {
-        // wrap the async logic
         ;(async () => {
           try {
-            // Skip if already emitted
             if (lastEmitted[head.height] === head.hash) {
               subscriber.complete()
               return
             }
 
-            // Store/replace in DB
             const batch = db.batch()
             batch.put(head.height.toString(), head)
             await batch.write()
 
             lastEmitted[head.height] = head.hash
 
-            // Prune old hashes
+            // prune cache
             for (const h of Object.keys(lastEmitted)) {
               if (Number(h) < head.height - MAX_REORG) {
                 delete lastEmitted[Number(h)]
               }
             }
 
-            // Emit current head
             subscriber.next(head)
 
-            // Reorg check
+            // re-org handling
             if (head.height > 0) {
               const prevHeight = head.height - 1
               const prevHead = await db.get(prevHeight.toString())
               if (prevHead && head.parenthash !== prevHead.hash) {
                 const parentHead = await api.getNeutralBlockHeader(head.parenthash)
-                this.log.info('[%s] RE-ORG at %s', chainId, head.height)
+                this.log.info('[%s] reorg at %s', chainId, head.height)
                 rollbackOnReorg(parentHead).subscribe(subscriber)
               }
             }
@@ -207,9 +203,8 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
           subscriber.complete()
         })()
 
-        // teardown
         return () => {
-          //
+          // empty teardown
         }
       })
 
