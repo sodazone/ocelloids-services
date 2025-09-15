@@ -7,7 +7,7 @@ import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
 import { BlockWithLogs } from './types.js'
 
-// Optional: per-chain default confirmations for "finalized" blocks
+// TODO: move to config
 const defaultConfirmations: Record<string, number> = {
   ethereum: 1, // Rationale: Waiting for 1–2 confirmations is enough for monitoring; full "epoch finality" is overkill.
   polygon: 1,
