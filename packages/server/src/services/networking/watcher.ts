@@ -6,7 +6,6 @@ import {
   EMPTY,
   Observable,
   catchError,
-  concatAll,
   concatMap,
   finalize,
   from,
@@ -45,6 +44,8 @@ export const RETRY_CAPPED = {
   maxDelay: 900000,
   maxCount: 1,
 }
+
+const MAX_REORG = 500
 
 const MAX_BLOCK_DIST: number = process.env.OC_MAX_BLOCK_DIST ? Number(process.env.OC_MAX_BLOCK_DIST) : 50 // maximum distance in #blocks
 const max = (...args: number[]) => args.reduce((m, e) => (e > m ? e : m))
@@ -159,45 +160,61 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
   protected handleReorgs(chainId: NetworkURN, api: ApiOps) {
     const db = this.#headsFamily(chainId)
+    const lastEmitted: Record<number, string> = {}
 
-    // TODO signal the blocks that are rolled back, or discarded
-    // and the new ones re-applied
-    const rollbackOnReorg =
-      (acc: NeutralHeader[] = []) =>
-      async (head: NeutralHeader): Promise<NeutralHeader[]> => {
-        let entries = 0
-        const batch = db.batch()
-        for await (const k of db.keys({
-          reverse: true,
-        })) {
-          entries++
-          // TODO: max reorg window as config
-          if (entries >= 500) {
-            batch.del(k)
+    const rollbackOnReorg = (head: NeutralHeader): Observable<NeutralHeader> =>
+      new Observable<NeutralHeader>((subscriber) => {
+        // wrap the async logic
+        ;(async () => {
+          try {
+            // Skip if already emitted
+            if (lastEmitted[head.height] === head.hash) {
+              subscriber.complete()
+              return
+            }
+
+            // Store/replace in DB
+            const batch = db.batch()
+            batch.put(head.height.toString(), head)
+            await batch.write()
+
+            lastEmitted[head.height] = head.hash
+
+            // Prune old hashes
+            for (const h of Object.keys(lastEmitted)) {
+              if (Number(h) < head.height - MAX_REORG) {
+                delete lastEmitted[Number(h)]
+              }
+            }
+
+            // Emit current head
+            subscriber.next(head)
+
+            // Reorg check
+            if (head.height > 0) {
+              const prevHeight = head.height - 1
+              const prevHead = await db.get(prevHeight.toString())
+              if (prevHead && head.parenthash !== prevHead.hash) {
+                const parentHead = await api.getNeutralBlockHeader(head.parenthash)
+                this.log.info('[%s] RE-ORG at %s', chainId, head.height)
+                rollbackOnReorg(parentHead).subscribe(subscriber)
+              }
+            }
+          } catch (err) {
+            subscriber.error(err)
+            return
           }
+          subscriber.complete()
+        })()
+
+        // teardown
+        return () => {
+          //
         }
-        batch.put(head.height.toString(), head)
-        await batch.write()
-
-        acc.push(head)
-
-        if (head.height === 0) {
-          return acc
-        }
-
-        const prevHeight = head.height - 1
-        const prevHead = await db.get(prevHeight.toString())
-        // TODO handle errors, to stop...
-        if (prevHead && head.parenthash !== prevHead.hash) {
-          const parentHead = await api.getNeutralBlockHeader(head.parenthash)
-          return rollbackOnReorg(acc)(parentHead)
-        }
-
-        return acc
-      }
+      })
 
     return (source: Observable<NeutralHeader>): Observable<NeutralHeader> =>
-      source.pipe(concatMap(rollbackOnReorg()), concatAll())
+      source.pipe(concatMap(rollbackOnReorg))
   }
 
   protected recoverBlockRanges(chainId: NetworkURN, api: ApiOps) {

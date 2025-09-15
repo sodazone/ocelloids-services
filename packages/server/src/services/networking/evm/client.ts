@@ -2,12 +2,14 @@ import { Observable } from 'rxjs'
 import { http, PublicClient, Transport, createPublicClient, fallback, webSocket } from 'viem'
 import * as viemChains from 'viem/chains'
 
+import { HexString } from '@/lib.js'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
+import { BlockWithLogs } from './types.js'
 
 // Optional: per-chain default confirmations for "finalized" blocks
 const defaultConfirmations: Record<string, number> = {
-  mainnet: 2, // Rationale: Waiting for 1–2 confirmations is enough for monitoring; full "epoch finality" is overkill.
+  ethereum: 1, // Rationale: Waiting for 1–2 confirmations is enough for monitoring; full "epoch finality" is overkill.
   polygon: 1,
   arbitrum: 0,
   optimism: 0,
@@ -53,9 +55,9 @@ export function resolveChain(chainId: string) {
 export class EvmApi implements ApiClient {
   readonly chainId: string
 
-  #log: Logger
-  #client: PublicClient<Transport, viemChains.Chain>
-  #unwatches: Set<() => void> = new Set()
+  readonly #log: Logger
+  readonly #client: PublicClient<Transport, viemChains.Chain>
+  readonly #unwatches: Set<() => void> = new Set()
 
   constructor(log: Logger, chainId: string, url: string | string[]) {
     this.chainId = chainId
@@ -121,59 +123,93 @@ export class EvmApi implements ApiClient {
    * @param confirmationsOverride - optional number of confirmations to use instead of default for chain
    */
   followHeads$(finality: Finality, confirmationsOverride?: number): Observable<NeutralHeader> {
-    const chainName = (this.#client.chain as any).name as string
+    const chainName = ((this.#client.chain as any).name as string).toLowerCase()
     const confirmations =
       finality === 'finalized' ? (confirmationsOverride ?? defaultConfirmations[chainName] ?? 12) : 0
 
     const buffer: NeutralHeader[] = []
     let lastEmittedBlock: NeutralHeader | null = null
+    let lastSeenHeight: number | null = null
+    let lastSeenHash: string | null = null
 
     return new Observable<NeutralHeader>((subscriber) => {
-      const unwatch = this.#client.watchBlocks({
-        onBlock: (block) => {
-          const header: NeutralHeader = {
-            hash: block.hash!,
-            height: Number(block.number),
-            parenthash: block.parentHash!,
-            status: 'finalized', // will emit only when confirmed
-          }
+      try {
+        const unwatch = this.#client.watchBlocks({
+          onBlock: async (block) => {
+            try {
+              const header: NeutralHeader = {
+                hash: block.hash!,
+                height: Number(block.number),
+                parenthash: block.parentHash!,
+                status: finality,
+              }
 
-          // If confirmations = 0, emit immediately
-          if (confirmations === 0) {
-            subscriber.next(header)
-            lastEmittedBlock = header
-            return
-          }
+              // Skip duplicates
+              if (lastSeenHash === header.hash) {
+                return
+              }
+              lastSeenHash = header.hash
 
-          // Detect short reorgs: if parent hash doesn't match last emitted block
-          if (lastEmittedBlock && header.parenthash !== lastEmittedBlock.hash) {
-            // Rollback any buffered blocks beyond fork point
-            while (buffer.length && buffer[buffer.length - 1].height >= header.height) {
-              buffer.pop()
+              // Detect gap
+              if (lastSeenHeight !== null && header.height > lastSeenHeight + 1) {
+                const gapStart = lastSeenHeight + 1
+                const gapEnd = header.height - 1
+
+                for (let h = gapStart; h <= gapEnd; h++) {
+                  const missedBlock = await this.#client.getBlock({ blockNumber: BigInt(h) })
+                  const missedHeader: NeutralHeader = {
+                    hash: missedBlock.hash!,
+                    height: Number(missedBlock.number),
+                    parenthash: missedBlock.parentHash!,
+                    status: finality,
+                  }
+                  buffer.push(missedHeader)
+                }
+              }
+
+              lastSeenHeight = header.height
+
+              // If confirmations = 0, emit immediately
+              if (confirmations === 0) {
+                subscriber.next(header)
+                lastEmittedBlock = header
+                return
+              }
+
+              // Detect short reorgs: if parent hash doesn't match last emitted block
+              if (lastEmittedBlock && header.parenthash !== lastEmittedBlock.hash) {
+                while (buffer.length && buffer[buffer.length - 1].height >= header.height) {
+                  buffer.pop()
+                }
+                lastEmittedBlock = null
+              }
+
+              buffer.push(header)
+
+              // Emit blocks that reached required confirmations
+              while (buffer.length > 0 && buffer[0].height + confirmations <= header.height) {
+                const finalizedBlock = buffer.shift()!
+                subscriber.next(finalizedBlock)
+                lastEmittedBlock = finalizedBlock
+              }
+            } catch (err) {
+              subscriber.error(err as Error)
             }
-            lastEmittedBlock = null // reset canonical tip
+          },
+          onError: (err) => subscriber.error(err),
+        })
+
+        this.#unwatches.add(unwatch)
+
+        return () => {
+          try {
+            unwatch()
+          } finally {
+            this.#unwatches.delete(unwatch)
           }
-
-          buffer.push(header)
-
-          // Emit blocks that reached required confirmations
-          while (buffer.length && buffer[0].height + confirmations <= header.height) {
-            const finalizedBlock = buffer.shift()!
-            subscriber.next(finalizedBlock)
-            lastEmittedBlock = finalizedBlock
-          }
-        },
-        onError: (err) => subscriber.error(err),
-      })
-
-      this.#unwatches.add(unwatch)
-
-      return () => {
-        try {
-          unwatch()
-        } finally {
-          this.#unwatches.delete(unwatch)
         }
+      } catch (err) {
+        subscriber.error(err as Error)
       }
     })
   }
@@ -195,5 +231,29 @@ export class EvmApi implements ApiClient {
       height: Number(block.number),
       parenthash: block.parentHash,
     }
+  }
+
+  async getBlockWithLogs(hash: string): Promise<BlockWithLogs> {
+    const block = await this.#client.getBlock({
+      blockHash: hash as HexString,
+      includeTransactions: true,
+    })
+
+    if (block === null) {
+      throw new Error(`[${this.chainId}] Block with hash ${hash} not found`)
+    }
+
+    // We use {fromBlock,toBlock} for maximum compatibility.
+    // Some RPCs doesn't support by block hash.
+    const logs = await this.#client.getLogs({
+      fromBlock: block.number,
+      toBlock: block.number,
+    })
+
+    return { ...block, logs }
+  }
+
+  getNetworkInfo() {
+    return this.#client.chain
   }
 }
