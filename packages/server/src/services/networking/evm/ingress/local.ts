@@ -7,7 +7,7 @@ import { BlockWithLogs } from '../types.js'
 import { EvmIngressConsumer } from './types.js'
 import { EvmWatcher } from './watcher.js'
 
-export class EvmLocalIngressConsumer
+export class EvmLocalConsumer
   extends LocalIngressConsumer<EvmWatcher, BlockWithLogs, Chain>
   implements EvmIngressConsumer
 {
