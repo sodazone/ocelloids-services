@@ -234,7 +234,7 @@ export class EvmApi implements ApiClient {
   }
 
   async getBlockWithLogs(hash: string): Promise<BlockWithLogs> {
-    const block = await this.#client.getBlock({
+    const block = await this.#client.getBlock<true>({
       blockHash: hash as HexString,
       includeTransactions: true,
     })

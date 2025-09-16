@@ -1,5 +1,7 @@
-import { Block, Log } from 'viem'
+import { GetBlockReturnType, Log } from 'viem'
 
-export type BlockWithLogs = Block & {
+type BlockWithTransactions = GetBlockReturnType<undefined, true>
+
+export type BlockWithLogs = BlockWithTransactions & {
   logs: Log[]
 }
