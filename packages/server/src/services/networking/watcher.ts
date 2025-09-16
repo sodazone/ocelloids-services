@@ -7,8 +7,10 @@ import {
   Observable,
   catchError,
   concatMap,
+  defer,
   finalize,
   from,
+  lastValueFrom,
   map,
   mergeAll,
   mergeMap,
@@ -163,50 +165,49 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     const lastEmitted: Record<number, string> = {}
 
     const rollbackOnReorg = (head: NeutralHeader): Observable<NeutralHeader> =>
-      new Observable<NeutralHeader>((subscriber) => {
-        ;(async () => {
-          try {
-            if (lastEmitted[head.height] === head.hash) {
-              subscriber.complete()
-              return
-            }
-
-            const batch = db.batch()
-            batch.put(head.height.toString(), head)
-            await batch.write()
-
-            lastEmitted[head.height] = head.hash
-
-            // prune cache
-            for (const h of Object.keys(lastEmitted)) {
-              if (Number(h) < head.height - MAX_REORG) {
-                delete lastEmitted[Number(h)]
-              }
-            }
-
-            subscriber.next(head)
-
-            // re-org handling
-            if (head.height > 0) {
-              const prevHeight = head.height - 1
-              const prevHead = await db.get(prevHeight.toString())
-              if (prevHead && head.parenthash !== prevHead.hash) {
-                const parentHead = await api.getNeutralBlockHeader(head.parenthash)
-                this.log.info('[%s] reorg at %s', chainId, head.height)
-                rollbackOnReorg(parentHead).subscribe(subscriber)
-              }
-            }
-          } catch (err) {
-            subscriber.error(err)
-            return
-          }
-          subscriber.complete()
-        })()
-
-        return () => {
-          // empty teardown
+      defer(async () => {
+        if (lastEmitted[head.height] === head.hash) {
+          // already processed
+          return []
         }
-      })
+
+        await db.put(head.height.toString(), head)
+        lastEmitted[head.height] = head.hash
+
+        // prune cache
+        for (const h of Object.keys(lastEmitted)) {
+          if (Number(h) < head.height - MAX_REORG) {
+            delete lastEmitted[Number(h)]
+          }
+        }
+
+        const emits: NeutralHeader[] = [head]
+
+        // check for reorg
+        if (head.height > 0) {
+          const prevHeight = head.height - 1
+          const prevHead = await db.get(prevHeight.toString())
+
+          if (prevHead !== undefined && head.parenthash !== prevHead.hash) {
+            this.log.info('[%s] reorg at height %s', chainId, head.height)
+
+            // fetch missing parent
+            const parentHead = await api.getNeutralBlockHeader(head.parenthash)
+
+            // recurse, collect its emissions
+            const parentEmits = await lastValueFrom(rollbackOnReorg(parentHead))
+
+            // prepend parent emissions so they flow before this head
+            if (Array.isArray(parentEmits)) {
+              emits.unshift(...parentEmits)
+            } else {
+              emits.unshift(parentEmits)
+            }
+          }
+        }
+
+        return emits
+      }).pipe(concatMap((emits) => (Array.isArray(emits) ? emits : [emits])))
 
     return (source: Observable<NeutralHeader>): Observable<NeutralHeader> =>
       source.pipe(concatMap(rollbackOnReorg))
