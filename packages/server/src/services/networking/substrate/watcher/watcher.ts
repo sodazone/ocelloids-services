@@ -24,7 +24,7 @@ import { NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { RETRY_INFINITE, Watcher as Watcher } from '../../watcher.js'
 import { SubstrateNetworkInfo } from '../ingress/types.js'
-import { Block, SubstrateApi } from '../types.js'
+import { Block, StorageChangeSets, SubstrateApi } from '../types.js'
 import { SubstrateBackfill } from './backfill.js'
 import { fetchers } from './fetchers.js'
 
@@ -235,6 +235,17 @@ export class SubstrateWatcher extends Watcher<Block> {
   getStorage(chainId: NetworkURN, storageKey: HexString, blockHash?: HexString): Observable<HexString> {
     return from(this.#apis[chainId].getStorage(storageKey, blockHash)).pipe(
       this.tapError(chainId, `state_getStorage(${storageKey}, ${blockHash ?? 'latest'})`),
+      retryWithTruncatedExpBackoff(RETRY_INFINITE),
+    )
+  }
+
+  queryStorageAt(
+    chainId: NetworkURN,
+    storageKeys: HexString[],
+    blockHash?: HexString,
+  ): Observable<StorageChangeSets> {
+    return from(this.#apis[chainId].queryStorageAt(storageKeys, blockHash)).pipe(
+      this.tapError(chainId, `state_queryStorageAt(${storageKeys}, ${blockHash ?? 'latest'})`),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
     )
   }

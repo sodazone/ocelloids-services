@@ -201,6 +201,10 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     }
   }
 
+  async queryStorageAt(keys: string[], at?: string) {
+    return this.#rpc.queryStorageAt(keys, at)
+  }
+
   async connect() {
     this.#runtimeManager
       .init()

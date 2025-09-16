@@ -19,6 +19,13 @@ export type StorageCodec<T = any> = {
   value: Codec<T>
 }
 
+export type StorageChangeSet = {
+  block: string
+  changes: [string, string | null][]
+}
+
+export type StorageChangeSets = StorageChangeSet[]
+
 export type Event = {
   module: string
   name: string
@@ -177,6 +184,7 @@ export interface SubstrateApi extends ApiClient {
   ): Promise<HexString[]>
 
   getStorage(key: string, at?: string): Promise<HexString>
+  queryStorageAt(keys: string[], at?: string): Promise<StorageChangeSets>
   query<T = any>(module: string, method: string, ...args: any[]): Promise<T | null>
 }
 

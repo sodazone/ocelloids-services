@@ -2,7 +2,7 @@ import { u32 } from '@polkadot-api/substrate-bindings'
 import { toHex } from 'polkadot-api/utils'
 
 import { HexString } from '@/lib.js'
-import { BlockInfo, ChainSpecData } from './types.js'
+import { BlockInfo, ChainSpecData, StorageChangeSets } from './types.js'
 
 const RUNTIME_CODE_KEY = '0x3a636f6465'
 
@@ -120,6 +120,20 @@ export function createRpcApi(
     }
   }
 
+  async function queryStorageAt(keys: string[], at?: string) {
+    try {
+      return await request<StorageChangeSets>('state_getStorage', [keys, at])
+    } catch (error) {
+      let msg = `[client:${chainId}] Failed to query storage for keys ${keys}`
+      if (at) {
+        msg += ` at block ${at}`
+      } else {
+        msg += '.'
+      }
+      throw new Error(msg, { cause: error })
+    }
+  }
+
   async function getRuntimeWasm(at?: string) {
     const wasmHex = await getStorage(RUNTIME_CODE_KEY, at)
     if (!wasmHex) {
@@ -188,6 +202,7 @@ export function createRpcApi(
     getSpecVersionAt,
     getRuntimeWasm,
     getMetadataFromState,
+    queryStorageAt,
     runtimeCall,
   }
 }

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs'
 import { IngressConsumer } from '@/services/ingress/consumer/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { Block, SubstrateApiContext } from '../types.js'
+import { Block, StorageChangeSets, SubstrateApiContext } from '../types.js'
 
 /**
  * Extended Network Information for Substrate Networks.
@@ -41,6 +41,11 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
   getContext(chainId: NetworkURN, specVersion?: number): Observable<SubstrateApiContext>
   getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo>
   getRelayIds(): NetworkURN[]
+  queryStorageAt(
+    chainId: NetworkURN,
+    storageKeys: HexString[],
+    blockHash?: HexString,
+  ): Observable<StorageChangeSets>
   isRelay(chainId: NetworkURN): boolean
   isReady(): Promise<void>
 }
