@@ -8,6 +8,7 @@ import {
 } from '@/services/networking/substrate/ingress/index.js'
 import { IngressOptions } from '@/types.js'
 
+import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 import { ConsumerApi } from './routes.js'
 import { IngressConsumers } from './types.js'
 
@@ -29,10 +30,12 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
   const substrateConsumer = options.distributed
     ? new SubstrateDistributedConsumer(fastify, options)
     : new SubstrateLocalConsumer(fastify)
+  const evmConsumer = new EvmLocalConsumer(fastify)
   const bitcoinConsumer = new BitcoinLocalConsumer(fastify)
 
   const consumers: IngressConsumers = {
     substrate: substrateConsumer,
+    evm: evmConsumer,
     bitcoin: bitcoinConsumer,
   }
 
