@@ -3,18 +3,23 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { Subscription } from 'rxjs'
 
 export type BalancesSubscriptionMapper = (
-  chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
   enqueue: EnqueueUpdateItem,
 ) => Subscription[]
 
-export type BalanceQueueData = {
+export type AccountBalancesData = {
+  balance: bigint
+  assetKeyHash: HexString
+}
+
+export type BalancesQueueData = {
   module: string
   name: string
   account: HexString
   assetKeyHash: HexString
 }
-export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalanceQueueData) => void
+
+export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalancesQueueData) => void
 
 export type TokensBalance = {
   free: bigint
@@ -36,3 +41,8 @@ export type NativeBalance = {
   sufficients: number
   data: TokensBalance
 }
+
+export type BalancesFetcher = (
+  account: string,
+  ingress: SubstrateIngressConsumer,
+) => Promise<AccountBalancesData[]>

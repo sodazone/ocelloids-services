@@ -3,9 +3,9 @@ import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { toHex } from 'polkadot-api/utils'
-import { filter, map, switchMap } from 'rxjs'
+import { filter, firstValueFrom, map, switchMap } from 'rxjs'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueUpdateItem } from '../types.js'
+import { AccountBalancesData, EnqueueUpdateItem, NativeBalance } from '../types.js'
 
 const PALLET_MODULE = 'Balances'
 const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
@@ -66,4 +66,23 @@ export function nativeBalancesSubscription(
         })
       }
     })
+}
+
+export async function nativeBalancesFetcher(
+  chainId: NetworkURN,
+  account: string,
+  ingress: SubstrateIngressConsumer,
+): Promise<AccountBalancesData[]> {
+  const apiCtx = await firstValueFrom(ingress.getContext(chainId))
+  const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
+  const encodedBalance = await firstValueFrom(
+    ingress.getStorage(chainId, storageCodec.keys.enc(account) as HexString),
+  )
+  const balance = storageCodec.value.dec(encodedBalance) as NativeBalance
+  return [
+    {
+      balance: balance.data.free,
+      assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, 'native'))) as HexString,
+    },
+  ]
 }

@@ -4,8 +4,8 @@ import { BatchOperation, LevelDB, Logger, NetworkURN } from '@/services/types.js
 import { Subscription, firstValueFrom } from 'rxjs'
 import { StewardManagerContext } from '../types.js'
 import { createBalancesCodec } from './codec.js'
-import { balanceEventsSubscriptions, balanceExtractorMappers } from './mappers/index.js'
-import { BalanceQueueData } from './types.js'
+import { balanceEventsSubscriptions, balanceExtractorMappers, balanceFetchers } from './mappers/index.js'
+import { BalancesQueueData } from './types.js'
 
 const balancesCodec = createBalancesCodec()
 
@@ -23,7 +23,7 @@ export class BalancesManager {
 
   readonly #rxSubs: Subscription[] = []
 
-  readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalanceQueueData>> = {}
+  readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
   readonly #balanceDiscoveryQueue: Set<HexString> = new Set()
   #running = false
 
@@ -61,26 +61,23 @@ export class BalancesManager {
         const balancesSubMappers = balanceEventsSubscriptions[chainId]
         if (balancesSubMappers) {
           this.#log.info('[agent:%s] watching for balances updates %s', this.id, chainId)
-          this.#rxSubs.push(...balancesSubMappers(chainId, this.#substrateIngress, this.enqueue.bind(this)))
+          this.#rxSubs.push(...balancesSubMappers(this.#substrateIngress, this.enqueue.bind(this)))
         }
       }
     }
   }
 
-  /**
-   * Adds or replaces a balance update job for a specific key.
-   */
-  enqueue(chainId: NetworkURN, key: HexString, data: BalanceQueueData) {
-    const jobs = (this.#balanceUpdateQueue[chainId] ??= new Map<HexString, BalanceQueueData>())
+  enqueue(chainId: NetworkURN, key: HexString, data: BalancesQueueData) {
+    const queue = (this.#balanceUpdateQueue[chainId] ??= new Map<HexString, BalancesQueueData>())
 
-    if (!jobs.has(key)) {
-      jobs.set(key, data)
+    if (!queue.has(key)) {
+      queue.set(key, data)
     }
   }
 
   async #processUpdateQueue() {
     while (this.#running) {
-      // if all job maps are empty, wait
+      // if all update queues are empty, wait
       const hasItems = Object.values(this.#balanceUpdateQueue).some((map) => map.size > 0)
       if (!hasItems) {
         await new Promise((r) => setTimeout(r, 1_000))
@@ -89,7 +86,7 @@ export class BalancesManager {
 
       for (const [chainId, queue] of Object.entries(this.#balanceUpdateQueue) as [
         NetworkURN,
-        Map<HexString, BalanceQueueData>,
+        Map<HexString, BalancesQueueData>,
       ][]) {
         if (queue.size === 0) {
           continue
@@ -142,6 +139,61 @@ export class BalancesManager {
         } catch (err) {
           this.#log.error(err, '[%s] failed processing queue for network %s', this.id, chainId)
         }
+      }
+    }
+  }
+
+  async #processDiscoveryQueue() {
+    while (this.#running) {
+      // if queue is empty, wait a bit and retry
+      if (this.#balanceDiscoveryQueue.size === 0) {
+        await new Promise((r) => setTimeout(r, 1_000))
+        continue
+      }
+
+      const account = this.#balanceDiscoveryQueue.values().next().value as HexString
+      this.#balanceDiscoveryQueue.delete(account)
+
+      try {
+        const chainIds = this.#substrateIngress.getChainIds()
+        const ops: BatchOperation<Buffer, Buffer>[] = []
+
+        for (const chainId of chainIds) {
+          if (!this.#substrateIngress.isNetworkDefined(chainId)) {
+            continue
+          }
+
+          const discoveryFetcher = balanceFetchers[chainId]
+          if (!discoveryFetcher) {
+            this.#log.warn('[%s] no discovery fetcher defined for chain %s', this.id, chainId)
+            continue
+          }
+
+          try {
+            const balances = await discoveryFetcher(account, this.#substrateIngress)
+            const putOps: BatchOperation<Buffer, Buffer>[] = balances.map(({ assetKeyHash, balance }) => {
+              const dbKey = balancesCodec.key.enc(account, assetKeyHash)
+              const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
+              return { type: 'put', key: dbKey, value: dbValue }
+            })
+
+            ops.push(...putOps)
+          } catch (err) {
+            this.#log.error(
+              err,
+              '[%s] failed to fetch balances for account %s from chain %s',
+              this.id,
+              account,
+              chainId,
+            )
+          }
+        }
+
+        if (ops.length > 0) {
+          await this.#dbBalances.batch(ops)
+        }
+      } catch (err) {
+        this.#log.error(err, '[%s] failed processing discovery for account %s', this.id, account)
       }
     }
   }
