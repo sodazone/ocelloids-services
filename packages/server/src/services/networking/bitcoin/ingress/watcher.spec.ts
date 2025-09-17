@@ -87,43 +87,15 @@ describe('Bitcoin watcher', () => {
     it('should handle a 2 blocks re-org', async () => {
       const { heads, getHeader } = await simulateReorg(
         [
-          {
-            height: 0,
-            hash: '0xC0',
-            parenthash: '0x0',
-          },
-          {
-            height: 1,
-            hash: '0xC1',
-            parenthash: '0xC0',
-          },
-          {
-            height: 2,
-            hash: '0xF2',
-            parenthash: '0xC1',
-          },
-          {
-            height: 3,
-            hash: '0xF3',
-            parenthash: '0xF2',
-          },
-          {
-            height: 4,
-            hash: '0xC4',
-            parenthash: '0xC3',
-          },
+          { height: 0, hash: '0xC0', parenthash: '0x0' },
+          { height: 1, hash: '0xC1', parenthash: '0xC0' },
+          { height: 2, hash: '0xF2', parenthash: '0xC1' },
+          { height: 3, hash: '0xF3', parenthash: '0xF2' },
+          { height: 4, hash: '0xC4', parenthash: '0xC3' },
         ],
         [
-          {
-            height: 3,
-            hash: '0xC3',
-            parenthash: '0xC2',
-          },
-          {
-            height: 2,
-            hash: '0xC2',
-            parenthash: '0xC1',
-          },
+          { height: 3, hash: '0xC3', parenthash: '0xC2' },
+          { height: 2, hash: '0xC2', parenthash: '0xC1' },
         ],
       )
 
@@ -135,34 +107,12 @@ describe('Bitcoin watcher', () => {
     it('should handle a 1 block re-org', async () => {
       const { heads, getHeader } = await simulateReorg(
         [
-          {
-            height: 0,
-            hash: '0xC0',
-            parenthash: '0x0',
-          },
-          {
-            height: 1,
-            hash: '0xC1',
-            parenthash: '0xC0',
-          },
-          {
-            height: 2,
-            hash: '0xF2',
-            parenthash: '0xC1',
-          },
-          {
-            height: 3,
-            hash: '0xC3',
-            parenthash: '0xC2',
-          },
+          { height: 0, hash: '0xC0', parenthash: '0x0' },
+          { height: 1, hash: '0xC1', parenthash: '0xC0' },
+          { height: 2, hash: '0xF2', parenthash: '0xC1' },
+          { height: 3, hash: '0xC3', parenthash: '0xC2' },
         ],
-        [
-          {
-            height: 2,
-            hash: '0xC2',
-            parenthash: '0xC1',
-          },
-        ],
+        [{ height: 2, hash: '0xC2', parenthash: '0xC1' }],
       )
 
       expect(getHeader).toBeCalledTimes(1)
