@@ -21,7 +21,7 @@ export type BalancesQueueData = {
 
 export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalancesQueueData) => void
 
-export type TokensBalance = {
+export type Balance = {
   free: bigint
   reserved: bigint
   frozen: bigint
@@ -39,7 +39,7 @@ export type NativeBalance = {
   consumers: number
   providers: number
   sufficients: number
-  data: TokensBalance
+  data: Balance
 }
 
 export type BalancesFetcher = (

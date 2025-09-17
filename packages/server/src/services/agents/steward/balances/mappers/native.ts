@@ -6,6 +6,7 @@ import { toHex } from 'polkadot-api/utils'
 import { filter, firstValueFrom, map, switchMap } from 'rxjs'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { AccountBalancesData, EnqueueUpdateItem, NativeBalance } from '../types.js'
+import { calculateFreeBalance } from '../util.js'
 
 const PALLET_MODULE = 'Balances'
 const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
@@ -78,10 +79,10 @@ export async function nativeBalancesFetcher(
   const encodedBalance = await firstValueFrom(
     ingress.getStorage(chainId, storageCodec.keys.enc(account) as HexString),
   )
-  const balance = storageCodec.value.dec(encodedBalance) as NativeBalance
+  const value = storageCodec.value.dec(encodedBalance) as NativeBalance
   return [
     {
-      balance: balance.data.free,
+      balance: calculateFreeBalance(value.data),
       assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, 'native'))) as HexString,
     },
   ]

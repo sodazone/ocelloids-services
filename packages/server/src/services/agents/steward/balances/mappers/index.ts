@@ -1,24 +1,9 @@
 import { NetworkURN } from '@/lib.js'
 import { networks } from '../../types.js'
-import {
-  AssetsBalance,
-  BalancesFetcher,
-  BalancesSubscriptionMapper,
-  NativeBalance,
-  TokensBalance,
-} from '../types.js'
+import { AssetsBalance, BalancesFetcher, BalancesSubscriptionMapper, NativeBalance } from '../types.js'
+import { calculateFreeBalance } from '../util.js'
 import { assetsBalancesSubscription, foreignAssetsBalancesSubscription } from './assets.js'
 import { nativeBalancesFetcher, nativeBalancesSubscription } from './native.js'
-
-function calculateFreeBalance(data: TokensBalance): bigint {
-  const { free, frozen } = data
-
-  if (free < frozen) {
-    return 0n
-  }
-
-  return free - frozen
-}
 
 const getDefaultBalancesSubscription: (chainId: NetworkURN) => BalancesSubscriptionMapper =
   (chainId) => (ingress, enqueue) => {
