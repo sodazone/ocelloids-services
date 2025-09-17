@@ -5,7 +5,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { toHex } from 'polkadot-api/utils'
 import { filter, map, switchMap } from 'rxjs'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueJob } from '../types.js'
+import { EnqueueUpdateItem } from '../types.js'
 
 const PALLET_MODULE = 'Balances'
 const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
@@ -15,7 +15,7 @@ const STORAGE_NAME = 'Account'
 export function nativeBalancesSubscription(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueJob,
+  enqueue: EnqueueUpdateItem,
 ) {
   const streams = SubstrateSharedStreams.instance(ingress)
 

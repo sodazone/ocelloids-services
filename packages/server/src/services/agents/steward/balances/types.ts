@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs'
 export type BalancesSubscriptionMapper = (
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueJob,
+  enqueue: EnqueueUpdateItem,
 ) => Subscription[]
 
 export type BalanceQueueData = {
@@ -14,7 +14,7 @@ export type BalanceQueueData = {
   account: HexString
   assetKeyHash: HexString
 }
-export type EnqueueJob = (chainId: NetworkURN, key: HexString, data: BalanceQueueData) => void
+export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalanceQueueData) => void
 
 export type TokensBalance = {
   free: bigint

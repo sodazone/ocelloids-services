@@ -5,7 +5,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { toHex } from 'polkadot-api/utils'
 import { filter, map, switchMap } from 'rxjs'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueJob } from '../types.js'
+import { EnqueueUpdateItem } from '../types.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
@@ -13,7 +13,7 @@ const STORAGE_NAME = 'Account'
 export function foreignAssetsBalancesSubscription(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueJob,
+  enqueue: EnqueueUpdateItem,
 ) {
   return genericAssetsBalancesSubscription(chainId, ingress, enqueue, 'ForeignAssets')
 }
@@ -21,7 +21,7 @@ export function foreignAssetsBalancesSubscription(
 export function assetsBalancesSubscription(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueJob,
+  enqueue: EnqueueUpdateItem,
 ) {
   return genericAssetsBalancesSubscription(chainId, ingress, enqueue, 'Assets')
 }
@@ -29,7 +29,7 @@ export function assetsBalancesSubscription(
 function genericAssetsBalancesSubscription(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueJob,
+  enqueue: EnqueueUpdateItem,
   module: 'Assets' | 'ForeignAssets',
 ) {
   const streams = SubstrateSharedStreams.instance(ingress)

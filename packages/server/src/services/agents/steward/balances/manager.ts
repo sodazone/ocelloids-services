@@ -36,7 +36,7 @@ export class BalancesManager {
   async start() {
     // start subscriptions
     this.#running = true
-    this.#processQueue()
+    this.#processUpdateQueue()
     this.#subscribeBalancesEvents()
   }
 
@@ -78,7 +78,7 @@ export class BalancesManager {
     }
   }
 
-  async #processQueue() {
+  async #processUpdateQueue() {
     while (this.#running) {
       // if all job maps are empty, wait
       const hasItems = Object.values(this.#balanceUpdateQueue).some((map) => map.size > 0)
