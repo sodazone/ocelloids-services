@@ -204,7 +204,7 @@ export interface SubstrateApiContext {
   }
 }
 
-export type Hashers = (
+export type Hasher =
   | {
       tag: 'Blake2128'
       value: undefined
@@ -233,6 +233,7 @@ export type Hashers = (
       tag: 'Identity'
       value: undefined
     }
-)[]
+
+export type Hashers = Hasher[]
 
 export type { SubstrateNetworkInfo } from './ingress/types.js'

@@ -122,7 +122,7 @@ export function createRpcApi(
 
   async function queryStorageAt(keys: string[], at?: string) {
     try {
-      return await request<StorageChangeSets>('state_getStorage', [keys, at])
+      return await request<StorageChangeSets>('state_queryStorageAt', [keys, at])
     } catch (error) {
       let msg = `[client:${chainId}] Failed to query storage for keys ${keys}`
       if (at) {

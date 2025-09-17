@@ -1,58 +1,69 @@
-import { NetworkURN } from '@/lib.js'
+import { asPublicKey } from '@/common/util.js'
+import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
-import { filter } from 'rxjs'
+import { toHex } from 'polkadot-api/utils'
+import { filter, map, switchMap } from 'rxjs'
+import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { EnqueueJob } from '../types.js'
 
-const BALANCES_PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
+const PALLET_MODULE = 'Balances'
+const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
+const STORAGE_MODULE = 'System'
+const STORAGE_NAME = 'Account'
 
-export function nativeBalancesMapper(
+export function nativeBalancesSubscription(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
   enqueue: EnqueueJob,
 ) {
   const streams = SubstrateSharedStreams.instance(ingress)
 
-  return streams
-    .blockEvents(chainId)
+  return ingress
+    .getContext(chainId)
     .pipe(
-      filter(
-        (blockEvent) => blockEvent.module === 'Balances' && BALANCES_PALLET_EVENTS.includes(blockEvent.name),
+      switchMap((apiCtx) =>
+        streams.blockEvents(chainId).pipe(
+          filter(
+            (blockEvent) => blockEvent.module === PALLET_MODULE && PALLET_EVENTS.includes(blockEvent.name),
+          ),
+          map((blockEvent) => {
+            return {
+              blockEvent,
+              apiCtx,
+            }
+          }),
+        ),
       ),
     )
-    .subscribe(({ name, value }) => {
-      // fetch balance
-      if (name === 'Transfer') {
-        console.log(name, value)
-        const { from, to } = value
-        const keyFrom = `${chainId}:${from}:native`
-        const keyTo = `${chainId}:${to}:native`
-        enqueue(keyFrom, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 200))
-          console.log('Updated', keyFrom)
-        })
-        enqueue(keyFrom, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 200))
-          console.log('Updated', keyTo)
-        })
-      } else if (name === 'Endowed') {
-        console.log(name, value)
-        const key = `${chainId}:${value.account}:native`
-        enqueue(key, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 300))
-          console.log('Updated', key)
-        })
-      } else {
-        console.log(name, value)
-        const account = value.who
+    .subscribe(({ blockEvent: { name, value }, apiCtx }) => {
+      const partialData = {
+        module: STORAGE_MODULE,
+        name: STORAGE_NAME,
+        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, 'native'))) as HexString,
+      }
+      const storageKeysCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME).keys
+      const accounts: string[] = []
 
+      if (name === 'Transfer') {
+        const { from, to } = value
+        accounts.push(from, to)
+      } else if (name === 'Endowed') {
+        accounts.push(value.account)
+      } else {
+        const account = value.who
         if (account) {
-          const key = `${chainId}:${account}:native`
-          enqueue(key, async () => {
-            await new Promise((resolve) => setTimeout(resolve, 250))
-            console.log('Updated', key)
-          })
+          accounts.push(account)
+        } else {
+          console.log('[NATIVE] NOT SUPPORTED EVENT', name)
         }
+      }
+
+      for (const account of accounts) {
+        enqueue(chainId, storageKeysCodec.enc(account) as HexString, {
+          ...partialData,
+          account: asPublicKey(account),
+        })
       }
     })
 }

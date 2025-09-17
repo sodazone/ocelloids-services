@@ -1,12 +1,24 @@
 import { networks } from '../../types.js'
-import { BalancesSubscriptionMapper } from '../types.js'
-import { nativeBalancesMapper } from './native.js'
+import { AssetsBalance, BalancesSubscriptionMapper, NativeBalance, TokensBalance } from '../types.js'
+import { assetsBalancesSubscription, foreignAssetsBalancesSubscription } from './assets.js'
+import { nativeBalancesSubscription } from './native.js'
 
-const NATIVE_MAPPER: BalancesSubscriptionMapper = (chainId, ingress, enqueue) => {
-  return [nativeBalancesMapper(chainId, ingress, enqueue)]
+function calculateFreeBalance(data: TokensBalance): bigint {
+  const { free, frozen } = data
+
+  if (free < frozen) {
+    return 0n
+  }
+
+  return free - frozen
 }
-export const mappers: Record<string, BalancesSubscriptionMapper> = {
-  [networks.polkadot]: NATIVE_MAPPER,
+
+const NATIVE_BALANCE_SUBS: BalancesSubscriptionMapper = (chainId, ingress, enqueue) => {
+  return [nativeBalancesSubscription(chainId, ingress, enqueue)]
+}
+
+export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapper> = {
+  [networks.polkadot]: NATIVE_BALANCE_SUBS,
   // [networks.bridgeHub]: BYPASS_MAPPER,
   // [networks.people]: BYPASS_MAPPER,
   // [networks.coretime]: BYPASS_MAPPER,
@@ -16,7 +28,13 @@ export const mappers: Record<string, BalancesSubscriptionMapper> = {
   // [networks.mythos]: BYPASS_MAPPER,
   // [networks.moonbeam]: moonbeamMapper,
   // [networks.astar]: astarMapper,
-  [networks.assetHub]: NATIVE_MAPPER,
+  [networks.assetHub]: (chainId, ingress, enqueue) => {
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      assetsBalancesSubscription(chainId, ingress, enqueue),
+      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
   // [networks.bifrost]: bifrostMapper,
   // [networks.centrifuge]: centrifugeMapper,
   // [networks.hydration]: hydrationMapper,
@@ -30,4 +48,17 @@ export const mappers: Record<string, BalancesSubscriptionMapper> = {
   // [networks.kusamaAssetHub]: assetHubMapper(networks.kusamaAssetHub),
   // [networks.paseo]: BYPASS_MAPPER,
   // [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
+}
+
+export const balanceExtractorMappers: Record<string, (storageValue: unknown) => bigint> = {
+  'System.Account': (storageValue: unknown) => {
+    const { data } = storageValue as NativeBalance
+    return calculateFreeBalance(data)
+  },
+  'Assets.Account': (storageValue: unknown) => {
+    return (storageValue as AssetsBalance).balance
+  },
+  'ForeignAssets.Account': (storageValue: unknown) => {
+    return (storageValue as AssetsBalance).balance
+  },
 }
