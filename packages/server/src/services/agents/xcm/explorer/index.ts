@@ -64,6 +64,13 @@ function shouldBroadcastJourney({ sentAt, recvAt }: { sentAt?: number; recvAt?: 
   return true
 }
 
+/**
+ * XCM Explorer
+ *
+ * Specialized crosschain indexer for the Polkadot XCM protocol.
+ * Uses the shared CrosschainExplorer for persistence and broadcasting.
+ * Other protocols (e.g. Wormhole, LayerZero) will have their own explorers.
+ */
 export class XcmExplorer {
   readonly #log: Logger
   readonly #humanizer: XcmHumanizer

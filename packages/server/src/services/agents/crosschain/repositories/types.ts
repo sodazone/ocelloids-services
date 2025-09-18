@@ -16,6 +16,7 @@ export interface XcJourneyTable {
   correlation_id: ColumnType<string>
   status: ColumnType<string>
   type: ColumnType<string>
+  protocol: ColumnType<string>
   origin: ColumnType<string>
   destination: ColumnType<string>
   from: ColumnType<string>

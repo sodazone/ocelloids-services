@@ -133,6 +133,7 @@ export function toNewJourney(payload: HumanizedXcmPayload): NewJourney {
     destination: payload.destination.chainId,
     instructions: asJSON(payload.origin.instructions),
     transact_calls: asJSON(payload.humanized.transactCalls),
+    protocol: 'xcm',
     origin: payload.origin.chainId,
     origin_extrinsic_hash: payload.origin.extrinsicHash,
     origin_evm_tx_hash: toEvmTxHash(payload),
