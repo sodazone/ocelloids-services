@@ -1,9 +1,19 @@
 import { NetworkURN } from '@/lib.js'
 import { networks } from '../../types.js'
-import { AssetsBalance, BalancesFetcher, BalancesSubscriptionMapper, NativeBalance } from '../types.js'
+import {
+  AssetsBalance,
+  BalancesStorageKeyMapper,
+  BalancesSubscriptionMapper,
+  NativeBalance,
+} from '../types.js'
 import { calculateFreeBalance } from '../util.js'
-import { assetsBalancesSubscription, foreignAssetsBalancesSubscription } from './assets.js'
-import { nativeBalancesFetcher, nativeBalancesSubscription } from './native.js'
+import {
+  assetsBalancesSubscription,
+  foreignAssetsBalancesSubscription,
+  toAssetsStorageKey,
+  toForeignAssetsStorageKey,
+} from './assets.js'
+import { nativeBalancesSubscription, toNativeStorageKey } from './native.js'
 
 const getDefaultBalancesSubscription: (chainId: NetworkURN) => BalancesSubscriptionMapper =
   (chainId) => (ingress, enqueue) => {
@@ -36,10 +46,17 @@ export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapp
   // [networks.manta]: BYPASS_MAPPER,
   // [networks.polimec]: BYPASS_MAPPER,
   // [networks.hyperbridge]: hyperbridgeMapper,
-  // [networks.kusama]: BYPASS_MAPPER,
-  // [networks.kusamaBridgeHub]: BYPASS_MAPPER,
+  [networks.kusama]: getDefaultBalancesSubscription(networks.kusama),
+  [networks.kusamaBridgeHub]: getDefaultBalancesSubscription(networks.kusama),
   // [networks.kusamaCoretime]: BYPASS_MAPPER,
-  // [networks.kusamaAssetHub]: assetHubMapper(networks.kusamaAssetHub),
+  [networks.kusamaAssetHub]: (ingress, enqueue) => {
+    const chainId = networks.kusamaAssetHub
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      assetsBalancesSubscription(chainId, ingress, enqueue),
+      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
   // [networks.paseo]: BYPASS_MAPPER,
   // [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
 }
@@ -57,13 +74,12 @@ export const balanceExtractorMappers: Record<string, (storageValue: unknown) => 
   },
 }
 
-const getDefaultBalanceFetcher: (chainId: NetworkURN) => BalancesFetcher =
-  (chainId) => (account, ingress) => {
-    return nativeBalancesFetcher(chainId, account, ingress)
-  }
+function getDefaultStorageKeyMapper(): BalancesStorageKeyMapper {
+  return (_assetId, account, apiCtx) => toNativeStorageKey(account, apiCtx)
+}
 
-export const balanceFetchers: Record<string, BalancesFetcher> = {
-  [networks.polkadot]: getDefaultBalanceFetcher(networks.polkadot),
+export const storageKeyMappers: Record<string, BalancesStorageKeyMapper> = {
+  [networks.polkadot]: getDefaultStorageKeyMapper(),
   // [networks.bridgeHub]: BYPASS_MAPPER,
   // [networks.people]: BYPASS_MAPPER,
   // [networks.coretime]: BYPASS_MAPPER,
@@ -73,9 +89,17 @@ export const balanceFetchers: Record<string, BalancesFetcher> = {
   // [networks.mythos]: BYPASS_MAPPER,
   // [networks.moonbeam]: moonbeamMapper,
   // [networks.astar]: astarMapper,
-  [networks.assetHub]: async (account, ingress) => {
-    const nativeBalances = await nativeBalancesFetcher(networks.assetHub, account, ingress)
-    return nativeBalances
+  [networks.assetHub]: (assetId, account, apiCtx) => {
+    if (assetId === 'native') {
+      return toNativeStorageKey(account, apiCtx)
+    }
+    if (typeof assetId === 'number' || typeof assetId === 'string') {
+      return toAssetsStorageKey(assetId, account, apiCtx)
+    }
+    if (typeof assetId === 'object' && 'parents' in assetId) {
+      return toForeignAssetsStorageKey(assetId, account, apiCtx)
+    }
+    return null
   },
   // [networks.bifrost]: bifrostMapper,
   // [networks.centrifuge]: centrifugeMapper,
@@ -84,10 +108,21 @@ export const balanceFetchers: Record<string, BalancesFetcher> = {
   // [networks.manta]: BYPASS_MAPPER,
   // [networks.polimec]: BYPASS_MAPPER,
   // [networks.hyperbridge]: hyperbridgeMapper,
-  // [networks.kusama]: BYPASS_MAPPER,
-  // [networks.kusamaBridgeHub]: BYPASS_MAPPER,
+  [networks.kusama]: getDefaultStorageKeyMapper(),
+  [networks.kusamaBridgeHub]: getDefaultStorageKeyMapper(),
   // [networks.kusamaCoretime]: BYPASS_MAPPER,
-  // [networks.kusamaAssetHub]: assetHubMapper(networks.kusamaAssetHub),
+  [networks.kusamaAssetHub]: (assetId, account, apiCtx) => {
+    if (assetId === 'native') {
+      return toNativeStorageKey(account, apiCtx)
+    }
+    if (typeof assetId === 'number' || typeof assetId === 'string') {
+      return toAssetsStorageKey(assetId, account, apiCtx)
+    }
+    if (typeof assetId === 'object' && 'parents' in assetId) {
+      return toForeignAssetsStorageKey(assetId, account, apiCtx)
+    }
+    return null
+  },
   // [networks.paseo]: BYPASS_MAPPER,
   // [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
 }

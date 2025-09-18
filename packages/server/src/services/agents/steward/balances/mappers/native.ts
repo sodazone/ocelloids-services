@@ -2,11 +2,11 @@ import { asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { toHex } from 'polkadot-api/utils'
-import { filter, firstValueFrom, map, switchMap } from 'rxjs'
+import { filter, map, switchMap } from 'rxjs'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { AccountBalancesData, EnqueueUpdateItem, NativeBalance } from '../types.js'
-import { calculateFreeBalance } from '../util.js'
+import { EnqueueUpdateItem } from '../types.js'
 
 const PALLET_MODULE = 'Balances'
 const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
@@ -63,27 +63,18 @@ export function nativeBalancesSubscription(
       for (const account of accounts) {
         enqueue(chainId, storageKeysCodec.enc(account) as HexString, {
           ...partialData,
-          account: asPublicKey(account),
+          account,
+          publicKey: asPublicKey(account),
         })
       }
     })
 }
 
-export async function nativeBalancesFetcher(
-  chainId: NetworkURN,
-  account: string,
-  ingress: SubstrateIngressConsumer,
-): Promise<AccountBalancesData[]> {
-  const apiCtx = await firstValueFrom(ingress.getContext(chainId))
+export function toNativeStorageKey(account: string, apiCtx: SubstrateApiContext) {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
-  const encodedBalance = await firstValueFrom(
-    ingress.getStorage(chainId, storageCodec.keys.enc(account) as HexString),
-  )
-  const value = storageCodec.value.dec(encodedBalance) as NativeBalance
-  return [
-    {
-      balance: calculateFreeBalance(value.data),
-      assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, 'native'))) as HexString,
-    },
-  ]
+  return {
+    storageKey: storageCodec.keys.enc(account) as HexString,
+    module: STORAGE_MODULE,
+    name: STORAGE_NAME,
+  }
 }

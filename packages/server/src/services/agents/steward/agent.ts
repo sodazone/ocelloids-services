@@ -9,7 +9,6 @@ import {
   Queryable,
   getAgentCapabilities,
 } from '../types.js'
-
 import { BalancesManager } from './balances/manager.js'
 import { AssetMetadataManager } from './metadata/manager.js'
 import { $StewardQueryArgs, StewardQueryArgs } from './types.js'
@@ -31,7 +30,7 @@ export class DataSteward implements Agent, Queryable {
   }
 
   readonly #metadataManager: AssetMetadataManager
-  // readonly #balancesManager: BalancesManager
+  readonly #balancesManager: BalancesManager
   readonly #substrateIngress: SubstrateIngressConsumer
 
   constructor(ctx: AgentRuntimeContext) {
@@ -43,7 +42,7 @@ export class DataSteward implements Agent, Queryable {
       ingress: ctx.ingress,
     }
     this.#metadataManager = new AssetMetadataManager(managerContext)
-    // this.#balancesManager = new BalancesManager(managerContext)
+    this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this))
     this.#substrateIngress = ctx.ingress.substrate
   }
 
@@ -60,7 +59,7 @@ export class DataSteward implements Agent, Queryable {
   async stop() {
     this.#metadataManager.stop()
     // balances manager stop
-    // await this.#balancesManager.stop()
+    await this.#balancesManager.stop()
   }
 
   async start() {
@@ -68,7 +67,7 @@ export class DataSteward implements Agent, Queryable {
 
     await this.#metadataManager.start()
     // balances manager start
-    // await this.#balancesManager.start()
+    await this.#balancesManager.start()
   }
 
   collectTelemetry() {
