@@ -1,15 +1,11 @@
 import { getDynamicBuilder, getLookupFn } from '@polkadot-api/metadata-builders'
 import { RuntimeContext } from '@polkadot-api/observable-client'
 import {
-  Binary,
   Blake2256,
   Decoder,
-  Option,
-  Tuple,
-  V14,
-  V15,
-  compact,
-  metadata as metadataCodec,
+  UnifiedMetadata,
+  decAnyMetadata,
+  unifyMetadata,
 } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'
 import { Codec } from 'polkadot-api'
@@ -17,12 +13,9 @@ import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { Call, Extrinsic, Hashers, StorageCodec, SubstrateApiContext } from './types.js'
 
-type Metadata = ReturnType<typeof metadataCodec.dec>
-const opaqueMeta = Option(Tuple(compact, metadataCodec))
-
 function decodeMetadata(metadataRaw: Uint8Array, chainId?: string) {
   try {
-    const metadata = metadataCodec.dec(metadataRaw)
+    const metadata = unifyMetadata(decAnyMetadata(metadataRaw))
     return {
       metadata,
       metadataRaw,
@@ -32,25 +25,12 @@ function decodeMetadata(metadataRaw: Uint8Array, chainId?: string) {
   }
 }
 
-function decodeOpaqueMetadata(metadataRaw: Uint8Array, chainId?: string) {
-  try {
-    const [, metadata] = opaqueMeta.dec(metadataRaw)!
-    return {
-      metadata,
-      metadataRaw: metadataCodec.enc(metadata),
-    }
-  } catch (error) {
-    throw new Error(`[${chainId}] Failed to decode metadata`, { cause: error })
-  }
-}
-
 function createRuntimeApiContext(
-  { metadata, metadataRaw }: { metadata: Metadata; metadataRaw: Uint8Array },
+  { metadata, metadataRaw }: { metadata: UnifiedMetadata; metadataRaw: Uint8Array },
   chainId?: string,
 ) {
-  const versionMetadata = metadata.metadata.value as V14 | V15
 
-  const lookup = getLookupFn(versionMetadata)
+  const lookup = getLookupFn(metadata)
   const dynamicBuilder = getDynamicBuilder(lookup)
   const events = dynamicBuilder.buildStorage('System', 'Events')
 
@@ -73,7 +53,7 @@ export function createContextFromMetadata(metadataRaw: Uint8Array, chainId?: str
 }
 
 export function createContextFromOpaqueMetadata(metadataRaw: Uint8Array, chainId?: string) {
-  return createRuntimeApiContext(decodeOpaqueMetadata(metadataRaw, chainId))
+  return createRuntimeApiContext(decodeMetadata(metadataRaw, chainId))
 }
 
 export class RuntimeApiContext implements SubstrateApiContext {
@@ -123,19 +103,16 @@ export class RuntimeApiContext implements SubstrateApiContext {
 
   decodeExtrinsic(hexBytes: string | Uint8Array): Extrinsic {
     try {
-      const xt: {
-        callData: Binary
-        signed: boolean
-        address?: any
-        signature?: any
-      } = this.#extrinsicDecoder(hexBytes)
+      const xt = this.#extrinsicDecoder(hexBytes)
+      const signed = xt.type === 'signed'
+      const { address, signature } = signed ? xt : {}
 
       const call = this.decodeCall(xt.callData.asBytes())
       return {
         ...call,
-        signed: xt.signed,
-        address: xt.address,
-        signature: xt.signature,
+        signed,
+        address,
+        signature,
         hash: toHex(Blake2256(typeof hexBytes === 'string' ? fromHex(hexBytes) : hexBytes)),
       }
     } catch (error) {
