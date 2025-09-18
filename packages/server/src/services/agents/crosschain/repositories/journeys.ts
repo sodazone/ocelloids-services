@@ -1,18 +1,18 @@
 import { Buffer } from 'buffer'
 import { QueryPagination } from '@/lib.js'
 import { Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
-import { HumanizedXcmAsset, JourneyFilters } from '../../types/index.js'
+import { JourneyFilters } from '../types/queries.js'
 import {
-  FullXcmJourney,
-  FullXcmJourneyAsset,
+  AssetOperation,
+  AssetOperationUpdate,
+  AssetRole,
+  CrosschainDatabase,
+  FullJourney,
+  FullJourneyAsset,
+  JourneyUpdate,
   ListAsset,
-  NewXcmAsset,
-  NewXcmJourney,
-  XcmAsset,
-  XcmAssetRole,
-  XcmAssetUpdate,
-  XcmDatabase,
-  XcmJourneyUpdate,
+  NewAssetOperation,
+  NewJourney,
 } from './types.js'
 
 const MAX_LIMIT = 100
@@ -50,7 +50,7 @@ function decodeAssetsListCursor(cursor: string): {
   return JSON.parse(Buffer.from(cursor, 'base64').toString())
 }
 
-export function calculateTotalUsd(assets: { usd?: number | null; role?: XcmAssetRole }[]) {
+export function calculateTotalUsd(assets: { usd?: number | null; role?: AssetRole }[]) {
   return assets.reduce((sum, row) => {
     if (row.role !== undefined && row.role !== 'transfer') {
       return sum
@@ -60,31 +60,37 @@ export function calculateTotalUsd(assets: { usd?: number | null; role?: XcmAsset
   }, 0)
 }
 
-export class XcmRepository {
-  readonly #db: Kysely<XcmDatabase>
+export class CrosschainRepository {
+  readonly #db: Kysely<CrosschainDatabase>
 
-  constructor(db: Kysely<XcmDatabase>) {
+  constructor(db: Kysely<CrosschainDatabase>) {
     this.#db = db
   }
 
-  async updateJourney(id: number, updateWith: XcmJourneyUpdate): Promise<void> {
-    await this.#db.updateTable('xcm_journeys').set(updateWith).where('id', '=', id).execute()
+  async updateJourney(id: number, updateWith: JourneyUpdate): Promise<void> {
+    await this.#db.updateTable('xc_journeys').set(updateWith).where('id', '=', id).execute()
   }
 
-  async getAssetIdentifiers(journeyId: number): Promise<Pick<XcmAsset, 'asset' | 'role' | 'sequence'>[]> {
+  async getAssetIdentifiers(
+    journeyId: number,
+  ): Promise<Pick<AssetOperation, 'asset' | 'role' | 'sequence'>[]> {
     return this.#db
-      .selectFrom('xcm_assets')
+      .selectFrom('xc_asset_ops')
       .select(['asset', 'role', 'sequence'])
       .where('journey_id', '=', journeyId)
       .execute()
   }
 
-  async updateAsset(journeyId: number, asset: HumanizedXcmAsset, updateWith: XcmAssetUpdate): Promise<void> {
+  async updateAsset(
+    journeyId: number,
+    asset: Pick<AssetOperation, 'asset' | 'role' | 'sequence'>,
+    updateWith: AssetOperationUpdate,
+  ): Promise<void> {
     let query = this.#db
-      .updateTable('xcm_assets')
+      .updateTable('xc_asset_ops')
       .set(updateWith)
       .where('journey_id', '=', journeyId)
-      .where('asset', '=', asset.id)
+      .where('asset', '=', asset.asset)
 
     if (asset.role !== undefined) {
       query = query.where('role', '=', asset.role)
@@ -97,21 +103,21 @@ export class XcmRepository {
     await query.execute()
   }
 
-  async getJourneyById(id: string): Promise<FullXcmJourney | undefined> {
+  async getJourneyById(id: string): Promise<FullJourney | undefined> {
     const rows = await this.#db
-      .selectFrom('xcm_journeys')
-      .selectAll('xcm_journeys')
-      .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
+      .selectFrom('xc_journeys')
+      .selectAll('xc_journeys')
+      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
       .select([
-        'xcm_assets.asset',
-        'xcm_assets.symbol',
-        'xcm_assets.amount',
-        'xcm_assets.decimals',
-        'xcm_assets.usd',
-        'xcm_assets.role',
-        'xcm_assets.sequence',
+        'xc_asset_ops.asset',
+        'xc_asset_ops.symbol',
+        'xc_asset_ops.amount',
+        'xc_asset_ops.decimals',
+        'xc_asset_ops.usd',
+        'xc_asset_ops.role',
+        'xc_asset_ops.sequence',
       ])
-      .where('xcm_journeys.correlation_id', '=', id)
+      .where('xc_journeys.correlation_id', '=', id)
       .execute()
 
     if (rows.length === 0) {
@@ -157,16 +163,16 @@ export class XcmRepository {
   }
 
   async deleteJourney(id: number): Promise<void> {
-    await this.#db.deleteFrom('xcm_journeys').where('id', '=', id).execute()
+    await this.#db.deleteFrom('xc_journeys').where('id', '=', id).execute()
   }
 
   async insertJourneyWithAssets(
-    journey: NewXcmJourney,
-    assets: Array<Omit<NewXcmAsset, 'journey_id'>>,
+    journey: NewJourney,
+    assets: Array<Omit<NewAssetOperation, 'journey_id'>>,
   ): Promise<number> {
     return await this.#db.transaction().execute(async (trx) => {
       const insertedJourney = await trx
-        .insertInto('xcm_journeys')
+        .insertInto('xc_journeys')
         .values(journey)
         .returning('id')
         .executeTakeFirst()
@@ -185,8 +191,8 @@ export class XcmRepository {
 
   async insertAssetsForJourney(
     journeyId: number,
-    assets: Omit<NewXcmAsset, 'journey_id'>[],
-    db: Kysely<XcmDatabase> | Transaction<XcmDatabase> = this.#db,
+    assets: Omit<NewAssetOperation, 'journey_id'>[],
+    db: Kysely<CrosschainDatabase> | Transaction<CrosschainDatabase> = this.#db,
   ): Promise<void> {
     if (assets.length === 0) {
       return
@@ -196,7 +202,7 @@ export class XcmRepository {
       journey_id: journeyId,
     }))
 
-    await db.insertInto('xcm_assets').values(assetsWithJourneyId).execute()
+    await db.insertInto('xc_asset_ops').values(assetsWithJourneyId).execute()
   }
 
   async close() {
@@ -209,8 +215,8 @@ export class XcmRepository {
 
     // Subquery: sum usd per asset within snapshot window
     const volumeSubquery = this.#db
-      .selectFrom('xcm_assets as recent_assets')
-      .innerJoin('xcm_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
+      .selectFrom('xc_asset_ops as recent_assets')
+      .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
       .select((eb) => [
         eb.ref('recent_assets.asset').as('asset'),
         eb.fn.sum(eb.fn.coalesce('recent_assets.usd', eb.val(0))).as('usd_volume'),
@@ -223,20 +229,20 @@ export class XcmRepository {
 
     // Left join on all known assets
     const results = await this.#db
-      .selectFrom('xcm_assets')
-      .leftJoin(volumeSubquery, 'xcm_assets.asset', 'volumes.asset')
+      .selectFrom('xc_asset_ops')
+      .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
       .select((eb) => [
-        eb.ref('xcm_assets.asset').as('asset'),
-        eb.fn.max('xcm_assets.symbol').as('symbol'),
+        eb.ref('xc_asset_ops.asset').as('asset'),
+        eb.fn.max('xc_asset_ops.symbol').as('symbol'),
         eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
       ])
-      .where('xcm_assets.symbol', 'is not', null)
-      .groupBy('xcm_assets.asset')
+      .where('xc_asset_ops.symbol', 'is not', null)
+      .groupBy('xc_asset_ops.asset')
       .execute()
 
     // Upsert into snapshot table
     await this.#db
-      .insertInto('xcm_asset_volume_cache')
+      .insertInto('xc_asset_volume_cache')
       .values(
         results.map((row) => ({ ...row, usd_volume: Number(row.usd_volume), snapshot_end, snapshot_start })),
       )
@@ -292,7 +298,7 @@ export class XcmRepository {
     }
 
     let query = this.#db
-      .selectFrom('xcm_asset_volume_cache')
+      .selectFrom('xc_asset_volume_cache')
       .select(['asset', 'symbol', 'usd_volume'])
       .where('snapshot_start', '=', snapshotStart)
       .where('snapshot_end', '=', snapshotEnd)
@@ -335,7 +341,7 @@ export class XcmRepository {
 
   async getLastestSnapshot() {
     return await this.#db
-      .selectFrom('xcm_asset_volume_cache')
+      .selectFrom('xc_asset_volume_cache')
       .select(['snapshot_start', 'snapshot_end'])
       .limit(1)
       .executeTakeFirst()
@@ -345,7 +351,7 @@ export class XcmRepository {
     filters?: JourneyFilters,
     pagination?: QueryPagination,
   ): Promise<{
-    nodes: Array<FullXcmJourney>
+    nodes: Array<FullJourney>
     pageInfo: {
       hasNextPage: boolean
       endCursor: string
@@ -413,7 +419,7 @@ export class XcmRepository {
     }
   }
 
-  #parseAssets(assets: any): FullXcmJourneyAsset[] {
+  #parseAssets(assets: any): FullJourneyAsset[] {
     try {
       const parsed = Array.isArray(assets) ? assets : typeof assets === 'string' ? JSON.parse(assets) : []
 
@@ -422,8 +428,7 @@ export class XcmRepository {
       }
 
       return parsed.filter(
-        (a: any): a is FullXcmJourneyAsset =>
-          a && typeof a === 'object' && a.asset != null && a.amount != null,
+        (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
       )
     } catch {
       return []
@@ -431,7 +436,7 @@ export class XcmRepository {
   }
 
   async #filterJourneyIds(limit: number, filters?: JourneyFilters, cursor?: string) {
-    let query = this.#db.selectFrom('xcm_journeys').select(['id', 'sent_at'])
+    let query = this.#db.selectFrom('xc_journeys').select(['id', 'sent_at'])
 
     query = this.#applyJourneyFilters(query, filters, cursor)
 
@@ -440,28 +445,28 @@ export class XcmRepository {
 
   async #filterJourneyIdsWithAssets(limit: number, filters?: JourneyFilters, cursor?: string) {
     let query = this.#db
-      .selectFrom('xcm_assets')
-      .innerJoin('xcm_journeys', 'xcm_journeys.id', 'xcm_assets.journey_id')
+      .selectFrom('xc_asset_ops')
+      .innerJoin('xc_journeys', 'xc_journeys.id', 'xc_asset_ops.journey_id')
       .select((eb) => [
-        eb.ref('xcm_assets.journey_id').as('id'),
-        eb.fn.max('xcm_journeys.sent_at').as('sent_at'),
+        eb.ref('xc_asset_ops.journey_id').as('id'),
+        eb.fn.max('xc_journeys.sent_at').as('sent_at'),
       ])
 
     // ASSET filters
     if (filters?.assets) {
-      query = query.where('xcm_assets.asset', 'in', filters.assets)
+      query = query.where('xc_asset_ops.asset', 'in', filters.assets)
     }
     if (filters?.usdAmountGte !== undefined) {
-      query = query.where('xcm_assets.usd', '>=', filters.usdAmountGte)
+      query = query.where('xc_asset_ops.usd', '>=', filters.usdAmountGte)
     }
     if (filters?.usdAmountLte !== undefined) {
-      query = query.where('xcm_assets.usd', '<=', filters.usdAmountLte)
+      query = query.where('xc_asset_ops.usd', '<=', filters.usdAmountLte)
     }
 
     // JOURNEY filters
     query = this.#applyJourneyFilters(query, filters, cursor)
 
-    return query.groupBy('xcm_assets.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
+    return query.groupBy('xc_asset_ops.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
   }
 
   #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
@@ -544,18 +549,18 @@ export class XcmRepository {
 
   async #getFullJourneyData(journeyIds: number[]) {
     const assetSubquery = this.#db
-      .selectFrom('xcm_assets')
+      .selectFrom('xc_asset_ops')
       .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
       .where('role', '=', 'transfer')
       .groupBy('journey_id')
       .as('asset_totals')
 
     const query = this.#db
-      .selectFrom('xcm_journeys')
-      .leftJoin(assetSubquery, 'xcm_journeys.id', 'asset_totals.journey_id') // changed to LEFT JOIN
-      .leftJoin('xcm_assets', 'xcm_journeys.id', 'xcm_assets.journey_id')
+      .selectFrom('xc_journeys')
+      .leftJoin(assetSubquery, 'xc_journeys.id', 'asset_totals.journey_id') // changed to LEFT JOIN
+      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
       .select([
-        'xcm_journeys.id',
+        'xc_journeys.id',
         'correlation_id',
         'status',
         'type',
@@ -576,23 +581,23 @@ export class XcmRepository {
         sql`IFNULL(asset_totals.total_usd, 0)`.as('total_usd'),
         sql`IFNULL(json_group_array(
         CASE
-          WHEN xcm_assets.asset IS NOT NULL THEN
+          WHEN xc_asset_ops.asset IS NOT NULL THEN
             json_object(
-              'asset', xcm_assets.asset,
-              'symbol', xcm_assets.symbol,
-              'amount', xcm_assets.amount,
-              'decimals', xcm_assets.decimals,
-              'usd', xcm_assets.usd,
-              'role', xcm_assets.role,
-              'sequence', xcm_assets.sequence
+              'asset', xc_asset_ops.asset,
+              'symbol', xc_asset_ops.symbol,
+              'amount', xc_asset_ops.amount,
+              'decimals', xc_asset_ops.decimals,
+              'usd', xc_asset_ops.usd,
+              'role', xc_asset_ops.role,
+              'sequence', xc_asset_ops.sequence
             )
           ELSE NULL
         END
       ), json('[]'))`.as('assets'),
       ])
-      .where('xcm_journeys.id', 'in', journeyIds)
-      .groupBy('xcm_journeys.id')
-      .orderBy('xcm_journeys.sent_at', 'desc')
+      .where('xc_journeys.id', 'in', journeyIds)
+      .groupBy('xc_journeys.id')
+      .orderBy('xc_journeys.sent_at', 'desc')
 
     return query.execute()
   }

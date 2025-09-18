@@ -1,8 +1,7 @@
 import { DeepCamelize } from '@/common/util.js'
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
-import { HumanizedTransactCall } from '../../humanize/types.js'
 
-export type XcmAssetRole =
+export type AssetRole =
   | 'transfer'
   | 'swap_in'
   | 'swap_out'
@@ -12,7 +11,7 @@ export type XcmAssetRole =
   | 'intermediate'
   | null
 
-export interface XcmJourneyTable {
+export interface XcJourneyTable {
   id: Generated<number>
   correlation_id: ColumnType<string>
   status: ColumnType<string>
@@ -28,16 +27,16 @@ export interface XcmJourneyTable {
   created_at: ColumnType<number, number, never>
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
-  transact_calls: JSONColumnType<HumanizedTransactCall[]>
+  transact_calls: JSONColumnType<any[]>
   origin_extrinsic_hash: ColumnType<string | undefined>
   origin_evm_tx_hash: ColumnType<string | undefined>
 }
 
-export type XcmJourney = Selectable<XcmJourneyTable>
-export type NewXcmJourney = Insertable<XcmJourneyTable>
-export type XcmJourneyUpdate = Updateable<XcmJourneyTable>
+export type Journey = Selectable<XcJourneyTable>
+export type NewJourney = Insertable<XcJourneyTable>
+export type JourneyUpdate = Updateable<XcJourneyTable>
 
-export interface XcmAssetTable {
+export interface XcAssetOperationTable {
   id: Generated<number>
   journey_id: ColumnType<number>
   asset: ColumnType<string>
@@ -45,45 +44,44 @@ export interface XcmAssetTable {
   amount: ColumnType<string>
   decimals: ColumnType<number | undefined>
   usd: ColumnType<number | undefined>
-  role: ColumnType<XcmAssetRole | undefined>
+  role: ColumnType<AssetRole | undefined>
   sequence: ColumnType<number | undefined>
 }
 
-export type XcmAsset = Selectable<XcmAssetTable>
-export type NewXcmAsset = Insertable<XcmAssetTable>
-export type XcmAssetUpdate = Updateable<XcmAssetTable>
+export type AssetOperation = Selectable<XcAssetOperationTable>
+export type NewAssetOperation = Insertable<XcAssetOperationTable>
+export type AssetOperationUpdate = Updateable<XcAssetOperationTable>
 
-export interface XcmDatabase {
-  xcm_journeys: XcmJourneyTable
-  xcm_assets: XcmAssetTable
-  xcm_asset_volume_cache: XcmAssetVolumeCache
+export interface CrosschainDatabase {
+  xc_journeys: XcJourneyTable
+  xc_asset_ops: XcAssetOperationTable
+  xc_asset_volume_cache: XcAssetVolumeCache
 }
 
-export type FullXcmJourneyAsset = Omit<XcmAsset, 'id' | 'journey_id'>
+export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 
-export type FullXcmJourney = XcmJourney & {
+export type FullJourney = Journey & {
   totalUsd: number
-  assets: FullXcmJourneyAsset[]
+  assets: FullJourneyAsset[]
 }
 
-export type XcmJourneyResponse = DeepCamelize<XcmJourney>
-export type XcmAssetResponse = DeepCamelize<XcmAsset>
-
-export type FullXcmJourneyResponse = DeepCamelize<FullXcmJourney>
+export type JourneyResponse = DeepCamelize<Journey>
+export type AssetOperationResponse = DeepCamelize<AssetOperation>
+export type FullJourneyResponse = DeepCamelize<FullJourney>
 
 export type ListAsset = {
   asset: string
   symbol?: string | undefined
 }
 
-export type XcmAssetKey = {
+export type AssetOperationKey = {
   journeyId: number
   assetId: string
-  role?: XcmAssetRole
+  role?: AssetRole
   sequence?: number
 }
 
-export interface XcmAssetVolumeCache {
+export interface XcAssetVolumeCache {
   asset: ColumnType<string>
   symbol: ColumnType<string | undefined>
   usd_volume: ColumnType<number>
@@ -91,6 +89,6 @@ export interface XcmAssetVolumeCache {
   snapshot_end: ColumnType<number>
 }
 
-export type XcmAssetVolumeCacheRow = Selectable<XcmAssetVolumeCache>
-export type NewXcmAssetVolumeCache = Insertable<XcmAssetVolumeCache>
-export type XcmAssetVolumeCacheUpdate = Updateable<XcmAssetVolumeCache>
+export type AssetVolumeCacheRow = Selectable<XcAssetVolumeCache>
+export type NewAssetVolumeCache = Insertable<XcAssetVolumeCache>
+export type AssetVolumeCacheUpdate = Updateable<XcAssetVolumeCache>

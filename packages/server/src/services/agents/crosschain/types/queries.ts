@@ -1,9 +1,10 @@
-import { $NetworkString } from '@/common/types.js'
 import { z } from 'zod'
 
-export const $XcmServerSideEventArgs = z
+import { $NetworkString } from '@/common/types.js'
+
+export const $JourneyFilters = z
   .object({
-    assets: z.optional(z.union([z.string(), z.array(z.string()).min(1).max(50)])),
+    assets: z.optional(z.array(z.string()).min(1).max(50)),
     origins: z.optional(z.array($NetworkString).min(1).max(50)),
     destinations: z.optional(z.array($NetworkString).min(1).max(50)),
     networks: z.optional(z.array($NetworkString).min(1).max(50)),
@@ -20,7 +21,6 @@ export const $XcmServerSideEventArgs = z
     usdAmountLte: z.optional(z.number()),
     sentAtGte: z.optional(z.number()),
     sentAtLte: z.optional(z.number()),
-    id: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -33,5 +33,23 @@ export const $XcmServerSideEventArgs = z
       path: ['networks'], // shows the error on the networks field
     },
   )
+  .optional()
 
-export type XcmServerSideEventArgs = z.infer<typeof $XcmServerSideEventArgs>
+export const $XcQueryArgs = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('journeys.list'),
+    criteria: $JourneyFilters,
+  }),
+  z.object({
+    op: z.literal('journeys.by_id'),
+    criteria: z.object({
+      id: z.string(),
+    }),
+  }),
+  z.object({
+    op: z.literal('assets.list'),
+  }),
+])
+
+export type JourneyFilters = z.infer<typeof $JourneyFilters>
+export type XcQueryArgs = z.infer<typeof $XcQueryArgs>
