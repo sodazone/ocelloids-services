@@ -26,6 +26,12 @@ const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 export const CROSSCHAIN_AGENT_ID = 'crosschain'
 export const DEFAULT_XC_DB_PATH = 'db.xc-explorer.sqlite'
 
+/**
+ * Crosschain Explorer
+ *
+ * Agent for indexing, querying, and streaming crosschain journeys and assets.
+ * Manages persistence, migrations, and SSE broadcasting of live updates.
+ */
 export class CrosschainExplorer implements Agent, Queryable, Streamable {
   readonly #log: Logger
   readonly #repository: CrosschainRepository
@@ -39,9 +45,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
   querySchema = $XcQueryArgs
   metadata: AgentMetadata = {
     name: 'Crosschain Agent',
-    description: `
-        Exposes crosschain journeys.
-        `,
+    description: 'Query and streaming APIs for crosschain journeys and assets.',
     capabilities: getAgentCapabilities(this),
   }
 
