@@ -10,7 +10,6 @@ import type { ChainSpecData } from '@polkadot-api/substrate-client'
 import type { HexString } from '@/lib.js'
 
 import { ApiClient, BlockStatus } from '../types.js'
-import { Omit } from 'viem'
 
 export type StorageCodec<T = any> = {
   keys: {
