@@ -1,10 +1,12 @@
 import { createReadStream } from 'fs'
 import { resolve } from 'path'
 import { createInterface } from 'readline'
-import { createServices } from '@/testing/services.js'
-import { xcmDataDir } from '@/testing/xcm.js'
 import { Observable, share } from 'rxjs'
 import { beforeEach, describe, it } from 'vitest'
+
+import { createServices } from '@/testing/services.js'
+import { xcmDataDir } from '@/testing/xcm.js'
+import { CrosschainExplorer } from '../../crosschain/explorer.js'
 import { ServerSideEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmTracker } from '../tracking.js'
@@ -13,7 +15,7 @@ import { XcmExplorer } from './index.js'
 describe('XcmExplorer', () => {
   let explorer: XcmExplorer
   let tracker: XcmTracker
-  let broadcaster: ServerSideEventsBroadcaster
+  let crosschain: CrosschainExplorer
   let sendSpy: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
@@ -42,22 +44,29 @@ describe('XcmExplorer', () => {
     } as unknown as XcmTracker
 
     sendSpy = vi.fn()
-    broadcaster = {
+    const broadcaster = {
       send: sendSpy,
       stream: vi.fn(),
       close: vi.fn(),
     } as unknown as ServerSideEventsBroadcaster
+
+    crosschain = new CrosschainExplorer({
+      log,
+      dataPath: ':memory:',
+      broadcaster,
+    })
 
     explorer = new XcmExplorer({
       log,
       humanizer: {
         humanize: (msg: any) => msg,
       } as unknown as XcmHumanizer,
-      broadcaster,
+      crosschain,
     })
   })
 
   it('should process XCM messages from the tracker', async () => {
+    await crosschain.start()
     await explorer.start(tracker)
 
     const streamCompleted = new Promise<void>((resolve, reject) => {
@@ -69,9 +78,9 @@ describe('XcmExplorer', () => {
 
     await streamCompleted
 
-    const { items } = await explorer.listJourneys()
-    const { items: journey0 } = await explorer.getJourneyById({ id: items[1].correlationId })
-    const { items: filteredByType } = await explorer.listJourneys({ actions: ['transfer', 'teleport'] })
+    const { items } = await crosschain.listJourneys()
+    const { items: journey0 } = await crosschain.getJourneyById({ id: items[1].correlationId })
+    const { items: filteredByType } = await crosschain.listJourneys({ actions: ['transfer', 'teleport'] })
 
     const eventTypes = sendSpy.mock.calls.map((call) => call[0]?.event)
 
