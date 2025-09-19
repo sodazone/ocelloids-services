@@ -9,7 +9,7 @@ import { BlockWithLogs } from './types.js'
 
 // TODO: move to config
 const defaultConfirmations: Record<string, number> = {
-  ethereum: 1, // Rationale: Waiting for 1–2 confirmations is enough for monitoring; full "epoch finality" is overkill.
+  ethereum: 1,
   polygon: 1,
   arbitrum: 0,
   optimism: 0,
@@ -90,37 +90,26 @@ export class EvmApi implements ApiClient {
   }
 
   /**
-   * Subscribe to new finalized blocks for monitoring purposes.
+   * Subscribe to new heads.
    *
-   * This observable emits blocks according to the requested finality:
-   *
-   * - 'new': emits blocks immediately, without waiting for confirmations.
-   * - 'finalized': waits for a configurable number of confirmations to reduce the risk
-   *   of short reorgs on chains like Ethereum mainnet.
+   * Emits blocks based on the requested finality:
+   * - 'new': emits immediately. Low-latency use cases (monitoring, dashboards, analytics)
+   *          can tolerate short reorgs.
+   * - 'finalized': waits for confirmations. Useful when block certainty is required
+   *          (settlements, irreversible actions, reporting).
    *
    * Reorg Handling:
-   * - Short reorgs at the chain tip can occur, e.g., 1–2 blocks on Ethereum L1.
-   * - We maintain a buffer of recent blocks to ensure only blocks that have reached
-   *   the required confirmation threshold are emitted as finalized.
-   * - If a new block's parent does not match the last emitted block, a short reorg
-   *   is detected. Blocks in the buffer beyond the fork point are discarded to avoid
-   *   emitting stale/forked data.
+   * - Short reorgs at the chain tip are possible (e.g., 1–2 blocks on Ethereum L1).
+   * - Blocks beyond the fork point are discarded to avoid emitting stale/forked data.
    *
-   * Rationale on Finality:
-   * - We do **not** wait for epoch-based finality (like L1 checkpoints or L2 fraud-proof windows),
-   *   because for monitoring purposes this would introduce unnecessary delay.
-   * - On L2s like Optimism or Arbitrum, sequencer blocks are effectively final immediately.
-   * - On PoS chains like Polygon, the probability of short reorgs is extremely low; a small
-   *   confirmation threshold (0–1) is sufficient for monitoring.
-   * - Ethereum L1 still uses 1–2 confirmations to handle rare short reorgs safely.
+   * Rationale:
+   * - 'new' trades some safety for immediacy; consumers should handle possible short reorgs.
+   * - L2s like Optimism/Arbitrum are effectively final immediately.
+   * - PoS chains like Polygon rarely have short reorgs; 0–1 confirmations often suffice.
+   * - Ethereum L1 typically uses 1–2 confirmations for tip safety.
    *
-   * Overall:
-   * - This method provides a **practical trade-off between immediacy and safety**.
-   * - It ensures reorgs are correctly handled at the tip without waiting for epoch-level finality,
-   *   making it suitable for monitoring live chain activity.
-   *
-   * @param finality - Finality preference ('new' emits immediately, 'finalized' waits for confirmations)
-   * @param confirmationsOverride - optional number of confirmations to use instead of default for chain
+   * @param finality - 'new' emits immediately, 'finalized' waits for confirmations
+   * @param confirmationsOverride - optional number of confirmations instead of chain default
    */
   followHeads$(finality: Finality, confirmationsOverride?: number): Observable<NeutralHeader> {
     const chainName = ((this.#client.chain as any).name as string).toLowerCase()
