@@ -241,21 +241,28 @@ export class CrosschainRepository {
       .groupBy('xc_asset_ops.asset')
       .execute()
 
-    // Upsert into snapshot table
-    await this.#db
-      .insertInto('xc_asset_volume_cache')
-      .values(
-        results.map((row) => ({ ...row, usd_volume: Number(row.usd_volume), snapshot_end, snapshot_start })),
-      )
-      .onConflict((oc) =>
-        oc.column('asset').doUpdateSet((eb) => ({
-          symbol: eb.ref('excluded.symbol'),
-          usd_volume: eb.ref('excluded.usd_volume'),
-          snapshot_start: eb.ref('excluded.snapshot_start'),
-          snapshot_end: eb.ref('excluded.snapshot_end'),
-        })),
-      )
-      .execute()
+    if (results.length > 0) {
+      // Upsert into snapshot table
+      await this.#db
+        .insertInto('xc_asset_volume_cache')
+        .values(
+          results.map((row) => ({
+            ...row,
+            usd_volume: Number(row.usd_volume),
+            snapshot_end,
+            snapshot_start,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.column('asset').doUpdateSet((eb) => ({
+            symbol: eb.ref('excluded.symbol'),
+            usd_volume: eb.ref('excluded.usd_volume'),
+            snapshot_start: eb.ref('excluded.snapshot_start'),
+            snapshot_end: eb.ref('excluded.snapshot_end'),
+          })),
+        )
+        .execute()
+    }
   }
 
   async listAssets(pagination?: QueryPagination): Promise<{
