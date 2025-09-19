@@ -3,15 +3,8 @@ import { Observable, filter, map, mergeMap, of, retry } from 'rxjs'
 
 import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { StopError, createClient } from '@polkadot-api/substrate-client'
-import {
-  fixDescendantValues,
-  fixUnorderedEvents,
-  parsed,
-  patchChainHeadEvents,
-  translate,
-  unpinHash,
-} from 'polkadot-api/polkadot-sdk-compat'
-import { WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider/node'
+import { withLegacy } from '@polkadot-api/legacy-provider'
+import { WsJsonRpcProvider, WebSocketClass, getWsProvider } from 'polkadot-api/ws-provider'
 
 import { asSerializable } from '@/common/index.js'
 
@@ -22,6 +15,7 @@ import { RuntimeApiContext } from './context.js'
 import { RpcApi, createRpcApi } from './rpc.js'
 import { RuntimeManager, createRuntimeManager, getRuntimeVersion } from './runtime.js'
 import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
+import { WS } from './websocket.js'
 
 export async function createSubstrateClient(log: Logger, chainId: string, url: string | Array<string>) {
   const client = new SubstrateClient(log, chainId, url)
@@ -96,21 +90,13 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
     this.#log = log
     // for the type checking... find a cleaner way :/
-    this.#wsProvider = Array.isArray(url) ? getWsProvider(url) : getWsProvider(url)
+    this.#wsProvider = getWsProvider(url, {
+      websocketClass: WS as unknown as WebSocketClass,
+      innerEnhancer:  withLegacy(),
+      timeout: 5_000
+    })
 
-    const withCompat = parsed(
-      // withNumericIds,
-      translate,
-      fixUnorderedEvents,
-      unpinHash,
-      patchChainHeadEvents,
-      // fixPrematureBlocks,
-      // fixUnorderedBlocks,
-      // fixChainSpec,
-      fixDescendantValues,
-    )
-
-    const substrateClient = createClient(withCompat(this.#wsProvider))
+    const substrateClient = createClient(this.#wsProvider)
 
     // TODO: enable when there's more support
     // this.getChainSpecData = substrateClient.getChainSpecData
