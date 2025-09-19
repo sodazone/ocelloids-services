@@ -29,8 +29,12 @@ export interface XcJourneyTable {
   stops: JSONColumnType<any>
   instructions: JSONColumnType<any>
   transact_calls: JSONColumnType<any[]>
-  origin_extrinsic_hash: ColumnType<string | undefined>
-  origin_evm_tx_hash: ColumnType<string | undefined>
+  origin_tx_primary: ColumnType<string | undefined>
+  origin_tx_secondary: ColumnType<string | undefined>
+  in_connection_fk: ColumnType<number | undefined>
+  in_connection_data?: JSONColumnType<any>
+  out_connection_fk: ColumnType<number | undefined>
+  out_connection_data?: JSONColumnType<any>
 }
 
 export type Journey = Selectable<XcJourneyTable>

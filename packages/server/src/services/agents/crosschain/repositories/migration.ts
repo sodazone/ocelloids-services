@@ -1,5 +1,15 @@
 import { Kysely, sql } from 'kysely'
 
+/**
+ * Crosschain journeys schema.
+ *
+ * We model multi-protocol journeys using a linear connection approach: each row in xc_journeys represents
+ * a single protocol-specific journey, and optional in_connection_fk / out_connection_fk fields
+ * point to the previous and next journeys in the trip. Connection metadata can be stored in
+ * JSON fields (in_connection_data / out_connection_data).
+ * This keeps the schema simple and search-efficient, while allowing full multi-step trips to be reconstructed in the details view.
+ * It also avoids modifying existing queries or adding complex graph structures.
+ */
 export async function up(db: Kysely<any>): Promise<void> {
   try {
     // Create crosschain journeys table
@@ -11,6 +21,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('status', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('type', 'varchar(50)', (cb) => cb.notNull()) // 'transfer', 'swap', &c.
       .addColumn('protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
+      .addColumn('trip_id', 'varchar(255)') // shared id for multi-protocol trips (nullable)
       .addColumn('origin', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('destination', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('from', 'varchar(255)', (cb) => cb.notNull())
@@ -23,9 +34,14 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('stops', 'json', (cb) => cb.notNull())
       .addColumn('instructions', 'json', (cb) => cb.notNull())
       .addColumn('transact_calls', 'json', (cb) => cb.notNull())
-      // TODO: maybe rename to transaction ref and tx hash?
-      .addColumn('origin_extrinsic_hash', 'varchar(255)')
-      .addColumn('origin_evm_tx_hash', 'varchar(255)')
+      // For example, Polkadot could have the extrinc hash and the evm tx hash
+      .addColumn('origin_tx_primary', 'varchar(255)')
+      .addColumn('origin_tx_secondary', 'varchar(255)')
+      // Optional linear connections between journeys
+      .addColumn('in_connection_fk', 'integer', (cb) => cb.references('xc_journeys.id').onDelete('set null'))
+      .addColumn('in_connection_data', 'json')
+      .addColumn('out_connection_fk', 'integer', (cb) => cb.references('xc_journeys.id').onDelete('set null'))
+      .addColumn('out_connection_data', 'json')
       .execute()
 
     // Create asset operations table
@@ -78,17 +94,17 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_journeys_origin_extrinsic_hash_index')
+      .createIndex('xc_journeys_origin_tx_primary_index')
       .ifNotExists()
       .on('xc_journeys')
-      .column('origin_extrinsic_hash')
+      .column('origin_tx_primary')
       .execute()
 
     await db.schema
-      .createIndex('xc_journeys_origin_evm_tx_hash_index')
+      .createIndex('xc_journeys_origin_tx_secondary_index')
       .ifNotExists()
       .on('xc_journeys')
-      .column('origin_evm_tx_hash')
+      .column('origin_tx_secondary')
       .execute()
 
     await db.schema
@@ -131,6 +147,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_journeys')
       .column('protocol')
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_trip_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .column('trip_id')
       .execute()
 
     await db.schema

@@ -144,8 +144,12 @@ export class CrosschainRepository {
       stops: rows[0].stops,
       instructions: rows[0].instructions,
       transact_calls: rows[0].transact_calls,
-      origin_extrinsic_hash: rows[0].origin_extrinsic_hash ?? undefined,
-      origin_evm_tx_hash: rows[0].origin_evm_tx_hash ?? undefined,
+      origin_tx_primary: rows[0].origin_tx_primary ?? undefined,
+      origin_tx_secondary: rows[0].origin_tx_secondary ?? undefined,
+      in_connection_fk: rows[0].in_connection_fk,
+      in_connection_data: rows[0].in_connection_data,
+      out_connection_fk: rows[0].out_connection_fk,
+      out_connection_data: rows[0].out_connection_data,
       totalUsd,
       assets: rows
         .filter((row) => row.asset !== undefined && row.asset !== null)
@@ -411,8 +415,12 @@ export class CrosschainRepository {
       stops: row.stops,
       instructions: row.instructions,
       transact_calls: row.transact_calls,
-      origin_extrinsic_hash: row.origin_extrinsic_hash,
-      origin_evm_tx_hash: row.origin_evm_tx_hash ?? undefined,
+      origin_tx_primary: row.origin_tx_primary,
+      origin_tx_secondary: row.origin_tx_secondary ?? undefined,
+      in_connection_fk: row.in_connection_fk,
+      in_connection_data: row.in_connection_data,
+      out_connection_fk: row.out_connection_fk,
+      out_connection_data: row.out_connection_data,
       totalUsd: typeof row.total_usd === 'number' ? row.total_usd : Number(row.total_usd ?? 0),
       assets: this.#parseAssets(row.assets),
     }))
@@ -495,8 +503,8 @@ export class CrosschainRepository {
     if (filters?.txHash) {
       extendedQuery = extendedQuery.where((eb) =>
         eb.or([
-          eb(field('origin_extrinsic_hash'), '=', filters.txHash!),
-          eb(field('origin_evm_tx_hash'), '=', filters.txHash!),
+          eb(field('origin_tx_primary'), '=', filters.txHash!),
+          eb(field('origin_tx_secondary'), '=', filters.txHash!),
         ]),
       ) as T
     }
@@ -586,8 +594,12 @@ export class CrosschainRepository {
         'stops',
         'instructions',
         'transact_calls',
-        'origin_extrinsic_hash',
-        'origin_evm_tx_hash',
+        'origin_tx_primary',
+        'origin_tx_secondary',
+        'in_connection_fk',
+        'in_connection_data',
+        'out_connection_fk',
+        'out_connection_data',
         sql`IFNULL(asset_totals.total_usd, 0)`.as('total_usd'),
         sql`IFNULL(json_group_array(
         CASE
