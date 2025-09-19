@@ -14,8 +14,8 @@ function applySseFilters(
   }
   if (
     filters.txHash &&
-    filters.txHash !== journey.originExtrinsicHash &&
-    filters.txHash !== journey.originEvmTxHash
+    filters.txHash !== journey.originTxPrimary &&
+    filters.txHash !== journey.originTxSecondary
   ) {
     return false
   }
