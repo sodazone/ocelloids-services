@@ -29,7 +29,6 @@ function createRuntimeApiContext(
   { metadata, metadataRaw }: { metadata: UnifiedMetadata; metadataRaw: Uint8Array },
   chainId?: string,
 ) {
-
   const lookup = getLookupFn(metadata)
   const dynamicBuilder = getDynamicBuilder(lookup)
   const events = dynamicBuilder.buildStorage('System', 'Events')

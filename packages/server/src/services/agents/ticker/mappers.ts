@@ -237,6 +237,6 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   },
   SUI: {
     chainId: 'urn:ocn:polkadot:2004',
-    assetId: '0x484ecce6775143d3335ed2c7bcb22151c53b9f49'
-  }
+    assetId: '0x484ecce6775143d3335ed2c7bcb22151c53b9f49',
+  },
 }

@@ -3,7 +3,18 @@ import { z } from 'zod'
 
 export const $TimeSelect = z.object({
   bucket: z.optional(
-    z.enum(['10 minutes', '30 minutes', '1 hours', '6 hours', '12 hours', '1 days', '3 days', '7 days', '14 days', '30 days']),
+    z.enum([
+      '10 minutes',
+      '30 minutes',
+      '1 hours',
+      '6 hours',
+      '12 hours',
+      '1 days',
+      '3 days',
+      '7 days',
+      '14 days',
+      '30 days',
+    ]),
   ),
   timeframe: z.enum(['1 days', '7 days', '15 days', '1 months', '3 months', '6 months', '9 months']),
 })
