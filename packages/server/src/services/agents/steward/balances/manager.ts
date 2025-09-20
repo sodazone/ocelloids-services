@@ -8,8 +8,12 @@ import { Subscription, firstValueFrom } from 'rxjs'
 import { AssetMetadata, StewardManagerContext, StewardQueryArgs } from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { createBalancesCodec, normaliseAddress } from './codec.js'
-import { balanceEventsSubscriptions, balanceExtractorMappers, storageKeyMappers } from './mappers/index.js'
-import { BalancesQueueData } from './types.js'
+import {
+  balanceEventsSubscriptions,
+  balanceExtractorMappers,
+  balancesDiscoveryMappers,
+} from './mappers/index.js'
+import { Balance, BalancesFromRuntime, BalancesFromStorage, BalancesQueueData } from './types.js'
 
 const DISCO_MARKER_BYTE = Buffer.from([0xff])
 const balancesCodec = createBalancesCodec()
@@ -189,6 +193,11 @@ export class BalancesManager {
       } catch (err) {
         this.#log.error(err, '[%s] failed processing discovery for account %s', this.id, account)
       } finally {
+        console.log(
+          'Discovery complete for account: %s. Accounts left in queue: %s',
+          account,
+          this.#balanceDiscoveryQueue.size,
+        )
         this.#balanceDiscoveryInProgress.delete(account)
       }
     }
@@ -200,9 +209,9 @@ export class BalancesManager {
     apiCtx: SubstrateApiContext,
     pagination?: QueryPagination,
   ): Promise<void> {
-    const storageKeyMapper = storageKeyMappers[chainId]
-    if (!storageKeyMapper) {
-      this.#log.warn('[%s] no storage key mapper defined for chain %s', this.id, chainId)
+    const balancesDiscoveryMapper = balancesDiscoveryMappers[chainId]
+    if (!balancesDiscoveryMapper) {
+      this.#log.warn('[%s] no balances discovery mapper defined for chain %s', this.id, chainId)
       return
     }
 
@@ -218,30 +227,97 @@ export class BalancesManager {
       return
     }
 
-    const storageItems = items
-      .map(({ id }) => {
-        const mapped = storageKeyMapper(id, account, apiCtx)
-        if (mapped === null) {
-          return null
-        }
-        return {
-          ...mapped,
-          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, id))) as HexString,
-        }
-      })
-      .filter((i) => i !== null)
+    const storageItems: (BalancesFromStorage & { assetKeyHash: HexString })[] = []
+    const runtimeItems: (BalancesFromRuntime & { assetKeyHash: HexString })[] = []
 
+    for (const item of items) {
+      const mapped = balancesDiscoveryMapper(item, account, apiCtx)
+      if (mapped === null) {
+        continue
+      }
+      if (mapped.type === 'storage') {
+        storageItems.push({
+          ...mapped,
+          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, item.id))) as HexString,
+        })
+      } else {
+        runtimeItems.push({
+          ...mapped,
+          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, item.id))) as HexString,
+        })
+      }
+    }
+
+    if (storageItems.length > 0) {
+      await this.#fetchBalancesFromStorage(chainId, account, apiCtx, storageItems)
+    }
+    if (runtimeItems.length > 0) {
+      await this.#fetchBalancesFromRuntime(chainId, account, runtimeItems)
+    }
+
+    if (pageInfo && pageInfo.hasNextPage && pageInfo.endCursor) {
+      // short delay to avoid hogging the event loop
+      await new Promise((r) => setTimeout(r, 50))
+      await this.#discoverBalances(chainId, account, apiCtx, {
+        ...pagination,
+        cursor: pageInfo.endCursor,
+      })
+    }
+  }
+
+  async #fetchBalancesFromRuntime(
+    chainId: NetworkURN,
+    account: string,
+    runtimeItems: (BalancesFromRuntime & { assetKeyHash: HexString })[],
+  ) {
+    const ops: BatchOperation<Buffer, Buffer>[] = []
+
+    for (const { api, args, method, assetKeyHash } of runtimeItems) {
+      try {
+        const value = await this.#substrateIngress.runtimeCall<Balance>(
+          chainId,
+          {
+            api,
+            method,
+          },
+          args,
+        )
+        if (value !== null) {
+          const balanceExtractor = balanceExtractorMappers[`${api}.${method}`]
+          if (balanceExtractor) {
+            const balance = balanceExtractor(value)
+            const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)
+            const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
+            ops.push({ type: 'put', key: dbKey, value: dbValue })
+          }
+        }
+      } catch (error) {
+        this.#log.error(
+          error,
+          '[%s] failed fetching balances from runtime for account %s on %s',
+          this.id,
+          account,
+          chainId,
+        )
+      }
+    }
+  }
+
+  async #fetchBalancesFromStorage(
+    chainId: NetworkURN,
+    account: string,
+    apiCtx: SubstrateApiContext,
+    storageItems: (BalancesFromStorage & { assetKeyHash: HexString })[],
+  ) {
     const storageKeys = storageItems.map((i) => i.storageKey)
+    const ops: BatchOperation<Buffer, Buffer>[] = []
 
     try {
       const changeSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, storageKeys))
-      const ops: BatchOperation<Buffer, Buffer>[] = []
 
       for (const { module, name, storageKey, assetKeyHash } of storageItems) {
         const changeSet = changeSets[0]?.changes.find(([key]) => key === storageKey)
         const rawValue = changeSet ? changeSet[1] : null
-
-        const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)
 
         if (rawValue !== null) {
           const codec = apiCtx.storageCodec(module, name)
@@ -250,6 +326,7 @@ export class BalancesManager {
           const balanceExtractor = balanceExtractorMappers[`${module}.${name}`]
           if (balanceExtractor) {
             const balance = balanceExtractor(decodedValue)
+            const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)
             const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
             ops.push({ type: 'put', key: dbKey, value: dbValue })
           }
@@ -260,16 +337,13 @@ export class BalancesManager {
         await this.#dbBalances.batch(ops)
       }
     } catch (err) {
-      this.#log.error(err, '[%s] failed fetching balances for account %s on %s', this.id, account, chainId)
-    }
-
-    if (pageInfo && pageInfo.hasNextPage && pageInfo.endCursor) {
-      // short delay to avoid hogging the event loop
-      await new Promise((r) => setTimeout(r, 50))
-      await this.#discoverBalances(chainId, account, apiCtx, {
-        ...pagination,
-        cursor: pageInfo.endCursor,
-      })
+      this.#log.error(
+        err,
+        '[%s] failed fetching balances from storage for account %s on %s',
+        this.id,
+        account,
+        chainId,
+      )
     }
   }
 

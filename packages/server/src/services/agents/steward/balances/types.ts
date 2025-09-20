@@ -2,7 +2,7 @@ import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Subscription } from 'rxjs'
-import { AssetId } from '../types.js'
+import { AssetMetadata } from '../types.js'
 
 export type BalancesSubscriptionMapper = (
   ingress: SubstrateIngressConsumer,
@@ -45,8 +45,11 @@ export type NativeBalance = {
   data: Balance
 }
 
-export type BalancesStorageKeyMapper = (
-  assetId: AssetId,
+export type BalancesFromStorage = { type: 'storage'; storageKey: HexString; module: string; name: string }
+export type BalancesFromRuntime = { type: 'runtime'; args: any[]; api: string; method: string }
+
+export type BalancesDiscoveryMapper = (
+  asset: AssetMetadata,
   account: string,
   apiCtx: SubstrateApiContext,
-) => { storageKey: HexString; module: string; name: string } | null
+) => BalancesFromStorage | BalancesFromRuntime | null

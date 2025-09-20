@@ -10,7 +10,7 @@ import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueUpdateItem } from '../types.js'
+import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
@@ -134,11 +134,12 @@ export function toGenericAssetStorageKey(
   account: string,
   apiCtx: SubstrateApiContext,
   module: 'Assets' | 'ForeignAssets',
-) {
+): BalancesFromStorage | null {
   const storageCodec = apiCtx.storageCodec(module, STORAGE_NAME)
   try {
     const storageKey = storageCodec.keys.enc(assetId, account) as HexString
     return {
+      type: 'storage',
       storageKey,
       module,
       name: STORAGE_NAME,

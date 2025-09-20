@@ -4,7 +4,7 @@ import { networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   AssetsBalance,
-  BalancesStorageKeyMapper,
+  BalancesDiscoveryMapper,
   BalancesSubscriptionMapper,
   NativeBalance,
 } from '../types.js'
@@ -99,7 +99,7 @@ function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
   }) as T
 }
 
-const baseDefaultStorageKeyMapper: BalancesStorageKeyMapper = (
+const baseDefaultStorageKeyMapper: BalancesDiscoveryMapper = (
   _assetId: any,
   account: string,
   apiCtx: any,
@@ -107,20 +107,20 @@ const baseDefaultStorageKeyMapper: BalancesStorageKeyMapper = (
   return toNativeStorageKey(account, apiCtx)
 }
 
-const assetHubStorageKeyMapper: BalancesStorageKeyMapper = (assetId, account, apiCtx) => {
-  if (assetId === 'native') {
+const assetHubStorageKeyMapper: BalancesDiscoveryMapper = ({ id }, account, apiCtx) => {
+  if (id === 'native') {
     return toNativeStorageKey(account, apiCtx)
   }
-  if (typeof assetId === 'number' || typeof assetId === 'string') {
-    return toAssetsStorageKey(assetId, account, apiCtx)
+  if (typeof id === 'number' || typeof id === 'string') {
+    return toAssetsStorageKey(id, account, apiCtx)
   }
-  if (typeof assetId === 'object' && 'parents' in assetId) {
-    return toForeignAssetsStorageKey(assetId, account, apiCtx)
+  if (typeof id === 'object' && 'parents' in id) {
+    return toForeignAssetsStorageKey(id, account, apiCtx)
   }
   return null
 }
 
-export const storageKeyMappers: Record<string, BalancesStorageKeyMapper> = {
+export const balancesDiscoveryMappers: Record<string, BalancesDiscoveryMapper> = {
   [networks.polkadot]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   // [networks.bridgeHub]: BYPASS_MAPPER,
   // [networks.people]: BYPASS_MAPPER,
@@ -129,21 +129,21 @@ export const storageKeyMappers: Record<string, BalancesStorageKeyMapper> = {
   // [networks.nodle]: BYPASS_MAPPER,
   // [networks.phala]: BYPASS_MAPPER,
   // [networks.mythos]: BYPASS_MAPPER,
-  [networks.moonbeam]: (assetId, account, apiCtx) => {
+  [networks.moonbeam]: ({ id }, account, apiCtx) => {
     const pubKey = asPublicKey(account)
     if (pubKey.length > 42) {
       // Substrate addresses cannot be mapped to Moonbeam EVM address
       return null
     }
-    if (assetId === 'native') {
+    if (id === 'native') {
       return toNativeStorageKey(account, apiCtx)
     }
     const slot = getFrontierAccountStoragesSlot(pubKey, 0)
-    if (typeof assetId === 'string') {
-      if (assetId.startsWith('0x')) {
-        return toEVMStorageKey(assetId as HexString, slot, apiCtx)
+    if (typeof id === 'string') {
+      if (id.startsWith('0x')) {
+        return toEVMStorageKey(id as HexString, slot, apiCtx)
       }
-      const contractAddress = bigintToPaddedHex(BigInt(assetId))
+      const contractAddress = bigintToPaddedHex(BigInt(id))
       return toEVMStorageKey(contractAddress, slot, apiCtx)
     }
     return null

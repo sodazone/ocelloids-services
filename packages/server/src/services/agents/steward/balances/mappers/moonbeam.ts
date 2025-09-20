@@ -9,7 +9,7 @@ import { filter, map, switchMap } from 'rxjs'
 import { erc20Abi } from 'viem'
 import { assetOverrides } from '../../metadata/overrides.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueUpdateItem } from '../types.js'
+import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
 import { toBinary } from '../util.js'
 
 const EVM_EVENTS = ['Transfer']
@@ -89,11 +89,16 @@ export function moonbeamBalancesSubscription(
     })
 }
 
-export function toEVMStorageKey(contractAddress: HexString, slotKey: HexString, apiCtx: SubstrateApiContext) {
+export function toEVMStorageKey(
+  contractAddress: HexString,
+  slotKey: HexString,
+  apiCtx: SubstrateApiContext,
+): BalancesFromStorage | null {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
   try {
     const storageKey = storageCodec.keys.enc(toBinary(contractAddress), toBinary(slotKey)) as HexString
     return {
+      type: 'storage',
       storageKey,
       module: STORAGE_MODULE,
       name: STORAGE_NAME,
