@@ -74,4 +74,12 @@ export class SubstrateLocalConsumer
   ): Observable<StorageChangeSets> {
     return this.watcher.queryStorageAt(chainId, storageKeys, blockHash)
   }
+
+  runtimeCall<T = any>(
+    chainId: NetworkURN,
+    opts: { api: string; method: string; at?: string },
+    ...args: any[]
+  ) {
+    return this.watcher.runtimeCall<T>(chainId, opts, args)
+  }
 }

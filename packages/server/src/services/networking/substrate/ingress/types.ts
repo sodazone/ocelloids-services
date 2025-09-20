@@ -46,6 +46,11 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
     storageKeys: HexString[],
     blockHash?: HexString,
   ): Observable<StorageChangeSets>
+  runtimeCall<T = any>(
+    chainId: NetworkURN,
+    opts: { api: string; method: string; at?: string },
+    ...args: any[]
+  ): Promise<T | null>
   isRelay(chainId: NetworkURN): boolean
   isReady(): Promise<void>
 }

@@ -60,6 +60,7 @@ export class SubstrateDistributedConsumer
     this.#blockConsumers = {}
     this.#contexts$ = {}
   }
+
   /**
    * TODO: review
    * Waits until the distributed consumer is ready to serve requests.
@@ -171,6 +172,14 @@ export class SubstrateDistributedConsumer
 
       throw error
     }
+  }
+
+  runtimeCall<T = any>(
+    _chainId: NetworkURN,
+    _opts: { api: string; method: string; at?: string },
+    ..._args: any[]
+  ): Promise<T | null> {
+    throw new Error('Method not implemented.')
   }
 
   getChainIds(): NetworkURN[] {

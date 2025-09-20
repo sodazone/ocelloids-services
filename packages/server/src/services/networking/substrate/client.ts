@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { Observable, filter, map, mergeMap, of, retry } from 'rxjs'
+import { Observable, filter, firstValueFrom, map, mergeMap, of, retry } from 'rxjs'
 
 import { withLegacy } from '@polkadot-api/legacy-provider'
 import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
@@ -8,6 +8,7 @@ import { WebSocketClass, WsJsonRpcProvider, getWsProvider } from 'polkadot-api/w
 
 import { asSerializable } from '@/common/index.js'
 
+import { toHex } from 'polkadot-api/utils'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { NeutralHeader } from '../types.js'
@@ -189,6 +190,21 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
 
   async queryStorageAt(keys: string[], at?: string) {
     return this.#rpc.queryStorageAt(keys, at)
+  }
+
+  async runtimeCall<T = any>(
+    { api, method, at }: { api: string; method: string; at?: string },
+    ...args: any[]
+  ) {
+    try {
+      const atHash = at ?? null
+      const codec = (await this.ctx()).runtimeCallCodec<T>(api, method)
+      const encodedArgs = codec.args.enc(args)
+      const data = await firstValueFrom(this.#head.call$(atHash, `${api}_${method}`, toHex(encodedArgs)))
+      return data ? codec.value.dec(data) : null
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to call ${api}.${method}.`, { cause: error })
+    }
   }
 
   async connect() {

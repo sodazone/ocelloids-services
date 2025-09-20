@@ -250,6 +250,14 @@ export class SubstrateWatcher extends Watcher<Block> {
     )
   }
 
+  async runtimeCall<T = any>(
+    chainId: NetworkURN,
+    opts: { api: string; method: string; at?: string },
+    ...args: any[]
+  ): Promise<T | null> {
+    return await this.#apis[chainId].runtimeCall<T>(opts, args)
+  }
+
   async getNetworkInfo(chainId: NetworkURN): Promise<SubstrateNetworkInfo> {
     return await fetchers.networkInfo(await this.#apis[chainId].isReady(), chainId)
   }

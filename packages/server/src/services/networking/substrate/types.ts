@@ -188,6 +188,8 @@ export interface SubstrateApi extends ApiClient {
   getStorage(key: string, at?: string): Promise<HexString>
   queryStorageAt(keys: string[], at?: string): Promise<StorageChangeSets>
   query<T = any>(module: string, method: string, ...args: any[]): Promise<T | null>
+
+  runtimeCall<T = any>(opts: { api: string; method: string; at?: string }, ...args: any[]): Promise<T | null>
 }
 
 export interface SubstrateApiContext {
@@ -197,6 +199,13 @@ export interface SubstrateApiContext {
   decodeCall(callData: string | Uint8Array): Call
   decodeExtrinsic(hextBytes: string): Extrinsic
   storageCodec<T = any>(module: string, method: string): StorageCodec<T>
+  runtimeCallCodec<T = any>(
+    api: string,
+    method: string,
+  ): {
+    args: Codec<any[]>
+    value: Codec<T>
+  }
   typeCodec<T = any>(path: string | string[] | number): Codec<T>
   getConstant(palletName: string, name: string): any
 
