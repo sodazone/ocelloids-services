@@ -2,10 +2,10 @@ export type { Decoder, Codec } from '@polkadot-api/substrate-bindings'
 export type { SystemEvent } from '@polkadot-api/observable-client'
 export type { ChainSpecData } from '@polkadot-api/substrate-client'
 
-import type { BlockInfo as PapiBlockInfo} from 'polkadot-api'
 import type { SystemEvent } from '@polkadot-api/observable-client'
 import type { Codec, Decoder } from '@polkadot-api/substrate-bindings'
 import type { ChainSpecData } from '@polkadot-api/substrate-client'
+import type { BlockInfo as PapiBlockInfo } from 'polkadot-api'
 
 import type { HexString } from '@/lib.js'
 

@@ -1,10 +1,10 @@
 import { EventEmitter } from 'node:events'
 import { Observable, filter, map, mergeMap, of, retry } from 'rxjs'
 
+import { withLegacy } from '@polkadot-api/legacy-provider'
 import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
 import { StopError, createClient } from '@polkadot-api/substrate-client'
-import { withLegacy } from '@polkadot-api/legacy-provider'
-import { WsJsonRpcProvider, WebSocketClass, getWsProvider } from 'polkadot-api/ws-provider'
+import { WebSocketClass, WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider'
 
 import { asSerializable } from '@/common/index.js'
 
@@ -92,8 +92,8 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     // for the type checking... find a cleaner way :/
     this.#wsProvider = getWsProvider(url, {
       websocketClass: WS as unknown as WebSocketClass,
-      innerEnhancer:  withLegacy(),
-      timeout: 5_000
+      innerEnhancer: withLegacy(),
+      timeout: 5_000,
     })
 
     const substrateClient = createClient(this.#wsProvider)
