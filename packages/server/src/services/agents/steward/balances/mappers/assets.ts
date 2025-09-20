@@ -15,7 +15,7 @@ import { EnqueueUpdateItem } from '../types.js'
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
 
-function transformHexFields(obj: any): any {
+export function transformHexFields(obj: any): any {
   if (obj == null) {
     return obj
   }
@@ -87,7 +87,7 @@ function genericAssetsBalancesSubscription(
       const partialData = {
         module,
         name: STORAGE_NAME,
-        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, value.asset_id))) as HexString,
+        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
       }
       const storageKeysCodec = apiCtx.storageCodec(module, STORAGE_NAME).keys
       const accounts: string[] = []
@@ -109,7 +109,7 @@ function genericAssetsBalancesSubscription(
 
       for (const account of accounts) {
         try {
-          enqueue(chainId, storageKeysCodec.enc(assetId, account) as HexString, {
+          enqueue(chainId, storageKeysCodec.enc(transformHexFields(assetId), account) as HexString, {
             ...partialData,
             account,
             publicKey: asPublicKey(account),

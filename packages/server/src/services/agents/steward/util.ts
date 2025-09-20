@@ -88,7 +88,7 @@ export function assetMetadataKeyHash(key: string) {
   return Buffer.from(Twox128(Buffer.from(key)))
 }
 
-export function toPaddedHex(bn: bigint): HexString {
+export function bigintToPaddedHex(bn: bigint): HexString {
   const hex = bn.toString(16)
   const padLength = Math.max(0, 40 - hex.length)
   const ffPadding = 'FF'.repeat(Math.ceil(padLength / 2)).slice(0, padLength)

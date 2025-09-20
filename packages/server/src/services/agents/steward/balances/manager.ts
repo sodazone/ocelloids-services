@@ -11,6 +11,7 @@ import { createBalancesCodec, normaliseAddress } from './codec.js'
 import { balanceEventsSubscriptions, balanceExtractorMappers, storageKeyMappers } from './mappers/index.js'
 import { BalancesQueueData } from './types.js'
 
+const DISCO_MARKER_BYTE = Buffer.from([0xff])
 const balancesCodec = createBalancesCodec()
 
 function epochSecondsNow() {
@@ -29,6 +30,7 @@ export class BalancesManager {
 
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
   readonly #balanceDiscoveryQueue = new Set<string>()
+  readonly #balanceDiscoveryInProgress = new Set<string>()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
 
@@ -114,39 +116,39 @@ export class BalancesManager {
             const { module, name, account, publicKey, assetKeyHash } = data
             const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
 
-            const exists = await this.#hasBeenDiscovered(publicKey)
-            if (!exists) {
+            const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
+            if (shouldBeDiscovered) {
               this.#balanceDiscoveryQueue.add(account)
-            } else {
-              const changesSets = await firstValueFrom(
-                this.#substrateIngress.queryStorageAt(chainId, storageKeys),
+            }
+
+            const changesSets = await firstValueFrom(
+              this.#substrateIngress.queryStorageAt(chainId, storageKeys),
+            )
+            const changeSet = changesSets[0]?.changes.find(([key]) => key === storageKey)
+            const rawValue = changeSet ? changeSet[1] : null
+
+            if (rawValue !== null) {
+              const codec = (await firstValueFrom(this.#substrateIngress.getContext(chainId))).storageCodec(
+                module,
+                name,
               )
-              const changeSet = changesSets[0]?.changes.find(([key]) => key === storageKey)
-              const rawValue = changeSet ? changeSet[1] : null
+              const decodedValue = codec.value.dec(rawValue)
+              const balanceExtractor = balanceExtractorMappers[`${module}.${name}`]
+              if (balanceExtractor) {
+                const balance = balanceExtractor(decodedValue)
+                const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
 
-              if (rawValue !== null) {
-                const codec = (await firstValueFrom(this.#substrateIngress.getContext(chainId))).storageCodec(
-                  module,
-                  name,
-                )
-                const decodedValue = codec.value.dec(rawValue)
-                const balanceExtractor = balanceExtractorMappers[`${module}.${name}`]
-                if (balanceExtractor) {
-                  const balance = balanceExtractor(decodedValue)
-                  const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
-
-                  ops.push({ type: 'put', key: dbKey, value: dbValue })
-                }
-              } else {
-                ops.push({ type: 'del', key: dbKey })
+                ops.push({ type: 'put', key: dbKey, value: dbValue })
               }
-
-              queue.delete(storageKey)
+            } else {
+              ops.push({ type: 'del', key: dbKey })
             }
 
-            if (ops.length > 0) {
-              await this.#dbBalances.batch(ops)
-            }
+            queue.delete(storageKey)
+          }
+
+          if (ops.length > 0) {
+            await this.#dbBalances.batch(ops)
           }
         } catch (err) {
           this.#log.error(err, '[%s] failed processing queue for network %s', this.id, chainId)
@@ -156,7 +158,6 @@ export class BalancesManager {
   }
 
   async #processDiscoveryQueue() {
-    const balanceDiscoveryInProgress = new Set<string>()
     while (this.#running) {
       if (this.#balanceDiscoveryQueue.size === 0) {
         await new Promise((r) => setTimeout(r, 1_000))
@@ -166,10 +167,11 @@ export class BalancesManager {
       const account = this.#balanceDiscoveryQueue.values().next().value as HexString
       this.#balanceDiscoveryQueue.delete(account)
 
-      if (balanceDiscoveryInProgress.has(account)) {
+      if (this.#balanceDiscoveryInProgress.has(account)) {
         continue
       }
-      balanceDiscoveryInProgress.add(account)
+
+      this.#balanceDiscoveryInProgress.add(account)
 
       try {
         const chainIds = this.#substrateIngress.getChainIds()
@@ -183,15 +185,11 @@ export class BalancesManager {
 
           await this.#discoverBalances(chainId, account, apiCtx, { limit: 100 })
         }
-        console.log(
-          'Discovery complete for account: %s. Accounts left in queue: %s',
-          account,
-          this.#balanceDiscoveryQueue.size,
-        )
+        this.#markDiscovered(account)
       } catch (err) {
         this.#log.error(err, '[%s] failed processing discovery for account %s', this.id, account)
       } finally {
-        balanceDiscoveryInProgress.delete(account)
+        this.#balanceDiscoveryInProgress.delete(account)
       }
     }
   }
@@ -275,26 +273,26 @@ export class BalancesManager {
     }
   }
 
-  async #hasBeenDiscovered(account: HexString): Promise<boolean> {
-    const addrBuf = normaliseAddress(account)
+  async #shouldBeDiscovered({
+    publicKey,
+    account,
+  }: { publicKey: HexString; account: string }): Promise<boolean> {
+    return !this.#balanceDiscoveryInProgress.has(account) && !(await this.#hasBeenDiscovered(publicKey))
+  }
 
-    // Compute upper bound by incrementing last byte of addrBuf
-    const upperBound = Buffer.from(addrBuf)
-    for (let i = upperBound.length - 1; i >= 0; i--) {
-      if (upperBound[i] !== 0xff) {
-        upperBound[i]++
-        upperBound.fill(0, i + 1)
-        break
-      }
+  async #markDiscovered(account: string): Promise<void> {
+    const key = Buffer.concat([DISCO_MARKER_BYTE, normaliseAddress(asPublicKey(account))])
+    // store timestamp instead of 1 if you want
+    await this.#dbBalances.put(key, Buffer.from([1]))
+  }
+
+  async #hasBeenDiscovered(publicKey: HexString): Promise<boolean> {
+    const addrBuf = normaliseAddress(publicKey)
+    const markerKey = Buffer.concat([DISCO_MARKER_BYTE, addrBuf])
+    try {
+      return (await this.#dbBalances.get(markerKey)) !== undefined
+    } catch {
+      return false
     }
-
-    const iter = this.#dbBalances.keys({ gte: addrBuf, lt: upperBound })
-
-    for await (const _key of iter) {
-      // found at least one key
-      return true
-    }
-
-    return false
   }
 }

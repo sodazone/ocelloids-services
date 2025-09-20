@@ -20,7 +20,7 @@ function bufferToUint256(buf: Buffer) {
 }
 
 export function normaliseAddress(addressHex: HexString): Buffer {
-  const addr = Buffer.from(addressHex.substring(2), 'hex')
+  const addr = Buffer.from(addressHex.substring(2).toLowerCase(), 'hex')
 
   if (addr.length === 32) {
     return Buffer.from(addr)
