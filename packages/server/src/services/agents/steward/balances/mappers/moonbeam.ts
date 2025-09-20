@@ -99,7 +99,12 @@ export function toEVMStorageKey(contractAddress: HexString, slotKey: HexString, 
       name: STORAGE_NAME,
     }
   } catch (error) {
-    console.error(error, 'Error encoding storage key for EVM contract address=%s slot=%s', contractAddress, slotKey)
+    console.error(
+      error,
+      'Error encoding storage key for EVM contract address=%s slot=%s',
+      contractAddress,
+      slotKey,
+    )
     return null
   }
 }
