@@ -47,7 +47,7 @@ export async function SubscriptionWebSocketsApi(fastify: FastifyInstance) {
     '/ws/subs/:agentId/:subscriptionId',
     {
       websocket: true,
-      config: { wsAuth: true, caps: [CAP_READ] },
+      config: { ensureNod: true, caps: [CAP_READ] },
       schema: { hide: true },
     },
     (socket, request): void => {
@@ -61,7 +61,7 @@ export async function SubscriptionWebSocketsApi(fastify: FastifyInstance) {
     Querystring: NodQuerystring
   }>(
     '/ws/subs',
-    { websocket: true, config: { wsAuth: true, caps: [CAP_READ] }, schema: { hide: true } },
+    { websocket: true, config: { ensureNod: true, caps: [CAP_READ] }, schema: { hide: true } },
     (socket, request): void => {
       setImmediate(() => fastify.wsProtocol.handle(socket, request))
     },

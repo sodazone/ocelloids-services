@@ -9,7 +9,7 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Janitor } from '@/services/scheduling/janitor.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
-import { LevelDB, Logger } from '@/services/types.js'
+import { LevelDB, Logger, OpenLevelDB } from '@/services/types.js'
 
 import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
@@ -43,6 +43,7 @@ export type AgentRuntimeContext = {
   egress: Egress
   ingress: IngressConsumers
   db: LevelDB
+  openLevelDB: OpenLevelDB
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog
@@ -278,6 +279,7 @@ export interface Queryable {
 }
 
 export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+  streamName: string
   filters: T
   request: IncomingMessage
   reply: FastifyReply

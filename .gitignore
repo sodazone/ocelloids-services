@@ -16,3 +16,4 @@ chain-specs/
 tsconfig*buildinfo
 .env
 settings.json
+*.log

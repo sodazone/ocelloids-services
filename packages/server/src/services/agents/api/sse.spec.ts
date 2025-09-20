@@ -38,13 +38,14 @@ describe('createServerSideEventsBroadcaster', () => {
   })
 
   it('should accept a new SSE connection and send initial ping', () => {
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
     expect(reply.raw.writeHead).toHaveBeenCalledWith(200)
     expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
   })
 
   it('should normalize comma-separated filters to arrays', () => {
     broadcaster.stream({
+      streamName: 'default',
       filters: { origins: 'a,b,c', foo: 'bar' },
       request,
       reply,
@@ -76,6 +77,7 @@ describe('createServerSideEventsBroadcaster', () => {
     const customRequest = createMockRequest()
 
     customBroadcaster.stream({
+      streamName: 'default',
       filters: { foo: 'bar' },
       request: customRequest,
       reply: customReply,
@@ -86,7 +88,7 @@ describe('createServerSideEventsBroadcaster', () => {
   })
 
   it('should disconnect and cleanup on request close', () => {
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
     const destroySpy = request.destroy as Mock
 
     request.emit('close')
@@ -101,6 +103,7 @@ describe('createServerSideEventsBroadcaster', () => {
     const customRequest = createMockRequest()
 
     customBroadcaster.stream({
+      streamName: 'default',
       filters: { foo: 'bar' },
       request: customRequest,
       reply: customReply,
@@ -114,7 +117,7 @@ describe('createServerSideEventsBroadcaster', () => {
   it('should send heartbeat ping every 30 seconds', () => {
     vi.useFakeTimers()
 
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
 
     // Initially, only one ping is sent
     expect(reply.raw.write).toHaveBeenCalledTimes(1)

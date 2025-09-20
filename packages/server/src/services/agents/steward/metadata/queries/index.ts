@@ -4,7 +4,7 @@ import { ValidationError } from '@/errors.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 
-import { $StewardQueryArgs, StewardQueryArgs } from '../types.js'
+import { $StewardQueryArgs, StewardQueryArgs } from '../../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
 import { LocationQueryHandler } from './location/handler.js'
