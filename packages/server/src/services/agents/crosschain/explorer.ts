@@ -55,12 +55,18 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
 
   constructor({
     log,
-    dataPath,
+    environment,
     broadcaster,
-  }: { log: Logger; dataPath?: string; broadcaster?: ServerSideEventsBroadcaster }) {
+  }: {
+    log: Logger
+    environment?: {
+      dataPath?: string
+    }
+    broadcaster?: ServerSideEventsBroadcaster
+  }) {
     this.#log = log
 
-    const filename = resolveDataPath(DEFAULT_XC_DB_PATH, dataPath)
+    const filename = resolveDataPath(DEFAULT_XC_DB_PATH, environment?.dataPath)
     this.#log.info('[xc:explorer] database at %s', filename)
 
     const { db, migrator } = createCrosschainDatabase(filename)
