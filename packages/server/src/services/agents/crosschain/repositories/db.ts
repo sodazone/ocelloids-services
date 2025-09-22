@@ -6,7 +6,7 @@ export function createCrosschainDatabase(filename: string) {
   return createKyselyDatabase<CrosschainDatabase>({
     filename,
     migrations: {
-      '0': schema,
+      '2025-09-22_create_xc_tables': schema,
     },
   })
 }

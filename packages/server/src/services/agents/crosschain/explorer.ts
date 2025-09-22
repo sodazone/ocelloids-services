@@ -82,7 +82,11 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
   async start() {
     this.#log.info('[xc:explorer] start')
 
-    await this.#migrator.migrateToLatest()
+    const result = await this.#migrator.migrateToLatest()
+
+    if (result.results && result.results.length > 0) {
+      this.#log.info('[xc:explorer] migration complete %o', result.results)
+    }
 
     if ((await this.#repository.getLastestSnapshot()) === undefined) {
       await this.#refreshAssetCache()

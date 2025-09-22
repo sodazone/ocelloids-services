@@ -19,7 +19,7 @@ export function createKyselyDatabase<T>(opts: SQLiteOptions) {
   const migrator = new Migrator({
     db,
     provider: {
-      getMigrations: async (): Promise<Record<string, Migration>> => opts.migrations,
+      getMigrations: async () => opts.migrations,
     },
   })
 
