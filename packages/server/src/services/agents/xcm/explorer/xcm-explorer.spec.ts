@@ -52,7 +52,6 @@ describe('XcmExplorer', () => {
 
     crosschain = new CrosschainExplorer({
       log,
-      dataPath: ':memory:',
       broadcaster,
     })
 
