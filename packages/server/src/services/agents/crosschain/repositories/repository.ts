@@ -20,13 +20,16 @@ const MAX_LIMIT = 100
 
 function encodeCursor({ sent_at, id }: FullJourney): string {
   const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
-  return Buffer.from(JSON.stringify({ timestamp, id })).toString('base64')
+  return Buffer.from(`${timestamp}|${id}`).toString('base64')
 }
 
 function decodeCursor(cursor: string): { timestamp: number; id: number } {
   try {
-    const { timestamp, id } = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'))
-    if (typeof timestamp !== 'number' || typeof id !== 'number') {
+    const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
+    const [timestampStr, idStr] = decoded.split('|')
+    const timestamp = parseInt(timestampStr, 10)
+    const id = parseInt(idStr, 10)
+    if (isNaN(timestamp) || isNaN(id)) {
       throw new Error()
     }
     return { timestamp, id }
