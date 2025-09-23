@@ -85,8 +85,13 @@ describe('CrosschainRepository', () => {
   })
 
   it('getTripJourneys returns journeys in ascending id order', async () => {
-    const [j1] = await repo.addJourneys([{ journey: makeJourney({ origin: 'chainX' }), assets: [] }])
-    const [j2] = await repo.addJourneys([{ journey: makeJourney({ origin: 'chainY' }), assets: [] }])
+    const now = Date.now()
+    const [j1] = await repo.addJourneys([
+      { journey: makeJourney({ origin: 'chainX', sent_at: now }), assets: [] },
+    ])
+    const [j2] = await repo.addJourneys([
+      { journey: makeJourney({ origin: 'chainY', sent_at: now + 1 }), assets: [] },
+    ])
 
     const trip_id = await repo.connectJourneys(j1, j2)
 

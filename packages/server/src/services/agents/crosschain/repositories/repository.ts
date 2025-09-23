@@ -268,11 +268,13 @@ export class CrosschainRepository {
   }
 
   async getJourneyById(id: number): Promise<FullJourney | undefined> {
-    return this.#getJourneyByField('id', id)
+    const rows = await this.#getFullJourneyData([id])
+    return rows.length > 0 ? mapRowToFullJourney(rows[0]) : undefined
   }
 
   async getJourneyByCorrelationId(correlationId: string): Promise<FullJourney | undefined> {
-    return this.#getJourneyByField('correlation_id', correlationId)
+    const rows = await this.#getFullJourneyData([correlationId], 'correlation_id')
+    return rows.length > 0 ? mapRowToFullJourney(rows[0]) : undefined
   }
 
   async listAssets(pagination?: QueryPagination): Promise<{
@@ -416,6 +418,98 @@ export class CrosschainRepository {
     }
   }
 
+  /**
+   * Generate a new trip_id (ULID)
+   */
+  generateTripId(): string {
+    return ulid()
+  }
+
+  /**
+   * Assign a journey to a trip_id (creates a new one if not provided)
+   */
+  async assignJourneyToTrip(journeyId: number, tripId?: string): Promise<string> {
+    const finalTripId = tripId ?? this.generateTripId()
+
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({ trip_id: finalTripId })
+      .where('id', '=', journeyId)
+      .execute()
+
+    return finalTripId
+  }
+
+  /**
+   * Connect two journeys (A → B) as consecutive hops in the same trip.
+   */
+  async connectJourneys(
+    inJourneyId: number,
+    outJourneyId: number,
+    connectionData?: Record<string, any>,
+  ): Promise<string> {
+    // Ensure they share the same trip_id
+    const inJourney = await this.#db
+      .selectFrom('xc_journeys')
+      .select(['trip_id'])
+      .where('id', '=', inJourneyId)
+      .executeTakeFirst()
+
+    let tripId = inJourney?.trip_id
+
+    if (!tripId) {
+      tripId = this.generateTripId()
+      await this.assignJourneyToTrip(inJourneyId, tripId)
+    }
+
+    await this.assignJourneyToTrip(outJourneyId, tripId)
+
+    // update connection references
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({
+        out_connection_fk: outJourneyId,
+        out_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
+      })
+      .where('id', '=', inJourneyId)
+      .execute()
+
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({
+        in_connection_fk: inJourneyId,
+        in_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
+      })
+      .where('id', '=', outJourneyId)
+      .execute()
+
+    return tripId
+  }
+
+  /**
+   * Get all journeys belonging to a trip
+   */
+  async getTripJourneys(tripId: string): Promise<FullJourney[]> {
+    const ids = await this.#db
+      .selectFrom('xc_journeys')
+      .select('id')
+      .where('trip_id', '=', tripId)
+      .orderBy('sent_at', 'asc')
+      .orderBy('id', 'asc')
+      .execute()
+
+    if (ids.length === 0) {
+      return []
+    }
+
+    const rows = await this.#getFullJourneyData(
+      ids.map((r) => r.id),
+      'id',
+      'asc',
+    )
+    return rows.map(mapRowToFullJourney)
+  }
+
   async #filterJourneyIds(limit: number, filters?: JourneyFilters, cursor?: string) {
     let query = this.#db.selectFrom('xc_journeys').select(['id', 'sent_at'])
 
@@ -448,72 +542,6 @@ export class CrosschainRepository {
     query = this.#applyJourneyFilters(query, filters, cursor)
 
     return query.groupBy('xc_asset_ops.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
-  }
-
-  async #getJourneyByField(
-    field: 'id' | 'correlation_id',
-    value: number | string,
-  ): Promise<FullJourney | undefined> {
-    const rows = await this.#db
-      .selectFrom('xc_journeys')
-      .selectAll('xc_journeys')
-      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
-      .select([
-        'xc_asset_ops.asset',
-        'xc_asset_ops.symbol',
-        'xc_asset_ops.amount',
-        'xc_asset_ops.decimals',
-        'xc_asset_ops.usd',
-        'xc_asset_ops.role',
-        'xc_asset_ops.sequence',
-      ])
-      .where(`xc_journeys.${field}`, '=', value)
-      .execute()
-
-    if (rows.length === 0) return undefined
-
-    const assets = rows
-      .filter((row) => row.asset !== undefined && row.asset !== null)
-      .map((row) => ({
-        asset: row.asset ?? 'unknown',
-        symbol: row.symbol ?? undefined,
-        amount: String(row.amount ?? '0'),
-        decimals: row.decimals ?? undefined,
-        usd: row.usd ?? undefined,
-        role: row.role ?? undefined,
-        sequence: row.sequence ?? undefined,
-      }))
-
-    const totalUsd = calculateTotalUsd(assets)
-
-    return {
-      id: rows[0].id,
-      correlation_id: rows[0].correlation_id,
-      trip_id: rows[0].trip_id,
-      status: rows[0].status,
-      type: rows[0].type,
-      protocol: rows[0].protocol,
-      origin: rows[0].origin,
-      destination: rows[0].destination,
-      from: rows[0].from,
-      to: rows[0].to,
-      from_formatted: rows[0].from_formatted,
-      to_formatted: rows[0].to_formatted,
-      sent_at: rows[0].sent_at,
-      recv_at: rows[0].recv_at,
-      created_at: rows[0].created_at,
-      stops: rows[0].stops,
-      instructions: rows[0].instructions,
-      transact_calls: rows[0].transact_calls,
-      origin_tx_primary: rows[0].origin_tx_primary ?? undefined,
-      origin_tx_secondary: rows[0].origin_tx_secondary ?? undefined,
-      in_connection_fk: rows[0].in_connection_fk,
-      in_connection_data: rows[0].in_connection_data,
-      out_connection_fk: rows[0].out_connection_fk,
-      out_connection_data: rows[0].out_connection_data,
-      totalUsd,
-      assets,
-    }
   }
 
   #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
@@ -594,17 +622,23 @@ export class CrosschainRepository {
     return extendedQuery
   }
 
-  async #getFullJourneyData(journeyIds: number[]) {
-    const assetSubquery = this.#db
-      .selectFrom('xc_asset_ops')
-      .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
-      .where('role', '=', 'transfer')
-      .groupBy('journey_id')
-      .as('asset_totals')
-
+  async #getFullJourneyData(
+    values: (number | string)[],
+    field: 'id' | 'correlation_id' = 'id',
+    order: 'asc' | 'desc' = 'desc',
+  ) {
     const query = this.#db
       .selectFrom('xc_journeys')
-      .leftJoin(assetSubquery, 'xc_journeys.id', 'asset_totals.journey_id') // changed to LEFT JOIN
+      .leftJoin(
+        this.#db
+          .selectFrom('xc_asset_ops')
+          .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
+          .where('role', '=', 'transfer')
+          .groupBy('journey_id')
+          .as('asset_totals'),
+        'xc_journeys.id',
+        'asset_totals.journey_id',
+      )
       .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
       .select([
         'xc_journeys.id',
@@ -648,97 +682,10 @@ export class CrosschainRepository {
         END
       ), json('[]'))`.as('assets'),
       ])
-      .where('xc_journeys.id', 'in', journeyIds)
+      .where(`xc_journeys.${field}`, 'in', values)
       .groupBy('xc_journeys.id')
-      .orderBy('xc_journeys.sent_at', 'desc')
+      .orderBy('xc_journeys.sent_at', order)
 
     return query.execute()
-  }
-
-  /**
-   * Generate a new trip_id (ULID)
-   */
-  generateTripId(): string {
-    return ulid()
-  }
-
-  /**
-   * Assign a journey to a trip_id (creates a new one if not provided)
-   */
-  async assignJourneyToTrip(journeyId: number, tripId?: string): Promise<string> {
-    const finalTripId = tripId ?? this.generateTripId()
-
-    await this.#db
-      .updateTable('xc_journeys')
-      .set({ trip_id: finalTripId })
-      .where('id', '=', journeyId)
-      .execute()
-
-    return finalTripId
-  }
-
-  /**
-   * Connect two journeys (A → B) as consecutive hops in the same trip.
-   */
-  async connectJourneys(
-    inJourneyId: number,
-    outJourneyId: number,
-    connectionData?: Record<string, any>,
-  ): Promise<string> {
-    // Ensure they share the same trip_id
-    const inJourney = await this.#db
-      .selectFrom('xc_journeys')
-      .select(['trip_id'])
-      .where('id', '=', inJourneyId)
-      .executeTakeFirst()
-
-    let tripId = inJourney?.trip_id
-
-    if (!tripId) {
-      tripId = this.generateTripId()
-      await this.assignJourneyToTrip(inJourneyId, tripId)
-    }
-
-    await this.assignJourneyToTrip(outJourneyId, tripId)
-
-    // update connection references
-    await this.#db
-      .updateTable('xc_journeys')
-      .set({
-        out_connection_fk: outJourneyId,
-        out_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
-      })
-      .where('id', '=', inJourneyId)
-      .execute()
-
-    await this.#db
-      .updateTable('xc_journeys')
-      .set({
-        in_connection_fk: inJourneyId,
-        in_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
-      })
-      .where('id', '=', outJourneyId)
-      .execute()
-
-    return tripId
-  }
-
-  /**
-   * Get all journeys belonging to a trip
-   */
-  async getTripJourneys(tripId: string): Promise<FullJourney[]> {
-    const ids = await this.#db
-      .selectFrom('xc_journeys')
-      .select('id')
-      .where('trip_id', '=', tripId)
-      .orderBy('sent_at', 'asc')
-      .execute()
-
-    if (ids.length === 0) {
-      return []
-    }
-
-    const rows = await this.#getFullJourneyData(ids.map((r) => r.id))
-    return rows.map((row) => mapRowToFullJourney(row))
   }
 }
