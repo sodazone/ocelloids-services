@@ -18,17 +18,21 @@ import {
 
 const MAX_LIMIT = 100
 
-function encodeCursor(date: number | Date): string {
-  const timestamp = typeof date === 'number' ? date : date.getTime() // Convert Date to Unix epoch
-  return Buffer.from(timestamp.toString()).toString('base64') // Encode Unix epoch as Base64
+function encodeCursor({ sent_at, id }: FullJourney): string {
+  const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
+  return Buffer.from(JSON.stringify({ timestamp, id })).toString('base64')
 }
 
-function decodeCursor(cursor: string): number {
-  const value = parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
-  if (isNaN(value)) {
-    throw new Error('Invalid cursor')
+function decodeCursor(cursor: string): { timestamp: number; id: number } {
+  try {
+    const { timestamp, id } = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'))
+    if (typeof timestamp !== 'number' || typeof id !== 'number') {
+      throw new Error()
+    }
+    return { timestamp, id }
+  } catch {
+    throw new Error('Invalid cursor format')
   }
-  return value
 }
 
 function encodeAssetsListCursor(
@@ -93,7 +97,8 @@ function mapRowToFullJourney(row: any): FullJourney {
     trip_id: row.trip_id,
     status: row.status,
     type: row.type,
-    protocol: row.protocol,
+    origin_protocol: row.origin_protocol,
+    destination_protocol: row.destination_protocol,
     origin: row.origin,
     destination: row.destination,
     from: row.from,
@@ -414,7 +419,7 @@ export class CrosschainRepository {
 
     const nodes = rows.map(mapRowToFullJourney)
 
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1]) : ''
 
     return {
       nodes,
@@ -575,17 +580,27 @@ export class CrosschainRepository {
     }
 
     if (filters?.address) {
-      const addressPrefix = filters.address.length >= 42 ? filters.address.slice(0, 42) : filters.address
-      const paraId = 'urn:ocn:polkadot:2034'
-
-      extendedQuery = extendedQuery.where((eb) =>
-        eb.or([
-          eb.and([eb(field('origin'), '=', paraId), eb(field('from'), 'like', `${addressPrefix}%`)]),
-          eb.and([eb(field('destination'), '=', paraId), eb(field('to'), 'like', `${addressPrefix}%`)]),
-          eb.and([eb(field('origin'), '!=', paraId), eb(field('from'), '=', filters.address!)]),
-          eb.and([eb(field('destination'), '!=', paraId), eb(field('to'), '=', filters.address!)]),
-        ]),
-      ) as T
+      if (filters.address.length >= 42) {
+        // EVM addresses are 42 chars (0x + 40 hex) and Substrate accounts are 66 chars (0x + 64 hex).
+        // We use the first 42 chars as a prefix to match both encodings when querying 'from' or 'to'.
+        // This could theoretically produce a false positive if two different accounts share the same
+        // first 20 bytes, but the probability is astronomically low and considered safe for practical use.
+        const addressPrefix = filters.address.slice(0, 42).toLowerCase()
+        extendedQuery = extendedQuery.where((eb) =>
+          eb.or([
+            eb(field('from'), 'like', `${addressPrefix}%`),
+            eb(field('to'), 'like', `${addressPrefix}%`),
+          ]),
+        ) as T
+      } else {
+        // Shorter input: exact match
+        extendedQuery = extendedQuery.where((eb) =>
+          eb.or([
+            eb(field('from'), '=', filters.address!.toLowerCase()),
+            eb(field('to'), '=', filters.address!.toLowerCase()),
+          ]),
+        ) as T
+      }
     }
 
     if (filters?.sentAtGte) {
@@ -622,12 +637,19 @@ export class CrosschainRepository {
     }
 
     if (filters?.protocols) {
-      extendedQuery = extendedQuery.where(field('protocol'), 'in', filters.protocols) as T
+      extendedQuery = extendedQuery.where((eb) =>
+        eb.or([
+          eb(field('origin_protocol'), 'in', filters.protocols!),
+          eb(field('destination_protocol'), 'in', filters.protocols!),
+        ]),
+      ) as T
     }
 
     if (cursor) {
-      const afterDate = decodeCursor(cursor)
-      extendedQuery = extendedQuery.where(field('sent_at'), '<', afterDate) as T
+      const { timestamp, id } = decodeCursor(cursor)
+      extendedQuery = extendedQuery.where((eb) =>
+        eb.or([eb('sent_at', '<', timestamp), eb.and([eb('sent_at', '=', timestamp), eb('id', '<', id)])]),
+      ) as T
     }
 
     return extendedQuery
@@ -657,7 +679,8 @@ export class CrosschainRepository {
         'trip_id',
         'status',
         'type',
-        'protocol',
+        'origin_protocol',
+        'destination_protocol',
         'origin',
         'destination',
         'from',

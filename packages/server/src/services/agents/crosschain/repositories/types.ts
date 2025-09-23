@@ -17,7 +17,8 @@ export interface XcJourneyTable {
   trip_id: ColumnType<string | undefined>
   status: ColumnType<string>
   type: ColumnType<string>
-  protocol: ColumnType<string>
+  origin_protocol: ColumnType<string>
+  destination_protocol: ColumnType<string>
   origin: ColumnType<string>
   destination: ColumnType<string>
   from: ColumnType<string>

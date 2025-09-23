@@ -22,7 +22,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('correlation_id', 'varchar(255)', (cb) => cb.notNull().unique())
     .addColumn('status', 'varchar(50)', (cb) => cb.notNull())
     .addColumn('type', 'varchar(50)', (cb) => cb.notNull())
-    .addColumn('protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
+    .addColumn('origin_protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
+    .addColumn('destination_protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
     .addColumn('trip_id', 'varchar(255)')
     .addColumn('origin', 'varchar(255)', (cb) => cb.notNull())
     .addColumn('destination', 'varchar(255)', (cb) => cb.notNull())
@@ -97,14 +98,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.executeQuery(
       sql`
         INSERT INTO xc_journeys (
-          id, correlation_id, status, type, protocol, origin, destination,
+          id, correlation_id, status, type, origin_protocol, destination_protocol, origin, destination,
           "from", "to", from_formatted, to_formatted,
           sent_at, recv_at, created_at,
           stops, instructions, transact_calls,
           origin_tx_primary, origin_tx_secondary
         )
         SELECT
-          id, correlation_id, status, type, 'xcm', origin, destination,
+          id, correlation_id, status, type, 'xcm', 'xcm', origin, destination,
           "from", "to", from_formatted, to_formatted,
           sent_at, recv_at, created_at,
           stops, instructions, transact_calls,
@@ -168,7 +169,12 @@ export async function up(db: Kysely<any>): Promise<void> {
     { table: 'xc_journeys', columns: ['origin', 'from'], name: 'xc_journeys_origin_from_index' },
     { table: 'xc_journeys', columns: ['destination', 'to'], name: 'xc_journeys_destination_to_index' },
     { table: 'xc_journeys', columns: ['from', 'to'], name: 'xc_journeys_from_to_index' },
-    { table: 'xc_journeys', columns: ['protocol'], name: 'xc_journeys_protocol_index' },
+    { table: 'xc_journeys', columns: ['origin_protocol'], name: 'xc_journeys_origin_protocol_index' },
+    {
+      table: 'xc_journeys',
+      columns: ['destination_protocol'],
+      name: 'xc_journeys_destination_protocol_index',
+    },
     { table: 'xc_journeys', columns: ['trip_id'], name: 'xc_journeys_trip_id_index' },
     { table: 'xc_asset_ops', columns: ['journey_id'], name: 'xc_assets_journey_id_index' },
     { table: 'xc_asset_ops', columns: ['asset'], name: 'xc_assets_asset_index' },
@@ -194,12 +200,26 @@ export async function up(db: Kysely<any>): Promise<void> {
 /**
  * Crosschain journeys schema.
  *
- * We model multi-protocol journeys using a linear connection approach: each row in xc_journeys represents
- * a single protocol-specific journey, and optional in_connection_fk / out_connection_fk fields
- * point to the previous and next journeys in the trip. Connection metadata can be stored in
- * JSON fields (in_connection_data / out_connection_data).
- * This keeps the schema simple and search-efficient, while allowing full multi-step trips to be reconstructed in the details view.
- * It also avoids modifying existing queries or adding complex graph structures.
+ * A "journey" models the full cross-chain execution and flow of actions
+ * (swaps, transfers, etc.) and moved assets between an origin and a
+ * destination chain. A journey may involve multiple protocols internally
+ * (e.g., Wormhole + XCM), which are captured in the `stops` JSON. Because
+ * there is not always a clear "main protocol," we store only the edges in
+ * top-level columns:
+ *
+ * - `origin_protocol` / `destination_protocol` describe the entry and exit
+ *   protocols for efficient filtering.
+ * - Intermediate hops (protocols, instructions, fees, etc.) are stored in
+ *   the `stops` JSON for flexibility and rich reconstruction.
+ *
+ * Journeys can be connected into "trips" via `trip_id` and connection FKs.
+ * Trips allow stitching multiple journeys together into a larger flow but
+ * are optional and do not constrain the journey model.
+ *
+ * This design favors:
+ * - Efficient filtering/search on common fields.
+ * - Flexibility for multi-step, multi-protocol flows.
+ * - A simple connection model for higher-level grouping.
  */
 export async function _up(db: Kysely<any>): Promise<void> {
   try {
@@ -211,7 +231,8 @@ export async function _up(db: Kysely<any>): Promise<void> {
       .addColumn('correlation_id', 'varchar(255)', (cb) => cb.notNull().unique())
       .addColumn('status', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('type', 'varchar(50)', (cb) => cb.notNull()) // 'transfer', 'swap', &c.
-      .addColumn('protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
+      .addColumn('origin_protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
+      .addColumn('destination_protocol', 'varchar(50)', (cb) => cb.notNull().defaultTo('xcm'))
       .addColumn('trip_id', 'varchar(255)') // shared id for multi-protocol trips (nullable)
       .addColumn('origin', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('destination', 'varchar(255)', (cb) => cb.notNull())
@@ -350,10 +371,17 @@ export async function _up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_journeys_protocol_index')
+      .createIndex('xc_journeys_origin_protocol_index')
       .ifNotExists()
       .on('xc_journeys')
-      .column('protocol')
+      .column('origin_protocol')
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_destination_protocol_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .column('destination_protocol')
       .execute()
 
     await db.schema
