@@ -38,6 +38,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('transact_calls', 'json', (cb) => cb.notNull())
     .addColumn('origin_tx_primary', 'varchar(255)')
     .addColumn('origin_tx_secondary', 'varchar(255)')
+    .addColumn('destination_tx_primary', 'varchar(255)')
+    .addColumn('destination_tx_secondary', 'varchar(255)')
     .addColumn('in_connection_fk', 'integer', (cb) => cb.references('xc_journeys.id').onDelete('set null'))
     .addColumn('in_connection_data', 'json')
     .addColumn('out_connection_fk', 'integer', (cb) => cb.references('xc_journeys.id').onDelete('set null'))
@@ -151,6 +153,16 @@ export async function up(db: Kysely<any>): Promise<void> {
     { table: 'xc_journeys', columns: ['destination'], name: 'xc_journeys_destination_index' },
     { table: 'xc_journeys', columns: ['origin_tx_primary'], name: 'xc_journeys_origin_tx_primary_index' },
     { table: 'xc_journeys', columns: ['origin_tx_secondary'], name: 'xc_journeys_origin_tx_secondary_index' },
+    {
+      table: 'xc_journeys',
+      columns: ['destination_tx_primary'],
+      name: 'xc_journeys_destination_tx_primary_index',
+    },
+    {
+      table: 'xc_journeys',
+      columns: ['destination_tx_secondary'],
+      name: 'xc_journeys_destination_tx_secondary_index',
+    },
     { table: 'xc_journeys', columns: ['type'], name: 'xc_journeys_type_index' },
     { table: 'xc_journeys', columns: ['status'], name: 'xc_journeys_status_index' },
     { table: 'xc_journeys', columns: ['origin', 'from'], name: 'xc_journeys_origin_from_index' },
@@ -216,6 +228,8 @@ export async function _up(db: Kysely<any>): Promise<void> {
       // For example, Polkadot could have the extrinc hash and the evm tx hash
       .addColumn('origin_tx_primary', 'varchar(255)')
       .addColumn('origin_tx_secondary', 'varchar(255)')
+      .addColumn('destination_tx_primary', 'varchar(255)')
+      .addColumn('destination_tx_secondary', 'varchar(255)')
       // Optional linear connections between journeys
       .addColumn('in_connection_fk', 'integer', (cb) => cb.references('xc_journeys.id').onDelete('set null'))
       .addColumn('in_connection_data', 'json')
@@ -284,6 +298,20 @@ export async function _up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_journeys')
       .column('origin_tx_secondary')
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_destination_tx_primary_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .column('destination_tx_primary')
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_destination_tx_secondary_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .column('destination_tx_secondary')
       .execute()
 
     await db.schema

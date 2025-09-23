@@ -32,6 +32,8 @@ export interface XcJourneyTable {
   transact_calls: JSONColumnType<any[]>
   origin_tx_primary: ColumnType<string | undefined>
   origin_tx_secondary: ColumnType<string | undefined>
+  destination_tx_primary: ColumnType<string | undefined>
+  destination_tx_secondary: ColumnType<string | undefined>
   in_connection_fk: ColumnType<number | undefined>
   in_connection_data?: JSONColumnType<any>
   out_connection_fk: ColumnType<number | undefined>
