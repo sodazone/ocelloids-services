@@ -380,7 +380,7 @@ export class CrosschainRepository {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const realLimit = limit + 1
 
-    // Determine whether we need to pre-filter via xcm_assets
+    // Determine whether we need to pre-filter assets
     const useAssetSubquery = !!filters?.assets || !!filters?.usdAmountGte || !!filters?.usdAmountLte
 
     // STEP 1: Get paginated journey IDs
@@ -612,6 +612,10 @@ export class CrosschainRepository {
 
     if (filters?.status) {
       extendedQuery = extendedQuery.where(field('status'), 'in', filters.status) as T
+    }
+
+    if (filters?.protocols) {
+      extendedQuery = extendedQuery.where(field('protocol'), 'in', filters.protocols) as T
     }
 
     if (cursor) {

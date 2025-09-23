@@ -10,6 +10,7 @@ export const $JourneyFilters = z
     networks: z.optional(z.array($NetworkString).min(1).max(50)),
     address: z.optional(z.string().min(3).max(100)),
     txHash: z.optional(z.string().min(3).max(100)),
+    protocols: z.optional(z.array(z.enum(['xcm', 'wormhole_portal'])).min(1)),
     status: z.optional(
       z
         .array(z.enum(['sent', 'received', 'timeout', 'failed']))
