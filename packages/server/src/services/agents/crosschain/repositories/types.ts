@@ -14,6 +14,7 @@ export type AssetRole =
 export interface XcJourneyTable {
   id: Generated<number>
   correlation_id: ColumnType<string>
+  trip_id: ColumnType<string | undefined>
   status: ColumnType<string>
   type: ColumnType<string>
   protocol: ColumnType<string>

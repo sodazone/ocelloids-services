@@ -1,6 +1,7 @@
-import { Buffer } from 'buffer'
-import { QueryPagination } from '@/lib.js'
 import { Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
+import { ulid } from 'ulidx'
+
+import { QueryPagination } from '@/lib.js'
 import { JourneyFilters } from '../types/queries.js'
 import {
   AssetOperation,
@@ -60,6 +61,58 @@ export function calculateTotalUsd(assets: { usd?: number | null; role?: AssetRol
   }, 0)
 }
 
+function parseAssets(assets: any): FullJourneyAsset[] {
+  try {
+    const parsed = Array.isArray(assets) ? assets : typeof assets === 'string' ? JSON.parse(assets) : []
+
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed
+      .filter(
+        (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
+      )
+      .map((a) => ({
+        ...a,
+        amount: String(a.amount),
+      }))
+  } catch {
+    return []
+  }
+}
+
+function mapRowToFullJourney(row: any): FullJourney {
+  return {
+    id: row.id,
+    correlation_id: row.correlation_id,
+    trip_id: row.trip_id,
+    status: row.status,
+    type: row.type,
+    protocol: row.protocol,
+    origin: row.origin,
+    destination: row.destination,
+    from: row.from,
+    to: row.to,
+    from_formatted: row.from_formatted,
+    to_formatted: row.to_formatted,
+    sent_at: row.sent_at,
+    recv_at: row.recv_at,
+    created_at: row.created_at,
+    stops: row.stops,
+    instructions: row.instructions,
+    transact_calls: row.transact_calls,
+    origin_tx_primary: row.origin_tx_primary,
+    origin_tx_secondary: row.origin_tx_secondary ?? undefined,
+    in_connection_fk: row.in_connection_fk,
+    in_connection_data: row.in_connection_data,
+    out_connection_fk: row.out_connection_fk,
+    out_connection_data: row.out_connection_data,
+    totalUsd: Number(row.total_usd ?? 0),
+    assets: parseAssets(row.assets),
+  }
+}
+
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
 
@@ -103,95 +156,40 @@ export class CrosschainRepository {
     await query.execute()
   }
 
-  async getJourneyById(id: string): Promise<FullJourney | undefined> {
-    const rows = await this.#db
-      .selectFrom('xc_journeys')
-      .selectAll('xc_journeys')
-      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
-      .select([
-        'xc_asset_ops.asset',
-        'xc_asset_ops.symbol',
-        'xc_asset_ops.amount',
-        'xc_asset_ops.decimals',
-        'xc_asset_ops.usd',
-        'xc_asset_ops.role',
-        'xc_asset_ops.sequence',
-      ])
-      .where('xc_journeys.correlation_id', '=', id)
-      .execute()
-
-    if (rows.length === 0) {
-      return undefined
-    }
-
-    const totalUsd = calculateTotalUsd(rows)
-
-    const journey = {
-      id: rows[0].id,
-      correlation_id: rows[0].correlation_id,
-      status: rows[0].status,
-      type: rows[0].type,
-      protocol: rows[0].protocol,
-      origin: rows[0].origin,
-      destination: rows[0].destination,
-      from: rows[0].from,
-      to: rows[0].to,
-      from_formatted: rows[0].from_formatted,
-      to_formatted: rows[0].to_formatted,
-      sent_at: rows[0].sent_at,
-      recv_at: rows[0].recv_at,
-      created_at: rows[0].created_at,
-      stops: rows[0].stops,
-      instructions: rows[0].instructions,
-      transact_calls: rows[0].transact_calls,
-      origin_tx_primary: rows[0].origin_tx_primary ?? undefined,
-      origin_tx_secondary: rows[0].origin_tx_secondary ?? undefined,
-      in_connection_fk: rows[0].in_connection_fk,
-      in_connection_data: rows[0].in_connection_data,
-      out_connection_fk: rows[0].out_connection_fk,
-      out_connection_data: rows[0].out_connection_data,
-      totalUsd,
-      assets: rows
-        .filter((row) => row.asset !== undefined && row.asset !== null)
-        .map((row) => ({
-          asset: row.asset ?? 'unknown',
-          symbol: row.symbol ?? undefined,
-          amount: row.amount ?? '0',
-          decimals: row.decimals ?? undefined,
-          usd: row.usd ?? undefined,
-          role: row.role ?? undefined,
-          sequence: row.sequence ?? undefined,
-        })),
-    }
-
-    return journey
-  }
-
   async deleteJourney(id: number): Promise<void> {
     await this.#db.deleteFrom('xc_journeys').where('id', '=', id).execute()
+  }
+
+  async addJourneys(
+    journeys: Array<{ journey: NewJourney; assets: Omit<NewAssetOperation, 'journey_id'>[] }>,
+  ): Promise<number[]> {
+    return this.#db.transaction().execute(async (trx) => {
+      const ids: number[] = []
+      for (const { journey, assets } of journeys) {
+        ids.push(await this.insertJourneyWithAssets(journey, assets, trx))
+      }
+      return ids
+    })
   }
 
   async insertJourneyWithAssets(
     journey: NewJourney,
     assets: Array<Omit<NewAssetOperation, 'journey_id'>>,
+    db: Kysely<CrosschainDatabase> | Transaction<CrosschainDatabase> = this.#db,
   ): Promise<number> {
-    return await this.#db.transaction().execute(async (trx) => {
-      const insertedJourney = await trx
-        .insertInto('xc_journeys')
-        .values(journey)
-        .returning('id')
-        .executeTakeFirst()
+    const insertedJourney = await db
+      .insertInto('xc_journeys')
+      .values(journey)
+      .returning('id')
+      .executeTakeFirst()
 
-      if (!insertedJourney?.id) {
-        throw new Error('Failed to insert journey')
-      }
+    if (!insertedJourney?.id) {
+      throw new Error('Failed to insert journey')
+    }
 
-      const journeyId = insertedJourney.id
-
-      await this.insertAssetsForJourney(journeyId, assets, trx)
-
-      return journeyId
-    })
+    const journeyId = insertedJourney.id
+    await this.insertAssetsForJourney(journeyId, assets, db)
+    return journeyId
   }
 
   async insertAssetsForJourney(
@@ -267,6 +265,14 @@ export class CrosschainRepository {
         )
         .execute()
     }
+  }
+
+  async getJourneyById(id: number): Promise<FullJourney | undefined> {
+    return this.#getJourneyByField('id', id)
+  }
+
+  async getJourneyByCorrelationId(correlationId: string): Promise<FullJourney | undefined> {
+    return this.#getJourneyByField('correlation_id', correlationId)
   }
 
   async listAssets(pagination?: QueryPagination): Promise<{
@@ -397,33 +403,7 @@ export class CrosschainRepository {
     // STEP 2: Fetch full journey data
     const rows = await this.#getFullJourneyData(journeyIds)
 
-    const nodes = rows.map((row) => ({
-      id: row.id,
-      correlation_id: row.correlation_id,
-      status: row.status,
-      type: row.type,
-      protocol: row.protocol,
-      origin: row.origin,
-      destination: row.destination,
-      from: row.from,
-      to: row.to,
-      from_formatted: row.from_formatted,
-      to_formatted: row.to_formatted,
-      sent_at: row.sent_at,
-      recv_at: row.recv_at,
-      created_at: row.created_at,
-      stops: row.stops,
-      instructions: row.instructions,
-      transact_calls: row.transact_calls,
-      origin_tx_primary: row.origin_tx_primary,
-      origin_tx_secondary: row.origin_tx_secondary ?? undefined,
-      in_connection_fk: row.in_connection_fk,
-      in_connection_data: row.in_connection_data,
-      out_connection_fk: row.out_connection_fk,
-      out_connection_data: row.out_connection_data,
-      totalUsd: typeof row.total_usd === 'number' ? row.total_usd : Number(row.total_usd ?? 0),
-      assets: this.#parseAssets(row.assets),
-    }))
+    const nodes = rows.map(mapRowToFullJourney)
 
     const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1].sent_at) : ''
 
@@ -433,22 +413,6 @@ export class CrosschainRepository {
         hasNextPage,
         endCursor,
       },
-    }
-  }
-
-  #parseAssets(assets: any): FullJourneyAsset[] {
-    try {
-      const parsed = Array.isArray(assets) ? assets : typeof assets === 'string' ? JSON.parse(assets) : []
-
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-
-      return parsed.filter(
-        (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
-      )
-    } catch {
-      return []
     }
   }
 
@@ -484,6 +448,72 @@ export class CrosschainRepository {
     query = this.#applyJourneyFilters(query, filters, cursor)
 
     return query.groupBy('xc_asset_ops.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
+  }
+
+  async #getJourneyByField(
+    field: 'id' | 'correlation_id',
+    value: number | string,
+  ): Promise<FullJourney | undefined> {
+    const rows = await this.#db
+      .selectFrom('xc_journeys')
+      .selectAll('xc_journeys')
+      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
+      .select([
+        'xc_asset_ops.asset',
+        'xc_asset_ops.symbol',
+        'xc_asset_ops.amount',
+        'xc_asset_ops.decimals',
+        'xc_asset_ops.usd',
+        'xc_asset_ops.role',
+        'xc_asset_ops.sequence',
+      ])
+      .where(`xc_journeys.${field}`, '=', value)
+      .execute()
+
+    if (rows.length === 0) return undefined
+
+    const assets = rows
+      .filter((row) => row.asset !== undefined && row.asset !== null)
+      .map((row) => ({
+        asset: row.asset ?? 'unknown',
+        symbol: row.symbol ?? undefined,
+        amount: String(row.amount ?? '0'),
+        decimals: row.decimals ?? undefined,
+        usd: row.usd ?? undefined,
+        role: row.role ?? undefined,
+        sequence: row.sequence ?? undefined,
+      }))
+
+    const totalUsd = calculateTotalUsd(assets)
+
+    return {
+      id: rows[0].id,
+      correlation_id: rows[0].correlation_id,
+      trip_id: rows[0].trip_id,
+      status: rows[0].status,
+      type: rows[0].type,
+      protocol: rows[0].protocol,
+      origin: rows[0].origin,
+      destination: rows[0].destination,
+      from: rows[0].from,
+      to: rows[0].to,
+      from_formatted: rows[0].from_formatted,
+      to_formatted: rows[0].to_formatted,
+      sent_at: rows[0].sent_at,
+      recv_at: rows[0].recv_at,
+      created_at: rows[0].created_at,
+      stops: rows[0].stops,
+      instructions: rows[0].instructions,
+      transact_calls: rows[0].transact_calls,
+      origin_tx_primary: rows[0].origin_tx_primary ?? undefined,
+      origin_tx_secondary: rows[0].origin_tx_secondary ?? undefined,
+      in_connection_fk: rows[0].in_connection_fk,
+      in_connection_data: rows[0].in_connection_data,
+      out_connection_fk: rows[0].out_connection_fk,
+      out_connection_data: rows[0].out_connection_data,
+      totalUsd,
+      assets,
+    }
   }
 
   #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
@@ -579,6 +609,7 @@ export class CrosschainRepository {
       .select([
         'xc_journeys.id',
         'correlation_id',
+        'trip_id',
         'status',
         'type',
         'protocol',
@@ -622,5 +653,92 @@ export class CrosschainRepository {
       .orderBy('xc_journeys.sent_at', 'desc')
 
     return query.execute()
+  }
+
+  /**
+   * Generate a new trip_id (ULID)
+   */
+  generateTripId(): string {
+    return ulid()
+  }
+
+  /**
+   * Assign a journey to a trip_id (creates a new one if not provided)
+   */
+  async assignJourneyToTrip(journeyId: number, tripId?: string): Promise<string> {
+    const finalTripId = tripId ?? this.generateTripId()
+
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({ trip_id: finalTripId })
+      .where('id', '=', journeyId)
+      .execute()
+
+    return finalTripId
+  }
+
+  /**
+   * Connect two journeys (A → B) as consecutive hops in the same trip.
+   */
+  async connectJourneys(
+    inJourneyId: number,
+    outJourneyId: number,
+    connectionData?: Record<string, any>,
+  ): Promise<string> {
+    // Ensure they share the same trip_id
+    const inJourney = await this.#db
+      .selectFrom('xc_journeys')
+      .select(['trip_id'])
+      .where('id', '=', inJourneyId)
+      .executeTakeFirst()
+
+    let tripId = inJourney?.trip_id
+
+    if (!tripId) {
+      tripId = this.generateTripId()
+      await this.assignJourneyToTrip(inJourneyId, tripId)
+    }
+
+    await this.assignJourneyToTrip(outJourneyId, tripId)
+
+    // update connection references
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({
+        out_connection_fk: outJourneyId,
+        out_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
+      })
+      .where('id', '=', inJourneyId)
+      .execute()
+
+    await this.#db
+      .updateTable('xc_journeys')
+      .set({
+        in_connection_fk: inJourneyId,
+        in_connection_data: connectionData ? JSON.stringify(connectionData) : undefined,
+      })
+      .where('id', '=', outJourneyId)
+      .execute()
+
+    return tripId
+  }
+
+  /**
+   * Get all journeys belonging to a trip
+   */
+  async getTripJourneys(tripId: string): Promise<FullJourney[]> {
+    const ids = await this.#db
+      .selectFrom('xc_journeys')
+      .select('id')
+      .where('trip_id', '=', tripId)
+      .orderBy('sent_at', 'asc')
+      .execute()
+
+    if (ids.length === 0) {
+      return []
+    }
+
+    const rows = await this.#getFullJourneyData(ids.map((r) => r.id))
+    return rows.map((row) => mapRowToFullJourney(row))
   }
 }

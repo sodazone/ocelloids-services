@@ -139,7 +139,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
   }
 
   async getJourneyById({ id }: { id: string }): Promise<QueryResult<FullJourneyResponse>> {
-    const journey = await this.#repository.getJourneyById(id)
+    const journey = await this.#repository.getJourneyByCorrelationId(id)
     return journey ? { items: [deepCamelize<FullJourney>(journey)] } : { items: [] }
   }
 
