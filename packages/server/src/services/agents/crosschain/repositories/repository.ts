@@ -24,7 +24,11 @@ function encodeCursor(date: number | Date): string {
 }
 
 function decodeCursor(cursor: string): number {
-  return parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
+  const value = parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10) // Decode Base64 to Unix epoch
+  if (isNaN(value)) {
+    throw new Error('Invalid cursor')
+  }
+  return value
 }
 
 function encodeAssetsListCursor(
@@ -301,7 +305,7 @@ export class CrosschainRepository {
 
     // Fetch the current snapshot bounds if cursor is not provided
     if (!snapshotStart || !snapshotEnd) {
-      const latestSnapshot = await this.getLastestSnapshot()
+      const latestSnapshot = await this.getLatestSnapshot()
 
       if (!latestSnapshot) {
         return {
@@ -359,10 +363,11 @@ export class CrosschainRepository {
     }
   }
 
-  async getLastestSnapshot() {
+  async getLatestSnapshot() {
     return await this.#db
       .selectFrom('xc_asset_volume_cache')
       .select(['snapshot_start', 'snapshot_end'])
+      .orderBy('snapshot_end', 'desc')
       .limit(1)
       .executeTakeFirst()
   }
