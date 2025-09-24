@@ -20,10 +20,15 @@ import {
   isSubscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
+import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
-// import { ChainSpy } from '../chainspy/agent.js'
+
+const DIRTY_TOGGLES = {
+  chainspy: process.env.ENABLE_CHAINSPY === 'true',
+  crosschain: process.env.ENABLE_CROSSCHAIN === 'true',
+}
 
 function shouldStart(agent: Agent) {
   const {
@@ -36,14 +41,18 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
   ticker: (ctx) => new TickerAgent(ctx),
-  crosschain: (ctx) => new CrosschainExplorer(ctx),
+  ...(DIRTY_TOGGLES['crosschain'] && {
+    crosschain: (ctx) => new CrosschainExplorer(ctx),
+  }),
   xcm: (ctx, activations) =>
     new XcmAgent(ctx, {
       steward: activations['steward'] as DataSteward,
       ticker: activations['ticker'] as TickerAgent,
       crosschain: activations['crosschain'] as CrosschainExplorer,
     }),
-  // chainspy: (ctx) => new ChainSpy(ctx),
+  ...(DIRTY_TOGGLES['chainspy'] && {
+    chainspy: (ctx) => new ChainSpy(ctx),
+  }),
 }
 
 /**
