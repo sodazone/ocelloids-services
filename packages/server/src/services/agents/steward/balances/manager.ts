@@ -49,13 +49,15 @@ export class BalancesManager {
   readonly #broadcast: (event: ServerSideEvent) => void
 
   #running = false
+  #config: Record<string, any>
 
   constructor(
-    { log, openLevelDB, ingress }: StewardManagerContext,
+    { log, openLevelDB, ingress, config }: StewardManagerContext,
     queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>,
     broadcast: (event: ServerSideEvent) => void,
   ) {
     this.#log = log
+    this.#config = config ?? {}
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
     this.#broadcast = broadcast
@@ -63,11 +65,15 @@ export class BalancesManager {
   }
 
   async start() {
-    // start subscriptions
-    this.#running = true
-    this.#subscribeBalancesEvents()
-    this.#processUpdateQueue()
-    this.#processDiscoveryQueue()
+    if ('balances' in this.#config && this.#config['balances']) {
+      this.#log.info('[%s] started', this.id)
+      this.#running = true
+      this.#subscribeBalancesEvents()
+      this.#processUpdateQueue()
+      this.#processDiscoveryQueue()
+    } else {
+      this.#log.info('[%s] not configured', this.id)
+    }
   }
 
   async stop() {

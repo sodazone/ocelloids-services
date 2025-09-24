@@ -190,6 +190,7 @@ export type StewardManagerContext = {
   openLevelDB: OpenLevelDB
   scheduler: Scheduler
   ingress: IngressConsumers
+  config?: Record<string, any>
 }
 
 const $AccountString = z.string().min(42).max(66)

@@ -51,6 +51,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
       openLevelDB: ctx.openLevelDB,
       scheduler: ctx.scheduler,
       ingress: ctx.ingress,
+      config: ctx.config,
     }
     this.#metadataManager = new AssetMetadataManager(managerContext)
     this.#balancesManager = new BalancesManager(
