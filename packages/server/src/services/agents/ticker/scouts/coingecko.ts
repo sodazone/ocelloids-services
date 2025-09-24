@@ -68,6 +68,7 @@ const CG_ID_MAP: Record<string, string> = {
   TRAC: 'origintrail',
   'CGT2.0': 'curio-gas-token',
   XRT: 'robonomics-network',
+  SUI: 'sui',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'

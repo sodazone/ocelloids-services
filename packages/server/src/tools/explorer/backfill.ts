@@ -1,14 +1,15 @@
+import { pino } from 'pino'
+import { Observable, concatMap, filter, from, map, takeWhile, timer } from 'rxjs'
+
 import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import { createXcmDatabase } from '@/services/agents/xcm/explorer/repositories/db.js'
-import { XcmRepository } from '@/services/agents/xcm/explorer/repositories/journeys.js'
+import { CrosschainRepository, DEFAULT_XC_DB_PATH } from '@/services/agents/crosschain/index.js'
+import { createCrosschainDatabase } from '@/services/agents/crosschain/repositories/db.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { GenericXcmInboundWithContext } from '@/services/agents/xcm/types/messages.js'
 import { createSubstrateClient } from '@/services/networking/substrate/client.js'
 import { Block, extractEvents, getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
-import { pino } from 'pino'
-import { Observable, concatMap, filter, from, map, takeWhile, timer } from 'rxjs'
 
 export const networks = {
   'urn:ocn:polkadot:0': 'wss://rpc.ibp.network/polkadot',
@@ -89,12 +90,12 @@ function getMessageId(instructions: any) {
   }
 }
 
-const filename = resolveDataPath('db.xcm-explorer.sqlite', dbPath)
+const filename = resolveDataPath(DEFAULT_XC_DB_PATH, dbPath)
 log.info('[xcm:explorer] database at %s', filename)
 
-const { db, migrator: _migrator } = createXcmDatabase(filename)
+const { db, migrator: _migrator } = createCrosschainDatabase(filename)
 const migrator = _migrator
-const repository = new XcmRepository(db)
+const repository = new CrosschainRepository(db)
 await migrator.migrateToLatest()
 
 const startTime = await getTimestampFromHeight(startBlock)

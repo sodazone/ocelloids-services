@@ -1,38 +1,29 @@
 import { SqliteError } from 'better-sqlite3'
 
-import { asJSON, asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
-import { BlockEvent } from '@/services/networking/substrate/index.js'
-import { resolveDataPath } from '@/services/persistence/util.js'
+import { asJSON } from '@/common/util.js'
 import { Logger } from '@/services/types.js'
-import { Twox256 } from '@polkadot-api/substrate-bindings'
-import { Migrator } from 'kysely'
-import { toHex } from 'polkadot-api/utils'
 import { Subscription, concatMap } from 'rxjs'
 
-import { QueryPagination, QueryResult, ServerSideEventsBroadcaster } from '../../types.js'
+import {
+  CrosschainExplorer,
+  CrosschainRepository,
+  FullJourney,
+  FullJourneyResponse,
+  JourneyUpdate,
+} from '@/services/agents/crosschain/index.js'
 import { XcmHumanizer } from '../humanize/index.js'
-import { HumanizedXcmAsset, XcmJourneyType } from '../humanize/types.js'
+import { XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking.js'
+import { XcmMessagePayload, XcmTerminusContext, isXcmHop, isXcmReceived } from '../types/index.js'
 import {
-  HumanizedXcmPayload,
-  XcmMessagePayload,
-  XcmTerminusContext,
-  isXcmHop,
-  isXcmReceived,
-} from '../types/index.js'
-import { JourneyFilters } from '../types/index.js'
-import { createXcmDatabase } from './repositories/db.js'
-import { XcmRepository, calculateTotalUsd } from './repositories/journeys.js'
-import {
-  FullXcmJourney,
-  FullXcmJourneyResponse,
-  ListAsset,
-  NewXcmAsset,
-  NewXcmJourney,
-  XcmJourneyUpdate,
-} from './repositories/types.js'
+  asNewJourneyObject,
+  toCorrelationId,
+  toNewAssets,
+  toNewJourney,
+  toStatus,
+  toStops,
+} from './convert.js'
 
-const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
 const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
 
@@ -63,152 +54,6 @@ async function waitForAllLocks() {
   await Promise.all([...locks.values()])
 }
 
-function toStatus(payload: XcmMessagePayload) {
-  if ('outcome' in payload.destination) {
-    return payload.destination.outcome === 'Success' ? 'received' : 'failed'
-  }
-  if (payload.waypoint.outcome === 'Fail') {
-    return 'failed'
-  }
-  if (payload.type === 'xcm.timeout') {
-    return 'timeout'
-  }
-  if (['xcm.sent', 'xcm.relayed', 'xcm.hop'].includes(payload.type)) {
-    return 'sent'
-  }
-  return 'unknown'
-}
-
-function asNewJourneyObject(
-  newJourney: NewXcmJourney,
-  assets: Omit<NewXcmAsset, 'journey_id'>[],
-  id: number,
-) {
-  return deepCamelize<FullXcmJourney>({
-    ...{
-      ...newJourney,
-      transactCalls: JSON.parse(newJourney.transact_calls),
-      instructions: JSON.parse(newJourney.instructions),
-      stops: JSON.parse(newJourney.stops),
-    },
-    assets,
-    totalUsd: calculateTotalUsd(assets),
-    id,
-  })
-}
-
-function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
-  const updatedStops = payload.legs.map((leg, index) => {
-    const existingStop = existingStops[index]
-
-    const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
-    const event = waypoint?.event ? (waypoint.event as any) : undefined
-    const extrinsic = event ? (event.extrinsic as any) : undefined
-    const context = waypoint
-      ? {
-          chainId: waypoint.chainId,
-          blockHash: waypoint.blockHash,
-          blockNumber: waypoint.blockNumber,
-          timestamp: waypoint.timestamp,
-          status: waypoint.outcome,
-          extrinsic: {
-            blockPosition: waypoint.extrinsicPosition,
-            hash: waypoint.extrinsicHash,
-            module: extrinsic?.module,
-            method: extrinsic?.method,
-            evmTxHash: extrinsic?.evmTxHash,
-          },
-          event: {
-            blockPosition: event?.blockPosition,
-            module: event?.module,
-            name: event?.name,
-          },
-          assetsTrapped: waypoint.assetsTrapped,
-        }
-      : null
-
-    if (existingStop) {
-      // Update existing stop with waypoint context
-      if (waypoint) {
-        if (existingStop.from.chainId === waypoint.chainId) {
-          existingStop.from = { ...existingStop.from, ...context }
-          existingStop.messageHash = waypoint.messageHash
-          existingStop.messageId = waypoint.messageId ?? payload.messageId
-          existingStop.instructions = waypoint.instructions
-        } else if (existingStop.to.chainId === waypoint.chainId) {
-          existingStop.to = { ...existingStop.to, ...context }
-        } else if (existingStop.relay?.chainId === waypoint.chainId) {
-          existingStop.relay = { ...existingStop.relay, ...context }
-        }
-      }
-      return existingStop
-    } else {
-      // Create a new stop if no existing stop is found
-      const isOutbound = leg.from === waypoint?.chainId
-      return {
-        type: leg.type,
-        from: isOutbound ? context : { chainId: leg.from },
-        to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
-        relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
-        messageHash: isOutbound ? waypoint.messageHash : undefined,
-        messageId: isOutbound ? (waypoint.messageId ?? payload.messageId) : undefined,
-        instructions: isOutbound ? waypoint.instructions : undefined,
-      }
-    }
-  })
-
-  return updatedStops
-}
-
-function toCorrelationId(payload: XcmMessagePayload): string {
-  const id = payload.messageId ?? payload.origin.messageHash
-
-  return toHex(
-    Twox256(
-      stringToUa8(
-        `${id}${payload.origin.chainId}${payload.origin.blockNumber}${payload.destination.chainId}`,
-      ),
-    ),
-  )
-}
-
-function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
-  return (payload.origin.event as BlockEvent)?.extrinsic?.evmTxHash
-}
-
-function toNewJourney(payload: HumanizedXcmPayload): NewXcmJourney {
-  return {
-    correlation_id: toCorrelationId(payload),
-    created_at: Date.now(),
-    type: payload.humanized.type,
-    destination: payload.destination.chainId,
-    instructions: asJSON(payload.origin.instructions),
-    transact_calls: asJSON(payload.humanized.transactCalls),
-    origin: payload.origin.chainId,
-    origin_extrinsic_hash: payload.origin.extrinsicHash,
-    origin_evm_tx_hash: toEvmTxHash(payload),
-    from: payload.humanized.from.key,
-    to: payload.humanized.to.key,
-    from_formatted: payload.humanized.from.formatted,
-    to_formatted: payload.humanized.to.formatted,
-    sent_at: payload.origin.timestamp,
-    status: toStatus(payload),
-    stops: asJSON(toStops(payload)),
-  }
-}
-
-function toNewAssets(assets: HumanizedXcmAsset[]): Omit<NewXcmAsset, 'journey_id'>[] {
-  return assets.map((asset) => ({
-    symbol: asset.symbol,
-    amount: asset.amount.toString(),
-    asset: asset.id,
-    decimals: asset.decimals,
-    usd: asset.volume,
-    role: asset.role,
-    sequence: asset.sequence,
-  }))
-}
-
 function shouldBroadcastJourney({ sentAt, recvAt }: { sentAt?: number; recvAt?: number }): boolean {
   if (hasBackfilling) {
     const timeAgo = Date.now() - BACKFILL_MIN_TIME_AGO_MILLIS
@@ -219,44 +64,35 @@ function shouldBroadcastJourney({ sentAt, recvAt }: { sentAt?: number; recvAt?: 
   return true
 }
 
+/**
+ * XCM Explorer
+ *
+ * Specialized crosschain indexer for the Polkadot XCM protocol.
+ * Uses the shared CrosschainExplorer for persistence and broadcasting.
+ * Other protocols (e.g. Wormhole, LayerZero) will have their own explorers.
+ */
 export class XcmExplorer {
   readonly #log: Logger
   readonly #humanizer: XcmHumanizer
-  readonly #repository: XcmRepository
-  readonly #migrator: Migrator
-  readonly #broadcaster: ServerSideEventsBroadcaster
+  readonly #crosschain: CrosschainExplorer
+  readonly #repository: CrosschainRepository
 
   #sub?: Subscription
   #assetCacheRefreshTask?: NodeJS.Timeout
 
   constructor({
     log,
-    dataPath,
     humanizer,
-    broadcaster,
-  }: { log: Logger; dataPath?: string; humanizer: XcmHumanizer; broadcaster: ServerSideEventsBroadcaster }) {
+    crosschain,
+  }: { log: Logger; crosschain: CrosschainExplorer; humanizer: XcmHumanizer }) {
     this.#log = log
     this.#humanizer = humanizer
-
-    const filename = resolveDataPath('db.xcm-explorer.sqlite', dataPath)
-    this.#log.info('[xcm:explorer] database at %s', filename)
-
-    const { db, migrator } = createXcmDatabase(filename)
-    this.#migrator = migrator
-    this.#repository = new XcmRepository(db)
-    this.#broadcaster = broadcaster
+    this.#crosschain = crosschain
+    this.#repository = crosschain.repository
   }
 
   async start(tracker: XcmTracker) {
     this.#log.info('[xcm:explorer] start')
-
-    await this.#migrator.migrateToLatest()
-
-    if ((await this.#repository.getLastestSnapshot()) === undefined) {
-      await this.#refreshAssetCache()
-    }
-
-    this.#assetCacheRefreshTask = setInterval(this.#refreshAssetCache.bind(this), ASSET_CACHE_REFRESH).unref()
 
     this.#sub = tracker
       .historicalXcm$({
@@ -292,39 +128,12 @@ export class XcmExplorer {
     )
 
     await Promise.race([waitForAllLocks(), timeout])
-
-    await this.#repository.close()
-  }
-
-  async listAssets(pagination?: QueryPagination): Promise<QueryResult<ListAsset>> {
-    return await this.#repository.listAssets(pagination)
-  }
-
-  async listJourneys(
-    filters?: JourneyFilters,
-    pagination?: QueryPagination,
-  ): Promise<QueryResult<FullXcmJourneyResponse>> {
-    // convert address filters to public key for matching
-    if (filters?.address) {
-      filters.address = asPublicKey(filters.address)
-    }
-    const result = await this.#repository.listFullJourneys(filters, pagination)
-
-    return {
-      pageInfo: result.pageInfo,
-      items: result.nodes.map((journey) => deepCamelize<FullXcmJourney>(journey)),
-    }
-  }
-
-  async getJourneyById({ id }: { id: string }): Promise<QueryResult<FullXcmJourneyResponse>> {
-    const journey = await this.#repository.getJourneyById(id)
-    return journey ? { items: [deepCamelize<FullXcmJourney>(journey)] } : { items: [] }
   }
 
   async #onXcmMessage(message: XcmMessagePayload) {
     try {
       const correlationId = toCorrelationId(message)
-      const existingJourney = await this.#repository.getJourneyById(correlationId)
+      const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
 
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
         this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
@@ -364,7 +173,7 @@ export class XcmExplorer {
           if (existingJourney) {
             await this.#updateJourney(message, existingJourney)
 
-            const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
+            const { items } = await this.#crosschain.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {
               this.#broadcastUpdateJourney(items[0])
             }
@@ -433,7 +242,7 @@ export class XcmExplorer {
 
           await this.#updateSwapAndTrapAssets(message, existingJourney)
 
-          const { items } = await this.getJourneyById({ id: existingJourney.correlation_id })
+          const { items } = await this.#crosschain.getJourneyById({ id: existingJourney.correlation_id })
           if (items.length > 0) {
             this.#broadcastUpdateJourney(items[0])
           }
@@ -442,7 +251,7 @@ export class XcmExplorer {
           if (isXcmHop(message) && message.direction === 'out') {
             // Assign the waypoint to origin to get the correlation ID if hop out was emitted as origin sent message
             const cid = toCorrelationId({ ...message, origin: message.waypoint })
-            const { items } = await this.getJourneyById({ id: cid })
+            const { items } = await this.#crosschain.getJourneyById({ id: cid })
             if (items.length > 0) {
               try {
                 for (const i of items) {
@@ -470,9 +279,9 @@ export class XcmExplorer {
     }
   }
 
-  async #updateJourney(message: XcmMessagePayload, existingJourney: FullXcmJourney) {
+  async #updateJourney(message: XcmMessagePayload, existingJourney: FullJourney) {
     const updatedStops = toStops(message, existingJourney.stops)
-    const updateWith: Partial<XcmJourneyUpdate> = {
+    const updateWith: Partial<JourneyUpdate> = {
       status: toStatus(message),
       stops: asJSON(updatedStops),
     }
@@ -483,16 +292,20 @@ export class XcmExplorer {
     await this.#repository.updateJourney(existingJourney.id, updateWith)
   }
 
-  async #updateSwapAndTrapAssets(message: XcmMessagePayload, existingJourney: FullXcmJourney) {
+  async #updateSwapAndTrapAssets(message: XcmMessagePayload, existingJourney: FullJourney) {
     const { humanized } = await this.#humanizer.humanize(message)
 
     if (humanized.type === XcmJourneyType.Swap) {
       const swapAssets = humanized.assets.filter((a) => a.role === 'swap_in' || a.role === 'swap_out')
       const assetUpdates = swapAssets.map((asset) =>
-        this.#repository.updateAsset(existingJourney.id, asset, {
-          amount: asset.amount.toString(),
-          usd: asset.volume,
-        }),
+        this.#repository.updateAsset(
+          existingJourney.id,
+          { asset: asset.id, role: asset.role, sequence: asset.sequence },
+          {
+            amount: asset.amount.toString(),
+            usd: asset.volume,
+          },
+        ),
       )
       await Promise.all(assetUpdates)
     }
@@ -514,29 +327,17 @@ export class XcmExplorer {
     }
   }
 
-  #broadcastUpdateJourney(journey: FullXcmJourneyResponse) {
+  #broadcastUpdateJourney(journey: FullJourneyResponse) {
     this.#broadcastJourney('update_journey', journey)
   }
 
-  #broadcastNewJourney(journey: FullXcmJourneyResponse) {
+  #broadcastNewJourney(journey: FullJourneyResponse) {
     this.#broadcastJourney('new_journey', journey)
   }
 
-  #broadcastJourney(event: 'new_journey' | 'update_journey', data: FullXcmJourneyResponse) {
+  #broadcastJourney(event: 'new_journey' | 'update_journey', data: FullJourneyResponse) {
     if (shouldBroadcastJourney(data)) {
-      this.#broadcaster.send({
-        event,
-        data,
-      })
-    }
-  }
-
-  async #refreshAssetCache() {
-    try {
-      await this.#repository.refreshAssetSnapshot()
-      this.#log.info('[xcm:explorer] asset volume cache table refreshed')
-    } catch (error) {
-      this.#log.error(error, '[xcm:explorer] error on refreshing asset volume cache table')
+      this.#crosschain.broadcastJourney(event, data)
     }
   }
 }

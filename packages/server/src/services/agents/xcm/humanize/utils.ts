@@ -1,5 +1,5 @@
 import { AnyJson } from '@/lib.js'
-import { XcmAssetRole } from '../explorer/repositories/types.js'
+import { AssetRole } from '../../crosschain/index.js'
 import { MultiAsset, MultiAssetFilter, QueryableXcmAsset, isConcrete } from './types.js'
 
 export function extractMultiAssetFilterAssets(
@@ -45,7 +45,7 @@ export function extractLocation(id: MultiAsset['id']): string {
   return multiLocation ? stringifyMultilocation(multiLocation) : ''
 }
 
-export function parseMultiAsset(multiAssets: MultiAsset[], role?: XcmAssetRole): QueryableXcmAsset[] {
+export function parseMultiAsset(multiAssets: MultiAsset[], role?: AssetRole): QueryableXcmAsset[] {
   return multiAssets
     .filter((asset) => asset.fun.type === 'Fungible')
     .map((asset) => ({
