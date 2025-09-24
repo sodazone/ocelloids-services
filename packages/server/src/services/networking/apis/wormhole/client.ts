@@ -1,3 +1,4 @@
+import { AnyJson } from '@/lib.js'
 import ky from 'ky'
 import { WormholeOperation } from './types.js'
 
@@ -29,10 +30,10 @@ export class WormholescanClient {
   /**
    * Fetch all operations, automatically handling pagination.
    */
-  async fetchAllOperations(params: WormholeOperationParams): Promise<WormholeOperation[]> {
+  async fetchAllOperations<P = AnyJson>(params: WormholeOperationParams): Promise<WormholeOperation<P>[]> {
     const { pageSize = 100, ...query } = params
     let page = 0
-    let results: WormholeOperation[] = []
+    let results: WormholeOperation<P>[] = []
 
     while (true) {
       const data = await this.api
@@ -43,7 +44,7 @@ export class WormholescanClient {
             pageSize,
           },
         })
-        .json<{ operations: WormholeOperation[]; total: number }>()
+        .json<{ operations: WormholeOperation<P>[]; total: number }>()
 
       results = results.concat(data.operations)
 
@@ -59,13 +60,13 @@ export class WormholescanClient {
   /**
    * Fetch a single operation by its ID.
    */
-  async fetchOperationById(
+  async fetchOperationById<P = AnyJson>(
     chainId: string | number,
     emitterAddress: string,
     sequence: string | number,
-  ): Promise<WormholeOperation> {
+  ): Promise<WormholeOperation<P>> {
     return this.api
       .get(`api/v1/operations/${chainId}/${emitterAddress}/${sequence}`)
-      .json<WormholeOperation>()
+      .json<WormholeOperation<P>>()
   }
 }

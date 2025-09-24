@@ -1,6 +1,4 @@
-import { AnyJson } from '@/lib.js'
-
-export interface WormholeOperation {
+export interface WormholeOperation<P> {
   id: string
   emitterChain: number
   emitterAddress: {
@@ -14,7 +12,7 @@ export interface WormholeOperation {
     raw: number[]
   }
   content: {
-    payload: AnyJson
+    payload: P
     standarizedProperties: {
       amount: string
       appIds: string[]
