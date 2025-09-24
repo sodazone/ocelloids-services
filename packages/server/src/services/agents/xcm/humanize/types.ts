@@ -1,5 +1,5 @@
 import { AnyJson } from '@/lib.js'
-import { XcmAssetRole } from '../explorer/repositories/types.js'
+import { AssetRole } from '@/services/agents/crosschain/index.js'
 
 export type XcmV3MultiLocation = AnyJson
 
@@ -11,14 +11,14 @@ export type XcmAssetWithMetadata = {
   symbol?: string
   amount: bigint
   decimals?: number
-  role?: XcmAssetRole
+  role?: AssetRole
   sequence?: number
 }
 
 export type QueryableXcmAsset = {
   location: string
   amount: bigint
-  role?: XcmAssetRole
+  role?: AssetRole
   sequence?: number
 }
 
