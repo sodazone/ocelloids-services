@@ -191,3 +191,11 @@ export type StewardManagerContext = {
   scheduler: Scheduler
   ingress: IngressConsumers
 }
+
+const $AccountString = z.string().min(42).max(66)
+
+export const $StewardServerSideEventArgs = z.object({
+  account: $AccountString.or(z.array($AccountString).min(1).max(5)),
+})
+
+export type StewardServerSideEventArgs = z.infer<typeof $StewardServerSideEventArgs>

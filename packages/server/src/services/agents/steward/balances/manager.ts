@@ -5,6 +5,7 @@ import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { BatchOperation, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { toHex } from 'polkadot-api/utils'
 import { Subscription, firstValueFrom } from 'rxjs'
+import { ServerSideEvent } from '../../types.js'
 import { AssetMetadata, StewardManagerContext, StewardQueryArgs } from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { createBalancesCodec, normaliseAddress } from './codec.js'
@@ -45,16 +46,19 @@ export class BalancesManager {
   readonly #balanceDiscoveryInProgress = new Set<string>()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
+  readonly #broadcast: (event: ServerSideEvent) => void
 
   #running = false
 
   constructor(
     { log, openLevelDB, ingress }: StewardManagerContext,
     queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>,
+    broadcast: (event: ServerSideEvent) => void,
   ) {
     this.#log = log
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
+    this.#broadcast = broadcast
     this.#dbBalances = openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' })
   }
 
@@ -74,10 +78,26 @@ export class BalancesManager {
     await this.#dbBalances.close()
   }
 
-  // Will open SSE stream, maybe rename
-  // queries(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
-  //   throw new Error('Not implemented')
-  // }
+  async getAllForAddress(addressHex: HexString) {
+    const prefix = normaliseAddress(addressHex) // 32 bytes padded
+    const gte = Buffer.concat([prefix])
+    // 1 bigger than prefix (last byte +1) for upper bound
+    const lt = Buffer.concat([Buffer.from(prefix)]) // copy
+    lt[lt.length - 1]++
+
+    const out: { addressHex: HexString; assetIdHex: HexString; balance: bigint; epochSeconds: number }[] = []
+    for await (const [key, val] of this.#dbBalances.iterator({ gte, lt })) {
+      out.push({ ...balancesCodec.key.dec(key), ...balancesCodec.value.dec(val) })
+    }
+    return out
+  }
+
+  async fetchBalances(account: string | string[]) {
+    const toFetch = Array.isArray(account) ? account.map((a) => asPublicKey(a)) : [asPublicKey(account)]
+    for (const acc of toFetch) {
+      const _all = await this.getAllForAddress(acc)
+    }
+  }
 
   #subscribeBalancesEvents() {
     const chainIds = this.#substrateIngress.getChainIds()

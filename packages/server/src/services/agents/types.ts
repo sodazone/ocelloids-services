@@ -297,12 +297,14 @@ export type ServerSideEvent<T = any> = {
   data: T
 }
 
-export type ServerSideEventsBroadcaster = ReturnType<typeof createServerSideEventsBroadcaster>
+export type ServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQueryArgs> = ReturnType<
+  typeof createServerSideEventsBroadcaster<T>
+>
 
 /**
  * Interface defining the capabilities needed to handle SSE.
  */
-export interface Streamable {
+export interface Streamable<T extends AnyQueryArgs = AnyQueryArgs> {
   /**
    * Returns the Zod schema for filtering incoming event stream subscriptions.
    */
@@ -313,7 +315,7 @@ export interface Streamable {
    *
    * @param request - Info about the server side request (filters, metadata, etc.)
    */
-  onServerSideEventsRequest<T extends AnyQueryArgs>(request: ServerSideEventsRequest<T>): void
+  onServerSideEventsRequest(request: ServerSideEventsRequest<T>): void
 }
 
 /**

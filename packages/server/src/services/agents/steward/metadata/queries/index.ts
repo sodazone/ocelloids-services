@@ -14,8 +14,13 @@ export class Queries {
   readonly #chainsHandler
   readonly #locationHandler
 
-  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: SubstrateIngressConsumer) {
-    this.#assetsHandler = new AssetsQueryHandler(dbAssets)
+  constructor(
+    dbAssets: LevelDB,
+    dbAssetsHashIndex: LevelDB,
+    dbChains: LevelDB,
+    ingress: SubstrateIngressConsumer,
+  ) {
+    this.#assetsHandler = new AssetsQueryHandler(dbAssets, dbAssetsHashIndex)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
     this.#locationHandler = new LocationQueryHandler(dbAssets, ingress)
   }

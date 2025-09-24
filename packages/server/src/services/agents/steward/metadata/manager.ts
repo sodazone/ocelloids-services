@@ -65,6 +65,8 @@ const ASSET_PALLET_EVENTS = [
   'AssetThawed',
 ]
 
+let lastUpdated: number | null = null
+
 export class AssetMetadataManager {
   id = 'steward:metadata'
 
@@ -95,7 +97,7 @@ export class AssetMetadataManager {
     this.#dbChains = db.sublevel<string, SubstrateNetworkInfo>(CHAIN_INFO_LEVEL_PREFIX, {
       valueEncoding: 'json',
     })
-    this.#queries = new Queries(this.#dbAssets, this.#dbChains, this.#ingress)
+    this.#queries = new Queries(this.#dbAssets, this.#dbAssetsHashIndex, this.#dbChains, this.#ingress)
 
     this.#sched.on(ASSET_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -126,8 +128,12 @@ export class AssetMetadataManager {
   }
 
   async #onScheduledTask() {
+    if (lastUpdated && Date.now() - lastUpdated < 60_000 * 60) {
+      return
+    }
     this.#syncAssetMetadata()
     await this.#scheduleSync()
+    lastUpdated = Date.now()
   }
 
   async #scheduleSync() {
