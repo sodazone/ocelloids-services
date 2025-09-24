@@ -192,10 +192,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     return this.#rpc.queryStorageAt(keys, at)
   }
 
-  async runtimeCall<T = any>(
-    { api, method, at }: { api: string; method: string; at?: string },
-    ...args: any[]
-  ) {
+  async runtimeCall<T = any>({ api, method, at }: { api: string; method: string; at?: string }, args: any[]) {
     try {
       const atHash = at ?? null
       const codec = (await this.ctx()).runtimeCallCodec<T>(api, method)
@@ -203,7 +200,9 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       const data = await firstValueFrom(this.#head.call$(atHash, `${api}_${method}`, toHex(encodedArgs)))
       return data ? codec.value.dec(data) : null
     } catch (error) {
-      throw new Error(`[client:${this.chainId}] Failed to call ${api}.${method}.`, { cause: error })
+      throw new Error(`[client:${this.chainId}] Failed to call ${api}.${method}. args=${args}`, {
+        cause: error,
+      })
     }
   }
 

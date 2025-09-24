@@ -177,7 +177,7 @@ export class SubstrateDistributedConsumer
   runtimeCall<T = any>(
     _chainId: NetworkURN,
     _opts: { api: string; method: string; at?: string },
-    ..._args: any[]
+    _args: any[],
   ): Promise<T | null> {
     throw new Error('Method not implemented.')
   }
