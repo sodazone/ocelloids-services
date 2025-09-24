@@ -111,6 +111,7 @@ function genericAssetsBalancesSubscription(
         try {
           enqueue(chainId, storageKeysCodec.enc(transformHexFields(assetId), account) as HexString, {
             ...partialData,
+            type: 'storage',
             account,
             publicKey: asPublicKey(account),
           })
@@ -121,7 +122,7 @@ function genericAssetsBalancesSubscription(
     })
 }
 
-export function toAssetsStorageKey(assetId: AssetId, account: string, apiCtx: SubstrateApiContext) {
+export function toAssetsStorageKey(assetId: AssetId | bigint, account: string, apiCtx: SubstrateApiContext) {
   return toGenericAssetStorageKey(assetId, account, apiCtx, 'Assets')
 }
 
@@ -130,7 +131,7 @@ export function toForeignAssetsStorageKey(assetId: AssetId, account: string, api
 }
 
 export function toGenericAssetStorageKey(
-  assetId: AssetId,
+  assetId: AssetId | bigint,
   account: string,
   apiCtx: SubstrateApiContext,
   module: 'Assets' | 'ForeignAssets',
@@ -139,7 +140,6 @@ export function toGenericAssetStorageKey(
   try {
     const storageKey = storageCodec.keys.enc(assetId, account) as HexString
     return {
-      type: 'storage',
       storageKey,
       module,
       name: STORAGE_NAME,

@@ -1,26 +1,27 @@
 import { asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
+import { Binary } from 'polkadot-api'
 import { networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   AssetsBalance,
-  BalancesDiscoveryMapper,
+  Balance,
   BalancesSubscriptionMapper,
+  CustomDiscoveryFetcher,
   NativeBalance,
+  StorageKeyMapper,
 } from '../types.js'
-import { calculateFreeBalance, getFrontierAccountStoragesSlot } from '../util.js'
+import { calculateFreeBalance, getFrontierAccountStoragesSlot, isEVMAddress } from '../util.js'
 import {
   assetsBalancesSubscription,
   foreignAssetsBalancesSubscription,
   toAssetsStorageKey,
   toForeignAssetsStorageKey,
 } from './assets.js'
+import { hydrationEVMAssetsFetcher, hydrationEVMSubscription } from './hydration-evm.js'
 import { moonbeamBalancesSubscription, toEVMStorageKey } from './moonbeam.js'
 import { nativeBalancesSubscription, toNativeStorageKey } from './native.js'
-
-function isEVMAddress(account: string) {
-  return account.startsWith('0x') && account.length === 42
-}
+import { toTokenStorageKey, tokensBalancesSubscription } from './tokens.js'
 
 const getDefaultBalancesSubscription: (chainId: NetworkURN) => BalancesSubscriptionMapper =
   (chainId) => (ingress, enqueue) => {
@@ -29,21 +30,6 @@ const getDefaultBalancesSubscription: (chainId: NetworkURN) => BalancesSubscript
 
 export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapper> = {
   [networks.polkadot]: getDefaultBalancesSubscription(networks.polkadot),
-  // [networks.bridgeHub]: BYPASS_MAPPER,
-  // [networks.people]: BYPASS_MAPPER,
-  // [networks.coretime]: BYPASS_MAPPER,
-  // [networks.acala]: acalaMapper,
-  // [networks.nodle]: BYPASS_MAPPER,
-  // [networks.phala]: BYPASS_MAPPER,
-  // [networks.mythos]: BYPASS_MAPPER,
-  [networks.moonbeam]: (ingress, enqueue) => {
-    const chainId = networks.moonbeam
-    return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      moonbeamBalancesSubscription(chainId, ingress, enqueue),
-    ]
-  },
-  // [networks.astar]: astarMapper,
   [networks.assetHub]: (ingress, enqueue) => {
     const chainId = networks.assetHub
     return [
@@ -52,16 +38,47 @@ export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapp
       foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
     ]
   },
-  // [networks.bifrost]: bifrostMapper,
-  // [networks.centrifuge]: centrifugeMapper,
-  // [networks.hydration]: hydrationMapper,
-  // [networks.interlay]: interlayMapper,
-  // [networks.manta]: BYPASS_MAPPER,
-  // [networks.polimec]: BYPASS_MAPPER,
-  // [networks.hyperbridge]: hyperbridgeMapper,
+  [networks.bridgeHub]: getDefaultBalancesSubscription(networks.bridgeHub),
+  [networks.people]: getDefaultBalancesSubscription(networks.people),
+  [networks.coretime]: getDefaultBalancesSubscription(networks.coretime),
+  [networks.acala]: getDefaultBalancesSubscription(networks.acala),
+  [networks.phala]: getDefaultBalancesSubscription(networks.phala),
+  [networks.mythos]: getDefaultBalancesSubscription(networks.mythos),
+  [networks.moonbeam]: (ingress, enqueue) => {
+    const chainId = networks.moonbeam
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      moonbeamBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
+  [networks.astar]: (ingress, enqueue) => {
+    const chainId = networks.astar
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      assetsBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
+  [networks.bifrost]: (ingress, enqueue) => {
+    const chainId = networks.bifrost
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      tokensBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
+  [networks.centrifuge]: getDefaultBalancesSubscription(networks.centrifuge),
+  [networks.hydration]: (ingress, enqueue) => {
+    const chainId = networks.hydration
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      tokensBalancesSubscription(chainId, ingress, enqueue),
+      hydrationEVMSubscription(chainId, ingress, enqueue),
+    ]
+  },
+  [networks.interlay]: getDefaultBalancesSubscription(networks.interlay),
+  [networks.hyperbridge]: getDefaultBalancesSubscription(networks.hyperbridge),
   [networks.kusama]: getDefaultBalancesSubscription(networks.kusama),
   [networks.kusamaBridgeHub]: getDefaultBalancesSubscription(networks.kusama),
-  // [networks.kusamaCoretime]: BYPASS_MAPPER,
+  [networks.kusamaCoretime]: getDefaultBalancesSubscription(networks.kusamaCoretime),
   [networks.kusamaAssetHub]: (ingress, enqueue) => {
     const chainId = networks.kusamaAssetHub
     return [
@@ -70,24 +87,40 @@ export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapp
       foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
     ]
   },
-  // [networks.paseo]: BYPASS_MAPPER,
-  // [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
+  [networks.paseo]: getDefaultBalancesSubscription(networks.paseo),
+  [networks.paseoAssetHub]: (ingress, enqueue) => {
+    const chainId = networks.paseoAssetHub
+    return [
+      nativeBalancesSubscription(chainId, ingress, enqueue),
+      assetsBalancesSubscription(chainId, ingress, enqueue),
+      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+    ]
+  },
 }
 
-export const balanceExtractorMappers: Record<string, (storageValue: unknown) => bigint> = {
-  'Assets.Account': (storageValue: unknown) => {
-    return (storageValue as AssetsBalance).balance
+const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
+  'assets.account': (value: AssetsBalance) => {
+    return value.balance
   },
-  'Evm.AccountStorages': (storageValue: unknown) => {
-    return BigInt(storageValue as HexString)
+  'currenciesapi.account': (value: Balance) => {
+    return calculateFreeBalance(value)
   },
-  'ForeignAssets.Account': (storageValue: unknown) => {
-    return (storageValue as AssetsBalance).balance
+  'evm.accountstorages': (value: Binary) => {
+    return BigInt(value.asHex())
   },
-  'System.Account': (storageValue: unknown) => {
-    const { data } = storageValue as NativeBalance
+  'foreignassets.account': (value: AssetsBalance) => {
+    return value.balance
+  },
+  'system.account': ({ data }: NativeBalance) => {
     return calculateFreeBalance(data)
   },
+  'tokens.accounts': (value: Balance) => {
+    return calculateFreeBalance(value)
+  },
+}
+
+export function getBalanceExtractor(...path: string[]) {
+  return balanceExtractorMappers[path.map((p) => p.toLowerCase()).join('.')]
 }
 
 function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
@@ -99,15 +132,11 @@ function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
   }) as T
 }
 
-const baseDefaultStorageKeyMapper: BalancesDiscoveryMapper = (
-  _assetId: any,
-  account: string,
-  apiCtx: any,
-) => {
+const baseDefaultStorageKeyMapper: StorageKeyMapper = (_assetId: any, account: string, apiCtx: any) => {
   return toNativeStorageKey(account, apiCtx)
 }
 
-const assetHubStorageKeyMapper: BalancesDiscoveryMapper = ({ id }, account, apiCtx) => {
+const assetHubStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
   if (id === 'native') {
     return toNativeStorageKey(account, apiCtx)
   }
@@ -120,15 +149,25 @@ const assetHubStorageKeyMapper: BalancesDiscoveryMapper = ({ id }, account, apiC
   return null
 }
 
-export const balancesDiscoveryMappers: Record<string, BalancesDiscoveryMapper> = {
+export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
   [networks.polkadot]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  // [networks.bridgeHub]: BYPASS_MAPPER,
-  // [networks.people]: BYPASS_MAPPER,
-  // [networks.coretime]: BYPASS_MAPPER,
-  // [networks.acala]: acalaMapper,
-  // [networks.nodle]: BYPASS_MAPPER,
-  // [networks.phala]: BYPASS_MAPPER,
-  // [networks.mythos]: BYPASS_MAPPER,
+  [networks.assetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+  [networks.bridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.people]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.coretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.acala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.phala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.mythos]: ({ id }, account, apiCtx) => {
+    const pubKey = asPublicKey(account)
+    if (pubKey.length > 42) {
+      // Substrate addresses cannot be mapped to Mythos EVM address
+      return null
+    }
+    if (id === 'native') {
+      return toNativeStorageKey(pubKey, apiCtx)
+    }
+    return null
+  },
   [networks.moonbeam]: ({ id }, account, apiCtx) => {
     const pubKey = asPublicKey(account)
     if (pubKey.length > 42) {
@@ -136,7 +175,7 @@ export const balancesDiscoveryMappers: Record<string, BalancesDiscoveryMapper> =
       return null
     }
     if (id === 'native') {
-      return toNativeStorageKey(account, apiCtx)
+      return toNativeStorageKey(pubKey, apiCtx)
     }
     const slot = getFrontierAccountStoragesSlot(pubKey, 0)
     if (typeof id === 'string') {
@@ -148,19 +187,35 @@ export const balancesDiscoveryMappers: Record<string, BalancesDiscoveryMapper> =
     }
     return null
   },
-  // [networks.astar]: astarMapper,
-  [networks.assetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
-  // [networks.bifrost]: bifrostMapper,
-  // [networks.centrifuge]: centrifugeMapper,
-  // [networks.hydration]: hydrationMapper,
-  // [networks.interlay]: interlayMapper,
-  // [networks.manta]: BYPASS_MAPPER,
-  // [networks.polimec]: BYPASS_MAPPER,
-  // [networks.hyperbridge]: hyperbridgeMapper,
+  [networks.astar]: skipEVMAccounts(({ id }, account, apiCtx) => {
+    if (id === 'native') {
+      return toNativeStorageKey(account, apiCtx)
+    }
+    try {
+      const assetId = BigInt(id)
+      return toAssetsStorageKey(assetId, account, apiCtx)
+    } catch (_e) {
+      return null
+    }
+  }),
+  [networks.bifrost]: skipEVMAccounts(({ id }, account, apiCtx) => {
+    if (id === 'native') {
+      return toNativeStorageKey(account, apiCtx)
+    }
+    return toTokenStorageKey(id, account, apiCtx)
+  }),
+  [networks.centrifuge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.hydration]: null, // uses custom fetcher
+  [networks.interlay]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.hyperbridge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.kusama]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.kusamaBridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  // [networks.kusamaCoretime]: BYPASS_MAPPER,
+  [networks.kusamaCoretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.kusamaAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
-  // [networks.paseo]: BYPASS_MAPPER,
-  // [networks.paseoAssetHub]: assetHubMapper(networks.paseoAssetHub),
+  [networks.paseo]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  [networks.paseoAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+}
+
+export const customDiscoveryFetchers: Record<string, CustomDiscoveryFetcher> = {
+  [networks.hydration]: hydrationEVMAssetsFetcher,
 }

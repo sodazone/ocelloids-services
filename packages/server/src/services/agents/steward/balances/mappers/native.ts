@@ -63,6 +63,7 @@ export function nativeBalancesSubscription(
       for (const account of accounts) {
         enqueue(chainId, storageKeysCodec.enc(account) as HexString, {
           ...partialData,
+          type: 'storage',
           account,
           publicKey: asPublicKey(account),
         })
@@ -73,7 +74,6 @@ export function nativeBalancesSubscription(
 export function toNativeStorageKey(account: string, apiCtx: SubstrateApiContext): BalancesFromStorage {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
   return {
-    type: 'storage',
     storageKey: storageCodec.keys.enc(account) as HexString,
     module: STORAGE_MODULE,
     name: STORAGE_NAME,

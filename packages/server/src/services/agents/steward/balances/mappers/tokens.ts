@@ -7,7 +7,7 @@ import { toHex } from 'polkadot-api/utils'
 import { filter, map, switchMap } from 'rxjs'
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { EnqueueUpdateItem } from '../types.js'
+import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
 
 const PALLET_MODULE = 'Tokens'
 const PALLET_EVENTS = ['Deposited', 'DustLost', 'Endowed', 'Reserved', 'Transfer', 'Unreserved', 'Withdrawn']
@@ -67,6 +67,7 @@ export function tokensBalancesSubscription(
       for (const account of accounts) {
         enqueue(chainId, storageKeysCodec.enc(account, assetId) as HexString, {
           ...partialData,
+          type: 'storage',
           account,
           publicKey: asPublicKey(account),
         })
@@ -74,7 +75,11 @@ export function tokensBalancesSubscription(
     })
 }
 
-export function toTokenStorageKey(assetId: AssetId, account: string, apiCtx: SubstrateApiContext) {
+export function toTokenStorageKey(
+  assetId: AssetId,
+  account: string,
+  apiCtx: SubstrateApiContext,
+): BalancesFromStorage | null {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
   try {
     const storageKey = storageCodec.keys.enc(account, assetId) as HexString

@@ -2,7 +2,7 @@ import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Subscription } from 'rxjs'
-import { AssetMetadata } from '../types.js'
+import { AssetId, AssetMetadata } from '../types.js'
 
 export type BalancesSubscriptionMapper = (
   ingress: SubstrateIngressConsumer,
@@ -14,13 +14,26 @@ export type AccountBalancesData = {
   assetKeyHash: HexString
 }
 
-export type BalancesQueueData = {
+export type StorageQueueData = {
+  type: 'storage'
   module: string
   name: string
   account: string
   publicKey: HexString
   assetKeyHash: HexString
 }
+
+export type RuntimeQueueData = {
+  type: 'runtime'
+  api: string
+  method: string
+  args: any[]
+  account: string
+  publicKey: HexString
+  assetKeyHash: HexString
+}
+
+export type BalancesQueueData = StorageQueueData | RuntimeQueueData
 
 export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalancesQueueData) => void
 
@@ -45,11 +58,16 @@ export type NativeBalance = {
   data: Balance
 }
 
-export type BalancesFromStorage = { type: 'storage'; storageKey: HexString; module: string; name: string }
-export type BalancesFromRuntime = { type: 'runtime'; args: any[]; api: string; method: string }
+export type BalancesFromStorage = { storageKey: HexString; module: string; name: string }
+export type CustomDiscoveryFetcher = (ctx: {
+  chainId: NetworkURN
+  account: string
+  ingress: SubstrateIngressConsumer
+  apiCtx: SubstrateApiContext
+}) => Promise<{ assetId: AssetId; balance: bigint }[]>
 
-export type BalancesDiscoveryMapper = (
+export type StorageKeyMapper = (
   asset: AssetMetadata,
   account: string,
   apiCtx: SubstrateApiContext,
-) => BalancesFromStorage | BalancesFromRuntime | null
+) => BalancesFromStorage | null

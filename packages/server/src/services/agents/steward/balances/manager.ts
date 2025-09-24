@@ -10,10 +10,18 @@ import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { createBalancesCodec, normaliseAddress } from './codec.js'
 import {
   balanceEventsSubscriptions,
-  balanceExtractorMappers,
-  balancesDiscoveryMappers,
+  balancesStorageMappers,
+  customDiscoveryFetchers,
+  getBalanceExtractor,
 } from './mappers/index.js'
-import { Balance, BalancesFromRuntime, BalancesFromStorage, BalancesQueueData } from './types.js'
+import {
+  Balance,
+  BalancesFromStorage,
+  BalancesQueueData,
+  CustomDiscoveryFetcher,
+  RuntimeQueueData,
+  StorageQueueData,
+} from './types.js'
 
 const DISCO_MARKER_BYTE = Buffer.from([0xff])
 const balancesCodec = createBalancesCodec()
@@ -110,52 +118,85 @@ export class BalancesManager {
           continue
         }
 
-        // TODO: upper limit for number of keys
-        const storageKeys = Array.from(queue.keys())
+        const storageItems: Record<HexString, StorageQueueData> = {}
+        const runtimeItems: Record<HexString, RuntimeQueueData> = {}
+        const ops: BatchOperation<Buffer, Buffer>[] = []
 
-        try {
-          const ops: BatchOperation<Buffer, Buffer>[] = []
+        const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
 
-          for (const [storageKey, data] of queue.entries()) {
-            const { module, name, account, publicKey, assetKeyHash } = data
-            const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
+        for (const [key, data] of queue.entries()) {
+          if (data.type === 'runtime') {
+            runtimeItems[key] = data
+          } else {
+            storageItems[key] = data
+          }
+        }
 
-            const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
-            if (shouldBeDiscovered) {
-              this.#balanceDiscoveryQueue.add(account)
-            }
-
+        const storageKeys = Object.keys(storageItems) as HexString[]
+        if (storageKeys.length) {
+          try {
             const changesSets = await firstValueFrom(
               this.#substrateIngress.queryStorageAt(chainId, storageKeys),
             )
-            const changeSet = changesSets[0]?.changes.find(([key]) => key === storageKey)
-            const rawValue = changeSet ? changeSet[1] : null
+            for (const [storageKey, data] of Object.entries(storageItems)) {
+              const { module, name, account, publicKey, assetKeyHash } = data
+              const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
 
-            if (rawValue !== null) {
-              const codec = (await firstValueFrom(this.#substrateIngress.getContext(chainId))).storageCodec(
-                module,
-                name,
-              )
-              const decodedValue = codec.value.dec(rawValue)
-              const balanceExtractor = balanceExtractorMappers[`${module}.${name}`]
-              if (balanceExtractor) {
-                const balance = balanceExtractor(decodedValue)
-                const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
-
-                ops.push({ type: 'put', key: dbKey, value: dbValue })
+              const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
+              if (shouldBeDiscovered) {
+                this.#balanceDiscoveryQueue.add(account)
               }
-            } else {
-              ops.push({ type: 'del', key: dbKey })
+
+              const changeSet = changesSets[0]?.changes.find(([key]) => key === storageKey)
+              const rawValue = changeSet ? changeSet[1] : null
+
+              if (rawValue !== null) {
+                const codec = apiCtx.storageCodec(module, name)
+                const decodedValue = codec.value.dec(rawValue)
+                const balanceExtractor = getBalanceExtractor(module, name)
+                if (balanceExtractor) {
+                  const balance = balanceExtractor(decodedValue)
+                  const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
+
+                  ops.push({ type: 'put', key: dbKey, value: dbValue })
+                }
+              } else {
+                ops.push({ type: 'del', key: dbKey })
+              }
+
+              queue.delete(storageKey as HexString)
             }
-
-            queue.delete(storageKey)
+          } catch (err) {
+            this.#log.error(err, '[%s] failed processing queue for network %s', this.id, chainId)
           }
+        }
 
-          if (ops.length > 0) {
+        for (const [_, { api, method, args, assetKeyHash, account, publicKey }] of Object.entries(
+          runtimeItems,
+        )) {
+          const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
+          if (shouldBeDiscovered) {
+            this.#balanceDiscoveryQueue.add(account)
+          }
+          const balance = await this.#fetchBalanceFromRuntime({
+            chainId,
+            api,
+            method,
+            args,
+          })
+          if (balance) {
+            const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
+            const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
+            ops.push({ type: 'put', key: dbKey, value: dbValue })
+          }
+        }
+
+        if (ops.length > 0) {
+          try {
             await this.#dbBalances.batch(ops)
+          } catch (err) {
+            this.#log.error(err, '[%s] failed storing balances on #processUpdateQueue', this.id)
           }
-        } catch (err) {
-          this.#log.error(err, '[%s] failed processing queue for network %s', this.id, chainId)
         }
       }
     }
@@ -209,9 +250,17 @@ export class BalancesManager {
     apiCtx: SubstrateApiContext,
     pagination?: QueryPagination,
   ): Promise<void> {
-    const balancesDiscoveryMapper = balancesDiscoveryMappers[chainId]
-    if (!balancesDiscoveryMapper) {
-      this.#log.warn('[%s] no balances discovery mapper defined for chain %s', this.id, chainId)
+    const customFetcher = customDiscoveryFetchers[chainId]
+    if (customFetcher !== undefined) {
+      await this.#runCustomDiscoveryFetcher(customFetcher, {
+        chainId,
+        account,
+        apiCtx,
+      })
+    }
+
+    const storageMapper = balancesStorageMappers[chainId]
+    if (!storageMapper) {
       return
     }
 
@@ -227,32 +276,21 @@ export class BalancesManager {
       return
     }
 
-    const storageItems: (BalancesFromStorage & { assetKeyHash: HexString })[] = []
-    const runtimeItems: (BalancesFromRuntime & { assetKeyHash: HexString })[] = []
-
-    for (const item of items) {
-      const mapped = balancesDiscoveryMapper(item, account, apiCtx)
-      if (mapped === null) {
-        continue
-      }
-      if (mapped.type === 'storage') {
-        storageItems.push({
+    const storageItems: (BalancesFromStorage & { assetKeyHash: HexString })[] = items
+      .map((i) => {
+        const mapped = storageMapper(i, account, apiCtx)
+        if (mapped === null) {
+          return null
+        }
+        return {
           ...mapped,
-          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, item.id))) as HexString,
-        })
-      } else {
-        runtimeItems.push({
-          ...mapped,
-          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, item.id))) as HexString,
-        })
-      }
-    }
+          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, i.id))) as HexString,
+        }
+      })
+      .filter((i) => i !== null)
 
     if (storageItems.length > 0) {
       await this.#fetchBalancesFromStorage(chainId, account, apiCtx, storageItems)
-    }
-    if (runtimeItems.length > 0) {
-      await this.#fetchBalancesFromRuntime(chainId, account, runtimeItems)
     }
 
     if (pageInfo && pageInfo.hasNextPage && pageInfo.endCursor) {
@@ -265,42 +303,55 @@ export class BalancesManager {
     }
   }
 
-  async #fetchBalancesFromRuntime(
-    chainId: NetworkURN,
-    account: string,
-    runtimeItems: (BalancesFromRuntime & { assetKeyHash: HexString })[],
+  async #runCustomDiscoveryFetcher(
+    fetcher: CustomDiscoveryFetcher,
+    ctx: { chainId: NetworkURN; account: string; apiCtx: SubstrateApiContext },
   ) {
-    const ops: BatchOperation<Buffer, Buffer>[] = []
+    try {
+      const balances = await fetcher({ ...ctx, ingress: this.#substrateIngress })
+      const ops: BatchOperation<Buffer, Buffer>[] = balances.map(({ assetId, balance }) => {
+        const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(ctx.chainId, assetId))) as HexString
+        const dbKey = balancesCodec.key.enc(asPublicKey(ctx.account), assetKeyHash)
+        const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
+        return { type: 'put', key: dbKey, value: dbValue }
+      })
+      if (ops.length > 0) {
+        await this.#dbBalances.batch(ops)
+      }
+    } catch (error) {
+      this.#log.error(
+        error,
+        `Error discovering balances with custom discovery fetcher for chain ${ctx.chainId}. account=${ctx.account}`,
+      )
+    }
+  }
 
-    for (const { api, args, method, assetKeyHash } of runtimeItems) {
-      try {
-        const value = await this.#substrateIngress.runtimeCall<Balance>(
-          chainId,
-          {
-            api,
-            method,
-          },
-          args,
-        )
-        if (value !== null) {
-          const balanceExtractor = balanceExtractorMappers[`${api}.${method}`]
-          if (balanceExtractor) {
-            const balance = balanceExtractor(value)
-            const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)
-            const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
-            ops.push({ type: 'put', key: dbKey, value: dbValue })
-          }
-        }
-      } catch (error) {
-        this.#log.error(
-          error,
-          '[%s] failed fetching balances from runtime for account %s on %s',
-          this.id,
-          account,
-          chainId,
-        )
+  async #fetchBalanceFromRuntime({
+    chainId,
+    api,
+    method,
+    args,
+  }: {
+    chainId: NetworkURN
+    api: string
+    method: string
+    args: any[]
+  }) {
+    const value = await this.#substrateIngress.runtimeCall<Balance>(
+      chainId,
+      {
+        api,
+        method,
+      },
+      args,
+    )
+    if (value !== null) {
+      const balanceExtractor = getBalanceExtractor(api, method)
+      if (balanceExtractor) {
+        return balanceExtractor(value)
       }
     }
+    return null
   }
 
   async #fetchBalancesFromStorage(
@@ -323,7 +374,7 @@ export class BalancesManager {
           const codec = apiCtx.storageCodec(module, name)
           const decodedValue = codec.value.dec(rawValue)
 
-          const balanceExtractor = balanceExtractorMappers[`${module}.${name}`]
+          const balanceExtractor = getBalanceExtractor(module, name)
           if (balanceExtractor) {
             const balance = balanceExtractor(decodedValue)
             const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)

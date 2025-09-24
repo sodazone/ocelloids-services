@@ -1,10 +1,10 @@
-import { asJSON } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { extractEvmLogs } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { toHex } from 'polkadot-api/utils'
+import { Binary } from 'polkadot-api'
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { filter, map, switchMap } from 'rxjs'
 import { erc20Abi } from 'viem'
 import { assetOverrides } from '../../metadata/overrides.js'
@@ -77,13 +77,18 @@ export function moonbeamBalancesSubscription(
 
       for (const account of accounts) {
         try {
-          enqueue(chainId, storageKeysCodec.enc(assetId, account) as HexString, {
-            ...partialData,
-            account,
-            publicKey: account as HexString,
-          })
+          enqueue(
+            chainId,
+            storageKeysCodec.enc(new Binary(fromHex(assetId)), new Binary(fromHex(account))) as HexString,
+            {
+              ...partialData,
+              type: 'storage',
+              account,
+              publicKey: account as HexString,
+            },
+          )
         } catch (error) {
-          console.error(error, 'ERROR encoding storage key asset=%s account=%s', asJSON(assetId), account)
+          console.error(error, `ERROR encoding storage key asset=${assetId} account=${account}`)
         }
       }
     })
@@ -98,7 +103,6 @@ export function toEVMStorageKey(
   try {
     const storageKey = storageCodec.keys.enc(toBinary(contractAddress), toBinary(slotKey)) as HexString
     return {
-      type: 'storage',
       storageKey,
       module: STORAGE_MODULE,
       name: STORAGE_NAME,

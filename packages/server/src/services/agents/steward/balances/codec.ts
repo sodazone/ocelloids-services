@@ -19,6 +19,15 @@ function bufferToUint256(buf: Buffer) {
   return BigInt('0x' + buf.toString('hex'))
 }
 
+// EVM address → prefix with "ETH" + 1 zero byte, then address, then pad to 32 bytes
+export function padAccountKey20(addr: Buffer | HexString) {
+  const addrBuf = typeof addr === 'string' ? Buffer.from(addr.substring(2).toLowerCase(), 'hex') : addr
+  const buf = Buffer.alloc(32)
+  ethPrefix.copy(buf)
+  addrBuf.copy(buf, 4)
+  return buf
+}
+
 export function normaliseAddress(addressHex: HexString): Buffer {
   const addr = Buffer.from(addressHex.substring(2).toLowerCase(), 'hex')
 
@@ -27,11 +36,7 @@ export function normaliseAddress(addressHex: HexString): Buffer {
   }
 
   if (addr.length === 20) {
-    // EVM address → prefix with "ETH" + 1 zero byte, then address, then pad to 32 bytes
-    const buf = Buffer.alloc(32)
-    ethPrefix.copy(buf)
-    addr.copy(buf, 4)
-    return buf
+    return padAccountKey20(addr)
   }
 
   throw new Error(`Unsupported address length: ${addr.length} bytes`)
