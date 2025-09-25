@@ -39,6 +39,8 @@ export class Queries {
       return await this.#chainsHandler.queryChainList(pagination)
     } else if (args.op === 'assets.by_location') {
       return await this.#locationHandler.queryAssetByLocation(args.criteria)
+    } else if (args.op === 'assets.by_hash') {
+      return await this.#assetsHandler.queryAssetByHashIndex(args.criteria)
     }
 
     /* c8 ignore next */

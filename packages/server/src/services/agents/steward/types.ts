@@ -68,6 +68,12 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
     ),
   }),
   z.object({
+    op: z.literal('assets.by_hash'),
+    criteria: z.object({
+      assetHashes: z.array(z.string()).min(1).max(100),
+    }),
+  }),
+  z.object({
     op: z.literal('chains.list'),
   }),
   z.object({

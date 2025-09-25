@@ -65,8 +65,6 @@ const ASSET_PALLET_EVENTS = [
   'AssetThawed',
 ]
 
-let lastUpdated: number | null = null
-
 export class AssetMetadataManager {
   id = 'steward:metadata'
 
@@ -128,12 +126,8 @@ export class AssetMetadataManager {
   }
 
   async #onScheduledTask() {
-    if (lastUpdated && Date.now() - lastUpdated < 60_000 * 60) {
-      return
-    }
     this.#syncAssetMetadata()
     await this.#scheduleSync()
-    lastUpdated = Date.now()
   }
 
   async #scheduleSync() {
@@ -179,6 +173,7 @@ export class AssetMetadataManager {
         })
 
         const batch = this.#dbAssets.batch()
+        const batchAssetHash = this.#dbAssetsHashIndex.batch()
 
         for (let i = 0; i < chainInfo.chainTokens.length; i++) {
           const symbol = chainInfo.chainTokens[i].toString()
@@ -197,10 +192,15 @@ export class AssetMetadataManager {
               native: true,
             },
           }
-          batch.put(assetMetadataKey(chainId, asset.id), asset)
+          const assetKey = assetMetadataKey(chainId, asset.id)
+          batch.put(assetKey, asset)
+          batchAssetHash.put(assetMetadataKeyHash(assetKey), assetKey)
         }
         batch.write().catch((e) => {
           this.#log.error(e, '[agent:%s] while writing chain assets (chainId=%s)', this.id, chainId)
+        })
+        batchAssetHash.write().catch((e) => {
+          this.#log.error(e, '[agent:%s] while writing chain asset hashes (chainId=%s)', this.id, chainId)
         })
       })
       .catch((e) => {
