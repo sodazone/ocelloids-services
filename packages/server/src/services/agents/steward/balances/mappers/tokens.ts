@@ -1,10 +1,12 @@
+import { toHex } from 'polkadot-api/utils'
+import { filter, map, switchMap } from 'rxjs'
+
 import { asJSON, asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { toHex } from 'polkadot-api/utils'
-import { filter, map, switchMap } from 'rxjs'
+
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'

@@ -1,6 +1,9 @@
-import { asPublicKey } from '@/common/util.js'
-import { HexString, NetworkURN } from '@/lib.js'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
+
+import { HexString, NetworkURN } from '@/lib.js'
+
+import { fromHex } from 'polkadot-api/utils'
 import { networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
@@ -18,7 +21,7 @@ import {
   toAssetsStorageKey,
   toForeignAssetsStorageKey,
 } from './assets.js'
-import { hydrationEVMAssetsFetcher, hydrationEVMSubscription } from './hydration-evm.js'
+import { hydrationBalancesFetcher, hydrationEVMSubscription } from './hydration-evm.js'
 import { moonbeamBalancesSubscription, toEVMStorageKey } from './moonbeam.js'
 import { nativeBalancesSubscription, toNativeStorageKey } from './native.js'
 import { toTokenStorageKey, tokensBalancesSubscription } from './tokens.js'
@@ -132,19 +135,24 @@ function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
   }) as T
 }
 
-const baseDefaultStorageKeyMapper: StorageKeyMapper = (_assetId: any, account: string, apiCtx: any) => {
-  return toNativeStorageKey(account, apiCtx)
+const baseDefaultStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
+  if (id === 'native') {
+    const ss58Account = fromBufferToBase58(0)(fromHex(account))
+    return toNativeStorageKey(ss58Account, apiCtx)
+  }
+  return null
 }
 
 const assetHubStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
+  const ss58Account = fromBufferToBase58(0)(fromHex(account))
   if (id === 'native') {
-    return toNativeStorageKey(account, apiCtx)
+    return toNativeStorageKey(ss58Account, apiCtx)
   }
   if (typeof id === 'number' || typeof id === 'string') {
-    return toAssetsStorageKey(id, account, apiCtx)
+    return toAssetsStorageKey(id, ss58Account, apiCtx)
   }
   if (typeof id === 'object' && 'parents' in id) {
-    return toForeignAssetsStorageKey(id, account, apiCtx)
+    return toForeignAssetsStorageKey(id, ss58Account, apiCtx)
   }
   return null
 }
@@ -158,26 +166,24 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
   [networks.acala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.phala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.mythos]: ({ id }, account, apiCtx) => {
-    const pubKey = asPublicKey(account)
-    if (pubKey.length > 42) {
+    if (account.length > 42) {
       // Substrate addresses cannot be mapped to Mythos EVM address
       return null
     }
     if (id === 'native') {
-      return toNativeStorageKey(pubKey, apiCtx)
+      return toNativeStorageKey(account, apiCtx)
     }
     return null
   },
   [networks.moonbeam]: ({ id }, account, apiCtx) => {
-    const pubKey = asPublicKey(account)
-    if (pubKey.length > 42) {
+    if (account.length > 42) {
       // Substrate addresses cannot be mapped to Moonbeam EVM address
       return null
     }
     if (id === 'native') {
-      return toNativeStorageKey(pubKey, apiCtx)
+      return toNativeStorageKey(account, apiCtx)
     }
-    const slot = getFrontierAccountStoragesSlot(pubKey, 0)
+    const slot = getFrontierAccountStoragesSlot(account, 0)
     if (typeof id === 'string') {
       if (id.startsWith('0x')) {
         return toEVMStorageKey(id as HexString, slot, apiCtx)
@@ -188,21 +194,23 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
     return null
   },
   [networks.astar]: skipEVMAccounts(({ id }, account, apiCtx) => {
+    const ss58Account = fromBufferToBase58(0)(fromHex(account))
     if (id === 'native') {
-      return toNativeStorageKey(account, apiCtx)
+      return toNativeStorageKey(ss58Account, apiCtx)
     }
     try {
       const assetId = BigInt(id)
-      return toAssetsStorageKey(assetId, account, apiCtx)
+      return toAssetsStorageKey(assetId, ss58Account, apiCtx)
     } catch (_e) {
       return null
     }
   }),
   [networks.bifrost]: skipEVMAccounts(({ id }, account, apiCtx) => {
+    const ss58Account = fromBufferToBase58(0)(fromHex(account))
     if (id === 'native') {
-      return toNativeStorageKey(account, apiCtx)
+      return toNativeStorageKey(ss58Account, apiCtx)
     }
-    return toTokenStorageKey(id, account, apiCtx)
+    return toTokenStorageKey(id, ss58Account, apiCtx)
   }),
   [networks.centrifuge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.hydration]: null, // uses custom fetcher
@@ -217,5 +225,5 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
 }
 
 export const customDiscoveryFetchers: Record<string, CustomDiscoveryFetcher> = {
-  [networks.hydration]: hydrationEVMAssetsFetcher,
+  [networks.hydration]: hydrationBalancesFetcher,
 }

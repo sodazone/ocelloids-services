@@ -61,13 +61,13 @@ export type NativeBalance = {
 export type BalancesFromStorage = { storageKey: HexString; module: string; name: string }
 export type CustomDiscoveryFetcher = (ctx: {
   chainId: NetworkURN
-  account: string
+  account: HexString
   ingress: SubstrateIngressConsumer
   apiCtx: SubstrateApiContext
 }) => Promise<{ assetId: AssetId; balance: bigint }[]>
 
 export type StorageKeyMapper = (
   asset: AssetMetadata,
-  account: string,
+  account: HexString,
   apiCtx: SubstrateApiContext,
 ) => BalancesFromStorage | null

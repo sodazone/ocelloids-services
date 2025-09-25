@@ -213,21 +213,20 @@ export function hydrationEVMSubscription(
     })
 }
 
-export const hydrationEVMAssetsFetcher: CustomDiscoveryFetcher = async ({
+export const hydrationBalancesFetcher: CustomDiscoveryFetcher = async ({
   chainId,
   account,
   ingress,
   apiCtx,
 }) => {
-  let accountId32 = account
-  if (isEVMAddress(account)) {
-    accountId32 = await evmToSubstrateAddress({
-      evmAddress: account as HexString,
-      chainId,
-      ingress,
-      apiCtx,
-    })
-  }
+  const accountId32 = isEVMAddress(account)
+    ? await evmToSubstrateAddress({
+        evmAddress: account as HexString,
+        chainId,
+        ingress,
+        apiCtx,
+      })
+    : fromBufferToBase58(0)(fromHex(account))
   const results = await ingress.runtimeCall<[number, Balance][]>(
     chainId,
     {

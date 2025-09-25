@@ -3,10 +3,16 @@ import { HexString, QueryPagination, QueryParams, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { BatchOperation, LevelDB, Logger, NetworkURN } from '@/services/types.js'
+
 import { toHex } from 'polkadot-api/utils'
 import { Subscription, firstValueFrom } from 'rxjs'
-import { ServerSideEvent } from '../../types.js'
-import { AssetMetadata, StewardManagerContext, StewardQueryArgs } from '../types.js'
+import { ServerSideEventsBroadcaster, ServerSideEventsRequest } from '../../types.js'
+import {
+  AssetMetadata,
+  StewardManagerContext,
+  StewardQueryArgs,
+  StewardServerSideEventArgs,
+} from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { createBalancesCodec, normaliseAddress } from './codec.js'
 import {
@@ -42,11 +48,11 @@ export class BalancesManager {
   readonly #rxSubs: Subscription[] = []
 
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
-  readonly #balanceDiscoveryQueue = new Set<string>()
-  readonly #balanceDiscoveryInProgress = new Set<string>()
+  readonly #balanceDiscoveryQueue = new Set<HexString>()
+  readonly #balanceDiscoveryInProgress = new Set<HexString>()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
-  readonly #broadcast: (event: ServerSideEvent) => void
+  readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs>
 
   #running = false
   #config: Record<string, any>
@@ -54,13 +60,13 @@ export class BalancesManager {
   constructor(
     { log, openLevelDB, ingress, config }: StewardManagerContext,
     queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>,
-    broadcast: (event: ServerSideEvent) => void,
+    broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs>,
   ) {
     this.#log = log
     this.#config = config ?? {}
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
-    this.#broadcast = broadcast
+    this.#broadcaster = broadcaster
     this.#dbBalances = openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' })
   }
 
@@ -82,27 +88,6 @@ export class BalancesManager {
       sub.unsubscribe()
     }
     await this.#dbBalances.close()
-  }
-
-  async getAllForAddress(addressHex: HexString) {
-    const prefix = normaliseAddress(addressHex) // 32 bytes padded
-    const gte = Buffer.concat([prefix])
-    // 1 bigger than prefix (last byte +1) for upper bound
-    const lt = Buffer.concat([Buffer.from(prefix)]) // copy
-    lt[lt.length - 1]++
-
-    const out: { addressHex: HexString; assetIdHex: HexString; balance: bigint; epochSeconds: number }[] = []
-    for await (const [key, val] of this.#dbBalances.iterator({ gte, lt })) {
-      out.push({ ...balancesCodec.key.dec(key), ...balancesCodec.value.dec(val) })
-    }
-    return out
-  }
-
-  async fetchBalances(account: string | string[]) {
-    const toFetch = Array.isArray(account) ? account.map((a) => asPublicKey(a)) : [asPublicKey(account)]
-    for (const acc of toFetch) {
-      const _all = await this.getAllForAddress(acc)
-    }
   }
 
   #subscribeBalancesEvents() {
@@ -165,12 +150,12 @@ export class BalancesManager {
               this.#substrateIngress.queryStorageAt(chainId, storageKeys),
             )
             for (const [storageKey, data] of Object.entries(storageItems)) {
-              const { module, name, account, publicKey, assetKeyHash } = data
+              const { module, name, publicKey, assetKeyHash } = data
               const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
 
-              const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
+              const shouldBeDiscovered = await this.#shouldBeDiscovered(publicKey)
               if (shouldBeDiscovered) {
-                this.#balanceDiscoveryQueue.add(account)
+                this.#balanceDiscoveryQueue.add(publicKey)
               }
 
               const changeSet = changesSets[0]?.changes.find(([key]) => key === storageKey)
@@ -197,12 +182,10 @@ export class BalancesManager {
           }
         }
 
-        for (const [_, { api, method, args, assetKeyHash, account, publicKey }] of Object.entries(
-          runtimeItems,
-        )) {
-          const shouldBeDiscovered = await this.#shouldBeDiscovered({ account, publicKey })
+        for (const [_, { api, method, args, assetKeyHash, publicKey }] of Object.entries(runtimeItems)) {
+          const shouldBeDiscovered = await this.#shouldBeDiscovered(publicKey)
           if (shouldBeDiscovered) {
-            this.#balanceDiscoveryQueue.add(account)
+            this.#balanceDiscoveryQueue.add(publicKey)
           }
           const balance = await this.#fetchBalanceFromRuntime({
             chainId,
@@ -229,7 +212,7 @@ export class BalancesManager {
   }
 
   async #processDiscoveryQueue() {
-    while (this.#running) {
+    while (this.#running && this.#balanceDiscoveryInProgress.size < 5) {
       if (this.#balanceDiscoveryQueue.size === 0) {
         await new Promise((r) => setTimeout(r, 1_000))
         continue
@@ -272,7 +255,7 @@ export class BalancesManager {
 
   async #discoverBalances(
     chainId: NetworkURN,
-    account: string,
+    account: HexString,
     apiCtx: SubstrateApiContext,
     pagination?: QueryPagination,
   ): Promise<void> {
@@ -331,7 +314,7 @@ export class BalancesManager {
 
   async #runCustomDiscoveryFetcher(
     fetcher: CustomDiscoveryFetcher,
-    ctx: { chainId: NetworkURN; account: string; apiCtx: SubstrateApiContext },
+    ctx: { chainId: NetworkURN; account: HexString; apiCtx: SubstrateApiContext },
   ) {
     try {
       const balances = await fetcher({ ...ctx, ingress: this.#substrateIngress })
@@ -382,7 +365,7 @@ export class BalancesManager {
 
   async #fetchBalancesFromStorage(
     chainId: NetworkURN,
-    account: string,
+    account: HexString,
     apiCtx: SubstrateApiContext,
     storageItems: (BalancesFromStorage & { assetKeyHash: HexString })[],
   ) {
@@ -403,7 +386,7 @@ export class BalancesManager {
           const balanceExtractor = getBalanceExtractor(module, name)
           if (balanceExtractor) {
             const balance = balanceExtractor(decodedValue)
-            const dbKey = balancesCodec.key.enc(asPublicKey(account), assetKeyHash)
+            const dbKey = balancesCodec.key.enc(account, assetKeyHash)
             const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
             ops.push({ type: 'put', key: dbKey, value: dbValue })
           }
@@ -424,16 +407,16 @@ export class BalancesManager {
     }
   }
 
-  async #shouldBeDiscovered({
-    publicKey,
-    account,
-  }: { publicKey: HexString; account: string }): Promise<boolean> {
-    return !this.#balanceDiscoveryInProgress.has(account) && !(await this.#hasBeenDiscovered(publicKey))
+  async #shouldBeDiscovered(publicKey: HexString): Promise<boolean> {
+    return (
+      !this.#balanceDiscoveryQueue.has(publicKey) &&
+      !this.#balanceDiscoveryInProgress.has(publicKey) &&
+      !(await this.#hasBeenDiscovered(publicKey))
+    )
   }
 
   async #markDiscovered(account: string): Promise<void> {
     const key = Buffer.concat([DISCO_MARKER_BYTE, normaliseAddress(asPublicKey(account))])
-    // store timestamp instead of 1 if you want
     await this.#dbBalances.put(key, Buffer.from([1]))
   }
 

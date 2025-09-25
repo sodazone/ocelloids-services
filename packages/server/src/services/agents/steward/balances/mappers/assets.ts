@@ -15,7 +15,7 @@ import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
 
-export function transformHexFields(obj: any): any {
+export function serializeFields(obj: any): any {
   if (obj == null) {
     return obj
   }
@@ -24,14 +24,22 @@ export function transformHexFields(obj: any): any {
     return new Binary(fromHex(obj))
   }
 
+  if (typeof obj === 'string') {
+    try {
+      return BigInt(obj)
+    } catch (_error) {
+      //
+    }
+  }
+
   if (Array.isArray(obj)) {
-    return obj.map(transformHexFields)
+    return obj.map(serializeFields)
   }
 
   if (typeof obj === 'object') {
     const newObj: any = {}
     for (const [key, value] of Object.entries(obj)) {
-      newObj[key] = transformHexFields(value)
+      newObj[key] = serializeFields(value)
     }
     return newObj
   }
@@ -109,7 +117,7 @@ function genericAssetsBalancesSubscription(
 
       for (const account of accounts) {
         try {
-          enqueue(chainId, storageKeysCodec.enc(transformHexFields(assetId), account) as HexString, {
+          enqueue(chainId, storageKeysCodec.enc(serializeFields(assetId), account) as HexString, {
             ...partialData,
             type: 'storage',
             account,
@@ -127,7 +135,7 @@ export function toAssetsStorageKey(assetId: AssetId | bigint, account: string, a
 }
 
 export function toForeignAssetsStorageKey(assetId: AssetId, account: string, apiCtx: SubstrateApiContext) {
-  return toGenericAssetStorageKey(transformHexFields(assetId), account, apiCtx, 'ForeignAssets')
+  return toGenericAssetStorageKey(serializeFields(assetId), account, apiCtx, 'ForeignAssets')
 }
 
 export function toGenericAssetStorageKey(

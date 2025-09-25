@@ -28,20 +28,6 @@ export function padAccountKey20(addr: Buffer | HexString) {
   return buf
 }
 
-export function normaliseAddress(addressHex: HexString): Buffer {
-  const addr = Buffer.from(addressHex.substring(2).toLowerCase(), 'hex')
-
-  if (addr.length === 32) {
-    return Buffer.from(addr)
-  }
-
-  if (addr.length === 20) {
-    return padAccountKey20(addr)
-  }
-
-  throw new Error(`Unsupported address length: ${addr.length} bytes`)
-}
-
 function fromAddressBuf(addrBuf: Uint8Array): HexString {
   // Check for ETH-prefixed EVM address
   if (addrBuf.length >= 24 && addrBuf.slice(0, 4).every((value, index) => value === ethPrefix[index])) {
@@ -51,6 +37,20 @@ function fromAddressBuf(addrBuf: Uint8Array): HexString {
   }
 
   return toHex(addrBuf) as HexString
+}
+
+export function normaliseAddress(addressHex: HexString): Buffer {
+  const addr = Buffer.from(addressHex.substring(2).toLowerCase(), 'hex')
+
+  if (addr.length === 32) {
+    return addr
+  }
+
+  if (addr.length === 20) {
+    return padAccountKey20(addr)
+  }
+
+  throw new Error(`Unsupported address length: ${addr.length} bytes`)
 }
 
 export function createBalancesCodec() {
