@@ -1,5 +1,6 @@
 import ky from 'ky'
 
+import { WormholeId, normalizeWormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
 type WormholeOperationParams = {
@@ -17,6 +18,13 @@ export class WormholescanClient {
   constructor(baseUrl = 'https://api.wormholescan.io') {
     this.#api = ky.create({
       prefixUrl: baseUrl,
+      hooks: {
+        beforeRequest: [
+          (request) => {
+            console.log('Fetching:', request.url)
+          },
+        ],
+      },
       timeout: 10000,
       retry: {
         limit: 5,
@@ -25,6 +33,25 @@ export class WormholescanClient {
         backoffLimit: 2,
       },
     })
+  }
+
+  /**
+   *
+   */
+  async fetchOperations(
+    params: WormholeOperationParams & { page?: number },
+  ): Promise<{ operations: WormholeOperation[]; total: number }> {
+    const { page = 0, pageSize = 100, ...query } = params
+
+    return this.#api
+      .get('api/v1/operations', {
+        searchParams: {
+          ...query,
+          page,
+          pageSize,
+        },
+      })
+      .json<{ operations: WormholeOperation[]; total: number }>()
   }
 
   /**
@@ -60,14 +87,9 @@ export class WormholescanClient {
   /**
    * Fetch a single operation by its ID triplet.
    */
-  async fetchOperationById(
-    chainId: string | number,
-    emitterAddress: string,
-    sequence: string | number,
-  ): Promise<WormholeOperation> {
-    const op = await this.#api
-      .get(`api/v1/operations/${chainId}/${emitterAddress}/${sequence}`)
-      .json<WormholeOperation>()
+  async fetchOperationById(id: WormholeId): Promise<WormholeOperation> {
+    const urlId = normalizeWormholeId(id)
+    const op = await this.#api.get(`api/v1/operations/${urlId}`).json<WormholeOperation>()
 
     return op
   }

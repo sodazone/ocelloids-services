@@ -4,8 +4,6 @@ import { resolve } from 'node:path'
 import { Enum, Struct, u256 } from 'scale-ts'
 
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
-import { WormholeChainIds } from '@/services/networking/apis/wormhole/consts.js'
-import { isPortalTokenBridge } from '@/services/networking/apis/wormhole/types.js'
 import { createContextFromMetadata } from '@/services/networking/substrate/context.js'
 
 const context = createContextFromMetadata(
@@ -50,12 +48,13 @@ function decodeGmpPayload(hex: string) {
 }
 
 const client = new WormholescanClient()
-const response = await client.fetchOperationById(
-  1,
-  'ec7372995d5cc8732397fb0ad35c0121e0eaa90d26f828a534cab54391b3a4f5',
-  1309851,
-)
+const response = await client.fetchOperationById({
+  chainId: 1,
+  emitterAddress: 'ec7372995d5cc8732397fb0ad35c0121e0eaa90d26f828a534cab54391b3a4f5',
+  sequence: 1309851,
+})
 
+/*
 if (isPortalTokenBridge(response)) {
   const payload = response.content.payload
   switch (payload.payloadType) {
@@ -76,4 +75,4 @@ if (isPortalTokenBridge(response)) {
       break
     }
   }
-}
+}*/

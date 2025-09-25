@@ -5,6 +5,7 @@ export interface TransferPayload {
   tokenAddress: string
   toAddress: string
   toChain: number
+  fromAddress: string
 }
 
 export interface NFTTransferPayload {
@@ -13,6 +14,7 @@ export interface NFTTransferPayload {
   uri: string
   toAddress: string
   toChain: number
+  fromAddress: string
 }
 
 export interface TransferWithPayload {
@@ -39,6 +41,8 @@ export type PayloadUnknown = {
 
 export type Payload = PayloadPortalTokenBridge | PayloadUnknown
 
+export type WormholeOpStatus = 'in_progress' | 'completed' | 'confirmed'
+
 export interface WormholeOperation<P = Payload> {
   id: string
   emitterChain: number
@@ -62,11 +66,13 @@ export interface WormholeOperation<P = Payload> {
       feeChain: number
       fromAddress: string
       fromChain: number
-      normalizedDecimals: number
+      normalizedDecimals: number | null
       toAddress: string
       toChain: number
       tokenAddress: string
       tokenChain: number
+      wrappedTokenAddress?: string
+      wrappedTokenSymbol?: string
     }
   }
   sourceChain: {
@@ -79,12 +85,12 @@ export interface WormholeOperation<P = Payload> {
     feeUSD: string
     from: string
     gasTokenNotional: string
-    status: string
     timestamp: string
     transaction: {
       secondTxHash: string
       txHash: string
     }
+    status: WormholeOpStatus
   }
   targetChain: {
     balanceChanges: {
@@ -97,24 +103,19 @@ export interface WormholeOperation<P = Payload> {
     feeUSD: string
     from: string
     gasTokenNotional: string
-    status: string
     timestamp: string
     to: string
     transaction: {
       secondTxHash: string
       txHash: string
     }
+    status: WormholeOpStatus
   }
   data: Record<string, string>
+  isBigTransaction: boolean
+  isDailyLimitExceeded: boolean
+  transactionLimit: number
 }
 
-// Narrows WormholeOperation's payload if appIds contains PORTAL_TOKEN_BRIDGE
-export type PortalTokenBridgeOperation = Omit<WormholeOperation, 'content'> & {
-  content: Omit<WormholeOperation['content'], 'payload'> & {
-    payload: PayloadPortalTokenBridge
-  }
-}
-
-export function isPortalTokenBridge(op: WormholeOperation): op is PortalTokenBridgeOperation {
-  return op.content.standarizedProperties.appIds.includes('PORTAL_TOKEN_BRIDGE')
-}
+export type WormholeProtocol = 'wh' | 'wh_portal' | 'wh_relayer'
+export type WormholeAction = 'transfer' | 'transact' | '??'
