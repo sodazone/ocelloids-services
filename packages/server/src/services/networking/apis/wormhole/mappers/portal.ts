@@ -10,7 +10,7 @@ function mapPortalOpToJourney(op: WormholeOperation<PayloadPortalTokenBridge>): 
  */
 export function padAmountIfNeeded(report: string, reportFormatted: string, decimals: number): string {
   // TODO solve this... :_
-return report
+  return report
 }
 
 function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>): NewAssetOperation[] {
@@ -26,7 +26,9 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>): N
         asset: p.tokenAddress,
         symbol,
         // TODO: review and fix all this :D
-        amount: ['SOL', 'WSOL'].includes(symbol) ? padAmountIfNeeded(p.amount, d['tokenAmount'], 9) : p.amount,
+        amount: ['SOL', 'WSOL'].includes(symbol)
+          ? padAmountIfNeeded(p.amount, d['tokenAmount'], 9)
+          : p.amount,
         // (!) NOTE: inferred decimals may not match the canonical decimals
         // of the token, are local to that specific operation
         // because wormhole reports a "local" amount in the standarizedProperties.amount in regard to data.tokenAmount (that is correct)
