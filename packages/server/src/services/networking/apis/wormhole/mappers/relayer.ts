@@ -1,5 +1,6 @@
 import { HexString } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
+import { addressToHex } from '../address.js'
 import { decodeRelayerPayload, getRelayerInfo } from '../relayers/decode.js'
 import { WormholeOperation } from '../types.js'
 import { defaultAssetMapping, defaultJourneyMapping } from './default.js'
@@ -9,21 +10,25 @@ function mapRelayerOpToJourney(op: WormholeOperation): NewJourney {
 }
 
 function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAssetOperation[] {
-  const assetOp = defaultAssetMapping(op)
+  const assetOps = defaultAssetMapping(op, journey)
 
   const s = op.content.standarizedProperties
   const relayerInfo = getRelayerInfo(s.toChain, s.toAddress)
   if (relayerInfo) {
     const decoded = decodeRelayerPayload(relayerInfo, `0x${(op.content.payload as any).payload}` as HexString)
-    console.log('decoded relayer payload', decoded)
     if ('amount' in decoded) {
-      assetOp[0].amount = String(decoded['amount'])
-      assetOp[0].asset = decoded['token']
+      const assetOp = {
+        journey_id: -1,
+        amount: String(decoded['amount']),
+        asset: decoded['token'],
+      }
+      assetOps.push(assetOp)
     }
-    journey.to = decoded['to']
+    journey.to = addressToHex(decoded['to'])
+    journey.type = 'transfer'
   }
 
-  return assetOp
+  return assetOps
 }
 
 function isGenericRelayer(op: WormholeOperation) {

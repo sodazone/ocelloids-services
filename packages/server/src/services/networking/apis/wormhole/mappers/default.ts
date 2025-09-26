@@ -24,8 +24,8 @@ export function defaultJourneyMapping(
   protocol: WormholeProtocol,
 ): NewJourney {
   const s = op.content.standarizedProperties
-  const from = s.fromAddress || op.sourceChain.from
-  const to = s.toAddress || (op.targetChain?.to ?? '')
+  const from = op.sourceChain.from ?? s.fromAddress
+  const to = s.toAddress ?? op.targetChain?.to ?? ''
 
   const instructionsPayload = {
     standardizedProperties: s,
@@ -61,11 +61,17 @@ export function defaultJourneyMapping(
   }
 }
 
-export function defaultAssetMapping(op: WormholeOperation): NewAssetOperation[] {
+export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney): NewAssetOperation[] {
   const s = op.content.standarizedProperties
+
+  if (s.tokenAddress === '') {
+    journey.type = 'unknown'
+    return []
+  }
+
   return [
     {
-      journey_id: 0,
+      journey_id: -1,
       asset: s.tokenAddress,
       symbol: undefined,
       amount: s.amount,

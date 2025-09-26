@@ -16,21 +16,21 @@ type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
 }
 
+export function mapOperationToJourney(op: WormholeOperation): NewJourneyWithAssets {
+  let journey
+
+  const mapping = protocolMappings.find((m) => m.guard(op))
+  if (mapping) {
+    journey = mapping.mapJourney(op) as NewJourneyWithAssets
+    journey.assets = mapping.mapAssets(op, journey)
+  } else {
+    journey = defaultJourneyMapping(op, '??', 'wh') as NewJourneyWithAssets
+    journey.assets = defaultAssetMapping(op, journey)
+  }
+
+  return journey
+}
+
 export function mapOperationsToJourneys(ops: WormholeOperation[]): NewJourneyWithAssets[] {
-  const journeys: NewJourneyWithAssets[] = []
-
-  ops.forEach((op) => {
-    const mapping = protocolMappings.find((m) => m.guard(op))
-    if (mapping) {
-      const journey = mapping.mapJourney(op) as NewJourneyWithAssets
-      journey.assets = mapping.mapAssets(op, journey)
-      journeys.push(journey)
-    } else {
-      const journey = defaultJourneyMapping(op, '??', 'wh') as NewJourneyWithAssets
-      journey.assets = defaultAssetMapping(op)
-      journeys.push(journey)
-    }
-  })
-
-  return journeys
+  return ops.map(mapOperationToJourney)
 }
