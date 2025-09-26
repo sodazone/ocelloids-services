@@ -4,7 +4,7 @@ import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN, Services } from '@/services/types.js'
 
-import { Block, SubstrateApiContext } from '../../types.js'
+import { Block, StorageChangeSets, SubstrateApiContext } from '../../types.js'
 import { SubstrateWatcher } from '../../watcher/watcher.js'
 import { SubstrateIngressConsumer, SubstrateNetworkInfo } from '../types.js'
 
@@ -65,5 +65,17 @@ export class SubstrateLocalConsumer
     blockHash?: HexString,
   ): Observable<HexString[]> {
     return this.watcher.getStorageKeys(chainId, keyPrefix, count, startKey, blockHash)
+  }
+
+  queryStorageAt(
+    chainId: NetworkURN,
+    storageKeys: HexString[],
+    blockHash?: HexString,
+  ): Observable<StorageChangeSets> {
+    return this.watcher.queryStorageAt(chainId, storageKeys, blockHash)
+  }
+
+  runtimeCall<T = any>(chainId: NetworkURN, opts: { api: string; method: string; at?: string }, args: any[]) {
+    return this.watcher.runtimeCall<T>(chainId, opts, args)
   }
 }

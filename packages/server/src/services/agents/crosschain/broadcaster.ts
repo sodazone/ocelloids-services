@@ -5,9 +5,14 @@ import { ServerSideEvent } from '../types.js'
 import { FullJourneyResponse } from './repositories/types.js'
 import { XcServerSideEventArgs } from './types/sse.js'
 
+type XcEvents = {
+  event: string
+  data: FullJourneyResponse
+}
+
 function applySseFilters(
   filters: XcServerSideEventArgs,
-  { data: journey }: ServerSideEvent<FullJourneyResponse>,
+  { data: journey }: ServerSideEvent<XcEvents>,
 ): boolean {
   if (filters.id && filters.id !== journey.correlationId) {
     return false

@@ -1,9 +1,10 @@
-import { randomUUID } from 'node:crypto'
+import { ulid } from 'ulidx'
 
 import { asJSON } from '@/common/util.js'
 
 import {
   AnyQueryArgs,
+  GenericEvent,
   ServerSideEvent,
   ServerSideEventsConnection,
   ServerSideEventsRequest,
@@ -48,9 +49,10 @@ function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, 
   return safeFilters as T
 }
 
-export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQueryArgs>(
-  matchFilters: (filters: T, event: ServerSideEvent) => boolean = () => true,
-) {
+export function createServerSideEventsBroadcaster<
+  T extends AnyQueryArgs = AnyQueryArgs,
+  E extends GenericEvent = GenericEvent,
+>(matchFilters: (filters: T, event: ServerSideEvent<E>) => boolean = () => true) {
   // TODO limits per account
   const connections: Map<string, ServerSideEventsConnection<T>> = new Map()
   let keepAliveInterval: NodeJS.Timeout | undefined
@@ -87,7 +89,7 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     )
     reply.raw.writeHead(200)
 
-    const id = randomUUID()
+    const id = ulid()
     const send = ({ event, data }: ServerSideEvent) => {
       reply.raw.write(`event: ${event}\ndata: ${asJSON(data)}\n\n`)
     }
@@ -103,14 +105,17 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
 
     const normalizedFilters = sanitizeFilters(filters) as T
 
-    connections.set(id, {
+    const connection = {
       id,
       filters: normalizedFilters,
       request,
       send,
-    })
+    }
+    connections.set(id, connection)
 
     keepAlive()
+
+    return connection
   }
 
   const disconnect = (connection: ServerSideEventsConnection) => {
@@ -123,8 +128,22 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     }
   }
 
-  const send = (event: ServerSideEvent) => {
+  const send = (event: ServerSideEvent<E>) => {
     for (const connection of connections.values()) {
+      try {
+        if (matchFilters(connection.filters, event)) {
+          connection.send(event)
+        }
+      } catch (error) {
+        console.error(error, 'Error sending SSE')
+        disconnect(connection)
+      }
+    }
+  }
+
+  const sendToConnection = (id: string, event: ServerSideEvent<E>) => {
+    const connection = connections.get(id)
+    if (connection) {
       try {
         if (matchFilters(connection.filters, event)) {
           connection.send(event)
@@ -146,5 +165,6 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     stream: startStreaming,
     close,
     send,
+    sendToConnection,
   }
 }
