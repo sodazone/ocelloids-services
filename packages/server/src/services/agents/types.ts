@@ -292,14 +292,13 @@ export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = 
   send: (event: ServerSideEvent) => void
 }
 
-export type ServerSideEvent<T = any> = {
-  event: string
-  data: T
-}
+export type GenericEvent = { event: string; data: any }
+export type ServerSideEvent<T extends GenericEvent = GenericEvent> = T
 
-export type ServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQueryArgs> = ReturnType<
-  typeof createServerSideEventsBroadcaster<T>
->
+export type ServerSideEventsBroadcaster<
+  T extends AnyQueryArgs = AnyQueryArgs,
+  E extends GenericEvent = GenericEvent,
+> = ReturnType<typeof createServerSideEventsBroadcaster<T, E>>
 
 /**
  * Interface defining the capabilities needed to handle SSE.

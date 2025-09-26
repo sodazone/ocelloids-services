@@ -4,24 +4,50 @@ import { createServerSideEventsBroadcaster } from '../../api/sse.js'
 import { ServerSideEvent } from '../../types.js'
 import { AssetId, StewardServerSideEventArgs } from '../types.js'
 
+export type BalanceEventName = 'balance' | 'status' | 'synced'
+
 export type AccountData = {
-  account: string
+  accountId: string
   publicKey: HexString
 }
+
+export type StatusData = AccountData & {
+  status: string
+}
+
+export type AssetData = {
+  chainId: NetworkURN
+  assetId: AssetId
+  symbol?: string
+  decimals?: number
+}
+
 export type BalancesData = AccountData &
-  {
-    chainId: NetworkURN
-    assetId: AssetId
-    assetMetadata: {
-      symbol?: string
-      decimals?: number
-    }
+  AssetData & {
+    origin: 'snapshot' | 'update'
     balance: bigint
-  }[]
+  }
+
+export type SyncedEvent = {
+  event: 'synced'
+  data: AccountData
+}
+
+export type StatusEvent = {
+  event: 'status'
+  data: StatusData
+}
+
+export type BalanceEvent = {
+  event: 'balance'
+  data: BalancesData
+}
+
+export type BalanceEvents = BalanceEvent | StatusEvent | SyncedEvent
 
 function applySseFilters(
   { account }: StewardServerSideEventArgs,
-  { data }: ServerSideEvent<BalancesData> | ServerSideEvent<AccountData>,
+  { data }: ServerSideEvent<BalanceEvent> | ServerSideEvent<SyncedEvent> | ServerSideEvent<StatusEvent>,
 ): boolean {
   const pubKeyFilter = Array.isArray(account) ? account.map((a) => asPublicKey(a)) : [asPublicKey(account)]
   if (!pubKeyFilter.includes(data.publicKey)) {
@@ -31,4 +57,4 @@ function applySseFilters(
 }
 
 export const createStewardBroadcaster = () =>
-  createServerSideEventsBroadcaster<StewardServerSideEventArgs>(applySseFilters)
+  createServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>(applySseFilters)

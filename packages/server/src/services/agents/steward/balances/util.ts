@@ -29,7 +29,3 @@ export function getFrontierAccountStoragesSlot(key: HexString, slot: number) {
 export function toBinary(str: HexString) {
   return new Binary(fromHex(str))
 }
-
-export function isEVMAddress(account: string) {
-  return account.startsWith('0x') && account.length === 42
-}

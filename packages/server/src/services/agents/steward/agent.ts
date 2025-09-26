@@ -6,14 +6,13 @@ import {
   QueryParams,
   QueryResult,
   Queryable,
-  ServerSideEvent,
   ServerSideEventsBroadcaster,
   ServerSideEventsRequest,
   Streamable,
   getAgentCapabilities,
 } from '../types.js'
 import { BalancesManager } from './balances/manager.js'
-import { createStewardBroadcaster } from './balances/sse.js'
+import { BalanceEvents, createStewardBroadcaster } from './balances/sse.js'
 import { AssetMetadataManager } from './metadata/manager.js'
 import {
   $StewardQueryArgs,
@@ -42,7 +41,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
   readonly #metadataManager: AssetMetadataManager
   readonly #balancesManager: BalancesManager
   readonly #substrateIngress: SubstrateIngressConsumer
-  readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs>
+  readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
 
   constructor(ctx: AgentRuntimeContext) {
     const managerContext = {
@@ -53,14 +52,11 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
       ingress: ctx.ingress,
       config: ctx.config,
     }
-    this.#metadataManager = new AssetMetadataManager(managerContext)
-    this.#balancesManager = new BalancesManager(
-      managerContext,
-      this.query.bind(this),
-      this.broadcast.bind(this),
-    )
-    this.#substrateIngress = ctx.ingress.substrate
+
     this.#broadcaster = createStewardBroadcaster()
+    this.#metadataManager = new AssetMetadataManager(managerContext)
+    this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this), this.#broadcaster)
+    this.#substrateIngress = ctx.ingress.substrate
   }
 
   async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
@@ -73,26 +69,23 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
     throw new Error(`Query type ${queryType} not supported`)
   }
 
-  broadcast(event: ServerSideEvent) {
-    this.#broadcaster.send(event)
-  }
-
   onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
-    this.#broadcaster.stream(request)
+    if (request.streamName === 'balances') {
+      this.#balancesManager.onServerSideEventsRequest(request)
+    } else {
+      throw new Error(`SSE stream not supported: ${request.streamName}`)
+    }
   }
 
   async stop() {
-    this.#metadataManager.stop()
-    // balances manager stop
     await this.#balancesManager.stop()
+    this.#metadataManager.stop()
     this.#broadcaster.close()
   }
 
   async start() {
     await this.#substrateIngress.isReady()
-
     await this.#metadataManager.start()
-    // balances manager start
     await this.#balancesManager.start()
   }
 

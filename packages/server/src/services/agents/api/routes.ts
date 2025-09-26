@@ -258,6 +258,8 @@ export async function AgentsApi(api: FastifyInstance) {
         request: request.raw,
         reply,
       })
+
+      return reply
     },
   )
 }

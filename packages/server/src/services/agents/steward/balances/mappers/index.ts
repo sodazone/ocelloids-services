@@ -3,6 +3,7 @@ import { Binary } from 'polkadot-api'
 
 import { HexString, NetworkURN } from '@/lib.js'
 
+import { isEVMAddress } from '@/common/util.js'
 import { fromHex } from 'polkadot-api/utils'
 import { networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
@@ -14,7 +15,7 @@ import {
   NativeBalance,
   StorageKeyMapper,
 } from '../types.js'
-import { calculateFreeBalance, getFrontierAccountStoragesSlot, isEVMAddress } from '../util.js'
+import { calculateFreeBalance, getFrontierAccountStoragesSlot } from '../util.js'
 import {
   assetsBalancesSubscription,
   foreignAssetsBalancesSubscription,

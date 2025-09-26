@@ -1,5 +1,6 @@
 import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
@@ -33,6 +34,17 @@ export function asPublicKey(accountId: string): HexString {
   }
 
   return normalizePublicKey(info.publicKey)
+}
+
+export function isEVMAddress(account: string) {
+  return account.startsWith('0x') && account.length === 42
+}
+
+export function asAccountId(account: HexString, ss58Prefix = 0): string {
+  if (isEVMAddress(account)) {
+    return account
+  }
+  return fromBufferToBase58(ss58Prefix)(fromHex(account))
 }
 
 const textEncoder = new TextEncoder()
