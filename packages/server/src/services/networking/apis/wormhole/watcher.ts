@@ -8,7 +8,7 @@ import { PersistentWatcherStorage } from './storage.js'
 import { WormholeOperation } from './types.js'
 
 const FINAL_STATUS: JourneyStatus[] = ['received', 'timeout', 'failed', 'unknown']
-const MAX_SEEN = 1000
+const MAX_SEEN = 1_000
 const CONCURRENCY = 5
 
 const limit = pLimit(CONCURRENCY)
@@ -104,8 +104,8 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
   function operations$(
     initialState: WatcherState,
-    intervalMs = 5000,
-    timeoutMs = 24 * 60 * 60 * 1000, // 24h
+    intervalMs = 10_000, // 10s
+    timeoutMs = 24 * 60 * 60 * 1_000, // 24h
   ): Observable<{ op: WormholeOperation; status: JourneyStatus }> {
     return new Observable((subscriber) => {
       let state = initialState
