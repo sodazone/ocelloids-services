@@ -46,7 +46,7 @@ export class BalancesManager {
   readonly #rxSubs: Subscription[] = []
 
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
-  readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>()
+  readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>({ maxEnqueuedItems: 10 })
   readonly #balanceDiscoveryInProgress = new Set<HexString>()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>

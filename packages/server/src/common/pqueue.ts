@@ -20,11 +20,11 @@ export class PriorityQueue<K> {
   readonly #indexMap = new Map<K, number>()
   readonly #uidCount = new Map<string, number>()
 
-  readonly #maxEnqueuedAddresses: number
+  readonly #maxEnqueuedItems: number
   #seq = 0
 
-  constructor(config?: { maxEnqueuedAddresses?: number }) {
-    this.#maxEnqueuedAddresses = config?.maxEnqueuedAddresses ?? 50
+  constructor(config?: { maxEnqueuedItems?: number }) {
+    this.#maxEnqueuedItems = config?.maxEnqueuedItems ?? 50
   }
 
   /**
@@ -34,7 +34,7 @@ export class PriorityQueue<K> {
   enqueue(key: K, uid?: string, priorityBoost = 1) {
     if (uid) {
       const count = this.#uidCount.get(uid) ?? 0
-      if (count >= this.#maxEnqueuedAddresses) {
+      if (count >= this.#maxEnqueuedItems) {
         throw new MaxEnqueuedError()
       }
       this.#uidCount.set(uid, count + 1)

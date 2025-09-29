@@ -25,7 +25,7 @@ describe('PriorityQueue', () => {
   })
 
   it('tracks UID counts and enforces maxEnqueuedAddresses', () => {
-    const q = new PriorityQueue<string>({ maxEnqueuedAddresses: 2 })
+    const q = new PriorityQueue<string>({ maxEnqueuedItems: 2 })
 
     q.enqueue('a', 'u1')
     q.enqueue('b', 'u1')
@@ -57,7 +57,7 @@ describe('PriorityQueue', () => {
   })
 
   it('throws MaxEnqueuedError independently per UID', () => {
-    const q = new PriorityQueue<string>({ maxEnqueuedAddresses: 2 })
+    const q = new PriorityQueue<string>({ maxEnqueuedItems: 2 })
 
     q.enqueue('a', 'u1')
     q.enqueue('b', 'u2')
