@@ -111,6 +111,10 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
         stops.push({ networkId })
         recursiveExtractStops(networkId, xcm, stops)
       }
+    } else if (instruction.type === 'InitiateTransfer') {
+      const { destination, remote_xcm } = instruction.value
+      nextStop = destination
+      message = remote_xcm
     }
 
     if (nextStop !== undefined && message !== undefined) {
