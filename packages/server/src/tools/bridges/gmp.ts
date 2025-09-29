@@ -37,7 +37,7 @@ const XcmRoutingUserAction = Struct({
   destination: VersionedLocation,
 })
 
-const GMP_PRECOMPILE = '0x0000000000000000000000000000000000000000000000000000000000000816'
+const _GMP_PRECOMPILE = '0x0000000000000000000000000000000000000000000000000000000000000816'
 const VersionedUserAction = Enum({
   XcmRoutingUserAction,
   XcmRoutingUserActionWithFee,
@@ -48,7 +48,7 @@ function decodeGmpPayload(hex: string) {
 }
 
 const client = new WormholescanClient()
-const response = await client.fetchOperationById({
+const _response = await client.fetchOperationById({
   chainId: 1,
   emitterAddress: 'ec7372995d5cc8732397fb0ad35c0121e0eaa90d26f828a534cab54391b3a4f5',
   sequence: 1309851,

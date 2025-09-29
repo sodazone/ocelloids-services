@@ -8,7 +8,7 @@ import {
   WormholeProtocol,
 } from '@/services/networking/apis/wormhole/types.js'
 
-function toStatus(op: WormholeOperation): JourneyStatus {
+export function toStatus(op: WormholeOperation): JourneyStatus {
   if (op.targetChain?.status === 'completed') {
     return 'received'
   }
@@ -17,6 +17,7 @@ function toStatus(op: WormholeOperation): JourneyStatus {
   }
   return 'unknown'
 }
+
 // TODO: handle errors
 export function defaultJourneyMapping(
   op: WormholeOperation,
