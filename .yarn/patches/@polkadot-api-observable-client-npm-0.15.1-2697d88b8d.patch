@@ -1,0 +1,51 @@
+diff --git a/dist/esm/chainHead/streams/pinned-blocks.mjs b/dist/esm/chainHead/streams/pinned-blocks.mjs
+index 65af16e7e32ca083b9551012d5ef0a7af0a2b362..c3c2c4970c7f7ecf68e38e12c86ae491c38167d7 100644
+--- a/dist/esm/chainHead/streams/pinned-blocks.mjs
++++ b/dist/esm/chainHead/streams/pinned-blocks.mjs
+@@ -24,7 +24,7 @@ const createRuntimeGetter = (pinned, startAt) => {
+   };
+ };
+ const deleteBlock = (blocks, blockHash) => {
+-  blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
++  // blocks.get(blocks.get(blockHash).parent)?.children.delete(blockHash);
+   blocks.delete(blockHash);
+ };
+ const deleteBlocks = (blocks, toDelete) => {
+@@ -89,9 +89,9 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+                 hash,
+                 hasNewRuntime: i ? event.runtimeChanges.has(hash) : event.hasNewRuntime,
+                 parent,
+-                children: new Set(
+-                  i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
+-                ),
++                // children: new Set(
++                //   i === lastIdx ? [] : [event.finalizedBlockHashes[i + 1]]
++                // ),
+                 unpinnable,
+                 runtime: latestRuntime,
+                 refCount: 0,
+@@ -121,13 +121,13 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+             acc.blocks.get(hash).recovering = false;
+           } else {
+             const parentNode = acc.blocks.get(parent);
+-            parentNode.children.add(hash);
++            // parentNode.children.add(hash);
+             const number = parentNode.number + 1;
+             const block = {
+               hash,
+               number,
+               parent,
+-              children: /* @__PURE__ */ new Set(),
++              // children: /* @__PURE__ */ new Set(),
+               runtime: event.newRuntime ? hash : parentNode.runtime,
+               unpinnable: false,
+               refCount: 0,
+@@ -159,7 +159,7 @@ const getPinnedBlocks$ = (follow$, call$, getCodeHash$, getCachedMetadata$, setC
+         case "finalized": {
+           acc.finalized = event.finalizedBlockHashes.slice(-1)[0];
+           const { blocks } = acc;
+-          if (blocks.get(acc.best).number < blocks.get(acc.finalized).number)
++          if (blocks.get(acc.best) === undefined || blocks.get(acc.best).number < blocks.get(acc.finalized).number)
+             acc.best = acc.finalized;
+           acc.finalizedRuntime = acc.runtimes[blocks.get(acc.finalized).runtime];
+           event.prunedBlockHashes.forEach((hash) => {
