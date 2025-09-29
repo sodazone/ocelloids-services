@@ -6,8 +6,9 @@ import { asAccountId, asPublicKey } from '@/common/util.js'
 import { HexString, QueryPagination, QueryParams, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { BatchOperation, LevelDB, Logger, NetworkURN } from '@/services/types.js'
+import { Logger, NetworkURN } from '@/services/types.js'
 
+import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
 import { ServerSideEventsBroadcaster, ServerSideEventsRequest } from '../../types.js'
 import {
   AssetId,
@@ -17,7 +18,7 @@ import {
   StewardServerSideEventArgs,
 } from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
-import { createBalancesCodec, normaliseAddress } from './codec.js'
+import { BalanceRecord, BalancesDB } from './db.js'
 import {
   balanceEventsSubscriptions,
   balancesStorageMappers,
@@ -34,25 +35,18 @@ import {
   StorageQueueData,
 } from './types.js'
 
-const DISCO_MARKER_BYTE = Buffer.from([0xff])
-const balancesCodec = createBalancesCodec()
-
-function epochSecondsNow() {
-  return Math.trunc(Date.now() / 1_000)
-}
-
 export class BalancesManager {
   id = 'steward:balances'
 
   readonly #log: Logger
   readonly #substrateIngress: SubstrateIngressConsumer
 
-  readonly #dbBalances: LevelDB<Buffer, Buffer>
+  readonly #dbBalances: BalancesDB
 
   readonly #rxSubs: Subscription[] = []
 
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
-  readonly #balanceDiscoveryQueue = new Set<HexString>()
+  readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>()
   readonly #balanceDiscoveryInProgress = new Set<HexString>()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
@@ -72,12 +66,14 @@ export class BalancesManager {
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
     this.#broadcaster = broadcaster
-    this.#dbBalances = openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' })
+    this.#dbBalances = new BalancesDB(
+      openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' }),
+    )
     this.#metadataCache = new LRUCache({
       ttl: 21_600_000, // 6 hrs
       ttlResolution: 60_000,
       ttlAutopurge: false,
-      max: 500,
+      max: 1_000,
     })
   }
 
@@ -101,32 +97,6 @@ export class BalancesManager {
     await this.#dbBalances.close()
   }
 
-  async *streamAccountBalances(accountHex: HexString) {
-    const prefix = normaliseAddress(accountHex) // 32 bytes
-    const start = Buffer.from(prefix)
-    let end = Buffer.from(prefix)
-    // increment last byte to create an upper bound for the prefix
-    for (let i = end.length - 1; i >= 0; i--) {
-      if (end[i] < 0xff) {
-        end[i]++
-        end = end.subarray(0, i + 1)
-        break
-      }
-    }
-
-    const iterator = this.#dbBalances.iterator({
-      gte: start,
-      lt: end,
-    })
-
-    for await (const [keyBuf, valueBuf] of iterator) {
-      const { addressHex, assetIdHex } = balancesCodec.key.dec(keyBuf)
-      const { balance, epochSeconds } = balancesCodec.value.dec(valueBuf)
-      yield { addressHex, assetIdHex, balance, epochSeconds }
-    }
-  }
-
-  // TODO: limit number of queued accounts per connection/IP
   async onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
     try {
       // open stream
@@ -139,10 +109,7 @@ export class BalancesManager {
         : [{ accountId: account, publicKey: asPublicKey(account) }]
 
       for (const { accountId, publicKey } of pubKeysToFetch) {
-        const isDiscovered = await this.#dbBalances.get(
-          Buffer.concat([DISCO_MARKER_BYTE, normaliseAddress(publicKey)]),
-        )
-        if (isDiscovered) {
+        if (await this.#dbBalances.hasBeenDiscovered(publicKey)) {
           this.#broadcaster.sendToConnection(id, {
             event: 'status',
             data: {
@@ -186,16 +153,30 @@ export class BalancesManager {
             },
           })
         } else {
-          // TODO: limit number to accounts that can be enqueued from request
-          this.#balanceDiscoveryQueue.add(publicKey)
-          this.#broadcaster.sendToConnection(id, {
-            event: 'status',
-            data: {
-              status: 'discovery-enqueued',
-              accountId,
-              publicKey,
-            },
-          })
+          try {
+            this.#balanceDiscoveryQueue.enqueue(publicKey, request.uid)
+            this.#broadcaster.sendToConnection(id, {
+              event: 'status',
+              data: {
+                status: 'discovery-enqueued',
+                accountId,
+                publicKey,
+              },
+            })
+          } catch (e) {
+            if (e instanceof MaxEnqueuedError) {
+              this.#broadcaster.sendToConnection(id, {
+                event: 'status',
+                data: {
+                  status: 'max-addresses-enqueued-reached',
+                  accountId,
+                  publicKey,
+                },
+              })
+            } else {
+              this.#log.error(e, '[%s] Error enqueueing new address on request addr=%s', this.id, publicKey)
+            }
+          }
         }
       }
     } catch (e) {
@@ -212,7 +193,7 @@ export class BalancesManager {
     accountId: string
     publicKey: HexString
   }) {
-    for await (const entry of this.streamAccountBalances(publicKey)) {
+    for await (const entry of this.#dbBalances.iterateAccountBalances(publicKey)) {
       const metadata = await this.#getAssetMetadataByHash(entry.assetIdHex)
       if (metadata) {
         this.#broadcaster.sendToConnection(connectionId, {
@@ -270,7 +251,7 @@ export class BalancesManager {
 
         const storageItems: Record<HexString, StorageQueueData> = {}
         const runtimeItems: Record<HexString, RuntimeQueueData> = {}
-        const ops: BatchOperation<Buffer, Buffer>[] = []
+        const records: BalanceRecord[] = []
 
         for (const [key, data] of queue.entries()) {
           if (data.type === 'runtime') {
@@ -281,16 +262,14 @@ export class BalancesManager {
         }
 
         // Process storage items
-        await this.#processStorageQueue(chainId, storageItems, queue, ops)
+        await this.#processStorageQueue(chainId, storageItems, queue, records)
         // Process runtime items
-        await this.#processRuntimeQueue(chainId, runtimeItems, queue, ops)
+        await this.#processRuntimeQueue(chainId, runtimeItems, queue, records)
 
-        if (ops.length > 0) {
-          try {
-            await this.#dbBalances.batch(ops)
-          } catch (err) {
-            this.#log.error(err, '[%s] failed storing balances in #processUpdateQueue', this.id)
-          }
+        try {
+          await this.#dbBalances.putBatch(records)
+        } catch (err) {
+          this.#log.error(err, '[%s] failed storing balances in #processUpdateQueue', this.id)
         }
       }
     }
@@ -300,7 +279,7 @@ export class BalancesManager {
     chainId: NetworkURN,
     storageItems: Record<HexString, StorageQueueData>,
     queue: Map<HexString, BalancesQueueData>,
-    ops: BatchOperation<Buffer, Buffer>[],
+    records: BalanceRecord[],
   ) {
     const keys = Object.keys(storageItems) as HexString[]
     if (!keys.length) {
@@ -316,22 +295,21 @@ export class BalancesManager {
           const data = storageItems[storageKey]
           const { module, name, publicKey, assetKeyHash } = data
           if (await this.#shouldBeDiscovered(publicKey)) {
-            this.#balanceDiscoveryQueue.add(publicKey)
+            this.#balanceDiscoveryQueue.enqueue(publicKey)
           }
 
           const change = changesSets[0]?.changes.find(([key]) => key === storageKey)
           const rawValue = change ? change[1] : null
-          const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
+          let balance: bigint | null = null
 
           if (rawValue !== null) {
             const codec = apiCtx?.storageCodec(module, name)
             const decoded = codec?.value.dec(rawValue)
             const balanceExtractor = getBalanceExtractor(module, name)
-            const balance = balanceExtractor?.(decoded) ?? 0n
-            await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance, dbKey, ops)
-          } else {
-            await this.#handleBalanceUpdate(publicKey, assetKeyHash, 0n, dbKey, ops)
+            balance = balanceExtractor?.(decoded) ?? null
           }
+          records.push({ accountHex: publicKey, assetKeyHash, balance })
+          await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
 
           queue.delete(storageKey)
         }),
@@ -347,20 +325,20 @@ export class BalancesManager {
     chainId: NetworkURN,
     runtimeItems: Record<HexString, RuntimeQueueData>,
     queue: Map<HexString, BalancesQueueData>,
-    ops: BatchOperation<Buffer, Buffer>[],
+    records: BalanceRecord[],
   ) {
     await Promise.all(
       Object.values(runtimeItems).map(async (item) => {
         const { api, method, args, assetKeyHash, publicKey } = item
         try {
           if (await this.#shouldBeDiscovered(publicKey)) {
-            this.#balanceDiscoveryQueue.add(publicKey)
+            this.#balanceDiscoveryQueue.enqueue(publicKey)
           }
 
           const balance = await this.#fetchBalanceFromRuntime({ chainId, api, method, args })
-          const dbKey = balancesCodec.key.enc(publicKey, assetKeyHash)
 
-          await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance, dbKey, ops)
+          records.push({ accountHex: publicKey, assetKeyHash, balance })
+          await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
         } catch (err) {
           this.#log.error(err, '[%s] failed querying runtime for chain %s', this.id, chainId)
         } finally {
@@ -370,20 +348,7 @@ export class BalancesManager {
     )
   }
 
-  async #handleBalanceUpdate(
-    publicKey: HexString,
-    assetKeyHash: HexString,
-    balance: bigint | null,
-    dbKey: Buffer,
-    ops: BatchOperation<Buffer, Buffer>[],
-  ) {
-    const dbValue = balance !== null ? balancesCodec.value.enc(balance, epochSecondsNow()) : null
-    if (dbValue !== null) {
-      ops.push({ type: 'put', key: dbKey, value: dbValue })
-    } else {
-      ops.push({ type: 'del', key: dbKey })
-    }
-
+  async #handleBalanceUpdate(accountHex: HexString, assetKeyHash: HexString, balance: bigint | null) {
     try {
       const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
       if (metadata) {
@@ -391,15 +356,15 @@ export class BalancesManager {
           event: 'balance',
           data: {
             origin: 'update',
-            accountId: asAccountId(publicKey),
-            publicKey,
+            accountId: asAccountId(accountHex),
+            publicKey: accountHex,
             balance: balance ?? 0n,
             ...metadata,
           },
         })
       }
     } catch (err) {
-      this.#log.error(err, 'Error broadcasting balance update for publicKey %s', publicKey)
+      this.#log.error(err, 'Error broadcasting balance update for publicKey %s', accountHex)
     }
   }
 
@@ -410,10 +375,9 @@ export class BalancesManager {
         continue
       }
 
-      const account = this.#balanceDiscoveryQueue.values().next().value as HexString
-      this.#balanceDiscoveryQueue.delete(account)
+      const account = this.#balanceDiscoveryQueue.dequeue()
 
-      if (this.#balanceDiscoveryInProgress.has(account)) {
+      if (!account || this.#balanceDiscoveryInProgress.has(account)) {
         continue
       }
 
@@ -431,7 +395,7 @@ export class BalancesManager {
 
           await this.#discoverBalances(chainId, account, apiCtx, { limit: 100 })
         }
-        await this.#markDiscovered(account)
+        await this.#dbBalances.markDiscovered(account)
       } catch (err) {
         this.#log.error(err, '[%s] failed processing discovery for account %s', this.id, account)
       } finally {
@@ -523,12 +487,10 @@ export class BalancesManager {
     try {
       const balances = await fetcher({ ...ctx, ingress: this.#substrateIngress })
 
-      const ops: BatchOperation<Buffer, Buffer>[] = []
+      const ops: BalanceRecord[] = []
       for (const { assetId, balance } of balances) {
         const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(ctx.chainId, assetId))) as HexString
-        const dbKey = balancesCodec.key.enc(asPublicKey(ctx.account), assetKeyHash)
-        const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
-        ops.push({ type: 'put', key: dbKey, value: dbValue })
+        ops.push({ accountHex: ctx.account, assetKeyHash, balance })
         try {
           const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
           if (metadata) {
@@ -547,9 +509,7 @@ export class BalancesManager {
           this.#log.error(err, 'Error broadcasting balance in #runCustomDiscoveryFetcher')
         }
       }
-      if (ops.length > 0) {
-        await this.#dbBalances.batch(ops)
-      }
+      await this.#dbBalances.putBatch(ops)
     } catch (error) {
       this.#log.error(
         error,
@@ -598,7 +558,7 @@ export class BalancesManager {
     })[],
   ) {
     const storageKeys = storageItems.map((i) => i.storageKey)
-    const ops: BatchOperation<Buffer, Buffer>[] = []
+    const ops: BalanceRecord[] = []
 
     try {
       const changeSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, storageKeys))
@@ -614,9 +574,7 @@ export class BalancesManager {
           const balanceExtractor = getBalanceExtractor(module, name)
           if (balanceExtractor) {
             const balance = balanceExtractor(decodedValue)
-            const dbKey = balancesCodec.key.enc(account, assetKeyHash)
-            const dbValue = balancesCodec.value.enc(balance, epochSecondsNow())
-            ops.push({ type: 'put', key: dbKey, value: dbValue })
+            ops.push({ accountHex: account, assetKeyHash, balance })
             this.#broadcaster.send({
               event: 'balance',
               data: {
@@ -634,9 +592,7 @@ export class BalancesManager {
         }
       }
 
-      if (ops.length > 0) {
-        await this.#dbBalances.batch(ops)
-      }
+      await this.#dbBalances.putBatch(ops)
     } catch (err) {
       this.#log.error(
         err,
@@ -680,22 +636,7 @@ export class BalancesManager {
     return (
       !this.#balanceDiscoveryQueue.has(publicKey) &&
       !this.#balanceDiscoveryInProgress.has(publicKey) &&
-      !(await this.#hasBeenDiscovered(publicKey))
+      !(await this.#dbBalances.hasBeenDiscovered(publicKey))
     )
-  }
-
-  async #markDiscovered(account: string): Promise<void> {
-    const key = Buffer.concat([DISCO_MARKER_BYTE, normaliseAddress(asPublicKey(account))])
-    await this.#dbBalances.put(key, Buffer.from([1]))
-  }
-
-  async #hasBeenDiscovered(publicKey: HexString): Promise<boolean> {
-    const addrBuf = normaliseAddress(publicKey)
-    const markerKey = Buffer.concat([DISCO_MARKER_BYTE, addrBuf])
-    try {
-      return (await this.#dbBalances.get(markerKey)) !== undefined
-    } catch {
-      return false
-    }
   }
 }

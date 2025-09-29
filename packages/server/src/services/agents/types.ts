@@ -283,6 +283,7 @@ export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
   filters: T
   request: IncomingMessage
   reply: FastifyReply
+  uid?: string
 }
 
 export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
