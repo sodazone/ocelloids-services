@@ -12,7 +12,7 @@ interface ProtocolMapping {
 
 const protocolMappings: ProtocolMapping[] = [PortalMapper, RelayerMapper]
 
-type NewJourneyWithAssets = NewJourney & {
+export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
 }
 

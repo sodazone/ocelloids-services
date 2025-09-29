@@ -241,3 +241,5 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
   return { operations$, loadInitialState }
 }
+
+export type WormholeWatcher = ReturnType<typeof makeWatcher>

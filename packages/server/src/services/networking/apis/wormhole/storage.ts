@@ -1,4 +1,4 @@
-import { Level } from 'level'
+import { LevelDB } from '@/services/types.js'
 import { Cursor, PendingEntry } from './watcher.js'
 
 const jsonEncoded = { valueEncoding: 'json' }
@@ -11,7 +11,7 @@ export type PersistentWatcherStorage = {
   loadPendingOps: () => Promise<Record<string, PendingEntry>>
 }
 
-export function makeLevelStorage(levelDB: Level): PersistentWatcherStorage {
+export function makeLevelStorage(levelDB: LevelDB): PersistentWatcherStorage {
   const cursorSub = levelDB.sublevel<string, Cursor>('wh:cursor', jsonEncoded)
   const pendingSub = levelDB.sublevel<string, PendingEntry>('wh:pending', jsonEncoded)
 
