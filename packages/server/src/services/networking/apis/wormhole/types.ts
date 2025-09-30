@@ -54,7 +54,7 @@ export interface WormholeOperation<P = Payload> {
   vaa: {
     guardianSetIndex: number
     isDuplicated: boolean
-    raw: number[]
+    raw: string
   }
   content: {
     payload: P

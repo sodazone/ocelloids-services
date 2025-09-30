@@ -1,4 +1,5 @@
 import { WormholeIds, WormholescanClient, makeWatcher } from '@/services/networking/apis/wormhole/index.js'
+import { mapOperationToJourney } from '@/services/networking/apis/wormhole/mappers/index.js'
 
 const { MOONBEAM_ID } = WormholeIds
 
@@ -11,6 +12,9 @@ const watcher = makeWatcher(new WormholescanClient() /*, storage */)
 const initialState = await watcher.loadInitialState(chains, cutDate)
 
 watcher.operations$(initialState, 10_000).subscribe({
-  next: ({ op, status }) => console.log('Got op:', op.id, op.sourceChain.timestamp, status),
+  next: ({ op, status }) => {
+    console.log('Got op:', op.id, op.sourceChain.timestamp, status)
+    console.log(mapOperationToJourney(op), '---', JSON.stringify(op))
+  },
   error: (err) => console.error('Watcher error:', err),
 })

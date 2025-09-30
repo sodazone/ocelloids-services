@@ -1,7 +1,7 @@
 import { JourneyStatus, NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { toUTCMillis } from '@/services/archive/time.js'
 import { addressToHex } from '@/services/networking/apis/wormhole/address.js'
-import { chainIdToUrn } from '@/services/networking/apis/wormhole/consts.js'
+import { chainIdToUrn } from '@/services/networking/apis/wormhole/chain.js'
 import {
   WormholeAction,
   WormholeOperation,

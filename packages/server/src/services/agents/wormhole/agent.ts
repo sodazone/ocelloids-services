@@ -1,7 +1,7 @@
 import { ago } from '@/common/time.js'
 import { deepCamelize } from '@/common/util.js'
+import { WormholeIds } from '@/services/networking/apis/wormhole/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
-import { WormholeIds } from '@/services/networking/apis/wormhole/consts.js'
 import { mapOperationToJourney } from '@/services/networking/apis/wormhole/mappers/index.js'
 import { makeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'

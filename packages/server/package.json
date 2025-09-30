@@ -58,6 +58,7 @@
     "@polkadot-api/tx-utils": "0.1.6",
     "@scalar/fastify-api-reference": "^1.28.26",
     "@types/better-sqlite3": "^7.6.13",
+    "@wormhole-foundation/sdk-definitions": "^3.8.3",
     "async-mutex": "^0.5.0",
     "better-sqlite3": "^11.9.1",
     "bs58": "^6.0.0",

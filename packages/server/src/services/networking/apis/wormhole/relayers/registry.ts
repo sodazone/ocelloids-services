@@ -1,4 +1,4 @@
-import { WormholeIds } from '../consts.js'
+import { WormholeIds } from '../chain.js'
 
 export type RelayerInfo = {
   token: string
@@ -6,7 +6,6 @@ export type RelayerInfo = {
 }
 
 export const relayerContracts: Record<number, Record<string, RelayerInfo>> = {
-  // Base
   [WormholeIds.BASE_ID]: {
     '0x734AbBCe07679C9A6B4Fe3bC16325e028fA6DbB7': {
       // Moonwell relayer
@@ -14,7 +13,6 @@ export const relayerContracts: Record<number, Record<string, RelayerInfo>> = {
       abi: 'function bridge(address to, uint256 amount)',
     },
   },
-  // Moonbeam
   [WormholeIds.MOONBEAM_ID]: {
     // ...
   },

@@ -1,4 +1,5 @@
 import { NetworkURN } from '@/lib.js'
+import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 
 export const WormholeIds = {
   MOONBEAM_ID: 16,
@@ -36,7 +37,6 @@ export function chainIdToUrn(chainId: number): string {
   return urn === undefined ? `urn:ocn:unknown:${chainId}` : urn
 }
 
-// 0x734AbBCe07679C9A6B4Fe3bC16325e028fA6DbB7
-// Moonwell bridge adapter
-// "payload": "000000000000000000000000636a78a2bd3de7b920c1ce57c7a553de8a872c0800000000000000000000000000000000000000000000009f7d153eb580f9c27e",
-// "payloadType": 1,
+export function tokenAddressToAssetId(chainId: number, tokenAddress: string | 'native') {
+  return `${chainIdToUrn(chainId)}|${tokenAddress === 'native' ? tokenAddress : normalizeAssetId(tokenAddress)}`
+}
