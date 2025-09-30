@@ -31,7 +31,7 @@ function mapPortalOpToJourney(op: WormholeOperation<PayloadPortalTokenBridge>): 
   return defaultJourneyMapping(op, 'transfer', 'wh_portal')
 }
 
-function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, journey: NewJourney) {
+function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, _journey: NewJourney) {
   try {
     const {
       tokenAddress,
