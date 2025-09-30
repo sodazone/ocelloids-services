@@ -95,4 +95,21 @@ describe('PriorityQueue', () => {
     expect(q.dequeue()).toBe('c')
     expect(q.getUIDCount('u2')).toBe(0) // removed
   })
+
+  it('does not add the same address twice to the queue', () => {
+    const q = new PriorityQueue<string>()
+
+    q.enqueue('a') // new item
+    q.enqueue('a', 'u1', 5) // should NOT add new entry, only bump priority
+    q.enqueue('a')
+    q.enqueue('a')
+
+    // Still only one item in the queue
+    expect(q.size).toBe(1)
+    expect(q.has('a')).toBe(true)
+
+    // And we can dequeue it once
+    expect(q.dequeue()).toBe('a')
+    expect(q.dequeue()).toBeUndefined()
+  })
 })

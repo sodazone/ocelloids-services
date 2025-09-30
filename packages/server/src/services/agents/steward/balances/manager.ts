@@ -294,9 +294,6 @@ export class BalancesManager {
         keys.map(async (storageKey) => {
           const data = storageItems[storageKey]
           const { module, name, publicKey, assetKeyHash } = data
-          if (await this.#shouldBeDiscovered(publicKey)) {
-            this.#balanceDiscoveryQueue.enqueue(publicKey)
-          }
 
           const change = changesSets[0]?.changes.find(([key]) => key === storageKey)
           const rawValue = change ? change[1] : null
@@ -331,10 +328,6 @@ export class BalancesManager {
       Object.values(runtimeItems).map(async (item) => {
         const { api, method, args, assetKeyHash, publicKey } = item
         try {
-          if (await this.#shouldBeDiscovered(publicKey)) {
-            this.#balanceDiscoveryQueue.enqueue(publicKey)
-          }
-
           const balance = await this.#fetchBalanceFromRuntime({ chainId, api, method, args })
 
           records.push({ accountHex: publicKey, assetKeyHash, balance })
