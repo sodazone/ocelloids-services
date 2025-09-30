@@ -1,6 +1,6 @@
 import { deserialize, deserializePayload } from '@wormhole-foundation/sdk-definitions'
 
-import { NewJourney } from '@/services/agents/crosschain/index.js'
+import { AssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { PayloadPortalTokenBridge, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { addressToHex } from '../address.js'
 import { tokenAddressToAssetId } from '../chain.js'
@@ -31,7 +31,7 @@ function mapPortalOpToJourney(op: WormholeOperation<PayloadPortalTokenBridge>): 
   return defaultJourneyMapping(op, 'transfer', 'wh_portal')
 }
 
-function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, _journey: NewJourney) {
+function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, journey: NewJourney) {
   try {
     const {
       tokenAddress,
@@ -93,7 +93,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, _j
         usd: undefined,
         role: 'transfer',
         sequence: 0,
-      },
+      } as AssetOperation,
     ]
   } catch (error) {
     console.error('Error mapping portal asset', error, op)
