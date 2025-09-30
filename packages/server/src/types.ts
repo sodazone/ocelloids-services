@@ -6,6 +6,7 @@ export const $BaseServerOptions = z.object({
   port: z.number().min(0),
   address: z.string().min(1),
   grace: z.number().min(1),
+  trustProxy: z.boolean().default(false),
   telemetry: z.boolean().default(true),
   rateLimitMax: z.number().default(120),
   rateLimitWindow: z.number().default(60_000),

@@ -9,6 +9,7 @@ export function mockServer(overrides?: Record<string, any>) {
     data: '',
     analytics: false,
     scheduler: false,
+    trustProxy: false,
     archive: true,
     archiveRetention: false,
     archiveRetentionPeriod: '0_days',
