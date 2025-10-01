@@ -5,7 +5,7 @@ type TokenInfo = {
   treatAsNative?: boolean // true if this token represents the chain native coin
 }
 
-export const TOKEN_REGISTRY: Record<string, TokenInfo> = {
+const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['1:so11111111111111111111111111111111111111112']: {
     chainName: 'solana',
     symbol: 'SOL',
@@ -18,8 +18,28 @@ export const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     treatAsNative: true,
   },
+  ['2:0xdac17f958d2ee523a2206206994597c13d831ec7']: {
+    chainName: 'ethereum',
+    symbol: 'USDT',
+    decimals: 6,
+    treatAsNative: false,
+  },
+  ['2:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']: {
+    chainName: 'ethereum',
+    symbol: 'WETH',
+    decimals: 18,
+    treatAsNative: false,
+  },
+  ['30:0xa88594d404727625a9437c3f886c7643872296ae']: {
+    chainName: 'base',
+    symbol: 'WELL',
+    decimals: 18,
+    treatAsNative: false,
+  },
+}
 
-  // Ethereum native (we typically treat native via no token address; but include if needed)
-  // For ERC-20 representations you'd put the 0x... address here with chainName 'ethereum'
-  // e.g. ['1:0xa0b86991...']: { chainName: 'ethereum', symbol: 'USDC', decimals: 6 }
+export const tokenRegistry = {
+  lookup: (chain: string | number, address: string): TokenInfo | undefined => {
+    return TOKEN_REGISTRY[`${chain}:${address.toLowerCase()}`]
+  },
 }

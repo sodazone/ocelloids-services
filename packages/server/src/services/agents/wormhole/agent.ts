@@ -66,7 +66,7 @@ export class WormholeAgent implements Agent {
         try {
           await this.#onOperation(op)
         } catch (err) {
-          this.#log.error(err, '[agent:%s] watcher error', this.id)
+          this.#log.error(err, '[agent:%s] watcher error while processing %s', this.id, op.id)
         }
       },
       error: (err) => {

@@ -12,6 +12,7 @@ export const WormholeIds = {
   OP_ID: 24,
   ARB_ID: 23,
 }
+
 const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:1': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:1284': WormholeIds.MOONBEAM_ID,
