@@ -2,14 +2,22 @@ import * as fs from 'node:fs'
 import path from 'node:path'
 import * as url from 'node:url'
 
+import { WS } from '@/services/networking/substrate/websocket.js'
+import { withLegacy } from '@polkadot-api/legacy-provider'
 import { getObservableClient } from '@polkadot-api/observable-client'
 import { createClient } from '@polkadot-api/substrate-client'
-import { getWsProvider } from 'polkadot-api/ws-provider/node'
+import { WebSocketClass, getWsProvider } from 'polkadot-api/ws-provider'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
-const dest = path.resolve(__dirname, '__data__/metadata/', 'new.scale')
+const dest = path.resolve(__dirname, '__data__/metadata/', 'bridgehub.scale')
 
-const substrateClient = createClient(getWsProvider('wss://rpc.ibp.network/polkadot'))
+const substrateClient = createClient(
+  getWsProvider('wss://sys.ibp.network/bridgehub-kusama', {
+    websocketClass: WS as unknown as WebSocketClass,
+    innerEnhancer: withLegacy(),
+    timeout: 5_000,
+  }),
+)
 const client = getObservableClient(substrateClient)
 client.chainHead$().runtime$.subscribe((ctx) => {
   if (ctx?.metadataRaw) {

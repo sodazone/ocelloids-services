@@ -22,6 +22,7 @@ export const networks = {
   acala: 'wss://acala-rpc.dwellir.com',
   mythos: 'wss://mythos.ibp.network',
   kassethub: 'wss://sys.ibp.network/asset-hub-kusama',
+  kbridgehub: 'wss://sys.ibp.network/bridgehub-kusama',
   passethub: 'wss://sys.ibp.network/asset-hub-paseo',
 } as Record<string, string>
 
