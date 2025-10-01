@@ -35,4 +35,10 @@ export type GetDownwardMessageQueues = (
   networkId: NetworkURN,
 ) => Observable<{ sentAt: number; msg: Binary }[]>
 
+export type GetOutboundPKBridgeMessages = (
+  hash: HexString,
+  lane: HexString,
+  nonce: number,
+) => Observable<{ key: HexString; value: Binary }>
+
 export type GetStorageAt = (hash: HexString, key: HexString) => Observable<HexString>
