@@ -11,10 +11,11 @@ export const WormholeIds = {
   SUI_ID: 21,
   OP_ID: 24,
   ARB_ID: 23,
+  CELO_ID: 14,
 }
 
 const WormholeChainIds: Record<NetworkURN, number> = {
-  'urn:ocn:solana:1': WormholeIds.SOLANA_ID,
+  'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
   'urn:ocn:ethereum:56': WormholeIds.BNB_ID,
   'urn:ocn:ethereum:137': WormholeIds.POLYGON_ID,
@@ -22,7 +23,8 @@ const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:ethereum:10': WormholeIds.OP_ID,
   'urn:ocn:ethereum:42161': WormholeIds.ARB_ID,
   'urn:ocn:ethereum:8453': WormholeIds.BASE_ID,
-  'urn:ocn:sui:1': WormholeIds.SUI_ID,
+  'urn:ocn:ethereum:42220': WormholeIds.CELO_ID,
+  'urn:ocn:sui:0x35834a8a': WormholeIds.SUI_ID,
 } as const
 
 export const WormholeChainUrns: Record<number, keyof typeof WormholeChainIds> = Object.fromEntries(

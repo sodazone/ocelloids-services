@@ -88,8 +88,8 @@ export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney):
   }
 }
 
-export function toWormholeStops(payload: WormholeOperation): AnyJson[] {
-  const s = payload.content?.standarizedProperties ?? {}
+export function toWormholeStops(op: WormholeOperation): AnyJson[] {
+  const s = op.content?.standarizedProperties ?? {}
 
   return [
     {
@@ -97,29 +97,41 @@ export function toWormholeStops(payload: WormholeOperation): AnyJson[] {
 
       from: {
         chainId: chainIdToUrn(s.fromChain),
-        timestamp: toUTCMillis(payload.sourceChain?.timestamp),
-        status: payload.sourceChain?.status ?? 'Unknown',
-        tx: payload.sourceChain?.transaction,
+        timestamp: toUTCMillis(op.sourceChain?.timestamp),
+        status: op.sourceChain?.status ?? 'Unknown',
+        tx: op.sourceChain?.transaction,
       },
 
-      to: payload.targetChain
+      to: op.targetChain
         ? {
             chainId: chainIdToUrn(s.toChain),
-            timestamp: toUTCMillis(payload.targetChain?.timestamp),
-            status: payload.targetChain?.status ?? 'Unknown',
-            tx: payload.targetChain?.transaction,
+            timestamp: toUTCMillis(op.targetChain?.timestamp),
+            status: op.targetChain?.status ?? 'Unknown',
+            tx: op.targetChain?.transaction,
           }
-        : null,
+        : {
+            chainId: chainIdToUrn(s.toChain),
+            status: 'pending',
+          },
 
-      relay: {
-        chainId: 'urn:ocn:wormhole:vaa',
-      },
+      relay:
+        op.targetChain?.status === undefined
+          ? {
+              chainId: 'urn:ocn:wormhole:1',
+              status: 'pending',
+              vaaId: op.id,
+            }
+          : {
+              chainId: 'urn:ocn:wormhole:1',
+              status: 'completed',
+              vaaId: op.id,
+            },
 
-      messageId: payload.id ?? null,
+      messageId: op.id ?? null,
 
       instructions: {
         type: 'WormholeVAA',
-        value: payload.vaa,
+        value: op.vaa,
       },
     },
   ]

@@ -10,7 +10,7 @@ const cases: TestCase[] = [
       to: '0x22e929ae84b3bd96679c12c4d3b329bfb8d3e4b9846927e1ca339220a6ab600c',
       assets: [
         {
-          asset: 'urn:ocn:solana:1|native',
+          asset: 'urn:ocn:solana:101|so11111111111111111111111111111111111111112',
           amount: '69139731420',
           decimals: 9,
           usd: 14536.62853105,
@@ -28,7 +28,7 @@ const cases: TestCase[] = [
       to: '0x55e0970e507f945ae4bf0fcc9bbc7800dd37062885eed5b3d545594c49e95f94',
       assets: [
         {
-          asset: 'urn:ocn:sui:1|native',
+          asset: 'urn:ocn:sui:0x35834a8a|0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3',
           amount: '2001725111540',
           decimals: 9,
           usd: 6805.86537923,

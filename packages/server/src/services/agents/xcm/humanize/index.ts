@@ -109,6 +109,10 @@ export class XcmHumanizer {
   }
 
   async start() {
+    if (this.#steward === undefined) {
+      return
+    }
+
     const { items } = (await this.#steward.query({
       pagination: { limit: 100 },
       args: { op: 'chains.list' },

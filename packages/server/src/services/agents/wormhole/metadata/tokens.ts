@@ -8,12 +8,12 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['1:so11111111111111111111111111111111111111112']: {
     symbol: 'WSOL',
     decimals: 9,
-    isNative: true,
+    isNative: false,
   },
   ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
     symbol: 'WGLMR',
     decimals: 18,
-    isNative: true,
+    isNative: false,
   },
   ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
     symbol: 'WELL',
@@ -23,7 +23,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
     symbol: 'WSUI',
     decimals: 9,
-    isNative: true,
+    isNative: false,
   },
   ['2:0xdac17f958d2ee523a2206206994597c13d831ec7']: {
     symbol: 'USDT',
@@ -33,7 +33,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['2:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']: {
     symbol: 'WETH',
     decimals: 18,
-    isNative: true,
+    isNative: false,
   },
   ['2:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599']: {
     symbol: 'WBTC',

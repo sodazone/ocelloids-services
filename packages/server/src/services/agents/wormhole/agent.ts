@@ -101,20 +101,16 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    // TODO: properly handle update
-    const update: JourneyUpdate = {}
     if (existing.status !== journey.status) {
+      const update: JourneyUpdate = {}
       update.status = journey.status
-    }
-    if (journey.recv_at && !existing.recv_at) {
-      update.recv_at = journey.recv_at
-    }
-
-    if (Object.keys(update).length > 0) {
+      if (journey.recv_at && !existing.recv_at) {
+        update.recv_at = journey.recv_at
+      }
+      // TODO stops
       await this.#repository.updateJourney(existing.id, update)
+      await this.#broadcast('update_journey', existing.id)
     }
-
-    await this.#broadcast('update_journey', existing.id)
   }
 
   collectTelemetry() {
