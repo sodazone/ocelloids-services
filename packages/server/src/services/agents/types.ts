@@ -174,6 +174,7 @@ export type AgentCapabilities = {
 export type AgentMetadata = {
   name: string
   capabilities: AgentCapabilities
+  runInBackground?: boolean
   description?: string
 }
 

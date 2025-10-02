@@ -1,4 +1,5 @@
 import { asJSON } from '@/common/util.js'
+import { AnyJson } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { addressToHex } from '@/services/agents/wormhole/types/address.js'
 import { chainIdToUrn } from '@/services/agents/wormhole/types/chain.js'
@@ -87,58 +88,39 @@ export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney):
   }
 }
 
-/**
- * Normalize Wormhole operations into stop-style journey model
- */
-export function toWormholeStops(payload: WormholeOperation, existingStops: any[] = []): any[] {
-  try {
-    const s = payload.content?.standarizedProperties ?? {}
-    const fromAddr = s.fromAddress || payload.sourceChain?.from || ''
-    const toAddr = s.toAddress || payload.targetChain?.to || ''
+export function toWormholeStops(payload: WormholeOperation): AnyJson[] {
+  const s = payload.content?.standarizedProperties ?? {}
 
-    const originContext = {
-      chainId: s.fromChain ?? 0,
-      urn: chainIdToUrn(s.fromChain),
-      address: addressToHex(fromAddr),
-      formatted: fromAddr,
-      txHash: payload.sourceChain?.transaction?.txHash ?? null,
-      secondTxHash: payload.sourceChain?.transaction?.secondTxHash ?? null,
-      timestamp: toUTCMillis(payload.sourceChain?.timestamp),
-    }
+  return [
+    {
+      type: 'wormhole',
 
-    const destinationContext = payload.targetChain
-      ? {
-          chainId: s.toChain ?? 0,
-          urn: chainIdToUrn(s.toChain),
-          address: addressToHex(toAddr),
-          formatted: toAddr,
-          txHash: payload.targetChain?.transaction?.txHash ?? null,
-          secondTxHash: payload.targetChain?.transaction?.secondTxHash ?? null,
-          timestamp: toUTCMillis(payload.targetChain?.timestamp),
-        }
-      : null
+      from: {
+        chainId: chainIdToUrn(s.fromChain),
+        timestamp: toUTCMillis(payload.sourceChain?.timestamp),
+        status: payload.sourceChain?.status ?? 'Unknown',
+        tx: payload.sourceChain?.transaction,
+      },
 
-    const newStop = {
-      type: 'transfer',
-      from: originContext,
-      to: destinationContext || { chainId: s.toChain ?? 0 },
-      relay: null,
-      messageId: payload.id,
-      status: payload.targetChain ? 'received' : 'sent',
-      instructions: [],
-      transact_calls: [],
-    }
+      to: payload.targetChain
+        ? {
+            chainId: chainIdToUrn(s.toChain),
+            timestamp: toUTCMillis(payload.targetChain?.timestamp),
+            status: payload.targetChain?.status ?? 'Unknown',
+            tx: payload.targetChain?.transaction,
+          }
+        : null,
 
-    // merge with existing stops
-    const existing = existingStops.find((stop) => stop.from?.chainId === originContext.chainId)
-    if (existing) {
-      return existingStops.map((stop) =>
-        stop.from?.chainId === originContext.chainId ? { ...stop, ...newStop } : stop,
-      )
-    }
-    return [...existingStops, newStop]
-  } catch (err) {
-    console.error('Error mapping Wormhole stops', err, payload)
-    return existingStops
-  }
+      relay: {
+        chainId: 'urn:ocn:wormhole:vaa',
+      },
+
+      messageId: payload.id ?? null,
+
+      instructions: {
+        type: 'WormholeVAA',
+        value: payload.vaa,
+      },
+    },
+  ]
 }

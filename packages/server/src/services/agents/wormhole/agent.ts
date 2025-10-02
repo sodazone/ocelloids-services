@@ -21,6 +21,7 @@ export class WormholeAgent implements Agent {
     name: 'Wormhole Agent',
     description: 'Indexes and tracks Wormhole operations.',
     capabilities: getAgentCapabilities(this),
+    runInBackground: true,
   }
 
   readonly #log: Logger
@@ -54,6 +55,8 @@ export class WormholeAgent implements Agent {
   }
 
   start() {
+    this.#log.info('[agent:%s] start', this.id)
+
     this.#watcher.loadInitialState([WormholeIds.MOONBEAM_ID], ago(1, 'day')).then((init) => {
       this.#log.info('[agent:%s] subscribe to operations: %j', this.id, init)
       this.#subs.push(this.#watcher.operations$(init).subscribe(this.#makeObserver()))
@@ -81,8 +84,9 @@ export class WormholeAgent implements Agent {
   async #broadcast(event: 'new_journey' | 'update_journey', id: number) {
     const fullJourney = await this.#repository.getJourneyById(id)
     if (!fullJourney) {
-      throw new Error('Failed to fetch journey after insert')
+      throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
+    this.#log.info('[%s] broadcast %s:  %s', this.id, event, id)
     this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
   }
 
@@ -91,11 +95,13 @@ export class WormholeAgent implements Agent {
     const existing = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
 
     if (!existing) {
-      const id = await this.#repository.insertJourneyWithAssets(journey, journey.assets)
+      const { assets, ...journeyWithoutAssets } = journey
+      const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
       await this.#broadcast('new_journey', id)
       return
     }
 
+    // TODO: properly handle update
     const update: JourneyUpdate = {}
     if (existing.status !== journey.status) {
       update.status = journey.status

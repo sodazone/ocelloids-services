@@ -33,9 +33,9 @@ const DIRTY_TOGGLES = {
 
 function shouldStart(agent: Agent) {
   const {
-    metadata: { capabilities },
+    metadata: { capabilities, runInBackground },
   } = agent
-  return capabilities.queryable && !capabilities.subscribable
+  return runInBackground || (capabilities.queryable && !capabilities.subscribable)
 }
 
 const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<AgentId, Agent>) => Agent> = {
