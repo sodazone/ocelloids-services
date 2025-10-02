@@ -1,3 +1,4 @@
+import { Mutex } from 'async-mutex'
 import { LRUCache } from 'lru-cache'
 import { toHex } from 'polkadot-api/utils'
 import { Subscription, firstValueFrom } from 'rxjs'
@@ -53,6 +54,8 @@ export class BalancesManager {
   readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
   readonly #metadataCache: LRUCache<HexString, AssetData, unknown>
 
+  readonly #mutex = new Mutex()
+
   #running = false
   #config: Record<string, any>
 
@@ -95,6 +98,7 @@ export class BalancesManager {
       sub.unsubscribe()
     }
     await this.#dbBalances.close()
+    await this.#mutex.waitForUnlock()
   }
 
   async onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
@@ -261,15 +265,20 @@ export class BalancesManager {
           }
         }
 
-        // Process storage items
-        await this.#processStorageQueue(chainId, storageItems, queue, records)
-        // Process runtime items
-        await this.#processRuntimeQueue(chainId, runtimeItems, queue, records)
-
+        const release = await this.#mutex.acquire()
         try {
+          // Process storage items
+          Object.keys(storageItems).forEach((k) => queue.delete(k as HexString))
+          await this.#processStorageQueue(chainId, storageItems, records)
+          // Process runtime items
+          Object.keys(runtimeItems).forEach((k) => queue.delete(k as HexString))
+          await this.#processRuntimeQueue(chainId, runtimeItems, records)
+
           await this.#dbBalances.putBatch(records)
         } catch (err) {
-          this.#log.error(err, '[%s] failed storing balances in #processUpdateQueue', this.id)
+          this.#log.error(err, '[%s] failed processing balance update for chain=%s', this.id, chainId)
+        } finally {
+          release()
         }
       }
     }
@@ -278,14 +287,12 @@ export class BalancesManager {
   async #processStorageQueue(
     chainId: NetworkURN,
     storageItems: Record<HexString, StorageQueueData>,
-    queue: Map<HexString, BalancesQueueData>,
     records: BalanceRecord[],
   ) {
     const keys = Object.keys(storageItems) as HexString[]
     if (!keys.length) {
       return
     }
-
     try {
       const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
       const changesSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, keys))
@@ -307,23 +314,21 @@ export class BalancesManager {
           }
           records.push({ accountHex: publicKey, assetKeyHash, balance })
           await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
-
-          queue.delete(storageKey)
         }),
       )
     } catch (err) {
       this.#log.error(err, '[%s] failed querying storage for chain %s', this.id, chainId)
-      // Clear the keys from the queue to avoid clogging
-      keys.forEach((k) => queue.delete(k))
     }
   }
 
   async #processRuntimeQueue(
     chainId: NetworkURN,
     runtimeItems: Record<HexString, RuntimeQueueData>,
-    queue: Map<HexString, BalancesQueueData>,
     records: BalanceRecord[],
   ) {
+    if (Object.keys(runtimeItems).length === 0) {
+      return
+    }
     await Promise.all(
       Object.values(runtimeItems).map(async (item) => {
         const { api, method, args, assetKeyHash, publicKey } = item
@@ -334,8 +339,6 @@ export class BalancesManager {
           await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
         } catch (err) {
           this.#log.error(err, '[%s] failed querying runtime for chain %s', this.id, chainId)
-        } finally {
-          queue.delete(publicKey)
         }
       }),
     )
@@ -375,6 +378,7 @@ export class BalancesManager {
       }
 
       this.#balanceDiscoveryInProgress.add(account)
+      const release = await this.#mutex.acquire()
 
       try {
         const chainIds = this.#substrateIngress.getChainIds()
@@ -402,6 +406,7 @@ export class BalancesManager {
           event: 'synced',
           data: { accountId: asAccountId(account), publicKey: account },
         })
+        release()
       }
     }
   }
