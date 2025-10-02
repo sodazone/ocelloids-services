@@ -1,4 +1,4 @@
-import { HexString, NetworkURN } from '@/lib.js'
+import { NetworkURN } from '@/lib.js'
 import { Binary } from 'polkadot-api'
 import { from } from 'rxjs'
 import { testBlocksFrom } from './blocks.js'
@@ -9,11 +9,10 @@ const bridgeOutboundMessageData =
 export const pkBridgeAccepted = {
   origin: 'urn:ocn:kusama:1002' as NetworkURN,
   blocks: from(testBlocksFrom('kbridgehub/6652869.cbor')),
-  getPkBridge: () =>
-    from([
-      {
-        key: '0x2187c09768bea89f950237053705096c000000011806000000000000' as HexString,
-        value: Binary.fromHex(bridgeOutboundMessageData),
-      },
-    ]),
+  getPkBridge: () => from([Binary.fromHex(bridgeOutboundMessageData)]),
+}
+
+export const pkBridgeReceived = {
+  chainId: 'urn:ocn:polkadot:1002' as NetworkURN,
+  blocks: from(testBlocksFrom('bridgehub/6100146.cbor')),
 }

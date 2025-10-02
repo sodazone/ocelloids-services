@@ -9,10 +9,10 @@ import { createClient } from '@polkadot-api/substrate-client'
 import { WebSocketClass, getWsProvider } from 'polkadot-api/ws-provider'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
-const dest = path.resolve(__dirname, '__data__/metadata/', 'bridgehub.scale')
+const dest = path.resolve(__dirname, '__data__/metadata/', 'bridgehub-polkadot.scale')
 
 const substrateClient = createClient(
-  getWsProvider('wss://sys.ibp.network/bridgehub-kusama', {
+  getWsProvider('wss://sys.ibp.network/bridgehub-polkadot', {
     websocketClass: WS as unknown as WebSocketClass,
     innerEnhancer: withLegacy(),
     timeout: 5_000,
