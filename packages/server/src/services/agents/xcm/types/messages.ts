@@ -100,9 +100,9 @@ export interface XcmInboundWithContext extends XcmWithContext {
 }
 
 export interface XcmBridgeInboundWithContext {
+  chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
-  chainId: NetworkURN
   bridgeKey: HexString
   outcome: 'Success' | 'Fail'
   event?: AnyJson
