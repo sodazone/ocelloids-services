@@ -1,10 +1,10 @@
 import { HexString } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
-import { addressToHex } from '../address.js'
-import { tokenAddressToAssetId } from '../chain.js'
+import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { tokenRegistry } from '../metadata/tokens.js'
 import { decodeRelayerPayload, getRelayerInfo } from '../relayers/decode.js'
-import { WormholeOperation } from '../types.js'
+import { addressToHex } from '../types/address.js'
+import { tokenAddressToAssetId } from '../types/chain.js'
 import { defaultAssetMapping, defaultJourneyMapping } from './default.js'
 
 function mapRelayerOpToJourney(op: WormholeOperation): NewJourney {

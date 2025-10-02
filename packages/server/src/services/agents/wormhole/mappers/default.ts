@@ -1,31 +1,14 @@
 import { asJSON } from '@/common/util.js'
-import { JourneyStatus, NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
+import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
+import { addressToHex } from '@/services/agents/wormhole/types/address.js'
+import { chainIdToUrn } from '@/services/agents/wormhole/types/chain.js'
 import { toUTCMillis } from '@/services/archive/time.js'
-import { addressToHex } from '@/services/networking/apis/wormhole/address.js'
-import { chainIdToUrn } from '@/services/networking/apis/wormhole/chain.js'
+import { toStatus } from '@/services/networking/apis/wormhole/status.js'
 import {
   WormholeAction,
   WormholeOperation,
   WormholeProtocol,
 } from '@/services/networking/apis/wormhole/types.js'
-
-/**
- * Map Wormhole chain status to Journey status
- */
-export function toStatus(op: WormholeOperation): JourneyStatus {
-  try {
-    if (op.targetChain?.status === 'completed') {
-      return 'received'
-    }
-    if (['in_progress', 'confirmed'].includes(op.sourceChain.status)) {
-      return 'sent'
-    }
-    return 'unknown'
-  } catch (err) {
-    console.error('Error deriving status for Wormhole operation', err, op)
-    return 'unknown'
-  }
-}
 
 /**
  * Default mapping from WormholeOperation to NewJourney

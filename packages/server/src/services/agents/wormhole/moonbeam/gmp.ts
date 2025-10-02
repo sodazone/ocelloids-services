@@ -1,23 +1,17 @@
-import { createContextFromMetadata } from '@/services/networking/substrate/context.js'
 import { Enum, Struct, u256 } from 'scale-ts'
 
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { asJSON } from '@/common/util.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
-import { splitLocationIntoChainPartAndBeneficiary } from '@/services/networking/apis/wormhole/moonbeam/xcm.js'
+import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 
-// XXX just for now :D
-const context = createContextFromMetadata(
-  readFileSync(resolve(__dirname, '../../../../../testing/__data__/metadata/polkadot.scale')),
-)
+import { splitLocationIntoChainPartAndBeneficiary } from './xcm.js'
 
 export const GMP_PRECOMPILE = '0x0000000000000000000000000000000000000816'
 
 const VersionedLocation = Enum(
   {
-    xcmV5Location: context.typeCodec('staging_xcm.v5.location.Location'),
-    XcmV4Location: context.typeCodec('staging_xcm.v4.location.Location'),
+    xcmV5Location: defaultPolkadotContext.typeCodec('staging_xcm.v5.location.Location'),
+    XcmV4Location: defaultPolkadotContext.typeCodec('staging_xcm.v4.location.Location'),
   },
   [0x05, 0x04],
 )

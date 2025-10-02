@@ -24,6 +24,7 @@ import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
+import { WormholeAgent } from '../wormhole/agent.js'
 
 const DIRTY_TOGGLES = {
   chainspy: process.env.ENABLE_CHAINSPY === 'true',
@@ -44,6 +45,11 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
   ...(DIRTY_TOGGLES['crosschain'] && {
     crosschain: (ctx) => new CrosschainExplorer(ctx),
   }),
+  wormhole: (ctx, activations) =>
+    new WormholeAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      crosschain: activations['crosschain'] as CrosschainExplorer,
+    }),
   xcm: (ctx, activations) =>
     new XcmAgent(ctx, {
       steward: activations['steward'] as DataSteward,

@@ -1,4 +1,4 @@
-import { WormholeIds } from '../chain.js'
+import { WormholeIds } from '../types/chain.js'
 
 export type RelayerInfo = {
   token: string

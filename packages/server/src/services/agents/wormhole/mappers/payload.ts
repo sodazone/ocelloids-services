@@ -1,7 +1,7 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { deserialize, deserializePayload } from '@wormhole-foundation/sdk-definitions'
-import { WormholeIds } from '../chain.js'
 import { GMP_PRECOMPILE, enhancer as gmpEnhancer } from '../moonbeam/gmp.js'
+import { WormholeIds } from '../types/chain.js'
 
 export type PayloadEnhancer = (
   payload: bigint | Uint8Array,

@@ -1,5 +1,5 @@
+import { mapOperationToJourney } from '@/services/agents/wormhole/mappers/index.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/index.js'
-import { mapOperationToJourney } from '@/services/networking/apis/wormhole/mappers/index.js'
 
 const client = new WormholescanClient()
 

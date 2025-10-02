@@ -1,5 +1,5 @@
-import { toDecimalAmount } from '@/services/networking/apis/wormhole/decimals.js'
-import { mapOperationToJourney } from '@/services/networking/apis/wormhole/index.js'
+import { mapOperationToJourney } from '@/services/agents/wormhole/mappers/index.js'
+import { toDecimalAmount } from '@/services/agents/wormhole/types/decimals.js'
 import { _test_whscanResponse } from '@/testing/apis/wormhole/data.js'
 
 export type ExpectedAsset = {

@@ -1,8 +1,7 @@
 import { ago } from '@/common/time.js'
 import { deepCamelize } from '@/common/util.js'
-import { WormholeIds } from '@/services/networking/apis/wormhole/chain.js'
+import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
-import { mapOperationToJourney } from '@/services/networking/apis/wormhole/mappers/index.js'
 import { makeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { WormholeWatcher, makeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
@@ -12,6 +11,7 @@ import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository, FullJourney, JourneyStatus, JourneyUpdate } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
+import { mapOperationToJourney } from './mappers/index.js'
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
@@ -41,7 +41,7 @@ export class WormholeAgent implements Agent {
     this.#config = ctx.config ?? {}
     this.#subs = []
     this.#crosschain = deps.crosschain
-    this.#repository = deps.crosschain.repository
+    this.#repository = deps.crosschain?.repository
 
     const storage = makeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)

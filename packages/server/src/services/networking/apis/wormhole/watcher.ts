@@ -3,7 +3,7 @@ import { Observable } from 'rxjs'
 
 import { JourneyStatus } from '@/services/agents/crosschain/index.js'
 import { WormholescanClient } from './client.js'
-import { toStatus } from './mappers/default.js'
+import { toStatus } from './status.js'
 import { PersistentWatcherStorage } from './storage.js'
 import { WormholeOperation } from './types.js'
 

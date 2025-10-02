@@ -1,5 +1,6 @@
-import { WormholeIds, WormholescanClient, makeWatcher } from '@/services/networking/apis/wormhole/index.js'
-import { mapOperationToJourney } from '@/services/networking/apis/wormhole/mappers/index.js'
+import { mapOperationToJourney } from '@/services/agents/wormhole/mappers/index.js'
+import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
+import { WormholescanClient, makeWatcher } from '@/services/networking/apis/wormhole/index.js'
 
 const { MOONBEAM_ID } = WormholeIds
 

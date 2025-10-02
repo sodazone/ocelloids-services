@@ -1,9 +1,9 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { PayloadPortalTokenBridge, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
-import { addressToHex } from '../address.js'
-import { tokenAddressToAssetId } from '../chain.js'
-import { wormholeAmountToReal } from '../decimals.js'
 import { tokenRegistry } from '../metadata/tokens.js'
+import { addressToHex } from '../types/address.js'
+import { tokenAddressToAssetId } from '../types/chain.js'
+import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { decodeTransferPayload, resolvePayloadEnhancer } from './payload.js'
 
@@ -32,7 +32,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
     if (tokenInfo) {
       decimals = tokenInfo.decimals ?? decimals
       symbol = tokenInfo.symbol ?? wrappedTokenSymbol ?? symbol
-      isNative = !!tokenInfo.treatAsNative
+      isNative = !!tokenInfo.isNative
     } else {
       console.warn(
         `[PortalMapper] Token not found in registry: ${tokenChain} ${tokenAddress}. Using unknown token ??? fallback.`,
