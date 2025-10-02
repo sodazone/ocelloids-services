@@ -298,9 +298,9 @@ describe('extractXcmMessageData', () => {
           expect(msg.destination.chainId).toBeDefined()
           expect(msg.origin.timestamp).toBeDefined()
           expect(msg.sender?.signer.id).toBeDefined()
+          expect(msg.destination.chainId).toBe('urn:ocn:polkadot:1000')
         },
         complete: () => {
-          // should be 1 since we don't want dups
           expect(calls).toHaveBeenCalledTimes(1)
           resolve()
         },
