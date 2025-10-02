@@ -104,10 +104,22 @@ export class WormholeAgent implements Agent {
     if (existing.status !== journey.status) {
       const update: JourneyUpdate = {}
       update.status = journey.status
+
       if (journey.recv_at && !existing.recv_at) {
         update.recv_at = journey.recv_at
       }
-      // TODO stops
+
+      if (journey.to !== existing.to) {
+        update.to = journey.to
+        update.to_formatted = journey.to_formatted
+      }
+      if (journey.from !== existing.from) {
+        update.from = journey.from
+        update.from_formatted = journey.from_formatted
+      }
+
+      update.stops = journey.stops
+
       await this.#repository.updateJourney(existing.id, update)
       await this.#broadcast('update_journey', existing.id)
     }

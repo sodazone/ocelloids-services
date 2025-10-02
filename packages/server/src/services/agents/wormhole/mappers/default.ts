@@ -66,7 +66,7 @@ export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney):
     const s = op.content?.standarizedProperties ?? {}
 
     if (!s.tokenAddress) {
-      journey.type = 'unknown'
+      journey.type = 'transact'
       return []
     }
 
@@ -98,7 +98,7 @@ export function toWormholeStops(op: WormholeOperation): AnyJson[] {
       from: {
         chainId: chainIdToUrn(s.fromChain),
         timestamp: toUTCMillis(op.sourceChain?.timestamp),
-        status: op.sourceChain?.status ?? 'Unknown',
+        status: op.sourceChain?.status ?? 'unknown',
         tx: op.sourceChain?.transaction,
       },
 
@@ -106,7 +106,7 @@ export function toWormholeStops(op: WormholeOperation): AnyJson[] {
         ? {
             chainId: chainIdToUrn(s.toChain),
             timestamp: toUTCMillis(op.targetChain?.timestamp),
-            status: op.targetChain?.status ?? 'Unknown',
+            status: op.targetChain?.status ?? 'unknown',
             tx: op.targetChain?.transaction,
           }
         : {

@@ -18,6 +18,16 @@ const cases: TestCase[] = [
       ],
     },
   },
+  {
+    name: 'decode ??? transfer (polygon → moonbeam)',
+    file: 'polygon-moonbeam_280131.json',
+    expected: {
+      type: 'transact',
+      from: '0x990ef5d2adca4a2ccf1811f54e4b5506977504cc',
+      to: '0x0000000000000000000000000000000000000000',
+      assets: [],
+    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole custom relayer mapper')
