@@ -1,4 +1,3 @@
-import { asJSON } from '@/common/util.js'
 import { NetworkURN } from '@/lib.js'
 import { extractEvents, extractTxWithEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'

@@ -1,4 +1,5 @@
 import EventEmitter from 'node:events'
+import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
 
@@ -13,7 +14,6 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { ArchiveRepository } from '@/services/archive/repository.js'
 import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
-import { Binary } from 'polkadot-api'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
@@ -415,10 +415,13 @@ export class XcmTracker {
     const pallet = pkBridgePallets[chainId]
     const codec = context.storageCodec(pallet, 'OutboundMessages')
     return (blockHash: HexString, lane: HexString, nonce: number) => {
-      const key = codec.keys.enc(new Binary(fromHex(lane)), nonce) as HexString
+      const key = codec.keys.enc({
+        lane_id: new FixedSizeBinary(fromHex(lane)),
+        nonce: BigInt(nonce),
+      }) as HexString
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return { key, value: codec.value.dec(buffer) }
+          return codec.value.dec(buffer)
         }),
       )
     }

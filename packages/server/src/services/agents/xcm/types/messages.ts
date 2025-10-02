@@ -99,9 +99,18 @@ export interface XcmInboundWithContext extends XcmWithContext {
   assetSwaps?: AssetSwap[]
 }
 
-export interface XcmBridgeInboundWithContext extends XcmInboundWithContext {
+export interface XcmBridgeInboundWithContext {
+  blockNumber: string | number
+  blockHash: HexString
   chainId: NetworkURN
   bridgeKey: HexString
+  outcome: 'Success' | 'Fail'
+  event?: AnyJson
+  extrinsicPosition?: number
+  specVersion?: number
+  timestamp?: number
+  extrinsicHash?: HexString
+  error?: AnyJson
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -249,19 +258,33 @@ export class GenericXcmBridgeDeliveredWithContext
   }
 }
 
-export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements XcmBridgeInboundWithContext {
+export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+  blockNumber: string | number
+  blockHash: HexString
   chainId: NetworkURN
   bridgeKey: HexString
   outcome: 'Success' | 'Fail'
   error: AnyJson
 
-  constructor(msg: XcmBridgeInboundWithContext) {
-    super(msg)
+  event?: AnyJson
+  extrinsicPosition?: number
+  specVersion?: number
+  timestamp?: number
+  extrinsicHash?: HexString
 
+  constructor(msg: XcmBridgeInboundWithContext) {
+    this.blockNumber = msg.blockNumber
+    this.blockHash = msg.blockHash
     this.chainId = msg.chainId
+    this.bridgeKey = msg.bridgeKey
     this.outcome = msg.outcome
     this.error = msg.error
-    this.bridgeKey = msg.bridgeKey
+
+    this.event = msg.event
+    this.extrinsicPosition = msg.extrinsicPosition
+    this.extrinsicHash = msg.extrinsicHash
+    this.specVersion = msg.specVersion
+    this.timestamp = msg.timestamp
   }
 }
 

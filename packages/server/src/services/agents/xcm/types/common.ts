@@ -39,6 +39,6 @@ export type GetOutboundPKBridgeMessages = (
   hash: HexString,
   lane: HexString,
   nonce: number,
-) => Observable<{ key: HexString; value: Binary }>
+) => Observable<Binary>
 
 export type GetStorageAt = (hash: HexString, key: HexString) => Observable<HexString>
