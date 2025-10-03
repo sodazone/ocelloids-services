@@ -24,7 +24,7 @@ const cases: TestCase[] = [
     expected: {
       type: 'transact',
       from: '0x990ef5d2adca4a2ccf1811f54e4b5506977504cc',
-      to: '0x0000000000000000000000000000000000000000',
+      to: '0x27428dd2d3dd32a4d7f7c497eaaa23130d894911',
       assets: [],
     },
   },

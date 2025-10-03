@@ -1,19 +1,13 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { deserialize, deserializePayload } from '@wormhole-foundation/sdk-definitions'
-import { GMP_PRECOMPILE, enhancer as gmpEnhancer } from '../moonbeam/gmp.js'
-import { WormholeIds } from '../types/chain.js'
+
+import { moonbeamEnhancers } from '../moonbeam/enhancers.js'
 
 export type PayloadEnhancer = (
   payload: bigint | Uint8Array,
   assetOp: NewAssetOperation,
   journey: NewJourney,
 ) => void
-
-const enhancers: Record<string, Record<string, PayloadEnhancer>> = {
-  [WormholeIds.MOONBEAM_ID]: {
-    [GMP_PRECOMPILE]: gmpEnhancer,
-  },
-}
 
 const Discriminator: Record<number, string> = {
   0x01: 'TokenBridge:Transfer',
@@ -48,7 +42,7 @@ export function resolvePayloadEnhancer({
   address: string
   chain: number
 }): PayloadEnhancer | null {
-  const chainEnhancers = enhancers[chain]
+  const chainEnhancers = moonbeamEnhancers[chain]
   if (!chainEnhancers) {
     return null
   }

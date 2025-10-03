@@ -18,14 +18,14 @@ export class WormholescanClient {
   constructor(baseUrl = 'https://api.wormholescan.io') {
     this.#api = ky.create({
       prefixUrl: baseUrl,
-      hooks: {
+      /*hooks: {
         beforeRequest: [
           (request) => {
             console.log('Fetching:', request.url)
           },
         ],
-      },
-      timeout: 10000,
+      },*/
+      timeout: 10_000,
       retry: {
         limit: 5,
         methods: ['get'],

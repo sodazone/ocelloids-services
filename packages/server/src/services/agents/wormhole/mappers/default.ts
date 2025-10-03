@@ -11,6 +11,16 @@ import {
   WormholeProtocol,
 } from '@/services/networking/apis/wormhole/types.js'
 
+function prefer(a?: string | null, b?: string | null): string {
+  const isZeroAddress = typeof a === 'string' && a === '0x0000000000000000000000000000000000000000'
+
+  if (isZeroAddress && b) {
+    return b
+  }
+
+  return a ?? b ?? ''
+}
+
 /**
  * Default mapping from WormholeOperation to NewJourney
  */
@@ -21,17 +31,8 @@ export function defaultJourneyMapping(
 ): NewJourney {
   const s = op.content?.standarizedProperties ?? {}
 
-  const from = op.sourceChain?.from ?? s.fromAddress ?? ''
-  const to = s.toAddress ?? op.targetChain?.to ?? ''
-
-  const instructionsPayload = {
-    standardizedProperties: s,
-    rawPayload: op.content?.payload,
-    sourceChain: op.sourceChain,
-    targetChain: op.targetChain,
-    data: op.data,
-    vaa: op.vaa,
-  }
+  const from = prefer(op.sourceChain?.from, s.fromAddress)
+  const to = prefer(s.toAddress, op.targetChain?.to)
 
   return {
     correlation_id: op.id,
@@ -49,7 +50,7 @@ export function defaultJourneyMapping(
     recv_at: op.targetChain ? toUTCMillis(op.targetChain.timestamp) : undefined,
     created_at: Date.now(),
     stops: asJSON(toWormholeStops(op)),
-    instructions: asJSON([instructionsPayload]),
+    instructions: '[]',
     transact_calls: '[]',
     origin_tx_primary: op.sourceChain?.transaction?.txHash ?? null,
     origin_tx_secondary: op.sourceChain?.transaction?.secondTxHash ?? null,

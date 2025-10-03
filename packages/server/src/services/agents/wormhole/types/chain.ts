@@ -6,7 +6,7 @@ export const WormholeIds = {
   SOLANA_ID: 1,
   ETHEREUM_ID: 2,
   BASE_ID: 30,
-  BNB_ID: 4,
+  BSC_ID: 4,
   POLYGON_ID: 5,
   SUI_ID: 21,
   OP_ID: 24,
@@ -17,7 +17,7 @@ export const WormholeIds = {
 const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
-  'urn:ocn:ethereum:56': WormholeIds.BNB_ID,
+  'urn:ocn:ethereum:56': WormholeIds.BSC_ID,
   'urn:ocn:ethereum:137': WormholeIds.POLYGON_ID,
   'urn:ocn:ethereum:1': WormholeIds.ETHEREUM_ID,
   'urn:ocn:ethereum:10': WormholeIds.OP_ID,
