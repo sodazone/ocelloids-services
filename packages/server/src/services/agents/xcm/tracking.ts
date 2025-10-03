@@ -1,4 +1,5 @@
 import EventEmitter from 'node:events'
+import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
 
@@ -18,6 +19,7 @@ import { MatchingEngine } from './matching.js'
 import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
+import { pkBridgePallets } from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getMessageId, matchExtrinsic } from './ops/util.js'
@@ -28,6 +30,7 @@ import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.j
 import {
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
+  GetOutboundPKBridgeMessages,
   GetOutboundUmpMessages,
   MessageHashData,
   XcmInbound,
@@ -406,6 +409,22 @@ export class XcmTracker {
 
   #isTracking(type: 'd' | 'o' | 'r', chainId: NetworkURN) {
     return this.#streams[type].findIndex((s) => s.chainId === chainId) > -1
+  }
+
+  #getPkBridge(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundPKBridgeMessages {
+    const pallet = pkBridgePallets[chainId]
+    const codec = context.storageCodec(pallet, 'OutboundMessages')
+    return (blockHash: HexString, lane: HexString, nonce: number) => {
+      const key = codec.keys.enc({
+        lane_id: new FixedSizeBinary(fromHex(lane)),
+        nonce: BigInt(nonce),
+      }) as HexString
+      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
+        map((buffer) => {
+          return codec.value.dec(buffer)
+        }),
+      )
+    }
   }
 
   #getDmp(chainId: NetworkURN, context: SubstrateApiContext): GetDownwardMessageQueues {

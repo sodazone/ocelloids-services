@@ -18,6 +18,7 @@ import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
 import { hydraPolkadotInterlay } from '@/testing/hops-ump-dmp.js'
 import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
+import { kusamaToPolkadotBridgeMessages } from '@/testing/pk-bridge.js'
 import { MatchingEngine } from './matching.js'
 import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types/index.js'
 
@@ -367,6 +368,23 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(received)
 
     expectEvents(['xcm.sent', 'xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    await expectNoLeftover()
+  })
+
+  it('should match pk bridge messages', async () => {
+    const { sent, bridgeXcmIn, bridgeAccepted, bridgeReceived, bridgeXcmOut, received } =
+      kusamaToPolkadotBridgeMessages
+
+    await engine.onOutboundMessage(sent)
+    await engine.onBridgeOutboundAccepted(bridgeAccepted)
+    await engine.onInboundMessage(bridgeXcmIn)
+
+    await engine.onOutboundMessage(bridgeXcmOut)
+    await engine.onBridgeInbound(bridgeReceived)
+    await engine.onInboundMessage(received)
+
+    expectEvents(['xcm.sent', 'xcm.bridge', 'xcm.hop', 'xcm.hop', 'xcm.bridge', 'xcm.received'])
+    expectOd(6, { origin: 'urn:ocn:kusama:1000', destination: 'urn:ocn:polkadot:1000' })
     await expectNoLeftover()
   })
 })

@@ -11,6 +11,9 @@ import { testApiContextFromMetadata, testBlocksFrom } from './blocks.js'
 
 export const apiContext: SubstrateApiContext = testApiContextFromMetadata('polkadot.scale')
 export const apiContext_xcmv2: SubstrateApiContext = testApiContextFromMetadata('polkadot.xcmv2.scale')
+export const apiContext_bridgehub: SubstrateApiContext = testApiContextFromMetadata('bridgehub.scale')
+export const apiContext_bridgehub_polkadot: SubstrateApiContext =
+  testApiContextFromMetadata('bridgehub-polkadot.scale')
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 export const xcmDataDir = resolve(__dirname, '__data__/xcm')
