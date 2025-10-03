@@ -65,7 +65,7 @@ const topicToEvent = Object.fromEntries(transferEventDefs.map((ev) => [toEventSe
 export function decodeLog(event: BlockEvent) {
   const { address, topics, data } = event.value.log as Log
   const topic0 = topics[0]
-  if (typeof topic0 === 'undefined') {
+  if (typeof topic0 === 'undefined' || data === '0x') {
     return null
   }
   const ev = topicToEvent[topic0]
@@ -73,16 +73,24 @@ export function decodeLog(event: BlockEvent) {
     return null
   }
 
-  const decoded = decodeEventLog({
-    abi: [ev],
-    data,
-    topics,
-  })
-  return {
-    ...event,
-    address,
-    topics,
-    data,
-    decoded,
-  } as BlockEvmEvent
+  try {
+    const decoded = decodeEventLog({
+      abi: [ev],
+      data,
+      topics,
+    })
+    return {
+      ...event,
+      address,
+      topics,
+      data,
+      decoded,
+    } as BlockEvmEvent
+  } catch (e) {
+    console.error(
+      e,
+      `Error decoding EVM event log block=${event.blockHash} event=${event.blockNumber}-${event.blockPosition} data=${data}`,
+    )
+    return null
+  }
 }
