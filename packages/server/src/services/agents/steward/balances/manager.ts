@@ -38,6 +38,9 @@ import {
   StorageQueueData,
 } from './types.js'
 
+const STORAGE_CAP = 1_000
+const RUNTIME_CAP = 50
+
 export class BalancesManager {
   id = 'steward:balances'
 
@@ -59,7 +62,7 @@ export class BalancesManager {
   readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
   readonly #metadataCache: LRUCache<HexString, AssetData, unknown>
 
-  readonly #mutex = new Mutex()
+  readonly #chainMutexes: Record<NetworkURN, Mutex> = {}
 
   #running = false
   #config: Record<string, any>
@@ -104,7 +107,9 @@ export class BalancesManager {
       sub.unsubscribe()
     }
     await this.#dbBalances.close()
-    await this.#mutex.waitForUnlock()
+    for (const mutex of Object.values(this.#chainMutexes)) {
+      await mutex.waitForUnlock()
+    }
   }
 
   async onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
@@ -318,6 +323,9 @@ export class BalancesManager {
           continue
         }
 
+        const mutex = (this.#chainMutexes[chainId] ??= new Mutex())
+        const release = await mutex.acquire()
+
         const storageItems: Record<HexString, StorageQueueData> = {}
         const runtimeItems: Record<HexString, RuntimeQueueData> = {}
         const records: BalanceRecord[] = []
@@ -330,15 +338,26 @@ export class BalancesManager {
           }
         }
 
-        const release = await this.#mutex.acquire()
-        try {
-          // Process storage items
-          Object.keys(storageItems).forEach((k) => queue.delete(k as HexString))
-          await this.#processStorageQueue(chainId, storageItems, records)
-          // Process runtime items
-          Object.keys(runtimeItems).forEach((k) => queue.delete(k as HexString))
-          await this.#processRuntimeQueue(chainId, runtimeItems, records)
+        const storageBatchKeys = Object.keys(storageItems).slice(0, STORAGE_CAP)
+        const runtimeBatchKeys = Object.keys(runtimeItems).slice(0, RUNTIME_CAP)
 
+        const storageBatch: Record<HexString, StorageQueueData> = {}
+        const runtimeBatch: Record<HexString, RuntimeQueueData> = {}
+
+        storageBatchKeys.forEach((k) => {
+          storageBatch[k as HexString] = storageItems[k as HexString]
+          queue.delete(k as HexString)
+        })
+        runtimeBatchKeys.forEach((k) => {
+          runtimeBatch[k as HexString] = runtimeItems[k as HexString]
+          queue.delete(k as HexString)
+        })
+
+        try {
+          await Promise.all([
+            this.#processStorageQueue(chainId, storageBatch, records),
+            this.#processRuntimeQueue(chainId, runtimeBatch, records),
+          ])
           await this.#dbBalances.putBatch(records)
         } catch (err) {
           this.#log.error(err, '[%s] failed processing balance update for chain=%s', this.id, chainId)
@@ -443,7 +462,6 @@ export class BalancesManager {
       }
 
       this.#balanceDiscoveryInProgress.add(account)
-      const release = await this.#mutex.acquire()
 
       try {
         const chainIds = this.#substrateIngress.getChainIds()
@@ -452,10 +470,14 @@ export class BalancesManager {
           if (!this.#substrateIngress.isNetworkDefined(chainId)) {
             continue
           }
-
-          const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
-
-          await this.#discoverBalances(chainId, account, apiCtx, { limit: 100 })
+          const mutex = (this.#chainMutexes[chainId] ??= new Mutex())
+          const release = await mutex.acquire()
+          try {
+            const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
+            await this.#discoverBalances(chainId, account, apiCtx, { limit: 100 })
+          } finally {
+            release()
+          }
         }
         await this.#dbBalances.markDiscovered(account)
       } catch (err) {
@@ -471,7 +493,6 @@ export class BalancesManager {
           event: 'synced',
           data: { accountId: asAccountId(account), publicKey: account },
         })
-        release()
       }
     }
   }
