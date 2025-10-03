@@ -5,8 +5,8 @@ import { HexString, NetworkURN } from '@/lib.js'
 
 import { isEVMAddress } from '@/common/util.js'
 import { fromHex } from 'polkadot-api/utils'
-import { filter } from 'rxjs'
-import { networks } from '../../types.js'
+import { filter, firstValueFrom } from 'rxjs'
+import { AssetId, networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   AssetsBalance,
@@ -228,4 +228,29 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
 
 export const customDiscoveryFetchers: Record<string, CustomDiscoveryFetcher> = {
   [networks.hydration]: hydrationBalancesFetcher,
+}
+
+export const onDemandFetchers: Record<string, CustomDiscoveryFetcher> = {
+  [networks.mythos]: async ({ chainId, account, ingress, apiCtx }) => {
+    const balances: {
+      assetId: AssetId
+      balance: bigint
+    }[] = []
+    if (account.length > 42) {
+      // Substrate addresses cannot be mapped to Mythos EVM address
+      return balances
+    }
+
+    const { storageKey, module, name } = toNativeStorageKey(account, apiCtx)
+    const value = await firstValueFrom(ingress.getStorage(chainId, storageKey))
+    const storageCodec = apiCtx.storageCodec(module, name)
+    const balanceExtractor = getBalanceExtractor(module, name)
+    if (balanceExtractor) {
+      balances.push({
+        assetId: 'native',
+        balance: balanceExtractor(storageCodec.value.dec(value)),
+      })
+    }
+    return balances
+  },
 }

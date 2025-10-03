@@ -26,6 +26,7 @@ import {
   balancesStorageMappers,
   customDiscoveryFetchers,
   getBalanceExtractor,
+  onDemandFetchers,
 } from './mappers/index.js'
 import { AssetData, BalanceEvents } from './sse.js'
 import {
@@ -141,7 +142,7 @@ export class BalancesManager {
             },
           })
 
-          await this.#streamBalancesFromDB({
+          await this.#streamSnapshot({
             connectionId: id,
             accountId,
             publicKey,
@@ -160,7 +161,7 @@ export class BalancesManager {
               publicKey,
             },
           })
-          await this.#streamBalancesFromDB({
+          await this.#streamSnapshot({
             connectionId: id,
             accountId,
             publicKey,
@@ -206,6 +207,11 @@ export class BalancesManager {
     }
   }
 
+  async #streamSnapshot(opts: { connectionId: string; accountId: string; publicKey: HexString }) {
+    await this.#fetchOnDemandBalances(opts.publicKey)
+    await this.#streamBalancesFromDB(opts)
+  }
+
   async #streamBalancesFromDB({
     connectionId,
     accountId,
@@ -228,6 +234,38 @@ export class BalancesManager {
             ...metadata,
           },
         })
+      }
+    }
+  }
+
+  async #fetchOnDemandBalances(publicKey: HexString) {
+    for (const chainId of this.#substrateIngress.getChainIds()) {
+      if (!this.#substrateIngress.isNetworkDefined(chainId)) {
+        continue
+      }
+
+      const fetcher = onDemandFetchers[chainId]
+      if (!fetcher) {
+        continue
+      }
+
+      const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
+      const balances = await fetcher({
+        chainId,
+        account: publicKey,
+        apiCtx,
+        ingress: this.#substrateIngress,
+      })
+
+      const balanceRecords: BalanceRecord[] = []
+
+      for (const { assetId, balance } of balances) {
+        const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString
+        balanceRecords.push({ accountHex: publicKey, assetKeyHash, balance })
+      }
+
+      if (balanceRecords.length > 0) {
+        await this.#dbBalances.putBatch(balanceRecords)
       }
     }
   }
@@ -655,14 +693,6 @@ export class BalancesManager {
     }
 
     return undefined
-  }
-
-  async #shouldBeDiscovered(publicKey: HexString): Promise<boolean> {
-    return (
-      !this.#balanceDiscoveryQueue.has(publicKey) &&
-      !this.#balanceDiscoveryInProgress.has(publicKey) &&
-      !(await this.#dbBalances.hasBeenDiscovered(publicKey))
-    )
   }
 
   #accountsCriteria(accounts: string[]): Criteria {
