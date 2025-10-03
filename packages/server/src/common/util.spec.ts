@@ -1,16 +1,43 @@
+import bs58 from 'bs58'
+
 import { AnyJson } from '@/lib.js'
 import { asPublicKey, asSerializable, fromDuckDBBlob, toDuckDBHex } from './util.js'
 
 describe('utility functions', () => {
-  it('should transform SS58 addresses', () => {
-    expect(asPublicKey('dfZvF6iz8qvsdGEWTHBoo2daJWq386QYfDXwfsycTJhicxLcc')).toBe(
-      '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441',
-    )
-  })
-  it('should bypass hex strings', () => {
-    expect(asPublicKey('0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441')).toBe(
-      '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441',
-    )
+  describe('asPublicKey cross-chain support', () => {
+    it('should accept Ethereum 20-byte hex', () => {
+      const eth = '0x601D579ECD0464A1A090CEEF81A703465A1679CD'
+      expect(asPublicKey(eth)).toBe(eth.toLowerCase())
+    })
+
+    it('should accept Sui 32-byte hex', () => {
+      const sui = '0x4c77cf7f2b6786a9819401d2168addce7b9fdd1fb201d1887a779ca694df5361'
+      expect(asPublicKey(sui)).toBe(sui.toLowerCase())
+    })
+
+    it('should accept Solana base58 32-byte', () => {
+      const sol = '4Nd1mCybdfpMnFV7Qb5kk9nSkg9cK7PRJpJu9yCFRdHy' // Example
+      const expectedHex = '0x' + Buffer.from(bs58.decode(sol)).toString('hex')
+      expect(asPublicKey(sol)).toBe(expectedHex)
+    })
+
+    it('should accept Polkadot SS58 addresses', () => {
+      const ss58 = 'dfZvF6iz8qvsdGEWTHBoo2daJWq386QYfDXwfsycTJhicxLcc'
+      const expectedHex = '0x94e58ead97ea7dbbc1f671d23a8d52a66e5659da2eddc1d139e0c49d8f648441'
+      expect(asPublicKey(ss58)).toBe(expectedHex)
+    })
+
+    it('should throw on invalid 0x strings', () => {
+      expect(() => asPublicKey('0x1234')).toThrow(/invalid 0x address length/)
+    })
+
+    it('should throw on invalid base58 strings', () => {
+      expect(() => asPublicKey('ThisIsNotBase58!')).toThrow(/invalid address format/)
+    })
+
+    it('should throw on empty input', () => {
+      expect(() => asPublicKey('')).toThrow(/empty accountId/)
+    })
   })
   it('should serialize objecs', () => {
     expect(asSerializable({ one: 1 })).toStrictEqual({ one: 1 })
