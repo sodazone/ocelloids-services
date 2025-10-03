@@ -19,7 +19,11 @@ relay = "urn:ocn:polkadot:0"
 
   [substrate.networks.provider]
   type = "rpc"
-  url = "wss://hydradx.paras.dotters.network"
+  url = [
+    "wss://hydradx.paras.ibp.network",
+    "wss://hydradx.paras.dotters.network",
+    "wss://rpc.helikon.io/hydradx"
+  ]
 
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2030"
@@ -27,7 +31,10 @@ relay = "urn:ocn:polkadot:0"
 
   [substrate.networks.provider]
   type = "rpc"
-  url = "wss://bifrost-polkadot-rpc.dwellir.com"
+  url = [
+    "wss://bifrost-polkadot.ibp.network",
+    "wss://bifrost-polkadot.dotters.network"
+  ]
 
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2031"

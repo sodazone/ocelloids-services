@@ -28,6 +28,7 @@ describe('Ocelloids Server HTTP API', () => {
   beforeAll(async () => {
     server = await mockServer({
       cors: true,
+      agents: 'xcm,steward',
     })
     return server.ready()
   })

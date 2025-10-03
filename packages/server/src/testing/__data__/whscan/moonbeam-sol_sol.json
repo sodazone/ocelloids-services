@@ -1,0 +1,63 @@
+{
+    "id": "16/000000000000000000000000b1731c586ca89a23809861c6103f0b96b3f57d92/92980",
+    "emitterChain": 16,
+    "emitterAddress": {
+        "hex": "000000000000000000000000b1731c586ca89a23809861c6103f0b96b3f57d92",
+        "native": "0xb1731c586ca89a23809861c6103f0b96b3f57d92"
+    },
+    "sequence": "92980",
+    "content": {
+        "payload": {
+            "amount": "6913973142",
+            "callerAppId": "CONNECT",
+            "fee": "",
+            "fromAddress": "0x000000000000000000000000cafd2f0a35a4459fa40c0517e17e6fa2939441ca",
+            "parsedPayload": {
+                "targetRecipient": "0x22e929ae84b3bd96679c12c4d3b329bfb8d3e4b9846927e1ca339220a6ab600c",
+                "targetRelayerFee": 960549,
+                "toNativeTokenAmount": 0
+            },
+            "payload": "0100000000000000000000000000000000000000000000000000000000000ea825000000000000000000000000000000000000000000000000000000000000000022e929ae84b3bd96679c12c4d3b329bfb8d3e4b9846927e1ca339220a6ab600c",
+            "payloadType": 3,
+            "toAddress": "0x2b89b45cb77bbcf736ba3172bd333a6e16bbc97fa72470c6bc4063ef074e976b",
+            "toChain": 1,
+            "tokenAddress": "0x069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+            "tokenChain": 1
+        },
+        "standarizedProperties": {
+            "appIds": [
+                "PORTAL_TOKEN_BRIDGE",
+                "CONNECT"
+            ],
+            "fromChain": 16,
+            "fromAddress": "0xCafd2f0A35A4459fA40C0517e17e6fA2939441CA",
+            "toChain": 1,
+            "toAddress": "3MH5BZCAj1BeVHTV7yLVJjpz7H2Qheuw11NDZBnKvqnK",
+            "tokenChain": 1,
+            "tokenAddress": "So11111111111111111111111111111111111111112",
+            "amount": "6913973142",
+            "feeAddress": "So11111111111111111111111111111111111111112",
+            "feeChain": 1,
+            "fee": "960549",
+            "normalizedDecimals": null
+        },
+        "executorRequest": null
+    },
+    "sourceChain": {
+        "chainId": 16,
+        "timestamp": "2025-10-01T08:29:12Z",
+        "transaction": {
+            "txHash": "0xf4a4901383311e703360effd6d437dcea61d88cab06ef6f09d7b92dc6e82ca35"
+        },
+        "from": "0xe06be1798ea5862fa141a717ab90c7c589a92af9",
+        "status": "confirmed",
+        "fee": "0",
+        "gasTokenNotional": "0.057074",
+        "feeUSD": "0"
+    },
+    "data": {
+        "symbol": "WSOL",
+        "tokenAmount": "69.13973142",
+        "usdAmount": "14536.62853105"
+    }
+}

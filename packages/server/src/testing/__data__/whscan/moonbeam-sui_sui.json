@@ -1,0 +1,78 @@
+{
+  "id": "16/000000000000000000000000b1731c586ca89a23809861c6103f0b96b3f57d92/92983",
+  "emitterChain": 16,
+  "emitterAddress": {
+    "hex": "000000000000000000000000b1731c586ca89a23809861c6103f0b96b3f57d92",
+    "native": "0xb1731c586ca89a23809861c6103f0b96b3f57d92"
+  },
+  "sequence": "92983",
+  "vaa": {
+    "raw": "AQAAAAQRADJ5XUCsxvIDvkINlyV1hiyqdqGOjjwlmTE8Cun7MEthTcmkaaKpmLQvSUHthniMwIAgpgki2MzaeDCpn4EY1VQAAWn6qXcRu4PBTPZcMTr/bzXq9gekNmMpVbPa1dwcgvpPR0QH0LbcXL0OM0Iw8PvU/ARDTdVtBGUpRjnX0Kam4k8AAouBU8pRy1YUHxz0b8us9S1hTLfHS7bcTJA4mjsDmjCGWsb12SrduMaEwZB9bjyJ5NZXF3TRh15y2uCY0SSntLQAA4P44fNUCRTN1bpxdW8c27M4+UwGtqokngaKmHmTwbW1aacvPK5mX13OMdwUs9xJAwN+wUkePAbFiiZjgdZZhUMBBBdzRl9plc0kEfQfykk4XPq9xmq3bmZyd5iklTHdI1aiMqYTttjLiV77Tqged3qiHi5t4MFSp75yYxImGwysB8YABSRIMXxNwCUmyZ3Dk0E5LxpjG3k0YP8YzlDuGu5GGBomUNxoZRsIqZAfhxkn/wQyz+MN4KJ6GZtvSqUwikfNzVYBBi9XmzeBWY4rfcfY8eP83DOCjoi7PL3/RVWztHpsc36VBq+h5mIp2g4HVW4slil/bGEq72Zu6Ye7VGNyOHOBIfQABwNwUjIMLc7WAKrx1XJ3p94L9uzRffxnkhd1BdHSsMcVNSdiSJn32fBiEg5JOEp1yE5kfgzNi/4VXsRRLUU/rY4BCNRixn5h4nelaEJLx2ypsfgzWeNpKSCNUhySotjcL+LnP0H4TjSO+tHmMPyGQmHFnQFcRTYmVlIJY+uegNnN1QkBCV8228MPtveZyMqRJwZQZl+xZ00/sMU244r23aeSh6f/Z62vqLnPUTjnaQr3Xl23bq+hKEfYwFT9Jm7pEksqeuYACpH/NUkqFOt4tjLqIi2FmGnIkfXpiiSnkNHDJfANwSovVND8QVbThtLsnsmQgqeFJgQoadWSvH4l+VERAtiN3DIAC3VSnj72eVCUktBzDUQvrvh14oWDFIlTAVpAK53DuAdJASMwRuOACKXIUYe09fbBcxSctRR0lidWeQoTmxTGgtwBDD62Sti8CEYsIWrZTdfP+p5sQWw4iVnhZgcIiITxW0edYZXK0iZOR2RVwvat+YSUhCUprhYwt5jlQ22EgrJqMtkADlIJYUjrksaOxfUpXdJlrH6jD/YzvTNcMuD319CBfqQdS3LRXwBkuTGatSl+08wYOrEMBAjwAW8Bkf73IVlirUABD/5Qf8KLOu3MIFJklC3dcNMLPb1Mtky/1Q6H+q9g6eIpXN/+AI7UbhAFj1EFNVLr32m+hdaYlrzkpGXKP1uoi6QAEMJ1Cx4cJf7457/PDSMDthl51oVQWZYbDg6eYtkmkQ8MPbgPnH7Dp8dG8Jvh4MMAObDZVk0mifJKrXUUkMCgGiEAErZFp6ObXsLvmGvpamEhxmb65fiEuk2z6H0Oo7p6YGEeFP28yoixDSaPXDXTb3YrZlHXptHyLy2rnXILDugHY0oBaNz85AAAAAAAEAAAAAAAAAAAAAAAALFzHFhsqJojgJhhxhA/C5az9X2SAAAAAAABazcBAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC6bNh+yklgYH1zqyNv/twMIkCQ8rtaalZnSiG2Vepy3ZWrzvbMAFcTGEHB+q5siKZawdffQfH2bB3Zqt7yv72If1Tu/CJ9OABUAAAAAAAAAAAAAAADK/S8KNaRFn6QMBRfhfm+ik5RBygEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOC8LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVeCXDlB/lFrkvw/Mm7x4AN03BiiF7tWz1UVZTEnpX5Q=",
+    "guardianSetIndex": 4,
+    "isDuplicated": false
+  },
+  "content": {
+    "payload": {
+      "amount": "200172511154",
+      "callerAppId": "CONNECT",
+      "fee": "",
+      "fromAddress": "0x000000000000000000000000cafd2f0a35a4459fa40c0517e17e6fa2939441ca",
+      "parsedPayload": {
+        "targetRecipient": "0x55e0970e507f945ae4bf0fcc9bbc7800dd37062885eed5b3d545594c49e95f94",
+        "targetRelayerFee": 14728236,
+        "toNativeTokenAmount": 0
+      },
+      "payload": "010000000000000000000000000000000000000000000000000000000000e0bc2c000000000000000000000000000000000000000000000000000000000000000055e0970e507f945ae4bf0fcc9bbc7800dd37062885eed5b3d545594c49e95f94",
+      "payloadType": 3,
+      "toAddress": "0xc4c610707eab9b222996b075f7d07c7d9b07766ab7bcafef621fd53bbf089f4e",
+      "toChain": 21,
+      "tokenAddress": "0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3",
+      "tokenChain": 21
+    },
+    "standarizedProperties": {
+      "appIds": [
+        "PORTAL_TOKEN_BRIDGE",
+        "CONNECT"
+      ],
+      "fromChain": 16,
+      "fromAddress": "0xCafd2f0A35A4459fA40C0517e17e6fA2939441CA",
+      "toChain": 21,
+      "toAddress": "0x55e0970e507f945ae4bf0fcc9bbc7800dd37062885eed5b3d545594c49e95f94",
+      "tokenChain": 21,
+      "tokenAddress": "0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3",
+      "amount": "200172511154",
+      "feeAddress": "0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3",
+      "feeChain": 21,
+      "fee": "14728236",
+      "normalizedDecimals": null
+    },
+    "executorRequest": null
+  },
+  "sourceChain": {
+    "chainId": 16,
+    "timestamp": "2025-10-01T10:05:24Z",
+    "transaction": {
+      "txHash": "0xefcd1eafd4e6b45babd03f8404e8bf39b92a87ec6d842f5273e7167a22cd13f7"
+    },
+    "from": "0xe06be1798ea5862fa141a717ab90c7c589a92af9",
+    "status": "confirmed",
+    "fee": "0",
+    "gasTokenNotional": "0.058847",
+    "feeUSD": "0"
+  },
+  "targetChain": {
+    "chainId": 21,
+    "timestamp": "2025-10-01T10:06:15Z",
+    "transaction": {
+      "txHash": "GPJdTsoGrErkJ2faRB8nAR8k2AedS7PWv4pJeM2pFv22"
+    },
+    "status": "completed",
+    "from": "0x5d4356a5801fab1fa4fe3cd3126134268514399084aa2582e23e390b0affd802",
+    "to": ""
+  },
+  "data": {
+    "symbol": "SUI",
+    "tokenAmount": "2001.72511154",
+    "usdAmount": "6805.86537923"
+  }
+}

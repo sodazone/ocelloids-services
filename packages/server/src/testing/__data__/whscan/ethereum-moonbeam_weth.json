@@ -1,0 +1,113 @@
+ {
+  "id": "2/0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585/564970",
+  "emitterChain": 2,
+  "emitterAddress": {
+    "hex": "0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585",
+    "native": "0x3ee18b2214aff97000d974cf647e7c347e8fa585"
+  },
+  "sequence": "564970",
+  "vaa": {
+    "raw": "AQAAAAQNALi1+dZHR8OoFyDaUVwxaGC36TI+0JHoKlhKmWXsLUWDOeVlMbRUtpqLwSxHo9oXUP+Ju+hY4XKPr1v5XHNJcF4AAlnFV9Kc+zY420BDCXp1milhbZPDpZnZAHdWCvONWgH6azlrcx8l7hbaEU7ypNq9J9lA7AvMNkCkCyawqgpOftgBA40Bk3yg9hhN8mufjWxZ1t1qrej08vUBV/jVtcTKd2NOGS7/Z5lbNQHtgAVMNepA+OBmz3686P5MiBVuRJr45FkBBM6cGJWoiQI0LQ7MLqDTfb/I624VBwhoMGmWedYV2pmaWX1G/WvtX/IIe22yQErz4igUPPUSkRddN5+P8mIlImsBBT+dVv70RxPzHDeMgtFyYAnIe0QwdmvWczZ4DzoNwPCRSELb5gyNWGK4GDtClYGkN4mub+Md2w+7Cses0naYceEBBhH6u/ildawfFjUDd+FizbjP8quAe9IRmbYBE7sl79JUGJWxDIDVJw2scmYmhdgUA2D2pLUACiv6nyvk/Hr+iRkBBxd2LpoDNyX45RsimP7V7ZSja5EROpjSc2ulu1X36rR5MALh2Ddt6je01lyWdscVLppM8Uzgnjch/zpPJZxcIcMBCemvfJseUmUKgjkYanvBvH1/1aoRkk8YVzc1AD1KAdXQRpHcGnwOSsbbKL0ieOZKT6nvZf1WV587XJa8Q7kXmaIADPHgX2QJ9D91zGEG8oJ/96O6k4p7zxraoXE4sajXvnomb0VGzpw0p6JJJ7N8ONLT/SAmfx2KZ0XTArT8Q8FhOY0BDQfHGKaxgC/ePlr4DhkvXPkuXVDAfEwSgHZln5hYGEJSf49hhUXVYycj9uEpE1OZdVuc+9g8eluzpNJ9uLzCKRQBDxDP7LXglXbg1YD5lIM7eNXtN+YLCxl+3F5PfSKZB++XJi3/0Pp6nBcbo9zVuVJ6e42/JcCRHB49IIH30jBb3mMBEDhyV+wpVLXRTMuERr4Sk0SbJKzFoGkpPNBqw2TbvdwUCm2Ik2DpjDB0R5ldqvW0Bh+IKfYPWRB6oxj6ToR7wg4BEcW74fNaUhgKG0Vhr//50HNYV6aIUac5w3+f9SPYsvZmKjrwMu0+14Qaz8JCdH6HZmstuVXouQOoASeY/tBlw0EAaMzPtwAAAAAAAgAAAAAAAAAAAAAAAD7hiyIUr/lwANl0z2R+fDR+j6WFAAAAAAAInuoBAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC+i0wAAAAAAAAAAAAAAAAwCqqObIj/o0KDlxPJ+rZCDx1bMIAAgAAAAAAAAAAAAAAAPa5YWxj+kjQfYLJPOArXZERxRo9ABAAAAAAAAAAAAAAAAColp8/jZez7YnU4uwZtrDP1QSyEgAAAAAAAAAAAAAAALLzPFcYzGihBvnSoqs6EecLXHDM",
+    "guardianSetIndex": 4,
+    "isDuplicated": false
+  },
+  "content": {
+    "payload": {
+      "amount": "49950000",
+      "callerAppId": "UNKNOWN",
+      "fee": "",
+      "fromAddress": "0x000000000000000000000000a8969f3f8d97b3ed89d4e2ec19b6b0cfd504b212",
+      "parsedPayload": null,
+      "payload": "000000000000000000000000b2f33c5718cc68a106f9d2a2ab3a11e70b5c70cc",
+      "payloadType": 3,
+      "toAddress": "0x000000000000000000000000f6b9616c63fa48d07d82c93ce02b5d9111c51a3d",
+      "toChain": 16,
+      "tokenAddress": "0x000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "tokenChain": 2
+    },
+    "standarizedProperties": {
+      "appIds": [
+        "PORTAL_TOKEN_BRIDGE",
+        "UNKNOWN",
+        "MESSAGING_EXECUTOR"
+      ],
+      "fromChain": 2,
+      "fromAddress": "0xa8969F3f8D97b3Ed89D4e2EC19B6B0CfD504b212",
+      "toChain": 16,
+      "toAddress": "0xF6b9616C63Fa48D07D82c93CE02B5d9111c51a3d",
+      "tokenChain": 2,
+      "tokenAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "amount": "49950000",
+      "feeAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "feeChain": 2,
+      "fee": "",
+      "normalizedDecimals": null
+    },
+    "executorRequest": {
+      "event_index": 0,
+      "type": "ERV1",
+      "amount_paid": "22366800074425",
+      "amount_paid_usd": "0.10174568",
+      "to_chain_id": 16,
+      "to_address": "0x000000000000000000000000f6b9616c63fa48d07d82c93ce02b5d9111c51a3d",
+      "refund_address": "0xB2f33C5718cc68A106F9D2A2ab3a11E70B5C70cc",
+      "sender_address": "0xb2f33c5718cc68a106f9d2a2ab3a11e70b5c70cc",
+      "request": {
+        "chain": "Ethereum",
+        "emitter": "0x0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585",
+        "prefix": "ERV1",
+        "sequence": "564970"
+      },
+      "instructions": [
+        {
+          "gasLimit": "1000000",
+          "msgValue": "0",
+          "type": "gas"
+        }
+      ],
+      "signedQuote": {
+        "baseFee": "218898",
+        "dstChain": 16,
+        "dstGasPrice": "31250000000",
+        "dstPrice": "697310000",
+        "expiryTime": "1758256568",
+        "payeeAddress": "0x0000000000000000000000006a8bfc410a3cc7306d52872f116afb12f1cec6c6",
+        "prefix": "EQ01",
+        "quoterAddress": "0xa54008017941ece968623a0dd8ee907e2b133596",
+        "signature": "0xb00fc1d0faf253b1ff5a76b012d65075dfeba9663118c33dc0266601f40de1744d83cdbc967be719cb3be1a11cee56344748f25c082a524651564235a140ed641b",
+        "srcChain": 2,
+        "srcPrice": "45683300000000"
+      }
+    }
+  },
+  "sourceChain": {
+    "chainId": 2,
+    "timestamp": "2025-09-19T03:36:23Z",
+    "transaction": {
+      "txHash": "0x14448d9d6fcb1b6f5b1a81a7aba795f720f05c426f8c5cb50efc7d0abe556d8f"
+    },
+    "from": "0xb2f33c5718cc68a106f9d2a2ab3a11e70b5c70cc",
+    "status": "confirmed",
+    "fee": "0.00031612854897232",
+    "gasTokenNotional": "4571.73",
+    "feeUSD": "1.4452543711932245136"
+  },
+  "targetChain": {
+    "chainId": 16,
+    "timestamp": "2025-09-19T03:54:18Z",
+    "transaction": {
+      "txHash": "0x64afb562a766343b2a2b4cc996183df36100e555f88e6f9d147d59272730e9aa"
+    },
+    "status": "completed",
+    "from": "0x0c27f5bd5a2a616fe90237b955eaef575159754e",
+    "to": "0x13b62003c8b126ec0748376e7ab22f79fb8bbdf2",
+    "fee": "0.01718725",
+    "gasTokenNotional": "0.069539",
+    "feeUSD": "0.00119518417775"
+  },
+  "data": {
+    "symbol": "WETH",
+    "tokenAmount": "0.4995",
+    "usdAmount": "2281.051665"
+  }
+}
