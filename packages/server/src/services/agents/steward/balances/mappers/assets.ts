@@ -1,6 +1,6 @@
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, map, switchMap } from 'rxjs'
+import { filter, mergeMap, switchMap } from 'rxjs'
 
 import { asJSON, asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
@@ -10,7 +10,7 @@ import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
+import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
@@ -47,87 +47,89 @@ export function serializeFields(obj: any): any {
   return obj
 }
 
-export function foreignAssetsBalancesSubscription(
-  chainId: NetworkURN,
-  ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
-) {
-  return genericAssetsBalancesSubscription(chainId, ingress, enqueue, 'ForeignAssets')
+export function foreignAssetsBalances$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
+  return genericAssetsBalances$(chainId, ingress, 'ForeignAssets')
 }
 
-export function assetsBalancesSubscription(
-  chainId: NetworkURN,
-  ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
-) {
-  return genericAssetsBalancesSubscription(chainId, ingress, enqueue, 'Assets')
+export function assetsBalances$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
+  return genericAssetsBalances$(chainId, ingress, 'Assets')
 }
 
-function genericAssetsBalancesSubscription(
+function genericAssetsBalances$(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
   module: 'Assets' | 'ForeignAssets',
 ) {
   const streams = SubstrateSharedStreams.instance(ingress)
 
-  return ingress
-    .getContext(chainId)
-    .pipe(
-      switchMap((apiCtx) =>
-        streams.blockEvents(chainId).pipe(
-          filter((blockEvent) => blockEvent.module === module && PALLET_EVENTS.includes(blockEvent.name)),
-          map((blockEvent) => {
-            return {
-              blockEvent,
-              apiCtx,
-            }
-          }),
-        ),
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) =>
+      streams.blockEvents(chainId).pipe(
+        filter((blockEvent) => blockEvent.module === module && PALLET_EVENTS.includes(blockEvent.name)),
+        mergeMap(({ name, value }) => {
+          const assetId = value.asset_id
+          if (!assetId) {
+            throw new Error(`No asset id found in ${module} event: ${name}`)
+          }
+
+          const partialData = {
+            module,
+            name: STORAGE_NAME,
+            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
+          }
+          const storageKeysCodec = apiCtx.storageCodec(module, STORAGE_NAME).keys
+          const items: BalanceUpdateItem[] = []
+
+          if (name === 'Transferred') {
+            const { from, to } = value
+            items.push(
+              {
+                storageKey: storageKeysCodec.enc(serializeFields(assetId), from) as HexString,
+                data: {
+                  ...partialData,
+                  type: 'storage',
+                  account: from,
+                  publicKey: asPublicKey(from),
+                },
+              },
+              {
+                storageKey: storageKeysCodec.enc(serializeFields(assetId), to) as HexString,
+                data: {
+                  ...partialData,
+                  type: 'storage',
+                  account: to,
+                  publicKey: asPublicKey(to),
+                },
+              },
+            )
+          } else if (name === 'Issued' || name === 'Burned') {
+            const { owner } = value
+            items.push({
+              storageKey: storageKeysCodec.enc(serializeFields(assetId), owner) as HexString,
+              data: {
+                ...partialData,
+                type: 'storage',
+                account: owner,
+                publicKey: asPublicKey(owner),
+              },
+            })
+          } else {
+            const { who } = value
+            items.push({
+              storageKey: storageKeysCodec.enc(serializeFields(assetId), who) as HexString,
+              data: {
+                ...partialData,
+                type: 'storage',
+                account: who,
+                publicKey: asPublicKey(who),
+              },
+            })
+          }
+          return items
+        }),
       ),
-    )
-    .subscribe(({ blockEvent: { name, value }, apiCtx }) => {
-      const assetId = value.asset_id
-      if (!assetId) {
-        console.log('No asset_id found in event', name)
-        return
-      }
-      const partialData = {
-        module,
-        name: STORAGE_NAME,
-        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
-      }
-      const storageKeysCodec = apiCtx.storageCodec(module, STORAGE_NAME).keys
-      const accounts: string[] = []
-
-      if (name === 'Transferred') {
-        const { from, to } = value
-        accounts.push(from, to)
-      } else if (name === 'Issued' || name === 'Burned') {
-        const { owner } = value
-        accounts.push(owner)
-      } else {
-        const account = value.who
-        if (account) {
-          accounts.push(account)
-        } else {
-          console.log('[ASSETS] NOT SUPPORTED EVENT', name)
-        }
-      }
-
-      for (const account of accounts) {
-        try {
-          enqueue(chainId, storageKeysCodec.enc(serializeFields(assetId), account) as HexString, {
-            ...partialData,
-            type: 'storage',
-            account,
-            publicKey: asPublicKey(account),
-          })
-        } catch (error) {
-          console.log('ERROR encoding storage key', asJSON(assetId), account, error)
-        }
-      }
-    })
+    ),
+  )
 }
 
 export function toAssetsStorageKey(assetId: AssetId | bigint, account: string, apiCtx: SubstrateApiContext) {

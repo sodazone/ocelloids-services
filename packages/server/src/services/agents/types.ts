@@ -291,6 +291,7 @@ export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = 
   filters: T
   request: IncomingMessage
   send: (event: ServerSideEvent) => void
+  onDisconnect?: (connection: ServerSideEventsConnection<T>) => void
 }
 
 export type GenericEvent = { event: string; data: any }

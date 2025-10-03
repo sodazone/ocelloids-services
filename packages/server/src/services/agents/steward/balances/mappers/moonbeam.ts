@@ -5,11 +5,11 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, map, switchMap } from 'rxjs'
+import { filter, mergeMap, switchMap } from 'rxjs'
 import { erc20Abi } from 'viem'
 import { assetOverrides } from '../../metadata/overrides.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { BalancesFromStorage, EnqueueUpdateItem } from '../types.js'
+import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
 import { toBinary } from '../util.js'
 
 const EVM_EVENTS = ['Transfer']
@@ -36,62 +36,59 @@ function contractToAssetId(address: string): string {
   return address
 }
 
-export function moonbeamBalancesSubscription(
-  chainId: NetworkURN,
-  ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
-) {
+export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
   const streams = SubstrateSharedStreams.instance(ingress)
 
-  return ingress
-    .getContext(chainId)
-    .pipe(
-      switchMap((apiCtx) =>
-        streams.blockEvents(chainId).pipe(
-          extractEvmLogs(evmConfig),
-          filter(({ decoded }) => decoded?.eventName !== undefined && EVM_EVENTS.includes(decoded.eventName)),
-          map((blockEvent) => {
-            return {
-              blockEvent,
-              apiCtx,
-            }
-          }),
-        ),
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) =>
+      streams.blockEvents(chainId).pipe(
+        extractEvmLogs(evmConfig),
+        filter(({ decoded }) => decoded?.eventName !== undefined && EVM_EVENTS.includes(decoded.eventName)),
+        mergeMap(({ address, decoded }) => {
+          const assetId = contractToAssetId(address)
+
+          const partialData = {
+            module: STORAGE_MODULE,
+            name: STORAGE_NAME,
+            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
+          }
+          const storageKeysCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME).keys
+          const items: BalanceUpdateItem[] = []
+
+          if (decoded) {
+            const { from, to } = decoded.args
+            items.push(
+              {
+                storageKey: storageKeysCodec.enc(
+                  new Binary(fromHex(assetId)),
+                  new Binary(fromHex(from)),
+                ) as HexString,
+                data: {
+                  ...partialData,
+                  type: 'storage',
+                  account: from,
+                  publicKey: from as HexString,
+                },
+              },
+              {
+                storageKey: storageKeysCodec.enc(
+                  new Binary(fromHex(assetId)),
+                  new Binary(fromHex(to)),
+                ) as HexString,
+                data: {
+                  ...partialData,
+                  type: 'storage',
+                  account: to,
+                  publicKey: to as HexString,
+                },
+              },
+            )
+          }
+          return items
+        }),
       ),
-    )
-    .subscribe(({ blockEvent: { address, decoded }, apiCtx }) => {
-      const assetId = contractToAssetId(address)
-
-      const partialData = {
-        module: STORAGE_MODULE,
-        name: STORAGE_NAME,
-        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
-      }
-      const storageKeysCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME).keys
-      const accounts: string[] = []
-
-      if (decoded) {
-        const { from, to } = decoded.args
-        accounts.push(from, to)
-      }
-
-      for (const account of accounts) {
-        try {
-          enqueue(
-            chainId,
-            storageKeysCodec.enc(new Binary(fromHex(assetId)), new Binary(fromHex(account))) as HexString,
-            {
-              ...partialData,
-              type: 'storage',
-              account,
-              publicKey: account as HexString,
-            },
-          )
-        } catch (error) {
-          console.error(error, `ERROR encoding storage key asset=${assetId} account=${account}`)
-        }
-      }
-    })
+    ),
+  )
 }
 
 export function toEVMStorageKey(

@@ -1,13 +1,15 @@
+import { ControlQuery } from '@/common/index.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { Subscription } from 'rxjs'
+import { Observable } from 'rxjs'
 import { AssetId, AssetMetadata } from '../types.js'
 
-export type BalancesSubscriptionMapper = (
+export type BalanceUpdateItem = { storageKey: HexString; data: BalancesQueueData }
+export type BalancesStreamMapper = (
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
-) => Subscription[]
+  control: ControlQuery,
+) => Observable<BalanceUpdateItem>[]
 
 export type AccountBalancesData = {
   balance: bigint

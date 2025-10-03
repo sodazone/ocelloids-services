@@ -1,4 +1,4 @@
-import { asJSON, asPublicKey, isEVMAddress } from '@/common/util.js'
+import { asPublicKey, isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -7,11 +7,11 @@ import { BlockEvent, BlockEvmEvent, SubstrateApiContext } from '@/services/netwo
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, firstValueFrom, map, switchMap } from 'rxjs'
+import { EMPTY, Observable, filter, firstValueFrom, from, map, mergeMap, switchMap } from 'rxjs'
 import { Log, decodeEventLog, toEventSelector } from 'viem'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { padAccountKey20 } from '../codec.js'
-import { Balance, CustomDiscoveryFetcher, EnqueueUpdateItem } from '../types.js'
+import { Balance, BalanceUpdateItem, CustomDiscoveryFetcher, RuntimeQueueData } from '../types.js'
 import { calculateFreeBalance } from '../util.js'
 
 const RUNTIME_API = 'CurrenciesApi'
@@ -148,69 +148,59 @@ async function evmToSubstrateAddress({
   return fromBufferToBase58(0)(new Uint8Array(buf))
 }
 
-export function hydrationEVMSubscription(
+export function hydrationEVM$(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
-  enqueue: EnqueueUpdateItem,
-) {
+): Observable<BalanceUpdateItem> {
   const streams = SubstrateSharedStreams.instance(ingress)
 
-  return ingress
-    .getContext(chainId)
-    .pipe(
-      switchMap((apiCtx) =>
-        streams.blockEvents(chainId).pipe(
-          filter((ev) => isEVMLog(ev)),
-          map(decodeLog),
-          filter(Boolean),
-          map((blockEvent) => {
-            return {
-              blockEvent,
-              apiCtx,
-            }
-          }),
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) =>
+      streams.blockEvents(chainId).pipe(
+        filter((ev) => isEVMLog(ev)),
+        map(decodeLog),
+        filter(Boolean),
+        mergeMap(({ address, decoded }) => {
+          const accounts: { account: HexString; assetId: number }[] = []
+          const assetId = contractToAssetIdMap[address]
+          if (!assetId) {
+            return EMPTY
+          }
+
+          if (decoded) {
+            const { from, to } = decoded.args
+
+            accounts.push({ account: from, assetId }, { account: to, assetId })
+          }
+          return accounts
+        }),
+        mergeMap(({ account, assetId }) =>
+          from(evmToSubstrateAddress({ evmAddress: account, chainId, ingress, apiCtx })).pipe(
+            map((ss58) => {
+              const runtimeApiCodec = apiCtx.runtimeCallCodec(RUNTIME_API, RUNTIME_API_METHOD)
+              const assetKeyHash = toHex(
+                assetMetadataKeyHash(assetMetadataKey(chainId, assetId)),
+              ) as HexString
+              const args = [assetId, ss58]
+              const data: RuntimeQueueData = {
+                api: RUNTIME_API,
+                method: RUNTIME_API_METHOD,
+                assetKeyHash,
+                type: 'runtime',
+                args,
+                account,
+                publicKey: asPublicKey(account),
+              }
+              return {
+                storageKey: toHex(runtimeApiCodec.args.enc(args)) as HexString,
+                data,
+              }
+            }),
+          ),
         ),
       ),
-    )
-    .subscribe(async ({ blockEvent: { address, decoded }, apiCtx }) => {
-      const assetId = contractToAssetIdMap[address]
-      if (!assetId) {
-        return
-      }
-      const partialData = {
-        api: RUNTIME_API,
-        method: RUNTIME_API_METHOD,
-        assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
-      }
-      const runtimeApiCodec = apiCtx.runtimeCallCodec(RUNTIME_API, RUNTIME_API_METHOD)
-      const accounts: string[] = []
-
-      if (decoded) {
-        const { from, to } = decoded.args
-
-        const [fromSs58, toSs58] = await Promise.all([
-          evmToSubstrateAddress({ evmAddress: from, chainId, ingress, apiCtx }),
-          evmToSubstrateAddress({ evmAddress: to, chainId, ingress, apiCtx }),
-        ])
-
-        accounts.push(fromSs58, toSs58)
-      }
-
-      for (const account of accounts) {
-        try {
-          const args = [assetId, account]
-          enqueue(chainId, toHex(runtimeApiCodec.args.enc(args)) as HexString, {
-            ...partialData,
-            type: 'runtime',
-            args,
-            account,
-            publicKey: asPublicKey(account),
-          })
-        } catch (error) {
-          console.error(error, 'ERROR encoding storage key asset=%s account=%s', asJSON(assetId), account)
-        }
-      }
-    })
+    ),
+  )
 }
 
 export const hydrationBalancesFetcher: CustomDiscoveryFetcher = async ({

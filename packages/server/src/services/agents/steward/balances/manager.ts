@@ -9,6 +9,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 
+import { ControlQuery, Criteria } from '@/common/index.js'
 import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
 import { ServerSideEventsBroadcaster, ServerSideEventsRequest } from '../../types.js'
 import {
@@ -45,10 +46,13 @@ export class BalancesManager {
   readonly #dbBalances: BalancesDB
 
   readonly #rxSubs: Subscription[] = []
+  readonly #accountControl: ControlQuery
 
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
   readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>({ maxEnqueuedItems: 10 })
   readonly #balanceDiscoveryInProgress = new Set<HexString>()
+
+  readonly #requestedAccountRefs: Map<HexString, number> = new Map()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
   readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
@@ -69,6 +73,7 @@ export class BalancesManager {
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
     this.#broadcaster = broadcaster
+    this.#accountControl = ControlQuery.from(this.#accountsCriteria([]))
     this.#dbBalances = new BalancesDB(
       openLevelDB('steward:balances', { valueEncoding: 'buffer', keyEncoding: 'buffer' }),
     )
@@ -107,11 +112,24 @@ export class BalancesManager {
       const {
         id,
         filters: { account },
-      } = this.#broadcaster.stream(request)
+      } = this.#broadcaster.stream(request, {
+        onConnect: (connection) => {
+          const { account } = connection.filters
+          if (account) {
+            this.#updateAccountControl(account)
+          }
+        },
+        onDisconnect: (connection) => {
+          const { account } = connection.filters
+          if (account) {
+            this.#updateAccountControl([], account)
+          }
+        },
+      })
+
       const pubKeysToFetch = Array.isArray(account)
         ? account.map((a) => ({ accountId: a, publicKey: asPublicKey(a) }))
         : [{ accountId: account, publicKey: asPublicKey(account) }]
-
       for (const { accountId, publicKey } of pubKeysToFetch) {
         if (await this.#dbBalances.hasBeenDiscovered(publicKey)) {
           this.#broadcaster.sendToConnection(id, {
@@ -222,7 +240,16 @@ export class BalancesManager {
         const balancesSubMappers = balanceEventsSubscriptions[chainId]
         if (balancesSubMappers) {
           this.#log.info('[agent:%s] watching for balances updates %s', this.id, chainId)
-          this.#rxSubs.push(...balancesSubMappers(this.#substrateIngress, this.#enqueue.bind(this)))
+          const subscriptions = balancesSubMappers(this.#substrateIngress, this.#accountControl).map(($) => {
+            return $.subscribe({
+              next: ({ storageKey, data }) => {
+                this.#enqueue(chainId, storageKey, data)
+              },
+              error: (e) =>
+                this.#log.error(e, '[%s] Error in balance update subscription chain=%s', this.id, chainId),
+            })
+          })
+          this.#rxSubs.push(...subscriptions)
         }
       }
     }
@@ -636,5 +663,39 @@ export class BalancesManager {
       !this.#balanceDiscoveryInProgress.has(publicKey) &&
       !(await this.#dbBalances.hasBeenDiscovered(publicKey))
     )
+  }
+
+  #accountsCriteria(accounts: string[]): Criteria {
+    if (accounts.length === 0) {
+      // matches none
+      return { $expr: { $eq: [1, 0] } }
+    }
+
+    const pubKeys = accounts.map(asPublicKey)
+
+    return { account: { $in: pubKeys } }
+  }
+
+  #updateAccountControl(toAdd: string | string[] = [], toRemove: string | string[] = []) {
+    const addList = Array.isArray(toAdd) ? toAdd : [toAdd]
+    const removeList = Array.isArray(toRemove) ? toRemove : [toRemove]
+
+    for (const acc of addList) {
+      const pk = asPublicKey(acc)
+      this.#requestedAccountRefs.set(pk, (this.#requestedAccountRefs.get(pk) ?? 0) + 1)
+    }
+
+    for (const acc of removeList) {
+      const pk = asPublicKey(acc)
+      const current = this.#requestedAccountRefs.get(pk) ?? 0
+      if (current <= 1) {
+        this.#requestedAccountRefs.delete(pk)
+      } else {
+        this.#requestedAccountRefs.set(pk, current - 1)
+      }
+    }
+
+    // Now rebuild ControlQuery from *active* accounts only
+    this.#accountControl.change(this.#accountsCriteria([...this.#requestedAccountRefs.keys()]))
   }
 }

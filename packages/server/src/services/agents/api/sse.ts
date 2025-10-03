@@ -73,7 +73,16 @@ export function createServerSideEventsBroadcaster<
     }, 30_000).unref()
   }
 
-  const startStreaming = ({ filters, request, reply }: ServerSideEventsRequest<T>) => {
+  const startStreaming = (
+    { filters, request, reply }: ServerSideEventsRequest<T>,
+    {
+      onConnect,
+      onDisconnect,
+    }: {
+      onConnect?: (connection: ServerSideEventsConnection<T>) => void
+      onDisconnect?: (connection: ServerSideEventsConnection<T>) => void
+    } = {},
+  ) => {
     // set existing headers in reply
     Object.entries(reply.getHeaders()).forEach(([key, value]) => {
       if (value) {
@@ -110,16 +119,20 @@ export function createServerSideEventsBroadcaster<
       filters: normalizedFilters,
       request,
       send,
+      onDisconnect,
     }
     connections.set(id, connection)
 
     keepAlive()
+    onConnect?.(connection)
 
     return connection
   }
 
-  const disconnect = (connection: ServerSideEventsConnection) => {
+  const disconnect = (connection: ServerSideEventsConnection<T>) => {
     connection.request.destroy()
+    connection.onDisconnect?.(connection)
+
     connections.delete(connection.id)
 
     if (connections.size === 0 && keepAliveInterval) {

@@ -5,99 +5,100 @@ import { HexString, NetworkURN } from '@/lib.js'
 
 import { isEVMAddress } from '@/common/util.js'
 import { fromHex } from 'polkadot-api/utils'
+import { filter } from 'rxjs'
 import { networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   AssetsBalance,
   Balance,
-  BalancesSubscriptionMapper,
+  BalancesStreamMapper,
   CustomDiscoveryFetcher,
   NativeBalance,
   StorageKeyMapper,
 } from '../types.js'
 import { calculateFreeBalance, getFrontierAccountStoragesSlot } from '../util.js'
 import {
-  assetsBalancesSubscription,
-  foreignAssetsBalancesSubscription,
+  assetsBalances$,
+  foreignAssetsBalances$,
   toAssetsStorageKey,
   toForeignAssetsStorageKey,
 } from './assets.js'
-import { hydrationBalancesFetcher, hydrationEVMSubscription } from './hydration-evm.js'
-import { moonbeamBalancesSubscription, toEVMStorageKey } from './moonbeam.js'
-import { nativeBalancesSubscription, toNativeStorageKey } from './native.js'
-import { toTokenStorageKey, tokensBalancesSubscription } from './tokens.js'
+import { hydrationBalancesFetcher, hydrationEVM$ } from './hydration-evm.js'
+import { moonbeamBalances$, toEVMStorageKey } from './moonbeam.js'
+import { nativeBalances$, toNativeStorageKey } from './native.js'
+import { toTokenStorageKey, tokensBalances$ } from './tokens.js'
 
-const getDefaultBalancesSubscription: (chainId: NetworkURN) => BalancesSubscriptionMapper =
-  (chainId) => (ingress, enqueue) => {
-    return [nativeBalancesSubscription(chainId, ingress, enqueue)]
-  }
+const getDefaultBalancesStream: (chainId: NetworkURN) => BalancesStreamMapper = (chainId) => (ingress) => {
+  return [nativeBalances$(chainId, ingress)]
+}
 
-export const balanceEventsSubscriptions: Record<string, BalancesSubscriptionMapper> = {
-  [networks.polkadot]: getDefaultBalancesSubscription(networks.polkadot),
-  [networks.assetHub]: (ingress, enqueue) => {
+export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = {
+  [networks.polkadot]: getDefaultBalancesStream(networks.polkadot),
+  [networks.assetHub]: (ingress) => {
     const chainId = networks.assetHub
     return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      assetsBalancesSubscription(chainId, ingress, enqueue),
-      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+      nativeBalances$(chainId, ingress),
+      assetsBalances$(chainId, ingress),
+      foreignAssetsBalances$(chainId, ingress),
     ]
   },
-  [networks.bridgeHub]: getDefaultBalancesSubscription(networks.bridgeHub),
-  [networks.people]: getDefaultBalancesSubscription(networks.people),
-  [networks.coretime]: getDefaultBalancesSubscription(networks.coretime),
-  [networks.acala]: getDefaultBalancesSubscription(networks.acala),
-  [networks.phala]: getDefaultBalancesSubscription(networks.phala),
-  [networks.mythos]: getDefaultBalancesSubscription(networks.mythos),
-  [networks.moonbeam]: (ingress, enqueue) => {
+  [networks.bridgeHub]: getDefaultBalancesStream(networks.bridgeHub),
+  [networks.people]: getDefaultBalancesStream(networks.people),
+  [networks.coretime]: getDefaultBalancesStream(networks.coretime),
+  [networks.acala]: getDefaultBalancesStream(networks.acala),
+  [networks.phala]: getDefaultBalancesStream(networks.phala),
+  [networks.mythos]: (ingress, control) => {
+    const chainId = networks.mythos
+    const filtered$ = nativeBalances$(chainId, ingress).pipe(
+      filter(({ data }) => {
+        return control.value.test({
+          account: data.publicKey,
+        })
+      }),
+    )
+    return [filtered$]
+  },
+  [networks.moonbeam]: (ingress) => {
     const chainId = networks.moonbeam
-    return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      moonbeamBalancesSubscription(chainId, ingress, enqueue),
-    ]
+    return [nativeBalances$(chainId, ingress), moonbeamBalances$(chainId, ingress)]
   },
-  [networks.astar]: (ingress, enqueue) => {
+  [networks.astar]: (ingress) => {
     const chainId = networks.astar
-    return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      assetsBalancesSubscription(chainId, ingress, enqueue),
-    ]
+    return [nativeBalances$(chainId, ingress), assetsBalances$(chainId, ingress)]
   },
-  [networks.bifrost]: (ingress, enqueue) => {
+  [networks.bifrost]: (ingress) => {
     const chainId = networks.bifrost
-    return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      tokensBalancesSubscription(chainId, ingress, enqueue),
-    ]
+    return [nativeBalances$(chainId, ingress), tokensBalances$(chainId, ingress)]
   },
-  [networks.centrifuge]: getDefaultBalancesSubscription(networks.centrifuge),
-  [networks.hydration]: (ingress, enqueue) => {
+  [networks.centrifuge]: getDefaultBalancesStream(networks.centrifuge),
+  [networks.hydration]: (ingress) => {
     const chainId = networks.hydration
     return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      tokensBalancesSubscription(chainId, ingress, enqueue),
-      hydrationEVMSubscription(chainId, ingress, enqueue),
+      nativeBalances$(chainId, ingress),
+      tokensBalances$(chainId, ingress),
+      hydrationEVM$(chainId, ingress),
     ]
   },
-  [networks.interlay]: getDefaultBalancesSubscription(networks.interlay),
-  [networks.hyperbridge]: getDefaultBalancesSubscription(networks.hyperbridge),
-  [networks.kusama]: getDefaultBalancesSubscription(networks.kusama),
-  [networks.kusamaBridgeHub]: getDefaultBalancesSubscription(networks.kusama),
-  [networks.kusamaCoretime]: getDefaultBalancesSubscription(networks.kusamaCoretime),
-  [networks.kusamaAssetHub]: (ingress, enqueue) => {
+  [networks.interlay]: getDefaultBalancesStream(networks.interlay),
+  [networks.hyperbridge]: getDefaultBalancesStream(networks.hyperbridge),
+  [networks.kusama]: getDefaultBalancesStream(networks.kusama),
+  [networks.kusamaBridgeHub]: getDefaultBalancesStream(networks.kusama),
+  [networks.kusamaCoretime]: getDefaultBalancesStream(networks.kusamaCoretime),
+  [networks.kusamaAssetHub]: (ingress) => {
     const chainId = networks.kusamaAssetHub
     return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      assetsBalancesSubscription(chainId, ingress, enqueue),
-      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+      nativeBalances$(chainId, ingress),
+      assetsBalances$(chainId, ingress),
+      foreignAssetsBalances$(chainId, ingress),
     ]
   },
-  [networks.paseo]: getDefaultBalancesSubscription(networks.paseo),
-  [networks.paseoAssetHub]: (ingress, enqueue) => {
+  [networks.paseo]: getDefaultBalancesStream(networks.paseo),
+  [networks.paseoAssetHub]: (ingress) => {
     const chainId = networks.paseoAssetHub
     return [
-      nativeBalancesSubscription(chainId, ingress, enqueue),
-      assetsBalancesSubscription(chainId, ingress, enqueue),
-      foreignAssetsBalancesSubscription(chainId, ingress, enqueue),
+      nativeBalances$(chainId, ingress),
+      assetsBalances$(chainId, ingress),
+      foreignAssetsBalances$(chainId, ingress),
     ]
   },
 }
