@@ -189,4 +189,20 @@ export class RuntimeApiContext implements SubstrateApiContext {
       })
     }
   }
+
+  runtimeCallCodec<T>(
+    api: string,
+    method: string,
+  ): {
+    args: Codec<any[]>
+    value: Codec<T>
+  } {
+    try {
+      return this.#builder.buildRuntimeCall(api, method)
+    } catch (error) {
+      throw new Error(`[${this.chainId}] Failed to build runtime call for ${api}.${method}.`, {
+        cause: error,
+      })
+    }
+  }
 }

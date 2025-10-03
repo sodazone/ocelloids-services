@@ -1,9 +1,9 @@
 import { BehaviorSubject, Subject } from 'rxjs'
 
 import { Query } from 'mingo'
-import { RawObject } from 'mingo/types'
+import { AnyObject } from 'mingo/types'
 
-export type Criteria = RawObject
+export type Criteria = AnyObject
 
 /**
  * Represents a control subject that can be used to change the value of a query.

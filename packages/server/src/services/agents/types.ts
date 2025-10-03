@@ -9,7 +9,7 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Janitor } from '@/services/scheduling/janitor.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
-import { LevelDB, Logger } from '@/services/types.js'
+import { LevelDB, Logger, OpenLevelDB } from '@/services/types.js'
 
 import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
@@ -43,6 +43,7 @@ export type AgentRuntimeContext = {
   egress: Egress
   ingress: IngressConsumers
   db: LevelDB
+  openLevelDB: OpenLevelDB
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog
@@ -278,9 +279,11 @@ export interface Queryable {
 }
 
 export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+  streamName: string
   filters: T
   request: IncomingMessage
   reply: FastifyReply
+  uid?: string
 }
 
 export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
@@ -288,19 +291,21 @@ export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = 
   filters: T
   request: IncomingMessage
   send: (event: ServerSideEvent) => void
+  onDisconnect?: (connection: ServerSideEventsConnection<T>) => void
 }
 
-export type ServerSideEvent<T = any> = {
-  event: string
-  data: T
-}
+export type GenericEvent = { event: string; data: any }
+export type ServerSideEvent<T extends GenericEvent = GenericEvent> = T
 
-export type ServerSideEventsBroadcaster = ReturnType<typeof createServerSideEventsBroadcaster>
+export type ServerSideEventsBroadcaster<
+  T extends AnyQueryArgs = AnyQueryArgs,
+  E extends GenericEvent = GenericEvent,
+> = ReturnType<typeof createServerSideEventsBroadcaster<T, E>>
 
 /**
  * Interface defining the capabilities needed to handle SSE.
  */
-export interface Streamable {
+export interface Streamable<T extends AnyQueryArgs = AnyQueryArgs> {
   /**
    * Returns the Zod schema for filtering incoming event stream subscriptions.
    */
@@ -311,7 +316,7 @@ export interface Streamable {
    *
    * @param request - Info about the server side request (filters, metadata, etc.)
    */
-  onServerSideEventsRequest<T extends AnyQueryArgs>(request: ServerSideEventsRequest<T>): void
+  onServerSideEventsRequest(request: ServerSideEventsRequest<T>): void
 }
 
 /**

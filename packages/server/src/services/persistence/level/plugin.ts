@@ -3,67 +3,72 @@ import path from 'node:path'
 import { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { Level } from 'level'
+import { DatabaseOptions, Level } from 'level'
 import { MemoryLevel } from 'memory-level'
 
-import { DatabaseOptions, LevelServerOptions } from '@/types.js'
-import { LevelDB, LevelEngine } from '../../types.js'
+import { DatabaseOptions as DatabaseServiceOptions, LevelServerOptions } from '@/types.js'
+import { LevelDB, LevelEngine, OpenLevelDB } from '../../types.js'
 import { SubsStore } from './subs.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    levelDB: LevelDB
+    levelDB: LevelDB<string, any>
     subsStore: SubsStore
+    openLevelDB: OpenLevelDB
   }
 }
 
-type LevelOptions = DatabaseOptions & LevelServerOptions
+type LevelServiceOptions = DatabaseServiceOptions & LevelServerOptions
 
-function createLevelDB({ log }: FastifyInstance, { data, levelEngine }: LevelOptions): LevelDB {
-  const dbPath = path.join(data || './.db', 'level')
+function createLevelDB<K = any, V = any>(
+  { log }: FastifyInstance,
+  name: string,
+  { data, levelEngine }: LevelServiceOptions,
+  options?: DatabaseOptions<K, V>,
+): LevelDB<K, V> {
+  const dbPath = path.join(data || './.db', name)
 
   log.info('[level] engine %s', levelEngine)
   log.info('[level] open database at %s', dbPath)
 
   switch (levelEngine) {
     case LevelEngine.mem:
-      return new MemoryLevel() as LevelDB
+      return new MemoryLevel(options) as LevelDB<K, V>
     default:
-      return new Level(dbPath) as LevelDB
+      return new Level(dbPath, options) as LevelDB<K, V>
   }
 }
 
-/**
- * LevelDB related services.
- *
- * @param fastify - The Fastify instance
- * @param options - The persistence options
- */
-const levelDBPlugin: FastifyPluginAsync<LevelOptions> = async (fastify, options) => {
-  const root = createLevelDB(fastify, options)
-  const subsStore = new SubsStore(fastify.log, root)
+const levelDBPlugin: FastifyPluginAsync<LevelServiceOptions> = async (fastify, serviceOpts) => {
+  const dbs = new Map<string, LevelDB<any, any>>()
+
+  const root = createLevelDB(fastify, 'level', serviceOpts)
+  await root.open()
+  dbs.set('level', root)
 
   fastify.decorate('levelDB', root)
-  fastify.decorate('subsStore', subsStore)
+  fastify.decorate('subsStore', new SubsStore(fastify.log, root))
 
-  fastify.addHook('onClose', async (instance) => {
-    fastify.log.info('[scheduler] plugin stop')
-
-    const { levelDB } = instance
-    if (levelDB.status === 'open') {
-      instance.log.info('[level] closing database: OK')
-      await levelDB.close()
-    } else {
-      instance.log.info('[level] the database is not open: %s', levelDB.status)
+  fastify.decorate('openLevelDB', <K, V>(name: string, options?: DatabaseOptions<K, V>): LevelDB<K, V> => {
+    if (!dbs.has(name)) {
+      const db = createLevelDB(fastify, name, serviceOpts, options)
+      db.open()
+      dbs.set(name, db)
     }
+    return dbs.get(name)!
   })
 
-  try {
-    await root.open()
-  } catch (err) {
-    fastify.log.error(err, '[level] error opening database')
-    throw err
-  }
+  fastify.addHook('onClose', async () => {
+    fastify.log.info('[scheduler] plugin stop')
+    for (const [name, db] of dbs) {
+      if (db.status === 'open') {
+        fastify.log.info('[level] closing database %s: OK', name)
+        await db.close()
+      } else {
+        fastify.log.info('[level] database %s is not open: %s', name, db.status)
+      }
+    }
+  })
 }
 
 export default fp(levelDBPlugin, { fastify: '>=4.x', name: 'leveldb' })

@@ -13,8 +13,8 @@ import {
   Twox128,
   Twox256,
 } from '@polkadot-api/substrate-bindings'
-import { AssetMetadata, StorageCodecs, WithRequired } from './types.js'
-import { getLocationIfAny } from './util.js'
+import { AssetMetadata, StorageCodecs, WithRequired } from '../types.js'
+import { getLocationIfAny } from '../util.js'
 
 type MapOptions = {
   ed?: string
