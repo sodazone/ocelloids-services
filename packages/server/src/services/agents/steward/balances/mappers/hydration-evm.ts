@@ -3,16 +3,16 @@ import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
-import { BlockEvent, BlockEvmEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { EMPTY, Observable, filter, firstValueFrom, from, map, mergeMap, switchMap } from 'rxjs'
-import { Log, decodeEventLog, toEventSelector } from 'viem'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { padAccountKey20 } from '../codec.js'
 import { Balance, BalanceUpdateItem, CustomDiscoveryFetcher, RuntimeQueueData } from '../types.js'
 import { calculateFreeBalance } from '../util.js'
+import { decodeLog } from './evm.js'
 
 const RUNTIME_API = 'CurrenciesApi'
 const RUNTIME_API_METHOD = 'account'
@@ -33,92 +33,6 @@ const contractToAssetIdMap: Record<string, number> = {
   '0x531a654d1696ed52e7275a8cede955e82620f99a': 222,
   '0x8a598fe3e3a471ce865332e330d303502a0e2f52': 420,
   '0x34d5ffb83d14d82f87aaf2f13be895a3c814c2ad': 69,
-}
-
-const transferEventDefs = [
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'from',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'to',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'value',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'index',
-        type: 'uint256',
-      },
-    ],
-    name: 'BalanceTransfer',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'from',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'to',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'value',
-        type: 'uint256',
-      },
-    ],
-    name: 'Transfer',
-    type: 'event',
-  },
-] as const
-
-const topicToEvent = Object.fromEntries(transferEventDefs.map((ev) => [toEventSelector(ev), ev]))
-
-function decodeLog(event: BlockEvent) {
-  const { address, topics, data } = event.value.log as Log
-  const topic0 = topics[0]
-  if (typeof topic0 === 'undefined') {
-    return null
-  }
-  const ev = topicToEvent[topic0]
-  if (!ev) {
-    return null
-  }
-
-  const decoded = decodeEventLog({
-    abi: [ev],
-    data,
-    topics,
-  })
-  return {
-    ...event,
-    address,
-    topics,
-    data,
-    decoded,
-  } as BlockEvmEvent
 }
 
 async function evmToSubstrateAddress({
