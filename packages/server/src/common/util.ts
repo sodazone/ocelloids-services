@@ -37,14 +37,14 @@ export function stringToUa8(v: string) {
  * - Leaves 32-byte keys (Sui, Solana, Polkadot) intact
  */
 export function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
-  const pk = (typeof publicKey === 'string' ? publicKey : toHex(publicKey)) as HexString
+  const pk = typeof publicKey === 'string' ? publicKey : toHex(publicKey)
 
   // Strip Hydration ETH prefix
   if (pk.startsWith(ETH_PREFIX)) {
-    return `0x${pk.substring(10, 50)}`
+    return `0x${pk.substring(10, 50).toLowerCase()}`
   }
 
-  return pk
+  return pk.toLowerCase() as HexString
 }
 
 /**
