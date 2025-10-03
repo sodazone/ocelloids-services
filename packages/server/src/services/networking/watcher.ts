@@ -8,7 +8,6 @@ import {
   catchError,
   concatMap,
   defer,
-  finalize,
   from,
   lastValueFrom,
   map,
@@ -384,35 +383,34 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
                 await this.#pendingRanges(chainId).del(rangeKey)
 
                 this.log.info('[%s] COMPLETE RANGE %s', chainId, rangeKey)
-              },
-            }),
-            finalize(async () => {
-              const fullRange: BlockNumberRange = {
-                fromBlockNum: newHead.height,
-                toBlockNum: targets[targets.length - 1],
-              }
-              const currentRange: BlockNumberRange = {
-                fromBlockNum: batchControl.value.head.height,
-                toBlockNum: batchControl.value.target,
-              }
 
-              const fullRangeKey = prefixes.cache.keys.range(fullRange)
-              const currentRangeKey = prefixes.cache.keys.range(currentRange)
-
-              try {
-                if (fullRange.toBlockNum !== currentRange.toBlockNum) {
-                  const dbBatch = this.#pendingRanges(chainId).batch()
-                  await dbBatch.del(fullRangeKey).put(currentRangeKey, currentRange).write()
-
-                  this.log.info(
-                    '[%s] stale range to recover %s',
-                    chainId,
-                    prefixes.cache.keys.range(currentRange),
-                  )
+                const fullRange: BlockNumberRange = {
+                  fromBlockNum: newHead.height,
+                  toBlockNum: targets[targets.length - 1],
                 }
-              } catch (err) {
-                this.log.warn('Error while writing stale ranges', err)
-              }
+                const currentRange: BlockNumberRange = {
+                  fromBlockNum: batchControl.value.head.height,
+                  toBlockNum: batchControl.value.target,
+                }
+
+                const fullRangeKey = prefixes.cache.keys.range(fullRange)
+                const currentRangeKey = prefixes.cache.keys.range(currentRange)
+
+                try {
+                  if (fullRange.toBlockNum !== currentRange.toBlockNum) {
+                    const dbBatch = this.#pendingRanges(chainId).batch()
+                    await dbBatch.del(fullRangeKey).put(currentRangeKey, currentRange).write()
+
+                    this.log.info(
+                      '[%s] stale range to recover %s',
+                      chainId,
+                      prefixes.cache.keys.range(currentRange),
+                    )
+                  }
+                } catch (err) {
+                  this.log.warn(err, 'Error while writing stale ranges')
+                }
+              },
             }),
           )
         }),
