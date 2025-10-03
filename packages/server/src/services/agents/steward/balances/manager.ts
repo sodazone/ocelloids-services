@@ -38,8 +38,11 @@ import {
   StorageQueueData,
 } from './types.js'
 
-const STORAGE_CAP = 1_000
+const UPDATE_QUEUE_LIMIT = 5_000
+const STORAGE_CAP = 500
 const RUNTIME_CAP = 50
+
+type BalanceUpdateMode = 'streaming' | 'on-demand'
 
 export class BalancesManager {
   id = 'steward:balances'
@@ -64,6 +67,7 @@ export class BalancesManager {
 
   readonly #chainMutexes: Record<NetworkURN, Mutex> = {}
 
+  #mode: BalanceUpdateMode = 'streaming'
   #running = false
   #config: Record<string, any>
 
@@ -91,9 +95,11 @@ export class BalancesManager {
 
   async start() {
     if ('balances' in this.#config && this.#config['balances']) {
-      this.#log.info('[%s] started', this.id)
+      this.#log.info('[%s] started in %s mode.', this.id, this.#mode)
+      if (this.#mode === 'streaming') {
+        this.#subscribeBalancesEvents()
+      }
       this.#running = true
-      this.#subscribeBalancesEvents()
       this.#processUpdateQueue()
       this.#processDiscoveryQueue()
     } else {
@@ -102,6 +108,7 @@ export class BalancesManager {
   }
 
   async stop() {
+    this.#log.info('[%s] stopping...', this.id)
     this.#running = false
     for (const sub of this.#rxSubs) {
       sub.unsubscribe()
@@ -136,79 +143,86 @@ export class BalancesManager {
       const pubKeysToFetch = Array.isArray(account)
         ? account.map((a) => ({ accountId: a, publicKey: asPublicKey(a) }))
         : [{ accountId: account, publicKey: asPublicKey(account) }]
-      for (const { accountId, publicKey } of pubKeysToFetch) {
-        if (await this.#dbBalances.hasBeenDiscovered(publicKey)) {
-          this.#broadcaster.sendToConnection(id, {
-            event: 'status',
-            data: {
-              status: 'discovered',
-              accountId,
-              publicKey,
-            },
-          })
 
-          await this.#streamSnapshot({
-            connectionId: id,
-            accountId,
-            publicKey,
-          })
-          // notify client when done
-          this.#broadcaster.sendToConnection(id, {
-            event: 'synced',
-            data: { accountId, publicKey },
-          })
-        } else if (this.#balanceDiscoveryInProgress.has(publicKey)) {
-          this.#broadcaster.sendToConnection(id, {
-            event: 'status',
-            data: {
-              status: 'discovery-in-progress',
-              accountId,
-              publicKey,
-            },
-          })
-          await this.#streamSnapshot({
-            connectionId: id,
-            accountId,
-            publicKey,
-          })
-        } else if (this.#balanceDiscoveryQueue.has(publicKey)) {
-          this.#broadcaster.sendToConnection(id, {
-            event: 'status',
-            data: {
-              status: 'discovery-enqueued',
-              accountId,
-              publicKey,
-            },
-          })
-        } else {
-          try {
-            this.#balanceDiscoveryQueue.enqueue(publicKey, request.uid)
+      for (const { accountId, publicKey } of pubKeysToFetch) {
+        if (this.#mode === 'streaming') {
+          // === STREAMING MODE ===
+          if (await this.#dbBalances.hasBeenDiscovered(publicKey)) {
             this.#broadcaster.sendToConnection(id, {
               event: 'status',
-              data: {
-                status: 'discovery-enqueued',
-                accountId,
-                publicKey,
-              },
+              data: { status: 'discovered', accountId, publicKey },
             })
-          } catch (e) {
-            if (e instanceof MaxEnqueuedError) {
-              this.#broadcaster.sendToConnection(id, {
-                event: 'status',
-                data: {
-                  status: 'max-addresses-enqueued-reached',
-                  accountId,
-                  publicKey,
-                },
-              })
-            } else {
-              this.#log.error(e, '[%s] Error enqueueing new address on request addr=%s', this.id, publicKey)
-            }
+
+            await this.#streamSnapshot({ connectionId: id, accountId, publicKey })
+
+            this.#broadcaster.sendToConnection(id, {
+              event: 'synced',
+              data: { accountId, publicKey },
+            })
+          } else if (this.#balanceDiscoveryInProgress.has(publicKey)) {
+            this.#broadcaster.sendToConnection(id, {
+              event: 'status',
+              data: { status: 'discovery-in-progress', accountId, publicKey },
+            })
+
+            await this.#streamSnapshot({ connectionId: id, accountId, publicKey })
+          } else if (this.#balanceDiscoveryQueue.has(publicKey)) {
+            this.#broadcaster.sendToConnection(id, {
+              event: 'status',
+              data: { status: 'discovery-enqueued', accountId, publicKey },
+            })
+          } else {
+            await this.#enqueueForDiscovery({
+              publicKey,
+              requestUid: request.uid,
+              connectionId: id,
+              accountId,
+            })
           }
+        } else {
+          // === ON-DEMAND MODE ===
+          await this.#enqueueForDiscovery({ publicKey, requestUid: request.uid, connectionId: id, accountId })
         }
       }
     } catch (e) {
       this.#log.error(e, '[%s] Error on server side events request', this.id)
+    }
+  }
+
+  async #enqueueForDiscovery({
+    accountId,
+    publicKey,
+    connectionId,
+    requestUid,
+  }: {
+    accountId: string
+    publicKey: HexString
+    connectionId: string
+    requestUid?: string
+  }) {
+    try {
+      this.#balanceDiscoveryQueue.enqueue(publicKey, requestUid)
+      this.#broadcaster.sendToConnection(connectionId, {
+        event: 'status',
+        data: {
+          status: 'discovery-enqueued',
+          accountId,
+          publicKey,
+        },
+      })
+    } catch (e) {
+      if (e instanceof MaxEnqueuedError) {
+        this.#broadcaster.sendToConnection(connectionId, {
+          event: 'status',
+          data: {
+            status: 'max-addresses-enqueued-reached',
+            accountId,
+            publicKey,
+          },
+        })
+      } else {
+        this.#log.error(e, '[%s] Error enqueueing new address on request addr=%s', this.id, publicKey)
+      }
     }
   }
 
@@ -276,13 +290,17 @@ export class BalancesManager {
   }
 
   #subscribeBalancesEvents() {
+    // Avoid duplicate subscriptions
+    if (this.#rxSubs.length > 0) {
+      this.#log.warn('Subscriptions already active, skipping re-subscribe')
+      return
+    }
     const chainIds = this.#substrateIngress.getChainIds()
 
     for (const chainId of chainIds) {
       if (this.#substrateIngress.isNetworkDefined(chainId)) {
         const balancesSubMappers = balanceEventsSubscriptions[chainId]
         if (balancesSubMappers) {
-          this.#log.info('[agent:%s] watching for balances updates %s', this.id, chainId)
           const subscriptions = balancesSubMappers(this.#substrateIngress, this.#accountControl).map(($) => {
             return $.subscribe({
               next: ({ storageKey, data }) => {
@@ -292,6 +310,12 @@ export class BalancesManager {
                 this.#log.error(e, '[%s] Error in balance update subscription chain=%s', this.id, chainId),
             })
           })
+          this.#log.info(
+            '[%s] watching for balances updates chain=%s #subs=%s',
+            this.id,
+            chainId,
+            subscriptions.length,
+          )
           this.#rxSubs.push(...subscriptions)
         }
       }
@@ -300,6 +324,12 @@ export class BalancesManager {
 
   #enqueue(chainId: NetworkURN, key: HexString, data: BalancesQueueData) {
     const queue = (this.#balanceUpdateQueue[chainId] ??= new Map<HexString, BalancesQueueData>())
+
+    if (queue.size > UPDATE_QUEUE_LIMIT) {
+      this.#log.info('[%s] update queue limit reached (chain=%s)', this.id, chainId)
+      this.#switchMode('on-demand')
+      return
+    }
 
     if (!queue.has(key)) {
       queue.set(key, data)
@@ -314,6 +344,9 @@ export class BalancesManager {
       ][]
 
       if (!queues.some(([_, queue]) => queue.size > 0)) {
+        if (this.#mode === 'on-demand') {
+          this.#switchMode('streaming')
+        }
         await new Promise((r) => setTimeout(r, 1_000))
         continue
       }
@@ -746,7 +779,29 @@ export class BalancesManager {
       }
     }
 
-    // Now rebuild ControlQuery from *active* accounts only
     this.#accountControl.change(this.#accountsCriteria([...this.#requestedAccountRefs.keys()]))
+  }
+
+  #switchMode(mode: BalanceUpdateMode) {
+    if (this.#mode === mode) {
+      // nothing to do
+      return
+    }
+
+    for (const sub of this.#rxSubs) {
+      try {
+        sub.unsubscribe()
+      } catch (err) {
+        this.#log?.warn?.('Failed to unsubscribe cleanly', err)
+      }
+    }
+    this.#rxSubs.length = 0
+
+    this.#mode = mode
+
+    if (mode === 'streaming') {
+      this.#subscribeBalancesEvents()
+    }
+    this.#log.info('[%s] Switched to %s mode', this.id, this.#mode)
   }
 }
