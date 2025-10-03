@@ -82,6 +82,7 @@ export async function createServer(opts: ServerOptions) {
   const server = Fastify({
     logger,
     pluginTimeout,
+    trustProxy: opts.trustProxy,
   })
 
   /* c8 ignore next */
@@ -91,6 +92,10 @@ export async function createServer(opts: ServerOptions) {
     // https://github.com/remy/nodemon?tab=readme-ov-file#controlling-shutdown-of-your-script
     process.kill(process.pid, 'SIGUSR2')
   })
+
+  if (opts.trustProxy) {
+    server.log.info('Enable trust proxy')
+  }
 
   if (opts.cors) {
     server.log.info('Enable CORS')
