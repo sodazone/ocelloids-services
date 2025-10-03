@@ -51,14 +51,17 @@ export class SubstrateSharedStreams {
     if (!this.#blocks[finality][chainId]) {
       this.#blocks[finality][chainId] = (
         finality === 'finalized' ? this.#ingress.finalizedBlocks(chainId) : this.#ingress.newBlocks(chainId)
-      ).pipe(share())
+      ).pipe(share({ resetOnRefCountZero: false }))
     }
     return this.#blocks[finality][chainId]
   }
 
   blockEvents(chainId: NetworkURN, finality: Finality = 'finalized'): Observable<BlockEvent> {
     if (!this.#blockEvents[finality][chainId]) {
-      this.#blockEvents[finality][chainId] = this.blocks(chainId, finality).pipe(extractEvents(), share())
+      this.#blockEvents[finality][chainId] = this.blocks(chainId, finality).pipe(
+        extractEvents(),
+        share({ resetOnRefCountZero: false }),
+      )
     }
     return this.#blockEvents[finality][chainId]
   }
@@ -70,7 +73,7 @@ export class SubstrateSharedStreams {
     if (!this.#blockExtrinsics[finality][chainId]) {
       this.#blockExtrinsics[finality][chainId] = this.blocks(chainId, finality).pipe(
         extractTxWithEvents(),
-        /*flattenCalls(),*/ share(),
+        /*flattenCalls(),*/ share({ resetOnRefCountZero: false }),
       )
     }
     return this.#blockExtrinsics[finality][chainId]
