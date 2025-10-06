@@ -39,7 +39,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
       )
     }
 
-    const realAmount = wormholeAmountToReal(rawAmount, decimals, normalizedDecimals)
+    const realAmount = wormholeAmountToReal(rawAmount ?? '0', decimals, normalizedDecimals)
 
     const tokenIdentifier = String(tokenAddress).startsWith('0x')
       ? addressToHex(tokenAddress)
@@ -65,6 +65,9 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
     if (op.vaa?.raw && enhancer) {
       const payload = decodeTransferPayload(op.vaa.raw)
       if (payload) {
+        if (assetOp.amount === '0' && payload.token?.amount !== undefined) {
+          assetOp.amount = wormholeAmountToReal(payload.token.amount.toString(), decimals, normalizedDecimals)
+        }
         if (enhancer) {
           enhancer(payload.payload, assetOp, journey)
         }
