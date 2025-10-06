@@ -36,10 +36,11 @@ export class WormholescanClient {
   }
 
   /**
-   *
+   * Fetch operations for a given page.
    */
   async fetchOperations(
     params: WormholeOperationParams & { page?: number },
+    signal?: AbortSignal | null,
   ): Promise<{ operations: WormholeOperation[]; total: number }> {
     const { page = 0, pageSize = 100, ...query } = params
 
@@ -50,6 +51,7 @@ export class WormholescanClient {
           page,
           pageSize,
         },
+        signal,
       })
       .json<{ operations: WormholeOperation[]; total: number }>()
   }
@@ -57,7 +59,10 @@ export class WormholescanClient {
   /**
    * Fetch all operations, automatically handling pagination.
    */
-  async fetchAllOperations(params: WormholeOperationParams): Promise<WormholeOperation[]> {
+  async fetchAllOperations(
+    params: WormholeOperationParams,
+    signal?: AbortSignal | null,
+  ): Promise<WormholeOperation[]> {
     const { pageSize = 100, ...query } = params
     let page = 0
     let results: WormholeOperation[] = []
@@ -70,6 +75,7 @@ export class WormholescanClient {
             page,
             pageSize,
           },
+          signal,
         })
         .json<{ operations: WormholeOperation[]; total: number }>()
 
@@ -87,9 +93,9 @@ export class WormholescanClient {
   /**
    * Fetch a single operation by its ID triplet.
    */
-  async fetchOperationById(id: WormholeId): Promise<WormholeOperation> {
+  async fetchOperationById(id: WormholeId, signal?: AbortSignal | null): Promise<WormholeOperation> {
     const urlId = normalizeWormholeId(id)
-    const op = await this.#api.get(`api/v1/operations/${urlId}`).json<WormholeOperation>()
+    const op = await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>()
 
     return op
   }

@@ -44,11 +44,17 @@ function bumpTimestamp(ts: string): string {
 }
 
 export function makeWatcher(client: WormholescanClient, storage?: PersistentWatcherStorage) {
-  async function fetchSinceCursor(cursor: Cursor): Promise<[Cursor, WormholeOperation[]]> {
-    const ops = await client.fetchAllOperations({
-      from: cursor.lastSeen,
-      ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
-    })
+  async function fetchSinceCursor(
+    cursor: Cursor,
+    signal?: AbortSignal | null,
+  ): Promise<[Cursor, WormholeOperation[]]> {
+    const ops = await client.fetchAllOperations(
+      {
+        from: cursor.lastSeen,
+        ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
+      },
+      signal,
+    )
 
     const freshOps = ops.filter((op) => !isSeen(cursor, op.id))
     if (freshOps.length === 0) {
@@ -68,12 +74,15 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return [nextCursor, freshOps]
   }
 
-  async function fetchBatch(state: WatcherState): Promise<[WatcherState, WormholeOperation[]]> {
+  async function fetchBatch(
+    state: WatcherState,
+    signal?: AbortSignal | null,
+  ): Promise<[WatcherState, WormholeOperation[]]> {
     const results: WormholeOperation[] = []
     const newCursors: Record<string, Cursor> = {}
 
     for (const [key, cursor] of Object.entries(state.cursors)) {
-      const [nextCursor, ops] = await fetchSinceCursor(cursor)
+      const [nextCursor, ops] = await fetchSinceCursor(cursor, signal)
       newCursors[key] = nextCursor
       results.push(...ops)
 
@@ -111,24 +120,16 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       let state = initialState
       let active = true
       const pending = new Map<string, PendingEntry>()
-
-      // restore pending ops before starting loop
-      ;(async () => {
-        if (storage) {
-          const stored = await storage.loadPendingOps()
-          for (const [id, entry] of Object.entries(stored)) {
-            pending.set(id, entry)
-          }
-        }
-      })().then(() => loop())
+      const controller = new AbortController()
+      const { signal } = controller
 
       const loop = async () => {
-        while (active) {
+        while (active && !signal.aborted) {
           const now = Date.now()
 
           try {
             // 1. fetch new ops
-            const [nextState, newOps] = await fetchBatch(state)
+            const [nextState, newOps] = await fetchBatch(state, signal)
             state = nextState
             processOps(newOps, now)
 
@@ -137,7 +138,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
               Array.from(pending.entries()).map(([id, entry]) =>
                 limit(async () => {
                   try {
-                    const updatedOp = await client.fetchOperationById(id)
+                    const updatedOp = await client.fetchOperationById(id, signal)
                     const newStatus = toStatus(updatedOp) as JourneyStatus
                     return { id, updatedOp, newStatus, entry }
                   } catch (err) {
@@ -160,8 +161,21 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
                 handleTimeout(id, entry)
               }
             }
-          } catch (err) {
-            subscriber.error(err)
+          } catch (err: unknown) {
+            if (signal.aborted) {
+              break
+            }
+
+            if (err instanceof Error) {
+              if (err.name === 'AbortError' || (err as any).code === 'ERR_CANCELED') {
+                break
+              }
+
+              subscriber.error(err)
+            } else {
+              subscriber.error(new Error(String(err)))
+            }
+
             return
           }
 
@@ -232,9 +246,25 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           storage.deletePendingOp(id)
         }
       }
+      // restore pending ops before starting loop
+      ;(async () => {
+        try {
+          if (storage) {
+            const stored = await storage.loadPendingOps()
+            for (const [id, entry] of Object.entries(stored)) {
+              pending.set(id, entry)
+            }
+          }
+        } catch (err) {
+          console.error('Failed to restore pending ops', err)
+        } finally {
+          loop()
+        }
+      })()
 
       return () => {
         active = false
+        controller.abort()
       }
     })
   }
