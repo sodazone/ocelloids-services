@@ -6,8 +6,8 @@ import {
   QueryParams,
   QueryResult,
   Queryable,
-  ServerSideEventsBroadcaster,
-  ServerSideEventsRequest,
+  ServerSentEventsBroadcaster,
+  ServerSentEventsRequest,
   Streamable,
   getAgentCapabilities,
 } from '../types.js'
@@ -16,9 +16,9 @@ import { BalanceEvents, createStewardBroadcaster } from './balances/sse.js'
 import { AssetMetadataManager } from './metadata/manager.js'
 import {
   $StewardQueryArgs,
-  $StewardServerSideEventArgs,
+  $StewardServerSentEventArgs,
   StewardQueryArgs,
-  StewardServerSideEventArgs,
+  StewardServerSentEventArgs,
 } from './types.js'
 
 /**
@@ -26,11 +26,11 @@ import {
  *
  * Aggregates and enriches cross-chain metadata for assets and currencies.
  */
-export class DataSteward implements Agent, Queryable, Streamable<StewardServerSideEventArgs> {
+export class DataSteward implements Agent, Queryable, Streamable<StewardServerSentEventArgs> {
   id = 'steward'
 
   querySchema = $StewardQueryArgs
-  streamFilterSchema = $StewardServerSideEventArgs
+  streamFilterSchema = $StewardServerSentEventArgs
 
   metadata: AgentMetadata = {
     name: 'Data Steward',
@@ -41,7 +41,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
   readonly #metadataManager: AssetMetadataManager
   readonly #balancesManager: BalancesManager
   readonly #substrateIngress: SubstrateIngressConsumer
-  readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
+  readonly #broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>
 
   constructor(ctx: AgentRuntimeContext) {
     const managerContext = {
@@ -69,9 +69,9 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSi
     throw new Error(`Query type ${queryType} not supported`)
   }
 
-  onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
+  onServerSentEventsRequest(request: ServerSentEventsRequest<StewardServerSentEventArgs>) {
     if (request.streamName === 'balances') {
-      this.#balancesManager.onServerSideEventsRequest(request)
+      this.#balancesManager.onServerSentEventsRequest(request)
     } else {
       throw new Error(`SSE stream not supported: ${request.streamName}`)
     }

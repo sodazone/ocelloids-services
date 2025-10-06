@@ -201,8 +201,13 @@ export type StewardManagerContext = {
 
 const $AccountString = z.string().min(42).max(66)
 
-export const $StewardServerSideEventArgs = z.object({
+export const $StewardServerSentEventArgs = z.object({
   account: $AccountString.or(z.array($AccountString).min(1).max(5)),
 })
 
-export type StewardServerSideEventArgs = z.infer<typeof $StewardServerSideEventArgs>
+/**
+ * Data Steward server-sent event arguments.
+ *
+ * @public
+ */
+export type StewardServerSentEventArgs = z.infer<typeof $StewardServerSentEventArgs>

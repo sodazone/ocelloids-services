@@ -5,9 +5,9 @@ import { asJSON } from '@/common/util.js'
 import {
   AnyQueryArgs,
   GenericEvent,
-  ServerSideEvent,
-  ServerSideEventsConnection,
-  ServerSideEventsRequest,
+  ServerSentEvent,
+  ServerSentEventsConnection,
+  ServerSentEventsRequest,
 } from '../types.js'
 
 function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, unknown>): T {
@@ -49,12 +49,12 @@ function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, 
   return safeFilters as T
 }
 
-export function createServerSideEventsBroadcaster<
+export function createServerSentEventsBroadcaster<
   T extends AnyQueryArgs = AnyQueryArgs,
   E extends GenericEvent = GenericEvent,
->(matchFilters: (filters: T, event: ServerSideEvent<E>) => boolean = () => true) {
+>(matchFilters: (filters: T, event: ServerSentEvent<E>) => boolean = () => true) {
   // TODO limits per account
-  const connections: Map<string, ServerSideEventsConnection<T>> = new Map()
+  const connections: Map<string, ServerSentEventsConnection<T>> = new Map()
   let keepAliveInterval: NodeJS.Timeout | undefined
 
   const keepAlive = () => {
@@ -74,13 +74,13 @@ export function createServerSideEventsBroadcaster<
   }
 
   const startStreaming = (
-    { filters, request, reply }: ServerSideEventsRequest<T>,
+    { filters, request, reply }: ServerSentEventsRequest<T>,
     {
       onConnect,
       onDisconnect,
     }: {
-      onConnect?: (connection: ServerSideEventsConnection<T>) => void
-      onDisconnect?: (connection: ServerSideEventsConnection<T>) => void
+      onConnect?: (connection: ServerSentEventsConnection<T>) => void
+      onDisconnect?: (connection: ServerSentEventsConnection<T>) => void
     } = {},
   ) => {
     // set existing headers in reply
@@ -99,7 +99,7 @@ export function createServerSideEventsBroadcaster<
     reply.raw.writeHead(200)
 
     const id = ulid()
-    const send = ({ event, data }: ServerSideEvent) => {
+    const send = ({ event, data }: ServerSentEvent) => {
       reply.raw.write(`event: ${event}\ndata: ${asJSON(data)}\n\n`)
     }
     send({ event: 'ping', data: { timestamp: Date.now() } })
@@ -129,7 +129,7 @@ export function createServerSideEventsBroadcaster<
     return connection
   }
 
-  const disconnect = (connection: ServerSideEventsConnection<T>) => {
+  const disconnect = (connection: ServerSentEventsConnection<T>) => {
     connection.request.destroy()
     connection.onDisconnect?.(connection)
 
@@ -141,7 +141,7 @@ export function createServerSideEventsBroadcaster<
     }
   }
 
-  const send = (event: ServerSideEvent<E>) => {
+  const send = (event: ServerSentEvent<E>) => {
     for (const connection of connections.values()) {
       try {
         if (matchFilters(connection.filters, event)) {
@@ -154,7 +154,7 @@ export function createServerSideEventsBroadcaster<
     }
   }
 
-  const sendToConnection = (id: string, event: ServerSideEvent<E>) => {
+  const sendToConnection = (id: string, event: ServerSentEvent<E>) => {
     const connection = connections.get(id)
     if (connection) {
       try {

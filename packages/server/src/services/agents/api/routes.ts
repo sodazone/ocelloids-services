@@ -252,7 +252,7 @@ export async function AgentsApi(api: FastifyInstance) {
     async (request, reply) => {
       const { agentId, streamName } = request.params
       const agent = agentService.getStreamableById(agentId)
-      agent.onServerSideEventsRequest({
+      agent.onServerSentEventsRequest({
         streamName,
         filters: request.query,
         request: request.raw,

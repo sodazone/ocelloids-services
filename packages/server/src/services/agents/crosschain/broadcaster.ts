@@ -1,9 +1,9 @@
 import { asPublicKey } from '@/common/util.js'
 
-import { createServerSideEventsBroadcaster } from '../api/sse.js'
-import { ServerSideEvent } from '../types.js'
+import { createServerSentEventsBroadcaster } from '../api/sse.js'
+import { ServerSentEvent } from '../types.js'
 import { FullJourneyResponse } from './repositories/types.js'
-import { XcServerSideEventArgs } from './types/sse.js'
+import { XcServerSentEventArgs } from './types/sse.js'
 
 type XcEvents = {
   event: string
@@ -11,8 +11,8 @@ type XcEvents = {
 }
 
 function applySseFilters(
-  filters: XcServerSideEventArgs,
-  { data: journey }: ServerSideEvent<XcEvents>,
+  filters: XcServerSentEventArgs,
+  { data: journey }: ServerSentEvent<XcEvents>,
 ): boolean {
   if (filters.id && filters.id !== journey.correlationId) {
     return false
@@ -99,4 +99,4 @@ function applySseFilters(
 }
 
 export const createCrosschainBroadcaster = () =>
-  createServerSideEventsBroadcaster<XcServerSideEventArgs>(applySseFilters)
+  createServerSentEventsBroadcaster<XcServerSentEventArgs>(applySseFilters)

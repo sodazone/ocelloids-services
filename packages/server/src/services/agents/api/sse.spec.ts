@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events'
 import { FastifyReply } from 'fastify'
 import { Mock } from 'vitest'
-import { createServerSideEventsBroadcaster } from './sse.js'
+import { createServerSentEventsBroadcaster } from './sse.js'
 
-describe('createServerSideEventsBroadcaster', () => {
-  let broadcaster: ReturnType<typeof createServerSideEventsBroadcaster>
+describe('createServerSentEventsBroadcaster', () => {
+  let broadcaster: ReturnType<typeof createServerSentEventsBroadcaster>
   let matchFilters: Mock
   let reply: any
   let request: any
@@ -32,7 +32,7 @@ describe('createServerSideEventsBroadcaster', () => {
 
   beforeEach(() => {
     matchFilters = vi.fn()
-    broadcaster = createServerSideEventsBroadcaster(matchFilters)
+    broadcaster = createServerSentEventsBroadcaster(matchFilters)
     reply = createMockReply()
     request = createMockRequest()
   })
@@ -72,7 +72,7 @@ describe('createServerSideEventsBroadcaster', () => {
 
   it('should send events to matching connections', () => {
     const matchFilters = (filters: any, event: any) => filters.foo === event.data.foo
-    const customBroadcaster = createServerSideEventsBroadcaster(matchFilters)
+    const customBroadcaster = createServerSentEventsBroadcaster(matchFilters)
     const customReply = createMockReply()
     const customRequest = createMockRequest()
 
@@ -98,7 +98,7 @@ describe('createServerSideEventsBroadcaster', () => {
 
   it('should not send event to non-matching filters', () => {
     const matchFilters = (filters: any, event: any) => filters.foo === event.data.foo
-    const customBroadcaster = createServerSideEventsBroadcaster(matchFilters)
+    const customBroadcaster = createServerSentEventsBroadcaster(matchFilters)
     const customReply = createMockReply()
     const customRequest = createMockRequest()
 

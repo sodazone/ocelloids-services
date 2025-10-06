@@ -15,7 +15,7 @@ import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
-import { createServerSideEventsBroadcaster } from './api/sse.js'
+import { createServerSentEventsBroadcaster } from './api/sse.js'
 
 /**
  * Schema for validating Agent IDs.
@@ -278,7 +278,7 @@ export interface Queryable {
   query(params: QueryParams): Promise<QueryResult<AnyQueryResultItem | unknown>>
 }
 
-export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+export type ServerSentEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
   streamName: string
   filters: T
   request: IncomingMessage
@@ -286,21 +286,32 @@ export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
   uid?: string
 }
 
-export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
+export type ServerSentEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
   id: string
   filters: T
   request: IncomingMessage
-  send: (event: ServerSideEvent) => void
-  onDisconnect?: (connection: ServerSideEventsConnection<T>) => void
+  send: (event: ServerSentEvent) => void
+  onDisconnect?: (connection: ServerSentEventsConnection<T>) => void
 }
 
+/**
+ * Generic server-sent event.
+ *
+ * @public
+ */
 export type GenericEvent = { event: string; data: any }
-export type ServerSideEvent<T extends GenericEvent = GenericEvent> = T
 
-export type ServerSideEventsBroadcaster<
+/**
+ * Server-sent event.
+ *
+ * @public
+ */
+export type ServerSentEvent<T extends GenericEvent = GenericEvent> = T
+
+export type ServerSentEventsBroadcaster<
   T extends AnyQueryArgs = AnyQueryArgs,
   E extends GenericEvent = GenericEvent,
-> = ReturnType<typeof createServerSideEventsBroadcaster<T, E>>
+> = ReturnType<typeof createServerSentEventsBroadcaster<T, E>>
 
 /**
  * Interface defining the capabilities needed to handle SSE.
@@ -312,11 +323,11 @@ export interface Streamable<T extends AnyQueryArgs = AnyQueryArgs> {
   get streamFilterSchema(): z.ZodSchema
 
   /**
-   * Called by the HTTP server when server side events request.
+   * Called by the HTTP server when server sent events request.
    *
-   * @param request - Info about the server side request (filters, metadata, etc.)
+   * @param request - Info about the server sent request (filters, metadata, etc.)
    */
-  onServerSideEventsRequest(request: ServerSideEventsRequest<T>): void
+  onServerSentEventsRequest(request: ServerSentEventsRequest<T>): void
 }
 
 /**
@@ -378,7 +389,7 @@ export function isQueryable(object: any): object is Queryable {
  * Streamable guard condition.
  */
 export function isStreamable(object: any): object is Streamable {
-  return 'onServerSideEventsRequest' in object
+  return 'onServerSentEventsRequest' in object
 }
 
 /**

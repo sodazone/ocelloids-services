@@ -1,7 +1,7 @@
 import { $NetworkString } from '@/common/types.js'
 import { z } from 'zod'
 
-export const $XcServerSideEventArgs = z
+export const $XcServerSentEventArgs = z
   .object({
     assets: z.optional(z.union([z.string(), z.array(z.string()).min(1).max(50)])),
     origins: z.optional(z.array($NetworkString).min(1).max(50)),
@@ -34,4 +34,7 @@ export const $XcServerSideEventArgs = z
     },
   )
 
-export type XcServerSideEventArgs = z.infer<typeof $XcServerSideEventArgs>
+/**
+ * @public
+ */
+export type XcServerSentEventArgs = z.infer<typeof $XcServerSentEventArgs>

@@ -11,13 +11,13 @@ import { Logger, NetworkURN } from '@/services/types.js'
 
 import { ControlQuery, Criteria } from '@/common/index.js'
 import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
-import { ServerSideEventsBroadcaster, ServerSideEventsRequest } from '../../types.js'
+import { ServerSentEventsBroadcaster, ServerSentEventsRequest } from '../../types.js'
 import {
   AssetId,
   AssetMetadata,
   StewardManagerContext,
   StewardQueryArgs,
-  StewardServerSideEventArgs,
+  StewardServerSentEventArgs,
 } from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { BalanceRecord, BalancesDB } from './db.js'
@@ -62,7 +62,7 @@ export class BalancesManager {
   readonly #requestedAccountRefs: Map<HexString, number> = new Map()
 
   readonly #queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>
-  readonly #broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>
+  readonly #broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>
   readonly #metadataCache: LRUCache<HexString, AssetData, unknown>
 
   readonly #chainMutexes: Record<NetworkURN, Mutex> = {}
@@ -74,7 +74,7 @@ export class BalancesManager {
   constructor(
     { log, openLevelDB, ingress, config }: StewardManagerContext,
     queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>,
-    broadcaster: ServerSideEventsBroadcaster<StewardServerSideEventArgs, BalanceEvents>,
+    broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>,
   ) {
     this.#log = log
     this.#config = config ?? {}
@@ -119,7 +119,7 @@ export class BalancesManager {
     }
   }
 
-  async onServerSideEventsRequest(request: ServerSideEventsRequest<StewardServerSideEventArgs>) {
+  async onServerSentEventsRequest(request: ServerSentEventsRequest<StewardServerSentEventArgs>) {
     try {
       // open stream
       const {
@@ -185,7 +185,7 @@ export class BalancesManager {
         }
       }
     } catch (e) {
-      this.#log.error(e, '[%s] Error on server side events request', this.id)
+      this.#log.error(e, '[%s] Error on server sent events request', this.id)
     }
   }
 
