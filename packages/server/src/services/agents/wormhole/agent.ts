@@ -58,7 +58,16 @@ export class WormholeAgent implements Agent {
     this.#log.info('[agent:%s] start', this.id)
 
     this.#watcher.loadInitialState([WormholeIds.MOONBEAM_ID], ago(1, 'day')).then((init) => {
-      this.#log.info('[agent:%s] subscribe to operations: %j', this.id, init)
+      this.#log.info(
+        '[agent:%s] subscribe to operations: %j',
+        this.id,
+        Object.values(init.cursors).map((c) => ({
+          chain: c.chain,
+          direction: c.direction,
+          lastSeen: c.lastSeen,
+          seenIds: c.seenIds?.length ?? 0,
+        })),
+      )
       this.#subs.push(this.#watcher.operations$(init).subscribe(this.#makeObserver()))
     })
   }
