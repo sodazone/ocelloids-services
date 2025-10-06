@@ -120,11 +120,16 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       let state = initialState
       let active = true
       const pending = new Map<string, PendingEntry>()
-      const controller = new AbortController()
-      const { signal } = controller
+      let loopController: AbortController | null = null
 
       const loop = async () => {
-        while (active && !signal.aborted) {
+        while (active) {
+          if (loopController) {
+            loopController.abort()
+          }
+
+          loopController = new AbortController()
+          const { signal } = loopController
           const now = Date.now()
 
           try {
@@ -264,7 +269,9 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
       return () => {
         active = false
-        controller.abort()
+        if (loopController) {
+          loopController.abort()
+        }
       }
     })
   }
