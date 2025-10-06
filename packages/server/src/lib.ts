@@ -15,6 +15,8 @@ export type {
   QueryPagination,
   AnyQueryArgs,
   AnyQueryResultItem,
+  GenericEvent,
+  ServerSentEvent,
 } from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
 
@@ -46,3 +48,9 @@ export { xcm }
  */
 import * as steward from './services/agents/steward/lib.js'
 export { steward }
+
+/**
+ * Crosschain agent types
+ */
+import * as crosschain from './services/agents/crosschain/lib.js'
+export { crosschain }

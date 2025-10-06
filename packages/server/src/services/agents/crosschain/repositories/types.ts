@@ -1,6 +1,11 @@
 import { DeepCamelize } from '@/common/util.js'
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
 
+/**
+ * Cross chain asset role.
+ *
+ * @public
+ */
 export type AssetRole =
   | 'transfer'
   | 'swap_in'
@@ -69,20 +74,40 @@ export interface CrosschainDatabase {
 
 export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 
+/**
+ * @public
+ */
 export type FullJourney = Journey & {
   totalUsd: number
   assets: FullJourneyAsset[]
 }
 
+/**
+ * @public
+ */
 export type JourneyResponse = DeepCamelize<Journey>
+
+/**
+ * @public
+ */
 export type AssetOperationResponse = DeepCamelize<AssetOperation>
+
+/**
+ * @public
+ */
 export type FullJourneyResponse = DeepCamelize<FullJourney>
 
+/**
+ * @public
+ */
 export type ListAsset = {
   asset: string
   symbol?: string | undefined
 }
 
+/**
+ * @public
+ */
 export type AssetOperationKey = {
   journeyId: number
   assetId: string

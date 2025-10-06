@@ -14,4 +14,5 @@ export type {
   SubstrateTypes,
   xcm as sourceXcm,
   steward as sourceSteward,
+  crosschain as sourceCrosschain,
 } from '@sodazone/ocelloids-service-node'

@@ -57,5 +57,12 @@ export const $XcQueryArgs = z.discriminatedUnion('op', [
   }),
 ])
 
+/**
+ * @public
+ */
 export type JourneyFilters = z.infer<typeof $JourneyFilters>
+
+/**
+ * @public
+ */
 export type XcQueryArgs = z.infer<typeof $XcQueryArgs>

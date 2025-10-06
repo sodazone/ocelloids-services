@@ -1,6 +1,35 @@
+import type {
+  AccountData,
+  AssetData,
+  BalanceEvent,
+  BalanceEventName,
+  BalanceEvents,
+  BalancesData,
+  StatusData,
+  StatusEvent,
+  SyncedEvent,
+} from './balances/sse.js'
+import type {
+  AssetId,
+  AssetIds,
+  AssetMetadata,
+  StewardQueryArgs,
+  StewardServerSentEventArgs,
+} from './types.js'
+
 export type {
   AssetMetadata,
   StewardQueryArgs,
+  StewardServerSentEventArgs,
   AssetIds,
   AssetId,
-} from './types.js'
+  BalanceEvents,
+  AccountData,
+  AssetData,
+  BalanceEvent,
+  BalanceEventName,
+  BalancesData,
+  StatusData,
+  StatusEvent,
+  SyncedEvent,
+}

@@ -70,6 +70,37 @@ export interface QueryableApi<P = AnyJson, R = AnyJson> {
   query(args: P, pagination?: QueryPagination, options?: Options): Promise<QueryResult<R>>
 }
 
+export type SseListener = { event: string; onData: (data: any) => void }
+
+/**
+ * SSE event handlers
+ */
+export interface SseHandler<L = SseListener> {
+  listeners: L[]
+  onError?: (error: Event | Error) => void
+  onOpen?: (event: Event) => void
+}
+
+type SseOptions<P extends Record<string, any> = Record<string, any>> = { streamName: string; args: P }
+
+/**
+ * Streamable Agent API.
+ *
+ * @public
+ */
+export interface StreamableApi<
+  S extends SseOptions = { streamName: 'default'; args: Record<string, any> },
+  L extends SseListener = SseListener,
+> {
+  stream(
+    opts: S,
+    handler: SseHandler<L>,
+  ): Promise<{
+    readyState: number
+    close: () => void
+  }>
+}
+
 /**
  * The server health response.
  *
@@ -96,7 +127,9 @@ export interface OcelloidsClientApi {
  *
  * @public
  */
-export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi, OcelloidsClientApi {
+export class OcelloidsAgentApi<T>
+  implements SubscribableApi<T>, QueryableApi, StreamableApi, OcelloidsClientApi
+{
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
   readonly #fetch: FetchFn
@@ -115,6 +148,53 @@ export class OcelloidsAgentApi<T> implements SubscribableApi<T>, QueryableApi, O
 
   health(options?: Options): Promise<HealthResponse> {
     return this.#client.health(options)
+  }
+
+  async stream(opts: SseOptions, handler: SseHandler) {
+    if (typeof EventSource === 'undefined') {
+      throw new Error('EventSource is not supported in this environment')
+    }
+
+    if (this.#config.apiKey == null) {
+      throw new Error('You need an API key')
+    }
+
+    const streamName = opts.streamName ?? 'default'
+    const sseUrl = `${this.#config.httpUrl}/sse/${this.#agentId}/${streamName}`
+    const sseNodUrl = `${this.#config.httpUrl}/sse/nod/${this.#agentId}/${streamName}`
+
+    const requestNodToken = async () => {
+      const { token } = await this.#fetch<{ token: string }>(sseNodUrl)
+      if (!token) {
+        throw new Error('Failed to get NOD token')
+      }
+      return token
+    }
+
+    const buildSseUrl = async () => {
+      const nodToken = await requestNodToken()
+      const params = opts.args
+      params.nod = nodToken
+      const query = new URLSearchParams(params).toString()
+      return `${sseUrl}?${query}`
+    }
+
+    const finalUrl = await buildSseUrl()
+    const source = new EventSource(finalUrl)
+
+    if (handler.onError) {
+      source.onerror = handler.onError
+    }
+
+    if (handler.onOpen) {
+      source.onopen = handler.onOpen
+    }
+
+    for (const { event, onData } of handler.listeners) {
+      source.addEventListener(event, (e) => onData(e.data))
+    }
+
+    return source
   }
 
   /**

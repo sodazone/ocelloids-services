@@ -7,6 +7,7 @@
  */
 export * from './agent'
 export * from './client'
+export * from './query'
 export * from './types'
 export type {
   SubscriptionId,
@@ -33,3 +34,6 @@ export { xcm }
 
 import * as steward from './steward/types'
 export { steward }
+
+import * as crosschain from './crosschain/types'
+export { crosschain }

@@ -24,4 +24,5 @@ export {
   HumanizedXcmAsset,
   XcmJourneyType,
   XcmAssetWithMetadata,
+  AssetSwap,
 } from './types/index.js'
