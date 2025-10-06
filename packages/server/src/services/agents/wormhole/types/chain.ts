@@ -12,6 +12,7 @@ export const WormholeIds = {
   OP_ID: 24,
   ARB_ID: 23,
   CELO_ID: 14,
+  AVAX_ID: 6, // C-chain
 }
 
 const WormholeChainIds: Record<NetworkURN, number> = {
@@ -24,6 +25,7 @@ const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:ethereum:42161': WormholeIds.ARB_ID,
   'urn:ocn:ethereum:8453': WormholeIds.BASE_ID,
   'urn:ocn:ethereum:42220': WormholeIds.CELO_ID,
+  'urn:ocn:ethereum:43114': WormholeIds.AVAX_ID,
   'urn:ocn:sui:0x35834a8a': WormholeIds.SUI_ID,
 } as const
 
