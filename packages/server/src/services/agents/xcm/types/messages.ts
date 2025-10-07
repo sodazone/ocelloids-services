@@ -311,7 +311,10 @@ export interface XcmWaypointContext extends XcmTerminusContext {
   assetSwaps?: AssetSwap[]
 }
 
-const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
+/**
+ * @public
+ */
+export const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
 
 /**
  * Type of an XCM journey leg.

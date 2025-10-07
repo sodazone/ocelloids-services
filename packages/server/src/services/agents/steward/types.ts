@@ -40,6 +40,9 @@ export const networks = setNetworks({
   paseoAssetHub: 'urn:ocn:paseo:1000',
 })
 
+/**
+ * @public
+ */
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets'),
@@ -91,6 +94,9 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
+/**
+ * @public
+ */
 export type ParsedAsset = {
   network: NetworkURN
   assetId:

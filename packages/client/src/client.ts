@@ -45,15 +45,25 @@ const API_WS_URL = 'wss://api.ocelloids.net'
 const API_HTTP_URL = 'https://api.ocelloids.net'
 
 /**
+ * @public
+ */
+export type RequestOptions = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  headers?: Record<string, string>
+  hooks?: any
+  body?: unknown
+}
+
+/**
  * Subscribable Agent API.
  *
  * @public
  */
 export interface SubscribableApi<T = AnySubscriptionInputs, P = AnyJson> {
-  createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: Options): Promise<unknown>
-  deleteSubscription(id: string, options?: Options): Promise<unknown>
-  getSubscription(id: string, options?: Options): Promise<Subscription<T>>
-  allSubscriptions(options?: Options): Promise<Subscription<T>[]>
+  createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: RequestOptions): Promise<unknown>
+  deleteSubscription(id: string, options?: RequestOptions): Promise<unknown>
+  getSubscription(id: string, options?: RequestOptions): Promise<Subscription<T>>
+  allSubscriptions(options?: RequestOptions): Promise<Subscription<T>[]>
   subscribe(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
@@ -67,13 +77,18 @@ export interface SubscribableApi<T = AnySubscriptionInputs, P = AnyJson> {
  * @public
  */
 export interface QueryableApi<P = AnyJson, R = AnyJson> {
-  query(args: P, pagination?: QueryPagination, options?: Options): Promise<QueryResult<R>>
+  query(args: P, pagination?: QueryPagination, options?: RequestOptions): Promise<QueryResult<R>>
 }
 
+/**
+ * @public
+ */
 export type SseListener = { event: string; onData: (data: any) => void }
 
 /**
  * SSE event handlers
+ *
+ * @public
  */
 export interface SseHandler<L = SseListener> {
   listeners: L[]
@@ -81,7 +96,10 @@ export interface SseHandler<L = SseListener> {
   onOpen?: (event: Event) => void
 }
 
-type SseOptions<P extends Record<string, any> = Record<string, any>> = { streamName: string; args: P }
+/**
+ * @public
+ */
+export type SseOptions<P extends Record<string, any> = Record<string, any>> = { streamName: string; args: P }
 
 /**
  * Streamable Agent API.
@@ -118,8 +136,37 @@ export type HealthResponse = {
  * @public
  */
 export interface OcelloidsClientApi {
-  networks(options?: Options): Promise<Record<string, string[]>>
-  health(options?: Options): Promise<HealthResponse>
+  networks(options?: RequestOptions): Promise<Record<string, string[]>>
+  health(options?: RequestOptions): Promise<HealthResponse>
+}
+
+function toKyOptions(ops?: RequestOptions): Options {
+  if (ops === undefined) {
+    return {}
+  }
+
+  let body: BodyInit | undefined
+
+  if (ops.body !== undefined && ops.body !== null) {
+    if (typeof ops.body === 'string') {
+      body = ops.body
+    } else if (
+      ops.body instanceof FormData ||
+      ops.body instanceof URLSearchParams ||
+      ops.body instanceof Blob
+    ) {
+      body = ops.body
+    } else {
+      body = JSON.stringify(ops.body)
+    }
+  }
+
+  return {
+    method: ops.method,
+    headers: ops.headers,
+    hooks: ops.hooks,
+    body,
+  }
 }
 
 /**
@@ -142,11 +189,11 @@ export class OcelloidsAgentApi<T>
     this.#client = clientApi
   }
 
-  networks(options?: Options): Promise<Record<string, string[]>> {
+  networks(options?: RequestOptions): Promise<Record<string, string[]>> {
     return this.#client.networks(options)
   }
 
-  health(options?: Options): Promise<HealthResponse> {
+  health(options?: RequestOptions): Promise<HealthResponse> {
     return this.#client.health(options)
   }
 
@@ -208,7 +255,7 @@ export class OcelloidsAgentApi<T>
   async query<P = AnyQueryArgs, R = AnyQueryResultItem>(
     args: P,
     pagination?: QueryPagination,
-    options?: Options,
+    options?: RequestOptions,
   ) {
     const url = this.#config.httpUrl + '/query/' + this.#agentId
     return this.#fetch<QueryResult<R>>(url, {
@@ -228,9 +275,9 @@ export class OcelloidsAgentApi<T>
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves when the subscription is created.
    */
-  async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: Options) {
+  async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: RequestOptions) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
-      ...options,
+      ...toKyOptions(options),
       method: 'POST',
       body: JSON.stringify({
         ...subscription,
@@ -245,10 +292,10 @@ export class OcelloidsAgentApi<T>
    * @param id - The subscription ID.
    * @param options - The ky request options (fetch compatible)
    */
-  async deleteSubscription(id: string, options?: Options) {
+  async deleteSubscription(id: string, options?: RequestOptions) {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
     return this.#fetch(url, {
-      ...options,
+      ...toKyOptions(options),
       method: 'DELETE',
     })
   }
@@ -260,9 +307,9 @@ export class OcelloidsAgentApi<T>
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
-  async getSubscription(id: string, options?: Options): Promise<Subscription<T>> {
+  async getSubscription(id: string, options?: RequestOptions): Promise<Subscription<T>> {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
-    return this.#fetch<Subscription<T>>(url, options)
+    return this.#fetch<Subscription<T>>(url, toKyOptions(options))
   }
 
   /**
@@ -271,8 +318,11 @@ export class OcelloidsAgentApi<T>
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with an array of subscriptions.
    */
-  async allSubscriptions(options?: Options): Promise<Subscription<T>[]> {
-    return this.#fetch<Subscription<T>[]>(this.#config.httpUrl + '/subs/' + this.#agentId, options)
+  async allSubscriptions(options?: RequestOptions): Promise<Subscription<T>[]> {
+    return this.#fetch<Subscription<T>[]>(
+      this.#config.httpUrl + '/subs/' + this.#agentId,
+      toKyOptions(options),
+    )
   }
 
   /**
@@ -449,8 +499,8 @@ export class OcelloidsClient implements OcelloidsClientApi {
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves to an array of network URNs as strings.
    */
-  async networks(options?: Options): Promise<Record<string, string[]>> {
-    return this.#fetch(this.#config.httpUrl + '/ingress/networks', options)
+  async networks(options?: RequestOptions): Promise<Record<string, string[]>> {
+    return this.#fetch(this.#config.httpUrl + '/ingress/networks', toKyOptions(options))
   }
 
   /**
@@ -460,7 +510,7 @@ export class OcelloidsClient implements OcelloidsClientApi {
    * @param options - The ky request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
-  async health(options?: Options): Promise<HealthResponse> {
-    return this.#fetch(this.#config.httpUrl + '/health', options)
+  async health(options?: RequestOptions): Promise<HealthResponse> {
+    return this.#fetch(this.#config.httpUrl + '/health', toKyOptions(options))
   }
 }

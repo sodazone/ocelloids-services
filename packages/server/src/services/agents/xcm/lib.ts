@@ -25,4 +25,10 @@ export {
   XcmJourneyType,
   XcmAssetWithMetadata,
   AssetSwap,
+  SwappedAsset,
+} from './types/index.js'
+
+export {
+  XcmNotificationTypes,
+  legTypes,
 } from './types/index.js'

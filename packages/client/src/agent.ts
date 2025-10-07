@@ -6,16 +6,17 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './client'
-import { AnySubscriptionInputs } from './types'
+import { XcQueryArgs, XcQueryResponse } from './crosschain/types'
 
+import { AnySubscriptionInputs } from './lib'
 import {
   AccountData,
+  AssetMetadata,
   BalancesData,
   StatusData,
-} from '@sodazone/ocelloids-service-node/dist/services/agents/steward/lib'
-import { StewardServerSentEventArgs } from '@sodazone/ocelloids-service-node/dist/services/agents/steward/types'
-import { XcQueryArgs, XcQueryResponse } from './crosschain/types'
-import { AssetMetadata, StewardQueryArgs } from './steward/types'
+  StewardQueryArgs,
+  StewardServerSentEventArgs,
+} from './steward/types'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
 type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain'
@@ -98,6 +99,9 @@ export function createStewardAgent(
   return createAgent('steward', optsOrClient)
 }
 
+/**
+ * @public
+ */
 export type StewardAgent = ReturnType<typeof createStewardAgent>
 
 /**
@@ -125,10 +129,16 @@ export function createInformantAgent(
   return createAgent('informant', optsOrClient)
 }
 
+/**
+ * @public
+ */
 export function createCrosschainAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
 ): QueryableApi<XcQueryArgs, XcQueryResponse> & StreamableApi & OcelloidsClientApi {
   return createAgent('crosschain', optsOrClient)
 }
 
+/**
+ * @public
+ */
 export type CrosschainAgent = ReturnType<typeof createCrosschainAgent>

@@ -1,6 +1,9 @@
 import { $NetworkString } from '@/common/types.js'
 import { z } from 'zod'
 
+/**
+ * @public
+ */
 export const $XcServerSentEventArgs = z
   .object({
     assets: z.optional(z.union([z.string(), z.array(z.string()).min(1).max(50)])),

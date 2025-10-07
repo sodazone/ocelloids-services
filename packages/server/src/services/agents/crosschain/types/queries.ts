@@ -2,6 +2,9 @@ import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
 
+/**
+ * @public
+ */
 export const $JourneyFilters = z
   .object({
     assets: z.optional(z.array(z.string()).min(1).max(50)),
@@ -41,6 +44,9 @@ export const $JourneyFilters = z
   )
   .optional()
 
+/**
+ * @public
+ */
 export const $XcQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('journeys.list'),

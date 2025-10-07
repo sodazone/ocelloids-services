@@ -6,10 +6,12 @@ export type {
   HexString,
   SignerData,
   SubscriptionId,
+  $SubscriptionId,
 } from './services/subscriptions/types.js'
 export type { AnyJson, NetworkURN } from './services/types.js'
 export type {
   AgentId,
+  $AgentId,
   QueryParams,
   QueryResult,
   QueryPagination,

@@ -22,9 +22,12 @@ export type {
   AnyQueryArgs,
   NetworkURN,
   AnyQueryResultItem,
+  $AgentId,
+  $SubscriptionId,
   SubstrateTypes,
   sourceSteward,
   sourceXcm,
+  sourceCrosschain,
 } from './server-types'
 
 // The "export * as ___" syntax is not supported yet; as a workaround,

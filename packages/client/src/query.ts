@@ -32,6 +32,9 @@ function createTypedQueryApi<
   return api
 }
 
+/**
+ * @public
+ */
 export function crosschainQueryApi(agent: CrosschainAgent) {
   const QueryOpMap = {
     'assets.list': {} as ListAsset,
@@ -42,6 +45,9 @@ export function crosschainQueryApi(agent: CrosschainAgent) {
   return createTypedQueryApi<XcQueryArgs, typeof QueryOpMap, CrosschainAgent>(agent, QueryOpMap)
 }
 
+/**
+ * @public
+ */
 export function stewardQueryApi(agent: StewardAgent) {
   const QueryOpMap = {
     assets: {} as AssetMetadata,

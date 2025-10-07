@@ -12,6 +12,8 @@ export type {
   NetworkURN,
   AnyQueryResultItem,
   SubstrateTypes,
+  $SubscriptionId,
+  $AgentId,
   xcm as sourceXcm,
   steward as sourceSteward,
   crosschain as sourceCrosschain,
