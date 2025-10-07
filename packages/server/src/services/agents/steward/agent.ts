@@ -39,7 +39,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   }
 
   readonly #metadataManager: AssetMetadataManager
-  readonly #balancesManager: BalancesManager
+  readonly #balancesManager?: BalancesManager
   readonly #substrateIngress: SubstrateIngressConsumer
   readonly #broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>
 
@@ -55,7 +55,9 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
 
     this.#broadcaster = createStewardBroadcaster()
     this.#metadataManager = new AssetMetadataManager(managerContext)
-    this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this), this.#broadcaster)
+    if (ctx.config && 'balances' in ctx.config && ctx.config['balances']) {
+      this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this), this.#broadcaster)
+    }
     this.#substrateIngress = ctx.ingress.substrate
   }
 
@@ -70,7 +72,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   }
 
   onServerSentEventsRequest(request: ServerSentEventsRequest<StewardServerSentEventArgs>) {
-    if (request.streamName === 'balances') {
+    if (this.#balancesManager && request.streamName === 'balances') {
       this.#balancesManager.onServerSentEventsRequest(request)
     } else {
       throw new Error(`SSE stream not supported: ${request.streamName}`)
@@ -78,7 +80,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   }
 
   async stop() {
-    await this.#balancesManager.stop()
+    await this.#balancesManager?.stop()
     this.#metadataManager.stop()
     this.#broadcaster.close()
   }
@@ -86,7 +88,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   async start() {
     await this.#substrateIngress.isReady()
     await this.#metadataManager.start()
-    await this.#balancesManager.start()
+    await this.#balancesManager?.start()
   }
 
   collectTelemetry() {

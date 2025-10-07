@@ -94,17 +94,13 @@ export class BalancesManager {
   }
 
   async start() {
-    if ('balances' in this.#config && this.#config['balances']) {
-      this.#log.info('[%s] started in %s mode.', this.id, this.#mode)
-      if (this.#mode === 'streaming') {
-        this.#subscribeBalancesEvents()
-      }
-      this.#running = true
-      this.#processUpdateQueue()
-      this.#processDiscoveryQueue()
-    } else {
-      this.#log.info('[%s] not configured', this.id)
+    this.#log.info('[%s] started in %s mode.', this.id, this.#mode)
+    if (this.#mode === 'streaming') {
+      this.#subscribeBalancesEvents()
     }
+    this.#running = true
+    this.#processUpdateQueue()
+    this.#processDiscoveryQueue()
   }
 
   async stop() {
@@ -172,7 +168,7 @@ export class BalancesManager {
               data: { status: 'discovery-enqueued', accountId, publicKey },
             })
           } else {
-            await this.#enqueueForDiscovery({
+            this.#enqueueForDiscovery({
               publicKey,
               requestUid: request.uid,
               connectionId: id,
@@ -181,7 +177,7 @@ export class BalancesManager {
           }
         } else {
           // === ON-DEMAND MODE ===
-          await this.#enqueueForDiscovery({ publicKey, requestUid: request.uid, connectionId: id, accountId })
+          this.#enqueueForDiscovery({ publicKey, requestUid: request.uid, connectionId: id, accountId })
         }
       }
     } catch (e) {
@@ -189,7 +185,7 @@ export class BalancesManager {
     }
   }
 
-  async #enqueueForDiscovery({
+  #enqueueForDiscovery({
     accountId,
     publicKey,
     connectionId,
