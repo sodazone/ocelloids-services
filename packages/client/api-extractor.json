@@ -3,8 +3,7 @@
   "mainEntryPointFilePath": "<projectFolder>/dist/lib.d.ts",
   "bundledPackages": [
     "@sodazone/ocelloids-service-node",
-    "isows",
-    "kysely"
+    "isows"
   ],
   "compiler": {},
   "apiReport": {
