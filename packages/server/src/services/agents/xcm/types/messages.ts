@@ -46,6 +46,9 @@ export type AssetsTrapped = {
   event: AnyJson
 }
 
+/**
+ * @public
+ */
 export type SwappedAsset = {
   localAssetId: AnyJson
   amount: string | number
@@ -265,7 +268,9 @@ export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements 
   }
 }
 
-// no public export
+/**
+ * @public
+ */
 export const XcmNotificationTypes = [
   'xcm.sent',
   'xcm.received',

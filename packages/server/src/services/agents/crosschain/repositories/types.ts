@@ -16,6 +16,9 @@ export type AssetRole =
   | 'intermediate'
   | null
 
+/**
+ * @public
+ */
 export interface XcJourneyTable {
   id: Generated<number>
   correlation_id: ColumnType<string>
@@ -46,10 +49,16 @@ export interface XcJourneyTable {
   out_connection_data?: JSONColumnType<any>
 }
 
+/**
+ * @public
+ */
 export type Journey = Selectable<XcJourneyTable>
 export type NewJourney = Insertable<XcJourneyTable>
 export type JourneyUpdate = Updateable<XcJourneyTable>
 
+/**
+ * @public
+ */
 export interface XcAssetOperationTable {
   id: Generated<number>
   journey_id: ColumnType<number>
@@ -62,6 +71,9 @@ export interface XcAssetOperationTable {
   sequence: ColumnType<number | undefined>
 }
 
+/**
+ * @public
+ */
 export type AssetOperation = Selectable<XcAssetOperationTable>
 export type NewAssetOperation = Insertable<XcAssetOperationTable>
 export type AssetOperationUpdate = Updateable<XcAssetOperationTable>
@@ -72,6 +84,9 @@ export interface CrosschainDatabase {
   xc_asset_volume_cache: XcAssetVolumeCache
 }
 
+/**
+ * @public
+ */
 export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 
 /**

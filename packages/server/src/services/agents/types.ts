@@ -19,6 +19,8 @@ import { createServerSentEventsBroadcaster } from './api/sse.js'
 
 /**
  * Schema for validating Agent IDs.
+ *
+ * @public
  */
 export const $AgentId = z
   .string({

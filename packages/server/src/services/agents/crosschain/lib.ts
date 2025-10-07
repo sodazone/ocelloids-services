@@ -1,7 +1,6 @@
 export type {
   AssetOperation,
   AssetOperationResponse,
-  AssetOperationUpdate,
   AssetRole,
   FullJourney,
   FullJourneyAsset,
@@ -9,6 +8,7 @@ export type {
   JourneyResponse,
   Journey,
   XcJourneyTable,
+  XcAssetOperationTable,
   ListAsset,
 } from './repositories/types.js'
 export type { DeepCamelize, SnakeToCamelCase } from '@/common/index.js'

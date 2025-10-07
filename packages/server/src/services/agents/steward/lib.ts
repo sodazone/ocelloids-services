@@ -10,6 +10,8 @@ import type {
   SyncedEvent,
 } from './balances/sse.js'
 import type {
+  $StewardQueryArgs,
+  $StewardServerSentEventArgs,
   AssetId,
   AssetIds,
   AssetMetadata,
@@ -21,6 +23,8 @@ export type {
   AssetMetadata,
   StewardQueryArgs,
   StewardServerSentEventArgs,
+  $StewardQueryArgs,
+  $StewardServerSentEventArgs,
   AssetIds,
   AssetId,
   BalanceEvents,

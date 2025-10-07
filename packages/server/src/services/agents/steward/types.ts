@@ -207,6 +207,9 @@ export type StewardManagerContext = {
 
 const $AccountString = z.string().min(42).max(66)
 
+/**
+ * @public
+ */
 export const $StewardServerSentEventArgs = z.object({
   account: $AccountString.or(z.array($AccountString).min(1).max(5)),
 })
