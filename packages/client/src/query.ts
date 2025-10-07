@@ -1,6 +1,10 @@
-import { FullJourneyResponse, ListAsset, XcQueryArgs } from './crosschain/types'
-import { CrosschainAgent, QueryableApi, StewardAgent } from './lib'
-import { AssetMetadata, StewardQueryArgs } from './steward/types'
+import {
+  CrosschainAgent,
+  QueryableApi,
+  StewardAgent,
+  sourceSteward as st,
+  sourceCrosschain as xc,
+} from './lib'
 
 type CamelCase<S extends string> = S extends `${infer P}.${infer R}`
   ? `${P}${Capitalize<CamelCase<R>>}`
@@ -37,12 +41,12 @@ function createTypedQueryApi<
  */
 export function crosschainQueryApi(agent: CrosschainAgent) {
   const QueryOpMap = {
-    'assets.list': {} as ListAsset,
-    'journeys.list': {} as FullJourneyResponse,
-    'journeys.by_id': {} as FullJourneyResponse,
+    'assets.list': {} as xc.ListAsset,
+    'journeys.list': {} as xc.FullJourneyResponse,
+    'journeys.by_id': {} as xc.FullJourneyResponse,
   }
 
-  return createTypedQueryApi<XcQueryArgs, typeof QueryOpMap, CrosschainAgent>(agent, QueryOpMap)
+  return createTypedQueryApi<xc.XcQueryArgs, typeof QueryOpMap, CrosschainAgent>(agent, QueryOpMap)
 }
 
 /**
@@ -50,12 +54,12 @@ export function crosschainQueryApi(agent: CrosschainAgent) {
  */
 export function stewardQueryApi(agent: StewardAgent) {
   const QueryOpMap = {
-    assets: {} as AssetMetadata,
-    'assets.list': {} as AssetMetadata,
-    'assets.by_location': {} as AssetMetadata,
+    assets: {} as st.AssetMetadata,
+    'assets.list': {} as st.AssetMetadata,
+    'assets.by_location': {} as st.AssetMetadata,
     // TODO
     // chain infos
   }
 
-  return createTypedQueryApi<StewardQueryArgs, typeof QueryOpMap, StewardAgent>(agent, QueryOpMap)
+  return createTypedQueryApi<st.StewardQueryArgs, typeof QueryOpMap, StewardAgent>(agent, QueryOpMap)
 }

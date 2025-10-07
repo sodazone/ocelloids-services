@@ -4,8 +4,7 @@
   "bundledPackages": [
     "@sodazone/ocelloids-service-node",
     "isows",
-    "zod",
-    "ky"
+    "kysely"
   ],
   "compiler": {},
   "apiReport": {

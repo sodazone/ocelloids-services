@@ -1,5 +1,4 @@
-import { DeepCamelize } from '@/common/util.js'
-import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
+import type { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
 
 /**
  * Cross chain asset role.
@@ -18,6 +17,80 @@ export type AssetRole =
 
 /**
  * @public
+ */
+export type JourneyResponse = {
+  id: number
+  correlationId: string
+  tripId?: string
+  status: string
+  type: string
+  originProtocol: string
+  destinationProtocol: string
+  origin: string
+  destination: string
+  from: string
+  to: string
+  fromFormatted?: string
+  toFormatted?: string
+  sentAt?: number
+  recvAt?: number
+  createdAt: number
+  stops: any
+  instructions: any
+  transactCalls: any[]
+  originTxPrimary?: string
+  originTxSecondary?: string
+  destinationTxPrimary?: string
+  destinationTxSecondary?: string
+  inConnectionFk?: number
+  inConnectionData?: any
+  outConnectionFk?: number
+  outConnectionData?: any
+}
+
+/**
+ * @public
+ */
+export type AssetOperationResponse = {
+  id: number
+  journeyId: number
+  asset: string
+  symbol?: string
+  amount: string
+  decimals?: number
+  usd?: number
+  role?: AssetRole
+  sequence?: number
+}
+
+/**
+ * @public
+ */
+export type FullJourneyResponse = JourneyResponse & {
+  totalUsd: number
+  assets: Omit<AssetOperationResponse, 'id' | 'journeyId'>[]
+}
+
+/**
+ * @public
+ */
+export type ListAsset = {
+  asset: string
+  symbol?: string
+}
+
+/**
+ * @public
+ */
+export type AssetOperationKey = {
+  journeyId: number
+  assetId: string
+  role?: AssetRole
+  sequence?: number
+}
+
+/**
+ * @internal
  */
 export interface XcJourneyTable {
   id: Generated<number>
@@ -50,14 +123,14 @@ export interface XcJourneyTable {
 }
 
 /**
- * @public
+ * @internal
  */
 export type Journey = Selectable<XcJourneyTable>
 export type NewJourney = Insertable<XcJourneyTable>
 export type JourneyUpdate = Updateable<XcJourneyTable>
 
 /**
- * @public
+ * @internal
  */
 export interface XcAssetOperationTable {
   id: Generated<number>
@@ -72,7 +145,7 @@ export interface XcAssetOperationTable {
 }
 
 /**
- * @public
+ * @internal
  */
 export type AssetOperation = Selectable<XcAssetOperationTable>
 export type NewAssetOperation = Insertable<XcAssetOperationTable>
@@ -85,49 +158,16 @@ export interface CrosschainDatabase {
 }
 
 /**
- * @public
+ * @internal
  */
 export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 
 /**
- * @public
+ * @internal
  */
 export type FullJourney = Journey & {
   totalUsd: number
   assets: FullJourneyAsset[]
-}
-
-/**
- * @public
- */
-export type JourneyResponse = DeepCamelize<Journey>
-
-/**
- * @public
- */
-export type AssetOperationResponse = DeepCamelize<AssetOperation>
-
-/**
- * @public
- */
-export type FullJourneyResponse = DeepCamelize<FullJourney>
-
-/**
- * @public
- */
-export type ListAsset = {
-  asset: string
-  symbol?: string | undefined
-}
-
-/**
- * @public
- */
-export type AssetOperationKey = {
-  journeyId: number
-  assetId: string
-  role?: AssetRole
-  sequence?: number
 }
 
 export interface XcAssetVolumeCache {
