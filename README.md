@@ -27,10 +27,6 @@
 
 Welcome to the **Ocelloids Service Layer**, a collection of programmable off-chain components for automation, data ingestion, and analytics across multiple blockchain networks.
 
-This repository contains two main packages:
-- **Ocelloids Service Node**
-- **Ocelloids Client Library**
-
 ## Packages
 
 | Name | Folder | Release |
