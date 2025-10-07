@@ -202,26 +202,11 @@ export class OcelloidsAgentApi<T>
       throw new Error('EventSource is not supported in this environment')
     }
 
-    if (this.#config.apiKey == null) {
-      throw new Error('You need an API key')
-    }
-
     const streamName = opts.streamName ?? 'default'
     const sseUrl = `${this.#config.httpUrl}/sse/${this.#agentId}/${streamName}`
-    const sseNodUrl = `${this.#config.httpUrl}/sse/nod/${this.#agentId}/${streamName}`
-
-    const requestNodToken = async () => {
-      const { token } = await this.#fetch<{ token: string }>(sseNodUrl)
-      if (!token) {
-        throw new Error('Failed to get NOD token')
-      }
-      return token
-    }
 
     const buildSseUrl = async () => {
-      const nodToken = await requestNodToken()
       const params = opts.args
-      params.nod = nodToken
       const query = new URLSearchParams(params).toString()
       return `${sseUrl}?${query}`
     }
