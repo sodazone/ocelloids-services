@@ -1,6 +1,8 @@
-FROM node:22.15.0-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /opt/oc
+
+RUN apk add python3 make g++ libc-dev
 
 RUN corepack enable
 
@@ -17,7 +19,7 @@ yarn cache clear && \
 rm -rf node_modules/ && \
 yarn workspaces focus --production @sodazone/ocelloids-service-node
 
-FROM node:22.15.0-alpine AS runner
+FROM node:24-alpine AS runner
 
 LABEL org.opencontainers.image.authors="oc@soda.zone"
 LABEL org.opencontainers.image.source=https://github.com/sodazone/ocelloids-services
