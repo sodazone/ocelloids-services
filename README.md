@@ -25,7 +25,7 @@
 
 ---
 
-Welcome to the **Ocelloids Service Layer**, a collection of programmable off-chain components for automation, data ingestion, and analytics across multiple blockchain networks.
+The **Ocelloids Service Layer** provides programmable off-chain components for real-time blockchain monitoring, automation, and analytics, with built-in support for enriching data from external or contextual sources.
 
 ## Packages
 
