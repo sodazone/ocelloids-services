@@ -4,8 +4,8 @@ import { http, createPublicClient, erc20Abi, fallback, getAddress, getContract }
 import { moonbeam } from 'viem/chains'
 
 import { HexString } from '@/lib.js'
-import { AssetMetadata, StorageCodecs, WithRequired, networks } from './types.js'
-import { toPaddedHex } from './util.js'
+import { AssetMetadata, StorageCodecs, WithRequired, networks } from '../types.js'
+import { bigintToPaddedHex } from '../util.js'
 
 const client = createPublicClient({
   chain: moonbeam,
@@ -39,7 +39,7 @@ export const mapAssetsLocationsAndErc20Metadata = (codec: WithRequired<StorageCo
       return source.pipe(
         mergeMap((buffer) => {
           const assetId = codec.locations.value.dec(buffer)
-          const precompileAddress = toPaddedHex(assetId)
+          const precompileAddress = bigintToPaddedHex(assetId)
           return Promise.all([
             getErc20Metadata(precompileAddress),
             Promise.resolve(assetId),

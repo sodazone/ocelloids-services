@@ -1,13 +1,12 @@
 import { firstValueFrom } from 'rxjs'
 
-import { NetworkURN } from '@/lib.js'
+import { NetworkURN, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB } from '@/services/types.js'
 
-import { QueryResult } from '../../../types.js'
+import { AssetMetadata, Empty } from '../../../types.js'
+import { assetMetadataKey } from '../../../util.js'
 import { mappers } from '../../mappers.js'
-import { AssetMetadata, Empty } from '../../types.js'
-import { assetMetadataKey } from '../../util.js'
 import { parseAssetFromJson } from './util.js'
 
 export class LocationQueryHandler {

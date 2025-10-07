@@ -19,7 +19,7 @@ declare module 'fastify' {
   }
   interface FastifyContextConfig {
     caps?: string[]
-    wsAuth?: boolean
+    ensureNod?: boolean
   }
   interface FastifyRequest {
     account?: AccountWithCaps
@@ -83,7 +83,7 @@ const authPlugin: FastifyPluginAsync<JwtServerOptions> = async (fastify, options
         } = request
 
         // WebSockets Auth
-        if (config.wsAuth) {
+        if (config.ensureNod) {
           if (request.query.nod) {
             fastify.jwt.verify(request.query.nod)
             return

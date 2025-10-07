@@ -3,9 +3,11 @@ import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
 import { HexString } from '@/lib.js'
+import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { AnyJson, NetworkURN } from '@/services/types.js'
+import { Scheduler } from '@/services/scheduling/scheduler.js'
+import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
 
@@ -38,6 +40,9 @@ export const networks = setNetworks({
   paseoAssetHub: 'urn:ocn:paseo:1000',
 })
 
+/**
+ * @public
+ */
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('assets'),
@@ -66,6 +71,12 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
     ),
   }),
   z.object({
+    op: z.literal('assets.by_hash'),
+    criteria: z.object({
+      assetHashes: z.array(z.string()).min(1).max(100),
+    }),
+  }),
+  z.object({
     op: z.literal('chains.list'),
   }),
   z.object({
@@ -83,6 +94,9 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
+/**
+ * @public
+ */
 export type ParsedAsset = {
   network: NetworkURN
   assetId:
@@ -159,6 +173,16 @@ export type Empty = {
   query: Record<string, any>
 }
 
+/**
+ * The asset balance.
+ *
+ * @public
+ */
+export type AssetBalance = {
+  balance: string
+  updated: number
+}
+
 export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
   return (
     typeof obj === 'object' &&
@@ -171,3 +195,28 @@ export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
     typeof (obj as any).chainId !== 'undefined'
   )
 }
+
+export type StewardManagerContext = {
+  log: Logger
+  db: LevelDB
+  openLevelDB: OpenLevelDB
+  scheduler: Scheduler
+  ingress: IngressConsumers
+  config?: Record<string, any>
+}
+
+const $AccountString = z.string().min(42).max(66)
+
+/**
+ * @public
+ */
+export const $StewardServerSentEventArgs = z.object({
+  account: $AccountString.or(z.array($AccountString).min(1).max(5)),
+})
+
+/**
+ * Data Steward server-sent event arguments.
+ *
+ * @public
+ */
+export type StewardServerSentEventArgs = z.infer<typeof $StewardServerSentEventArgs>

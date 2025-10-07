@@ -4,7 +4,7 @@ import { ValidationError } from '@/errors.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 
-import { $StewardQueryArgs, StewardQueryArgs } from '../types.js'
+import { $StewardQueryArgs, StewardQueryArgs } from '../../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
 import { LocationQueryHandler } from './location/handler.js'
@@ -14,8 +14,13 @@ export class Queries {
   readonly #chainsHandler
   readonly #locationHandler
 
-  constructor(dbAssets: LevelDB, dbChains: LevelDB, ingress: SubstrateIngressConsumer) {
-    this.#assetsHandler = new AssetsQueryHandler(dbAssets)
+  constructor(
+    dbAssets: LevelDB,
+    dbAssetsHashIndex: LevelDB,
+    dbChains: LevelDB,
+    ingress: SubstrateIngressConsumer,
+  ) {
+    this.#assetsHandler = new AssetsQueryHandler(dbAssets, dbAssetsHashIndex)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
     this.#locationHandler = new LocationQueryHandler(dbAssets, ingress)
   }
@@ -34,6 +39,8 @@ export class Queries {
       return await this.#chainsHandler.queryChainList(pagination)
     } else if (args.op === 'assets.by_location') {
       return await this.#locationHandler.queryAssetByLocation(args.criteria)
+    } else if (args.op === 'assets.by_hash') {
+      return await this.#assetsHandler.queryAssetByHashIndex(args.criteria)
     }
 
     /* c8 ignore next */

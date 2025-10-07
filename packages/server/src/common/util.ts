@@ -1,5 +1,6 @@
 import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
@@ -33,6 +34,17 @@ export function asPublicKey(accountId: string): HexString {
   }
 
   return normalizePublicKey(info.publicKey)
+}
+
+export function isEVMAddress(account: string) {
+  return account.startsWith('0x') && account.length === 42
+}
+
+export function asAccountId(account: HexString, ss58Prefix = 0): string {
+  if (isEVMAddress(account)) {
+    return account
+  }
+  return fromBufferToBase58(ss58Prefix)(fromHex(account))
 }
 
 const textEncoder = new TextEncoder()
@@ -136,10 +148,16 @@ export function toSqlText(input: string | null | undefined): string {
   return `'${escaped}'`
 }
 
+/**
+ * @public
+ */
 export function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
 }
 
+/**
+ * @public
+ */
 export function deepCamelize<T>(input: any): DeepCamelize<T> {
   if (Array.isArray(input)) {
     return input.map(deepCamelize) as DeepCamelize<T>
@@ -154,10 +172,16 @@ export function deepCamelize<T>(input: any): DeepCamelize<T> {
   return input
 }
 
+/**
+ * @public
+ */
 export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
   ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
   : S
 
+/**
+ * @public
+ */
 export type DeepCamelize<T> = T extends Array<infer U>
   ? DeepCamelize<U>[]
   : T extends object

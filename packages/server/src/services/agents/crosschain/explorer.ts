@@ -10,8 +10,8 @@ import {
   QueryParams,
   QueryResult,
   Queryable,
-  ServerSideEventsBroadcaster,
-  ServerSideEventsRequest,
+  ServerSentEventsBroadcaster,
+  ServerSentEventsRequest,
   Streamable,
   getAgentCapabilities,
 } from '../types.js'
@@ -19,7 +19,7 @@ import { createCrosschainBroadcaster } from './broadcaster.js'
 import { createCrosschainDatabase } from './repositories/db.js'
 import { CrosschainRepository, FullJourney, FullJourneyResponse, ListAsset } from './repositories/index.js'
 import { $XcQueryArgs, JourneyFilters, XcQueryArgs } from './types/queries.js'
-import { $XcServerSideEventArgs, XcServerSideEventArgs } from './types/sse.js'
+import { $XcServerSentEventArgs, XcServerSentEventArgs } from './types/sse.js'
 
 const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 
@@ -36,12 +36,12 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
   readonly #log: Logger
   readonly #repository: CrosschainRepository
   readonly #migrator: Migrator
-  readonly #broadcaster: ServerSideEventsBroadcaster
+  readonly #broadcaster: ServerSentEventsBroadcaster
 
   #assetCacheRefreshTask?: NodeJS.Timeout
 
   id = CROSSCHAIN_AGENT_ID
-  streamFilterSchema = $XcServerSideEventArgs
+  streamFilterSchema = $XcServerSentEventArgs
   querySchema = $XcQueryArgs
   metadata: AgentMetadata = {
     name: 'Crosschain Agent',
@@ -62,7 +62,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     environment?: {
       dataPath?: string
     }
-    broadcaster?: ServerSideEventsBroadcaster
+    broadcaster?: ServerSentEventsBroadcaster
   }) {
     this.#log = log
 
@@ -150,7 +150,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     })
   }
 
-  onServerSideEventsRequest(request: ServerSideEventsRequest<XcServerSideEventArgs>) {
+  onServerSentEventsRequest(request: ServerSentEventsRequest<XcServerSentEventArgs>) {
     this.#broadcaster?.stream(request)
   }
 

@@ -3,6 +3,8 @@ import { CAP_READ } from '@/services/auth/index.js'
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
+const SECONDS_TO_EXPIRE = 15
+
 /**
  * Agents HTTP API
  */
@@ -155,29 +157,80 @@ export async function AgentsApi(api: FastifyInstance) {
   )
 
   /**
-   * GET agents/:agentId/sse
+   * Issue a short-lived NOD (No-DoS) token for Server-Sent Events.
+   *
+   * This endpoint generates and signs a temporary JWT that can be
+   * passed as a `?nod=` query parameter when opening
+   * an SSE stream. It’s separate from the main stream endpoint so
+   * we can apply custom issuance logic per agent, per stream, or per
+   * delivery mechanism (WebSocket vs SSE) in the future.
+   *
+   * Typical flow:
+   *   1. Client calls this endpoint to obtain a short-lived token.
+   *   2. Client opens `/agents/:agentId/streams/:streamName?nod=<token>`
+   *      using `EventSource`.
+   *
+   * @see `ws/nod` route for the WebSocket equivalent.
    */
-  api.get<{
-    Params: {
-      agentId: AgentId
-    }
-    Querystring: AnyQueryArgs
-  }>(
-    '/agents/:agentId/sse',
+  api.get(
+    '/sse/nod/:agentId/:streamName',
     {
-      // TODO configure rate limits for SSE
-      //config: {
-      //  caps: [CAP_READ],
-      //},
+      config: {
+        caps: [CAP_READ],
+      },
       schema: {
         tags: ['agents'],
-        // TODO: token in query string + DoS protection
-        // security: [{ BearerAuth: [] }],
         params: {
           type: 'object',
           properties: {
             agentId: zodToJsonSchema($AgentId),
+            streamName: { type: 'string' },
           },
+          required: ['agentId', 'streamName'],
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'string' },
+        },
+      },
+    },
+    async (_request, reply) => {
+      // seconds since the epoch
+      const iat = Math.round(Date.now() / 1_000)
+      const exp = iat + SECONDS_TO_EXPIRE
+
+      reply.send({
+        token: await reply.jwtSign({
+          iat,
+          exp,
+        }),
+      })
+    },
+  )
+
+  /**
+   * GET sse/:agentId/:streamName
+   */
+  api.get<{
+    Params: {
+      agentId: AgentId
+      streamName: string
+    }
+    Querystring: AnyQueryArgs
+  }>(
+    '/sse/:agentId/:streamName',
+    {
+      config: { ensureNod: true },
+      // TODO configure rate limits for SSE
+      schema: {
+        tags: ['agents'],
+        params: {
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+            streamName: { type: 'string' },
+          },
+          required: ['agentId', 'streamName'],
         },
         querystring: {
           type: 'object',
@@ -197,13 +250,17 @@ export async function AgentsApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { agentId } = request.params
+      const { agentId, streamName } = request.params
       const agent = agentService.getStreamableById(agentId)
-      agent.onServerSideEventsRequest({
+      agent.onServerSentEventsRequest({
+        streamName,
         filters: request.query,
         request: request.raw,
+        uid: request.ip,
         reply,
       })
+
+      return reply
     },
   )
 }

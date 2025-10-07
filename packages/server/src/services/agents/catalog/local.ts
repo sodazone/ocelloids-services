@@ -73,6 +73,7 @@ export class LocalAgentCatalog implements AgentCatalog {
         ingress: ctx.ingress,
         janitor: ctx.janitor,
         db: ctx.levelDB,
+        openLevelDB: ctx.openLevelDB,
         scheduler: ctx.scheduler,
         egress: ctx.egress,
         agentCatalog: this,
