@@ -34,7 +34,7 @@ The configuration values can be overridden using command line arguments.
 | OC_CONFIG_FILE                    | The service configuration file.                | -         |
 | OC_TRUST_PROXY                    | Enable when running behind a trusted proxy.    | false     |
 | OC_AGENTS                         | Agents to activate (comma-separated or wildcard). | "*"     |
-| OC_AGENT_CONFIG                   | Per-agent configuration. Repeat variables.     | -         |
+| OC_AGENT_CONFIG                   | Per-agent configuration. Format: `<agent>:<key>=<value>[,<agent>:<key>=<value>...]` | - |
 | OC_DATA_DIR                       | The data directory.                            | ./.db     |
 | OC_LEVEL_ENGINE                   | The LevelDB engine.                            | classic   |
 | OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
@@ -69,7 +69,7 @@ If you are looking for a distributed deployment, [check the guide for details on
 
 ### Network Configuration
 
-To configure network connections, you need to provide a configuration file in TOML format. 
+To configure network connections, you need to provide a configuration file in TOML format.
 
 <details>
   <summary><strong>Configuration file details</strong></summary>
@@ -113,7 +113,7 @@ docker pull sodazone/ocelloids-integrated-node
 ```
 
 Alternatively, if you want to build locally, from the root of the project, run:
- 
+
 ```shell
 docker build . -t ocelloids-integrated-node:develop
 ```
@@ -193,8 +193,7 @@ Options:
   --rate-limit-window <milliseconds>          set the request limit time window (default: 60000, env: OC_RATE_LIMIT_WINDOW)
   -V, --version                               output the version number
   --agents <agentIds>                         agents to activate, comma separated list or wildcard for all (default: "*", env: OC_AGENTS)
-  --agent-config [agent:key1=val1,key2=val2]  per-agent config overrides; example: xcm:explorer=true,ticker=false (default: [], env:
-                                              OC_AGENT_CONFIG)
+  --agent-config <agent:key1=val1,agent:key2=val2>  per-agent config overrides; example: xcm:explorer=true,ticker:start=false (env: OC_AGENT_CONFIG)
   --ws-max-clients <number>                   maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
   --subscription-max-persistent <number>      maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
   --subscription-max-ephemeral <number>       maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
@@ -255,5 +254,4 @@ The Ocelloids Service Node exposes observability metrics via Prometheus, enablin
 
 ---
 
-Stay fresh! :zap::flamingo::palm_tree: 
-
+Stay fresh! :zap::flamingo::palm_tree:

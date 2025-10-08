@@ -7,9 +7,9 @@ import { OptionValues } from 'commander'
  *   <agent>:<key>=<value>[,<agent>:<key>=<value>...]
  *
  * Example:
- *   parseAgentConfigArgs([
+ *   parseAgentConfigArgs(
  *     'xcm:explorer=true,xcm:balances=false,xcm:limit=10,steward:asset=true'
- *   ])
+ *   )
  *
  * Returns:
  *   {
@@ -17,12 +17,10 @@ import { OptionValues } from 'commander'
  *     steward: { asset: true }
  *   }
  */
-function parseAgentConfigArgs(entries: string[]): Record<string, any> {
+function parseAgentConfigArgs(str?: string): Record<string, any> {
   const parsed: Record<string, any> = {}
-
-  for (const entry of entries) {
-    // Split all comma-separated pairs (each must have agentId:key=value)
-    const tokens = entry.split(',')
+  if (str !== undefined) {
+    const tokens = str.split(',')
     for (const token of tokens) {
       const [agentIdRaw, rest] = token.split(':', 2)
       if (!agentIdRaw || !rest) {
@@ -58,5 +56,5 @@ function parseAgentConfigArgs(entries: string[]): Record<string, any> {
 }
 
 export function parseAgentConfigs(opts: OptionValues) {
-  return parseAgentConfigArgs(opts.agentConfig ?? [])
+  return parseAgentConfigArgs(opts.agentConfig)
 }
