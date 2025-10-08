@@ -2,7 +2,7 @@ import { Observable } from 'rxjs'
 import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
-import { HexString } from '@/lib.js'
+import { HexString, QueryParams, QueryResult } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
@@ -81,6 +81,12 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('chains'),
+    criteria: z.object({
+      networks: z.array($NetworkString).min(1).max(50),
+    }),
+  }),
+  z.object({
+    op: z.literal('chains.prefix'),
     criteria: z.object({
       networks: z.array($NetworkString).min(1).max(50),
     }),
@@ -173,16 +179,6 @@ export type Empty = {
   query: Record<string, any>
 }
 
-/**
- * The asset balance.
- *
- * @public
- */
-export type AssetBalance = {
-  balance: string
-  updated: number
-}
-
 export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
   return (
     typeof obj === 'object' &&
@@ -220,3 +216,8 @@ export const $StewardServerSentEventArgs = z.object({
  * @public
  */
 export type StewardServerSentEventArgs = z.infer<typeof $StewardServerSentEventArgs>
+
+/**
+ * @internal
+ */
+export type StewardQueries = (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>

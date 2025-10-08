@@ -1,18 +1,17 @@
-import { Binary } from 'polkadot-api'
-import { fromHex } from 'polkadot-api/utils'
+import { toHex } from 'polkadot-api/utils'
 import { filter, map, mergeMap, switchMap } from 'rxjs'
 
+import { asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-
 import { AssetId } from '../../types.js'
+import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
-import { toBinary } from '../util.js'
+import { getFrontierAccountStoragesSlot, toBinary } from '../util.js'
 import { decodeLog } from './evm.js'
-import { asBalanceUpdateItem } from './storage.js'
 
 const STORAGE_MODULE = 'EVM'
 const STORAGE_NAME = 'AccountStorages'
@@ -33,14 +32,29 @@ export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngress
 
   return ingress.getContext(chainId).pipe(
     map((apiCtx) => {
-      const codec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
-      return asBalanceUpdateItem({
-        module: STORAGE_MODULE,
-        name: STORAGE_NAME,
-        chainId,
-        asKey: (account: string, assetId: AssetId) =>
-          codec.keys.enc(new Binary(fromHex(String(assetId))), new Binary(fromHex(account))),
-      })
+      const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
+      return (account: HexString, contractAddress: HexString, assetId: AssetId): BalanceUpdateItem => {
+        const publicKey = asPublicKey(account)
+        const partialData = {
+          module: STORAGE_MODULE,
+          name: STORAGE_NAME,
+          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
+        }
+
+        return {
+          queueKey: `${publicKey}::${partialData.assetKeyHash}`,
+          data: {
+            ...partialData,
+            type: 'storage',
+            account,
+            publicKey,
+            storageKey: storageCodec.keys.enc(
+              toBinary(contractAddress),
+              toBinary(getFrontierAccountStoragesSlot(account, 0)),
+            ) as HexString,
+          },
+        }
+      }
     }),
     switchMap((asStorageItem) =>
       streams.blockEvents(chainId).pipe(
@@ -52,8 +66,11 @@ export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngress
           const items: BalanceUpdateItem[] = []
 
           if (decoded) {
-            const { from, to } = decoded.args
-            items.push(asStorageItem(from, assetId), asStorageItem(to, assetId))
+            const { from, to } = decoded.args as { from: HexString; to: HexString }
+            items.push(
+              asStorageItem(from, address as HexString, assetId),
+              asStorageItem(to, address as HexString, assetId),
+            )
           }
           return items
         }),

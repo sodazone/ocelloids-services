@@ -33,14 +33,16 @@ export class Queries {
       return await this.#assetsHandler.queryAsset(args.criteria)
     } else if (args.op === 'assets.list') {
       return await this.#assetsHandler.queryAssetList(args.criteria, pagination)
-    } else if (args.op === 'chains') {
-      return await this.#chainsHandler.queryChains(args.criteria)
-    } else if (args.op === 'chains.list') {
-      return await this.#chainsHandler.queryChainList(pagination)
     } else if (args.op === 'assets.by_location') {
       return await this.#locationHandler.queryAssetByLocation(args.criteria)
     } else if (args.op === 'assets.by_hash') {
       return await this.#assetsHandler.queryAssetByHashIndex(args.criteria)
+    } else if (args.op === 'chains') {
+      return await this.#chainsHandler.queryChains(args.criteria)
+    } else if (args.op === 'chains.list') {
+      return await this.#chainsHandler.queryChainList(pagination)
+    } else if (args.op === 'chains.prefix') {
+      return await this.#chainsHandler.queryChainsPrefix(args.criteria)
     }
 
     /* c8 ignore next */

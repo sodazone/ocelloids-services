@@ -12,10 +12,12 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { ControlQuery, Criteria } from '@/common/index.js'
 import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
 import { ServerSentEventsBroadcaster, ServerSentEventsRequest } from '../../types.js'
+import { fetchSS58Prefix } from '../metadata/queries/helper.js'
 import {
   AssetId,
   AssetMetadata,
   StewardManagerContext,
+  StewardQueries,
   StewardQueryArgs,
   StewardServerSentEventArgs,
 } from '../types.js'
@@ -73,7 +75,7 @@ export class BalancesManager {
 
   constructor(
     { log, openLevelDB, ingress, config }: StewardManagerContext,
-    queries: (params: QueryParams<StewardQueryArgs>) => Promise<QueryResult>,
+    queries: StewardQueries,
     broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>,
   ) {
     this.#log = log
@@ -157,7 +159,7 @@ export class BalancesManager {
               data: { status: 'discovered', accountId, publicKey },
             })
 
-            await this.#streamSnapshot({ connectionId: id, accountId, publicKey })
+            await this.#streamSnapshot({ connectionId: id, publicKey })
 
             this.#broadcaster.sendToConnection(id, {
               event: 'synced',
@@ -169,7 +171,7 @@ export class BalancesManager {
               data: { status: 'discovery-in-progress', accountId, publicKey },
             })
 
-            await this.#streamSnapshot({ connectionId: id, accountId, publicKey })
+            await this.#streamSnapshot({ connectionId: id, publicKey })
           } else if (this.#balanceDiscoveryQueue.has(publicKey)) {
             this.#broadcaster.sendToConnection(id, {
               event: 'status',
@@ -230,28 +232,28 @@ export class BalancesManager {
     }
   }
 
-  async #streamSnapshot(opts: { connectionId: string; accountId: string; publicKey: HexString }) {
+  async #streamSnapshot(opts: { connectionId: string; publicKey: HexString }) {
     await this.#fetchOnDemandBalances(opts.publicKey)
     await this.#streamBalancesFromDB(opts)
   }
 
   async #streamBalancesFromDB({
     connectionId,
-    accountId,
     publicKey,
   }: {
     connectionId: string
-    accountId: string
     publicKey: HexString
   }) {
     for await (const entry of this.#dbBalances.iterateAccountBalances(publicKey)) {
       const metadata = await this.#getAssetMetadataByHash(entry.assetIdHex)
       if (metadata) {
+        const prefix = await fetchSS58Prefix(this.#queries, metadata.chainId)
+
         this.#broadcaster.sendToConnection(connectionId, {
           event: 'balance',
           data: {
             origin: 'snapshot',
-            accountId,
+            accountId: asAccountId(publicKey, prefix),
             publicKey,
             balance: entry.balance,
             ...metadata,
@@ -471,11 +473,12 @@ export class BalancesManager {
     try {
       const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
       if (metadata) {
+        const prefix = await fetchSS58Prefix(this.#queries, metadata.chainId)
         this.#broadcaster.send({
           event: 'balance',
           data: {
             origin: 'update',
-            accountId: asAccountId(accountHex),
+            accountId: asAccountId(accountHex, prefix),
             publicKey: accountHex,
             balance: balance ?? 0n,
             ...metadata,
@@ -530,7 +533,7 @@ export class BalancesManager {
         this.#balanceDiscoveryInProgress.delete(account)
         this.#broadcaster.send({
           event: 'synced',
-          data: { accountId: asAccountId(account), publicKey: account },
+          data: { accountId: account, publicKey: account },
         })
       }
     }
