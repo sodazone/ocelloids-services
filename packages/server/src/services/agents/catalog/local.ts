@@ -179,6 +179,7 @@ export class LocalAgentCatalog implements AgentCatalog {
     }
   }
 
+  // TODO: consider dependencies to make it instantiation order independent
   #loadAgents(ctx: AgentRuntimeContext, opts: AgentCatalogOptions) {
     const activations: Record<AgentId, Agent> = {}
 

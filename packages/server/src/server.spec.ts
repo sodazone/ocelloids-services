@@ -28,7 +28,7 @@ describe('Ocelloids Server HTTP API', () => {
   beforeAll(async () => {
     server = await mockServer({
       cors: true,
-      agents: 'xcm,steward',
+      agents: 'steward,ticker,xcm',
     })
     return server.ready()
   })
@@ -99,7 +99,7 @@ describe('Ocelloids Server HTTP API', () => {
     })
 
     it('should prevent JSON.parse prototype poisoning', async () => {
-      const json = `{ 
+      const json = `{
               "id": "poison",
               "agent": "xcm",
               "args": {
