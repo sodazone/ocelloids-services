@@ -2,7 +2,7 @@ import { createNetworkId, getRelayId } from '@/services/config.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { HexString } from 'polkadot-api'
 import { fromHex, mergeUint8 } from 'polkadot-api/utils'
-import { ParsedAsset } from '../../types.js'
+import { ParsedAsset } from '../../../types.js'
 
 type DecodedObject = {
   type: string

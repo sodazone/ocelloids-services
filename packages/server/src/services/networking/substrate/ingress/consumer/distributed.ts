@@ -1,6 +1,9 @@
 import { EventEmitter } from 'node:events'
 
+import { encode } from 'cbor-x'
 import { Observable, Subject, from, map, shareReplay } from 'rxjs'
+
+import { Twox128 } from '@polkadot-api/substrate-bindings'
 
 import { LevelDB, Logger, NetworkURN, Services, prefixes } from '@/services/types.js'
 
@@ -13,15 +16,21 @@ import {
   getMetadataKey,
   getReplyToKey,
   getStorageKeysReqKey,
+  getStorageMultiReqKey,
   getStorageReqKey,
 } from '@/services/ingress/distributor.js'
-import { IngressOptions } from '@/types.js'
-
 import { HexString } from '@/services/subscriptions/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
+import { IngressOptions } from '@/types.js'
 import { safeDestr } from 'destr'
+import { toHex } from 'polkadot-api/utils'
 import { decodeBlock } from '../../codec.js'
-import { Block, SubstrateApiContext, createContextFromOpaqueMetadata } from '../../index.js'
+import {
+  Block,
+  StorageChangeSets,
+  SubstrateApiContext,
+  createContextFromOpaqueMetadata,
+} from '../../index.js'
 import { SubstrateIngressConsumer, SubstrateNetworkInfo } from '../types.js'
 
 /**
@@ -51,6 +60,7 @@ export class SubstrateDistributedConsumer
     this.#blockConsumers = {}
     this.#contexts$ = {}
   }
+
   /**
    * TODO: review
    * Waits until the distributed consumer is ready to serve requests.
@@ -147,6 +157,29 @@ export class SubstrateDistributedConsumer
 
       throw error
     }
+  }
+
+  // TODO: review implementation
+  queryStorageAt(
+    chainId: NetworkURN,
+    storageKeys: HexString[],
+    blockHash?: HexString,
+  ): Observable<StorageChangeSets> {
+    try {
+      return this.#storageMultiFromRedis(chainId, storageKeys, blockHash)
+    } catch (error) {
+      this.emit('telemetryIngressConsumerError', 'storageFromRedis')
+
+      throw error
+    }
+  }
+
+  runtimeCall<T = any>(
+    _chainId: NetworkURN,
+    _opts: { api: string; method: string; at?: string },
+    _args: any[],
+  ): Promise<T | null> {
+    throw new Error('Method not implemented.')
   }
 
   getChainIds(): NetworkURN[] {
@@ -275,6 +308,55 @@ export class SubstrateDistributedConsumer
                   resolve(`0x${buffer.element.toString('hex')}`)
                 } else {
                   reject(`Error retrieving storage value for key ${storageKey} (reply-to=${replyTo})`)
+                }
+              })
+              .catch(reject)
+          })
+          .catch(reject)
+      }),
+    )
+  }
+
+  #storageMultiFromRedis(
+    chainId: NetworkURN,
+    storageKeys: HexString[],
+    blockHash?: HexString,
+  ): Observable<StorageChangeSets> {
+    return from(
+      new Promise<StorageChangeSets>((resolve, reject) => {
+        const distributor = this.#distributor
+        const data = Buffer.from(storageKeys.join('|') + (blockHash ?? ''), 'utf-8')
+        const storageKeysHash = toHex(Twox128(data))
+        const replyTo = getReplyToKey(chainId, storageKeysHash, blockHash ?? '$')
+        const streamKey = getStorageMultiReqKey(chainId)
+
+        const reqBuffer = encode({
+          replyTo,
+          storageKeys,
+          at: blockHash ?? '0x0',
+        })
+
+        distributor
+          .add(
+            streamKey,
+            '*',
+            { data: reqBuffer },
+            {
+              TRIM: {
+                strategy: 'MAXLEN',
+                strategyModifier: '~',
+                threshold: 50,
+              },
+            },
+          )
+          .then(() => {
+            distributor
+              .response(replyTo)
+              .then((buffer) => {
+                if (buffer) {
+                  resolve(safeDestr<StorageChangeSets>(buffer.element.toString()))
+                } else {
+                  reject(`Error retrieving storageAt for keys (reply-to=${replyTo})`)
                 }
               })
               .catch(reject)

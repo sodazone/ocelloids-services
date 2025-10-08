@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events'
 import { FastifyReply } from 'fastify'
 import { Mock } from 'vitest'
-import { createServerSideEventsBroadcaster } from './sse.js'
+import { createServerSentEventsBroadcaster } from './sse.js'
 
-describe('createServerSideEventsBroadcaster', () => {
-  let broadcaster: ReturnType<typeof createServerSideEventsBroadcaster>
+describe('createServerSentEventsBroadcaster', () => {
+  let broadcaster: ReturnType<typeof createServerSentEventsBroadcaster>
   let matchFilters: Mock
   let reply: any
   let request: any
@@ -32,19 +32,20 @@ describe('createServerSideEventsBroadcaster', () => {
 
   beforeEach(() => {
     matchFilters = vi.fn()
-    broadcaster = createServerSideEventsBroadcaster(matchFilters)
+    broadcaster = createServerSentEventsBroadcaster(matchFilters)
     reply = createMockReply()
     request = createMockRequest()
   })
 
   it('should accept a new SSE connection and send initial ping', () => {
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
     expect(reply.raw.writeHead).toHaveBeenCalledWith(200)
     expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining('event: ping'))
   })
 
   it('should normalize comma-separated filters to arrays', () => {
     broadcaster.stream({
+      streamName: 'default',
       filters: { origins: 'a,b,c', foo: 'bar' },
       request,
       reply,
@@ -71,11 +72,12 @@ describe('createServerSideEventsBroadcaster', () => {
 
   it('should send events to matching connections', () => {
     const matchFilters = (filters: any, event: any) => filters.foo === event.data.foo
-    const customBroadcaster = createServerSideEventsBroadcaster(matchFilters)
+    const customBroadcaster = createServerSentEventsBroadcaster(matchFilters)
     const customReply = createMockReply()
     const customRequest = createMockRequest()
 
     customBroadcaster.stream({
+      streamName: 'default',
       filters: { foo: 'bar' },
       request: customRequest,
       reply: customReply,
@@ -86,7 +88,7 @@ describe('createServerSideEventsBroadcaster', () => {
   })
 
   it('should disconnect and cleanup on request close', () => {
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
     const destroySpy = request.destroy as Mock
 
     request.emit('close')
@@ -96,11 +98,12 @@ describe('createServerSideEventsBroadcaster', () => {
 
   it('should not send event to non-matching filters', () => {
     const matchFilters = (filters: any, event: any) => filters.foo === event.data.foo
-    const customBroadcaster = createServerSideEventsBroadcaster(matchFilters)
+    const customBroadcaster = createServerSentEventsBroadcaster(matchFilters)
     const customReply = createMockReply()
     const customRequest = createMockRequest()
 
     customBroadcaster.stream({
+      streamName: 'default',
       filters: { foo: 'bar' },
       request: customRequest,
       reply: customReply,
@@ -114,7 +117,7 @@ describe('createServerSideEventsBroadcaster', () => {
   it('should send heartbeat ping every 30 seconds', () => {
     vi.useFakeTimers()
 
-    broadcaster.stream({ filters: {}, request, reply })
+    broadcaster.stream({ streamName: 'default', filters: {}, request, reply })
 
     // Initially, only one ping is sent
     expect(reply.raw.write).toHaveBeenCalledTimes(1)

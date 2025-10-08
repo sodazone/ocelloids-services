@@ -1,3 +1,4 @@
+import { decode } from 'cbor-x'
 /* istanbul ignore file */
 import { Subscription as RxSubscription } from 'rxjs'
 
@@ -10,6 +11,7 @@ import {
   getBlockStreamKey,
   getMetadataKey,
   getStorageKeysReqKey,
+  getStorageMultiReqKey,
   getStorageReqKey,
   getVersionKey,
 } from '../../../ingress/distributor.js'
@@ -29,6 +31,14 @@ type StorageKeysRequest = {
   count: number
   at: HexString
 }
+
+type StorageMultiRequestData = {
+  replyTo: string
+  storageKeys: HexString[]
+  at: HexString
+}
+
+type StorageMultiRequest = { data: Buffer }
 
 /**
  * SubstrateIngressProducer is responsible for managing the ingress process, including:
@@ -82,6 +92,7 @@ export default class SubstrateIngressProducer extends BaseIngressProducer<Substr
 
     this.#registerStorageRequestHandler(chainId)
     this.#registerStorageKeysRequestHandler(chainId)
+    this.#registerStorageAtRequestHandler(chainId)
   }
 
   #registerStorageKeysRequestHandler(chainId: NetworkURN) {
@@ -109,6 +120,23 @@ export default class SubstrateIngressProducer extends BaseIngressProducer<Substr
         },
         error: (e) => {
           this.log.error(e, '[%s] error reading storage (key=%s)', chainId, request.storageKey)
+        },
+      })
+    })
+  }
+
+  // TODO: review implementation
+  #registerStorageAtRequestHandler(chainId: NetworkURN) {
+    const key = getStorageMultiReqKey(chainId)
+
+    this.distributor.read<StorageMultiRequest>(key, (request, { client }) => {
+      const req = decode(request.data) as StorageMultiRequestData
+      this.watcher.queryStorageAt(chainId, req.storageKeys, req.at).subscribe({
+        next: (data) => {
+          client.LPUSH(req.replyTo, Buffer.from(JSON.stringify(data)))
+        },
+        error: (e) => {
+          this.log.error(e, '[%s] error reading storageAt (keys=%s)', chainId, req.storageKeys.join(','))
         },
       })
     })

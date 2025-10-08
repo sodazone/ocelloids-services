@@ -54,6 +54,10 @@ export function getStorageReqKey(chainId: NetworkURN) {
   return 'RQ:STORAGE:' + chainId
 }
 
+export function getStorageMultiReqKey(chainId: NetworkURN) {
+  return 'RQ:STORAGE:MULTI:' + chainId
+}
+
 export function getStorageKeysReqKey(chainId: NetworkURN) {
   return 'RQ:STORAGE:KEYS:' + chainId
 }

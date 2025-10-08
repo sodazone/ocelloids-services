@@ -9,16 +9,18 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Janitor } from '@/services/scheduling/janitor.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
-import { LevelDB, Logger } from '@/services/types.js'
+import { LevelDB, Logger, OpenLevelDB } from '@/services/types.js'
 
 import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
-import { createServerSideEventsBroadcaster } from './api/sse.js'
+import { createServerSentEventsBroadcaster } from './api/sse.js'
 
 /**
  * Schema for validating Agent IDs.
+ *
+ * @public
  */
 export const $AgentId = z
   .string({
@@ -43,6 +45,7 @@ export type AgentRuntimeContext = {
   egress: Egress
   ingress: IngressConsumers
   db: LevelDB
+  openLevelDB: OpenLevelDB
   scheduler: Scheduler
   janitor: Janitor
   agentCatalog: AgentCatalog
@@ -278,41 +281,56 @@ export interface Queryable {
   query(params: QueryParams): Promise<QueryResult<AnyQueryResultItem | unknown>>
 }
 
-export type ServerSideEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+export type ServerSentEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
+  streamName: string
   filters: T
   request: IncomingMessage
   reply: FastifyReply
+  uid?: string
 }
 
-export type ServerSideEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
+export type ServerSentEventsConnection<T extends AnyQueryArgs = AnyQueryArgs> = {
   id: string
   filters: T
   request: IncomingMessage
-  send: (event: ServerSideEvent) => void
+  send: (event: ServerSentEvent) => void
+  onDisconnect?: (connection: ServerSentEventsConnection<T>) => void
 }
 
-export type ServerSideEvent<T = any> = {
-  event: string
-  data: T
-}
+/**
+ * Generic server-sent event.
+ *
+ * @public
+ */
+export type GenericEvent = { event: string; data: any }
 
-export type ServerSideEventsBroadcaster = ReturnType<typeof createServerSideEventsBroadcaster>
+/**
+ * Server-sent event.
+ *
+ * @public
+ */
+export type ServerSentEvent<T extends GenericEvent = GenericEvent> = T
+
+export type ServerSentEventsBroadcaster<
+  T extends AnyQueryArgs = AnyQueryArgs,
+  E extends GenericEvent = GenericEvent,
+> = ReturnType<typeof createServerSentEventsBroadcaster<T, E>>
 
 /**
  * Interface defining the capabilities needed to handle SSE.
  */
-export interface Streamable {
+export interface Streamable<T extends AnyQueryArgs = AnyQueryArgs> {
   /**
    * Returns the Zod schema for filtering incoming event stream subscriptions.
    */
   get streamFilterSchema(): z.ZodSchema
 
   /**
-   * Called by the HTTP server when server side events request.
+   * Called by the HTTP server when server sent events request.
    *
-   * @param request - Info about the server side request (filters, metadata, etc.)
+   * @param request - Info about the server sent request (filters, metadata, etc.)
    */
-  onServerSideEventsRequest<T extends AnyQueryArgs>(request: ServerSideEventsRequest<T>): void
+  onServerSentEventsRequest(request: ServerSentEventsRequest<T>): void
 }
 
 /**
@@ -374,7 +392,7 @@ export function isQueryable(object: any): object is Queryable {
  * Streamable guard condition.
  */
 export function isStreamable(object: any): object is Streamable {
-  return 'onServerSideEventsRequest' in object
+  return 'onServerSentEventsRequest' in object
 }
 
 /**

@@ -1,9 +1,10 @@
 import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import bs58 from 'bs58'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
-import { toHex } from 'polkadot-api/utils'
+import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'
@@ -25,6 +26,17 @@ export function getEventValue(module: string, name: string | string[], events: E
   return events.find((e) =>
     e.module === module && Array.isArray(name) ? name.includes(e.name) : e.name === name,
   )?.value
+}
+
+export function isEVMAddress(account: string) {
+  return account.startsWith('0x') && account.length === 42
+}
+
+export function asAccountId(account: HexString, ss58Prefix = 0): string {
+  if (isEVMAddress(account)) {
+    return account
+  }
+  return fromBufferToBase58(ss58Prefix)(fromHex(account))
 }
 
 export function stringToUa8(v: string) {
@@ -171,10 +183,16 @@ export function toSqlText(input: string | null | undefined): string {
   return `'${escaped}'`
 }
 
+/**
+ * @public
+ */
 export function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
 }
 
+/**
+ * @public
+ */
 export function deepCamelize<T>(input: any): DeepCamelize<T> {
   if (Array.isArray(input)) {
     return input.map(deepCamelize) as DeepCamelize<T>
@@ -189,10 +207,16 @@ export function deepCamelize<T>(input: any): DeepCamelize<T> {
   return input
 }
 
+/**
+ * @public
+ */
 export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
   ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
   : S
 
+/**
+ * @public
+ */
 export type DeepCamelize<T> = T extends Array<infer U>
   ? DeepCamelize<U>[]
   : T extends object
