@@ -14,11 +14,8 @@ export async function dirSize(directory: string) {
   return size
 }
 
-export function collectDiskStats(directory: string) {
-  const diskGauge = new Gauge({
-    name: 'oc_root_db_disk_bytes',
-    help: 'The size in bytes of the root database.',
-  })
+export function collectDiskStats(directory: string, opts: { name: string; help: string }) {
+  const diskGauge = new Gauge(opts)
 
   return async () => {
     const bytes = await dirSize(directory)
