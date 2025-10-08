@@ -62,6 +62,33 @@ async function evmToSubstrateAddress({
   return fromBufferToBase58(0)(new Uint8Array(buf))
 }
 
+function toRuntimeQueryItem({
+  chainId,
+  assetId,
+  account,
+}: {
+  chainId: NetworkURN
+  assetId: number
+  account: string
+}): BalanceUpdateItem {
+  const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString
+  const publicKey = asPublicKey(account)
+  const args = [assetId, account]
+  const data: RuntimeQueueData = {
+    api: RUNTIME_API,
+    method: RUNTIME_API_METHOD,
+    assetKeyHash,
+    type: 'runtime',
+    args,
+    account,
+    publicKey,
+  }
+  return {
+    queueKey: `${publicKey}::${assetKeyHash}`,
+    data,
+  }
+}
+
 export function hydrationEVM$(
   chainId: NetworkURN,
   ingress: SubstrateIngressConsumer,
@@ -90,29 +117,53 @@ export function hydrationEVM$(
         }),
         mergeMap(({ account, assetId }) =>
           from(evmToSubstrateAddress({ evmAddress: account, chainId, ingress, apiCtx })).pipe(
-            map((ss58) => {
-              const runtimeApiCodec = apiCtx.runtimeCallCodec(RUNTIME_API, RUNTIME_API_METHOD)
-              const assetKeyHash = toHex(
-                assetMetadataKeyHash(assetMetadataKey(chainId, assetId)),
-              ) as HexString
-              const args = [assetId, ss58]
-              const data: RuntimeQueueData = {
-                api: RUNTIME_API,
-                method: RUNTIME_API_METHOD,
-                assetKeyHash,
-                type: 'runtime',
-                args,
-                account,
-                publicKey: asPublicKey(account),
-              }
-              return {
-                storageKey: toHex(runtimeApiCodec.args.enc(args)) as HexString,
-                data,
-              }
-            }),
+            map((ss58) =>
+              toRuntimeQueryItem({
+                chainId,
+                account: ss58,
+                assetId,
+              }),
+            ),
           ),
         ),
       ),
+    ),
+  )
+}
+
+export function hydrationCurrecies$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
+  const streams = SubstrateSharedStreams.instance(ingress)
+
+  return streams.blockEvents(chainId).pipe(
+    filter(
+      (blockEvent) =>
+        blockEvent.module === 'Currencies' &&
+        ['BalanceUpdated', 'Deposited', 'Transferred', 'Withdrawn'].includes(blockEvent.name),
+    ),
+    mergeMap(({ name, value }) => {
+      const assetId = value.currency_id
+      if (!assetId) {
+        return EMPTY
+      }
+
+      const accounts: { account: string; assetId: number }[] = []
+      if (name === 'Transferred') {
+        const { from, to } = value
+        accounts.push({ account: from, assetId }, { account: to, assetId })
+      } else {
+        const { who } = value
+        if (who !== undefined) {
+          accounts.push({ account: who, assetId })
+        }
+      }
+      return accounts
+    }),
+    map(({ account, assetId }) =>
+      toRuntimeQueryItem({
+        chainId,
+        assetId,
+        account,
+      }),
     ),
   )
 }

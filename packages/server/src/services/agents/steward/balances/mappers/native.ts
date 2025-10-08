@@ -1,14 +1,12 @@
-import { toHex } from 'polkadot-api/utils'
-import { filter, mergeMap, switchMap } from 'rxjs'
+import { filter, map, mergeMap, switchMap } from 'rxjs'
 
-import { asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
-import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
+import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_MODULE = 'Balances'
 const PALLET_EVENTS = ['Burned', 'Deposit', 'Endowed', 'Minted', 'Transfer', 'Withdraw']
@@ -19,64 +17,30 @@ export function nativeBalances$(chainId: NetworkURN, ingress: SubstrateIngressCo
   const streams = SubstrateSharedStreams.instance(ingress)
 
   return ingress.getContext(chainId).pipe(
-    switchMap((apiCtx) =>
+    map((apiCtx) => {
+      const codec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
+      return asBalanceUpdateItem({
+        module: STORAGE_MODULE,
+        name: STORAGE_NAME,
+        chainId,
+        asKey: (account: string) => codec.keys.enc(account),
+      })
+    }),
+    switchMap((asStorageItem) =>
       streams.blockEvents(chainId).pipe(
         filter(
           (blockEvent) => blockEvent.module === PALLET_MODULE && PALLET_EVENTS.includes(blockEvent.name),
         ),
         mergeMap(({ name, value }) => {
-          const partialData = {
-            module: STORAGE_MODULE,
-            name: STORAGE_NAME,
-            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, 'native'))) as HexString,
-          }
-          const storageKeysCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME).keys
           const items: BalanceUpdateItem[] = []
 
           if (name === 'Transfer') {
             const { from, to } = value
-            items.push(
-              {
-                storageKey: storageKeysCodec.enc(from) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: from,
-                  publicKey: asPublicKey(from),
-                },
-              },
-              {
-                storageKey: storageKeysCodec.enc(to) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: to,
-                  publicKey: asPublicKey(to),
-                },
-              },
-            )
+            items.push(asStorageItem(from, 'native'), asStorageItem(to, 'native'))
           } else if (name === 'Endowed') {
-            const { account } = value
-            items.push({
-              storageKey: storageKeysCodec.enc(account) as HexString,
-              data: {
-                ...partialData,
-                type: 'storage',
-                account: account,
-                publicKey: asPublicKey(account),
-              },
-            })
+            items.push(asStorageItem(value.account, 'native'))
           } else {
-            const account = value.who
-            items.push({
-              storageKey: storageKeysCodec.enc(account) as HexString,
-              data: {
-                ...partialData,
-                type: 'storage',
-                account: account,
-                publicKey: asPublicKey(account),
-              },
-            })
+            items.push(asStorageItem(value.who, 'native'))
           }
           return items
         }),

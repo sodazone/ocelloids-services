@@ -5,7 +5,7 @@ import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Observable } from 'rxjs'
 import { AssetId, AssetMetadata } from '../types.js'
 
-export type BalanceUpdateItem = { storageKey: HexString; data: BalancesQueueData }
+export type BalanceUpdateItem = { queueKey: string; data: BalancesQueueData }
 export type BalancesStreamMapper = (
   ingress: SubstrateIngressConsumer,
   control: ControlQuery,
@@ -23,6 +23,7 @@ export type StorageQueueData = {
   account: string
   publicKey: HexString
   assetKeyHash: HexString
+  storageKey: HexString
 }
 
 export type RuntimeQueueData = {
@@ -66,7 +67,7 @@ export type CustomDiscoveryFetcher = (ctx: {
   account: HexString
   ingress: SubstrateIngressConsumer
   apiCtx: SubstrateApiContext
-}) => Promise<{ assetId: AssetId; balance: bigint }[]>
+}) => Promise<{ assetId: AssetId; balance: bigint | null }[]>
 
 export type StorageKeyMapper = (
   asset: AssetMetadata,
