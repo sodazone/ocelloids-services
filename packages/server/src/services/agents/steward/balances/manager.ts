@@ -55,7 +55,7 @@ export class BalancesManager {
   readonly #rxSubs: Subscription[] = []
   readonly #accountControl: ControlQuery
 
-  readonly #balanceUpdateQueue: Record<NetworkURN, Map<HexString, BalancesQueueData>> = {}
+  readonly #balanceUpdateQueue: Record<NetworkURN, Map<string, BalancesQueueData>> = {}
   readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>({ maxEnqueuedItems: 10 })
   readonly #balanceDiscoveryInProgress = new Set<HexString>()
 
@@ -125,13 +125,21 @@ export class BalancesManager {
         onConnect: (connection) => {
           const { account } = connection.filters
           if (account) {
-            this.#updateAccountControl(account)
+            try {
+              this.#updateAccountControl(account)
+            } catch (e) {
+              this.#log.error(e, 'Error on update account control (adding account=%s)', account)
+            }
           }
         },
         onDisconnect: (connection) => {
           const { account } = connection.filters
           if (account) {
-            this.#updateAccountControl([], account)
+            try {
+              this.#updateAccountControl([], account)
+            } catch (e) {
+              this.#log.error(e, 'Error on update account control (removing account=%s)', account)
+            }
           }
         },
       })
@@ -299,8 +307,8 @@ export class BalancesManager {
         if (balancesSubMappers) {
           const subscriptions = balancesSubMappers(this.#substrateIngress, this.#accountControl).map(($) => {
             return $.subscribe({
-              next: ({ storageKey, data }) => {
-                this.#enqueue(chainId, storageKey, data)
+              next: ({ queueKey, data }) => {
+                this.#enqueue(chainId, queueKey, data)
               },
               error: (e) =>
                 this.#log.error(e, '[%s] Error in balance update subscription chain=%s', this.id, chainId),
@@ -318,8 +326,8 @@ export class BalancesManager {
     }
   }
 
-  #enqueue(chainId: NetworkURN, key: HexString, data: BalancesQueueData) {
-    const queue = (this.#balanceUpdateQueue[chainId] ??= new Map<HexString, BalancesQueueData>())
+  #enqueue(chainId: NetworkURN, key: string, data: BalancesQueueData) {
+    const queue = (this.#balanceUpdateQueue[chainId] ??= new Map<string, BalancesQueueData>())
 
     if (queue.size > UPDATE_QUEUE_LIMIT) {
       this.#log.info('[%s] update queue limit reached (chain=%s)', this.id, chainId)
@@ -336,7 +344,7 @@ export class BalancesManager {
     while (this.#running) {
       const queues = Object.entries(this.#balanceUpdateQueue) as [
         NetworkURN,
-        Map<HexString, BalancesQueueData>,
+        Map<string, BalancesQueueData>,
       ][]
 
       if (!queues.some(([_, queue]) => queue.size > 0)) {
@@ -355,8 +363,8 @@ export class BalancesManager {
         const mutex = (this.#chainMutexes[chainId] ??= new Mutex())
         const release = await mutex.acquire()
 
-        const storageItems: Record<HexString, StorageQueueData> = {}
-        const runtimeItems: Record<HexString, RuntimeQueueData> = {}
+        const storageItems: Record<string, StorageQueueData> = {}
+        const runtimeItems: Record<string, RuntimeQueueData> = {}
         const records: BalanceRecord[] = []
 
         for (const [key, data] of queue.entries()) {
@@ -370,16 +378,16 @@ export class BalancesManager {
         const storageBatchKeys = Object.keys(storageItems).slice(0, STORAGE_CAP)
         const runtimeBatchKeys = Object.keys(runtimeItems).slice(0, RUNTIME_CAP)
 
-        const storageBatch: Record<HexString, StorageQueueData> = {}
-        const runtimeBatch: Record<HexString, RuntimeQueueData> = {}
+        const storageBatch: Record<string, StorageQueueData> = {}
+        const runtimeBatch: Record<string, RuntimeQueueData> = {}
 
         storageBatchKeys.forEach((k) => {
-          storageBatch[k as HexString] = storageItems[k as HexString]
-          queue.delete(k as HexString)
+          storageBatch[k] = storageItems[k]
+          queue.delete(k)
         })
         runtimeBatchKeys.forEach((k) => {
-          runtimeBatch[k as HexString] = runtimeItems[k as HexString]
-          queue.delete(k as HexString)
+          runtimeBatch[k] = runtimeItems[k]
+          queue.delete(k)
         })
 
         try {
@@ -402,18 +410,20 @@ export class BalancesManager {
     storageItems: Record<HexString, StorageQueueData>,
     records: BalanceRecord[],
   ) {
-    const keys = Object.keys(storageItems) as HexString[]
-    if (!keys.length) {
+    const items = Object.values(storageItems)
+
+    if (!items.length) {
       return
     }
+
+    const keys = items.map((v) => v.storageKey)
     try {
       const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
       const changesSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, keys))
 
       await Promise.all(
-        keys.map(async (storageKey) => {
-          const data = storageItems[storageKey]
-          const { module, name, publicKey, assetKeyHash } = data
+        items.map(async (data) => {
+          const { module, name, publicKey, assetKeyHash, storageKey } = data
 
           const change = changesSets[0]?.changes.find(([key]) => key === storageKey)
           const rawValue = change ? change[1] : null
@@ -606,7 +616,7 @@ export class BalancesManager {
         ops.push({ accountHex: ctx.account, assetKeyHash, balance })
         try {
           const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
-          if (metadata) {
+          if (metadata && balance !== null) {
             this.#broadcaster.send({
               event: 'balance',
               data: {

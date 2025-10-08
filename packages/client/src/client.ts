@@ -223,7 +223,13 @@ export class OcelloidsAgentApi<T>
     }
 
     for (const { event, onData } of handler.listeners) {
-      source.addEventListener(event, (e) => onData(e.data))
+      source.addEventListener(event, (e) => {
+        try {
+          onData(JSON.parse(e.data))
+        } catch (err) {
+          console.error(err)
+        }
+      })
     }
 
     return source

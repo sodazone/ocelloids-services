@@ -1,15 +1,18 @@
+import { Binary } from 'polkadot-api'
+import { fromHex } from 'polkadot-api/utils'
+import { filter, map, mergeMap, switchMap } from 'rxjs'
+
 import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { Binary } from 'polkadot-api'
-import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, map, mergeMap, switchMap } from 'rxjs'
-import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
+
+import { AssetId } from '../../types.js'
 import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
 import { toBinary } from '../util.js'
 import { decodeLog } from './evm.js'
+import { asBalanceUpdateItem } from './storage.js'
 
 const STORAGE_MODULE = 'EVM'
 const STORAGE_NAME = 'AccountStorages'
@@ -29,50 +32,28 @@ export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngress
   const streams = SubstrateSharedStreams.instance(ingress)
 
   return ingress.getContext(chainId).pipe(
-    switchMap((apiCtx) =>
+    map((apiCtx) => {
+      const codec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
+      return asBalanceUpdateItem({
+        module: STORAGE_MODULE,
+        name: STORAGE_NAME,
+        chainId,
+        asKey: (account: string, assetId: AssetId) =>
+          codec.keys.enc(new Binary(fromHex(String(assetId))), new Binary(fromHex(account))),
+      })
+    }),
+    switchMap((asStorageItem) =>
       streams.blockEvents(chainId).pipe(
         filter((ev) => isEVMLog(ev)),
         map(decodeLog),
         filter(Boolean),
         mergeMap(({ address, decoded }) => {
           const assetId = contractToAssetId(address)
-
-          const partialData = {
-            module: STORAGE_MODULE,
-            name: STORAGE_NAME,
-            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
-          }
-          const storageKeysCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME).keys
           const items: BalanceUpdateItem[] = []
 
           if (decoded) {
             const { from, to } = decoded.args
-            items.push(
-              {
-                storageKey: storageKeysCodec.enc(
-                  new Binary(fromHex(assetId)),
-                  new Binary(fromHex(from)),
-                ) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: from,
-                  publicKey: from as HexString,
-                },
-              },
-              {
-                storageKey: storageKeysCodec.enc(
-                  new Binary(fromHex(assetId)),
-                  new Binary(fromHex(to)),
-                ) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: to,
-                  publicKey: to as HexString,
-                },
-              },
-            )
+            items.push(asStorageItem(from, assetId), asStorageItem(to, assetId))
           }
           return items
         }),

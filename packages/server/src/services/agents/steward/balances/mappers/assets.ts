@@ -1,16 +1,16 @@
 import { Binary } from 'polkadot-api'
-import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, mergeMap, switchMap } from 'rxjs'
+import { fromHex } from 'polkadot-api/utils'
+import { filter, map, mergeMap, switchMap } from 'rxjs'
 
-import { asJSON, asPublicKey } from '@/common/util.js'
+import { asJSON } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { AssetId } from '../../types.js'
-import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
+import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
@@ -63,7 +63,16 @@ function genericAssetsBalances$(
   const streams = SubstrateSharedStreams.instance(ingress)
 
   return ingress.getContext(chainId).pipe(
-    switchMap((apiCtx) =>
+    map((apiCtx) => {
+      const codec = apiCtx.storageCodec(module, STORAGE_NAME)
+      return asBalanceUpdateItem({
+        module,
+        name: STORAGE_NAME,
+        chainId,
+        asKey: (account: string, assetId: AssetId) => codec.keys.enc(serializeFields(assetId), account),
+      })
+    }),
+    switchMap((asStorageItem) =>
       streams.blockEvents(chainId).pipe(
         filter((blockEvent) => blockEvent.module === module && PALLET_EVENTS.includes(blockEvent.name)),
         mergeMap(({ name, value }) => {
@@ -71,59 +80,15 @@ function genericAssetsBalances$(
           if (!assetId) {
             throw new Error(`No asset id found in ${module} event: ${name}`)
           }
-
-          const partialData = {
-            module,
-            name: STORAGE_NAME,
-            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, assetId))) as HexString,
-          }
-          const storageKeysCodec = apiCtx.storageCodec(module, STORAGE_NAME).keys
           const items: BalanceUpdateItem[] = []
 
           if (name === 'Transferred') {
             const { from, to } = value
-            items.push(
-              {
-                storageKey: storageKeysCodec.enc(serializeFields(assetId), from) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: from,
-                  publicKey: asPublicKey(from),
-                },
-              },
-              {
-                storageKey: storageKeysCodec.enc(serializeFields(assetId), to) as HexString,
-                data: {
-                  ...partialData,
-                  type: 'storage',
-                  account: to,
-                  publicKey: asPublicKey(to),
-                },
-              },
-            )
+            items.push(asStorageItem(from, assetId), asStorageItem(to, assetId))
           } else if (name === 'Issued' || name === 'Burned') {
-            const { owner } = value
-            items.push({
-              storageKey: storageKeysCodec.enc(serializeFields(assetId), owner) as HexString,
-              data: {
-                ...partialData,
-                type: 'storage',
-                account: owner,
-                publicKey: asPublicKey(owner),
-              },
-            })
+            items.push(asStorageItem(value.owner, assetId))
           } else {
-            const { who } = value
-            items.push({
-              storageKey: storageKeysCodec.enc(serializeFields(assetId), who) as HexString,
-              data: {
-                ...partialData,
-                type: 'storage',
-                account: who,
-                publicKey: asPublicKey(who),
-              },
-            })
+            items.push(asStorageItem(value.who, assetId))
           }
           return items
         }),
@@ -155,7 +120,7 @@ export function toGenericAssetStorageKey(
       name: STORAGE_NAME,
     }
   } catch (error) {
-    console.log('Error encoding storage key for asset', asJSON(assetId), account, error)
+    console.error('Error encoding storage key for asset', asJSON(assetId), account, error)
     return null
   }
 }

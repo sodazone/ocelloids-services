@@ -23,7 +23,7 @@ import {
   toAssetsStorageKey,
   toForeignAssetsStorageKey,
 } from './assets.js'
-import { hydrationBalancesFetcher, hydrationEVM$ } from './hydration-evm.js'
+import { hydrationBalancesFetcher, hydrationCurrecies$, hydrationEVM$ } from './hydration.js'
 import { moonbeamBalances$, toEVMStorageKey } from './moonbeam.js'
 import { nativeBalances$, toNativeStorageKey } from './native.js'
 import { toTokenStorageKey, tokensBalances$ } from './tokens.js'
@@ -77,6 +77,7 @@ export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = 
       nativeBalances$(chainId, ingress),
       tokensBalances$(chainId, ingress),
       hydrationEVM$(chainId, ingress),
+      hydrationCurrecies$(chainId, ingress),
     ]
   },
   [networks.interlay]: getDefaultBalancesStream(networks.interlay),
@@ -234,7 +235,7 @@ export const onDemandFetchers: Record<string, CustomDiscoveryFetcher> = {
   [networks.mythos]: async ({ chainId, account, ingress, apiCtx }) => {
     const balances: {
       assetId: AssetId
-      balance: bigint
+      balance: bigint | null
     }[] = []
     if (account.length > 42) {
       // Substrate addresses cannot be mapped to Mythos EVM address
@@ -248,7 +249,7 @@ export const onDemandFetchers: Record<string, CustomDiscoveryFetcher> = {
     if (balanceExtractor) {
       balances.push({
         assetId: 'native',
-        balance: balanceExtractor(storageCodec.value.dec(value)),
+        balance: value !== null ? balanceExtractor(storageCodec.value.dec(value)) : null,
       })
     }
     return balances
