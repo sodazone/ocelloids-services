@@ -15,6 +15,8 @@ export type AssetRole =
   | 'intermediate'
   | null
 
+export type JourneyStatus = 'received' | 'failed' | 'timeout' | 'sent' | 'unknown'
+
 /**
  * @public
  */
@@ -96,7 +98,7 @@ export interface XcJourneyTable {
   id: Generated<number>
   correlation_id: ColumnType<string>
   trip_id: ColumnType<string | undefined>
-  status: ColumnType<string>
+  status: ColumnType<JourneyStatus>
   type: ColumnType<string>
   origin_protocol: ColumnType<string>
   destination_protocol: ColumnType<string>

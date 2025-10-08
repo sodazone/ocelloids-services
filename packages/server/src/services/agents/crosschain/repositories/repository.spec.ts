@@ -18,7 +18,7 @@ describe('CrosschainRepository', () => {
   function makeJourney(overrides: Partial<NewJourney> = {}): NewJourney {
     return {
       correlation_id: `corr-${Math.random()}`,
-      status: 'pending',
+      status: 'sent',
       type: 'transfer',
       origin_protocol: 'xcm',
       destination_protocol: 'xcm',
