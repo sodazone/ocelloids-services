@@ -3,16 +3,16 @@ import { EventEmitter } from 'node:events'
 import { Mutex } from 'async-mutex'
 import {
   BehaviorSubject,
-  EMPTY,
-  Observable,
   catchError,
   concatMap,
   defer,
+  EMPTY,
   from,
   lastValueFrom,
   map,
   mergeAll,
   mergeMap,
+  Observable,
   of,
   tap,
 } from 'rxjs'
@@ -24,12 +24,12 @@ import { TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import {
   AnyJson,
   Family,
+  jsonEncoded,
   LevelDB,
   Logger,
   NetworkURN,
-  Services,
-  jsonEncoded,
   prefixes,
+  Services,
 } from '@/services/types.js'
 import { ApiOps, NeutralHeader } from './types.js'
 

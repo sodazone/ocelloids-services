@@ -3,10 +3,10 @@ import { toHex } from 'polkadot-api/utils'
 
 import { asJSON, deepCamelize, stringToUa8 } from '@/common/util.js'
 import {
+  calculateTotalUsd,
   FullJourney,
   NewAssetOperation,
   NewJourney,
-  calculateTotalUsd,
 } from '@/services/agents/crosschain/index.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 

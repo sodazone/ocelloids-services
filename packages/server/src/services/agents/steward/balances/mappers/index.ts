@@ -1,11 +1,9 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
-
-import { HexString, NetworkURN } from '@/lib.js'
-
-import { isEVMAddress } from '@/common/util.js'
 import { fromHex } from 'polkadot-api/utils'
 import { filter, firstValueFrom } from 'rxjs'
+import { isEVMAddress } from '@/common/util.js'
+import { HexString, NetworkURN } from '@/lib.js'
 import { AssetId, networks } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
@@ -25,9 +23,9 @@ import {
   toForeignAssetsStorageKey,
 } from './assets.js'
 import { hydrationBalancesFetcher, hydrationCurrecies$, hydrationEVM$ } from './hydration.js'
-import { moonbeamBalances$, toEVMStorageKey, toErc20RuntimeQuery } from './moonbeam.js'
+import { moonbeamBalances$, toErc20RuntimeQuery, toEVMStorageKey } from './moonbeam.js'
 import { nativeBalances$, toNativeStorageKey } from './native.js'
-import { toTokenStorageKey, tokensBalances$ } from './tokens.js'
+import { tokensBalances$, toTokenStorageKey } from './tokens.js'
 
 const getDefaultBalancesStream: (chainId: NetworkURN) => BalancesStreamMapper = (chainId) => (ingress) => {
   return [nativeBalances$(chainId, ingress)]

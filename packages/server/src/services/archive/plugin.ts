@@ -1,6 +1,6 @@
-import { ArchiveOptions, DatabaseOptions } from '@/types.js'
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
+import { ArchiveOptions, DatabaseOptions } from '@/types.js'
 import { resolveDataPath } from '../persistence/util.js'
 import { createArchiveDatabase } from './db.js'
 import { ArchiveRepository } from './repository.js'

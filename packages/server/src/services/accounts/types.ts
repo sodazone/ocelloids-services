@@ -10,7 +10,7 @@ export interface AccountTable {
 export type Account = Selectable<AccountTable>
 export type NewAccount = Insertable<AccountTable>
 export type AccountUpdate = Updateable<AccountTable>
-export type AccountWithCaps = Account & {
+export type AccountWithCaps = Omit<Account, 'created_at'> & {
   caps: string[]
 }
 

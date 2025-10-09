@@ -1,10 +1,10 @@
-import { extractEvents } from '@/services/networking/substrate/index.js'
-import { apiContext, xcmpSend } from '@/testing/xcm.js'
-
-import { NetworkURN } from '@/lib.js'
-import { testApiContextFromMetadata, testBlocksFrom } from '@/testing/blocks.js'
 import { Binary } from 'polkadot-api'
 import { from } from 'rxjs'
+
+import { NetworkURN } from '@/lib.js'
+import { extractEvents } from '@/services/networking/substrate/index.js'
+import { testApiContextFromMetadata, testBlocksFrom } from '@/testing/blocks.js'
+import { apiContext, xcmpSend } from '@/testing/xcm.js'
 import { extractXcmpSend } from './xcmp.js'
 
 describe('xcmp operator', () => {

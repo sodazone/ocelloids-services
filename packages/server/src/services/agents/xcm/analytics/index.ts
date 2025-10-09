@@ -1,8 +1,7 @@
 import { DuckDBInstance } from '@duckdb/node-api'
-
+import { filter, mergeMap, Subscription } from 'rxjs'
 import { ControlQuery } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
-import { Subscription, filter, mergeMap } from 'rxjs'
 import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'

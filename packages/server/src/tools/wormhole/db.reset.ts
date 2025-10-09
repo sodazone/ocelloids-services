@@ -1,5 +1,5 @@
-import path from 'path'
 import { Level } from 'level'
+import path from 'path'
 
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { LevelDB } from '@/services/types.js'

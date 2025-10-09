@@ -2,7 +2,14 @@ import { MemoryLevel } from 'memory-level'
 
 import { Egress } from '@/services/egress/index.js'
 import { Janitor } from '@/services/scheduling/janitor.js'
-import { LevelDB, Services, SubLevel, jsonEncoded } from '@/services/types.js'
+import { jsonEncoded, LevelDB, Services, SubLevel } from '@/services/types.js'
+import { twoHopSwap } from '@/testing/2-hop-swap.js'
+import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
+import { acalaHydra } from '@/testing/hops-acala-hydra.js'
+import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
+import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
+import { hydraPolkadotInterlay } from '@/testing/hops-ump-dmp.js'
+import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
 import {
   hydraMoonMessages,
   matchMessages,
@@ -10,16 +17,8 @@ import {
   umpHydraPolkadotMessages,
 } from '@/testing/matching.js'
 import { createServices } from '@/testing/services.js'
-
-import { twoHopSwap } from '@/testing/2-hop-swap.js'
-import { acalaHydra } from '@/testing/hops-acala-hydra.js'
-import { hydraAstarBifrost } from '@/testing/hops-hydra-bifrost.js'
-import { hydraAssetHubBridgeHub } from '@/testing/hops-hydra-bridgehub.js'
-import { hydraPolkadotInterlay } from '@/testing/hops-ump-dmp.js'
-import { bifrostHydraVmp } from '@/testing/hops-vmp.js'
-import { moonbeamCentrifugeHydra } from '@/testing/hops.js'
 import { MatchingEngine } from './matching.js'
-import { XcmInbound, XcmNotificationType, XcmSent, prefixes } from './types/index.js'
+import { prefixes, XcmInbound, XcmNotificationType, XcmSent } from './types/index.js'
 
 type OD = { origin: string; destination: string }
 

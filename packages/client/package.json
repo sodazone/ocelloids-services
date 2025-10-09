@@ -49,21 +49,21 @@
     "ws": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@microsoft/api-extractor": "^7.52.5",
+    "@biomejs/biome": "2.2.5",
+    "@microsoft/api-extractor": "^7.53.1",
     "finalhandler": "^2.1.0",
     "mock-socket": "^9.3.1",
-    "nock": "^14.0.4",
-    "tsup": "^8.4.0",
-    "tsx": "^4.19.3",
-    "typedoc": "^0.28.3",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2"
+    "nock": "^14.0.10",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typedoc": "^0.28.13",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
-    "isows": "^1.0.6",
+    "isows": "^1.0.7",
     "ky": "1.7.5",
-    "zod": "^3.24.3"
+    "zod": "^4.1.12"
   },
   "stableVersion": "3.0.1"
 }

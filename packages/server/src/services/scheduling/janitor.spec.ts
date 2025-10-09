@@ -1,9 +1,7 @@
 import { MemoryLevel } from 'memory-level'
-
+import { LevelDB } from '@/services/types.js'
 import { flushPromises } from '@/testing/promises.js'
 import { _log } from '@/testing/services.js'
-
-import { LevelDB } from '@/services/types.js'
 import { Janitor } from './janitor.js'
 import { Scheduler } from './scheduler.js'
 

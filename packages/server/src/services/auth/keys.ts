@@ -1,4 +1,4 @@
-import { KeyObject, createPrivateKey, createPublicKey } from 'node:crypto'
+import { createPrivateKey, createPublicKey, KeyObject } from 'node:crypto'
 
 import { safeDestr } from 'destr'
 

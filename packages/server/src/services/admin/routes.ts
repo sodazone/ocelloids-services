@@ -3,7 +3,7 @@ import fp from 'fastify-plugin'
 
 import { CAP_ADMIN } from '../auth/index.js'
 import { Scheduled } from '../persistence/level/index.js'
-import { NetworkURN, jsonEncoded, prefixes } from '../types.js'
+import { jsonEncoded, NetworkURN, prefixes } from '../types.js'
 
 type chainIdParam = {
   Params: {

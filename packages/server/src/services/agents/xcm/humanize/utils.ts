@@ -1,6 +1,6 @@
 import { AnyJson } from '@/lib.js'
 import { AssetRole } from '../../crosschain/index.js'
-import { MultiAsset, MultiAssetFilter, QueryableXcmAsset, isConcrete } from './types.js'
+import { isConcrete, MultiAsset, MultiAssetFilter, QueryableXcmAsset } from './types.js'
 
 export function extractMultiAssetFilterAssets(
   multiAssetFilter: MultiAssetFilter,

@@ -1,6 +1,6 @@
 import ky from 'ky'
 
-import { WormholeId, normalizeWormholeId } from './ids.js'
+import { normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
 type WormholeOperationParams = {

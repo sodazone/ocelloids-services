@@ -1,5 +1,5 @@
+import { decodeEventLog, Log, toEventSelector } from 'viem'
 import { BlockEvent, BlockEvmEvent } from '@/services/networking/substrate/types.js'
-import { Log, decodeEventLog, toEventSelector } from 'viem'
 
 const transferEventDefs = [
   {

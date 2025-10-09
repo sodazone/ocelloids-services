@@ -1,10 +1,8 @@
 import { MemoryLevel } from 'memory-level'
 import nock from 'nock'
-
-import { createServices } from '@/testing/services.js'
-
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { createServices } from '@/testing/services.js'
 import { LevelDB, Services } from '../types.js'
 import { hmac256 } from './hmac.js'
 import { Egress } from './hub.js'

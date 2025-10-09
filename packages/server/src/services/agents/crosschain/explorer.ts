@@ -6,14 +6,14 @@ import { Logger } from '@/services/types.js'
 import {
   Agent,
   AgentMetadata,
+  getAgentCapabilities,
+  Queryable,
   QueryPagination,
   QueryParams,
   QueryResult,
-  Queryable,
   ServerSentEventsBroadcaster,
   ServerSentEventsRequest,
   Streamable,
-  getAgentCapabilities,
 } from '../types.js'
 import { createCrosschainBroadcaster } from './broadcaster.js'
 import { createCrosschainDatabase } from './repositories/db.js'

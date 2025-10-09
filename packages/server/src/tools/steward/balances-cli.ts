@@ -1,7 +1,7 @@
-import fs from 'fs'
-import path from 'path'
 import { Command } from 'commander'
+import fs from 'fs'
 import { Level } from 'level'
+import path from 'path'
 
 import { createBalancesCodec } from '@/services/agents/steward/balances/codec.js'
 

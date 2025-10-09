@@ -1,20 +1,17 @@
 import { EventEmitter } from 'node:events'
-import { Observable, filter, firstValueFrom, map, mergeMap, of, retry } from 'rxjs'
-
 import { withLegacy } from '@polkadot-api/legacy-provider'
-import { ChainHead$, SystemEvent, getObservableClient } from '@polkadot-api/observable-client'
-import { StopError, createClient } from '@polkadot-api/substrate-client'
-import { WebSocketClass, WsJsonRpcProvider, getWsProvider } from 'polkadot-api/ws-provider'
-
-import { asSerializable } from '@/common/index.js'
-
+import { ChainHead$, getObservableClient, SystemEvent } from '@polkadot-api/observable-client'
+import { createClient, StopError } from '@polkadot-api/substrate-client'
 import { toHex } from 'polkadot-api/utils'
+import { getWsProvider, WebSocketClass, WsJsonRpcProvider } from 'polkadot-api/ws-provider'
+import { filter, firstValueFrom, map, mergeMap, Observable, of, retry } from 'rxjs'
+import { asSerializable } from '@/common/index.js'
 import { HexString } from '../../subscriptions/types.js'
 import { Logger } from '../../types.js'
 import { NeutralHeader } from '../types.js'
 import { RuntimeApiContext } from './context.js'
-import { RpcApi, createRpcApi } from './rpc.js'
-import { RuntimeManager, createRuntimeManager, getRuntimeVersion } from './runtime.js'
+import { createRpcApi, RpcApi } from './rpc.js'
+import { createRuntimeManager, getRuntimeVersion, RuntimeManager } from './runtime.js'
 import { Block, BlockInfoWithStatus, SubstrateApi, SubstrateApiContext } from './types.js'
 import { WS } from './websocket.js'
 

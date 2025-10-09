@@ -1,5 +1,5 @@
 import { pino } from 'pino'
-import { Observable, concatMap, filter, from, map, takeWhile, timer } from 'rxjs'
+import { concatMap, filter, from, map, Observable, takeWhile, timer } from 'rxjs'
 
 import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'

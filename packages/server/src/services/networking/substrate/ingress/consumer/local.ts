@@ -1,4 +1,4 @@
-import { Observable, from, shareReplay, switchMap } from 'rxjs'
+import { from, Observable, shareReplay, switchMap } from 'rxjs'
 
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { HexString } from '@/services/subscriptions/types.js'

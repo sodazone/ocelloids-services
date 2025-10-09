@@ -1,10 +1,8 @@
+import { Binary } from 'polkadot-api'
 import { from, of } from 'rxjs'
-
+import { fileURLToPath, resolve } from 'url'
 import { ControlQuery } from '@/common/index.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-
-import { fileURLToPath, resolve } from 'url'
-import { Binary } from 'polkadot-api'
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
 import { NetworkURN } from '../services/types.js'
 import { testApiContextFromMetadata, testBlocksFrom } from './blocks.js'

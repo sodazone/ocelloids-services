@@ -1,10 +1,7 @@
 import process from 'node:process'
-
-import { z } from 'zod'
-
 import Fastify from 'fastify'
-
 import FastifyHealthcheck from 'fastify-healthcheck'
+import { z } from 'zod'
 
 import { logger } from '@/environment.js'
 import { errorHandler } from '@/errors.js'

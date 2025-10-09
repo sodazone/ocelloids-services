@@ -1,6 +1,6 @@
+import { toHex } from 'polkadot-api/utils'
 import { asPublicKey } from '@/common/index.js'
 import { HexString, NetworkURN } from '@/lib.js'
-import { toHex } from 'polkadot-api/utils'
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalanceUpdateItem } from '../types.js'

@@ -1,4 +1,4 @@
-import { Observable, filter, map, mergeMap } from 'rxjs'
+import { filter, map, mergeMap, Observable } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { createNetworkId } from '@/services/config.js'

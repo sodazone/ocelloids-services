@@ -1,4 +1,4 @@
-import { RedisClientType, commandOptions, createClient } from 'redis'
+import { createClient, RESP_TYPES, RedisClientType } from 'redis'
 
 import { AnyJson, Logger, NetworkURN, Services } from '@/services/types.js'
 import { RedisServerOptions } from '@/types.js'
@@ -80,10 +80,6 @@ export class RedisDistributor {
 
     this.#client = createClient({
       url: opts.redisUrl,
-      isolationPoolOptions: {
-        autostart: true,
-        max: 100,
-      },
     })
 
     this.#client.on('error', (err: unknown) => this.#log.error(err, 'Redis client error'))
@@ -95,12 +91,12 @@ export class RedisDistributor {
     await this.#client.connect()
   }
 
-  async stop() {
+  stop() {
     this.#log.info('Closing Redis client')
 
     if (this.#client.isOpen) {
       try {
-        await this.#client.disconnect()
+        this.#client.destroy()
       } catch (error) {
         this.#log.error(error, 'Error while closing Redis client')
       }
@@ -158,13 +154,20 @@ export class RedisDistributor {
     return this.#client.GET(key)
   }
 
-  getBuffers(key: string) {
-    return this.#client.GET(
-      commandOptions({
-        returnBuffers: true,
-      }),
-      key,
-    )
+  async getBuffers(key: string): Promise<Buffer | null> {
+    const res = await this.#client
+      .withCommandOptions({
+        typeMapping: {
+          [RESP_TYPES.BLOB_STRING]: Buffer,
+        },
+      })
+      .GET(key)
+
+    if (res === null) {
+      return null
+    }
+
+    return Buffer.isBuffer(res) ? res : Buffer.from(res)
   }
 
   add(key: string, id: string, data: Record<string, string | Buffer>, opts: XAddOptions) {
@@ -175,20 +178,30 @@ export class RedisDistributor {
     return this.#client.XADD(key, '*', { bytes }, opts)
   }
 
-  response(key: string, timeout: number = 1000) {
-    return this.#client.BRPOP(
-      commandOptions({
-        returnBuffers: true,
-      }),
+  async response(reqKey: string, timeout: number = 1000) {
+    const res = await this.#client
+      .withCommandOptions({
+        typeMapping: {
+          [RESP_TYPES.BLOB_STRING]: Buffer,
+        },
+      })
+      .BRPOP(reqKey, timeout)
+
+    if (res === null) {
+      return null
+    }
+
+    const { key, element } = res
+
+    return {
       key,
-      timeout,
-    )
+      element: Buffer.isBuffer(element) ? element : Buffer.from(element),
+    }
   }
 
   #xread(key: string, id: string, options: Record<string, unknown>) {
     if (this.#client.isReady) {
-      return this.#client.XREAD(
-        commandOptions(options),
+      return this.#client.withCommandOptions(options).XREAD(
         [
           {
             key,

@@ -1,6 +1,5 @@
-import z from 'zod'
-
 import { Subscription as RxSubscription } from 'rxjs'
+import z from 'zod'
 
 import { $AgentId } from '../agents/types.js'
 import { Message } from '../egress/types.js'
@@ -110,7 +109,7 @@ export const $Subscription = z.object({
   id: $SubscriptionId,
   agent: $AgentId,
   args: $AgentArgs,
-  owner: z.string(),
+  owner: z.optional(z.string()),
   public: z.optional(z.boolean()),
   ephemeral: z.optional(z.boolean()),
   channels: z
@@ -118,7 +117,7 @@ export const $Subscription = z.object({
     .min(1),
 })
 
-export const $NewSubscription = $Subscription.omit({ owner: true })
+export const $NewSubscription = $Subscription
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
 

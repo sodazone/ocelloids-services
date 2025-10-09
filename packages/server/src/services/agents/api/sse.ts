@@ -14,7 +14,7 @@ function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, 
   const safeFilters: Record<string, unknown> = {}
 
   for (const [key, rawValue] of Object.entries(filters)) {
-    if (!Object.prototype.hasOwnProperty.call(filters, key)) {
+    if (!Object.hasOwn(filters, key)) {
       continue
     }
 

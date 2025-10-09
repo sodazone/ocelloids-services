@@ -1,6 +1,6 @@
-import { HexString, NetworkURN } from '@/lib.js'
 import { Binary } from 'polkadot-api'
 import { Observable } from 'rxjs'
+import { HexString, NetworkURN } from '@/lib.js'
 
 export type MessageHashData = { hash: HexString; data: HexString; topicId?: HexString }
 

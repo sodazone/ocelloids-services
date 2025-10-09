@@ -1,5 +1,5 @@
-import { fromDuckDBBlob } from '@/common/util.js'
 import { DuckDBBlobValue, DuckDBInstance } from '@duckdb/node-api'
+import { fromDuckDBBlob } from '@/common/util.js'
 import { TimeSelect } from '../../types/index.js'
 import { AggregatedData, XcmTransfersRepository } from './transfers.js'
 

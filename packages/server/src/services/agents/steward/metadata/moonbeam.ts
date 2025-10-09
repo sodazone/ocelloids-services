@@ -1,10 +1,10 @@
-import { Observable, map, mergeMap } from 'rxjs'
+import { map, mergeMap, Observable } from 'rxjs'
 
-import { http, createPublicClient, erc20Abi, fallback, getAddress, getContract } from 'viem'
+import { createPublicClient, erc20Abi, fallback, getAddress, getContract, http } from 'viem'
 import { moonbeam } from 'viem/chains'
 
 import { HexString } from '@/lib.js'
-import { AssetMetadata, StorageCodecs, WithRequired, networks } from '../types.js'
+import { AssetMetadata, networks, StorageCodecs, WithRequired } from '../types.js'
 import { bigintToPaddedHex } from '../util.js'
 
 const client = createPublicClient({

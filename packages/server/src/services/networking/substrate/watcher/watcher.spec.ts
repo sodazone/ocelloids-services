@@ -1,9 +1,9 @@
 import { MemoryLevel } from 'memory-level'
-import { Observable, from, map } from 'rxjs'
+import { from, map, Observable } from 'rxjs'
 
 import Connector from '@/services/networking/connector.js'
 import { BlockNumberRange, ChainHead } from '@/services/subscriptions/types.js'
-import { LevelDB, Services, jsonEncoded, prefixes } from '@/services/types.js'
+import { jsonEncoded, LevelDB, prefixes, Services } from '@/services/types.js'
 import { polkadotBlocks } from '@/testing/blocks.js'
 import { mockConfigWS } from '@/testing/configs.js'
 import { createServices } from '@/testing/services.js'

@@ -1,20 +1,17 @@
 import { WebSocket } from 'isows'
-import ky from 'ky'
-import { Options } from 'ky'
-
-import { AnyJson } from './lib'
-
+import ky, { Options } from 'ky'
 import { OcelloidsClientConfig } from './client'
+import { AnyJson } from './lib'
 import { Protocol } from './protocol'
 import {
   AuthReply,
+  isSubscription,
+  isSubscriptionError,
   OnDemandSubscriptionHandlers,
   Subscription,
   SubscriptionError,
   WebSocketHandlers,
   WsAuthErrorEvent,
-  isSubscription,
-  isSubscriptionError,
 } from './types'
 
 /**

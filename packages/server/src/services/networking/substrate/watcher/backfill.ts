@@ -1,15 +1,14 @@
 import fs from 'fs'
 import path from 'path'
 
-import { EMPTY, Observable, Subject, Subscription, defer, from, interval, range } from 'rxjs'
+import { defer, EMPTY, from, interval, Observable, range, Subject, Subscription } from 'rxjs'
 import { catchError, concatMap, delay, map, share, switchMap, tap, zipWith } from 'rxjs/operators'
-
+import { z } from 'zod'
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { matchExtrinsic } from '@/services/agents/xcm/ops/util.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { z } from 'zod'
 import { RETRY_CAPPED } from '../../watcher.js'
 import { BackedCandidate, Block, SubstrateApi } from '../types.js'
 

@@ -1,6 +1,5 @@
-import { InvalidArgumentError, Option } from 'commander'
-
 import { FastifyCorsOptions } from '@fastify/cors'
+import { InvalidArgumentError, Option } from 'commander'
 import { CorsServerOptions } from '../types.js'
 
 function positiveInt(v: string) {

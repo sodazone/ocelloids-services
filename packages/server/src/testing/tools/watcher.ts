@@ -1,11 +1,10 @@
+import { MemoryLevel } from 'memory-level'
 import { pino } from 'pino'
-
+import { catchError, EMPTY } from 'rxjs'
 import { ServiceConfiguration } from '@/services/config.js'
 import Connector from '@/services/networking/connector.js'
 import { SubstrateWatcher } from '@/services/networking/substrate/watcher/watcher.js'
 import { Services } from '@/services/types.js'
-import { MemoryLevel } from 'memory-level'
-import { EMPTY, catchError } from 'rxjs'
 import { createProxy } from './stall-proxy.js'
 
 function createWatcher() {

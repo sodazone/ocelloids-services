@@ -1,25 +1,24 @@
 import { NotFound } from '@/errors.js'
-import { Egress } from '@/services/egress/index.js'
-import { PublisherEvents } from '@/services/egress/types.js'
-import { Logger, Services } from '@/services/index.js'
-import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
-import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
-import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
-
 import { InformantAgent } from '@/services/agents/informant/agent.js'
 import {
   Agent,
   AgentCatalog,
   AgentId,
   AgentRuntimeContext,
-  Queryable,
-  Streamable,
-  Subscribable,
   isQueryable,
   isStreamable,
   isSubscribable,
+  Queryable,
+  Streamable,
+  Subscribable,
 } from '@/services/agents/types.js'
 import { XcmAgent } from '@/services/agents/xcm/agent.js'
+import { Egress } from '@/services/egress/index.js'
+import { PublisherEvents } from '@/services/egress/types.js'
+import { Logger, Services } from '@/services/index.js'
+import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
+import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
+import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { DataSteward } from '../steward/agent.js'

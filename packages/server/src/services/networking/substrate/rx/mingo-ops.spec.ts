@@ -1,7 +1,5 @@
-import { Query } from 'mingo'
-
-import { installOperators } from './mingo-ops.js'
-installOperators()
+import { MingoQuery as Query } from '@/common/index.js'
+import { createMingoContext } from './mingo-ops.js'
 
 const data = {
   method: 'transferAllowDeath',
@@ -249,8 +247,8 @@ describe('mingo query ops', () => {
 
   it('should be idempotent on ops registration', () => {
     expect(() => {
-      installOperators()
-      installOperators()
+      createMingoContext()
+      createMingoContext()
     }).not.toThrow()
   })
 })
