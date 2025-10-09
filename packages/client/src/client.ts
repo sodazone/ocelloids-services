@@ -10,7 +10,7 @@ import type {
   QueryResult,
   SubscriptionId,
 } from './lib'
-import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
+import { doFetchWithConfig, type FetchFn, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
   type OnDemandSubscriptionHandlers,
