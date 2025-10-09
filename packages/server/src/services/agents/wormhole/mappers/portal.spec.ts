@@ -2,6 +2,42 @@ import { TestCase, runWormholeMapperTests } from '@/testing/apis/wormhole/wormho
 
 const cases: TestCase[] = [
   {
+    name: 'decode sUSDS transfer (moonbeam → ethereum)',
+    file: 'moonbeam-ethereum_susds.json',
+    expected: {
+      type: 'transfer',
+      from: '0xa9cf61ba352462308a9cea7e0717e3bc7a161835',
+      to: '0x9117900a3794ad6d167dd97853f82a1aa07f9bbc',
+      assets: [
+        {
+          asset: 'urn:ocn:ethereum:1|0xa3931d71877c0e7a3148cb7eb4463524fec27fbd',
+          amount: '18704753340120000000000',
+          decimals: 18,
+          usd: 19995.38132058,
+          fmtAmount: 18704.753340119998,
+        },
+      ],
+    },
+  },
+  {
+    name: 'decode AVAX transfer (moonbeam → avalanche)',
+    file: 'moonbeam-avalanche_avax.json',
+    expected: {
+      type: 'transfer',
+      from: '0xd493066498ace409059fda4c1bcd2e73d8cffe01',
+      to: '0x8849f05675e034b54506cab84450c8c82694a786',
+      assets: [
+        {
+          asset: 'urn:ocn:ethereum:43114|0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
+          amount: '19980000000000000',
+          decimals: 18,
+          usd: 0.5682312,
+          fmtAmount: 0.01998,
+        },
+      ],
+    },
+  },
+  {
     name: 'decode SOL transfer (moonbeam → solana)',
     file: 'moonbeam-sol_sol.json',
     expected: {

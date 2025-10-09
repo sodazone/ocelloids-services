@@ -39,7 +39,24 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
       )
     }
 
-    const realAmount = wormholeAmountToReal(rawAmount ?? '0', decimals, normalizedDecimals)
+    let amount = rawAmount
+    if (amount == null || amount === '') {
+      const tokenAmount = op.data?.tokenAmount
+
+      if (typeof tokenAmount === 'string' && tokenAmount.trim() !== '') {
+        try {
+          amount = tokenAmount.replaceAll(/[^0-9]/g, '')
+        } catch (err) {
+          console.warn('Failed to convert tokenAmount to int:', tokenAmount, err)
+          amount = '0'
+        }
+      } else {
+        console.warn('Missing or invalid tokenAmount fallback:', tokenAmount)
+        amount = '0'
+      }
+    }
+
+    const realAmount = wormholeAmountToReal(amount, decimals, normalizedDecimals)
 
     const tokenIdentifier = String(tokenAddress).startsWith('0x')
       ? addressToHex(tokenAddress)

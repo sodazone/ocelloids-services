@@ -25,7 +25,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['2:0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD']: {
+  ['2:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd']: {
     symbol: 'sUSDS',
     decimals: 18,
     isNative: false,
@@ -57,6 +57,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   },
   ['30:0xa88594d404727625a9437c3f886c7643872296ae']: {
     symbol: 'WELL',
+    decimals: 18,
+    isNative: false,
+  },
+  ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
+    symbol: 'WAVAX',
     decimals: 18,
     isNative: false,
   },
