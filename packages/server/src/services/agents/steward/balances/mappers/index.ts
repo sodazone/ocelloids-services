@@ -14,6 +14,7 @@ import {
   BalancesStreamMapper,
   CustomDiscoveryFetcher,
   NativeBalance,
+  RuntimeCallMapper,
   StorageKeyMapper,
 } from '../types.js'
 import { calculateFreeBalance, getFrontierAccountStoragesSlot } from '../util.js'
@@ -24,7 +25,7 @@ import {
   toForeignAssetsStorageKey,
 } from './assets.js'
 import { hydrationBalancesFetcher, hydrationCurrecies$, hydrationEVM$ } from './hydration.js'
-import { moonbeamBalances$, toEVMStorageKey } from './moonbeam.js'
+import { moonbeamBalances$, toEVMStorageKey, toErc20RuntimeQuery } from './moonbeam.js'
 import { nativeBalances$, toNativeStorageKey } from './native.js'
 import { toTokenStorageKey, tokensBalances$ } from './tokens.js'
 
@@ -111,6 +112,14 @@ const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
   'currenciesapi.account': (value: Balance) => {
     return calculateFreeBalance(value)
   },
+  'ethereumruntimerpcapi.call': (value: any) => {
+    if (typeof value === 'bigint') {
+      return value
+    } else if (typeof value === 'object' && value.success && 'value' in value) {
+      return BigInt(value.value.value.asHex())
+    }
+    return 0n
+  },
   'evm.accountstorages': (value: Binary) => {
     return BigInt(value.asHex())
   },
@@ -186,12 +195,13 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
     if (id === 'native') {
       return toNativeStorageKey(account, apiCtx)
     }
-    const slot = getFrontierAccountStoragesSlot(account, 0)
+
     if (typeof id === 'string') {
       if (id.startsWith('0x')) {
-        return toEVMStorageKey(id as HexString, slot, apiCtx)
+        return null
       }
       const contractAddress = bigintToPaddedHex(BigInt(id))
+      const slot = getFrontierAccountStoragesSlot(account, 0)
       return toEVMStorageKey(contractAddress, slot, apiCtx)
     }
     return null
@@ -225,6 +235,16 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
   [networks.kusamaAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
   [networks.paseo]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.paseoAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+}
+
+export const balancesRuntimeCallMappers: Record<string, RuntimeCallMapper | null> = {
+  [networks.moonbeam]: ({ id }, account) => {
+    if (account.length > 42 || typeof id !== 'string' || id === 'native' || !id.startsWith('0x')) {
+      return null
+    }
+
+    return toErc20RuntimeQuery(account, id as HexString)
+  },
 }
 
 export const customDiscoveryFetchers: Record<string, CustomDiscoveryFetcher> = {

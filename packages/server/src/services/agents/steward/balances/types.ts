@@ -16,25 +16,33 @@ export type AccountBalancesData = {
   assetKeyHash: HexString
 }
 
-export type StorageQueueData = {
-  type: 'storage'
-  module: string
-  name: string
+type BaseQueueData = {
   account: string
   publicKey: HexString
   assetKeyHash: HexString
+}
+
+export type StorageQueryParams = {
+  module: string
+  name: string
   storageKey: HexString
 }
 
-export type RuntimeQueueData = {
-  type: 'runtime'
+export type RuntimeQueryParams = {
   api: string
   method: string
   args: any[]
-  account: string
-  publicKey: HexString
-  assetKeyHash: HexString
 }
+
+export type StorageQueueData = BaseQueueData &
+  StorageQueryParams & {
+    type: 'storage'
+  }
+
+export type RuntimeQueueData = BaseQueueData &
+  RuntimeQueryParams & {
+    type: 'runtime'
+  }
 
 export type BalancesQueueData = StorageQueueData | RuntimeQueueData
 
@@ -61,7 +69,6 @@ export type NativeBalance = {
   data: Balance
 }
 
-export type BalancesFromStorage = { storageKey: HexString; module: string; name: string }
 export type CustomDiscoveryFetcher = (ctx: {
   chainId: NetworkURN
   account: HexString
@@ -73,4 +80,10 @@ export type StorageKeyMapper = (
   asset: AssetMetadata,
   account: HexString,
   apiCtx: SubstrateApiContext,
-) => BalancesFromStorage | null
+) => StorageQueryParams | null
+
+export type RuntimeCallMapper = (
+  asset: AssetMetadata,
+  account: HexString,
+  apiCtx: SubstrateApiContext,
+) => RuntimeQueryParams | null

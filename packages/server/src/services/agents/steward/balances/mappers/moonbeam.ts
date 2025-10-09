@@ -7,9 +7,10 @@ import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import { encodeFunctionData, erc20Abi } from 'viem'
 import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
+import { BalanceUpdateItem, RuntimeQueryParams, RuntimeQueueData, StorageQueryParams } from '../types.js'
 import { getFrontierAccountStoragesSlot, toBinary } from '../util.js'
 import { decodeLog } from './evm.js'
 
@@ -25,6 +26,51 @@ function contractToAssetId(address: string): string {
   }
 
   return address
+}
+
+function asRuntimeQueryItem(
+  chainId: NetworkURN,
+  account: HexString,
+  contractAddress: HexString,
+): BalanceUpdateItem {
+  const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(chainId, contractAddress))) as HexString
+  const runtimeQueryParams = toErc20RuntimeQuery(account, contractAddress)
+  const data: RuntimeQueueData = {
+    ...runtimeQueryParams,
+    assetKeyHash,
+    type: 'runtime',
+    account,
+    publicKey: account as HexString,
+  }
+  return {
+    queueKey: `${account}::${assetKeyHash}`,
+    data,
+  }
+}
+
+export function toErc20RuntimeQuery(account: HexString, contractAddress: HexString): RuntimeQueryParams {
+  const callData = encodeFunctionData({
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [account],
+  })
+
+  return {
+    api: 'EthereumRuntimeRPCApi',
+    method: 'call',
+    args: [
+      toBinary('0x0000000000000000000000000000000000000000'),
+      toBinary(contractAddress),
+      toBinary(callData),
+      [0n, 0n, 0n, 0n],
+      [30000000000n, 0n, 0n, 0n],
+      undefined,
+      undefined,
+      undefined,
+      false,
+      undefined,
+    ],
+  }
 }
 
 export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
@@ -67,10 +113,17 @@ export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngress
 
           if (decoded) {
             const { from, to } = decoded.args as { from: HexString; to: HexString }
-            items.push(
-              asStorageItem(from, address as HexString, assetId),
-              asStorageItem(to, address as HexString, assetId),
-            )
+            if (assetId.startsWith('0x')) {
+              items.push(
+                asRuntimeQueryItem(chainId, from, address as HexString),
+                asRuntimeQueryItem(chainId, to, address as HexString),
+              )
+            } else {
+              items.push(
+                asStorageItem(from, address as HexString, assetId),
+                asStorageItem(to, address as HexString, assetId),
+              )
+            }
           }
           return items
         }),
@@ -83,7 +136,7 @@ export function toEVMStorageKey(
   contractAddress: HexString,
   slotKey: HexString,
   apiCtx: SubstrateApiContext,
-): BalancesFromStorage | null {
+): StorageQueryParams | null {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
   try {
     const storageKey = storageCodec.keys.enc(toBinary(contractAddress), toBinary(slotKey)) as HexString
