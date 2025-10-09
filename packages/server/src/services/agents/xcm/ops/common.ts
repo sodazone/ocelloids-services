@@ -161,10 +161,19 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
       leg.relay = createNetworkId(from, '0')
       leg.type = 'hrmp'
     } else if (getChainId(from) === '1002') {
-      // TODO: Pending bridge support
-      break
+      // P<>K bridge
+      legs.push({
+        from,
+        to: `urn:ocn:${getConsensus(to)}:1002`,
+        type: 'bridge',
+      })
+      leg.from = `urn:ocn:${getConsensus(to)}:1002`
+      if (getChainId(to) !== '0') {
+        leg.relay = createNetworkId(to, '0')
+        leg.type = 'hrmp'
+      }
     } else {
-      leg.type = 'bridge'
+      throw new Error(`Unknown leg type for origin=${from} destination=${to}`)
     }
 
     legs.push(leg)
