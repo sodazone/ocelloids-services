@@ -1,8 +1,5 @@
-import { Query } from 'mingo'
-
-import { installOperators } from './mingo-ops.js'
-
-const ctx = installOperators()
+import { MingoQuery as Query } from '@/common/index.js'
+import { createMingoContext } from './mingo-ops.js'
 
 const data = {
   method: 'transferAllowDeath',
@@ -14,13 +11,10 @@ const data = {
 }
 
 describe('mingo query ops', () => {
-  it.only('should compare lt bn', () => {
-    const q = new Query(
-      {
-        'args.value': { $bn_lt: '108515280000000001' },
-      },
-      { context: ctx },
-    )
+  it('should compare lt bn', () => {
+    const q = new Query({
+      'args.value': { $bn_lt: '108515280000000001' },
+    })
 
     expect(q.test(data)).toBeTruthy()
   })
@@ -253,8 +247,8 @@ describe('mingo query ops', () => {
 
   it('should be idempotent on ops registration', () => {
     expect(() => {
-      installOperators()
-      installOperators()
+      createMingoContext()
+      createMingoContext()
     }).not.toThrow()
   })
 })

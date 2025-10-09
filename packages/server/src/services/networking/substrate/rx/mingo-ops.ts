@@ -83,7 +83,7 @@ function createQueryOperator(predicate: Predicate<Any>): QueryOperator {
 }
 
 let context: Context | null = null
-export function installOperators() {
+export function createMingoContext() {
   // Register query operators
   if (!context) {
     context = Context.init({
