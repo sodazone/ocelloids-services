@@ -9,7 +9,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { AssetId } from '../../types.js'
-import { BalancesFromStorage, BalanceUpdateItem } from '../types.js'
+import { BalanceUpdateItem, StorageQueryParams } from '../types.js'
 import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
@@ -110,7 +110,7 @@ export function toGenericAssetStorageKey(
   account: string,
   apiCtx: SubstrateApiContext,
   module: 'Assets' | 'ForeignAssets',
-): BalancesFromStorage | null {
+): StorageQueryParams | null {
   const storageCodec = apiCtx.storageCodec(module, STORAGE_NAME)
   try {
     const storageKey = storageCodec.keys.enc(assetId, account) as HexString

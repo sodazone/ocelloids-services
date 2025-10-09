@@ -62,7 +62,7 @@ async function evmToSubstrateAddress({
   return fromBufferToBase58(0)(new Uint8Array(buf))
 }
 
-function toRuntimeQueryItem({
+function asRuntimeQueryItem({
   chainId,
   assetId,
   account,
@@ -118,7 +118,7 @@ export function hydrationEVM$(
         mergeMap(({ account, assetId }) =>
           from(evmToSubstrateAddress({ evmAddress: account, chainId, ingress, apiCtx })).pipe(
             map((ss58) =>
-              toRuntimeQueryItem({
+              asRuntimeQueryItem({
                 chainId,
                 account: ss58,
                 assetId,
@@ -159,7 +159,7 @@ export function hydrationCurrecies$(chainId: NetworkURN, ingress: SubstrateIngre
       return accounts
     }),
     map(({ account, assetId }) =>
-      toRuntimeQueryItem({
+      asRuntimeQueryItem({
         chainId,
         assetId,
         account,

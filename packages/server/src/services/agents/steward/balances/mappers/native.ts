@@ -5,7 +5,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
-import { BalancesFromStorage, BalanceUpdateItem } from '../types.js'
+import { BalanceUpdateItem, StorageQueryParams } from '../types.js'
 import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_MODULE = 'Balances'
@@ -49,7 +49,7 @@ export function nativeBalances$(chainId: NetworkURN, ingress: SubstrateIngressCo
   )
 }
 
-export function toNativeStorageKey(account: string, apiCtx: SubstrateApiContext): BalancesFromStorage {
+export function toNativeStorageKey(account: string, apiCtx: SubstrateApiContext): StorageQueryParams {
   const storageCodec = apiCtx.storageCodec(STORAGE_MODULE, STORAGE_NAME)
   return {
     storageKey: storageCodec.keys.enc(account) as HexString,

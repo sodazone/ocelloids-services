@@ -23,6 +23,7 @@ import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { BalanceRecord, BalancesDB } from './db.js'
 import {
   balanceEventsSubscriptions,
+  balancesRuntimeCallMappers,
   balancesStorageMappers,
   customDiscoveryFetchers,
   getBalanceExtractor,
@@ -31,10 +32,11 @@ import {
 import { AssetData, BalanceEvents } from './sse.js'
 import {
   Balance,
-  BalancesFromStorage,
   BalancesQueueData,
   CustomDiscoveryFetcher,
+  RuntimeQueryParams,
   RuntimeQueueData,
+  StorageQueryParams,
   StorageQueueData,
 } from './types.js'
 
@@ -428,7 +430,7 @@ export class BalancesManager {
             balance = balanceExtractor?.(decoded) ?? null
           }
           records.push({ accountHex: publicKey, assetKeyHash, balance })
-          await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
+          await this.#streamBalance({ origin: 'update', accountHex: publicKey, assetKeyHash, balance })
         }),
       )
     } catch (err) {
@@ -451,7 +453,7 @@ export class BalancesManager {
           const balance = await this.#fetchBalanceFromRuntime({ chainId, api, method, args })
 
           records.push({ accountHex: publicKey, assetKeyHash, balance })
-          await this.#handleBalanceUpdate(publicKey, assetKeyHash, balance)
+          await this.#streamBalance({ origin: 'update', accountHex: publicKey, assetKeyHash, balance })
         } catch (err) {
           this.#log.error(err, '[%s] failed querying runtime for chain %s', this.id, chainId)
         }
@@ -459,15 +461,27 @@ export class BalancesManager {
     )
   }
 
-  async #handleBalanceUpdate(accountHex: HexString, assetKeyHash: HexString, balance: bigint | null) {
+  async #streamBalance({
+    origin,
+    accountHex,
+    assetKeyHash,
+    balance,
+    assetMetadata,
+  }: {
+    origin: 'update' | 'snapshot'
+    accountHex: HexString
+    assetKeyHash: HexString
+    balance: bigint | null
+    assetMetadata?: AssetData
+  }) {
     try {
-      const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
+      const metadata = assetMetadata ?? (await this.#getAssetMetadataByHash(assetKeyHash))
       if (metadata) {
         const prefix = await fetchSS58Prefix(this.#queries, metadata.chainId)
         this.#broadcaster.send({
           event: 'balance',
           data: {
-            origin: 'update',
+            origin,
             accountId: asAccountId(accountHex, prefix),
             publicKey: accountHex,
             balance: balance ?? 0n,
@@ -544,11 +558,6 @@ export class BalancesManager {
       })
     }
 
-    const storageMapper = balancesStorageMappers[chainId]
-    if (!storageMapper) {
-      return
-    }
-
     const { items, pageInfo } = (await this.#queries({
       args: {
         op: 'assets.list',
@@ -561,29 +570,58 @@ export class BalancesManager {
       return
     }
 
-    const storageItems: (BalancesFromStorage & {
+    const storageMapper = balancesStorageMappers[chainId]
+    const runtimeMapper = balancesRuntimeCallMappers[chainId]
+    if (!storageMapper && !runtimeMapper) {
+      return
+    }
+    const storageItems: (StorageQueryParams & {
       assetKeyHash: HexString
       assetId: AssetId
       symbol?: string
       decimals?: number
-    })[] = items
-      .map((i) => {
+    })[] = []
+
+    const runtimeItems: (RuntimeQueryParams & {
+      assetKeyHash: HexString
+      assetId: AssetId
+      symbol?: string
+      decimals?: number
+    })[] = []
+
+    for (const i of items) {
+      if (storageMapper) {
         const mapped = storageMapper(i, account, apiCtx)
-        if (mapped === null) {
-          return null
+        if (mapped !== null) {
+          storageItems.push({
+            ...mapped,
+            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, i.id))) as HexString,
+            assetId: i.id,
+            symbol: i.symbol,
+            decimals: i.decimals,
+          })
         }
-        return {
-          ...mapped,
-          assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, i.id))) as HexString,
-          assetId: i.id,
-          symbol: i.symbol,
-          decimals: i.decimals,
+      }
+      if (runtimeMapper) {
+        const mapped = runtimeMapper(i, account, apiCtx)
+        if (mapped !== null) {
+          runtimeItems.push({
+            ...mapped,
+            assetKeyHash: toHex(assetMetadataKeyHash(assetMetadataKey(chainId, i.id))) as HexString,
+            assetId: i.id,
+            symbol: i.symbol,
+            decimals: i.decimals,
+          })
         }
-      })
-      .filter((i) => i !== null)
+      }
+    }
 
     if (storageItems.length > 0) {
-      await this.#fetchBalancesFromStorage(chainId, account, apiCtx, storageItems)
+      await this.#discoverBalancesFromStorage(chainId, account, apiCtx, storageItems)
+    }
+
+    if (runtimeItems.length > 0) {
+      await this.#discoverBalancesFromRuntime(chainId, account, runtimeItems)
     }
 
     if (pageInfo && pageInfo.hasNextPage && pageInfo.endCursor) {
@@ -605,25 +643,17 @@ export class BalancesManager {
 
       const ops: BalanceRecord[] = []
       for (const { assetId, balance } of balances) {
+        if (balance === null || balance === 0n) {
+          continue
+        }
         const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(ctx.chainId, assetId))) as HexString
         ops.push({ accountHex: ctx.account, assetKeyHash, balance })
-        try {
-          const metadata = await this.#getAssetMetadataByHash(assetKeyHash)
-          if (metadata && balance !== null) {
-            this.#broadcaster.send({
-              event: 'balance',
-              data: {
-                origin: 'snapshot',
-                accountId: asAccountId(ctx.account),
-                publicKey: ctx.account,
-                balance,
-                ...metadata,
-              },
-            })
-          }
-        } catch (err) {
-          this.#log.error(err, 'Error broadcasting balance in #runCustomDiscoveryFetcher')
-        }
+        await this.#streamBalance({
+          origin: 'snapshot',
+          accountHex: ctx.account,
+          assetKeyHash,
+          balance,
+        })
       }
       await this.#dbBalances.putBatch(ops)
     } catch (error) {
@@ -662,11 +692,95 @@ export class BalancesManager {
     return null
   }
 
-  async #fetchBalancesFromStorage(
+  async #processDiscoveredBalances(
+    chainId: NetworkURN,
+    account: HexString,
+    items: {
+      assetKeyHash: HexString
+      assetId: AssetId
+      symbol?: string
+      decimals?: number
+      fetchFn: () => Promise<any | null>
+      extractorKey: { apiOrModule: string; methodOrName: string }
+    }[],
+  ) {
+    const ops: BalanceRecord[] = []
+
+    for (const { assetKeyHash, assetId, symbol, decimals, fetchFn, extractorKey } of items) {
+      try {
+        const rawValue = await fetchFn()
+        if (rawValue === null || rawValue === undefined) {
+          continue
+        }
+
+        const balanceExtractor = getBalanceExtractor(extractorKey.apiOrModule, extractorKey.methodOrName)
+        if (!balanceExtractor) {
+          continue
+        }
+
+        const balance = balanceExtractor(rawValue)
+        if (balance <= 0n) {
+          continue
+        }
+
+        ops.push({ accountHex: account, assetKeyHash, balance })
+
+        await this.#streamBalance({
+          origin: 'snapshot',
+          accountHex: account,
+          assetKeyHash,
+          balance,
+          assetMetadata: {
+            assetId,
+            chainId,
+            decimals,
+            symbol,
+          },
+        })
+      } catch (err) {
+        this.#log.error(
+          err,
+          '[%s] failed processing discovered balances (%s) for account %s on %s',
+          this.id,
+          Object.values(extractorKey).join('.'),
+          account,
+          chainId,
+        )
+      }
+    }
+
+    if (ops.length > 0) {
+      await this.#dbBalances.putBatch(ops)
+    }
+  }
+
+  async #discoverBalancesFromRuntime(
+    chainId: NetworkURN,
+    account: HexString,
+    runtimeItems: (RuntimeQueryParams & {
+      assetKeyHash: HexString
+      assetId: AssetId
+      symbol?: string
+      decimals?: number
+    })[],
+  ) {
+    const items = runtimeItems.map(({ api, method, args, assetKeyHash, assetId, symbol, decimals }) => ({
+      assetKeyHash,
+      assetId,
+      symbol,
+      decimals,
+      extractorKey: { apiOrModule: api, methodOrName: method },
+      fetchFn: () => this.#fetchBalanceFromRuntime({ chainId, api, method, args }),
+    }))
+
+    await this.#processDiscoveredBalances(chainId, account, items)
+  }
+
+  async #discoverBalancesFromStorage(
     chainId: NetworkURN,
     account: HexString,
     apiCtx: SubstrateApiContext,
-    storageItems: (BalancesFromStorage & {
+    storageItems: (StorageQueryParams & {
       assetKeyHash: HexString
       assetId: AssetId
       symbol?: string
@@ -674,50 +788,31 @@ export class BalancesManager {
     })[],
   ) {
     const storageKeys = storageItems.map((i) => i.storageKey)
-    const ops: BalanceRecord[] = []
+    const changeSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, storageKeys))
 
-    try {
-      const changeSets = await firstValueFrom(this.#substrateIngress.queryStorageAt(chainId, storageKeys))
-
-      for (const { module, name, storageKey, assetKeyHash, assetId, decimals, symbol } of storageItems) {
+    const items = storageItems.map(
+      ({ module, name, storageKey, assetKeyHash, assetId, symbol, decimals }) => {
         const changeSet = changeSets[0]?.changes.find(([key]) => key === storageKey)
         const rawValue = changeSet ? changeSet[1] : null
 
-        if (rawValue !== null) {
-          const codec = apiCtx.storageCodec(module, name)
-          const decodedValue = codec.value.dec(rawValue)
-
-          const balanceExtractor = getBalanceExtractor(module, name)
-          if (balanceExtractor) {
-            const balance = balanceExtractor(decodedValue)
-            ops.push({ accountHex: account, assetKeyHash, balance })
-            this.#broadcaster.send({
-              event: 'balance',
-              data: {
-                origin: 'snapshot',
-                accountId: asAccountId(account),
-                publicKey: account,
-                chainId,
-                assetId,
-                balance,
-                symbol,
-                decimals,
-              },
-            })
-          }
+        return {
+          assetKeyHash,
+          assetId,
+          symbol,
+          decimals,
+          extractorKey: { apiOrModule: module, methodOrName: name },
+          fetchFn: async () => {
+            if (rawValue === null) {
+              return null
+            }
+            const codec = apiCtx.storageCodec(module, name)
+            return codec.value.dec(rawValue)
+          },
         }
-      }
+      },
+    )
 
-      await this.#dbBalances.putBatch(ops)
-    } catch (err) {
-      this.#log.error(
-        err,
-        '[%s] failed fetching balances from storage for account %s on %s',
-        this.id,
-        account,
-        chainId,
-      )
-    }
+    await this.#processDiscoveredBalances(chainId, account, items)
   }
 
   async #getAssetMetadataByHash(assetHash: HexString): Promise<AssetData | undefined> {
@@ -755,7 +850,6 @@ export class BalancesManager {
     }
 
     const pubKeys = accounts.map(asPublicKey)
-
     return { account: { $in: pubKeys } }
   }
 
