@@ -9,9 +9,15 @@ export type PersistentWatcherStorage = {
   savePendingOp: (opId: string, entry: PendingEntry) => Promise<void>
   deletePendingOp: (opId: string) => Promise<void>
   loadPendingOps: () => Promise<Record<string, PendingEntry>>
+  /**
+   * Reset the watcher storage:
+   * - Deletes all saved cursors
+   * - Deletes all pending operations
+   */
+  reset: () => Promise<void>
 }
 
-export function makeLevelStorage(levelDB: LevelDB): PersistentWatcherStorage {
+export function makeWormholeLevelStorage(levelDB: LevelDB): PersistentWatcherStorage {
   const cursorSub = levelDB.sublevel<string, Cursor>('wh:cursor', jsonEncoded)
   const pendingSub = levelDB.sublevel<string, PendingEntry>('wh:pending', jsonEncoded)
 
@@ -46,6 +52,11 @@ export function makeLevelStorage(levelDB: LevelDB): PersistentWatcherStorage {
         result[id] = entry
       }
       return result
+    },
+
+    async reset() {
+      await cursorSub.clear()
+      await pendingSub.clear()
     },
   }
 }

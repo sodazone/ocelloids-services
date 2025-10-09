@@ -2,7 +2,7 @@ import { ago } from '@/common/time.js'
 import { deepCamelize } from '@/common/util.js'
 import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
-import { makeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
+import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { WormholeWatcher, makeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
@@ -44,7 +44,7 @@ export class WormholeAgent implements Agent {
     this.#crosschain = deps.crosschain
     this.#repository = deps.crosschain?.repository
 
-    const storage = makeLevelStorage(ctx.db)
+    const storage = makeWormholeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)

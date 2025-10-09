@@ -6,7 +6,7 @@ import { createCrosschainDatabase } from '@/services/agents/crosschain/repositor
 async function main() {
   const dbPathArg = process.argv[2]
   if (!dbPathArg) {
-    console.error('Usage: node script.js <path-to-database>')
+    console.error('Usage: node db.utils.js <path-to-database>')
     process.exit(1)
   }
 
