@@ -43,17 +43,46 @@ function bumpTimestamp(ts: string): string {
   return new Date(new Date(ts).getTime() + 1).toISOString()
 }
 
+function withRetry<T>(
+  fn: () => Promise<T>,
+  {
+    retries = 5,
+    delay = 2000,
+    exponential = true,
+  }: { retries?: number; delay?: number; exponential?: boolean } = {},
+): Promise<T> {
+  return (async function retry(attempt = 0): Promise<T> {
+    try {
+      return await fn()
+    } catch (err) {
+      if (attempt >= retries) {
+        throw err
+      }
+      const backoff = exponential ? delay * 2 ** attempt : delay
+      console.warn(`Retrying after ${backoff}ms (attempt ${attempt + 1}) due to`, err)
+      await new Promise((r) => setTimeout(r, backoff))
+      return retry(attempt + 1)
+    }
+  })()
+}
+
 export function makeWatcher(client: WormholescanClient, storage?: PersistentWatcherStorage) {
   async function fetchSinceCursor(
     cursor: Cursor,
     signal?: AbortSignal | null,
   ): Promise<[Cursor, WormholeOperation[]]> {
-    const ops = await client.fetchAllOperations(
-      {
-        from: cursor.lastSeen,
-        ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
-      },
-      signal,
+    const ops = await withRetry(
+      () =>
+        client.fetchAllOperations(
+          {
+            from: cursor.lastSeen,
+            ...(cursor.direction === 'source'
+              ? { sourceChain: cursor.chain }
+              : { targetChain: cursor.chain }),
+          },
+          signal,
+        ),
+      { retries: 5, delay: 1000, exponential: true },
     )
 
     const freshOps = ops.filter((op) => !isSeen(cursor, op.id))
