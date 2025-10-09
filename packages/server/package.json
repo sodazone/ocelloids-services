@@ -87,7 +87,7 @@
     "ulidx": "^2.4.1",
     "viem": "^2.38.0",
     "ws": "^8.18.3",
-    "zod": "^4.1.12",
+    "zod": "^3.24.6",
     "zod-to-json-schema": "^3.24.6"
   },
   "packageManager": "yarn@4.1.0",

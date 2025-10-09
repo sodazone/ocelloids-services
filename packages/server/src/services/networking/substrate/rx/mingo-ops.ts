@@ -3,9 +3,6 @@ import { Any, AnyObject, Predicate } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 import { asPublicKey } from '@/common/util.js'
 
-// import all operators
-import 'mingo/init/system'
-
 function addressEq(a: string, b: string) {
   return a === b || asPublicKey(a) === asPublicKey(b)
 }
@@ -85,12 +82,11 @@ function createQueryOperator(predicate: Predicate<Any>): QueryOperator {
   return f // as QueryOperator;
 }
 
-let installed = false
-
+let context: Context | null = null
 export function installOperators() {
   // Register query operators
-  if (!installed) {
-    Context.init({
+  if (!context) {
+    context = Context.init({
       query: {
         $bn_lt: createQueryOperator($bn_lt),
         $bn_lte: createQueryOperator($bn_lte),
@@ -103,5 +99,5 @@ export function installOperators() {
       },
     })
   }
-  installed = true
+  return context
 }

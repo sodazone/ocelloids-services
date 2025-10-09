@@ -2,7 +2,7 @@ import { Query } from 'mingo'
 
 import { installOperators } from './mingo-ops.js'
 
-installOperators()
+const ctx = installOperators()
 
 const data = {
   method: 'transferAllowDeath',
@@ -14,10 +14,13 @@ const data = {
 }
 
 describe('mingo query ops', () => {
-  it('should compare lt bn', () => {
-    const q = new Query({
-      'args.value': { $bn_lt: '108515280000000001' },
-    })
+  it.only('should compare lt bn', () => {
+    const q = new Query(
+      {
+        'args.value': { $bn_lt: '108515280000000001' },
+      },
+      { context: ctx },
+    )
 
     expect(q.test(data)).toBeTruthy()
   })

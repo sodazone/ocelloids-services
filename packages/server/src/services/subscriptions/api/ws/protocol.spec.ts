@@ -118,7 +118,7 @@ describe('WebsocketProtocol', () => {
 
         expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
-          '{"issues":[{"code":"custom","fatal":true,"message":"test error","path":["ws-test"]}],"name":"ZodError"}',
+          '{"issues":[{"code":"custom","message":"test error","path":["ws-test"]}],"name":"ZodError"}',
           expect.any(Function),
         )
       })

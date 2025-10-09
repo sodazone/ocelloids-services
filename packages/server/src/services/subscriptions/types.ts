@@ -27,7 +27,7 @@ export type BlockNumberRange = {
  */
 export const $SubscriptionId = z
   .string({
-    error: 'subscription id is required',
+    required_error: 'subscription id is required',
   })
   .min(1)
   .max(100)
@@ -100,7 +100,7 @@ const $WebsocketNotification = z.object({
 
 export const $AgentArgs = z.record(
   z.string({
-    error: 'argument name is required',
+    required_error: 'argument name is required',
   }),
   z.any(),
 )
@@ -109,7 +109,7 @@ export const $Subscription = z.object({
   id: $SubscriptionId,
   agent: $AgentId,
   args: $AgentArgs,
-  owner: z.string(),
+  owner: z.optional(z.string()),
   public: z.optional(z.boolean()),
   ephemeral: z.optional(z.boolean()),
   channels: z
@@ -117,7 +117,7 @@ export const $Subscription = z.object({
     .min(1),
 })
 
-export const $NewSubscription = $Subscription.omit({ owner: true })
+export const $NewSubscription = $Subscription
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
 

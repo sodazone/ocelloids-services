@@ -24,7 +24,7 @@ import { createServerSentEventsBroadcaster } from './api/sse.js'
  */
 export const $AgentId = z
   .string({
-    error: 'agent id is required',
+    required_error: 'agent id is required',
   })
   .min(1)
   .max(100)

@@ -12,7 +12,7 @@ export const $ChainSpyInputs = z.object({
   networks: z.array(
     z
       .string({
-        error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
+        required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
       })
       .min(1),
   ),
