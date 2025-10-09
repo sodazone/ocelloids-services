@@ -1,7 +1,7 @@
 import { keccak256 } from 'viem'
 
 import { HexString } from '@/lib.js'
-import { Binary } from 'polkadot-api'
+import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex } from 'polkadot-api/utils'
 import { Balance } from './types.js'
 
@@ -28,4 +28,25 @@ export function getFrontierAccountStoragesSlot(key: HexString, slot: number) {
 
 export function toBinary(str: HexString) {
   return new Binary(fromHex(str))
+}
+
+export function isValidEvmAddress(value: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(value)
+}
+
+export function isValidSubstratePublicKey(value: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(value)
+}
+
+export function isValidSs58Address(value: string): boolean {
+  try {
+    const info = getSs58AddressInfo(value)
+    if (info.isValid) {
+      return true
+    } else {
+      return false
+    }
+  } catch {
+    return false
+  }
 }
