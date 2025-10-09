@@ -19,19 +19,17 @@ export const $RedisServerOptions = z.object({
 export const $DatabaseOptions = z.object({
   data: z
     .string({
-      required_error: 'Data directory path is required',
+      error: 'Data directory path is required',
     })
     .min(1),
 })
 
 export const $LevelServerOptions = z.object({
-  levelEngine: z.nativeEnum(LevelEngine).default(LevelEngine.classic),
+  levelEngine: z.enum(LevelEngine).default(LevelEngine.classic),
   scheduler: z.boolean().default(true),
   schedulerFrequency: z.number().min(1000),
   sweepExpiry: z.number().min(20000),
 })
-
-export const $KyselyServerOptions = z.object({})
 
 export const $ConfigServerOptions = z.object({
   config: z.string().min(1).optional(),
@@ -61,7 +59,7 @@ export enum AgentServiceMode {
 }
 
 export const $AgentCatalogOptions = z.object({
-  agentServiceMode: z.nativeEnum(AgentServiceMode).default(AgentServiceMode.local),
+  agentServiceMode: z.enum(AgentServiceMode).default(AgentServiceMode.local),
   agents: z.string().default('*'),
   agentConfigs: z.record(z.string(), z.any()).default({}),
 })
@@ -81,7 +79,6 @@ export type CorsServerOptions = z.infer<typeof $CorsServerOptions>
 export type JwtServerOptions = z.infer<typeof $JwtServerOptions>
 export type ConfigServerOptions = z.infer<typeof $ConfigServerOptions>
 export type RedisServerOptions = z.infer<typeof $RedisServerOptions>
-export type KyselyServerOptions = z.infer<typeof $KyselyServerOptions>
 export type LevelServerOptions = z.infer<typeof $LevelServerOptions>
 export type DatabaseOptions = z.infer<typeof $DatabaseOptions>
 export type IngressOptions = {

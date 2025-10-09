@@ -5,7 +5,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
-import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
+import { BalancesFromStorage, BalanceUpdateItem } from '../types.js'
 import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_MODULE = 'Balances'

@@ -1,5 +1,5 @@
-import { $NetworkString } from '@/common/types.js'
 import { z } from 'zod'
+import { $NetworkString } from '@/common/types.js'
 
 /**
  * @public

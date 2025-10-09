@@ -1,8 +1,8 @@
+import { Observable } from 'rxjs'
 import { ControlQuery } from '@/common/index.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { Observable } from 'rxjs'
 import { AssetId, AssetMetadata } from '../types.js'
 
 export type BalanceUpdateItem = { queueKey: string; data: BalancesQueueData }

@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
-import { DatabaseOptions, KyselyServerOptions } from '@/types.js'
+import { DatabaseOptions } from '@/types.js'
 
 import { resolveDataPath } from '../persistence/util.js'
 import { createSystemDatabase } from './db.js'
@@ -14,9 +14,7 @@ declare module 'fastify' {
   }
 }
 
-type KyselyOptions = DatabaseOptions & KyselyServerOptions
-
-const accountsPlugin: FastifyPluginAsync<KyselyOptions> = async (fastify, { data }) => {
+const accountsPlugin: FastifyPluginAsync<DatabaseOptions> = async (fastify, { data }) => {
   const filename = resolveDataPath('db.sqlite', data)
 
   fastify.log.info('[accounts] database at %s', filename)

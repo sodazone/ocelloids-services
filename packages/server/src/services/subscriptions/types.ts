@@ -1,6 +1,5 @@
-import z from 'zod'
-
 import { Subscription as RxSubscription } from 'rxjs'
+import z from 'zod'
 
 import { $AgentId } from '../agents/types.js'
 import { Message } from '../egress/types.js'
@@ -28,7 +27,7 @@ export type BlockNumberRange = {
  */
 export const $SubscriptionId = z
   .string({
-    required_error: 'subscription id is required',
+    error: 'subscription id is required',
   })
   .min(1)
   .max(100)
@@ -101,7 +100,7 @@ const $WebsocketNotification = z.object({
 
 export const $AgentArgs = z.record(
   z.string({
-    required_error: 'argument name is required',
+    error: 'argument name is required',
   }),
   z.any(),
 )

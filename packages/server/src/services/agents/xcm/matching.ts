@@ -2,13 +2,11 @@ import EventEmitter from 'node:events'
 
 import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
-
+import { HexString } from '@/lib.js'
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId, isOnSameConsensus } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
-import { Logger, SubLevel, jsonEncoded } from '@/services/types.js'
-
-import { HexString } from '@/lib.js'
+import { jsonEncoded, Logger, SubLevel } from '@/services/types.js'
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
   GenericXcmBridge,
@@ -18,6 +16,7 @@ import {
   GenericXcmTimeout,
   Leg,
   MessageHashData,
+  prefixes,
   XcmBridge,
   XcmBridgeAcceptedWithContext,
   XcmBridgeDeliveredWithContext,
@@ -32,7 +31,6 @@ import {
   XcmSent,
   XcmTimeout,
   XcmWaypointContext,
-  prefixes,
 } from './types/index.js'
 
 const DEFAULT_TIMEOUT = 10 * 60000

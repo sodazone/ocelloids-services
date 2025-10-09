@@ -1,13 +1,11 @@
 import fs from 'node:fs'
 import { resolve } from 'node:path'
 import { cwd } from 'node:process'
-
+import { Command } from 'commander'
 import { pino } from 'pino'
 import toml from 'toml'
-
 import { $ServiceConfiguration } from '@/services/config.js'
 import { SubstrateClient } from '@/services/networking/substrate/client.js'
-import { Command } from 'commander'
 
 async function checkRpcMethods(configFile: string) {
   const configPath = resolve(cwd(), configFile)

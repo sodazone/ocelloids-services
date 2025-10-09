@@ -1,10 +1,10 @@
-import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import bs58 from 'bs58'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
+import { TextEncoder } from 'util'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'

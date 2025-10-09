@@ -9,7 +9,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 
 import { AssetId } from '../../types.js'
-import { BalanceUpdateItem, BalancesFromStorage } from '../types.js'
+import { BalancesFromStorage, BalanceUpdateItem } from '../types.js'
 import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']

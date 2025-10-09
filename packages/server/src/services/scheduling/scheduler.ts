@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 
 import { NotFound } from '@/errors.js'
-import { Family, LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
+import { Family, jsonEncoded, LevelDB, Logger, prefixes } from '@/services/types.js'
 import { CancelablePromise, delay } from '../persistence/level/delay.js'
 
 export type Scheduled<T = any> = {

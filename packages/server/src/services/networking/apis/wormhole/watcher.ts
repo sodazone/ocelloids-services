@@ -255,7 +255,12 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
         updatedOp,
         newStatus,
         entry,
-      }: { id: string; updatedOp: WormholeOperation; newStatus: JourneyStatus; entry: PendingEntry }) {
+      }: {
+        id: string
+        updatedOp: WormholeOperation
+        newStatus: JourneyStatus
+        entry: PendingEntry
+      }) {
         if (entry.status !== newStatus) {
           const updatedEntry = { ...entry, status: newStatus, op: updatedOp }
           pending.set(id, updatedEntry)

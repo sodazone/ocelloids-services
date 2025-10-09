@@ -1,6 +1,7 @@
 import { Query } from 'mingo'
 
 import { installOperators } from './mingo-ops.js'
+
 installOperators()
 
 const data = {

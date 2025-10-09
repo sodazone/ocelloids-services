@@ -1,6 +1,6 @@
+import { z } from 'zod'
 import { $NetworkString } from '@/common/types.js'
 import { NetworkURN } from '@/lib.js'
-import { z } from 'zod'
 
 export const $TickerQueryArgs = z.discriminatedUnion('op', [
   z.object({
@@ -29,7 +29,7 @@ export const $TickerQueryArgs = z.discriminatedUnion('op', [
       .array(
         z.object({
           chainId: $NetworkString,
-          assetId: z.string().or(z.number()).or(z.record(z.any())),
+          assetId: z.string().or(z.number()).or(z.record(z.any(), z.any())),
           sources: z.optional(z.literal('*').or(z.array(z.string()).min(1).max(50))),
         }),
       )

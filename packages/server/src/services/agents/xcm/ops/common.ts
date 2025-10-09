@@ -1,5 +1,5 @@
-import { Observable, bufferCount, map, mergeMap } from 'rxjs'
-
+import { toHex } from 'polkadot-api/utils'
+import { bufferCount, map, mergeMap, Observable } from 'rxjs'
 import { filterNonNull } from '@/common/index.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
@@ -13,7 +13,6 @@ import {
 } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
-import { toHex } from 'polkadot-api/utils'
 import {
   AssetSwap,
   AssetsTrapped,

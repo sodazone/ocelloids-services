@@ -1,7 +1,6 @@
-import { BehaviorSubject, Subject } from 'rxjs'
-
 import { Query } from 'mingo'
 import { AnyObject } from 'mingo/types'
+import { BehaviorSubject, Subject } from 'rxjs'
 
 export type Criteria = AnyObject
 

@@ -1,15 +1,13 @@
 import { Mutex } from 'async-mutex'
 import { LRUCache } from 'lru-cache'
 import { toHex } from 'polkadot-api/utils'
-import { Subscription, firstValueFrom } from 'rxjs'
-
+import { firstValueFrom, Subscription } from 'rxjs'
+import { ControlQuery, Criteria } from '@/common/index.js'
 import { asAccountId, asPublicKey } from '@/common/util.js'
 import { HexString, QueryPagination, QueryParams, QueryResult } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-
-import { ControlQuery, Criteria } from '@/common/index.js'
 import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
 import { ServerSentEventsBroadcaster, ServerSentEventsRequest } from '../../types.js'
 import { fetchSS58Prefix } from '../metadata/queries/helper.js'
@@ -71,7 +69,6 @@ export class BalancesManager {
 
   #mode: BalanceUpdateMode = 'streaming'
   #running = false
-  #config: Record<string, any>
 
   constructor(
     { log, openLevelDB, ingress, config }: StewardManagerContext,
@@ -79,7 +76,6 @@ export class BalancesManager {
     broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>,
   ) {
     this.#log = log
-    this.#config = config ?? {}
     this.#substrateIngress = ingress.substrate
     this.#queries = queries
     this.#broadcaster = broadcaster
@@ -237,13 +233,7 @@ export class BalancesManager {
     await this.#streamBalancesFromDB(opts)
   }
 
-  async #streamBalancesFromDB({
-    connectionId,
-    publicKey,
-  }: {
-    connectionId: string
-    publicKey: HexString
-  }) {
+  async #streamBalancesFromDB({ connectionId, publicKey }: { connectionId: string; publicKey: HexString }) {
     for await (const entry of this.#dbBalances.iterateAccountBalances(publicKey)) {
       const metadata = await this.#getAssetMetadataByHash(entry.assetIdHex)
       if (metadata) {
