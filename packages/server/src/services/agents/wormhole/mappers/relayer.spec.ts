@@ -2,20 +2,14 @@ import { TestCase, runWormholeMapperTests } from '@/testing/apis/wormhole/wormho
 
 const cases: TestCase[] = [
   {
-    name: 'decode WELL transfer (moonbeam → base)',
-    file: 'moonbeam-base_feedc.json',
+    name: 'decode moonwell multichain governor (moonbeam - not relayer)',
+    file: 'moonbeam_feedc.json',
     expected: {
-      type: 'transfer',
+      status: 'received',
+      type: 'transact',
       from: '0x39801747857f384de011feb2d3a57a38ba925ea4',
-      to: '0x8b621804a7637b781e2bbd58e256a591f2df7d51',
-      assets: [
-        {
-          asset: 'urn:ocn:ethereum:8453|0xa88594d404727625a9437c3f886c7643872296ae',
-          amount: '11545806346022338000000000',
-          decimals: 18,
-          symbol: 'WELL',
-        },
-      ],
+      to: '',
+      assets: [],
     },
   },
   {
