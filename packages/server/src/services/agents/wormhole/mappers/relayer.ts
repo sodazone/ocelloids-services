@@ -23,8 +23,8 @@ function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAs
   try {
     const decoded = decodeRelayerPayload(relayerInfo, `0x${(op.content.payload as any).payload}` as HexString)
 
-    if ('amount' in decoded && 'token' in decoded) {
-      const chainId = op.targetChain.chainId
+    if ('amount' in decoded && 'token' in decoded && 'to' in decoded) {
+      const chainId = op.targetChain?.chainId ?? op.content.standarizedProperties.toChain
       const tokenAddr = decoded['token']
       const assetId = tokenAddressToAssetId(chainId, tokenAddr)
       const tokenInfo = tokenRegistry.lookup(chainId, tokenAddr)
