@@ -44,7 +44,7 @@ const cases: TestCase[] = [
       to: '0x27428dd2d3dd32a4d7f7c497eaaa23130d894911',
       assets: [],
     },
-    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole custom relayer mapper')
