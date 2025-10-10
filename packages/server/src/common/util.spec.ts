@@ -10,7 +10,7 @@ describe('utility functions', () => {
       expect(asPublicKey(eth)).toBe(eth.toLowerCase())
     })
 
-    it.only('should accept Kusama SS58', () => {
+    it('should accept Kusama SS58', () => {
       const ksm = 'FkHuayqraYqjiGQUVK41thk399LZTsmqxXZ6GHyxWwfHh8t'
       expect(asPublicKey(ksm)).toBe(
         '0x8c4fbbccf088131ffc8e7b5db8eac6ccc982e824b9024a376f9c472b91ba362b'.toLowerCase(),
