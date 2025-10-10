@@ -41,6 +41,13 @@ function applySseFilters(
       return false
     }
   }
+  if (
+    filters.protocols &&
+    !filters.protocols.includes(journey.originProtocol as any) &&
+    !filters.protocols.includes(journey.destinationProtocol as any)
+  ) {
+    return false
+  }
   if (filters.origins && !filters.origins.includes(journey.origin)) {
     return false
   }
