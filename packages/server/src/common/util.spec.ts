@@ -10,6 +10,13 @@ describe('utility functions', () => {
       expect(asPublicKey(eth)).toBe(eth.toLowerCase())
     })
 
+    it.only('should accept Kusama SS58', () => {
+      const ksm = 'FkHuayqraYqjiGQUVK41thk399LZTsmqxXZ6GHyxWwfHh8t'
+      expect(asPublicKey(ksm)).toBe(
+        '0x8c4fbbccf088131ffc8e7b5db8eac6ccc982e824b9024a376f9c472b91ba362b'.toLowerCase(),
+      )
+    })
+
     it('should accept Sui 32-byte hex', () => {
       const sui = '0x4c77cf7f2b6786a9819401d2168addce7b9fdd1fb201d1887a779ca694df5361'
       expect(asPublicKey(sui)).toBe(sui.toLowerCase())
