@@ -6,6 +6,7 @@ import {
   from,
   lastValueFrom,
   map,
+  merge,
   mergeMap,
   mergeWith,
   of,
@@ -45,6 +46,7 @@ export class SubstrateWatcher extends Watcher<Block> {
   readonly #watchdogTimers: Record<NetworkURN, NodeJS.Timeout> = {}
   readonly #api$ = {} as Record<NetworkURN, Subject<SubstrateApi>>
   readonly #apis: Record<string, SubstrateApi>
+  readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
   readonly #backfill: SubstrateBackfill
@@ -89,6 +91,15 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
     await Promise.allSettled(news)
+
+    Object.values(this.#apiCancel).forEach((cancel$) => {
+      try {
+        cancel$.next()
+        cancel$.complete()
+      } catch {
+        // ignore
+      }
+    })
 
     Object.values(this.#api$).forEach((subject) => subject?.complete())
 
@@ -152,9 +163,23 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
+        // Create a fresh cancel token for this emitted api instance.
+        // Any reconnect will signal this to force a clean teardown of streams tied to this api.
+        if (this.#apiCancel[chainId]) {
+          // close previous just in case
+          try {
+            this.#apiCancel[chainId].next()
+            this.#apiCancel[chainId].complete()
+          } catch {
+            // ignore
+          }
+        }
+        const cancel$ = new Subject<void>()
+        this.#apiCancel[chainId] = cancel$
+
         const recovery$ = from(this.recoverRanges(chainId)).pipe(
           this.recoverBlockRanges(chainId, api),
-          takeUntil(shutdown$),
+          takeUntil(merge(shutdown$, cancel$)),
         )
 
         const liveFinalized$ = api.followHeads$('finalized').pipe(
@@ -162,7 +187,7 @@ export class SubstrateWatcher extends Watcher<Block> {
           this.tapError(chainId, 'finalizedHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
-          takeUntil(shutdown$),
+          takeUntil(merge(shutdown$, cancel$)),
           mergeMap(({ hash, status }) =>
             from(api.getBlock(hash)).pipe(
               map((block) => ({ status, ...block })),
@@ -264,16 +289,46 @@ export class SubstrateWatcher extends Watcher<Block> {
 
   async #reconnect(chainId: NetworkURN) {
     this.log.info('[watcher:substrate] %s reconnecting API', chainId)
-    if (this.#apis[chainId]) {
+    const existingApi = this.#apis?.[chainId]
+    if (existingApi) {
       try {
-        await this.#apis[chainId].disconnect()
-        delete this.#apis[chainId]
-        this.#apis[chainId] = (await this.#connector
-          .replaceNetwork('substrate', chainId)
-          .connect()) as SubstrateApi
+        // 1) Signal cancellation to any streams tied to the old API.
+        const cancel$ = this.#apiCancel[chainId]
+        try {
+          if (cancel$) {
+            cancel$.next()
+            cancel$.complete()
+            delete this.#apiCancel[chainId]
+          }
+        } catch (err) {
+          this.log.warn(err, '[%s] error while signaling api cancel', chainId)
+        }
+
+        // 2) Give the unsubscription microtask a short moment to complete.
+        await new Promise((res) => setTimeout(res, 50))
+
+        // 3) Disconnect the old API
+        try {
+          await existingApi.disconnect()
+        } catch (err) {
+          // best effort; log and continue to replace
+          this.log.warn(err, '[%s] error during api.disconnect()', chainId)
+        }
+
+        // 4) Replace API
+        const newApi = (await this.#connector.replaceNetwork('substrate', chainId).connect()) as SubstrateApi
+        this.#apis[chainId] = newApi
+
         this.log.info('[watcher:substrate] %s reconnect OK', chainId)
+
+        // 5) Emit the new API on the same Subject so finalized$ subscribers will switchMap to the new API.
+        // Important: we reuse the original Subject instance (this.#api$[chainId]) so downstream stream references remain valid.
+        if (!this.#api$[chainId]) {
+          this.#api$[chainId] = new Subject<SubstrateApi>()
+        }
         this.#api$[chainId].next(this.#apis[chainId])
         this.log.info('[watcher:substrate] %s emit API', chainId)
+
         this.emit('telemetryApiReconnect', {
           chainId,
         })

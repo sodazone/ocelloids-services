@@ -86,6 +86,13 @@ export default class Connector {
     return chains as Record<string, T>
   }
 
+  async disconnect(client: ClientId, chainId: NetworkURN) {
+    const api = this.#chains.get(client)?.[chainId]
+    if (api) {
+      await api.disconnect()
+    }
+  }
+
   async disconnectAll() {
     const clients = new Array(...this.#chains.values()).flatMap((v) => Object.values(v))
     for (const client of clients) {
