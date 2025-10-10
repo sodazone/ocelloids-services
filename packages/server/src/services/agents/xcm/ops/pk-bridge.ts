@@ -15,9 +15,20 @@ import {
 import { matchEvent, networkIdFromInteriorLocation } from './util.js'
 import { fromPKBridgeOutboundMessageFormat } from './xcm-format.js'
 
-export const pkBridgePallets: Record<NetworkURN, string> = {
-  'urn:ocn:polkadot:1002': 'BridgeKusamaMessages',
-  'urn:ocn:kusama:1002': 'BridgePolkadotMessages',
+export type PkBridgeConfig = {
+  destination: NetworkURN
+  pallet: string
+}
+
+export const pkBridgeConfig: Record<NetworkURN, PkBridgeConfig> = {
+  'urn:ocn:polkadot:1002': {
+    destination: 'urn:ocn:kusama:1002',
+    pallet: 'BridgeKusamaMessages',
+  },
+  'urn:ocn:kusama:1002': {
+    destination: 'urn:ocn:polkadot:1002',
+    pallet: 'BridgePolkadotMessages',
+  },
 }
 
 function toBridgeKey(lane: HexString, nonce: number | string | bigint): HexString {
@@ -30,9 +41,9 @@ export function extractBridgeMessageAccepted(
   context: SubstrateApiContext,
 ) {
   return (source: Observable<BlockEvent>): Observable<XcmBridgeAcceptedWithContext> => {
-    const pallet = pkBridgePallets[origin]
+    const config = pkBridgeConfig[origin]
     return source.pipe(
-      filter((event) => matchEvent(event, pallet, 'MessageAccepted')),
+      filter((event) => matchEvent(event, config.pallet, 'MessageAccepted')),
       mergeMap((blockEvent) => {
         const { lane_id, nonce } = blockEvent.value as { lane_id: HexString; nonce: number }
 
@@ -76,9 +87,9 @@ export function extractBridgeMessageAccepted(
 
 export function extractBridgeReceive(origin: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<XcmBridgeInboundWithContext> => {
-    const pallet = pkBridgePallets[origin]
+    const config = pkBridgeConfig[origin]
     return source.pipe(
-      filter((event) => matchEvent(event, pallet, 'MessagesReceived')),
+      filter((event) => matchEvent(event, config.pallet, 'MessagesReceived')),
       mergeMap((event) => {
         const { lane, receive_results } = event.value as {
           lane: HexString

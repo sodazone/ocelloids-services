@@ -19,7 +19,12 @@ import { MatchingEngine } from './matching.js'
 import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
-import { pkBridgePallets } from './ops/pk-bridge.js'
+import {
+  PkBridgeConfig,
+  extractBridgeMessageAccepted,
+  extractBridgeReceive,
+  pkBridgeConfig,
+} from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
 import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
 import { getMessageId, matchExtrinsic } from './ops/util.js'
@@ -113,6 +118,7 @@ export class XcmTracker {
     d: RxSubscriptionWithId[]
     o: RxSubscriptionWithId[]
     r: RxSubscriptionWithId[]
+    b: RxSubscriptionWithId[]
   }
   readonly #telemetry: TelemetryXcmEventEmitter
   readonly #ingress: SubstrateIngressConsumer
@@ -132,7 +138,7 @@ export class XcmTracker {
     this.#subject = new Subject<XcmMessagePayload>()
     this.xcm$ = this.#subject.pipe(share())
 
-    this.#streams = { d: [], o: [], r: [] }
+    this.#streams = { d: [], o: [], r: [], b: [] }
     this.#ingress = ctx.ingress.substrate
     this.#archive = ctx.archive
     this.#retentionOpts = ctx.archiveRetention
@@ -148,6 +154,7 @@ export class XcmTracker {
     this.#monitorOrigins(chainsToTrack)
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
+    this.#monitorPkBridge(chainsToTrack)
     this.#initHistoricalData()
   }
 
@@ -198,7 +205,7 @@ export class XcmTracker {
           this.#log.info('[%s] %s subscribe inbound UMP', this.#id, chainId)
 
           subs.push({
-            chainId,
+            id: chainId,
             sub: this.#shared
               .blockEvents(chainId)
               .pipe(extractUmpReceive(), mapXcmInbound(chainId))
@@ -224,7 +231,7 @@ export class XcmTracker {
 
           // Extract both DMP and HRMP receive
           subs.push({
-            chainId,
+            id: chainId,
             sub: messageHashBlocks$
               .pipe(extractParachainReceiveByBlock(chainId), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
@@ -272,7 +279,7 @@ export class XcmTracker {
           this.#log.info('[%s] %s subscribe outbound DMP', this.#id, chainId)
 
           subs.push({
-            chainId,
+            id: chainId,
             sub: this.#ingress
               .getContext(chainId)
               .pipe(
@@ -289,7 +296,7 @@ export class XcmTracker {
           })
 
           subs.push({
-            chainId,
+            id: chainId,
             sub: this.#ingress
               .getContext(chainId)
               .pipe(
@@ -309,7 +316,7 @@ export class XcmTracker {
           this.#log.info('[%s] %s subscribe outbound HRMP', this.#id, chainId)
 
           subs.push({
-            chainId,
+            id: chainId,
             sub: this.#ingress
               .getContext(chainId)
               .pipe(
@@ -329,7 +336,7 @@ export class XcmTracker {
           this.#log.info('[%s] %s subscribe outbound UMP', this.#id, chainId)
 
           subs.push({
-            chainId,
+            id: chainId,
             sub: this.#ingress
               .getContext(chainId)
               .pipe(
@@ -392,7 +399,7 @@ export class XcmTracker {
       this.#log.info('[%s] %s subscribe relay %s xcm events', this.#id, chainId, relayId)
 
       this.#streams.r.push({
-        chainId,
+        id: chainId,
         sub: this.#ingress
           .getContext(relayId)
           .pipe(
@@ -407,13 +414,76 @@ export class XcmTracker {
     }
   }
 
-  #isTracking(type: 'd' | 'o' | 'r', chainId: NetworkURN) {
-    return this.#streams[type].findIndex((s) => s.chainId === chainId) > -1
+  #monitorPkBridge(chains: NetworkURN[]) {
+    if (this.#streams.b.length > 0) {
+      throw new Error('Bridge streams already open')
+    }
+
+    const subs: RxSubscriptionWithId[] = []
+    try {
+      for (const [chainId, config] of Object.entries(pkBridgeConfig) as [NetworkURN, PkBridgeConfig][]) {
+        const { destination } = config
+
+        if (!chains.includes(chainId) || !chains.includes(destination)) {
+          continue
+        }
+
+        const pkBridgeErrorHandler = (error: any) => {
+          this.#log.error(error, '[%s] %s error on pk-bridge stream', this.#id, chainId)
+          this.#telemetry.emit('telemetryXcmSubscriptionError', {
+            chainId,
+            direction: 'bridge',
+          })
+        }
+
+        this.#log.info('[%s] %s subscribe PK bridge outbound accepted events', this.#id, chainId)
+        subs.push({
+          id: `${chainId}:accepted`,
+          sub: this.#ingress
+            .getContext(chainId)
+            .pipe(
+              switchMap((context) =>
+                this.#shared
+                  .blockEvents(chainId)
+                  .pipe(extractBridgeMessageAccepted(chainId, this.#getPkBridge(chainId, context), context)),
+              ),
+            )
+            .subscribe({
+              next: (message) => this.#engine.onBridgeOutboundAccepted(message),
+              error: pkBridgeErrorHandler,
+            }),
+        })
+
+        this.#log.info('[%s] %s subscribe PK bridge received events', this.#id, destination)
+        subs.push({
+          id: `${destination}:received`,
+          sub: this.#shared
+            .blockEvents(destination)
+            .pipe(extractBridgeReceive(destination))
+            .subscribe({
+              next: (message) => this.#engine.onBridgeInbound(message),
+              error: pkBridgeErrorHandler,
+            }),
+        })
+      }
+    } catch (error) {
+      // Clean up streams.
+      subs.forEach(({ sub }) => {
+        sub.unsubscribe()
+      })
+      throw error
+    }
+
+    this.#streams.b = subs
+  }
+
+  #isTracking(type: 'd' | 'o' | 'r' | 'b', id: string) {
+    return this.#streams[type].findIndex((s) => s.id === id) > -1
   }
 
   #getPkBridge(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundPKBridgeMessages {
-    const pallet = pkBridgePallets[chainId]
-    const codec = context.storageCodec(pallet, 'OutboundMessages')
+    const config = pkBridgeConfig[chainId]
+    const codec = context.storageCodec(config.pallet, 'OutboundMessages')
     return (blockHash: HexString, lane: HexString, nonce: number) => {
       const key = codec.keys.enc({
         lane_id: new FixedSizeBinary(fromHex(lane)),

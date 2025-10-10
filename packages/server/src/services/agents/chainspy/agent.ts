@@ -86,7 +86,7 @@ export class ChainSpy implements Agent, Subscribable {
           })
 
           streams.push({
-            chainId,
+            id: chainId,
             sub: stream,
           })
         }
