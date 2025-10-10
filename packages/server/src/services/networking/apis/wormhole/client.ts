@@ -82,7 +82,7 @@ export class WormholescanClient {
   /**
    * Stream all operations since a given timestamp, handling pagination.
    */
-  async *fetchAllOperationsStream(
+  async *streamAllOperations(
     params: WormholeOperationParams,
     signal?: AbortSignal | null,
   ): AsyncGenerator<WormholeOperation, void, unknown> {

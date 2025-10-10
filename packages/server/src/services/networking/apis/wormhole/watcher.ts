@@ -48,7 +48,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     let maxTs = cursor.lastSeen
 
     try {
-      for await (const op of client.fetchAllOperationsStream(
+      for await (const op of client.streamAllOperations(
         {
           from: cursor.lastSeen,
           ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
