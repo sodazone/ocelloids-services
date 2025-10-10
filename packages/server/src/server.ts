@@ -180,7 +180,7 @@ export async function createServer(opts: ServerOptions) {
     },
   })
 
-  await server.get(
+  server.get(
     '/openapi.json',
     {
       schema: {

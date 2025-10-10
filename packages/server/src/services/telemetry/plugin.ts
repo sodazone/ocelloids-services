@@ -3,6 +3,7 @@ import fp from 'fastify-plugin'
 import { Level } from 'level'
 import { collectDefaultMetrics, register } from 'prom-client'
 
+import { DatabaseOptions } from '@/types.js'
 import { CAP_TELEMETRY } from '../auth/index.js'
 import { collectDiskStats } from './metrics/disk.js'
 import { collect } from './metrics/index.js'
@@ -28,7 +29,7 @@ type PullCollect = () => Promise<void>
  * @param fastify - The Fastify instance
  * @param options - The telemetry options
  */
-const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, options) => {
+const telemetryPlugin: FastifyPluginAsync<TelemetryOptions & DatabaseOptions> = async (fastify, options) => {
   const {
     log,
     switchboard,
@@ -47,7 +48,22 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions> = async (fastify, op
 
     if (rootStore instanceof Level) {
       log.info('[metrics] enable level DB')
-      pullCollectors.push(collectDiskStats(rootStore.location))
+      pullCollectors.push(
+        collectDiskStats(rootStore.location, {
+          name: 'oc_root_db_disk_bytes',
+          help: 'The size in bytes of the root database.',
+        }),
+      )
+    }
+
+    if (options.data && options.data !== ':memory:') {
+      log.info('[metrics] enable data directory')
+      pullCollectors.push(
+        collectDiskStats(options.data, {
+          name: 'oc_data_dir_disk_bytes',
+          help: 'The size in bytes of the data directory.',
+        }),
+      )
     }
 
     if (switchboard) {

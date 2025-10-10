@@ -1,4 +1,4 @@
-import { Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
+import { DeleteResult, Kysely, SelectQueryBuilder, Transaction, sql } from 'kysely'
 import { ulid } from 'ulidx'
 
 import { QueryPagination } from '@/lib.js'
@@ -170,8 +170,15 @@ export class CrosschainRepository {
     await query.execute()
   }
 
-  async deleteJourney(id: number): Promise<void> {
-    await this.#db.deleteFrom('xc_journeys').where('id', '=', id).execute()
+  async deleteJourney(id: number): Promise<DeleteResult[]> {
+    return await this.#db.deleteFrom('xc_journeys').where('id', '=', id).execute()
+  }
+
+  async deleteJourneysByProtocol(protocol: string): Promise<DeleteResult[]> {
+    return await this.#db
+      .deleteFrom('xc_journeys')
+      .where((eb) => eb('origin_protocol', '=', protocol).or('destination_protocol', '=', protocol))
+      .execute()
   }
 
   async addJourneys(

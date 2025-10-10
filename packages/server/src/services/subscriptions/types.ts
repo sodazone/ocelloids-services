@@ -23,6 +23,8 @@ export type BlockNumberRange = {
 
 /**
  * Schema to validate subscription IDs.
+ *
+ * @public
  */
 export const $SubscriptionId = z
   .string({

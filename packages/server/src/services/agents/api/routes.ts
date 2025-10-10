@@ -155,29 +155,26 @@ export async function AgentsApi(api: FastifyInstance) {
   )
 
   /**
-   * GET agents/:agentId/sse
+   * GET sse/:agentId/:streamName
    */
   api.get<{
     Params: {
       agentId: AgentId
+      streamName: string
     }
     Querystring: AnyQueryArgs
   }>(
-    '/agents/:agentId/sse',
+    '/sse/:agentId/:streamName',
     {
-      // TODO configure rate limits for SSE
-      //config: {
-      //  caps: [CAP_READ],
-      //},
       schema: {
         tags: ['agents'],
-        // TODO: token in query string + DoS protection
-        // security: [{ BearerAuth: [] }],
         params: {
           type: 'object',
           properties: {
             agentId: zodToJsonSchema($AgentId),
+            streamName: { type: 'string' },
           },
+          required: ['agentId', 'streamName'],
         },
         querystring: {
           type: 'object',
@@ -197,13 +194,17 @@ export async function AgentsApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { agentId } = request.params
+      const { agentId, streamName } = request.params
       const agent = agentService.getStreamableById(agentId)
-      agent.onServerSideEventsRequest({
+      agent.onServerSentEventsRequest({
+        streamName,
         filters: request.query,
         request: request.raw,
+        uid: request.ip,
         reply,
       })
+
+      return reply
     },
   )
 }

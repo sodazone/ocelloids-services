@@ -1,9 +1,11 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
   "mainEntryPointFilePath": "<projectFolder>/dist/lib.d.ts",
-  "bundledPackages": [ "@sodazone/ocelloids-service-node", "isows" ],
-  "compiler": {
-  },
+  "bundledPackages": [
+    "@sodazone/ocelloids-service-node",
+    "isows"
+  ],
+  "compiler": {},
   "apiReport": {
     "enabled": false
   },
@@ -11,12 +13,11 @@
     "enabled": false
   },
   "dtsRollup": {
-    "enabled": true
+    "enabled": true,
+    "untrimmedFilePath": "<projectFolder>/dist/ocelloids-client.d.ts",
+    "omitTrimmingComments": true
   },
-
-  "tsdocMetadata": {
-  },
-
+  "tsdocMetadata": {},
   "messages": {
     "compilerMessageReporting": {
       "default": {
@@ -30,7 +31,7 @@
     },
     "tsdocMessageReporting": {
       "default": {
-        "logLevel": "warning"
+        "logLevel": "none"
       }
     }
   }

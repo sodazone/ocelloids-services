@@ -46,6 +46,9 @@ export type AssetsTrapped = {
   event: AnyJson
 }
 
+/**
+ * @public
+ */
 export type SwappedAsset = {
   localAssetId: AnyJson
   amount: string | number
@@ -288,7 +291,9 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   }
 }
 
-// no public export
+/**
+ * @public
+ */
 export const XcmNotificationTypes = [
   'xcm.sent',
   'xcm.received',
@@ -334,7 +339,10 @@ export interface XcmWaypointContext extends XcmTerminusContext {
   assetSwaps?: AssetSwap[]
 }
 
-const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
+/**
+ * @public
+ */
+export const legTypes = ['bridge', 'hop', 'hrmp', 'vmp'] as const
 
 /**
  * Type of an XCM journey leg.

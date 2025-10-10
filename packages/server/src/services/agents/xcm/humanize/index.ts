@@ -1,8 +1,7 @@
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
-import { getConsensus, getRelayId } from '@/services/config.js'
+import { getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { SubstrateNetworkInfo } from '@/services/networking/substrate/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { LRUCache } from 'lru-cache'
@@ -10,7 +9,14 @@ import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom } from 'rxjs'
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
-import { AssetMetadata, Empty, StewardQueryArgs, isAssetMetadata } from '../../steward/types.js'
+import { fetchSS58Prefix } from '../../steward/metadata/queries/helper.js'
+import {
+  AssetMetadata,
+  Empty,
+  StewardQueries,
+  StewardQueryArgs,
+  isAssetMetadata,
+} from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
 import { getParaIdFromJunctions, networkIdFromMultiLocation } from '../ops/util.js'
@@ -43,11 +49,6 @@ import {
 import { HumanizedXcm, XcmJourneyType } from './types.js'
 import { extractMultiAssetFilterAssets, parseMultiAsset, stringifyMultilocation } from './utils.js'
 
-const DEFAULT_SS58_PREFIX = 42
-const SS58_PREFIX_OVERRIDES: Record<NetworkURN, number> = {
-  'urn:ocn:polkadot:2031': 36,
-  'urn:ocn:polkadot:2034': 0,
-}
 const HOP_INSTRUCTIONS = [
   'InitiateReserveWithdraw',
   'InitiateTeleport',
@@ -66,10 +67,10 @@ export class XcmHumanizer {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
   readonly #priceCache: LRUCache<string, number, unknown>
-  readonly #ss58Cache: LRUCache<string, number, unknown>
   readonly #steward: DataSteward
   readonly #ticker: TickerAgent
   readonly #ingress: SubstrateIngressConsumer
+  readonly #stewardQuery: StewardQueries
 
   constructor({
     log,
@@ -86,6 +87,7 @@ export class XcmHumanizer {
     this.#log = log
     this.#ingress = ingress
     this.#steward = deps.steward
+    this.#stewardQuery = this.#steward.query.bind(this.#steward)
     this.#ticker = deps.ticker
 
     this.#cache = new LRUCache({
@@ -100,32 +102,12 @@ export class XcmHumanizer {
       ttlAutopurge: false,
       max: 100,
     })
-    this.#ss58Cache = new LRUCache({
-      ttl: 86_400_000,
-      ttlResolution: 300_000,
-      ttlAutopurge: false,
-      max: 100,
-    })
   }
 
   async start() {
-    const { items } = (await this.#steward.query({
-      pagination: { limit: 100 },
-      args: { op: 'chains.list' },
-    })) as QueryResult<SubstrateNetworkInfo>
-
-    items.forEach(({ ss58Prefix, urn }) => {
-      let prefix = SS58_PREFIX_OVERRIDES[urn]
-
-      if (prefix === undefined) {
-        prefix =
-          ss58Prefix === undefined || ss58Prefix === null
-            ? this.#resolveFallbackPrefix(urn, items)
-            : ss58Prefix
-      }
-
-      this.#ss58Cache.set(urn, prefix)
-    })
+    if (this.#steward === undefined) {
+      return
+    }
   }
 
   async humanize(message: XcmMessagePayload): Promise<HumanizedXcmPayload> {
@@ -762,11 +744,9 @@ export class XcmHumanizer {
           key: publicKeyOrParachain,
         }
       }
-      let prefix = this.#ss58Cache.get(chainId)
 
-      if (prefix === undefined) {
-        prefix = await this.#fetchPrefix(chainId)
-      }
+      const prefix = await fetchSS58Prefix(this.#stewardQuery, chainId)
+
       return {
         key: publicKeyOrParachain,
         formatted: fromBufferToBase58(prefix)(fromHex(publicKeyOrParachain)),
@@ -775,45 +755,6 @@ export class XcmHumanizer {
 
     return {
       key: chainId,
-    }
-  }
-
-  #resolveFallbackPrefix(urn: NetworkURN, items: SubstrateNetworkInfo[]): number {
-    const relay = getRelayId(urn)
-    const relayPrefix = this.#ss58Cache.get(relay)
-    if (relayPrefix !== undefined) {
-      return relayPrefix
-    }
-    const filtered = items.find((i) => i.urn === relay)?.ss58Prefix
-    if (filtered !== undefined && filtered !== null) {
-      return filtered
-    }
-    return DEFAULT_SS58_PREFIX
-  }
-
-  async #fetchPrefix(chainId: NetworkURN): Promise<number> {
-    if (SS58_PREFIX_OVERRIDES[chainId] !== undefined) {
-      this.#ss58Cache.set(chainId, SS58_PREFIX_OVERRIDES[chainId])
-      return SS58_PREFIX_OVERRIDES[chainId]
-    }
-    try {
-      const { items } = (await this.#steward.query({
-        args: {
-          op: 'chains',
-          criteria: {
-            networks: [chainId],
-          },
-        },
-      })) as QueryResult<SubstrateNetworkInfo>
-      const chainInfo = items.find((item) => item.urn === chainId)
-      if (chainInfo?.ss58Prefix === undefined || chainInfo?.ss58Prefix === null) {
-        return this.#resolveFallbackPrefix(chainId, items)
-      }
-      this.#ss58Cache.set(chainId, chainInfo.ss58Prefix)
-      return chainInfo.ss58Prefix
-    } catch (error) {
-      this.#log.warn(error, '[humanizer] Error on fetch prefix [%s]', chainId)
-      return this.#resolveFallbackPrefix(chainId, [])
     }
   }
 }

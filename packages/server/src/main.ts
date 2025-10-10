@@ -92,11 +92,11 @@ addServerOptions(program)
     ).default('*'),
   )
   .addOption(
-    optArr(
-      '--agent-config [agent:key1=val1,key2=val2]',
-      'per-agent config overrides; example: xcm:explorer=true,ticker=false',
+    opt(
+      '--agent-config <agent:key1=val1,agent:key2=val2>',
+      'per-agent config overrides; example: xcm:explorer=true,ticker:start=false',
       'OC_AGENT_CONFIG',
-    ).default([]),
+    ),
   )
   .addOption(
     optInt('--ws-max-clients <number>', 'maximum number of websocket clients', 'OC_WS_MAX_CLIENTS').default(

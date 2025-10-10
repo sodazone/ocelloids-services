@@ -7,7 +7,7 @@ import { beforeEach, describe, it } from 'vitest'
 import { createServices } from '@/testing/services.js'
 import { xcmDataDir } from '@/testing/xcm.js'
 import { CrosschainExplorer } from '../../crosschain/explorer.js'
-import { ServerSideEventsBroadcaster } from '../../types.js'
+import { ServerSentEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmTracker } from '../tracking.js'
 import { XcmExplorer } from './index.js'
@@ -48,7 +48,7 @@ describe('XcmExplorer', () => {
       send: sendSpy,
       stream: vi.fn(),
       close: vi.fn(),
-    } as unknown as ServerSideEventsBroadcaster
+    } as unknown as ServerSentEventsBroadcaster
 
     crosschain = new CrosschainExplorer({
       log,

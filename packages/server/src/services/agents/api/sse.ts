@@ -1,12 +1,13 @@
-import { randomUUID } from 'node:crypto'
+import { ulid } from 'ulidx'
 
 import { asJSON } from '@/common/util.js'
 
 import {
   AnyQueryArgs,
-  ServerSideEvent,
-  ServerSideEventsConnection,
-  ServerSideEventsRequest,
+  GenericEvent,
+  ServerSentEvent,
+  ServerSentEventsConnection,
+  ServerSentEventsRequest,
 } from '../types.js'
 
 function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, unknown>): T {
@@ -48,11 +49,12 @@ function sanitizeFilters<T extends Record<string, any>>(filters: Record<string, 
   return safeFilters as T
 }
 
-export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQueryArgs>(
-  matchFilters: (filters: T, event: ServerSideEvent) => boolean = () => true,
-) {
+export function createServerSentEventsBroadcaster<
+  T extends AnyQueryArgs = AnyQueryArgs,
+  E extends GenericEvent = GenericEvent,
+>(matchFilters: (filters: T, event: ServerSentEvent<E>) => boolean = () => true) {
   // TODO limits per account
-  const connections: Map<string, ServerSideEventsConnection<T>> = new Map()
+  const connections: Map<string, ServerSentEventsConnection<T>> = new Map()
   let keepAliveInterval: NodeJS.Timeout | undefined
 
   const keepAlive = () => {
@@ -71,7 +73,16 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     }, 30_000).unref()
   }
 
-  const startStreaming = ({ filters, request, reply }: ServerSideEventsRequest<T>) => {
+  const startStreaming = (
+    { filters, request, reply }: ServerSentEventsRequest<T>,
+    {
+      onConnect,
+      onDisconnect,
+    }: {
+      onConnect?: (connection: ServerSentEventsConnection<T>) => void
+      onDisconnect?: (connection: ServerSentEventsConnection<T>) => void
+    } = {},
+  ) => {
     // set existing headers in reply
     Object.entries(reply.getHeaders()).forEach(([key, value]) => {
       if (value) {
@@ -87,8 +98,8 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     )
     reply.raw.writeHead(200)
 
-    const id = randomUUID()
-    const send = ({ event, data }: ServerSideEvent) => {
+    const id = ulid()
+    const send = ({ event, data }: ServerSentEvent) => {
       reply.raw.write(`event: ${event}\ndata: ${asJSON(data)}\n\n`)
     }
     send({ event: 'ping', data: { timestamp: Date.now() } })
@@ -103,18 +114,25 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
 
     const normalizedFilters = sanitizeFilters(filters) as T
 
-    connections.set(id, {
+    const connection = {
       id,
       filters: normalizedFilters,
       request,
       send,
-    })
+      onDisconnect,
+    }
+    connections.set(id, connection)
 
     keepAlive()
+    onConnect?.(connection)
+
+    return connection
   }
 
-  const disconnect = (connection: ServerSideEventsConnection) => {
+  const disconnect = (connection: ServerSentEventsConnection<T>) => {
     connection.request.destroy()
+    connection.onDisconnect?.(connection)
+
     connections.delete(connection.id)
 
     if (connections.size === 0 && keepAliveInterval) {
@@ -123,8 +141,22 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     }
   }
 
-  const send = (event: ServerSideEvent) => {
+  const send = (event: ServerSentEvent<E>) => {
     for (const connection of connections.values()) {
+      try {
+        if (matchFilters(connection.filters, event)) {
+          connection.send(event)
+        }
+      } catch (error) {
+        console.error(error, 'Error sending SSE')
+        disconnect(connection)
+      }
+    }
+  }
+
+  const sendToConnection = (id: string, event: ServerSentEvent<E>) => {
+    const connection = connections.get(id)
+    if (connection) {
       try {
         if (matchFilters(connection.filters, event)) {
           connection.send(event)
@@ -146,5 +178,6 @@ export function createServerSideEventsBroadcaster<T extends AnyQueryArgs = AnyQu
     stream: startStreaming,
     close,
     send,
+    sendToConnection,
   }
 }

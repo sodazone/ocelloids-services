@@ -33,6 +33,7 @@ describe('subscription api', () => {
     server = await mockServer({
       jwtAuth: true,
       jwtSigKeyFile: 'keys',
+      agents: 'steward,ticker,xcm',
     })
     await server.ready()
     // create macario account

@@ -1,11 +1,16 @@
 import { TextEncoder } from 'util'
 import { DuckDBBlobValue } from '@duckdb/node-api'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
+import bs58 from 'bs58'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'
+
+const textEncoder = new TextEncoder()
+const ETH_PREFIX = '0x45544800'
 
 export function asJSON(o: unknown) {
   return JSON.stringify(o, (_, v) =>
@@ -23,33 +28,75 @@ export function getEventValue(module: string, name: string | string[], events: E
   )?.value
 }
 
-export function asPublicKey(accountId: string): HexString {
-  if (accountId.startsWith('0x')) {
-    return normalizePublicKey(accountId as HexString)
-  }
-  const info = getSs58AddressInfo(accountId)
-  if (!info.isValid) {
-    throw new Error(`invalid address format ${accountId}`)
-  }
-
-  return normalizePublicKey(info.publicKey)
+export function isEVMAddress(account: string) {
+  return account.startsWith('0x') && account.length === 42
 }
 
-const textEncoder = new TextEncoder()
+export function asAccountId(account: HexString, ss58Prefix = 0): string {
+  if (isEVMAddress(account)) {
+    return account
+  }
+  return fromBufferToBase58(ss58Prefix)(fromHex(account))
+}
 
 export function stringToUa8(v: string) {
   return textEncoder.encode(v)
 }
 
+/**
+ * Normalize any public key to hex string.
+ * - Strips ETH-prefixed keys
+ * - Leaves 32-byte keys (Sui, Solana, Polkadot) intact
+ */
 export function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
-  const publicKeyBuffer = typeof publicKey === 'string' ? fromHex(publicKey) : publicKey
-  // Handle Hydration EVM prefix
-  const ethPrefix = Buffer.concat([textEncoder.encode('ETH'), new Uint8Array([0])])
-  if (publicKeyBuffer.slice(0, 4).every((value, index) => value === ethPrefix[index])) {
-    const stripped = publicKeyBuffer.slice(4, 24)
-    return toHex(stripped) as HexString
+  const pk = typeof publicKey === 'string' ? publicKey : toHex(publicKey)
+
+  // Strip Hydration ETH prefix
+  if (pk.startsWith(ETH_PREFIX)) {
+    return `0x${pk.substring(10, 50).toLowerCase()}`
   }
-  return toHex(publicKeyBuffer) as HexString
+
+  return pk.toLowerCase() as HexString
+}
+
+/**
+ * Convert an account ID to normalized hex public key
+ * Supports:
+ * - Ethereum (0x-prefixed, 20 bytes)
+ * - Sui (0x-prefixed, 32 bytes)
+ * - Polkadot/Substrate SS58
+ * - Solana base58 (32 bytes)
+ */
+export function asPublicKey(accountId: string): HexString {
+  if (!accountId) {
+    throw new Error('empty accountId')
+  }
+
+  // Ethereum / Sui (0x-prefixed)
+  if (accountId.startsWith('0x')) {
+    const len = accountId.length
+    if (len === 42 || len === 66) {
+      // 42 chars = 20 bytes ETH, 66 chars = 32 bytes Sui
+      return normalizePublicKey(accountId as HexString)
+    }
+    throw new Error(`invalid 0x address length ${len}`)
+  }
+
+  // Polkadot/Substrate
+  const info = getSs58AddressInfo(accountId)
+  if (info.isValid) {
+    return normalizePublicKey(info.publicKey)
+  }
+
+  // Solana (base58 32 bytes)
+  if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(accountId)) {
+    const buffer = bs58.decode(accountId)
+    if (buffer.length === 32) {
+      return normalizePublicKey(buffer)
+    }
+  }
+
+  throw new Error(`invalid address format ${accountId}`)
 }
 
 /**
@@ -136,10 +183,16 @@ export function toSqlText(input: string | null | undefined): string {
   return `'${escaped}'`
 }
 
+/**
+ * @public
+ */
 export function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
 }
 
+/**
+ * @public
+ */
 export function deepCamelize<T>(input: any): DeepCamelize<T> {
   if (Array.isArray(input)) {
     return input.map(deepCamelize) as DeepCamelize<T>
@@ -154,10 +207,16 @@ export function deepCamelize<T>(input: any): DeepCamelize<T> {
   return input
 }
 
+/**
+ * @public
+ */
 export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
   ? `${T}${Capitalize<SnakeToCamelCase<U>>}`
   : S
 
+/**
+ * @public
+ */
 export type DeepCamelize<T> = T extends Array<infer U>
   ? DeepCamelize<U>[]
   : T extends object

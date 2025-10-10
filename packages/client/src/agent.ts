@@ -3,14 +3,23 @@ import {
   OcelloidsClientApi,
   OcelloidsClientConfig,
   QueryableApi,
+  StreamableApi,
   SubscribableApi,
 } from './client'
-import { AnySubscriptionInputs } from './types'
+import { XcQueryArgs, XcQueryResponse } from './crosschain/types'
 
-import { AssetMetadata, StewardQueryArgs } from './steward/types'
+import { AnySubscriptionInputs } from './lib'
+import {
+  AccountData,
+  AssetMetadata,
+  BalancesData,
+  StatusData,
+  StewardQueryArgs,
+  StewardServerSentEventArgs,
+} from './steward/types'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant'
+type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain'
 
 /**
  * Creates an agent instance.
@@ -79,9 +88,21 @@ export function createXcmAgent(
  */
 export function createStewardAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): QueryableApi<StewardQueryArgs, AssetMetadata> & OcelloidsClientApi {
+): QueryableApi<StewardQueryArgs, AssetMetadata> &
+  StreamableApi<
+    { streamName: 'balances'; args: StewardServerSentEventArgs },
+    | { event: 'balance'; onData: (data: BalancesData) => void }
+    | { event: 'status'; onData: (data: StatusData) => void }
+    | { event: 'synced'; onData: (data: AccountData) => void }
+  > &
+  OcelloidsClientApi {
   return createAgent('steward', optsOrClient)
 }
+
+/**
+ * @public
+ */
+export type StewardAgent = ReturnType<typeof createStewardAgent>
 
 /**
  * Creates an 'informant' agent instance.
@@ -107,3 +128,17 @@ export function createInformantAgent(
 ): SubscribableApi & OcelloidsClientApi {
   return createAgent('informant', optsOrClient)
 }
+
+/**
+ * @public
+ */
+export function createCrosschainAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): QueryableApi<XcQueryArgs, XcQueryResponse> & StreamableApi & OcelloidsClientApi {
+  return createAgent('crosschain', optsOrClient)
+}
+
+/**
+ * @public
+ */
+export type CrosschainAgent = ReturnType<typeof createCrosschainAgent>

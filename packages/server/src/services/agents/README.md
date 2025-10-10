@@ -1,6 +1,6 @@
 # Ocelloids Offchain Agents
 
-Ocelloids provides the infrastructure to develop, operate, and deploy offchain agents ([def.1](#d1-offchain-agents)). Each agent is implemented as an [ECMAScript Module](https://tc39.es/ecma262/#sec-modules) and conforms to the `Agent` interface. Currently, agents support two behaviors: `Subscribable` and `Queryable`.
+Ocelloids provides the infrastructure to develop, operate, and deploy offchain agents ([def.1](#d1-offchain-agents)). Each agent is implemented as an [ECMAScript Module](https://tc39.es/ecma262/#sec-modules) and conforms to the `Agent` interface. Currently, agents support different behaviors: e.g. `Subscribable` and `Queryable`.
 
 Agents have access to essential services defined in the `AgentRuntimeContext` from the Ocelloids host.
 
@@ -47,7 +47,20 @@ The `Subscribable` interface allows agents to manage dynamic subscriptions deliv
 
 This interface enables agents to adapt to changing data conditions by managing continuous data updates.
 
-## 5. AgentCatalog Interface
+## 5. Streamable Interface
+
+The `Streamable` interface defines the capabilities required for agents to expose continuous event streams over **Server-Sent Events (SSE)**.
+
+- **streamFilterSchema**:
+  A `z.ZodSchema` defining the structure of filters that can be applied to incoming SSE subscriptions.
+  This ensures all SSE query parameters are type-safe and validated at runtime.
+- **onServerSentEventsRequest(request: ServerSentEventsRequest\<T\>)**:  
+  Invoked by the HTTP server when a client initiates an SSE connection.
+  The `request` parameter provides metadata and filter information that can be used to initialize event streaming.
+
+This interface enables agents to provide **real-time, filtered data delivery** to connected clients through the standard `text/event-stream` protocol.
+
+## 6. AgentCatalog Interface
 
 The `AgentCatalog` interface manages agents within the system and provides the following functionalities:
 

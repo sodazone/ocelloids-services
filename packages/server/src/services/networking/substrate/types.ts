@@ -19,6 +19,13 @@ export type StorageCodec<T = any> = {
   value: Codec<T>
 }
 
+export type StorageChangeSet = {
+  block: string
+  changes: [string, string | null][]
+}
+
+export type StorageChangeSets = StorageChangeSet[]
+
 export type Event = {
   module: string
   name: string
@@ -179,7 +186,10 @@ export interface SubstrateApi extends ApiClient {
   ): Promise<HexString[]>
 
   getStorage(key: string, at?: string): Promise<HexString>
+  queryStorageAt(keys: string[], at?: string): Promise<StorageChangeSets>
   query<T = any>(module: string, method: string, ...args: any[]): Promise<T | null>
+
+  runtimeCall<T = any>(opts: { api: string; method: string; at?: string }, ...args: any[]): Promise<T | null>
 }
 
 export interface SubstrateApiContext {
@@ -189,6 +199,13 @@ export interface SubstrateApiContext {
   decodeCall(callData: string | Uint8Array): Call
   decodeExtrinsic(hextBytes: string): Extrinsic
   storageCodec<T = any>(module: string, method: string): StorageCodec<T>
+  runtimeCallCodec<T = any>(
+    api: string,
+    method: string,
+  ): {
+    args: Codec<any[]>
+    value: Codec<T>
+  }
   typeCodec<T = any>(path: string | string[] | number): Codec<T>
   getConstant(palletName: string, name: string): any
 
@@ -198,7 +215,7 @@ export interface SubstrateApiContext {
   }
 }
 
-export type Hashers = (
+export type Hasher =
   | {
       tag: 'Blake2128'
       value: undefined
@@ -227,6 +244,7 @@ export type Hashers = (
       tag: 'Identity'
       value: undefined
     }
-)[]
+
+export type Hashers = Hasher[]
 
 export type { SubstrateNetworkInfo } from './ingress/types.js'

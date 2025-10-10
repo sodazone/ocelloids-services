@@ -32,6 +32,9 @@ The configuration values can be overridden using command line arguments.
 | OC_ADDRESS                        | The address to bind to.                        | localhost |
 | OC_PORT                           | The TCP port number to listen on.              | 3000      |
 | OC_CONFIG_FILE                    | The service configuration file.                | -         |
+| OC_TRUST_PROXY                    | Enable when running behind a trusted proxy.    | false     |
+| OC_AGENTS                         | Agents to activate (comma-separated or wildcard). | "*"     |
+| OC_AGENT_CONFIG                   | Per-agent configuration. Format: `<agent>:<key>=<value>[,<agent>:<key>=<value>...]` | - |
 | OC_DATA_DIR                       | The data directory.                            | ./.db     |
 | OC_LEVEL_ENGINE                   | The LevelDB engine.                            | classic   |
 | OC_DB_SCHEDULER_ENABLE            | Enables or disables the task scheduler.        | true      |
@@ -53,6 +56,7 @@ The configuration values can be overridden using command line arguments.
 | OC_SUBSCRIPTION_MAX_EPHEMERAL     | Maximum number of ephemeral subscriptions.     | 5000      |
 | OC_DISTRIBUTED                    | Enables distributed mode for the exeuctor.     | false     |
 | OC_REDIS_URL                      | Redis connection URL.[^1]                      | redis://localhost:6379 |
+| OC_ANALYTICS                      | Enable analytics database (experimental)       | false     |
 | OC_ARCHIVE                        | Enables historical archiving.                  | false     |
 | OC_ARCHIVE_RETENTION              | Enables or disables archive pruning.           | true      |
 | OC_ARCHIVE_RETENTION_PERIOD       | Sets the pruning period.                       | 3_months  |
@@ -65,7 +69,7 @@ If you are looking for a distributed deployment, [check the guide for details on
 
 ### Network Configuration
 
-To configure network connections, you need to provide a configuration file in TOML format. 
+To configure network connections, you need to provide a configuration file in TOML format.
 
 <details>
   <summary><strong>Configuration file details</strong></summary>
@@ -109,7 +113,7 @@ docker pull sodazone/ocelloids-integrated-node
 ```
 
 Alternatively, if you want to build locally, from the root of the project, run:
- 
+
 ```shell
 docker build . -t ocelloids-integrated-node:develop
 ```
@@ -174,38 +178,42 @@ Usage: oc-node [options]
 Ocelloids Service Node
 
 Options:
-  -a, --address <address>                 address to bind to (default: "localhost", env: OC_ADDRESS)
-  -p, --port <number>                     port number to listen on (default: 3000, env: OC_PORT)
-  -c, --config <file>                     service configuration file (env: OC_CONFIG_FILE)
-  -d, --data <dir>                        data directory (default: "./.db", env: OC_DATA_DIR)
-  --level-engine <engine>                 level engine (default: "classic", env: OC_LEVEL_ENGINE)
-  --scheduler <boolean>                   enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
-  --scheduler-frequency <milliseconds>    milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
-  --sweep-expiry <milliseconds>           milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
-  -g, --grace <milliseconds>              milliseconds for the graceful close to finish (default: 5000, env: OC_CLOSE_GRACE_DELAY)
-  -t --telemetry <boolean>                enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
-  --rate-limit-max <number>               set the max number of requests (default: 60, env: OC_RATE_LIMIT_MAX)
-  --rate-limit-window <milliseconds>      set the request limit time window (default: 60000, env: OC_RATE_LIMIT_WINDOW)
-  -V, --version                           output the version number
-  --ws-max-clients <number>               maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
-  --subscription-max-persistent <number>  maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
-  --subscription-max-ephemeral <number>   maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
-  --cors                                  enables CORS support (default: false, env: OC_CORS)
-  --cors-credentials <boolean>            configures the Access-Control-Allow-Credentials CORS header (default: true, env: OC_CORS_CREDENTIALS)
-  --cors-origin [origin]                  configures the Access-Control-Allow-Origin CORS header
-                                          "true" for wildcard, "string" or "/regexp/"
-                                          repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
-  --jwt-auth                              enables the JWT authentication (default: false, env: OC_JWT_AUTH)
-  --jwt-sig-key-file <path>               path to the EdDSA key in JWK or PEM format (env: OC_JWT_SIG_KEY_FILE)
-  --jwt-iss <issuer>                      identity of the issuer (default: "localhost", env: OC_JWT_ISSUER)
-  --jwt-allowed-iss [issuer]              allowed issuers, accepts regular expressions (default: ["localhost"], env: OC_JWT_ALLOWED_ISSUERS)
-  --redis <redis-url>                     redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
-  --distributed                           distributed mode (default: false, env: OC_DISTRIBUTED)
-  --archive                               enables historical archiving (default: false, env: OC_ARCHIVE)
-  --archive-retention <boolean>            enables or disables archive pruning (default: true, env: OC_ARCHIVE_RETENTION)
-  --archive-retention-period <expression>  sets the pruning period (default: "3_months", env: OC_ARCHIVE_RETENTION_PERIOD)
-  --archive-tick <milliseconds>            tick frequency (default: 86400000, env: OC_ARCHIVE_TICK)
-  -h, --help                              display help for command
+  -a, --address <address>                     address to bind to (default: "localhost", env: OC_ADDRESS)
+  -p, --port <number>                         port number to listen on (default: 3000, env: OC_PORT)
+  --trust-proxy <boolean>                     enable when running behind a trusted proxy (default: false, env: OC_TRUST_PROXY)
+  -c, --config <file>                         service configuration file (env: OC_CONFIG_FILE)
+  -d, --data <dir>                            data directory (default: "./.db", env: OC_DATA_DIR)
+  --level-engine <engine>                     level engine (default: "classic", env: OC_LEVEL_ENGINE)
+  --scheduler <boolean>                       enables or disables the task scheduler (default: true, env: OC_DB_SCHEDULER_ENABLE)
+  --scheduler-frequency <milliseconds>        milliseconds to wait before each tick (default: 5000, env: OC_DB_SCHEDULER_FREQUENCY)
+  --sweep-expiry <milliseconds>               milliseconds before a task is swept (default: 1500000, env: OC_DB_JANITOR_SWEEP_EXPIRY)
+  -g, --grace <milliseconds>                  milliseconds for the graceful close to finish (default: 10000, env: OC_CLOSE_GRACE_DELAY)
+  -t --telemetry <boolean>                    enables or disables the telemetry exporter (default: true, env: OC_TELEMETRY_ENABLE)
+  --rate-limit-max <number>                   set the max number of requests (default: 60, env: OC_RATE_LIMIT_MAX)
+  --rate-limit-window <milliseconds>          set the request limit time window (default: 60000, env: OC_RATE_LIMIT_WINDOW)
+  -V, --version                               output the version number
+  --agents <agentIds>                         agents to activate, comma separated list or wildcard for all (default: "*", env: OC_AGENTS)
+  --agent-config <agent:key1=val1,agent:key2=val2>  per-agent config overrides; example: xcm:explorer=true,ticker:start=false (env: OC_AGENT_CONFIG)
+  --ws-max-clients <number>                   maximum number of websocket clients (default: 10000, env: OC_WS_MAX_CLIENTS)
+  --subscription-max-persistent <number>      maximum number of persistent subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_PERSISTENT)
+  --subscription-max-ephemeral <number>       maximum number of ephemeral subscriptions (default: 5000, env: OC_SUBSCRIPTION_MAX_EPHEMERAL)
+  --cors                                      enables CORS support (default: false, env: OC_CORS)
+  --cors-credentials <boolean>                configures the Access-Control-Allow-Credentials CORS header (default: true, env: OC_CORS_CREDENTIALS)
+  --cors-origin [origin]                      configures the Access-Control-Allow-Origin CORS header
+                                              "true" for wildcard, "string" or "/regexp/"
+                                              repeat this argument for multiple origins (default: ["/https?://localhost.*/"], env: OC_CORS_ORIGIN)
+  --jwt-auth                                  enables the JWT authentication (default: false, env: OC_JWT_AUTH)
+  --jwt-sig-key-file <path>                   path to the EdDSA key in JWK or PEM format (env: OC_JWT_SIG_KEY_FILE)
+  --jwt-iss <issuer>                          identity of the issuer (default: "localhost", env: OC_JWT_ISSUER)
+  --jwt-allowed-iss [issuer]                  allowed issuers, accepts regular expressions (default: ["localhost"], env: OC_JWT_ALLOWED_ISSUERS)
+  --redis <redis-url>                         redis[s]://[[username][:password]@][host][:port][/db-number] (env: OC_REDIS_URL)
+  --distributed                               distributed mode (default: false, env: OC_DISTRIBUTED)
+  --analytics                                 enables analytics database (experimental) (default: false, env: OC_ANALYTICS)
+  --archive                                   enables historical archiving (default: false, env: OC_ARCHIVE)
+  --archive-retention <boolean>               enables or disables archive pruning (default: true, env: OC_ARCHIVE_RETENTION)
+  --archive-retention-period <expression>     sets the pruning period (default: "1_months", env: OC_ARCHIVE_RETENTION_PERIOD)
+  --archive-tick <milliseconds>               tick frequency (default: 86400000, env: OC_ARCHIVE_TICK)
+  -h, --help                                  display help for command
 ```
 </details>
 
@@ -246,5 +254,4 @@ The Ocelloids Service Node exposes observability metrics via Prometheus, enablin
 
 ---
 
-Stay fresh! :zap::flamingo::palm_tree: 
-
+Stay fresh! :zap::flamingo::palm_tree:

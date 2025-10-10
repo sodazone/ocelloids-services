@@ -4,7 +4,7 @@ import { LevelDB, Logger } from '@/services/types.js'
 import { ValidationError } from '@/errors.js'
 import { AbstractSublevel } from 'abstract-level'
 import { normalizeAssetId } from '../common/melbourne.js'
-import { OMEGA_250 } from '../steward/queries/consts.js'
+import { OMEGA_250 } from '../consts.js'
 import {
   Agent,
   AgentMetadata,
