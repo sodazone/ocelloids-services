@@ -81,5 +81,6 @@ export type AggregatedPriceData = {
   sources: {
     name: string
     sourcePrice: number
+    isOutlier: boolean
   }[]
 }

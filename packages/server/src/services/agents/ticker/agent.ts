@@ -176,29 +176,40 @@ export class TickerAgent implements Agent, Queryable {
         continue
       }
 
-      let prices = items.map((i) => i.price)
+      let withOutliers: {
+        name: string
+        sourcePrice: number
+        isOutlier: boolean
+      }[] = items.map((i) => ({ name: i.source, sourcePrice: i.price, isOutlier: false }))
 
       // detect outliers using Median Absolute Deviation (MAD)
-      if (prices.length >= 3) {
+      if (withOutliers.length >= 3) {
+        const prices = withOutliers.map((i) => i.sourcePrice)
         const med = median(prices)
         const deviations = prices.map((p) => Math.abs(p - med))
         const mad = median(deviations)
         const threshold = 3 * mad || 1e-9 // avoid divide-by-zero edge cases
 
-        prices = prices.filter((p) => Math.abs(p - med) <= threshold)
-        items = items.filter((i) => prices.includes(i.price))
+        withOutliers = withOutliers.map((i) => {
+          if (Math.abs(i.sourcePrice - med) > threshold) {
+            return {
+              ...i,
+              isOutlier: true,
+            }
+          }
+          return i
+        })
       }
+
+      const normalisedPrices = withOutliers.filter((i) => !i.isOutlier).map((i) => i.sourcePrice)
 
       const aggregatedItem: AggregatedPriceData = {
         ticker,
         asset: items[0].asset,
-        meanPrice: mean(prices),
-        medianPrice: median(prices),
+        meanPrice: mean(normalisedPrices),
+        medianPrice: median(normalisedPrices),
         updated: Math.max(...items.map((item) => item.updated)),
-        sources: items.map((item) => ({
-          name: item.source,
-          sourcePrice: item.price,
-        })),
+        sources: withOutliers,
       }
 
       allItems.push(aggregatedItem)
