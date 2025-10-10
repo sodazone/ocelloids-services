@@ -483,7 +483,7 @@ export class XcmHumanizer {
         criteria: [{ chainId, assetId }],
       },
     } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
-    return items.length > 0 ? items[0].aggregatedPrice : null
+    return items.length > 0 ? items[0].medianPrice : null
   }
 
   #calculateVolume(asset: XcmAssetWithMetadata, price: number | null): number | undefined {
