@@ -344,6 +344,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           blockHash,
           blockNumber,
           event,
+          extrinsicHash,
+          extrinsicPosition,
           messageData,
           instructions,
           messageHash,
@@ -359,6 +361,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           timestamp,
           blockNumber: blockNumber.toString(),
           event,
+          extrinsicHash,
+          extrinsicPosition,
           messageData,
           messageHash,
           instructions,
@@ -1038,8 +1042,19 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   #onXcmBridgeMatched(bridgeOutMsg: XcmBridge, bridgeInMsg: XcmBridgeInboundWithContext) {
     try {
-      const { chainId, blockHash, blockNumber, timestamp, event, outcome, error, bridgeKey, specVersion } =
-        bridgeInMsg
+      const {
+        chainId,
+        blockHash,
+        blockNumber,
+        timestamp,
+        event,
+        extrinsicHash,
+        extrinsicPosition,
+        outcome,
+        error,
+        bridgeKey,
+        specVersion,
+      } = bridgeInMsg
       const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint
       const legIndex = bridgeOutMsg.legs.findIndex((l) => l.to === chainId && l.type === 'bridge')
       const waypointContext: XcmWaypointContext = {
@@ -1050,6 +1065,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         specVersion,
         timestamp,
         event,
+        extrinsicHash,
+        extrinsicPosition,
         messageData,
         messageHash,
         instructions,

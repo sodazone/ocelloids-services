@@ -53,6 +53,8 @@ describe('bridge operator', () => {
             expect(msg.blockNumber).toBeDefined()
             expect(msg.blockHash).toBeDefined()
             expect(msg.event).toBeDefined()
+            expect(msg.extrinsicHash).toBeDefined()
+            expect(msg.extrinsicPosition).toBeDefined()
             expect(msg.chainId).toBeDefined()
             expect(msg.chainId).toBe(chainId)
             expect(msg.outcome).toBeDefined()

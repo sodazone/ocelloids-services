@@ -298,6 +298,8 @@ describe('extractXcmMessageData', () => {
           expect(msg.destination.chainId).toBeDefined()
           expect(msg.origin.timestamp).toBeDefined()
           expect(msg.sender?.signer.id).toBeDefined()
+          expect(msg.legs).toBeDefined()
+          expect(msg.legs[0].type).toBe('hop')
           expect(msg.destination.chainId).toBe('urn:ocn:polkadot:1000')
         },
         complete: () => {
