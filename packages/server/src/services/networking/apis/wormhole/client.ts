@@ -65,7 +65,7 @@ export class WormholescanClient {
     params: WormholeOperationParams & { page?: number },
     signal?: AbortSignal | null,
   ): Promise<{ operations: WormholeOperation[]; total: number }> {
-    const { page = 0, pageSize = 100, ...query } = params
+    const { page = 0, pageSize = 25, ...query } = params
 
     return this.#api
       .get('api/v1/operations', {
@@ -86,7 +86,7 @@ export class WormholescanClient {
     params: WormholeOperationParams,
     signal?: AbortSignal | null,
   ): AsyncGenerator<WormholeOperation, void, unknown> {
-    const { pageSize = 100, ...query } = params
+    const { pageSize = 25, ...query } = params
     let page = 0
 
     while (true) {

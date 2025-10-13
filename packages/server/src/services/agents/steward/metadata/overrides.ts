@@ -262,6 +262,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     externalIds: [],
   },
   {
+    chainId: 'urn:ocn:ethereum:1',
+    id: '0x45804880de22913dafe09f4980848ece6ecbaf78',
+    xid: '0x45804880de22913dafe09f4980848ece6ecbaf78',
+    name: 'Paxos Gold',
+    symbol: 'PAXG',
+    decimals: 18,
+    raw: {},
+    externalIds: [],
+  },
+  {
     chainId: 'urn:ocn:polkadot:2004',
     id: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
     xid: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
