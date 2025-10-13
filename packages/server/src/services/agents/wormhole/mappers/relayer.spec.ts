@@ -2,6 +2,17 @@ import { TestCase, runWormholeMapperTests } from '@/testing/apis/wormhole/wormho
 
 const cases: TestCase[] = [
   {
+    name: 'decode moonwell multichain governor (moonbeam - not relayer)',
+    file: 'moonbeam_feedc.json',
+    expected: {
+      status: 'received',
+      type: 'transact',
+      from: '0x39801747857f384de011feb2d3a57a38ba925ea4',
+      to: '',
+      assets: [],
+    },
+  },
+  {
     name: 'decode WELL transfer (moonbeam → base)',
     file: 'moonbeam-base_well.json',
     expected: {

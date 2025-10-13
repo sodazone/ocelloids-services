@@ -12,6 +12,29 @@ type WormholeOperationParams = {
   address?: string // emitter address
 }
 
+function withRetry<T>(
+  fn: () => Promise<T>,
+  {
+    retries = 5,
+    delay = 2000,
+    exponential = true,
+  }: { retries?: number; delay?: number; exponential?: boolean } = {},
+): Promise<T> {
+  return (async function retry(attempt = 0): Promise<T> {
+    try {
+      return await fn()
+    } catch (err) {
+      if (attempt >= retries) {
+        throw err
+      }
+      const backoff = exponential ? delay * 2 ** attempt : delay
+      console.warn(`Retrying after ${backoff}ms (attempt ${attempt + 1}) due to`, err)
+      await new Promise((r) => setTimeout(r, backoff))
+      return retry(attempt + 1)
+    }
+  })()
+}
+
 export class WormholescanClient {
   readonly #api
 
@@ -57,37 +80,45 @@ export class WormholescanClient {
   }
 
   /**
-   * Fetch all operations, automatically handling pagination.
+   * Stream all operations since a given timestamp, handling pagination.
    */
-  async fetchAllOperations(
+  async *streamAllOperations(
     params: WormholeOperationParams,
     signal?: AbortSignal | null,
-  ): Promise<WormholeOperation[]> {
+  ): AsyncGenerator<WormholeOperation, void, unknown> {
     const { pageSize = 100, ...query } = params
     let page = 0
-    let results: WormholeOperation[] = []
 
     while (true) {
-      const data = await this.#api
-        .get('api/v1/operations', {
-          searchParams: {
-            ...query,
-            page,
-            pageSize,
-          },
-          signal,
-        })
-        .json<{ operations: WormholeOperation[]; total: number }>()
+      const data = await withRetry(
+        async () => {
+          if (signal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError')
+          }
 
-      results = results.concat(data.operations)
+          return await this.#api
+            .get('api/v1/operations', {
+              searchParams: { ...query, page, pageSize },
+              signal,
+            })
+            .json<{ operations: WormholeOperation[]; total: number }>()
+        },
+        {
+          retries: 5,
+          delay: 2000,
+          exponential: true,
+        },
+      )
+
+      for (const op of data.operations) {
+        yield op
+      }
 
       if (data.operations.length < pageSize) {
         break
       }
       page++
     }
-
-    return results
   }
 
   /**

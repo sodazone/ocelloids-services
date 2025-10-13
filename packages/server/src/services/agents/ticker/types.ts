@@ -75,10 +75,12 @@ export type AssetTickerData = {
 export type AggregatedPriceData = {
   ticker: string
   asset: AssetIdentifier | AssetIdentifier[]
-  aggregatedPrice: number
+  meanPrice: number
+  medianPrice: number
   updated: number
   sources: {
     name: string
     sourcePrice: number
+    isOutlier: boolean
   }[]
 }

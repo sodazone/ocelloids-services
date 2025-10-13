@@ -24,7 +24,7 @@ export function mapOperationToJourney(op: WormholeOperation): NewJourneyWithAsse
     journey = mapping.mapJourney(op) as NewJourneyWithAssets
     journey.assets = mapping.mapAssets(op, journey)
   } else {
-    journey = defaultJourneyMapping(op, '??', 'wh') as NewJourneyWithAssets
+    journey = defaultJourneyMapping(op, 'transact', 'wh') as NewJourneyWithAssets
     journey.assets = defaultAssetMapping(op, journey)
   }
 
