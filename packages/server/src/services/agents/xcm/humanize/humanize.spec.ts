@@ -4,6 +4,7 @@ import { apiContext } from '@/testing/xcm.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
+import { getXcmV5Sent } from '@/testing/humanize.js'
 
 describe('XcmHumanizer', () => {
   let humanizer: XcmHumanizer
@@ -1048,5 +1049,11 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets.length).toBe(3)
     expect(results.humanized.assets[0].id).toBeDefined()
     expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
+  it('should humanize XCM with InitiateTransfer instruction', async () => {
+    const msg = getXcmV5Sent()
+    const results = await humanizer.humanize(msg)
+    expect(results.humanized).toBeDefined()
   })
 })
