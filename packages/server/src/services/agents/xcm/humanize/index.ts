@@ -39,6 +39,7 @@ import {
   HumanizedXcmAsset,
   InitiateReserveWithdraw,
   InitiateTeleport,
+  InitiateTransfer,
   MultiAsset,
   QueryableXcmAsset,
   Transact,
@@ -506,13 +507,15 @@ export class XcmHumanizer {
 
     const hopMessage = this.#findHopMessage(instructions)
     if (
-      hopMessage &&
-      instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
-      (hopMessage.value as unknown as HopTransfer).xcm.some((op) =>
-        ['DepositAsset', 'DepositReserveAsset'].includes(op.type),
-      )
+      hopMessage
     ) {
-      return XcmJourneyType.Transfer
+      if (instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
+        (hopMessage.value as unknown as HopTransfer).xcm.some((op) =>
+          ['DepositAsset', 'DepositReserveAsset'].includes(op.type),
+        )) {
+        return XcmJourneyType.Transfer
+      }
+      return this.#determineJourneyType((hopMessage.value as unknown as HopTransfer).xcm)
     }
 
     if (instructions.some((op) => op.type === 'Transact')) {
@@ -606,6 +609,17 @@ export class XcmHumanizer {
   }
 
   #findHopMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
+    const initiateTransfer = instructions.find(op => op.type === 'InitiateTransfer')
+    if (initiateTransfer) {
+      const msg = initiateTransfer.value as unknown as InitiateTransfer
+      return {
+        type: '',
+        value: {
+          dest: msg.destination,
+          xcm: msg.remote_xcm
+        }
+      }
+    }
     return instructions.find((op) => HOP_INSTRUCTIONS.includes(op.type))
   }
 

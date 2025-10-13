@@ -19,7 +19,6 @@ export function getXcmV5Sent(): XcmSent {
     ],
     sender: undefined,
     messageId: '0x1b45fd25e1f3ddba7793a8c45289c3b17049c003c93e286e20e27ee2c5bafccc',
-    forwardId: undefined,
     type: 'xcm.sent',
     waypoint: {
       chainId: 'urn:ocn:kusama:1000',

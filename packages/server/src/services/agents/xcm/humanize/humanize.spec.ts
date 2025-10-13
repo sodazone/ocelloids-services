@@ -1050,5 +1050,7 @@ describe('XcmHumanizer', () => {
     const msg = getXcmV5Sent()
     const results = await humanizer.humanize(msg)
     expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.assets.length).toBe(2)
   })
 })
