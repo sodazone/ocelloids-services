@@ -27,7 +27,6 @@ const hydraSent: XcmSent = {
     extraSigners: [],
   },
   messageId: '0x7ba0bd809eb613e6137882bb85c46e2c68e3c8eebefc852e823950d499f108f6',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:2034',
@@ -99,7 +98,6 @@ const assethubHopOut: XcmSent = {
   ],
   sender: undefined,
   messageId: '0x7ba0bd809eb613e6137882bb85c46e2c68e3c8eebefc852e823950d499f108f6',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:1000',

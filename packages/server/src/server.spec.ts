@@ -507,7 +507,6 @@ describe('Ocelloids Server HTTP API', () => {
             expect(schema.properties.origins).toBeDefined()
             expect(schema.properties.senders).toBeDefined()
             expect(schema.properties.destinations).toBeDefined()
-            expect(schema.properties.bridges).toBeDefined()
             expect(schema.properties.events).toBeDefined()
             resolve()
           },

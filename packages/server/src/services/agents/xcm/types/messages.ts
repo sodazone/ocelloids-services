@@ -86,7 +86,6 @@ export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   messageData: HexString
   instructions: AnyJson
   recipient: NetworkURN
-  forwardId?: HexString
 }
 
 export interface XcmBridgeDeliveredWithContext extends XcmWithContext {
@@ -102,9 +101,18 @@ export interface XcmInboundWithContext extends XcmWithContext {
   assetSwaps?: AssetSwap[]
 }
 
-export interface XcmBridgeInboundWithContext extends XcmInboundWithContext {
+export interface XcmBridgeInboundWithContext {
   chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
   bridgeKey: HexString
+  outcome: 'Success' | 'Fail'
+  event?: AnyJson
+  extrinsicPosition?: number
+  specVersion?: number
+  timestamp?: number
+  extrinsicHash?: HexString
+  error?: AnyJson
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -221,7 +229,6 @@ export class GenericXcmBridgeAcceptedWithContext
   messageData: HexString
   recipient: NetworkURN
   instructions: AnyJson
-  forwardId?: HexString
 
   constructor(msg: XcmBridgeAcceptedWithContext) {
     super(msg)
@@ -231,7 +238,6 @@ export class GenericXcmBridgeAcceptedWithContext
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-    this.forwardId = msg.forwardId
   }
 }
 
@@ -252,19 +258,33 @@ export class GenericXcmBridgeDeliveredWithContext
   }
 }
 
-export class GenericXcmBridgeInboundWithContext extends BaseXcmEvent implements XcmBridgeInboundWithContext {
+export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+  blockNumber: string | number
+  blockHash: HexString
   chainId: NetworkURN
   bridgeKey: HexString
   outcome: 'Success' | 'Fail'
   error: AnyJson
 
-  constructor(msg: XcmBridgeInboundWithContext) {
-    super(msg)
+  event?: AnyJson
+  extrinsicPosition?: number
+  specVersion?: number
+  timestamp?: number
+  extrinsicHash?: HexString
 
+  constructor(msg: XcmBridgeInboundWithContext) {
+    this.blockNumber = msg.blockNumber
+    this.blockHash = msg.blockHash
     this.chainId = msg.chainId
+    this.bridgeKey = msg.bridgeKey
     this.outcome = msg.outcome
     this.error = msg.error
-    this.bridgeKey = msg.bridgeKey
+
+    this.event = msg.event
+    this.extrinsicPosition = msg.extrinsicPosition
+    this.extrinsicHash = msg.extrinsicHash
+    this.specVersion = msg.specVersion
+    this.timestamp = msg.timestamp
   }
 }
 
@@ -354,7 +374,6 @@ export interface XcmJourney {
   destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
-  forwardId?: HexString
 }
 
 /**
@@ -427,13 +446,11 @@ abstract class BaseXcmJourney {
   legs: Leg[]
   sender?: SignerData
   messageId?: HexString
-  forwardId?: HexString
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
-    this.forwardId = msg.forwardId
   }
 }
 
@@ -443,10 +460,9 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], forwardId?: HexString) {
+  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
     super({
       legs,
-      forwardId,
       messageId: msg.messageId,
       sender: msg.sender,
     })
@@ -595,7 +611,6 @@ export interface XcmBridge extends XcmJourney {
 type XcmBridgeContext = {
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
-  forwardId?: HexString
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
@@ -609,9 +624,9 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   constructor(
     originMsg: XcmBridge,
     waypoint: XcmWaypointContext,
-    { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext,
+    { bridgeKey, bridgeMessageType }: XcmBridgeContext,
   ) {
-    super({ ...originMsg, forwardId })
+    super(originMsg)
 
     this.bridgeMessageType = bridgeMessageType
     this.origin = originMsg.origin
