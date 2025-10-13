@@ -69,7 +69,6 @@ export function extractBridgeMessageAccepted(
                 messageHash: hash,
                 instructions: xcm,
                 messageId: id,
-                forwardId: id,
                 bridgeKey: toBridgeKey(lane_id, nonce),
                 chainId: origin,
               })

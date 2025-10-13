@@ -53,7 +53,6 @@ const kusamaAssetHubSent: XcmSent = {
     extraSigners: [],
   },
   messageId: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:kusama:1000',
@@ -172,7 +171,6 @@ const kusamaBridgeHubAccepted: XcmBridgeAcceptedWithContext = {
   bridgeKey: '0x2187c09768bea89f950237053705096c000000011806000000000000',
   recipient: 'urn:ocn:polkadot:1000',
   instructions: {},
-  forwardId: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
 }
 
 const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
@@ -231,7 +229,6 @@ const polkadotBridgeHubOutbound: XcmSent = {
     extraSigners: [],
   },
   messageId: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:polkadot:1002',

@@ -86,7 +86,6 @@ export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   messageData: HexString
   instructions: AnyJson
   recipient: NetworkURN
-  forwardId?: HexString
 }
 
 export interface XcmBridgeDeliveredWithContext extends XcmWithContext {
@@ -230,7 +229,6 @@ export class GenericXcmBridgeAcceptedWithContext
   messageData: HexString
   recipient: NetworkURN
   instructions: AnyJson
-  forwardId?: HexString
 
   constructor(msg: XcmBridgeAcceptedWithContext) {
     super(msg)
@@ -240,7 +238,6 @@ export class GenericXcmBridgeAcceptedWithContext
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-    this.forwardId = msg.forwardId
   }
 }
 
@@ -377,7 +374,6 @@ export interface XcmJourney {
   destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
-  forwardId?: HexString
 }
 
 /**
@@ -450,13 +446,11 @@ abstract class BaseXcmJourney {
   legs: Leg[]
   sender?: SignerData
   messageId?: HexString
-  forwardId?: HexString
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
-    this.forwardId = msg.forwardId
   }
 }
 
@@ -466,10 +460,9 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], forwardId?: HexString) {
+  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
     super({
       legs,
-      forwardId,
       messageId: msg.messageId,
       sender: msg.sender,
     })
@@ -618,7 +611,6 @@ export interface XcmBridge extends XcmJourney {
 type XcmBridgeContext = {
   bridgeMessageType: BridgeMessageType
   bridgeKey: HexString
-  forwardId?: HexString
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
@@ -632,9 +624,9 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   constructor(
     originMsg: XcmBridge,
     waypoint: XcmWaypointContext,
-    { bridgeKey, bridgeMessageType, forwardId }: XcmBridgeContext,
+    { bridgeKey, bridgeMessageType }: XcmBridgeContext,
   ) {
-    super({ ...originMsg, forwardId })
+    super(originMsg)
 
     this.bridgeMessageType = bridgeMessageType
     this.origin = originMsg.origin

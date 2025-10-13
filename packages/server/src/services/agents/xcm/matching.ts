@@ -300,7 +300,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           relayMsg.blockNumber,
         )
         await this.#relay.del(idKey)
-        await this.#onXcmRelayed(outMsg, relayMsg)
+        this.#onXcmRelayed(outMsg, relayMsg)
       } else {
         const relayKey = relayMsg.messageId
           ? matchingKey(relayMsg.origin, relayMsg.messageId)
@@ -375,7 +375,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           {
             bridgeMessageType: 'accepted',
             bridgeKey,
-            forwardId: messageId,
           },
         )
         await this.#bridge.del(idKey)
@@ -1076,7 +1075,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const bridgeMatched: XcmBridge = new GenericXcmBridge(bridgeOutMsg, waypointContext, {
         bridgeMessageType: 'received',
         bridgeKey,
-        forwardId: bridgeOutMsg.forwardId,
       })
 
       this.emit('telemetryXcmBridge', bridgeMatched)
