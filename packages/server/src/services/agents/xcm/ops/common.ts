@@ -155,16 +155,27 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.type = 'hrmp'
       }
     } else if (getChainId(from) === '1000' && (to === 'urn:ocn:ethereum:1' || getChainId(from) === '1000')) {
-      // TODO: Pending bridge support
+      // TODO: Pending Snowbridge bridge support
       // Since we don't support bridges yet, all bridged transfers through assethub should end in bridgehub
       leg.to = `urn:ocn:${getConsensus(from)}:1002`
       leg.relay = createNetworkId(from, '0')
       leg.type = 'hrmp'
     } else if (getChainId(from) === '1002') {
-      // TODO: Pending bridge support
-      break
+      // P<>K bridge
+      const prev = legs[legs.length - 1]
+      prev.type = 'hop'
+      legs.push({
+        from,
+        to: `urn:ocn:${getConsensus(to)}:1002`,
+        type: 'bridge',
+      })
+      leg.from = `urn:ocn:${getConsensus(to)}:1002`
+      if (getChainId(to) !== '0') {
+        leg.relay = createNetworkId(to, '0')
+        leg.type = 'hrmp'
+      }
     } else {
-      leg.type = 'bridge'
+      throw new Error(`Unknown leg type for origin=${from} destination=${to}`)
     }
 
     legs.push(leg)

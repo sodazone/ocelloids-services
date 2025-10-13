@@ -1,13 +1,24 @@
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+import { decodeCompact } from '@/services/networking/substrate/codec.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Blake2256 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
+import { Struct } from 'scale-ts'
+import { getMessageId } from './util.js'
 
 export type Program = {
   data: Uint8Array
   instructions: Record<string, any>
   hash: HexString
+}
+
+export type OutboundBridgeMessage = {
+  destination: Record<string, any>
+  xcm: Record<string, any>
+  hash: HexString
+  messageData: HexString
+  id?: HexString
 }
 
 export function messageHash(data: HexString | Uint8Array): HexString {
@@ -111,4 +122,43 @@ export function fromXcmpFormat(buf: Uint8Array, context: SubstrateApiContext): P
     }
   }
   return []
+}
+
+export function fromPKBridgeOutboundMessageFormat(
+  data: Uint8Array,
+  context: SubstrateApiContext,
+): OutboundBridgeMessage[] {
+  const locTypeId = context.getTypeIdByPath('xcm.versionedinteriorlocation')
+  if (!locTypeId) {
+    throw new Error('XCM versioned interior location type not found in chain registry')
+  }
+  const xcmCodec = versionedXcmCodec(context)
+  const BridgeMessage = Struct({
+    destination: context.typeCodec(locTypeId),
+    xcm: xcmCodec,
+  })
+  const messages: OutboundBridgeMessage[] = []
+  let i = 0
+
+  while (i < data.length) {
+    const { value: length, offset } = decodeCompact(data.subarray(i))
+    const start = i + offset
+    const end = start + length
+    if (end > data.length) {
+      throw new Error('Slice out of range')
+    }
+    const chunk = data.subarray(start, end)
+    const { destination, xcm } = BridgeMessage.dec(toHex(chunk))
+    const instructions = asSerializable<Record<string, any>>(xcm)
+    const encoded = xcmCodec.enc(xcm)
+    messages.push({
+      destination,
+      xcm: instructions,
+      id: getMessageId({ instructions }),
+      hash: messageHash(encoded),
+      messageData: toHex(encoded) as HexString,
+    })
+    i = end
+  }
+  return messages
 }

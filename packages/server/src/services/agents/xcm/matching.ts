@@ -4,7 +4,7 @@ import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
 
 import { AgentRuntimeContext } from '@/services/agents/types.js'
-import { getRelayId, isOnSameConsensus } from '@/services/config.js'
+import { getRelayId } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { Logger, SubLevel, jsonEncoded } from '@/services/types.js'
 
@@ -168,35 +168,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         return outMsg
       }
 
-      if (outMsg.forwardId !== undefined) {
-        // Is bridged message
-        // Try to match origin message (on other consensus) using the forward ID.
-        // If found, create outbound message with origin context and current waypoint context
-        // before trying to match inbound (on same consensus).
-        // If origin message not found, treat as normal XCM outbound
-
-        const {
-          origin: { chainId },
-          messageId,
-          forwardId,
-          waypoint,
-        } = outMsg
-        const forwardIdKey = matchingKey(chainId, forwardId)
-        const originMsg = await this.#bridge.get(forwardIdKey)
-        if (originMsg !== undefined) {
-          const bridgedSent: XcmSent = {
-            ...originMsg,
-            waypoint,
-            messageId,
-            forwardId,
-          }
-          await this.#handleXcmOutbound(bridgedSent)
-          await this.#bridge.del(forwardIdKey)
-        } else {
-          await this.#handleXcmOutbound(outMsg)
-        }
-      } else if (outMsg.messageId) {
-        // Is not bridged message
+      if (outMsg.messageId) {
         // First try to match by hop key
         // If found, emit hop, and do not store anything
         // If no matching hop key, assume is origin outbound message -> try to match inbound
@@ -328,7 +300,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           relayMsg.blockNumber,
         )
         await this.#relay.del(idKey)
-        await this.#onXcmRelayed(outMsg, relayMsg)
+        this.#onXcmRelayed(outMsg, relayMsg)
       } else {
         const relayKey = relayMsg.messageId
           ? matchingKey(relayMsg.origin, relayMsg.messageId)
@@ -354,17 +326,17 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
     await this.#mutex.runExclusive(async () => {
-      if (msg.forwardId === undefined) {
+      const { chainId, messageId, bridgeKey } = msg
+      if (messageId === undefined) {
         this.#log.error(
-          '[%s] forward_id_to not found for bridge accepted message (block=%s #%s)',
-          msg.chainId,
+          '[%s] topic ID not found for bridge accepted message (block=%s #%s)',
+          chainId,
           msg.blockHash,
           msg.blockNumber,
         )
         return
       }
-      const { chainId, forwardId, bridgeKey } = msg
-      const idKey = matchingKey(chainId, forwardId)
+      const idKey = matchingKey(chainId, messageId)
 
       const originMsg = await this.#bridge.get(idKey)
       if (originMsg !== undefined) {
@@ -372,6 +344,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           blockHash,
           blockNumber,
           event,
+          extrinsicHash,
+          extrinsicPosition,
           messageData,
           instructions,
           messageHash,
@@ -387,10 +361,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           timestamp,
           blockNumber: blockNumber.toString(),
           event,
+          extrinsicHash,
+          extrinsicPosition,
           messageData,
           messageHash,
           instructions,
-          outcome: 'Success', // always 'Success' since it's delivered
+          outcome: 'Success', // always 'Success' since it's accepted
           error: null,
         }
         const bridgeOutMsg: XcmBridge = new GenericXcmBridge(
@@ -399,20 +375,19 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           {
             bridgeMessageType: 'accepted',
             bridgeKey,
-            forwardId,
           },
         )
-        const sublevelBridgeKey = `${bridgeKey}`
-        await this.#bridgeAccepted.put(sublevelBridgeKey, bridgeOutMsg)
+        await this.#bridge.del(idKey)
+        await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)
         await new Promise((res) => setImmediate(res)) // allow event loop tick
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeAccepted,
-          key: sublevelBridgeKey,
+          key: bridgeKey,
         })
         this.#log.info(
           '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
           chainId,
-          sublevelBridgeKey,
+          bridgeKey,
           msg.blockHash,
           msg.blockNumber,
         )
@@ -736,9 +711,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #storeOnOutbound(msg: XcmSent) {
-    const sublegs = msg.legs.filter((l) => isOnSameConsensus(msg.waypoint.chainId, l.from))
-
-    for (const leg of sublegs) {
+    for (const leg of msg.legs) {
       if (msg.messageId === undefined || msg.messageId === msg.waypoint.messageHash) {
         await this.#storeLegOnOutboundWithHash(msg, leg)
       } else {
@@ -753,34 +726,25 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const iKey = matchingKey(stop, msg.messageId)
 
     if (leg.type === 'bridge') {
-      const bridgeOut = leg.from
-      const bridgeIn = leg.to
-      const bridgeOutIdKey = matchingKey(bridgeOut, msg.messageId)
-      const bridgeInIdKey = matchingKey(bridgeIn, msg.messageId)
+      // store origin msg in hop sublevel so that the outbound xcm from destination bridgehub can be matched as hop out
+      await this.#putHops([matchingKey(leg.to, msg.messageId), msg])
+      const bridgeIdKey = matchingKey(leg.from, msg.messageId)
+      // store origin msg in bridge sublevel for matching on bridge message accepted
       this.#log.info(
-        '[%s:b] STORED out=%s outKey=%s in=%s inKey=%s (block=%s #%s)',
+        '[%s:b] STORED bridgeStop=%s key=%s (block=%s #%s)',
         msg.origin.chainId,
-        bridgeOut,
-        bridgeOutIdKey,
-        bridgeIn,
-        bridgeInIdKey,
+        leg.from,
+        bridgeIdKey,
         msg.origin.blockHash,
         msg.origin.blockNumber,
       )
-      await this.#bridge.batch().put(bridgeOutIdKey, msg).put(bridgeInIdKey, msg).write()
+      await this.#bridge.put(bridgeIdKey, msg)
       await new Promise((res) => setImmediate(res)) // allow event loop tick
-      await this.#janitor.schedule(
-        {
-          sublevel: prefixes.matching.bridge,
-          key: bridgeOutIdKey,
-          expiry: this.#expiry,
-        },
-        {
-          sublevel: prefixes.matching.bridge,
-          key: bridgeInIdKey,
-          expiry: this.#expiry,
-        },
-      )
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.bridge,
+        key: bridgeIdKey,
+        expiry: this.#expiry,
+      })
       return
     }
 
@@ -1077,8 +1041,19 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   #onXcmBridgeMatched(bridgeOutMsg: XcmBridge, bridgeInMsg: XcmBridgeInboundWithContext) {
     try {
-      const { chainId, blockHash, blockNumber, timestamp, event, outcome, error, bridgeKey, specVersion } =
-        bridgeInMsg
+      const {
+        chainId,
+        blockHash,
+        blockNumber,
+        timestamp,
+        event,
+        extrinsicHash,
+        extrinsicPosition,
+        outcome,
+        error,
+        bridgeKey,
+        specVersion,
+      } = bridgeInMsg
       const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint
       const legIndex = bridgeOutMsg.legs.findIndex((l) => l.to === chainId && l.type === 'bridge')
       const waypointContext: XcmWaypointContext = {
@@ -1089,6 +1064,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         specVersion,
         timestamp,
         event,
+        extrinsicHash,
+        extrinsicPosition,
         messageData,
         messageHash,
         instructions,
@@ -1098,7 +1075,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const bridgeMatched: XcmBridge = new GenericXcmBridge(bridgeOutMsg, waypointContext, {
         bridgeMessageType: 'received',
         bridgeKey,
-        forwardId: bridgeOutMsg.forwardId,
       })
 
       this.emit('telemetryXcmBridge', bridgeMatched)

@@ -22,7 +22,7 @@ export function toStatus(payload: XcmMessagePayload) {
   if (payload.type === 'xcm.timeout') {
     return 'timeout'
   }
-  if (['xcm.sent', 'xcm.relayed', 'xcm.hop'].includes(payload.type)) {
+  if (['xcm.sent', 'xcm.relayed', 'xcm.hop', 'xcm.bridge'].includes(payload.type)) {
     return 'sent'
   }
   return 'unknown'
