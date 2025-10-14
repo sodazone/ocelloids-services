@@ -242,5 +242,5 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   PAXG: {
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x45804880de22913dafe09f4980848ece6ecbaf78',
-  }
+  },
 }
