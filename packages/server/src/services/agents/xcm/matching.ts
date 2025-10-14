@@ -67,6 +67,7 @@ function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
 const MAX_MATCH_RETRIES = 5
+const BRIDGE_MSG_EXPIRY = 25 * 60_000
 
 /**
  * Matches sent XCM messages on the destination.
@@ -711,23 +712,25 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
   }
 
   async #storeOnOutbound(msg: XcmSent) {
+    const isBridged = msg.legs.some((l) => l.type === 'bridge')
+    const expiryOverride = isBridged ? BRIDGE_MSG_EXPIRY : undefined
+    const storeFn =
+      msg.messageId === undefined || msg.messageId === msg.waypoint.messageHash
+        ? (leg: Leg) => this.#storeLegOnOutboundWithHash(msg, leg)
+        : (leg: Leg) => this.#storeLegOnOutboundWithTopicId(msg as XcmSentWithId, leg, expiryOverride)
     for (const leg of msg.legs) {
-      if (msg.messageId === undefined || msg.messageId === msg.waypoint.messageHash) {
-        await this.#storeLegOnOutboundWithHash(msg, leg)
-      } else {
-        await this.#storeLegOnOutboundWithTopicId(msg as XcmSentWithId, leg)
-      }
+      await storeFn(leg)
     }
   }
 
-  async #storeLegOnOutboundWithTopicId(msg: XcmSentWithId, leg: Leg) {
+  async #storeLegOnOutboundWithTopicId(msg: XcmSentWithId, leg: Leg, expiry?: number) {
     const stop = leg.to
     const hKey = matchingKey(stop, msg.waypoint.messageHash)
     const iKey = matchingKey(stop, msg.messageId)
 
     if (leg.type === 'bridge') {
       // store origin msg in hop sublevel so that the outbound xcm from destination bridgehub can be matched as hop out
-      await this.#putHops([matchingKey(leg.to, msg.messageId), msg])
+      await this.#putHops({ key: matchingKey(leg.to, msg.messageId), journey: msg, expiry })
       const bridgeIdKey = matchingKey(leg.from, msg.messageId)
       // store origin msg in bridge sublevel for matching on bridge message accepted
       this.#log.info(
@@ -743,7 +746,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       await this.#janitor.schedule({
         sublevel: prefixes.matching.bridge,
         key: bridgeIdKey,
-        expiry: this.#expiry,
+        expiry: expiry ?? this.#expiry,
       })
       return
     }
@@ -773,7 +776,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockHash,
         msg.origin.blockNumber,
       )
-      await this.#putHops([iKey, msg], [hKey, msg])
+      await this.#putHops({ key: iKey, journey: msg, expiry }, { key: hKey, journey: msg, expiry })
     }
 
     if (leg.relay !== undefined || leg.type === 'vmp') {
@@ -794,12 +797,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         {
           sublevel: prefixes.matching.outbound,
           key: hKey,
-          expiry: this.#expiry,
+          expiry: expiry ?? this.#expiry,
         },
         {
           sublevel: prefixes.matching.outbound,
           key: iKey,
-          expiry: this.#expiry,
+          expiry: expiry ?? this.#expiry,
         },
       )
     }
@@ -847,7 +850,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         msg.origin.blockHash,
         msg.origin.blockNumber,
       )
-      await this.#putHops([hKey, msg])
+      await this.#putHops({ key: hKey, journey: msg })
     }
 
     if (leg.relay !== undefined || leg.type === 'vmp') {
@@ -869,14 +872,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     }
   }
 
-  async #putHops(...entries: [string, XcmJourney][]) {
-    for (const [key, journey] of entries) {
+  async #putHops(...entries: { key: string; journey: XcmJourney; expiry?: number }[]) {
+    for (const { key, journey, expiry } of entries) {
       await this.#hop.put(key, journey as XcmSent)
       await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.hop,
         key,
-        expiry: this.#expiry,
+        expiry: expiry ?? this.#expiry,
       })
     }
   }
