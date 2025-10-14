@@ -70,7 +70,7 @@ const CG_ID_MAP: Record<string, string> = {
   XRT: 'robonomics-network',
   SUI: 'sui',
   PAXG: 'pax-gold',
-  ENA: 'ethena'
+  ENA: 'ethena',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
