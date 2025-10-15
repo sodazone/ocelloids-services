@@ -466,7 +466,7 @@ describe('common xcm operators', () => {
       const errorCb = vi.fn()
       await new Promise<void>((resolve) => {
         test$.subscribe({
-          error: (err) => {
+          error: (_err) => {
             errorCb()
           },
           complete: () => {
