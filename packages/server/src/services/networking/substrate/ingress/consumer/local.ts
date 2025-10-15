@@ -78,4 +78,17 @@ export class SubstrateLocalConsumer
   runtimeCall<T = any>(chainId: NetworkURN, opts: { api: string; method: string; at?: string }, args: any[]) {
     return this.watcher.runtimeCall<T>(chainId, opts, args)
   }
+
+  async query<T = any>(
+    chainId: NetworkURN,
+    ops: {
+      module: string
+      method: string
+      at?: HexString
+    },
+    ...params: any[]
+  ): Promise<T | null> {
+    const { module, method, at } = ops
+    return (await this.watcher.getApi(chainId)).query({ module, method, at }, params) as Promise<T | null>
+  }
 }

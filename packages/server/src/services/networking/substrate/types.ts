@@ -187,7 +187,11 @@ export interface SubstrateApi extends ApiClient {
 
   getStorage(key: string, at?: string): Promise<HexString>
   queryStorageAt(keys: string[], at?: string): Promise<StorageChangeSets>
-  query<T = any>(module: string, method: string, ...args: any[]): Promise<T | null>
+  query<T = any>(ops: { module: string; method: string; at?: string }, ...args: any[]): Promise<T | null>
+  queryByPrefixPaginated<T = any>(
+    { module, method, pageSize, at }: { module: string; method: string; pageSize?: number; at?: string },
+    ...args: any[]
+  ): AsyncGenerator<{ keyArgs: any[]; value: T }, void, void>
 
   runtimeCall<T = any>(opts: { api: string; method: string; at?: string }, ...args: any[]): Promise<T | null>
 }
