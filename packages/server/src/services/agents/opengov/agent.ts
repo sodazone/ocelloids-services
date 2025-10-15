@@ -64,7 +64,7 @@ export class OpenGov implements Agent, Subscribable {
       args: { networks },
     } = subscription
 
-    // validate all networks first
+    // Validate all networks
     for (const network of networks) {
       this.#shared.checkSupportedNetwork(network as NetworkURN)
     }
@@ -74,6 +74,7 @@ export class OpenGov implements Agent, Subscribable {
     this.#handlers[id] = { subscription, streams }
     ;(async () => {
       try {
+        // Subscribe to all networks
         const tasks = networks.map(async (network) => {
           const chainId = network as NetworkURN
           const openGovApi = await withOpenGov(chainId, this.#ingress)
@@ -98,7 +99,7 @@ export class OpenGov implements Agent, Subscribable {
         const results = await Promise.all(tasks)
         streams.push(...results)
       } catch (err) {
-        // clean up any streams that were created before failure
+        // Clean up any streams that were created before failure
         for (const { sub } of streams) {
           sub.unsubscribe()
         }
