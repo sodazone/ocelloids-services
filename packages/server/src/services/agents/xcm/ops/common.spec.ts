@@ -454,7 +454,7 @@ describe('common xcm operators', () => {
     })
   })
 
-  describe.only('xcmMessagesSent', () => {
+  describe('xcmMessagesSent', () => {
     it('work with Frontier events', async () => {
       const block$ = from(testBlocksFrom('moonbeam/12962193.cbor'))
       const test$ = xcmMessagesSent()(
