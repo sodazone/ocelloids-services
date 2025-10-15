@@ -131,6 +131,11 @@ export class AssetMetadataManager {
   }
 
   async #scheduleSync() {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ASSET_METADATA_SYNC_TASK))
+    if (alreadyScheduled) {
+      this.#log.info('[agent:%s] next sync already scheduled', this.id)
+      return
+    }
     const time = new Date(Date.now() + SCHED_RATE)
     const timeString = time.toISOString()
     const key = timeString + ASSET_METADATA_SYNC_TASK
