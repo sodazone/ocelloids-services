@@ -6,7 +6,7 @@ import { HexString } from '@/lib.js'
 import { Egress } from '@/services/egress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
-import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
+import { RxSubscriptionWithId, Subscription as OcSubscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { Block, Event } from '@/services/networking/substrate/types.js'
 
@@ -37,7 +37,7 @@ export class OpenGov implements Agent, Subscribable {
 
   readonly #handlers: Record<
     string,
-    { subscription: Subscription<OpenGovInputs>; streams: RxSubscriptionWithId[] }
+    { subscription: OcSubscription<OpenGovInputs>; streams: RxSubscriptionWithId[] }
   > = {}
   readonly #shared: SubstrateSharedStreams
   readonly #log: Logger
@@ -53,7 +53,7 @@ export class OpenGov implements Agent, Subscribable {
     this.#db = ctx.openLevelDB('opengov', { valueEncoding: 'json' })
   }
 
-  subscribe(subscription: Subscription<OpenGovInputs>) {
+  subscribe(subscription: OcSubscription<OpenGovInputs>) {
     if (subscription.ephemeral) {
       throw new ValidationError('Ephemeral subscriptions are not supported')
     }
@@ -80,7 +80,7 @@ export class OpenGov implements Agent, Subscribable {
     delete this.#handlers[subscriptionId]
   }
 
-  update(): Subscription {
+  update(): OcSubscription {
     throw new Error('Update is not supported')
   }
 
@@ -119,7 +119,7 @@ export class OpenGov implements Agent, Subscribable {
         },
       })
 
-      streams.push({ chainId, sub: stream })
+      streams.push({ chainId, sub: stream } as RxSubscriptionWithId)
     }
   }
 
@@ -127,7 +127,7 @@ export class OpenGov implements Agent, Subscribable {
   async #processDispatchedEvents(
     chainId: NetworkURN,
     block: Block,
-    subscription: Subscription<OpenGovInputs>,
+    subscription: OcSubscription<OpenGovInputs>,
   ) {
     const pendings: any[] = (await this.#db.get(`${chainId}:pending:${block.number}`)) ?? []
 
@@ -172,7 +172,7 @@ export class OpenGov implements Agent, Subscribable {
     chainId: NetworkURN,
     block: Block,
     openGovApi: OpenGovApi,
-    subscription: Subscription<OpenGovInputs>,
+    subscription: OcSubscription<OpenGovInputs>,
   ) {
     const referendaEvents = block.events
       .filter(({ event }) => event.module === 'Referenda')
