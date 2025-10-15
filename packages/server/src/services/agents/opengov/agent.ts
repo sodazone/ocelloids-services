@@ -54,7 +54,7 @@ export class OpenGov implements Agent, Subscribable {
     this.#db = ctx.openLevelDB('opengov', { valueEncoding: 'json' })
   }
 
-  async subscribe(subscription: Subscription<OpenGovInputs>) {
+  subscribe(subscription: Subscription<OpenGovInputs>) {
     if (subscription.ephemeral) {
       throw new ValidationError('Ephemeral subscriptions are not supported')
     }
@@ -64,47 +64,47 @@ export class OpenGov implements Agent, Subscribable {
       args: { networks },
     } = subscription
 
-    // Validate all networks first
+    // validate all networks first
     for (const network of networks) {
       this.#shared.checkSupportedNetwork(network as NetworkURN)
     }
 
     const streams: RxSubscriptionWithId[] = []
 
-    try {
-      const tasks = networks.map(async (network) => {
-        const chainId = network as NetworkURN
-        const openGovApi = await withOpenGov(chainId, this.#ingress)
+    this.#handlers[id] = { subscription, streams }
+    ;(async () => {
+      try {
+        const tasks = networks.map(async (network) => {
+          const chainId = network as NetworkURN
+          const openGovApi = await withOpenGov(chainId, this.#ingress)
 
-        const sub = this.#shared.blocks(chainId, 'finalized').subscribe({
-          next: async (block) => {
-            try {
-              await this.#processDispatchedEvents(chainId, block, subscription)
-              await this.#processReferendaEvents(chainId, block, openGovApi, subscription)
-            } catch (err) {
-              this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
-            }
-          },
-          error: (err: any) => {
-            this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
-          },
+          const sub = this.#shared.blocks(chainId, 'finalized').subscribe({
+            next: async (block) => {
+              try {
+                await this.#processDispatchedEvents(chainId, block, subscription)
+                await this.#processReferendaEvents(chainId, block, openGovApi, subscription)
+              } catch (err) {
+                this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
+              }
+            },
+            error: (err: any) => {
+              this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
+            },
+          })
+
+          return { id, sub } as RxSubscriptionWithId
         })
 
-        return { chainId, sub } as RxSubscriptionWithId
-      })
-
-      const results = await Promise.all(tasks)
-      streams.push(...results)
-
-      this.#handlers[id] = {
-        subscription,
-        streams,
+        const results = await Promise.all(tasks)
+        streams.push(...results)
+      } catch (err) {
+        // clean up any streams that were created before failure
+        for (const { sub } of streams) {
+          sub.unsubscribe()
+        }
+        this.#log.error(err, '[agent:%s] failed to initialize OpenGov subscription %s', this.id, id)
       }
-    } catch (err) {
-      streams.forEach(({ sub }) => sub.unsubscribe())
-      this.#log.error(err, '[agent:%s] failed to initialize OpenGov subscription %s', this.id, id)
-      throw err
-    }
+    })()
   }
 
   unsubscribe(subscriptionId: string) {
