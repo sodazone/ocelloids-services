@@ -1,6 +1,63 @@
 import { NeutralHeader } from '@/services/networking/types.js'
 
 export const scenarios = {
+  Timeout: () => {
+    const submitted: NeutralHeader = {
+      hash: '0x1e5c50280cb68834e50f05a29ec7685772466360f77a29d3393806a38b920cc8',
+      parenthash: '0x42bb80074506845a5490b7cfbfe1012aefa9275a35de1a81951da309ebad6b69',
+      height: 27778247,
+      status: 'finalized',
+    }
+    const timeout: NeutralHeader = {
+      hash: '0x5daec263df90a7b33e19719febcc99d187eee1a4905c5a35b3671a37b64a69ff',
+      parenthash: '0x1e5c50280cb68834e50f05a29ec7685772466360f77a29d3393806a38b920cc8',
+      height: 27778248,
+      status: 'finalized',
+    }
+    return [submitted, timeout]
+  },
+  Cancelled: () => {
+    const submitted: NeutralHeader = {
+      hash: '0x94002749dc4546500ae0046a7f200799437ca59c5de6e0787b1fb06371a8b5bc',
+      parenthash: '0x854f2e7abc1856921311388226e1dc1f8c3fc31c76398fb3682cc408a56150aa',
+      height: 22774574,
+      status: 'finalized',
+    }
+    const deposit: NeutralHeader = {
+      hash: '0x6a0e7c7531c5611cee66c4020d0eef4887ebd4b4c8bca1a398f1f0f89daefe7e',
+      parenthash: '0x94002749dc4546500ae0046a7f200799437ca59c5de6e0787b1fb06371a8b5bc',
+      height: 22774575,
+      status: 'finalized',
+    }
+    const cancelled: NeutralHeader = {
+      hash: '0x962bc2f8616f7c3de0496fc4145dde3defb322404f8ef2e04aa2dc828120bdd8',
+      parenthash: '0x6a0e7c7531c5611cee66c4020d0eef4887ebd4b4c8bca1a398f1f0f89daefe7e',
+      height: 22774576,
+      status: 'finalized',
+    }
+    return [submitted, deposit, cancelled]
+  },
+  Killed: () => {
+    const submitted: NeutralHeader = {
+      hash: '0xe8ef81df523614046cb9857b362e0ce329d96a12c619d3ae59c73ec87392bc9e',
+      parenthash: '0x393b56127b798dfb0e05dbfa363bf4da2c0a74690e71808dc8b166277a02ab72',
+      height: 17784630,
+      status: 'finalized',
+    }
+    const deposit: NeutralHeader = {
+      hash: '0xf3932d3577589e3ec8dc3cd21b41312f5e74fa75f12aedfe0cf1714c6b5669a0',
+      parenthash: '0xe8ef81df523614046cb9857b362e0ce329d96a12c619d3ae59c73ec87392bc9e',
+      height: 17784631,
+      status: 'finalized',
+    }
+    const killed: NeutralHeader = {
+      hash: '0x589098b2ab70c3d984121d9fa686077ad5206e99b0eaacecef0883ab9b611b6a',
+      parenthash: '0xf3932d3577589e3ec8dc3cd21b41312f5e74fa75f12aedfe0cf1714c6b5669a0',
+      height: 17784632,
+      status: 'finalized',
+    }
+    return [submitted, deposit, killed]
+  },
   ExecutedOk: () => {
     const submitted: NeutralHeader = {
       hash: '0x297c09c45a54c5eafb1479055c518661a33803017fcb87cb9d12e14f5b32626b',

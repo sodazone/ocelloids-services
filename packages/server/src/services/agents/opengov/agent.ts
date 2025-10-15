@@ -226,7 +226,7 @@ export class OpenGov implements Agent, Subscribable {
       // Get persisted copy if exists
       const existing = await this.#getReferendum(chainId, ogev.id)
       const next: OpenGovEvent = existing
-        ? Array.isArray(ogev.info)
+        ? ogev.status === 'Killed' || Array.isArray(ogev.info)
           ? { ...existing, triggeredBy: ogev.triggeredBy, status: ogev.status }
           : { ...existing, ...ogev, triggeredBy: ogev.triggeredBy, status: ogev.status }
         : { ...ogev }
