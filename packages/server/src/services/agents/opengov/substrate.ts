@@ -54,11 +54,6 @@ export type OpenGovEvent = NonNullable<
 export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressConsumer) {
   const ctx = await firstValueFrom(api.getContext(chainId))
 
-  /** Decode a call from bytes or hex */
-  async function decodeCall(callData: string | Uint8Array) {
-    return ctx.decodeCall(callData)
-  }
-
   /** Decode a proposal (Lookup or Inline) */
   async function decodeProposal(proposal: Proposal, at?: HexString) {
     if (proposal.type === 'Lookup') {
@@ -69,9 +64,9 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
         typeof hash === 'string' ? Binary.fromHex(hash) : hash,
         len,
       )
-      return await decodeCall(preimage.asBytes())
+      return ctx.decodeCall(preimage.asBytes())
     } else if (proposal.type === 'Inline') {
-      return await decodeCall(proposal.value)
+      return ctx.decodeCall(proposal.value)
     }
     return null
   }
