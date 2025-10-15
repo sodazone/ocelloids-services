@@ -25,7 +25,6 @@ const dotSent: XcmSent = {
     extraSigners: [],
   },
   messageId: '0x0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:1000',

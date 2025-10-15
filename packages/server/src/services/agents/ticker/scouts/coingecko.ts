@@ -69,6 +69,8 @@ const CG_ID_MAP: Record<string, string> = {
   'CGT2.0': 'curio-gas-token',
   XRT: 'robonomics-network',
   SUI: 'sui',
+  PAXG: 'pax-gold',
+  ENA: 'ethena',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
