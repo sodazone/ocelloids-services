@@ -7,7 +7,7 @@ import { Egress } from '@/services/egress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block, Event } from '@/services/networking/substrate/types.js'
-import { Subscription as OcSubscription, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
+import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
@@ -20,6 +20,10 @@ export const $OpenGovInputs = z.object({
 })
 
 export type OpenGovInputs = z.infer<typeof $OpenGovInputs>
+type OpenGovHandler = {
+  subscription: Subscription<OpenGovInputs>
+  streams: RxSubscriptionWithId[]
+}
 
 /**
  * OpenGov Agent
@@ -35,10 +39,7 @@ export class OpenGov implements Agent, Subscribable {
   }
   readonly inputSchema = $OpenGovInputs
 
-  readonly #handlers: Record<
-    string,
-    { subscription: OcSubscription<OpenGovInputs>; streams: RxSubscriptionWithId[] }
-  > = {}
+  readonly #handlers: Record<string, OpenGovHandler> = {}
   readonly #shared: SubstrateSharedStreams
   readonly #log: Logger
   readonly #egress: Egress
@@ -53,7 +54,7 @@ export class OpenGov implements Agent, Subscribable {
     this.#db = ctx.openLevelDB('opengov', { valueEncoding: 'json' })
   }
 
-  subscribe(subscription: OcSubscription<OpenGovInputs>) {
+  async subscribe(subscription: Subscription<OpenGovInputs>) {
     if (subscription.ephemeral) {
       throw new ValidationError('Ephemeral subscriptions are not supported')
     }
@@ -62,13 +63,48 @@ export class OpenGov implements Agent, Subscribable {
       id,
       args: { networks },
     } = subscription
-    const streams: RxSubscriptionWithId[] = []
-    this.#handlers[id] = { subscription, streams }
 
-    this.#initializeSubscription(id, networks, streams).catch((err) => {
+    // Validate all networks first
+    for (const network of networks) {
+      this.#shared.checkSupportedNetwork(network as NetworkURN)
+    }
+
+    const streams: RxSubscriptionWithId[] = []
+
+    try {
+      const tasks = networks.map(async (network) => {
+        const chainId = network as NetworkURN
+        const openGovApi = await withOpenGov(chainId, this.#ingress)
+
+        const sub = this.#shared.blocks(chainId, 'finalized').subscribe({
+          next: async (block) => {
+            try {
+              await this.#processDispatchedEvents(chainId, block, subscription)
+              await this.#processReferendaEvents(chainId, block, openGovApi, subscription)
+            } catch (err) {
+              this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
+            }
+          },
+          error: (err: any) => {
+            this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
+          },
+        })
+
+        return { chainId, sub } as RxSubscriptionWithId
+      })
+
+      const results = await Promise.all(tasks)
+      streams.push(...results)
+
+      this.#handlers[id] = {
+        subscription,
+        streams,
+      }
+    } catch (err) {
       streams.forEach(({ sub }) => sub.unsubscribe())
       this.#log.error(err, '[agent:%s] failed to initialize OpenGov subscription %s', this.id, id)
-    })
+      throw err
+    }
   }
 
   unsubscribe(subscriptionId: string) {
@@ -80,7 +116,7 @@ export class OpenGov implements Agent, Subscribable {
     delete this.#handlers[subscriptionId]
   }
 
-  update(): OcSubscription {
+  update(): Subscription {
     throw new Error('Update is not supported')
   }
 
@@ -99,35 +135,11 @@ export class OpenGov implements Agent, Subscribable {
     this.#log.info('[%s] start', this.id)
   }
 
-  async #initializeSubscription(id: string, networks: string[], streams: RxSubscriptionWithId[]) {
-    for (const network of networks) {
-      const chainId = network as NetworkURN
-      this.#shared.checkSupportedNetwork(chainId)
-      const openGovApi = await withOpenGov(chainId, this.#ingress)
-
-      const stream = this.#shared.blocks(chainId, 'finalized').subscribe({
-        next: async (block) => {
-          try {
-            await this.#processDispatchedEvents(chainId, block, this.#handlers[id].subscription)
-            await this.#processReferendaEvents(chainId, block, openGovApi, this.#handlers[id].subscription)
-          } catch (err) {
-            this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
-          }
-        },
-        error: (err: any) => {
-          this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
-        },
-      })
-
-      streams.push({ chainId, sub: stream } as RxSubscriptionWithId)
-    }
-  }
-
   /** Handle Scheduler.Dispatched events and resolve pending tasks */
   async #processDispatchedEvents(
     chainId: NetworkURN,
     block: Block,
-    subscription: OcSubscription<OpenGovInputs>,
+    subscription: Subscription<OpenGovInputs>,
   ) {
     const pendings: any[] = (await this.#db.get(`${chainId}:pending:${block.number}`)) ?? []
 
@@ -172,7 +184,7 @@ export class OpenGov implements Agent, Subscribable {
     chainId: NetworkURN,
     block: Block,
     openGovApi: OpenGovApi,
-    subscription: OcSubscription<OpenGovInputs>,
+    subscription: Subscription<OpenGovInputs>,
   ) {
     const referendaEvents = block.events
       .filter(({ event }) => event.module === 'Referenda')
