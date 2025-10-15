@@ -272,6 +272,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     externalIds: [],
   },
   {
+    chainId: 'urn:ocn:ethereum:1',
+    id: '0x57e114b691db790c35207b2e685d4a43181e6061',
+    xid: '0x57e114b691db790c35207b2e685d4a43181e6061',
+    name: 'Ethena',
+    symbol: 'ENA',
+    decimals: 18,
+    raw: {},
+    externalIds: [],
+  },
+  {
     chainId: 'urn:ocn:polkadot:2004',
     id: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
     xid: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',

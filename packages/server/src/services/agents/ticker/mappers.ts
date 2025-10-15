@@ -242,5 +242,9 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   PAXG: {
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x45804880de22913dafe09f4980848ece6ecbaf78',
-  }
+  },
+  ENA: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x57e114b691db790c35207b2e685d4a43181e6061',
+  },
 }
