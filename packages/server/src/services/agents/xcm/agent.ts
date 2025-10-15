@@ -195,6 +195,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
 
   collectTelemetry(): void {
     this.#tracker.collectTelemetry()
+    this.#humanizer.collectTelemetry()
   }
 
   query(params: QueryParams<XcmQueryArgs>): Promise<QueryResult> {
