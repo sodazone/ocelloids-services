@@ -86,8 +86,7 @@ export class OpenGov implements Agent, Subscribable {
             },
           })
 
-          // Add the stream to the list of streams
-          streams.push({ chainId, sub: stream } satisfies RxSubscriptionWithId)
+          streams.push({ chainId, sub: stream } as RxSubscriptionWithId)
         }
       } catch (err) {
         streams.forEach(({ sub }) => sub.unsubscribe())
