@@ -146,6 +146,10 @@ export class OpenGov implements Agent, Subscribable {
   ) {
     const pendings: any[] = (await this.#db.get(`${chainId}:pending:${block.number}`)) ?? []
 
+    if (pendings.length === 0) {
+      return
+    }
+
     const dispatchEvents = block.events.filter(
       ({ event }) => event.module === 'Scheduler' && event.name === 'Dispatched',
     )
