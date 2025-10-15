@@ -113,7 +113,9 @@ export class OpenGov implements Agent, Subscribable {
     if (!handler) {
       return
     }
-    handler.streams.forEach(({ sub }) => sub.unsubscribe())
+    for (const { sub } of handler.streams) {
+      sub.unsubscribe()
+    }
     delete this.#handlers[subscriptionId]
   }
 
@@ -162,14 +164,26 @@ export class OpenGov implements Agent, Subscribable {
           result: dispatched.event.value?.result,
         })
 
-        this.#egress.publish(
-          subscription,
-          asSerializable({
+        const ref = (await this.#getReferendum(chainId, task.referendumId)) ?? {}
+        const payload = asSerializable({
+          ...ref,
+          execution: {
             ...task,
             executedAt: block.number,
             result: dispatched.event.value?.result,
-          }),
-        )
+          },
+        }) as AnyJson
+
+        this.#egress.publish(subscription, {
+          metadata: {
+            type: 'referendum.update',
+            agentId: this.id,
+            networkId: chainId,
+            subscriptionId: subscription.id,
+            timestamp: Date.now(),
+          },
+          payload,
+        })
       }
     }
 
@@ -229,7 +243,8 @@ export class OpenGov implements Agent, Subscribable {
         case 'Cancelled':
         case 'TimedOut':
         case 'Killed':
-          await this.#removeReferendum(chainId, next.id)
+          // TODO: Schedule removal?
+          //await this.#removeReferendum(chainId, next.id)
           break
       }
 
