@@ -140,7 +140,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     }
 
     const { info } = referendum
-    const { value, type } = info ?? {}
+    const { value, type: status } = info ?? {}
 
     const avgBlockTimeMs = ops.avgBlockTimeMs ?? 6_000
     const currentBlock = block.number ?? 0
@@ -155,29 +155,10 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     let willExecuteAtUtc: string | undefined = undefined
     let submissionDeposit: { who: string; amount: string } | undefined = undefined
     let decisionDeposit: { who: string; amount: string } | undefined = undefined
-    let refunds:
-      | {
-          submission?: { who: string; amount: string }
-          decision?: { who: string; amount: string }
-        }
-      | undefined = undefined
 
     if (Array.isArray(value)) {
       // finalized referendum [finalizedAt, submitDeposit, decisionDeposit]
       finalizedAt = value[0] ?? null
-      // TODO: Check Refunds?
-      const submissionDeposit = value[1]
-      const decisionDeposit = value[2]
-      refunds = {
-        submission: submissionDeposit && {
-          who: submissionDeposit.who.toString(),
-          amount: submissionDeposit.amount.toString(),
-        },
-        decision: decisionDeposit && {
-          who: decisionDeposit.who.toString(),
-          amount: decisionDeposit.amount.toString(),
-        },
-      }
     } else if (value && typeof value === 'object') {
       // ongoing referendum info
       submittedAt = value.submitted ?? null
@@ -226,7 +207,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
         blockNumber: block.number,
       },
       blockNumber: String(block.number ?? submittedAt ?? finalizedAt ?? 0),
-      type: type ?? 'Finalized',
+      status: status ?? 'Finalized',
       info: value,
       decodedCall: referendum.decodedCall,
       timeline: {
@@ -243,7 +224,6 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
         submissionDeposit,
         decisionDeposit,
       },
-      refunds,
     }
   }
 

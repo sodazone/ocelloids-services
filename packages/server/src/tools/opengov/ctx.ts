@@ -13,7 +13,10 @@ import { InjectableConnector } from './inject.js'
 export function initRuntime() {
   const log = pino() as Logger
   const egress = {
-    publish: async (sub: any, message: any) => console.log(`${sub.id}=>`, message),
+    publish: async (sub: any, message: any) => {
+      console.log(`${sub.id}=>`)
+      console.log(message.metadata, message.payload)
+    },
   } as unknown as Egress
   const db = new MemoryLevel()
   const openLevelDB: OpenLevelDB = (_name: string, options?: any) => new MemoryLevel(options)

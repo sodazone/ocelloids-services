@@ -1,41 +1,11 @@
 import { OpenGov } from '@/services/agents/opengov/agent.js'
-import { NeutralHeader } from '@/services/networking/types.js'
 import { initRuntime } from './ctx.js'
 import { InjectableConnector } from './inject.js'
+import { ScenarioKey, scenarios } from './scenarios.js'
 
-async function injectBlockHeaders(connector: InjectableConnector) {
-  const submitted: NeutralHeader = {
-    hash: '0x297c09c45a54c5eafb1479055c518661a33803017fcb87cb9d12e14f5b32626b',
-    parenthash: '0xc1535a56a12340aa6d8a7f4a26d1cb3001b98cd5c414f27278b4bc4e53cae2ab',
-    height: 28005777,
-    status: 'finalized',
-  }
-  const decision: NeutralHeader = {
-    hash: '0xc7555924b742c21288340fd1e2aa2a31aa83b521caed97d277cc1b4f655fa2bd',
-    parenthash: '0x297c09c45a54c5eafb1479055c518661a33803017fcb87cb9d12e14f5b32626b',
-    height: 28005778,
-    status: 'finalized',
-  }
-  const confirmStarted: NeutralHeader = {
-    hash: '0x82ba5b34e58bbb0eac9ea90b6c7d9ed24ce6b4e64268dc260f400ff971391a16',
-    parenthash: '0xc7555924b742c21288340fd1e2aa2a31aa83b521caed97d277cc1b4f655fa2bd',
-    height: 28005779,
-    status: 'finalized',
-  }
-  const confirmed: NeutralHeader = {
-    hash: '0x6be9254791cd9cd3c07a781d15c61ea133d27cbfd8a60ca56e2776727b0be14b',
-    parenthash: '0x82ba5b34e58bbb0eac9ea90b6c7d9ed24ce6b4e64268dc260f400ff971391a16',
-    height: 28005780,
-    status: 'finalized',
-  }
-  const executed: NeutralHeader = {
-    hash: '0x7230ef3d1282cb75cf7bc8a1b5b63930b08d91fdb7d3dd224a1d88136f18b611',
-    parenthash: '0x6be9254791cd9cd3c07a781d15c61ea133d27cbfd8a60ca56e2776727b0be14b',
-    height: 28005781,
-    status: 'finalized',
-  }
-
-  for (const h of [submitted, decision, confirmStarted, confirmed, executed]) {
+async function injectBlockHeaders(scenario: ScenarioKey, connector: InjectableConnector) {
+  const headers = scenarios[scenario]()
+  for (const h of headers) {
     connector.reportFinalizedBlock('urn:ocn:polkadot:0', h)
     await new Promise((res) => setTimeout(res, 1_000))
   }
@@ -63,7 +33,7 @@ async function main() {
 
   await new Promise((res) => setTimeout(res, 5_000))
 
-  await injectBlockHeaders(connector)
+  await injectBlockHeaders('ExecutedFail', connector)
 
   await new Promise<void>((resolve) => {
     process.on('SIGINT', () => {

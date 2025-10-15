@@ -227,15 +227,15 @@ export class OpenGov implements Agent, Subscribable {
       const existing = await this.#getReferendum(chainId, ogev.id)
       const next: OpenGovEvent = existing
         ? Array.isArray(ogev.info)
-          ? { ...existing, triggeredBy: ogev.triggeredBy, type: ogev.type }
-          : { ...existing, ...ogev, triggeredBy: ogev.triggeredBy, type: ogev.type }
+          ? { ...existing, triggeredBy: ogev.triggeredBy, status: ogev.status }
+          : { ...existing, ...ogev, triggeredBy: ogev.triggeredBy, status: ogev.status }
         : { ...ogev }
 
       // Persist updated record
       await this.#updateReferendum(chainId, next)
 
       // Handle lifecycle transitions
-      switch (next.type) {
+      switch (next.status) {
         case 'Approved':
           await this.#trackConfirmedReferendum(chainId, block, ev, next)
           break
@@ -244,7 +244,8 @@ export class OpenGov implements Agent, Subscribable {
         case 'TimedOut':
         case 'Killed':
           // TODO: Schedule removal?
-          //await this.#removeReferendum(chainId, next.id)
+          // some update on the persisted referendum
+          // await this.#removeReferendum(chainId, next.id)
           break
       }
 
@@ -333,7 +334,7 @@ export class OpenGov implements Agent, Subscribable {
   /** Insert or replace a referendum record */
   async #updateReferendum(chainId: NetworkURN, ref: OpenGovEvent) {
     await this.#db.put(`${chainId}:ref:${ref.id}`, asSerializable(ref))
-    this.#log.debug('[%s:%s] Updated referendum %d (%s)', this.id, chainId, ref.id, ref.type)
+    this.#log.debug('[%s:%s] Updated referendum %d (%s)', this.id, chainId, ref.id, ref.status)
   }
 
   /** Fetch referendum by ID */
