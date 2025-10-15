@@ -8,8 +8,8 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
-
 import { Block, Event } from '@/services/networking/substrate/types.js'
+
 import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
 import { OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
 
@@ -65,34 +65,10 @@ export class OpenGov implements Agent, Subscribable {
     const streams: RxSubscriptionWithId[] = []
     this.#handlers[id] = { subscription, streams }
 
-    void (async () => {
-      try {
-        for (const network of networks) {
-          const chainId = network as NetworkURN
-          this.#shared.checkSupportedNetwork(chainId)
-          const openGovApi = await withOpenGov(chainId, this.#ingress)
-
-          const stream = this.#shared.blocks(chainId, 'finalized').subscribe({
-            next: async (block) => {
-              try {
-                await this.#processDispatchedEvents(chainId, block, subscription)
-                await this.#processReferendaEvents(chainId, block, openGovApi, subscription)
-              } catch (err) {
-                this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
-              }
-            },
-            error: (err: any) => {
-              this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
-            },
-          })
-
-          streams.push({ chainId, sub: stream } as RxSubscriptionWithId)
-        }
-      } catch (err) {
-        streams.forEach(({ sub }) => sub.unsubscribe())
-        this.#log.error(err, '[agent:%s] failed to initialize OpenGov subscription %s', this.id, id)
-      }
-    })()
+    this.#initializeSubscription(id, networks, streams).catch((err) => {
+      streams.forEach(({ sub }) => sub.unsubscribe())
+      this.#log.error(err, '[agent:%s] failed to initialize OpenGov subscription %s', this.id, id)
+    })
   }
 
   unsubscribe(subscriptionId: string) {
@@ -121,6 +97,30 @@ export class OpenGov implements Agent, Subscribable {
 
   start() {
     this.#log.info('[%s] start', this.id)
+  }
+
+  async #initializeSubscription(id: string, networks: string[], streams: RxSubscriptionWithId[]) {
+    for (const network of networks) {
+      const chainId = network as NetworkURN
+      this.#shared.checkSupportedNetwork(chainId)
+      const openGovApi = await withOpenGov(chainId, this.#ingress)
+
+      const stream = this.#shared.blocks(chainId, 'finalized').subscribe({
+        next: async (block) => {
+          try {
+            await this.#processDispatchedEvents(chainId, block, this.#handlers[id].subscription)
+            await this.#processReferendaEvents(chainId, block, openGovApi, this.#handlers[id].subscription)
+          } catch (err) {
+            this.#log.error(err, '[%s:%s] error processing block %d', this.id, chainId, block.number)
+          }
+        },
+        error: (err: any) => {
+          this.#log.error(err, '[%s:%s] stream error on subscription %s', this.id, chainId, id)
+        },
+      })
+
+      streams.push({ chainId, sub: stream })
+    }
   }
 
   /** Handle Scheduler.Dispatched events and resolve pending tasks */
