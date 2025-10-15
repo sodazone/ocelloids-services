@@ -1,6 +1,6 @@
-import { XcmSent } from "@/services/agents/xcm/lib.js";
-import { apiContext } from "./xcm.js";
-import { asVersionedXcm, fromXcmpFormat } from "@/services/agents/xcm/ops/xcm-format.js";
+import { XcmSent } from '@/services/agents/xcm/lib.js'
+import { fromXcmpFormat } from '@/services/agents/xcm/ops/xcm-format.js'
+import { apiContext } from './xcm.js'
 
 export function getXcmV5Sent(): XcmSent {
   const msgData =
@@ -14,8 +14,8 @@ export function getXcmV5Sent(): XcmSent {
         to: 'urn:ocn:kusama:1002',
         type: 'hrmp',
         partialMessage: undefined,
-        relay: 'urn:ocn:kusama:0'
-      }
+        relay: 'urn:ocn:kusama:0',
+      },
     ],
     sender: undefined,
     messageId: '0x1b45fd25e1f3ddba7793a8c45289c3b17049c003c93e286e20e27ee2c5bafccc',
@@ -35,7 +35,7 @@ export function getXcmV5Sent(): XcmSent {
       instructions,
       messageHash: '0xa26ec5d6b2c24cf0b9968bd4acc39dd88b6ffab5cc4cdfdfd9b5b38e6fd80767',
       messageId: '0x1b45fd25e1f3ddba7793a8c45289c3b17049c003c93e286e20e27ee2c5bafccc',
-      legIndex: 0
+      legIndex: 0,
     },
     origin: {
       chainId: 'urn:ocn:kusama:1000',
@@ -51,8 +51,8 @@ export function getXcmV5Sent(): XcmSent {
       messageData: `0x${msgData}`,
       instructions,
       messageHash: '0xa26ec5d6b2c24cf0b9968bd4acc39dd88b6ffab5cc4cdfdfd9b5b38e6fd80767',
-      messageId: '0x1b45fd25e1f3ddba7793a8c45289c3b17049c003c93e286e20e27ee2c5bafccc'
+      messageId: '0x1b45fd25e1f3ddba7793a8c45289c3b17049c003c93e286e20e27ee2c5bafccc',
     },
-    destination: { chainId: 'urn:ocn:kusama:1002' }
+    destination: { chainId: 'urn:ocn:kusama:1002' },
   }
 }

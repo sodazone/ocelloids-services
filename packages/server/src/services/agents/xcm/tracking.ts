@@ -166,7 +166,7 @@ export class XcmTracker {
     await this.#engine.stop()
 
     if (this.#retentionJob !== undefined) {
-      await this.#retentionJob.stop()
+      this.#retentionJob.stop()
     }
   }
 
