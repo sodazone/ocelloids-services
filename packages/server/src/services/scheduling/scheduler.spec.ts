@@ -97,4 +97,31 @@ describe('scheduler service', () => {
 
     expect(ok).toHaveBeenCalledTimes(2)
   })
+
+  it('should check if there are already scheduled tasks', async () => {
+    const now = new Date(Date.now()).toISOString()
+
+    await scheduler.schedule({
+      key: now + 'a',
+      type: 'task',
+      task: {},
+    })
+    await scheduler.schedule({
+      key: now + 'b',
+      type: 'task',
+      task: {},
+    })
+    await scheduler.schedule({
+      key: now + 'c',
+      type: 'bask',
+      task: {},
+    })
+
+    expect((await scheduler.allTaskTimes()).length).toBe(3)
+
+    expect(await scheduler.hasScheduled((key) => key.endsWith('a'))).toBe(true)
+    expect(
+      await scheduler.hasScheduled((_key, value) => value?.type === 'task', { includeValues: true }),
+    ).toBe(true)
+  })
 })
