@@ -86,6 +86,7 @@ export class OpenGov implements Agent, Subscribable {
             },
           })
 
+          // Add the stream to the list of streams
           streams.push({ chainId, sub: stream })
         }
       } catch (err) {
