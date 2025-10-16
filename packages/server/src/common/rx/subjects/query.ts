@@ -1,4 +1,4 @@
-import { Query } from 'mingo'
+import mingo from 'mingo'
 import { AnyObject } from 'mingo/types'
 import { BehaviorSubject, Subject } from 'rxjs'
 
@@ -6,7 +6,7 @@ import { createMingoContext } from '@/services/networking/substrate/index.js'
 
 export type Criteria = AnyObject
 
-export class MingoQuery extends Query {
+export class MingoQuery extends mingo.Query {
   constructor(criteria: Criteria) {
     super(criteria, { context: createMingoContext() })
   }
