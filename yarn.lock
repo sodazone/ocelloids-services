@@ -4543,8 +4543,8 @@ __metadata:
 
 "mingo@patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch":
   version: 6.7.0
-  resolution: "mingo@patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch::version=6.7.0&hash=a67b80"
-  checksum: 10c0/9e268ba7ed23f4cebbe2203676fab4ea4b8005d2303e71d72cc2963f6ad5add8ab19ec7842a8099c16d522018f577107bef81fb0f32bb10078464e605e6d738c
+  resolution: "mingo@patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch::version=6.7.0&hash=81e129"
+  checksum: 10c0/87b9d24f841304c099c5475cc0c1961b210175b06f6782cefa9225103f71330a8603138a23f5cc238c3b3d48e06a55cc41f7bcc8d8ab04af63f057c828332ffe
   languageName: node
   linkType: hard
 
