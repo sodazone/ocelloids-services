@@ -1,12 +1,11 @@
-import { vi } from 'vitest'
-
 import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
+import { vi } from 'vitest'
 
 import samples from '../test/.data/samples.json'
 import { type QueryResult } from './lib'
 import { AssetMetadata, StewardQueryArgs } from './steward/types'
-import { XcmInputs, XcmMessagePayload, isXcmHop } from './xcm/types'
+import { isXcmHop, XcmInputs, XcmMessagePayload } from './xcm/types'
 
 vi.mock('isows', () => {
   return {
@@ -17,7 +16,7 @@ vi.mock('isows', () => {
 
 import { createXcmAgent } from './agent'
 import { OcelloidsClient } from './client'
-import { Subscription, WsAuthErrorEvent, isSubscriptionError } from './types'
+import { isSubscriptionError, Subscription, WsAuthErrorEvent } from './types'
 import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
 
 describe('OcelloidsClient', () => {
@@ -289,7 +288,7 @@ describe('OcelloidsClient', () => {
       })
     })
 
-    it('should authentitcate for existing subscription', async () => {
+    it('should authenticate for existing subscription', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 

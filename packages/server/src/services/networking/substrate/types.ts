@@ -1,5 +1,5 @@
-export type { Decoder, Codec } from '@polkadot-api/substrate-bindings'
 export type { SystemEvent } from '@polkadot-api/observable-client'
+export type { Codec, Decoder } from '@polkadot-api/substrate-bindings'
 export type { ChainSpecData } from '@polkadot-api/substrate-client'
 
 import type { SystemEvent } from '@polkadot-api/observable-client'

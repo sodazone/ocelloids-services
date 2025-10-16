@@ -1,11 +1,10 @@
-import { LevelDB } from '@/services/types.js'
-import { createServices } from '@/testing/services.js'
 import { AbstractSublevel } from 'abstract-level'
 import { of } from 'rxjs'
-
 import { RuntimeApiContext } from '@/services/networking/substrate/context.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import { LevelDB } from '@/services/types.js'
+import { createServices } from '@/testing/services.js'
 import { AssetMetadata } from '../../../types.js'
 import { LocationQueryHandler } from './handler.js'
 

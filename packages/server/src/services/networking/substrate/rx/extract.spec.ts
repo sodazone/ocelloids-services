@@ -1,5 +1,5 @@
-import { moonbeamXcmBlock, testBlocksFrom } from '@/testing/blocks.js'
 import { from } from 'rxjs'
+import { moonbeamXcmBlock, testBlocksFrom } from '@/testing/blocks.js'
 import { extractEvents } from './extract.js'
 
 describe('extract operators', () => {

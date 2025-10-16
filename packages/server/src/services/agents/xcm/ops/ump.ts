@@ -1,4 +1,4 @@
-import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
+import { bufferCount, filter, map, mergeMap, Observable } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'

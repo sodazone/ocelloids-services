@@ -1,7 +1,7 @@
-import { SubstrateClient } from '@/services/networking/substrate/client.js'
-import { createContextFromOpaqueMetadata } from '@/services/networking/substrate/context.js'
 import { pino } from 'pino'
 import { fromHex } from 'polkadot-api/utils'
+import { SubstrateClient } from '@/services/networking/substrate/client.js'
+import { createContextFromOpaqueMetadata } from '@/services/networking/substrate/context.js'
 
 const client = new SubstrateClient(pino(), 'chain', 'wss://api.interlay.io/parachain')
 

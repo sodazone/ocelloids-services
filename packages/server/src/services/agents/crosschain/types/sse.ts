@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
+
 import { $BaseJourneyFilters, $JourneyProtocols, $JourneyStatus } from './queries.js'
 
 /**

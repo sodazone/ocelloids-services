@@ -1,8 +1,7 @@
 import { DuckDBInstance } from '@duckdb/node-api'
-
-import { AnalyticsOptions, DatabaseOptions } from '@/types.js'
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
+import { AnalyticsOptions, DatabaseOptions } from '@/types.js'
 import { resolveDataPath } from '../persistence/util.js'
 
 declare module 'fastify' {

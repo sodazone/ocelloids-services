@@ -1,7 +1,6 @@
 import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api'
-import { DailyDuckDBExporter } from './exporter.js'
-
 import { _log } from '@/testing/services.js'
+import { DailyDuckDBExporter } from './exporter.js'
 import { XcmTransfersRepository } from './transfers.js'
 
 describe('DuckDBDailyExporter', () => {

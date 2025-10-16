@@ -3,14 +3,13 @@ import fs from 'node:fs'
 import { resolve } from 'node:path'
 import { cwd, exit } from 'node:process'
 import { setTimeout as delay } from 'node:timers/promises'
+import { MemoryLevel } from 'memory-level'
 import { pino } from 'pino'
 import toml from 'toml'
-
 import { $ServiceConfiguration, ServiceConfiguration } from '@/services/config.js'
 import Connector from '@/services/networking/connector.js'
 import { SubstrateWatcher } from '@/services/networking/substrate/watcher/watcher.js'
 import type { NetworkURN, Services } from '@/services/types.js'
-import { MemoryLevel } from 'memory-level'
 
 /**
  * Integration test:

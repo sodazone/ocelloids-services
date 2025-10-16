@@ -1,28 +1,27 @@
-import EventEmitter from 'node:events'
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
+import { concatMap, from, map, Observable, Subject, share, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
+import { createTypedEventEmitter } from '@/common/util.js'
+import { ArchiveRepository } from '@/services/archive/repository.js'
+import { ArchiveRetentionJob } from '@/services/archive/retention.js'
+import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-
-import { ArchiveRepository } from '@/services/archive/repository.js'
-import { ArchiveRetentionJob } from '@/services/archive/retention.js'
-import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { MatchingEngine } from './matching.js'
 import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
 import {
-  PkBridgeConfig,
   extractBridgeMessageAccepted,
   extractBridgeReceive,
+  PkBridgeConfig,
   pkBridgeConfig,
 } from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
@@ -143,7 +142,7 @@ export class XcmTracker {
     this.#archive = ctx.archive
     this.#retentionOpts = ctx.archiveRetention
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
-    this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
+    this.#telemetry = createTypedEventEmitter<TelemetryXcmEventEmitter>()
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
   }
 

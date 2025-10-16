@@ -1,12 +1,11 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
 import * as url from 'node:url'
-
-import { WS } from '@/services/networking/substrate/websocket.js'
 import { withLegacy } from '@polkadot-api/legacy-provider'
 import { getObservableClient } from '@polkadot-api/observable-client'
 import { createClient } from '@polkadot-api/substrate-client'
-import { WebSocketClass, getWsProvider } from 'polkadot-api/ws-provider'
+import { getWsProvider, WebSocketClass } from 'polkadot-api/ws-provider'
+import { WS } from '@/services/networking/substrate/websocket.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 const dest = path.resolve(__dirname, '__data__/metadata/', 'bridgehub-polkadot.scale')

@@ -3,24 +3,24 @@
  */
 
 export type {
-  HexString,
-  SignerData,
-  SubscriptionId,
-  $SubscriptionId,
-} from './services/subscriptions/types.js'
-export type { AnyJson, NetworkURN } from './services/types.js'
-export type {
-  AgentId,
   $AgentId,
-  QueryParams,
-  QueryResult,
-  QueryPagination,
+  AgentId,
   AnyQueryArgs,
   AnyQueryResultItem,
   GenericEvent,
+  QueryPagination,
+  QueryParams,
+  QueryResult,
   ServerSentEvent,
 } from './services/agents/types.js'
 export type { Message } from './services/egress/types.js'
+export type {
+  $SubscriptionId,
+  HexString,
+  SignerData,
+  SubscriptionId,
+} from './services/subscriptions/types.js'
+export type { AnyJson, NetworkURN } from './services/types.js'
 
 // ====================================================================
 // Network-specific types

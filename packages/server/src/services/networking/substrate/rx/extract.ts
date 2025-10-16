@@ -1,4 +1,4 @@
-import { Observable, from, map, mergeMap, share } from 'rxjs'
+import { from, map, mergeMap, Observable, share } from 'rxjs'
 
 import { getEventValue } from '@/common/util.js'
 import { HexString } from '@/lib.js'

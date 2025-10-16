@@ -1,7 +1,7 @@
 import { NotFound, ValidationError } from '@/errors.js'
 import { AgentId } from '@/services/agents/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { LevelDB, Logger, jsonEncoded, prefixes } from '@/services/types.js'
+import { jsonEncoded, LevelDB, Logger, prefixes } from '@/services/types.js'
 
 /**
  * Subscriptions persistence.

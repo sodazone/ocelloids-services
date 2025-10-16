@@ -1,5 +1,5 @@
-import { Logger } from '@/services/types.js'
 import { DuckDBConnection } from '@duckdb/node-api'
+import { Logger } from '@/services/types.js'
 
 export class DailyDuckDBExporter {
   readonly id = 'duckdb:exporter'

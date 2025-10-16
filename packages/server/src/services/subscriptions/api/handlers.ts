@@ -1,6 +1,6 @@
+import { FastifyRequest } from 'fastify'
 import { AuthorizationError } from '@/errors.js'
 import { AgentId } from '@/lib.js'
-import { FastifyRequest } from 'fastify'
 import { Subscription } from '../types.js'
 
 declare module 'fastify' {

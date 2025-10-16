@@ -82,9 +82,10 @@ export function getMessageId({ instructions }: Pick<Program, 'instructions'>): H
   }
 }
 
-export function getParaIdFromOrigin(origin: { type: string; value: { type: string; value: number } }):
-  | string
-  | undefined {
+export function getParaIdFromOrigin(origin: {
+  type: string
+  value: { type: string; value: number }
+}): string | undefined {
   if (origin.type === 'Ump') {
     const umpOrigin = origin.value
     if (umpOrigin.type === 'Para') {

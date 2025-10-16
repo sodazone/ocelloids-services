@@ -3,8 +3,8 @@ import { RuntimeContext } from '@polkadot-api/observable-client'
 import {
   Blake2256,
   Decoder,
-  UnifiedMetadata,
   decAnyMetadata,
+  UnifiedMetadata,
   unifyMetadata,
 } from '@polkadot-api/substrate-bindings'
 import { getExtrinsicDecoder } from '@polkadot-api/tx-utils'

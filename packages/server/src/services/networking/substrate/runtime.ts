@@ -2,11 +2,11 @@ import { RuntimeContext } from '@polkadot-api/observable-client'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import {
-  Observable,
   catchError,
   filter,
   firstValueFrom,
   map,
+  Observable,
   race,
   shareReplay,
   switchMap,
@@ -15,7 +15,7 @@ import {
   timer,
 } from 'rxjs'
 import { Logger } from '../../types.js'
-import { RuntimeApiContext, createContextFromOpaqueMetadata } from './context.js'
+import { createContextFromOpaqueMetadata, RuntimeApiContext } from './context.js'
 import { RpcApi } from './rpc.js'
 import { SubstrateApiContext } from './types.js'
 

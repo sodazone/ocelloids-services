@@ -1,3 +1,5 @@
+import { Binary } from 'polkadot-api'
+import { from } from 'rxjs'
 import { NetworkURN } from '@/lib.js'
 import { XcmSent } from '@/services/agents/xcm/lib.js'
 import {
@@ -5,8 +7,6 @@ import {
   XcmBridgeInboundWithContext,
   XcmInbound,
 } from '@/services/agents/xcm/types/messages.js'
-import { Binary } from 'polkadot-api'
-import { from } from 'rxjs'
 import { testBlocksFrom } from './blocks.js'
 
 const bridgeOutboundMessageData =

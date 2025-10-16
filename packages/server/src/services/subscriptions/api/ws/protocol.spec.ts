@@ -1,11 +1,11 @@
+import { FastifyBaseLogger, FastifyRequest } from 'fastify'
+import { ZodError } from 'zod'
 import { ValidationError } from '@/errors.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Services } from '@/services/types.js'
 import { flushPromises } from '@/testing/promises.js'
 import { createServices } from '@/testing/services.js'
-import { FastifyBaseLogger, FastifyRequest } from 'fastify'
-import z, { ZodError } from 'zod'
 import WebsocketProtocol from './protocol.js'
 
 const testSub: Subscription = {
@@ -107,8 +107,7 @@ describe('WebsocketProtocol', () => {
         spy.mockRejectedValueOnce(
           new ZodError([
             {
-              code: z.ZodIssueCode.custom,
-              fatal: true,
+              code: 'custom',
               message: 'test error',
               path: ['ws-test'],
             },
@@ -119,7 +118,7 @@ describe('WebsocketProtocol', () => {
 
         expect(spy).toHaveBeenCalledTimes(1)
         expect(testSubStream.send).toHaveBeenCalledWith(
-          '{"issues":[{"code":"custom","fatal":true,"message":"test error","path":["ws-test"]}],"name":"ZodError"}',
+          '{"issues":[{"code":"custom","message":"test error","path":["ws-test"]}],"name":"ZodError"}',
           expect.any(Function),
         )
       })

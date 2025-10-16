@@ -15,6 +15,7 @@ import { AccountWithCaps } from '../accounts/types.js'
 import { ArchiveRepository } from '../archive/repository.js'
 import { ArchiveRetentionOptions } from '../archive/types.js'
 import { IngressConsumers } from '../ingress/consumer/types.js'
+import { PullCollector } from '../telemetry/types.js'
 import { createServerSentEventsBroadcaster } from './api/sse.js'
 
 /**
@@ -159,7 +160,7 @@ export interface AgentCatalog {
   /**
    * Collects telemetry data from agents.
    */
-  collectTelemetry(): void
+  collectTelemetry(): PullCollector[] | void
 }
 
 /**
@@ -368,10 +369,8 @@ export interface Agent {
 
   /**
    * Collects telemetry data from the agent.
-   *
-   * @returns {Promise<void> | void} A promise that resolves when telemetry is collected, or void if synchronous
    */
-  collectTelemetry(): Promise<void> | void
+  collectTelemetry(): PullCollector[] | void
 }
 
 /**

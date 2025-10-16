@@ -1,8 +1,8 @@
+import { DatabaseOptions } from 'level'
 import { MemoryLevel } from 'memory-level'
 import { pino } from 'pino'
 import { of } from 'rxjs'
 import toml from 'toml'
-
 import { createArchiveDatabase } from '@/services/archive/db.js'
 import { ArchiveRepository } from '@/services/archive/repository.js'
 import { IngressConsumers } from '@/services/ingress/consumer/types.js'
@@ -10,7 +10,6 @@ import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/ty
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
-import { DatabaseOptions } from 'level'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
 import { AgentCatalog } from '../services/agents/types.js'
 import { $ServiceConfiguration, ServiceConfiguration } from '../services/config.js'

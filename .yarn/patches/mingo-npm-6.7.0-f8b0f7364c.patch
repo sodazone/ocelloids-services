@@ -1,0 +1,211 @@
+diff --git a/esm/core.js b/esm/core.js
+index 8f38578dc19250b3c25ca3d301b569c1b8012cb5..361f3ed64266386989df8206a2a3b93b82fd4586 100644
+--- a/esm/core.js
++++ b/esm/core.js
+@@ -7,13 +7,13 @@ import {
+   isObject,
+   isOperator,
+   isString,
+-  resolve
++  resolve,
+ } from "./util";
+ var ProcessingMode = /* @__PURE__ */ ((ProcessingMode2) => {
+-  ProcessingMode2[ProcessingMode2["CLONE_OFF"] = 0] = "CLONE_OFF";
+-  ProcessingMode2[ProcessingMode2["CLONE_INPUT"] = 1] = "CLONE_INPUT";
+-  ProcessingMode2[ProcessingMode2["CLONE_OUTPUT"] = 2] = "CLONE_OUTPUT";
+-  ProcessingMode2[ProcessingMode2["CLONE_ALL"] = 3] = "CLONE_ALL";
++  ProcessingMode2[(ProcessingMode2["CLONE_OFF"] = 0)] = "CLONE_OFF";
++  ProcessingMode2[(ProcessingMode2["CLONE_INPUT"] = 1)] = "CLONE_INPUT";
++  ProcessingMode2[(ProcessingMode2["CLONE_OUTPUT"] = 2)] = "CLONE_OUTPUT";
++  ProcessingMode2[(ProcessingMode2["CLONE_ALL"] = 3)] = "CLONE_ALL";
+   return ProcessingMode2;
+ })(ProcessingMode || {});
+ class ComputeOptions {
+@@ -30,15 +30,17 @@ class ComputeOptions {
+    * @returns {ComputeOptions}
+    */
+   static init(options, root, local) {
+-    return !(options instanceof ComputeOptions) ? new ComputeOptions(options, root, local) : new ComputeOptions(options.#options, options.root ?? root, {
+-      ...options.#local,
+-      ...local,
+-      variables: Object.assign(
+-        {},
+-        options.#local?.variables,
+-        local?.variables
+-      )
+-    });
++    return !(options instanceof ComputeOptions)
++      ? new ComputeOptions(options, root, local)
++      : new ComputeOptions(options.#options, options.root ?? root, {
++          ...options.#local,
++          ...local,
++          variables: Object.assign(
++            {},
++            options.#local?.variables,
++            local?.variables,
++          ),
++        });
+   }
+   /**
+    * Updates the internal state.
+@@ -52,7 +54,7 @@ class ComputeOptions {
+     const variables = Object.assign(
+       {},
+       this.#local?.variables,
+-      local?.variables
++      local?.variables,
+     );
+     if (Object.keys(variables).length) {
+       this.#local = { ...local, variables };
+@@ -64,7 +66,7 @@ class ComputeOptions {
+   getOptions() {
+     return Object.freeze({
+       ...this.#options,
+-      context: Context.from(this.#options.context)
++      context: Context.from(this.#options.context),
+     });
+   }
+   get root() {
+@@ -108,15 +110,17 @@ class ComputeOptions {
+   }
+ }
+ function initOptions(options) {
+-  return options instanceof ComputeOptions ? options.getOptions() : Object.freeze({
+-    idKey: "_id",
+-    scriptEnabled: true,
+-    useStrictMode: true,
+-    useGlobalContext: true,
+-    processingMode: 0 /* CLONE_OFF */,
+-    ...options,
+-    context: Context.from(options?.context ?? Context.init())
+-  });
++  return options instanceof ComputeOptions
++    ? options.getOptions()
++    : Object.freeze({
++        idKey: "_id",
++        scriptEnabled: true,
++        useStrictMode: true,
++        useGlobalContext: true,
++        processingMode: 0 /* CLONE_OFF */,
++        ...options,
++        context: Context.from(options?.context ?? Context.init()),
++      });
+ }
+ var OpType = /* @__PURE__ */ ((OpType2) => {
+   OpType2["ACCUMULATOR"] = "accumulator";
+@@ -128,11 +132,8 @@ var OpType = /* @__PURE__ */ ((OpType2) => {
+   return OpType2;
+ })(OpType || {});
+ class Context {
+-  #operators = new Map(
+-    Object.values(OpType).map((k) => [k, {}])
+-  );
+-  constructor() {
+-  }
++  #operators = new Map(Object.values(OpType).map((k) => [k, {}]));
++  constructor() {}
+   static init(ops = {}) {
+     const ctx = new Context();
+     for (const [type, operators] of Object.entries(ops)) {
+@@ -143,7 +144,7 @@ class Context {
+     return ctx;
+   }
+   static from(ctx) {
+-    return Context.init(ctx && Object.fromEntries(ctx.#operators) || {});
++    return Context.init((ctx && ctx.getOperators()) || {});
+   }
+   static merge(first, second) {
+     const ctx = Context.from(first);
+@@ -155,10 +156,13 @@ class Context {
+   addOperators(type, operators) {
+     this.#operators.set(
+       type,
+-      Object.assign({}, operators, this.#operators.get(type))
++      Object.assign({}, operators, this.#operators.get(type)),
+     );
+     return this;
+   }
++  getOperators() {
++    return Object.fromEntries(this.#operators);
++  }
+   getOperator(type, name) {
+     return this.#operators.get(type)[name] ?? null;
+   }
+@@ -188,18 +192,18 @@ const REGISTRY = {
+   ["pipeline" /* PIPELINE */]: CONTEXT.addPipelineOps.bind(CONTEXT),
+   ["projection" /* PROJECTION */]: CONTEXT.addProjectionOps.bind(CONTEXT),
+   ["query" /* QUERY */]: CONTEXT.addQueryOps.bind(CONTEXT),
+-  ["window" /* WINDOW */]: CONTEXT.addWindowOps.bind(CONTEXT)
++  ["window" /* WINDOW */]: CONTEXT.addWindowOps.bind(CONTEXT),
+ };
+ function useOperators(type, operators) {
+   for (const [name, fn] of Object.entries(operators)) {
+     assert(
+       isFunction(fn) && isOperator(name),
+-      `'${name}' is not a valid operator`
++      `'${name}' is not a valid operator`,
+     );
+     const currentFn = getOperator(type, name, null);
+     assert(
+       !currentFn || fn === currentFn,
+-      `${name} already exists for '${type}' operators. Cannot change operator function once registered.`
++      `${name} already exists for '${type}' operators. Cannot change operator function once registered.`,
+     );
+   }
+   REGISTRY[type](operators);
+@@ -212,7 +216,9 @@ function getOperator(type, name, options) {
+ }
+ function computeValue(obj, expr, operator, options) {
+   const copts = ComputeOptions.init(options, obj);
+-  return !!operator && isOperator(operator) ? computeOperator(obj, expr, operator, copts) : computeExpression(obj, expr, copts);
++  return !!operator && isOperator(operator)
++    ? computeOperator(obj, expr, operator, copts)
++    : computeExpression(obj, expr, copts);
+ }
+ const SYSTEM_VARS = ["$$ROOT", "$$CURRENT", "$$REMOVE", "$$NOW"];
+ function computeExpression(obj, expr, options) {
+@@ -243,7 +249,7 @@ function computeExpression(obj, expr, options) {
+         // current item is added before local variables because the binding may be changed.
+         { this: obj },
+         // local vars
+-        options?.local?.variables
++        options?.local?.variables,
+       );
+       const name = arr[0].slice(2);
+       assert(has(ctx, name), `Use of undefined variable: ${name}`);
+@@ -274,13 +280,13 @@ function computeOperator(obj, expr, operator, options) {
+   const callExpression = getOperator(
+     "expression" /* EXPRESSION */,
+     operator,
+-    options
++    options,
+   );
+   if (callExpression) return callExpression(obj, expr, options);
+   const callAccumulator = getOperator(
+     "accumulator" /* ACCUMULATOR */,
+     operator,
+-    options
++    options,
+   );
+   assert(!!callAccumulator, `accumulator '${operator}' is not registered.`);
+   if (!isArray(obj)) {
+@@ -312,11 +318,7 @@ function redact(obj, expr, options) {
+           }
+           output[key] = res;
+         } else if (isObject(value)) {
+-          const res = redact(
+-            value,
+-            expr,
+-            options.update(value)
+-          );
++          const res = redact(value, expr, options.update(value));
+           if (!isNil(res)) output[key] = res;
+         } else {
+           output[key] = value;
+@@ -337,5 +339,5 @@ export {
+   getOperator,
+   initOptions,
+   redact,
+-  useOperators
++  useOperators,
+ };
