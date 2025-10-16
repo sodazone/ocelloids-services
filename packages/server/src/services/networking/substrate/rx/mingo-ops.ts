@@ -1,7 +1,6 @@
-import mingo from 'mingo/core'
+import { Context, Options, QueryOperator } from 'mingo/core'
 import { Any, AnyObject, Predicate } from 'mingo/types'
-import mingoUtil from 'mingo/util'
-
+import { ensureArray, resolve } from 'mingo/util'
 import { asPublicKey } from '@/common/util.js'
 
 function addressEq(a: string, b: string) {
@@ -20,7 +19,7 @@ function bn(x: Any) {
 }
 
 function compare(a: Any, b: Any, f: Predicate<Any>): boolean {
-  return mingoUtil.ensureArray(a).some((x) => f(x, b))
+  return ensureArray(a).some((x) => f(x, b))
 }
 
 function $bn_lt(a: Any, b: Any): boolean {
@@ -69,13 +68,13 @@ function $address_neq(a: Any, b: Any): boolean {
   return true
 }
 
-function createQueryOperator(predicate: Predicate<Any>): mingo.QueryOperator {
-  const f = (selector: string, value: Any, options: mingo.Options) => {
+function createQueryOperator(predicate: Predicate<Any>): QueryOperator {
+  const f = (selector: string, value: Any, options: Options) => {
     const opts = { unwrapArray: true }
     const depth = Math.max(1, selector.split('.').length - 1)
     return (obj: AnyObject): boolean => {
       // value of field must be fully resolved.
-      const lhs = mingoUtil.resolve(obj, selector, opts)
+      const lhs = resolve(obj, selector, opts)
       return predicate(lhs, value, { ...options, depth })
     }
   }
@@ -83,11 +82,11 @@ function createQueryOperator(predicate: Predicate<Any>): mingo.QueryOperator {
   return f // as QueryOperator;
 }
 
-let context: mingo.Context | null = null
+let context: Context | null = null
 export function createMingoContext() {
   // Register query operators
   if (!context) {
-    context = mingo.Context.init({
+    context = Context.init({
       query: {
         $bn_lt: createQueryOperator($bn_lt),
         $bn_lte: createQueryOperator($bn_lte),
