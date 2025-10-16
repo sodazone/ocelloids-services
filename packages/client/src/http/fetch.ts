@@ -7,6 +7,9 @@ export type RequestOptions = RequestInit & {
   }
 }
 
+/**
+ * @public
+ */
 export type DoFetchOptions = {
   fetchOptions?: RequestOptions
   maxRetries?: number
