@@ -1852,7 +1852,7 @@ __metadata:
     level: "npm:^10.0.0"
     lru-cache: "npm:^11.2.2"
     memory-level: "npm:^3.1.0"
-    mingo: "npm:6.7.0"
+    mingo: "patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch"
     nock: "npm:^14.0.10"
     nodemon: "npm:^3.1.10"
     p-limit: "npm:^7.1.1"
@@ -4538,6 +4538,13 @@ __metadata:
   version: 6.7.0
   resolution: "mingo@npm:6.7.0"
   checksum: 10c0/f7559eb3ff03fc8e863654f77da79982514267e3e4c768b83f61ac024474f5b98eaaee57a9f7b18e78ad9d12e357f4c2451f544d5c8c6e30f2d11929b4d88efb
+  languageName: node
+  linkType: hard
+
+"mingo@patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch":
+  version: 6.7.0
+  resolution: "mingo@patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch::version=6.7.0&hash=a67b80"
+  checksum: 10c0/9e268ba7ed23f4cebbe2203676fab4ea4b8005d2303e71d72cc2963f6ad5add8ab19ec7842a8099c16d522018f577107bef81fb0f32bb10078464e605e6d738c
   languageName: node
   linkType: hard
 
