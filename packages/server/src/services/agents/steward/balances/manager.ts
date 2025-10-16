@@ -39,12 +39,39 @@ import {
   StorageQueryParams,
   StorageQueueData,
 } from './types.js'
+import { isValidEvmAddress, isValidSs58Address, isValidSubstratePublicKey } from './util.js'
 
 const UPDATE_QUEUE_LIMIT = 5_000
 const STORAGE_CAP = 500
 const RUNTIME_CAP = 50
 
 type BalanceUpdateMode = 'streaming' | 'on-demand'
+
+function validateAccounts(accounts: string | string[]): boolean {
+  let list: string[]
+
+  if (Array.isArray(accounts)) {
+    list = accounts.flatMap((a) =>
+      typeof a === 'string' && a.includes(',')
+        ? a
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : [typeof a === 'string' ? a.trim() : ''],
+    )
+  } else if (typeof accounts === 'string') {
+    list = accounts
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0)
+  } else {
+    return false
+  }
+
+  return list.every(
+    (acc) => isValidEvmAddress(acc) || isValidSubstratePublicKey(acc) || isValidSs58Address(acc),
+  )
+}
 
 export class BalancesManager {
   id = 'steward:balances'
@@ -116,6 +143,24 @@ export class BalancesManager {
   }
 
   async onServerSentEventsRequest(request: ServerSentEventsRequest<StewardServerSentEventArgs>) {
+    // Validate accounts before opening stream
+    if (!validateAccounts(request.filters.account)) {
+      request.reply
+        .code(400)
+        .header('Content-Type', 'text/event-stream')
+        .send(
+          [
+            'event: error',
+            `data: ${JSON.stringify({
+              type: 'error',
+              message:
+                'Invalid account format. Must be a valid SS58 address, Substrate public key (0x + 64 hex chars), or EVM address (0x + 40 hex chars).',
+            })}`,
+            '',
+          ].join('\n'),
+        )
+      return
+    }
     try {
       // open stream
       const {

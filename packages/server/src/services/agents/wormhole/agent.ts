@@ -55,6 +55,11 @@ export class WormholeAgent implements Agent {
   }
 
   start() {
+    if (this.#repository == null) {
+      this.#log.error('[agent:%s] repository is not available', this.id)
+      return
+    }
+
     this.#log.info('[agent:%s] start', this.id)
 
     this.#watcher.loadInitialState([WormholeIds.MOONBEAM_ID], ago(1, 'day')).then((init) => {
@@ -72,25 +77,23 @@ export class WormholeAgent implements Agent {
     })
   }
 
-  #makeObserver(): Observer<{ op: WormholeOperation; status: JourneyStatus }> {
-    return {
-      next: async ({ op }) => {
-        try {
-          await this.#onOperation(op)
-        } catch (err) {
-          this.#log.error(err, '[agent:%s] watcher error while processing %s', this.id, op.id)
-        }
-      },
-      error: (err) => {
-        this.#log.error(err, '[agent:%s] watcher error', this.id)
-      },
-      complete: () => {
-        this.#log.info('[agent:%s] watcher completed', this.id)
-      },
-    }
-  }
+  #makeObserver = (): Observer<{ op: WormholeOperation; status: JourneyStatus }> => ({
+    next: async ({ op }) => {
+      try {
+        await this.#onOperation(op)
+      } catch (err) {
+        this.#log.error(err, '[agent:%s] watcher error while processing %s', this.id, op.id)
+      }
+    },
+    error: (err) => {
+      this.#log.error(err, '[agent:%s] watcher error', this.id)
+    },
+    complete: () => {
+      this.#log.info('[agent:%s] watcher completed', this.id)
+    },
+  })
 
-  async #broadcast(event: 'new_journey' | 'update_journey', id: number) {
+  #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
     const fullJourney = await this.#repository.getJourneyById(id)
     if (!fullJourney) {
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
@@ -99,7 +102,7 @@ export class WormholeAgent implements Agent {
     this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
   }
 
-  async #onOperation(op: WormholeOperation) {
+  #onOperation = async (op: WormholeOperation) => {
     const journey = mapOperationToJourney(op)
     const existing = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
 

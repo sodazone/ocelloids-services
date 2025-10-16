@@ -15,6 +15,7 @@ export type TestCase = {
   name: string
   file: string
   expected: {
+    status?: string
     type: string
     from: string
     to: string
@@ -27,6 +28,9 @@ export function runWormholeMapperTests(cases: TestCase[], label = 'wormhole mapp
     test.each(cases)('$name', ({ file, expected }) => {
       const j = mapOperationToJourney(_test_whscanResponse(file))
 
+      if (expected.status) {
+        expect(j.status).toBe(expected.status)
+      }
       expect(j.type).toBe(expected.type)
       expect(j.from).toBe(expected.from)
       expect(j.to).toBe(expected.to)

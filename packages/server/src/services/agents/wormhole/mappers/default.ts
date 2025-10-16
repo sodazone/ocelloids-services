@@ -30,24 +30,26 @@ export function defaultJourneyMapping(
   protocol: WormholeProtocol,
 ): NewJourney {
   const s = op.content?.standarizedProperties ?? {}
-
   const from = prefer(op.sourceChain?.from, s.fromAddress)
   const to = prefer(s.toAddress, op.targetChain?.to)
 
+  const origin = chainIdToUrn(s.fromChain > 0 ? s.fromChain : op.emitterChain)
+  const destination = chainIdToUrn(s.toChain > 0 ? s.toChain : (op.targetChain?.chainId ?? op.emitterChain))
+
   return {
     correlation_id: op.id,
-    status: toStatus(op),
+    status: toStatus(op, origin === destination),
     type,
     origin_protocol: protocol,
     destination_protocol: protocol,
-    origin: chainIdToUrn(s.fromChain),
-    destination: chainIdToUrn(s.toChain),
+    origin,
+    destination,
     from: addressToHex(from),
     to: addressToHex(to),
     from_formatted: from,
     to_formatted: to,
-    sent_at: toUTCMillis(op.sourceChain?.timestamp),
-    recv_at: op.targetChain ? toUTCMillis(op.targetChain.timestamp) : undefined,
+    sent_at: op.sourceChain?.timestamp ? toUTCMillis(op.sourceChain.timestamp) : undefined,
+    recv_at: op.targetChain?.timestamp ? toUTCMillis(op.targetChain.timestamp) : undefined,
     created_at: Date.now(),
     stops: asJSON(toWormholeStops(op)),
     instructions: '[]',
@@ -91,32 +93,35 @@ export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney):
 
 export function toWormholeStops(op: WormholeOperation): AnyJson[] {
   const s = op.content?.standarizedProperties ?? {}
+  const fromChainId = chainIdToUrn(s.fromChain > 0 ? s.fromChain : op.emitterChain)
+  const toChainId = chainIdToUrn(s.toChain > 0 ? s.toChain : (op.targetChain?.chainId ?? op.emitterChain))
+  const sameOrigin = fromChainId === toChainId
 
   return [
     {
       type: 'wormhole',
 
       from: {
-        chainId: chainIdToUrn(s.fromChain),
-        timestamp: toUTCMillis(op.sourceChain?.timestamp),
+        chainId: fromChainId,
+        timestamp: op.sourceChain?.timestamp ? toUTCMillis(op.sourceChain.timestamp) : undefined,
         status: op.sourceChain?.status ?? 'unknown',
         tx: op.sourceChain?.transaction,
       },
 
       to: op.targetChain
         ? {
-            chainId: chainIdToUrn(s.toChain),
+            chainId: toChainId,
             timestamp: toUTCMillis(op.targetChain?.timestamp),
             status: op.targetChain?.status ?? 'unknown',
             tx: op.targetChain?.transaction,
           }
         : {
-            chainId: chainIdToUrn(s.toChain),
-            status: 'pending',
+            chainId: toChainId,
+            status: sameOrigin ? 'completed' : 'pending',
           },
 
       relay:
-        op.targetChain?.status === undefined
+        !sameOrigin && op.targetChain?.status === undefined
           ? {
               chainId: 'urn:ocn:wormhole:1',
               status: 'pending',

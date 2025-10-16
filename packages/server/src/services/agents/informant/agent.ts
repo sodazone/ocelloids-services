@@ -217,7 +217,7 @@ export class InformantAgent implements Agent, Subscribable {
     if (filter.evm) {
       const { evm } = filter
       return {
-        chainId,
+        id: chainId,
         sub: this.#shared
           .blockEvents(chainId)
           .pipe(
@@ -249,7 +249,7 @@ export class InformantAgent implements Agent, Subscribable {
       }
     } else {
       return {
-        chainId,
+        id: chainId,
         sub: this.#shared
           .blockEvents(chainId)
           .pipe(rxFilter((blockEvent) => control.value.test(blockEvent)))
@@ -296,7 +296,7 @@ export class InformantAgent implements Agent, Subscribable {
     if (filter.evm) {
       const { evm } = filter
       return {
-        chainId,
+        id: chainId,
         sub: this.#shared
           .blockExtrinsics(chainId)
           .pipe(
@@ -328,7 +328,7 @@ export class InformantAgent implements Agent, Subscribable {
       }
     } else {
       return {
-        chainId,
+        id: chainId,
         sub: this.#shared
           .blockExtrinsics(chainId)
           .pipe(rxFilter((extrinsic) => control.value.test(extrinsic)))
@@ -386,7 +386,7 @@ export class InformantAgent implements Agent, Subscribable {
 
     // Remove unused streams
     const updatedStreams = streams.concat(newStreams)
-    const removed = updatedStreams.filter((s) => !toUpdate.args.networks.includes(s.chainId))
+    const removed = updatedStreams.filter((s) => !toUpdate.args.networks.includes(s.id))
     removed.forEach(({ sub }) => sub.unsubscribe())
 
     const updated = updatedStreams.filter((s) => !removed.includes(s))

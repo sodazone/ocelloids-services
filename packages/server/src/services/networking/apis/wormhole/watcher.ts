@@ -39,64 +39,43 @@ function isSeen(cursor: Cursor, id: string): boolean {
   return cursor.seenIds?.includes(id) ?? false
 }
 
-function bumpTimestamp(ts: string): string {
-  return new Date(new Date(ts).getTime() + 1).toISOString()
-}
-
-function withRetry<T>(
-  fn: () => Promise<T>,
-  {
-    retries = 5,
-    delay = 2000,
-    exponential = true,
-  }: { retries?: number; delay?: number; exponential?: boolean } = {},
-): Promise<T> {
-  return (async function retry(attempt = 0): Promise<T> {
-    try {
-      return await fn()
-    } catch (err) {
-      if (attempt >= retries) {
-        throw err
-      }
-      const backoff = exponential ? delay * 2 ** attempt : delay
-      console.warn(`Retrying after ${backoff}ms (attempt ${attempt + 1}) due to`, err)
-      await new Promise((r) => setTimeout(r, backoff))
-      return retry(attempt + 1)
-    }
-  })()
-}
-
 export function makeWatcher(client: WormholescanClient, storage?: PersistentWatcherStorage) {
   async function fetchSinceCursor(
     cursor: Cursor,
     signal?: AbortSignal | null,
   ): Promise<[Cursor, WormholeOperation[]]> {
-    const ops = await withRetry(
-      () =>
-        client.fetchAllOperations(
-          {
-            from: cursor.lastSeen,
-            ...(cursor.direction === 'source'
-              ? { sourceChain: cursor.chain }
-              : { targetChain: cursor.chain }),
-          },
-          signal,
-        ),
-      { retries: 5, delay: 1000, exponential: true },
-    )
+    const freshOps: WormholeOperation[] = []
+    let maxTs = cursor.lastSeen
 
-    const freshOps = ops.filter((op) => !isSeen(cursor, op.id))
-    if (freshOps.length === 0) {
+    try {
+      for await (const op of client.streamAllOperations(
+        {
+          from: cursor.lastSeen,
+          ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
+        },
+        signal,
+      )) {
+        if (!isSeen(cursor, op.id)) {
+          freshOps.push(op)
+        }
+
+        const ts = op.sourceChain.timestamp
+
+        if (ts > maxTs) {
+          maxTs = ts
+        }
+      }
+    } catch (err) {
+      console.error('Error streaming ops for', cursor.chain, cursor.direction, err)
+      throw err
+    }
+
+    if (!freshOps.length) {
       return [cursor, []]
     }
 
-    const maxTs = freshOps.reduce(
-      (acc, o) => (o.sourceChain.timestamp > acc ? o.sourceChain.timestamp : acc),
-      cursor.lastSeen,
-    )
-
     const nextCursor = rememberSeen(
-      { ...cursor, lastSeen: bumpTimestamp(maxTs) },
+      { ...cursor, lastSeen: new Date(new Date(maxTs).getTime() + 1).toISOString() },
       freshOps.map((o) => o.id),
     )
 
@@ -125,18 +104,17 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
   async function loadInitialState(chains: string[] | number[], cutDate: string): Promise<WatcherState> {
     const cursors: Record<string, Cursor> = {}
-
     for (const c of chains) {
       for (const dir of ['source', 'destination'] as const) {
         const key = `${c}.${dir}`
         let cursor = storage ? await storage.loadCursor(key) : undefined
         if (!cursor) {
-          cursor = { chain: String(c), direction: dir, lastSeen: cutDate, seenIds: [] }
+          const cutMs = new Date(cutDate).getTime() - 1
+          cursor = { chain: String(c), direction: dir, lastSeen: new Date(cutMs).toISOString(), seenIds: [] }
         }
         cursors[key] = cursor
       }
     }
-
     return { cursors }
   }
 

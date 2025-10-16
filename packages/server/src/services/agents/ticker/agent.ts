@@ -17,6 +17,7 @@ import { tickerToAssetIdMap } from './mappers.js'
 import { BinancePriceScout } from './scouts/binance.js'
 import { CoinGeckoPriceScout } from './scouts/coingecko.js'
 import { PriceScout } from './scouts/interface.js'
+import { OkxPriceScout } from './scouts/okx.js'
 import {
   $TickerQueryArgs,
   AggregatedPriceData,
@@ -31,6 +32,16 @@ const PRICES_LEVEL_PREFIX = 'agent:reporter:prices'
 
 const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 900_000 // 15m
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+}
+
+function mean(values: number[]): number {
+  return values.reduce((a, b) => a + b, 0) / values.length
+}
 
 export class TickerAgent implements Agent, Queryable {
   id = 'ticker'
@@ -58,7 +69,7 @@ export class TickerAgent implements Agent, Queryable {
       valueEncoding: 'json',
     })
     // XXX proper config and loading
-    this.#scouts = [new BinancePriceScout(), new CoinGeckoPriceScout()]
+    this.#scouts = [new BinancePriceScout(), new CoinGeckoPriceScout(), new OkxPriceScout()]
 
     this.#sched.on(PRICE_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -160,22 +171,47 @@ export class TickerAgent implements Agent, Queryable {
         ).filter((x) => x !== undefined)
       }
 
-      if (items.length > 0) {
-        const aggregatedPrice = items.reduce((sum, item) => sum + item.price, 0) / items.length
-
-        const aggregatedItem: AggregatedPriceData = {
-          ticker,
-          asset: items[0].asset,
-          aggregatedPrice,
-          updated: Math.max(...items.map((item) => item.updated)), // Use the latest update timestamp
-          sources: items.map((item) => ({
-            name: item.source,
-            sourcePrice: item.price,
-          })),
-        }
-
-        allItems.push(aggregatedItem)
+      if (items.length === 0) {
+        continue
       }
+
+      let withOutliers: {
+        name: string
+        sourcePrice: number
+        isOutlier: boolean
+      }[] = items.map((i) => ({ name: i.source, sourcePrice: i.price, isOutlier: false }))
+
+      // detect outliers using Median Absolute Deviation (MAD)
+      if (withOutliers.length >= 3) {
+        const prices = withOutliers.map((i) => i.sourcePrice)
+        const med = median(prices)
+        const deviations = prices.map((p) => Math.abs(p - med))
+        const mad = median(deviations)
+        const threshold = 3 * mad || 1e-9 // avoid divide-by-zero edge cases
+
+        withOutliers = withOutliers.map((i) => {
+          if (Math.abs(i.sourcePrice - med) > threshold) {
+            return {
+              ...i,
+              isOutlier: true,
+            }
+          }
+          return i
+        })
+      }
+
+      const normalisedPrices = withOutliers.filter((i) => !i.isOutlier).map((i) => i.sourcePrice)
+
+      const aggregatedItem: AggregatedPriceData = {
+        ticker,
+        asset: items[0].asset,
+        meanPrice: mean(normalisedPrices),
+        medianPrice: median(normalisedPrices),
+        updated: Math.max(...items.map((item) => item.updated)),
+        sources: withOutliers,
+      }
+
+      allItems.push(aggregatedItem)
     }
 
     return { items: allItems }
@@ -187,6 +223,11 @@ export class TickerAgent implements Agent, Queryable {
   }
 
   async #scheduleUpdate() {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(PRICE_SYNC_TASK))
+    if (alreadyScheduled) {
+      this.#log.info('[agent:%s] next sync already scheduled', this.id)
+      return
+    }
     const time = new Date(Date.now() + SCHED_RATE)
     const timeString = time.toISOString()
     const key = timeString + PRICE_SYNC_TASK

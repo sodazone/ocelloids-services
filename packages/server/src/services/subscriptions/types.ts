@@ -131,7 +131,7 @@ export type EgressMessageListener = (sub: Subscription, msg: Message) => void
 export type EgressTerminateListener = (sub: Subscription) => void
 
 export type RxSubscriptionWithId = {
-  chainId: string
+  id: string
   sub: RxSubscription
 }
 

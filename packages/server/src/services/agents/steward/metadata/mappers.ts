@@ -38,7 +38,7 @@ const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
 }
 
 const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
-  const codec = context.storageCodec('AssetManager', 'AssetTypeId')
+  const codec = context.storageCodec('EvmForeignAssets', 'AssetsById')
   const keyPrefix = codec.keys.enc() as HexString
   const mappings = [
     {

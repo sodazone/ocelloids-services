@@ -1,5 +1,5 @@
 import { from } from 'rxjs'
-import { moonbeamXcmBlock } from '@/testing/blocks.js'
+import { moonbeamXcmBlock, testBlocksFrom } from '@/testing/blocks.js'
 import { extractEvents } from './extract.js'
 
 describe('extract operators', () => {
@@ -27,5 +27,22 @@ describe('extract operators', () => {
         })
     })
     expect(matches).toBe(2)
+  })
+
+  it('should extract events in Frontier', async () => {
+    const test$ = from(testBlocksFrom('moonbeam/12960125.cbor')).pipe(extractEvents())
+    const errorCb = vi.fn()
+    await new Promise<void>((resolve) => {
+      test$.subscribe({
+        error: (err) => {
+          console.error(err)
+          errorCb()
+        },
+        complete: () => {
+          expect(errorCb).toHaveBeenCalledTimes(0)
+          resolve()
+        },
+      })
+    })
   })
 })

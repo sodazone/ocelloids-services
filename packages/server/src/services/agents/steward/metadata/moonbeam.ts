@@ -38,16 +38,17 @@ export const mapAssetsLocationsAndErc20Metadata = (codec: WithRequired<StorageCo
     return (source: Observable<HexString>): Observable<AssetMetadata> => {
       return source.pipe(
         mergeMap((buffer) => {
-          const assetId = codec.locations.value.dec(buffer)
+          const assetId = codec.locations.keys.dec(keyArgs)[0]
           const precompileAddress = bigintToPaddedHex(assetId)
           return Promise.all([
             getErc20Metadata(precompileAddress),
             Promise.resolve(assetId),
+            Promise.resolve(precompileAddress),
             Promise.resolve(buffer),
           ])
         }),
-        map(([erc20, assetId, xid]) => {
-          const multiLocation = codec.locations.keys.dec(keyArgs)[0]
+        map(([erc20, assetId, xid, valueBuffer]) => {
+          const multiLocation = codec.locations.value.dec(valueBuffer)
           const assetMetadata: AssetMetadata = {
             chainId: networks.moonbeam,
             externalIds: [],

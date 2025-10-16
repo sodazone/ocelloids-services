@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { twoHopSwap } from '@/testing/2-hop-swap.js'
+import { getXcmV5Sent } from '@/testing/humanize.js'
 import { createServices } from '@/testing/services.js'
 import { apiContext } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
@@ -621,7 +622,6 @@ describe('XcmHumanizer', () => {
         extraSigners: [],
       },
       messageId: '0x0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
-      forwardId: undefined,
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:1000',
@@ -723,7 +723,6 @@ describe('XcmHumanizer', () => {
         extraSigners: [],
       },
       messageId: '0x0eac6475ed479ff30d70d451385b41b776ed14c6a9ea960ec5a65f2dd1673356',
-      forwardId: undefined,
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:1000',
@@ -794,7 +793,6 @@ describe('XcmHumanizer', () => {
         extraSigners: [],
       },
       messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
-      forwardId: undefined,
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:0',
@@ -872,7 +870,6 @@ describe('XcmHumanizer', () => {
         extraSigners: [],
       },
       messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
-      forwardId: undefined,
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:1000',
@@ -981,7 +978,6 @@ describe('XcmHumanizer', () => {
       ],
       sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
       messageId: '0x4e24a286b1c562a8fc1e594bc3046b3486511c64da61f9dc064896022d447a94',
-      forwardId: undefined,
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:0',
@@ -1048,5 +1044,13 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets.length).toBe(3)
     expect(results.humanized.assets[0].id).toBeDefined()
     expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
+  it('should humanize XCM with InitiateTransfer instruction', async () => {
+    const msg = getXcmV5Sent()
+    const results = await humanizer.humanize(msg)
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.assets.length).toBe(2)
   })
 })

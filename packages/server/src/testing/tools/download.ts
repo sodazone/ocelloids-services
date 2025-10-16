@@ -22,6 +22,7 @@ export const networks = {
   acala: 'wss://acala-rpc.dwellir.com',
   mythos: 'wss://mythos.ibp.network',
   kassethub: 'wss://sys.ibp.network/asset-hub-kusama',
+  kbridgehub: 'wss://sys.ibp.network/bridgehub-kusama',
   passethub: 'wss://sys.ibp.network/asset-hub-paseo',
 } as Record<string, string>
 
@@ -35,7 +36,7 @@ async function download([name, ws, height]: [string, string, number]) {
 
   logger.info('Block hash %s', hash)
 
-  const block = await client.getBlock(hash)
+  const block = await client.getBlock(hash, false)
 
   const dest = path.resolve(__dirname, `__data__/blocks/${client.chainId}`, `${block.number}.cbor`)
 

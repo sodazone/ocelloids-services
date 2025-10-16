@@ -26,7 +26,7 @@ export class Scheduler extends EventEmitter {
   readonly enabled: boolean
 
   readonly #log: Logger
-  readonly #tasks: Family
+  readonly #tasks: Family<string, Scheduled>
   readonly #frequency: number
 
   #running: boolean
@@ -94,6 +94,30 @@ export class Scheduler extends EventEmitter {
       throw new NotFound(`Task no found for key ${key}`)
     }
     return task
+  }
+
+  async hasScheduled(
+    predicate: (key: string, task?: Scheduled) => boolean,
+    { includeValues = false }: { includeValues?: boolean } = {},
+  ): Promise<boolean> {
+    const iter = this.#tasks.iterator({
+      keys: true,
+      values: includeValues,
+    })
+
+    try {
+      for await (const [key, value] of iter) {
+        const task = includeValues ? (value as Scheduled) : undefined
+        if (typeof key === 'string' && predicate(key, task)) {
+          await iter.close()
+          return true
+        }
+      }
+    } finally {
+      await iter.close()
+    }
+
+    return false
   }
 
   /**

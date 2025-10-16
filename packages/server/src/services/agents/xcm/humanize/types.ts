@@ -106,6 +106,14 @@ export type ExportMessage = {
   xcm: XcmInstruction[]
 }
 
+export type InitiateTransfer = {
+  destination: AnyJson
+  remote_fees: AnyJson
+  preserve_origin: boolean
+  assets: AnyJson[]
+  remote_xcm: XcmInstruction[]
+}
+
 export type ExchangeAsset = {
   give: MultiAssetFilter
   want: MultiAsset[]

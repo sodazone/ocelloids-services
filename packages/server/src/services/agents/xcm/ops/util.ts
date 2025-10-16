@@ -65,7 +65,7 @@ export async function getSendersFromEvent(event: BlockEvent): Promise<SignerData
 /**
  * Gets message id from setTopic.
  */
-export function getMessageId({ instructions }: Program): HexString | undefined {
+export function getMessageId({ instructions }: Pick<Program, 'instructions'>): HexString | undefined {
   switch (instructions.type) {
     // Only XCM V3+ supports topic ID
     case 'V3':
@@ -194,10 +194,7 @@ export function getParaIdFromMultiLocation(loc: MultiLocation): string | undefin
   return getParaIdFromJunctions(loc.interior)
 }
 
-export function networkIdFromInteriorLocation(junctions: {
-  type: string
-  value: { type: string; value: any }
-}): NetworkURN | undefined {
+export function networkIdFromInteriorLocation(junctions: any): NetworkURN | undefined {
   return networkIdFromV4(junctions)
 }
 

@@ -34,7 +34,6 @@ const sent: XcmSent = {
     extraSigners: [],
   },
   messageId: '0x7b234b757a973d3ffcfeca9e1a077e2c83dca86667c4d375b4eac52ab108d60c',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:0',
@@ -117,7 +116,6 @@ const hopOut2034: XcmSent = {
   ],
   sender: undefined,
   messageId: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:2034',
@@ -182,7 +180,6 @@ const hopOut1000: XcmSent = {
   ],
   sender: undefined,
   messageId: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
-  forwardId: undefined,
   type: 'xcm.sent',
   waypoint: {
     chainId: 'urn:ocn:local:1000',

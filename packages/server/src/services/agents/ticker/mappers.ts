@@ -1,6 +1,16 @@
 import { AssetIdentifier } from './types.js'
 
 export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifier[]> = {
+  DAI: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x6b175474e89094c44da98b954eedeac495271d0f',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x06e605775296e851ff43b4daa541bb0984e9d6fd',
+    },
+  ],
   DOT: {
     chainId: 'urn:ocn:polkadot:0',
     assetId: 'native',
@@ -9,6 +19,16 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: 'native',
   },
+  WBTC: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D',
+    },
+  ],
   WETH: [
     {
       chainId: 'urn:ocn:ethereum:1',
@@ -23,26 +43,6 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
   },
-  WBTC: [
-    {
-      chainId: 'urn:ocn:ethereum:1',
-      assetId: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-    },
-    {
-      chainId: 'urn:ocn:polkadot:2004',
-      assetId: '0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D',
-    },
-  ],
-  DAI: [
-    {
-      chainId: 'urn:ocn:ethereum:1',
-      assetId: '0x6b175474e89094c44da98b954eedeac495271d0f',
-    },
-    {
-      chainId: 'urn:ocn:polkadot:2004',
-      assetId: '0x06e605775296e851ff43b4daa541bb0984e9d6fd',
-    },
-  ],
   TBTC: {
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x18084fba666a33d37592fa2633fd49a74dd93a88',
@@ -238,5 +238,13 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
   SUI: {
     chainId: 'urn:ocn:polkadot:2004',
     assetId: '0x484ecce6775143d3335ed2c7bcb22151c53b9f49',
+  },
+  PAXG: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x45804880de22913dafe09f4980848ece6ecbaf78',
+  },
+  ENA: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x57e114b691db790c35207b2e685d4a43181e6061',
   },
 }

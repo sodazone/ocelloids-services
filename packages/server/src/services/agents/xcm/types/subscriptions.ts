@@ -24,12 +24,6 @@ export type XcmSubscriptionHandler = {
   stream: RxSubscription
 }
 
-const bridgeTypes = ['pk-bridge', 'snowbridge'] as const
-
-export type BridgeType = (typeof bridgeTypes)[number]
-
-export type RxBridgeSubscription = { type: BridgeType; subs: RxSubscriptionWithId[] }
-
 const XCM_NOTIFICATION_TYPE_ERROR = `at least 1 event type is required [${XcmNotificationTypes.join(',')}]`
 
 export const $XcmInputs = z.object({
@@ -60,7 +54,6 @@ export const $XcmInputs = z.object({
       )
       .transform(distinct),
   ),
-  bridges: z.optional(z.array(z.enum(bridgeTypes)).min(1, 'Please specify at least one bridge.')),
   // prevent using $refs
   events: z.optional(
     z.literal('*').or(z.array(z.enum(XcmNotificationTypes)).min(1, XCM_NOTIFICATION_TYPE_ERROR)),

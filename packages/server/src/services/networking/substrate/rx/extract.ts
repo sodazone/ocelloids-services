@@ -113,7 +113,7 @@ export function extractEvents() {
               timestamp,
             }
             const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
-            if (extrinsicIndex) {
+            if (extrinsicIndex && extrinsicIndex < extrinsics.length) {
               if (extrinsicWithId === undefined) {
                 const xt = extrinsics[extrinsicIndex]
                 extrinsicWithId = {

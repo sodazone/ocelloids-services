@@ -1,10 +1,17 @@
-import { from, of } from 'rxjs'
+import { filter, from, of } from 'rxjs'
+
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext, apiContext_xcmv2, xcmpReceive } from '@/testing/xcm.js'
+
 import { GenericXcmSentWithContext } from '../types/index.js'
-import { extractParachainReceive, extractParachainReceiveByBlock, mapXcmSent } from './common.js'
-import { getMessageId } from './util.js'
+import {
+  extractParachainReceive,
+  extractParachainReceiveByBlock,
+  mapXcmSent,
+  xcmMessagesSent,
+} from './common.js'
+import { getMessageId, matchEvent } from './util.js'
 import { asVersionedXcm, fromXcmpFormat } from './xcm-format.js'
 
 describe('common xcm operators', () => {
@@ -442,6 +449,30 @@ describe('common xcm operators', () => {
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+  })
+
+  describe('xcmMessagesSent', () => {
+    it('work with Frontier events', async () => {
+      const block$ = from(testBlocksFrom('moonbeam/12962193.cbor'))
+      const test$ = xcmMessagesSent()(
+        block$.pipe(
+          extractEvents(),
+          filter((event) => matchEvent(event, 'XcmpQueue', 'XcmpMessageSent')),
+        ),
+      )
+      const errorCb = vi.fn()
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          error: (_err) => {
+            errorCb()
+          },
+          complete: () => {
+            expect(errorCb).toHaveBeenCalledTimes(0)
             resolve()
           },
         })

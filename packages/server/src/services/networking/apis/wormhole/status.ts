@@ -4,14 +4,16 @@ import { WormholeOperation } from './types.js'
 /**
  * Map Wormhole chain status to Journey status
  */
-export function toStatus(op: WormholeOperation): JourneyStatus {
+export function toStatus(op: WormholeOperation, sameOriginDestination: boolean = false): JourneyStatus {
   try {
     if (op.targetChain?.status === 'completed') {
       return 'received'
     }
-    if (['in_progress', 'confirmed'].includes(op.sourceChain.status)) {
-      return 'sent'
+
+    if (['in_progress', 'confirmed'].includes(op.sourceChain?.status)) {
+      return sameOriginDestination ? 'received' : 'sent'
     }
+
     return 'unknown'
   } catch (err) {
     console.error('Error deriving status for Wormhole operation', err, op)
