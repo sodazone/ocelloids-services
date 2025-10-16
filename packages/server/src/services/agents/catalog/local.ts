@@ -18,6 +18,7 @@ import { PublisherEvents } from '@/services/egress/types.js'
 import { Logger, Services } from '@/services/index.js'
 import { EgressMessageListener, Subscription } from '@/services/subscriptions/types.js'
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
+import { PullCollector } from '@/services/telemetry/types.js'
 import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
@@ -172,10 +173,15 @@ export class LocalAgentCatalog implements AgentCatalog {
   collectTelemetry() {
     egressMetrics(this.#egress)
 
+    const collectors: PullCollector[] = []
     for (const [id, agent] of Object.entries(this.#agents)) {
       this.#log.info('[catalog:local] collect telemetry from agent %s', id)
-      agent.collectTelemetry()
+      const c = agent.collectTelemetry()
+      if (c && c.length > 0) {
+        collectors.push(...c)
+      }
     }
+    return collectors
   }
 
   // TODO: consider dependencies to make it instantiation order independent

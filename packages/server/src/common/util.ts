@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events'
+
 import { DuckDBBlobValue } from '@duckdb/node-api'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import bs58 from 'bs58'
@@ -224,3 +226,7 @@ export type DeepCamelize<T> = T extends Array<infer U>
         [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
       }
     : T
+
+export function createTypedEventEmitter<T extends EventEmitter>(): T {
+  return new EventEmitter() as unknown as T
+}

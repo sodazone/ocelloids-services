@@ -1,17 +1,21 @@
 import { Observer, Subscription } from 'rxjs'
+
 import { ago } from '@/common/time.js'
-import { deepCamelize } from '@/common/util.js'
+import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
+
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository, FullJourney, JourneyStatus, JourneyUpdate } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney } from './mappers/index.js'
+import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
+import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
@@ -30,6 +34,7 @@ export class WormholeAgent implements Agent {
   readonly #repository: CrosschainRepository
   readonly #watcher: WormholeWatcher
   readonly #subs: Subscription[]
+  readonly #telemetry: TelemetryWormholeEventEmitter
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -46,6 +51,7 @@ export class WormholeAgent implements Agent {
 
     const storage = makeWormholeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)
+    this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -82,10 +88,12 @@ export class WormholeAgent implements Agent {
       try {
         await this.#onOperation(op)
       } catch (err) {
+        this.#telemetry.emit('telemetryWormholeError', { code: 'OP_ERROR', id: op.id })
         this.#log.error(err, '[agent:%s] watcher error while processing %s', this.id, op.id)
       }
     },
     error: (err) => {
+      this.#telemetry.emit('telemetryWormholeError', { code: 'WATCHER_ERROR', id: 'watcher' })
       this.#log.error(err, '[agent:%s] watcher error', this.id)
     },
     complete: () => {
@@ -96,10 +104,14 @@ export class WormholeAgent implements Agent {
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
     const fullJourney = await this.#repository.getJourneyById(id)
     if (!fullJourney) {
+      this.#telemetry.emit('telemetryWormholeError', { code: 'JOURNEY_NOT_FOUND', id: String(id) })
+
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[%s] broadcast %s:  %s', this.id, event, id)
     this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
+
+    this.#telemetry.emit('telemetryWormholeJourneyBroadcast', fullJourney)
   }
 
   #onOperation = async (op: WormholeOperation) => {
@@ -138,6 +150,12 @@ export class WormholeAgent implements Agent {
   }
 
   collectTelemetry() {
-    // TBD
+    wormholeAgentMetrics(this.#telemetry)
+
+    return [
+      collectWormholeStats({
+        pending: () => this.#watcher.pendingCount(),
+      }),
+    ]
   }
 }

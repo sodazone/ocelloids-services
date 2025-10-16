@@ -118,6 +118,8 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return { cursors }
   }
 
+  const pending = new Map<string, PendingEntry>()
+
   function operations$(
     initialState: WatcherState,
     intervalMs = 10_000, // 10s
@@ -126,7 +128,6 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return new Observable((subscriber) => {
       let state = initialState
       let active = true
-      const pending = new Map<string, PendingEntry>()
       let loopController: AbortController | null = null
 
       const loop = async () => {
@@ -288,7 +289,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     })
   }
 
-  return { operations$, loadInitialState }
+  return { operations$, loadInitialState, pendingCount: () => pending.size }
 }
 
 export type WormholeWatcher = ReturnType<typeof makeWatcher>

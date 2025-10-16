@@ -2,6 +2,8 @@ import { Message } from '@/services/egress/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { TypedEventEmitter } from '@/services/types.js'
 
+export type PullCollector = () => Promise<void>
+
 export type NotifyTelemetryMessage = {
   type: string
   subscription: string

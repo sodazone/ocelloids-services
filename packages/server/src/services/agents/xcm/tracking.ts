@@ -1,9 +1,9 @@
-import EventEmitter from 'node:events'
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { concatMap, from, map, Observable, Subject, share, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
+import { createTypedEventEmitter } from '@/common/util.js'
 import { ArchiveRepository } from '@/services/archive/repository.js'
 import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
@@ -142,7 +142,7 @@ export class XcmTracker {
     this.#archive = ctx.archive
     this.#retentionOpts = ctx.archiveRetention
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
-    this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
+    this.#telemetry = createTypedEventEmitter<TelemetryXcmEventEmitter>()
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
   }
 
