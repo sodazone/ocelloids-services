@@ -42,27 +42,27 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "docs": "typedoc",
-    "lint": "biome check --write src/**/*.ts"
+    "lint": "biome check --write src/**/*.ts",
+    "lint:fix": "biome check --fix --unsafe src/**/*.ts"
   },
   "packageManager": "yarn@4.1.0",
   "peerDependencies": {
     "ws": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.5",
+    "@biomejs/biome": "2.2.6",
     "@microsoft/api-extractor": "^7.53.1",
     "finalhandler": "^2.1.0",
     "mock-socket": "^9.3.1",
     "nock": "^14.0.10",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
-    "typedoc": "^0.28.13",
+    "typedoc": "^0.28.14",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "isows": "^1.0.7",
-    "ky": "1.7.5",
     "zod": "^4.1.12"
   },
   "stableVersion": "3.0.1"

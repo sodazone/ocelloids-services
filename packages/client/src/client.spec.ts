@@ -288,7 +288,7 @@ describe('OcelloidsClient', () => {
       })
     })
 
-    it('should authentitcate for existing subscription', async () => {
+    it('should authenticate for existing subscription', async () => {
       const wsUrl = 'ws://mock/ws/subs/agentid/subid'
       mockWebSocketServer = new Server(wsUrl, { mock: false })
 

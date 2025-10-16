@@ -1,6 +1,7 @@
 import { WebSocket } from 'isows'
-import ky, { Options } from 'ky'
+
 import { OcelloidsClientConfig } from './client'
+import { DoFetch, ocFetch } from './http/fetch'
 import { AnyJson } from './lib'
 import { Protocol } from './protocol'
 import {
@@ -33,29 +34,17 @@ function headersFromConfig(config: OcelloidsClientConfig): Record<string, string
 /**
  * Curried fetch function.
  */
-export type FetchFn = <T>(url: string, init?: Options | undefined) => Promise<T>
+export type FetchFn = <T>(url: string, init?: RequestInit) => Promise<T>
 
 /**
  * Returns a {@link FetchFn} from the given config.
  */
-export function doFetchWithConfig<T>(config: OcelloidsClientConfig) {
+export function doFetchWithConfig<T>(config: OcelloidsClientConfig, doFetch?: DoFetch) {
   const headers = headersFromConfig(config)
-  return (url: string, options?: Options) => doFetch<T>(url, headers, options)
-}
-
-/**
- * Performs an HTTP fetch request and handles the response.
- *
- * @param url - The URL to send the fetch request to.
- * @param headers - The headers to include in the fetch request.
- * @param options - Optional ky request initialization parameters.
- * @returns A promise that resolves with the response data or rejects with an error.
- */
-export function doFetch<T>(url: string, headers: Record<string, string>, options?: Options) {
-  return ky(url, {
-    headers,
-    ...options,
-  }).json<T>()
+  return (url: string, options?: RequestInit) =>
+    doFetch
+      ? doFetch<T>(url, { fetchOptions: { headers, ...options } })
+      : ocFetch<T>(url, { fetchOptions: { headers, ...options } })
 }
 
 type OnDemandWithAgent<T> = {
