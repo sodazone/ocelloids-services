@@ -77,7 +77,7 @@
     "level": "^10.0.0",
     "lru-cache": "^11.2.2",
     "memory-level": "^3.1.0",
-    "mingo": "6.7.0",
+    "mingo": "patch:mingo@npm%3A6.7.0#~/.yarn/patches/mingo-npm-6.7.0-f8b0f7364c.patch",
     "p-limit": "^7.1.1",
     "polkadot-api": "1.20.0",
     "prom-client": "^15.1.3",
