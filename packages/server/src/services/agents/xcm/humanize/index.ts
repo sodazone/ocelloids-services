@@ -1,8 +1,8 @@
+import EventEmitter from 'node:events'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom } from 'rxjs'
-import EventEmitter from 'node:events'
 
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'

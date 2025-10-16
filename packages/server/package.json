@@ -26,6 +26,7 @@
     "dev:ingress": "nodemon --exec tsx ./src/services/ingress/server/main.ts",
     "dev:exec": "nodemon --exec tsx ./src/main.ts --distributed",
     "lint": "biome check --write src/**/*.ts",
+    "lint:fix": "biome check --fix --unsafe src/**/*.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

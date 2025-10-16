@@ -6,7 +6,7 @@ import { HexString } from '@/lib.js'
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
-import { Logger, NetworkURN, SubLevel, jsonEncoded } from '@/services/types.js'
+import { jsonEncoded, Logger, NetworkURN, SubLevel } from '@/services/types.js'
 
 import { TelemetryXcmEventEmitter } from './telemetry/events.js'
 import {
@@ -1013,15 +1013,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     this.emit('telemetryXcmBridge', bridgeAcceptedMsg)
     try {
       this.#xcmMatchedReceiver(bridgeAcceptedMsg)
-    } catch (e) {
-      this.#log.error(e, 'Error on notification')
-    }
-  }
-
-  #onXcmBridgeDelivered(bridgeDeliveredMsg: XcmBridge) {
-    this.emit('telemetryXcmBridge', bridgeDeliveredMsg)
-    try {
-      this.#xcmMatchedReceiver(bridgeDeliveredMsg)
     } catch (e) {
       this.#log.error(e, 'Error on notification')
     }

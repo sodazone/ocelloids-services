@@ -19,9 +19,9 @@ import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops
 import { messageCriteria } from './ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
 import {
-  PkBridgeConfig,
   extractBridgeMessageAccepted,
   extractBridgeReceive,
+  PkBridgeConfig,
   pkBridgeConfig,
 } from './ops/pk-bridge.js'
 import { extractRelayReceive } from './ops/relay.js'
