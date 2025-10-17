@@ -5,7 +5,6 @@ import { Logger } from '@/services/types.js'
 import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
-import { XcmTracker } from '../tracking.js'
 import {
   $XcmQueryArgs,
   HumanizedXcmPayload,
@@ -16,6 +15,7 @@ import {
 import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import { NewXcmTransfer } from './types.js'
+import { XcmTracker } from '../tracking/index.js'
 
 export class XcmAnalytics {
   readonly #log: Logger
