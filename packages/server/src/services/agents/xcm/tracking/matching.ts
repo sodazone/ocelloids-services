@@ -9,7 +9,7 @@ import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { Logger, NetworkURN, SubLevel, jsonEncoded } from '@/services/types.js'
 
 import { HexString } from '@/lib.js'
-import { TelemetryXcmEventEmitter } from './telemetry/events.js'
+import { TelemetryXcmEventEmitter } from '../telemetry/events.js'
 import {
   GenericXcmBridge,
   GenericXcmHop,
@@ -32,7 +32,7 @@ import {
   XcmTimeout,
   XcmWaypointContext,
   prefixes,
-} from './types/index.js'
+} from '../types/index.js'
 
 const DEFAULT_TIMEOUT = 10 * 60000
 

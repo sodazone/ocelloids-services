@@ -114,14 +114,15 @@ function extractConsensusAndId(j: any, n: NetworkId) {
   }
 }
 
-function extractV4X1GlobalConsensus(junctions: any, n: NetworkId): NetworkURN | undefined {
+export function extractV4X1GlobalConsensus(junctions: any, n?: NetworkId): NetworkURN | undefined {
+  const network = n ?? {}
   const v = junctions.value
   const js = Array.isArray(v) ? v : [v]
   for (const j of js) {
     if (j.type === 'GlobalConsensus') {
-      extractConsensusAndId(j, n)
-      if (n.consensus !== undefined) {
-        return createNetworkId(n.consensus, n.chainId ?? '0')
+      extractConsensusAndId(j, network)
+      if (network.consensus !== undefined) {
+        return createNetworkId(network.consensus, network.chainId ?? '0')
       }
     }
   }

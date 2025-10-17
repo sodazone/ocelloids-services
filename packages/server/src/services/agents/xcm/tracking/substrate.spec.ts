@@ -4,11 +4,11 @@ import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
 import { Binary } from 'polkadot-api'
 import { from, of } from 'rxjs'
-import { mapXcmSent } from './ops/common.js'
-import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
-import { extractUmpSend } from './ops/ump.js'
-import { extractXcmpSend } from './ops/xcmp.js'
-import { extractXcmMessageData } from './tracking.js'
+import { mapXcmSent } from '../ops/common.js'
+import { extractDmpSendByEvent, extractDmpSendByTx } from '../ops/dmp.js'
+import { extractUmpSend } from '../ops/ump.js'
+import { extractXcmpSend } from '../ops/xcmp.js'
+import { extractXcmMessageData } from './xcm.js'
 
 describe('extractXcmMessageData', () => {
   it('should extract xcm messages from dmp and hrmp', async () => {

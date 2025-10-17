@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { Observable, Subject, concatMap, from, map, share, switchMap } from 'rxjs'
+import { Observable, concatMap, from, map, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
@@ -10,28 +10,23 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-
-import { ArchiveRepository } from '@/services/archive/repository.js'
-import { ArchiveRetentionJob } from '@/services/archive/retention.js'
-import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
-import { AgentRuntimeContext } from '../types.js'
-import { MatchingEngine } from './matching.js'
-import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from './ops/common.js'
-import { messageCriteria } from './ops/criteria.js'
-import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
+import { AgentRuntimeContext } from '../../types.js'
+import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from '../ops/common.js'
+import { messageCriteria } from '../ops/criteria.js'
+import { extractDmpSendByEvent, extractDmpSendByTx } from '../ops/dmp.js'
 import {
   PkBridgeConfig,
   extractBridgeMessageAccepted,
   extractBridgeReceive,
   pkBridgeConfig,
-} from './ops/pk-bridge.js'
-import { extractRelayReceive } from './ops/relay.js'
-import { extractUmpReceive, extractUmpSend } from './ops/ump.js'
-import { getMessageId, matchExtrinsic } from './ops/util.js'
-import { fromXcmpFormat, raw } from './ops/xcm-format.js'
-import { extractXcmpSend } from './ops/xcmp.js'
-import { TelemetryXcmEventEmitter } from './telemetry/events.js'
-import { xcmAgentMetrics, xcmMatchingEngineMetrics } from './telemetry/metrics.js'
+} from '../ops/pk-bridge.js'
+import { extractRelayReceive } from '../ops/relay.js'
+import { extractUmpReceive, extractUmpSend } from '../ops/ump.js'
+import { getMessageId, matchExtrinsic } from '../ops/util.js'
+import { fromXcmpFormat, raw } from '../ops/xcm-format.js'
+import { extractXcmpSend } from '../ops/xcmp.js'
+import { TelemetryXcmEventEmitter } from '../telemetry/events.js'
+import { xcmAgentMetrics } from '../telemetry/metrics.js'
 import {
   GetDownwardMessageQueues,
   GetOutboundHrmpMessages,
@@ -39,10 +34,10 @@ import {
   GetOutboundUmpMessages,
   MessageHashData,
   XcmInbound,
-  XcmMessagePayload,
   XcmRelayedWithContext,
   XcmSent,
-} from './types/index.js'
+} from '../types/index.js'
+import { MatchingEngine } from './matching.js'
 
 const EXCLUDED_NETWORKS: NetworkURN[] = []
 
@@ -110,8 +105,8 @@ export function extractXcmMessageData(apiContext: SubstrateApiContext) {
   }
 }
 
-export class XcmTracker {
-  readonly #id = 'xcm-tracker'
+export class SubstrateXcmTracker {
+  readonly #id = 'substrate-xcm-tracker'
   readonly #log: Logger
 
   readonly #streams: {
@@ -124,27 +119,15 @@ export class XcmTracker {
   readonly #ingress: SubstrateIngressConsumer
   readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
-  readonly #subject: Subject<XcmMessagePayload>
-  readonly #archive?: ArchiveRepository
-  readonly #retentionOpts?: ArchiveRetentionOptions
 
-  readonly xcm$
-
-  #retentionJob?: ArchiveRetentionJob
-
-  constructor(ctx: AgentRuntimeContext) {
+  constructor(ctx: AgentRuntimeContext, engine: MatchingEngine) {
     this.#log = ctx.log
-
-    this.#subject = new Subject<XcmMessagePayload>()
-    this.xcm$ = this.#subject.pipe(share())
 
     this.#streams = { d: [], o: [], r: [], b: [] }
     this.#ingress = ctx.ingress.substrate
-    this.#archive = ctx.archive
-    this.#retentionOpts = ctx.archiveRetention
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
-    this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
+    this.#engine = engine
   }
 
   start() {
@@ -155,28 +138,15 @@ export class XcmTracker {
     this.#monitorDestinations(chainsToTrack)
     this.#monitorRelays(chainsToTrack)
     this.#monitorPkBridge(chainsToTrack)
-    this.#initHistoricalData()
   }
 
-  async stop() {
+  stop() {
     this.#log.info('[%s] stop', this.#id)
-
     Object.values(this.#streams).forEach((streams) => streams.forEach(({ sub }) => sub.unsubscribe()))
-
-    await this.#engine.stop()
-
-    if (this.#retentionJob !== undefined) {
-      this.#retentionJob.stop()
-    }
   }
 
   collectTelemetry() {
-    xcmMatchingEngineMetrics(this.#engine)
     xcmAgentMetrics(this.#telemetry)
-  }
-
-  historicalXcm$(query: Partial<HistoricalQuery>) {
-    return this.#archive ? this.#archive.withHistory(this.xcm$, query) : this.xcm$
   }
 
   #monitorDestinations(chains: NetworkURN[]) {
@@ -531,30 +501,6 @@ export class XcmTracker {
           return codec.value.dec(buffer)
         }),
       )
-    }
-  }
-
-  #initHistoricalData() {
-    if (this.#archive !== undefined) {
-      this.#log.info('[%s] Tracking historical events', this.#id)
-
-      this.xcm$.subscribe(async (message) => {
-        await this.#archive?.insertLogs({
-          network: message.waypoint.chainId,
-          agent: 'xcm',
-          block_number: Number(message.waypoint.blockNumber),
-          payload: JSON.stringify(message),
-        })
-      })
-
-      if (this.#retentionOpts?.enabled) {
-        const { policy } = this.#retentionOpts
-        this.#retentionJob = new ArchiveRetentionJob(this.#log, this.#archive, policy)
-
-        this.#retentionJob.start()
-      } else {
-        this.#log.info('[archive:%s] retention job is not enabled', this.#id)
-      }
     }
   }
 }
