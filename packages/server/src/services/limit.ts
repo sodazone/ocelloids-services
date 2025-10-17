@@ -1,7 +1,6 @@
+import rateLimit from '@fastify/rate-limit'
 import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-
-import rateLimit from '@fastify/rate-limit'
 
 import { environment, isNonProdEnv } from '@/environment.js'
 

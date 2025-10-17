@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { http, PublicClient, Transport, createPublicClient, fallback, webSocket } from 'viem'
+import { createPublicClient, fallback, http, PublicClient, Transport, webSocket } from 'viem'
 import * as viemChains from 'viem/chains'
 
 import { HexString } from '@/lib.js'

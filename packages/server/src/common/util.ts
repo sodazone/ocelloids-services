@@ -1,10 +1,12 @@
-import { TextEncoder } from 'util'
+import EventEmitter from 'node:events'
+
 import { DuckDBBlobValue } from '@duckdb/node-api'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import bs58 from 'bs58'
 import { safeDestr } from 'destr'
 import { Binary, getSs58AddressInfo } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
+import { TextEncoder } from 'util'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'
@@ -224,3 +226,7 @@ export type DeepCamelize<T> = T extends Array<infer U>
         [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
       }
     : T
+
+export function createTypedEventEmitter<T extends EventEmitter>(): T {
+  return new EventEmitter() as unknown as T
+}

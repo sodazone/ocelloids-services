@@ -1,10 +1,8 @@
-import { asPublicKey } from '@/common/util.js'
-import { Options, QueryOperator, useOperators } from 'mingo/core'
+import { Context, Options, QueryOperator } from 'mingo/core'
 import { Any, AnyObject, Predicate } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
-// import all operators
-import 'mingo/init/system'
+import { asPublicKey } from '@/common/util.js'
 
 function addressEq(a: string, b: string) {
   return a === b || asPublicKey(a) === asPublicKey(b)
@@ -85,21 +83,22 @@ function createQueryOperator(predicate: Predicate<Any>): QueryOperator {
   return f // as QueryOperator;
 }
 
-let installed = false
-
-export function installOperators() {
+let context: Context | null = null
+export function createMingoContext() {
   // Register query operators
-  if (!installed) {
-    useOperators('query', {
-      $bn_lt: createQueryOperator($bn_lt),
-      $bn_lte: createQueryOperator($bn_lte),
-      $bn_gt: createQueryOperator($bn_gt),
-      $bn_gte: createQueryOperator($bn_gte),
-      $bn_eq: createQueryOperator($bn_eq),
-      $bn_neq: createQueryOperator($bn_neq),
-      $address_eq: createQueryOperator($address_eq),
-      $address_neq: createQueryOperator($address_neq),
+  if (!context) {
+    context = Context.init({
+      query: {
+        $bn_lt: createQueryOperator($bn_lt),
+        $bn_lte: createQueryOperator($bn_lte),
+        $bn_gt: createQueryOperator($bn_gt),
+        $bn_gte: createQueryOperator($bn_gte),
+        $bn_eq: createQueryOperator($bn_eq),
+        $bn_neq: createQueryOperator($bn_neq),
+        $address_eq: createQueryOperator($address_eq),
+        $address_neq: createQueryOperator($address_neq),
+      },
     })
   }
-  installed = true
+  return context
 }

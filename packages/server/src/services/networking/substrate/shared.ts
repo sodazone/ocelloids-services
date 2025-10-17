@@ -5,7 +5,7 @@ import { NetworkURN } from '@/services/types.js'
 
 import { Finality } from '../types.js'
 import { SubstrateIngressConsumer } from './ingress/types.js'
-import { extractEvents, extractTxWithEvents, installOperators } from './rx/index.js'
+import { extractEvents, extractTxWithEvents } from './rx/index.js'
 import { Block, BlockEvent, BlockExtrinsicWithEvents } from './types.js'
 
 export class SubstrateSharedStreams {
@@ -30,8 +30,6 @@ export class SubstrateSharedStreams {
       finalized: {},
       new: {},
     }
-
-    installOperators()
   }
 
   static instance(ingress: SubstrateIngressConsumer) {

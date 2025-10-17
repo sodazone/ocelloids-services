@@ -1,10 +1,9 @@
 import { EventEmitter } from 'node:events'
+import { Observable } from 'rxjs'
 import { ServiceConfiguration } from '@/services/config.js'
 import { Watcher } from '@/services/networking/watcher.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Logger, NetworkURN, Services } from '@/services/types.js'
-
-import { Observable } from 'rxjs'
 import { IngressConsumer } from './types.js'
 
 export abstract class LocalIngressConsumer<T extends Watcher, B, C>

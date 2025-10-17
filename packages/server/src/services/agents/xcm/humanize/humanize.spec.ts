@@ -1,8 +1,8 @@
+import { beforeEach, describe, expect, it } from 'vitest'
 import { twoHopSwap } from '@/testing/2-hop-swap.js'
 import { getXcmV5Sent } from '@/testing/humanize.js'
 import { createServices } from '@/testing/services.js'
 import { apiContext } from '@/testing/xcm.js'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
 

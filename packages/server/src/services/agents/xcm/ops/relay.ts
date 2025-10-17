@@ -1,5 +1,5 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { Observable, filter, map, mergeMap } from 'rxjs'
+import { filter, map, mergeMap, Observable } from 'rxjs'
 
 import { ControlQuery, filterNonNull } from '@/common/index.js'
 import { HexString } from '@/lib.js'

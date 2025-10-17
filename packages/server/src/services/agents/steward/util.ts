@@ -1,6 +1,5 @@
-import { AbstractIterator } from 'abstract-level'
-
 import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { AbstractIterator } from 'abstract-level'
 
 import { HexString } from '@/lib.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'

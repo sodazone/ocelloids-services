@@ -1,7 +1,6 @@
 import { decode, encode } from 'cbor-x'
-
-import { HexString } from '@/lib.js'
 import { fromHex } from 'polkadot-api/utils'
+import { HexString } from '@/lib.js'
 import { Block } from './types.js'
 
 export function decodeBlock(buffer: Buffer | Uint8Array): Block {

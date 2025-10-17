@@ -2,9 +2,9 @@ import { astarBlocks, expectedTxs, moonbeamAbis, moonbeamBlocks } from '@/testin
 
 import { Block } from '../types.js'
 import {
-  FrontierExtrinsic,
   decodeEvmEventLog,
   decodeEvmFunctionData,
+  FrontierExtrinsic,
   getFromAddress,
   getTxHash,
   isEVMLog,

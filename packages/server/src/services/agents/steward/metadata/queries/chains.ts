@@ -1,9 +1,7 @@
 import { LRUCache } from 'lru-cache'
-
+import { getRelayId } from '@/services/config.js'
 import { SubstrateNetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
-
-import { getRelayId } from '@/services/config.js'
 import { OMEGA_250 } from '../../../consts.js'
 import { QueryPagination, QueryResult } from '../../../types.js'
 import { limitCap, paginatedResults } from '../../util.js'
@@ -42,9 +40,7 @@ export class ChainsQueryHandler {
     return await paginatedResults<string, SubstrateNetworkInfo>(iterator)
   }
 
-  async queryChains(criteria: {
-    networks: string[]
-  }): Promise<QueryResult<SubstrateNetworkInfo>> {
+  async queryChains(criteria: { networks: string[] }): Promise<QueryResult<SubstrateNetworkInfo>> {
     const items = (
       await this.#db.getMany<string, SubstrateNetworkInfo>(criteria.networks, {
         /** */

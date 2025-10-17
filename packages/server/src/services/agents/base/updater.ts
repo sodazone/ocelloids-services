@@ -1,12 +1,11 @@
-import { Operation, applyPatch } from 'rfc6902'
+import { applyPatch, Operation } from 'rfc6902'
 
 import { ZodSchema } from 'zod'
 
 import { NotFound, ValidationError } from '@/errors.js'
+import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { $Subscription, Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
-
-import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { SubscriptionHandler } from '../types.js'
 
 export function hasOp(patch: Operation[], path: string) {

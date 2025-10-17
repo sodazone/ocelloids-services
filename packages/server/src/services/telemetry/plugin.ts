@@ -10,6 +10,7 @@ import { collect } from './metrics/index.js'
 import { collectSwitchboardStats } from './metrics/switchboard.js'
 import { wsMetrics } from './metrics/ws.js'
 import { createReplyHook } from './reply-hook.js'
+import { PullCollector } from './types.js'
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -20,8 +21,6 @@ declare module 'fastify' {
 type TelemetryOptions = {
   telemetry: boolean
 }
-
-type PullCollect = () => Promise<void>
 
 /**
  * Telemetry related services.
@@ -44,7 +43,7 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions & DatabaseOptions> = 
     log.info('[metrics] enable default')
     collectDefaultMetrics()
 
-    const pullCollectors: PullCollect[] = []
+    const pullCollectors: PullCollector[] = []
 
     if (rootStore instanceof Level) {
       log.info('[metrics] enable level DB')
@@ -93,7 +92,11 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions & DatabaseOptions> = 
 
     if (agentService) {
       log.info('[metrics] enable agent')
-      agentService.collectTelemetry()
+      const collectors = agentService.collectTelemetry()
+      if (collectors) {
+        log.info('[metrics] pull collectors from agent service %s', collectors.length)
+        pullCollectors.push(...collectors)
+      }
     }
 
     fastify.addHook('onResponse', createReplyHook())

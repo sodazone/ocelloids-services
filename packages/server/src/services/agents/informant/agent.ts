@@ -1,9 +1,8 @@
 import { Operation } from 'rfc6902'
+import { filter as rxFilter } from 'rxjs'
 import { z } from 'zod'
 
-import { filter as rxFilter } from 'rxjs'
-
-import { ControlQuery, asSerializable } from '@/common/index.js'
+import { asSerializable, ControlQuery } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/hub.js'
 import { extractEvmLogs, extractEvmTransactions } from '@/services/networking/substrate/rx/evm.js'
@@ -11,9 +10,9 @@ import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/typ
 import { Logger, NetworkURN } from '@/services/types.js'
 
 import { SubstrateSharedStreams } from '../../networking/substrate/shared.js'
-import { SubscriptionUpdater, hasOp } from '../base/updater.js'
+import { hasOp, SubscriptionUpdater } from '../base/updater.js'
 
-import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
+import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 
 export const $InformantInputs = z.object({
   networks: z.array(
@@ -25,7 +24,7 @@ export const $InformantInputs = z.object({
   ),
   filter: z.object({
     type: z.enum(['event', 'extrinsic']),
-    match: z.record(z.any()),
+    match: z.record(z.any(), z.any()),
     evm: z.optional(
       z.array(
         z.object({

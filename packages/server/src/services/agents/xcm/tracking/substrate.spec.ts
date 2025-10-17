@@ -8,7 +8,7 @@ import { mapXcmSent } from '../ops/common.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from '../ops/dmp.js'
 import { extractUmpSend } from '../ops/ump.js'
 import { extractXcmpSend } from '../ops/xcmp.js'
-import { extractXcmMessageData } from './xcm.js'
+import { extractXcmMessageData } from './substrate.js'
 
 describe('extractXcmMessageData', () => {
   it('should extract xcm messages from dmp and hrmp', async () => {

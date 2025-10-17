@@ -1,4 +1,4 @@
-import { ClientId, NetworkConfiguration, ServiceConfiguration, clientIds } from '../config.js'
+import { ClientId, clientIds, NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger, NetworkURN } from '../types.js'
 import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
 import { EvmApi } from './evm/client.js'

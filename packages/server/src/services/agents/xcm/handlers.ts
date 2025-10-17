@@ -4,7 +4,7 @@ import { Logger } from '@/services/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 
-import { SubscriptionUpdater, hasOp } from '../base/updater.js'
+import { hasOp, SubscriptionUpdater } from '../base/updater.js'
 import type { XcmAgent } from './agent.js'
 import { messageCriteria, notificationTypeCriteria, sendersCriteria } from './ops/criteria.js'
 import { $XcmInputs, XcmInputs, XcmSubscriptionHandler } from './types/index.js'

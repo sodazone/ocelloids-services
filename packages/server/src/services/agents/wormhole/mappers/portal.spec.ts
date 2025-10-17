@@ -1,4 +1,4 @@
-import { TestCase, runWormholeMapperTests } from '@/testing/apis/wormhole/wormhole-test.js'
+import { runWormholeMapperTests, TestCase } from '@/testing/apis/wormhole/wormhole-test.js'
 
 const cases: TestCase[] = [
   {
