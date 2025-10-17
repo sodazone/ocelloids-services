@@ -26,6 +26,7 @@ import {
   XcmSentWithContext,
 } from '../types/index.js'
 import {
+  extractV4X1GlobalConsensus,
   getParaIdFromJunctions,
   getSendersFromEvent,
   mapAssetsTrapped,
@@ -79,6 +80,8 @@ const swapMapping: Record<
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
+  let universalOrigin: NetworkURN | null = null
+
   for (const instruction of instructions) {
     let nextStop
     let message
@@ -115,6 +118,11 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       const { destination, remote_xcm } = instruction.value
       nextStop = destination
       message = remote_xcm
+    } else if (instruction.type === 'UniversalOrigin') {
+      const networkId = extractV4X1GlobalConsensus(instruction)
+      if (networkId) {
+        universalOrigin = networkId
+      }
     }
 
     if (nextStop !== undefined && message !== undefined) {
@@ -127,7 +135,7 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
     }
   }
 
-  return stops
+  return universalOrigin
 }
 
 function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
@@ -154,12 +162,22 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.relay = createNetworkId(from, '0')
         leg.type = 'hrmp'
       }
-    } else if (getChainId(from) === '1000' && (to === 'urn:ocn:ethereum:1' || getChainId(from) === '1000')) {
-      // TODO: Pending Snowbridge bridge support
-      // Since we don't support bridges yet, all bridged transfers through assethub should end in bridgehub
-      leg.to = `urn:ocn:${getConsensus(from)}:1002`
-      leg.relay = createNetworkId(from, '0')
-      leg.type = 'hrmp'
+    } else if (getConsensus(from) === 'ethereum' && getConsensus(to) !== 'ethereum') {
+      leg.type = 'bridge'
+      leg.partialMessage = undefined
+    } else if (getConsensus(from) !== 'ethereum' && getConsensus(to) === 'ethereum') {
+      const prev = legs[legs.length - 1]
+      prev.type = 'hop'
+      legs.push({
+        from,
+        to: `urn:ocn:${getConsensus(from)}:1002`,
+        relay: createNetworkId(from, '0'),
+        type: 'hop',
+        partialMessage: leg.partialMessage,
+      })
+      leg.from = `urn:ocn:${getConsensus(from)}:1002`
+      leg.type = 'bridge'
+      leg.partialMessage = undefined
     } else if (getChainId(from) === '1002') {
       // P<>K bridge
       const prev = legs[legs.length - 1]
@@ -211,12 +229,12 @@ export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
         const { instructions, recipient } = message
         const stops: Stop[] = [{ networkId: recipient }]
         const versionedXcm = raw.asVersionedXcm(instructions.bytes, context)
-        recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
-        const legs = constructLegs(
-          [{ networkId: origin }].concat(stops),
-          versionedXcm.instructions.type,
-          context,
-        )
+        const universalOrigin = recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
+        const allStops =
+          universalOrigin !== null
+            ? [{ networkId: universalOrigin }, { networkId: origin }].concat(stops)
+            : [{ networkId: origin }].concat(stops)
+        const legs = constructLegs(allStops, versionedXcm.instructions.type, context)
         return new GenericXcmSent(origin, message, legs)
       }),
     )

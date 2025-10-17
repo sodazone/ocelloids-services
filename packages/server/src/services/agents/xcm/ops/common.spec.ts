@@ -251,7 +251,7 @@ describe('common xcm operators', () => {
         })
       })
 
-      it('should extract stops for XCM v5 bridge hop', async () => {
+      it('should extract stops for XCM v5 bridge from Ethereum', async () => {
         const calls = vi.fn()
         const v5Msg =
           '00052402040100000327d33b511301000002286bee000b010450250907040104020209070403007fc66500c84a76ad7e9c93437bfc5ac33e2ddae90013000010433510e9fa0a16040d01020802010907040e010208010100c91f0c130100009e248456000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc481292cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc48129'
@@ -291,14 +291,19 @@ describe('common xcm operators', () => {
               expect(msg).toBeDefined()
               expect(msg.waypoint.chainId).toBe('urn:ocn:local:1002')
 
-              expect(msg.legs.length).toBe(2)
+              expect(msg.legs.length).toBe(3)
               expect(msg.legs[0]).toEqual({
+                from: 'urn:ocn:ethereum:1',
+                to: 'urn:ocn:local:1002',
+                type: 'bridge',
+              })
+              expect(msg.legs[1]).toEqual({
                 from: 'urn:ocn:local:1002',
                 to: 'urn:ocn:local:1000',
                 relay: 'urn:ocn:local:0',
                 type: 'hop',
               })
-              expect(msg.legs[1]).toEqual({
+              expect(msg.legs[2]).toEqual({
                 from: 'urn:ocn:local:1000',
                 to: 'urn:ocn:local:2034',
                 relay: 'urn:ocn:local:0',
@@ -308,6 +313,143 @@ describe('common xcm operators', () => {
               })
 
               expect(msg.destination.chainId).toBe('urn:ocn:local:2034')
+            },
+            complete: () => {
+              expect(calls).toHaveBeenCalledTimes(1)
+              resolve()
+            },
+          })
+        })
+      })
+
+      it('should extract stops for XCM bridge to Ethereum', async () => {
+        const calls = vi.fn()
+        const msg =
+          '00041800080100000762c45a320402020907040300a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800079e619ccb080a130100000762c45a32040016040d0100000101004554480006ecb6fd1977d7653de43832f81b9fd39c7414da000000000000000010010102020907040300a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480002010907040c1300010300a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480004000d0102040001030006ecb6fd1977d7653de43832f81b9fd39c7414da2ce8939bbe4d853a0122a7303a2cbf2fd4c353300c3e9169446343951d17a8cbab2ce8939bbe4d853a0122a7303a2cbf2fd4c353300c3e9169446343951d17a8cbab'
+        const buf = new Uint8Array(Buffer.from(msg, 'hex'))
+        const xcms = fromXcmpFormat(buf, apiContext)
+
+        const test$ = mapXcmSent(
+          apiContext,
+          'urn:ocn:polkadot:2034',
+        )(
+          from(
+            xcms.map(
+              (x) =>
+                new GenericXcmSentWithContext({
+                  event: {},
+                  sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
+                  blockHash: '0x01',
+                  blockNumber: '32',
+                  extrinsicPosition: 4,
+                  recipient: 'urn:ocn:polkadot:1000',
+                  messageDataBuffer: buf,
+                  messageHash: x.hash,
+                  messageId: getMessageId(x),
+                  instructions: {
+                    bytes: x.data,
+                    json: x.instructions,
+                  },
+                }),
+            ),
+          ),
+        )
+
+        await new Promise<void>((resolve) => {
+          test$.subscribe({
+            next: (msg) => {
+              calls()
+              expect(msg).toBeDefined()
+              expect(msg.legs.length).toBe(3)
+              expect(msg.legs[0]).toEqual({
+                from: 'urn:ocn:polkadot:2034',
+                to: 'urn:ocn:polkadot:1000',
+                relay: 'urn:ocn:polkadot:0',
+                type: 'hop',
+              })
+              expect(msg.legs[1]).toEqual({
+                from: 'urn:ocn:polkadot:1000',
+                to: 'urn:ocn:polkadot:1002',
+                relay: 'urn:ocn:polkadot:0',
+                partialMessage:
+                  '0x040c1300010300a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480004000d0102040001030006ecb6fd1977d7653de43832f81b9fd39c7414da2ce8939bbe4d853a0122a7303a2cbf2fd4c353300c3e9169446343951d17a8cbab',
+                type: 'hop',
+              })
+              expect(msg.legs[2]).toEqual({
+                from: 'urn:ocn:polkadot:1002',
+                to: 'urn:ocn:ethereum:1',
+                type: 'bridge',
+              })
+
+              expect(msg.destination.chainId).toBe('urn:ocn:ethereum:1')
+            },
+            complete: () => {
+              expect(calls).toHaveBeenCalledTimes(1)
+              resolve()
+            },
+          })
+        })
+      })
+
+      it('should extract stops for PK bridge', async () => {
+        const calls = vi.fn()
+        const msg =
+          '000514000401000012f79d551301000012f79d550016040d010204010100a10f26030100a10f1400040100000bd620c11574b60a130100000bd620c11574b6000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c1e88a50e3701f82058a224a067bd74032bc85adbd41aeba03dc2713c05b5720b2c1e88a50e3701f82058a224a067bd74032bc85adbd41aeba03dc2713c05b5720b'
+        const buf = new Uint8Array(Buffer.from(msg, 'hex'))
+        const xcms = fromXcmpFormat(buf, apiContext)
+
+        const test$ = mapXcmSent(
+          apiContext,
+          'urn:ocn:polkadot:1000',
+        )(
+          from(
+            xcms.map(
+              (x) =>
+                new GenericXcmSentWithContext({
+                  event: {},
+                  sender: { signer: { id: 'xyz', publicKey: '0x01' }, extraSigners: [] },
+                  blockHash: '0x01',
+                  blockNumber: '32',
+                  extrinsicPosition: 4,
+                  recipient: 'urn:ocn:polkadot:1002',
+                  messageDataBuffer: buf,
+                  messageHash: x.hash,
+                  messageId: getMessageId(x),
+                  instructions: {
+                    bytes: x.data,
+                    json: x.instructions,
+                  },
+                }),
+            ),
+          ),
+        )
+
+        await new Promise<void>((resolve) => {
+          test$.subscribe({
+            next: (msg) => {
+              calls()
+              expect(msg).toBeDefined()
+
+              expect(msg.legs.length).toBe(3)
+              expect(msg.legs[0]).toEqual({
+                from: 'urn:ocn:polkadot:1000',
+                to: 'urn:ocn:polkadot:1002',
+                relay: 'urn:ocn:polkadot:0',
+                type: 'hop',
+              })
+              expect(msg.legs[1]).toEqual({
+                from: 'urn:ocn:polkadot:1002',
+                to: 'urn:ocn:kusama:1002',
+                type: 'bridge',
+              })
+              expect(msg.legs[2]).toEqual({
+                from: 'urn:ocn:kusama:1002',
+                to: 'urn:ocn:kusama:1000',
+                type: 'hrmp',
+                relay: 'urn:ocn:kusama:0',
+              })
+
+              expect(msg.destination.chainId).toBe('urn:ocn:kusama:1000')
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(1)
