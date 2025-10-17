@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it } from 'vitest'
 import { twoHopSwap } from '@/testing/2-hop-swap.js'
+import { getXcmV5Sent } from '@/testing/humanize.js'
 import { createServices } from '@/testing/services.js'
 import { apiContext } from '@/testing/xcm.js'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
 
@@ -1043,5 +1044,13 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets.length).toBe(3)
     expect(results.humanized.assets[0].id).toBeDefined()
     expect(results.humanized.assets[0].amount).toBeDefined()
+  })
+
+  it('should humanize XCM with InitiateTransfer instruction', async () => {
+    const msg = getXcmV5Sent()
+    const results = await humanizer.humanize(msg)
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.assets.length).toBe(2)
   })
 })

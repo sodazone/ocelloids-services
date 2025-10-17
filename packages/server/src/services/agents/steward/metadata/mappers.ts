@@ -1,11 +1,11 @@
 import { toHex } from 'polkadot-api/utils'
-import { Observable, map, mergeMap } from 'rxjs'
+import { map, mergeMap, Observable } from 'rxjs'
 
 import { HexString } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired, networks } from '../types.js'
+import { AssetMapper, AssetMetadata, networks, StorageCodecs, WithRequired } from '../types.js'
 import { mapAssetsLocationsAndErc20Metadata } from './moonbeam.js'
 import {
   hashItemPartialKey,
@@ -38,7 +38,7 @@ const astarMapper: AssetMapper = (context: SubstrateApiContext) => {
 }
 
 const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
-  const codec = context.storageCodec('AssetManager', 'AssetTypeId')
+  const codec = context.storageCodec('EvmForeignAssets', 'AssetsById')
   const keyPrefix = codec.keys.enc() as HexString
   const mappings = [
     {

@@ -1,14 +1,14 @@
 import {
   Abi,
-  Signature,
-  TransactionSerializable,
-  TransactionSerializableEIP1559,
-  TransactionSerializableEIP2930,
   decodeEventLog,
   decodeFunctionData,
   keccak256,
   recoverAddress,
+  Signature,
   serializeTransaction,
+  TransactionSerializable,
+  TransactionSerializableEIP1559,
+  TransactionSerializableEIP2930,
 } from 'viem'
 
 import { HexString } from '@/lib.js'
@@ -22,6 +22,35 @@ type BigNumStringArray = string[]
 type AccessList = {
   address: HexString
   storage_keys: HexString[]
+}
+
+type FrontierEIP1559Value = {
+  chain_id: string
+  nonce: BigNumStringArray
+  max_priority_fee_per_gas: BigNumStringArray
+  max_fee_per_gas: BigNumStringArray
+  gas_limit: BigNumStringArray
+  action: {
+    type: string
+    value: HexString
+  }
+  value: BigNumStringArray
+  input: HexString
+  access_list: AccessList[]
+}
+
+type FrontierEIP2930Value = {
+  chain_id: string
+  nonce: BigNumStringArray
+  gas_limit: BigNumStringArray
+  gas_price: BigNumStringArray
+  action: {
+    type: string
+    value: HexString
+  }
+  value: BigNumStringArray
+  input: HexString
+  access_list: AccessList[]
 }
 
 type Legacy = {
@@ -46,43 +75,36 @@ type Legacy = {
 
 type EIP1559 = {
   type: 'EIP1559'
-  value: {
-    chain_id: string
-    nonce: BigNumStringArray
-    max_priority_fee_per_gas: BigNumStringArray
-    max_fee_per_gas: BigNumStringArray
-    gas_limit: BigNumStringArray
-    action: {
-      type: string
-      value: HexString
-    }
-    value: BigNumStringArray
-    input: HexString
-    access_list: AccessList[]
-    odd_y_parity: boolean
-    r: HexString
-    s: HexString
-  }
+  value:
+    | (FrontierEIP1559Value & {
+        odd_y_parity: boolean
+        r: HexString
+        s: HexString
+      })
+    | (FrontierEIP1559Value & {
+        signature: {
+          odd_y_parity: boolean
+          r: HexString
+          s: HexString
+        }
+      })
 }
 
 type EIP2930 = {
   type: 'EIP2930'
-  value: {
-    chain_id: string
-    nonce: BigNumStringArray
-    gas_limit: BigNumStringArray
-    gas_price: BigNumStringArray
-    action: {
-      type: string
-      value: HexString
-    }
-    value: BigNumStringArray
-    input: HexString
-    access_list: AccessList[]
-    odd_y_parity: boolean
-    r: HexString
-    s: HexString
-  }
+  value:
+    | (FrontierEIP2930Value & {
+        odd_y_parity: boolean
+        r: HexString
+        s: HexString
+      })
+    | (FrontierEIP2930Value & {
+        signature: {
+          odd_y_parity: boolean
+          r: HexString
+          s: HexString
+        }
+      })
 }
 
 function extractTxAndSig(
@@ -110,6 +132,18 @@ function extractTxAndSig(
     }
     case 'EIP1559': {
       const v = tx.value
+      const sig =
+        'signature' in v
+          ? {
+              r: v.signature.r!,
+              s: v.signature.s!,
+              yParity: v.signature.odd_y_parity ? 1 : 0,
+            }
+          : {
+              r: v.r!,
+              s: v.s!,
+              yParity: v.odd_y_parity ? 1 : 0,
+            }
       return [
         {
           chainId: Number(v.chain_id),
@@ -126,15 +160,23 @@ function extractTxAndSig(
             storageKeys: storage_keys,
           })),
         } as TransactionSerializableEIP1559,
-        {
-          r: v.r!,
-          s: v.s!,
-          yParity: v.odd_y_parity ? 1 : 0,
-        },
+        sig,
       ]
     }
     case 'EIP2930': {
       const v = tx.value
+      const sig =
+        'signature' in v
+          ? {
+              r: v.signature.r!,
+              s: v.signature.s!,
+              yParity: v.signature.odd_y_parity ? 1 : 0,
+            }
+          : {
+              r: v.r!,
+              s: v.s!,
+              yParity: v.odd_y_parity ? 1 : 0,
+            }
       return [
         {
           chainId: Number(v.chain_id),
@@ -150,11 +192,7 @@ function extractTxAndSig(
           data: v.input,
           to: v.action.value,
         } as TransactionSerializableEIP2930,
-        {
-          r: v.r!,
-          s: v.s!,
-          yParity: v.odd_y_parity ? 1 : 0,
-        },
+        sig,
       ]
     }
     default:

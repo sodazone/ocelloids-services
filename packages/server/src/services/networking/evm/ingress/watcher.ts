@@ -1,4 +1,4 @@
-import { Observable, from, mergeMap, mergeWith, share } from 'rxjs'
+import { from, mergeMap, mergeWith, Observable, share } from 'rxjs'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'

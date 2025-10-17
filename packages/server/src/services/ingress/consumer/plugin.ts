@@ -2,13 +2,12 @@ import { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { BitcoinLocalConsumer } from '@/services/networking/bitcoin/ingress/local.js'
+import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 import {
   SubstrateDistributedConsumer,
   SubstrateLocalConsumer,
 } from '@/services/networking/substrate/ingress/index.js'
 import { IngressOptions } from '@/types.js'
-
-import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 import { ConsumerApi } from './routes.js'
 import { IngressConsumers } from './types.js'
 

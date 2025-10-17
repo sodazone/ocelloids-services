@@ -27,8 +27,7 @@ async function startServer(this: Command) {
     if (opts.config === undefined && !opts.distributed) {
       throw new z.ZodError([
         {
-          code: z.ZodIssueCode.custom,
-          fatal: true,
+          code: 'custom',
           message:
             'Service configuration file option `-c --config <file>` is mandatory while running in integrated mode',
           path: ['config'],

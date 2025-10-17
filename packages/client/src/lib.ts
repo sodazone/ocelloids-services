@@ -7,28 +7,29 @@
  */
 export * from './agent'
 export * from './client'
+export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
 export * from './query'
-export * from './types'
 export type {
-  SubscriptionId,
-  AnyJson,
-  HexString,
-  Message,
-  SignerData,
-  AgentId,
-  QueryParams,
-  QueryResult,
-  QueryPagination,
-  AnyQueryArgs,
-  NetworkURN,
-  AnyQueryResultItem,
   $AgentId,
   $SubscriptionId,
+  AgentId,
+  AnyJson,
+  AnyQueryArgs,
+  AnyQueryResultItem,
+  HexString,
+  Message,
+  NetworkURN,
+  QueryPagination,
+  QueryParams,
+  QueryResult,
+  SignerData,
+  SubscriptionId,
   SubstrateTypes,
+  sourceCrosschain,
   sourceSteward,
   sourceXcm,
-  sourceCrosschain,
 } from './server-types'
+export * from './types'
 
 // The "export * as ___" syntax is not supported yet; as a workaround,
 // use "import * as ___" with a separate "export { ___ }" declaration

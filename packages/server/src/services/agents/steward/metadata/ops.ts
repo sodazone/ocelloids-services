@@ -1,9 +1,3 @@
-import { Observable, map, mergeMap } from 'rxjs'
-
-import { HexString, NetworkURN } from '@/lib.js'
-import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Hashers } from '@/services/networking/substrate/types.js'
-
 import {
   Blake2128,
   Blake2128Concat,
@@ -13,6 +7,10 @@ import {
   Twox128,
   Twox256,
 } from '@polkadot-api/substrate-bindings'
+import { map, mergeMap, Observable } from 'rxjs'
+import { HexString, NetworkURN } from '@/lib.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { Hashers } from '@/services/networking/substrate/types.js'
 import { AssetMetadata, StorageCodecs, WithRequired } from '../types.js'
 import { getLocationIfAny } from '../util.js'
 

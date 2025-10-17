@@ -1,9 +1,16 @@
-import { BehaviorSubject, Subject } from 'rxjs'
-
 import { Query } from 'mingo'
 import { AnyObject } from 'mingo/types'
+import { BehaviorSubject, Subject } from 'rxjs'
+
+import { createMingoContext } from '@/services/networking/substrate/index.js'
 
 export type Criteria = AnyObject
+
+export class MingoQuery extends Query {
+  constructor(criteria: Criteria) {
+    super(criteria, { context: createMingoContext() })
+  }
+}
 
 /**
  * Represents a control subject that can be used to change the value of a query.
@@ -39,13 +46,13 @@ export interface Control<T, S> extends Subject<S> {
  * });
  * ```
  */
-export class ControlQuery extends BehaviorSubject<Query> implements Control<Criteria, Query> {
+export class ControlQuery extends BehaviorSubject<MingoQuery> implements Control<Criteria, MingoQuery> {
   /**
    * Constructs a new instance of the `ControlQuery` class.
    * @param criteria The initial criteria for the query.
    */
   constructor(criteria: Criteria) {
-    super(new Query(criteria))
+    super(new MingoQuery(criteria))
   }
 
   /**
@@ -53,7 +60,7 @@ export class ControlQuery extends BehaviorSubject<Query> implements Control<Crit
    * @param criteria The new criteria for the query.
    */
   change(criteria: Criteria): void {
-    this.next(new Query(criteria))
+    this.next(new MingoQuery(criteria))
   }
 
   /**

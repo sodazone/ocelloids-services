@@ -1,5 +1,5 @@
-import { Observable, map, mergeMap } from 'rxjs'
-import { Abi, Log, Transaction, decodeEventLog, decodeFunctionData } from 'viem'
+import { map, mergeMap, Observable } from 'rxjs'
+import { Abi, decodeEventLog, decodeFunctionData, Log, Transaction } from 'viem'
 
 import { BlockWithLogs } from '../types.js'
 

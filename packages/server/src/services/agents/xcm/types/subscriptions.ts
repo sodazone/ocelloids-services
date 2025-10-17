@@ -1,6 +1,5 @@
-import { z } from 'zod'
-
 import { Subscription as RxSubscription } from 'rxjs'
+import { z } from 'zod'
 
 import { ControlQuery } from '@/common/index.js'
 import { $HistoricalQuery } from '@/services/archive/types.js'

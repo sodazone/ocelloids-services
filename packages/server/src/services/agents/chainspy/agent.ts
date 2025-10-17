@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { Egress } from '@/services/egress/index.js'
@@ -5,8 +6,7 @@ import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { z } from 'zod'
-import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
+import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 
 export const $ChainSpyInputs = z.object({
   networks: z.array(

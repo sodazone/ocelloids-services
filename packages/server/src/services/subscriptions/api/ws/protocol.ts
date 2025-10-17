@@ -4,11 +4,11 @@ import { WebSocket } from '@fastify/websocket'
 import { safeDestr } from 'destr'
 import { FastifyRequest } from 'fastify'
 import { ulid } from 'ulidx'
-import { ZodError, ZodIssueCode, z } from 'zod'
+import { ZodError, z } from 'zod'
 
-import { ValidationError, errorMessage } from '@/errors.js'
+import { errorMessage, ValidationError } from '@/errors.js'
 import { AgentId } from '@/services/agents/types.js'
-import { JwtPayload, ensureAccountAuthorized } from '@/services/auth/index.js'
+import { ensureAccountAuthorized, JwtPayload } from '@/services/auth/index.js'
 import { Message } from '@/services/egress/types.js'
 import { Switchboard } from '@/services/subscriptions/switchboard.js'
 import {
@@ -18,32 +18,26 @@ import {
   NewSubscription,
   Subscription,
 } from '@/services/subscriptions/types.js'
-import { TelemetryEventEmitter, publishTelemetryFrom } from '@/services/telemetry/types.js'
+import { publishTelemetryFrom, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 import { Logger } from '@/services/types.js'
 import { ensureOwnership } from '../handlers.js'
 import { WebsocketProtocolOptions } from './plugin.js'
 
-const $EphemeralSubscription = z
-  .string()
-  .transform((str, ctx) => {
-    try {
-      return {
-        ...safeDestr<NewSubscription>(str),
-        id: ulid(),
-        owner: '',
-        ephemeral: true,
-        channels: [
-          {
-            type: 'websocket',
-          },
-        ],
-      }
-    } catch {
-      ctx.addIssue({ code: 'custom', message: 'Invalid JSON' })
-      return z.NEVER
-    }
-  })
-  .pipe($Subscription)
+const $EphemeralSubscription = z.string().transform((str, ctx) => {
+  try {
+    const parsed = safeDestr<NewSubscription>(str)
+
+    return $Subscription.parse({
+      ...parsed,
+      id: ulid(),
+      ephemeral: true,
+      channels: parsed.channels ?? [{ type: 'websocket' }],
+    })
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'Invalid JSON' })
+    return z.NEVER
+  }
+})
 
 type Connection = {
   id: string
@@ -192,7 +186,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
                       socket,
                       new ZodError([
                         {
-                          code: ZodIssueCode.custom,
+                          code: 'custom',
                           path: ['filter', 'match'],
                           message: error.message,
                         },

@@ -1,3 +1,20 @@
+import { AbstractSublevel } from 'abstract-level'
+import {
+  EMPTY,
+  expand,
+  filter,
+  firstValueFrom,
+  from,
+  map,
+  merge,
+  mergeAll,
+  mergeMap,
+  Observable,
+  Observer,
+  reduce,
+  Subscription,
+  switchMap,
+} from 'rxjs'
 import { asSerializable } from '@/common/util.js'
 import { HexString, QueryParams, QueryResult } from '@/lib.js'
 import {
@@ -7,23 +24,6 @@ import {
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
-import { AbstractSublevel } from 'abstract-level'
-import {
-  EMPTY,
-  Observable,
-  Observer,
-  Subscription,
-  expand,
-  filter,
-  firstValueFrom,
-  from,
-  map,
-  merge,
-  mergeAll,
-  mergeMap,
-  reduce,
-  switchMap,
-} from 'rxjs'
 import {
   AssetId,
   AssetIds,
@@ -131,6 +131,11 @@ export class AssetMetadataManager {
   }
 
   async #scheduleSync() {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ASSET_METADATA_SYNC_TASK))
+    if (alreadyScheduled) {
+      this.#log.info('[agent:%s] next sync already scheduled', this.id)
+      return
+    }
     const time = new Date(Date.now() + SCHED_RATE)
     const timeString = time.toISOString()
     const key = timeString + ASSET_METADATA_SYNC_TASK

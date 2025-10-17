@@ -1,21 +1,24 @@
+import EventEmitter from 'node:events'
+import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
+import { LRUCache } from 'lru-cache'
+import { fromHex } from 'polkadot-api/utils'
+import { firstValueFrom } from 'rxjs'
+
 import { asPublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
-import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
-import { LRUCache } from 'lru-cache'
-import { fromHex } from 'polkadot-api/utils'
-import { firstValueFrom } from 'rxjs'
+
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
 import { fetchSS58Prefix } from '../../steward/metadata/queries/helper.js'
 import {
   AssetMetadata,
   Empty,
+  isAssetMetadata,
   StewardQueries,
   StewardQueryArgs,
-  isAssetMetadata,
 } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
@@ -29,6 +32,7 @@ import {
   XcmTerminus,
   XcmTerminusContext,
 } from '../types/index.js'
+import { TelemetryXcmHumanizerEmitter, xcmHumanizerMetrics } from './telemetry.js'
 import {
   DepositAsset,
   ExchangeAsset,
@@ -36,17 +40,19 @@ import {
   HopTransfer,
   HumanizedAddresses,
   HumanizedTransactCall,
+  HumanizedXcm,
   HumanizedXcmAsset,
   InitiateReserveWithdraw,
   InitiateTeleport,
+  InitiateTransfer,
   MultiAsset,
   QueryableXcmAsset,
   Transact,
   XcmAssetWithMetadata,
   XcmInstruction,
+  XcmJourneyType,
   XcmVersionedInstructions,
 } from './types.js'
-import { HumanizedXcm, XcmJourneyType } from './types.js'
 import { extractMultiAssetFilterAssets, parseMultiAsset, stringifyMultilocation } from './utils.js'
 
 const HOP_INSTRUCTIONS = [
@@ -71,6 +77,7 @@ export class XcmHumanizer {
   readonly #ticker: TickerAgent
   readonly #ingress: SubstrateIngressConsumer
   readonly #stewardQuery: StewardQueries
+  readonly #telemetry: TelemetryXcmHumanizerEmitter
 
   constructor({
     log,
@@ -89,6 +96,7 @@ export class XcmHumanizer {
     this.#steward = deps.steward
     this.#stewardQuery = this.#steward.query.bind(this.#steward)
     this.#ticker = deps.ticker
+    this.#telemetry = new (EventEmitter as new () => TelemetryXcmHumanizerEmitter)()
 
     this.#cache = new LRUCache({
       ttl: 3_600_000,
@@ -115,6 +123,10 @@ export class XcmHumanizer {
       ...message,
       humanized: await this.#humanizePayload(message),
     }
+  }
+
+  collectTelemetry() {
+    xcmHumanizerMetrics(this.#telemetry)
   }
 
   async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
@@ -182,6 +194,13 @@ export class XcmHumanizer {
       if (trapped.length > 0) {
         resolvedAssets.push(...(await this.#resolveAssets(waypoint.chainId, trapped)))
       }
+    }
+
+    if (type === XcmJourneyType.Unknown) {
+      this.#telemetry.emit('telemetryXcmTypeUnresolved', message, version)
+    }
+    if (instructions.find((op) => op.type === 'InitiateTransfer') !== undefined) {
+      this.#telemetry.emit('telemetryXcmInstruction', message, 'InitiateTransfer')
     }
 
     return { type, from, to, assets: resolvedAssets, version, transactCalls }
@@ -505,14 +524,16 @@ export class XcmHumanizer {
     }
 
     const hopMessage = this.#findHopMessage(instructions)
-    if (
-      hopMessage &&
-      instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
-      (hopMessage.value as unknown as HopTransfer).xcm.some((op) =>
-        ['DepositAsset', 'DepositReserveAsset'].includes(op.type),
-      )
-    ) {
-      return XcmJourneyType.Transfer
+    if (hopMessage) {
+      if (
+        instructions.some((op) => ['WithdrawAsset', 'ReserveAssetDeposited'].includes(op.type)) &&
+        (hopMessage.value as unknown as HopTransfer).xcm.some((op) =>
+          ['DepositAsset', 'DepositReserveAsset'].includes(op.type),
+        )
+      ) {
+        return XcmJourneyType.Transfer
+      }
+      return this.#determineJourneyType((hopMessage.value as unknown as HopTransfer).xcm)
     }
 
     if (instructions.some((op) => op.type === 'Transact')) {
@@ -606,6 +627,17 @@ export class XcmHumanizer {
   }
 
   #findHopMessage(instructions: XcmInstruction[]): XcmInstruction | undefined {
+    const initiateTransfer = instructions.find((op) => op.type === 'InitiateTransfer')
+    if (initiateTransfer) {
+      const msg = initiateTransfer.value as unknown as InitiateTransfer
+      return {
+        type: '',
+        value: {
+          dest: msg.destination,
+          xcm: msg.remote_xcm,
+        },
+      }
+    }
     return instructions.find((op) => HOP_INSTRUCTIONS.includes(op.type))
   }
 
@@ -725,6 +757,7 @@ export class XcmHumanizer {
           humanized.push({
             raw: callData,
           })
+          this.#telemetry.emit('telemetryXcmDecodeCallError', chainId, specVersion?.toString() ?? 'none')
         }
       }
     }

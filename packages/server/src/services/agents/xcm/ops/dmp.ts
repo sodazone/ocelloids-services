@@ -1,4 +1,4 @@
-import { Observable, bufferCount, filter, map, mergeMap } from 'rxjs'
+import { bufferCount, filter, map, mergeMap, Observable } from 'rxjs'
 
 import { filterNonNull } from '@/common/index.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
@@ -29,7 +29,7 @@ import {
   matchProgramByTopic,
   networkIdFromMultiLocation,
 } from './util.js'
-import { Program, asVersionedXcm, messageHash } from './xcm-format.js'
+import { asVersionedXcm, messageHash, Program } from './xcm-format.js'
 
 /*
  ==================================================================================

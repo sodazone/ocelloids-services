@@ -1,18 +1,17 @@
+import { AbstractSublevel } from 'abstract-level'
+import { ValidationError } from '@/errors.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { LevelDB, Logger } from '@/services/types.js'
-
-import { ValidationError } from '@/errors.js'
-import { AbstractSublevel } from 'abstract-level'
 import { normalizeAssetId } from '../common/melbourne.js'
 import { OMEGA_250 } from '../consts.js'
 import {
   Agent,
   AgentMetadata,
   AgentRuntimeContext,
+  getAgentCapabilities,
+  Queryable,
   QueryParams,
   QueryResult,
-  Queryable,
-  getAgentCapabilities,
 } from '../types.js'
 import { tickerToAssetIdMap } from './mappers.js'
 import { BinancePriceScout } from './scouts/binance.js'
@@ -224,6 +223,11 @@ export class TickerAgent implements Agent, Queryable {
   }
 
   async #scheduleUpdate() {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(PRICE_SYNC_TASK))
+    if (alreadyScheduled) {
+      this.#log.info('[agent:%s] next sync already scheduled', this.id)
+      return
+    }
     const time = new Date(Date.now() + SCHED_RATE)
     const timeString = time.toISOString()
     const key = timeString + PRICE_SYNC_TASK

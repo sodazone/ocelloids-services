@@ -1,4 +1,4 @@
-import { Observable, from, map, mergeMap, share } from 'rxjs'
+import { from, map, mergeMap, Observable, share } from 'rxjs'
 
 import { getEventValue } from '@/common/util.js'
 import { HexString } from '@/lib.js'
@@ -113,7 +113,7 @@ export function extractEvents() {
               timestamp,
             }
             const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
-            if (extrinsicIndex) {
+            if (extrinsicIndex && extrinsicIndex < extrinsics.length) {
               if (extrinsicWithId === undefined) {
                 const xt = extrinsics[extrinsicIndex]
                 extrinsicWithId = {

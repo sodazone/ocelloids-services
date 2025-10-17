@@ -1,15 +1,12 @@
 import process from 'node:process'
-
-import { z } from 'zod'
-
-import Fastify from 'fastify'
-
 import FastifyCors from '@fastify/cors'
 import FastifySwagger from '@fastify/swagger'
 import FastifyWebsocket from '@fastify/websocket'
 import FastifyScalarUI from '@scalar/fastify-api-reference'
+import Fastify from 'fastify'
 import FastifyHealthcheck from 'fastify-healthcheck'
-
+import { z } from 'zod'
+import { toCorsOpts } from '@/cli/args.js'
 import { logger } from '@/environment.js'
 import { errorHandler } from '@/errors.js'
 import {
@@ -30,9 +27,6 @@ import {
   Subscriptions,
   Telemetry,
 } from '@/services/index.js'
-import version from '@/version.js'
-
-import { toCorsOpts } from '@/cli/args.js'
 import {
   $AgentCatalogOptions,
   $AnalyticsOptions,
@@ -42,32 +36,31 @@ import {
   $CorsServerOptions,
   $DatabaseOptions,
   $JwtServerOptions,
-  $KyselyServerOptions,
   $LevelServerOptions,
   $RedisServerOptions,
   $SubscriptionServerOptions,
 } from '@/types.js'
+import version from '@/version.js'
 
 const WS_MAX_PAYLOAD = 1048576 // 1MB
 
 const $DatabaseGroup = $DatabaseOptions
-  .merge($AnalyticsOptions)
-  .merge($LevelServerOptions)
-  .merge($KyselyServerOptions)
-  .merge($RedisServerOptions)
-  .merge($ArchiveOptions)
+  .extend($AnalyticsOptions.shape)
+  .extend($LevelServerOptions.shape)
+  .extend($RedisServerOptions.shape)
+  .extend($ArchiveOptions.shape)
 
 export const $ServerOptions = z
   .object({
     distributed: z.boolean().default(false),
   })
-  .merge($BaseServerOptions)
-  .merge($CorsServerOptions)
-  .merge($JwtServerOptions)
-  .merge($SubscriptionServerOptions)
-  .merge($ConfigServerOptions)
-  .merge($AgentCatalogOptions)
-  .merge($DatabaseGroup)
+  .extend($BaseServerOptions.shape)
+  .extend($CorsServerOptions.shape)
+  .extend($JwtServerOptions.shape)
+  .extend($SubscriptionServerOptions.shape)
+  .extend($ConfigServerOptions.shape)
+  .extend($AgentCatalogOptions.shape)
+  .extend($DatabaseGroup.shape)
 
 type ServerOptions = z.infer<typeof $ServerOptions>
 

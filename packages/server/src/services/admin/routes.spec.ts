@@ -4,6 +4,7 @@ import '@/testing/network.js'
 
 import { rootToken } from '@/testing/data.js'
 import { mockServer } from '@/testing/server.js'
+import { Scheduled } from '../scheduling/scheduler.js'
 
 describe('admin api', () => {
   let server: FastifyInstance
@@ -115,7 +116,7 @@ describe('admin api', () => {
   it('should retrieve pending scheduler task by id', async () => {
     const taskId = 'test'
     const getByIdSpy = vi.spyOn(server.scheduler, 'getById')
-    getByIdSpy.mockImplementationOnce(() => Promise.resolve({}))
+    getByIdSpy.mockImplementationOnce(() => Promise.resolve({} as Scheduled))
 
     await new Promise<void>((resolve) => {
       server.inject(

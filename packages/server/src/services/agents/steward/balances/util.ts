@@ -1,8 +1,9 @@
+import { Binary, getSs58AddressInfo } from 'polkadot-api'
+import { fromHex } from 'polkadot-api/utils'
 import { keccak256 } from 'viem'
 
 import { HexString } from '@/lib.js'
-import { Binary, getSs58AddressInfo } from 'polkadot-api'
-import { fromHex } from 'polkadot-api/utils'
+
 import { Balance } from './types.js'
 
 function leftPadHex(str: HexString, length: number) {

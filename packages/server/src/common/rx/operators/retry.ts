@@ -1,4 +1,4 @@
-import { Observable, SchedulerLike, asyncScheduler, retry } from 'rxjs'
+import { asyncScheduler, Observable, retry, SchedulerLike } from 'rxjs'
 
 /**
  * Configuration options for the truncated exponential backoff strategy.

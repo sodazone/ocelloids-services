@@ -1,4 +1,4 @@
-import { ControlQuery, Criteria, asPublicKey } from '@/common/index.js'
+import { asPublicKey, ControlQuery, Criteria } from '@/common/index.js'
 
 import { SignerData } from '../../../subscriptions/types.js'
 import { XcmNotificationType, XcmTerminus } from '../types/index.js'

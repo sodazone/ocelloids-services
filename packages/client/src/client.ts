@@ -1,5 +1,4 @@
-import { Options } from 'ky'
-
+import { type DoFetch, type RequestOptions } from './http/fetch'
 import type {
   AgentId,
   AnyJson,
@@ -10,7 +9,7 @@ import type {
   QueryResult,
   SubscriptionId,
 } from './lib'
-import { type FetchFn, doFetchWithConfig, openWebSocket } from './transport'
+import { doFetchWithConfig, type FetchFn, openWebSocket } from './transport'
 import {
   type AnySubscriptionInputs,
   type OnDemandSubscriptionHandlers,
@@ -43,16 +42,6 @@ function isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
 // Default public endpoints
 const API_WS_URL = 'wss://api.ocelloids.net'
 const API_HTTP_URL = 'https://api.ocelloids.net'
-
-/**
- * @public
- */
-export type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  headers?: Record<string, string>
-  hooks?: any
-  body?: unknown
-}
 
 /**
  * Subscribable Agent API.
@@ -140,35 +129,6 @@ export interface OcelloidsClientApi {
   health(options?: RequestOptions): Promise<HealthResponse>
 }
 
-function toKyOptions(ops?: RequestOptions): Options {
-  if (ops === undefined) {
-    return {}
-  }
-
-  let body: BodyInit | undefined
-
-  if (ops.body !== undefined && ops.body !== null) {
-    if (typeof ops.body === 'string') {
-      body = ops.body
-    } else if (
-      ops.body instanceof FormData ||
-      ops.body instanceof URLSearchParams ||
-      ops.body instanceof Blob
-    ) {
-      body = ops.body
-    } else {
-      body = JSON.stringify(ops.body)
-    }
-  }
-
-  return {
-    method: ops.method,
-    headers: ops.headers,
-    hooks: ops.hooks,
-    body,
-  }
-}
-
 /**
  * Exposes the Ocelloids Agent API.
  *
@@ -240,7 +200,7 @@ export class OcelloidsAgentApi<T>
    *
    * @param args - The query arguments.
    * @param pagination - The pagination configuration.
-   * @param options - The ky request options (fetch compatible).
+   * @param options - The request options (fetch compatible).
    * @returns A promise that resolves to the results of the query.
    */
   async query<P = AnyQueryArgs, R = AnyQueryResultItem>(
@@ -263,12 +223,12 @@ export class OcelloidsAgentApi<T>
    * Creates a subscription.
    *
    * @param subscription - The subscription to create.
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    * @returns A promise that resolves when the subscription is created.
    */
   async createSubscription(subscription: Omit<Subscription<T>, 'agent'>, options?: RequestOptions) {
     return this.#fetch(this.#config.httpUrl + '/subs', {
-      ...toKyOptions(options),
+      ...options,
       method: 'POST',
       body: JSON.stringify({
         ...subscription,
@@ -281,12 +241,12 @@ export class OcelloidsAgentApi<T>
    * Deletes a subscription.
    *
    * @param id - The subscription ID.
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    */
   async deleteSubscription(id: string, options?: RequestOptions) {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
     return this.#fetch(url, {
-      ...toKyOptions(options),
+      ...options,
       method: 'DELETE',
     })
   }
@@ -295,25 +255,22 @@ export class OcelloidsAgentApi<T>
    * Gets a subscription by its ID.
    *
    * @param id - The subscription ID.
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    * @returns A promise that resolves with the subscription or rejects if not found.
    */
   async getSubscription(id: string, options?: RequestOptions): Promise<Subscription<T>> {
     const url = `${this.#config.httpUrl}/subs/${this.#agentId}/${id}`
-    return this.#fetch<Subscription<T>>(url, toKyOptions(options))
+    return this.#fetch<Subscription<T>>(url, options)
   }
 
   /**
    * Lists all subscriptions.
    *
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    * @returns A promise that resolves with an array of subscriptions.
    */
   async allSubscriptions(options?: RequestOptions): Promise<Subscription<T>[]> {
-    return this.#fetch<Subscription<T>[]>(
-      this.#config.httpUrl + '/subs/' + this.#agentId,
-      toKyOptions(options),
-    )
+    return this.#fetch<Subscription<T>[]>(this.#config.httpUrl + '/subs/' + this.#agentId, options)
   }
 
   /**
@@ -463,13 +420,13 @@ export class OcelloidsClient implements OcelloidsClientApi {
    *
    * @param config - The configuration for the client.
    */
-  constructor(config: OcelloidsClientConfig) {
+  constructor(config: OcelloidsClientConfig, doFetch?: DoFetch) {
     this.#config = {
       wsUrl: config.wsUrl ?? API_WS_URL,
       httpUrl: config.httpUrl ?? API_HTTP_URL,
       apiKey: config.apiKey ?? null,
     }
-    this.#fetch = doFetchWithConfig(this.#config)
+    this.#fetch = doFetchWithConfig(this.#config, doFetch)
   }
 
   /**
@@ -487,21 +444,21 @@ export class OcelloidsClient implements OcelloidsClientApi {
    * Fetches the list of configured network identifiers (URNs) from the server.
    *
    * @public
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    * @returns A promise that resolves to an array of network URNs as strings.
    */
   async networks(options?: RequestOptions): Promise<Record<string, string[]>> {
-    return this.#fetch(this.#config.httpUrl + '/ingress/networks', toKyOptions(options))
+    return this.#fetch(this.#config.httpUrl + '/ingress/networks', options)
   }
 
   /**
    * Checks the health of the service.
    *
    * @public
-   * @param options - The ky request options (fetch compatible)
+   * @param options - The request options (fetch compatible)
    * @returns A promise that resolves with the health status.
    */
   async health(options?: RequestOptions): Promise<HealthResponse> {
-    return this.#fetch(this.#config.httpUrl + '/health', toKyOptions(options))
+    return this.#fetch(this.#config.httpUrl + '/health', options)
   }
 }
