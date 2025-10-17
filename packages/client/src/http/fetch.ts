@@ -16,6 +16,9 @@ export type DoFetchOptions = {
   retryStatusCodes?: number[]
 }
 
+/**
+ * @public
+ */
 export type DoFetch = <T>(url: string, options?: DoFetchOptions) => Promise<T>
 
 /**

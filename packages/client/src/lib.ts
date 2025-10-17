@@ -7,7 +7,7 @@
  */
 export * from './agent'
 export * from './client'
-export type { DoFetchOptions, RequestOptions } from './http/fetch'
+export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
 export * from './query'
 export type {
   $AgentId,
