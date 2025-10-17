@@ -1,6 +1,7 @@
 import { Context, Options, QueryOperator } from 'mingo/core'
 import { Any, AnyObject, Predicate } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
+
 import { asPublicKey } from '@/common/util.js'
 
 function addressEq(a: string, b: string) {
