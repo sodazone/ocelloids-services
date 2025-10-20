@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { Observable, concatMap, from, map, switchMap } from 'rxjs'
+import { concatMap, from, map, Observable, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
@@ -15,9 +15,9 @@ import { extractParachainReceiveByBlock, mapXcmInbound, mapXcmSent } from '../op
 import { messageCriteria } from '../ops/criteria.js'
 import { extractDmpSendByEvent, extractDmpSendByTx } from '../ops/dmp.js'
 import {
-  PkBridgeConfig,
   extractBridgeMessageAccepted,
   extractBridgeReceive,
+  PkBridgeConfig,
   pkBridgeConfig,
 } from '../ops/pk-bridge.js'
 import { extractRelayReceive } from '../ops/relay.js'

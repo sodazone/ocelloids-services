@@ -256,10 +256,10 @@ export function xcmMessagesSent() {
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
           specVersion: event.specVersion,
-          extrinsicPosition: event.extrinsicPosition,
+          txPosition: event.extrinsicPosition,
           messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
           messageId: xcmMessage.message_id,
-          extrinsicHash: event.extrinsic?.hash as HexString,
+          txHash: event.extrinsic?.hash as HexString,
         } as XcmSentWithContext
       }),
     )
@@ -291,12 +291,12 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
             specVersion: maybeXcmpEvent.specVersion,
-            extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
+            txPosition: maybeXcmpEvent.extrinsicPosition,
             messageHash: xcmpQueueData.message_hash,
             messageId: xcmpQueueData.message_id,
             outcome: maybeXcmpEvent.name === 'Success' ? 'Success' : 'Fail',
@@ -312,7 +312,7 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             specVersion: maybeXcmpEvent.specVersion,
@@ -333,7 +333,7 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             specVersion: maybeXcmpEvent.specVersion,

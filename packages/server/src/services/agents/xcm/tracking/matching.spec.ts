@@ -18,8 +18,8 @@ import {
 } from '@/testing/matching.js'
 import { kusamaToPolkadotBridgeMessages } from '@/testing/pk-bridge.js'
 import { createServices } from '@/testing/services.js'
-import { MatchingEngine } from './matching.js'
 import { prefixes, XcmInbound, XcmNotificationType, XcmSent } from '../types/index.js'
+import { MatchingEngine } from './matching.js'
 
 type OD = { origin: string; destination: string }
 

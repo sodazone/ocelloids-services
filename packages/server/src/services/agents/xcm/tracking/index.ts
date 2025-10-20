@@ -1,9 +1,8 @@
+import { Subject, share } from 'rxjs'
 import { ArchiveRepository } from '@/services/archive/repository.js'
+import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
 import { Logger } from '@/services/types.js'
-import { Subject, share } from 'rxjs'
-
-import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { AgentRuntimeContext } from '../../types.js'
 import { xcmMatchingEngineMetrics } from '../telemetry/metrics.js'
 import { XcmMessagePayload } from '../types/messages.js'

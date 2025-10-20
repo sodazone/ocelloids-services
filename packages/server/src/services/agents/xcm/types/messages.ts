@@ -8,7 +8,7 @@ import { HumanizedXcm } from '../humanize/types.js'
  */
 export type XcmWithContext = {
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   blockNumber: string | number
   blockHash: HexString
   specVersion?: number
@@ -16,7 +16,7 @@ export type XcmWithContext = {
   messageHash: HexString
   messageId?: HexString
   messageData?: HexString
-  extrinsicHash?: HexString
+  txHash?: HexString
 }
 
 /**
@@ -108,10 +108,10 @@ export interface XcmBridgeInboundWithContext {
   bridgeKey: HexString
   outcome: 'Success' | 'Fail'
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   specVersion?: number
   timestamp?: number
-  extrinsicHash?: HexString
+  txHash?: HexString
   error?: AnyJson
 }
 
@@ -122,7 +122,7 @@ export interface XcmRelayedWithContext extends XcmInboundWithContext {
 
 export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   event: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   blockNumber: string
   blockHash: HexString
   specVersion?: number
@@ -130,7 +130,7 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   messageHash: HexString
   messageData?: HexString
   messageId: HexString
-  extrinsicHash?: HexString
+  txHash?: HexString
 
   constructor(msg: XcmWithContext) {
     this.event = msg.event
@@ -141,8 +141,8 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
     this.specVersion = msg.specVersion
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
   }
 }
 
@@ -155,8 +155,8 @@ abstract class BaseXcmEvent {
   blockNumber: string
   specVersion?: number
   timestamp?: number
-  extrinsicPosition?: number
-  extrinsicHash?: HexString
+  txPosition?: number
+  txHash?: HexString
 
   constructor(msg: XcmWithContext) {
     this.event = msg.event
@@ -167,8 +167,8 @@ abstract class BaseXcmEvent {
     this.blockNumber = msg.blockNumber.toString()
     this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
   }
 }
 
@@ -267,10 +267,10 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   error: AnyJson
 
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   specVersion?: number
   timestamp?: number
-  extrinsicHash?: HexString
+  txHash?: HexString
 
   constructor(msg: XcmBridgeInboundWithContext) {
     this.blockNumber = msg.blockNumber
@@ -281,8 +281,8 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
     this.error = msg.error
 
     this.event = msg.event
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
     this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
   }
@@ -471,10 +471,10 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       chainId,
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
-      extrinsicHash: msg.extrinsicHash,
+      txHash: msg.txHash,
       specVersion: msg.specVersion,
       timestamp: msg.timestamp,
-      extrinsicPosition: msg.extrinsicPosition,
+      txPosition: msg.txPosition,
       event: msg.event,
       outcome: 'Success',
       error: null,
@@ -524,8 +524,8 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       blockHash: inMsg.blockHash,
       specVersion: inMsg.specVersion,
       timestamp: inMsg.timestamp,
-      extrinsicHash: inMsg.extrinsicHash,
-      extrinsicPosition: inMsg.extrinsicPosition,
+      txHash: inMsg.txHash,
+      txPosition: inMsg.txPosition,
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
@@ -564,8 +564,8 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
       blockHash: relayMsg.blockHash,
       specVersion: relayMsg.specVersion,
       timestamp: relayMsg.timestamp,
-      extrinsicHash: relayMsg.extrinsicHash,
-      extrinsicPosition: relayMsg.extrinsicPosition,
+      txHash: relayMsg.txHash,
+      txPosition: relayMsg.txPosition,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
       error: relayMsg.error,

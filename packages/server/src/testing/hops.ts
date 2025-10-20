@@ -30,9 +30,9 @@ const moonbeamSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2004',
     blockHash: '0xed7606fe9553759a735575f2ba82e096f24a736e8a124cdf43b7b581db57a09f',
     blockNumber: '9180107',
-    extrinsicHash: '0xabe7ad63e15ff0fbc46534b5ffcd828025e3e3a99d1894916bcb6e7c41ec24e4',
+    txHash: '0xabe7ad63e15ff0fbc46534b5ffcd828025e3e3a99d1894916bcb6e7c41ec24e4',
     timestamp: 1736874138917,
-    extrinsicPosition: 6,
+    txPosition: 6,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -229,9 +229,9 @@ const moonbeamSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2004',
     blockHash: '0xed7606fe9553759a735575f2ba82e096f24a736e8a124cdf43b7b581db57a09f',
     blockNumber: '9180107',
-    extrinsicHash: '0xabe7ad63e15ff0fbc46534b5ffcd828025e3e3a99d1894916bcb6e7c41ec24e4',
+    txHash: '0xabe7ad63e15ff0fbc46534b5ffcd828025e3e3a99d1894916bcb6e7c41ec24e4',
     timestamp: 1736874138917,
-    extrinsicPosition: 6,
+    txPosition: 6,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -429,7 +429,7 @@ const moonbeamSent: XcmSent = {
 }
 
 const moonbeamRelayed: XcmRelayedWithContext = {
-  extrinsicPosition: 1,
+  txPosition: 1,
   blockNumber: '24286514',
   blockHash: '0xb6bc4da1bdfc0b6e63ae00ccbbf51e934a4f28b09bf394a9c3422094796b5ef9',
   timestamp: 1736874144000,
@@ -475,7 +475,7 @@ const centrifugeHopIn: XcmInbound = {
 }
 
 const centrifugeRelayed: XcmRelayedWithContext = {
-  extrinsicPosition: 1,
+  txPosition: 1,
   blockNumber: '24286518',
   blockHash: '0x0fa3eba67a26f696b438a031bcb7154ad18f1b848da0df70818da564fec8c508',
   timestamp: 1736874168001,

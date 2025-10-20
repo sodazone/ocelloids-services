@@ -145,11 +145,11 @@ backfillBlocks$({ start: startBlock, end: endBlock })
 
         return new GenericXcmInboundWithContext({
           event: event,
-          extrinsicHash: event.extrinsic?.hash as HexString,
+          txHash: event.extrinsic?.hash as HexString,
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
-          extrinsicPosition: event.extrinsicPosition,
+          txPosition: event.extrinsicPosition,
           messageHash: xcmpQueueData.message_hash,
           messageId: xcmpQueueData.message_id,
           outcome: event.name === 'Success' ? 'Success' : 'Fail',
@@ -164,7 +164,7 @@ backfillBlocks$({ start: startBlock, end: endBlock })
 
         return new GenericXcmInboundWithContext({
           event: event,
-          extrinsicHash: event.extrinsic?.hash as HexString,
+          txHash: event.extrinsic?.hash as HexString,
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
@@ -183,7 +183,7 @@ backfillBlocks$({ start: startBlock, end: endBlock })
 
         return new GenericXcmInboundWithContext({
           event: event,
-          extrinsicHash: event.extrinsic?.hash as HexString,
+          txHash: event.extrinsic?.hash as HexString,
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
@@ -215,8 +215,8 @@ backfillBlocks$({ start: startBlock, end: endBlock })
             timestamp: msg.timestamp,
             status: msg.outcome,
             extrinsic: {
-              blockPosition: msg.extrinsicPosition,
-              hash: msg.extrinsicHash,
+              blockPosition: msg.txPosition,
+              hash: msg.txHash,
             },
             event: {
               blockPosition: (msg.event as any)?.blockPosition,
