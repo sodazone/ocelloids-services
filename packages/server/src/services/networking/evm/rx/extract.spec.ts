@@ -1,9 +1,15 @@
-import { testEvmBlocksFrom } from '@/testing/blocks.js'
 import { from } from 'rxjs'
 import { filter } from 'rxjs/operators'
-import { toEventSelector, type Abi } from 'viem'
+import { type Abi } from 'viem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { decodeLogs, decodeTransactions, filterLogs } from './extract.js'
+import { testEvmBlocksFrom } from '@/testing/blocks.js'
+import {
+  decodeLogs,
+  decodeTransactions,
+  filterLogs,
+  filterTransactions,
+  filterTransactionsWithLogs,
+} from './extract.js'
 
 const snowbridgeGatewayAbi: Abi = [
   {
@@ -150,9 +156,8 @@ describe('decode.ts', () => {
   describe('filterLogs()', () => {
     it('should filter known logs', async () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
-      const abiSelectorMap = Object.fromEntries(snowbridgeGatewayAbi.filter(item => item.type === 'event').map((ev) => [toEventSelector(ev), ev]))
       const test$ = block$.pipe(
-        filterLogs({ abiSelectorMap, addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7']}),
+        filterLogs({ abi: snowbridgeGatewayAbi, addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'] }),
       )
       const calls = vi.fn()
 
@@ -173,15 +178,17 @@ describe('decode.ts', () => {
 
     it('should skip known logs on unknown addresses', async () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
-      const abiSelectorMap = Object.fromEntries(snowbridgeGatewayAbi.filter(item => item.type === 'event').map((ev) => [toEventSelector(ev), ev]))
       const test$ = block$.pipe(
-        filterLogs({ abiSelectorMap, addresses: ['0x0101963C279c93801941e1eB8799c23f407d680101']}),
+        filterLogs({
+          abi: snowbridgeGatewayAbi,
+          addresses: ['0x0101963C279c93801941e1eB8799c23f407d680101'],
+        }),
       )
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
-          next: (log) => {
+          next: (_log) => {
             calls()
           },
           complete: () => {
@@ -212,6 +219,112 @@ describe('decode.ts', () => {
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+  })
+
+  describe('filterTransactions()', () => {
+    it('should filter known transactions', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+
+      const test$ = block$.pipe(
+        filterTransactions({
+          abi: snowbridgeGatewayAbi,
+          addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'],
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (tx) => {
+            expect(tx).toBeDefined()
+            expect(tx.decoded).toBeDefined()
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should skip known logs on unknown addresses', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const test$ = block$.pipe(
+        filterTransactions({
+          abi: snowbridgeGatewayAbi,
+          addresses: ['0x0101963C279c93801941e1eB8799c23f407d680101'],
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (_tx) => {
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(0)
+            resolve()
+          },
+        })
+      })
+    })
+  })
+
+  describe('filterTransactionsWithLogs()', () => {
+    it('should filter known transactions and logs', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+
+      const test$ = block$.pipe(
+        filterTransactionsWithLogs(
+          {
+            abi: snowbridgeGatewayAbi,
+            addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'],
+          },
+          ['sendToken'],
+        ),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (tx) => {
+            expect(tx).toBeDefined()
+            expect(tx.decoded).toBeDefined()
+            expect(tx.logs.length).toBe(2)
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should skip known logs on unknown addresses', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const test$ = block$.pipe(
+        filterTransactionsWithLogs({
+          abi: snowbridgeGatewayAbi,
+          addresses: ['0x0101963C279c93801941e1eB8799c23f407d680101'],
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (_tx) => {
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(0)
             resolve()
           },
         })
