@@ -115,6 +115,45 @@ export interface XcmBridgeInboundWithContext {
   error?: AnyJson
 }
 
+export interface SnowbridgeInboundWithContext {
+  chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
+  channelId: HexString
+  nonce: string
+  messageId: HexString
+  outcome: 'Success' | 'Fail'
+  event?: AnyJson
+  txPosition?: number
+  timestamp?: number
+  txHash?: HexString
+  error?: AnyJson
+}
+
+export interface SnowbridgeMessageAccepted {
+  chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
+  nonce: string
+  messageId: HexString
+  recipient: NetworkURN
+  event?: AnyJson
+  txPosition?: number
+  timestamp?: number
+  txHash?: HexString
+}
+
+export interface SnowbridgeOutboundAccepted extends SnowbridgeMessageAccepted {
+  channelId: HexString
+  payload: HexString
+  beneficiary: HexString
+  asset: {
+    token: HexString
+    amount: string
+  }
+  sender: HexString
+}
+
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
   recipient: NetworkURN
   origin: NetworkURN
@@ -285,6 +324,89 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
     this.txHash = msg.txHash
     this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
+  }
+}
+
+export class GenericSnowbridgeInboundWithContext implements SnowbridgeInboundWithContext {
+  blockNumber: string | number
+  blockHash: HexString
+  chainId: NetworkURN
+  channelId: HexString
+  messageId: HexString
+  nonce: string
+  outcome: 'Success' | 'Fail'
+  error: AnyJson
+
+  event?: AnyJson
+  txPosition?: number
+  specVersion?: number
+  timestamp?: number
+  txHash?: HexString
+
+  constructor(msg: SnowbridgeInboundWithContext) {
+    this.blockNumber = msg.blockNumber
+    this.blockHash = msg.blockHash
+    this.chainId = msg.chainId
+    this.channelId = msg.channelId
+    this.messageId = msg.messageId
+    this.nonce = msg.nonce
+    this.outcome = msg.outcome
+    this.error = msg.error
+
+    this.event = msg.event
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
+    this.timestamp = msg.timestamp
+  }
+}
+
+export class GenericSnowbridgeMessageAccepted implements SnowbridgeMessageAccepted {
+  chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
+  messageId: HexString
+  nonce: string
+  recipient: NetworkURN
+  event?: AnyJson
+  txPosition?: number
+  timestamp?: number
+  txHash?: HexString
+
+  constructor(msg: SnowbridgeMessageAccepted) {
+    this.blockNumber = msg.blockNumber
+    this.blockHash = msg.blockHash
+    this.chainId = msg.chainId
+
+    this.messageId = msg.messageId
+    this.nonce = msg.nonce
+    this.recipient = msg.recipient
+    this.event = msg.event
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
+    this.timestamp = msg.timestamp
+  }
+}
+export class GenericSnowbridgeOutboundAccepted
+  extends GenericSnowbridgeMessageAccepted
+  implements SnowbridgeOutboundAccepted
+{
+  channelId: HexString
+  payload: HexString
+  beneficiary: HexString
+  asset: {
+    token: HexString
+    amount: string
+  }
+  sender: HexString
+
+  constructor(msg: SnowbridgeOutboundAccepted) {
+    super(msg)
+
+    this.channelId = msg.channelId
+    this.asset = msg.asset
+    this.sender = msg.sender
+    this.beneficiary = msg.beneficiary
+    this.payload = msg.payload
   }
 }
 
