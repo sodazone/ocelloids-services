@@ -2,6 +2,8 @@ import { XcmSent } from '@/services/agents/xcm/lib.js'
 import { XcmInbound } from '@/services/agents/xcm/types/messages.js'
 
 const dotSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:1000',

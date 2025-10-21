@@ -2,6 +2,8 @@ import { XcmSent } from '@/services/agents/xcm/lib.js'
 import { XcmInbound } from '@/services/agents/xcm/types/messages.js'
 
 const sent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:2034',
@@ -92,6 +94,8 @@ const hopIn: XcmInbound = {
 }
 
 const hopOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:0',

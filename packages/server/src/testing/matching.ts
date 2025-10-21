@@ -20,6 +20,8 @@ const originContext: XcmTerminusContext = {
 const outboundMessage: XcmSent = {
   type: 'xcm.sent',
   messageId: '0xB000',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:1000',
@@ -70,6 +72,8 @@ export const matchMessages = {
 
 const hopOrigin: XcmSent = {
   type: 'xcm.sent',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
     {
@@ -128,6 +132,8 @@ const hopIB: XcmInbound = {
 
 const hopOB: XcmSent = {
   type: 'xcm.sent',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hrmp' }],
   waypoint: {
     chainId: 'urn:ocn:local:2034',
@@ -165,6 +171,8 @@ const hopOB: XcmSent = {
 }
 
 const hydraMoonOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2034',
@@ -566,6 +574,8 @@ const moonBifrostIn: XcmInbound = {
   chainId: 'urn:ocn:polkadot:0',
 }
 const moonBifrostOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2004',
@@ -1015,6 +1025,8 @@ export const umpHydraPolkadotMessages: {
   received: XcmInbound
 } = {
   origin: {
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
     type: 'xcm.sent',
     legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0', type: 'vmp' }],
     waypoint: {

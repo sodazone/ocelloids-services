@@ -1,6 +1,8 @@
 import { XcmInbound, XcmRelayedWithContext, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const moonbeamSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2004',
@@ -489,6 +491,8 @@ const centrifugeRelayed: XcmRelayedWithContext = {
 }
 
 const centrifugeHopOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2031',

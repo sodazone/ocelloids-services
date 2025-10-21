@@ -24,6 +24,8 @@ export const pkBridgeReceived = {
 }
 
 const kusamaAssetHubSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:kusama:1000',
@@ -168,7 +170,8 @@ const kusamaBridgeHubAccepted: XcmBridgeAcceptedWithContext = {
   txPosition: undefined,
   txHash: undefined,
   chainId: 'urn:ocn:kusama:1002',
-  bridgeKey: '0x2187c09768bea89f950237053705096c000000011806000000000000',
+  channelId: '0x00000001',
+  nonce: '1560',
   recipient: 'urn:ocn:polkadot:1000',
   instructions: {},
 }
@@ -177,7 +180,8 @@ const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
   blockNumber: '6100146',
   blockHash: '0x1030a342ee49feee702a544242daa765adc7d22b25e6fee1cf6b6fd2f3e10fb8',
   chainId: 'urn:ocn:polkadot:1002',
-  bridgeKey: '0x2187c09768bea89f950237053705096c000000011806000000000000',
+  channelId: '0x00000001',
+  nonce: '1560',
   outcome: 'Success',
   error: null,
   event: {
@@ -212,6 +216,8 @@ const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
 }
 
 const polkadotBridgeHubOutbound: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:1002',

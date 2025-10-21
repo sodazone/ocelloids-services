@@ -1,6 +1,8 @@
 import { XcmInbound, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const bifrostSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2030',

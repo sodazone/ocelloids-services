@@ -8,6 +8,8 @@ export function getXcmV5Sent(): XcmSent {
   const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
   const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
   return {
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
     legs: [
       {
         from: 'urn:ocn:kusama:1000',
