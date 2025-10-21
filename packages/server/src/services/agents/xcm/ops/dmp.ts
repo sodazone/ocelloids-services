@@ -304,7 +304,7 @@ function createDmpReceivedWithContext({
     blockNumber: event.blockNumber,
     specVersion: event.specVersion,
     timestamp: event.timestamp,
-    txPosition: event.extrinsicPosition,
+    txPosition: event.extrinsic?.blockPosition,
     messageHash,
     messageData,
     messageId,

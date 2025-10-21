@@ -149,7 +149,7 @@ backfillBlocks$({ start: startBlock, end: endBlock })
           blockHash: event.blockHash as HexString,
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
-          txPosition: event.extrinsicPosition,
+          txPosition: event.extrinsic?.blockPosition,
           messageHash: xcmpQueueData.message_hash,
           messageId: xcmpQueueData.message_id,
           outcome: event.name === 'Success' ? 'Success' : 'Fail',
