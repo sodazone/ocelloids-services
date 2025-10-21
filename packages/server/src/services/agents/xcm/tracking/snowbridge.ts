@@ -8,6 +8,7 @@ import {
   extractSnowbridgeEvmOutbound,
   extractSnowbridgeSubstrateInbound,
   extractSnowbridgeSubstrateOutbound,
+  mapOutboundToXcmBridge,
 } from '../ops/snowbridge.js'
 import { MatchingEngine } from './matching.js'
 
@@ -138,7 +139,7 @@ export class SnowbridgeTracker {
           id: evmChain,
           sub: this.#ingress.evm
             .finalizedBlocks(evmChain)
-            .pipe(extractSnowbridgeEvmOutbound(evmChain, contractAddress))
+            .pipe(extractSnowbridgeEvmOutbound(evmChain, contractAddress), mapOutboundToXcmBridge())
             .subscribe({
               error: (error: any) => {
                 this.#log.error(error, '[%s] %s error on origin stream', this.#id, evmChain)

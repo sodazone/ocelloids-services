@@ -21,7 +21,6 @@ import {
   Leg,
   MessageHashData,
   prefixes,
-  SnowbridgeOutboundAccepted,
   XcmBridge,
   XcmBridgeAcceptedWithContext,
   XcmBridgeInboundWithContext,
@@ -37,7 +36,8 @@ import {
   XcmWaypointContext,
 } from '../types/index.js'
 
-const DEFAULT_TIMEOUT = 10 * 60000
+const DEFAULT_TIMEOUT = 10 * 60_000
+const SNOWBRIDGE_TIMEOUT = 8 * 60 * 60_000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 
@@ -367,16 +367,12 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           outcome: 'Success', // always 'Success' since it's accepted
           error: null,
         }
-        const bridgeOutMsg: XcmBridge = new GenericXcmBridge(
-          originMsg as unknown as XcmBridge,
-          waypointContext,
-          {
-            bridgeStatus: 'accepted',
-            channelId,
-            nonce,
-            bridgeName: 'pk-bridge',
-          },
-        )
+        const bridgeOutMsg: XcmBridge = new GenericXcmBridge(originMsg, waypointContext, {
+          bridgeStatus: 'accepted',
+          channelId,
+          nonce,
+          bridgeName: 'pk-bridge',
+        })
         await this.#bridge.del(idKey)
         await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)
         await new Promise((res) => setImmediate(res)) // allow event loop tick
@@ -438,8 +434,31 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     })
   }
 
-  async onSnowbridgeOriginOutbound(msg: SnowbridgeOutboundAccepted) {
-    // to implement
+  async onSnowbridgeOriginOutbound(msg: XcmBridge) {
+    await this.#mutex.runExclusive(async () => {
+      const {
+        waypoint: { chainId, blockHash, blockNumber },
+        channelId,
+        nonce,
+      } = msg
+      const bridgeKey = toBridgeKey(channelId, nonce)
+
+      await this.#bridgeAccepted.put(bridgeKey, msg)
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.bridgeAccepted,
+        key: bridgeKey,
+        expiry: SNOWBRIDGE_TIMEOUT,
+      })
+      this.#log.info(
+        '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
+        chainId,
+        bridgeKey,
+        blockHash,
+        blockNumber,
+      )
+      this.#onXcmBridgeAccepted(msg)
+    })
   }
 
   async #isOutboundDuplicate(hashKey: string) {

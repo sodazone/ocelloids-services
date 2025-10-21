@@ -27,6 +27,8 @@ import {
   AssetSwap,
   AssetsTrapped,
   HumanizedXcmPayload,
+  isXcmBridge,
+  SnowbridgeOutboundAsset,
   SwappedAsset,
   XcmMessagePayload,
   XcmTerminus,
@@ -130,6 +132,14 @@ export class XcmHumanizer {
   }
 
   async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
+    if (isXcmBridge(message) && message.partialHumanized !== undefined && message.partialHumanized !== null) {
+      const { sender, origin, destination } = message
+      const { beneficiary, asset } = message.partialHumanized
+      const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
+      const to = await this.#toAddresses(destination.chainId, beneficiary)
+      const resolvedAsset = await this.#resolveSnowbridgeAsset(asset)
+      return { type: XcmJourneyType.Transfer, from, to, assets: [resolvedAsset], transactCalls: [] }
+    }
     const { sender, origin, destination, legs, waypoint } = message
     const { assetSwaps, assetsTrapped, legIndex } = waypoint
     const versioned = waypoint.instructions as XcmVersionedInstructions
@@ -387,6 +397,47 @@ export class XcmHumanizer {
     }
 
     return assets
+  }
+
+  async #resolveSnowbridgeAsset({
+    chainId,
+    id,
+    amount,
+  }: SnowbridgeOutboundAsset): Promise<HumanizedXcmAsset> {
+    const assetKey = `${chainId}|${normalizeAssetId(id)}`
+    const unresolved: XcmAssetWithMetadata = {
+      id: assetKey,
+      amount: BigInt(amount),
+      role: 'transfer',
+      sequence: 0,
+    }
+
+    const cached = this.#cache.get(assetKey)
+    if (cached) {
+      return {
+        ...unresolved,
+        decimals: cached.decimals,
+        symbol: cached.symbol,
+        volume: await this.resolveVolume(unresolved),
+      }
+    }
+
+    const results = (await this.#fetchAssetMetadataById(chainId, [id])).filter((a) => isAssetMetadata(a))
+
+    if (results.length === 0) {
+      return unresolved
+    }
+    const { decimals, symbol } = results[0]
+    const resolved = {
+      ...unresolved,
+      decimals,
+      symbol,
+    }
+    this.#cache.set(assetKey, resolved)
+    return {
+      ...resolved,
+      volume: await this.resolveVolume(unresolved),
+    }
   }
 
   async #resolveAssets(anchor: NetworkURN, assets: QueryableXcmAsset[]): Promise<HumanizedXcmAsset[]> {

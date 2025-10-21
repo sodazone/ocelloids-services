@@ -1,7 +1,7 @@
 import { filter, map, Observable } from 'rxjs'
 import { Abi } from 'viem'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
-import { createNetworkId } from '@/services/config.js'
+import { createNetworkId, getConsensus } from '@/services/config.js'
 import { filterTransactionsWithLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
@@ -10,11 +10,20 @@ import {
   GenericSnowbridgeInboundWithContext,
   GenericSnowbridgeMessageAccepted,
   GenericSnowbridgeOutboundAccepted,
+  GenericXcmBridge,
+  Leg,
   SnowbridgeInboundWithContext,
   SnowbridgeMessageAccepted,
   SnowbridgeOutboundAccepted,
+  XcmBridge,
+  XcmJourney,
+  XcmWaypointContext,
 } from '../types/messages.js'
 import { matchEvent } from './util.js'
+import { messageHash } from './xcm-format.js'
+
+const ASSET_HUB_PARAID = '1000'
+const BRIDGE_HUB_PARAID = '1002'
 
 type SnowbridgeEvmInboundLog = {
   eventName: string
@@ -133,12 +142,20 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
           channelId: channelID,
           messageId: messageID,
           nonce: nonce.toString(),
-          payload,
-          sender,
+          messageData: payload,
+          messageHash: messageHash(payload),
+          sender: {
+            signer: {
+              id: sender,
+              publicKey: sender,
+            },
+            extraSigners: [],
+          },
           beneficiary: destinationAddress.data,
           recipient: createNetworkId('polkadot', destinationChain.toString()),
           asset: {
-            token,
+            chainId,
+            id: token,
             amount: amount.toString(),
           },
           event: { name: acceptedLog.decoded?.eventName, args: acceptedLog.decoded?.args } as AnyJson,
@@ -194,6 +211,109 @@ export function extractSnowbridgeSubstrateOutbound(chainId: NetworkURN) {
           txPosition: blockEvent.extrinsic?.blockPosition,
         })
       }),
+    )
+  }
+}
+
+function toSnowbridgeLegs(origin: NetworkURN, destination: NetworkURN): Leg[] {
+  const originConsensus = getConsensus(origin)
+  if (originConsensus !== 'ethereum') {
+    throw new Error(`Origin consensus ${originConsensus} for snowbridge outbound not supported.`)
+  }
+  const destinationConsensus = getConsensus(destination)
+  if (originConsensus === destinationConsensus) {
+    throw new Error('Origin consensus and destination consensus for snowbridge outbound cannot be the same.')
+  }
+  const bridgeHub = createNetworkId(destination, BRIDGE_HUB_PARAID)
+  const assetHub = createNetworkId(destination, ASSET_HUB_PARAID)
+  const relay = createNetworkId(destination, '0')
+  const legs: Leg[] = [
+    {
+      from: origin,
+      to: bridgeHub,
+      type: 'bridge',
+    },
+    {
+      from: bridgeHub,
+      to: assetHub,
+      relay,
+      type: 'hrmp',
+    },
+  ]
+  if (destination !== assetHub) {
+    legs[1].type = 'hop'
+    legs.push({
+      from: assetHub,
+      to: destination,
+      relay,
+      type: 'hrmp',
+    })
+  }
+  return legs
+}
+
+export function mapOutboundToXcmBridge() {
+  return (source: Observable<SnowbridgeOutboundAccepted>): Observable<XcmBridge> => {
+    return source.pipe(
+      map(
+        ({
+          chainId,
+          messageId,
+          channelId,
+          nonce,
+          blockHash,
+          blockNumber,
+          event,
+          txHash,
+          txPosition,
+          timestamp,
+          messageData,
+          messageHash,
+          recipient,
+          sender,
+          asset,
+          beneficiary,
+        }) => {
+          const waypointContext: XcmWaypointContext = {
+            legIndex: 0,
+            chainId,
+            blockHash,
+            timestamp,
+            blockNumber: blockNumber.toString(),
+            event,
+            txHash,
+            txPosition,
+            messageData,
+            messageHash,
+            outcome: 'Success', // always 'Success' since it's accepted
+            error: null,
+            instructions: null,
+          }
+          const originMsg: XcmJourney = {
+            type: 'xcm.sent',
+            origin: waypointContext,
+            destination: {
+              chainId: recipient,
+            },
+            originProtocol: 'snowbridge',
+            destinationProtocol: 'xcm',
+            legs: toSnowbridgeLegs(chainId, recipient),
+            waypoint: waypointContext,
+            messageId,
+            sender,
+          }
+          return new GenericXcmBridge(originMsg, waypointContext, {
+            bridgeStatus: 'accepted',
+            channelId,
+            nonce,
+            bridgeName: 'snowbridge',
+            partialHumanized: {
+              asset,
+              beneficiary,
+            },
+          })
+        },
+      ),
     )
   }
 }

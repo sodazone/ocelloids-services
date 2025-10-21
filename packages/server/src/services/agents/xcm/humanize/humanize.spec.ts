@@ -29,6 +29,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1002',
@@ -84,6 +86,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1002',
@@ -250,6 +254,8 @@ describe('XcmHumanizer', () => {
     ]
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1000',
@@ -299,6 +305,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:2030',
@@ -347,6 +355,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1000',
@@ -397,6 +407,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:2030',
@@ -546,6 +558,8 @@ describe('XcmHumanizer', () => {
     ]
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       type: 'xcm.received',
       legs: [
         {
@@ -599,6 +613,8 @@ describe('XcmHumanizer', () => {
     const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:1000',
@@ -700,6 +716,8 @@ describe('XcmHumanizer', () => {
       ],
     }
     const { humanized } = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:1000',
@@ -769,6 +787,8 @@ describe('XcmHumanizer', () => {
     const instructions = asVersionedXcm(buf, apiContext).instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
@@ -846,6 +866,8 @@ describe('XcmHumanizer', () => {
     const instructions = asVersionedXcm(buf, apiContext).instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
@@ -961,6 +983,8 @@ describe('XcmHumanizer', () => {
     const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
     const instructions = asVersionedXcm(buf, apiContext).instructions
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
