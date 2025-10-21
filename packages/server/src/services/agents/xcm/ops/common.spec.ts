@@ -62,6 +62,8 @@ describe('common xcm operators', () => {
                 type: 'hrmp',
               })
               expect(msg.destination.chainId).toBe('urn:ocn:local:2104')
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('xcm')
               calls()
             },
             complete: () => {
@@ -120,6 +122,8 @@ describe('common xcm operators', () => {
                 partialMessage:
                   '0x02081300010000cea2ebeb000d01000400010100769cac6c783b28e8ecf3c404af388996435b1f8aba90b0f363928caaf342142f',
               })
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('xcm')
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(1)
@@ -178,6 +182,8 @@ describe('common xcm operators', () => {
                 type: 'hrmp',
               })
               expect(msg.destination.chainId).toBe('urn:ocn:local:1000')
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('xcm')
               calls()
             },
             complete: () => {
@@ -243,6 +249,8 @@ describe('common xcm operators', () => {
               })
 
               expect(msg.destination.chainId).toBe('urn:ocn:local:2000')
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('xcm')
               calls()
             },
             complete: () => {
@@ -315,6 +323,8 @@ describe('common xcm operators', () => {
               })
 
               expect(msg.destination.chainId).toBe('urn:ocn:local:2034')
+              expect(msg.originProtocol).toBe('snowbridge')
+              expect(msg.destinationProtocol).toBe('xcm')
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(1)
@@ -384,6 +394,8 @@ describe('common xcm operators', () => {
               })
 
               expect(msg.destination.chainId).toBe('urn:ocn:ethereum:1')
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('snowbridge')
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(1)
@@ -452,6 +464,8 @@ describe('common xcm operators', () => {
               })
 
               expect(msg.destination.chainId).toBe('urn:ocn:kusama:1000')
+              expect(msg.originProtocol).toBe('xcm')
+              expect(msg.destinationProtocol).toBe('xcm')
             },
             complete: () => {
               expect(calls).toHaveBeenCalledTimes(1)

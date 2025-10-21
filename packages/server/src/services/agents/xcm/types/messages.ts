@@ -490,6 +490,8 @@ export type Leg = {
  */
 export interface XcmJourney {
   type: XcmNotificationType
+  originProtocol: string
+  destinationProtocol: string
   legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
@@ -566,6 +568,8 @@ export class XcmInbound extends BaseXcmEvent {
 
 abstract class BaseXcmJourney {
   legs: Leg[]
+  originProtocol: string
+  destinationProtocol: string
   sender?: SignerData
   messageId?: HexString
 
@@ -573,6 +577,8 @@ abstract class BaseXcmJourney {
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
+    this.originProtocol = msg.originProtocol
+    this.destinationProtocol = msg.destinationProtocol
   }
 }
 
@@ -582,11 +588,13 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
+  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], protocols: { origin: string, destination: string}) {
     super({
       legs,
       messageId: msg.messageId,
       sender: msg.sender,
+      originProtocol: protocols.origin,
+      destinationProtocol: protocols.destination
     })
 
     this.origin = {
