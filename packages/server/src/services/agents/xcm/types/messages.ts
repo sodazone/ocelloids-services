@@ -109,21 +109,7 @@ export interface XcmBridgeInboundWithContext {
   timestamp?: number
   txHash?: HexString
   error?: AnyJson
-}
-
-export interface SnowbridgeInboundWithContext {
-  chainId: NetworkURN
-  blockNumber: string | number
-  blockHash: HexString
-  channelId: HexString
-  nonce: string
-  messageId: HexString
-  outcome: 'Success' | 'Fail'
-  event?: AnyJson
-  txPosition?: number
-  timestamp?: number
-  txHash?: HexString
-  error?: AnyJson
+  messageId?: HexString
 }
 
 export interface SnowbridgeMessageAccepted {
@@ -296,6 +282,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   specVersion?: number
   timestamp?: number
   txHash?: HexString
+  messageId?: HexString
 
   constructor(msg: XcmBridgeInboundWithContext) {
     this.blockNumber = msg.blockNumber
@@ -305,44 +292,12 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
     this.nonce = msg.nonce
     this.outcome = msg.outcome
     this.error = msg.error
+    this.messageId = msg.messageId
 
     this.event = msg.event
     this.txPosition = msg.txPosition
     this.txHash = msg.txHash
     this.specVersion = msg.specVersion
-    this.timestamp = msg.timestamp
-  }
-}
-
-export class GenericSnowbridgeInboundWithContext implements SnowbridgeInboundWithContext {
-  blockNumber: string | number
-  blockHash: HexString
-  chainId: NetworkURN
-  channelId: HexString
-  messageId: HexString
-  nonce: string
-  outcome: 'Success' | 'Fail'
-  error: AnyJson
-
-  event?: AnyJson
-  txPosition?: number
-  specVersion?: number
-  timestamp?: number
-  txHash?: HexString
-
-  constructor(msg: SnowbridgeInboundWithContext) {
-    this.blockNumber = msg.blockNumber
-    this.blockHash = msg.blockHash
-    this.chainId = msg.chainId
-    this.channelId = msg.channelId
-    this.messageId = msg.messageId
-    this.nonce = msg.nonce
-    this.outcome = msg.outcome
-    this.error = msg.error
-
-    this.event = msg.event
-    this.txPosition = msg.txPosition
-    this.txHash = msg.txHash
     this.timestamp = msg.timestamp
   }
 }
@@ -488,6 +443,10 @@ export interface XcmJourney {
   destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
+  partialHumanized?: {
+    beneficiary: HexString
+    asset: SnowbridgeOutboundAsset
+  }
 }
 
 /**
@@ -562,6 +521,10 @@ abstract class BaseXcmJourney {
   destinationProtocol: string
   sender?: SignerData
   messageId?: HexString
+  partialHumanized?: {
+    beneficiary: HexString
+    asset: SnowbridgeOutboundAsset
+  }
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.legs = msg.legs
@@ -569,6 +532,7 @@ abstract class BaseXcmJourney {
     this.messageId = msg.messageId
     this.originProtocol = msg.originProtocol
     this.destinationProtocol = msg.destinationProtocol
+    this.partialHumanized = msg.partialHumanized
   }
 }
 
@@ -734,10 +698,10 @@ export type BridgeName = 'pk-bridge' | 'snowbridge'
  */
 export interface XcmBridge extends XcmJourney {
   type: 'xcm.bridge'
-  channelId: HexString
   nonce: string
   bridgeStatus: BridgeStatus
   bridgeName: BridgeName
+  channelId?: HexString
   partialHumanized?: {
     beneficiary: HexString
     asset: SnowbridgeOutboundAsset
@@ -746,33 +710,25 @@ export interface XcmBridge extends XcmJourney {
 
 type XcmBridgeContext = {
   bridgeStatus: BridgeStatus
-  channelId: HexString
   nonce: string
   bridgeName: BridgeName
-  partialHumanized?: {
-    beneficiary: HexString
-    asset: SnowbridgeOutboundAsset
-  }
+  channelId?: HexString
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   type = 'xcm.bridge' as const
   bridgeStatus: BridgeStatus
-  channelId: HexString
   nonce: string
   bridgeName: BridgeName
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
-  partialHumanized?: {
-    beneficiary: HexString
-    asset: SnowbridgeOutboundAsset
-  }
+  channelId?: HexString
 
   constructor(
     originMsg: XcmJourney,
     waypoint: XcmWaypointContext,
-    { channelId, nonce, bridgeStatus, bridgeName, partialHumanized }: XcmBridgeContext,
+    { channelId, nonce, bridgeStatus, bridgeName }: XcmBridgeContext,
   ) {
     super(originMsg)
 
@@ -783,7 +739,6 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
     this.channelId = channelId
     this.nonce = nonce
     this.bridgeName = bridgeName
-    this.partialHumanized = partialHumanized
   }
 }
 
@@ -823,4 +778,19 @@ export function isXcmRelayed(object: any): object is XcmRelayed {
 
 export function isXcmBridge(object: any): object is XcmBridge {
   return object.type !== undefined && object.type === 'xcm.bridge'
+}
+
+export function mapXcmBridgeToXcmSent(bridge: XcmBridge): XcmSent {
+  return {
+    type: 'xcm.sent',
+    legs: bridge.legs,
+    originProtocol: bridge.originProtocol,
+    destinationProtocol: bridge.destinationProtocol,
+    waypoint: bridge.waypoint,
+    origin: bridge.origin as XcmTerminusContext,
+    destination: bridge.destination as XcmTerminus,
+    sender: bridge.sender,
+    messageId: bridge.messageId,
+    partialHumanized: bridge.partialHumanized,
+  }
 }

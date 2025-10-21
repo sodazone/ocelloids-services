@@ -7,15 +7,15 @@ import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import gatewayAbi from '../abis/gateway-mini.json' with { type: 'json' }
 import {
-  GenericSnowbridgeInboundWithContext,
   GenericSnowbridgeMessageAccepted,
   GenericSnowbridgeOutboundAccepted,
   GenericXcmBridge,
+  GenericXcmBridgeInboundWithContext,
   Leg,
-  SnowbridgeInboundWithContext,
   SnowbridgeMessageAccepted,
   SnowbridgeOutboundAccepted,
   XcmBridge,
+  XcmBridgeInboundWithContext,
   XcmJourney,
   XcmWaypointContext,
 } from '../types/messages.js'
@@ -73,7 +73,7 @@ function hexTimestampToMillis(hex?: string) {
 }
 
 export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {
-  return (source: Observable<BlockWithLogs>): Observable<SnowbridgeInboundWithContext> => {
+  return (source: Observable<BlockWithLogs>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
       filterTransactionsWithLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1']),
       map((tx) => {
@@ -91,7 +91,7 @@ export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress
           args: { channelID, messageID, nonce, success },
         } = inboundLog.decoded as SnowbridgeEvmInboundLog
 
-        return new GenericSnowbridgeInboundWithContext({
+        return new GenericXcmBridgeInboundWithContext({
           chainId,
           blockHash: tx.blockHash,
           blockNumber: tx.blockNumber.toString(),
@@ -169,12 +169,12 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
 }
 
 export function extractSnowbridgeSubstrateInbound(chainId: NetworkURN) {
-  return (source: Observable<BlockEvent>): Observable<SnowbridgeInboundWithContext> => {
+  return (source: Observable<BlockEvent>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
       filter((event) => matchEvent(event, 'EthereumInboundQueue', 'MessageReceived')),
       map((blockEvent) => {
         const { channel_id, message_id, nonce } = blockEvent.value as SnowbridgeSubstrateReceivedEvent
-        return new GenericSnowbridgeInboundWithContext({
+        return new GenericXcmBridgeInboundWithContext({
           chainId,
           blockHash: blockEvent.blockHash as HexString,
           blockNumber: blockEvent.blockNumber,
@@ -301,16 +301,16 @@ export function mapOutboundToXcmBridge() {
             waypoint: waypointContext,
             messageId,
             sender,
+            partialHumanized: {
+              asset,
+              beneficiary,
+            },
           }
           return new GenericXcmBridge(originMsg, waypointContext, {
             bridgeStatus: 'accepted',
             channelId,
             nonce,
             bridgeName: 'snowbridge',
-            partialHumanized: {
-              asset,
-              beneficiary,
-            },
           })
         },
       ),

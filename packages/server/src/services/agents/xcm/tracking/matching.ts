@@ -20,7 +20,9 @@ import {
   GenericXcmTimeout,
   Leg,
   MessageHashData,
+  mapXcmBridgeToXcmSent,
   prefixes,
+  SnowbridgeMessageAccepted,
   XcmBridge,
   XcmBridgeAcceptedWithContext,
   XcmBridgeInboundWithContext,
@@ -36,8 +38,9 @@ import {
   XcmWaypointContext,
 } from '../types/index.js'
 
+const MAX_MATCH_RETRIES = 5
 const DEFAULT_TIMEOUT = 10 * 60_000
-const SNOWBRIDGE_TIMEOUT = 8 * 60 * 60_000
+const BRIDGE_TIMEOUT = 8 * 60 * 60_000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 
@@ -72,8 +75,6 @@ function hasTopicId(hashKey: string, idKey?: string) {
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
 }
-const MAX_MATCH_RETRIES = 5
-const BRIDGE_MSG_EXPIRY = 25 * 60_000
 
 /**
  * Matches sent XCM messages on the destination.
@@ -402,10 +403,21 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onBridgeInbound(bridgeInMsg: XcmBridgeInboundWithContext) {
     await this.#mutex.runExclusive(async () => {
-      const { chainId, channelId, nonce } = bridgeInMsg
+      const { chainId, channelId, messageId, nonce } = bridgeInMsg
+
+      let bridgeOutMsg: XcmBridge | undefined = undefined
       const bridgeKey = toBridgeKey(channelId, nonce)
 
-      const bridgeOutMsg = await this.#bridgeAccepted.get(bridgeKey)
+      if (messageId !== undefined) {
+        const idKey = toBridgeKey(messageId, nonce)
+        bridgeOutMsg = await Promise.any([
+          this.#bridgeAccepted.get(bridgeKey),
+          this.#bridgeAccepted.get(idKey),
+        ])
+      } else {
+        bridgeOutMsg = await this.#bridgeAccepted.get(bridgeKey)
+      }
+
       if (bridgeOutMsg !== undefined) {
         this.#log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
@@ -434,21 +446,22 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     })
   }
 
+  // Assumes that origin message is always received first
   async onSnowbridgeOriginOutbound(msg: XcmBridge) {
     await this.#mutex.runExclusive(async () => {
       const {
         waypoint: { chainId, blockHash, blockNumber },
-        channelId,
+        messageId,
         nonce,
       } = msg
-      const bridgeKey = toBridgeKey(channelId, nonce)
+      const bridgeKey = toBridgeKey(messageId!, nonce) // messageId is never undefined for snowbridge
 
       await this.#bridgeAccepted.put(bridgeKey, msg)
       await new Promise((res) => setImmediate(res)) // allow event loop tick
       await this.#janitor.schedule({
         sublevel: prefixes.matching.bridgeAccepted,
         key: bridgeKey,
-        expiry: SNOWBRIDGE_TIMEOUT,
+        expiry: BRIDGE_TIMEOUT,
       })
       this.#log.info(
         '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
@@ -458,6 +471,65 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         blockNumber,
       )
       this.#onXcmBridgeAccepted(msg)
+      await this.#storeOnOutbound(mapXcmBridgeToXcmSent(msg))
+    })
+  }
+
+  async onSnowbridgeBridgehubAccepted(msg: SnowbridgeMessageAccepted) {
+    await this.#mutex.runExclusive(async () => {
+      const { chainId, messageId, nonce } = msg
+      const bridgeKey = toBridgeKey(messageId, nonce)
+      const idKey = matchingKey(chainId, messageId)
+
+      const originMsg = await this.#bridge.get(idKey)
+
+      if (originMsg !== undefined) {
+        const { blockHash, blockNumber, event, txHash, txPosition, timestamp } = msg
+        const legIndex = originMsg.legs.findIndex((l) => l.from === chainId && l.type === 'bridge')
+        const waypointContext: XcmWaypointContext = {
+          legIndex,
+          chainId,
+          blockHash,
+          timestamp,
+          blockNumber: blockNumber.toString(),
+          event,
+          txHash,
+          txPosition,
+          messageHash: '0x',
+          instructions: null,
+          outcome: 'Success', // always 'Success' since it's accepted
+          error: null,
+        }
+        const bridgeOutMsg: XcmBridge = new GenericXcmBridge(originMsg, waypointContext, {
+          bridgeStatus: 'accepted',
+          nonce,
+          bridgeName: 'snowbridge',
+        })
+        await this.#bridge.del(idKey)
+        await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)
+        await new Promise((res) => setImmediate(res)) // allow event loop tick
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.bridgeAccepted,
+          key: bridgeKey,
+          expiry: BRIDGE_TIMEOUT,
+        })
+        this.#log.info(
+          '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
+          chainId,
+          bridgeKey,
+          msg.blockHash,
+          msg.blockNumber,
+        )
+        this.#onXcmBridgeAccepted(bridgeOutMsg)
+      } else {
+        this.#log.warn(
+          '[%s:ba] ORIGIN MSG NOT FOUND id=%s (block=%s #%s)',
+          chainId,
+          idKey,
+          msg.blockHash,
+          msg.blockNumber,
+        )
+      }
     })
   }
 
@@ -718,7 +790,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async #storeOnOutbound(msg: XcmSent) {
     const isBridged = msg.legs.some((l) => l.type === 'bridge')
-    const expiryOverride = isBridged ? BRIDGE_MSG_EXPIRY : undefined
+    const expiryOverride = isBridged ? BRIDGE_TIMEOUT : undefined
     const storeFn =
       msg.messageId === undefined || msg.messageId === msg.waypoint.messageHash
         ? (leg: Leg) => this.#storeLegOnOutboundWithHash(msg, leg)
@@ -1090,7 +1162,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         bridgeStatus: 'received',
         channelId,
         nonce,
-        bridgeName: 'pk-bridge',
+        bridgeName: bridgeOutMsg.bridgeName,
       })
 
       this.emit('telemetryXcmBridge', bridgeMatched)

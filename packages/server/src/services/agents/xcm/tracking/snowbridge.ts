@@ -49,6 +49,11 @@ export class SnowbridgeTracker {
     this.#monitorOutbound(evmChains, substrateChains)
   }
 
+  stop() {
+    this.#log.info('[%s] stop', this.#id)
+    Object.values(this.#streams).forEach((streams) => streams.forEach(({ sub }) => sub.unsubscribe()))
+  }
+
   #monitorInbound(evmChainIds: NetworkURN[], substrateChainIds: NetworkURN[]) {
     if (this.#streams.in.length > 0) {
       throw new Error('Inbound streams already open')
@@ -78,7 +83,7 @@ export class SnowbridgeTracker {
                 // this.#telemetry.emit()
               },
               next: (msg) => {
-                //
+                this.#engine.onBridgeInbound(msg)
               },
             }),
         })
@@ -101,7 +106,7 @@ export class SnowbridgeTracker {
                 // this.#telemetry.emit()
               },
               next: (msg) => {
-                //
+                this.#engine.onBridgeInbound(msg)
               },
             }),
         })
@@ -168,7 +173,7 @@ export class SnowbridgeTracker {
                 // this.#telemetry.emit()
               },
               next: (msg) => {
-                //
+                this.#engine.onSnowbridgeBridgehubAccepted(msg)
               },
             }),
         })
