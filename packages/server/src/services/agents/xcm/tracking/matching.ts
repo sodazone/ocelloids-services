@@ -1,7 +1,10 @@
 import EventEmitter from 'node:events'
-
+import { Blake2128Concat } from '@polkadot-api/substrate-bindings'
 import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
+import { fromHex, toHex } from 'polkadot-api/utils'
+import { u64 } from 'scale-ts'
+
 import { HexString } from '@/lib.js'
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getRelayId } from '@/services/config.js'
@@ -18,6 +21,7 @@ import {
   Leg,
   MessageHashData,
   prefixes,
+  SnowbridgeOutboundAccepted,
   XcmBridge,
   XcmBridgeAcceptedWithContext,
   XcmBridgeInboundWithContext,
@@ -48,6 +52,10 @@ type XcmSentWithId = WithRequired<XcmSent, 'messageId'>
 
 export function matchingKey(chainId: string, messageId: string) {
   return `${chainId}:${messageId}`
+}
+
+function toBridgeKey(channelId: HexString, nonce: number | string | bigint): HexString {
+  return toHex(Blake2128Concat(Buffer.concat([fromHex(channelId), u64.enc(BigInt(nonce))]))) as HexString
 }
 
 function matchingRange(chainId: string) {
@@ -315,7 +323,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
     await this.#mutex.runExclusive(async () => {
-      const { chainId, messageId, bridgeKey } = msg
+      const { chainId, messageId, channelId, nonce } = msg
+      const bridgeKey = toBridgeKey(channelId, nonce)
       if (messageId === undefined) {
         this.#log.error(
           '[%s] topic ID not found for bridge accepted message (block=%s #%s)',
@@ -362,8 +371,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           originMsg as unknown as XcmBridge,
           waypointContext,
           {
-            bridgeMessageType: 'accepted',
-            bridgeKey,
+            bridgeStatus: 'accepted',
+            channelId,
+            nonce,
+            bridgeName: 'pk-bridge',
           },
         )
         await this.#bridge.del(idKey)
@@ -395,36 +406,40 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onBridgeInbound(bridgeInMsg: XcmBridgeInboundWithContext) {
     await this.#mutex.runExclusive(async () => {
-      const { chainId, bridgeKey } = bridgeInMsg
-      const sublevelBridgeKey = `${bridgeKey}`
+      const { chainId, channelId, nonce } = bridgeInMsg
+      const bridgeKey = toBridgeKey(channelId, nonce)
 
-      const bridgeOutMsg = await this.#bridgeAccepted.get(sublevelBridgeKey)
+      const bridgeOutMsg = await this.#bridgeAccepted.get(bridgeKey)
       if (bridgeOutMsg !== undefined) {
         this.#log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
           chainId,
-          sublevelBridgeKey,
+          bridgeKey,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber,
         )
-        await this.#bridgeAccepted.del(sublevelBridgeKey)
+        await this.#bridgeAccepted.del(bridgeKey)
         this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
       } else {
         this.#log.info(
           '[%s:bi] BRIDGE IN STORED id=%s (block=%s #%s)',
           chainId,
-          sublevelBridgeKey,
+          bridgeKey,
           bridgeInMsg.blockHash,
           bridgeInMsg.blockNumber,
         )
-        this.#bridgeInbound.put(sublevelBridgeKey, bridgeInMsg)
+        this.#bridgeInbound.put(bridgeKey, bridgeInMsg)
         await new Promise((res) => setImmediate(res)) // allow event loop tick
         await this.#janitor.schedule({
           sublevel: prefixes.matching.bridgeIn,
-          key: sublevelBridgeKey,
+          key: bridgeKey,
         })
       }
     })
+  }
+
+  async onSnowbridgeOriginOutbound(msg: SnowbridgeOutboundAccepted) {
+    // to implement
   }
 
   async #isOutboundDuplicate(hashKey: string) {
@@ -1030,7 +1045,8 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         txPosition,
         outcome,
         error,
-        bridgeKey,
+        channelId,
+        nonce,
         specVersion,
       } = bridgeInMsg
       const { messageData, messageHash, instructions } = bridgeOutMsg.waypoint
@@ -1052,8 +1068,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         error,
       }
       const bridgeMatched: XcmBridge = new GenericXcmBridge(bridgeOutMsg, waypointContext, {
-        bridgeMessageType: 'received',
-        bridgeKey,
+        bridgeStatus: 'received',
+        channelId,
+        nonce,
+        bridgeName: 'pk-bridge',
       })
 
       this.emit('telemetryXcmBridge', bridgeMatched)

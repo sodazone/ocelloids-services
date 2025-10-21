@@ -144,7 +144,7 @@ export class SnowbridgeTracker {
                 this.#log.error(error, '[%s] %s error on origin stream', this.#id, evmChain)
               },
               next: (msg) => {
-                //
+                this.#engine.onSnowbridgeOriginOutbound(msg)
               },
             }),
         })

@@ -139,7 +139,7 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
 
 function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
   const legs: Leg[] = []
-  let protocols = { origin: 'xcm', destination: 'xcm' }
+  const protocols = { origin: 'xcm', destination: 'xcm' }
   for (let i = 0; i < stops.length - 1; i++) {
     const { networkId: from } = stops[i]
     const { networkId: to, message } = stops[i + 1]
@@ -202,7 +202,7 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
   }
 
   if (legs.length === 1) {
-    return {legs, protocols}
+    return { legs, protocols }
   }
 
   for (let i = 0; i < legs.length - 1; i++) {
@@ -213,7 +213,7 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
     }
   }
 
-  return {legs, protocols}
+  return { legs, protocols }
 }
 
 /**
@@ -236,7 +236,7 @@ export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
           universalOrigin !== null
             ? [{ networkId: universalOrigin }, { networkId: origin }].concat(stops)
             : [{ networkId: origin }].concat(stops)
-        const {legs, protocols} = constructLegs(allStops, versionedXcm.instructions.type, context)
+        const { legs, protocols } = constructLegs(allStops, versionedXcm.instructions.type, context)
         return new GenericXcmSent(origin, message, legs, protocols)
       }),
     )

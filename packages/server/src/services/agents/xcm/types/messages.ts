@@ -82,16 +82,11 @@ export interface XcmSentWithContext extends XcmWithContext {
 
 export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   messageData: HexString
   instructions: AnyJson
   recipient: NetworkURN
-}
-
-export interface XcmBridgeDeliveredWithContext extends XcmWithContext {
-  chainId: NetworkURN
-  bridgeKey: HexString
-  sender?: SignerData
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
@@ -105,7 +100,8 @@ export interface XcmBridgeInboundWithContext {
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   outcome: 'Success' | 'Fail'
   event?: AnyJson
   txPosition?: number
@@ -264,7 +260,8 @@ export class GenericXcmBridgeAcceptedWithContext
   implements XcmBridgeAcceptedWithContext
 {
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   messageData: HexString
   recipient: NetworkURN
   instructions: AnyJson
@@ -273,27 +270,11 @@ export class GenericXcmBridgeAcceptedWithContext
     super(msg)
 
     this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
+    this.channelId = msg.channelId
+    this.nonce = msg.nonce
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-  }
-}
-
-export class GenericXcmBridgeDeliveredWithContext
-  extends BaseXcmEvent
-  implements XcmBridgeDeliveredWithContext
-{
-  chainId: NetworkURN
-  bridgeKey: HexString
-  sender?: SignerData
-
-  constructor(msg: XcmBridgeDeliveredWithContext) {
-    super(msg)
-
-    this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
-    this.sender = msg.sender
   }
 }
 
@@ -301,7 +282,8 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   blockNumber: string | number
   blockHash: HexString
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   outcome: 'Success' | 'Fail'
   error: AnyJson
 
@@ -315,7 +297,8 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
     this.blockNumber = msg.blockNumber
     this.blockHash = msg.blockHash
     this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
+    this.channelId = msg.channelId
+    this.nonce = msg.nonce
     this.outcome = msg.outcome
     this.error = msg.error
 
@@ -588,13 +571,18 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[], protocols: { origin: string, destination: string}) {
+  constructor(
+    chainId: NetworkURN,
+    msg: XcmSentWithContext,
+    legs: Leg[],
+    protocols: { origin: string; destination: string },
+  ) {
     super({
       legs,
       messageId: msg.messageId,
       sender: msg.sender,
       originProtocol: protocols.origin,
-      destinationProtocol: protocols.destination
+      destinationProtocol: protocols.destination,
     })
 
     this.origin = {
@@ -725,28 +713,39 @@ export class GenericXcmHop extends BaseXcmJourney implements XcmHop {
 /**
  * @public
  */
-export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
+export type BridgeStatus = 'accepted' | 'received'
 
 /**
- * Event emitted when an XCM is sent or received on an intermediate stop.
+ * @public
+ */
+export type BridgeName = 'pk-bridge' | 'snowbridge'
+
+/**
+ * Event emitted when an XCM is sent or received over a bridge.
  *
  * @public
  */
 export interface XcmBridge extends XcmJourney {
   type: 'xcm.bridge'
-  bridgeKey: HexString
-  bridgeMessageType: BridgeMessageType
+  channelId: HexString
+  nonce: string
+  bridgeStatus: BridgeStatus
+  bridgeName: BridgeName
 }
 
 type XcmBridgeContext = {
-  bridgeMessageType: BridgeMessageType
-  bridgeKey: HexString
+  bridgeStatus: BridgeStatus
+  channelId: HexString
+  nonce: string
+  bridgeName: BridgeName
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   type = 'xcm.bridge' as const
-  bridgeMessageType: BridgeMessageType
-  bridgeKey: HexString
+  bridgeStatus: BridgeStatus
+  channelId: HexString
+  nonce: string
+  bridgeName: BridgeName
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
@@ -754,15 +753,17 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   constructor(
     originMsg: XcmBridge,
     waypoint: XcmWaypointContext,
-    { bridgeKey, bridgeMessageType }: XcmBridgeContext,
+    { channelId, nonce, bridgeStatus, bridgeName }: XcmBridgeContext,
   ) {
     super(originMsg)
 
-    this.bridgeMessageType = bridgeMessageType
+    this.bridgeStatus = bridgeStatus
     this.origin = originMsg.origin
     this.destination = originMsg.destination
     this.waypoint = waypoint
-    this.bridgeKey = bridgeKey
+    this.channelId = channelId
+    this.nonce = nonce
+    this.bridgeName = bridgeName
   }
 }
 
