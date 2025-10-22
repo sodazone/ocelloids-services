@@ -25,7 +25,6 @@ import {
   XcmSentWithContext,
 } from '../types/index.js'
 import {
-  extractV4X1GlobalConsensus,
   getParaIdFromJunctions,
   getSendersFromEvent,
   mapAssetsTrapped,
@@ -79,8 +78,6 @@ const swapMapping: Record<
 
 // eslint-disable-next-line complexity
 function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
-  let universalOrigin: NetworkURN | null = null
-
   for (const instruction of instructions) {
     let nextStop
     let message
@@ -117,11 +114,6 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       const { destination, remote_xcm } = instruction.value
       nextStop = destination
       message = remote_xcm
-    } else if (instruction.type === 'UniversalOrigin') {
-      const networkId = extractV4X1GlobalConsensus(instruction)
-      if (networkId) {
-        universalOrigin = networkId
-      }
     }
 
     if (nextStop !== undefined && message !== undefined) {
@@ -133,8 +125,6 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       }
     }
   }
-
-  return universalOrigin
 }
 
 function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
@@ -231,11 +221,8 @@ export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
         const { instructions, recipient } = message
         const stops: Stop[] = [{ networkId: recipient }]
         const versionedXcm = raw.asVersionedXcm(instructions.bytes, context)
-        const universalOrigin = recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
-        const allStops =
-          universalOrigin !== null
-            ? [{ networkId: universalOrigin }, { networkId: origin }].concat(stops)
-            : [{ networkId: origin }].concat(stops)
+        recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
+        const allStops = [{ networkId: origin }].concat(stops)
         const { legs, protocols } = constructLegs(allStops, versionedXcm.instructions.type, context)
         return new GenericXcmSent(origin, message, legs, protocols)
       }),

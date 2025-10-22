@@ -18,7 +18,8 @@ import {
 } from '@/testing/matching.js'
 import { kusamaToPolkadotBridgeMessages } from '@/testing/pk-bridge.js'
 import { createServices } from '@/testing/services.js'
-import { prefixes, XcmInbound, XcmNotificationType, XcmSent } from '../types/index.js'
+import { ethereumToHydrationMessages } from '@/testing/snowbridge.js'
+import { prefixes, XcmBridge, XcmInbound, XcmNotificationType, XcmSent } from '../types/index.js'
 import { MatchingEngine } from './matching.js'
 
 type OD = { origin: string; destination: string }
@@ -27,6 +28,7 @@ describe('message matching engine', () => {
   let engine: MatchingEngine
   let db: LevelDB
   let outDb: SubLevel<XcmSent>
+  let bridgeDb: SubLevel<XcmBridge>
   let services: Services
 
   const msgOdCb = vi.fn()
@@ -54,7 +56,9 @@ describe('message matching engine', () => {
 
   async function expectNoLeftover() {
     const leftoverKeys = await outDb.keys().all()
+    const bridgeKeys = await bridgeDb.keys().all()
     expect(leftoverKeys.length).toBe(0)
+    expect(bridgeKeys.length).toBe(0)
   }
 
   beforeAll(() => {
@@ -66,6 +70,10 @@ describe('message matching engine', () => {
 
     db = new MemoryLevel() as LevelDB
     outDb = db.sublevel<string, XcmSent>(prefixes.matching.outbound, jsonEncoded) as SubLevel<XcmSent>
+    bridgeDb = db.sublevel<string, XcmBridge>(
+      prefixes.matching.bridgeAccepted,
+      jsonEncoded,
+    ) as SubLevel<XcmBridge>
     engine = new MatchingEngine(
       {
         ...services,
@@ -386,6 +394,29 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.sent', 'xcm.bridge', 'xcm.hop', 'xcm.hop', 'xcm.bridge', 'xcm.received'])
     expectOd(6, { origin: 'urn:ocn:kusama:1000', destination: 'urn:ocn:polkadot:1000' })
+    await expectNoLeftover()
+  })
+
+  it('should match snowbridge ethereum to hydration messages', async () => {
+    const {
+      ethereumSent,
+      bridgeHubReceived,
+      bridgeHubXcmOut,
+      assetHubXcmIn,
+      assetHubXcmOut,
+      hydrationReceived,
+    } = ethereumToHydrationMessages
+
+    await engine.onSnowbridgeOriginOutbound(ethereumSent)
+    await engine.onOutboundMessage(bridgeHubXcmOut)
+    await engine.onBridgeInbound(bridgeHubReceived)
+
+    await engine.onOutboundMessage(assetHubXcmOut)
+    await engine.onInboundMessage(assetHubXcmIn)
+    await engine.onInboundMessage(hydrationReceived)
+
+    expectEvents(['xcm.bridge', 'xcm.hop', 'xcm.bridge', 'xcm.hop', 'xcm.hop', 'xcm.received'])
+    expectOd(6, { origin: 'urn:ocn:ethereum:1', destination: 'urn:ocn:polkadot:2034' })
     await expectNoLeftover()
   })
 })

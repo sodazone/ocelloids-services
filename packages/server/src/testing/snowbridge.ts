@@ -1,0 +1,296 @@
+import { XcmBridge } from '@/services/agents/xcm/lib.js'
+import {
+  SnowbridgeMessageAccepted,
+  XcmBridgeInboundWithContext,
+  XcmInbound,
+  XcmSent,
+} from '@/services/agents/xcm/types/messages.js'
+
+const ethereumSent: XcmBridge = {
+  legs: [
+    {
+      from: 'urn:ocn:ethereum:1',
+      to: 'urn:ocn:polkadot:1002',
+      type: 'bridge',
+    },
+    {
+      from: 'urn:ocn:polkadot:1002',
+      to: 'urn:ocn:polkadot:1000',
+      relay: 'urn:ocn:polkadot:0',
+      type: 'hop',
+    },
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:2034',
+      relay: 'urn:ocn:polkadot:0',
+      type: 'hrmp',
+    },
+  ],
+  originProtocol: 'snowbridge',
+  destinationProtocol: 'xcm',
+  sender: {
+    signer: {
+      id: '0x601D579eCD0464A1A090cEef81a703465A1679cD',
+      publicKey: '0x601D579eCD0464A1A090cEef81a703465A1679cD',
+    },
+    extraSigners: [],
+  },
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  partialHumanized: {
+    asset: {
+      chainId: 'urn:ocn:ethereum:1',
+      id: '0x0000000000000000000000000000000000000000',
+      amount: '6702406140673493229',
+    },
+    beneficiary: '0x7279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b',
+  },
+  type: 'xcm.bridge',
+  bridgeStatus: 'accepted',
+  nonce: '7440',
+  bridgeName: 'snowbridge',
+  waypoint: {
+    chainId: 'urn:ocn:ethereum:1',
+    blockHash: '0xc54a60201354d82339e1456a32cddcc73b1a37ef60a8f095d1765fb1774a33f8',
+    timestamp: 1760696075000,
+    blockNumber: '23596716',
+    event: {},
+    txHash: '0xfd7f70c3a5d18fe7853c824022c91cf67437d67ecaf1a99792bbcead4b3f2d85',
+    txPosition: 218,
+    messageData:
+      '0x00010000000000000001000000000000000000000000000000000000000001f20700007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b4e966e12000000000000000000000000ed883dc3dfba035d000000000000000000ca9a3b000000000000000000000000',
+    messageHash: '0x9493c096450c174327b87326c7ce12867b9e4a09c3fc56b790810336a505f66b',
+    outcome: 'Success',
+    error: null,
+    instructions: null,
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:ethereum:1',
+    blockHash: '0xc54a60201354d82339e1456a32cddcc73b1a37ef60a8f095d1765fb1774a33f8',
+    timestamp: 1760696075000,
+    blockNumber: '23596716',
+    event: {},
+    txHash: '0xfd7f70c3a5d18fe7853c824022c91cf67437d67ecaf1a99792bbcead4b3f2d85',
+    txPosition: 218,
+    messageData:
+      '0x00010000000000000001000000000000000000000000000000000000000001f20700007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b4e966e12000000000000000000000000ed883dc3dfba035d000000000000000000ca9a3b000000000000000000000000',
+    messageHash: '0x9493c096450c174327b87326c7ce12867b9e4a09c3fc56b790810336a505f66b',
+    outcome: 'Success',
+    error: null,
+    instructions: null,
+  },
+  destination: { chainId: 'urn:ocn:polkadot:2034' },
+  channelId: '0xc173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539',
+}
+
+const bridgeHubReceived: XcmBridgeInboundWithContext = {
+  blockNumber: '6209062',
+  blockHash: '0xbc53431f59cdb5fea3c09381a40b2568e54a1b456a6acd445a24ac206849d8a8',
+  chainId: 'urn:ocn:polkadot:1002',
+  channelId: '0xc173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539',
+  nonce: '7440',
+  outcome: 'Success',
+  error: undefined,
+  event: {},
+  txPosition: 2,
+  specVersion: undefined,
+  timestamp: 1760697210000,
+  txHash: '0xb2a5fa0433755af991164af784133435ee7276fe6825cd2afbc7f6750e94561f',
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+}
+
+const bridgeHubXcmOut: XcmSent = {
+  legs: [
+    {
+      from: 'urn:ocn:polkadot:1002',
+      to: 'urn:ocn:polkadot:1000',
+      type: 'hop',
+      partialMessage: undefined,
+      relay: 'urn:ocn:polkadot:0',
+    },
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:2034',
+      type: 'hrmp',
+      partialMessage:
+        '0x050c130100003a59ba49000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+      relay: 'urn:ocn:polkadot:0',
+    },
+  ],
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
+  sender: {
+    signer: {
+      id: '13Dbqvh6nLCRckyfsBr8wEJzxbi34KELwdYQFKKchN4NedGh',
+      publicKey: '0x6214b4a1b4f6c2bb01a84d6f74a63c1ba72292cdecc9595e666069652189c70f',
+    },
+    extraSigners: [],
+  },
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  partialHumanized: undefined,
+  type: 'xcm.sent',
+  waypoint: {
+    chainId: 'urn:ocn:polkadot:1002',
+    blockHash: '0xbc53431f59cdb5fea3c09381a40b2568e54a1b456a6acd445a24ac206849d8a8',
+    blockNumber: '6209062',
+    txHash: '0xb2a5fa0433755af991164af784133435ee7276fe6825cd2afbc7f6750e94561f',
+    specVersion: 1007001,
+    timestamp: 1760697210000,
+    txPosition: 2,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x05240204010000034e60094e1301000002286bee000b01045025090704010402010907040013ed883dc3dfba035d0a16040d01020802010907040e010208010100c91f0c130100003a59ba49000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb12c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    instructions: {},
+    messageHash: '0xe4175a7b1297913d641275d4fc24e3fe96c165d35eaa9e07f5b1579c74bcfd4f',
+    messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:polkadot:1002',
+    blockHash: '0xbc53431f59cdb5fea3c09381a40b2568e54a1b456a6acd445a24ac206849d8a8',
+    blockNumber: '6209062',
+    txHash: '0xb2a5fa0433755af991164af784133435ee7276fe6825cd2afbc7f6750e94561f',
+    specVersion: 1007001,
+    timestamp: 1760697210000,
+    txPosition: 2,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x05240204010000034e60094e1301000002286bee000b01045025090704010402010907040013ed883dc3dfba035d0a16040d01020802010907040e010208010100c91f0c130100003a59ba49000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb12c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    instructions: {},
+    messageHash: '0xe4175a7b1297913d641275d4fc24e3fe96c165d35eaa9e07f5b1579c74bcfd4f',
+    messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  },
+  destination: { chainId: 'urn:ocn:polkadot:2034' },
+}
+
+const assetHubXcmIn: XcmInbound = {
+  chainId: 'urn:ocn:polkadot:1000',
+  event: {},
+  txPosition: undefined,
+  blockNumber: '10009457',
+  blockHash: '0xdef091d9ff97d0aaf0b55af3e2b3a754a39c12b9a8f0e376c1889ac7f4086dc3',
+  specVersion: 1007001,
+  timestamp: 1760697222000,
+  messageHash: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  messageData: undefined,
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  txHash: undefined,
+  outcome: 'Success',
+  error: undefined,
+  assetsTrapped: undefined,
+  assetSwaps: undefined,
+}
+
+const assetHubXcmOut: XcmSent = {
+  legs: [
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:2034',
+      type: 'hrmp',
+      partialMessage: undefined,
+      relay: 'urn:ocn:polkadot:0',
+    },
+  ],
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
+  sender: undefined,
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  partialHumanized: undefined,
+  type: 'xcm.sent',
+  waypoint: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xdef091d9ff97d0aaf0b55af3e2b3a754a39c12b9a8f0e376c1889ac7f4086dc3',
+    blockNumber: '10009457',
+    txHash: undefined,
+    specVersion: 1007001,
+    timestamp: 1760697222000,
+    txPosition: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x0314010800010000baadfdd60002010907040013ed883dc3dfba035d0a13000100003a59ba49000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    instructions: {},
+    messageHash: '0x7d9253b20e6257197e22d7e2b0b724a862f2e5a841a0790edd79cc31cbfe0d25',
+    messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xdef091d9ff97d0aaf0b55af3e2b3a754a39c12b9a8f0e376c1889ac7f4086dc3',
+    blockNumber: '10009457',
+    txHash: undefined,
+    specVersion: 1007001,
+    timestamp: 1760697222000,
+    txPosition: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x0314010800010000baadfdd60002010907040013ed883dc3dfba035d0a13000100003a59ba49000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2c10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+    instructions: {},
+    messageHash: '0x7d9253b20e6257197e22d7e2b0b724a862f2e5a841a0790edd79cc31cbfe0d25',
+    messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  },
+  destination: { chainId: 'urn:ocn:polkadot:2034' },
+}
+
+const hydrationReceived: XcmInbound = {
+  chainId: 'urn:ocn:polkadot:2034',
+  event: {},
+  txPosition: undefined,
+  blockNumber: '9683579',
+  blockHash: '0x83a0aeec2a88f4acc45e136e496182ceb15e6fb08bafcadc7626e00da4c96f7f',
+  specVersion: 347,
+  timestamp: 1760697249000,
+  messageHash: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  messageData: undefined,
+  messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
+  txHash: undefined,
+  outcome: 'Success',
+  error: undefined,
+  assetsTrapped: undefined,
+  assetSwaps: undefined,
+}
+
+export const ethereumToHydrationMessages = {
+  ethereumSent,
+  bridgeHubReceived,
+  bridgeHubXcmOut,
+  assetHubXcmIn,
+  assetHubXcmOut,
+  hydrationReceived,
+}
+
+const bridgeHubAceppted: SnowbridgeMessageAccepted = {
+  chainId: 'urn:ocn:polkadot:1002',
+  blockNumber: '6226395',
+  blockHash: '0x3f9765deac311f482cd94b52acc1883cd7cc047c7cf58e1a073d7837e54228b1',
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  nonce: '4530',
+  recipient: 'urn:ocn:ethereum:1',
+  event: {
+    module: 'EthereumOutboundQueue',
+    name: 'MessageAccepted',
+    value: {
+      id: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+      nonce: '4530',
+    },
+    blockNumber: '6226395',
+    blockHash: '0x3f9765deac311f482cd94b52acc1883cd7cc047c7cf58e1a073d7837e54228b1',
+    blockPosition: 4,
+    specVersion: 1007001,
+    timestamp: 1760952780000,
+  },
+  txPosition: undefined,
+  timestamp: 1760952780000,
+  txHash: undefined,
+}
+
+export const hydrationToEthereumMessages = {
+  bridgeHubAceppted,
+}

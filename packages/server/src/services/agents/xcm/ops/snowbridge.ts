@@ -17,6 +17,7 @@ import {
   XcmBridge,
   XcmBridgeInboundWithContext,
   XcmJourney,
+  XcmTerminusContext,
   XcmWaypointContext,
 } from '../types/messages.js'
 import { matchEvent } from './util.js'
@@ -274,8 +275,7 @@ export function mapOutboundToXcmBridge() {
           asset,
           beneficiary,
         }) => {
-          const waypointContext: XcmWaypointContext = {
-            legIndex: 0,
+          const origin: XcmTerminusContext = {
             chainId,
             blockHash,
             timestamp,
@@ -289,16 +289,20 @@ export function mapOutboundToXcmBridge() {
             error: null,
             instructions: null,
           }
+          const waypoint: XcmWaypointContext = {
+            ...origin,
+            legIndex: 0,
+          }
           const originMsg: XcmJourney = {
             type: 'xcm.sent',
-            origin: waypointContext,
+            origin,
             destination: {
               chainId: recipient,
             },
             originProtocol: 'snowbridge',
             destinationProtocol: 'xcm',
             legs: toSnowbridgeLegs(chainId, recipient),
-            waypoint: waypointContext,
+            waypoint,
             messageId,
             sender,
             partialHumanized: {
@@ -306,7 +310,7 @@ export function mapOutboundToXcmBridge() {
               beneficiary,
             },
           }
-          return new GenericXcmBridge(originMsg, waypointContext, {
+          return new GenericXcmBridge(originMsg, waypoint, {
             bridgeStatus: 'accepted',
             channelId,
             nonce,

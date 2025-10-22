@@ -21,6 +21,7 @@ import { Scheduler } from '../services/scheduling/scheduler.js'
 import { LevelDB, Services } from '../services/types.js'
 import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
+import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 
 export const _log = pino({
   enabled: false,
@@ -97,12 +98,7 @@ export function createServices(): Services {
       },
     } as unknown as BitcoinIngressConsumer,
     // TODO: impl mock
-    evm: {
-      isNetworkDefined: () => false,
-      collectTelemetry: () => {
-        //
-      },
-    } as unknown as EvmIngressConsumer,
+    evm: new EvmLocalConsumer(__services),
   }
   const _egress = new Egress(__services)
   const _subsDB = new SubsStore(_log, _rootDB)

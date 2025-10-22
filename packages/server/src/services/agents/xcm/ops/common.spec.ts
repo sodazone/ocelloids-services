@@ -270,7 +270,7 @@ describe('common xcm operators', () => {
 
         const test$ = mapXcmSent(
           apiContext,
-          'urn:ocn:local:1002',
+          'urn:ocn:polkadot:1002',
         )(
           from(
             xcms.map(
@@ -281,7 +281,7 @@ describe('common xcm operators', () => {
                   blockHash: '0x01',
                   blockNumber: '32',
                   txPosition: 4,
-                  recipient: 'urn:ocn:local:1000',
+                  recipient: 'urn:ocn:polkadot:1000',
                   messageDataBuffer: buf,
                   messageHash: x.hash,
                   messageId: getMessageId(x),
@@ -299,31 +299,26 @@ describe('common xcm operators', () => {
             next: (msg) => {
               calls()
               expect(msg).toBeDefined()
-              expect(msg.waypoint.chainId).toBe('urn:ocn:local:1002')
+              expect(msg.waypoint.chainId).toBe('urn:ocn:polkadot:1002')
 
-              expect(msg.legs.length).toBe(3)
+              expect(msg.legs.length).toBe(2)
               expect(msg.legs[0]).toEqual({
-                from: 'urn:ocn:ethereum:1',
-                to: 'urn:ocn:local:1002',
-                type: 'bridge',
-              })
-              expect(msg.legs[1]).toEqual({
-                from: 'urn:ocn:local:1002',
-                to: 'urn:ocn:local:1000',
-                relay: 'urn:ocn:local:0',
+                from: 'urn:ocn:polkadot:1002',
+                to: 'urn:ocn:polkadot:1000',
+                relay: 'urn:ocn:polkadot:0',
                 type: 'hop',
               })
-              expect(msg.legs[2]).toEqual({
-                from: 'urn:ocn:local:1000',
-                to: 'urn:ocn:local:2034',
-                relay: 'urn:ocn:local:0',
+              expect(msg.legs[1]).toEqual({
+                from: 'urn:ocn:polkadot:1000',
+                to: 'urn:ocn:polkadot:2034',
+                relay: 'urn:ocn:polkadot:0',
                 partialMessage:
                   '0x050c130100009e248456000d010208000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cd8fae184551d7ea5884f39827c59d3f844a8273037ce674e9cac926e4dc48129',
                 type: 'hrmp',
               })
 
-              expect(msg.destination.chainId).toBe('urn:ocn:local:2034')
-              expect(msg.originProtocol).toBe('snowbridge')
+              expect(msg.destination.chainId).toBe('urn:ocn:polkadot:2034')
+              expect(msg.originProtocol).toBe('xcm')
               expect(msg.destinationProtocol).toBe('xcm')
             },
             complete: () => {

@@ -405,44 +405,52 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     await this.#mutex.runExclusive(async () => {
       const { chainId, channelId, messageId, nonce } = bridgeInMsg
 
-      let bridgeOutMsg: XcmBridge | undefined = undefined
       const bridgeKey = toBridgeKey(channelId, nonce)
+      const idKey = messageId !== undefined ? toBridgeKey(messageId, nonce) : undefined
 
-      if (messageId !== undefined) {
-        const idKey = toBridgeKey(messageId, nonce)
-        bridgeOutMsg = await Promise.any([
-          this.#bridgeAccepted.get(bridgeKey),
-          this.#bridgeAccepted.get(idKey),
+      const bridgeOutMsg =
+        (await this.#bridgeAccepted.get(bridgeKey)) ??
+        (idKey ? await this.#bridgeAccepted.get(idKey) : undefined)
+
+      if (bridgeOutMsg) {
+        this.#log.info(
+          '[%s:bi] BRIDGE MATCHED key=%s id=%s (block=%s #%s)',
+          chainId,
+          bridgeKey,
+          idKey,
+          bridgeInMsg.blockHash,
+          bridgeInMsg.blockNumber,
+        )
+
+        await Promise.allSettled([
+          this.#bridgeAccepted.del(bridgeKey),
+          idKey ? this.#bridgeAccepted.del(idKey) : Promise.resolve(),
         ])
-      } else {
-        bridgeOutMsg = await this.#bridgeAccepted.get(bridgeKey)
+
+        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
+        return
       }
 
-      if (bridgeOutMsg !== undefined) {
-        this.#log.info(
-          '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
-          chainId,
-          bridgeKey,
-          bridgeInMsg.blockHash,
-          bridgeInMsg.blockNumber,
-        )
-        await this.#bridgeAccepted.del(bridgeKey)
-        this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
-      } else {
-        this.#log.info(
-          '[%s:bi] BRIDGE IN STORED id=%s (block=%s #%s)',
-          chainId,
-          bridgeKey,
-          bridgeInMsg.blockHash,
-          bridgeInMsg.blockNumber,
-        )
-        this.#bridgeInbound.put(bridgeKey, bridgeInMsg)
-        await new Promise((res) => setImmediate(res)) // allow event loop tick
-        await this.#janitor.schedule({
-          sublevel: prefixes.matching.bridgeIn,
-          key: bridgeKey,
-        })
-      }
+      this.#log.info(
+        '[%s:bi] BRIDGE IN STORED key=%s id=%s (block=%s #%s)',
+        chainId,
+        bridgeKey,
+        idKey,
+        bridgeInMsg.blockHash,
+        bridgeInMsg.blockNumber,
+      )
+
+      await Promise.allSettled([
+        this.#bridgeInbound.put(bridgeKey, bridgeInMsg),
+        idKey ? this.#bridgeInbound.put(idKey, bridgeInMsg) : Promise.resolve(),
+      ])
+
+      await new Promise((resolve) => setImmediate(resolve))
+
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.bridgeIn,
+        key: bridgeKey,
+      })
     })
   }
 
@@ -452,9 +460,27 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const {
         waypoint: { chainId, blockHash, blockNumber },
         messageId,
+        channelId,
         nonce,
       } = msg
       const bridgeKey = toBridgeKey(messageId!, nonce) // messageId is never undefined for snowbridge
+
+      const bridgeInMsg = await this.#bridgeInbound.get(bridgeKey)
+      if (bridgeInMsg !== undefined) {
+        this.#log.info(
+          '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
+          chainId,
+          bridgeKey,
+          bridgeInMsg.blockHash,
+          bridgeInMsg.blockNumber,
+        )
+        await Promise.allSettled([
+          this.#bridgeAccepted.del(bridgeKey),
+          channelId ? this.#bridgeAccepted.del(toBridgeKey(channelId, nonce)) : Promise.resolve(),
+        ])
+        this.#onXcmBridgeMatched(msg, bridgeInMsg)
+        return
+      }
 
       await this.#bridgeAccepted.put(bridgeKey, msg)
       await new Promise((res) => setImmediate(res)) // allow event loop tick
@@ -1038,7 +1064,9 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const { instructions, messageData, messageHash, assetsTrapped, assetSwaps, timestamp, specVersion } =
         hopMsg.waypoint
       const currentLeg = hopMsg.legs[0]
-      const legIndex = originMsg.legs.findIndex((l) => l.from === currentLeg.from && l.to === currentLeg.to)
+      const legIndex = originMsg.legs.findIndex(
+        (l) => l.from === currentLeg.from && l.to === currentLeg.to && l.from === chainId,
+      )
       const waypointContext: XcmWaypointContext = {
         legIndex,
         chainId,

@@ -7,20 +7,20 @@ import { AgentRuntimeContext } from '../../types.js'
 import { xcmMatchingEngineMetrics } from '../telemetry/metrics.js'
 import { XcmMessagePayload } from '../types/messages.js'
 import { MatchingEngine } from './matching.js'
+import { SnowbridgeTracker } from './snowbridge.js'
 import { SubstrateXcmTracker } from './substrate.js'
-
-type MsgPayload = XcmMessagePayload
 
 export class XcmTracker {
   readonly #id = 'xcm-tracker'
   readonly #log: Logger
   readonly #engine: MatchingEngine
-  readonly #subject: Subject<MsgPayload>
+  readonly #subject: Subject<XcmMessagePayload>
 
   readonly #archive?: ArchiveRepository
   readonly #retentionOpts?: ArchiveRetentionOptions
 
   readonly #substrateXcmTracker: SubstrateXcmTracker
+  readonly #snowbridgeTracker: SnowbridgeTracker
 
   readonly xcm$
 
@@ -31,14 +31,16 @@ export class XcmTracker {
     this.#archive = ctx.archive
     this.#retentionOpts = ctx.archiveRetention
 
-    this.#subject = new Subject<MsgPayload>()
+    this.#subject = new Subject<XcmMessagePayload>()
     this.xcm$ = this.#subject.pipe(share())
-    this.#engine = new MatchingEngine(ctx, (msg: MsgPayload) => this.#subject.next(msg))
+    this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
     this.#substrateXcmTracker = new SubstrateXcmTracker(ctx, this.#engine)
+    this.#snowbridgeTracker = new SnowbridgeTracker(ctx, this.#engine)
   }
 
   start() {
     this.#substrateXcmTracker.start()
+    this.#snowbridgeTracker.start()
     this.#initHistoricalData()
   }
 
@@ -46,6 +48,7 @@ export class XcmTracker {
     this.#log.info('[%s] stop', this.#id)
 
     this.#substrateXcmTracker.stop()
+    this.#snowbridgeTracker.stop()
     await this.#engine.stop()
     if (this.#retentionJob !== undefined) {
       this.#retentionJob.stop()
@@ -64,14 +67,14 @@ export class XcmTracker {
     if (this.#archive !== undefined) {
       this.#log.info('[%s] Tracking historical events', this.#id)
 
-      this.xcm$.subscribe(async (_message) => {
-        // await this.#archive?.insertLogs({
-        //   network: message.waypoint.chainId,
-        //   agent: 'xcm',
-        //   block_number: Number(message.waypoint.blockNumber),
-        //   payload: JSON.stringify(message),
-        // })
-      })
+      // this.xcm$.subscribe(async (_message) => {
+      // await this.#archive?.insertLogs({
+      //   network: message.waypoint.chainId,
+      //   agent: 'xcm',
+      //   block_number: Number(message.waypoint.blockNumber),
+      //   payload: JSON.stringify(message),
+      // })
+      // })
 
       if (this.#retentionOpts?.enabled) {
         const { policy } = this.#retentionOpts
