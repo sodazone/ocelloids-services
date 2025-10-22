@@ -175,11 +175,61 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
     return this.#rpc.getStorage(key, at)
   }
 
-  async query<T = any>(module: string, method: string, ...args: any[]) {
+  async query<T = any>(
+    ops: { module: string; method: string; at?: string },
+    ...args: any[]
+  ): Promise<T | null> {
+    const { module, method, at } = ops
     try {
       const codec = (await this.ctx()).storageCodec<T>(module, method)
-      const data = await this.getStorage(codec.keys.enc(...args))
+      const key = codec.keys.enc(...args)
+      const data = await this.getStorage(key, at)
       return data !== null ? codec.value.dec(data) : null
+    } catch (error) {
+      throw new Error(`[client:${this.chainId}] Failed to query ${module}.${method}.`, { cause: error })
+    }
+  }
+
+  async *queryByPrefixPaginated<T = any>(
+    {
+      module,
+      method,
+      pageSize = 10,
+      at,
+    }: {
+      module: string
+      method: string
+      pageSize?: number
+      at?: string
+    },
+    ...args: any[]
+  ): AsyncGenerator<{ keyArgs: any[]; value: T }, void, void> {
+    try {
+      const codec = (await this.ctx()).storageCodec<T>(module, method)
+      const prefix = codec.keys.enc(...args)
+      let startKey: string | undefined = undefined
+
+      while (true) {
+        const keys = await this.getStorageKeys(prefix, pageSize, startKey, at)
+        if (keys.length === 0) {
+          break
+        }
+
+        for (const key of keys) {
+          const data = await this.getStorage(key, at)
+          if (data !== null) {
+            yield {
+              keyArgs: codec.keys.dec(key),
+              value: codec.value.dec(data),
+            }
+          }
+        }
+
+        if (keys.length < pageSize) {
+          break
+        }
+        startKey = keys[keys.length - 1]
+      }
     } catch (error) {
       throw new Error(`[client:${this.chainId}] Failed to query ${module}.${method}.`, { cause: error })
     }

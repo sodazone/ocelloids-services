@@ -33,7 +33,7 @@ async function networkInfo(api: SubstrateApi, chainId: NetworkURN): Promise<Subs
   const genesisHash = chainSpecData.genesisHash as HexString
   const runtimeChain = chainSpecData.name
   const parachainId = ctx.hasPallet('ParachainInfo')
-    ? ((await api.query<number>('ParachainInfo', 'ParachainId'))?.toString() ?? undefined)
+    ? ((await api.query<number>({ module: 'ParachainInfo', method: 'ParachainId' }))?.toString() ?? undefined)
     : undefined
 
   return {

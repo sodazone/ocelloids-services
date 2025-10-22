@@ -1,9 +1,11 @@
 import { EventEmitter } from 'node:events'
-import { Twox128 } from '@polkadot-api/substrate-bindings'
+
 import { encode } from 'cbor-x'
+import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
+
+import { Twox128 } from '@polkadot-api/substrate-bindings'
 import { safeDestr } from 'destr'
 import { toHex } from 'polkadot-api/utils'
-import { from, map, Observable, Subject, shareReplay } from 'rxjs'
 import {
   getBlockStreamKey,
   getMetadataKey,
@@ -168,6 +170,23 @@ export class SubstrateDistributedConsumer
 
       throw error
     }
+  }
+
+  async query<T = any>(
+    chainId: NetworkURN,
+    ops: {
+      module: string
+      method: string
+      at?: HexString
+    },
+    ...params: any[]
+  ): Promise<T | null> {
+    const { module, method, at } = ops
+    const context = await firstValueFrom(this.getContext(chainId))
+    const codec = context.storageCodec(module, method)
+    const key = codec.keys.enc(params) as HexString
+    const data = await firstValueFrom(this.#storageFromRedis(chainId, key, at))
+    return data !== null ? (codec.value.dec(data) as T) : null
   }
 
   runtimeCall<T = any>(
