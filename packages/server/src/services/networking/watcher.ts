@@ -245,7 +245,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   protected async recoverRanges(chainId: NetworkURN) {
     const networkConfig = this.#localConfig.getNetwork(chainId)
     if (networkConfig && networkConfig.recovery) {
-      return await (await this.#pendingRanges(chainId).values()).all()
+      return await this.#pendingRanges(chainId).values().all()
     } else {
       return []
     }

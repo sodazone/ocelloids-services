@@ -51,6 +51,15 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
     opts: { api: string; method: string; at?: string },
     ...args: any[]
   ): Promise<T | null>
+  query<T = any>(
+    chainId: NetworkURN,
+    ops: {
+      module: string
+      method: string
+      at?: HexString
+    },
+    ...params: any[]
+  ): Promise<T | null>
   isRelay(chainId: NetworkURN): boolean
   isReady(): Promise<void>
 }
