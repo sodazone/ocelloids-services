@@ -1,6 +1,6 @@
 import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
 import { Abi, AbiEvent, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
-
+import { asSerializable } from '@/common/util.js'
 import { BlockWithLogs, DecodedLog, DecodedTx, DecodedTxWithLogs } from '../types.js'
 
 const MAX_CONCURRENCY_LOGS = 10
@@ -57,7 +57,7 @@ export function decodeLogs(params: DecodeContractParams[]) {
           }
         }
 
-        return { ...log, decoded } as DecodedLog
+        return asSerializable({ ...log, decoded }) as DecodedLog
       }),
     )
 }
@@ -89,7 +89,7 @@ export function filterLogs(params: DecodeContractParams) {
         try {
           const event = decodeEventLog({ abi: [ev], topics: log.topics, data: log.data })
           decoded = { eventName: event.eventName, args: event.args }
-          return { ...log, decoded } as DecodedLog
+          return asSerializable({ ...log, decoded }) as DecodedLog
         } catch (err) {
           console.warn(`[${log.address}] failed to decode log:`, err)
           return null
@@ -118,7 +118,7 @@ export function decodeTransactions(params: DecodeContractParams[]) {
           }
         }
 
-        return { ...tx, decoded } as DecodedTx
+        return asSerializable({ ...tx, decoded }) as DecodedTx
       }),
     )
 }
@@ -150,8 +150,8 @@ export function filterTransactions(params: DecodeContractParams, functionNames: 
         let decoded: DecodedTx['decoded']
         try {
           const func = decodeFunctionData({ abi: [fn], data: input })
-          decoded = { functionName: func.functionName, args: func.args }
-          return { ...tx, decoded } as DecodedTx
+          decoded = { functionName: func.functionName, args: asSerializable(func.args) }
+          return asSerializable({ ...tx, decoded }) as DecodedTx
         } catch (err) {
           console.warn(`[${to}] failed to decode tx:`, err)
           return null
