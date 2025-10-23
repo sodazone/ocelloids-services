@@ -264,7 +264,7 @@ describe('extractXcmMessageData', () => {
     })
   })
 
-  it.only('should emit outbound for kusama asset hub xcmp to bridgehub', async () => {
+  it('should emit outbound for kusama asset hub xcmp to bridgehub', async () => {
     const origin = 'urn:ocn:kusama:1000' as NetworkURN
         const blocks = from(testBlocksFrom('kassethub/11058340.cbor'))
         const getHrmp = () =>

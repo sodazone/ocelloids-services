@@ -11,7 +11,7 @@ import {
 
 describe('snowbridge operator', () => {
   describe('extractSnowbridgeEvmInbound', () => {
-    it.only('should extract snowbridge evm inbound', async () => {
+    it('should extract snowbridge evm inbound', async () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23618095.cbor'))
       const test$ = block$.pipe(
         extractSnowbridgeEvmInbound('urn:ocn:ethereum:1', '0x27ca963C279c93801941e1eB8799c23f407d68e7'),

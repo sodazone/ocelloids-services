@@ -553,7 +553,7 @@ describe('common xcm operators', () => {
       })
     })
 
-    it.only('should extract dmpQueue.ExecutedDownward events', async () => {
+    it('should extract dmpQueue.ExecutedDownward events', async () => {
       const blocks = from(testBlocksFrom('assethub/10050008.cbor'))
       const calls = vi.fn()
       const test$ = extractParachainReceive()(blocks.pipe(extractEvents()))
