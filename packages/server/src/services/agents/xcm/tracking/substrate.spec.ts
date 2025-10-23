@@ -266,18 +266,18 @@ describe('extractXcmMessageData', () => {
 
   it('should emit outbound for kusama asset hub xcmp to bridgehub', async () => {
     const origin = 'urn:ocn:kusama:1000' as NetworkURN
-        const blocks = from(testBlocksFrom('kassethub/11058340.cbor'))
-        const getHrmp = () =>
-             from([
-               [
-                 {
-                   recipient: 1002,
-                   data: Binary.fromHex(
-                     '0x000514000401000007c25b6587021301000007c25b6587020016040d010204010100a10f26020100a10f14010402010903000bbd279d43c7cf0a1302010903000bbd279d43c7cf000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c462cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
-                   ),
-                 },
-               ],
-             ])
+    const blocks = from(testBlocksFrom('kassethub/11058340.cbor'))
+    const getHrmp = () =>
+      from([
+        [
+          {
+            recipient: 1002,
+            data: Binary.fromHex(
+              '0x000514000401000007c25b6587021301000007c25b6587020016040d010204010100a10f26020100a10f14010402010903000bbd279d43c7cf0a1302010903000bbd279d43c7cf000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c462cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
+            ),
+          },
+        ],
+      ])
 
     const test$ = blocks.pipe(
       extractEvents(),

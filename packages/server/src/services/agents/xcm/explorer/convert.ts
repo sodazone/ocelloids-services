@@ -11,6 +11,7 @@ import {
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 
 import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
+import { isXcmBridge } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
@@ -72,6 +73,13 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
             module: event?.module,
             name: event?.name,
           },
+          bridge: isXcmBridge(payload)
+            ? {
+                channelId: payload.channelId,
+                nonce: payload.nonce,
+                bridgeName: payload.bridgeName,
+              }
+            : undefined,
           assetsTrapped: waypoint.assetsTrapped,
         }
       : null

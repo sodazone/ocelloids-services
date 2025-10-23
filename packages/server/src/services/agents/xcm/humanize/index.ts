@@ -403,7 +403,8 @@ export class XcmHumanizer {
     id,
     amount,
   }: SnowbridgeOutboundAsset): Promise<HumanizedXcmAsset> {
-    const assetKey = `${chainId}|${normalizeAssetId(id)}`
+    const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id
+    const assetKey = `${chainId}|${normalizeAssetId(assetId)}`
     const unresolved: XcmAssetWithMetadata = {
       id: assetKey,
       amount: BigInt(amount),
