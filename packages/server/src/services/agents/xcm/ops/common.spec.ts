@@ -561,7 +561,6 @@ describe('common xcm operators', () => {
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
-            console.log(msg)
             calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
