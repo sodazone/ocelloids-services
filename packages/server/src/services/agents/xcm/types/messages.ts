@@ -794,3 +794,10 @@ export function mapXcmBridgeToXcmSent(bridge: XcmBridge): XcmSent {
     partialHumanized: bridge.partialHumanized,
   }
 }
+
+export function mapXcmBridgeInboundToXcmInbound(
+  bridge: XcmBridgeInboundWithContext,
+  messageHash: HexString,
+): XcmInbound {
+  return new XcmInbound(bridge.chainId, { ...bridge, messageHash })
+}

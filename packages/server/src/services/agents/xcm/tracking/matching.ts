@@ -20,6 +20,7 @@ import {
   GenericXcmTimeout,
   Leg,
   MessageHashData,
+  mapXcmBridgeInboundToXcmInbound,
   mapXcmBridgeToXcmSent,
   prefixes,
   SnowbridgeMessageAccepted,
@@ -74,6 +75,11 @@ function hasTopicId(hashKey: string, idKey?: string) {
 
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms))
+}
+
+function isLastLeg(from: NetworkURN, to: NetworkURN, legs: Leg[]) {
+  const last = legs[legs.length - 1]
+  return last.from === from && last.to === to
 }
 
 /**
@@ -428,29 +434,39 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         ])
 
         this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
-        return
+        if (isLastLeg(bridgeOutMsg.waypoint.chainId, chainId, bridgeOutMsg.legs)) {
+          this.#onXcmMatched(
+            mapXcmBridgeToXcmSent(bridgeOutMsg),
+            mapXcmBridgeInboundToXcmInbound(bridgeInMsg, bridgeOutMsg.waypoint.messageHash),
+          )
+        }
+      } else {
+        this.#log.info(
+          '[%s:bi] BRIDGE IN STORED key=%s id=%s (block=%s #%s)',
+          chainId,
+          bridgeKey,
+          idKey,
+          bridgeInMsg.blockHash,
+          bridgeInMsg.blockNumber,
+        )
+
+        await Promise.allSettled([
+          this.#bridgeInbound.put(bridgeKey, bridgeInMsg),
+          idKey ? this.#bridgeInbound.put(idKey, bridgeInMsg) : Promise.resolve(),
+        ])
+
+        await new Promise((resolve) => setImmediate(resolve))
+        await this.#janitor.schedule({
+          sublevel: prefixes.matching.bridgeIn,
+          key: bridgeKey,
+        })
+        if (idKey) {
+          await this.#janitor.schedule({
+            sublevel: prefixes.matching.bridgeIn,
+            key: idKey,
+          })
+        }
       }
-
-      this.#log.info(
-        '[%s:bi] BRIDGE IN STORED key=%s id=%s (block=%s #%s)',
-        chainId,
-        bridgeKey,
-        idKey,
-        bridgeInMsg.blockHash,
-        bridgeInMsg.blockNumber,
-      )
-
-      await Promise.allSettled([
-        this.#bridgeInbound.put(bridgeKey, bridgeInMsg),
-        idKey ? this.#bridgeInbound.put(idKey, bridgeInMsg) : Promise.resolve(),
-      ])
-
-      await new Promise((resolve) => setImmediate(resolve))
-
-      await this.#janitor.schedule({
-        sublevel: prefixes.matching.bridgeIn,
-        key: bridgeKey,
-      })
     })
   }
 
@@ -466,6 +482,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       const bridgeKey = toBridgeKey(messageId!, nonce) // messageId is never undefined for snowbridge
 
       const bridgeInMsg = await this.#bridgeInbound.get(bridgeKey)
+      const xcmSentMsg = mapXcmBridgeToXcmSent(msg)
+
+      const handleOutbound = async () => {
+        this.#onXcmOutbound(xcmSentMsg)
+        this.#onXcmBridgeAccepted(msg)
+        await this.#storeOnOutbound(xcmSentMsg)
+
+        if (bridgeInMsg) {
+          this.#onXcmBridgeMatched(msg, bridgeInMsg)
+        }
+      }
+
       if (bridgeInMsg !== undefined) {
         this.#log.info(
           '[%s:bi] BRIDGE MATCHED key=%s (block=%s #%s)',
@@ -478,17 +506,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           this.#bridgeAccepted.del(bridgeKey),
           channelId ? this.#bridgeAccepted.del(toBridgeKey(channelId, nonce)) : Promise.resolve(),
         ])
-        this.#onXcmBridgeMatched(msg, bridgeInMsg)
+        await handleOutbound()
         return
       }
 
-      await this.#bridgeAccepted.put(bridgeKey, msg)
-      await new Promise((res) => setImmediate(res)) // allow event loop tick
-      await this.#janitor.schedule({
-        sublevel: prefixes.matching.bridgeAccepted,
-        key: bridgeKey,
-        expiry: BRIDGE_TIMEOUT,
-      })
       this.#log.info(
         '[%s:ba] BRIDGE MESSAGE ACCEPTED key=%s (block=%s #%s)',
         chainId,
@@ -496,8 +517,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         blockHash,
         blockNumber,
       )
-      this.#onXcmBridgeAccepted(msg)
-      await this.#storeOnOutbound(mapXcmBridgeToXcmSent(msg))
+      await this.#bridgeAccepted.put(bridgeKey, msg)
+      await handleOutbound()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
+      await this.#janitor.schedule({
+        sublevel: prefixes.matching.bridgeAccepted,
+        key: bridgeKey,
+        expiry: BRIDGE_TIMEOUT,
+      })
     })
   }
 
@@ -789,7 +816,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     } else {
       // Still we don't know if the inbound is upgraded, so get both id and hash keys
       // i.e. if uses message ids
-      const inMsg = await Promise.any([this.#inbound.get(keys.id), this.#inbound.get(keys.hash)])
+      const inMsg = (await this.#inbound.get(keys.id)) ?? (await this.#inbound.get(keys.hash))
 
       if (inMsg === undefined) {
         throw new Error('Inbound message not found.')

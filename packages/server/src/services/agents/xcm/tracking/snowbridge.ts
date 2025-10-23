@@ -28,8 +28,13 @@ export class SnowbridgeTracker {
   readonly #ingress: Pick<IngressConsumers, 'evm' | 'substrate'>
   readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
+  readonly #canBeMatched: (destination: NetworkURN) => boolean
 
-  constructor(ctx: AgentRuntimeContext, engine: MatchingEngine) {
+  constructor(
+    ctx: AgentRuntimeContext,
+    engine: MatchingEngine,
+    canBeMatched: (destination: NetworkURN) => boolean,
+  ) {
     this.#log = ctx.log
 
     this.#streams = { in: [], out: [] }
@@ -39,11 +44,12 @@ export class SnowbridgeTracker {
     }
     this.#shared = SubstrateSharedStreams.instance(this.#ingress.substrate)
     this.#engine = engine
+    this.#canBeMatched = canBeMatched
   }
 
-  start() {
-    const evmChains = this.#ingress.evm.getChainIds()
-    const substrateChains = this.#ingress.substrate.getChainIds().filter((id) => BRIDGE_HUBS.includes(id))
+  start(chains: { substrate: NetworkURN[]; evm: NetworkURN[] }) {
+    const evmChains = chains.evm
+    const substrateChains = chains.substrate.filter((id) => BRIDGE_HUBS.includes(id))
     this.#log.info('[%s] start evm=(%s) substrate=(%s)', this.#id, evmChains, substrateChains)
     this.#monitorInbound(evmChains, substrateChains)
     this.#monitorOutbound(evmChains, substrateChains)
@@ -123,8 +129,8 @@ export class SnowbridgeTracker {
   }
 
   #monitorOutbound(evmChainIds: NetworkURN[], substrateChainIds: NetworkURN[]) {
-    if (this.#streams.in.length > 0) {
-      throw new Error('Inbound streams already open')
+    if (this.#streams.out.length > 0) {
+      throw new Error('Outbound streams already open')
     }
 
     const subs: RxSubscriptionWithId[] = []
@@ -150,7 +156,9 @@ export class SnowbridgeTracker {
                 this.#log.error(error, '[%s] %s error on origin stream', this.#id, evmChain)
               },
               next: (msg) => {
-                this.#engine.onSnowbridgeOriginOutbound(msg)
+                if (this.#canBeMatched(msg.destination.chainId)) {
+                  this.#engine.onSnowbridgeOriginOutbound(msg)
+                }
               },
             }),
         })
@@ -186,6 +194,6 @@ export class SnowbridgeTracker {
       throw error
     }
 
-    this.#streams.in = subs
+    this.#streams.out = subs
   }
 }

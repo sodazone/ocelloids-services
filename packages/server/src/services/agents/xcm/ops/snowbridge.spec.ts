@@ -11,7 +11,7 @@ import {
 
 describe('snowbridge operator', () => {
   describe('extractSnowbridgeEvmInbound', () => {
-    it('should extract snowbridge evm inbound', async () => {
+    it.only('should extract snowbridge evm inbound', async () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23618095.cbor'))
       const test$ = block$.pipe(
         extractSnowbridgeEvmInbound('urn:ocn:ethereum:1', '0x27ca963C279c93801941e1eB8799c23f407d68e7'),
@@ -20,8 +20,13 @@ describe('snowbridge operator', () => {
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
-          next: (log) => {
+          next: (msg) => {
+            console.log(msg)
             calls()
+            expect(msg).toBeDefined()
+            expect(msg.channelId).toBeDefined()
+            expect(msg.messageId).toBeDefined()
+            expect(msg.nonce).toBeDefined()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)

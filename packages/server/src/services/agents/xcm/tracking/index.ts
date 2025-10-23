@@ -2,7 +2,7 @@ import { Subject, share } from 'rxjs'
 import { ArchiveRepository } from '@/services/archive/repository.js'
 import { ArchiveRetentionJob } from '@/services/archive/retention.js'
 import { ArchiveRetentionOptions, HistoricalQuery } from '@/services/archive/types.js'
-import { Logger } from '@/services/types.js'
+import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../../types.js'
 import { xcmMatchingEngineMetrics } from '../telemetry/metrics.js'
 import { XcmMessagePayload } from '../types/messages.js'
@@ -10,11 +10,14 @@ import { MatchingEngine } from './matching.js'
 import { SnowbridgeTracker } from './snowbridge.js'
 import { SubstrateXcmTracker } from './substrate.js'
 
+const EXCLUDED_NETWORKS: NetworkURN[] = []
+
 export class XcmTracker {
   readonly #id = 'xcm-tracker'
   readonly #log: Logger
   readonly #engine: MatchingEngine
   readonly #subject: Subject<XcmMessagePayload>
+  readonly #chains: { substrate: NetworkURN[]; evm: NetworkURN[] }
 
   readonly #archive?: ArchiveRepository
   readonly #retentionOpts?: ArchiveRetentionOptions
@@ -30,17 +33,21 @@ export class XcmTracker {
     this.#log = ctx.log
     this.#archive = ctx.archive
     this.#retentionOpts = ctx.archiveRetention
+    this.#chains = {
+      substrate: ctx.ingress.substrate.getChainIds().filter((c) => !EXCLUDED_NETWORKS.includes(c)),
+      evm: ctx.ingress.evm.getChainIds().filter((c) => !EXCLUDED_NETWORKS.includes(c)),
+    }
 
     this.#subject = new Subject<XcmMessagePayload>()
     this.xcm$ = this.#subject.pipe(share())
     this.#engine = new MatchingEngine(ctx, (msg: XcmMessagePayload) => this.#subject.next(msg))
-    this.#substrateXcmTracker = new SubstrateXcmTracker(ctx, this.#engine)
-    this.#snowbridgeTracker = new SnowbridgeTracker(ctx, this.#engine)
+    this.#substrateXcmTracker = new SubstrateXcmTracker(ctx, this.#engine, this.#canBeMatched.bind(this))
+    this.#snowbridgeTracker = new SnowbridgeTracker(ctx, this.#engine, this.#canBeMatched.bind(this))
   }
 
   start() {
-    this.#substrateXcmTracker.start()
-    this.#snowbridgeTracker.start()
+    this.#substrateXcmTracker.start(this.#chains)
+    this.#snowbridgeTracker.start(this.#chains)
     this.#initHistoricalData()
   }
 
@@ -85,5 +92,9 @@ export class XcmTracker {
         this.#log.info('[archive:%s] retention job is not enabled', this.#id)
       }
     }
+  }
+
+  #canBeMatched(destination: NetworkURN) {
+    return this.#chains.substrate.includes(destination) || this.#chains.evm.includes(destination)
   }
 }

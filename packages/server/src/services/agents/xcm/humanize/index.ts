@@ -27,7 +27,6 @@ import {
   AssetSwap,
   AssetsTrapped,
   HumanizedXcmPayload,
-  isXcmBridge,
   SnowbridgeOutboundAsset,
   SwappedAsset,
   XcmMessagePayload,
@@ -132,7 +131,7 @@ export class XcmHumanizer {
   }
 
   async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
-    if (isXcmBridge(message) && message.partialHumanized !== undefined && message.partialHumanized !== null) {
+    if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
       const { sender, origin, destination } = message
       const { beneficiary, asset } = message.partialHumanized
       const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)

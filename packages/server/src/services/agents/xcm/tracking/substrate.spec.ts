@@ -264,16 +264,16 @@ describe('extractXcmMessageData', () => {
     })
   })
 
-  it('should emit outbound for kusama asset hub xcmp to bridgehub', async () => {
-    const origin = 'urn:ocn:kusama:1000' as NetworkURN
-    const blocks = from(testBlocksFrom('kassethub/11058340.cbor'))
+  it.only('should emit outbound for kusama asset hub xcmp to bridgehub', async () => {
+    const origin = 'urn:ocn:polkadot:2034' as NetworkURN
+    const blocks = from(testBlocksFrom('hydra/9725421.cbor'))
     const getHrmp = () =>
       from([
         [
           {
-            recipient: 1002,
+            recipient: 1000,
             data: Binary.fromHex(
-              '0x000514000401000007c25b6587021301000007c25b6587020016040d010204010100a10f26020100a10f14010402010903000bbd279d43c7cf0a1302010903000bbd279d43c7cf000d010204000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b2cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c462cc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
+              '0x00041800080100000762c45a320402020907040300514910771af9ca656af840dff83e8264ecf986ca0017a01722862b2258a11c0a130100000762c45a32040016040d0100000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b10010102020907040300514910771af9ca656af840dff83e8264ecf986ca0002010907040c1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f0332c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
             ),
           },
         ],
@@ -288,6 +288,7 @@ describe('extractXcmMessageData', () => {
     await new Promise<void>((resolve) => {
       test$.subscribe({
         next: (msg) => {
+          console.log(msg)
           calls()
           expect(msg).toBeDefined()
           expect(msg.origin.blockNumber).toBeDefined()

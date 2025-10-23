@@ -266,6 +266,174 @@ export const ethereumToHydrationMessages = {
   hydrationReceived,
 }
 
+/**
+ * Hydration to Ethereum journey
+ */
+
+const hydrationSent: XcmSent = {
+  legs: [
+    {
+      from: 'urn:ocn:polkadot:2034',
+      to: 'urn:ocn:polkadot:1000',
+      type: 'hop',
+      partialMessage: undefined,
+      relay: 'urn:ocn:polkadot:0',
+    },
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:1002',
+      relay: 'urn:ocn:polkadot:0',
+      type: 'hop',
+      partialMessage:
+        '0x040c1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    },
+    {
+      from: 'urn:ocn:polkadot:1002',
+      to: 'urn:ocn:ethereum:1',
+      type: 'bridge',
+      partialMessage: undefined,
+    },
+  ],
+  originProtocol: 'xcm',
+  destinationProtocol: 'snowbridge',
+  sender: {
+    signer: {
+      id: '13b6hRRYPHTxFzs9prvL2YGHQepvd4YhdDb9Tc7khySp3hMN',
+      publicKey: '0x7279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b',
+    },
+    extraSigners: [],
+  },
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  partialHumanized: undefined,
+  type: 'xcm.sent',
+  waypoint: {
+    chainId: 'urn:ocn:polkadot:2034',
+    blockHash: '0x83873028918bac2e3573cf36ec8fb2f3b9664e067eb3b787334400451f2d349e',
+    blockNumber: '9725421',
+    txHash: '0x1ca2f2f0b4c54794a3936c9f60a568138cc3ee82ea72434062825084ad1b4d01',
+    specVersion: 347,
+    timestamp: 1760952738000,
+    txPosition: 3,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x041800080100000762c45a320402020907040300514910771af9ca656af840dff83e8264ecf986ca0017a01722862b2258a11c0a130100000762c45a32040016040d0100000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b10010102020907040300514910771af9ca656af840dff83e8264ecf986ca0002010907040c1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f0332c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    instructions: {},
+    messageHash: '0xa6e604226ec95e8cd9beadc8d8ef6a4ebe4a490eaee1dd8f533e7a2c921b42e8',
+    messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:polkadot:2034',
+    blockHash: '0x83873028918bac2e3573cf36ec8fb2f3b9664e067eb3b787334400451f2d349e',
+    blockNumber: '9725421',
+    txHash: '0x1ca2f2f0b4c54794a3936c9f60a568138cc3ee82ea72434062825084ad1b4d01',
+    specVersion: 347,
+    timestamp: 1760952738000,
+    txPosition: 3,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x041800080100000762c45a320402020907040300514910771af9ca656af840dff83e8264ecf986ca0017a01722862b2258a11c0a130100000762c45a32040016040d0100000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b10010102020907040300514910771af9ca656af840dff83e8264ecf986ca0002010907040c1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f0332c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    instructions: {},
+    messageHash: '0xa6e604226ec95e8cd9beadc8d8ef6a4ebe4a490eaee1dd8f533e7a2c921b42e8',
+    messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  },
+  destination: { chainId: 'urn:ocn:ethereum:1' },
+}
+
+const assetHubXcmHopIn: XcmInbound = {
+  chainId: 'urn:ocn:polkadot:1000',
+  event: {},
+  txPosition: undefined,
+  blockNumber: '10050008',
+  blockHash: '0xdf157927f277d8cdb8b4e0f24f482e796d530f47c61bab2158180cf7703a71ce',
+  specVersion: 1007001,
+  timestamp: 1760952756000,
+  messageHash: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  messageData: undefined,
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  txHash: undefined,
+  outcome: 'Success',
+  error: undefined,
+  assetsTrapped: undefined,
+  assetSwaps: undefined,
+}
+
+const assetHubXcmHopOut: XcmSent = {
+  legs: [
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:1002',
+      type: 'hrmp',
+      partialMessage: undefined,
+      relay: 'urn:ocn:polkadot:0',
+    },
+  ],
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
+  sender: undefined,
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  partialHumanized: undefined,
+  type: 'xcm.sent',
+  waypoint: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xdf157927f277d8cdb8b4e0f24f482e796d530f47c61bab2158180cf7703a71ce',
+    blockNumber: '10050008',
+    txHash: undefined,
+    specVersion: 1007001,
+    timestamp: 1760952756000,
+    txPosition: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x050c2f00002607040014000400010300514910771af9ca656af840dff83e8264ecf986ca0017a01722862b2258a11c0a1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f0332c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    instructions: {},
+    messageHash: '0x05d13560960914469294023772d17265c3e423857a62935e217421a5757135ba',
+    messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xdf157927f277d8cdb8b4e0f24f482e796d530f47c61bab2158180cf7703a71ce',
+    blockNumber: '10050008',
+    txHash: undefined,
+    specVersion: 1007001,
+    timestamp: 1760952756000,
+    txPosition: undefined,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x050c2f00002607040014000400010300514910771af9ca656af840dff83e8264ecf986ca0017a01722862b2258a11c0a1300010300514910771af9ca656af840dff83e8264ecf986ca0004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f0332c99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+    instructions: {},
+    messageHash: '0x05d13560960914469294023772d17265c3e423857a62935e217421a5757135ba',
+    messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  },
+  destination: { chainId: 'urn:ocn:polkadot:1002' },
+}
+
+const bridgeHubXcmHopIn: XcmInbound = {
+  chainId: 'urn:ocn:polkadot:1002',
+  event: {},
+  txPosition: undefined,
+  blockNumber: '6226395',
+  blockHash: '0x3f9765deac311f482cd94b52acc1883cd7cc047c7cf58e1a073d7837e54228b1',
+  specVersion: 1007001,
+  timestamp: 1760952780000,
+  messageHash: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  messageData: undefined,
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+  txHash: undefined,
+  outcome: 'Success',
+  error: undefined,
+  assetsTrapped: undefined,
+  assetSwaps: undefined,
+}
+
 const bridgeHubAceppted: SnowbridgeMessageAccepted = {
   chainId: 'urn:ocn:polkadot:1002',
   blockNumber: '6226395',
@@ -291,6 +459,27 @@ const bridgeHubAceppted: SnowbridgeMessageAccepted = {
   txHash: undefined,
 }
 
+const ethereumReceived: XcmBridgeInboundWithContext = {
+  blockNumber: '23618095',
+  blockHash: '0x8075f4ee44c86a7f1d02190f0eabd1b8a1e2c64cf5e7c04b3f5e266f0277fe63',
+  chainId: 'urn:ocn:ethereum:1',
+  channelId: '0xc173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539',
+  nonce: '4530',
+  outcome: 'Success',
+  error: undefined,
+  event: {},
+  txPosition: 203,
+  specVersion: undefined,
+  timestamp: 1760954555000,
+  txHash: '0x6a6c615f9635aa42654be5a2cefe6ded71de69f16c188dc134c8f9cf2edac637',
+  messageId: '0x99b31b789cf9be73c87c16619da4853c07cd0ddc0c9500a2b3765b6f7564f033',
+}
+
 export const hydrationToEthereumMessages = {
+  hydrationSent,
+  assetHubXcmHopIn,
+  assetHubXcmHopOut,
+  bridgeHubXcmHopIn,
   bridgeHubAceppted,
+  ethereumReceived,
 }

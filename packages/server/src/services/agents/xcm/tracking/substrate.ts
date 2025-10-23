@@ -39,8 +39,6 @@ import {
 } from '../types/index.js'
 import { MatchingEngine } from './matching.js'
 
-const EXCLUDED_NETWORKS: NetworkURN[] = []
-
 type DmpInQueue = { msg: HexString; sent_at: number }
 type HrmpInQueue = { data: HexString; sent_at: number }
 type HorizontalMessage = [number, HrmpInQueue[]]
@@ -119,8 +117,13 @@ export class SubstrateXcmTracker {
   readonly #ingress: SubstrateIngressConsumer
   readonly #shared: SubstrateSharedStreams
   readonly #engine: MatchingEngine
+  readonly #canBeMatched: (destination: NetworkURN) => boolean
 
-  constructor(ctx: AgentRuntimeContext, engine: MatchingEngine) {
+  constructor(
+    ctx: AgentRuntimeContext,
+    engine: MatchingEngine,
+    canBeMatched: (destination: NetworkURN) => boolean,
+  ) {
     this.#log = ctx.log
 
     this.#streams = { d: [], o: [], r: [], b: [] }
@@ -128,10 +131,11 @@ export class SubstrateXcmTracker {
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#telemetry = new (EventEmitter as new () => TelemetryXcmEventEmitter)()
     this.#engine = engine
+    this.#canBeMatched = canBeMatched
   }
 
-  start() {
-    const chainsToTrack = this.#ingress.getChainIds().filter((c) => !EXCLUDED_NETWORKS.includes(c))
+  start(chains: { substrate: NetworkURN[]; evm: NetworkURN[] }) {
+    const chainsToTrack = chains.substrate
     this.#log.info('[%s] start (%s)', this.#id, chainsToTrack)
 
     this.#monitorOrigins(chainsToTrack)
@@ -225,7 +229,6 @@ export class SubstrateXcmTracker {
     }
 
     const subs: RxSubscriptionWithId[] = []
-    const canBeMatched = ({ destination }: XcmSent) => chains.includes(destination.chainId)
 
     try {
       for (const chainId of chains) {
@@ -238,7 +241,7 @@ export class SubstrateXcmTracker {
             })
           },
           next: (msg: XcmSent) => {
-            if (canBeMatched(msg)) {
+            if (this.#canBeMatched(msg.destination.chainId)) {
               this.#engine.onOutboundMessage(msg)
             }
           },

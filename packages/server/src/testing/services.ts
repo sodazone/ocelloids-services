@@ -7,7 +7,7 @@ import { createArchiveDatabase } from '@/services/archive/db.js'
 import { ArchiveRepository } from '@/services/archive/repository.js'
 import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
-import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
+import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
@@ -21,7 +21,6 @@ import { Scheduler } from '../services/scheduling/scheduler.js'
 import { LevelDB, Services } from '../services/types.js'
 import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
-import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 
 export const _log = pino({
   enabled: false,

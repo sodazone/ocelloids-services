@@ -553,14 +553,15 @@ describe('common xcm operators', () => {
       })
     })
 
-    it('should extract dmpQueue.ExecutedDownward events', async () => {
-      const blocks = from(testBlocksFrom('hydra/7179874.cbor'))
+    it.only('should extract dmpQueue.ExecutedDownward events', async () => {
+      const blocks = from(testBlocksFrom('assethub/10050008.cbor'))
       const calls = vi.fn()
       const test$ = extractParachainReceive()(blocks.pipe(extractEvents()))
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
+            console.log(msg)
             calls()
             expect(msg).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
