@@ -139,7 +139,7 @@ export function toNewJourney(payload: HumanizedXcmPayload): NewJourney {
     created_at: Date.now(),
     type: payload.humanized.type,
     destination: payload.destination.chainId,
-    instructions: asJSON(payload.origin.instructions),
+    instructions: payload.origin.instructions ? asJSON(payload.origin.instructions) : '[]',
     transact_calls: asJSON(payload.humanized.transactCalls),
     origin_protocol: payload.originProtocol,
     destination_protocol: payload.destinationProtocol,

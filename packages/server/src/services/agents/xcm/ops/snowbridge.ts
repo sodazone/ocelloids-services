@@ -136,6 +136,10 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
           args: { amount, destinationAddress, destinationChain, sender, token },
         } = tokenSentLog.decoded as SnowbridgeEvmTokenSentLog
 
+        const beneficiary =
+          destinationAddress.kind === 2
+            ? (destinationAddress.data.slice(0, 42) as HexString)
+            : destinationAddress.data
         return new GenericSnowbridgeOutboundAccepted({
           chainId,
           blockHash: tx.blockHash,
@@ -152,7 +156,7 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
             },
             extraSigners: [],
           },
-          beneficiary: destinationAddress.data,
+          beneficiary,
           recipient: createNetworkId('polkadot', destinationChain.toString()),
           asset: {
             chainId,

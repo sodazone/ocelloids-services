@@ -4,7 +4,7 @@ import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom } from 'rxjs'
 
-import { asPublicKey } from '@/common/util.js'
+import { asPublicKey, normalizePublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -135,13 +135,16 @@ export class XcmHumanizer {
       const { sender, origin, destination } = message
       const { beneficiary, asset } = message.partialHumanized
       const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
-      const to = await this.#toAddresses(destination.chainId, beneficiary)
+      const to = await this.#toAddresses(destination.chainId, normalizePublicKey(beneficiary))
       const resolvedAsset = await this.#resolveSnowbridgeAsset(asset)
       return { type: XcmJourneyType.Transfer, from, to, assets: [resolvedAsset], transactCalls: [] }
     }
     const { sender, origin, destination, legs, waypoint } = message
     const { assetSwaps, assetsTrapped, legIndex } = waypoint
-    const versioned = waypoint.instructions as XcmVersionedInstructions
+    const versioned = (waypoint.instructions ?? origin.instructions) as XcmVersionedInstructions
+    if (!versioned) {
+      throw new Error('No instructions or partial humanized data found in XCM message')
+    }
     const version = versioned.type
     const instructions = versioned.value
     const type = this.#determineJourneyType(instructions)
@@ -414,15 +417,18 @@ export class XcmHumanizer {
 
     const cached = this.#cache.get(assetKey)
     if (cached) {
-      return {
+      const resolved = {
         ...unresolved,
         decimals: cached.decimals,
         symbol: cached.symbol,
-        volume: await this.resolveVolume(unresolved),
+      }
+      return {
+        ...resolved,
+        volume: await this.resolveVolume(resolved),
       }
     }
 
-    const results = (await this.#fetchAssetMetadataById(chainId, [id])).filter((a) => isAssetMetadata(a))
+    const results = (await this.#fetchAssetMetadataById(chainId, [assetId])).filter((a) => isAssetMetadata(a))
 
     if (results.length === 0) {
       return unresolved
@@ -436,7 +442,7 @@ export class XcmHumanizer {
     this.#cache.set(assetKey, resolved)
     return {
       ...resolved,
-      volume: await this.resolveVolume(unresolved),
+      volume: await this.resolveVolume(resolved),
     }
   }
 
@@ -547,6 +553,7 @@ export class XcmHumanizer {
 
   async #fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
     const [chainId, assetId] = asset.id.split('|')
+    console.log('fetching ticker prices', chainId, assetId)
     const { items } = (await this.#ticker.query({
       args: {
         op: 'prices.by_asset',
