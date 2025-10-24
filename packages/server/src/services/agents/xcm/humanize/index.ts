@@ -553,7 +553,6 @@ export class XcmHumanizer {
 
   async #fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
     const [chainId, assetId] = asset.id.split('|')
-    console.log('fetching ticker prices', chainId, assetId)
     const { items } = (await this.#ticker.query({
       args: {
         op: 'prices.by_asset',

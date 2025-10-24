@@ -160,9 +160,6 @@ export class XcmAnalytics {
     const recvAt = (destination as XcmTerminusContext).timestamp ?? Date.now()
     const sentAt = origin.timestamp ?? Date.now()
 
-    if (originProtocol === 'snowbridge' || destinationProtocol === 'snowbridge') {
-      console.log('SNOWBRIDGE', messageId, assets)
-    }
     for (const asset of assets) {
       if (asset.role !== undefined && asset.role !== 'transfer') {
         continue
