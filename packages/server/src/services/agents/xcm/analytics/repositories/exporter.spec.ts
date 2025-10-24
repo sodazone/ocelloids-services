@@ -27,6 +27,8 @@ describe('DuckDBDailyExporter', () => {
         amount: BigInt(101010101010n * BigInt(n)),
         symbol: 'UWT',
         decimals: 10,
+        originProtocol: 'xcm',
+        destinationProtocol: 'xcm',
       })
     }
 

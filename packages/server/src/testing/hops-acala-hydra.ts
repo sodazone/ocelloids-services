@@ -8,6 +8,6 @@ const hydraReceived: XcmInbound = JSON.parse(
 )
 
 export const acalaHydra = {
-  sent: acalaSent,
+  sent: { ...acalaSent, originProtocol: 'xcm', destinationProtocol: 'xcm' },
   received: hydraReceived,
 }

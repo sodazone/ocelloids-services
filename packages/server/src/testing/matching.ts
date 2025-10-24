@@ -20,6 +20,8 @@ const originContext: XcmTerminusContext = {
 const outboundMessage: XcmSent = {
   type: 'xcm.sent',
   messageId: '0xB000',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:1000',
@@ -53,7 +55,7 @@ const inboundMessage: XcmInbound = {
 const relayMessage: XcmRelayedWithContext = {
   messageHash: '0xCAFE',
   messageId: '0xB000',
-  extrinsicPosition: 1,
+  txPosition: 1,
   blockHash: '0x828',
   blockNumber: '5',
   recipient: 'urn:ocn:local:2000',
@@ -70,6 +72,8 @@ export const matchMessages = {
 
 const hopOrigin: XcmSent = {
   type: 'xcm.sent',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     { from: 'urn:ocn:local:0', to: 'urn:ocn:local:2034', type: 'hop' },
     {
@@ -85,7 +89,7 @@ const hopOrigin: XcmSent = {
     chainId: 'urn:ocn:local:0',
     blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
     blockNumber: '19777220',
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -99,7 +103,7 @@ const hopOrigin: XcmSent = {
     chainId: 'urn:ocn:local:0',
     blockHash: '0x961d8a9cc5f8bc2d1b092d09e9045e3d85e3c186c90dbec7119ca8b5aecb86f3',
     blockNumber: '19777220',
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -122,18 +126,20 @@ const hopIB: XcmInbound = {
   error: null,
   blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
   blockNumber: '4624161',
-  extrinsicPosition: 1,
+  txPosition: 1,
   assetsTrapped: undefined,
 }
 
 const hopOB: XcmSent = {
   type: 'xcm.sent',
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:1000', relay: 'urn:ocn:local:0', type: 'hrmp' }],
   waypoint: {
     chainId: 'urn:ocn:local:2034',
     blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
     blockNumber: '4624161',
-    extrinsicPosition: 1,
+    txPosition: 1,
     event: {},
     outcome: 'Success',
     error: null,
@@ -147,7 +153,7 @@ const hopOB: XcmSent = {
     chainId: 'urn:ocn:local:2034',
     blockHash: '0xfcefde93bba551ab5118aa1fb954b8b3d58ee81a5eef835132f37ab72cc70987',
     blockNumber: '4624161',
-    extrinsicPosition: 1,
+    txPosition: 1,
     event: {},
     outcome: 'Success',
     error: null,
@@ -165,6 +171,8 @@ const hopOB: XcmSent = {
 }
 
 const hydraMoonOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2034',
@@ -185,9 +193,9 @@ const hydraMoonOut: XcmSent = {
     chainId: 'urn:ocn:polkadot:2034',
     blockHash: '0x4dacb898ade25ea66b3e015b7517f8ac9ef34b02763fd35c8d5f40b327f33d12',
     blockNumber: '6766437',
-    extrinsicHash: '0xf9be9bc98b5c1e722ec3a28105a898160597de99bc982e87e62702e4be6e35ae',
+    txHash: '0xf9be9bc98b5c1e722ec3a28105a898160597de99bc982e87e62702e4be6e35ae',
     timestamp: 1736792244000,
-    extrinsicPosition: 3,
+    txPosition: 3,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
@@ -354,9 +362,9 @@ const hydraMoonOut: XcmSent = {
     chainId: 'urn:ocn:polkadot:2034',
     blockHash: '0x4dacb898ade25ea66b3e015b7517f8ac9ef34b02763fd35c8d5f40b327f33d12',
     blockNumber: '6766437',
-    extrinsicHash: '0xf9be9bc98b5c1e722ec3a28105a898160597de99bc982e87e62702e4be6e35ae',
+    txHash: '0xf9be9bc98b5c1e722ec3a28105a898160597de99bc982e87e62702e4be6e35ae',
     timestamp: 1736792244000,
-    extrinsicPosition: 3,
+    txPosition: 3,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
@@ -566,6 +574,8 @@ const moonBifrostIn: XcmInbound = {
   chainId: 'urn:ocn:polkadot:0',
 }
 const moonBifrostOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2004',
@@ -593,9 +603,9 @@ const moonBifrostOut: XcmSent = {
     chainId: 'urn:ocn:polkadot:2004',
     blockHash: '0x119cf482222c9b6046df5dd8ea85ffb07f270554ec7036aee1f4e4340b8f9ea0',
     blockNumber: '9166868',
-    extrinsicHash: '0x7640b7a383f947e5f4a5e62eb1a1951631dab2dcb4d317c0ccf851e3535317af',
+    txHash: '0x7640b7a383f947e5f4a5e62eb1a1951631dab2dcb4d317c0ccf851e3535317af',
     timestamp: 1736792802499,
-    extrinsicPosition: 2,
+    txPosition: 2,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
@@ -775,9 +785,9 @@ const moonBifrostOut: XcmSent = {
     chainId: 'urn:ocn:polkadot:2004',
     blockHash: '0x119cf482222c9b6046df5dd8ea85ffb07f270554ec7036aee1f4e4340b8f9ea0',
     blockNumber: '9166868',
-    extrinsicHash: '0x7640b7a383f947e5f4a5e62eb1a1951631dab2dcb4d317c0ccf851e3535317af',
+    txHash: '0x7640b7a383f947e5f4a5e62eb1a1951631dab2dcb4d317c0ccf851e3535317af',
     timestamp: 1736792802499,
-    extrinsicPosition: 2,
+    txPosition: 2,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
@@ -973,13 +983,13 @@ const hydraMoonIn: XcmInbound = {
     blockPosition: 41,
     timestamp: 1736792256430,
   },
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '9166777',
   blockHash: '0x8d888845172f05b928bf9cd4699a9ba3dccf8bbbb23de5afb555125e034fa58e',
   timestamp: 1736792256430,
   messageHash: '0x3023923f007de86a3c62bf0224a36408ca4e79446174c87696aa6ef15d33b741',
   messageId: '0x3023923f007de86a3c62bf0224a36408ca4e79446174c87696aa6ef15d33b741',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   messageData:
     '0x04140104010000079ed68518090a130100000718740e9904000d01020400010300ba6d211834c09cf3da51f1b5ad1e5552ad79311b2ca67a693ad9f9547015177f90a29846374271580a4a8d5251d49eb269cadf6935',
@@ -1015,6 +1025,8 @@ export const umpHydraPolkadotMessages: {
   received: XcmInbound
 } = {
   origin: {
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
     type: 'xcm.sent',
     legs: [{ from: 'urn:ocn:local:2034', to: 'urn:ocn:local:0', type: 'vmp' }],
     waypoint: {
@@ -1049,8 +1061,8 @@ export const umpHydraPolkadotMessages: {
       blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
       blockNumber: '8064673',
       timestamp: 1750837134000,
-      extrinsicPosition: 5,
-      extrinsicHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+      txPosition: 5,
+      txHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
       messageHash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
     },
     origin: {
@@ -1084,8 +1096,8 @@ export const umpHydraPolkadotMessages: {
       blockHash: '0x429b1b1837c84a4805605159c95ee917aa28406d92fd2c5ce4fedec2a2b41a3c',
       blockNumber: '8064673',
       timestamp: 1750837134000,
-      extrinsicPosition: 5,
-      extrinsicHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
+      txPosition: 5,
+      txHash: '0xe540dc9c6e12ecd418a644a30f6be2f832b93ca8e2c5a097587d4df070c985ac',
       messageHash: '0xba31fce9f7e8e437f6ec7d0b172cead306ca8abf17b38ab45ba51a52429ed1a3',
     },
     destination: {
@@ -1115,14 +1127,14 @@ export const umpHydraPolkadotMessages: {
       blockPosition: 62,
       timestamp: 1750837152000,
     },
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     blockNumber: '26600356',
     blockHash: '0x77c59e5c12d5e87cc4f3a30f469a89701688ae29780394a3ea8c3cd781180277',
     timestamp: 1750837152000,
     messageHash: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
     messageData: undefined,
     messageId: '0x2e0e160625f9fab80fee9e5d54d57a5a0f1b287e4bf75685740f65aac84e6fbe',
-    extrinsicHash: undefined,
+    txHash: undefined,
     outcome: 'Success',
     error: undefined,
     assetsTrapped: undefined,

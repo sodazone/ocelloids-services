@@ -1,7 +1,7 @@
 export {
   AssetSwap,
   AssetsTrapped,
-  BridgeMessageType,
+  BridgeStatus as BridgeMessageType,
   HumanizedAddresses,
   HumanizedTransactCall,
   HumanizedXcm,

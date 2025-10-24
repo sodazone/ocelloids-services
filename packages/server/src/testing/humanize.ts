@@ -8,6 +8,8 @@ export function getXcmV5Sent(): XcmSent {
   const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
   const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
   return {
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
     legs: [
       {
         from: 'urn:ocn:kusama:1000',
@@ -24,10 +26,10 @@ export function getXcmV5Sent(): XcmSent {
       chainId: 'urn:ocn:kusama:1000',
       blockHash: '0x2244e6b8b2ea38fa139e165e07d6161075209872cb4f4eb259677fd2cc3481fc',
       blockNumber: '11218382',
-      extrinsicHash: undefined,
+      txHash: undefined,
       specVersion: 1009001,
       timestamp: 1760298288000,
-      extrinsicPosition: undefined,
+      txPosition: undefined,
       event: {},
       outcome: 'Success',
       error: null,
@@ -41,10 +43,10 @@ export function getXcmV5Sent(): XcmSent {
       chainId: 'urn:ocn:kusama:1000',
       blockHash: '0x2244e6b8b2ea38fa139e165e07d6161075209872cb4f4eb259677fd2cc3481fc',
       blockNumber: '11218382',
-      extrinsicHash: undefined,
+      txHash: undefined,
       specVersion: 1009001,
       timestamp: 1760298288000,
-      extrinsicPosition: undefined,
+      txPosition: undefined,
       event: {},
       outcome: 'Success',
       error: null,

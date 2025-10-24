@@ -9,6 +9,8 @@ export type XcmTransfer = {
   amount: bigint
   origin: string
   destination: string
+  originProtocol: string
+  destinationProtocol: string
   from: string
   to: string
   volume?: number

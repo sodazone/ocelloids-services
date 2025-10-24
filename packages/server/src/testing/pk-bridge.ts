@@ -24,6 +24,8 @@ export const pkBridgeReceived = {
 }
 
 const kusamaAssetHubSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:kusama:1000',
@@ -58,10 +60,10 @@ const kusamaAssetHubSent: XcmSent = {
     chainId: 'urn:ocn:kusama:1000',
     blockHash: '0x5764bac47e060e0b6148731500ad427dfcc590c33d165a5e201d546c0cde47d1',
     blockNumber: '11058340',
-    extrinsicHash: '0x953f47bc221c77585f9d7e950b1b1f58b0a5905fd2225827eed17358df4dd452',
+    txHash: '0x953f47bc221c77585f9d7e950b1b1f58b0a5905fd2225827eed17358df4dd452',
     specVersion: 1007001,
     timestamp: 1759217970000,
-    extrinsicPosition: 6,
+    txPosition: 6,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -87,10 +89,10 @@ const kusamaAssetHubSent: XcmSent = {
     chainId: 'urn:ocn:kusama:1000',
     blockHash: '0x5764bac47e060e0b6148731500ad427dfcc590c33d165a5e201d546c0cde47d1',
     blockNumber: '11058340',
-    extrinsicHash: '0x953f47bc221c77585f9d7e950b1b1f58b0a5905fd2225827eed17358df4dd452',
+    txHash: '0x953f47bc221c77585f9d7e950b1b1f58b0a5905fd2225827eed17358df4dd452',
     specVersion: 1007001,
     timestamp: 1759217970000,
-    extrinsicPosition: 6,
+    txPosition: 6,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -131,7 +133,7 @@ const kusamaBridgeHubReceive: XcmInbound = {
     specVersion: 1007001,
     timestamp: 1759217988000,
   },
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '6652869',
   blockHash: '0x35d6a91e6fbef8888385d47ff75337d6cd799ecebbb1eea28979d1fef2ac631b',
   specVersion: 1007001,
@@ -139,7 +141,7 @@ const kusamaBridgeHubReceive: XcmInbound = {
   messageHash: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
   messageData: undefined,
   messageId: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   error: undefined,
   assetsTrapped: undefined,
@@ -165,10 +167,11 @@ const kusamaBridgeHubAccepted: XcmBridgeAcceptedWithContext = {
   blockNumber: '6652869',
   specVersion: undefined,
   timestamp: 1759217988000,
-  extrinsicPosition: undefined,
-  extrinsicHash: undefined,
+  txPosition: undefined,
+  txHash: undefined,
   chainId: 'urn:ocn:kusama:1002',
-  bridgeKey: '0x2187c09768bea89f950237053705096c000000011806000000000000',
+  channelId: '0x00000001',
+  nonce: '1560',
   recipient: 'urn:ocn:polkadot:1000',
   instructions: {},
 }
@@ -177,7 +180,8 @@ const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
   blockNumber: '6100146',
   blockHash: '0x1030a342ee49feee702a544242daa765adc7d22b25e6fee1cf6b6fd2f3e10fb8',
   chainId: 'urn:ocn:polkadot:1002',
-  bridgeKey: '0x2187c09768bea89f950237053705096c000000011806000000000000',
+  channelId: '0x00000001',
+  nonce: '1560',
   outcome: 'Success',
   error: null,
   event: {
@@ -205,13 +209,15 @@ const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
     },
     extrinsicPosition: 2,
   },
-  extrinsicPosition: 2,
+  txPosition: 2,
   specVersion: undefined,
   timestamp: 1759218336000,
-  extrinsicHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
+  txHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
 }
 
 const polkadotBridgeHubOutbound: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:1002',
@@ -234,10 +240,10 @@ const polkadotBridgeHubOutbound: XcmSent = {
     chainId: 'urn:ocn:polkadot:1002',
     blockHash: '0x1030a342ee49feee702a544242daa765adc7d22b25e6fee1cf6b6fd2f3e10fb8',
     blockNumber: '6100146',
-    extrinsicHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
+    txHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
     specVersion: 1006001,
     timestamp: 1759218336000,
-    extrinsicPosition: 1,
+    txPosition: 1,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -263,10 +269,10 @@ const polkadotBridgeHubOutbound: XcmSent = {
     chainId: 'urn:ocn:polkadot:1002',
     blockHash: '0x1030a342ee49feee702a544242daa765adc7d22b25e6fee1cf6b6fd2f3e10fb8',
     blockNumber: '6100146',
-    extrinsicHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
+    txHash: '0x51454fb239adcdaffdb486e51e9c8016feec260a09f92835c53d0f1baaff0882',
     specVersion: 1006001,
     timestamp: 1759218336000,
-    extrinsicPosition: 1,
+    txPosition: 1,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -307,7 +313,7 @@ const polkadotAssetHubReceive: XcmInbound = {
     specVersion: 1006000,
     timestamp: 1759218348000,
   },
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '9782605',
   blockHash: '0x189358f2e8f6455ad3e46164df891c3d2c0e26343dafcd5fd4353dc7aefa13a4',
   specVersion: 1006000,
@@ -315,7 +321,7 @@ const polkadotAssetHubReceive: XcmInbound = {
   messageHash: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
   messageData: undefined,
   messageId: '0xc09c41eba05e7b58ddfdcc58bdf06a2589c78119a7da9a68bb4d71ba03201c46',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   error: undefined,
   assetsTrapped: undefined,

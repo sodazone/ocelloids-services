@@ -57,7 +57,7 @@ export function extractRelayReceive(
                   messageData: toHex(xcmProgram.data) as HexString,
                   messageId: getMessageId(xcmProgram),
                   origin,
-                  extrinsicPosition: blockPosition,
+                  txPosition: blockPosition,
                   outcome: dispatchError ? 'Fail' : 'Success',
                   error: dispatchError,
                 }),

@@ -51,7 +51,9 @@ CREATE TABLE IF NOT EXISTS xcm_transfers(
   from_address BLOB NOT NULL,
   to_address BLOB NOT NULL,
   created_at TIMESTAMP NOT NULL,
-  volume DECIMAL(18,4)
+  volume DECIMAL(18,4),
+  origin_protocol STRING NOT NULL,
+  destination_protocol STRING NOT NULL,
 );
 `.trim()
 
@@ -93,12 +95,32 @@ export class XcmTransfersRepository {
   async migrate() {
     await this.#db.run(createTransfersSeqSql)
     await this.#db.run(createTransfersTableSql)
+
+    // Add columns if they don't exist
+    await this.#db.run(`
+      ALTER TABLE xcm_transfers ADD COLUMN IF NOT EXISTS origin_protocol STRING;
+    `)
+    await this.#db.run(`
+      ALTER TABLE xcm_transfers ADD COLUMN IF NOT EXISTS destination_protocol STRING;
+    `)
+
+    // Backfill NULLs with 'xcm'
+    await this.#db.run(`
+      UPDATE xcm_transfers
+      SET origin_protocol = 'xcm'
+      WHERE origin_protocol IS NULL;
+    `)
+    await this.#db.run(`
+      UPDATE xcm_transfers
+      SET destination_protocol = 'xcm'
+      WHERE destination_protocol IS NULL;
+    `)
   }
 
   async insert(t: NewXcmTransfer) {
     return await this.#db.run(
       `
-    INSERT INTO 
+    INSERT INTO
     xcm_transfers VALUES (
       nextval('seq_xcm_transfers'),
       ${toDuckDBHex(t.correlationId)},
@@ -113,7 +135,9 @@ export class XcmTransfersRepository {
       ${toDuckDBHex(t.from)},
       ${toDuckDBHex(t.to)},
       NOW(),
-      ${t.volume ? DuckDBDecimalValue.fromDouble(t.volume, 18, 4) : 'NULL'}
+      ${t.volume ? DuckDBDecimalValue.fromDouble(t.volume, 18, 4) : 'NULL'},
+      ${toSafeAsciiText(t.originProtocol)},
+      ${toSafeAsciiText(t.destinationProtocol)},
     );
     `.trim(),
     )
@@ -126,21 +150,41 @@ export class XcmTransfersRepository {
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
     const query = `
-      SELECT 
-        COUNT(*) AS current_period_count,
-        (SELECT COUNT(*) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
-        
-        COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-        (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+        WITH base AS (
+          SELECT * FROM xcm_transfers
+          WHERE sent_at >= NOW() - INTERVAL '${intervalMax}'
+        ),
+        current_period AS (
+          SELECT *
+          FROM base
+          WHERE sent_at > NOW() - INTERVAL '${interval}'
+        ),
+        previous_period AS (
+          SELECT *
+          FROM base
+          WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}'
+        )
+        SELECT
+          (SELECT COUNT(*) FROM current_period) AS current_period_count,
+          (SELECT COUNT(*) FROM previous_period) AS previous_period_count,
 
-        AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-        (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time,
+          (SELECT COUNT(DISTINCT addr) FROM (
+            SELECT from_address AS addr FROM current_period
+            UNION
+            SELECT to_address AS addr FROM current_period
+          )) AS current_unique_accounts,
+          (SELECT COUNT(DISTINCT addr) FROM (
+            SELECT from_address AS addr FROM previous_period
+            UNION
+            SELECT to_address AS addr FROM previous_period
+          )) AS previous_unique_accounts,
 
-        SUM(COALESCE(volume, 0)) AS current_volume_usd,
-        (SELECT SUM(COALESCE(volume, 0)) FROM xcm_transfers WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_volume_usd
-      FROM xcm_transfers
-      WHERE sent_at > NOW() - INTERVAL '${interval}';
-    `.trim()
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM current_period) AS current_avg_time,
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM previous_period) AS previous_avg_time,
+
+          (SELECT SUM(COALESCE(volume, 0)) FROM current_period) AS current_volume_usd,
+          (SELECT SUM(COALESCE(volume, 0)) FROM previous_period) AS previous_volume_usd;
+      `.trim()
 
     const result = await this.#db.run(query)
     const rows = await result.getRows()
@@ -177,30 +221,40 @@ export class XcmTransfersRepository {
     const network = criteria.network
 
     const query = `
-      SELECT 
-        COUNT(*) AS current_period_count,
-        (SELECT COUNT(*) FROM xcm_transfers 
+        WITH base AS (
+          SELECT * FROM xcm_transfers
           WHERE (origin = '${network}' OR destination = '${network}')
-          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_period_count,
+            AND sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}')
+        ),
+        current_period AS (
+          SELECT * FROM base
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
+        ),
+        previous_period AS (
+          SELECT * FROM base
+          WHERE sent_at BETWEEN DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}') AND DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
+        )
+        SELECT
+          (SELECT COUNT(*) FROM current_period) AS current_period_count,
+          (SELECT COUNT(*) FROM previous_period) AS previous_period_count,
 
-        COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) AS current_unique_accounts,
-        (SELECT COUNT(DISTINCT from_address) + COUNT(DISTINCT to_address) FROM xcm_transfers 
-          WHERE (origin = '${network}' OR destination = '${network}')
-          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_unique_accounts,
+          (SELECT COUNT(DISTINCT addr) FROM (
+            SELECT from_address AS addr FROM current_period
+            UNION
+            SELECT to_address AS addr FROM current_period
+          )) AS current_unique_accounts,
+          (SELECT COUNT(DISTINCT addr) FROM (
+            SELECT from_address AS addr FROM previous_period
+            UNION
+            SELECT to_address AS addr FROM previous_period
+          )) AS previous_unique_accounts,
 
-        AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS current_avg_time,
-        (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM xcm_transfers 
-          WHERE (origin = '${network}' OR destination = '${network}')
-          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_avg_time,
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM current_period) AS current_avg_time,
+          (SELECT AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) FROM previous_period) AS previous_avg_time,
 
-        SUM(COALESCE(volume, 0)) AS current_volume_usd,
-        (SELECT SUM(COALESCE(volume, 0)) FROM xcm_transfers 
-          WHERE (origin = '${network}' OR destination = '${network}')
-          AND sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}') AS previous_volume_usd
-      FROM xcm_transfers
-      WHERE (origin = '${network}' OR destination = '${network}')
-      AND sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}');
-    `.trim()
+          (SELECT SUM(COALESCE(volume, 0)) FROM current_period) AS current_volume_usd,
+          (SELECT SUM(COALESCE(volume, 0)) FROM previous_period) AS previous_volume_usd;
+      `.trim()
 
     const result = await this.#db.run(query)
     const rows = await result.getRows()
@@ -266,7 +320,7 @@ export class XcmTransfersRepository {
             END AS volume,
             ARRAY_AGG(DISTINCT t.origin) AS origins,
             ARRAY_AGG(DISTINCT t.destination) AS destinations,
-            CASE 
+            CASE
               WHEN COUNT(volume) = 0 THEN NULL
               ELSE SUM(volume)
             END AS volume_usd
@@ -293,7 +347,7 @@ export class XcmTransfersRepository {
           origin,
           destination,
           COUNT(*) AS tx_count,
-          CASE 
+          CASE
             WHEN COUNT(volume) = 0 THEN NULL
             ELSE SUM(volume)
           END AS volume_usd
@@ -563,7 +617,7 @@ export class XcmTransfersRepository {
             t.origin,
             t.destination
           FROM xcm_transfers t
-          WHERE 
+          WHERE
             t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
             AND ('${network}' = t.origin OR '${network}' = t.destination)
         )
@@ -572,11 +626,11 @@ export class XcmTransfersRepository {
           asset,
           ARBITRARY(symbol) AS symbol,
           CASE WHEN COUNT(volume) = 0 THEN NULL ELSE SUM(volume) END AS total_volume_usd,
-          CASE 
+          CASE
             WHEN COUNT(volume) = 0 THEN NULL
             ELSE COALESCE(SUM(volume) FILTER (WHERE destination = '${network}'), 0)
           END AS inflow_usd,
-          CASE 
+          CASE
             WHEN COUNT(volume) = 0 THEN NULL
             ELSE COALESCE(SUM(volume) FILTER (WHERE origin = '${network}'), 0)
           END AS outflow_usd
@@ -596,7 +650,7 @@ export class XcmTransfersRepository {
             SUM(t.amount) FILTER (WHERE t.destination = '${network}') AS inflow_amount,
             SUM(t.amount) FILTER (WHERE t.origin = '${network}') AS outflow_amount
           FROM xcm_transfers t
-          WHERE 
+          WHERE
             t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
             AND ('${network}' = t.origin OR '${network}' = t.destination)
           GROUP BY t.asset, time_range
@@ -630,7 +684,7 @@ export class XcmTransfersRepository {
           COUNT(*) FILTER (WHERE t.destination = '${network}') AS in_tx_count,
           COUNT(*) FILTER (WHERE t.origin = '${network}') AS out_tx_count,
         FROM xcm_transfers t
-        WHERE 
+        WHERE
           t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           AND ('${network}' = t.origin OR '${network}' = t.destination)
 
@@ -695,7 +749,7 @@ export class XcmTransfersRepository {
             t.origin,
             t.destination
           FROM xcm_transfers t
-          WHERE 
+          WHERE
             t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
             AND ('${network}' = t.origin OR '${network}' = t.destination)
         )
@@ -727,7 +781,7 @@ export class XcmTransfersRepository {
           COUNT(*) FILTER (WHERE t.destination = '${network}') AS in_tx_count,
           COUNT(*) FILTER (WHERE t.origin = '${network}') AS out_tx_count
         FROM xcm_transfers t
-        WHERE 
+        WHERE
           t.sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
           AND ('${network}' = t.origin OR '${network}' = t.destination)
           AND t.destination IS NOT NULL
@@ -770,6 +824,106 @@ export class XcmTransfersRepository {
     dataArray.sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
 
     return dataArray
+  }
+
+  async protocolAnalytics(criteria: TimeSelect) {
+    const bucketInterval = criteria.bucket ?? '1 hours'
+    const timeframe = criteria.timeframe
+    const unit = getUnit(bucketInterval)
+
+    const query = `
+      WITH base AS (
+        SELECT
+          origin_protocol AS protocol,
+          correlation_id,
+          from_address,
+          to_address,
+          volume,
+          EXTRACT(EPOCH FROM (recv_at - sent_at)) AS time_spent
+        FROM xcm_transfers
+        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+
+        UNION ALL
+
+        SELECT
+          destination_protocol AS protocol,
+          correlation_id,
+          from_address,
+          to_address,
+          volume,
+          EXTRACT(EPOCH FROM (recv_at - sent_at)) AS time_spent
+        FROM xcm_transfers
+        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+      ),
+
+      deduped AS (
+        SELECT
+          protocol,
+          correlation_id,
+          MAX(COALESCE(volume, 0)) AS volume,
+          AVG(time_spent) AS avg_time_spent,
+          ANY_VALUE(from_address) AS from_address,
+          ANY_VALUE(to_address) AS to_address
+        FROM base
+        GROUP BY protocol, correlation_id
+      )
+
+      SELECT
+        d.protocol,
+        COUNT(*) AS tx_count,
+        (
+          SELECT COUNT(DISTINCT addr)
+          FROM (
+            SELECT from_address AS addr FROM deduped WHERE protocol = d.protocol
+            UNION
+            SELECT to_address AS addr FROM deduped WHERE protocol = d.protocol
+          ) AS all_addresses
+        ) AS unique_accounts,
+        SUM(volume) AS volume_usd,
+        AVG(avg_time_spent) AS avg_time_spent
+      FROM deduped d
+      GROUP BY d.protocol
+      ORDER BY volume_usd DESC;
+    `
+
+    const result = await this.#db.run(query.trim())
+    const rows = await result.getRows()
+
+    const avgXcmTime = await this.averageTimeXcm(criteria)
+
+    return rows.map((row) => {
+      const protocol = row[0] as string
+      return {
+        protocol,
+        count: Number(row[1]),
+        accounts: Number(row[2]),
+        volumeUsd: Number(row[3]),
+        avgTimeSpent: protocol === 'xcm' && avgXcmTime !== null ? avgXcmTime : Number(row[4]),
+      }
+    })
+  }
+
+  /**
+   * Returns the average time in seconds for transfers that start and end on XCM.
+   */
+  async averageTimeXcm(criteria: TimeSelect): Promise<number | null> {
+    const timeframe = safe(criteria.timeframe)
+    const unit = getUnit(criteria.bucket ?? '1 hours')
+
+    const query = `
+      SELECT
+        AVG(EXTRACT(EPOCH FROM (recv_at - sent_at))) AS avg_time
+      FROM xcm_transfers
+      WHERE origin_protocol = 'xcm'
+        AND destination_protocol = 'xcm'
+        AND sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${timeframe}');
+    `.trim()
+
+    const result = await this.#db.run(query)
+    const rows = await result.getRows()
+    const avgTimeSpent = rows[0]?.[0] !== null ? Number(rows[0][0]) : null
+
+    return avgTimeSpent
   }
 
   async transfers(criteria: TimeSelect) {

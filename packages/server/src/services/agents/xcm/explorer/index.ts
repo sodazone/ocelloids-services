@@ -11,7 +11,7 @@ import {
 import { Logger } from '@/services/types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmJourneyType } from '../humanize/types.js'
-import { XcmTracker } from '../tracking.js'
+import { XcmTracker } from '../tracking/index.js'
 import { isXcmHop, isXcmReceived, XcmMessagePayload, XcmTerminusContext } from '../types/index.js'
 import {
   asNewJourneyObject,
@@ -189,8 +189,8 @@ export class XcmExplorer {
             blockNumber: message.origin.blockNumber,
             timestamp: message.origin.timestamp,
             event: message.origin.event,
-            extrinsicHash: message.origin.extrinsicHash,
-            extrinsicPosition: message.origin.extrinsicPosition,
+            extrinsicHash: message.origin.txHash,
+            extrinsicPosition: message.origin.txPosition,
           }
 
           newJourney.stops = asJSON(

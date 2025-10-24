@@ -1,11 +1,9 @@
 import { EventEmitter } from 'node:events'
-
-import { encode } from 'cbor-x'
-import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
-
 import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { encode } from 'cbor-x'
 import { safeDestr } from 'destr'
 import { toHex } from 'polkadot-api/utils'
+import { firstValueFrom, from, map, Observable, Subject, shareReplay } from 'rxjs'
 import {
   getBlockStreamKey,
   getMetadataKey,

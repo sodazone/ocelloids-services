@@ -1,7 +1,4 @@
-import { Blake2128Concat } from '@polkadot-api/substrate-bindings'
-import { fromHex, toHex } from 'polkadot-api/utils'
 import { filter, from, mergeMap, Observable } from 'rxjs'
-import { u64 } from 'scale-ts'
 import { HexString, NetworkURN } from '@/lib.js'
 import { BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { GetOutboundPKBridgeMessages } from '../types/common.js'
@@ -28,10 +25,6 @@ export const pkBridgeConfig: Record<NetworkURN, PkBridgeConfig> = {
     destination: 'urn:ocn:polkadot:1002',
     pallet: 'BridgePolkadotMessages',
   },
-}
-
-function toBridgeKey(lane: HexString, nonce: number | string | bigint): HexString {
-  return toHex(Blake2128Concat(Buffer.concat([fromHex(lane), u64.enc(BigInt(nonce))]))) as HexString
 }
 
 export function extractBridgeMessageAccepted(
@@ -61,14 +54,15 @@ export function extractBridgeMessageAccepted(
                 blockHash: blockEvent.blockHash as HexString,
                 blockNumber: blockEvent.blockNumber,
                 timestamp: blockEvent.timestamp,
-                extrinsicPosition: blockEvent.extrinsicPosition,
-                extrinsicHash: blockEvent.extrinsic?.hash as HexString,
+                txPosition: blockEvent.extrinsic?.blockPosition,
+                txHash: blockEvent.extrinsic?.hash as HexString,
                 messageData,
                 recipient,
                 messageHash: hash,
                 instructions: xcm,
                 messageId: id,
-                bridgeKey: toBridgeKey(lane_id, nonce),
+                channelId: lane_id,
+                nonce: nonce.toString(),
                 chainId: origin,
               })
 
@@ -98,10 +92,11 @@ export function extractBridgeReceive(origin: NetworkURN) {
           inboundMsgs.push(
             new GenericXcmBridgeInboundWithContext({
               chainId: origin,
-              bridgeKey: toBridgeKey(lane, nonce),
+              channelId: lane,
+              nonce: nonce.toString(),
               event,
-              extrinsicPosition: event.extrinsicPosition,
-              extrinsicHash: event.extrinsic?.hash as HexString,
+              txPosition: event.extrinsic?.blockPosition,
+              txHash: event.extrinsic?.hash as HexString,
               blockNumber: event.blockNumber,
               blockHash: event.blockHash as HexString,
               timestamp: event.timestamp,

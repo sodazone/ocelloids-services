@@ -22,6 +22,8 @@ describe('XcmTransfersRepository', async () => {
         amount: BigInt(101010101010n * BigInt(n)),
         symbol: 'UWT',
         decimals: 10,
+        originProtocol: 'xcm',
+        destinationProtocol: 'xcm',
       })
     }
   }
@@ -30,8 +32,8 @@ describe('XcmTransfersRepository', async () => {
     await repository.migrate()
   })
 
-  afterAll(async () => {
-    await repository.close()
+  afterAll(() => {
+    repository.close()
   })
 
   afterEach(async () => {

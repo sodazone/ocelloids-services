@@ -105,7 +105,7 @@ export function xcmMatchingEngineMetrics(source: TelemetryXcmEventEmitter) {
         msg.waypoint.legIndex.toString(),
         msg.waypoint.chainId,
         msg.waypoint.outcome.toString(),
-        msg.bridgeMessageType,
+        msg.bridgeStatus,
       )
       .inc()
   })

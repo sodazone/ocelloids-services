@@ -10,7 +10,7 @@ import { Block, Event } from '@/services/networking/substrate/types.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
-import { Agent, AgentMetadata, AgentRuntimeContext, Subscribable, getAgentCapabilities } from '../types.js'
+import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
 
 export const $OpenGovInputs = z.object({
@@ -351,8 +351,8 @@ export class OpenGov implements Agent, Subscribable {
   }
 
   /** Delete referendum record */
-  async #removeReferendum(chainId: NetworkURN, id: number) {
-    await this.#db.del(`${chainId}:ref:${id}`)
-    this.#log.debug('[%s:%s] Removed referendum %d', this.id, chainId, id)
-  }
+  // async #removeReferendum(chainId: NetworkURN, id: number) {
+  //   await this.#db.del(`${chainId}:ref:${id}`)
+  //   this.#log.debug('[%s:%s] Removed referendum %d', this.id, chainId, id)
+  // }
 }

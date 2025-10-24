@@ -29,6 +29,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1002',
@@ -84,6 +86,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1002',
@@ -250,6 +254,8 @@ describe('XcmHumanizer', () => {
     ]
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1000',
@@ -299,6 +305,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:2030',
@@ -347,6 +355,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.received',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:1000',
@@ -397,6 +407,8 @@ describe('XcmHumanizer', () => {
 
     const results = await humanizer.humanize({
       type: 'xcm.sent',
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:polkadot:2030',
@@ -546,6 +558,8 @@ describe('XcmHumanizer', () => {
     ]
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       type: 'xcm.received',
       legs: [
         {
@@ -599,6 +613,8 @@ describe('XcmHumanizer', () => {
     const instructions = fromXcmpFormat(buf, apiContext)[0].instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:1000',
@@ -627,9 +643,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:1000',
         blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
         blockNumber: '9153185',
-        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        txHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
         timestamp: 1751014380000,
-        extrinsicPosition: 6,
+        txPosition: 6,
         event: {},
         outcome: 'Success',
         error: null,
@@ -643,9 +659,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:1000',
         blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
         blockNumber: '9153185',
-        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        txHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
         timestamp: 1751014380000,
-        extrinsicPosition: 6,
+        txPosition: 6,
         event: {},
         outcome: 'Success',
         error: null,
@@ -700,6 +716,8 @@ describe('XcmHumanizer', () => {
       ],
     }
     const { humanized } = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:1000',
@@ -728,9 +746,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:1000',
         blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
         blockNumber: '9153185',
-        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        txHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
         timestamp: 1751014380000,
-        extrinsicPosition: 6,
+        txPosition: 6,
         event: {},
         outcome: 'Success',
         error: null,
@@ -744,9 +762,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:1000',
         blockHash: '0xd1a8d93e59ee6acf36b1b20e9ab0272024eb69a3726415723d0caaf4498c991a',
         blockNumber: '9153185',
-        extrinsicHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
+        txHash: '0x94ff2de94539cb2f074414d590129c6b413543235f18f2ed05419552d1692c32',
         timestamp: 1751014380000,
-        extrinsicPosition: 6,
+        txPosition: 6,
         event: {},
         outcome: 'Success',
         error: null,
@@ -769,6 +787,8 @@ describe('XcmHumanizer', () => {
     const instructions = asVersionedXcm(buf, apiContext).instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
@@ -798,9 +818,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:0',
         blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
         blockNumber: '26879273',
-        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        txHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
         timestamp: 1752521214000,
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         event: {},
         outcome: 'Success',
         error: null,
@@ -814,9 +834,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:0',
         blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
         blockNumber: '26879273',
-        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        txHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
         timestamp: 1752521214000,
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         event: {},
         outcome: 'Success',
         error: null,
@@ -846,6 +866,8 @@ describe('XcmHumanizer', () => {
     const instructions = asVersionedXcm(buf, apiContext).instructions
 
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
@@ -873,14 +895,14 @@ describe('XcmHumanizer', () => {
       type: 'xcm.sent',
       waypoint: {
         chainId: 'urn:ocn:local:1000',
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         blockNumber: '9276853',
         blockHash: '0xe87831f4abe5bf52a019eb0bb529092c767feb7cc91869c0b42f20618722e85e',
         timestamp: 1752521220000,
         messageHash: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
         messageData: undefined,
         messageId: '0xd5cd1e906668cbc0c1556fd1450310a6d9f71d593b1a3ae5a3a9c5cae8bde243',
-        extrinsicHash: undefined,
+        txHash: undefined,
         outcome: 'Success',
         instructions,
         assetsTrapped: {
@@ -930,9 +952,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:0',
         blockHash: '0xe0e851d496e7c65cd6b746de23b8735292a36795c537f609124c60a638c70ef3',
         blockNumber: '26879273',
-        extrinsicHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
+        txHash: '0x1e6f1ec471a4fb8ba3331501ae85a30de58939281542948930b44a1b4b9d49b7',
         timestamp: 1752521214000,
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         event: {},
         outcome: 'Success',
         error: null,
@@ -961,6 +983,8 @@ describe('XcmHumanizer', () => {
     const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
     const instructions = asVersionedXcm(buf, apiContext).instructions
     const results = await humanizer.humanize({
+      originProtocol: 'xcm',
+      destinationProtocol: 'xcm',
       legs: [
         {
           from: 'urn:ocn:local:0',
@@ -983,9 +1007,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:0',
         blockHash: '0xe2953a3d353b1de2128451b584754737808c4e285c0cab83658a137581b92a1c',
         blockNumber: '26875503',
-        extrinsicHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
+        txHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
         timestamp: 1752498492001,
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         event: {},
         outcome: 'Success',
         error: null,
@@ -999,9 +1023,9 @@ describe('XcmHumanizer', () => {
         chainId: 'urn:ocn:local:0',
         blockHash: '0xe2953a3d353b1de2128451b584754737808c4e285c0cab83658a137581b92a1c',
         blockNumber: '26875503',
-        extrinsicHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
+        txHash: '0x5c6ad39d2589037e92089c44fb1d367bcec4089df27553228a14d487c845b158',
         timestamp: 1752498492001,
-        extrinsicPosition: undefined,
+        txPosition: undefined,
         event: {},
         outcome: 'Success',
         error: null,

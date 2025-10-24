@@ -1,8 +1,8 @@
+import { Observable, Subject } from 'rxjs'
 import { ClientId, ServiceConfiguration } from '@/services/config.js'
 import { Logger, NetworkURN } from '@/services/index.js'
 import Connector from '@/services/networking/connector.js'
 import { ApiClient, ApiOps, NeutralHeader } from '@/services/networking/types.js'
-import { Observable, Subject } from 'rxjs'
 
 /**
  * InjectableConnector — test double for Connector
