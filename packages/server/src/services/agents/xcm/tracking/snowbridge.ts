@@ -1,3 +1,4 @@
+import { catchError, EMPTY } from 'rxjs'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
@@ -82,15 +83,16 @@ export class SnowbridgeTracker {
           id: evmChain,
           sub: this.#ingress.evm
             .finalizedBlocks(evmChain)
-            .pipe(extractSnowbridgeEvmInbound(evmChain, contractAddress))
-            .subscribe({
-              error: (error: any) => {
-                this.#log.error(error, '[%s] %s error on snowbridge inbound EVM stream', this.#id, evmChain)
+            .pipe(
+              extractSnowbridgeEvmInbound(evmChain, contractAddress),
+              catchError((err) => {
+                this.#log.error(err, '[%s] %s error on snowbridge inbound EVM stream', this.#id, evmChain)
                 // this.#telemetry.emit()
-              },
-              next: (msg) => {
-                this.#engine.onBridgeInbound(msg)
-              },
+                return EMPTY
+              }),
+            )
+            .subscribe((msg) => {
+              this.#engine.onBridgeInbound(msg)
             }),
         })
       }
@@ -100,20 +102,21 @@ export class SnowbridgeTracker {
           id: substrateChain,
           sub: this.#shared
             .blockEvents(substrateChain)
-            .pipe(extractSnowbridgeSubstrateInbound(substrateChain))
-            .subscribe({
-              error: (error: any) => {
+            .pipe(
+              extractSnowbridgeSubstrateInbound(substrateChain),
+              catchError((err) => {
                 this.#log.error(
-                  error,
+                  err,
                   '[%s] %s error on snowbridge inbound Substrate stream',
                   this.#id,
                   substrateChain,
                 )
                 // this.#telemetry.emit()
-              },
-              next: (msg) => {
-                this.#engine.onBridgeInbound(msg)
-              },
+                return EMPTY
+              }),
+            )
+            .subscribe((msg) => {
+              this.#engine.onBridgeInbound(msg)
             }),
         })
       }
@@ -150,16 +153,19 @@ export class SnowbridgeTracker {
           id: evmChain,
           sub: this.#ingress.evm
             .finalizedBlocks(evmChain)
-            .pipe(extractSnowbridgeEvmOutbound(evmChain, contractAddress), mapOutboundToXcmBridge())
-            .subscribe({
-              error: (error: any) => {
-                this.#log.error(error, '[%s] %s error on origin stream', this.#id, evmChain)
-              },
-              next: (msg) => {
-                if (this.#canBeMatched(msg.destination.chainId)) {
-                  this.#engine.onSnowbridgeOriginOutbound(msg)
-                }
-              },
+            .pipe(
+              extractSnowbridgeEvmOutbound(evmChain, contractAddress),
+              mapOutboundToXcmBridge(),
+              catchError((err) => {
+                this.#log.error(err, '[%s] %s error on origin stream', this.#id, evmChain)
+                // this.#telemetry.emit()
+                return EMPTY
+              }),
+            )
+            .subscribe((msg) => {
+              if (this.#canBeMatched(msg.destination.chainId)) {
+                this.#engine.onSnowbridgeOriginOutbound(msg)
+              }
             }),
         })
       }
@@ -169,20 +175,21 @@ export class SnowbridgeTracker {
           id: substrateChain,
           sub: this.#shared
             .blockEvents(substrateChain)
-            .pipe(extractSnowbridgeSubstrateOutbound(substrateChain))
-            .subscribe({
-              error: (error: any) => {
+            .pipe(
+              extractSnowbridgeSubstrateOutbound(substrateChain),
+              catchError((err) => {
                 this.#log.error(
-                  error,
+                  err,
                   '[%s] %s error on snowbridge inbound Substrate stream',
                   this.#id,
                   substrateChain,
                 )
                 // this.#telemetry.emit()
-              },
-              next: (msg) => {
-                this.#engine.onSnowbridgeBridgehubAccepted(msg)
-              },
+                return EMPTY
+              }),
+            )
+            .subscribe((msg) => {
+              this.#engine.onSnowbridgeBridgehubAccepted(msg)
             }),
         })
       }
