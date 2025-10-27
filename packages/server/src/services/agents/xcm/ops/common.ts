@@ -184,8 +184,6 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.relay = createNetworkId(to, '0')
         leg.type = 'hrmp'
       }
-    } else {
-      throw new Error(`Unknown leg type for origin=${from} destination=${to}`)
     }
 
     legs.push(leg)

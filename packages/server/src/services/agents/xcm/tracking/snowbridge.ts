@@ -87,7 +87,6 @@ export class SnowbridgeTracker {
               extractSnowbridgeEvmInbound(evmChain, contractAddress),
               catchError((err) => {
                 this.#log.error(err, '[%s] %s error on snowbridge inbound EVM stream', this.#id, evmChain)
-                // this.#telemetry.emit()
                 return EMPTY
               }),
             )
@@ -111,7 +110,6 @@ export class SnowbridgeTracker {
                   this.#id,
                   substrateChain,
                 )
-                // this.#telemetry.emit()
                 return EMPTY
               }),
             )
@@ -158,7 +156,6 @@ export class SnowbridgeTracker {
               mapOutboundToXcmBridge(),
               catchError((err) => {
                 this.#log.error(err, '[%s] %s error on origin stream', this.#id, evmChain)
-                // this.#telemetry.emit()
                 return EMPTY
               }),
             )
@@ -184,7 +181,6 @@ export class SnowbridgeTracker {
                   this.#id,
                   substrateChain,
                 )
-                // this.#telemetry.emit()
                 return EMPTY
               }),
             )
