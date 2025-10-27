@@ -435,8 +435,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
         this.#onXcmBridgeMatched(bridgeOutMsg, bridgeInMsg)
         if (isLastLeg(bridgeOutMsg.waypoint.chainId, chainId, bridgeOutMsg.legs)) {
+          const bridgeOutAsXcmSent = mapXcmBridgeToXcmSent(bridgeOutMsg)
+          await this.#deleteMatchedKeys(bridgeOutAsXcmSent)
           this.#onXcmMatched(
-            mapXcmBridgeToXcmSent(bridgeOutMsg),
+            bridgeOutAsXcmSent,
             mapXcmBridgeInboundToXcmInbound(bridgeInMsg, bridgeOutMsg.waypoint.messageHash),
           )
         }
@@ -691,7 +693,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     const batch = this.#outbound.batch()
     for (const leg of originMsg.legs) {
       const stop = leg.to
-      batch.del(matchingKey(stop, originMsg.waypoint.messageHash))
+      batch.del(matchingKey(stop, originMsg.origin.messageHash))
       if (originMsg.messageId) {
         batch.del(matchingKey(stop, originMsg.messageId))
       }
@@ -885,7 +887,6 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         key: bridgeIdKey,
         expiry: expiry ?? this.#expiry,
       })
-      return
     }
 
     if (leg.type === 'hop') {
