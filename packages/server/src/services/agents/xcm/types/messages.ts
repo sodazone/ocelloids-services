@@ -125,6 +125,9 @@ export interface SnowbridgeMessageAccepted {
   txHash?: HexString
 }
 
+/**
+ * @public
+ */
 export type SnowbridgeOutboundAsset = {
   chainId: NetworkURN
   id: HexString
