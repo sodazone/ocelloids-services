@@ -10,9 +10,14 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['1:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v']: {
+  ['1:epjfwedd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
     symbol: 'USDC',
     decimals: 6,
+    isNative: false,
+  },
+  ['1:j1toso1uck3rlmjorhttrvwy9hj7x8v9yyac6y7kgcpn']: {
+    symbol: 'JitoSOL',
+    decimals: 9,
     isNative: false,
   },
   ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
@@ -65,7 +70,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
-  ['30:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913']: {
+  ['30:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913']: {
     symbol: 'USDC',
     decimals: 6,
     isNative: false,
