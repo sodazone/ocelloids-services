@@ -74,14 +74,14 @@ export class XcmTracker {
     if (this.#archive !== undefined) {
       this.#log.info('[%s] Tracking historical events', this.#id)
 
-      // this.xcm$.subscribe(async (_message) => {
-      // await this.#archive?.insertLogs({
-      //   network: message.waypoint.chainId,
-      //   agent: 'xcm',
-      //   block_number: Number(message.waypoint.blockNumber),
-      //   payload: JSON.stringify(message),
-      // })
-      // })
+      this.xcm$.subscribe(async (message) => {
+        await this.#archive?.insertLogs({
+          network: message.waypoint.chainId,
+          agent: 'xcm',
+          block_number: Number(message.waypoint.blockNumber),
+          payload: JSON.stringify(message),
+        })
+      })
 
       if (this.#retentionOpts?.enabled) {
         const { policy } = this.#retentionOpts
