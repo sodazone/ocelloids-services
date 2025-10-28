@@ -282,6 +282,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     externalIds: [],
   },
   {
+    chainId: 'urn:ocn:ethereum:1',
+    id: '0x769916A66fDAC0E3D57363129caac59386ea622B',
+    xid: '0x769916A66fDAC0E3D57363129caac59386ea622B',
+    name: 'Integritee TEER',
+    symbol: 'TEER',
+    decimals: 12,
+    raw: {},
+    externalIds: [],
+  },
+  {
     chainId: 'urn:ocn:polkadot:2004',
     id: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
     xid: '0xab3f0245B83feB11d15AAffeFD7AD465a59817eD',
