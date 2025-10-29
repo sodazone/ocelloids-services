@@ -71,7 +71,7 @@ const CG_ID_MAP: Record<string, string> = {
   SUI: 'sui',
   PAXG: 'pax-gold',
   ENA: 'ethena',
-  TEER: 'integritee'
+  TEER: 'integritee',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'

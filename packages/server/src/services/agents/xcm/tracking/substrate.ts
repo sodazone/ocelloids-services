@@ -422,7 +422,7 @@ export class SubstrateXcmTracker {
               ),
             )
             .subscribe({
-              next: (message) => this.#engine.onBridgeOutboundAccepted(message),
+              next: (message) => this.#engine.onPkBridgeOutboundAccepted(message),
               error: pkBridgeErrorHandler,
             }),
         })

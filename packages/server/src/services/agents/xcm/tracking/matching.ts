@@ -41,7 +41,7 @@ import {
 
 const MAX_MATCH_RETRIES = 5
 const DEFAULT_TIMEOUT = 10 * 60_000
-const BRIDGE_TIMEOUT = 8 * 60 * 60_000
+const BRIDGE_TIMEOUT = 4 * 60 * 60_000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 
@@ -328,7 +328,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     })
   }
 
-  async onBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
+  async onPkBridgeOutboundAccepted(msg: XcmBridgeAcceptedWithContext) {
     await this.#mutex.runExclusive(async () => {
       const { chainId, messageId, channelId, nonce } = msg
       const bridgeKey = toBridgeKey(channelId, nonce)
@@ -378,7 +378,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           bridgeStatus: 'accepted',
           channelId,
           nonce,
-          bridgeName: 'pk-bridge',
+          bridgeName: 'pkbridge',
         })
         await this.#bridge.del(idKey)
         await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)

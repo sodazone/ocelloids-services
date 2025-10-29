@@ -692,7 +692,7 @@ export type BridgeStatus = 'accepted' | 'received'
 /**
  * @public
  */
-export type BridgeName = 'pk-bridge' | 'snowbridge'
+export type BridgeName = 'pkbridge' | 'snowbridge'
 
 /**
  * Event emitted when an XCM is sent or received over a bridge.

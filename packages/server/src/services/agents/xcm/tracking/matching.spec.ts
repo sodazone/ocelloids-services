@@ -385,7 +385,7 @@ describe('message matching engine', () => {
       kusamaToPolkadotBridgeMessages
 
     await engine.onOutboundMessage(sent)
-    await engine.onBridgeOutboundAccepted(bridgeAccepted)
+    await engine.onPkBridgeOutboundAccepted(bridgeAccepted)
     await engine.onInboundMessage(bridgeXcmIn)
 
     await engine.onOutboundMessage(bridgeXcmOut)
