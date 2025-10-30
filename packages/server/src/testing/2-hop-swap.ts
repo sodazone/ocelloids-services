@@ -2,6 +2,8 @@ import { XcmSent } from '@/services/agents/xcm/lib.js'
 import { XcmInbound } from '@/services/agents/xcm/types/messages.js'
 
 const sent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:0',
@@ -39,9 +41,9 @@ const sent: XcmSent = {
     chainId: 'urn:ocn:local:0',
     blockHash: '0x14420598aaf4cf60b7c2382d8336b6fde76c9066afe3a11993ff843d516ff236',
     blockNumber: '26878097',
-    extrinsicHash: '0xe374935231b87070046722667b4e2e8d42489e66739982a8627abc2424bbf9f0',
+    txHash: '0xe374935231b87070046722667b4e2e8d42489e66739982a8627abc2424bbf9f0',
     timestamp: 1752514128000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -55,9 +57,9 @@ const sent: XcmSent = {
     chainId: 'urn:ocn:local:0',
     blockHash: '0x14420598aaf4cf60b7c2382d8336b6fde76c9066afe3a11993ff843d516ff236',
     blockNumber: '26878097',
-    extrinsicHash: '0xe374935231b87070046722667b4e2e8d42489e66739982a8627abc2424bbf9f0',
+    txHash: '0xe374935231b87070046722667b4e2e8d42489e66739982a8627abc2424bbf9f0',
     timestamp: 1752514128000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -72,14 +74,14 @@ const sent: XcmSent = {
 const hopIn2034: XcmInbound = {
   chainId: 'urn:ocn:local:2034',
   event: {},
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '8339191',
   blockHash: '0x8c740043151df2a82881ae5e9c9a11c1df8fed7bdaf9d1fce047e77a4e49c8f8',
   timestamp: 1752514134000,
   messageHash: '0x7b234b757a973d3ffcfeca9e1a077e2c83dca86667c4d375b4eac52ab108d60c',
   messageData: undefined,
   messageId: '0x7b234b757a973d3ffcfeca9e1a077e2c83dca86667c4d375b4eac52ab108d60c',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   error: undefined,
   assetsTrapped: {
@@ -97,6 +99,8 @@ const hopIn2034: XcmInbound = {
 }
 
 const hopOut2034: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:2034',
@@ -121,9 +125,9 @@ const hopOut2034: XcmSent = {
     chainId: 'urn:ocn:local:2034',
     blockHash: '0x8c740043151df2a82881ae5e9c9a11c1df8fed7bdaf9d1fce047e77a4e49c8f8',
     blockNumber: '8339191',
-    extrinsicHash: undefined,
+    txHash: undefined,
     timestamp: 1752514134000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -137,9 +141,9 @@ const hopOut2034: XcmSent = {
     chainId: 'urn:ocn:local:2034',
     blockHash: '0x8c740043151df2a82881ae5e9c9a11c1df8fed7bdaf9d1fce047e77a4e49c8f8',
     blockNumber: '8339191',
-    extrinsicHash: undefined,
+    txHash: undefined,
     timestamp: 1752514134000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -154,14 +158,14 @@ const hopOut2034: XcmSent = {
 const hopIn1000: XcmInbound = {
   chainId: 'urn:ocn:local:1000',
   event: {},
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '9276283',
   blockHash: '0x7a5ce5c4326895c19260014fecc4b6dc704c9525253152fc90ce056b7186f145',
   timestamp: 1752514158000,
   messageHash: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
   messageData: undefined,
   messageId: '0x3378f662306c8af91d26794551182b55e76504431c89e3584139af0f728b6477',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   error: undefined,
   assetsTrapped: undefined,
@@ -169,6 +173,8 @@ const hopIn1000: XcmInbound = {
 }
 
 const hopOut1000: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:local:1000',
@@ -185,9 +191,9 @@ const hopOut1000: XcmSent = {
     chainId: 'urn:ocn:local:1000',
     blockHash: '0x7a5ce5c4326895c19260014fecc4b6dc704c9525253152fc90ce056b7186f145',
     blockNumber: '9276283',
-    extrinsicHash: undefined,
+    txHash: undefined,
     timestamp: 1752514158000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -201,9 +207,9 @@ const hopOut1000: XcmSent = {
     chainId: 'urn:ocn:local:1000',
     blockHash: '0x7a5ce5c4326895c19260014fecc4b6dc704c9525253152fc90ce056b7186f145',
     blockNumber: '9276283',
-    extrinsicHash: undefined,
+    txHash: undefined,
     timestamp: 1752514158000,
-    extrinsicPosition: undefined,
+    txPosition: undefined,
     event: {},
     outcome: 'Success',
     error: null,
@@ -218,14 +224,14 @@ const hopOut1000: XcmSent = {
 const received: XcmInbound = {
   chainId: 'urn:ocn:local:2006',
   event: {},
-  extrinsicPosition: undefined,
+  txPosition: undefined,
   blockNumber: '9344923',
   blockHash: '0x4095f33fcec4fed812a6e47cd75b6b52b85e8137426ffc0cf5d381749f21f92b',
   timestamp: 1752514182000,
   messageHash: '0xa6a9047ac211d27c2ed28b65e9db76e1dc76266feeabd2b2ee0f46e6bf485648',
   messageData: undefined,
   messageId: '0xa6a9047ac211d27c2ed28b65e9db76e1dc76266feeabd2b2ee0f46e6bf485648',
-  extrinsicHash: undefined,
+  txHash: undefined,
   outcome: 'Success',
   error: undefined,
   assetsTrapped: undefined,

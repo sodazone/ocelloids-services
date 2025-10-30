@@ -1,6 +1,8 @@
 import { XcmInbound, XcmRelayedWithContext, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const hydraSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2034',
@@ -30,9 +32,9 @@ const hydraSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2034',
     blockHash: '0x41b84a4b9121373df323648b5b2ac59e82828eea6b8f5d0ff4fae4d9290ca086',
     blockNumber: '6783730',
-    extrinsicHash: '0x54dec578372374b8417738861dfe1ea4185be3e3b6a0183d7c8da4ca69a2e1e6',
+    txHash: '0x54dec578372374b8417738861dfe1ea4185be3e3b6a0183d7c8da4ca69a2e1e6',
     timestamp: 1737032856000,
-    extrinsicPosition: 4,
+    txPosition: 4,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -54,9 +56,9 @@ const hydraSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2034',
     blockHash: '0x41b84a4b9121373df323648b5b2ac59e82828eea6b8f5d0ff4fae4d9290ca086',
     blockNumber: '6783730',
-    extrinsicHash: '0x54dec578372374b8417738861dfe1ea4185be3e3b6a0183d7c8da4ca69a2e1e6',
+    txHash: '0x54dec578372374b8417738861dfe1ea4185be3e3b6a0183d7c8da4ca69a2e1e6',
     timestamp: 1737032856000,
-    extrinsicPosition: 4,
+    txPosition: 4,
     event: {
       module: 'XcmpQueue',
       name: 'XcmpMessageSent',
@@ -99,6 +101,8 @@ const astarHopIn: XcmInbound = {
 }
 
 const astarHopOut: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2006',
@@ -176,7 +180,7 @@ const bifrostReceive: XcmInbound = {
 }
 
 const polkadotRelay0: XcmRelayedWithContext = {
-  extrinsicPosition: 1,
+  txPosition: 1,
   blockNumber: '24312899',
   blockHash: '0x884851a792d29c200fb87cf7a5f7a9fe6dee11e7caa51293e382d559830908e5',
   timestamp: 1737032862000,
@@ -190,7 +194,7 @@ const polkadotRelay0: XcmRelayedWithContext = {
 }
 
 const polkadotRelay1: XcmRelayedWithContext = {
-  extrinsicPosition: 1,
+  txPosition: 1,
   blockNumber: '24312901',
   blockHash: '0x3456e14150f4bdc2ba1161295cea79ec694ef06d2299812f35af04587029ed06',
   timestamp: 1737032874000,

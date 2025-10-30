@@ -81,6 +81,10 @@ export const $XcmQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('transfers_channels_series.by_network.tx'),
     criteria: $TimeAndNetworkSelect,
   }),
+  z.object({
+    op: z.literal('transfers_by_protocol'),
+    criteria: $TimeSelect,
+  }),
 ])
 
 export type XcmQueryArgs = z.infer<typeof $XcmQueryArgs>

@@ -1,6 +1,8 @@
 import { XcmInbound, XcmSent } from '@/services/agents/xcm/types/index.js'
 
 const bifrostSent: XcmSent = {
+  originProtocol: 'xcm',
+  destinationProtocol: 'xcm',
   legs: [
     {
       from: 'urn:ocn:polkadot:2030',
@@ -28,9 +30,9 @@ const bifrostSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2030',
     blockHash: '0x9afe5190c7d71f41e47545c54033867704e2c386064e8130c4358d96d2a78c68',
     blockNumber: '6352238',
-    extrinsicHash: '0x2c3dd105aeb7e56d57e4ba4f4580c7d1c6a96778fe419cf7ddcd106e7b91fdd0',
+    txHash: '0x2c3dd105aeb7e56d57e4ba4f4580c7d1c6a96778fe419cf7ddcd106e7b91fdd0',
     timestamp: 1737030894000,
-    extrinsicPosition: 2,
+    txPosition: 2,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
@@ -52,9 +54,9 @@ const bifrostSent: XcmSent = {
     chainId: 'urn:ocn:polkadot:2030',
     blockHash: '0x9afe5190c7d71f41e47545c54033867704e2c386064e8130c4358d96d2a78c68',
     blockNumber: '6352238',
-    extrinsicHash: '0x2c3dd105aeb7e56d57e4ba4f4580c7d1c6a96778fe419cf7ddcd106e7b91fdd0',
+    txHash: '0x2c3dd105aeb7e56d57e4ba4f4580c7d1c6a96778fe419cf7ddcd106e7b91fdd0',
     timestamp: 1737030894000,
-    extrinsicPosition: 2,
+    txPosition: 2,
     event: {
       module: 'ParachainSystem',
       name: 'UpwardMessageSent',
