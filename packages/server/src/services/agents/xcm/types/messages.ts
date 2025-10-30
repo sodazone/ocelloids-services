@@ -17,6 +17,10 @@ export type XcmWithContext = {
   messageId?: HexString
   messageData?: HexString
   txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
+  extrinsicHash?: HexString
 }
 
 /**
@@ -159,6 +163,10 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   messageData?: HexString
   messageId: HexString
   txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
+  extrinsicHash?: HexString
 
   constructor(msg: XcmWithContext) {
     this.event = msg.event
@@ -171,6 +179,7 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
     this.specVersion = msg.specVersion
     this.txPosition = msg.txPosition
     this.txHash = msg.txHash
+    this.extrinsicHash = msg.txHash
   }
 }
 
@@ -185,6 +194,10 @@ abstract class BaseXcmEvent {
   timestamp?: number
   txPosition?: number
   txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
+  extrinsicHash?: HexString
 
   constructor(msg: XcmWithContext) {
     this.event = msg.event
@@ -197,6 +210,7 @@ abstract class BaseXcmEvent {
     this.timestamp = msg.timestamp
     this.txPosition = msg.txPosition
     this.txHash = msg.txHash
+    this.extrinsicHash = msg.txHash
   }
 }
 
@@ -564,6 +578,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
       txHash: msg.txHash,
+      extrinsicHash: msg.txHash,
       specVersion: msg.specVersion,
       timestamp: msg.timestamp,
       txPosition: msg.txPosition,
@@ -617,6 +632,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       specVersion: inMsg.specVersion,
       timestamp: inMsg.timestamp,
       txHash: inMsg.txHash,
+      extrinsicHash: inMsg.txHash,
       txPosition: inMsg.txPosition,
       event: inMsg.event,
       outcome: inMsg.outcome,
@@ -657,6 +673,7 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
       specVersion: relayMsg.specVersion,
       timestamp: relayMsg.timestamp,
       txHash: relayMsg.txHash,
+      extrinsicHash: relayMsg.txHash,
       txPosition: relayMsg.txPosition,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
@@ -705,10 +722,6 @@ export interface XcmBridge extends XcmJourney {
   bridgeStatus: BridgeStatus
   bridgeName: BridgeName
   channelId?: HexString
-  partialHumanized?: {
-    beneficiary: HexString
-    asset: SnowbridgeOutboundAsset
-  }
 }
 
 type XcmBridgeContext = {
