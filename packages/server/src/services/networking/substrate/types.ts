@@ -10,6 +10,7 @@ import type { BlockInfo as PapiBlockInfo } from 'polkadot-api'
 import type { HexString } from '@/lib.js'
 
 import { ApiClient, BlockStatus } from '../types.js'
+import { RpcApi } from './rpc.js'
 
 export type StorageCodec<T = any> = {
   keys: {
@@ -165,6 +166,7 @@ export interface SubstrateApi extends ApiClient {
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
+  rpc: RpcApi
   ctx(specVersion?: number): Promise<SubstrateApiContext>
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{

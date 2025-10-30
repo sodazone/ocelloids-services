@@ -12,6 +12,19 @@ export function createRpcApi(
   chainId: string,
   request: <Reply = any, Params extends Array<any> = any[]>(method: string, params: Params) => Promise<Reply>,
 ) {
+  async function rawRequest<Reply = any, Params extends Array<any> = any[]>(
+    method: string,
+    params: Params,
+  ): Promise<Reply> {
+    try {
+      return await request(method, params)
+    } catch (error) {
+      throw new Error(`[client:${chainId}] Failed to execute raw request for method ${method}.`, {
+        cause: error,
+      })
+    }
+  }
+
   async function getChainSpecData() {
     try {
       const [name, genesisHash, properties] = await Promise.all([
@@ -204,5 +217,6 @@ export function createRpcApi(
     getMetadataFromState,
     queryStorageAt,
     runtimeCall,
+    rawRequest,
   }
 }

@@ -1,11 +1,9 @@
 import { EventEmitter } from 'node:events'
-
-import { encode } from 'cbor-x'
-import { Observable, Subject, firstValueFrom, from, map, shareReplay } from 'rxjs'
-
 import { Twox128 } from '@polkadot-api/substrate-bindings'
+import { encode } from 'cbor-x'
 import { safeDestr } from 'destr'
 import { toHex } from 'polkadot-api/utils'
+import { firstValueFrom, from, map, Observable, Subject, shareReplay } from 'rxjs'
 import {
   getBlockStreamKey,
   getMetadataKey,
@@ -93,7 +91,7 @@ export class SubstrateDistributedConsumer
   async stop() {
     this.#log.info('[distributor] stop')
 
-    await this.#distributor.stop()
+    this.#distributor.stop()
   }
 
   newBlocks(_chainId: NetworkURN): Observable<Block> {
@@ -194,6 +192,14 @@ export class SubstrateDistributedConsumer
     _opts: { api: string; method: string; at?: string },
     _args: any[],
   ): Promise<T | null> {
+    throw new Error('Method not implemented.')
+  }
+
+  async rpcCall<Reply = any, Params extends Array<any> = any[]>(
+    _chainId: NetworkURN,
+    _method: string,
+    _params: Params,
+  ): Promise<Reply> {
     throw new Error('Method not implemented.')
   }
 
