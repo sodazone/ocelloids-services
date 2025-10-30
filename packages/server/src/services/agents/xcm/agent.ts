@@ -35,7 +35,7 @@ import {
   notificationTypeCriteria,
   sendersCriteria,
 } from './ops/criteria.js'
-import { XcmTracker } from './tracking.js'
+import { XcmTracker } from './tracking/index.js'
 import {
   $XcmInputs,
   $XcmQueryArgs,

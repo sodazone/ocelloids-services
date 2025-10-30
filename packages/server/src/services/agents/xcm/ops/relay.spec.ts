@@ -29,7 +29,7 @@ describe('relay operator', () => {
             expect(msg.messageData).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.recipient).toBe(destination)
-            expect(msg.extrinsicPosition).toBeDefined()
+            expect(msg.txPosition).toBeDefined()
             expect(msg.outcome).toBeDefined()
             expect(msg.outcome).toBe('Success')
             expect(msg.error).toBeUndefined()

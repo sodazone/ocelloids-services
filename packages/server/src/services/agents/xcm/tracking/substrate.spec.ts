@@ -4,11 +4,11 @@ import { NetworkURN } from '@/lib.js'
 import { extractEvents, extractTxWithEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom } from '@/testing/blocks.js'
 import { apiContext } from '@/testing/xcm.js'
-import { mapXcmSent } from './ops/common.js'
-import { extractDmpSendByEvent, extractDmpSendByTx } from './ops/dmp.js'
-import { extractUmpSend } from './ops/ump.js'
-import { extractXcmpSend } from './ops/xcmp.js'
-import { extractXcmMessageData } from './tracking.js'
+import { mapXcmSent } from '../ops/common.js'
+import { extractDmpSendByEvent, extractDmpSendByTx } from '../ops/dmp.js'
+import { extractUmpSend } from '../ops/ump.js'
+import { extractXcmpSend } from '../ops/xcmp.js'
+import { extractXcmMessageData } from './substrate.js'
 
 describe('extractXcmMessageData', () => {
   it('should extract xcm messages from dmp and hrmp', async () => {

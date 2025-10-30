@@ -47,7 +47,7 @@ const $NetworkProvider = $RpcProvider
 
 const networkIdRegex = new RegExp(`^urn:ocn:(${globalConsensus.join('|')}):([a-zA-Z0-9]+)$`)
 
-export const $ClientId = z.enum(['substrate', 'bitcoin'])
+export const $ClientId = z.enum(['substrate', 'bitcoin', 'evm'])
 
 /**
  * The network ID is a URN with the following format: `urn:ocn:<GlobalConsensus>:<ChainId>`.
@@ -105,7 +105,7 @@ export class ServiceConfiguration {
       bitcoin,
       evm,
     }
-    this.all = substrate.concat(bitcoin)
+    this.all = substrate.concat(bitcoin).concat(evm)
   }
 
   get substrate() {

@@ -50,7 +50,7 @@ describe('xcm agent', () => {
     const xcmAgent = agentService.getAgentById<XcmAgent>('xcm')
     const chainId = 'urn:ocn:local:6001'
 
-    await expect(() => {
+    expect(() => {
       xcmAgent.subscribe({
         ...testSub,
         args: {
