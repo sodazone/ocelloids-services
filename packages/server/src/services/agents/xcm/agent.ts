@@ -115,7 +115,7 @@ export class XcmAgent implements Agent, Subscribable, Queryable {
       this.#log.error(error, '[agent:%s] could not start analytics', this.id)
     }
 
-    if (deps.crosschain && 'explorer' in this.#config && this.#config['explorer']) {
+    if (deps.crosschain && this.#config.explorer !== false) {
       this.#explorer = new XcmExplorer({
         log: ctx.log,
         humanizer: this.#humanizer,
