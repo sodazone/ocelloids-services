@@ -1,6 +1,8 @@
 import { DuckDBInstance } from '@duckdb/node-api'
+import { Twox256 } from '@polkadot-api/substrate-bindings'
+import { toHex } from 'polkadot-api/utils'
 import { filter, mergeMap, Subscription } from 'rxjs'
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, stringToUa8 } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
 import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
@@ -178,7 +180,13 @@ export class XcmAnalytics {
         originProtocol,
         destinationProtocol,
         destination: destination.chainId,
-        correlationId: messageId ?? origin.messageHash,
+        correlationId: toHex(
+          Twox256(
+            stringToUa8(
+              `${messageId ?? origin.messageHash}${origin.chainId}${origin.blockNumber}${destination.chainId}`,
+            ),
+          ),
+        ),
       })
     }
 
