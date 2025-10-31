@@ -158,7 +158,7 @@ export class XcmTransfersRepository {
         current_period AS (
           SELECT *
           FROM base
-          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}')
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
         ),
         previous_period AS (
           SELECT *
