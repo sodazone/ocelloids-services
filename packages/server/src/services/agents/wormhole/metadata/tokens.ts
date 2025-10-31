@@ -10,7 +10,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['1:epjfwedd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
+  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
     symbol: 'USDC',
     decimals: 6,
     isNative: false,
@@ -27,6 +27,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   },
   ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
     symbol: 'WELL',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0x3405a1bd46b85c5c029483fbecf2f3e611026e45']: {
+    symbol: 'MATIC',
     decimals: 18,
     isNative: false,
   },
@@ -58,6 +63,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['2:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48']: {
     symbol: 'USDC',
     decimals: 6,
+    isNative: false,
+  },
+  ['2:0x6b175474e89094c44da98b954eedeac495271d0f']: {
+    symbol: 'DAI',
+    decimals: 18,
     isNative: false,
   },
   ['4:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']: {
