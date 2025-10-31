@@ -149,20 +149,21 @@ export class XcmTransfersRepository {
     }
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
+    const unit = getUnit(criteria.bucket ?? '1 hours')
     const query = `
         WITH base AS (
           SELECT * FROM xcm_transfers
-          WHERE sent_at >= NOW() - INTERVAL '${intervalMax}'
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}')
         ),
         current_period AS (
           SELECT *
           FROM base
-          WHERE sent_at > NOW() - INTERVAL '${interval}'
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}')
         ),
         previous_period AS (
           SELECT *
           FROM base
-          WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}'
+          WHERE sent_at BETWEEN DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}') AND DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
         )
         SELECT
           (SELECT COUNT(*) FROM current_period) AS current_period_count,
