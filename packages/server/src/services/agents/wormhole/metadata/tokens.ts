@@ -20,26 +20,6 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
-    symbol: 'WGLMR',
-    decimals: 18,
-    isNative: false,
-  },
-  ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
-    symbol: 'WELL',
-    decimals: 18,
-    isNative: false,
-  },
-  ['16:0x3405a1bd46b85c5c029483fbecf2f3e611026e45']: {
-    symbol: 'MATIC',
-    decimals: 18,
-    isNative: false,
-  },
-  ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
-    symbol: 'WSUI',
-    decimals: 9,
-    isNative: false,
-  },
   ['2:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd']: {
     symbol: 'sUSDS',
     decimals: 18,
@@ -75,6 +55,41 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: true,
   },
+  ['5:0x2791bca1f2de4661ed88a30c99a7a9449aa84174']: {
+    symbol: 'USDC.e',
+    decimals: 6,
+    isNative: false,
+  },
+  ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
+    symbol: 'WAVAX',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
+    symbol: 'WGLMR',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
+    symbol: 'WELL',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0x3405a1bd46b85c5c029483fbecf2f3e611026e45']: {
+    symbol: 'MATIC',
+    decimals: 18,
+    isNative: false,
+  },
+  ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
+    symbol: 'WSUI',
+    decimals: 9,
+    isNative: false,
+  },
+  ['24:0x0b2c639c533813f4aa9d7837caf62653d097ff85']: {
+    symbol: 'USDC',
+    decimals: 6,
+    isNative: false,
+  },
   ['30:0xa88594d404727625a9437c3f886c7643872296ae']: {
     symbol: 'WELL',
     decimals: 18,
@@ -83,11 +98,6 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['30:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913']: {
     symbol: 'USDC',
     decimals: 6,
-    isNative: false,
-  },
-  ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
-    symbol: 'WAVAX',
-    decimals: 18,
     isNative: false,
   },
 }
