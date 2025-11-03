@@ -81,11 +81,8 @@ export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress
         const inboundLog = tx.logs.find(
           (l) => l.decoded && l.decoded.eventName === 'InboundMessageDispatched',
         )
-        if (!inboundLog) {
-          throw new Error('No InboundMessageDispatched log found in Snowbridge inbound tx.')
-        }
-        if (tx.blockHash === null || tx.blockNumber === null) {
-          throw new Error('No block context data in Snowbridge inbound tx.')
+        if (!inboundLog || tx.blockHash === null || tx.blockNumber === null) {
+          return null
         }
 
         const {
@@ -106,6 +103,7 @@ export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress
           txPosition: tx.transactionIndex ?? undefined,
         })
       }),
+      filter(msg => msg !== null)
     )
   }
 }
@@ -119,14 +117,8 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
         const acceptedLog = tx.logs.find(
           (l) => l.decoded && l.decoded.eventName === 'OutboundMessageAccepted',
         )
-        if (!acceptedLog) {
-          throw new Error('No OutboundMessageAccepted log found in Snowbridge outbound tx.')
-        }
-        if (!tokenSentLog) {
-          throw new Error('No TokenSent log found in Snowbridge outbound tx.')
-        }
-        if (tx.blockHash === null || tx.blockNumber === null) {
-          throw new Error('No block context data in Snowbridge inbound tx.')
+        if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
+          return null
         }
 
         const {
@@ -169,6 +161,7 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
           txPosition: tx.transactionIndex ?? undefined,
         })
       }),
+      filter(msg => msg !== null)
     )
   }
 }
