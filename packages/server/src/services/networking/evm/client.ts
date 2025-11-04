@@ -1,5 +1,13 @@
 import { Observable } from 'rxjs'
-import { createPublicClient, fallback, http, PublicClient, Transport, webSocket } from 'viem'
+import {
+  createPublicClient,
+  fallback,
+  http,
+  PublicClient,
+  TransactionReceipt,
+  Transport,
+  webSocket,
+} from 'viem'
 import * as viemChains from 'viem/chains'
 
 import { HexString } from '@/lib.js'
@@ -240,6 +248,10 @@ export class EvmApi implements ApiClient {
     })
 
     return { ...block, logs }
+  }
+
+  async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {
+    return await this.#client.getTransactionReceipt({ hash: txHash })
   }
 
   getNetworkInfo() {

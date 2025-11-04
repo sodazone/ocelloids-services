@@ -1,4 +1,4 @@
-import { GetBlockReturnType, Log, Transaction } from 'viem'
+import { GetBlockReturnType, Log, Transaction, TransactionReceipt } from 'viem'
 
 type BlockWithTransactions = GetBlockReturnType<undefined, true>
 
@@ -20,4 +20,9 @@ export type DecodedTx = Transaction & {
   }
 }
 
-export type DecodedTxWithLogs = DecodedTx & { logs: DecodedLog[] }
+export type WithLogs = { logs: DecodedLog[] }
+export type WithReceipt = { receipt: TransactionReceipt }
+
+export type DecodedTxWithLogs = DecodedTx & WithLogs
+export type DecodedTxWithReceipt = DecodedTx & WithReceipt
+export type DecodedTxWithLogsAndReceipt = DecodedTx & WithLogs & WithReceipt
