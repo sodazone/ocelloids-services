@@ -361,40 +361,53 @@ function extractAssetContext({
   assetsTrapped?: AssetsTrapped
   assetSwaps: AssetSwap[]
 } {
-  const maybeAssetTrapEvent: BlockEvent = toBlockEvent(prevEvents[prevEvents.length - 1].event, {
-    blockNumber,
-    blockHash,
-    blockPosition: prevEvents[prevEvents.length - 1].index,
-    specVersion,
-    timestamp,
-  })
+  try {
+    const lastPrevEvent = prevEvents.at(-1)
 
-  const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
-    ? maybeAssetTrapEvent
-    : undefined
+    const maybeAssetTrapEvent: BlockEvent | undefined = lastPrevEvent
+      ? toBlockEvent(lastPrevEvent.event, {
+          blockNumber,
+          blockHash,
+          blockPosition: lastPrevEvent.index,
+          specVersion,
+          timestamp,
+        })
+      : undefined
 
-  const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+    const assetTrapEvent =
+      maybeAssetTrapEvent && matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
+        ? maybeAssetTrapEvent
+        : undefined
 
-  let assetSwaps: AssetSwap[] = []
-  const mapping = swapMapping[chainId]
-  if (mapping) {
-    assetSwaps = [...prevEvents]
-      .reverse()
-      .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
-      .map((record) =>
-        mapping.transform(
-          toBlockEvent(record.event, {
-            blockNumber,
-            blockHash,
-            blockPosition: record.index,
-            timestamp,
-            specVersion,
-          }),
-        ),
-      )
+    const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+
+    let assetSwaps: AssetSwap[] = []
+    const mapping = swapMapping[chainId]
+    if (mapping) {
+      assetSwaps = [...prevEvents]
+        .reverse()
+        .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
+        .map((record) =>
+          mapping.transform(
+            toBlockEvent(record.event, {
+              blockNumber,
+              blockHash,
+              blockPosition: record.index,
+              timestamp,
+              specVersion,
+            }),
+          ),
+        )
+    }
+
+    return { assetsTrapped, assetSwaps }
+  } catch (error) {
+    console.error(
+      error,
+      `Error mapping asset traps and swaps for ${chainId} at block ${blockHash} (#${blockNumber})`,
+    )
+    return { assetSwaps: [] }
   }
-
-  return { assetsTrapped, assetSwaps }
 }
 
 export function extractParachainReceiveByBlock(chainId: NetworkURN) {
