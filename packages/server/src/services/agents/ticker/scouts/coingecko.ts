@@ -72,7 +72,7 @@ const CG_ID_MAP: Record<string, string> = {
   PAXG: 'pax-gold',
   ENA: 'ethena',
   TEER: 'integritee',
-  SUSDE: 'ethena-staked-usde'
+  SUSDE: 'ethena-staked-usde',
 }
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'

@@ -103,7 +103,7 @@ export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress
           txPosition: tx.transactionIndex ?? undefined,
         })
       }),
-      filter(msg => msg !== null)
+      filter((msg) => msg !== null),
     )
   }
 }
@@ -161,7 +161,7 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
           txPosition: tx.transactionIndex ?? undefined,
         })
       }),
-      filter(msg => msg !== null)
+      filter((msg) => msg !== null),
     )
   }
 }

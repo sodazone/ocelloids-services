@@ -17,6 +17,18 @@ import { mapOperationToJourney } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
+function isChainSupported(chainId?: number): boolean {
+  return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
+}
+
+function isSupportedWormholeOp(op: WormholeOperation): boolean {
+  return (
+    isChainSupported(op.sourceChain?.chainId) &&
+    isChainSupported(op.targetChain?.chainId) &&
+    isChainSupported(op.content?.standarizedProperties?.toChain)
+  )
+}
+
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
 export class WormholeAgent implements Agent {
@@ -115,10 +127,7 @@ export class WormholeAgent implements Agent {
   }
 
   #onOperation = async (op: WormholeOperation) => {
-    if (
-      !WormholeSupportedNetworks.includes(op.sourceChain.chainId) ||
-      !WormholeSupportedNetworks.includes(op.targetChain.chainId)
-    ) {
+    if (!isSupportedWormholeOp(op)) {
       this.#log.warn(
         '[agent:%s] Skipping operation due to unsupported network(s): sourceChainId=%s, targetChainId=%s',
         this.id,
