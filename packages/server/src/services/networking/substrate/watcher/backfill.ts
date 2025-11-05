@@ -177,13 +177,13 @@ export class SubstrateBackfill {
 
       const result = BackfillConfigsSchema.safeParse(parsed)
       if (!result.success) {
-        this.#log.warn('[backfill] Invalid config format', result.error.format())
+        this.#log.warn('[backfill] Invalid config format %j', result.error.format())
         return
       }
 
       return result.data
     } catch (error: any) {
-      this.#log.warn('[backfill] Error loading config', error)
+      this.#log.warn(error, '[backfill] Error loading config')
       return
     }
   }

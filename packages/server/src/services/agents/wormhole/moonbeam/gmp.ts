@@ -176,15 +176,10 @@ function normalizePayloadToUint8Array(payload: bigint | Uint8Array): Uint8Array 
 }
 
 function decodeGmpPayload(payload: bigint | Uint8Array) {
-  try {
-    const u8 = normalizePayloadToUint8Array(payload)
-    const hex = `0x${Buffer.from(u8).toString('hex')}`
-    const action = VersionedUserAction.dec(hex)
-    return action
-  } catch (err) {
-    console.error('decodeGmpPayload: failed to decode GMP payload', err)
-    return null
-  }
+  const u8 = normalizePayloadToUint8Array(payload)
+  const hex = `0x${Buffer.from(u8).toString('hex')}`
+  const action = VersionedUserAction.dec(hex)
+  return action
 }
 
 export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 0) {

@@ -1,11 +1,13 @@
 import { DuckDBInstance } from '@duckdb/node-api'
+import { Twox256 } from '@polkadot-api/substrate-bindings'
+import { toHex } from 'polkadot-api/utils'
 import { filter, mergeMap, Subscription } from 'rxjs'
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, stringToUa8 } from '@/common/index.js'
 import { Logger } from '@/services/types.js'
 import { QueryParams, QueryResult } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { matchNotificationType, notificationTypeCriteria } from '../ops/criteria.js'
-import { XcmTracker } from '../tracking.js'
+import { XcmTracker } from '../tracking/index.js'
 import {
   $XcmQueryArgs,
   HumanizedXcmPayload,
@@ -118,6 +120,10 @@ export class XcmAnalytics {
         if (args.op === 'transfers_channels_series.by_network.tx') {
           return { items: await this.#repository.networkChannelsByTx(args.criteria) }
         }
+
+        if (args.op === 'transfers_by_protocol') {
+          return { items: await this.#repository.protocolAnalytics(args.criteria) }
+        }
       } catch (error) {
         this.#log.error(error, '[xcm:analytics] error while executing a query')
       }
@@ -148,6 +154,8 @@ export class XcmAnalytics {
     const {
       origin,
       destination,
+      originProtocol,
+      destinationProtocol,
       messageId,
       humanized: { assets, from, to },
     } = message
@@ -169,8 +177,16 @@ export class XcmAnalytics {
         decimals: asset.decimals ?? 0,
         amount: asset.amount,
         origin: origin.chainId,
+        originProtocol,
+        destinationProtocol,
         destination: destination.chainId,
-        correlationId: messageId ?? origin.messageHash,
+        correlationId: toHex(
+          Twox256(
+            stringToUa8(
+              `${messageId ?? origin.messageHash}${origin.chainId}${origin.blockNumber}${destination.chainId}`,
+            ),
+          ),
+        ),
       })
     }
 

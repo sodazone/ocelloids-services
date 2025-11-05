@@ -1,6 +1,7 @@
 import { ClientId, clientIds, NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger, NetworkURN } from '../types.js'
 import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
+import { EvmApi } from './evm/client.js'
 import { SubstrateClient } from './substrate/index.js'
 import { ApiClient } from './types.js'
 
@@ -45,6 +46,9 @@ export default class Connector {
         break
       case 'substrate':
         chainRecord[id] = new SubstrateClient(this.#log, id, provider.url)
+        break
+      case 'evm':
+        chainRecord[id] = new EvmApi(this.#log, id, provider.url)
         break
     }
   }

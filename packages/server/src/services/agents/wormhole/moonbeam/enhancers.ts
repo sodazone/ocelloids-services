@@ -28,7 +28,7 @@ function gmpEnhancer(payload: bigint | Uint8Array, _assetOp: NewAssetOperation, 
 
     journey.instructions = asJSON(instructions)
   } catch (err) {
-    console.error(err, 'while enhancing GMP precompile')
+    console.error(err, `Error enhancing GMP precompile for journey ${journey.correlation_id}`)
   }
 }
 

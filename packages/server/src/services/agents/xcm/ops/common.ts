@@ -100,13 +100,22 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       message = xcm
     } else if (instruction.type === 'ExportMessage') {
       const { network, destination, xcm } = instruction.value
+      const consensus = (
+        typeof network === 'object' && 'type' in network ? network.type : String(network)
+      ).toLowerCase()
       const paraId = getParaIdFromJunctions(destination)
-      if (paraId) {
-        const consensus =
-          typeof network === 'object' && 'type' in network
-            ? network.type.toLowerCase()
-            : network.toString().toLowerCase()
-        const networkId = createNetworkId(consensus, paraId)
+      const chainId =
+        consensus === 'ethereum' &&
+        typeof network === 'object' &&
+        'value' in network &&
+        'chain_id' in network.value
+          ? network.value.chain_id.toString()
+          : null
+
+      const identifier = chainId || paraId
+
+      if (identifier) {
+        const networkId = createNetworkId(consensus, identifier)
         stops.push({ networkId })
         recursiveExtractStops(networkId, xcm, stops)
       }
@@ -125,12 +134,11 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       }
     }
   }
-
-  return stops
 }
 
 function constructLegs(stops: Stop[], version: string, context: SubstrateApiContext) {
   const legs: Leg[] = []
+  const protocols = { origin: 'xcm', destination: 'xcm' }
   for (let i = 0; i < stops.length - 1; i++) {
     const { networkId: from } = stops[i]
     const { networkId: to, message } = stops[i + 1]
@@ -153,12 +161,26 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.relay = createNetworkId(from, '0')
         leg.type = 'hrmp'
       }
-    } else if (getChainId(from) === '1000' && (to === 'urn:ocn:ethereum:1' || getChainId(from) === '1000')) {
-      // TODO: Pending Snowbridge bridge support
-      // Since we don't support bridges yet, all bridged transfers through assethub should end in bridgehub
-      leg.to = `urn:ocn:${getConsensus(from)}:1002`
-      leg.relay = createNetworkId(from, '0')
-      leg.type = 'hrmp'
+    } else if (getConsensus(from) === 'ethereum' && getConsensus(to) !== 'ethereum') {
+      leg.type = 'bridge'
+      leg.partialMessage = undefined
+      protocols.origin = 'snowbridge'
+    } else if (getConsensus(from) !== 'ethereum' && getConsensus(to) === 'ethereum') {
+      const prev = legs[legs.length - 1]
+      prev.type = 'hop'
+      if (from !== `urn:ocn:${getConsensus(from)}:1002`) {
+        legs.push({
+          from,
+          to: `urn:ocn:${getConsensus(from)}:1002`,
+          relay: createNetworkId(from, '0'),
+          type: 'hop',
+          partialMessage: leg.partialMessage,
+        })
+      }
+      leg.from = `urn:ocn:${getConsensus(from)}:1002`
+      leg.type = 'bridge'
+      leg.partialMessage = undefined
+      protocols.destination = 'snowbridge'
     } else if (getChainId(from) === '1002') {
       // P<>K bridge
       const prev = legs[legs.length - 1]
@@ -173,15 +195,13 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
         leg.relay = createNetworkId(to, '0')
         leg.type = 'hrmp'
       }
-    } else {
-      throw new Error(`Unknown leg type for origin=${from} destination=${to}`)
     }
 
     legs.push(leg)
   }
 
   if (legs.length === 1) {
-    return legs
+    return { legs, protocols }
   }
 
   for (let i = 0; i < legs.length - 1; i++) {
@@ -192,7 +212,7 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
     }
   }
 
-  return legs
+  return { legs, protocols }
 }
 
 /**
@@ -211,12 +231,9 @@ export function mapXcmSent(context: SubstrateApiContext, origin: NetworkURN) {
         const stops: Stop[] = [{ networkId: recipient }]
         const versionedXcm = raw.asVersionedXcm(instructions.bytes, context)
         recursiveExtractStops(origin, versionedXcm.instructions.value, stops)
-        const legs = constructLegs(
-          [{ networkId: origin }].concat(stops),
-          versionedXcm.instructions.type,
-          context,
-        )
-        return new GenericXcmSent(origin, message, legs)
+        const allStops = [{ networkId: origin }].concat(stops)
+        const { legs, protocols } = constructLegs(allStops, versionedXcm.instructions.type, context)
+        return new GenericXcmSent(origin, message, legs, protocols)
       }),
     )
 }
@@ -238,10 +255,10 @@ export function xcmMessagesSent() {
           blockNumber: event.blockNumber,
           timestamp: event.timestamp,
           specVersion: event.specVersion,
-          extrinsicPosition: event.extrinsicPosition,
+          txPosition: event.extrinsic?.blockPosition,
           messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
           messageId: xcmMessage.message_id,
-          extrinsicHash: event.extrinsic?.hash as HexString,
+          txHash: event.extrinsic?.hash as HexString,
         } as XcmSentWithContext
       }),
     )
@@ -273,12 +290,12 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             timestamp: maybeXcmpEvent.timestamp,
             specVersion: maybeXcmpEvent.specVersion,
-            extrinsicPosition: maybeXcmpEvent.extrinsicPosition,
+            txPosition: maybeXcmpEvent.extrinsic?.blockPosition,
             messageHash: xcmpQueueData.message_hash,
             messageId: xcmpQueueData.message_id,
             outcome: maybeXcmpEvent.name === 'Success' ? 'Success' : 'Fail',
@@ -294,7 +311,7 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             specVersion: maybeXcmpEvent.specVersion,
@@ -315,7 +332,7 @@ export function extractParachainReceive() {
 
           return new GenericXcmInboundWithContext({
             event: maybeXcmpEvent,
-            extrinsicHash: maybeXcmpEvent.extrinsic?.hash as HexString,
+            txHash: maybeXcmpEvent.extrinsic?.hash as HexString,
             blockHash: maybeXcmpEvent.blockHash as HexString,
             blockNumber: maybeXcmpEvent.blockNumber,
             specVersion: maybeXcmpEvent.specVersion,
@@ -355,40 +372,53 @@ function extractAssetContext({
   assetsTrapped?: AssetsTrapped
   assetSwaps: AssetSwap[]
 } {
-  const maybeAssetTrapEvent: BlockEvent = toBlockEvent(prevEvents[prevEvents.length - 1].event, {
-    blockNumber,
-    blockHash,
-    blockPosition: prevEvents[prevEvents.length - 1].index,
-    specVersion,
-    timestamp,
-  })
+  try {
+    const lastPrevEvent = prevEvents.at(-1)
 
-  const assetTrapEvent = matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
-    ? maybeAssetTrapEvent
-    : undefined
+    const maybeAssetTrapEvent: BlockEvent | undefined = lastPrevEvent
+      ? toBlockEvent(lastPrevEvent.event, {
+          blockNumber,
+          blockHash,
+          blockPosition: lastPrevEvent.index,
+          specVersion,
+          timestamp,
+        })
+      : undefined
 
-  const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+    const assetTrapEvent =
+      maybeAssetTrapEvent && matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
+        ? maybeAssetTrapEvent
+        : undefined
 
-  let assetSwaps: AssetSwap[] = []
-  const mapping = swapMapping[chainId]
-  if (mapping) {
-    assetSwaps = [...prevEvents]
-      .reverse()
-      .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
-      .map((record) =>
-        mapping.transform(
-          toBlockEvent(record.event, {
-            blockNumber,
-            blockHash,
-            blockPosition: record.index,
-            timestamp,
-            specVersion,
-          }),
-        ),
-      )
+    const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+
+    let assetSwaps: AssetSwap[] = []
+    const mapping = swapMapping[chainId]
+    if (mapping) {
+      assetSwaps = [...prevEvents]
+        .reverse()
+        .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
+        .map((record) =>
+          mapping.transform(
+            toBlockEvent(record.event, {
+              blockNumber,
+              blockHash,
+              blockPosition: record.index,
+              timestamp,
+              specVersion,
+            }),
+          ),
+        )
+    }
+
+    return { assetsTrapped, assetSwaps }
+  } catch (error) {
+    console.error(
+      error,
+      `Error mapping asset traps and swaps for ${chainId} at block ${blockHash} (#${blockNumber})`,
+    )
+    return { assetSwaps: [] }
   }
-
-  return { assetsTrapped, assetSwaps }
 }
 
 export function extractParachainReceiveByBlock(chainId: NetworkURN) {

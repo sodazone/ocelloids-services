@@ -658,7 +658,10 @@ export class CrosschainRepository {
     if (cursor) {
       const { timestamp, id } = decodeCursor(cursor)
       extendedQuery = extendedQuery.where((eb) =>
-        eb.or([eb('sent_at', '<', timestamp), eb.and([eb('sent_at', '=', timestamp), eb('id', '<', id)])]),
+        eb.or([
+          eb('sent_at', '<', timestamp),
+          eb.and([eb('sent_at', '=', timestamp), eb('xc_journeys.id', '<', id)]),
+        ]),
       ) as T
     }
 

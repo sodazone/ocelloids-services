@@ -8,7 +8,7 @@ import { HumanizedXcm } from '../humanize/types.js'
  */
 export type XcmWithContext = {
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   blockNumber: string | number
   blockHash: HexString
   specVersion?: number
@@ -16,6 +16,10 @@ export type XcmWithContext = {
   messageHash: HexString
   messageId?: HexString
   messageData?: HexString
+  txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
   extrinsicHash?: HexString
 }
 
@@ -82,16 +86,11 @@ export interface XcmSentWithContext extends XcmWithContext {
 
 export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   messageData: HexString
   instructions: AnyJson
   recipient: NetworkURN
-}
-
-export interface XcmBridgeDeliveredWithContext extends XcmWithContext {
-  chainId: NetworkURN
-  bridgeKey: HexString
-  sender?: SignerData
 }
 
 export interface XcmInboundWithContext extends XcmWithContext {
@@ -105,14 +104,47 @@ export interface XcmBridgeInboundWithContext {
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   outcome: 'Success' | 'Fail'
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   specVersion?: number
   timestamp?: number
-  extrinsicHash?: HexString
+  txHash?: HexString
   error?: AnyJson
+  messageId?: HexString
+}
+
+export interface SnowbridgeMessageAccepted {
+  chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
+  nonce: string
+  messageId: HexString
+  recipient: NetworkURN
+  event?: AnyJson
+  txPosition?: number
+  timestamp?: number
+  txHash?: HexString
+}
+
+/**
+ * @public
+ */
+export type SnowbridgeOutboundAsset = {
+  chainId: NetworkURN
+  id: HexString
+  amount: string
+}
+
+export interface SnowbridgeOutboundAccepted extends SnowbridgeMessageAccepted {
+  channelId: HexString
+  messageData: HexString
+  messageHash: HexString
+  beneficiary: HexString
+  asset: SnowbridgeOutboundAsset
+  sender: SignerData
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -122,7 +154,7 @@ export interface XcmRelayedWithContext extends XcmInboundWithContext {
 
 export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   event: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   blockNumber: string
   blockHash: HexString
   specVersion?: number
@@ -130,6 +162,10 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
   messageHash: HexString
   messageData?: HexString
   messageId: HexString
+  txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
   extrinsicHash?: HexString
 
   constructor(msg: XcmWithContext) {
@@ -141,8 +177,9 @@ export abstract class BaseGenericXcmWithContext implements XcmWithContext {
     this.blockNumber = msg.blockNumber.toString()
     this.timestamp = msg.timestamp
     this.specVersion = msg.specVersion
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
+    this.extrinsicHash = msg.txHash
   }
 }
 
@@ -155,7 +192,11 @@ abstract class BaseXcmEvent {
   blockNumber: string
   specVersion?: number
   timestamp?: number
-  extrinsicPosition?: number
+  txPosition?: number
+  txHash?: HexString
+  /**
+   * @deprecated Use `txHash` instead.
+   */
   extrinsicHash?: HexString
 
   constructor(msg: XcmWithContext) {
@@ -167,8 +208,9 @@ abstract class BaseXcmEvent {
     this.blockNumber = msg.blockNumber.toString()
     this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
+    this.extrinsicHash = msg.txHash
   }
 }
 
@@ -225,7 +267,8 @@ export class GenericXcmBridgeAcceptedWithContext
   implements XcmBridgeAcceptedWithContext
 {
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   messageData: HexString
   recipient: NetworkURN
   instructions: AnyJson
@@ -234,27 +277,11 @@ export class GenericXcmBridgeAcceptedWithContext
     super(msg)
 
     this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
+    this.channelId = msg.channelId
+    this.nonce = msg.nonce
     this.messageData = msg.messageData
     this.recipient = msg.recipient
     this.instructions = msg.instructions
-  }
-}
-
-export class GenericXcmBridgeDeliveredWithContext
-  extends BaseXcmEvent
-  implements XcmBridgeDeliveredWithContext
-{
-  chainId: NetworkURN
-  bridgeKey: HexString
-  sender?: SignerData
-
-  constructor(msg: XcmBridgeDeliveredWithContext) {
-    super(msg)
-
-    this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
-    this.sender = msg.sender
   }
 }
 
@@ -262,29 +289,86 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   blockNumber: string | number
   blockHash: HexString
   chainId: NetworkURN
-  bridgeKey: HexString
+  channelId: HexString
+  nonce: string
   outcome: 'Success' | 'Fail'
   error: AnyJson
 
   event?: AnyJson
-  extrinsicPosition?: number
+  txPosition?: number
   specVersion?: number
   timestamp?: number
-  extrinsicHash?: HexString
+  txHash?: HexString
+  messageId?: HexString
 
   constructor(msg: XcmBridgeInboundWithContext) {
     this.blockNumber = msg.blockNumber
     this.blockHash = msg.blockHash
     this.chainId = msg.chainId
-    this.bridgeKey = msg.bridgeKey
+    this.channelId = msg.channelId
+    this.nonce = msg.nonce
     this.outcome = msg.outcome
     this.error = msg.error
+    this.messageId = msg.messageId
 
     this.event = msg.event
-    this.extrinsicPosition = msg.extrinsicPosition
-    this.extrinsicHash = msg.extrinsicHash
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
     this.specVersion = msg.specVersion
     this.timestamp = msg.timestamp
+  }
+}
+
+export class GenericSnowbridgeMessageAccepted implements SnowbridgeMessageAccepted {
+  chainId: NetworkURN
+  blockNumber: string | number
+  blockHash: HexString
+  messageId: HexString
+  nonce: string
+  recipient: NetworkURN
+  event?: AnyJson
+  txPosition?: number
+  timestamp?: number
+  txHash?: HexString
+
+  constructor(msg: SnowbridgeMessageAccepted) {
+    this.blockNumber = msg.blockNumber
+    this.blockHash = msg.blockHash
+    this.chainId = msg.chainId
+
+    this.messageId = msg.messageId
+    this.nonce = msg.nonce
+    this.recipient = msg.recipient
+    this.event = msg.event
+    this.txPosition = msg.txPosition
+    this.txHash = msg.txHash
+    this.timestamp = msg.timestamp
+  }
+}
+export class GenericSnowbridgeOutboundAccepted
+  extends GenericSnowbridgeMessageAccepted
+  implements SnowbridgeOutboundAccepted
+{
+  channelId: HexString
+  messageData: HexString
+  messageHash: HexString
+  beneficiary: HexString
+  asset: {
+    chainId: NetworkURN
+    id: HexString
+    amount: string
+  }
+  sender: SignerData
+
+  constructor(msg: SnowbridgeOutboundAccepted) {
+    super(msg)
+
+    this.channelId = msg.channelId
+    this.asset = msg.asset
+    this.sender = msg.sender
+    this.beneficiary = msg.beneficiary
+    this.messageData = msg.messageData
+    this.messageHash = msg.messageHash
   }
 }
 
@@ -368,12 +452,18 @@ export type Leg = {
  */
 export interface XcmJourney {
   type: XcmNotificationType
+  originProtocol: string
+  destinationProtocol: string
   legs: Leg[]
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
+  partialHumanized?: {
+    beneficiary: HexString
+    asset: SnowbridgeOutboundAsset
+  }
 }
 
 /**
@@ -444,13 +534,22 @@ export class XcmInbound extends BaseXcmEvent {
 
 abstract class BaseXcmJourney {
   legs: Leg[]
+  originProtocol: string
+  destinationProtocol: string
   sender?: SignerData
   messageId?: HexString
+  partialHumanized?: {
+    beneficiary: HexString
+    asset: SnowbridgeOutboundAsset
+  }
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.legs = msg.legs
     this.sender = msg.sender
     this.messageId = msg.messageId
+    this.originProtocol = msg.originProtocol
+    this.destinationProtocol = msg.destinationProtocol
+    this.partialHumanized = msg.partialHumanized
   }
 }
 
@@ -460,21 +559,29 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
   origin: XcmTerminusContext
   destination: XcmTerminus
 
-  constructor(chainId: NetworkURN, msg: XcmSentWithContext, legs: Leg[]) {
+  constructor(
+    chainId: NetworkURN,
+    msg: XcmSentWithContext,
+    legs: Leg[],
+    protocols: { origin: string; destination: string },
+  ) {
     super({
       legs,
       messageId: msg.messageId,
       sender: msg.sender,
+      originProtocol: protocols.origin,
+      destinationProtocol: protocols.destination,
     })
 
     this.origin = {
       chainId,
       blockHash: msg.blockHash,
       blockNumber: msg.blockNumber.toString(),
-      extrinsicHash: msg.extrinsicHash,
+      txHash: msg.txHash,
+      extrinsicHash: msg.txHash,
       specVersion: msg.specVersion,
       timestamp: msg.timestamp,
-      extrinsicPosition: msg.extrinsicPosition,
+      txPosition: msg.txPosition,
       event: msg.event,
       outcome: 'Success',
       error: null,
@@ -524,8 +631,9 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       blockHash: inMsg.blockHash,
       specVersion: inMsg.specVersion,
       timestamp: inMsg.timestamp,
-      extrinsicHash: inMsg.extrinsicHash,
-      extrinsicPosition: inMsg.extrinsicPosition,
+      txHash: inMsg.txHash,
+      extrinsicHash: inMsg.txHash,
+      txPosition: inMsg.txPosition,
       event: inMsg.event,
       outcome: inMsg.outcome,
       error: inMsg.error,
@@ -564,8 +672,9 @@ export class GenericXcmRelayed extends BaseXcmJourney implements XcmRelayed {
       blockHash: relayMsg.blockHash,
       specVersion: relayMsg.specVersion,
       timestamp: relayMsg.timestamp,
-      extrinsicHash: relayMsg.extrinsicHash,
-      extrinsicPosition: relayMsg.extrinsicPosition,
+      txHash: relayMsg.txHash,
+      extrinsicHash: relayMsg.txHash,
+      txPosition: relayMsg.txPosition,
       event: relayMsg.event,
       outcome: relayMsg.outcome,
       error: relayMsg.error,
@@ -595,44 +704,57 @@ export class GenericXcmHop extends BaseXcmJourney implements XcmHop {
 /**
  * @public
  */
-export type BridgeMessageType = 'accepted' | 'delivered' | 'received'
+export type BridgeStatus = 'accepted' | 'received'
 
 /**
- * Event emitted when an XCM is sent or received on an intermediate stop.
+ * @public
+ */
+export type BridgeName = 'pkbridge' | 'snowbridge'
+
+/**
+ * Event emitted when an XCM is sent or received over a bridge.
  *
  * @public
  */
 export interface XcmBridge extends XcmJourney {
   type: 'xcm.bridge'
-  bridgeKey: HexString
-  bridgeMessageType: BridgeMessageType
+  nonce: string
+  bridgeStatus: BridgeStatus
+  bridgeName: BridgeName
+  channelId?: HexString
 }
 
 type XcmBridgeContext = {
-  bridgeMessageType: BridgeMessageType
-  bridgeKey: HexString
+  bridgeStatus: BridgeStatus
+  nonce: string
+  bridgeName: BridgeName
+  channelId?: HexString
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   type = 'xcm.bridge' as const
-  bridgeMessageType: BridgeMessageType
-  bridgeKey: HexString
+  bridgeStatus: BridgeStatus
+  nonce: string
+  bridgeName: BridgeName
   waypoint: XcmWaypointContext
   origin: XcmTerminusContext
   destination: XcmTerminus
+  channelId?: HexString
 
   constructor(
-    originMsg: XcmBridge,
+    originMsg: XcmJourney,
     waypoint: XcmWaypointContext,
-    { bridgeKey, bridgeMessageType }: XcmBridgeContext,
+    { channelId, nonce, bridgeStatus, bridgeName }: XcmBridgeContext,
   ) {
     super(originMsg)
 
-    this.bridgeMessageType = bridgeMessageType
+    this.bridgeStatus = bridgeStatus
     this.origin = originMsg.origin
     this.destination = originMsg.destination
     this.waypoint = waypoint
-    this.bridgeKey = bridgeKey
+    this.channelId = channelId
+    this.nonce = nonce
+    this.bridgeName = bridgeName
   }
 }
 
@@ -668,4 +790,30 @@ export function isXcmHop(object: any): object is XcmHop {
 
 export function isXcmRelayed(object: any): object is XcmRelayed {
   return object.type !== undefined && object.type === 'xcm.relayed'
+}
+
+export function isXcmBridge(object: any): object is XcmBridge {
+  return object.type !== undefined && object.type === 'xcm.bridge'
+}
+
+export function mapXcmBridgeToXcmSent(bridge: XcmBridge): XcmSent {
+  return {
+    type: 'xcm.sent',
+    legs: bridge.legs,
+    originProtocol: bridge.originProtocol,
+    destinationProtocol: bridge.destinationProtocol,
+    waypoint: bridge.waypoint,
+    origin: bridge.origin as XcmTerminusContext,
+    destination: bridge.destination as XcmTerminus,
+    sender: bridge.sender,
+    messageId: bridge.messageId,
+    partialHumanized: bridge.partialHumanized,
+  }
+}
+
+export function mapXcmBridgeInboundToXcmInbound(
+  bridge: XcmBridgeInboundWithContext,
+  messageHash: HexString,
+): XcmInbound {
+  return new XcmInbound(bridge.chainId, { ...bridge, messageHash })
 }

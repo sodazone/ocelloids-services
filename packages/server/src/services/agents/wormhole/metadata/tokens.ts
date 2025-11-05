@@ -10,18 +10,13 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
-    symbol: 'WGLMR',
-    decimals: 18,
+  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
+    symbol: 'USDC',
+    decimals: 6,
     isNative: false,
   },
-  ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
-    symbol: 'WELL',
-    decimals: 18,
-    isNative: false,
-  },
-  ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
-    symbol: 'WSUI',
+  ['1:j1toso1uck3rlmjorhttrvwy9hj7x8v9yyac6y7kgcpn']: {
+    symbol: 'JitoSOL',
     decimals: 9,
     isNative: false,
   },
@@ -50,19 +45,64 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['2:0x6b175474e89094c44da98b954eedeac495271d0f']: {
+    symbol: 'DAI',
+    decimals: 18,
+    isNative: false,
+  },
   ['4:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']: {
     symbol: 'WBNB',
     decimals: 18,
     isNative: true,
+  },
+  ['4:0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d']: {
+    symbol: 'USDC',
+    decimals: 18,
+    isNative: false,
+  },
+  ['5:0x2791bca1f2de4661ed88a30c99a7a9449aa84174']: {
+    symbol: 'USDC.e',
+    decimals: 6,
+    isNative: false,
+  },
+  ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
+    symbol: 'WAVAX',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
+    symbol: 'WGLMR',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0x511ab53f793683763e5a8829738301368a2411e3']: {
+    symbol: 'WELL',
+    decimals: 18,
+    isNative: false,
+  },
+  ['16:0x3405a1bd46b85c5c029483fbecf2f3e611026e45']: {
+    symbol: 'MATIC',
+    decimals: 18,
+    isNative: false,
+  },
+  ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
+    symbol: 'WSUI',
+    decimals: 9,
+    isNative: false,
+  },
+  ['24:0x0b2c639c533813f4aa9d7837caf62653d097ff85']: {
+    symbol: 'USDC',
+    decimals: 6,
+    isNative: false,
   },
   ['30:0xa88594d404727625a9437c3f886c7643872296ae']: {
     symbol: 'WELL',
     decimals: 18,
     isNative: false,
   },
-  ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
-    symbol: 'WAVAX',
-    decimals: 18,
+  ['30:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913']: {
+    symbol: 'USDC',
+    decimals: 6,
     isNative: false,
   },
 }

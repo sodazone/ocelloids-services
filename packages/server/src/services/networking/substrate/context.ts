@@ -119,7 +119,7 @@ export class RuntimeApiContext implements SubstrateApiContext {
     }
   }
 
-  storageCodec<T = any>(module: string, method: string) {
+  storageCodec<T = any>(module: string, method: string): StorageCodec<T> {
     try {
       return this.#builder.buildStorage(module, method) as StorageCodec<T>
     } catch (error) {

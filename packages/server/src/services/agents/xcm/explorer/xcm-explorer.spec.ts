@@ -9,7 +9,7 @@ import { xcmDataDir } from '@/testing/xcm.js'
 import { CrosschainExplorer } from '../../crosschain/explorer.js'
 import { ServerSentEventsBroadcaster } from '../../types.js'
 import { XcmHumanizer } from '../humanize/index.js'
-import { XcmTracker } from '../tracking.js'
+import { XcmTracker } from '../tracking/index.js'
 import { XcmExplorer } from './index.js'
 
 describe('XcmExplorer', () => {

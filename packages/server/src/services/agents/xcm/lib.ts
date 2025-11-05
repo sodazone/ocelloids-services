@@ -1,7 +1,8 @@
 export {
   AssetSwap,
   AssetsTrapped,
-  BridgeMessageType,
+  BridgeName,
+  BridgeStatus,
   HumanizedAddresses,
   HumanizedTransactCall,
   HumanizedXcm,
@@ -10,6 +11,7 @@ export {
   Leg,
   LegType,
   legTypes,
+  SnowbridgeOutboundAsset,
   SwappedAsset,
   TrappedAsset,
   XcmAssetWithMetadata,

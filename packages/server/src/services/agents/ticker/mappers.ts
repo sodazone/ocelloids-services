@@ -247,4 +247,12 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x57e114b691db790c35207b2e685d4a43181e6061',
   },
+  TEER: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x769916a66fdac0e3d57363129caac59386ea622b',
+  },
+  SUSDE: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x9d39a5de30e57443bff2a8307a4256c8797a3497',
+  },
 }

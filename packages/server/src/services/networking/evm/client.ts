@@ -1,5 +1,13 @@
 import { Observable } from 'rxjs'
-import { createPublicClient, fallback, http, PublicClient, Transport, webSocket } from 'viem'
+import {
+  createPublicClient,
+  fallback,
+  http,
+  PublicClient,
+  TransactionReceipt,
+  Transport,
+  webSocket,
+} from 'viem'
 import * as viemChains from 'viem/chains'
 
 import { HexString } from '@/lib.js'
@@ -26,13 +34,13 @@ function asTransport(url: string) {
 }
 
 export function resolveChain(chainId: string) {
-  if (!chainId.startsWith('urn:ocn:evm:')) {
+  if (!chainId.startsWith('urn:ocn:ethereum:')) {
     throw new Error(
-      `Malformed EVM chain identifier: ${chainId}. Expected format: 'urn:ocn:evm:{viem-chain-name|chain-id}'`,
+      `Malformed EVM chain identifier: ${chainId}. Expected format: 'urn:ocn:ethereum:{viem-chain-name|chain-id}'`,
     )
   }
 
-  const chainValue = chainId.substring(12)
+  const chainValue = chainId.substring(17)
 
   // lookup by viem export name
   if (chainValue in viemChains) {
@@ -240,6 +248,10 @@ export class EvmApi implements ApiClient {
     })
 
     return { ...block, logs }
+  }
+
+  async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {
+    return await this.#client.getTransactionReceipt({ hash: txHash })
   }
 
   getNetworkInfo() {

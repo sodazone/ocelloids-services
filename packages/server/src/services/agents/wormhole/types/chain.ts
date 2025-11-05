@@ -15,6 +15,8 @@ export const WormholeIds = {
   AVAX_ID: 6, // C-chain
 }
 
+export const WormholeSupportedNetworks = Object.values(WormholeIds)
+
 const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,

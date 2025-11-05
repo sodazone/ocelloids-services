@@ -377,12 +377,12 @@ export class InformantAgent implements Agent, Subscribable {
     control.change(match)
   }
 
-  async #updateNetworks(toUpdate: Subscription<InformantInputs>) {
+  #updateNetworks(toUpdate: Subscription<InformantInputs>) {
     const { id } = toUpdate
 
     // Subscribe to new if any
     const { streams } = this.#handlers[id]
-    const { streams: newStreams } = await this.#monitor(toUpdate)
+    const { streams: newStreams } = this.#monitor(toUpdate)
 
     // Remove unused streams
     const updatedStreams = streams.concat(newStreams)

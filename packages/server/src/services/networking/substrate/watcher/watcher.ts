@@ -189,7 +189,7 @@ export class SubstrateWatcher extends Watcher<Block> {
           this.catchUpHeads(chainId, api),
           takeUntil(merge(shutdown$, cancel$)),
           mergeMap(({ hash, status }) =>
-            from(api.getBlock(hash)).pipe(
+            from(api.getBlock(hash, true)).pipe(
               map((block) => ({ status, ...block })),
               catchError((error) => {
                 this.log.error(error, '[%s] error fetching block %s (%s)', chainId, hash, status)

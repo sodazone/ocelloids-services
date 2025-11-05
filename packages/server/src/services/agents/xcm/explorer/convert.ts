@@ -11,6 +11,7 @@ import {
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 
 import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
+import { isXcmBridge } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
@@ -61,8 +62,8 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
           timestamp: waypoint.timestamp,
           status: waypoint.outcome,
           extrinsic: {
-            blockPosition: waypoint.extrinsicPosition,
-            hash: waypoint.extrinsicHash,
+            blockPosition: waypoint.txPosition,
+            hash: waypoint.txHash,
             module: extrinsic?.module,
             method: extrinsic?.method,
             evmTxHash: extrinsic?.evmTxHash,
@@ -72,6 +73,13 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
             module: event?.module,
             name: event?.name,
           },
+          bridge: isXcmBridge(payload)
+            ? {
+                channelId: payload.channelId,
+                nonce: payload.nonce,
+                bridgeName: payload.bridgeName,
+              }
+            : undefined,
           assetsTrapped: waypoint.assetsTrapped,
         }
       : null
@@ -131,12 +139,12 @@ export function toNewJourney(payload: HumanizedXcmPayload): NewJourney {
     created_at: Date.now(),
     type: payload.humanized.type,
     destination: payload.destination.chainId,
-    instructions: asJSON(payload.origin.instructions),
+    instructions: payload.origin.instructions ? asJSON(payload.origin.instructions) : '[]',
     transact_calls: asJSON(payload.humanized.transactCalls),
-    origin_protocol: 'xcm',
-    destination_protocol: 'xcm',
+    origin_protocol: payload.originProtocol,
+    destination_protocol: payload.destinationProtocol,
     origin: payload.origin.chainId,
-    origin_tx_primary: payload.origin.extrinsicHash,
+    origin_tx_primary: payload.origin.txHash,
     origin_tx_secondary: toEvmTxHash(payload),
     from: payload.humanized.from.key,
     to: payload.humanized.to.key,

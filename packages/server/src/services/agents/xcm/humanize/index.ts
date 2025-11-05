@@ -4,7 +4,7 @@ import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom } from 'rxjs'
 
-import { asPublicKey } from '@/common/util.js'
+import { asPublicKey, normalizePublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -27,6 +27,7 @@ import {
   AssetSwap,
   AssetsTrapped,
   HumanizedXcmPayload,
+  SnowbridgeOutboundAsset,
   SwappedAsset,
   XcmMessagePayload,
   XcmTerminus,
@@ -130,9 +131,20 @@ export class XcmHumanizer {
   }
 
   async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
+    if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
+      const { sender, origin, destination } = message
+      const { beneficiary, asset } = message.partialHumanized
+      const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
+      const to = await this.#toAddresses(destination.chainId, normalizePublicKey(beneficiary))
+      const resolvedAsset = await this.#resolveSnowbridgeAsset(asset)
+      return { type: XcmJourneyType.Transfer, from, to, assets: [resolvedAsset], transactCalls: [] }
+    }
     const { sender, origin, destination, legs, waypoint } = message
     const { assetSwaps, assetsTrapped, legIndex } = waypoint
-    const versioned = waypoint.instructions as XcmVersionedInstructions
+    const versioned = (waypoint.instructions ?? origin.instructions) as XcmVersionedInstructions
+    if (!versioned) {
+      throw new Error('No instructions or partial humanized data found in XCM message')
+    }
     const version = versioned.type
     const instructions = versioned.value
     const type = this.#determineJourneyType(instructions)
@@ -387,6 +399,51 @@ export class XcmHumanizer {
     }
 
     return assets
+  }
+
+  async #resolveSnowbridgeAsset({
+    chainId,
+    id,
+    amount,
+  }: SnowbridgeOutboundAsset): Promise<HumanizedXcmAsset> {
+    const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id
+    const assetKey = `${chainId}|${normalizeAssetId(assetId)}`
+    const unresolved: XcmAssetWithMetadata = {
+      id: assetKey,
+      amount: BigInt(amount),
+      role: 'transfer',
+      sequence: 0,
+    }
+
+    const cached = this.#cache.get(assetKey)
+    if (cached) {
+      const resolved = {
+        ...unresolved,
+        decimals: cached.decimals,
+        symbol: cached.symbol,
+      }
+      return {
+        ...resolved,
+        volume: await this.resolveVolume(resolved),
+      }
+    }
+
+    const results = (await this.#fetchAssetMetadataById(chainId, [assetId])).filter((a) => isAssetMetadata(a))
+
+    if (results.length === 0) {
+      return unresolved
+    }
+    const { decimals, symbol } = results[0]
+    const resolved = {
+      ...unresolved,
+      decimals,
+      symbol,
+    }
+    this.#cache.set(assetKey, resolved)
+    return {
+      ...resolved,
+      volume: await this.resolveVolume(resolved),
+    }
   }
 
   async #resolveAssets(anchor: NetworkURN, assets: QueryableXcmAsset[]): Promise<HumanizedXcmAsset[]> {
