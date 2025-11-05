@@ -100,13 +100,22 @@ function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: S
       message = xcm
     } else if (instruction.type === 'ExportMessage') {
       const { network, destination, xcm } = instruction.value
+      const consensus = (
+        typeof network === 'object' && 'type' in network ? network.type : String(network)
+      ).toLowerCase()
       const paraId = getParaIdFromJunctions(destination)
-      if (paraId) {
-        const consensus =
-          typeof network === 'object' && 'type' in network
-            ? network.type.toLowerCase()
-            : network.toString().toLowerCase()
-        const networkId = createNetworkId(consensus, paraId)
+      const chainId =
+        consensus === 'ethereum' &&
+        typeof network === 'object' &&
+        'value' in network &&
+        'chain_id' in network.value
+          ? network.value.chain_id.toString()
+          : null
+
+      const identifier = chainId || paraId
+
+      if (identifier) {
+        const networkId = createNetworkId(consensus, identifier)
         stops.push({ networkId })
         recursiveExtractStops(networkId, xcm, stops)
       }
@@ -159,13 +168,15 @@ function constructLegs(stops: Stop[], version: string, context: SubstrateApiCont
     } else if (getConsensus(from) !== 'ethereum' && getConsensus(to) === 'ethereum') {
       const prev = legs[legs.length - 1]
       prev.type = 'hop'
-      legs.push({
-        from,
-        to: `urn:ocn:${getConsensus(from)}:1002`,
-        relay: createNetworkId(from, '0'),
-        type: 'hop',
-        partialMessage: leg.partialMessage,
-      })
+      if (from !== `urn:ocn:${getConsensus(from)}:1002`) {
+        legs.push({
+          from,
+          to: `urn:ocn:${getConsensus(from)}:1002`,
+          relay: createNetworkId(from, '0'),
+          type: 'hop',
+          partialMessage: leg.partialMessage,
+        })
+      }
       leg.from = `urn:ocn:${getConsensus(from)}:1002`
       leg.type = 'bridge'
       leg.partialMessage = undefined
