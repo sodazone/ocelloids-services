@@ -55,6 +55,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: true,
   },
+  ['4:0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d']: {
+    symbol: 'USDC',
+    decimals: 18,
+    isNative: false,
+  },
   ['5:0x2791bca1f2de4661ed88a30c99a7a9449aa84174']: {
     symbol: 'USDC.e',
     decimals: 6,
