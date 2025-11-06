@@ -31,4 +31,6 @@ export type PublisherEmitter = TypedEventEmitter<PublisherEvents & TelemetryPubl
 
 export interface Publisher extends PublisherEmitter {
   publish(sub: Subscription, msg: Message): void | Promise<void>
+  start?: () => void | Promise<void>
+  stop?: () => void | Promise<void>
 }
