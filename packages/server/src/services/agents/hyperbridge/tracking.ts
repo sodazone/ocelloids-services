@@ -8,7 +8,7 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { HYPERBRIDGE_CONFIG } from './config.js'
 import { extractSubstrateRequest } from './ops/requests.js'
-import { SubstrateIsmpQueryRequest } from './types.js'
+import { IsmpQueryRequestRpcResult } from './types.js'
 
 export class HyperbridgeTracker {
   readonly #id = 'hyperbridge-tracker'
@@ -93,7 +93,7 @@ export class HyperbridgeTracker {
   #getIsmpRequest(chainId: NetworkURN) {
     return (commitment: HexString) => {
       return from(
-        this.#ingress.substrate.rpcCall<SubstrateIsmpQueryRequest[]>(chainId, 'ismp_queryRequests', [
+        this.#ingress.substrate.rpcCall<IsmpQueryRequestRpcResult[]>(chainId, 'ismp_queryRequests', [
           asJSON([{ commitment }]),
         ]),
       ).pipe(map((res) => res[0].Post))

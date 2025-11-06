@@ -1,12 +1,12 @@
 import { from } from 'rxjs'
 import { HexString } from '@/lib.js'
 import { extractEvents } from '@/services/networking/substrate/index.js'
-import { testBlocksFrom } from '@/testing/blocks.js'
-import { extractSubstrateRequest } from './requests.js'
+import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
+import { extractEvmRequest, extractSubstrateRequest } from './requests.js'
 
 describe('requests operators', () => {
   describe('extractSubstrateRequest', () => {
-    it('should extract hyperbridge substrate post request', async () => {
+    it('should extract substrate asset teleport post request', async () => {
       const block$ = from(testBlocksFrom('bifrost/9757607.cbor'))
       const mockGetIsmpRequest = (_commitment: HexString) =>
         from([
@@ -27,10 +27,89 @@ describe('requests operators', () => {
         test$.subscribe({
           next: (msg) => {
             calls()
-            // expect(msg.chainId).toBe('urn:ocn:polkadot:1002')
-            // expect(msg.channelId).toBeDefined()
-            // expect(msg.messageId).toBeDefined()
-            // expect(msg.nonce).toBeDefined()
+            expect(msg.source).toBe('urn:ocn:polkadot:2030')
+            expect(msg.destination).toBe('urn:ocn:ethereum:8453')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.nonce).toBeDefined()
+            expect(msg.from).toBeDefined()
+            expect(msg.to).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.txHash).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should extract substrate oracle update request', async () => {
+      const block$ = from(testBlocksFrom('bifrost/9792939.cbor'))
+      const mockGetIsmpRequest = (_commitment: HexString) =>
+        from([
+          {
+            source: 'POLKADOT-2030',
+            dest: 'EVM-1868',
+            nonce: 35801,
+            from: '0x6269662d736c7078' as HexString,
+            to: '0x0a702f34da7b4514c74d35ff68891d1ee57930ef' as HexString,
+            timeoutTimestamp: 1761837624,
+            body: '0x0000000000000000000000002cae934a1e84f693fbb78ca5ed3b0a689325944100000000000000000000000000000000000000000050d708111acc59deccfb770000000000000000000000000000000000000000003df5230ccbbf26cadacc37' as HexString,
+          },
+        ])
+
+      const test$ = block$.pipe(extractEvents(), extractSubstrateRequest(mockGetIsmpRequest))
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg.source).toBe('urn:ocn:polkadot:2030')
+            expect(msg.destination).toBe('urn:ocn:polkadot:1868')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.nonce).toBeDefined()
+            expect(msg.from).toBeDefined()
+            expect(msg.to).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+  })
+
+  describe('extractEvmRequest', () => {
+    it.only('should extract ethereum asset teleport post request', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23688872.cbor'))
+      const test$ = block$.pipe(extractEvmRequest('urn:ocn:ethereum:1'))
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg.source).toBe('urn:ocn:ethereum:1')
+            expect(msg.destination).toBe('urn:ocn:polkadot:2030')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.nonce).toBeDefined()
+            expect(msg.from).toBeDefined()
+            expect(msg.to).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.txHash).toBeDefined()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)

@@ -1,5 +1,6 @@
 import { filter, map, Observable } from 'rxjs'
 import { Abi } from 'viem'
+import { hexTimestampToMillis } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { filterTransactionsWithLogs } from '@/services/networking/evm/rx/extract.js'
@@ -65,12 +66,6 @@ type SnowbridgeSubstrateReceivedEvent = {
 type SnowbridgeSubstrateAcceptedEvent = {
   id: HexString
   nonce: number
-}
-
-function hexTimestampToMillis(hex?: string) {
-  if (hex !== undefined && hex.startsWith('0x')) {
-    return Number(BigInt(hex) * 1000n)
-  }
 }
 
 export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {

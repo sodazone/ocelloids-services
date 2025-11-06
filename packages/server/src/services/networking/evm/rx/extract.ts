@@ -1,5 +1,5 @@
 import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
-import { Abi, AbiEvent, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
+import { Abi, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
 import { asSerializable } from '@/common/util.js'
 import { BlockWithLogs, DecodedLog, DecodedTx, DecodedTxWithLogs } from '../types.js'
 
@@ -7,8 +7,6 @@ const MAX_CONCURRENCY_LOGS = 10
 const MAX_CONCURRENCY_TX = 10
 
 export type DecodeContractParams = { abi: Abi; addresses: string[] }
-
-export type FilterContractEventsParams = { abiSelectorMap: Record<string, AbiEvent>; addresses?: string[] }
 
 function buildAbiMap(params: DecodeContractParams[]): Map<string, Abi> {
   const map = new Map<string, Abi>()
@@ -62,7 +60,7 @@ export function decodeLogs(params: DecodeContractParams[]) {
     )
 }
 
-export function filterLogs(params: DecodeContractParams) {
+export function filterLogs(params: DecodeContractParams, eventNames: string[] = []) {
   const addressFilter = params.addresses ? params.addresses.map((a) => a.toLowerCase()) : []
   return (source: Observable<BlockWithLogs>): Observable<DecodedLog> =>
     source.pipe(
@@ -95,7 +93,15 @@ export function filterLogs(params: DecodeContractParams) {
           return null
         }
       }),
-      filter((log) => log !== null),
+      filter((log): log is DecodedLog => {
+        if (log === null) {
+          return false
+        }
+        if (eventNames.length > 0 && !eventNames.includes(log.decoded?.eventName ?? '')) {
+          return false
+        }
+        return true
+      }),
     )
 }
 

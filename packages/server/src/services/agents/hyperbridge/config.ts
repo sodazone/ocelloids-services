@@ -12,12 +12,32 @@ export const HYPERBRIDGE_CONFIG: {
   },
 }
 
-const TOKEN_GATEWAYS = [
+const ETHEREUM_HOSTS: Record<NetworkURN, HexString> = {
+  'urn:ocn:ethereum:1': '0x792a6236af69787c40cf76b69b4c8c7b28c4ca20', // Ethereum
+  'urn:ocn:ethereum:42161': '0xe05afd4eb2ce6d65c40e1048381bd0ef8b4b299e', // Arbitrum
+  'urn:ocn:ethereum:10': '0x78c8a5f27c06757ea0e30bea682f1fd5c8d7645d', // Optimism
+  'urn:ocn:ethereum:8453': '0x6ffe92e4d7a9d589549644544780e6725e84b248', // Base
+  'urn:ocn:ethereum:56': '0x24b5d421ec373fca57325dd2f0c074009af021f7', // BSC
+  'urn:ocn:ethereum:100': '0x50c236247447b9d4ee0561054ee596fbda7791b1', // Gnosis
+  'urn:ocn:ethereum:1868': '0x7f0165140d0f3251c8f6465e94e9d12c7fd40711', // Soneium
+  'urn:ocn:ethereum:137': '0xd8d3db17c1df65b301d45c84405ccac1395c559a', // Polygon
+  'urn:ocn:ethereum:130': '0x2a17c1c3616bbc33fce5af5b965f166ba76cedaf', // Unichain
+}
+
+export const TOKEN_GATEWAYS = [
   '0xfd413e3afe560182c4471f4d143a96d3e259b6de',
   '0xce304770236f39f9911bfcc51afbdf3b8635718', // Soneium
   '0x8b536105b6fae2ae9199f5146d3c57dfe53b614e', // Polygon + Unichain
 ]
 
-export function isTokenGateway(contract: HexString) {
-  return TOKEN_GATEWAYS.includes(contract)
+export const BIFROST_ORACLES = [
+  '0x0a702f34da7b4514c74d35ff68891d1ee57930ef', // Soneium oracle proxy
+]
+
+export function getHostContractAddress(chainId: NetworkURN): HexString {
+  const contract = ETHEREUM_HOSTS[chainId]
+  if (!contract) {
+    throw new Error(`Host contract address not found for ${chainId}`)
+  }
+  return contract
 }

@@ -13,6 +13,7 @@ import { Event } from '@/services/networking/substrate/types.js'
 
 const textEncoder = new TextEncoder()
 const ETH_PREFIX = '0x45544800'
+const PADDED_PREFIX = '0x000000000000000000000000'
 
 export function asJSON(o: unknown) {
   return JSON.stringify(o, (_, v) =>
@@ -38,7 +39,12 @@ export function asAccountId(account: HexString, ss58Prefix = 0): string {
   if (isEVMAddress(account)) {
     return account
   }
-  return fromBufferToBase58(ss58Prefix)(fromHex(account))
+  try {
+    return fromBufferToBase58(ss58Prefix)(fromHex(account))
+  } catch (error) {
+    console.warn(error, `Unable to convert to ss58 address (${account})`)
+    return account
+  }
 }
 
 export function stringToUa8(v: string) {
@@ -48,17 +54,24 @@ export function stringToUa8(v: string) {
 /**
  * Normalize any public key to hex string.
  * - Strips ETH-prefixed keys
+ * - Extracts 20-byte ETH addresses padded to 32 bytes
  * - Leaves 32-byte keys (Sui, Solana, Polkadot) intact
  */
 export function normalizePublicKey(publicKey: Uint8Array | HexString): HexString {
   const pk = typeof publicKey === 'string' ? publicKey : toHex(publicKey)
+  const lower = pk.toLowerCase()
 
   // Strip Hydration ETH prefix
-  if (pk.startsWith(ETH_PREFIX)) {
-    return `0x${pk.substring(10, 50).toLowerCase()}`
+  if (lower.startsWith(ETH_PREFIX)) {
+    return `0x${lower.substring(10, 50)}`
   }
 
-  return pk.toLowerCase() as HexString
+  // Detect 32-byte padded ETH address
+  if (lower.startsWith(PADDED_PREFIX)) {
+    return `0x${lower.substring(26)}` as HexString
+  }
+
+  return lower as HexString
 }
 
 /**
@@ -229,4 +242,10 @@ export type DeepCamelize<T> = T extends Array<infer U>
 
 export function createTypedEventEmitter<T extends EventEmitter>(): T {
   return new EventEmitter() as unknown as T
+}
+
+export function hexTimestampToMillis(hex?: string) {
+  if (hex !== undefined && hex.startsWith('0x')) {
+    return Number(BigInt(hex) * 1000n)
+  }
 }

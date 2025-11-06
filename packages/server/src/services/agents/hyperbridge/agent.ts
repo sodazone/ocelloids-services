@@ -1,5 +1,3 @@
-import { IngressConsumers } from '@/services/ingress/index.js'
-import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Logger } from '@/services/types.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository } from '../crosschain/index.js'
@@ -35,9 +33,13 @@ export class HyperbridgeAgent implements Agent {
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
 
-  start() {}
+  start() {
+    // TODO: implement
+  }
 
-  stop() {}
+  stop() {
+    // TODO: implement
+  }
 
   collectTelemetry() {
     // implement
