@@ -1,13 +1,13 @@
 import { from } from 'rxjs'
 import { HexString } from '@/lib.js'
 import { extractEvents } from '@/services/networking/substrate/index.js'
-import { testBlocksFrom } from '@/testing/blocks.js'
-import { mapHyperbridgeDispatched } from './mappers.js'
-import { extractSubstrateRequest } from './requests.js'
+import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
+import { mapIsmpRequestToJourney } from './mappers.js'
+import { extractEvmRequest, extractSubstrateRequest } from './requests.js'
 
 describe('hyperbridge mappers', () => {
   describe('mapHyperbridgeDispatched', () => {
-    it('should map asset teleport request', async () => {
+    it('should map asset teleport request from Bifrost', async () => {
       const block$ = from(testBlocksFrom('bifrost/9757607.cbor'))
       const mockGetIsmpRequest = (_commitment: HexString) =>
         from([
@@ -23,8 +23,8 @@ describe('hyperbridge mappers', () => {
         ])
       const test$ = block$.pipe(
         extractEvents(),
-        extractSubstrateRequest(mockGetIsmpRequest),
-        mapHyperbridgeDispatched(),
+        extractSubstrateRequest('urn:ocn:polkadot:2030', mockGetIsmpRequest),
+        mapIsmpRequestToJourney(),
       )
       const calls = vi.fn()
 
@@ -71,8 +71,8 @@ describe('hyperbridge mappers', () => {
 
       const test$ = block$.pipe(
         extractEvents(),
-        extractSubstrateRequest(mockGetIsmpRequest),
-        mapHyperbridgeDispatched(),
+        extractSubstrateRequest('urn:ocn:polkadot:2030', mockGetIsmpRequest),
+        mapIsmpRequestToJourney(),
       )
       const calls = vi.fn()
 
@@ -90,6 +90,37 @@ describe('hyperbridge mappers', () => {
             expect(msg.decoded).toBeDefined()
             expect(msg.decoded).toHaveProperty('method')
             expect(msg.decoded).toHaveProperty('args')
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should map asset teleport request from Ethereum', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23738652.cbor'))
+      const test$ = block$.pipe(extractEvmRequest('urn:ocn:ethereum:1'), mapIsmpRequestToJourney())
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg.origin.chainId).toBe('urn:ocn:ethereum:1')
+            expect(msg.origin.blockHash).toBeDefined()
+            expect(msg.origin.blockNumber).toBeDefined()
+            expect(msg.origin.txHash).toBeDefined()
+            expect(msg.destination.chainId).toBe('urn:ocn:polkadot:2030')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.decoded).toBeDefined()
+            expect(msg.decoded).toHaveProperty('action', 'incoming-asset')
+            expect(msg.decoded).toHaveProperty('assetId')
+            expect(msg.decoded).toHaveProperty('amount')
+            expect(msg.decoded).toHaveProperty('from')
+            expect(msg.decoded).toHaveProperty('to')
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)

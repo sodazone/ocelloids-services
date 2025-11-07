@@ -3,7 +3,7 @@ import { asAccountId, isEVMAddress, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { NetworkURN } from '@/services/types.js'
 import { BIFROST_ORACLES, TOKEN_GATEWAYS } from '../config.js'
-import { EvmPostRequestEvent, FormattedAddress } from '../types.js'
+import { FormattedAddress } from '../types.js'
 
 const MODULE_IDS = {
   TOKEN_GATEWAY: (() => sliceHex(keccak256(stringToBytes('tokengty')), 12))(),
@@ -21,16 +21,15 @@ function toNetworkURN(consensus: string, id: string): NetworkURN {
   return `urn:ocn:${normalisedConsensus}:${normalisedId}`
 }
 
-export function formatNetworkFromSubstrateEventArg(arg: { type: string; value: number }) {
-  return toNetworkURN(arg.type, arg.value.toString())
-}
-
-export function formatNetworkFromEvmEventArg(arg: string) {
-  const parts = arg.split('-')
-  if (parts.length !== 2) {
-    throw new Error('Unexpected network string')
+export function toFormattedNetwork(arg: string | { type: string; value: number }) {
+  if (typeof arg === 'string') {
+    const parts = arg.split('-')
+    if (parts.length !== 2) {
+      throw new Error('Unexpected network string')
+    }
+    return toNetworkURN(parts[0], parts[1])
   }
-  return toNetworkURN(parts[0], parts[1])
+  return toNetworkURN(arg.type, arg.value.toString())
 }
 
 export function toCommitmentHash({
@@ -41,10 +40,18 @@ export function toCommitmentHash({
   from,
   to,
   body,
-}: EvmPostRequestEvent) {
+}: {
+  source: string
+  dest: string
+  from: HexString
+  to: HexString
+  nonce: bigint | string
+  timeoutTimestamp: bigint | string
+  body: HexString
+}) {
   const packed = encodePacked(
     ['bytes', 'bytes', 'uint64', 'uint64', 'bytes', 'bytes', 'bytes'],
-    [stringToHex(source), stringToHex(dest), nonce, timeoutTimestamp, from, to, body],
+    [stringToHex(source), stringToHex(dest), BigInt(nonce), BigInt(timeoutTimestamp), from, to, body],
   )
 
   const hash = keccak256(packed)

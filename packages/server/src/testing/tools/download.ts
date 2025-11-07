@@ -27,6 +27,7 @@ export const substrateNetworks: Record<string, string> = {
   interlay: 'wss://api.interlay.io/parachain',
   acala: 'wss://acala-rpc.dwellir.com',
   mythos: 'wss://mythos.ibp.network',
+  nexus: 'wss://nexus.ibp.network',
   kassethub: 'wss://sys.ibp.network/asset-hub-kusama',
   kbridgehub: 'wss://sys.ibp.network/bridgehub-kusama',
   passethub: 'wss://sys.ibp.network/asset-hub-paseo',

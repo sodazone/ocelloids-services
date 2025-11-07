@@ -1,11 +1,11 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { map, Observable } from 'rxjs'
+import { filter, map, Observable } from 'rxjs'
 import { decodeAbiParameters } from 'viem'
 import { HexString } from '@/lib.js'
 import {
   AssetTeleport,
   HyperbridgeDispatched,
-  HyperbridgePostRequestWithContext,
+  IsmpPostRequestWithContext,
   TokenGatewayActions,
   Transact,
 } from '../types.js'
@@ -124,25 +124,27 @@ function decodeOracleCall(req: HexString | Uint8Array): Transact {
   }
 }
 
-export function mapHyperbridgeDispatched() {
-  return (source: Observable<HyperbridgePostRequestWithContext>): Observable<HyperbridgeDispatched> => {
+export function mapIsmpRequestToJourney() {
+  return (source: Observable<IsmpPostRequestWithContext>): Observable<HyperbridgeDispatched> => {
     return source.pipe(
       map((req) => {
+        if (req.chainId !== req.source) {
+          return null
+        }
+        let decoded: AssetTeleport | Transact | undefined
         try {
           if (isTokenGateway(req.to)) {
-            const decoded = decodeAssetTeleportRequest(req.body)
-            return new HyperbridgeDispatched(req, decoded)
+            decoded = decodeAssetTeleportRequest(req.body)
           }
           if (isBifrostOracle(req.to)) {
-            const decoded = decodeOracleCall(req.body)
-            return new HyperbridgeDispatched(req, decoded)
+            decoded = decodeOracleCall(req.body)
           }
-          return new HyperbridgeDispatched(req)
         } catch (err) {
           console.error(err, `Unable to decode request body for ${req.source} (#${req.blockNumber})`)
-          return new HyperbridgeDispatched(req)
         }
+        return new HyperbridgeDispatched(req, decoded)
       }),
+      filter((req) => req !== null),
     )
   }
 }

@@ -63,7 +63,7 @@ export class HyperbridgeTracker {
           sub: this.#shared
             .blockEvents(substrateChain)
             .pipe(
-              extractSubstrateRequest(this.#getIsmpRequest(substrateChain)),
+              extractSubstrateRequest(substrateChain, this.#getIsmpRequest(substrateChain)),
               catchError((err) => {
                 this.#log.error(
                   err,
