@@ -3,7 +3,7 @@ import { HexString } from '@/lib.js'
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
 import { mapIsmpRequestToJourney } from './mappers.js'
-import { extractEvmRequest, extractSubstrateRequest } from './requests.js'
+import { extractEvmRequest, extractSubstrateRequest } from './post-request.js'
 
 describe('hyperbridge mappers', () => {
   describe('mapHyperbridgeDispatched', () => {

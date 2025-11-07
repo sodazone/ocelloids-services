@@ -1,7 +1,10 @@
-import { encodePacked, keccak256, sliceHex, stringToBytes, stringToHex, toHex } from 'viem'
+import * as fzstd from 'fzstd'
+import { fromHex, toHex } from 'polkadot-api/utils'
+import { encodePacked, keccak256, sliceHex, stringToBytes, stringToHex } from 'viem'
 import { asAccountId, isEVMAddress, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { NetworkURN } from '@/services/types.js'
+import { HyperbridgeSignature } from '../codec.js'
 import { BIFROST_ORACLES, TOKEN_GATEWAYS } from '../config.js'
 import { FormattedAddress } from '../types.js'
 
@@ -94,4 +97,22 @@ export function toFormattedAddresses(address: HexString): FormattedAddress {
           ? undefined
           : asAccountId(normalizedKey, 0), // fetch real prefix
   }
+}
+
+export function extractSigner(signer: HexString | Uint8Array): HexString {
+  const signerBuf = typeof signer === 'string' ? fromHex(signer) : signer
+  if (signerBuf.length > 32) {
+    const { tag, value } = HyperbridgeSignature.dec(signerBuf)
+    if (tag === 'Evm') {
+      return toHex(value.address) as HexString
+    }
+    return toHex(value.publicKey) as HexString
+  }
+  return toHex(signerBuf) as HexString
+}
+
+export async function decompress(compressed: Uint8Array | HexString, encodedCallSize: number) {
+  const buf = typeof compressed === 'string' ? fromHex(compressed) : compressed
+
+  return fzstd.decompress(buf, new Uint8Array(encodedCallSize));
 }
