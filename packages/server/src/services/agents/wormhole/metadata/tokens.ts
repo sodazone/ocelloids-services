@@ -50,6 +50,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
+  ['2:0xaa7a9ca87d3694b5755f213b5d04094b8d0f0a6f']: {
+    symbol: 'TRAC',
+    decimals: 18,
+    isNative: false,
+  },
   ['4:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']: {
     symbol: 'WBNB',
     decimals: 18,
