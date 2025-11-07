@@ -149,20 +149,21 @@ export class XcmTransfersRepository {
     }
     const interval = safe(criteria.timeframe)
     const intervalMax = safe(multiplyInterval(interval, 2))
+    const unit = getUnit(criteria.bucket ?? '1 hours')
     const query = `
         WITH base AS (
           SELECT * FROM xcm_transfers
-          WHERE sent_at >= NOW() - INTERVAL '${intervalMax}'
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}')
         ),
         current_period AS (
           SELECT *
           FROM base
-          WHERE sent_at > NOW() - INTERVAL '${interval}'
+          WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
         ),
         previous_period AS (
           SELECT *
           FROM base
-          WHERE sent_at BETWEEN NOW() - INTERVAL '${intervalMax}' AND NOW() - INTERVAL '${interval}'
+          WHERE sent_at BETWEEN DATE_TRUNC('${unit}', NOW() - INTERVAL '${intervalMax}') AND DATE_TRUNC('${unit}', NOW() - INTERVAL '${interval}')
         )
         SELECT
           (SELECT COUNT(*) FROM current_period) AS current_period_count,
@@ -828,26 +829,26 @@ export class XcmTransfersRepository {
 
   async protocolAnalytics(criteria: TimeSelect) {
     const bucketInterval = criteria.bucket ?? '1 hours'
-    const timeframe = criteria.timeframe
+    const timeframe = safe(criteria.timeframe)
     const unit = getUnit(bucketInterval)
 
     const query = `
       WITH base AS (
         SELECT
           origin_protocol AS protocol,
-          correlation_id,
+          id,
           from_address,
           to_address,
           volume,
           EXTRACT(EPOCH FROM (recv_at - sent_at)) AS time_spent
         FROM xcm_transfers
-        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${safe(timeframe)}')
+        WHERE sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${timeframe}')
 
         UNION ALL
 
         SELECT
           destination_protocol AS protocol,
-          correlation_id,
+          id,
           from_address,
           to_address,
           volume,
@@ -859,13 +860,13 @@ export class XcmTransfersRepository {
       deduped AS (
         SELECT
           protocol,
-          correlation_id,
+          id,
           MAX(COALESCE(volume, 0)) AS volume,
           AVG(time_spent) AS avg_time_spent,
           ANY_VALUE(from_address) AS from_address,
           ANY_VALUE(to_address) AS to_address
         FROM base
-        GROUP BY protocol, correlation_id
+        GROUP BY protocol, id
       )
 
       SELECT

@@ -65,14 +65,14 @@ export const $AgentCatalogOptions = z.object({
 })
 
 export const $ArchiveOptions = z.object({
-  archive: z.boolean().default(false),
+  archive: z.boolean().default(true),
   archiveRetention: z.boolean().default(true),
   archiveRetentionPeriod: z.string().default('3_months'),
   archiveTick: z.number().default(24 * 3_600_000), // daily
 })
 
 export const $AnalyticsOptions = z.object({
-  analytics: z.boolean().default(false),
+  analytics: z.boolean().default(true),
 })
 
 export type CorsServerOptions = z.infer<typeof $CorsServerOptions>

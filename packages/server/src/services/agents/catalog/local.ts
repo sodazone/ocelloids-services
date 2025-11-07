@@ -28,7 +28,7 @@ import { WormholeAgent } from '../wormhole/agent.js'
 
 const DIRTY_TOGGLES = {
   chainspy: process.env.ENABLE_CHAINSPY === 'true',
-  crosschain: process.env.ENABLE_CROSSCHAIN === 'true',
+  crosschain: process.env.ENABLE_CROSSCHAIN !== 'false',
 }
 
 function shouldStart(agent: Agent) {

@@ -1,7 +1,8 @@
 import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
 import { Abi, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
 import { asSerializable } from '@/common/util.js'
-import { BlockWithLogs, DecodedLog, DecodedTx, DecodedTxWithLogs } from '../types.js'
+import { EvmApi } from '../client.js'
+import { BlockWithLogs, DecodedLog, DecodedTx, DecodedTxWithLogs, WithReceipt } from '../types.js'
 
 const MAX_CONCURRENCY_LOGS = 10
 const MAX_CONCURRENCY_TX = 10
@@ -206,5 +207,19 @@ export function filterTransactionsWithLogs(params: DecodeContractParams, functio
       ),
       mergeMap((txs) => txs),
       filter((tx) => tx.decoded !== undefined),
+    )
+}
+
+export function appendTransactionReceipt<T extends DecodedTx | DecodedTxWithLogs>(ingress: EvmApi) {
+  return (source: Observable<T>): Observable<T & WithReceipt> =>
+    source.pipe(
+      mergeMap((tx) =>
+        from(ingress.getTransactionReceipt(tx.hash)).pipe(
+          map((receipt) => ({
+            ...tx,
+            receipt,
+          })),
+        ),
+      ),
     )
 }

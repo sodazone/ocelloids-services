@@ -2,7 +2,7 @@ import { Observer, Subscription } from 'rxjs'
 
 import { ago } from '@/common/time.js'
 import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
-import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
+import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
@@ -16,6 +16,18 @@ import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from 
 import { mapOperationToJourney } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
+
+function isChainSupported(chainId?: number): boolean {
+  return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
+}
+
+function isSupportedWormholeOp(op: WormholeOperation): boolean {
+  return (
+    isChainSupported(op.sourceChain?.chainId) &&
+    isChainSupported(op.targetChain?.chainId) &&
+    isChainSupported(op.content?.standarizedProperties?.toChain)
+  )
+}
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
@@ -115,6 +127,16 @@ export class WormholeAgent implements Agent {
   }
 
   #onOperation = async (op: WormholeOperation) => {
+    if (!isSupportedWormholeOp(op)) {
+      this.#log.warn(
+        '[agent:%s] Skipping operation due to unsupported network(s): sourceChainId=%s, targetChainId=%s',
+        this.id,
+        op.sourceChain.chainId,
+        op.targetChain.chainId,
+      )
+      return
+    }
+
     const journey = mapOperationToJourney(op)
     const existing = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
 

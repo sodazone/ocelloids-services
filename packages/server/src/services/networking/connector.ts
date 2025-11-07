@@ -8,7 +8,7 @@ import { ApiClient } from './types.js'
 const INC_CONNECTION_MILLIS = 100
 
 /**
- * Handles substrate network connections.
+ * Handles blockchain network connections.
  */
 export default class Connector {
   readonly #log: Logger

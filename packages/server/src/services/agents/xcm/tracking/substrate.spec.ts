@@ -131,6 +131,9 @@ describe('extractXcmMessageData', () => {
           expect(msg.destination.chainId).toBeDefined()
           expect(msg.origin.timestamp).toBeDefined()
           expect(msg.sender?.signer.id).toBeDefined()
+          expect(msg.legs.length).toBe(3)
+          expect(msg.legs[2].type).toBe('bridge')
+          expect(msg.destination.chainId).toBe('urn:ocn:ethereum:1')
         },
         complete: () => {
           // should be 1 since we don't want dups
@@ -300,10 +303,62 @@ describe('extractXcmMessageData', () => {
           expect(msg.sender?.signer.id).toBeDefined()
           expect(msg.legs).toBeDefined()
           expect(msg.legs[0].type).toBe('hop')
+          expect(msg.legs[1].type).toBe('bridge')
           expect(msg.destination.chainId).toBe('urn:ocn:polkadot:1000')
         },
         complete: () => {
           expect(calls).toHaveBeenCalledTimes(1)
+          resolve()
+        },
+      })
+    })
+  })
+
+  it('should emit outbound for asset hub to ethereum', async () => {
+    const origin = 'urn:ocn:polkadot:1000' as NetworkURN
+    const blocks = from(testBlocksFrom('assethub/10260145.cbor'))
+    const getHrmp = () =>
+      from([
+        [
+          {
+            recipient: 1002,
+            data: Binary.fromHex(
+              '0x00050c2f0000260704001401040102090200dd1f000f0090b60c4601100a130102090200dd1f000f0090b60c460110000d01020400010300ecb7ae3a8c07e47781d6da768c7acd13c56d4c482caa8a1f74f5aead80f488f1c97f558bdddbabad12ee291b9be983ca8bac9b451e2caa8a1f74f5aead80f488f1c97f558bdddbabad12ee291b9be983ca8bac9b451e',
+            ),
+          },
+          {
+            recipient: 2004,
+            data: Binary.fromHex(
+              '0x00051401040100000b0040e59c30120a130100000b0040e59c3012000d01020400010300b32b41625e14e55757a5d0cfcdd9768a1695c5f32c55414c8549b34385a8bce7e151696f9ab43faa14c66e65483eeeb6d140e5435a',
+            ),
+          },
+        ],
+      ])
+
+    const test$ = blocks.pipe(
+      extractEvents(),
+      extractXcmpSend(origin, getHrmp, apiContext),
+      mapXcmSent(apiContext, origin),
+    )
+    const calls = vi.fn()
+    await new Promise<void>((resolve) => {
+      test$.subscribe({
+        next: (msg) => {
+          calls()
+          expect(msg).toBeDefined()
+          expect(msg.origin.blockNumber).toBeDefined()
+          expect(msg.origin.blockHash).toBeDefined()
+          expect(msg.origin.instructions).toBeDefined()
+          expect(msg.origin.messageData).toBeDefined()
+          expect(msg.origin.messageHash).toBeDefined()
+          expect(msg.destination.chainId).toBeDefined()
+          expect(msg.origin.timestamp).toBeDefined()
+          expect(msg.sender?.signer.id).toBeDefined()
+          expect(msg.legs).toBeDefined()
+          expect(msg.destination.chainId).toBeDefined()
+        },
+        complete: () => {
+          expect(calls).toHaveBeenCalledTimes(2)
           resolve()
         },
       })
