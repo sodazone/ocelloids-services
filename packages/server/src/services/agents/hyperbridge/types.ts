@@ -15,7 +15,7 @@ export type SubstratePostRequestEvent = {
   commitment: HexString
 }
 
-export type SubstrateHandleUnsignedRequest = {
+export type SubstrateHandlePostRequestBody = {
   source: {
     type: string
     value: number
@@ -32,7 +32,7 @@ export type SubstrateHandleUnsignedRequest = {
 }
 
 export type SubstrateHandleUnsignedRequestObject = {
-  requests: SubstrateHandleUnsignedRequest[]
+  requests: SubstrateHandlePostRequestBody[]
   proof: Record<string, any>
   signer: HexString
 }
@@ -42,7 +42,7 @@ export type SubstratePostRequestTimeout = {
   value: {
     requests: {
       type: string
-      value: SubstrateHandleUnsignedRequest
+      value: SubstrateHandlePostRequestBody
     }[]
     timeout_proof: any
   }
@@ -72,6 +72,37 @@ export type SubstrateHandleUnsignedMessage =
 export type SubstrateHandleUnsignedArgs = {
   messages: SubstrateHandleUnsignedMessage[]
 }
+
+export type EvmHandlePostRequestBody = {
+  source: HexString
+  dest: HexString
+  nonce: string
+  from: HexString
+  to: HexString
+  timeoutTimestamp: string
+  body: HexString
+}
+
+export type EvmHandlePostRequestArgs = [
+  HexString,
+  {
+    proof: any
+    requests: {
+      request: EvmHandlePostRequestBody
+      index: string
+      kIndex: string
+    }[]
+  },
+]
+
+export type EvmHandlePostRequestTimeoutArgs = [
+  HexString,
+  {
+    proof: any
+    height: { stateMachineId: string; height: string }
+    timeouts: EvmHandlePostRequestBody[]
+  },
+]
 
 export type EvmPostRequestEvent = {
   source: string
@@ -152,7 +183,7 @@ export type IsmpPostRequest = {
   commitment: HexString
   from: HexString
   to: HexString
-  timeout: string
+  timeoutAt: number
   body: HexString
 }
 
@@ -187,7 +218,7 @@ export interface HyperbridgeJourney {
   commitment: HexString
   nonce: string
   body: HexString
-  timeout: string
+  timeoutAt: number
   decoded?: AssetTeleport | Transact
 }
 
@@ -199,13 +230,13 @@ abstract class BaseHyperbridgeJourney {
   commitment: HexString
   nonce: string
   body: HexString
-  timeout: string
+  timeoutAt: number
 
   constructor(req: IsmpPostRequest) {
     this.commitment = req.commitment
     this.nonce = req.nonce
     this.body = req.body
-    this.timeout = req.timeout
+    this.timeoutAt = req.timeoutAt
     this.from = toFormattedAddresses(req.from)
     this.to = toFormattedAddresses(req.to)
   }

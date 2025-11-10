@@ -6,6 +6,8 @@ export type BlockWithLogs = BlockWithTransactions & {
   logs: Log[]
 }
 
+export type TransactionWithTimestamp = Transaction & { timestamp: number }
+
 export type DecodedLog = Log & {
   decoded?: {
     eventName?: string
@@ -13,7 +15,7 @@ export type DecodedLog = Log & {
   }
 }
 
-export type DecodedTx = Transaction & {
+export type DecodedTx = TransactionWithTimestamp & {
   decoded?: {
     functionName?: string
     args?: Record<string, unknown> | readonly unknown[]

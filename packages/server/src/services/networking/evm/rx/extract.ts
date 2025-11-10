@@ -2,7 +2,14 @@ import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 
 import { Abi, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
 import { asSerializable } from '@/common/util.js'
 import { EvmApi } from '../client.js'
-import { BlockWithLogs, DecodedLog, DecodedTx, DecodedTxWithLogs, WithReceipt } from '../types.js'
+import {
+  BlockWithLogs,
+  DecodedLog,
+  DecodedTx,
+  DecodedTxWithLogs,
+  TransactionWithTimestamp,
+  WithReceipt,
+} from '../types.js'
 
 const MAX_CONCURRENCY_LOGS = 10
 const MAX_CONCURRENCY_TX = 10
@@ -35,6 +42,10 @@ function buildAbiSelectorMap({ abi }: DecodeContractParams, type: 'logs' | 'txs'
       throw new Error(`Type ${type} not supported for building ABI selector map.`)
     }
   }
+}
+
+function getTransactionsWithTimestamp(block: BlockWithLogs): TransactionWithTimestamp[] {
+  return block.transactions.map((tx) => ({ ...tx, timestamp: Number(block.timestamp * 1_000n) }))
 }
 
 export function decodeLogs(params: DecodeContractParams[]) {
@@ -111,7 +122,7 @@ export function decodeTransactions(params: DecodeContractParams[]) {
 
   return (source: Observable<BlockWithLogs>): Observable<DecodedTx> =>
     source.pipe(
-      mergeMap((block) => block.transactions, MAX_CONCURRENCY_TX),
+      mergeMap((block) => getTransactionsWithTimestamp(block), MAX_CONCURRENCY_TX),
       map((tx) => {
         const abi = tx.to ? abiMap.get(tx.to.toLowerCase()) : undefined
         let decoded: DecodedTx['decoded']
@@ -135,7 +146,7 @@ export function filterTransactions(params: DecodeContractParams, functionNames: 
 
   return (source: Observable<BlockWithLogs>): Observable<DecodedTx> =>
     source.pipe(
-      mergeMap((block) => block.transactions, MAX_CONCURRENCY_TX),
+      mergeMap((block) => getTransactionsWithTimestamp(block), MAX_CONCURRENCY_TX),
       map((tx) => {
         const { to, input } = tx
 

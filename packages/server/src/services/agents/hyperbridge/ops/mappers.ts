@@ -139,12 +139,11 @@ export function mapIsmpRequestToJourney() {
           if (isBifrostOracle(req.to)) {
             decoded = decodeOracleCall(req.body)
           }
-          // TODO: decode intent gateway requests
-          return new HyperbridgeDispatched(req, decoded)
         } catch (err) {
           console.error(err, `Unable to decode request body for ${req.source} (#${req.blockNumber})`)
-          return null
         }
+        // TODO: decode intent gateway requests
+        return new HyperbridgeDispatched(req, decoded)
       }),
       filter((req) => req !== null),
     )

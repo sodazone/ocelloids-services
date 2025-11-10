@@ -24,6 +24,18 @@ const ETHEREUM_HOSTS: Record<NetworkURN, HexString> = {
   'urn:ocn:ethereum:130': '0x2a17c1c3616bbc33fce5af5b965f166ba76cedaf', // Unichain
 }
 
+const ETHEREUM_HANDLERS: Record<NetworkURN, HexString> = {
+  'urn:ocn:ethereum:1': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Ethereum
+  'urn:ocn:ethereum:42161': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Arbitrum
+  'urn:ocn:ethereum:10': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Optimism
+  'urn:ocn:ethereum:8453': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Base
+  'urn:ocn:ethereum:56': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // BSC
+  'urn:ocn:ethereum:100': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Gnosis
+  'urn:ocn:ethereum:1868': '0x6c84edd2a018b1fe2fc93a56066b5c60da4e6d64', // Soneium
+  'urn:ocn:ethereum:137': '0x61f56ee7d15f4a11ba7ee9f233c136563cb5ad37', // Polygon
+  'urn:ocn:ethereum:130': '0x85f82d70ceed45ca0d1b154c297946babcf4d344', // Unichain
+}
+
 export const TOKEN_GATEWAYS = [
   '0xfd413e3afe560182c4471f4d143a96d3e259b6de',
   '0xce304770236f39f9911bfcc51afbdf3b8635718', // Soneium
@@ -34,10 +46,20 @@ export const BIFROST_ORACLES = [
   '0x0a702f34da7b4514c74d35ff68891d1ee57930ef', // Soneium oracle proxy
 ]
 
-export function getHostContractAddress(chainId: NetworkURN): HexString {
+export function getHostContractAddress(chainId: NetworkURN): HexString | null {
   const contract = ETHEREUM_HOSTS[chainId]
   if (!contract) {
-    throw new Error(`Host contract address not found for ${chainId}`)
+    console.error(`Host contract address not found for ${chainId}`)
+    return null
+  }
+  return contract
+}
+
+export function getHandlerContractAddress(chainId: NetworkURN): HexString | null {
+  const contract = ETHEREUM_HANDLERS[chainId]
+  if (!contract) {
+    console.error(`Handler contract address not found for ${chainId}`)
+    return null
   }
   return contract
 }

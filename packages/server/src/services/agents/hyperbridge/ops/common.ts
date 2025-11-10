@@ -44,17 +44,32 @@ export function toCommitmentHash({
   to,
   body,
 }: {
-  source: string
-  dest: string
+  source: string | { type: string; value: number }
+  dest: string | { type: string; value: number }
   from: HexString
   to: HexString
   nonce: bigint | string
   timeoutTimestamp: bigint | string
   body: HexString
 }) {
+  const normalizedSource =
+    typeof source === 'string'
+      ? source.toUpperCase()
+      : `${source.type.toUpperCase()}-${source.value.toString()}`
+  const normalizedDest =
+    typeof dest === 'string' ? dest.toUpperCase() : `${dest.type.toUpperCase()}-${dest.value.toString()}`
+
   const packed = encodePacked(
     ['bytes', 'bytes', 'uint64', 'uint64', 'bytes', 'bytes', 'bytes'],
-    [stringToHex(source), stringToHex(dest), BigInt(nonce), BigInt(timeoutTimestamp), from, to, body],
+    [
+      stringToHex(normalizedSource),
+      stringToHex(normalizedDest),
+      BigInt(nonce),
+      BigInt(timeoutTimestamp),
+      from,
+      to,
+      body,
+    ],
   )
 
   const hash = keccak256(packed)
@@ -114,5 +129,9 @@ export function extractSigner(signer: HexString | Uint8Array): HexString {
 export async function decompress(compressed: Uint8Array | HexString, encodedCallSize: number) {
   const buf = typeof compressed === 'string' ? fromHex(compressed) : compressed
 
-  return fzstd.decompress(buf, new Uint8Array(encodedCallSize));
+  return fzstd.decompress(buf, new Uint8Array(encodedCallSize))
+}
+
+export function toTimeoutMillis(timeout: string | bigint | number): number {
+  return Number(timeout) * 1000
 }

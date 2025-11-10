@@ -15,7 +15,7 @@ import {
   SubstrateOffchainRequest,
   SubstratePostRequestEvent,
 } from '../types.js'
-import { toCommitmentHash, toFormattedNetwork } from './common.js'
+import { toCommitmentHash, toFormattedNetwork, toTimeoutMillis } from './common.js'
 
 export function extractSubstrateRequest(
   chainId: NetworkURN,
@@ -41,7 +41,7 @@ export function extractSubstrateRequest(
               nonce: request_nonce.toString(),
               from,
               to,
-              timeout: timeoutTimestamp.toString(),
+              timeoutAt: toTimeoutMillis(timeoutTimestamp),
               body,
               outcome: 'Success',
             } as IsmpPostRequestWithContext
@@ -58,7 +58,7 @@ export function extractEvmRequest(chainId: NetworkURN) {
       filterLogs(
         {
           abi: hostAbi as Abi,
-          addresses: [getHostContractAddress(chainId)],
+          addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
         },
         ['PostRequestEvent'],
       ),
@@ -81,7 +81,7 @@ export function extractEvmRequest(chainId: NetworkURN) {
             nonce: nonce.toString(),
             from,
             to,
-            timeout: timeoutTimestamp.toString(),
+            timeoutAt: toTimeoutMillis(timeoutTimestamp),
             body,
             outcome: 'Success',
           } as IsmpPostRequestWithContext
