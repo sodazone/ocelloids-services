@@ -3,6 +3,8 @@ import ky from 'ky'
 import { normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
+const DEFAULT_PAGE_SIZE = 25
+
 type WormholeOperationParams = {
   pageSize?: number
   from?: string // ISO time
@@ -88,7 +90,7 @@ export class WormholescanClient {
     params: WormholeOperationParams & { page?: number },
     signal?: AbortSignal | null,
   ): Promise<{ operations: WormholeOperation[]; total: number }> {
-    const { page = 0, pageSize = 25, ...query } = params
+    const { page = 0, pageSize = DEFAULT_PAGE_SIZE, ...query } = params
 
     return this.#api
       .get('api/v1/operations', {
@@ -109,7 +111,7 @@ export class WormholescanClient {
     params: WormholeOperationParams,
     signal?: AbortSignal | null,
   ): AsyncGenerator<WormholeOperation, void, unknown> {
-    const { pageSize = 25, ...query } = params
+    const { pageSize = DEFAULT_PAGE_SIZE, ...query } = params
     let page = 0
 
     while (true) {
