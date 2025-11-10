@@ -70,6 +70,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['5:0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270']: {
+    symbol: 'WPOL',
+    decimals: 18,
+    isNative: false,
+  },
   ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
     symbol: 'WAVAX',
     decimals: 18,
