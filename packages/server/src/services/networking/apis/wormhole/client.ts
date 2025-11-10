@@ -59,6 +59,29 @@ export class WormholescanClient {
   }
 
   /**
+   * Wormhole ready endppoint.
+   */
+  async isReady() {
+    const response = await this.#api.get('api/v1/ready').json<{ ready: string }>()
+    return response.ready === 'OK'
+  }
+
+  /**
+   * Awaits until the Wormhole API is ready.
+   */
+  async awaitReady() {
+    await withRetry(
+      async () => {
+        const ready = await this.isReady()
+        if (!ready) {
+          throw new Error('Wormhole API not ready yet')
+        }
+      },
+      { retries: 10, delay: 2_000, exponential: true },
+    )
+  }
+
+  /**
    * Fetch operations for a given page.
    */
   async fetchOperations(

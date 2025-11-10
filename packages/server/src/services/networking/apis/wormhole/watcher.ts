@@ -264,19 +264,25 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           storage.deletePendingOp(id)
         }
       }
-      // restore pending ops before starting loop
+
       ;(async () => {
         try {
+          await client.awaitReady()
+
           if (storage) {
-            const stored = await storage.loadPendingOps()
-            for (const [id, entry] of Object.entries(stored)) {
-              pending.set(id, entry)
+            try {
+              const stored = await storage.loadPendingOps()
+              for (const [id, entry] of Object.entries(stored)) {
+                pending.set(id, entry)
+              }
+            } catch (err) {
+              console.error('Failed to restore pending ops', err)
             }
           }
-        } catch (err) {
-          console.error('Failed to restore pending ops', err)
-        } finally {
+
           loop()
+        } catch (err) {
+          subscriber.error(err)
         }
       })()
 
