@@ -202,29 +202,26 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           const status = toStatus(op) as JourneyStatus
           const entry = pending.get(id)
 
-          if (!FINAL_STATUS.includes(status)) {
-            // only track non-final ops
-            if (!entry) {
-              const newEntry: PendingEntry = { op, status, firstSeen: now }
-              pending.set(id, newEntry)
-              subscriber.next({ op, status })
-              if (storage) {
-                await storage.savePendingOp(id, newEntry)
-              }
-            } else if (entry.status !== status) {
-              const updatedEntry: PendingEntry = { ...entry, status, op }
-              pending.set(id, updatedEntry)
-              subscriber.next({ op, status })
-              if (storage) {
-                await storage.savePendingOp(id, updatedEntry)
-              }
-            }
-          } else {
+          if (FINAL_STATUS.includes(status)) {
             // final ops: emit immediately
             if (entry) {
               removePending(id)
             }
             subscriber.next({ op, status })
+          } else if (!entry) {
+            const newEntry: PendingEntry = { op, status, firstSeen: now }
+            pending.set(id, newEntry)
+            subscriber.next({ op, status })
+            if (storage) {
+              await storage.savePendingOp(id, newEntry)
+            }
+          } else if (entry.status !== status) {
+            const updatedEntry: PendingEntry = { ...entry, status, op }
+            pending.set(id, updatedEntry)
+            subscriber.next({ op, status })
+            if (storage) {
+              await storage.savePendingOp(id, updatedEntry)
+            }
           }
         }
       }

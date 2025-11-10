@@ -128,11 +128,7 @@ export class WormholeAgent implements Agent {
 
   #onOperation = async (op: WormholeOperation) => {
     if (!isSupportedWormholeOp(op)) {
-      this.#log.warn(
-        '[agent:%s] Skipping operation due to unsupported network (%s)',
-        this.id,
-        op.id,
-      )
+      this.#log.warn('[agent:%s] Skipping operation due to unsupported network (%s)', this.id, op.id)
       return
     }
 
