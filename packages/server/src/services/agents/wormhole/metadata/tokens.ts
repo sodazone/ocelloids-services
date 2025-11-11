@@ -110,6 +110,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
+  ['22:0xa867703f5395cb2965feb7ebff5cdf39b771fc6156085da3ae4147a00be91b38']: {
+    symbol: 'APT',
+    decimals: 8,
+    isNative: false,
+  },
   ['24:0x0b2c639c533813f4aa9d7837caf62653d097ff85']: {
     symbol: 'USDC',
     decimals: 6,
