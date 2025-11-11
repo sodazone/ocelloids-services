@@ -283,8 +283,8 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
   },
   {
     chainId: 'urn:ocn:ethereum:1',
-    id: '0x769916A66fDAC0E3D57363129caac59386ea622B',
-    xid: '0x769916A66fDAC0E3D57363129caac59386ea622B',
+    id: '0x769916a66fdac0e3d57363129caac59386ea622b',
+    xid: '0x769916a66fdac0e3d57363129caac59386ea622b',
     name: 'Integritee TEER',
     symbol: 'TEER',
     decimals: 12,

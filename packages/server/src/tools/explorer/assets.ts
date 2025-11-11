@@ -75,7 +75,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
-  ['2:0x769916A66fDAC0E3D57363129caac59386ea622B']: {
+  ['2:0x769916a66fdac0e3d57363129caac59386ea622b']: {
     symbol: 'TEER',
     decimals: 12,
     isNative: false,
