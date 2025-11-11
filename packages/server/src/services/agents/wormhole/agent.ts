@@ -133,7 +133,7 @@ export class WormholeAgent implements Agent {
     if (!enabled) {
       return
     }
-    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 500)
+    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 15_000)
 
     this.#log.info('[agent:%s] recheck pending journeys enabled (delay=%sms)', this.id, delay)
 
