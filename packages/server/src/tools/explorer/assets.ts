@@ -80,6 +80,16 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 12,
     isNative: false,
   },
+  ['2:0x196c20da81fbc324ecdf55501e95ce9f0bd84d14']: {
+    symbol: 'DOT',
+    decimals: 10,
+    isNative: false,
+  },
+  ['2:0xcccccccccc33d538dbc2ee4feab0a7a1ff4e8a94']: {
+    symbol: 'CFG',
+    decimals: 18,
+    isNative: false,
+  },
   ['4:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']: {
     symbol: 'WBNB',
     decimals: 18,
@@ -169,7 +179,7 @@ const WormholeChainIds: Record<string, number> = {
 
 function assetToRegistryKey(asset: string): string | null {
   const [networkURN, assetId] = asset.split('|')
-  if (!networkURN || !assetId || !assetId.startsWith('0x')) {
+  if (!networkURN || !assetId || assetId.startsWith('{')) {
     return null
   }
 
