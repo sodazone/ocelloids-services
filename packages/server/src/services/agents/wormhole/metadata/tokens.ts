@@ -10,7 +10,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
+  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwytdt1v']: {
     symbol: 'USDC',
     decimals: 6,
     isNative: false,
@@ -78,6 +78,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
     symbol: 'WAVAX',
     decimals: 18,
+    isNative: false,
+  },
+  ['6:0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e']: {
+    symbol: 'USDC',
+    decimals: 6,
     isNative: false,
   },
   ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {

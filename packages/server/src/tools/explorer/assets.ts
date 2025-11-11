@@ -15,7 +15,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
+  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwytdt1v']: {
     symbol: 'USDC',
     decimals: 6,
     isNative: false,
@@ -105,6 +105,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
+  ['6:0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e']: {
+    symbol: 'USDC',
+    decimals: 6,
+    isNative: false,
+  },
   ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
     symbol: 'WGLMR',
     decimals: 18,
@@ -164,7 +169,7 @@ const WormholeChainIds: Record<string, number> = {
 
 function assetToRegistryKey(asset: string): string | null {
   const [networkURN, assetId] = asset.split('|')
-  if (!networkURN || !assetId) {
+  if (!networkURN || !assetId || !assetId.startsWith('0x')) {
     return null
   }
 
@@ -206,7 +211,6 @@ async function main() {
 
     const registryKey = assetToRegistryKey(asset)
     if (!registryKey) {
-      console.warn(`⚠️ Cannot map asset ${asset}`)
       unmappedCount++
       continue
     }
