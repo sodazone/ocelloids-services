@@ -82,6 +82,10 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return [nextCursor, freshOps]
   }
 
+  async function fetchOperationById(id: string): Promise<WormholeOperation | undefined> {
+    return await client.fetchOperationById(id)
+  }
+
   async function fetchBatch(
     state: WatcherState,
     signal?: AbortSignal | null,
@@ -292,7 +296,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     })
   }
 
-  return { operations$, loadInitialState, pendingCount: () => pending.size }
+  return { fetchOperationById, operations$, loadInitialState, pendingCount: () => pending.size }
 }
 
 export type WormholeWatcher = ReturnType<typeof makeWatcher>

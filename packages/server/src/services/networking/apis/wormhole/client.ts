@@ -152,7 +152,6 @@ export class WormholescanClient {
   async fetchOperationById(id: WormholeId, signal?: AbortSignal | null): Promise<WormholeOperation> {
     const urlId = normalizeWormholeId(id)
     const op = await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>()
-
     return op
   }
 }

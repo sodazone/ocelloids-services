@@ -5,7 +5,7 @@ import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
-import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
+import { WormholeOperation, WormholeProtocols } from '@/services/networking/apis/wormhole/types.js'
 import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
 
@@ -93,6 +93,8 @@ export class WormholeAgent implements Agent {
       )
       this.#subs.push(this.#watcher.operations$(init).subscribe(this.#makeObserver()))
     })
+
+    this.#recheckPendingJourneys()
   }
 
   #makeObserver = (): Observer<{ op: WormholeOperation; status: JourneyStatus }> => ({
@@ -120,15 +122,49 @@ export class WormholeAgent implements Agent {
 
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
-    this.#log.info('[%s] broadcast %s:  %s', this.id, event, id)
+    this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
     this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
 
     this.#telemetry.emit('telemetryWormholeJourneyBroadcast', fullJourney)
   }
 
+  async #recheckPendingJourneys() {
+    const enabled = process.env.WORMHOLE_RECHECK_PENDING === 'true'
+    if (!enabled) {
+      return
+    }
+    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 500)
+
+    this.#log.info('[agent:%s] recheck pending journeys enabled (delay=%sms)', this.id, delay)
+
+    await new Promise((r) => setTimeout(r, delay))
+
+    this.#log.info('[agent:%s] rechecking pending journeys...', this.id)
+
+    const pendings = await this.#repository.getJourneysByStatus('sent', [...WormholeProtocols])
+
+    for (const journey of pendings) {
+      try {
+        const op = await this.#watcher.fetchOperationById(journey.correlation_id)
+        if (op) {
+          await this.#onOperation(op)
+        }
+      } catch (err) {
+        this.#log.warn(
+          err,
+          '[agent:%s] failed to recheck pending journey %s',
+          this.id,
+          journey.correlation_id,
+        )
+      }
+    }
+
+    this.#log.info('[agent:%s] pending recheck complete (%s items)', this.id, pendings.length)
+  }
+
   #onOperation = async (op: WormholeOperation) => {
     if (!isSupportedWormholeOp(op)) {
-      this.#log.warn('[agent:%s] Skipping operation due to unsupported network (%s)', this.id, op.id)
+      this.#log.warn('[agent:%s] skipping operation due to unsupported network (%s)', this.id, op.id)
       return
     }
 
