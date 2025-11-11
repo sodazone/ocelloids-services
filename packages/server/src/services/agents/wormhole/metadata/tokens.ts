@@ -95,6 +95,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
+  ['16:0xffffffffb3229c8e7657eabea704d5e75246e544']: {
+    symbol: 'xcNEURO',
+    decimals: 12,
+    isNative: false,
+  },
   ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
     symbol: 'WSUI',
     decimals: 9,
