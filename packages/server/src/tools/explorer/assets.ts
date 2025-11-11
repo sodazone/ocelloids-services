@@ -179,6 +179,7 @@ const WormholeChainIds: Record<string, number> = {
   'urn:ocn:ethereum:42220': 14,
   'urn:ocn:ethereum:43114': 6,
   'urn:ocn:sui:0x35834a8a': 21,
+  'urn:ocn:aptos:1': 22,
 } as const
 // ----------------------------------------------------------------
 
@@ -186,6 +187,11 @@ function assetToRegistryKey(asset: string): string | null {
   const [networkURN, assetId] = asset.split('|')
   if (!networkURN || !assetId || assetId.startsWith('{')) {
     return null
+  }
+
+  const parts = networkURN.split(':')
+  if (parts[2] === 'unknown') {
+    return `${parts[3]}:${assetId.toLowerCase()}`
   }
 
   const chainId = WormholeChainIds[networkURN]
