@@ -65,7 +65,10 @@ export class HyperbridgeTracker {
     }
   }
 
-  start() {
+  async start() {
+    this.#log.info('[agent:%s] wait APIs ready', this.#id)
+    await this.#ingress.substrate.isReady()
+
     this.#log.info('[%s] start evm=(%s) substrate=(%s)', this.#id, this.#chains.evm, this.#chains.substrate)
     this.#monitorOrigins()
     this.#monitorDestinations()
