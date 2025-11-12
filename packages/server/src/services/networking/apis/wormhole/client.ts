@@ -3,6 +3,8 @@ import ky from 'ky'
 import { normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
+const DEFAULT_PAGE_SIZE = 25
+
 type WormholeOperationParams = {
   pageSize?: number
   from?: string // ISO time
@@ -59,13 +61,36 @@ export class WormholescanClient {
   }
 
   /**
+   * Wormhole ready endppoint.
+   */
+  async isReady() {
+    const response = await this.#api.get('api/v1/ready').json<{ ready: string }>()
+    return response.ready === 'OK'
+  }
+
+  /**
+   * Awaits until the Wormhole API is ready.
+   */
+  async awaitReady() {
+    await withRetry(
+      async () => {
+        const ready = await this.isReady()
+        if (!ready) {
+          throw new Error('Wormhole API not ready yet')
+        }
+      },
+      { retries: 10, delay: 2_000, exponential: true },
+    )
+  }
+
+  /**
    * Fetch operations for a given page.
    */
   async fetchOperations(
     params: WormholeOperationParams & { page?: number },
     signal?: AbortSignal | null,
   ): Promise<{ operations: WormholeOperation[]; total: number }> {
-    const { page = 0, pageSize = 25, ...query } = params
+    const { page = 0, pageSize = DEFAULT_PAGE_SIZE, ...query } = params
 
     return this.#api
       .get('api/v1/operations', {
@@ -86,7 +111,7 @@ export class WormholescanClient {
     params: WormholeOperationParams,
     signal?: AbortSignal | null,
   ): AsyncGenerator<WormholeOperation, void, unknown> {
-    const { pageSize = 25, ...query } = params
+    const { pageSize = DEFAULT_PAGE_SIZE, ...query } = params
     let page = 0
 
     while (true) {
@@ -127,7 +152,6 @@ export class WormholescanClient {
   async fetchOperationById(id: WormholeId, signal?: AbortSignal | null): Promise<WormholeOperation> {
     const urlId = normalizeWormholeId(id)
     const op = await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>()
-
     return op
   }
 }

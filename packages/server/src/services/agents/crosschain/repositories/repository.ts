@@ -10,6 +10,7 @@ import {
   CrosschainDatabase,
   FullJourney,
   FullJourneyAsset,
+  JourneyStatus,
   JourneyUpdate,
   ListAsset,
   NewAssetOperation,
@@ -506,6 +507,33 @@ export class CrosschainRepository {
       .execute()
 
     return tripId
+  }
+
+  async getJourneysByStatus(
+    status: JourneyStatus | JourneyStatus[],
+    protocols?: string | string[],
+  ): Promise<FullJourney[]> {
+    const statuses = Array.isArray(status) ? status : [status]
+    const protocolList = protocols ? (Array.isArray(protocols) ? protocols : [protocols]) : undefined
+
+    let query = this.#db.selectFrom('xc_journeys').select('id').where('status', 'in', statuses)
+
+    if (protocolList && protocolList.length > 0) {
+      query = query.where((eb) =>
+        eb.or([eb('origin_protocol', 'in', protocolList), eb('destination_protocol', 'in', protocolList)]),
+      )
+    }
+
+    query = query.orderBy('sent_at', 'desc')
+
+    const ids = await query.execute()
+
+    if (ids.length === 0) {
+      return []
+    }
+
+    const rows = await this.#getFullJourneyData(ids.map((r) => r.id))
+    return rows.map(mapRowToFullJourney)
   }
 
   /**

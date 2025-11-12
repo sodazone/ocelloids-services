@@ -15,7 +15,7 @@ export type AssetRole =
   | 'intermediate'
   | null
 
-export type JourneyStatus = 'received' | 'failed' | 'timeout' | 'sent' | 'unknown'
+export type JourneyStatus = 'received' | 'failed' | 'timeout' | 'sent' | 'waiting' | 'unknown'
 
 /**
  * @public

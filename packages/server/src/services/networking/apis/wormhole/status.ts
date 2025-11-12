@@ -10,11 +10,15 @@ export function toStatus(op: WormholeOperation, sameOriginDestination: boolean =
       return 'received'
     }
 
-    if (['in_progress', 'confirmed'].includes(op.sourceChain?.status)) {
-      return sameOriginDestination ? 'received' : 'sent'
+    if (sameOriginDestination && op.sourceChain?.status === 'confirmed') {
+      return 'received'
     }
 
-    return 'unknown'
+    if (op.vaa) {
+      return 'waiting'
+    } else {
+      return 'sent'
+    }
   } catch (err) {
     console.error('Error deriving status for Wormhole operation', err, op)
     return 'unknown'
