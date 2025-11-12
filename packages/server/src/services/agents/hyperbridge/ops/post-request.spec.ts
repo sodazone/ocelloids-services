@@ -126,7 +126,7 @@ describe('requests operators', () => {
       })
     })
 
-    it.only('should extract polygon intent post request', async () => {
+    it('should extract polygon intent post request', async () => {
       const block$ = from(testEvmBlocksFrom('polygon/78713230.cbor'))
       const test$ = block$.pipe(extractEvmRequest('urn:ocn:ethereum:137'))
       const calls = vi.fn()
