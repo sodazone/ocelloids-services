@@ -69,7 +69,7 @@ function decodeAssetGatewayRequest(data: Uint8Array) {
   )[0]
 }
 
-function decodeAssetTeleportRequest(req: HexString | Uint8Array): AssetTeleport {
+export function decodeAssetTeleportRequest(req: HexString | Uint8Array): AssetTeleport {
   const buf: Uint8Array = typeof req === 'string' ? fromHex(req) : req
   const action = toTokenGatewayAction(buf[0])
   const body = buf.slice(1)
@@ -90,7 +90,7 @@ function decodeAssetTeleportRequest(req: HexString | Uint8Array): AssetTeleport 
   }
 }
 
-function decodeOracleCall(req: HexString | Uint8Array): Transact {
+export function decodeOracleCall(req: HexString | Uint8Array): Transact {
   const data: HexString = typeof req === 'string' ? req : (toHex(req) as HexString)
   try {
     const args = decodeAbiParameters(

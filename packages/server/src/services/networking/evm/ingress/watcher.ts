@@ -1,8 +1,8 @@
 import { from, mergeMap, mergeWith, Observable, share } from 'rxjs'
 
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { HexString } from '@/lib.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
-
 import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { BlockWithLogs } from '../types.js'
@@ -79,7 +79,7 @@ export class EvmWatcher extends Watcher<BlockWithLogs> {
       mergeMap((header) => from(api.getBlockWithLogs(header.hash))),
       this.tapError(chainId, 'getBlock()'),
       retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      share(),
+      share({ resetOnRefCountZero: false }),
     )
 
     this.#finalized$[chainId] = finalized$
@@ -92,5 +92,9 @@ export class EvmWatcher extends Watcher<BlockWithLogs> {
   getNetworkInfo(chainId: string): Promise<AnyJson> {
     const chain = this.#apis[chainId].getNetworkInfo()
     return Promise.resolve(chain as unknown as AnyJson)
+  }
+
+  async getTransactionReceipt(chainId: string, txHash: HexString) {
+    return await this.#apis[chainId].getTransactionReceipt(txHash)
   }
 }

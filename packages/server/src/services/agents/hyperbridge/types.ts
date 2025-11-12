@@ -197,6 +197,14 @@ export type IsmpPostRequestWithContext = HyperbridgeContext & IsmpPostRequest
 
 export type IsmpPostRequestHandledWithContext = HyperbridgeContext & IsmpPostRequest & IsmpPostRequestHandled
 
+export function isIsmpPostRequestWithContext(obj: any): obj is IsmpPostRequestWithContext {
+  return 'chainId' in obj && 'source' in obj && 'destination' in obj && 'nonce' in obj && 'commitment' in obj
+}
+
+export function isIsmpPostRequestHandledWithContext(obj: any): obj is IsmpPostRequestHandledWithContext {
+  return isIsmpPostRequestWithContext(obj) && 'type' in obj && 'outcome' in obj
+}
+
 export type HyperbridgeTerminusContext = HyperbridgeTerminus & HyperbridgeContext
 
 export type FormattedAddress = {
@@ -204,7 +212,12 @@ export type FormattedAddress = {
   formatted?: string
 }
 
-export type HyperbridgeJourneyType = 'ismp.dispatched' | 'ismp.relayed' | 'ismp.received'
+export type HyperbridgeJourneyType =
+  | 'ismp.dispatched'
+  | 'ismp.relayed'
+  | 'ismp.received'
+  | 'ismp.timeout'
+  | 'ismp.unmatched'
 
 export interface HyperbridgeJourney {
   type: HyperbridgeJourneyType
@@ -220,6 +233,7 @@ export interface HyperbridgeJourney {
   body: HexString
   timeoutAt: number
   decoded?: AssetTeleport | Transact
+  relayer?: FormattedAddress
 }
 
 abstract class BaseHyperbridgeJourney {
@@ -278,14 +292,21 @@ export class HyperbridgeDispatched extends BaseHyperbridgeJourney implements Hyp
 
 export class HyperbridgeRelayed extends BaseHyperbridgeJourney implements HyperbridgeJourney {
   type: HyperbridgeJourneyType = 'ismp.relayed'
+  direction: 'out' | 'in'
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
   decoded?: AssetTeleport | Transact
+  relayer?: FormattedAddress
 
-  constructor(dispatchMsg: HyperbridgeDispatched, relayMsg: IsmpPostRequestWithContext) {
+  constructor(
+    dispatchMsg: HyperbridgeDispatched,
+    relayMsg: IsmpPostRequestWithContext | IsmpPostRequestHandledWithContext,
+  ) {
     super(relayMsg)
 
+    const isInbound = isIsmpPostRequestHandledWithContext(relayMsg)
+    this.direction = isInbound ? 'in' : 'out'
     this.origin = dispatchMsg.origin
     this.waypoint = {
       chainId: relayMsg.chainId,
@@ -296,12 +317,123 @@ export class HyperbridgeRelayed extends BaseHyperbridgeJourney implements Hyperb
       txPosition: relayMsg.txPosition,
       specVersion: relayMsg.specVersion,
       event: relayMsg.event,
-      outcome: 'Success',
+      outcome: isInbound ? relayMsg.outcome : 'Success',
     }
     this.destination = dispatchMsg.destination
 
     this.from = dispatchMsg.from
     this.to = dispatchMsg.to
     this.decoded = dispatchMsg.decoded
+    this.relayer = isInbound && relayMsg.relayer ? toFormattedAddresses(relayMsg.relayer) : undefined
   }
 }
+
+export class HyperbridgeTimeout extends BaseHyperbridgeJourney implements HyperbridgeJourney {
+  type: HyperbridgeJourneyType = 'ismp.timeout'
+  origin: HyperbridgeTerminusContext
+  destination: HyperbridgeTerminus | HyperbridgeTerminusContext
+  waypoint: HyperbridgeTerminusContext
+  decoded?: AssetTeleport | Transact
+  relayer?: FormattedAddress
+
+  constructor(dispatchMsg: HyperbridgeDispatched, inMsg: IsmpPostRequestHandledWithContext) {
+    if (inMsg.type === 'Received') {
+      throw new Error('Passed received message to HyperbridgeTimeout')
+    }
+
+    super(inMsg)
+
+    this.origin = dispatchMsg.origin
+    this.waypoint = {
+      chainId: inMsg.chainId,
+      blockHash: inMsg.blockHash,
+      blockNumber: inMsg.blockNumber,
+      timestamp: inMsg.timestamp,
+      txHash: inMsg.txHash,
+      txPosition: inMsg.txPosition,
+      specVersion: inMsg.specVersion,
+      event: inMsg.event,
+      outcome: inMsg.outcome,
+    }
+    this.destination = this.waypoint
+
+    this.from = dispatchMsg.from
+    this.to = dispatchMsg.to
+    this.decoded = dispatchMsg.decoded
+    this.relayer = inMsg.relayer ? toFormattedAddresses(inMsg.relayer) : undefined
+  }
+}
+
+export class HyperbridgeReceived extends BaseHyperbridgeJourney implements HyperbridgeJourney {
+  type: HyperbridgeJourneyType = 'ismp.received'
+  origin: HyperbridgeTerminusContext
+  destination: HyperbridgeTerminus | HyperbridgeTerminusContext
+  waypoint: HyperbridgeTerminusContext
+  decoded?: AssetTeleport | Transact
+  relayer?: FormattedAddress
+
+  constructor(dispatchMsg: HyperbridgeDispatched, inMsg: IsmpPostRequestHandledWithContext) {
+    if (inMsg.type === 'Timeout') {
+      throw new Error('Passed timeout message to HyperbridgeReceived')
+    }
+
+    super(inMsg)
+
+    this.origin = dispatchMsg.origin
+    this.waypoint = {
+      chainId: inMsg.chainId,
+      blockHash: inMsg.blockHash,
+      blockNumber: inMsg.blockNumber,
+      timestamp: inMsg.timestamp,
+      txHash: inMsg.txHash,
+      txPosition: inMsg.txPosition,
+      specVersion: inMsg.specVersion,
+      event: inMsg.event,
+      outcome: inMsg.outcome,
+    }
+    this.destination = this.waypoint
+
+    this.from = dispatchMsg.from
+    this.to = dispatchMsg.to
+    this.decoded = dispatchMsg.decoded
+    this.relayer = inMsg.relayer ? toFormattedAddresses(inMsg.relayer) : undefined
+  }
+}
+
+export class HyperbridgeUnmatched implements HyperbridgeJourney {
+  type: HyperbridgeJourneyType = 'ismp.unmatched'
+  originProtocol = 'hyperbridge'
+  destinationProtocol = 'hyperbridge'
+  origin: HyperbridgeTerminusContext
+  destination: HyperbridgeTerminus | HyperbridgeTerminusContext
+  waypoint: HyperbridgeTerminusContext
+  from: FormattedAddress
+  to: FormattedAddress
+  commitment: HexString
+  nonce: string
+  body: HexString
+  timeoutAt: number
+  decoded?: AssetTeleport | Transact
+  relayer?: FormattedAddress
+
+  constructor(dispatchMsg: HyperbridgeDispatched) {
+    this.origin = dispatchMsg.origin
+    this.waypoint = dispatchMsg.origin
+    this.destination = dispatchMsg.destination
+
+    this.from = dispatchMsg.from
+    this.to = dispatchMsg.to
+    this.commitment = dispatchMsg.commitment
+    this.nonce = dispatchMsg.nonce
+    this.body = dispatchMsg.body
+    this.timeoutAt = dispatchMsg.timeoutAt
+    this.decoded = dispatchMsg.decoded
+  }
+}
+
+export type HyperbridgeMessagePayload =
+  | HyperbridgeDispatched
+  | HyperbridgeRelayed
+  | HyperbridgeReceived
+  | HyperbridgeTimeout
+  | HyperbridgeUnmatched
