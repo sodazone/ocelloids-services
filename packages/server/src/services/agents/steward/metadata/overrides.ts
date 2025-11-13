@@ -300,6 +300,18 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     decimals: 10,
     raw: {},
     externalIds: [],
+    multiLocation: {
+      parents: 2,
+      interior: {
+        type: "X1",
+        value: {
+          type: "GlobalConsensus",
+          value: {
+            type: "Polkadot"
+          }
+        }
+      }
+    }
   },
   {
     chainId: 'urn:ocn:ethereum:1',
