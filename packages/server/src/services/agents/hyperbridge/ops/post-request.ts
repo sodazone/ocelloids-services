@@ -1,4 +1,4 @@
-import { filter, map, mergeMap, Observable, switchMap } from 'rxjs'
+import { filter, map, mergeMap, Observable } from 'rxjs'
 import { Abi } from 'viem'
 import { hexTimestampToMillis } from '@/common/util.js'
 import { HexString } from '@/lib.js'

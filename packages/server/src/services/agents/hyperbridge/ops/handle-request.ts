@@ -1,4 +1,4 @@
-import { filter, from, mergeMap, Observable, switchMap } from 'rxjs'
+import { filter, from, mergeMap, Observable } from 'rxjs'
 import { Abi, hexToString, TransactionReceipt } from 'viem'
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'

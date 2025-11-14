@@ -224,7 +224,9 @@ export class HyperbridgeAgent implements Agent {
   }
 
   async #updateJourney(message: HyperbridgeDecodedPayload, existingJourney: FullJourney) {
-    const existingStops = Array.isArray(existingJourney.stops) ? existingJourney.stops : [existingJourney.stops]
+    const existingStops = Array.isArray(existingJourney.stops)
+      ? existingJourney.stops
+      : [existingJourney.stops]
     const updatedStops = toHyperbridgeStops(message, existingStops)
     const updateWith: Partial<JourneyUpdate> = {
       status: toStatus(message),

@@ -58,14 +58,16 @@ export function toHyperbridgeStops(
     event: waypoint.event,
   }
   if (!existingStops || existingStops.length === 0) {
-    return [{
-      type: 'ismp',
-      from: type === 'ismp.dispatched' ? context : { chainId: origin.chainId },
-      to: type === 'ismp.received' ? context : { chainId: destination.chainId },
-      relay: type === 'ismp.relayed' ? context : { chainId: HYPERBRIDGE_NETWORK_ID },
-      messageId: commitment,
-      instructions: decoded,
-    }]
+    return [
+      {
+        type: 'ismp',
+        from: type === 'ismp.dispatched' ? context : { chainId: origin.chainId },
+        to: type === 'ismp.received' ? context : { chainId: destination.chainId },
+        relay: type === 'ismp.relayed' ? context : { chainId: HYPERBRIDGE_NETWORK_ID },
+        messageId: commitment,
+        instructions: decoded,
+      },
+    ]
   }
 
   switch (type) {
