@@ -1,15 +1,8 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { filter, map, Observable } from 'rxjs'
 import { decodeAbiParameters } from 'viem'
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import {
-  AssetTeleport,
-  HyperbridgeDispatched,
-  IsmpPostRequestWithContext,
-  TokenGatewayActions,
-  Transact,
-} from '../types.js'
-import { isBifrostOracle, isTokenGateway } from './common.js'
+import { AssetTeleport, TokenGatewayActions, Transact } from './types.js'
 
 const BODY_BYTES_SIZE = 161
 
@@ -33,7 +26,7 @@ function toTokenGatewayAction(tag: number): TokenGatewayActions {
 }
 
 function decodeTokenGatewayRequestWithCall(data: Uint8Array) {
-  return decodeAbiParameters(
+  const request = decodeAbiParameters(
     [
       {
         type: 'tuple',
@@ -49,10 +42,12 @@ function decodeTokenGatewayRequestWithCall(data: Uint8Array) {
     ],
     data,
   )[0]
+
+  return asSerializable<typeof request>(request)
 }
 
 function decodeAssetGatewayRequest(data: Uint8Array) {
-  return decodeAbiParameters(
+  const request = decodeAbiParameters(
     [
       {
         type: 'tuple',
@@ -67,6 +62,8 @@ function decodeAssetGatewayRequest(data: Uint8Array) {
     ],
     data,
   )[0]
+
+  return asSerializable<typeof request>(request)
 }
 
 export function decodeAssetTeleportRequest(req: HexString | Uint8Array): AssetTeleport {
@@ -78,12 +75,14 @@ export function decodeAssetTeleportRequest(req: HexString | Uint8Array): AssetTe
       return {
         ...decodeTokenGatewayRequestWithCall(body),
         action,
+        type: 'teleport',
       }
     }
 
     return {
       ...decodeAssetGatewayRequest(body),
       action,
+      type: 'teleport',
     }
   } catch (err) {
     throw new Error(`Failed to decode asset teleport request: ${(err as Error).message}`)
@@ -116,36 +115,11 @@ export function decodeOracleCall(req: HexString | Uint8Array): Transact {
       data,
     )[0]
     return {
+      type: 'transact',
       method: 'setTokenAmount',
-      args,
+      args: asSerializable<typeof args>(args),
     }
   } catch (err) {
     throw new Error(`Failed to decode oracle call request: ${(err as Error).message}`)
-  }
-}
-
-export function mapIsmpRequestToJourney() {
-  return (source: Observable<IsmpPostRequestWithContext>): Observable<HyperbridgeDispatched> => {
-    return source.pipe(
-      map((req) => {
-        if (req.chainId !== req.source) {
-          return null
-        }
-        let decoded: AssetTeleport | Transact | undefined
-        try {
-          if (isTokenGateway(req.to)) {
-            decoded = decodeAssetTeleportRequest(req.body)
-          }
-          if (isBifrostOracle(req.to)) {
-            decoded = decodeOracleCall(req.body)
-          }
-        } catch (err) {
-          console.error(err, `Unable to decode request body for ${req.source} (#${req.blockNumber})`)
-        }
-        // TODO: decode intent gateway requests
-        return new HyperbridgeDispatched(req, decoded)
-      }),
-      filter((req) => req !== null),
-    )
   }
 }

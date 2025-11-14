@@ -15,6 +15,16 @@ const textEncoder = new TextEncoder()
 const ETH_PREFIX = '0x45544800'
 const PADDED_PREFIX = '0x000000000000000000000000'
 
+export type Serializable<T> = T extends bigint
+  ? string
+  : T extends Binary
+    ? string
+    : T extends (infer U)[]
+      ? Serializable<U>[]
+      : T extends object
+        ? { [K in keyof T]: Serializable<T[K]> }
+        : T
+
 export function asJSON(o: unknown) {
   return JSON.stringify(o, (_, v) =>
     typeof v === 'bigint' ? v.toString() : v instanceof Binary ? v.asHex() : v,
@@ -22,7 +32,7 @@ export function asJSON(o: unknown) {
 }
 
 export function asSerializable<T>(o: unknown) {
-  return safeDestr<T>(asJSON(o))
+  return safeDestr<Serializable<T>>(asJSON(o))
 }
 
 export function getEventValue(module: string, name: string | string[], events: Event[]) {

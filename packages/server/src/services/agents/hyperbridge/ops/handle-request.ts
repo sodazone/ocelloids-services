@@ -192,7 +192,7 @@ export function extractEvmHandlePostRequest(
         },
         ['handlePostRequests', 'handlePostRequestTimeouts'],
       ),
-      switchMap((tx) =>
+      mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
           mergeMap(({ status }) => {
             const { blockHash, blockNumber, hash, transactionIndex, timestamp, from } = tx

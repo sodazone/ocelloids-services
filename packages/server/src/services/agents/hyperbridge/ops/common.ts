@@ -1,19 +1,12 @@
 import * as fzstd from 'fzstd'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { encodePacked, keccak256, sliceHex, stringToBytes, stringToHex } from 'viem'
+import { encodePacked, keccak256, stringToHex } from 'viem'
 import { asAccountId, isEVMAddress, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { NetworkURN } from '@/services/types.js'
 import { HyperbridgeSignature } from '../codec.js'
-import { BIFROST_ORACLES, TOKEN_GATEWAYS } from '../config.js'
+import { toIsmpModule } from '../config.js'
 import { FormattedAddress } from '../types.js'
-
-const MODULE_IDS = {
-  TOKEN_GATEWAY: (() => sliceHex(keccak256(stringToBytes('tokengty')), 12))(),
-  BIFROST: toHex(stringToBytes('ismp-bnc')),
-  SLPX: toHex(stringToBytes('bif-slpx')),
-  HYPERBRIDGE: toHex(stringToBytes('HYPR-FEE')),
-}
 
 function toNetworkURN(consensus: string, id: string): NetworkURN {
   const normalisedConsensus = consensus.trim().toLowerCase()
@@ -74,29 +67,6 @@ export function toCommitmentHash({
 
   const hash = keccak256(packed)
   return hash
-}
-
-export function toIsmpModule(to: HexString) {
-  switch (to.toLowerCase()) {
-    case MODULE_IDS.TOKEN_GATEWAY.toLowerCase():
-      return 'token-gateway'
-    case MODULE_IDS.BIFROST.toLowerCase():
-      return 'bifrost'
-    case MODULE_IDS.SLPX.toLowerCase():
-      return 'bifrost-slpx'
-    case MODULE_IDS.HYPERBRIDGE.toLowerCase():
-      return 'hyperbridge'
-    default:
-      return 'unknown'
-  }
-}
-
-export function isTokenGateway(contract: HexString) {
-  return TOKEN_GATEWAYS.includes(contract) || toIsmpModule(contract) === 'token-gateway'
-}
-
-export function isBifrostOracle(contract: HexString) {
-  return BIFROST_ORACLES.includes(contract)
 }
 
 export function toFormattedAddresses(address: HexString): FormattedAddress {

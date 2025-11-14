@@ -1,5 +1,4 @@
 import { from, map, Subject, share, switchMap } from 'rxjs'
-import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
@@ -8,22 +7,18 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
 import { HYPERBRIDGE_CONFIG } from './config.js'
 import { HyperbridgeMatchingEngine } from './matching.js'
-import { isBifrostOracle, isTokenGateway } from './ops/common.js'
 import {
   extractEvmHandlePostRequest,
   extractSubstrateHandleRequestFromCompressedCall,
   extractSubstrateHandleUnsigned,
 } from './ops/handle-request.js'
-import { decodeAssetTeleportRequest, decodeOracleCall } from './ops/mappers.js'
 import { extractEvmRequest, extractSubstrateRequest } from './ops/post-request.js'
 import {
-  AssetTeleport,
   HyperbridgeDispatched,
   HyperbridgeMessagePayload,
   IsmpPostRequestHandledWithContext,
   IsmpPostRequestWithContext,
   IsmpQueryRequestRpcResult,
-  Transact,
 } from './types.js'
 
 export class HyperbridgeTracker {
@@ -92,22 +87,9 @@ export class HyperbridgeTracker {
       next: (req: IsmpPostRequestWithContext) => {
         if (req.chainId !== req.source) {
           this.#engine.onRelayMessage(req)
-          return
+        } else {
+          this.#engine.onOutboundMessage(new HyperbridgeDispatched(req))
         }
-        let decoded: AssetTeleport | Transact | undefined
-        try {
-          if (isTokenGateway(req.to)) {
-            decoded = decodeAssetTeleportRequest(req.body)
-          }
-          if (isBifrostOracle(req.to)) {
-            decoded = decodeOracleCall(req.body)
-          }
-        } catch (err) {
-          console.error(err, `Unable to decode request body for ${req.source} (#${req.blockNumber})`)
-        }
-        // TODO: decode intent gateway requests
-        const dispatched = new HyperbridgeDispatched(req, decoded)
-        this.#engine.onOutboundMessage(dispatched)
       },
     })
 
@@ -217,7 +199,7 @@ export class HyperbridgeTracker {
     return (commitment: HexString) => {
       return from(
         this.#ingress.substrate.rpcCall<IsmpQueryRequestRpcResult[]>(chainId, 'ismp_queryRequests', [
-          asJSON([{ commitment }]),
+          [{ commitment }],
         ]),
       ).pipe(map((res) => res[0].Post))
     }

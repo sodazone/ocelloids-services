@@ -1,4 +1,7 @@
+import { toHex } from 'polkadot-api/utils'
+import { keccak256, sliceHex, stringToBytes } from 'viem'
 import { HexString, NetworkURN } from '@/lib.js'
+import { FormattedAddress } from './types.js'
 
 export const HYPERBRIDGE_CONFIG: {
   networks: {
@@ -7,10 +10,19 @@ export const HYPERBRIDGE_CONFIG: {
   }
 } = {
   networks: {
-    substrate: ['urn:ocn:polkadot:2030'],
-    evm: ['urn:ocn:ethereum:10', 'urn:ocn:ethereum:56', 'urn:ocn:ethereum:8453', 'urn:ocn:ethreum:42161'],
+    substrate: ['urn:ocn:polkadot:2030', 'urn:ocn:polkadot:3367'],
+    evm: [
+      'urn:ocn:ethereum:1',
+      'urn:ocn:ethereum:10',
+      'urn:ocn:ethereum:56',
+      'urn:ocn:ethereum:8453',
+      'urn:ocn:ethreum:42161',
+      'urn:ocn:ethereum:1868',
+    ],
   },
 }
+
+export const HYPERBRIDGE_NETWORK_ID = 'urn:ocn:polkadot:3367'
 
 const ETHEREUM_HOSTS: Record<NetworkURN, HexString> = {
   'urn:ocn:ethereum:1': '0x792a6236af69787c40cf76b69b4c8c7b28c4ca20', // Ethereum
@@ -36,15 +48,29 @@ const ETHEREUM_HANDLERS: Record<NetworkURN, HexString> = {
   'urn:ocn:ethereum:130': '0x85f82d70ceed45ca0d1b154c297946babcf4d344', // Unichain
 }
 
-export const TOKEN_GATEWAYS = [
-  '0xfd413e3afe560182c4471f4d143a96d3e259b6de',
-  '0xce304770236f39f9911bfcc51afbdf3b8635718', // Soneium
-  '0x8b536105b6fae2ae9199f5146d3c57dfe53b614e', // Polygon + Unichain
+export const TOKEN_GATEWAYS: Record<NetworkURN, HexString> = {
+  'urn:ocn:ethereum:1': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // Ethereum
+  'urn:ocn:ethereum:42161': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // Arbitrum
+  'urn:ocn:ethereum:10': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // Optimism
+  'urn:ocn:ethereum:8453': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // Base
+  'urn:ocn:ethereum:56': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // BSC
+  'urn:ocn:ethereum:100': '0xfd413e3afe560182c4471f4d143a96d3e259b6de', // Gnosis
+  'urn:ocn:ethereum:1868': '0xce304770236f39f9911bfcc51afbdf3b8635718', // Soneium
+  'urn:ocn:ethereum:137': '0x8b536105b6fae2ae9199f5146d3c57dfe53b614e', // Polygon
+  'urn:ocn:ethereum:130': '0x8b536105b6fae2ae9199f5146d3c57dfe53b614e', // Unichain
+}
+
+const BIFROST_ORACLES = [
+  '0x5b631863df1b20afb2715ee1f1381d6dc1dd065d', // ETH/BSC/OP
+  '0x0a702f34da7b4514c74d35ff68891d1ee57930ef', // Soneium
 ]
 
-export const BIFROST_ORACLES = [
-  '0x0a702f34da7b4514c74d35ff68891d1ee57930ef', // Soneium oracle proxy
-]
+const MODULE_IDS = {
+  TOKEN_GATEWAY: (() => sliceHex(keccak256(stringToBytes('tokengty')), 12))(),
+  BIFROST: toHex(stringToBytes('ismp-bnc')),
+  SLPX: toHex(stringToBytes('bif-slpx')),
+  HYPERBRIDGE: toHex(stringToBytes('HYPR-FEE')),
+}
 
 export function getHostContractAddress(chainId: NetworkURN): HexString | null {
   const contract = ETHEREUM_HOSTS[chainId]
@@ -62,4 +88,27 @@ export function getHandlerContractAddress(chainId: NetworkURN): HexString | null
     return null
   }
   return contract
+}
+
+export function toIsmpModule(to: HexString) {
+  switch (to.toLowerCase()) {
+    case MODULE_IDS.TOKEN_GATEWAY.toLowerCase():
+      return 'token-gateway'
+    case MODULE_IDS.BIFROST.toLowerCase():
+      return 'bifrost'
+    case MODULE_IDS.SLPX.toLowerCase():
+      return 'bifrost-slpx'
+    case MODULE_IDS.HYPERBRIDGE.toLowerCase():
+      return 'hyperbridge'
+    default:
+      return 'unknown'
+  }
+}
+
+export function isTokenGateway({ key, formatted }: FormattedAddress) {
+  return Object.values(TOKEN_GATEWAYS).includes(key) || formatted === 'token-gateway'
+}
+
+export function isBifrostOracle({ key }: FormattedAddress) {
+  return BIFROST_ORACLES.includes(key)
 }

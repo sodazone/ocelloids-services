@@ -1,4 +1,4 @@
-import { filter, map, Observable, switchMap } from 'rxjs'
+import { filter, map, mergeMap, Observable, switchMap } from 'rxjs'
 import { Abi } from 'viem'
 import { hexTimestampToMillis } from '@/common/util.js'
 import { HexString } from '@/lib.js'
@@ -24,7 +24,7 @@ export function extractSubstrateRequest(
   return (source: Observable<BlockEvent>): Observable<IsmpPostRequestWithContext> => {
     return source.pipe(
       filter((event) => matchEvent(event, 'Ismp', 'Request')),
-      switchMap(({ value, blockHash, blockNumber, timestamp, extrinsic }) => {
+      mergeMap(({ value, blockHash, blockNumber, timestamp, extrinsic }) => {
         const { source_chain, dest_chain, request_nonce, commitment } = value as SubstratePostRequestEvent
         return getIsmpRequest(commitment).pipe(
           map(({ from, to, timeoutTimestamp, body }) => {

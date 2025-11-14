@@ -130,7 +130,7 @@ export type IsmpQueryRequestRpcResult = {
 }
 
 export type AssetTeleportRequest = {
-  amount: bigint
+  amount: string
   assetId: HexString
   redeem: boolean
   from: HexString
@@ -147,14 +147,15 @@ export type TokenGatewayActions =
   | 'new-contract-instance'
 
 export type AssetTeleport = AssetTeleportRequest & {
+  type: 'teleport'
   action: TokenGatewayActions
-}
-
-export function isAssetTeleport(obj: any): obj is AssetTeleport {
-  return 'assetId' in obj && 'amount' in obj && 'action' in obj
+  symbol?: string
+  decimals?: number
+  usd?: number
 }
 
 export type Transact = {
+  type: 'transact'
   method: string
   args?: Record<string, unknown> | readonly unknown[]
 }
@@ -232,7 +233,6 @@ export interface HyperbridgeJourney {
   nonce: string
   body: HexString
   timeoutAt: number
-  decoded?: AssetTeleport | Transact
   relayer?: FormattedAddress
 }
 
@@ -261,9 +261,8 @@ export class HyperbridgeDispatched extends BaseHyperbridgeJourney implements Hyp
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
-  decoded?: AssetTeleport | Transact
 
-  constructor(req: IsmpPostRequestWithContext, action?: AssetTeleport | Transact) {
+  constructor(req: IsmpPostRequestWithContext) {
     super(req)
 
     this.origin = {
@@ -281,12 +280,6 @@ export class HyperbridgeDispatched extends BaseHyperbridgeJourney implements Hyp
     this.destination = {
       chainId: req.destination,
     }
-
-    if (action && isAssetTeleport(action)) {
-      this.from = toFormattedAddresses(action.from)
-      this.to = toFormattedAddresses(action.to)
-    }
-    this.decoded = action
   }
 }
 
@@ -296,7 +289,6 @@ export class HyperbridgeRelayed extends BaseHyperbridgeJourney implements Hyperb
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
-  decoded?: AssetTeleport | Transact
   relayer?: FormattedAddress
 
   constructor(
@@ -323,7 +315,6 @@ export class HyperbridgeRelayed extends BaseHyperbridgeJourney implements Hyperb
 
     this.from = dispatchMsg.from
     this.to = dispatchMsg.to
-    this.decoded = dispatchMsg.decoded
     this.relayer = isInbound && relayMsg.relayer ? toFormattedAddresses(relayMsg.relayer) : undefined
   }
 }
@@ -333,7 +324,6 @@ export class HyperbridgeTimeout extends BaseHyperbridgeJourney implements Hyperb
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
-  decoded?: AssetTeleport | Transact
   relayer?: FormattedAddress
 
   constructor(dispatchMsg: HyperbridgeDispatched, inMsg: IsmpPostRequestHandledWithContext) {
@@ -359,7 +349,6 @@ export class HyperbridgeTimeout extends BaseHyperbridgeJourney implements Hyperb
 
     this.from = dispatchMsg.from
     this.to = dispatchMsg.to
-    this.decoded = dispatchMsg.decoded
     this.relayer = inMsg.relayer ? toFormattedAddresses(inMsg.relayer) : undefined
   }
 }
@@ -369,7 +358,6 @@ export class HyperbridgeReceived extends BaseHyperbridgeJourney implements Hyper
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
-  decoded?: AssetTeleport | Transact
   relayer?: FormattedAddress
 
   constructor(dispatchMsg: HyperbridgeDispatched, inMsg: IsmpPostRequestHandledWithContext) {
@@ -395,7 +383,6 @@ export class HyperbridgeReceived extends BaseHyperbridgeJourney implements Hyper
 
     this.from = dispatchMsg.from
     this.to = dispatchMsg.to
-    this.decoded = dispatchMsg.decoded
     this.relayer = inMsg.relayer ? toFormattedAddresses(inMsg.relayer) : undefined
   }
 }
@@ -413,7 +400,6 @@ export class HyperbridgeUnmatched implements HyperbridgeJourney {
   nonce: string
   body: HexString
   timeoutAt: number
-  decoded?: AssetTeleport | Transact
   relayer?: FormattedAddress
 
   constructor(dispatchMsg: HyperbridgeDispatched) {
@@ -427,7 +413,6 @@ export class HyperbridgeUnmatched implements HyperbridgeJourney {
     this.nonce = dispatchMsg.nonce
     this.body = dispatchMsg.body
     this.timeoutAt = dispatchMsg.timeoutAt
-    this.decoded = dispatchMsg.decoded
   }
 }
 
@@ -437,3 +422,7 @@ export type HyperbridgeMessagePayload =
   | HyperbridgeReceived
   | HyperbridgeTimeout
   | HyperbridgeUnmatched
+
+export type HyperbridgeDecodedPayload = HyperbridgeMessagePayload & {
+  decoded?: AssetTeleport | Transact
+}
