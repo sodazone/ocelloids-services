@@ -118,7 +118,6 @@ export class HyperbridgeAgent implements Agent {
           decoded,
         }
       }
-      console.log('Message not decoded')
       // TODO: decode intent gateway requests
     } catch (err) {
       this.#log.error(

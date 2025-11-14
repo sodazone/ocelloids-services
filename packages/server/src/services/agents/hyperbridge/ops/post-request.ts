@@ -65,7 +65,6 @@ export function extractEvmRequest(chainId: NetworkURN) {
       map((decodedLog) => {
         const { decoded, blockHash, blockNumber, transactionHash, transactionIndex } = decodedLog
         if (decoded && decoded.args && blockHash && blockNumber) {
-          console.log(decoded.args)
           const eventArgs = decoded.args as EvmPostRequestEvent
           const { source, dest, from, to, nonce, timeoutTimestamp, body } = eventArgs
           return {
