@@ -1,5 +1,5 @@
 import { from, mergeMap, mergeWith, Observable, share } from 'rxjs'
-
+import { MulticallParameters } from 'viem'
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
@@ -96,5 +96,9 @@ export class EvmWatcher extends Watcher<BlockWithLogs> {
 
   async getTransactionReceipt(chainId: string, txHash: HexString) {
     return await this.#apis[chainId].getTransactionReceipt(txHash)
+  }
+
+  async multiCall(chainId: string, args: MulticallParameters) {
+    return await this.#apis[chainId].multiCall(args)
   }
 }

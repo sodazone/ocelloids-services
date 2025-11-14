@@ -45,7 +45,7 @@ function buildAbiSelectorMap({ abi }: DecodeContractParams, type: 'logs' | 'txs'
 }
 
 function getTransactionsWithTimestamp(block: BlockWithLogs): TransactionWithTimestamp[] {
-  return block.transactions.map((tx) => ({ ...tx, timestamp: Number(block.timestamp * 1_000n) }))
+  return block.transactions.map((tx) => ({ ...tx, timestamp: Number(block.timestamp) * 1_000 }))
 }
 
 export function decodeLogs(params: DecodeContractParams[]) {

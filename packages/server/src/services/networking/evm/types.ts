@@ -1,14 +1,18 @@
-import { GetBlockReturnType, Log, Transaction, TransactionReceipt } from 'viem'
+import { GetBlockReturnType, Hex, Log, Transaction, TransactionReceipt } from 'viem'
+import { Serializable } from '@/common/util.js'
 
 type BlockWithTransactions = GetBlockReturnType<undefined, true>
 
-export type BlockWithLogs = BlockWithTransactions & {
-  logs: Log[]
+type SerializableLogs = Omit<Serializable<Log>, 'topics'> & {
+  topics: [] | [signature: `0x${string}`, ...args: Hex[]]
+}
+export type BlockWithLogs = Serializable<BlockWithTransactions> & {
+  logs: SerializableLogs[]
 }
 
-export type TransactionWithTimestamp = Transaction & { timestamp: number }
+export type TransactionWithTimestamp = Serializable<Transaction> & { timestamp: number }
 
-export type DecodedLog = Log & {
+export type DecodedLog = SerializableLogs & {
   decoded?: {
     eventName?: string
     args?: Record<string, unknown> | readonly unknown[]

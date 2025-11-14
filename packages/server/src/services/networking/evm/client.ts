@@ -3,13 +3,15 @@ import {
   createPublicClient,
   fallback,
   http,
+  MulticallParameters,
+  MulticallReturnType,
   PublicClient,
   TransactionReceipt,
   Transport,
   webSocket,
 } from 'viem'
 import * as viemChains from 'viem/chains'
-
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
@@ -247,11 +249,16 @@ export class EvmApi implements ApiClient {
       toBlock: block.number,
     })
 
-    return { ...block, logs }
+    const blockWithLogs = { ...asSerializable<typeof block>(block), logs: asSerializable<typeof logs>(logs) }
+    return blockWithLogs as BlockWithLogs
   }
 
   async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {
     return await this.#client.getTransactionReceipt({ hash: txHash })
+  }
+
+  async multiCall(args: MulticallParameters): Promise<MulticallReturnType> {
+    return await this.#client.multicall(args)
   }
 
   getNetworkInfo() {

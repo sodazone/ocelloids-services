@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { Chain, TransactionReceipt } from 'viem'
+import { Chain, MulticallParameters, MulticallReturnType, TransactionReceipt } from 'viem'
 
 import { HexString, NetworkURN } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/consumer/types.js'
@@ -10,4 +10,5 @@ export interface EvmIngressConsumer extends IngressConsumer {
   finalizedBlocks(chainId: NetworkURN): Observable<BlockWithLogs>
   getNetworkInfo(chainId: NetworkURN): Promise<Chain>
   getTransactionReceipt(chainId: string, txHash: HexString): Promise<TransactionReceipt>
+  multicall(chainId: string, args: MulticallParameters): Promise<MulticallReturnType>
 }
