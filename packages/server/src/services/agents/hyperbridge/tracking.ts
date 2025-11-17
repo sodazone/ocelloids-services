@@ -80,11 +80,15 @@ export class HyperbridgeTracker {
     }
 
     const subs: RxSubscriptionWithId[] = []
+
     const makeObserver = (chainId: NetworkURN) => ({
       error: (error: any) => {
         this.#log.error(error, '[%s] %s error on origin stream', this.#id, chainId)
       },
       next: (req: IsmpPostRequestWithContext) => {
+        if (!this.#canBeMatched(req)) {
+          return
+        }
         if (req.chainId !== req.source) {
           this.#engine.onRelayMessage(req)
         } else {
@@ -138,6 +142,9 @@ export class HyperbridgeTracker {
         this.#log.error(error, '[%s] %s error on destination stream', this.#id, chainId)
       },
       next: (msg: IsmpPostRequestHandledWithContext) => {
+        if (!this.#canBeMatched(msg)) {
+          return
+        }
         if (isRelay(msg)) {
           this.#engine.onRelayMessage(msg)
         } else {
@@ -203,5 +210,12 @@ export class HyperbridgeTracker {
         ]),
       ).pipe(map((res) => res[0].Post))
     }
+  }
+
+  #canBeMatched(req: IsmpPostRequestWithContext) {
+    return (
+      (this.#chains.evm.includes(req.source) || this.#chains.substrate.includes(req.source)) &&
+      (this.#chains.evm.includes(req.destination) || this.#chains.substrate.includes(req.destination))
+    )
   }
 }

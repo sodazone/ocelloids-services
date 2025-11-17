@@ -24,7 +24,8 @@ export function extractSubstrateRequest(
   return (source: Observable<BlockEvent>): Observable<IsmpPostRequestWithContext> => {
     return source.pipe(
       filter((event) => matchEvent(event, 'Ismp', 'Request')),
-      mergeMap(({ value, blockHash, blockNumber, timestamp, extrinsic }) => {
+      mergeMap((event) => {
+        const { value, blockHash, blockNumber, timestamp, extrinsic } = event
         const { source_chain, dest_chain, request_nonce, commitment } = value as SubstratePostRequestEvent
         return getIsmpRequest(commitment).pipe(
           map(({ from, to, timeoutTimestamp, body }) => {
@@ -44,6 +45,7 @@ export function extractSubstrateRequest(
               timeoutAt: toTimeoutMillis(timeoutTimestamp),
               body,
               outcome: 'Success',
+              event,
             } as IsmpPostRequestWithContext
           }),
         )
@@ -83,6 +85,11 @@ export function extractEvmRequest(chainId: NetworkURN) {
             timeoutAt: toTimeoutMillis(timeoutTimestamp),
             body,
             outcome: 'Success',
+            event: {
+              module: 'EvmHost',
+              name: decoded.eventName,
+              args: decoded.args,
+            },
           } as IsmpPostRequestWithContext
         }
 

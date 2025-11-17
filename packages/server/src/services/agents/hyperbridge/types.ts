@@ -261,6 +261,7 @@ export class HyperbridgeDispatched extends BaseHyperbridgeJourney implements Hyp
   origin: HyperbridgeTerminusContext
   destination: HyperbridgeTerminus | HyperbridgeTerminusContext
   waypoint: HyperbridgeTerminusContext
+  relayer?: FormattedAddress
 
   constructor(req: IsmpPostRequestWithContext) {
     super(req)

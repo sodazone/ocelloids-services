@@ -41,7 +41,7 @@ export function toStatus(payload: HyperbridgeDecodedPayload) {
 }
 
 export function toHyperbridgeStops(
-  { type, origin, destination, waypoint, commitment, decoded }: HyperbridgeDecodedPayload,
+  { type, origin, destination, waypoint, commitment, decoded, relayer }: HyperbridgeDecodedPayload,
   existingStops?: HyperbridgeStops[],
 ): HyperbridgeStops[] {
   const context = {
@@ -56,6 +56,7 @@ export function toHyperbridgeStops(
       hashSecondary: waypoint.txHashSecondary,
     },
     event: waypoint.event,
+    relayer,
   }
   if (!existingStops || existingStops.length === 0) {
     return [

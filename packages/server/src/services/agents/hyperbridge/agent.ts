@@ -65,7 +65,7 @@ export class HyperbridgeAgent implements Agent {
     await this.#tracker.start()
 
     this.#subs.push(
-      this.#tracker.ismp$.pipe(mergeMap(this.#withDecodedPayload)).subscribe({
+      this.#tracker.ismp$.pipe(mergeMap(this.#withDecodedPayload.bind(this))).subscribe({
         next: (msg) => this.#onMessage(msg),
         error: (err) => {
           // this.#telemetry.emit('telemetryHyperbridgeError', { code: 'WATCHER_ERROR', id: 'watcher' })
@@ -164,7 +164,7 @@ export class HyperbridgeAgent implements Agent {
       const correlationId = message.commitment
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
 
-      if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
+      if (existingJourney && existingJourney.status === 'received') {
         this.#log.info('[%s:explorer] Journey complete for correlationId: %s', this.id, correlationId)
         return
       }

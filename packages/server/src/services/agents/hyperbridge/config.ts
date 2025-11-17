@@ -16,7 +16,7 @@ export const HYPERBRIDGE_CONFIG: {
       'urn:ocn:ethereum:10',
       'urn:ocn:ethereum:56',
       'urn:ocn:ethereum:8453',
-      'urn:ocn:ethreum:42161',
+      'urn:ocn:ethereum:42161',
       'urn:ocn:ethereum:1868',
     ],
   },
