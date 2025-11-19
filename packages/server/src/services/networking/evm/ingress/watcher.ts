@@ -22,7 +22,7 @@ import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { Block, DecodeContractParams } from '../types.js'
 
-const BATCH_SIZE = 10
+const BATCH_SIZE = 5
 const MAX_BLOCK_DIST_FAST = 1_200
 
 const L2_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:10', 'urn:ocn:ethereum:8453']
