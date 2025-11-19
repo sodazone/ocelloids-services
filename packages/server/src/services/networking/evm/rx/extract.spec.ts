@@ -2,6 +2,7 @@ import { from } from 'rxjs'
 import { filter } from 'rxjs/operators'
 import { type Abi } from 'viem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { HexString } from '@/lib.js'
 import { testEvmBlocksFrom } from '@/testing/blocks.js'
 import {
   decodeLogs,
@@ -118,7 +119,7 @@ const snowbridgeGatewayAbi: Abi = [
 const params = [
   {
     abi: snowbridgeGatewayAbi,
-    addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'],
+    addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'] as HexString[],
   },
 ]
 
@@ -129,11 +130,11 @@ describe('decode.ts', () => {
 
   describe('decodeLogs()', () => {
     it('should decode known logs', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
 
       const test$ = block$.pipe(
         decodeLogs(params),
-        filter(({ decoded }) => decoded !== undefined),
+        filter(({ eventName }) => eventName !== undefined),
       )
       const calls = vi.fn()
 
@@ -141,7 +142,8 @@ describe('decode.ts', () => {
         test$.subscribe({
           next: (log) => {
             expect(log).toBeDefined()
-            expect(log.decoded).toBeDefined()
+            expect(log.eventName).toBeDefined()
+            expect(log.args).toBeDefined()
             calls()
           },
           complete: () => {
@@ -155,7 +157,7 @@ describe('decode.ts', () => {
 
   describe('filterLogs()', () => {
     it('should filter known logs', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
       const test$ = block$.pipe(
         filterLogs({ abi: snowbridgeGatewayAbi, addresses: ['0x27ca963C279c93801941e1eB8799c23f407d68e7'] }),
       )
@@ -165,7 +167,8 @@ describe('decode.ts', () => {
         test$.subscribe({
           next: (log) => {
             expect(log).toBeDefined()
-            expect(log.decoded).toBeDefined()
+            expect(log.eventName).toBeDefined()
+            expect(log.args).toBeDefined()
             calls()
           },
           complete: () => {
@@ -177,7 +180,7 @@ describe('decode.ts', () => {
     })
 
     it('should skip known logs on unknown addresses', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
       const test$ = block$.pipe(
         filterLogs({
           abi: snowbridgeGatewayAbi,
@@ -279,7 +282,7 @@ describe('decode.ts', () => {
 
   describe('filterTransactionsWithLogs()', () => {
     it('should filter known transactions and logs', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
 
       const test$ = block$.pipe(
         filterTransactionsWithLogs(
@@ -309,7 +312,7 @@ describe('decode.ts', () => {
     })
 
     it('should skip known logs on unknown addresses', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
       const test$ = block$.pipe(
         filterTransactionsWithLogs({
           abi: snowbridgeGatewayAbi,

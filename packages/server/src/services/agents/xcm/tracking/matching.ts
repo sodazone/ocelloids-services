@@ -41,7 +41,7 @@ import {
 
 const MAX_MATCH_RETRIES = 5
 const DEFAULT_TIMEOUT = 10 * 60_000
-const BRIDGE_TIMEOUT = 4 * 60 * 60_000
+const BRIDGE_TIMEOUT = 12 * 60 * 60_000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 

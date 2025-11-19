@@ -71,7 +71,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * The Watcher catches up with block headers based on the height gap for finalized blocks.
  *
  * @see {Watcher["finalizedBlocks"]}
- * @see {Watcher.catchUpHeads}
+ * @see {Watcher["catchUpHeads"]}
  */
 export abstract class Watcher<T = unknown> extends (EventEmitter as new () => TelemetryEventEmitter) {
   protected readonly log: Logger
@@ -79,7 +79,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
   readonly #mutex: Record<NetworkURN, Mutex> = {}
-  readonly #chainTips: Family
+  readonly #chainTips: Family<string, ChainHead>
 
   constructor(services: Services) {
     super()
@@ -125,6 +125,10 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
    */
   headsCache(chainId: NetworkURN) {
     return this.#headsFamily(chainId)
+  }
+
+  protected get chainTips(): Family<string, ChainHead> {
+    return this.#chainTips
   }
 
   /**
@@ -214,7 +218,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
   protected recoverBlockRanges(chainId: NetworkURN, api: ApiOps) {
     return (source: Observable<BlockNumberRange[]>): Observable<NeutralHeader> => {
-      const batchSize = this.#batchSize(chainId)
+      const batchSize = this.batchSize(chainId)
       return source.pipe(
         mergeAll(),
         mergeMap((range) => {
@@ -278,13 +282,17 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
       const blockDistance = newHeadNum - currentHeight
 
+      if (blockDistance < 0) {
+        return []
+      }
+
       if (blockDistance < 2) {
         // nothing to catch
         await this.#chainTips.put(chainId, chainTip)
         return []
       }
 
-      const batchSize = this.#batchSize(chainId)
+      const batchSize = this.batchSize(chainId)
 
       // cap by distance
       const targetHeight = max(newHeadNum - MAX_BLOCK_DIST, currentHeight)
@@ -418,7 +426,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     }
   }
 
-  #batchSize(chainId: NetworkURN) {
+  protected batchSize(chainId: NetworkURN) {
     const networkConfig = this.#localConfig.getNetwork(chainId)
     return networkConfig?.batchSize ?? 25
   }

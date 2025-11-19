@@ -91,4 +91,13 @@ export class SubstrateLocalConsumer
     const { module, method, at } = ops
     return (await this.watcher.getApi(chainId)).query({ module, method, at }, params) as Promise<T | null>
   }
+
+  async rpcCall<Reply = any, Params extends Array<any> = any[]>(
+    chainId: NetworkURN,
+    method: string,
+    params: Params,
+  ): Promise<Reply> {
+    const api = await this.watcher.getApi(chainId)
+    return api.rpc.rawRequest(method, params)
+  }
 }

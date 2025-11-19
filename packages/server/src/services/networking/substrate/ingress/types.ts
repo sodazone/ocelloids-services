@@ -60,6 +60,11 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
     },
     ...params: any[]
   ): Promise<T | null>
+  rpcCall<Reply = any, Params extends Array<any> = any[]>(
+    chainId: NetworkURN,
+    method: string,
+    params: Params,
+  ): Promise<Reply>
   isRelay(chainId: NetworkURN): boolean
   isReady(): Promise<void>
 }

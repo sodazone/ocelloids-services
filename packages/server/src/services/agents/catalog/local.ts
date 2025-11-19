@@ -22,6 +22,7 @@ import { PullCollector } from '@/services/telemetry/types.js'
 import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
+import { HyperbridgeAgent } from '../hyperbridge/agent.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { WormholeAgent } from '../wormhole/agent.js'
@@ -48,6 +49,12 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
   wormhole: (ctx, activations) =>
     new WormholeAgent(ctx, {
       steward: activations['steward'] as DataSteward,
+      crosschain: activations['crosschain'] as CrosschainExplorer,
+    }),
+  hyperbridge: (ctx, activations) =>
+    new HyperbridgeAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
       crosschain: activations['crosschain'] as CrosschainExplorer,
     }),
   xcm: (ctx, activations) =>
