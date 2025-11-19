@@ -2,6 +2,7 @@ import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '../crosschain/index.js'
 import { HYPERBRIDGE_NETWORK_ID } from './config.js'
+import { toFormattedAddresses } from './ops/common.js'
 import { HyperbridgeDecodedPayload } from './types.js'
 
 type HyperbridgeStops = {
@@ -105,6 +106,15 @@ export function toHyperbridgeStops(
 }
 
 export function toNewJourney(payload: HyperbridgeDecodedPayload): NewJourney {
+  const sender =
+    payload.decoded && payload.decoded.type === 'teleport'
+      ? toFormattedAddresses(payload.decoded.from)
+      : payload.from
+  const recipient =
+    payload.decoded && payload.decoded.type === 'teleport'
+      ? toFormattedAddresses(payload.decoded.to)
+      : payload.to
+
   return {
     correlation_id: payload.commitment,
     created_at: Date.now(),
@@ -117,10 +127,10 @@ export function toNewJourney(payload: HyperbridgeDecodedPayload): NewJourney {
     origin: payload.origin.chainId,
     origin_tx_primary: payload.origin.txHash,
     origin_tx_secondary: payload.origin.txHashSecondary,
-    from: payload.from.key,
-    to: payload.to.key,
-    from_formatted: payload.from.formatted,
-    to_formatted: payload.to.formatted,
+    from: sender.key,
+    to: recipient.key,
+    from_formatted: sender.formatted,
+    to_formatted: recipient.formatted,
     sent_at: payload.origin.timestamp,
     status: toStatus(payload),
     stops: asJSON(toHyperbridgeStops(payload)),
