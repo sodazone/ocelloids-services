@@ -3,7 +3,7 @@ import { Abi, hexToString, TransactionReceipt } from 'viem'
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
-import { BlockWithLogs } from '@/services/networking/evm/types.js'
+import { Block } from '@/services/networking/evm/types.js'
 import { BlockExtrinsicWithEvents, Call, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { matchExtrinsic } from '../../xcm/ops/util.js'
@@ -183,7 +183,7 @@ export function extractEvmHandlePostRequest(
   chainId: NetworkURN,
   getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
 ) {
-  return (source: Observable<BlockWithLogs>): Observable<IsmpPostRequestHandledWithContext> => {
+  return (source: Observable<Block>): Observable<IsmpPostRequestHandledWithContext> => {
     return source.pipe(
       filterTransactions(
         {

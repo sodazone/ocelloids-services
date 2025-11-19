@@ -1,11 +1,13 @@
 import { from, map, Subject, share, switchMap } from 'rxjs'
+import { Abi } from 'viem'
 import { HexString } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
-import { HYPERBRIDGE_CONFIG } from './config.js'
+import hostAbi from './abis/evm-host.json' with { type: 'json' }
+import { getHostContractAddress, HYPERBRIDGE_CONFIG } from './config.js'
 import { HyperbridgeMatchingEngine } from './matching.js'
 import {
   extractEvmHandlePostRequest,
@@ -95,6 +97,7 @@ export class HyperbridgeTracker {
           this.#engine.onOutboundMessage(new HyperbridgeDispatched(req))
         }
       },
+      complete: () => this.#log.info('[%s] %s complete on origin stream', this.#id, chainId),
     })
 
     try {
@@ -112,7 +115,14 @@ export class HyperbridgeTracker {
         subs.push({
           id: evmChain,
           sub: this.#ingress.evm
-            .finalizedBlocks(evmChain)
+            .watchEvents(
+              evmChain,
+              {
+                abi: hostAbi as Abi,
+                addresses: [getHostContractAddress(evmChain)].filter((a) => a !== null),
+              },
+              ['PostRequestEvent'],
+            )
             .pipe(extractEvmRequest(evmChain))
             .subscribe(makeObserver(evmChain)),
         })
@@ -151,6 +161,7 @@ export class HyperbridgeTracker {
           this.#engine.onInboundMessage(msg)
         }
       },
+      complete: () => this.#log.info('[%s] %s complete on destination stream', this.#id, chainId),
     })
 
     try {

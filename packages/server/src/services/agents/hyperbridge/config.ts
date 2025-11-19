@@ -3,6 +3,22 @@ import { keccak256, sliceHex, stringToBytes } from 'viem'
 import { HexString, NetworkURN } from '@/lib.js'
 import { FormattedAddress } from './types.js'
 
+const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
+
+export const networks = setNetworks({
+  bifrost: 'urn:ocn:polkadot:2030',
+  hyperbridge: 'urn:ocn:polkadot:3367',
+  ethereum: 'urn:ocn:ethereum:1',
+  arbitrum: 'urn:ocn:ethereum:42161',
+  optimism: 'urn:ocn:ethereum:10',
+  base: 'urn:ocn:ethereum:8453',
+  bsc: 'urn:ocn:ethereum:56',
+  gnosis: 'urn:ocn:ethereum:100',
+  soneium: 'urn:ocn:ethereum:1868',
+  polygon: 'urn:ocn:ethereum:137',
+  unichain: 'urn:ocn:ethereum:130',
+})
+
 export const HYPERBRIDGE_CONFIG: {
   networks: {
     substrate: NetworkURN[]
@@ -10,15 +26,8 @@ export const HYPERBRIDGE_CONFIG: {
   }
 } = {
   networks: {
-    substrate: ['urn:ocn:polkadot:2030', 'urn:ocn:polkadot:3367'],
-    evm: [
-      'urn:ocn:ethereum:1',
-      'urn:ocn:ethereum:10',
-      'urn:ocn:ethereum:56',
-      'urn:ocn:ethereum:8453',
-      'urn:ocn:ethereum:42161',
-      'urn:ocn:ethereum:1868',
-    ],
+    substrate: [networks.bifrost, networks.hyperbridge],
+    evm: [networks.ethereum, networks.optimism, networks.bsc, networks.base, networks.arbitrum],
   },
 }
 

@@ -1,14 +1,10 @@
 import { filter, map, mergeMap, Observable } from 'rxjs'
-import { Abi } from 'viem'
 import { hexTimestampToMillis } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import { filterLogs } from '@/services/networking/evm/rx/extract.js'
-import { BlockWithLogs } from '@/services/networking/evm/types.js'
+import { DecodedLog } from '@/services/networking/evm/types.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { matchEvent } from '../../xcm/ops/util.js'
-import hostAbi from '../abis/evm-host.json' with { type: 'json' }
-import { getHostContractAddress } from '../config.js'
 import {
   EvmPostRequestEvent,
   IsmpPostRequestWithContext,
@@ -55,19 +51,12 @@ export function extractSubstrateRequest(
 }
 
 export function extractEvmRequest(chainId: NetworkURN) {
-  return (source: Observable<BlockWithLogs>): Observable<IsmpPostRequestWithContext> => {
+  return (source: Observable<DecodedLog>): Observable<IsmpPostRequestWithContext> => {
     return source.pipe(
-      filterLogs(
-        {
-          abi: hostAbi as Abi,
-          addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
-        },
-        ['PostRequestEvent'],
-      ),
       map((decodedLog) => {
-        const { decoded, blockHash, blockNumber, transactionHash, transactionIndex } = decodedLog
-        if (decoded && decoded.args && blockHash && blockNumber) {
-          const eventArgs = decoded.args as EvmPostRequestEvent
+        const { eventName, args, blockHash, blockNumber, transactionHash, transactionIndex } = decodedLog
+        if (args && blockHash && blockNumber) {
+          const eventArgs = args as EvmPostRequestEvent
           const { source, dest, from, to, nonce, timeoutTimestamp, body } = eventArgs
           return {
             chainId,
@@ -87,8 +76,8 @@ export function extractEvmRequest(chainId: NetworkURN) {
             outcome: 'Success',
             event: {
               module: 'EvmHost',
-              name: decoded.eventName,
-              args: decoded.args,
+              name: eventName,
+              args: args,
             },
           } as IsmpPostRequestWithContext
         }

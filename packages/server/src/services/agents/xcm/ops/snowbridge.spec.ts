@@ -1,4 +1,4 @@
-import { from } from 'rxjs'
+import { from, mergeMap, of } from 'rxjs'
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
 import {
@@ -12,9 +12,19 @@ import {
 describe('snowbridge operator', () => {
   describe('extractSnowbridgeEvmInbound', () => {
     it('should extract snowbridge evm inbound', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23618095.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23618095.cbor', true))
       const test$ = block$.pipe(
-        extractSnowbridgeEvmInbound('urn:ocn:ethereum:1', '0x27ca963C279c93801941e1eB8799c23f407d68e7'),
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractSnowbridgeEvmInbound(
+              'urn:ocn:ethereum:1',
+              '0x27ca963C279c93801941e1eB8799c23f407d68e7',
+              vi.fn().mockResolvedValue({ status: 'success', logs }),
+            ),
+          )
+        }),
       )
       const calls = vi.fn()
 
@@ -38,9 +48,19 @@ describe('snowbridge operator', () => {
 
   describe('extractSnowbridgeEvmOutbound', () => {
     it('should extract snowbridge evm outbound', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
       const test$ = block$.pipe(
-        extractSnowbridgeEvmOutbound('urn:ocn:ethereum:1', '0x27ca963C279c93801941e1eB8799c23f407d68e7'),
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractSnowbridgeEvmOutbound(
+              'urn:ocn:ethereum:1',
+              '0x27ca963C279c93801941e1eB8799c23f407d68e7',
+              vi.fn().mockResolvedValue({ status: 'success', logs }),
+            ),
+          )
+        }),
       )
       const calls = vi.fn()
 
@@ -107,10 +127,20 @@ describe('snowbridge operator', () => {
 
   describe('mapOutboundToXcmBridge', () => {
     it('should map SnowbridgeOriginAccepted to XcmBridge', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor'))
+      const block$ = from(testEvmBlocksFrom('ethereum/23596716.cbor', true))
       const test$ = block$.pipe(
-        extractSnowbridgeEvmOutbound('urn:ocn:ethereum:1', '0x27ca963C279c93801941e1eB8799c23f407d68e7'),
-        mapOutboundToXcmBridge(),
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractSnowbridgeEvmOutbound(
+              'urn:ocn:ethereum:1',
+              '0x27ca963C279c93801941e1eB8799c23f407d68e7',
+              vi.fn().mockResolvedValue({ status: 'success', logs }),
+            ),
+            mapOutboundToXcmBridge(),
+          )
+        }),
       )
       const calls = vi.fn()
 

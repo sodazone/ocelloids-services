@@ -1,7 +1,11 @@
 import { from } from 'rxjs'
+import { Abi } from 'viem'
 import { HexString } from '@/lib.js'
+import { decodeLogs } from '@/services/networking/evm/rx/extract.js'
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
+import hostAbi from '../abis/evm-host.json' with { type: 'json' }
+import { getHostContractAddress } from '../config.js'
 import { extractEvmRequest, extractSubstrateRequest } from './post-request.js'
 
 describe('requests operators', () => {
@@ -97,15 +101,23 @@ describe('requests operators', () => {
 
   describe('extractEvmRequest', () => {
     it('should extract ethereum asset teleport post request', async () => {
-      const block$ = from(testEvmBlocksFrom('ethereum/23688872.cbor'))
-      const test$ = block$.pipe(extractEvmRequest('urn:ocn:ethereum:1'))
+      const chainId = 'urn:ocn:ethereum:1'
+      const block$ = from(testEvmBlocksFrom('ethereum/23688872.cbor', true)).pipe(
+        decodeLogs([
+          {
+            abi: hostAbi as Abi,
+            addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
+          },
+        ]),
+      )
+      const test$ = block$.pipe(extractEvmRequest(chainId))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
             calls()
-            expect(msg.source).toBe('urn:ocn:ethereum:1')
+            expect(msg.source).toBe(chainId)
             expect(msg.destination).toBe('urn:ocn:polkadot:2030')
             expect(msg.body).toBeDefined()
             expect(msg.commitment).toBeDefined()
@@ -127,25 +139,31 @@ describe('requests operators', () => {
     })
 
     it('should extract polygon intent post request', async () => {
-      const block$ = from(testEvmBlocksFrom('polygon/78713230.cbor'))
-      const test$ = block$.pipe(extractEvmRequest('urn:ocn:ethereum:137'))
+      const chainId = 'urn:ocn:ethereum:137'
+      const block$ = from(testEvmBlocksFrom('polygon/78713230.cbor', true)).pipe(
+        decodeLogs([
+          {
+            abi: hostAbi as Abi,
+            addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
+          },
+        ]),
+      )
+      const test$ = block$.pipe(extractEvmRequest(chainId))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {
         test$.subscribe({
           next: (msg) => {
             calls()
-            expect(msg.source).toBe('urn:ocn:ethereum:137')
+            expect(msg.source).toBe(chainId)
             expect(msg.destination).toBe('urn:ocn:ethereum:56')
             expect(msg.body).toBeDefined()
             expect(msg.commitment).toBeDefined()
-            // expect(msg.commitment).toBe('0xed50a846c6bb0553a802bf86ea15f5d6c5f18a67a0872d44d7b5273d6baf2511')
             expect(msg.nonce).toBeDefined()
             expect(msg.from).toBeDefined()
             expect(msg.to).toBeDefined()
             expect(msg.blockHash).toBeDefined()
             expect(msg.blockNumber).toBeDefined()
-            // expect(msg.timestamp).toBeDefined()
             expect(msg.txHash).toBeDefined()
           },
           complete: () => {
