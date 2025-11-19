@@ -1,20 +1,21 @@
 import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
 import { Abi, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
 import { asSerializable } from '@/common/util.js'
-import { EvmApi } from '../client.js'
 import {
+  Block,
   BlockWithLogs,
+  DecodeContractParams,
   DecodedLog,
+  DecodedLogParams,
   DecodedTx,
   DecodedTxWithLogs,
   TransactionWithTimestamp,
-  WithReceipt,
 } from '../types.js'
 
 const MAX_CONCURRENCY_LOGS = 10
 const MAX_CONCURRENCY_TX = 10
 
-export type DecodeContractParams = { abi: Abi; addresses: string[] }
+type LogTopics = [] | [signature: `0x${string}`, ...args: `0x${string}`[]]
 
 function buildAbiMap(params: DecodeContractParams[]): Map<string, Abi> {
   const map = new Map<string, Abi>()
@@ -44,7 +45,7 @@ function buildAbiSelectorMap({ abi }: DecodeContractParams, type: 'logs' | 'txs'
   }
 }
 
-function getTransactionsWithTimestamp(block: BlockWithLogs): TransactionWithTimestamp[] {
+function getTransactionsWithTimestamp(block: BlockWithLogs | Block): TransactionWithTimestamp[] {
   return block.transactions.map((tx) => ({ ...tx, timestamp: Number(block.timestamp) * 1_000 }))
 }
 
@@ -56,18 +57,18 @@ export function decodeLogs(params: DecodeContractParams[]) {
       mergeMap((block) => block.logs, MAX_CONCURRENCY_LOGS),
       map((log) => {
         const abi = abiMap.get(log.address.toLowerCase())
-        let decoded: DecodedLog['decoded']
+        let decoded: DecodedLogParams = {}
 
         if (abi) {
           try {
-            const event = decodeEventLog({ abi, topics: log.topics, data: log.data })
+            const event = decodeEventLog({ abi, topics: log.topics as LogTopics, data: log.data })
             decoded = { eventName: event.eventName, args: event.args }
           } catch (err) {
             console.warn(`[${log.address}] failed to decode log:`, err)
           }
         }
 
-        return asSerializable({ ...log, decoded }) as DecodedLog
+        return asSerializable({ ...log, ...decoded }) as DecodedLog
       }),
     )
 }
@@ -94,12 +95,12 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
           return null
         }
 
-        let decoded: DecodedLog['decoded']
+        let decoded: DecodedLogParams = {}
 
         try {
-          const event = decodeEventLog({ abi: [ev], topics: log.topics, data: log.data })
+          const event = decodeEventLog({ abi: [ev], topics: log.topics as LogTopics, data: log.data })
           decoded = { eventName: event.eventName, args: event.args }
-          return asSerializable({ ...log, decoded }) as DecodedLog
+          return asSerializable({ ...log, ...decoded }) as DecodedLog
         } catch (err) {
           console.warn(`[${log.address}] failed to decode log:`, err)
           return null
@@ -109,7 +110,7 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
         if (log === null) {
           return false
         }
-        if (eventNames.length > 0 && !eventNames.includes(log.decoded?.eventName ?? '')) {
+        if (eventNames.length > 0 && !eventNames.includes(log.eventName ?? '')) {
           return false
         }
         return true
@@ -120,7 +121,7 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
 export function decodeTransactions(params: DecodeContractParams[]) {
   const abiMap = buildAbiMap(params)
 
-  return (source: Observable<BlockWithLogs>): Observable<DecodedTx> =>
+  return (source: Observable<BlockWithLogs | Block>): Observable<DecodedTx> =>
     source.pipe(
       mergeMap((block) => getTransactionsWithTimestamp(block), MAX_CONCURRENCY_TX),
       map((tx) => {
@@ -144,7 +145,7 @@ export function decodeTransactions(params: DecodeContractParams[]) {
 export function filterTransactions(params: DecodeContractParams, functionNames: string[] = []) {
   const addressFilter = params.addresses ? params.addresses.map((a) => a.toLowerCase()) : []
 
-  return (source: Observable<BlockWithLogs>): Observable<DecodedTx> =>
+  return (source: Observable<BlockWithLogs | Block>): Observable<DecodedTx> =>
     source.pipe(
       mergeMap((block) => getTransactionsWithTimestamp(block), MAX_CONCURRENCY_TX),
       map((tx) => {
@@ -218,19 +219,5 @@ export function filterTransactionsWithLogs(params: DecodeContractParams, functio
       ),
       mergeMap((txs) => txs),
       filter((tx) => tx.decoded !== undefined),
-    )
-}
-
-export function appendTransactionReceipt<T extends DecodedTx | DecodedTxWithLogs>(ingress: EvmApi) {
-  return (source: Observable<T>): Observable<T & WithReceipt> =>
-    source.pipe(
-      mergeMap((tx) =>
-        from(ingress.getTransactionReceipt(tx.hash)).pipe(
-          map((receipt) => ({
-            ...tx,
-            receipt,
-          })),
-        ),
-      ),
     )
 }
