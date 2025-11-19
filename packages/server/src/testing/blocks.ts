@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { Abi } from 'viem'
 
 import { decodeEvmBlock } from '@/services/networking/evm/codec.js'
+import { BlockWithLogs, Block as EvmBlock } from '@/services/networking/evm/types.js'
 import { decodeBlock } from '@/services/networking/substrate/codec.js'
 import { Block, createContextFromMetadata } from '@/services/networking/substrate/index.js'
 
@@ -16,9 +17,22 @@ export function testApiContextFromMetadata(metadataFile: string) {
   return createContextFromMetadata(m)
 }
 
-export function testEvmBlocksFrom(file: string) {
+export function testEvmBlocksFrom(file: string, withLogs: true): BlockWithLogs[]
+export function testEvmBlocksFrom(file: string, withLogs?: false): EvmBlock[]
+export function testEvmBlocksFrom(file: string, withLogs = false): BlockWithLogs[] | EvmBlock[] {
   const bufferBlock = readFileSync(resolve(blocksDir, file))
-  return [decodeEvmBlock(bufferBlock)]
+  const decodedBlockWithLogs = decodeEvmBlock(bufferBlock)
+
+  if (withLogs) {
+    return [decodedBlockWithLogs]
+  }
+
+  const decodedBlock = {
+    ...decodedBlockWithLogs,
+    logs: undefined,
+  }
+
+  return [decodedBlock]
 }
 
 export function testBlocksFrom(file: string) {
