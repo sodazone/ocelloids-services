@@ -23,7 +23,7 @@ function toJourneyType(payload: HyperbridgeDecodedPayload) {
 }
 
 export function toStatus(payload: HyperbridgeDecodedPayload) {
-  if ('outcome' in payload.destination) {
+  if (payload.type === 'ismp.received' && 'outcome' in payload.destination) {
     return payload.destination.outcome === 'Success' ? 'received' : 'failed'
   }
   if (payload.waypoint.outcome === 'Fail') {
