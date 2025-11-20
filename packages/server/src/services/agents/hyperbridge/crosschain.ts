@@ -11,7 +11,9 @@ type HyperbridgeStops = {
   to: Record<string, any>
   relay: Record<string, any>
   messageId: HexString
+  nonce: string
   instructions: any
+  payload: HexString
 }
 
 function toJourneyType(payload: HyperbridgeDecodedPayload) {
@@ -42,7 +44,7 @@ export function toStatus(payload: HyperbridgeDecodedPayload) {
 }
 
 export function toHyperbridgeStops(
-  { type, origin, destination, waypoint, commitment, decoded, relayer }: HyperbridgeDecodedPayload,
+  { type, origin, destination, waypoint, commitment, decoded, relayer, nonce, body }: HyperbridgeDecodedPayload,
   existingStops?: HyperbridgeStops[],
 ): HyperbridgeStops[] {
   const context = {
@@ -67,7 +69,12 @@ export function toHyperbridgeStops(
         to: type === 'ismp.received' ? context : { chainId: destination.chainId },
         relay: type === 'ismp.relayed' ? context : { chainId: HYPERBRIDGE_NETWORK_ID },
         messageId: commitment,
-        instructions: decoded,
+        nonce,
+        instructions: {
+          ...decoded,
+          type: undefined
+        },
+        payload: body
       },
     ]
   }

@@ -115,6 +115,10 @@ export class HyperbridgeAgent implements Agent {
         const decoded = decodeOracleCall(msg.body)
         return {
           ...msg,
+          to: {
+            ...msg.to,
+            formatted: 'bifrost-oracle',
+          },
           decoded,
         }
       }
