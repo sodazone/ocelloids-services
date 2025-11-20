@@ -15,7 +15,8 @@ import {
   isIsmpPostRequestHandledWithContext,
 } from './types.js'
 
-const DEFAULT_TIMEOUT = 24 * 60 * 60_000
+const HOUR = 60 * 60_000
+const DEFAULT_TIMEOUT = 24 * HOUR
 
 export const prefixes = {
   matching: {
@@ -105,6 +106,13 @@ export class HyperbridgeMatchingEngine {
           )
           await this.#retry.put(key, msg)
           await new Promise((res) => setImmediate(res))
+
+          const expiry = msg.timeoutAt > Date.now() ? msg.timeoutAt - Date.now() + HOUR : null
+          await this.#janitor.schedule({
+            sublevel: prefixes.matching.retry,
+            key,
+            expiry: expiry ?? this.#expiry,
+          })
         }
         await this.#handleMatched(msg, inboundMsg, () => this.#inbound.del(key))
       } else {
