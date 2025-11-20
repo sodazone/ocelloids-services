@@ -23,6 +23,7 @@ export const prefixes = {
     inbound: 'ismp:ma:in',
     relayOut: 'ismp:ma:relay:out',
     relayIn: 'ismp:ma:relay:in',
+    retry: 'ismp:ma:retry',
   },
 }
 
@@ -37,6 +38,7 @@ export class HyperbridgeMatchingEngine {
   readonly #inbound: SubLevel<IsmpPostRequestHandledWithContext>
   readonly #relayIn: SubLevel<IsmpPostRequestHandledWithContext>
   readonly #relayOut: SubLevel<IsmpPostRequestWithContext>
+  readonly #retry: SubLevel<HyperbridgeDispatched>
 
   readonly #mutex: Mutex
   readonly #matchedReceiver: MatchedReceiver
@@ -59,6 +61,10 @@ export class HyperbridgeMatchingEngine {
       prefixes.matching.relayIn,
       jsonEncoded,
     )
+    // For storing dispatched messages that have failed on destination,
+    // since relayers can retry the message and succeed later.
+    // We keep message in retry instead of outbound to avoid triggering timeout unmatched if the failed outcome is in fact the final outcome
+    this.#retry = db.sublevel<string, HyperbridgeDispatched>(prefixes.matching.retry, jsonEncoded)
 
     this.#expiry = DEFAULT_TIMEOUT
     this.#janitor.on('sweep', this.#onSwept.bind(this))
@@ -87,6 +93,19 @@ export class HyperbridgeMatchingEngine {
 
       const inboundMsg = await this.#inbound.get(key)
       if (inboundMsg !== undefined) {
+        if (inboundMsg.outcome === 'Fail') {
+          // Put in retry db in case inbound is retried later
+          this.#log.info(
+            '[%s:%s] RETRY STORED key=%s (block=%s #%s)',
+            this.#id,
+            msg.origin.chainId,
+            key,
+            msg.origin.blockHash,
+            msg.origin.blockNumber,
+          )
+          await this.#retry.put(key, msg)
+          await new Promise((res) => setImmediate(res))
+        }
         await this.#handleMatched(msg, inboundMsg, () => this.#inbound.del(key))
       } else {
         this.#log.info(
@@ -112,6 +131,11 @@ export class HyperbridgeMatchingEngine {
     await this.#mutex.runExclusive(async () => {
       const key = msg.commitment
 
+      const retryMsg = await this.#retry.get(key)
+      if (retryMsg !== undefined) {
+        this.#onIsmpMatched(retryMsg, msg)
+        return
+      }
       const outboundMsg = await this.#outbound.get(key)
       if (outboundMsg !== undefined) {
         await this.#handleMatched(outboundMsg, msg, () => this.#outbound.del(key))
@@ -174,8 +198,11 @@ export class HyperbridgeMatchingEngine {
     inMsg: IsmpPostRequestHandledWithContext,
     cleanup: () => Promise<void>,
   ) {
-    await cleanup()
-    await new Promise((res) => setImmediate(res)) // allow event loop tick
+    // defer clean up in case of race conditions in matching
+    setTimeout(async () => {
+      await cleanup()
+      await new Promise((res) => setImmediate(res)) // allow event loop tick
+    }, 1_000).unref()
     this.#onIsmpMatched(outMsg, inMsg)
   }
 
@@ -224,11 +251,12 @@ export class HyperbridgeMatchingEngine {
       if (inboundMsg.type === 'Received') {
         const received = new HyperbridgeReceived(originMsg, inboundMsg)
         this.#log.info(
-          '[%s] RECEIVED source=%s dest=%s key=%s',
+          '[%s] RECEIVED source=%s dest=%s key=%s tx=%s',
           this.#id,
           received.origin.chainId,
           received.destination.chainId,
           received.commitment,
+          received.waypoint.txPosition ?? 'n/a',
         )
         // this.emit('telemetryIsmpReceived', received)
         this.#matchedReceiver(received)
