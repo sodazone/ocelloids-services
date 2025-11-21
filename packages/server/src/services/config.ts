@@ -62,6 +62,7 @@ const $NetworkConfiguration = z.object({
   provider: $NetworkProvider,
   recovery: z.boolean().optional(),
   batchSize: z.number().int().min(1).optional(),
+  maxBlockDist: z.number().int().min(1).max(5_000).default(50),
 })
 
 const $SubstrateNetworkConfiguration = $NetworkConfiguration.extend({
