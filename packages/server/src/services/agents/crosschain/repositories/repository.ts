@@ -565,7 +565,7 @@ export class CrosschainRepository {
 
     query = this.#applyJourneyFilters(query, filters, cursor)
 
-    return query.orderBy('sent_at', 'desc').limit(limit).execute()
+    return query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(limit).execute()
   }
 
   async #filterJourneyIdsWithAssets(limit: number, filters?: JourneyFilters, cursor?: string) {
@@ -591,7 +591,12 @@ export class CrosschainRepository {
     // JOURNEY filters
     query = this.#applyJourneyFilters(query, filters, cursor)
 
-    return query.groupBy('xc_asset_ops.journey_id').orderBy('sent_at', 'desc').limit(limit).execute()
+    return query
+      .groupBy('xc_asset_ops.journey_id')
+      .orderBy('sent_at', 'desc')
+      .orderBy('id', 'desc')
+      .limit(limit)
+      .execute()
   }
 
   #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
