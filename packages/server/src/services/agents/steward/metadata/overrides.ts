@@ -303,15 +303,15 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     multiLocation: {
       parents: 2,
       interior: {
-        type: "X1",
+        type: 'X1',
         value: {
-          type: "GlobalConsensus",
+          type: 'GlobalConsensus',
           value: {
-            type: "Polkadot"
-          }
-        }
-      }
-    }
+            type: 'Polkadot',
+          },
+        },
+      },
+    },
   },
   {
     chainId: 'urn:ocn:ethereum:1',

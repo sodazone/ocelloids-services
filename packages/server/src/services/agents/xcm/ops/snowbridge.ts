@@ -28,7 +28,12 @@ const BRIDGE_HUB_PARAID = '1002'
 
 type SnowbridgeEvmInboundLog = {
   eventName: string
-  args: { channelID: HexString; messageID: HexString; nonce: bigint; success: boolean }
+  args: { channelID: HexString; messageID: HexString; nonce: string; success: boolean }
+}
+
+type SnowbridgeEvmInboundV2Log = {
+  eventName: string
+  args: { topic: HexString; nonce: string; success: boolean; rewardAddress: HexString }
 }
 
 type SnowbridgeEvmOutboundAcceptedLog = {
@@ -76,7 +81,10 @@ function hexTimestampToMillis(hex?: string) {
 export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {
   return (source: Observable<BlockWithLogs>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
-      filterTransactionsWithLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1']),
+      filterTransactionsWithLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, [
+        'submitV1',
+        'v2_submit',
+      ]),
       map((tx) => {
         const inboundLog = tx.logs.find(
           (l) => l.decoded && l.decoded.eventName === 'InboundMessageDispatched',
@@ -85,29 +93,52 @@ export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress
           return null
         }
 
-        const {
-          args: { channelID, messageID, nonce, success },
-        } = inboundLog.decoded as SnowbridgeEvmInboundLog
+        if (tx.decoded?.functionName === 'submitV1') {
+          const {
+            args: { channelID, messageID, nonce, success },
+          } = inboundLog.decoded as SnowbridgeEvmInboundLog
 
-        return new GenericXcmBridgeInboundWithContext({
-          chainId,
-          blockHash: tx.blockHash,
-          blockNumber: tx.blockNumber.toString(),
-          channelId: channelID,
-          messageId: messageID,
-          nonce: nonce.toString(),
-          outcome: success ? 'Success' : 'Fail',
-          event: { name: inboundLog.decoded?.eventName, args: inboundLog.decoded?.args } as AnyJson,
-          timestamp: hexTimestampToMillis((inboundLog as any)['blockTimestamp']),
-          txHash: tx.hash,
-          txPosition: tx.transactionIndex ?? undefined,
-        })
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            channelId: channelID,
+            messageId: messageID,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundLog.decoded?.eventName, args: inboundLog.decoded?.args } as AnyJson,
+            timestamp: hexTimestampToMillis((inboundLog as any)['blockTimestamp']),
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        if (tx.decoded?.functionName === 'v2_submit') {
+          const {
+            args: { topic, nonce, success },
+          } = inboundLog.decoded as SnowbridgeEvmInboundV2Log
+
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            messageId: topic,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundLog.decoded?.eventName, args: inboundLog.decoded?.args } as AnyJson,
+            timestamp: hexTimestampToMillis((inboundLog as any)['blockTimestamp']),
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        return null
       }),
       filter((msg) => msg !== null),
     )
   }
 }
 
+// TODO: support v2_sendMessage
+// https://github.com/Snowfork/snowbridge/blob/a684acc778fe5264a7b1ada04d9b68554763ee97/contracts/src/v2/Calls.sol#L81
 export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddress: HexString) {
   return (source: Observable<BlockWithLogs>): Observable<SnowbridgeOutboundAccepted> => {
     return source.pipe(
@@ -193,7 +224,9 @@ export function extractSnowbridgeSubstrateInbound(chainId: NetworkURN) {
 export function extractSnowbridgeSubstrateOutbound(chainId: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<SnowbridgeMessageAccepted> => {
     return source.pipe(
-      filter((event) => matchEvent(event, 'EthereumOutboundQueue', 'MessageAccepted')),
+      filter((event) =>
+        matchEvent(event, ['EthereumOutboundQueue', 'EthereumOutboundQueueV2'], 'MessageAccepted'),
+      ),
       map((blockEvent) => {
         const { id, nonce } = blockEvent.value as SnowbridgeSubstrateAcceptedEvent
         return new GenericSnowbridgeMessageAccepted({
