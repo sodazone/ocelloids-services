@@ -73,11 +73,30 @@ function markSeen(seenBlocks: Set<string>, blockId: string) {
   }
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr
+}
+
+function getWsEndpoints(endpoints: string[]) {
+  return endpoints.filter((url) => url.startsWith('wss://') || url.startsWith('ws://'))
+}
+
+function getHttpEndpoints(endpoints: string[]) {
+  return endpoints.filter((url) => url.startsWith('https://') || url.startsWith('http://'))
+}
+
 export class EvmApi implements ApiClient {
   readonly chainId: string
 
   readonly #log: Logger
   readonly #client: PublicClient<Transport, viemChains.Chain>
+  readonly #wsClient: PublicClient<Transport, viemChains.Chain>
   readonly #unwatches: Set<() => void> = new Set()
 
   constructor(log: Logger, chainId: string, url: string | string[]) {
@@ -86,15 +105,23 @@ export class EvmApi implements ApiClient {
     this.#log = log
 
     const endpoints = Array.isArray(url) ? url : [url]
+    const wsEndpoints = shuffle(getWsEndpoints(endpoints))
+    const httpEndpoints = shuffle(getHttpEndpoints(endpoints))
 
     this.#client = createPublicClient<Transport, viemChains.Chain>({
       chain: resolveChain(chainId),
-      transport: fallback(endpoints.map(asTransport)),
+      transport: fallback(httpEndpoints.map(asTransport)),
     })
+    this.#wsClient = createPublicClient<Transport, viemChains.Chain>({
+      chain: resolveChain(chainId),
+      transport: fallback(wsEndpoints.map(asTransport)),
+    })
+    this.#log.info('[%s] Public client created with RPC %s', this.chainId, httpEndpoints[0])
+    this.#log.info('[%s] WS Public client created with RPC %s', this.chainId, wsEndpoints[0])
   }
 
   async connect(): Promise<ApiClient> {
-    this.#log.info('[%s] connecte (immediate)', this.chainId)
+    this.#log.info('[%s] connected (immediate)', this.chainId)
     return this
   }
 
@@ -146,6 +173,10 @@ export class EvmApi implements ApiClient {
       try {
         const unwatch = this.#client.watchBlocks({
           onBlock: async (block) => {
+            if (block === undefined || block === null) {
+              this.#log.warn('[%s] Received undefined block on watchBlocks', this.chainId)
+              return
+            }
             try {
               const header: NeutralHeader = {
                 hash: block.hash!,
@@ -251,6 +282,10 @@ export class EvmApi implements ApiClient {
         includeTransactions: false,
         emitMissed: true,
         onBlock: async (block: any) => {
+          if (block === undefined || block === null) {
+            this.#log.debug('[%s] Received undefined block on watchBlocks', this.chainId)
+            return
+          }
           try {
             const header: NeutralHeader = {
               hash: block.hash!,
@@ -301,7 +336,7 @@ export class EvmApi implements ApiClient {
 
   watchEvents$(params: DecodeContractParams, eventNames: string[] = []): Observable<DecodedLog> {
     return new Observable<DecodedLog>((subscriber) => {
-      const unwatch = this.#client.watchEvent({
+      const unwatch = this.#wsClient.watchEvent({
         address: params.addresses,
         events: params.abi.filter(
           (item) => item.type === 'event' && eventNames.includes(item.name),

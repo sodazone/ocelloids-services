@@ -1,31 +1,45 @@
 import {
+  BehaviorSubject,
+  catchError,
   concatMap,
   defer,
   EMPTY,
   from,
+  lastValueFrom,
+  map,
+  merge,
   mergeAll,
   mergeMap,
   mergeWith,
   Observable,
+  of,
+  Subject,
   share,
   switchMap,
+  takeUntil,
   tap,
+  timeout,
+  timer,
   toArray,
 } from 'rxjs'
 import { MulticallParameters } from 'viem'
-import { retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { BlockNumberRange } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
+import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
 import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { Block, DecodeContractParams } from '../types.js'
 
-const BATCH_SIZE = 5
-const MAX_BLOCK_DIST_FAST = 1_200
+const API_TIMEOUT_MS = 4.5 * 60_000
 
-const L2_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:10', 'urn:ocn:ethereum:8453']
+const BATCH_SIZE = 9
+const CONCURRENT_FETCH = 3
+const RPC_DELAY_MS = 5
+
+const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161']
 
 /**
  * Evm Watcher.
@@ -42,19 +56,60 @@ const L2_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:10'
  *   may still occur in rare cases, particularly on unstable endpoints.
  */
 export class EvmWatcher extends Watcher<Block> {
+  readonly #watchdogTimers: Record<NetworkURN, NodeJS.Timeout> = {}
+  readonly #api$: Record<NetworkURN, BehaviorSubject<EvmApi>> = {}
   readonly #apis: Record<string, EvmApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
+  readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
 
   readonly chainIds: NetworkURN[]
+  readonly #connector: Connector
 
   constructor(services: Services) {
     super(services)
 
     const { connector } = services
 
+    this.#connector = connector
     this.#apis = connector.connectAll('evm')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
+  }
+
+  async stop() {
+    this.log.info('[watcher:evm] shutdown in-flight block streams')
+
+    for (const timer of Object.values(this.#watchdogTimers)) {
+      clearTimeout(timer)
+    }
+
+    function safeLastValueFrom<T>(obs: Observable<T>, ms = 1000): Promise<T | null> {
+      return lastValueFrom(
+        obs.pipe(
+          timeout({ each: ms }),
+          catchError(() => of(null)), // fallback if timeout or empty
+        ),
+      )
+    }
+
+    const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(finalizeds)
+
+    const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(news)
+
+    Object.values(this.#apiCancel).forEach((cancel$) => {
+      try {
+        cancel$.next()
+        cancel$.complete()
+      } catch {
+        // ignore
+      }
+    })
+
+    Object.values(this.#api$).forEach((subject) => subject?.complete())
+
+    this.log.info('[watcher:evm] shutdown OK')
   }
 
   newBlocks(chainId: NetworkURN): Observable<Block> {
@@ -65,14 +120,22 @@ export class EvmWatcher extends Watcher<Block> {
       return cachedNew$
     }
 
-    const api = this.#apis[chainId]
-    const new$ = api.followHeads$('new').pipe(
-      this.catchUpHeads(chainId, api),
-      this.handleReorgs(chainId, api),
-      mergeMap((header) => api.getBlock(header.hash)),
-      this.tapError(chainId, 'getBlock()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      share(),
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+    }
+
+    const new$ = this.#api$[chainId].pipe(
+      switchMap((api) =>
+        api.followHeads$('new').pipe(
+          takeUntil(shutdown$),
+          this.catchUpHeads(chainId, api),
+          this.handleReorgs(chainId, api),
+          mergeMap((header) => api.getBlock(header.hash)),
+          this.tapError(chainId, 'getBlock()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          share(),
+        ),
+      ),
     )
     this.#new$[chainId] = new$
 
@@ -89,46 +152,58 @@ export class EvmWatcher extends Watcher<Block> {
       return cachedFinalized$
     }
 
-    if (L2_CHAINS.includes(chainId)) {
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+    }
+
+    // Create a fresh cancel token for this emitted api instance.
+    // Any reconnect will signal this to force a clean teardown of streams tied to this api.
+    if (this.#apiCancel[chainId]) {
+      // close previous just in case
+      try {
+        this.#apiCancel[chainId].next()
+        this.#apiCancel[chainId].complete()
+      } catch {
+        // ignore
+      }
+    }
+    const cancel$ = new Subject<void>()
+    this.#apiCancel[chainId] = cancel$
+
+    if (FAST_CHAINS.includes(chainId)) {
       return this.#fastFinalizedBlocks(chainId)
     }
 
-    const api = this.#apis[chainId]
-    const finalized$ = api.followHeads$('finalized').pipe(
-      mergeWith(from(this.recoverRanges(chainId)).pipe(this.recoverBlockRanges(chainId, api))),
-      this.tapError(chainId, 'finalizedBlocks()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      this.catchUpHeads(chainId, api),
-      this.handleReorgs(chainId, api),
-      mergeMap((header) => from(api.getBlock(header.hash))),
-      this.tapError(chainId, 'getBlock()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      share({ resetOnRefCountZero: false }),
-    )
-
-    this.#finalized$[chainId] = finalized$
-
-    this.log.debug('[%s] created finalized blocks stream', chainId)
-
-    return finalized$
+    return this.#finalizedBlocks(chainId)
   }
 
-  #fastFinalizedBlocks(chainId: NetworkURN): Observable<Block> {
-    let count = 0
-    const api = this.#apis[chainId]
-    const finalized$ = api.followFastHeads$('finalized').pipe(
-      this.tapError(chainId, 'followHeads()'),
-      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      this.#catchUpBlocks(chainId, api),
-      tap((b) => {
-        count++
-        if (count >= 20) {
-          this.log.info('[%s] FINALIZED block #%s %s (%s blocks)', chainId, b.number, b.hash, count)
-          this.emit('telemetryBlockFinalized', {
-            chainId,
-            blockNumber: Number(b.number),
-          })
-          count = 0
+  #finalizedBlocks(chainId: NetworkURN): Observable<Block> {
+    const cancel$ = this.#apiCancel[chainId]
+    let lastReset = Date.now()
+
+    const finalized$ = this.#api$[chainId].pipe(
+      switchMap((api) => {
+        const recover$ = from(this.recoverRanges(chainId)).pipe(
+          this.recoverBlockRanges(chainId, api),
+          takeUntil(merge(shutdown$, cancel$)),
+        )
+        return api.followHeads$('finalized').pipe(
+          mergeWith(recover$),
+          this.tapError(chainId, 'finalizedBlocks()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          this.catchUpHeads(chainId, api),
+          takeUntil(merge(shutdown$, cancel$)),
+          this.handleReorgs(chainId, api),
+          mergeMap((header) => from(api.getBlock(header.hash))),
+          this.tapError(chainId, 'getBlock()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+        )
+      }),
+      tap(() => {
+        const now = Date.now()
+        if (now - lastReset > 10_000) {
+          lastReset = now
+          this.#resetWatchdog(chainId)
         }
       }),
       share({ resetOnRefCountZero: false }),
@@ -141,11 +216,61 @@ export class EvmWatcher extends Watcher<Block> {
     return finalized$
   }
 
+  #fastFinalizedBlocks(chainId: NetworkURN): Observable<Block> {
+    const cancel$ = this.#apiCancel[chainId]
+    let lastLog = Date.now()
+    const blockNumbers: string[] = []
+    const finalized$ = this.#api$[chainId].pipe(
+      switchMap((api) =>
+        api.followFastHeads$('finalized').pipe(
+          takeUntil(merge(shutdown$, cancel$)),
+          this.tapError(chainId, 'followHeads()'),
+          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          this.#catchUpBlocks(chainId, api),
+          tap((b) => {
+            blockNumbers.push(b.number)
+            const now = Date.now()
+            if (now - lastLog > 5_000) {
+              this.log.info(
+                '[%s] FINALIZED %s blocks (last=%s) [%s]',
+                chainId,
+                blockNumbers.length,
+                blockNumbers[blockNumbers.length - 1],
+                blockNumbers.join(', '),
+              )
+              this.emit('telemetryBlockFinalized', {
+                chainId,
+                blockNumber: Number(b.number),
+              })
+              this.#resetWatchdog(chainId)
+              lastLog = now
+              blockNumbers.length = 0
+            }
+          }),
+          share({ resetOnRefCountZero: false }),
+        ),
+      ),
+    )
+
+    this.#finalized$[chainId] = finalized$
+
+    this.log.debug('[%s] created finalized blocks stream', chainId)
+
+    return finalized$
+  }
+
   watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
-    const api = this.#apis[chainId]
-    return api
-      .watchEvents$(params, eventNames)
-      .pipe(this.tapError(chainId, 'watchEvents()'), retryWithTruncatedExpBackoff(RETRY_INFINITE))
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+    }
+
+    return this.#api$[chainId].pipe(
+      switchMap((api) =>
+        api
+          .watchEvents$(params, eventNames)
+          .pipe(this.tapError(chainId, 'watchEvents()'), retryWithTruncatedExpBackoff(RETRY_INFINITE)),
+      ),
+    )
   }
 
   getNetworkInfo(chainId: string): Promise<AnyJson> {
@@ -182,7 +307,7 @@ export class EvmWatcher extends Watcher<Block> {
             mergeMap(
               (batch) =>
                 from(batch).pipe(
-                  mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), batchSize),
+                  mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), CONCURRENT_FETCH),
                   this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
                   retryWithTruncatedExpBackoff(RETRY_INFINITE),
                   toArray(),
@@ -196,8 +321,99 @@ export class EvmWatcher extends Watcher<Block> {
     }
   }
 
+  protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {
+    return (source: Observable<NeutralHeader>): Observable<NeutralHeader> => {
+      return source.pipe(
+        tap((header) => {
+          this.log.info('[%s] FINALIZED block #%s %s', chainId, header.height, header.hash)
+
+          this.emit('telemetryBlockFinalized', {
+            chainId,
+            blockNumber: header.height,
+          })
+        }),
+        concatMap((newHead) =>
+          defer(async () => {
+            const tip = await this.chainTips.get(chainId)
+            return tip ? Number(tip.blockNumber) : newHead.height
+          }).pipe(
+            switchMap((lastFetched) => {
+              const target = newHead.height
+
+              if (target <= lastFetched) {
+                return EMPTY
+              }
+              if (target === lastFetched + 1) {
+                return from(api.getNeutralBlockHeaderByNumber(target)).pipe(
+                  this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
+                  retryWithTruncatedExpBackoff(RETRY_INFINITE),
+                  mergeMap((header) =>
+                    defer(async () => {
+                      await this.chainTips.put(chainId, {
+                        blockHash: header.hash,
+                        blockNumber: header.height.toString(),
+                        chainId,
+                        parentHash: header.parenthash,
+                        receivedAt: new Date(),
+                      })
+                      return header
+                    }),
+                  ),
+                )
+              }
+
+              const missing: number[] = []
+              const maxDist = this.maxBlockDist(chainId)
+              const start = target - lastFetched > maxDist ? target - maxDist : lastFetched
+              for (let h = start + 1; h <= target; h++) {
+                missing.push(h)
+              }
+              this.log.info('[%s] CATCHUP #%s - #%s', chainId, start + 1, target)
+
+              const batches: number[][] = []
+              const batchSize = this.batchSize(chainId)
+              for (let i = 0; i < missing.length; i += batchSize) {
+                batches.push(missing.slice(i, i + batchSize))
+              }
+
+              return from(batches).pipe(
+                mergeMap(
+                  (batch) =>
+                    from(batch).pipe(
+                      mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), CONCURRENT_FETCH),
+                      this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
+                      retryWithTruncatedExpBackoff(RETRY_INFINITE),
+                      toArray(),
+                      map((b) => b.sort((a, b) => a.height - b.height)),
+                      mergeMap((blocks) =>
+                        defer(async () => {
+                          const last = blocks[blocks.length - 1]
+                          await this.chainTips.put(chainId, {
+                            blockHash: last.hash,
+                            blockNumber: last.height.toString(),
+                            chainId,
+                            parentHash: last.parenthash,
+                            receivedAt: new Date(),
+                          })
+                          return blocks
+                        }),
+                      ),
+                      mergeMap((blocks) => from(blocks)),
+                    ),
+                  1,
+                ),
+              )
+            }),
+          ),
+        ),
+        this.tapError(chainId, '#catchUpHeads()'),
+        retryWithTruncatedExpBackoff(RETRY_INFINITE),
+      )
+    }
+  }
+
   // Fast catchup logic; directly fetches full blocks with txs by block number
-  // Does not handle reorgs, used for fast L2s with centralized sequencers
+  // Does not handle reorgs
   #catchUpBlocks(chainId: NetworkURN, api: EvmApi) {
     return (source: Observable<NeutralHeader>): Observable<Block> =>
       source.pipe(
@@ -233,8 +449,8 @@ export class EvmWatcher extends Watcher<Block> {
               }
 
               const missing: number[] = []
-              const start =
-                target - lastFetched > MAX_BLOCK_DIST_FAST ? target - MAX_BLOCK_DIST_FAST : lastFetched
+              const maxDist = this.maxBlockDist(chainId)
+              const start = target - lastFetched > maxDist ? target - maxDist : lastFetched
               for (let h = start + 1; h <= target; h++) {
                 missing.push(h)
               }
@@ -249,7 +465,10 @@ export class EvmWatcher extends Watcher<Block> {
                 mergeMap(
                   (batch) =>
                     from(batch).pipe(
-                      mergeMap((h) => api.getBlockByNumber(h), BATCH_SIZE),
+                      mergeMap(
+                        (h) => timer(RPC_DELAY_MS).pipe(switchMap(() => api.getBlockByNumber(h))),
+                        CONCURRENT_FETCH,
+                      ),
                       this.tapError(chainId, 'getBlockByNumber()'),
                       retryWithTruncatedExpBackoff(RETRY_INFINITE),
                       toArray(),
@@ -277,5 +496,68 @@ export class EvmWatcher extends Watcher<Block> {
           ),
         ),
       )
+  }
+
+  async #reconnect(chainId: NetworkURN) {
+    this.log.info('[watcher:substrate] %s reconnecting API', chainId)
+    const existingApi = this.#apis?.[chainId]
+    if (existingApi) {
+      try {
+        // 1) Signal cancellation to any streams tied to the old API.
+        const cancel$ = this.#apiCancel[chainId]
+        try {
+          if (cancel$) {
+            cancel$.next()
+            cancel$.complete()
+            delete this.#apiCancel[chainId]
+          }
+        } catch (err) {
+          this.log.warn(err, '[%s] error while signaling api cancel', chainId)
+        }
+
+        // 2) Give the unsubscription microtask a short moment to complete.
+        await new Promise((res) => setTimeout(res, 50))
+
+        // 3) Disconnect the old API
+        try {
+          await existingApi.disconnect()
+        } catch (err) {
+          // best effort; log and continue to replace
+          this.log.warn(err, '[%s] error during api.disconnect()', chainId)
+        }
+
+        // 4) Replace API
+        const newApi = this.#connector.replaceNetwork('evm', chainId)
+        this.#apis[chainId] = newApi
+
+        this.log.info('[watcher:evm] %s reconnect OK', chainId)
+
+        // 5) Emit the new API on the same Subject so finalized$ subscribers will switchMap to the new API.
+        // Important: we reuse the original Subject instance (this.#api$[chainId]) so downstream stream references remain valid.
+        if (!this.#api$[chainId]) {
+          this.#api$[chainId] = new BehaviorSubject<EvmApi>(newApi)
+        } else {
+          this.#api$[chainId].next(this.#apis[chainId])
+        }
+        this.log.info('[watcher:evm] %s emit API', chainId)
+
+        this.emit('telemetryApiReconnect', {
+          chainId,
+        })
+      } catch (error) {
+        this.log.error(error, 'error')
+      }
+    }
+  }
+
+  #resetWatchdog(chainId: NetworkURN) {
+    if (this.#watchdogTimers[chainId]) {
+      clearTimeout(this.#watchdogTimers[chainId])
+    }
+
+    this.#watchdogTimers[chainId] = setTimeout(() => {
+      this.log.warn('[%s] no finalized block for %dms, reconnecting...', chainId, API_TIMEOUT_MS)
+      void this.#reconnect(chainId)
+    }, API_TIMEOUT_MS)
   }
 }
