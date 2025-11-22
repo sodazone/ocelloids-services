@@ -114,6 +114,13 @@ export const $AgentArgs = z.record(
   z.any(),
 )
 
+const $NotificationUnion = z.discriminatedUnion('type', [
+  $TelegramNotification,
+  $WebhookNotification,
+  $LogNotification,
+  $WebsocketNotification,
+])
+
 export const $Subscription = z.object({
   id: $SubscriptionId,
   agent: $AgentId,
@@ -121,16 +128,7 @@ export const $Subscription = z.object({
   owner: z.optional(z.string()),
   public: z.optional(z.boolean()),
   ephemeral: z.optional(z.boolean()),
-  channels: z
-    .array(
-      z.discriminatedUnion('type', [
-        $WebhookNotification,
-        $LogNotification,
-        $WebsocketNotification,
-        $TelegramNotification,
-      ]),
-    )
-    .min(1),
+  channels: z.array($NotificationUnion).min(1),
 })
 
 export const $NewSubscription = $Subscription

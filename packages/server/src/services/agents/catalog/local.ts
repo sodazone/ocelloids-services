@@ -22,6 +22,7 @@ import { PullCollector } from '@/services/telemetry/types.js'
 import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
+import { OpenGovAgent } from '../opengov/agent.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { WormholeAgent } from '../wormhole/agent.js'
@@ -38,6 +39,9 @@ function shouldStart(agent: Agent) {
   return runInBackground || (capabilities.queryable && !capabilities.subscribable)
 }
 
+/**
+ * Local Agent Catalog Registrations
+ */
 const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<AgentId, Agent>) => Agent> = {
   informant: (ctx) => new InformantAgent(ctx),
   steward: (ctx) => new DataSteward(ctx),
@@ -45,6 +49,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
   ...(DIRTY_TOGGLES['crosschain'] && {
     crosschain: (ctx) => new CrosschainExplorer(ctx),
   }),
+  opengov: (ctx) => new OpenGovAgent(ctx),
   wormhole: (ctx, activations) =>
     new WormholeAgent(ctx, {
       steward: activations['steward'] as DataSteward,

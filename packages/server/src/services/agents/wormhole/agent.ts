@@ -132,7 +132,7 @@ export class WormholeAgent implements Agent {
         '[agent:%s] Skipping operation due to unsupported network(s): sourceChainId=%s, targetChainId=%s',
         this.id,
         op.sourceChain.chainId,
-        op.targetChain.chainId,
+        op.targetChain?.chainId,
       )
       return
     }

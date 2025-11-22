@@ -1,4 +1,4 @@
-import ky from 'ky'
+import { createFetcher } from '@/common/http/fetch.js'
 
 import { normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
@@ -39,7 +39,7 @@ export class WormholescanClient {
   readonly #api
 
   constructor(baseUrl = 'https://api.wormholescan.io') {
-    this.#api = ky.create({
+    this.#api = createFetcher({
       prefixUrl: baseUrl,
       /*hooks: {
         beforeRequest: [

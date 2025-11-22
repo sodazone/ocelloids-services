@@ -1,5 +1,7 @@
 import Handlebars, { TemplateDelegate } from 'handlebars'
 import { LRUCache } from 'lru-cache'
+import { chainHelper } from './helpers.js'
+import { escapeMarkdownV2 } from './messaging/escape.js'
 
 type RenderContext<T> = {
   template: string
@@ -48,6 +50,9 @@ export class TemplateRenderer {
       })
     Handlebars.registerHelper('json', (context) => JSON.stringify(context, null, 2))
     Handlebars.registerHelper('safe', (context) => new Handlebars.SafeString(context))
+    Handlebars.registerHelper('eq', (a, b) => a === b)
+    Handlebars.registerHelper('chain', chainHelper)
+    Handlebars.registerHelper('escapeMarkdownV2', escapeMarkdownV2)
   }
 
   render<T>(context: RenderContext<T>): string {
@@ -57,8 +62,8 @@ export class TemplateRenderer {
         allowCallsToHelperMissing: false,
         allowProtoPropertiesByDefault: false,
       })
-    } catch {
-      throw new Error('Template rendering failed')
+    } catch (error) {
+      throw new Error('Template rendering failed', { cause: error })
     }
   }
 
@@ -73,7 +78,7 @@ export class TemplateRenderer {
 
     const delgate = Handlebars.compile(template, {
       strict: true,
-      knownHelpers: { json: true, safe: true },
+      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true },
       knownHelpersOnly: true,
     })
 

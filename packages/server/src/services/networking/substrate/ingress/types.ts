@@ -62,4 +62,5 @@ export interface SubstrateIngressConsumer extends IngressConsumer {
   ): Promise<T | null>
   isRelay(chainId: NetworkURN): boolean
   isReady(): Promise<void>
+  __getBlock(chainId: NetworkURN, hash: string): Promise<Block>
 }

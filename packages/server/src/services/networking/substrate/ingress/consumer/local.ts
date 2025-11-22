@@ -91,4 +91,8 @@ export class SubstrateLocalConsumer
     const { module, method, at } = ops
     return (await this.watcher.getApi(chainId)).query({ module, method, at }, params) as Promise<T | null>
   }
+
+  async __getBlock(chainId: NetworkURN, blockHash: HexString): Promise<Block> {
+    return (await this.watcher.getApi(chainId)).getBlock(blockHash)
+  }
 }

@@ -1,0 +1,43 @@
+type IconLabel = Record<string, { icon: string; label: string }>
+
+const STATUS_MAP: IconLabel = {
+  Ongoing: { icon: '⚡', label: 'Ongoing' },
+  Rejected: { icon: '⛔', label: 'Rejected' },
+  Approved: { icon: '✅', label: 'Approved' },
+  Cancelled: { icon: '❎', label: 'Cancelled' },
+  TimedOut: { icon: '⌛', label: 'Timed Out' },
+  Killed: { icon: '💀', label: 'Killed' },
+  Finalized: { icon: '🏁', label: 'Finalized' },
+}
+
+const EVENT_STATUS_MAP: IconLabel = {
+  'Referenda.Submitted': { icon: '🟦', label: 'Submitted' },
+  'Referenda.DecisionStarted': { icon: '🟧', label: 'Decision phase' },
+  'Referenda.ConfirmStarted': { icon: '🟩', label: 'Confirmation' },
+  'Referenda.Rejected': { icon: '⛔', label: 'Rejected' },
+  'Referenda.Approved': { icon: '✅', label: 'Approved' },
+  'Referenda.TimedOut': { icon: '⌛', label: 'Timed Out' },
+  'Referenda.Killed': { icon: '💀', label: 'Killed' },
+  'Referenda.Cancelled': { icon: '❎', label: 'Cancelled' },
+  'Referenda.Executed': { icon: '🏁', label: 'Executed' },
+}
+export function humanizeReferendumStatus(payload: { status?: string; triggeredBy?: { name: string } }) {
+  if (!payload) {
+    return ''
+  }
+
+  const evt = payload.triggeredBy?.name
+  if (evt && EVENT_STATUS_MAP[evt]) {
+    const { icon, label } = EVENT_STATUS_MAP[evt]
+    return `${icon} ${label}`
+  }
+
+  const sys = payload.status
+  if (sys && STATUS_MAP[sys]) {
+    const { icon, label } = STATUS_MAP[sys]
+    return `${icon} ${label}`
+  }
+
+  // fallback
+  return sys || evt || 'unknown'
+}

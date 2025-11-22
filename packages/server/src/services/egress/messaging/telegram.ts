@@ -8,15 +8,9 @@ import { Logger, Services } from '@/services/types.js'
 import { Egress } from '../hub.js'
 import { TemplateRenderer } from '../template.js'
 import { Message, Publisher, PublisherEmitter } from '../types.js'
+import { resolveTemplate } from './templates/resolver.js'
 
 type BotPool = Map<string, Telegraf>
-
-const DEFAULT_TEMPLATE = `
-{{metadata.type}} from **{{metadata.agentId}}**
-\`\`\`
-{{json this}}
-\`\`\`
-`
 
 /**
  * TelegramPublisher
@@ -87,13 +81,13 @@ export class TelegramPublisher extends (EventEmitter as new () => PublisherEmitt
       const bot = this.#getBot(resolvedToken)
       const rendered =
         template === undefined
-          ? this.#renderer.render({ template: DEFAULT_TEMPLATE, data: msg })
+          ? this.#renderer.render({ template: resolveTemplate(msg), data: msg })
           : this.#renderer.render({ template, data: msg })
 
       const text = typeof rendered === 'string' ? rendered : JSON.stringify(rendered, null, 2)
 
       await bot.telegram.sendMessage(chatId, text, {
-        parse_mode: parseMode ?? 'Markdown',
+        parse_mode: parseMode ?? 'MarkdownV2',
         link_preview_options: {
           is_disabled: true,
         },
