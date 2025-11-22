@@ -29,6 +29,8 @@ function toDataObject(obj: any): DataObject {
   return dao
 }
 
+const MAX_TEMPLATE_LENGTH = 10_000
+
 /**
  * Renders Handlebars templates.
  *
@@ -44,26 +46,39 @@ export class TemplateRenderer {
         max: 100,
         ttl: 3.6e6, // 1 hour
       })
+    Handlebars.registerHelper('json', (context) => JSON.stringify(context, null, 2))
+    Handlebars.registerHelper('safe', (context) => new Handlebars.SafeString(context))
   }
 
   render<T>(context: RenderContext<T>): string {
-    // TODO: consider try..catch wrapping a RendererError
-    return this.#resolve(context)(Object.freeze(toDataObject(context.data)), {
-      allowProtoMethodsByDefault: false,
-      allowCallsToHelperMissing: false,
-      allowProtoPropertiesByDefault: false,
-    })
+    try {
+      return this.#resolve(context)(Object.freeze(toDataObject(context.data)), {
+        allowProtoMethodsByDefault: false,
+        allowCallsToHelperMissing: false,
+        allowProtoPropertiesByDefault: false,
+      })
+    } catch {
+      throw new Error('Template rendering failed')
+    }
   }
 
   #resolve<T>({ template }: RenderContext<T>): TemplateDelegate<any> {
+    if (template.length > MAX_TEMPLATE_LENGTH) {
+      throw new Error(`Template too large: ${template.length} characters (max ${MAX_TEMPLATE_LENGTH})`)
+    }
+
     if (this.#cache.has(template)) {
       return this.#cache.get(template)!
     }
+
     const delgate = Handlebars.compile(template, {
       strict: true,
+      knownHelpers: { json: true, safe: true },
       knownHelpersOnly: true,
     })
+
     this.#cache.set(template, delgate)
+
     return delgate
   }
 }

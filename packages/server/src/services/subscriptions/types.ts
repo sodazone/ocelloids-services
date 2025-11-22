@@ -70,6 +70,15 @@ export type SignerData = {
   }[]
 }
 
+const $TelegramNotification = z.object({
+  type: z.literal('telegram'),
+  chatId: z.string().min(5).max(1_000),
+  parseMode: z.optional(z.enum(['HTML', 'Markdown', 'MarkdownV2'])),
+  token: z.optional(z.string().min(5).max(1_000)),
+  events: z.optional(z.array(z.string()).or(z.literal('*'))),
+  template: z.optional(z.string().min(5).max(32_000)),
+})
+
 const $WebhookNotification = z.object({
   type: z.literal('webhook'),
   url: z
@@ -113,13 +122,22 @@ export const $Subscription = z.object({
   public: z.optional(z.boolean()),
   ephemeral: z.optional(z.boolean()),
   channels: z
-    .array(z.discriminatedUnion('type', [$WebhookNotification, $LogNotification, $WebsocketNotification]))
+    .array(
+      z.discriminatedUnion('type', [
+        $WebhookNotification,
+        $LogNotification,
+        $WebsocketNotification,
+        $TelegramNotification,
+      ]),
+    )
     .min(1),
 })
 
 export const $NewSubscription = $Subscription
 
 export type WebhookNotification = z.infer<typeof $WebhookNotification>
+
+export type TelegramNotification = z.infer<typeof $TelegramNotification>
 
 export type Subscription<T = Record<string, any>> = Omit<z.infer<typeof $Subscription>, 'args'> & { args: T }
 

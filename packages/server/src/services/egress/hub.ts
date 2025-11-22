@@ -2,27 +2,36 @@ import EventEmitter from 'node:events'
 
 import { Subscription } from '../subscriptions/types.js'
 import { TelemetryNotifierEventKeys } from '../telemetry/types.js'
-import { Services } from '../types.js'
+import { Logger, Services } from '../types.js'
 import { LogPublisher } from './log.js'
+import { TelegramPublisher } from './messaging/telegram.js'
 import { Message, Publisher, PublisherEmitter } from './types.js'
 import { WebhookPublisher } from './webhook.js'
+
+type Publishers = {
+  [property: string]: Publisher
+}
+
+async function executeAll(publishers: Publishers, key: 'start' | 'stop') {
+  return await Promise.all(Object.values(publishers).flatMap((p) => (p[key] ? [p[key]!()] : [])))
+}
 
 /**
  * Provides resolution of the supported publishers.
  */
 export class Egress extends (EventEmitter as new () => PublisherEmitter) implements Publisher {
-  // #log: Logger;
-  #publishers: {
-    [property: string]: Publisher
-  }
+  #log: Logger
+  #publishers: Publishers
 
   constructor(services: Services) {
     super()
 
-    // this.#log = services.log;
+    this.#log = services.log
+
     this.#publishers = {
       log: new LogPublisher(this, services),
       webhook: new WebhookPublisher(this, services),
+      telegram: new TelegramPublisher(this, services),
     }
 
     // delegate telemetry events
@@ -58,5 +67,21 @@ export class Egress extends (EventEmitter as new () => PublisherEmitter) impleme
    */
   terminate(sub: Subscription) {
     this.emit('terminate', sub)
+  }
+
+  /**
+   * Stops publishers.
+   */
+  async stop() {
+    this.#log.info('[egress] stop')
+    await executeAll(this.#publishers, 'stop')
+  }
+
+  /**
+   * Starts publishers.
+   */
+  async start() {
+    this.#log.info('[egress] start')
+    await executeAll(this.#publishers, 'start')
   }
 }

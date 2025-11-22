@@ -23,6 +23,7 @@ export type PublisherEvents = {
   log: (sub: Subscription, msg: Message) => void
   webhook: (sub: Subscription, msg: Message) => void
   websocket: (sub: Subscription, msg: Message) => void
+  telegram: (sub: Subscription, msg: Message) => void
   terminate: (sub: Subscription) => void
 }
 
@@ -30,4 +31,6 @@ export type PublisherEmitter = TypedEventEmitter<PublisherEvents & TelemetryPubl
 
 export interface Publisher extends PublisherEmitter {
   publish(sub: Subscription, msg: Message): void | Promise<void>
+  start?: () => void | Promise<void>
+  stop?: () => void | Promise<void>
 }
