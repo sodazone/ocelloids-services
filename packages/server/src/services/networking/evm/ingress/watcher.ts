@@ -246,9 +246,9 @@ export class EvmWatcher extends Watcher<Block> {
               blockNumbers.length = 0
             }
           }),
-          share({ resetOnRefCountZero: false }),
         ),
       ),
+      share({ resetOnRefCountZero: false }),
     )
 
     this.#finalized$[chainId] = finalized$
