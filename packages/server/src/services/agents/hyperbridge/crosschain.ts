@@ -44,7 +44,17 @@ export function toStatus(payload: HyperbridgeDecodedPayload) {
 }
 
 export function toHyperbridgeStops(
-  { type, origin, destination, waypoint, commitment, decoded, relayer, nonce, body }: HyperbridgeDecodedPayload,
+  {
+    type,
+    origin,
+    destination,
+    waypoint,
+    commitment,
+    decoded,
+    relayer,
+    nonce,
+    body,
+  }: HyperbridgeDecodedPayload,
   existingStops?: HyperbridgeStops[],
 ): HyperbridgeStops[] {
   const context = {
@@ -72,9 +82,9 @@ export function toHyperbridgeStops(
         nonce,
         instructions: {
           ...decoded,
-          type: undefined
+          type: undefined,
         },
-        payload: body
+        payload: body,
       },
     ]
   }

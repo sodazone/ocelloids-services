@@ -231,6 +231,15 @@ export class HyperbridgeAgent implements Agent {
     const existingStops = Array.isArray(existingJourney.stops)
       ? existingJourney.stops
       : [existingJourney.stops]
+
+    if (message.type === 'ismp.relayed') {
+      const stop = existingStops.find((s) => s.relay.chainId === message.waypoint.chainId)
+      if (stop && 'status' in stop.relay && stop.relay.status === 'Fail') {
+        this.#log.info('[%s: explorer] skipping duplicate relay (commitment=%s)', this.id, message.commitment)
+        return
+      }
+    }
+
     const updatedStops = toHyperbridgeStops(message, existingStops)
     const updateWith: Partial<JourneyUpdate> = {
       status: toStatus(message),
