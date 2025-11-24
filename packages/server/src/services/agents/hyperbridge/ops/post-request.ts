@@ -1,10 +1,16 @@
-import { filter, map, mergeMap, Observable } from 'rxjs'
-import { hexTimestampToMillis } from '@/common/util.js'
+import { filter, from, map, mergeMap, Observable } from 'rxjs'
+import { Abi, decodeEventLog, TransactionReceipt } from 'viem'
+import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import { DecodedLog } from '@/services/networking/evm/types.js'
+import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
+import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
+import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { matchEvent } from '../../xcm/ops/util.js'
+import hostAbi from '../abis/evm-host.json' with { type: 'json' }
+import gatewayFunctionsAbi from '../abis/gateway-functions.json' with { type: 'json' }
+import { INTENT_GATEWAYS, TOKEN_GATEWAYS } from '../config.js'
 import {
   EvmPostRequestEvent,
   IsmpPostRequestWithContext,
@@ -50,24 +56,50 @@ export function extractSubstrateRequest(
   }
 }
 
-export function extractEvmRequest(chainId: NetworkURN) {
-  return (source: Observable<DecodedLog>): Observable<IsmpPostRequestWithContext> => {
+export function extractEvmRequest(
+  chainId: NetworkURN,
+  getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
+) {
+  const tokenGateway = TOKEN_GATEWAYS[chainId]
+  const intentGateway = INTENT_GATEWAYS[chainId]
+
+  const gateways = [tokenGateway, intentGateway].filter((g): g is HexString => g !== undefined)
+  if (gateways.length === 0) {
+    throw new Error(`No gateway contracts defined for chain ${chainId}`)
+  }
+
+  return (source: Observable<Block>): Observable<IsmpPostRequestWithContext> => {
     return source.pipe(
-      map((decodedLog) => {
-        const { eventName, args, blockHash, blockNumber, transactionHash, transactionIndex } = decodedLog
-        if (args && blockHash && blockNumber) {
-          const eventArgs = args as EvmPostRequestEvent
-          const { source, dest, from, to, nonce, timeoutTimestamp, body } = eventArgs
+      filterTransactions({ abi: gatewayFunctionsAbi as Abi, addresses: gateways }, ['teleport', 'fillOrder']),
+      mergeMap((tx) =>
+        from(getTransactionReceipt(tx.hash)).pipe(
+          map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
+        ),
+      ),
+      map((tx) => {
+        const postRequestEvent = findLogInTx(tx, hostAbi as Abi, 'PostRequestEvent')
+        if (!postRequestEvent || tx.blockHash === null || tx.blockNumber === null) {
+          return null
+        }
+
+        try {
+          const { eventName, args } = decodeEventLog({
+            abi: hostAbi as Abi,
+            topics: postRequestEvent.topics as LogTopics,
+            data: postRequestEvent.data,
+          }) as unknown as EvmPostRequestEvent
+
+          const { source, dest, from, to, nonce, timeoutTimestamp, body } = args
           return {
             chainId,
-            blockHash: blockHash,
-            blockNumber: blockNumber.toString(),
-            timestamp: hexTimestampToMillis((decodedLog as any)['blockTimestamp']),
-            txHash: transactionHash ?? undefined,
-            txPosition: transactionIndex ?? undefined,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            timestamp: tx.timestamp,
+            txHash: tx.hash ?? undefined,
+            txPosition: tx.transactionIndex ?? undefined,
             source: toFormattedNetwork(source),
             destination: toFormattedNetwork(dest),
-            commitment: toCommitmentHash(eventArgs),
+            commitment: toCommitmentHash(args),
             nonce: nonce.toString(),
             from,
             to,
@@ -77,12 +109,16 @@ export function extractEvmRequest(chainId: NetworkURN) {
             event: {
               module: 'EvmHost',
               name: eventName,
-              args: args,
+              args: asSerializable(args),
             },
           } as IsmpPostRequestWithContext
+        } catch (err) {
+          console.error(
+            err,
+            `Error processing teleport chainId=${chainId} tx=${tx.hash} block=${tx.blockNumber.toString()}`,
+          )
+          return null
         }
-
-        return null
       }),
       filter((msg) => msg !== null),
     )

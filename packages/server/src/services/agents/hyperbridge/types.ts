@@ -105,6 +105,11 @@ export type EvmHandlePostRequestTimeoutArgs = [
 ]
 
 export type EvmPostRequestEvent = {
+  eventName: string
+  args: EvmPostRequestEventArgs
+}
+
+export type EvmPostRequestEventArgs = {
   source: string
   dest: string
   from: HexString

@@ -1,10 +1,11 @@
 import { filter, from, map, mergeMap, Observable } from 'rxjs'
-import { Abi, AbiEvent, decodeEventLog, TransactionReceipt, toEventSelector } from 'viem'
+import { Abi, decodeEventLog, TransactionReceipt } from 'viem'
 import { asSerializable, hexTimestampToMillis } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
-import { Block, DecodedTxWithReceipt } from '@/services/networking/evm/types.js'
+import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
+import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import gatewayAbi from '../abis/gateway-mini.json' with { type: 'json' }
 import {
@@ -26,8 +27,6 @@ import { messageHash } from './xcm-format.js'
 
 const ASSET_HUB_PARAID = '1000'
 const BRIDGE_HUB_PARAID = '1002'
-
-type LogTopics = [] | [signature: `0x${string}`, ...args: `0x${string}`[]]
 
 type SnowbridgeEvmInboundLog = {
   eventName: string
@@ -73,23 +72,6 @@ type SnowbridgeSubstrateReceivedEvent = {
 type SnowbridgeSubstrateAcceptedEvent = {
   id: HexString
   nonce: number
-}
-
-function findLogInTx(tx: DecodedTxWithReceipt, abi: Abi, eventName: string) {
-  const selectors = abi
-    .filter((item) => item.type === 'event' && item.name.toLowerCase() === eventName.toLowerCase())
-    .map((ev) => toEventSelector(ev as AbiEvent))
-
-  const found = tx.receipt.logs.find((log) => {
-    const { topics, data } = log
-    const topic0 = topics[0]
-    if (typeof topic0 === 'undefined' || !selectors.includes(topic0) || data === '0x') {
-      return false
-    }
-    return true
-  })
-
-  return found
 }
 
 export function extractSnowbridgeEvmInbound(

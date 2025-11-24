@@ -14,6 +14,8 @@ export type Block = Serializable<BlockWithTransactions>
 
 export type TransactionWithTimestamp = Serializable<Transaction> & { timestamp: number }
 
+export type LogTopics = [] | [signature: `0x${string}`, ...args: `0x${string}`[]]
+
 export type DecodedLogParams = {
   eventName?: string
   args?: Record<string, unknown> | readonly unknown[]

@@ -1,13 +1,11 @@
 import { from, map, Subject, share, switchMap } from 'rxjs'
-import { Abi } from 'viem'
 import { HexString } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
-import hostAbi from './abis/evm-host.json' with { type: 'json' }
-import { getHostContractAddress, HYPERBRIDGE_CONFIG } from './config.js'
+import { HYPERBRIDGE_CONFIG } from './config.js'
 import { HyperbridgeMatchingEngine } from './matching.js'
 import {
   extractEvmHandlePostRequest,
@@ -115,15 +113,12 @@ export class HyperbridgeTracker {
         subs.push({
           id: evmChain,
           sub: this.#ingress.evm
-            .watchEvents(
-              evmChain,
-              {
-                abi: hostAbi as Abi,
-                addresses: [getHostContractAddress(evmChain)].filter((a) => a !== null),
-              },
-              ['PostRequestEvent'],
+            .finalizedBlocks(evmChain)
+            .pipe(
+              extractEvmRequest(evmChain, (txHash: HexString) =>
+                this.#ingress.evm.getTransactionReceipt(evmChain, txHash),
+              ),
             )
-            .pipe(extractEvmRequest(evmChain))
             .subscribe(makeObserver(evmChain)),
         })
       }

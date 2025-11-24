@@ -1,11 +1,7 @@
-import { from } from 'rxjs'
-import { Abi } from 'viem'
+import { from, mergeMap, of } from 'rxjs'
 import { HexString } from '@/lib.js'
-import { decodeLogs } from '@/services/networking/evm/rx/extract.js'
 import { extractEvents } from '@/services/networking/substrate/index.js'
 import { testBlocksFrom, testEvmBlocksFrom } from '@/testing/blocks.js'
-import hostAbi from '../abis/evm-host.json' with { type: 'json' }
-import { getHostContractAddress } from '../config.js'
 import { extractEvmRequest, extractSubstrateRequest } from './post-request.js'
 
 describe('requests operators', () => {
@@ -102,15 +98,16 @@ describe('requests operators', () => {
   describe('extractEvmRequest', () => {
     it('should extract ethereum asset teleport post request', async () => {
       const chainId = 'urn:ocn:ethereum:1'
-      const block$ = from(testEvmBlocksFrom('ethereum/23688872.cbor', true)).pipe(
-        decodeLogs([
-          {
-            abi: hostAbi as Abi,
-            addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
-          },
-        ]),
+      const block$ = from(testEvmBlocksFrom('ethereum/23688872.cbor', true))
+      const test$ = block$.pipe(
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractEvmRequest(chainId, vi.fn().mockResolvedValue({ status: 'success', logs })),
+          )
+        }),
       )
-      const test$ = block$.pipe(extractEvmRequest(chainId))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {
@@ -140,15 +137,16 @@ describe('requests operators', () => {
 
     it('should extract polygon intent post request', async () => {
       const chainId = 'urn:ocn:ethereum:137'
-      const block$ = from(testEvmBlocksFrom('polygon/78713230.cbor', true)).pipe(
-        decodeLogs([
-          {
-            abi: hostAbi as Abi,
-            addresses: [getHostContractAddress(chainId)].filter((a) => a !== null),
-          },
-        ]),
+      const block$ = from(testEvmBlocksFrom('polygon/78713230.cbor', true))
+      const test$ = block$.pipe(
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractEvmRequest(chainId, vi.fn().mockResolvedValue({ status: 'success', logs })),
+          )
+        }),
       )
-      const test$ = block$.pipe(extractEvmRequest(chainId))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {

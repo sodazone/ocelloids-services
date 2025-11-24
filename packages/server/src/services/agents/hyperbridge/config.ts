@@ -69,6 +69,18 @@ export const TOKEN_GATEWAYS: Record<NetworkURN, HexString> = {
   'urn:ocn:ethereum:130': '0x8b536105b6fae2ae9199f5146d3c57dfe53b614e', // Unichain
 }
 
+export const INTENT_GATEWAYS: Record<NetworkURN, HexString> = {
+  'urn:ocn:ethereum:1': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // Ethereum
+  'urn:ocn:ethereum:42161': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // Arbitrum
+  // 'urn:ocn:ethereum:10': null, // Optimism
+  'urn:ocn:ethereum:8453': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // Base
+  'urn:ocn:ethereum:56': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // BSC
+  // 'urn:ocn:ethereum:100': null, // Gnosis
+  // 'urn:ocn:ethereum:1868': null, // Soneium
+  'urn:ocn:ethereum:137': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // Polygon
+  'urn:ocn:ethereum:130': '0x1a4ee689a004b10210a1df9f24a387ea13359acf', // Unichain
+}
+
 const BIFROST_ORACLES = [
   '0x5b631863df1b20afb2715ee1f1381d6dc1dd065d', // ETH/BSC/OP
   '0x0a702f34da7b4514c74d35ff68891d1ee57930ef', // Soneium
