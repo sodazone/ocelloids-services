@@ -186,6 +186,188 @@
       "stateMutability": "nonpayable"
     },
     {
+      "inputs": [
+        {
+          "internalType": "struct InboundMessage",
+          "name": "message",
+          "type": "tuple",
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "origin",
+              "type": "bytes32"
+            },
+            { "internalType": "uint64", "name": "nonce", "type": "uint64" },
+            {
+              "internalType": "bytes32",
+              "name": "topic",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "struct Command[]",
+              "name": "commands",
+              "type": "tuple[]",
+              "components": [
+                {
+                  "internalType": "uint8",
+                  "name": "kind",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "gas",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "payload",
+                  "type": "bytes"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "leafProof",
+          "type": "bytes32[]"
+        },
+        {
+          "internalType": "struct Verification.Proof",
+          "name": "headerProof",
+          "type": "tuple",
+          "components": [
+            {
+              "internalType": "struct Verification.ParachainHeader",
+              "name": "header",
+              "type": "tuple",
+              "components": [
+                {
+                  "internalType": "bytes32",
+                  "name": "parentHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "number",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "stateRoot",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "extrinsicsRoot",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "struct Verification.DigestItem[]",
+                  "name": "digestItems",
+                  "type": "tuple[]",
+                  "components": [
+                    {
+                      "internalType": "uint256",
+                      "name": "kind",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "bytes4",
+                      "name": "consensusEngineID",
+                      "type": "bytes4"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "data",
+                      "type": "bytes"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "internalType": "struct Verification.HeadProof",
+              "name": "headProof",
+              "type": "tuple",
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "pos",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "width",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes32[]",
+                  "name": "proof",
+                  "type": "bytes32[]"
+                }
+              ]
+            },
+            {
+              "internalType": "struct Verification.MMRLeafPartial",
+              "name": "leafPartial",
+              "type": "tuple",
+              "components": [
+                {
+                  "internalType": "uint8",
+                  "name": "version",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "parentNumber",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "parentHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "nextAuthoritySetID",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "nextAuthoritySetLen",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "nextAuthoritySetRoot",
+                  "type": "bytes32"
+                }
+              ]
+            },
+            {
+              "internalType": "bytes32[]",
+              "name": "leafProof",
+              "type": "bytes32[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "leafProofOrder",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "internalType": "bytes32",
+          "name": "rewardAddress",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "name": "v2_submit"
+    },
+    {
       "type": "event",
       "name": "InboundMessageDispatched",
       "inputs": [
@@ -284,6 +466,37 @@
           "type": "uint128",
           "indexed": false,
           "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "InboundMessageDispatched",
+      "inputs": [
+        {
+          "name": "nonce",
+          "type": "uint64",
+          "indexed": true,
+          "internalType": "uint64"
+        },
+        {
+          "name": "topic",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "success",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        },
+        {
+          "name": "rewardAddress",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
         }
       ],
       "anonymous": false

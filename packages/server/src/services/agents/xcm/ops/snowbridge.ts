@@ -1,5 +1,5 @@
 import { filter, from, map, mergeMap, Observable } from 'rxjs'
-import { Abi, AbiEvent, decodeEventLog, Log, TransactionReceipt, toEventSelector } from 'viem'
+import { Abi, AbiEvent, decodeEventLog, TransactionReceipt, toEventSelector } from 'viem'
 import { asSerializable, hexTimestampToMillis } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
@@ -31,7 +31,12 @@ type LogTopics = [] | [signature: `0x${string}`, ...args: `0x${string}`[]]
 
 type SnowbridgeEvmInboundLog = {
   eventName: string
-  args: { channelID: HexString; messageID: HexString; nonce: bigint; success: boolean }
+  args: { channelID: HexString; messageID: HexString; nonce: string; success: boolean }
+}
+
+type SnowbridgeEvmInboundV2Log = {
+  eventName: string
+  args: { topic: HexString; nonce: string; success: boolean; rewardAddress: HexString }
 }
 
 type SnowbridgeEvmOutboundAcceptedLog = {
@@ -70,16 +75,21 @@ type SnowbridgeSubstrateAcceptedEvent = {
   nonce: number
 }
 
-function findLogInTx(log: Log, abi: Abi, eventName: string) {
-  const selector = abi
+function findLogInTx(tx: DecodedTxWithReceipt, abi: Abi, eventName: string) {
+  const selectors = abi
     .filter((item) => item.type === 'event' && item.name.toLowerCase() === eventName.toLowerCase())
     .map((ev) => toEventSelector(ev as AbiEvent))
-  const { topics, data } = log
-  const topic0 = topics[0]
-  if (typeof topic0 === 'undefined' || topic0 !== selector[0] || data === '0x') {
-    return false
-  }
-  return true
+
+  const found = tx.receipt.logs.find((log) => {
+    const { topics, data } = log
+    const topic0 = topics[0]
+    if (typeof topic0 === 'undefined' || !selectors.includes(topic0) || data === '0x') {
+      return false
+    }
+    return true
+  })
+
+  return found
 }
 
 export function extractSnowbridgeEvmInbound(
@@ -89,40 +99,63 @@ export function extractSnowbridgeEvmInbound(
 ) {
   return (source: Observable<Block>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
-      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1']),
+      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1', 'v2_submit']),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
           map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
         ),
       ),
       map((tx) => {
-        const inboundLog = tx.receipt.logs.find((l) =>
-          findLogInTx(l, gatewayAbi as Abi, 'InboundMessageDispatched'),
-        )
+        const inboundLog = findLogInTx(tx, gatewayAbi as Abi, 'InboundMessageDispatched')
+
         if (!inboundLog || tx.blockHash === null || tx.blockNumber === null) {
           return null
         }
 
-        const { eventName: inboundEventName, args: inboundEventArgs } = decodeEventLog({
-          abi: gatewayAbi as Abi,
-          topics: inboundLog.topics as LogTopics,
-          data: inboundLog.data,
-        }) as unknown as SnowbridgeEvmInboundLog
-        const { channelID, messageID, nonce, success } = inboundEventArgs
+        if (tx.decoded?.functionName === 'submitV1') {
+          const { eventName: inboundEventName, args: inboundEventArgs } = decodeEventLog({
+            abi: gatewayAbi as Abi,
+            topics: inboundLog.topics as LogTopics,
+            data: inboundLog.data,
+          }) as unknown as SnowbridgeEvmInboundLog
+          const { channelID, messageID, nonce, success } = inboundEventArgs
 
-        return new GenericXcmBridgeInboundWithContext({
-          chainId,
-          blockHash: tx.blockHash,
-          blockNumber: tx.blockNumber.toString(),
-          channelId: channelID,
-          messageId: messageID,
-          nonce: nonce.toString(),
-          outcome: success ? 'Success' : 'Fail',
-          event: { name: inboundEventName, args: asSerializable(inboundEventArgs) } as AnyJson,
-          timestamp: hexTimestampToMillis((inboundLog as any)['blockTimestamp']),
-          txHash: tx.hash,
-          txPosition: tx.transactionIndex ?? undefined,
-        })
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            channelId: channelID,
+            messageId: messageID,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundEventName, args: inboundEventArgs } as AnyJson,
+            timestamp: tx.timestamp,
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        if (tx.decoded?.functionName === 'v2_submit') {
+          const { eventName: inboundEventName, args: inboundEventArgs } = decodeEventLog({
+            abi: gatewayAbi as Abi,
+            topics: inboundLog.topics as LogTopics,
+            data: inboundLog.data,
+          }) as unknown as SnowbridgeEvmInboundV2Log
+          const { nonce, success, topic } = inboundEventArgs
+
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            messageId: topic,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundEventName, args: inboundEventArgs } as AnyJson,
+            timestamp: tx.timestamp,
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        return null
       }),
       filter((msg) => msg !== null),
     )
@@ -146,10 +179,8 @@ export function extractSnowbridgeEvmOutbound(
         if (tx.receipt.status === 'reverted') {
           return null
         }
-        const tokenSentLog = tx.receipt.logs.find((l) => findLogInTx(l, gatewayAbi as Abi, 'TokenSent'))
-        const acceptedLog = tx.receipt.logs.find((l) =>
-          findLogInTx(l, gatewayAbi as Abi, 'OutboundMessageAccepted'),
-        )
+        const tokenSentLog = findLogInTx(tx, gatewayAbi as Abi, 'TokenSent')
+        const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
         if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
           return null
         }
@@ -233,7 +264,9 @@ export function extractSnowbridgeSubstrateInbound(chainId: NetworkURN) {
 export function extractSnowbridgeSubstrateOutbound(chainId: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<SnowbridgeMessageAccepted> => {
     return source.pipe(
-      filter((event) => matchEvent(event, 'EthereumOutboundQueue', 'MessageAccepted')),
+      filter((event) =>
+        matchEvent(event, ['EthereumOutboundQueue', 'EthereumOutboundQueueV2'], 'MessageAccepted'),
+      ),
       map((blockEvent) => {
         const { id, nonce } = blockEvent.value as SnowbridgeSubstrateAcceptedEvent
         return new GenericSnowbridgeMessageAccepted({
