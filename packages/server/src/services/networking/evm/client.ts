@@ -101,7 +101,7 @@ export class EvmApi implements ApiClient {
   readonly chainId: string
 
   readonly #log: Logger
-  readonly #client: PublicClient<Transport, viemChains.Chain>
+  readonly #httpClient: PublicClient<Transport, viemChains.Chain>
   readonly #wsClient: PublicClient<Transport, viemChains.Chain>
   readonly #unwatches: Set<() => void> = new Set()
 
@@ -114,7 +114,7 @@ export class EvmApi implements ApiClient {
     const wsEndpoints = shuffle(getWsEndpoints(endpoints))
     const httpEndpoints = shuffle(getHttpEndpoints(endpoints))
 
-    this.#client = createPublicClient<Transport, viemChains.Chain>({
+    this.#httpClient = createPublicClient<Transport, viemChains.Chain>({
       chain: resolveChain(chainId),
       transport: fallback(httpEndpoints.map(asTransport)),
     })
@@ -166,7 +166,7 @@ export class EvmApi implements ApiClient {
    * @param confirmationsOverride - optional number of confirmations instead of chain default
    */
   followHeads$(finality: Finality, confirmationsOverride?: number): Observable<NeutralHeader> {
-    const chainName = ((this.#client.chain as any).name as string).toLowerCase()
+    const chainName = ((this.#httpClient.chain as any).name as string).toLowerCase()
     const confirmations =
       finality === 'finalized' ? (confirmationsOverride ?? defaultConfirmations[chainName] ?? 12) : 0
 
@@ -177,7 +177,7 @@ export class EvmApi implements ApiClient {
 
     return new Observable<NeutralHeader>((subscriber) => {
       try {
-        const unwatch = this.#client.watchBlocks({
+        const unwatch = this.#httpClient.watchBlocks({
           onBlock: async (block) => {
             if (block === undefined || block === null) {
               this.#log.warn('[%s] Received undefined block on watchBlocks', this.chainId)
@@ -213,7 +213,7 @@ export class EvmApi implements ApiClient {
                   const batch = heights.slice(i, i + MAX_RPC_CONCURRENCY)
 
                   const blocks = await Promise.all(
-                    batch.map((h) => this.#client.getBlock({ blockNumber: BigInt(h) })),
+                    batch.map((h) => this.#httpClient.getBlock({ blockNumber: BigInt(h) })),
                   )
 
                   for (const missedBlock of blocks) {
@@ -276,7 +276,7 @@ export class EvmApi implements ApiClient {
   }
 
   followFastHeads$(finality: Finality, confirmationsOverride?: number) {
-    const chainName = ((this.#client.chain as any).name as string).toLowerCase()
+    const chainName = ((this.#httpClient.chain as any).name as string).toLowerCase()
     const confirmations =
       finality === 'finalized' ? (confirmationsOverride ?? defaultConfirmations[chainName] ?? 12) : 0
 
@@ -284,7 +284,7 @@ export class EvmApi implements ApiClient {
     const seenBlocks: Set<string> = new Set()
 
     return new Observable<NeutralHeader>((subscriber) => {
-      const unwatch = this.#client.watchBlocks({
+      const unwatch = this.#httpClient.watchBlocks({
         includeTransactions: false,
         emitMissed: true,
         onBlock: async (block: any) => {
@@ -340,6 +340,9 @@ export class EvmApi implements ApiClient {
     })
   }
 
+  // NOTE: watchEvents with filters is less reliable than watchBlocks
+  // since RPCs can stop emitting events silently, even though the connection is still open
+  // and there's no reliable way to check if this is happening
   watchEvents$(params: DecodeContractParams, eventNames: string[] = []): Observable<DecodedLog> {
     return new Observable<DecodedLog>((subscriber) => {
       const unwatch = this.#wsClient.watchEvent({
@@ -371,12 +374,12 @@ export class EvmApi implements ApiClient {
   }
 
   async getBlockHash(height: number): Promise<string> {
-    const block = await this.#client.getBlock({ blockNumber: BigInt(height) })
+    const block = await this.#httpClient.getBlock({ blockNumber: BigInt(height) })
     return block.hash
   }
 
   async getNeutralBlockHeader(hash: string): Promise<NeutralHeader> {
-    const block = await this.#client.getBlock({ blockHash: hash as `0x${string}` })
+    const block = await this.#httpClient.getBlock({ blockHash: hash as `0x${string}` })
 
     if (block === null) {
       throw new Error(`[${this.chainId}] Block with hash ${hash} not found`)
@@ -390,7 +393,7 @@ export class EvmApi implements ApiClient {
   }
 
   async getNeutralBlockHeaderByNumber(height: bigint | number): Promise<NeutralHeader> {
-    const block = await this.#client.getBlock({ blockNumber: BigInt(height) })
+    const block = await this.#httpClient.getBlock({ blockNumber: BigInt(height) })
 
     if (block === null) {
       throw new Error(`[${this.chainId}] Block at height #${height} not found`)
@@ -404,7 +407,7 @@ export class EvmApi implements ApiClient {
   }
 
   async getBlockByNumber(height: bigint | number): Promise<Block> {
-    const block = await this.#client.getBlock<true>({
+    const block = await this.#httpClient.getBlock<true>({
       blockNumber: BigInt(height),
       includeTransactions: true,
     })
@@ -417,7 +420,7 @@ export class EvmApi implements ApiClient {
   }
 
   async getBlock(hash: string): Promise<Block> {
-    const block = await this.#client.getBlock<true>({
+    const block = await this.#httpClient.getBlock<true>({
       blockHash: hash as HexString,
       includeTransactions: true,
     })
@@ -430,7 +433,7 @@ export class EvmApi implements ApiClient {
   }
 
   async getBlockWithLogs(hash: string): Promise<BlockWithLogs> {
-    const block = await this.#client.getBlock<true>({
+    const block = await this.#httpClient.getBlock<true>({
       blockHash: hash as HexString,
       includeTransactions: true,
     })
@@ -441,7 +444,7 @@ export class EvmApi implements ApiClient {
 
     // We use {fromBlock,toBlock} for maximum compatibility.
     // Some RPCs doesn't support by block hash.
-    const logs = await this.#client.getLogs({
+    const logs = await this.#httpClient.getLogs({
       fromBlock: block.number,
       toBlock: block.number,
     })
@@ -454,14 +457,14 @@ export class EvmApi implements ApiClient {
   }
 
   async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {
-    return await this.#client.getTransactionReceipt({ hash: txHash })
+    return await this.#httpClient.getTransactionReceipt({ hash: txHash })
   }
 
   async multiCall(args: MulticallParameters): Promise<MulticallReturnType> {
-    return await this.#client.multicall(args)
+    return await this.#httpClient.multicall(args)
   }
 
   getNetworkInfo() {
-    return this.#client.chain
+    return this.#httpClient.chain
   }
 }

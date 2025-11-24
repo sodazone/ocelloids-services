@@ -10,7 +10,6 @@ import {
   merge,
   mergeAll,
   mergeMap,
-  mergeWith,
   Observable,
   of,
   Subject,
@@ -33,7 +32,7 @@ import { RETRY_INFINITE, retryCapped, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { Block, DecodeContractParams } from '../types.js'
 
-const API_TIMEOUT_MS = 4.5 * 60_000
+const API_TIMEOUT_MS = 4 * 60_000
 
 const BATCH_SIZE = 9
 const CONCURRENT_FETCH = 3
@@ -182,16 +181,11 @@ export class EvmWatcher extends Watcher<Block> {
 
     const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
-        const recover$ = from(this.recoverRanges(chainId)).pipe(
-          this.recoverBlockRanges(chainId, api),
-          takeUntil(merge(shutdown$, cancel$)),
-        )
         return api.followHeads$('finalized').pipe(
-          mergeWith(recover$),
+          takeUntil(merge(shutdown$, cancel$)),
           this.tapError(chainId, 'finalizedBlocks()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
-          takeUntil(merge(shutdown$, cancel$)),
           this.handleReorgs(chainId, api),
           mergeMap((header) => from(api.getBlock(header.hash))),
           this.tapError(chainId, 'getBlock()'),
@@ -296,41 +290,6 @@ export class EvmWatcher extends Watcher<Block> {
 
   async multiCall(chainId: string, args: MulticallParameters) {
     return await this.#apis[chainId].multiCall(args)
-  }
-
-  protected override recoverBlockRanges(chainId: NetworkURN, api: EvmApi) {
-    return (source: Observable<BlockNumberRange[]>): Observable<NeutralHeader> => {
-      const batchSize = this.batchSize(chainId)
-      return source.pipe(
-        mergeAll(),
-        mergeMap(({ fromBlockNum, toBlockNum }) => {
-          const missing: number[] = []
-          for (let h = fromBlockNum; h <= toBlockNum; h++) {
-            missing.push(h)
-          }
-          this.log.info('[%s] CATCHUP #%s - #%s', chainId, fromBlockNum, toBlockNum)
-
-          const batches: number[][] = []
-          for (let i = 0; i < missing.length; i += batchSize) {
-            batches.push(missing.slice(i, i + batchSize))
-          }
-
-          return from(batches).pipe(
-            mergeMap(
-              (batch) =>
-                from(batch).pipe(
-                  mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), CONCURRENT_FETCH),
-                  this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
-                  retryWithTruncatedExpBackoff(RETRY_INFINITE),
-                  toArray(),
-                  mergeMap((blocks) => from(blocks)),
-                ),
-              1,
-            ),
-          )
-        }),
-      )
-    }
   }
 
   protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {
