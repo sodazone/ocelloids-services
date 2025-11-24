@@ -9,6 +9,7 @@ import {
   PublicClient,
   TransactionReceipt,
   Transport,
+  Block as ViemBlock,
   webSocket,
 } from 'viem'
 import * as viemChains from 'viem/chains'
@@ -89,6 +90,11 @@ function getWsEndpoints(endpoints: string[]) {
 
 function getHttpEndpoints(endpoints: string[]) {
   return endpoints.filter((url) => url.startsWith('https://') || url.startsWith('http://'))
+}
+
+function reliableTimestamp(block: ViemBlock) {
+  const timestampInBlock = Number(block.timestamp ?? 0)
+  return timestampInBlock === 0 ? Date.now() / 1_000 : timestampInBlock
 }
 
 export class EvmApi implements ApiClient {
@@ -407,7 +413,7 @@ export class EvmApi implements ApiClient {
       throw new Error(`[${this.chainId}] Block with hash ${height} not found`)
     }
 
-    return asSerializable<typeof block>(block)
+    return asSerializable<typeof block>({ ...block, timestamp: reliableTimestamp(block) })
   }
 
   async getBlock(hash: string): Promise<Block> {
@@ -420,7 +426,7 @@ export class EvmApi implements ApiClient {
       throw new Error(`[${this.chainId}] Block with hash ${hash} not found`)
     }
 
-    return asSerializable<typeof block>(block)
+    return asSerializable<typeof block>({ ...block, timestamp: reliableTimestamp(block) })
   }
 
   async getBlockWithLogs(hash: string): Promise<BlockWithLogs> {
@@ -440,7 +446,10 @@ export class EvmApi implements ApiClient {
       toBlock: block.number,
     })
 
-    const blockWithLogs = { ...asSerializable<typeof block>(block), logs: asSerializable<typeof logs>(logs) }
+    const blockWithLogs = {
+      ...asSerializable<typeof block>({ ...block, timestamp: reliableTimestamp(block) }),
+      logs: asSerializable<typeof logs>(logs),
+    }
     return blockWithLogs as BlockWithLogs
   }
 

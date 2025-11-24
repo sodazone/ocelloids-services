@@ -40,11 +40,17 @@ export const RETRY_INFINITE = {
   maxCount: Infinity,
 }
 
-export const RETRY_CAPPED = {
+export const RETRY_ONCE = {
   baseDelay: 2000,
   maxDelay: 900000,
   maxCount: 1,
 }
+
+export const retryCapped = (cap: number) => ({
+  baseDelay: 2000,
+  maxDelay: 900000,
+  maxCount: cap,
+})
 
 const MAX_REORG = 500
 

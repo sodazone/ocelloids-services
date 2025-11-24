@@ -16,20 +16,20 @@ import {
   Subject,
   share,
   switchMap,
+  take,
   takeUntil,
   tap,
   timeout,
-  timer,
   toArray,
 } from 'rxjs'
-import { MulticallParameters } from 'viem'
+import { MulticallParameters, SocketClosedError } from 'viem'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { BlockNumberRange } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
-import { RETRY_INFINITE, Watcher } from '../../watcher.js'
+import { RETRY_INFINITE, retryCapped, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { Block, DecodeContractParams } from '../types.js'
 
@@ -37,7 +37,6 @@ const API_TIMEOUT_MS = 4.5 * 60_000
 
 const BATCH_SIZE = 9
 const CONCURRENT_FETCH = 3
-const RPC_DELAY_MS = 5
 
 const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161']
 
@@ -266,9 +265,22 @@ export class EvmWatcher extends Watcher<Block> {
 
     return this.#api$[chainId].pipe(
       switchMap((api) =>
-        api
-          .watchEvents$(params, eventNames)
-          .pipe(this.tapError(chainId, 'watchEvents()'), retryWithTruncatedExpBackoff(RETRY_INFINITE)),
+        defer(() => api.watchEvents$(params, eventNames)).pipe(
+          this.tapError(chainId, 'watchEvents()'),
+          retryWithTruncatedExpBackoff(retryCapped(3)),
+          catchError((err) => {
+            if (err instanceof SocketClosedError) {
+              this.log.info('[%s] reconnecting API due to SocketClosedError', chainId)
+
+              this.#reconnect(chainId)
+            }
+
+            return this.#api$[chainId].pipe(
+              take(1),
+              switchMap((api) => api.watchEvents$(params, eventNames)),
+            )
+          }),
+        ),
       ),
     )
   }
@@ -465,10 +477,7 @@ export class EvmWatcher extends Watcher<Block> {
                 mergeMap(
                   (batch) =>
                     from(batch).pipe(
-                      mergeMap(
-                        (h) => timer(RPC_DELAY_MS).pipe(switchMap(() => api.getBlockByNumber(h))),
-                        CONCURRENT_FETCH,
-                      ),
+                      mergeMap((n) => api.getBlockByNumber(n), CONCURRENT_FETCH),
                       this.tapError(chainId, 'getBlockByNumber()'),
                       retryWithTruncatedExpBackoff(RETRY_INFINITE),
                       toArray(),
@@ -499,7 +508,7 @@ export class EvmWatcher extends Watcher<Block> {
   }
 
   async #reconnect(chainId: NetworkURN) {
-    this.log.info('[watcher:substrate] %s reconnecting API', chainId)
+    this.log.info('[watcher:evm] %s reconnecting API', chainId)
     const existingApi = this.#apis?.[chainId]
     if (existingApi) {
       try {
