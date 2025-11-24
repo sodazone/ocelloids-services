@@ -1,5 +1,5 @@
 import { mergeMap, Subscription } from 'rxjs'
-import { asJSON, deepCamelize } from '@/common/util.js'
+import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository, FullJourney, JourneyUpdate } from '../crosschain/index.js'
@@ -18,6 +18,7 @@ import { HYPERBRIDGE_NETWORK_ID, isBifrostOracle, isTokenGateway } from './confi
 import { toHyperbridgeStops, toNewAssets, toNewJourney, toStatus } from './crosschain.js'
 import { decodeAssetTeleportRequest, decodeOracleCall } from './decode.js'
 import { HyperbridgeAssetsRegistry } from './registry/assets.js'
+import { TelemetryHyperbridgeEventEmitter } from './telemetry/events.js'
 import { HyperbridgeTracker } from './tracking.js'
 import { HyperbridgeDecodedPayload, HyperbridgeMessagePayload, HyperbridgeTerminusContext } from './types.js'
 
@@ -40,6 +41,7 @@ export class HyperbridgeAgent implements Agent {
   readonly #tracker: HyperbridgeTracker
   readonly #registry: HyperbridgeAssetsRegistry
   readonly #subs: Subscription[] = []
+  readonly #telemetry: TelemetryHyperbridgeEventEmitter
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -56,6 +58,7 @@ export class HyperbridgeAgent implements Agent {
     this.#ticker = deps.ticker
     this.#tracker = new HyperbridgeTracker(ctx)
     this.#registry = new HyperbridgeAssetsRegistry(ctx)
+    this.#telemetry = createTypedEventEmitter<TelemetryHyperbridgeEventEmitter>()
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -68,7 +71,7 @@ export class HyperbridgeAgent implements Agent {
       this.#tracker.ismp$.pipe(mergeMap(this.#withDecodedPayload.bind(this))).subscribe({
         next: (msg) => this.#onMessage(msg),
         error: (err) => {
-          // this.#telemetry.emit('telemetryHyperbridgeError', { code: 'WATCHER_ERROR', id: 'watcher' })
+          this.#telemetry.emit('telemetryHyperbridgeError', { code: 'WATCHER_ERROR', id: 'watcher' })
           this.#log.error(err, '[agent:%s] tracker stream error', this.id)
         },
         complete: () => {
@@ -84,7 +87,7 @@ export class HyperbridgeAgent implements Agent {
   }
 
   collectTelemetry() {
-    // implement
+    this.#tracker.collectTelemetry()
   }
 
   async #withDecodedPayload(msg: HyperbridgeMessagePayload): Promise<HyperbridgeDecodedPayload> {
@@ -104,7 +107,11 @@ export class HyperbridgeAgent implements Agent {
             },
           }
         } catch (e) {
-          this.#log.error(e, '[%s] Error fetching metadata', this.id)
+          this.#telemetry.emit('telemetryHyperbridgeError', {
+            code: 'ASSET_METADATA_ERROR',
+            id: String(msg.commitment),
+          })
+          this.#log.error(e, '[%s] Error fetching asset metadata', this.id)
           return {
             ...msg,
             decoded,
@@ -124,6 +131,10 @@ export class HyperbridgeAgent implements Agent {
       }
       // TODO: decode intent gateway requests
     } catch (err) {
+      this.#telemetry.emit('telemetryHyperbridgeError', {
+        code: 'DECODE_PAYLOAD_ERROR',
+        id: String(msg.commitment),
+      })
       this.#log.error(
         err,
         `Unable to decode request body for ${msg.commitment} (${msg.waypoint.chainId} #${msg.waypoint.blockNumber})`,
@@ -153,14 +164,12 @@ export class HyperbridgeAgent implements Agent {
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
     const fullJourney = await this.#repository.getJourneyById(id)
     if (!fullJourney) {
-      // this.#telemetry.emit('telemetryWormholeError', { code: 'JOURNEY_NOT_FOUND', id: String(id) })
+      this.#telemetry.emit('telemetryHyperbridgeError', { code: 'JOURNEY_NOT_FOUND', id: String(id) })
 
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
     this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
-
-    // this.#telemetry.emit('telemetryWormholeJourneyBroadcast', fullJourney)
   }
 
   async #onMessage(message: HyperbridgeDecodedPayload) {
@@ -191,6 +200,10 @@ export class HyperbridgeAgent implements Agent {
             const id = await this.#repository.insertJourneyWithAssets(journey, assets)
             this.#broadcast('new_journey', id)
           } catch (err) {
+            this.#telemetry.emit('telemetryHyperbridgeError', {
+              code: 'JOURNEY_INSERT_ERROR',
+              id: correlationId,
+            })
             this.#log.error(
               err,
               '[%s:explorer] Error inserting new journey for correlationId: %s',
@@ -223,6 +236,10 @@ export class HyperbridgeAgent implements Agent {
           this.#log.warn('[%s:explorer] Unhandled message %j', this.id, message)
       }
     } catch (error) {
+      this.#telemetry.emit('telemetryHyperbridgeError', {
+        code: 'MSG_TO_JOURNEY_ERROR',
+        id: String(message.commitment),
+      })
       this.#log.error(error, '[%s: explorer] Error processing message %j', this.id, asJSON(message))
     }
   }

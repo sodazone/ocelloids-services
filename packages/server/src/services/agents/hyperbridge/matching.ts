@@ -1,8 +1,10 @@
+import EventEmitter from 'node:events'
 import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { jsonEncoded, Logger, SubLevel } from '@/services/types.js'
 import { AgentRuntimeContext } from '../types.js'
+import { TelemetryHyperbridgeEventEmitter } from './telemetry/events.js'
 import {
   HyperbridgeDispatched,
   HyperbridgeMessagePayload,
@@ -30,7 +32,7 @@ export const prefixes = {
 
 export type MatchedReceiver = (payload: HyperbridgeMessagePayload) => Promise<void> | void
 
-export class HyperbridgeMatchingEngine {
+export class HyperbridgeMatchingEngine extends (EventEmitter as new () => TelemetryHyperbridgeEventEmitter) {
   readonly #id = 'hyperbridge-matching'
   readonly #log: Logger
   readonly #janitor: Janitor
@@ -46,6 +48,8 @@ export class HyperbridgeMatchingEngine {
   readonly #expiry: number
 
   constructor({ log, db, janitor }: AgentRuntimeContext, matchedReceiver: MatchedReceiver) {
+    super()
+
     this.#log = log
     this.#janitor = janitor
     this.#mutex = new Mutex()

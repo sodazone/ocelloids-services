@@ -13,6 +13,7 @@ import {
   extractSubstrateHandleUnsigned,
 } from './ops/handle-request.js'
 import { extractEvmRequest, extractSubstrateRequest } from './ops/post-request.js'
+import { hyperbridgeMatchingEngineMetrics } from './telemetry/metrics.js'
 import {
   HyperbridgeDispatched,
   HyperbridgeMessagePayload,
@@ -72,6 +73,10 @@ export class HyperbridgeTracker {
   stop() {
     this.#log.info('[%s] stop', this.#id)
     Object.values(this.#streams).forEach((streams) => streams.forEach(({ sub }) => sub.unsubscribe()))
+  }
+
+  collectTelemetry() {
+    hyperbridgeMatchingEngineMetrics(this.#engine)
   }
 
   #monitorOrigins() {
