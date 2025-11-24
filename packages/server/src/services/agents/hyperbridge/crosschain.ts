@@ -9,7 +9,7 @@ type HyperbridgeStops = {
   type: 'ismp'
   from: Record<string, any>
   to: Record<string, any>
-  relay: Record<string, any>
+  relay?: Record<string, any>
   messageId: HexString
   nonce: string
   instructions: any
@@ -77,7 +77,12 @@ export function toHyperbridgeStops(
         type: 'ismp',
         from: type === 'ismp.dispatched' ? context : { chainId: origin.chainId },
         to: type === 'ismp.received' ? context : { chainId: destination.chainId },
-        relay: type === 'ismp.relayed' ? context : { chainId: HYPERBRIDGE_NETWORK_ID },
+        relay:
+          type === 'ismp.relayed'
+            ? context
+            : origin.chainId !== HYPERBRIDGE_NETWORK_ID && destination.chainId !== HYPERBRIDGE_NETWORK_ID
+              ? { chainId: HYPERBRIDGE_NETWORK_ID }
+              : undefined,
         messageId: commitment,
         nonce,
         instructions: {
@@ -99,7 +104,11 @@ export function toHyperbridgeStops(
       break
     }
     case 'ismp.relayed': {
-      if ('blockNumber' in existingStops[0].relay && 'blockHash' in existingStops[0].relay) {
+      if (
+        existingStops[0].relay &&
+        'blockNumber' in existingStops[0].relay &&
+        'blockHash' in existingStops[0].relay
+      ) {
         existingStops[0].relay = {
           ...existingStops[0].relay,
           eventSecondary: waypoint.event,
