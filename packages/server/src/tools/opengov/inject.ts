@@ -1,8 +1,17 @@
 import { Observable, Subject } from 'rxjs'
 import { ClientId, ServiceConfiguration } from '@/services/config.js'
 import { Logger, NetworkURN } from '@/services/index.js'
+import { BitcoinApi } from '@/services/networking/bitcoin/client.js'
 import Connector from '@/services/networking/connector.js'
+import { EvmApi } from '@/services/networking/evm/client.js'
+import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { ApiClient, ApiOps, NeutralHeader } from '@/services/networking/types.js'
+
+interface ClientMap {
+  bitcoin: BitcoinApi
+  substrate: SubstrateApi
+  evm: EvmApi
+}
 
 /**
  * InjectableConnector — test double for Connector
@@ -22,11 +31,11 @@ export class InjectableConnector extends Connector {
     this.#chains = {}
   }
 
-  override connectAll<T extends ApiClient>(clientId: ClientId): Record<string, T> {
-    this.#chains = super.connectAll<T>(clientId)
+  override connectAll<C extends ClientId>(clientId: C): Record<string, ClientMap[C]> {
+    this.#chains = super.connectAll(clientId)
 
     if (clientId !== 'substrate') {
-      return this.#chains as Record<string, T>
+      return this.#chains as Record<string, ClientMap[C]>
     }
 
     // Wrap substrate clients with mock finalized stream
@@ -45,7 +54,7 @@ export class InjectableConnector extends Connector {
       this.#log.info('[mock-connector:%s] Mocked followHeads$("finalized")', chainId)
     }
 
-    return this.#chains as Record<string, T>
+    return this.#chains as Record<string, ClientMap[C]>
   }
 
   api(chainId: NetworkURN) {
