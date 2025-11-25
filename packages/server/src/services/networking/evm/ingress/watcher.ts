@@ -190,8 +190,15 @@ export class EvmWatcher extends Watcher<Block> {
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
         )
       }),
-      tap(() => {
+      tap((block) => {
+        this.log.info('[%s] FINALIZED block #%s %s', chainId, block.number, block.hash)
+
+        this.emit('telemetryBlockFinalized', {
+          chainId,
+          blockNumber: Number(block.number),
+        })
         const now = Date.now()
+
         if (now - lastReset > 10_000) {
           lastReset = now
           this.#resetWatchdog(chainId)
@@ -293,14 +300,6 @@ export class EvmWatcher extends Watcher<Block> {
   protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {
     return (source: Observable<NeutralHeader>): Observable<NeutralHeader> => {
       return source.pipe(
-        tap((header) => {
-          this.log.info('[%s] FINALIZED block #%s %s', chainId, header.height, header.hash)
-
-          this.emit('telemetryBlockFinalized', {
-            chainId,
-            blockNumber: header.height,
-          })
-        }),
         concatMap((newHead) =>
           defer(async () => {
             const tip = await this.chainTips.get(chainId)
@@ -389,7 +388,7 @@ export class EvmWatcher extends Watcher<Block> {
         concatMap((newHead) =>
           defer(async () => {
             const tip = await this.chainTips.get(chainId)
-            return tip ? Number(tip.blockNumber) : newHead.height
+            return tip ? Number(tip.blockNumber) : newHead.height - 1
           }).pipe(
             switchMap((lastFetched) => {
               const target = newHead.height
