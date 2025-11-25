@@ -304,7 +304,7 @@ export class EvmWatcher extends Watcher<Block> {
         concatMap((newHead) =>
           defer(async () => {
             const tip = await this.chainTips.get(chainId)
-            return tip ? Number(tip.blockNumber) : newHead.height
+            return tip ? Number(tip.blockNumber) : newHead.height - 1
           }).pipe(
             switchMap((lastFetched) => {
               const target = newHead.height
