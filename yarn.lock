@@ -1852,6 +1852,7 @@ __metadata:
     fastify: "npm:^5.6.1"
     fastify-healthcheck: "npm:^5.1.0"
     fastify-plugin: "npm:^5.1.0"
+    fzstd: "npm:^0.1.1"
     got: "npm:^14.5.0"
     handlebars: "npm:^4.7.8"
     ky: "npm:^1.12.0"
@@ -3652,6 +3653,13 @@ __metadata:
   version: 1.0.1
   resolution: "functional-red-black-tree@npm:1.0.1"
   checksum: 10c0/5959eed0375803d9924f47688479bb017e0c6816a0e5ac151e22ba6bfe1d12c41de2f339188885e0aa8eeea2072dad509d8e4448467e816bde0a2ca86a0670d3
+  languageName: node
+  linkType: hard
+
+"fzstd@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "fzstd@npm:0.1.1"
+  checksum: 10c0/c4ae25a4b9e7ac58e9716fcb0c4ec19f3e678d90a67a59e97ce361beb27e4aa4b8666b58b4dc2d715e92db4b65b189c978186a5fedba6fccb5ec9765717dd1cd
   languageName: node
   linkType: hard
 

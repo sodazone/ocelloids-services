@@ -19,9 +19,19 @@ import {
 
 const MAX_LIMIT = 100
 
-function encodeCursor({ sent_at, id }: FullJourney): string {
-  const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
-  return Buffer.from(`${timestamp}|${id}`).toString('base64')
+function encodeCursor(journeys: FullJourney[]): string {
+  for (let i = journeys.length - 1; i >= 0; i--) {
+    const journey = journeys[i]
+    const { sent_at, id } = journey
+
+    if (sent_at !== undefined && sent_at !== null) {
+      const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
+
+      return Buffer.from(`${timestamp}|${id}`).toString('base64')
+    }
+  }
+
+  throw new Error('No sent_at timestamp found in journeys list')
 }
 
 function decodeCursor(cursor: string): { timestamp: number; id: number } {
@@ -430,7 +440,7 @@ export class CrosschainRepository {
 
     const nodes = rows.map(mapRowToFullJourney)
 
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes[nodes.length - 1]) : ''
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
 
     return {
       nodes,

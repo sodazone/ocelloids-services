@@ -1,11 +1,16 @@
 import { ClientId, clientIds, NetworkConfiguration, ServiceConfiguration } from '../config.js'
 import { Logger, NetworkURN } from '../types.js'
-import { BitcoinApi as BitcoinClient } from './bitcoin/client.js'
+import { BitcoinApi } from './bitcoin/client.js'
 import { EvmApi } from './evm/client.js'
-import { SubstrateClient } from './substrate/index.js'
-import { ApiClient } from './types.js'
+import { SubstrateApi, SubstrateClient } from './substrate/index.js'
 
 const INC_CONNECTION_MILLIS = 100
+
+interface ClientMap {
+  bitcoin: BitcoinApi
+  substrate: SubstrateApi
+  evm: EvmApi
+}
 
 /**
  * Handles blockchain network connections.
@@ -13,7 +18,7 @@ const INC_CONNECTION_MILLIS = 100
 export default class Connector {
   readonly #log: Logger
   readonly #config: ServiceConfiguration
-  readonly #chains: Map<ClientId, Record<string, ApiClient>>
+  readonly #chains: Map<ClientId, Record<string, ClientMap[ClientId]>>
 
   constructor(log: Logger, config: ServiceConfiguration) {
     this.#log = log
@@ -42,7 +47,7 @@ export default class Connector {
 
     switch (client) {
       case 'bitcoin':
-        chainRecord[id] = new BitcoinClient(this.#log, id, provider.url)
+        chainRecord[id] = new BitcoinApi(this.#log, id, provider.url)
         break
       case 'substrate':
         chainRecord[id] = new SubstrateClient(this.#log, id, provider.url)
@@ -53,19 +58,19 @@ export default class Connector {
     }
   }
 
-  replaceNetwork<T extends ApiClient>(client: ClientId, chainId: NetworkURN): T {
+  replaceNetwork<C extends ClientId>(client: C, chainId: NetworkURN): ClientMap[C] {
     const cfg = this.#config[client].find(({ id }) => chainId === id)
     if (cfg) {
       this.registerNetwork(client, cfg)
     }
     const api = this.#chains.get(client)?.[chainId]
     if (api) {
-      return api as T
+      return api as ClientMap[C]
     }
     throw new Error(`Unable to get client API ${client} ${chainId}`)
   }
 
-  connectAll<T extends ApiClient>(clientId: ClientId): Record<string, T> {
+  connectAll<C extends ClientId>(clientId: C): Record<string, ClientMap[C]> {
     const chains = this.#chains.get(clientId) ?? {}
 
     this.#log.info('[connector] %s connect clients: %j', clientId, Object.keys(chains))
@@ -87,7 +92,7 @@ export default class Connector {
       }, i * INC_CONNECTION_MILLIS)
     }
 
-    return chains as Record<string, T>
+    return chains as Record<string, ClientMap[C]>
   }
 
   async disconnect(client: ClientId, chainId: NetworkURN) {

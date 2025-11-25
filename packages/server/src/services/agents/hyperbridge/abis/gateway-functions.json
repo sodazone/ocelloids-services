@@ -1,0 +1,73 @@
+[
+  {
+		"type": "function",
+		"name": "teleport",
+		"inputs": [
+			{
+				"name": "teleportParams",
+				"type": "tuple",
+				"internalType": "struct TeleportParams",
+				"components": [
+					{ "name": "amount", "type": "uint256", "internalType": "uint256" },
+					{ "name": "relayerFee", "type": "uint256", "internalType": "uint256" },
+					{ "name": "assetId", "type": "bytes32", "internalType": "bytes32" },
+					{ "name": "redeem", "type": "bool", "internalType": "bool" },
+					{ "name": "to", "type": "bytes32", "internalType": "bytes32" },
+					{ "name": "dest", "type": "bytes", "internalType": "bytes" },
+					{ "name": "timeout", "type": "uint64", "internalType": "uint64" },
+					{ "name": "nativeCost", "type": "uint256", "internalType": "uint256" },
+					{ "name": "data", "type": "bytes", "internalType": "bytes" }
+				]
+			}
+		],
+		"outputs": [],
+		"stateMutability": "payable"
+	},
+  {
+			"type": "function",
+			"name": "fillOrder",
+			"inputs": [
+				{
+					"name": "order",
+					"type": "tuple",
+					"internalType": "struct Order",
+					"components": [
+						{ "name": "user", "type": "bytes32", "internalType": "bytes32" },
+						{ "name": "sourceChain", "type": "bytes", "internalType": "bytes" },
+						{ "name": "destChain", "type": "bytes", "internalType": "bytes" },
+						{ "name": "deadline", "type": "uint256", "internalType": "uint256" },
+						{ "name": "nonce", "type": "uint256", "internalType": "uint256" },
+						{ "name": "fees", "type": "uint256", "internalType": "uint256" },
+						{
+							"name": "outputs",
+							"type": "tuple[]",
+							"internalType": "struct PaymentInfo[]",
+							"components": [
+								{ "name": "token", "type": "bytes32", "internalType": "bytes32" },
+								{ "name": "amount", "type": "uint256", "internalType": "uint256" },
+								{ "name": "beneficiary", "type": "bytes32", "internalType": "bytes32" }
+							]
+						},
+						{
+							"name": "inputs",
+							"type": "tuple[]",
+							"internalType": "struct TokenInfo[]",
+							"components": [
+								{ "name": "token", "type": "bytes32", "internalType": "bytes32" },
+								{ "name": "amount", "type": "uint256", "internalType": "uint256" }
+							]
+						},
+						{ "name": "callData", "type": "bytes", "internalType": "bytes" }
+					]
+				},
+				{
+					"name": "options",
+					"type": "tuple",
+					"internalType": "struct FillOptions",
+					"components": [{ "name": "relayerFee", "type": "uint256", "internalType": "uint256" }]
+				}
+			],
+			"outputs": [],
+			"stateMutability": "payable"
+		}
+]

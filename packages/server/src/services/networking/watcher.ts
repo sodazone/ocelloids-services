@@ -40,11 +40,17 @@ export const RETRY_INFINITE = {
   maxCount: Infinity,
 }
 
-export const RETRY_CAPPED = {
+export const RETRY_ONCE = {
   baseDelay: 2000,
   maxDelay: 900000,
   maxCount: 1,
 }
+
+export const retryCapped = (cap: number) => ({
+  baseDelay: 2000,
+  maxDelay: 900000,
+  maxCount: cap,
+})
 
 const MAX_REORG = 500
 
@@ -71,7 +77,7 @@ function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize
  * The Watcher catches up with block headers based on the height gap for finalized blocks.
  *
  * @see {Watcher["finalizedBlocks"]}
- * @see {Watcher.catchUpHeads}
+ * @see {Watcher["catchUpHeads"]}
  */
 export abstract class Watcher<T = unknown> extends (EventEmitter as new () => TelemetryEventEmitter) {
   protected readonly log: Logger
@@ -79,7 +85,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   readonly #db: LevelDB
   readonly #localConfig: ServiceConfiguration
   readonly #mutex: Record<NetworkURN, Mutex> = {}
-  readonly #chainTips: Family
+  readonly #chainTips: Family<string, ChainHead>
 
   constructor(services: Services) {
     super()
@@ -125,6 +131,10 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
    */
   headsCache(chainId: NetworkURN) {
     return this.#headsFamily(chainId)
+  }
+
+  protected get chainTips(): Family<string, ChainHead> {
+    return this.#chainTips
   }
 
   /**
@@ -214,7 +224,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
   protected recoverBlockRanges(chainId: NetworkURN, api: ApiOps) {
     return (source: Observable<BlockNumberRange[]>): Observable<NeutralHeader> => {
-      const batchSize = this.#batchSize(chainId)
+      const batchSize = this.batchSize(chainId)
       return source.pipe(
         mergeAll(),
         mergeMap((range) => {
@@ -245,13 +255,13 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   protected async recoverRanges(chainId: NetworkURN) {
     const networkConfig = this.#localConfig.getNetwork(chainId)
     if (networkConfig && networkConfig.recovery) {
-      return await this.#pendingRanges(chainId).values().all()
+      return await this.pendingRanges(chainId).values().all()
     } else {
       return []
     }
   }
 
-  #pendingRanges(chainId: NetworkURN) {
+  protected pendingRanges(chainId: NetworkURN) {
     return this.#db.sublevel<string, BlockNumberRange>(prefixes.cache.ranges(chainId), jsonEncoded)
   }
 
@@ -278,16 +288,20 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
       const blockDistance = newHeadNum - currentHeight
 
+      if (blockDistance < 0) {
+        return []
+      }
+
       if (blockDistance < 2) {
         // nothing to catch
         await this.#chainTips.put(chainId, chainTip)
         return []
       }
 
-      const batchSize = this.#batchSize(chainId)
+      const batchSize = this.batchSize(chainId)
 
       // cap by distance
-      const targetHeight = max(newHeadNum - MAX_BLOCK_DIST, currentHeight)
+      const targetHeight = max(newHeadNum - this.maxBlockDist(chainId), currentHeight)
 
       const range: BlockNumberRange = {
         fromBlockNum: newHeadNum,
@@ -297,7 +311,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
       // signal the range as pending
       // should be removed on complete
-      await this.#pendingRanges(chainId).put(rangeKey, range)
+      await this.pendingRanges(chainId).put(rangeKey, range)
 
       this.log.info('[%s] BEGIN RANGE %s', chainId, rangeKey)
 
@@ -380,7 +394,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
                 }
                 const rangeKey = prefixes.cache.keys.range(range)
 
-                await this.#pendingRanges(chainId).del(rangeKey)
+                await this.pendingRanges(chainId).del(rangeKey)
 
                 this.log.info('[%s] COMPLETE RANGE %s', chainId, rangeKey)
 
@@ -398,7 +412,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
                 try {
                   if (fullRange.toBlockNum !== currentRange.toBlockNum) {
-                    const dbBatch = this.#pendingRanges(chainId).batch()
+                    const dbBatch = this.pendingRanges(chainId).batch()
                     await dbBatch.del(fullRangeKey).put(currentRangeKey, currentRange).write()
 
                     this.log.info(
@@ -418,9 +432,14 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     }
   }
 
-  #batchSize(chainId: NetworkURN) {
+  protected batchSize(chainId: NetworkURN) {
     const networkConfig = this.#localConfig.getNetwork(chainId)
     return networkConfig?.batchSize ?? 25
+  }
+
+  protected maxBlockDist(chainId: NetworkURN) {
+    const networkConfig = this.#localConfig.getNetwork(chainId)
+    return networkConfig?.maxBlockDist ?? MAX_BLOCK_DIST
   }
 
   protected tapError<T>(chainId: NetworkURN, method: string) {

@@ -12,6 +12,7 @@ export const apiContext_xcmv2: SubstrateApiContext = testApiContextFromMetadata(
 export const apiContext_bridgehub: SubstrateApiContext = testApiContextFromMetadata('bridgehub.scale')
 export const apiContext_bridgehub_polkadot: SubstrateApiContext =
   testApiContextFromMetadata('bridgehub-polkadot.scale')
+export const apiContext_nexus: SubstrateApiContext = testApiContextFromMetadata('nexus.scale')
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 export const xcmDataDir = resolve(__dirname, '__data__/xcm')

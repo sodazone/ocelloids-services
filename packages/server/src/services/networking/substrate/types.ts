@@ -6,10 +6,10 @@ import type { SystemEvent } from '@polkadot-api/observable-client'
 import type { Codec, Decoder } from '@polkadot-api/substrate-bindings'
 import type { ChainSpecData } from '@polkadot-api/substrate-client'
 import type { BlockInfo as PapiBlockInfo } from 'polkadot-api'
-
+import { Serializable } from '@/common/util.js'
 import type { HexString } from '@/lib.js'
-
 import { ApiClient, BlockStatus } from '../types.js'
+import { RpcApi } from './rpc.js'
 
 export type StorageCodec<T = any> = {
   keys: {
@@ -32,9 +32,11 @@ export type Event = {
   value: Record<string, any>
 }
 
-export type EventRecord<T = Event> = Omit<SystemEvent, 'event'> & {
-  event: T
-}
+export type EventRecord<T = Event> = Serializable<
+  Omit<SystemEvent, 'event'> & {
+    event: T
+  }
+>
 
 export type Call = {
   module: string
@@ -165,6 +167,7 @@ export interface SubstrateApi extends ApiClient {
   readonly isReady: () => Promise<SubstrateApi>
   readonly getChainSpecData: () => Promise<ChainSpecData>
 
+  rpc: RpcApi
   ctx(specVersion?: number): Promise<SubstrateApiContext>
   getMetadata(): Promise<Uint8Array>
   getRuntimeVersion(): Promise<{
