@@ -8,7 +8,6 @@ import {
   lastValueFrom,
   map,
   merge,
-  mergeAll,
   mergeMap,
   Observable,
   of,
@@ -24,7 +23,6 @@ import {
 import { MulticallParameters, SocketClosedError } from 'viem'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/lib.js'
-import { BlockNumberRange } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'

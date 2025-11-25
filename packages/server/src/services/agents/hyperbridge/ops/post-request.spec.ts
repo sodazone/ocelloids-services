@@ -157,6 +157,45 @@ describe('requests operators', () => {
             expect(msg.destination).toBe('urn:ocn:ethereum:56')
             expect(msg.body).toBeDefined()
             expect(msg.commitment).toBeDefined()
+            expect(msg.commitment).toBe('0x7fa7a656cd3e361269a6d21f79ca9d007d71bd6442eb027bf28057f68c5225d1')
+            expect(msg.nonce).toBeDefined()
+            expect(msg.from).toBeDefined()
+            expect(msg.to).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.txHash).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should extract arbitrum intent post request', async () => {
+      const chainId = 'urn:ocn:ethereum:42161'
+      const block$ = from(testEvmBlocksFrom('arbitrum/403826199.cbor', true))
+      const test$ = block$.pipe(
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractEvmRequest(chainId, vi.fn().mockResolvedValue({ status: 'success', logs })),
+          )
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg.source).toBe(chainId)
+            expect(msg.destination).toBe('urn:ocn:ethereum:1')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.commitment).toBe('0x4fc355c0f141f7f73f18e5c1c9db28f0616efe54dd9f0c603ef3ca90e713553b')
             expect(msg.nonce).toBeDefined()
             expect(msg.from).toBeDefined()
             expect(msg.to).toBeDefined()

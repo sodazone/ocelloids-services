@@ -14,9 +14,9 @@ import {
   QueryParams,
   QueryResult,
 } from '../types.js'
-import { HYPERBRIDGE_NETWORK_ID, isBifrostOracle, isTokenGateway } from './config.js'
+import { HYPERBRIDGE_NETWORK_ID, isBifrostOracle, isIntentGateway, isTokenGateway } from './config.js'
 import { toHyperbridgeStops, toNewAssets, toNewJourney, toStatus } from './crosschain.js'
-import { decodeAssetTeleportRequest, decodeOracleCall } from './decode.js'
+import { decodeAssetTeleportRequest, decodeIntentOrderFill, decodeOracleCall } from './decode.js'
 import { HyperbridgeAssetsRegistry } from './registry/assets.js'
 import { TelemetryHyperbridgeEventEmitter } from './telemetry/events.js'
 import { HyperbridgeTracker } from './tracking.js'
@@ -129,7 +129,13 @@ export class HyperbridgeAgent implements Agent {
           decoded,
         }
       }
-      // TODO: decode intent gateway requests
+      if (isIntentGateway(msg.to)) {
+        const decoded = decodeIntentOrderFill(msg.body)
+        return {
+          ...msg,
+          decoded,
+        }
+      }
     } catch (err) {
       this.#telemetry.emit('telemetryHyperbridgeError', {
         code: 'DECODE_PAYLOAD_ERROR',

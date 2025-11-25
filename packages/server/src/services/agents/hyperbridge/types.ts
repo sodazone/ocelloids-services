@@ -165,6 +165,17 @@ export type Transact = {
   args?: Record<string, unknown> | readonly unknown[]
 }
 
+export type FillOrder = {
+  type: 'fillOrder'
+  requestKind: string
+  commitment: HexString
+  filler: HexString
+  tokens: {
+    token: HexString
+    amount: string
+  }[]
+}
+
 export interface HyperbridgeTerminus {
   chainId: NetworkURN
 }
@@ -430,5 +441,17 @@ export type HyperbridgeMessagePayload =
   | HyperbridgeUnmatched
 
 export type HyperbridgeDecodedPayload = HyperbridgeMessagePayload & {
-  decoded?: AssetTeleport | Transact
+  decoded?: AssetTeleport | Transact | FillOrder
+}
+
+export type IntentOrder = {
+  user: HexString
+  sourceChain: HexString
+  destChain: HexString
+  deadline: bigint
+  nonce: bigint
+  fees: bigint
+  outputs: { token: HexString; beneficiary: HexString; amount: bigint }[]
+  inputs: { token: HexString; amount: bigint }[]
+  callData: HexString
 }

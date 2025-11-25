@@ -1,8 +1,8 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { decodeAbiParameters } from 'viem'
-import { asSerializable } from '@/common/util.js'
+import { decodeAbiParameters, slice } from 'viem'
+import { asSerializable, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
-import { AssetTeleport, TokenGatewayActions, Transact } from './types.js'
+import { AssetTeleport, FillOrder, TokenGatewayActions, Transact } from './types.js'
 
 const BODY_BYTES_SIZE = 161
 
@@ -121,5 +121,46 @@ export function decodeOracleCall(req: HexString | Uint8Array): Transact {
     }
   } catch (err) {
     throw new Error(`Failed to decode oracle call request: ${(err as Error).message}`)
+  }
+}
+
+const requestBodyAbi = [
+  {
+    name: 'commitment',
+    type: 'bytes32',
+  },
+  {
+    name: 'filler',
+    type: 'bytes32',
+  },
+  {
+    name: 'tokens',
+    type: 'tuple[]',
+    components: [
+      { name: 'token', type: 'bytes32' },
+      { name: 'amount', type: 'uint256' },
+    ],
+  },
+] as const
+
+const requestKinds = ['redeem-escrow', 'new-deployment', 'update-params']
+
+export function decodeIntentOrderFill(body: `0x${string}`): FillOrder {
+  const requestKindWord = slice(body, 0, 32)
+  const requestKind = requestKinds[Number(requestKindWord)]
+
+  const requestBodyEncoded = `0x${body.slice(66)}` as HexString
+
+  const [commitment, filler, tokens] = decodeAbiParameters(requestBodyAbi, requestBodyEncoded)
+
+  return {
+    type: 'fillOrder',
+    requestKind,
+    commitment,
+    filler,
+    tokens: tokens.map((t) => ({
+      token: normalizePublicKey(t.token),
+      amount: t.amount.toString(),
+    })),
   }
 }

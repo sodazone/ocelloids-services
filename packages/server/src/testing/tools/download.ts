@@ -37,6 +37,7 @@ export const evmNetworks: Record<string, { url: string; networkId: string }> = {
   ethereum: { url: 'https://eth.llamarpc.com', networkId: 'urn:ocn:ethereum:1' },
   polygon: { url: 'https://polygon-rpc.com/', networkId: 'urn:ocn:ethereum:137' },
   bsc: { url: 'https://binance.llamarpc.com', networkId: 'urn:ocn:ethereum:56' },
+  arbitrum: { url: 'https://arbitrum-one-public.nodies.app', networkId: 'urn:ocn:ethereum:42161' },
 }
 
 // -------------------------

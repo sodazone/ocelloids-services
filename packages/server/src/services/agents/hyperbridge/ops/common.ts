@@ -1,12 +1,48 @@
 import * as fzstd from 'fzstd'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { encodePacked, keccak256, stringToHex } from 'viem'
+import { encodeAbiParameters, encodePacked, keccak256, stringToHex } from 'viem'
 import { asAccountId, isEVMAddress, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { NetworkURN } from '@/services/types.js'
 import { HyperbridgeSignature } from '../codec.js'
 import { toIsmpModule } from '../config.js'
-import { FormattedAddress } from '../types.js'
+import { FormattedAddress, IntentOrder } from '../types.js'
+
+const orderAbi = [
+  {
+    name: 'order',
+    type: 'tuple',
+    internalType: 'struct Order',
+    components: [
+      { name: 'user', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'sourceChain', type: 'bytes', internalType: 'bytes' },
+      { name: 'destChain', type: 'bytes', internalType: 'bytes' },
+      { name: 'deadline', type: 'uint256', internalType: 'uint256' },
+      { name: 'nonce', type: 'uint256', internalType: 'uint256' },
+      { name: 'fees', type: 'uint256', internalType: 'uint256' },
+      {
+        name: 'outputs',
+        type: 'tuple[]',
+        internalType: 'struct PaymentInfo[]',
+        components: [
+          { name: 'token', type: 'bytes32', internalType: 'bytes32' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+          { name: 'beneficiary', type: 'bytes32', internalType: 'bytes32' },
+        ],
+      },
+      {
+        name: 'inputs',
+        type: 'tuple[]',
+        internalType: 'struct TokenInfo[]',
+        components: [
+          { name: 'token', type: 'bytes32', internalType: 'bytes32' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+      { name: 'callData', type: 'bytes', internalType: 'bytes' },
+    ],
+  },
+] as const
 
 function toNetworkURN(consensus: string, id: string): NetworkURN {
   const normalisedConsensus = consensus.trim().toLowerCase()
@@ -26,6 +62,11 @@ export function toFormattedNetwork(arg: string | { type: string; value: number }
     return toNetworkURN(parts[0], parts[1])
   }
   return toNetworkURN(arg.type, arg.value.toString())
+}
+
+export function toIntentCommitmentHash(order: IntentOrder) {
+  const encoded = encodeAbiParameters(orderAbi, [order])
+  return keccak256(encoded)
 }
 
 export function toCommitmentHash({

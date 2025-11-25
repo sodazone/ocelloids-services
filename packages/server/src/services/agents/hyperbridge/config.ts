@@ -133,3 +133,7 @@ export function isTokenGateway({ key, formatted }: FormattedAddress) {
 export function isBifrostOracle({ key }: FormattedAddress) {
   return BIFROST_ORACLES.includes(key)
 }
+
+export function isIntentGateway({ key }: FormattedAddress) {
+  return Object.values(INTENT_GATEWAYS).includes(key)
+}

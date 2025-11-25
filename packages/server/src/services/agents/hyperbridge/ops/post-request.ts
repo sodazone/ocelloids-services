@@ -13,11 +13,12 @@ import gatewayFunctionsAbi from '../abis/gateway-functions.json' with { type: 'j
 import { INTENT_GATEWAYS, TOKEN_GATEWAYS } from '../config.js'
 import {
   EvmPostRequestEvent,
+  IntentOrder,
   IsmpPostRequestWithContext,
   SubstrateOffchainRequest,
   SubstratePostRequestEvent,
 } from '../types.js'
-import { toCommitmentHash, toFormattedNetwork, toTimeoutMillis } from './common.js'
+import { toCommitmentHash, toFormattedNetwork, toIntentCommitmentHash, toTimeoutMillis } from './common.js'
 
 export function extractSubstrateRequest(
   chainId: NetworkURN,
@@ -83,13 +84,19 @@ export function extractEvmRequest(
         }
 
         try {
-          const { eventName, args } = decodeEventLog({
+          const { eventName, args: eventArgs } = decodeEventLog({
             abi: hostAbi as Abi,
             topics: postRequestEvent.topics as LogTopics,
             data: postRequestEvent.data,
           }) as unknown as EvmPostRequestEvent
-
-          const { source, dest, from, to, nonce, timeoutTimestamp, body } = args
+          const commitment =
+            tx.decoded &&
+            tx.decoded.functionName === 'fillOrder' &&
+            tx.decoded.args &&
+            Array.isArray(tx.decoded.args)
+              ? toIntentCommitmentHash(tx.decoded.args[0] as IntentOrder)
+              : toCommitmentHash(eventArgs)
+          const { source, dest, from, to, nonce, timeoutTimestamp, body } = eventArgs
           return {
             chainId,
             blockHash: tx.blockHash,
@@ -99,7 +106,7 @@ export function extractEvmRequest(
             txPosition: tx.transactionIndex ?? undefined,
             source: toFormattedNetwork(source),
             destination: toFormattedNetwork(dest),
-            commitment: toCommitmentHash(args),
+            commitment,
             nonce: nonce.toString(),
             from,
             to,
@@ -109,7 +116,7 @@ export function extractEvmRequest(
             event: {
               module: 'EvmHost',
               name: eventName,
-              args: asSerializable(args),
+              args: asSerializable(eventArgs),
             },
           } as IsmpPostRequestWithContext
         } catch (err) {

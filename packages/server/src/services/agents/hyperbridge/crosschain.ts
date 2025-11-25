@@ -119,7 +119,7 @@ export function toHyperbridgeStops(
       break
     }
     case 'ismp.timeout': {
-      existingStops[0].from.timeout = context
+      existingStops[0].to.timeout = context
       break
     }
     default: {
@@ -164,7 +164,11 @@ export function toNewJourney(payload: HyperbridgeDecodedPayload): NewJourney {
 }
 
 export function toNewAssets(payload: HyperbridgeDecodedPayload): Omit<NewAssetOperation, 'journey_id'>[] {
-  if (payload.decoded === undefined || payload.decoded.type === 'transact') {
+  if (
+    payload.decoded === undefined ||
+    payload.decoded.type === 'transact' ||
+    payload.decoded.type === 'fillOrder'
+  ) {
     return []
   }
   return [
