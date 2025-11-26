@@ -1,5 +1,5 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { decodeAbiParameters, slice } from 'viem'
+import { decodeAbiParameters, sliceHex } from 'viem'
 import { asSerializable, normalizePublicKey } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { AssetTeleport, FillOrder, TokenGatewayActions, Transact } from './types.js'
@@ -145,11 +145,13 @@ const requestBodyAbi = [
 
 const requestKinds = ['redeem-escrow', 'new-deployment', 'update-params']
 
-export function decodeIntentOrderFill(body: `0x${string}`): FillOrder {
-  const requestKindWord = slice(body, 0, 32)
+export function decodeIntentOrderFill(req: HexString | Uint8Array): FillOrder {
+  const data: HexString = typeof req === 'string' ? req : (toHex(req) as HexString)
+
+  const requestKindWord = sliceHex(data, 0, 32)
   const requestKind = requestKinds[Number(requestKindWord)]
 
-  const requestBodyEncoded = `0x${body.slice(66)}` as HexString
+  const requestBodyEncoded = sliceHex(data, 33)
 
   const [commitment, filler, tokens] = decodeAbiParameters(requestBodyAbi, requestBodyEncoded)
 

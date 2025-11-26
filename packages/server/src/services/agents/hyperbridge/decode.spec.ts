@@ -1,4 +1,4 @@
-import { decodeAssetTeleportRequest } from './decode.js'
+import { decodeAssetTeleportRequest, decodeIntentOrderFill } from './decode.js'
 
 describe('hyperbridge payload decoding', () => {
   describe('decodeAssetTeleportRequest', () => {
@@ -8,6 +8,17 @@ describe('hyperbridge payload decoding', () => {
       const decoded = decodeAssetTeleportRequest(payload)
 
       expect(decoded).toBeDefined()
+    })
+  })
+
+  describe('decodeIntentOrderFill', () => {
+    it('should decode intent fills', () => {
+      const payload =
+        '0x000000000000000000000000000000000000000000000000000000000000000020a62be24306acb998db6ed01a4cf30a2adc24b19906b866aff15e036ea12976af00000000000000000000000021426d68a9e5df153fe75ce0fed20173ebcb80ef00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000001000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000001804a264'
+
+      const decoded = decodeIntentOrderFill(payload)
+      expect(decoded).toBeDefined()
+      expect(decoded.type).toBe('fillOrder')
     })
   })
 })
