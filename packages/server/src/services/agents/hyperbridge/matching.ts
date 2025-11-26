@@ -99,24 +99,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       const inboundMsg = await this.#inbound.get(key)
       if (inboundMsg !== undefined) {
         if (inboundMsg.outcome === 'Fail') {
-          // Put in retry db in case inbound is retried later
-          this.#log.info(
-            '[%s:%s] RETRY STORED key=%s (block=%s #%s)',
-            this.#id,
-            msg.origin.chainId,
-            key,
-            msg.origin.blockHash,
-            msg.origin.blockNumber,
-          )
-          await this.#retry.put(key, msg)
-          await new Promise((res) => setImmediate(res))
-
-          const expiry = msg.timeoutAt > Date.now() ? msg.timeoutAt - Date.now() + 3 * HOUR : null
-          await this.#janitor.schedule({
-            sublevel: prefixes.matching.retry,
-            key,
-            expiry: expiry ?? this.#expiry,
-          })
+          await this.#storeRetry(msg)
         }
         await this.#handleMatched(msg, inboundMsg, () => this.#inbound.del(key))
       } else {
@@ -150,6 +133,9 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       }
       const outboundMsg = await this.#outbound.get(key)
       if (outboundMsg !== undefined) {
+        if (msg.outcome === 'Fail') {
+          await this.#storeRetry(outboundMsg)
+        }
         await this.#handleMatched(outboundMsg, msg, () => this.#outbound.del(key))
       } else {
         this.#log.info(
@@ -205,6 +191,28 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
     })
   }
 
+  async #storeRetry(outboundMsg: HyperbridgeDispatched) {
+    const key = outboundMsg.commitment
+
+    this.#log.info(
+      '[%s:%s] RETRY STORED key=%s (block=%s #%s)',
+      this.#id,
+      outboundMsg.origin.chainId,
+      key,
+      outboundMsg.origin.blockHash,
+      outboundMsg.origin.blockNumber,
+    )
+    await this.#retry.put(key, outboundMsg)
+    await new Promise((res) => setImmediate(res))
+
+    const expiry = outboundMsg.timeoutAt > Date.now() ? outboundMsg.timeoutAt - Date.now() + 3 * HOUR : null
+    await this.#janitor.schedule({
+      sublevel: prefixes.matching.retry,
+      key,
+      expiry: expiry ?? this.#expiry,
+    })
+  }
+
   async #handleMatched(
     outMsg: HyperbridgeDispatched,
     inMsg: IsmpPostRequestHandledWithContext,
@@ -244,8 +252,8 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       this.#log.info(
         '[%s:%s] RELAY direction=%s key=%s (block=%s #%s)',
         this.#id,
-        relayed.direction,
         relayMsg.chainId,
+        relayed.direction,
         relayMsg.commitment,
         relayMsg.blockHash,
         relayMsg.blockNumber,
