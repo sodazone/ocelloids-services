@@ -236,14 +236,14 @@ export class EvmWatcher extends Watcher<Block> {
                 blockNumbers[blockNumbers.length - 1],
                 blockNumbers.join(', '),
               )
-              this.emit('telemetryBlockFinalized', {
-                chainId,
-                blockNumber: Number(b.number),
-              })
               this.#resetWatchdog(chainId)
               lastLog = now
               blockNumbers.length = 0
             }
+            this.emit('telemetryBlockFinalized', {
+              chainId,
+              blockNumber: Number(b.number),
+            })
           }),
         ),
       ),
