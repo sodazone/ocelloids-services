@@ -228,7 +228,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         outMsg.origin.blockHash,
         outMsg.origin.blockNumber,
       )
-      // this.emit('telemetryIsmpOutbound', outMsg)
+      this.emit('telemetryIsmpOutbound', outMsg)
       this.#matchedReceiver(outMsg)
     } catch (e) {
       this.#log.error(e, 'Error on outbound')
@@ -251,7 +251,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         relayMsg.blockNumber,
       )
 
-      // this.emit('telemetryIsmpRelayed', relayed)
+      this.emit('telemetryIsmpRelayed', relayed)
       this.#matchedReceiver(relayed)
     } catch (e) {
       this.#log.error(e, 'Error on relayed')
@@ -270,7 +270,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
           received.commitment,
           received.waypoint.txPosition ?? 'n/a',
         )
-        // this.emit('telemetryIsmpReceived', received)
+        this.emit('telemetryIsmpReceived', received)
         this.#matchedReceiver(received)
       } else {
         const timeout = new HyperbridgeTimeout(originMsg, inboundMsg)
@@ -281,7 +281,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
           timeout.destination.chainId,
           timeout.commitment,
         )
-        // this.emit('telemetryIsmpTimeout', timeout)
+        this.emit('telemetryIsmpTimeout', timeout)
         this.#matchedReceiver(timeout)
       }
     } catch (e) {
@@ -311,7 +311,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         const outMsg = safeDestr<HyperbridgeDispatched>(msg)
         const message = new HyperbridgeUnmatched(outMsg)
         this.#log.debug('TIMEOUT on key %s', task.key)
-        // this.emit('telemetryHyperbridgeUnmatched', message)
+        this.emit('telemetryHyperbridgeUnmatched', message)
         this.#matchedReceiver(message)
       }
     } catch (e) {
