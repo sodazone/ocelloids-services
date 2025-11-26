@@ -13,12 +13,11 @@ import gatewayFunctionsAbi from '../abis/gateway-functions.json' with { type: 'j
 import { INTENT_GATEWAYS, TOKEN_GATEWAYS } from '../config.js'
 import {
   EvmPostRequestEvent,
-  IntentOrder,
   IsmpPostRequestWithContext,
   SubstrateOffchainRequest,
   SubstratePostRequestEvent,
 } from '../types.js'
-import { toCommitmentHash, toFormattedNetwork, toIntentCommitmentHash, toTimeoutMillis } from './common.js'
+import { toCommitmentHash, toFormattedNetwork, toTimeoutMillis } from './common.js'
 
 export function extractSubstrateRequest(
   chainId: NetworkURN,

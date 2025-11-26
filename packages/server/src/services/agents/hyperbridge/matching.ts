@@ -111,7 +111,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
           await this.#retry.put(key, msg)
           await new Promise((res) => setImmediate(res))
 
-          const expiry = msg.timeoutAt > Date.now() ? msg.timeoutAt - Date.now() + HOUR : null
+          const expiry = msg.timeoutAt > Date.now() ? msg.timeoutAt - Date.now() + 3 * HOUR : null
           await this.#janitor.schedule({
             sublevel: prefixes.matching.retry,
             key,
