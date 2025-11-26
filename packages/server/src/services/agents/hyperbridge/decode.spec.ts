@@ -1,4 +1,4 @@
-import { decodeAssetTeleportRequest, decodeIntentOrderFill } from './decode.js'
+import { decodeAssetTeleportRequest, decodeIntentOrderFill, decodeOracleCall } from './decode.js'
 
 describe('hyperbridge payload decoding', () => {
   describe('decodeAssetTeleportRequest', () => {
@@ -8,6 +8,23 @@ describe('hyperbridge payload decoding', () => {
       const decoded = decodeAssetTeleportRequest(payload)
 
       expect(decoded).toBeDefined()
+      expect(decoded.assetId).toBeDefined()
+      expect(decoded.amount).toBeDefined()
+      expect(decoded.action).toBeDefined()
+      expect(decoded.from).toBeDefined()
+      expect(decoded.to).toBeDefined()
+    })
+  })
+
+  describe('', () => {
+    it('should decode Bifrost oracle update', () => {
+      const payload =
+        '0x0000000000000000000000002cae934a1e84f693fbb78ca5ed3b0a689325944100000000000000000000000000000000000000000050d708111acc59deccfb770000000000000000000000000000000000000000003df5230ccbbf26cadacc37'
+      const decoded = decodeOracleCall(payload)
+
+      expect(decoded).toBeDefined()
+      expect(decoded.method).toBeDefined()
+      expect(decoded.args).toBeDefined()
     })
   })
 
@@ -19,6 +36,9 @@ describe('hyperbridge payload decoding', () => {
       const decoded = decodeIntentOrderFill(payload)
       expect(decoded).toBeDefined()
       expect(decoded.type).toBe('fillOrder')
+      expect(decoded.commitment).toBeDefined()
+      expect(decoded.filler).toBeDefined()
+      expect(decoded.tokens).toBeDefined()
     })
   })
 })
