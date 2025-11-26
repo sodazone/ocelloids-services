@@ -89,13 +89,7 @@ export function extractEvmRequest(
             topics: postRequestEvent.topics as LogTopics,
             data: postRequestEvent.data,
           }) as unknown as EvmPostRequestEvent
-          const commitment =
-            tx.decoded &&
-            tx.decoded.functionName === 'fillOrder' &&
-            tx.decoded.args &&
-            Array.isArray(tx.decoded.args)
-              ? toIntentCommitmentHash(tx.decoded.args[0] as IntentOrder)
-              : toCommitmentHash(eventArgs)
+
           const { source, dest, from, to, nonce, timeoutTimestamp, body } = eventArgs
           return {
             chainId,
@@ -106,7 +100,7 @@ export function extractEvmRequest(
             txPosition: tx.transactionIndex ?? undefined,
             source: toFormattedNetwork(source),
             destination: toFormattedNetwork(dest),
-            commitment,
+            commitment: toCommitmentHash(eventArgs),
             nonce: nonce.toString(),
             from,
             to,
