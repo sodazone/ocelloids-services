@@ -24,7 +24,7 @@ import { AssetMapper, AssetMetadata, getAssetMappers, TokenGovernorAsset } from 
 const HYPERBRIDGE_ASSET_SYNC_TASK = 'task:hyperbridge:assets-sync'
 const ASSETS_LEVEL_PREFIX = 'agent:hyperbridge:assets'
 
-const START_DELAY = 20_000 // 30s
+const START_DELAY = 60_000 // 1 min
 const SCHED_RATE = 86_400_000 // 24h
 const STORAGE_PAGE_LEN = 100
 

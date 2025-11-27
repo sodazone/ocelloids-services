@@ -579,34 +579,38 @@ export class CrosschainRepository {
   }
 
   async #filterJourneyIdsWithAssets(limit: number, filters?: JourneyFilters, cursor?: string) {
-    let query = this.#db
+    const usdGte = filters?.usdAmountGte
+    const usdLte = filters?.usdAmountLte
+
+    // aggregate USD per journey
+    let assetAggQuery = this.#db
       .selectFrom('xc_asset_ops')
-      .innerJoin('xc_journeys', 'xc_journeys.id', 'xc_asset_ops.journey_id')
-      .select((eb) => [
-        eb.ref('xc_asset_ops.journey_id').as('id'),
-        eb.fn.max('xc_journeys.sent_at').as('sent_at'),
-      ])
+      .select((eb) => [eb.ref('journey_id').as('journey_id'), eb.fn.sum('usd').as('total_usd')])
+      .groupBy('journey_id')
 
-    // ASSET filters
+    if (usdGte !== undefined) {
+      assetAggQuery = assetAggQuery.having((eb) => eb.fn.sum('usd'), '>=', usdGte)
+    }
+    if (usdLte !== undefined) {
+      assetAggQuery = assetAggQuery.having((eb) => eb.fn.sum('usd'), '<=', usdLte)
+    }
+
     if (filters?.assets) {
-      query = query.where('xc_asset_ops.asset', 'in', filters.assets)
-    }
-    if (filters?.usdAmountGte !== undefined) {
-      query = query.where('xc_asset_ops.usd', '>=', filters.usdAmountGte)
-    }
-    if (filters?.usdAmountLte !== undefined) {
-      query = query.where('xc_asset_ops.usd', '<=', filters.usdAmountLte)
+      assetAggQuery = assetAggQuery.where('asset', 'in', filters.assets)
     }
 
-    // JOURNEY filters
+    const assetSubquery = assetAggQuery.as('agg_assets')
+
+    // aggregated USD back to journeys
+    let query = this.#db
+      .selectFrom('xc_journeys')
+      .innerJoin(assetSubquery, 'xc_journeys.id', 'agg_assets.journey_id')
+      .select(['xc_journeys.id', 'xc_journeys.sent_at'])
+
+    // apply other journey filters
     query = this.#applyJourneyFilters(query, filters, cursor)
 
-    return query
-      .groupBy('xc_asset_ops.journey_id')
-      .orderBy('sent_at', 'desc')
-      .orderBy('id', 'desc')
-      .limit(limit)
-      .execute()
+    return query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(limit).execute()
   }
 
   #applyJourneyFilters<T extends SelectQueryBuilder<any, any, any>>(
@@ -688,25 +692,44 @@ export class CrosschainRepository {
       ) as T
     }
 
-    // UNION ALL for protocols
-    let protoQuery: T | null = null
     if (filters?.protocols) {
-      const protoOriginBranch = baseQuery.where(field('origin_protocol'), 'in', filters.protocols) as T
-      const protoDestBranch = baseQuery.where(field('destination_protocol'), 'in', filters.protocols) as T
-      protoQuery = protoOriginBranch.unionAll(protoDestBranch) as T
+      const protoBranches: any[] = []
+
+      const protoOriginBase = baseQuery.where(field('origin_protocol'), 'in', filters.protocols)
+      const protoDestBase = baseQuery.where(field('destination_protocol'), 'in', filters.protocols)
+
+      if (filters?.networks) {
+        for (const protoBase of [protoOriginBase, protoDestBase]) {
+          const netOriginBranch = protoBase.where(field('origin'), 'in', filters.networks)
+          const netDestBranch = protoBase.where(field('destination'), 'in', filters.networks)
+
+          protoBranches.push(netOriginBranch, netDestBranch)
+        }
+      } else {
+        protoBranches.push(protoOriginBase, protoDestBase)
+      }
+
+      let combined = protoBranches[0]
+      for (const branch of protoBranches.slice(1)) {
+        combined = combined.unionAll(branch)
+      }
+
+      return this.#db.selectFrom(combined.as('combined_proto')).selectAll().groupBy('id') as T
     }
 
-    // UNION ALL for networks
     if (filters?.networks) {
-      const networkBase = protoQuery ?? baseQuery
+      const networkBase = baseQuery
 
-      const originBranch = networkBase.where(field('origin'), 'in', filters.networks) as T
-      const destinationBranch = networkBase.where(field('destination'), 'in', filters.networks) as T
+      const originBranch = networkBase.where(field('origin'), 'in', filters.networks)
+      const destinationBranch = networkBase.where(field('destination'), 'in', filters.networks)
 
-      return originBranch.unionAll(destinationBranch) as T
+      return this.#db
+        .selectFrom(originBranch.unionAll(destinationBranch).as('combined_network'))
+        .selectAll()
+        .groupBy('id') as T
     }
 
-    return protoQuery ?? baseQuery
+    return baseQuery
   }
 
   async #getFullJourneyData(
