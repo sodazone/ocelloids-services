@@ -104,7 +104,7 @@ export interface XcmBridgeInboundWithContext {
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
-  channelId: HexString
+  channelId?: HexString
   nonce: string
   outcome: 'Success' | 'Fail'
   event?: AnyJson
@@ -289,7 +289,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   blockNumber: string | number
   blockHash: HexString
   chainId: NetworkURN
-  channelId: HexString
+  channelId?: HexString
   nonce: string
   outcome: 'Success' | 'Fail'
   error: AnyJson

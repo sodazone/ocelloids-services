@@ -91,7 +91,7 @@ export class SubstrateDistributedConsumer
   async stop() {
     this.#log.info('[distributor] stop')
 
-    await this.#distributor.stop()
+    this.#distributor.stop()
   }
 
   newBlocks(_chainId: NetworkURN): Observable<Block> {
@@ -192,6 +192,14 @@ export class SubstrateDistributedConsumer
     _opts: { api: string; method: string; at?: string },
     _args: any[],
   ): Promise<T | null> {
+    throw new Error('Method not implemented.')
+  }
+
+  async rpcCall<Reply = any, Params extends Array<any> = any[]>(
+    _chainId: NetworkURN,
+    _method: string,
+    _params: Params,
+  ): Promise<Reply> {
     throw new Error('Method not implemented.')
   }
 

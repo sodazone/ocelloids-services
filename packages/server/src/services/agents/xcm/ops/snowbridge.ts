@@ -1,9 +1,11 @@
-import { filter, map, Observable } from 'rxjs'
-import { Abi } from 'viem'
+import { filter, from, map, mergeMap, Observable } from 'rxjs'
+import { Abi, decodeEventLog, TransactionReceipt } from 'viem'
+import { asSerializable, hexTimestampToMillis } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
-import { filterTransactionsWithLogs } from '@/services/networking/evm/rx/extract.js'
-import { BlockWithLogs } from '@/services/networking/evm/types.js'
+import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
+import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
+import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import gatewayAbi from '../abis/gateway-mini.json' with { type: 'json' }
 import {
@@ -28,7 +30,12 @@ const BRIDGE_HUB_PARAID = '1002'
 
 type SnowbridgeEvmInboundLog = {
   eventName: string
-  args: { channelID: HexString; messageID: HexString; nonce: bigint; success: boolean }
+  args: { channelID: HexString; messageID: HexString; nonce: string; success: boolean }
+}
+
+type SnowbridgeEvmInboundV2Log = {
+  eventName: string
+  args: { topic: HexString; nonce: string; success: boolean; rewardAddress: HexString }
 }
 
 type SnowbridgeEvmOutboundAcceptedLog = {
@@ -67,66 +74,112 @@ type SnowbridgeSubstrateAcceptedEvent = {
   nonce: number
 }
 
-function hexTimestampToMillis(hex?: string) {
-  if (hex !== undefined && hex.startsWith('0x')) {
-    return Number(BigInt(hex) * 1000n)
-  }
-}
-
-export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {
-  return (source: Observable<BlockWithLogs>): Observable<XcmBridgeInboundWithContext> => {
+export function extractSnowbridgeEvmInbound(
+  chainId: NetworkURN,
+  contractAddress: HexString,
+  getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
+) {
+  return (source: Observable<Block>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
-      filterTransactionsWithLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1']),
+      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1', 'v2_submit']),
+      mergeMap((tx) =>
+        from(getTransactionReceipt(tx.hash)).pipe(
+          map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
+        ),
+      ),
       map((tx) => {
-        const inboundLog = tx.logs.find(
-          (l) => l.decoded && l.decoded.eventName === 'InboundMessageDispatched',
-        )
+        const inboundLog = findLogInTx(tx, gatewayAbi as Abi, 'InboundMessageDispatched')
+
         if (!inboundLog || tx.blockHash === null || tx.blockNumber === null) {
           return null
         }
 
-        const {
-          args: { channelID, messageID, nonce, success },
-        } = inboundLog.decoded as SnowbridgeEvmInboundLog
+        if (tx.decoded?.functionName === 'submitV1') {
+          const { eventName: inboundEventName, args: inboundEventArgs } = decodeEventLog({
+            abi: gatewayAbi as Abi,
+            topics: inboundLog.topics as LogTopics,
+            data: inboundLog.data,
+          }) as unknown as SnowbridgeEvmInboundLog
+          const { channelID, messageID, nonce, success } = inboundEventArgs
 
-        return new GenericXcmBridgeInboundWithContext({
-          chainId,
-          blockHash: tx.blockHash,
-          blockNumber: tx.blockNumber.toString(),
-          channelId: channelID,
-          messageId: messageID,
-          nonce: nonce.toString(),
-          outcome: success ? 'Success' : 'Fail',
-          event: { name: inboundLog.decoded?.eventName, args: inboundLog.decoded?.args } as AnyJson,
-          timestamp: hexTimestampToMillis((inboundLog as any)['blockTimestamp']),
-          txHash: tx.hash,
-          txPosition: tx.transactionIndex ?? undefined,
-        })
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            channelId: channelID,
+            messageId: messageID,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundEventName, args: asSerializable(inboundEventArgs) } as AnyJson,
+            timestamp: tx.timestamp,
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        if (tx.decoded?.functionName === 'v2_submit') {
+          const { eventName: inboundEventName, args: inboundEventArgs } = decodeEventLog({
+            abi: gatewayAbi as Abi,
+            topics: inboundLog.topics as LogTopics,
+            data: inboundLog.data,
+          }) as unknown as SnowbridgeEvmInboundV2Log
+          const { nonce, success, topic } = inboundEventArgs
+
+          return new GenericXcmBridgeInboundWithContext({
+            chainId,
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            messageId: topic,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: inboundEventName, args: asSerializable(inboundEventArgs) } as AnyJson,
+            timestamp: tx.timestamp,
+            txHash: tx.hash,
+            txPosition: tx.transactionIndex ?? undefined,
+          })
+        }
+        return null
       }),
       filter((msg) => msg !== null),
     )
   }
 }
 
-export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddress: HexString) {
-  return (source: Observable<BlockWithLogs>): Observable<SnowbridgeOutboundAccepted> => {
+export function extractSnowbridgeEvmOutbound(
+  chainId: NetworkURN,
+  contractAddress: HexString,
+  getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
+) {
+  return (source: Observable<Block>): Observable<SnowbridgeOutboundAccepted> => {
     return source.pipe(
-      filterTransactionsWithLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['sendToken']),
+      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['sendToken']),
+      mergeMap((tx) =>
+        from(getTransactionReceipt(tx.hash)).pipe(
+          map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
+        ),
+      ),
       map((tx) => {
-        const tokenSentLog = tx.logs.find((l) => l.decoded && l.decoded.eventName === 'TokenSent')
-        const acceptedLog = tx.logs.find(
-          (l) => l.decoded && l.decoded.eventName === 'OutboundMessageAccepted',
-        )
+        if (tx.receipt.status === 'reverted') {
+          return null
+        }
+        const tokenSentLog = findLogInTx(tx, gatewayAbi as Abi, 'TokenSent')
+        const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
         if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
           return null
         }
 
-        const {
-          args: { channelID, messageID, nonce, payload },
-        } = acceptedLog.decoded as SnowbridgeEvmOutboundAcceptedLog
+        const { eventName: acceptedEventName, args: acceptedEventArgs } = decodeEventLog({
+          abi: gatewayAbi as Abi,
+          topics: acceptedLog.topics as LogTopics,
+          data: acceptedLog.data,
+        }) as unknown as SnowbridgeEvmOutboundAcceptedLog
+        const { channelID, messageID, nonce, payload } = acceptedEventArgs
         const {
           args: { amount, destinationAddress, destinationChain, sender, token },
-        } = tokenSentLog.decoded as SnowbridgeEvmTokenSentLog
+        } = decodeEventLog({
+          abi: gatewayAbi as Abi,
+          topics: tokenSentLog.topics as LogTopics,
+          data: tokenSentLog.data,
+        }) as unknown as SnowbridgeEvmTokenSentLog
 
         const beneficiary =
           destinationAddress.kind === 2
@@ -155,7 +208,7 @@ export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddres
             id: token,
             amount: amount.toString(),
           },
-          event: { name: acceptedLog.decoded?.eventName, args: acceptedLog.decoded?.args } as AnyJson,
+          event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
           timestamp: hexTimestampToMillis((acceptedLog as any)['blockTimestamp']),
           txHash: tx.hash,
           txPosition: tx.transactionIndex ?? undefined,
@@ -193,7 +246,9 @@ export function extractSnowbridgeSubstrateInbound(chainId: NetworkURN) {
 export function extractSnowbridgeSubstrateOutbound(chainId: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<SnowbridgeMessageAccepted> => {
     return source.pipe(
-      filter((event) => matchEvent(event, 'EthereumOutboundQueue', 'MessageAccepted')),
+      filter((event) =>
+        matchEvent(event, ['EthereumOutboundQueue', 'EthereumOutboundQueueV2'], 'MessageAccepted'),
+      ),
       map((blockEvent) => {
         const { id, nonce } = blockEvent.value as SnowbridgeSubstrateAcceptedEvent
         return new GenericSnowbridgeMessageAccepted({

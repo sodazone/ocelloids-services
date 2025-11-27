@@ -79,7 +79,8 @@ export class TickerAgent implements Agent, Queryable {
   }
 
   async start(): Promise<void> {
-    if (this.#sched.enabled && (await this.#isNotScheduled())) {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(PRICE_SYNC_TASK))
+    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
       await this.#scheduleUpdate()
 
       // first-time sync

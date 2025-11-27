@@ -11,14 +11,38 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0x06e605775296e851ff43b4daa541bb0984e9d6fd',
     },
   ],
-  DOT: {
-    chainId: 'urn:ocn:polkadot:0',
-    assetId: 'native',
-  },
-  ETH: {
-    chainId: 'urn:ocn:ethereum:1',
-    assetId: 'native',
-  },
+  DOT: [
+    {
+      chainId: 'urn:ocn:polkadot:0',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f',
+    },
+  ],
+  ETH: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x7aa111f84bbd868d8fd55867959aa78bce6bcddabb2f5d14580fd232d94f4949', // arb_ETH
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x9d73bf7de387b25f0aff297e40734d86f04fc00110134e7b3399c968c2d4af75', // op_ETH
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xaaaebeba3810b1e6b70781f14b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4', // hyperbridge_ETH
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xcb9a8249a8fa29a9255d9e5cd657c363eb0aaa03b5ec67887a74423fbb78c3ff', // base_ETH
+    },
+  ],
   WBTC: [
     {
       chainId: 'urn:ocn:ethereum:1',
@@ -79,14 +103,26 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x7de91b204c1c737bcee6f000aaa6569cf7061cb7',
   },
-  GLMR: {
-    chainId: 'urn:ocn:polkadot:2004',
-    assetId: 'native',
-  },
-  ASTR: {
-    chainId: 'urn:ocn:polkadot:2006',
-    assetId: 'native',
-  },
+  GLMR: [
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xa4690066220620100ea0109a1e46cbd5096ab757e3117d17b6ee1b6f27fe420c',
+    },
+  ],
+  ASTR: [
+    {
+      chainId: 'urn:ocn:polkadot:2006',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xef9c12300328f9f458b10811de24a7dd12738a28e9312f700a64c2afc0699f06',
+    },
+  ],
   ACA: [
     {
       chainId: 'urn:ocn:polkadot:2000',
@@ -113,6 +149,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:polkadot:2030',
       assetId: 'native:BNC',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x2a4161abff7b056457562a2e82dd6f5878159be2537b90f19dd1458b40524d3f',
     },
   ],
   HDX: [
@@ -177,38 +217,68 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0x99fec54a5ad36d50a4bba3a41cab983a5bb86a7d',
     },
   ],
-  VDOT: {
-    chainId: 'urn:ocn:polkadot:2030',
-    assetId: {
-      type: 'VToken2',
-      value: 0,
+  VDOT: [
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: {
+        type: 'VToken2',
+        value: 0,
+      },
     },
-  },
-  VASTR: {
-    chainId: 'urn:ocn:polkadot:2030',
-    assetId: {
-      type: 'VToken2',
-      value: 3,
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x2c39e61e26a9f54b13049db72ed462371c4675161ad800538eefbb25e5f5531f',
     },
-  },
-  VGLMR: {
-    chainId: 'urn:ocn:polkadot:2030',
-    assetId: {
-      type: 'VToken2',
-      value: 1,
+  ],
+  VASTR: [
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: {
+        type: 'VToken2',
+        value: 3,
+      },
     },
-  },
-  VMANTA: {
-    chainId: 'urn:ocn:polkadot:2030',
-    assetId: {
-      type: 'VToken2',
-      value: 8,
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x2d66857ceb4c6311bb5abfeddfe4624860174e9da405e339418afe4c5070115d',
     },
-  },
-  MANTA: {
-    chainId: 'urn:ocn:polkadot:2104',
-    assetId: 'native',
-  },
+  ],
+  VGLMR: [
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: {
+        type: 'VToken2',
+        value: 1,
+      },
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xe54767e847e8018d70039d42ce516c616bb93946432cd6adc3575711147640c9',
+    },
+  ],
+  VMANTA: [
+    {
+      chainId: 'urn:ocn:polkadot:2030',
+      assetId: {
+        type: 'VToken2',
+        value: 8,
+      },
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x1a9e68a6835e2c9845787b1ee5ee9a7fbe012c9eb01aee28081be1a756032de4',
+    },
+  ],
+  MANTA: [
+    {
+      chainId: 'urn:ocn:polkadot:2104',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x9ea858a814b69366a6cec8e38eccc8c62cf4b8f1254b7b1674a9c660acf57108',
+    },
+  ],
   KSM: {
     chainId: 'urn:ocn:kusama:0',
     assetId: 'native',
@@ -229,6 +299,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:ethereum:1',
       assetId: '0x5d3d01fd6d2ad1169b17918eb4f153c6616288eb',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x8a5bd076c25a6e50fb27e8981c475bba121b88de63212d301e664ddb32c40a52',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0xc13f49c92370ffbe792a617224ba7ed9a13924d30e8be23084f946feb7700a64',
     },
   ],
   UNQ: {

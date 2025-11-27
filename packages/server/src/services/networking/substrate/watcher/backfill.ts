@@ -9,7 +9,7 @@ import { HexString } from '@/lib.js'
 import { matchExtrinsic } from '@/services/agents/xcm/ops/util.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { RETRY_CAPPED } from '../../watcher.js'
+import { RETRY_ONCE } from '../../watcher.js'
 import { BackedCandidate, Block, SubstrateApi } from '../types.js'
 
 const BackfillConfigSchema = z.object({
@@ -122,7 +122,7 @@ export class SubstrateBackfill {
   #getBlockWithHash(api: SubstrateApi, relayId: string, blockNumber: number) {
     return defer(() =>
       from(api.getBlockHash(blockNumber)).pipe(
-        retryWithTruncatedExpBackoff(RETRY_CAPPED),
+        retryWithTruncatedExpBackoff(RETRY_ONCE),
         tapError(this.#log, relayId, 'getBlockHash'),
         concatMap((hash) => this.#getBlock(api, hash)),
         catchError((err) => {
@@ -156,7 +156,7 @@ export class SubstrateBackfill {
 
   #getBlock(api: SubstrateApi, hash: string): Observable<Block> {
     return defer(() => from(api.getBlock(hash, false))).pipe(
-      retryWithTruncatedExpBackoff(RETRY_CAPPED),
+      retryWithTruncatedExpBackoff(RETRY_ONCE),
       map((block): Block => ({ status: 'finalized', ...block })),
       catchError((err) => {
         this.#log.warn(err, '[backfill] Failed to getBlock for %s', hash)

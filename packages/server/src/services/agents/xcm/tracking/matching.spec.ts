@@ -18,7 +18,11 @@ import {
 } from '@/testing/matching.js'
 import { kusamaToPolkadotBridgeMessages } from '@/testing/pk-bridge.js'
 import { createServices } from '@/testing/services.js'
-import { ethereumToHydrationMessages, hydrationToEthereumMessages } from '@/testing/snowbridge.js'
+import {
+  assethubToEthereumV2,
+  ethereumToHydrationMessages,
+  hydrationToEthereumMessages,
+} from '@/testing/snowbridge.js'
 import { prefixes, XcmBridge, XcmInbound, XcmNotificationType, XcmSent } from '../types/index.js'
 import { MatchingEngine } from './matching.js'
 
@@ -440,6 +444,18 @@ describe('message matching engine', () => {
 
     expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.bridge', 'xcm.bridge', 'xcm.received'])
     expectOd(7, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:ethereum:1' })
+    await expectNoLeftover()
+  })
+
+  it('should match snowbridge assethub to ethereum v2 messages', async () => {
+    const { assethubSent, bridgeHubAcepptedV2, ethereumReceivedV2 } = assethubToEthereumV2
+
+    await engine.onOutboundMessage(assethubSent)
+    await engine.onSnowbridgeBridgehubAccepted(bridgeHubAcepptedV2)
+    await engine.onBridgeInbound(ethereumReceivedV2)
+
+    expectEvents(['xcm.sent', 'xcm.bridge', 'xcm.bridge', 'xcm.received'])
+    expectOd(4, { origin: 'urn:ocn:polkadot:1000', destination: 'urn:ocn:ethereum:1' })
     await expectNoLeftover()
   })
 })

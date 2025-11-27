@@ -41,7 +41,7 @@ import {
 
 const MAX_MATCH_RETRIES = 5
 const DEFAULT_TIMEOUT = 10 * 60_000
-const BRIDGE_TIMEOUT = 4 * 60 * 60_000
+const BRIDGE_TIMEOUT = 12 * 60 * 60_000
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 
@@ -411,12 +411,18 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     await this.#mutex.runExclusive(async () => {
       const { chainId, channelId, messageId, nonce } = bridgeInMsg
 
-      const bridgeKey = toBridgeKey(channelId, nonce)
+      const bridgeKey = channelId !== undefined ? toBridgeKey(channelId, nonce) : undefined
       const idKey = messageId !== undefined ? toBridgeKey(messageId, nonce) : undefined
 
-      const bridgeOutMsg =
-        (await this.#bridgeAccepted.get(bridgeKey)) ??
-        (idKey ? await this.#bridgeAccepted.get(idKey) : undefined)
+      let bridgeOutMsg
+
+      if (bridgeKey) {
+        bridgeOutMsg = await this.#bridgeAccepted.get(bridgeKey)
+      }
+
+      if (!bridgeOutMsg && idKey) {
+        bridgeOutMsg = await this.#bridgeAccepted.get(idKey)
+      }
 
       if (bridgeOutMsg) {
         this.#log.info(
@@ -429,7 +435,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         )
 
         await Promise.allSettled([
-          this.#bridgeAccepted.del(bridgeKey),
+          bridgeKey ? this.#bridgeAccepted.del(bridgeKey) : Promise.resolve(),
           idKey ? this.#bridgeAccepted.del(idKey) : Promise.resolve(),
         ])
 
@@ -453,15 +459,17 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         )
 
         await Promise.allSettled([
-          this.#bridgeInbound.put(bridgeKey, bridgeInMsg),
+          bridgeKey ? this.#bridgeInbound.put(bridgeKey, bridgeInMsg) : Promise.resolve(),
           idKey ? this.#bridgeInbound.put(idKey, bridgeInMsg) : Promise.resolve(),
         ])
 
         await new Promise((resolve) => setImmediate(resolve))
-        await this.#janitor.schedule({
-          sublevel: prefixes.matching.bridgeIn,
-          key: bridgeKey,
-        })
+        if (bridgeKey) {
+          await this.#janitor.schedule({
+            sublevel: prefixes.matching.bridgeIn,
+            key: bridgeKey,
+          })
+        }
         if (idKey) {
           await this.#janitor.schedule({
             sublevel: prefixes.matching.bridgeIn,

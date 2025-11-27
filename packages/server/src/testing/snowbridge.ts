@@ -483,3 +483,126 @@ export const hydrationToEthereumMessages = {
   bridgeHubAceppted,
   ethereumReceived,
 }
+
+const assethubSent: XcmSent = {
+  legs: [
+    {
+      from: 'urn:ocn:polkadot:1000',
+      to: 'urn:ocn:polkadot:1002',
+      type: 'hop',
+      partialMessage: undefined,
+      relay: 'urn:ocn:polkadot:0',
+    },
+    {
+      from: 'urn:ocn:polkadot:1002',
+      to: 'urn:ocn:ethereum:1',
+      type: 'bridge',
+      partialMessage: undefined,
+    },
+  ],
+  originProtocol: 'xcm',
+  destinationProtocol: 'snowbridge',
+  sender: {
+    signer: {
+      id: '12vFEoMa464oQwP3B7DVfpSb5w71BPgQJA1S7LngS68aAzS5',
+      publicKey: '0x54d82b42bcd22b175d71d62ef2114defcf14344c4b88acf0eb4356737d7fdb4a',
+    },
+    extraSigners: [],
+  },
+  messageId: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+  partialHumanized: undefined,
+  type: 'xcm.sent',
+  waypoint: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xd5edd2349e31337690aa165c97b6cc5eb8d0a129d5dcf0b98b5e43279c14c57f',
+    blockNumber: '10483505',
+    txHash: '0x885ef2c83ae24065d99b3f4c85be6299dcb0004c0b9984d1b9e0b89ff360f3a7',
+    extrinsicHash: '0x885ef2c83ae24065d99b3f4c85be6299dcb0004c0b9984d1b9e0b89ff360f3a7',
+    specVersion: 2000002,
+    timestamp: 1763697282000,
+    txPosition: 2,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x050c2f0000260704001800040000000bc0a0e7687439300000000bc0a0e768743900080000000b00407a10f35a00010300c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000b00407a10f35a2e0103090200a10f01010254d82b42bcd22b175d71d62ef2114defcf14344c4b88acf0eb4356737d7fdb4a0d0102200001030090a987b944cb1dcce5564e5fdecd7a54d3de27fe2c4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b052c4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+    instructions: {},
+    messageHash: '0xa35880c1ff193e857b1b0ee96f46f095b742672fac8ffee8cdd55aa71de01de1',
+    messageId: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+    legIndex: 0,
+  },
+  origin: {
+    chainId: 'urn:ocn:polkadot:1000',
+    blockHash: '0xd5edd2349e31337690aa165c97b6cc5eb8d0a129d5dcf0b98b5e43279c14c57f',
+    blockNumber: '10483505',
+    txHash: '0x885ef2c83ae24065d99b3f4c85be6299dcb0004c0b9984d1b9e0b89ff360f3a7',
+    extrinsicHash: '0x885ef2c83ae24065d99b3f4c85be6299dcb0004c0b9984d1b9e0b89ff360f3a7',
+    specVersion: 2000002,
+    timestamp: 1763697282000,
+    txPosition: 2,
+    event: {},
+    outcome: 'Success',
+    error: null,
+    messageData:
+      '0x050c2f0000260704001800040000000bc0a0e7687439300000000bc0a0e768743900080000000b00407a10f35a00010300c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000b00407a10f35a2e0103090200a10f01010254d82b42bcd22b175d71d62ef2114defcf14344c4b88acf0eb4356737d7fdb4a0d0102200001030090a987b944cb1dcce5564e5fdecd7a54d3de27fe2c4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b052c4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+    instructions: {},
+    messageHash: '0xa35880c1ff193e857b1b0ee96f46f095b742672fac8ffee8cdd55aa71de01de1',
+    messageId: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+  },
+  destination: { chainId: 'urn:ocn:ethereum:1' },
+}
+
+const bridgeHubAcepptedV2: SnowbridgeMessageAccepted = {
+  chainId: 'urn:ocn:polkadot:1002',
+  blockNumber: '6437913',
+  blockHash: '0x2860fd0ac5d3a076ab8d9ae0313dfe141005d7ec910353cd5d0708ff997c86ae',
+  messageId: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+  nonce: '31',
+  recipient: 'urn:ocn:ethereum:1',
+  event: {
+    module: 'EthereumOutboundQueueV2',
+    name: 'MessageAccepted',
+    value: {
+      id: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+      nonce: '31',
+    },
+    blockNumber: '6437913',
+    blockHash: '0x2860fd0ac5d3a076ab8d9ae0313dfe141005d7ec910353cd5d0708ff997c86ae',
+    blockPosition: 4,
+    specVersion: 2000000,
+    timestamp: 1763697300000,
+  },
+  txPosition: undefined,
+  timestamp: 1763697300000,
+  txHash: undefined,
+}
+
+const ethereumReceivedV2: XcmBridgeInboundWithContext = {
+  blockNumber: '23844982',
+  blockHash: '0x8f4da59ec542c8c5a813dccc00d78f53e028ce476cf919bf468f962502d6286c',
+  chainId: 'urn:ocn:ethereum:1',
+  channelId: undefined,
+  nonce: '31',
+  outcome: 'Success',
+  error: undefined,
+  event: {
+    name: 'InboundMessageDispatched',
+    args: {
+      nonce: '31',
+      topic: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+      success: true,
+      rewardAddress: '0x5628194e9f9ff8bd593f490fcafd033289f393e2ba860c6c51bca39c01091b39',
+    },
+  },
+  txPosition: 126,
+  specVersion: undefined,
+  timestamp: 1763698991000,
+  txHash: '0xce8a412553d9f36092ed9fafe117d9afc56d38e01d89303b0a106b190a5b220e',
+  messageId: '0x4b49cc5215bbdce2efccf023bf42c30a70071689619d526a4b03db4d808f4b05',
+}
+
+export const assethubToEthereumV2 = {
+  assethubSent,
+  bridgeHubAcepptedV2,
+  ethereumReceivedV2,
+}

@@ -95,4 +95,13 @@ export class SubstrateLocalConsumer
   async __getBlock(chainId: NetworkURN, blockHash: HexString): Promise<Block> {
     return (await this.watcher.getApi(chainId)).getBlock(blockHash)
   }
+
+  async rpcCall<Reply = any, Params extends Array<any> = any[]>(
+    chainId: NetworkURN,
+    method: string,
+    params: Params,
+  ): Promise<Reply> {
+    const api = await this.watcher.getApi(chainId)
+    return api.rpc.rawRequest(method, params)
+  }
 }

@@ -1,0 +1,44 @@
+import { decodeAssetTeleportRequest, decodeIntentOrderFill, decodeOracleCall } from './decode.js'
+
+describe('hyperbridge payload decoding', () => {
+  describe('decodeAssetTeleportRequest', () => {
+    it('should decode asset teleport', () => {
+      const payload =
+        '0x000000000000000000000000000000000000000000000001ca2f01cd67ee7600009bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f000000000000000000000000000000000000000000000000000000000000000056477e294921d889dfbdcaf415dc931ffd4953c4955479d472becd96dc6b512b00000000000000000000000079fab311c8c6cf0a39d9d8296cf2a26c5ca84de6'
+      const decoded = decodeAssetTeleportRequest(payload)
+
+      expect(decoded).toBeDefined()
+      expect(decoded.assetId).toBeDefined()
+      expect(decoded.amount).toBeDefined()
+      expect(decoded.action).toBeDefined()
+      expect(decoded.from).toBeDefined()
+      expect(decoded.to).toBeDefined()
+    })
+  })
+
+  describe('', () => {
+    it('should decode Bifrost oracle update', () => {
+      const payload =
+        '0x0000000000000000000000002cae934a1e84f693fbb78ca5ed3b0a689325944100000000000000000000000000000000000000000050d708111acc59deccfb770000000000000000000000000000000000000000003df5230ccbbf26cadacc37'
+      const decoded = decodeOracleCall(payload)
+
+      expect(decoded).toBeDefined()
+      expect(decoded.method).toBeDefined()
+      expect(decoded.args).toBeDefined()
+    })
+  })
+
+  describe('decodeIntentOrderFill', () => {
+    it('should decode intent fills', () => {
+      const payload =
+        '0x000000000000000000000000000000000000000000000000000000000000000020a62be24306acb998db6ed01a4cf30a2adc24b19906b866aff15e036ea12976af00000000000000000000000021426d68a9e5df153fe75ce0fed20173ebcb80ef00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000001000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000001804a264'
+
+      const decoded = decodeIntentOrderFill(payload)
+      expect(decoded).toBeDefined()
+      expect(decoded.type).toBe('fillOrder')
+      expect(decoded.commitment).toBeDefined()
+      expect(decoded.filler).toBeDefined()
+      expect(decoded.tokens).toBeDefined()
+    })
+  })
+})

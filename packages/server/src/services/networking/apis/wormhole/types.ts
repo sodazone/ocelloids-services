@@ -51,7 +51,7 @@ export interface WormholeOperation<P = Payload> {
     native: string
   }
   sequence: string
-  vaa: {
+  vaa?: {
     guardianSetIndex: number
     isDuplicated: boolean
     raw: string
@@ -117,5 +117,6 @@ export interface WormholeOperation<P = Payload> {
   transactionLimit: number
 }
 
-export type WormholeProtocol = 'wh' | 'wh_portal' | 'wh_relayer'
+export const WormholeProtocols = ['wh', 'wh_portal', 'wh_relayer'] as const
+export type WormholeProtocol = (typeof WormholeProtocols)[number]
 export type WormholeAction = 'transfer' | 'transact' | '??'

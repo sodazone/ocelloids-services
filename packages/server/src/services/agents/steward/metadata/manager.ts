@@ -101,7 +101,8 @@ export class AssetMetadataManager {
   }
 
   async start() {
-    if (this.#sched.enabled && (await this.#isNotScheduled())) {
+    const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ASSET_METADATA_SYNC_TASK))
+    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
       await this.#scheduleSync()
 
       // first-time sync

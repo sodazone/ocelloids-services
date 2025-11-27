@@ -10,7 +10,7 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
-  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwydt1v']: {
+  ['1:epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwytdt1v']: {
     symbol: 'USDC',
     decimals: 6,
     isNative: false,
@@ -70,9 +70,19 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['5:0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270']: {
+    symbol: 'WPOL',
+    decimals: 18,
+    isNative: false,
+  },
   ['6:0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7']: {
     symbol: 'WAVAX',
     decimals: 18,
+    isNative: false,
+  },
+  ['6:0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e']: {
+    symbol: 'USDC',
+    decimals: 6,
     isNative: false,
   },
   ['16:0xacc15dc74880c9944775448304b263d191c6077f']: {
@@ -90,9 +100,19 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 18,
     isNative: false,
   },
+  ['16:0xffffffffb3229c8e7657eabea704d5e75246e544']: {
+    symbol: 'xcNEURO',
+    decimals: 12,
+    isNative: false,
+  },
   ['21:0x9258181f5ceac8dbffb7030890243caed69a9599d2886d957a9cb7656af3bdb3']: {
     symbol: 'WSUI',
     decimals: 9,
+    isNative: false,
+  },
+  ['22:0xa867703f5395cb2965feb7ebff5cdf39b771fc6156085da3ae4147a00be91b38']: {
+    symbol: 'APT',
+    decimals: 8,
     isNative: false,
   },
   ['24:0x0b2c639c533813f4aa9d7837caf62653d097ff85']: {

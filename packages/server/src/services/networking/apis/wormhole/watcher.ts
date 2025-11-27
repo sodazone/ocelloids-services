@@ -82,6 +82,10 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return [nextCursor, freshOps]
   }
 
+  async function fetchOperationById(id: string): Promise<WormholeOperation | undefined> {
+    return await client.fetchOperationById(id)
+  }
+
   async function fetchBatch(
     state: WatcherState,
     signal?: AbortSignal | null,
@@ -202,29 +206,26 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           const status = toStatus(op) as JourneyStatus
           const entry = pending.get(id)
 
-          if (!FINAL_STATUS.includes(status)) {
-            // only track non-final ops
-            if (!entry) {
-              const newEntry: PendingEntry = { op, status, firstSeen: now }
-              pending.set(id, newEntry)
-              subscriber.next({ op, status })
-              if (storage) {
-                await storage.savePendingOp(id, newEntry)
-              }
-            } else if (entry.status !== status) {
-              const updatedEntry: PendingEntry = { ...entry, status, op }
-              pending.set(id, updatedEntry)
-              subscriber.next({ op, status })
-              if (storage) {
-                await storage.savePendingOp(id, updatedEntry)
-              }
-            }
-          } else {
+          if (FINAL_STATUS.includes(status)) {
             // final ops: emit immediately
             if (entry) {
               removePending(id)
             }
             subscriber.next({ op, status })
+          } else if (!entry) {
+            const newEntry: PendingEntry = { op, status, firstSeen: now }
+            pending.set(id, newEntry)
+            subscriber.next({ op, status })
+            if (storage) {
+              await storage.savePendingOp(id, newEntry)
+            }
+          } else if (entry.status !== status) {
+            const updatedEntry: PendingEntry = { ...entry, status, op }
+            pending.set(id, updatedEntry)
+            subscriber.next({ op, status })
+            if (storage) {
+              await storage.savePendingOp(id, updatedEntry)
+            }
           }
         }
       }
@@ -264,19 +265,25 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           storage.deletePendingOp(id)
         }
       }
-      // restore pending ops before starting loop
+
       ;(async () => {
         try {
+          await client.awaitReady()
+
           if (storage) {
-            const stored = await storage.loadPendingOps()
-            for (const [id, entry] of Object.entries(stored)) {
-              pending.set(id, entry)
+            try {
+              const stored = await storage.loadPendingOps()
+              for (const [id, entry] of Object.entries(stored)) {
+                pending.set(id, entry)
+              }
+            } catch (err) {
+              console.error('Failed to restore pending ops', err)
             }
           }
-        } catch (err) {
-          console.error('Failed to restore pending ops', err)
-        } finally {
+
           loop()
+        } catch (err) {
+          subscriber.error(err)
         }
       })()
 
@@ -289,7 +296,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     })
   }
 
-  return { operations$, loadInitialState, pendingCount: () => pending.size }
+  return { fetchOperationById, operations$, loadInitialState, pendingCount: () => pending.size }
 }
 
 export type WormholeWatcher = ReturnType<typeof makeWatcher>
