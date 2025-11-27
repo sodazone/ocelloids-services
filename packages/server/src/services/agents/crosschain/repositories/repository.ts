@@ -615,39 +615,36 @@ export class CrosschainRepository {
     cursor?: string,
     prefix = '',
   ): T {
-    if (filters === undefined && cursor === undefined) {
+    if (!filters && !cursor) {
       return query
     }
 
-    let extendedQuery = query
-
     const field = (col: string) => (prefix ? `${prefix}.${col}` : col)
 
+    let baseQuery = query
+
+    // txHash filter
     if (filters?.txHash) {
-      extendedQuery = extendedQuery.where((eb) =>
+      baseQuery = baseQuery.where((eb) =>
         eb.or([
-          eb(field('origin_tx_primary'), '=', filters.txHash!),
-          eb(field('origin_tx_secondary'), '=', filters.txHash!),
+          eb(field('origin_tx_primary'), '=', filters.txHash),
+          eb(field('origin_tx_secondary'), '=', filters.txHash),
         ]),
       ) as T
     }
 
+    // address filter
     if (filters?.address) {
       if (filters.address.length >= 42) {
-        // EVM addresses are 42 chars (0x + 40 hex) and Substrate accounts are 66 chars (0x + 64 hex).
-        // We use the first 42 chars as a prefix to match both encodings when querying 'from' or 'to'.
-        // This could theoretically produce a false positive if two different accounts share the same
-        // first 20 bytes, but the probability is astronomically low and considered safe for practical use.
         const addressPrefix = filters.address.slice(0, 42).toLowerCase()
-        extendedQuery = extendedQuery.where((eb) =>
+        baseQuery = baseQuery.where((eb) =>
           eb.or([
             eb(field('from'), 'like', `${addressPrefix}%`),
             eb(field('to'), 'like', `${addressPrefix}%`),
           ]),
         ) as T
       } else {
-        // Shorter input: exact match
-        extendedQuery = extendedQuery.where((eb) =>
+        baseQuery = baseQuery.where((eb) =>
           eb.or([
             eb(field('from'), '=', filters.address!.toLowerCase()),
             eb(field('to'), '=', filters.address!.toLowerCase()),
@@ -656,51 +653,34 @@ export class CrosschainRepository {
       }
     }
 
+    // sentAt filters
     if (filters?.sentAtGte) {
-      extendedQuery = extendedQuery.where(field('sent_at'), '>=', filters.sentAtGte) as T
+      baseQuery = baseQuery.where(field('sent_at'), '>=', filters.sentAtGte) as T
     }
-
     if (filters?.sentAtLte) {
-      extendedQuery = extendedQuery.where(field('sent_at'), '<=', filters.sentAtLte) as T
+      baseQuery = baseQuery.where(field('sent_at'), '<=', filters.sentAtLte) as T
     }
 
+    // origin/destination filters
     if (filters?.origins) {
-      extendedQuery = extendedQuery.where(field('origin'), 'in', filters.origins) as T
+      baseQuery = baseQuery.where(field('origin'), 'in', filters.origins) as T
     }
-
     if (filters?.destinations) {
-      extendedQuery = extendedQuery.where(field('destination'), 'in', filters.destinations) as T
+      baseQuery = baseQuery.where(field('destination'), 'in', filters.destinations) as T
     }
 
-    if (filters?.networks) {
-      extendedQuery = extendedQuery.where((eb) =>
-        eb.or([
-          eb(field('origin'), 'in', filters.networks!),
-          eb(field('destination'), 'in', filters.networks!),
-        ]),
-      ) as T
-    }
-
+    // actions/status
     if (filters?.actions) {
-      extendedQuery = extendedQuery.where(field('type'), 'in', filters.actions) as T
+      baseQuery = baseQuery.where(field('type'), 'in', filters.actions) as T
     }
-
     if (filters?.status) {
-      extendedQuery = extendedQuery.where(field('status'), 'in', filters.status) as T
+      baseQuery = baseQuery.where(field('status'), 'in', filters.status) as T
     }
 
-    if (filters?.protocols) {
-      extendedQuery = extendedQuery.where((eb) =>
-        eb.or([
-          eb(field('origin_protocol'), 'in', filters.protocols!),
-          eb(field('destination_protocol'), 'in', filters.protocols!),
-        ]),
-      ) as T
-    }
-
+    // cursor
     if (cursor) {
       const { timestamp, id } = decodeCursor(cursor)
-      extendedQuery = extendedQuery.where((eb) =>
+      baseQuery = baseQuery.where((eb) =>
         eb.or([
           eb('sent_at', '<', timestamp),
           eb.and([eb('sent_at', '=', timestamp), eb('xc_journeys.id', '<', id)]),
@@ -708,7 +688,25 @@ export class CrosschainRepository {
       ) as T
     }
 
-    return extendedQuery
+    // UNION ALL for protocols
+    let protoQuery: T | null = null
+    if (filters?.protocols) {
+      const protoOriginBranch = baseQuery.where(field('origin_protocol'), 'in', filters.protocols) as T
+      const protoDestBranch = baseQuery.where(field('destination_protocol'), 'in', filters.protocols) as T
+      protoQuery = protoOriginBranch.unionAll(protoDestBranch) as T
+    }
+
+    // UNION ALL for networks
+    if (filters?.networks) {
+      const networkBase = protoQuery ?? baseQuery
+
+      const originBranch = networkBase.where(field('origin'), 'in', filters.networks) as T
+      const destinationBranch = networkBase.where(field('destination'), 'in', filters.networks) as T
+
+      return originBranch.unionAll(destinationBranch) as T
+    }
+
+    return protoQuery ?? baseQuery
   }
 
   async #getFullJourneyData(

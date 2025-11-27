@@ -111,6 +111,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('xc_journeys_origin_destination_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['origin', 'destination'])
+      .execute()
+
+    await db.schema
       .createIndex('xc_journeys_origin_tx_primary_index')
       .ifNotExists()
       .on('xc_journeys')
