@@ -11,6 +11,8 @@ import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/typ
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
+import { createGovDataFetcher, GovDataFetcher } from './content.js'
+import { humanizeReferendumStatus } from './humanize.js'
 import { OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
 
 export const $OpenGovInputs = z.object({
@@ -31,7 +33,7 @@ type OpenGovHandler = {
  * Listens to finalized blocks, extracts OpenGov referenda events, and tracks
  * their lifecycle, including Scheduler execution correlation.
  */
-export class OpenGov implements Agent, Subscribable {
+export class OpenGovAgent implements Agent, Subscribable {
   readonly id = 'opengov'
   readonly metadata: AgentMetadata = {
     name: this.id,
@@ -45,6 +47,7 @@ export class OpenGov implements Agent, Subscribable {
   readonly #egress: Egress
   readonly #ingress: SubstrateIngressConsumer
   readonly #db: LevelDB
+  readonly #content: GovDataFetcher
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -52,6 +55,7 @@ export class OpenGov implements Agent, Subscribable {
     this.#shared = SubstrateSharedStreams.instance(this.#ingress)
     this.#egress = ctx.egress
     this.#db = ctx.openLevelDB('opengov', { valueEncoding: 'json' })
+    this.#content = createGovDataFetcher()
   }
 
   subscribe(subscription: Subscription<OpenGovInputs>) {
@@ -134,8 +138,11 @@ export class OpenGov implements Agent, Subscribable {
     // placeholder for metrics
   }
 
-  start() {
-    this.#log.info('[%s] start', this.id)
+  async start(subscriptions: Subscription<OpenGovInputs>[] = []) {
+    this.#log.info('[%s] start (%s)', this.id, subscriptions.length)
+    for (const subscription of subscriptions) {
+      this.subscribe(subscription)
+    }
   }
 
   /** Handle Scheduler.Dispatched events and resolve pending tasks */
@@ -169,13 +176,21 @@ export class OpenGov implements Agent, Subscribable {
         })
 
         const ref = (await this.#getReferendum(chainId, task.referendumId)) ?? {}
-        const payload = asSerializable({
+        const execution = {
+          ...task,
+          executedAt: block.number,
+          result: dispatched.event.value?.result,
+        }
+        const refWithResult = {
           ...ref,
-          execution: {
-            ...task,
-            executedAt: block.number,
-            result: dispatched.event.value?.result,
+          execution,
+        }
+        const payload = asSerializable({
+          ...refWithResult,
+          humanized: {
+            status: humanizeReferendumStatus(refWithResult),
           },
+          content: await this.#content.fetchDescription(chainId, task.referendumId),
         }) as AnyJson
 
         this.#egress.publish(subscription, {
@@ -254,7 +269,20 @@ export class OpenGov implements Agent, Subscribable {
       }
 
       // Emit outbound event
-      const payload = (await this.#getReferendum(chainId, next.id)) as AnyJson
+      const ref = await this.#getReferendum(chainId, next.id)
+      let payload: any = null
+
+      if (ref) {
+        const desc = await this.#content.fetchDescription(chainId, String(next.id))
+        payload = {
+          ...ref,
+          content: desc,
+          humanized: {
+            status: humanizeReferendumStatus(ref),
+          },
+        }
+      }
+
       if (payload) {
         this.#egress.publish(subscription, {
           metadata: {

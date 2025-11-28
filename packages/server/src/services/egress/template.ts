@@ -1,5 +1,7 @@
 import Handlebars, { TemplateDelegate } from 'handlebars'
 import { LRUCache } from 'lru-cache'
+import { chainHelper } from './helpers.js'
+import { escapeMarkdownV2 } from './messaging/escape.js'
 
 type RenderContext<T> = {
   template: string
@@ -29,6 +31,8 @@ function toDataObject(obj: any): DataObject {
   return dao
 }
 
+const MAX_TEMPLATE_LENGTH = 10_000
+
 /**
  * Renders Handlebars templates.
  *
@@ -44,26 +48,42 @@ export class TemplateRenderer {
         max: 100,
         ttl: 3.6e6, // 1 hour
       })
+    Handlebars.registerHelper('json', (context) => JSON.stringify(context, null, 2))
+    Handlebars.registerHelper('safe', (context) => new Handlebars.SafeString(context))
+    Handlebars.registerHelper('eq', (a, b) => a === b)
+    Handlebars.registerHelper('chain', chainHelper)
+    Handlebars.registerHelper('escapeMarkdownV2', escapeMarkdownV2)
   }
 
   render<T>(context: RenderContext<T>): string {
-    // TODO: consider try..catch wrapping a RendererError
-    return this.#resolve(context)(Object.freeze(toDataObject(context.data)), {
-      allowProtoMethodsByDefault: false,
-      allowCallsToHelperMissing: false,
-      allowProtoPropertiesByDefault: false,
-    })
+    try {
+      return this.#resolve(context)(Object.freeze(toDataObject(context.data)), {
+        allowProtoMethodsByDefault: false,
+        allowCallsToHelperMissing: false,
+        allowProtoPropertiesByDefault: false,
+      })
+    } catch (error) {
+      throw new Error('Template rendering failed', { cause: error })
+    }
   }
 
   #resolve<T>({ template }: RenderContext<T>): TemplateDelegate<any> {
+    if (template.length > MAX_TEMPLATE_LENGTH) {
+      throw new Error(`Template too large: ${template.length} characters (max ${MAX_TEMPLATE_LENGTH})`)
+    }
+
     if (this.#cache.has(template)) {
       return this.#cache.get(template)!
     }
+
     const delgate = Handlebars.compile(template, {
       strict: true,
+      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true },
       knownHelpersOnly: true,
     })
+
     this.#cache.set(template, delgate)
+
     return delgate
   }
 }

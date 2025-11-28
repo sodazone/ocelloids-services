@@ -232,6 +232,11 @@ export class SubstrateDistributedConsumer
     collect(this)
   }
 
+  async __getBlock(chainId: NetworkURN): Promise<Block> {
+    // TODO: impl if needed
+    throw new Error('not implemented')
+  }
+
   async #networksFromRedis() {
     try {
       const members = await this.#distributor.smembers(NetworksKey)

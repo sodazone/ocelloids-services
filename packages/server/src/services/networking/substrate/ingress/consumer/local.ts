@@ -92,6 +92,10 @@ export class SubstrateLocalConsumer
     return (await this.watcher.getApi(chainId)).query({ module, method, at }, params) as Promise<T | null>
   }
 
+  async __getBlock(chainId: NetworkURN, blockHash: HexString): Promise<Block> {
+    return (await this.watcher.getApi(chainId)).getBlock(blockHash)
+  }
+
   async rpcCall<Reply = any, Params extends Array<any> = any[]>(
     chainId: NetworkURN,
     method: string,

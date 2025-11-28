@@ -1,4 +1,4 @@
-import { OpenGov } from '@/services/agents/opengov/agent.js'
+import { OpenGovAgent } from '@/services/agents/opengov/agent.js'
 import { initRuntime } from './ctx.js'
 import { InjectableConnector } from './inject.js'
 import { ScenarioKey, scenarios } from './scenarios.js'
@@ -19,7 +19,7 @@ async function injectBlockHeaders(scenario: ScenarioKey, connector: InjectableCo
 async function main(scenario: ScenarioKey) {
   const { ctx, services, connector } = initRuntime()
 
-  const agent = new OpenGov(ctx)
+  const agent = new OpenGovAgent(ctx)
   agent.start()
 
   agent.subscribe({
@@ -46,7 +46,7 @@ async function main(scenario: ScenarioKey) {
   process.exit(0)
 }
 
-main('Timeout').catch((err) => {
+main('ExecutedFail').catch((err) => {
   console.error('❌ Fatal error in main loop:', err)
   process.exit(1)
 })
