@@ -37,7 +37,7 @@ describe('Gov2', () => {
           blockNumber: '10474809',
           status: 'Rejected',
           humanized: {
-            status: 'Rejected'
+            status: 'Rejected',
           },
           info: [
             28722810,

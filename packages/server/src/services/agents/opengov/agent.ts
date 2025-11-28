@@ -176,17 +176,21 @@ export class OpenGovAgent implements Agent, Subscribable {
         })
 
         const ref = (await this.#getReferendum(chainId, task.referendumId)) ?? {}
-        const payload = asSerializable({
+        const execution = {
+          ...task,
+          executedAt: block.number,
+          result: dispatched.event.value?.result,
+        }
+        const refWithResult = {
           ...ref,
+          execution,
+        }
+        const payload = asSerializable({
+          ...refWithResult,
           humanized: {
-            status: humanizeReferendumStatus(ref),
+            status: humanizeReferendumStatus(refWithResult),
           },
           content: await this.#content.fetchDescription(chainId, task.referendumId),
-          execution: {
-            ...task,
-            executedAt: block.number,
-            result: dispatched.event.value?.result,
-          },
         }) as AnyJson
 
         this.#egress.publish(subscription, {
