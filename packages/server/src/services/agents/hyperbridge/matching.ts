@@ -113,11 +113,13 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         )
         await this.#outbound.put(key, msg)
         await new Promise((res) => setImmediate(res)) // allow event loop tick
-        await this.#janitor.schedule({
+        const task: JanitorTask = {
           sublevel: prefixes.matching.outbound,
           key,
           expiry: this.#expiry,
-        })
+        }
+        await this.#janitor.schedule(task)
+        this.emit('telemetryHyperbridgeJanitorScheduled', task)
       }
     })
   }
@@ -148,11 +150,13 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         )
         await this.#inbound.put(key, msg)
         await new Promise((res) => setImmediate(res)) // allow event loop tick
-        await this.#janitor.schedule({
+        const task: JanitorTask = {
           sublevel: prefixes.matching.inbound,
           key,
           expiry: this.#expiry,
-        })
+        }
+        await this.#janitor.schedule(task)
+        this.emit('telemetryHyperbridgeJanitorScheduled', task)
       }
     })
   }
@@ -183,11 +187,13 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
 
       await storeMsg()
       await new Promise((res) => setImmediate(res)) // allow event loop tick
-      await this.#janitor.schedule({
+      const task: JanitorTask = {
         sublevel,
         key,
         expiry: this.#expiry,
-      })
+      }
+      await this.#janitor.schedule(task)
+      this.emit('telemetryHyperbridgeJanitorScheduled', task)
     })
   }
 
@@ -206,11 +212,13 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
     await new Promise((res) => setImmediate(res))
 
     const expiry = outboundMsg.timeoutAt > Date.now() ? outboundMsg.timeoutAt - Date.now() + 3 * HOUR : null
-    await this.#janitor.schedule({
+    const task: JanitorTask = {
       sublevel: prefixes.matching.retry,
       key,
       expiry: expiry ?? this.#expiry,
-    })
+    }
+    await this.#janitor.schedule(task)
+    this.emit('telemetryHyperbridgeJanitorScheduled', task)
   }
 
   async #handleMatched(
@@ -324,6 +332,8 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       }
     } catch (e) {
       this.#log.error(e, 'Error on notification')
+    } finally {
+      this.emit('telemetryHyperbridgeJanitorSwept', task)
     }
   }
 }

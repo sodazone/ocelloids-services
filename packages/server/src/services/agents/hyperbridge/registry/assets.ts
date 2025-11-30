@@ -58,6 +58,11 @@ export class HyperbridgeAssetsRegistry {
   }
 
   async start() {
+    if (!this.#ingress.substrate.isNetworkDefined(HYPERBRIDGE_NETWORK_ID)) {
+      this.#log.info('[agent:%s] Hyperbridge network is not configured in config, skipping start', this.#id)
+      return
+    }
+
     if (this.#sched.enabled && (await this.#isNotScheduled())) {
       await this.#scheduleSync()
 

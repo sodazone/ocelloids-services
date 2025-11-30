@@ -40,6 +40,16 @@ export function hyperbridgeMatchingEngineMetrics(source: TelemetryHyperbridgeEve
     help: 'Hyperbridge agent ISMP unmatched messages.',
     labelNames: ['origin', 'destination'],
   })
+  const janitorScheduledCount = new Counter({
+    name: 'oc_hyperbridge_janitor_scheduled_total',
+    help: 'Hyperbridge matching engine janitor tasks scheduled.',
+    labelNames: ['sublevel'],
+  })
+  const janitorSweptCount = new Counter({
+    name: 'oc_hyperbridge_janitor_swept_total',
+    help: 'Hyperbridge matching engine janitor tasks swept.',
+    labelNames: ['sublevel'],
+  })
 
   source.on('telemetryIsmpOutbound', ({ origin, destination }) => {
     outboundCount.labels(origin.chainId, destination.chainId, origin.outcome).inc()
@@ -55,5 +65,11 @@ export function hyperbridgeMatchingEngineMetrics(source: TelemetryHyperbridgeEve
   })
   source.on('telemetryHyperbridgeUnmatched', ({ origin, destination }) => {
     unmatchedCount.labels(origin.chainId, destination.chainId).inc()
+  })
+  source.on('telemetryHyperbridgeJanitorScheduled', ({sublevel}) => {
+    janitorScheduledCount.labels(sublevel)
+  })
+  source.on('telemetryHyperbridgeJanitorSwept', ({sublevel}) => {
+    janitorSweptCount.labels(sublevel)
   })
 }
