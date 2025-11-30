@@ -1,5 +1,5 @@
+import { JanitorTask } from '@/services/scheduling/janitor.js'
 import { TypedEventEmitter } from '@/services/types.js'
-
 import {
   HyperbridgeDispatched,
   HyperbridgeReceived,
@@ -7,7 +7,6 @@ import {
   HyperbridgeTimeout,
   HyperbridgeUnmatched,
 } from '../types.js'
-import { JanitorTask } from '@/services/scheduling/janitor.js'
 
 export type TelemetryEvents = {
   telemetryIsmpOutbound: (message: HyperbridgeDispatched) => void

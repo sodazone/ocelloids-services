@@ -37,17 +37,20 @@ const ethereumSent: XcmBridge = {
   },
   messageId: '0x10a0bd857bd447b04e81b9b52df83e9f15d95df3dd841087ad18b01cfff5bbb1',
   partialHumanized: {
-    asset: {
-      chainId: 'urn:ocn:ethereum:1',
-      id: '0x0000000000000000000000000000000000000000',
-      amount: '6702406140673493229',
-    },
+    assets: [
+      {
+        chainId: 'urn:ocn:ethereum:1',
+        id: '0x0000000000000000000000000000000000000000',
+        amount: '6702406140673493229',
+      },
+    ],
     beneficiary: '0x7279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b',
   },
   type: 'xcm.bridge',
   bridgeStatus: 'accepted',
   nonce: '7440',
   bridgeName: 'snowbridge',
+  version: 1,
   waypoint: {
     chainId: 'urn:ocn:ethereum:1',
     blockHash: '0xc54a60201354d82339e1456a32cddcc73b1a37ef60a8f095d1765fb1774a33f8',
@@ -84,6 +87,7 @@ const ethereumSent: XcmBridge = {
 }
 
 const bridgeHubReceived: XcmBridgeInboundWithContext = {
+  version: 1,
   blockNumber: '6209062',
   blockHash: '0xbc53431f59cdb5fea3c09381a40b2568e54a1b456a6acd445a24ac206849d8a8',
   chainId: 'urn:ocn:polkadot:1002',
@@ -435,6 +439,7 @@ const bridgeHubXcmHopIn: XcmInbound = {
 }
 
 const bridgeHubAceppted: SnowbridgeMessageAccepted = {
+  version: 1,
   chainId: 'urn:ocn:polkadot:1002',
   blockNumber: '6226395',
   blockHash: '0x3f9765deac311f482cd94b52acc1883cd7cc047c7cf58e1a073d7837e54228b1',
@@ -460,6 +465,7 @@ const bridgeHubAceppted: SnowbridgeMessageAccepted = {
 }
 
 const ethereumReceived: XcmBridgeInboundWithContext = {
+  version: 1,
   blockNumber: '23618095',
   blockHash: '0x8075f4ee44c86a7f1d02190f0eabd1b8a1e2c64cf5e7c04b3f5e266f0277fe63',
   chainId: 'urn:ocn:ethereum:1',
@@ -553,6 +559,7 @@ const assethubSent: XcmSent = {
 }
 
 const bridgeHubAcepptedV2: SnowbridgeMessageAccepted = {
+  version: 2,
   chainId: 'urn:ocn:polkadot:1002',
   blockNumber: '6437913',
   blockHash: '0x2860fd0ac5d3a076ab8d9ae0313dfe141005d7ec910353cd5d0708ff997c86ae',
@@ -578,6 +585,7 @@ const bridgeHubAcepptedV2: SnowbridgeMessageAccepted = {
 }
 
 const ethereumReceivedV2: XcmBridgeInboundWithContext = {
+  version: 2,
   blockNumber: '23844982',
   blockHash: '0x8f4da59ec542c8c5a813dccc00d78f53e028ce476cf919bf468f962502d6286c',
   chainId: 'urn:ocn:ethereum:1',

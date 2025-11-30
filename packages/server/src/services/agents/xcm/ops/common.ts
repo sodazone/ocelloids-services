@@ -34,7 +34,7 @@ import {
 import { raw, versionedXcmCodec } from './xcm-format.js'
 import { METHODS_XCMP_QUEUE } from './xcmp.js'
 
-type Stop = { networkId: NetworkURN; message?: any[] }
+export type Stop = { networkId: NetworkURN; message?: any[] }
 
 const swapMapping: Record<
   NetworkURN,
@@ -77,7 +77,7 @@ const swapMapping: Record<
 }
 
 // eslint-disable-next-line complexity
-function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
+export function recursiveExtractStops(origin: NetworkURN, instructions: any[], stops: Stop[]) {
   for (const instruction of instructions) {
     let nextStop
     let message

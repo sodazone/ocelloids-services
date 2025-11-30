@@ -4,15 +4,15 @@ import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { u64 } from 'scale-ts'
-
+import { stringToBytes } from 'viem'
 import { HexString } from '@/lib.js'
 import { AgentRuntimeContext } from '@/services/agents/types.js'
-import { getRelayId } from '@/services/config.js'
+import { getConsensus, getRelayId } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { jsonEncoded, Logger, NetworkURN, SubLevel } from '@/services/types.js'
-
 import { TelemetryXcmEventEmitter } from '../telemetry/events.js'
 import {
+  BridgeName,
   GenericXcmBridge,
   GenericXcmHop,
   GenericXcmReceived,
@@ -80,6 +80,17 @@ function delay(ms: number) {
 function isLastLeg(from: NetworkURN, to: NetworkURN, legs: Leg[]) {
   const last = legs[legs.length - 1]
   return last.from === from && last.to === to
+}
+
+// Snowbridge V2 keeps one set of nonce for outbound queue and one set for inbound queue
+// we use the inbound consensus to differentiate the separate queues since on inbound we don't know the origin
+function toSnowbridgeV2ChannelId(version: number, inboundConsensus: string): HexString {
+  const raw = stringToBytes(`snow:v${version}:${inboundConsensus}`)
+  const out = new Uint8Array(32)
+
+  out.set(raw, 0)
+
+  return toHex(out) as HexString
 }
 
 /**
@@ -379,6 +390,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           channelId,
           nonce,
           bridgeName: 'pkbridge',
+          version: 1,
         })
         await this.#bridge.del(idKey)
         await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)
@@ -407,12 +419,16 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     })
   }
 
-  async onBridgeInbound(bridgeInMsg: XcmBridgeInboundWithContext) {
+  async onBridgeInbound(bridgeName: BridgeName, bridgeInMsg: XcmBridgeInboundWithContext) {
     await this.#mutex.runExclusive(async () => {
-      const { chainId, channelId, messageId, nonce } = bridgeInMsg
+      const { chainId, channelId, messageId, nonce, version } = bridgeInMsg
 
       const bridgeKey = channelId !== undefined ? toBridgeKey(channelId, nonce) : undefined
       const idKey = messageId !== undefined ? toBridgeKey(messageId, nonce) : undefined
+      const versionKey =
+        bridgeName === 'snowbridge'
+          ? toBridgeKey(toSnowbridgeV2ChannelId(version, getConsensus(chainId)), nonce)
+          : undefined
 
       let bridgeOutMsg
 
@@ -422,6 +438,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
       if (!bridgeOutMsg && idKey) {
         bridgeOutMsg = await this.#bridgeAccepted.get(idKey)
+      }
+
+      if (!bridgeOutMsg && versionKey) {
+        bridgeOutMsg = await this.#bridgeAccepted.get(versionKey)
       }
 
       if (bridgeOutMsg) {
@@ -485,11 +505,14 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
     await this.#mutex.runExclusive(async () => {
       const {
         waypoint: { chainId, blockHash, blockNumber },
+        destination,
         messageId,
         channelId,
         nonce,
+        version,
       } = msg
-      const bridgeKey = toBridgeKey(messageId!, nonce) // messageId is never undefined for snowbridge
+      const uniqueChannelId = messageId ?? toSnowbridgeV2ChannelId(version, getConsensus(destination.chainId))
+      const bridgeKey = toBridgeKey(uniqueChannelId, nonce)
 
       const bridgeInMsg = await this.#bridgeInbound.get(bridgeKey)
       const xcmSentMsg = mapXcmBridgeToXcmSent(msg)
@@ -540,9 +563,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
 
   async onSnowbridgeBridgehubAccepted(msg: SnowbridgeMessageAccepted) {
     await this.#mutex.runExclusive(async () => {
-      const { chainId, messageId, nonce } = msg
-      const bridgeKey = toBridgeKey(messageId, nonce)
-      const idKey = matchingKey(chainId, messageId)
+      const { chainId, messageId, nonce, version, recipient } = msg
+      const channelId = messageId ?? toSnowbridgeV2ChannelId(version, getConsensus(recipient))
+      const bridgeKey = toBridgeKey(channelId, nonce)
+      const idKey = matchingKey(chainId, channelId) // in reality the idKey should always be
 
       const originMsg = await this.#bridge.get(idKey)
 
@@ -567,6 +591,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
           bridgeStatus: 'accepted',
           nonce,
           bridgeName: 'snowbridge',
+          version,
         })
         await this.#bridge.del(idKey)
         await this.#bridgeAccepted.put(bridgeKey, bridgeOutMsg)
@@ -1227,6 +1252,7 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         channelId,
         nonce,
         bridgeName: bridgeOutMsg.bridgeName,
+        version: bridgeOutMsg.version,
       })
 
       this.emit('telemetryXcmBridge', bridgeMatched)

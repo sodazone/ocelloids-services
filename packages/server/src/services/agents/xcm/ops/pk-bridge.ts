@@ -91,6 +91,7 @@ export function extractBridgeReceive(origin: NetworkURN) {
         for (const [nonce, result] of receive_results) {
           inboundMsgs.push(
             new GenericXcmBridgeInboundWithContext({
+              version: 1,
               chainId: origin,
               channelId: lane,
               nonce: nonce.toString(),

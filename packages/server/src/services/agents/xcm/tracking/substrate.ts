@@ -434,7 +434,7 @@ export class SubstrateXcmTracker {
             .blockEvents(destination)
             .pipe(extractBridgeReceive(destination))
             .subscribe({
-              next: (message) => this.#engine.onBridgeInbound(message),
+              next: (message) => this.#engine.onBridgeInbound('pkbridge', message),
               error: pkBridgeErrorHandler,
             }),
         })

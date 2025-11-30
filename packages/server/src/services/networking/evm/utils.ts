@@ -7,7 +7,10 @@ export function findLogInTx(tx: DecodedTxWithReceipt, abi: Abi, eventName: strin
     .map((ev) => toEventSelector(ev as AbiEvent))
 
   const found = tx.receipt.logs.find((log) => {
-    const { topics, data } = log
+    const { topics, data, transactionHash } = log
+    if (tx.hash !== transactionHash) {
+      return false
+    }
     const topic0 = topics[0]
     if (typeof topic0 === 'undefined' || !selectors.includes(topic0) || data === '0x') {
       return false

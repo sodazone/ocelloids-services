@@ -109,6 +109,40 @@ describe('snowbridge operator', () => {
         })
       })
     })
+
+    it('should extract snowbridge evm outbound v2_sendMessage', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23897030.cbor', true))
+      const test$ = block$.pipe(
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractSnowbridgeEvmOutbound(
+              'urn:ocn:ethereum:1',
+              '0x27ca963C279c93801941e1eB8799c23f407d68e7',
+              vi.fn().mockResolvedValue({ status: 'success', logs }),
+            ),
+          )
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            expect(msg.messageId).toBeDefined()
+            expect(msg.recipient).toBe('urn:ocn:polkadot:1000')
+            expect(msg.instructions).toBeDefined()
+            expect(msg.partialHumanized).toBeDefined()
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
   })
 
   describe('extractSnowbridgeSubstrateInbound', () => {
@@ -209,6 +243,45 @@ describe('snowbridge operator', () => {
             expect(msg.origin.chainId).toBe('urn:ocn:ethereum:1')
             expect(msg.destination.chainId).toBe('urn:ocn:polkadot:2034')
             expect(msg.legs.length).toBe(3)
+            expect(msg.sender).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
+    it('should map Snowbridge EVM outbound v2_sendMessage to XcmBridge', async () => {
+      const block$ = from(testEvmBlocksFrom('ethereum/23897030.cbor', true))
+      const test$ = block$.pipe(
+        mergeMap((blockWithLogs) => {
+          const logs = blockWithLogs.logs
+          const block = { ...blockWithLogs, logs: undefined }
+          return of(block).pipe(
+            extractSnowbridgeEvmOutbound(
+              'urn:ocn:ethereum:1',
+              '0x27ca963C279c93801941e1eB8799c23f407d68e7',
+              vi.fn().mockResolvedValue({ status: 'success', logs }),
+            ),
+            mapOutboundToXcmBridge(),
+          )
+        }),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg).toBeDefined()
+            expect(msg.type).toBe('xcm.bridge')
+            expect(msg.originProtocol).toBe('snowbridge')
+            expect(msg.destinationProtocol).toBe('xcm')
+            expect(msg.origin.chainId).toBe('urn:ocn:ethereum:1')
+            expect(msg.destination.chainId).toBe('urn:ocn:polkadot:1000')
+            expect(msg.legs.length).toBe(2)
             expect(msg.sender).toBeDefined()
           },
           complete: () => {

@@ -368,6 +368,35 @@
       "name": "v2_submit"
     },
     {
+      "inputs": [
+        { "internalType": "bytes32", "name": "origin", "type": "bytes32" },
+        { "internalType": "bytes", "name": "data", "type": "bytes" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "name": "v2_handleCallContract"
+    },
+    {
+      "inputs": [
+        { "internalType": "bytes", "name": "xcm", "type": "bytes" },
+        { "internalType": "bytes[]", "name": "assets", "type": "bytes[]" },
+        { "internalType": "bytes", "name": "claimer", "type": "bytes" },
+        {
+          "internalType": "uint128",
+          "name": "executionFee",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint128",
+          "name": "relayerFee",
+          "type": "uint128"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function",
+      "name": "v2_sendMessage"
+    },
+    {
       "type": "event",
       "name": "InboundMessageDispatched",
       "inputs": [
@@ -425,6 +454,58 @@
           "type": "bytes",
           "indexed": false,
           "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "OutboundMessageAccepted",
+      "inputs": [
+        {
+          "name": "nonce",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        },
+        {
+          "name": "payload",
+          "type": "tuple",
+          "indexed": false,
+          "internalType": "struct Payload",
+          "components": [
+            { "name": "origin", "type": "address", "internalType": "address" },
+            {
+              "name": "assets",
+              "type": "tuple[]",
+              "internalType": "struct Asset[]",
+              "components": [
+                { "name": "kind", "type": "uint8", "internalType": "uint8" },
+                { "name": "data", "type": "bytes", "internalType": "bytes" }
+              ]
+            },
+            {
+              "name": "xcm",
+              "type": "tuple",
+              "internalType": "struct Xcm",
+              "components": [
+                { "name": "kind", "type": "uint8", "internalType": "uint8" },
+                { "name": "data", "type": "bytes", "internalType": "bytes" }
+              ]
+            },
+            { "name": "claimer", "type": "bytes", "internalType": "bytes" },
+            { "name": "value", "type": "uint128", "internalType": "uint128" },
+            {
+              "name": "executionFee",
+              "type": "uint128",
+              "internalType": "uint128"
+            },
+            {
+              "name": "relayerFee",
+              "type": "uint128",
+              "internalType": "uint128"
+            }
+          ]
         }
       ],
       "anonymous": false

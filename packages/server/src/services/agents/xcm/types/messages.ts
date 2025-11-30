@@ -74,7 +74,7 @@ export type AssetSwap = {
  */
 export type XcmProgram = {
   bytes: Uint8Array
-  json: AnyJson
+  json: Record<string, any>
 }
 
 export interface XcmSentWithContext extends XcmWithContext {
@@ -101,6 +101,7 @@ export interface XcmInboundWithContext extends XcmWithContext {
 }
 
 export interface XcmBridgeInboundWithContext {
+  version: number
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
@@ -117,11 +118,12 @@ export interface XcmBridgeInboundWithContext {
 }
 
 export interface SnowbridgeMessageAccepted {
+  version: number
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
   nonce: string
-  messageId: HexString
+  messageId?: HexString
   recipient: NetworkURN
   event?: AnyJson
   txPosition?: number
@@ -139,12 +141,13 @@ export type SnowbridgeOutboundAsset = {
 }
 
 export interface SnowbridgeOutboundAccepted extends SnowbridgeMessageAccepted {
-  channelId: HexString
   messageData: HexString
   messageHash: HexString
-  beneficiary: HexString
-  asset: SnowbridgeOutboundAsset
   sender: SignerData
+  channelId?: HexString
+  claimer?: HexString
+  partialHumanized?: XcmPartialHumanized
+  instructions?: XcmProgram
 }
 
 export interface XcmRelayedWithContext extends XcmInboundWithContext {
@@ -286,6 +289,7 @@ export class GenericXcmBridgeAcceptedWithContext
 }
 
 export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithContext {
+  version: number
   blockNumber: string | number
   blockHash: HexString
   chainId: NetworkURN
@@ -302,6 +306,7 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
   messageId?: HexString
 
   constructor(msg: XcmBridgeInboundWithContext) {
+    this.version = msg.version
     this.blockNumber = msg.blockNumber
     this.blockHash = msg.blockHash
     this.chainId = msg.chainId
@@ -320,10 +325,11 @@ export class GenericXcmBridgeInboundWithContext implements XcmBridgeInboundWithC
 }
 
 export class GenericSnowbridgeMessageAccepted implements SnowbridgeMessageAccepted {
+  version: number
   chainId: NetworkURN
   blockNumber: string | number
   blockHash: HexString
-  messageId: HexString
+  messageId?: HexString
   nonce: string
   recipient: NetworkURN
   event?: AnyJson
@@ -335,6 +341,7 @@ export class GenericSnowbridgeMessageAccepted implements SnowbridgeMessageAccept
     this.blockNumber = msg.blockNumber
     this.blockHash = msg.blockHash
     this.chainId = msg.chainId
+    this.version = msg.version
 
     this.messageId = msg.messageId
     this.nonce = msg.nonce
@@ -349,26 +356,22 @@ export class GenericSnowbridgeOutboundAccepted
   extends GenericSnowbridgeMessageAccepted
   implements SnowbridgeOutboundAccepted
 {
-  channelId: HexString
+  channelId?: HexString
   messageData: HexString
   messageHash: HexString
-  beneficiary: HexString
-  asset: {
-    chainId: NetworkURN
-    id: HexString
-    amount: string
-  }
   sender: SignerData
+  partialHumanized?: XcmPartialHumanized
+  instructions?: XcmProgram
 
   constructor(msg: SnowbridgeOutboundAccepted) {
     super(msg)
 
     this.channelId = msg.channelId
-    this.asset = msg.asset
     this.sender = msg.sender
-    this.beneficiary = msg.beneficiary
     this.messageData = msg.messageData
     this.messageHash = msg.messageHash
+    this.partialHumanized = msg.partialHumanized
+    this.instructions = msg.instructions
   }
 }
 
@@ -446,6 +449,15 @@ export type Leg = {
 }
 
 /**
+ * Humanized information of a journey
+ * @public
+ */
+export type XcmPartialHumanized = {
+  beneficiary?: HexString
+  assets: SnowbridgeOutboundAsset[]
+}
+
+/**
  * The basic information of an XCM journey.
  *
  * @public
@@ -460,10 +472,7 @@ export interface XcmJourney {
   destination: XcmTerminus | XcmTerminusContext
   sender?: SignerData
   messageId?: HexString
-  partialHumanized?: {
-    beneficiary: HexString
-    asset: SnowbridgeOutboundAsset
-  }
+  partialHumanized?: XcmPartialHumanized
 }
 
 /**
@@ -538,10 +547,7 @@ abstract class BaseXcmJourney {
   destinationProtocol: string
   sender?: SignerData
   messageId?: HexString
-  partialHumanized?: {
-    beneficiary: HexString
-    asset: SnowbridgeOutboundAsset
-  }
+  partialHumanized?: XcmPartialHumanized
 
   constructor(msg: Omit<XcmJourney, 'origin' | 'destination' | 'waypoint' | 'type'>) {
     this.legs = msg.legs
@@ -722,6 +728,7 @@ export interface XcmBridge extends XcmJourney {
   bridgeStatus: BridgeStatus
   bridgeName: BridgeName
   channelId?: HexString
+  version: number
 }
 
 type XcmBridgeContext = {
@@ -729,6 +736,7 @@ type XcmBridgeContext = {
   nonce: string
   bridgeName: BridgeName
   channelId?: HexString
+  version: number
 }
 
 export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
@@ -740,11 +748,12 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
   origin: XcmTerminusContext
   destination: XcmTerminus
   channelId?: HexString
+  version: number
 
   constructor(
     originMsg: XcmJourney,
     waypoint: XcmWaypointContext,
-    { channelId, nonce, bridgeStatus, bridgeName }: XcmBridgeContext,
+    { channelId, nonce, bridgeStatus, bridgeName, version }: XcmBridgeContext,
   ) {
     super(originMsg)
 
@@ -755,6 +764,7 @@ export class GenericXcmBridge extends BaseXcmJourney implements XcmBridge {
     this.channelId = channelId
     this.nonce = nonce
     this.bridgeName = bridgeName
+    this.version = version
   }
 }
 

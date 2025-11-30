@@ -1,11 +1,12 @@
 import { filter, from, map, mergeMap, Observable } from 'rxjs'
-import { Abi, decodeEventLog, TransactionReceipt } from 'viem'
-import { asSerializable, hexTimestampToMillis } from '@/common/util.js'
+import { Abi, decodeAbiParameters, decodeEventLog, TransactionReceipt } from 'viem'
+import { asSerializable } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
 import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
 import { findLogInTx } from '@/services/networking/evm/utils.js'
+import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import gatewayAbi from '../abis/gateway-mini.json' with { type: 'json' }
 import {
@@ -16,14 +17,16 @@ import {
   Leg,
   SnowbridgeMessageAccepted,
   SnowbridgeOutboundAccepted,
+  SnowbridgeOutboundAsset,
   XcmBridge,
   XcmBridgeInboundWithContext,
   XcmJourney,
   XcmTerminusContext,
   XcmWaypointContext,
 } from '../types/messages.js'
-import { matchEvent } from './util.js'
-import { messageHash } from './xcm-format.js'
+import { recursiveExtractStops, Stop } from './common.js'
+import { getMessageId, matchEvent } from './util.js'
+import { asVersionedXcm, messageHash } from './xcm-format.js'
 
 const ASSET_HUB_PARAID = '1000'
 const BRIDGE_HUB_PARAID = '1002'
@@ -48,6 +51,25 @@ type SnowbridgeEvmOutboundAcceptedLog = {
   }
 }
 
+type SnowbridgeEvmV2OutboundAcceptedLog = {
+  eventName: string
+  args: {
+    nonce: bigint
+    payload: {
+      origin: HexString
+      assets: { kind: number; data: HexString }[]
+      xcm: {
+        kind: number
+        data: HexString
+      }
+      claimer: HexString
+      value: bigint
+      executionFee: bigint
+      relayerFee: bigint
+    }
+  }
+}
+
 type SnowbridgeEvmTokenSentLog = {
   eventName: string
   args: {
@@ -63,10 +85,10 @@ type SnowbridgeEvmTokenSentLog = {
 }
 
 type SnowbridgeSubstrateReceivedEvent = {
-  channel_id: HexString
+  channel_id?: HexString
   message_id: HexString
   nonce: number
-  fee_burned: number
+  fee_burned?: number
 }
 
 type SnowbridgeSubstrateAcceptedEvent = {
@@ -103,6 +125,7 @@ export function extractSnowbridgeEvmInbound(
           const { channelID, messageID, nonce, success } = inboundEventArgs
 
           return new GenericXcmBridgeInboundWithContext({
+            version: 1,
             chainId,
             blockHash: tx.blockHash,
             blockNumber: tx.blockNumber.toString(),
@@ -125,6 +148,7 @@ export function extractSnowbridgeEvmInbound(
           const { nonce, success, topic } = inboundEventArgs
 
           return new GenericXcmBridgeInboundWithContext({
+            version: 2,
             chainId,
             blockHash: tx.blockHash,
             blockNumber: tx.blockNumber.toString(),
@@ -144,6 +168,202 @@ export function extractSnowbridgeEvmInbound(
   }
 }
 
+function handleV1SendToken(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
+  const tokenSentLog = findLogInTx(tx, gatewayAbi as Abi, 'TokenSent')
+  const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
+  if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
+    return null
+  }
+
+  const { eventName: acceptedEventName, args: acceptedEventArgs } = decodeEventLog({
+    abi: gatewayAbi as Abi,
+    topics: acceptedLog.topics as LogTopics,
+    data: acceptedLog.data,
+  }) as unknown as SnowbridgeEvmOutboundAcceptedLog
+  const { channelID, messageID, nonce, payload } = acceptedEventArgs
+  const {
+    args: { amount, destinationAddress, destinationChain, sender, token },
+  } = decodeEventLog({
+    abi: gatewayAbi as Abi,
+    topics: tokenSentLog.topics as LogTopics,
+    data: tokenSentLog.data,
+  }) as unknown as SnowbridgeEvmTokenSentLog
+
+  const beneficiary =
+    destinationAddress.kind === 2
+      ? (destinationAddress.data.slice(0, 42) as HexString)
+      : destinationAddress.data
+  return new GenericSnowbridgeOutboundAccepted({
+    version: 1,
+    chainId,
+    blockHash: tx.blockHash,
+    blockNumber: tx.blockNumber.toString(),
+    channelId: channelID,
+    messageId: messageID,
+    nonce: nonce.toString(),
+    messageData: payload,
+    messageHash: messageHash(payload),
+    sender: {
+      signer: {
+        id: sender,
+        publicKey: sender,
+      },
+      extraSigners: [],
+    },
+    recipient: createNetworkId('polkadot', destinationChain.toString()),
+    event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
+    timestamp: tx.timestamp,
+    txHash: tx.hash,
+    txPosition: tx.transactionIndex ?? undefined,
+    partialHumanized: {
+      beneficiary,
+      assets: [
+        {
+          chainId,
+          id: token,
+          amount: amount.toString(),
+        },
+      ],
+    },
+  })
+}
+
+enum XcmKind {
+  Raw = 0,
+  CreateAsset = 1,
+}
+
+enum AssetKind {
+  NativeTokenERC20 = 0,
+  ForeignTokenERC20 = 1,
+}
+
+function mapV2Assets(
+  chainId: NetworkURN,
+  assets: {
+    kind: number
+    data: HexString
+  }[],
+  value: bigint,
+): SnowbridgeOutboundAsset[] {
+  const assetsSent: SnowbridgeOutboundAsset[] = [
+    {
+      chainId,
+      id: '0x0000000000000000000000000000000000000000',
+      amount: value.toString(),
+    },
+  ]
+  for (const a of assets) {
+    if (a.kind === AssetKind.NativeTokenERC20) {
+      const [token, amount] = decodeAbiParameters(
+        [
+          { type: 'address', name: 'token' },
+          { type: 'uint128', name: 'amount' },
+        ],
+        a.data,
+      )
+      assetsSent.push({
+        chainId,
+        id: token,
+        amount: amount.toString(),
+      })
+    } else if (a.kind === AssetKind.ForeignTokenERC20) {
+      const [token, amount] = decodeAbiParameters(
+        [
+          { type: 'bytes32', name: 'foreignID' },
+          { type: 'uint128', name: 'amount' },
+        ],
+        a.data,
+      )
+      assetsSent.push({
+        chainId,
+        id: token,
+        amount: amount.toString(),
+      })
+    }
+  }
+  return assetsSent
+}
+
+function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
+  const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
+  if (!acceptedLog || tx.blockHash === null || tx.blockNumber === null) {
+    return null
+  }
+  const { eventName: acceptedEventName, args: acceptedEventArgs } = decodeEventLog({
+    abi: gatewayAbi as Abi,
+    topics: acceptedLog.topics as LogTopics,
+    data: acceptedLog.data,
+  }) as unknown as SnowbridgeEvmV2OutboundAcceptedLog
+  const {
+    nonce,
+    payload: { origin, assets, xcm, claimer, value },
+  } = acceptedEventArgs
+
+  if (xcm.kind === XcmKind.Raw) {
+    const program = asVersionedXcm(xcm.data, defaultPolkadotContext)
+
+    return new GenericSnowbridgeOutboundAccepted({
+      version: 2,
+      chainId,
+      blockHash: tx.blockHash,
+      blockNumber: tx.blockNumber.toString(),
+      messageId: getMessageId(program)!,
+      nonce: nonce.toString(),
+      messageData: xcm.data,
+      messageHash: program.hash,
+      sender: {
+        signer: {
+          id: origin,
+          publicKey: origin,
+        },
+        extraSigners: [],
+      },
+      claimer,
+      recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
+      event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
+      timestamp: tx.timestamp,
+      txHash: tx.hash,
+      txPosition: tx.transactionIndex ?? undefined,
+      partialHumanized: {
+        assets: mapV2Assets(chainId, assets, value),
+      },
+      instructions: {
+        bytes: program.data,
+        json: program.instructions,
+      },
+    })
+  } else if (xcm.kind === XcmKind.CreateAsset) {
+    return new GenericSnowbridgeOutboundAccepted({
+      version: 2,
+      chainId,
+      blockHash: tx.blockHash,
+      blockNumber: tx.blockNumber.toString(),
+      nonce: nonce.toString(),
+      messageData: xcm.data,
+      messageHash: messageHash(xcm.data),
+      sender: {
+        signer: {
+          id: origin,
+          publicKey: origin,
+        },
+        extraSigners: [],
+      },
+      claimer,
+      recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
+      event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
+      timestamp: tx.timestamp,
+      txHash: tx.hash,
+      txPosition: tx.transactionIndex ?? undefined,
+      partialHumanized: {
+        assets: mapV2Assets(chainId, assets, value),
+      },
+    })
+  }
+  console.warn(`Snowbridge V2 xcm kind ${xcm.kind} not supported (tx=${tx.hash})`)
+  return null
+}
+
 export function extractSnowbridgeEvmOutbound(
   chainId: NetworkURN,
   contractAddress: HexString,
@@ -151,68 +371,26 @@ export function extractSnowbridgeEvmOutbound(
 ) {
   return (source: Observable<Block>): Observable<SnowbridgeOutboundAccepted> => {
     return source.pipe(
-      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['sendToken']),
+      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, [
+        'sendToken',
+        'v2_sendMessage',
+      ]),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
           map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
         ),
       ),
       map((tx) => {
-        if (tx.receipt.status === 'reverted') {
+        if (!tx.decoded || tx.receipt.status === 'reverted') {
           return null
         }
-        const tokenSentLog = findLogInTx(tx, gatewayAbi as Abi, 'TokenSent')
-        const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
-        if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
-          return null
+        if (tx.decoded.functionName === 'sendToken') {
+          return handleV1SendToken(chainId, tx)
         }
-
-        const { eventName: acceptedEventName, args: acceptedEventArgs } = decodeEventLog({
-          abi: gatewayAbi as Abi,
-          topics: acceptedLog.topics as LogTopics,
-          data: acceptedLog.data,
-        }) as unknown as SnowbridgeEvmOutboundAcceptedLog
-        const { channelID, messageID, nonce, payload } = acceptedEventArgs
-        const {
-          args: { amount, destinationAddress, destinationChain, sender, token },
-        } = decodeEventLog({
-          abi: gatewayAbi as Abi,
-          topics: tokenSentLog.topics as LogTopics,
-          data: tokenSentLog.data,
-        }) as unknown as SnowbridgeEvmTokenSentLog
-
-        const beneficiary =
-          destinationAddress.kind === 2
-            ? (destinationAddress.data.slice(0, 42) as HexString)
-            : destinationAddress.data
-        return new GenericSnowbridgeOutboundAccepted({
-          chainId,
-          blockHash: tx.blockHash,
-          blockNumber: tx.blockNumber.toString(),
-          channelId: channelID,
-          messageId: messageID,
-          nonce: nonce.toString(),
-          messageData: payload,
-          messageHash: messageHash(payload),
-          sender: {
-            signer: {
-              id: sender,
-              publicKey: sender,
-            },
-            extraSigners: [],
-          },
-          beneficiary,
-          recipient: createNetworkId('polkadot', destinationChain.toString()),
-          asset: {
-            chainId,
-            id: token,
-            amount: amount.toString(),
-          },
-          event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
-          timestamp: hexTimestampToMillis((acceptedLog as any)['blockTimestamp']),
-          txHash: tx.hash,
-          txPosition: tx.transactionIndex ?? undefined,
-        })
+        if (tx.decoded.functionName === 'v2_sendMessage') {
+          return handleV2SendMessage(chainId, tx)
+        }
+        return null
       }),
       filter((msg) => msg !== null),
     )
@@ -222,10 +400,13 @@ export function extractSnowbridgeEvmOutbound(
 export function extractSnowbridgeSubstrateInbound(chainId: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<XcmBridgeInboundWithContext> => {
     return source.pipe(
-      filter((event) => matchEvent(event, 'EthereumInboundQueue', 'MessageReceived')),
+      filter((event) =>
+        matchEvent(event, ['EthereumInboundQueue', 'EthereumInboundQueueV2'], 'MessageReceived'),
+      ),
       map((blockEvent) => {
         const { channel_id, message_id, nonce } = blockEvent.value as SnowbridgeSubstrateReceivedEvent
         return new GenericXcmBridgeInboundWithContext({
+          version: blockEvent.module === 'EthereumInboundQueueV2' ? 2 : 1,
           chainId,
           blockHash: blockEvent.blockHash as HexString,
           blockNumber: blockEvent.blockNumber,
@@ -252,6 +433,7 @@ export function extractSnowbridgeSubstrateOutbound(chainId: NetworkURN) {
       map((blockEvent) => {
         const { id, nonce } = blockEvent.value as SnowbridgeSubstrateAcceptedEvent
         return new GenericSnowbridgeMessageAccepted({
+          version: blockEvent.module === 'EthereumOutboundQueueV2' ? 2 : 1,
           chainId,
           blockHash: blockEvent.blockHash as HexString,
           blockNumber: blockEvent.blockNumber,
@@ -305,11 +487,39 @@ function toSnowbridgeLegs(origin: NetworkURN, destination: NetworkURN): Leg[] {
   return legs
 }
 
+function toSnowbridgeV2Legs(origin: NetworkURN, recipient: NetworkURN, instructions: any[]) {
+  const stops: Stop[] = [{ networkId: recipient }]
+  recursiveExtractStops(origin, instructions, stops)
+
+  const bridgeHub = createNetworkId(recipient, BRIDGE_HUB_PARAID)
+  const relay = createNetworkId(recipient, '0')
+  const legs: Leg[] = [
+    {
+      from: origin,
+      to: bridgeHub,
+      type: 'bridge',
+    },
+  ]
+
+  for (const [index, stop] of stops.entries()) {
+    const prev = legs[index]
+    legs.push({
+      from: prev.to,
+      to: stop.networkId,
+      relay,
+      type: index === stops.length - 1 ? 'hrmp' : 'hop',
+    })
+  }
+
+  return legs
+}
+
 export function mapOutboundToXcmBridge() {
   return (source: Observable<SnowbridgeOutboundAccepted>): Observable<XcmBridge> => {
     return source.pipe(
       map(
         ({
+          version,
           chainId,
           messageId,
           channelId,
@@ -324,9 +534,13 @@ export function mapOutboundToXcmBridge() {
           messageHash,
           recipient,
           sender,
-          asset,
-          beneficiary,
+          partialHumanized,
+          instructions,
         }) => {
+          const legs =
+            version === 2 && instructions
+              ? toSnowbridgeV2Legs(chainId, recipient, instructions.json.value as any[])
+              : toSnowbridgeLegs(chainId, recipient)
           const origin: XcmTerminusContext = {
             chainId,
             blockHash,
@@ -339,7 +553,7 @@ export function mapOutboundToXcmBridge() {
             messageHash,
             outcome: 'Success', // always 'Success' since it's accepted
             error: null,
-            instructions: null,
+            instructions: instructions?.json,
           }
           const waypoint: XcmWaypointContext = {
             ...origin,
@@ -349,24 +563,22 @@ export function mapOutboundToXcmBridge() {
             type: 'xcm.sent',
             origin,
             destination: {
-              chainId: recipient,
+              chainId: legs[legs.length - 1].to,
             },
             originProtocol: 'snowbridge',
             destinationProtocol: 'xcm',
-            legs: toSnowbridgeLegs(chainId, recipient),
+            legs,
             waypoint,
             messageId,
             sender,
-            partialHumanized: {
-              asset,
-              beneficiary,
-            },
+            partialHumanized,
           }
           return new GenericXcmBridge(originMsg, waypoint, {
             bridgeStatus: 'accepted',
             channelId,
             nonce,
             bridgeName: 'snowbridge',
+            version,
           })
         },
       ),

@@ -66,10 +66,10 @@ export function hyperbridgeMatchingEngineMetrics(source: TelemetryHyperbridgeEve
   source.on('telemetryHyperbridgeUnmatched', ({ origin, destination }) => {
     unmatchedCount.labels(origin.chainId, destination.chainId).inc()
   })
-  source.on('telemetryHyperbridgeJanitorScheduled', ({sublevel}) => {
+  source.on('telemetryHyperbridgeJanitorScheduled', ({ sublevel }) => {
     janitorScheduledCount.labels(sublevel)
   })
-  source.on('telemetryHyperbridgeJanitorSwept', ({sublevel}) => {
+  source.on('telemetryHyperbridgeJanitorSwept', ({ sublevel }) => {
     janitorSweptCount.labels(sublevel)
   })
 }

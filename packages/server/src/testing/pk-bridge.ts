@@ -177,6 +177,7 @@ const kusamaBridgeHubAccepted: XcmBridgeAcceptedWithContext = {
 }
 
 const polkadotBridgeHubReceive: XcmBridgeInboundWithContext = {
+  version: 1,
   blockNumber: '6100146',
   blockHash: '0x1030a342ee49feee702a544242daa765adc7d22b25e6fee1cf6b6fd2f3e10fb8',
   chainId: 'urn:ocn:polkadot:1002',

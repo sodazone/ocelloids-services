@@ -393,7 +393,7 @@ describe('message matching engine', () => {
     await engine.onInboundMessage(bridgeXcmIn)
 
     await engine.onOutboundMessage(bridgeXcmOut)
-    await engine.onBridgeInbound(bridgeReceived)
+    await engine.onBridgeInbound('pkbridge', bridgeReceived)
     await engine.onInboundMessage(received)
 
     expectEvents(['xcm.sent', 'xcm.bridge', 'xcm.hop', 'xcm.hop', 'xcm.bridge', 'xcm.received'])
@@ -413,7 +413,7 @@ describe('message matching engine', () => {
 
     await engine.onSnowbridgeOriginOutbound(ethereumSent)
     await engine.onOutboundMessage(bridgeHubXcmOut)
-    await engine.onBridgeInbound(bridgeHubReceived)
+    await engine.onBridgeInbound('snowbridge', bridgeHubReceived)
 
     await engine.onOutboundMessage(assetHubXcmOut)
     await engine.onInboundMessage(assetHubXcmIn)
@@ -440,7 +440,7 @@ describe('message matching engine', () => {
 
     await engine.onInboundMessage(bridgeHubXcmHopIn)
     await engine.onSnowbridgeBridgehubAccepted(bridgeHubAceppted)
-    await engine.onBridgeInbound(ethereumReceived)
+    await engine.onBridgeInbound('snowbridge', ethereumReceived)
 
     expectEvents(['xcm.sent', 'xcm.hop', 'xcm.hop', 'xcm.hop', 'xcm.bridge', 'xcm.bridge', 'xcm.received'])
     expectOd(7, { origin: 'urn:ocn:polkadot:2034', destination: 'urn:ocn:ethereum:1' })
@@ -452,7 +452,7 @@ describe('message matching engine', () => {
 
     await engine.onOutboundMessage(assethubSent)
     await engine.onSnowbridgeBridgehubAccepted(bridgeHubAcepptedV2)
-    await engine.onBridgeInbound(ethereumReceivedV2)
+    await engine.onBridgeInbound('snowbridge', ethereumReceivedV2)
 
     expectEvents(['xcm.sent', 'xcm.bridge', 'xcm.bridge', 'xcm.received'])
     expectOd(4, { origin: 'urn:ocn:polkadot:1000', destination: 'urn:ocn:ethereum:1' })

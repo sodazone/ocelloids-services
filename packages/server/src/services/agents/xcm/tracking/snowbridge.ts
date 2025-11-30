@@ -93,7 +93,7 @@ export class SnowbridgeTracker {
               }),
             )
             .subscribe((msg) => {
-              this.#engine.onBridgeInbound(msg)
+              this.#engine.onBridgeInbound('snowbridge', msg)
             }),
         })
       }
@@ -116,7 +116,7 @@ export class SnowbridgeTracker {
               }),
             )
             .subscribe((msg) => {
-              this.#engine.onBridgeInbound(msg)
+              this.#engine.onBridgeInbound('snowbridge', msg)
             }),
         })
       }
