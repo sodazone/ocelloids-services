@@ -1,6 +1,5 @@
 import { MemoryLevel } from 'memory-level'
 import { pino } from 'pino'
-
 import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { ServiceConfiguration } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
@@ -12,6 +11,7 @@ import { InjectableConnector } from './inject.js'
 
 export function initRuntime() {
   const log = pino() as Logger
+
   const egress = {
     publish: async (sub: any, message: any) => {
       console.log(`${sub.id}=>`)

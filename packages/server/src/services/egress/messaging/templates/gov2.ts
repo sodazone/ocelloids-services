@@ -1,9 +1,17 @@
 export const Gov2Template = `
-*Referendum {{payload.id}} – {{payload.humanized.status}}*
+*Referendum {{payload.id}}*
 {{#if payload.content.title}}
 _{{escapeMarkdownV2 payload.content.title}}_
 {{/if}}
-\\({{chain payload.chainId}}\\)
+
+*{{payload.humanized.status}}*
+
+{{chain payload.chainId}}
+{{~#if payload.info.origin.value.type}}
+ · {{payload.info.origin.value.type}}
+{{/if}}
+
+{{mdjson payload}}
 
 {{#if payload.content.link}}
 [Open in Subsquare]({{payload.content.link}})

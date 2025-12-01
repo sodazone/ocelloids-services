@@ -48,7 +48,17 @@ export class TemplateRenderer {
         max: 100,
         ttl: 3.6e6, // 1 hour
       })
-    Handlebars.registerHelper('json', (context) => JSON.stringify(context, null, 2))
+    Handlebars.registerHelper('json', (obj) => {
+      return JSON.stringify(obj, null, 2)
+    })
+    Handlebars.registerHelper('mdjson', (obj) => {
+      let json = escapeMarkdownV2(JSON.stringify(obj, null, 2))
+      json = json
+        .split('\n')
+        .map((line) => `>${line}`)
+        .join('\n')
+      return new Handlebars.SafeString(json + '||')
+    })
     Handlebars.registerHelper('safe', (context) => new Handlebars.SafeString(context))
     Handlebars.registerHelper('eq', (a, b) => a === b)
     Handlebars.registerHelper('chain', chainHelper)
@@ -78,7 +88,7 @@ export class TemplateRenderer {
 
     const delgate = Handlebars.compile(template, {
       strict: true,
-      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true },
+      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true, mdjson: true },
       knownHelpersOnly: true,
     })
 

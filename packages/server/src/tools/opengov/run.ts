@@ -46,7 +46,7 @@ async function main(scenario: ScenarioKey) {
   process.exit(0)
 }
 
-main('FromConfirmed').catch((err) => {
+main('Rejected').catch((err) => {
   console.error('❌ Fatal error in main loop:', err)
   process.exit(1)
 })

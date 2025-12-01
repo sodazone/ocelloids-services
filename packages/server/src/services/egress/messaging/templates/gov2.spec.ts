@@ -39,17 +39,15 @@ describe('Gov2', () => {
           humanized: {
             status: 'Rejected',
           },
-          info: [
-            28722810,
-            {
-              who: '12uzRiFHPB5tEKWQ2g7TKVcEy6QkwJR313h7gBcBMQKaQhZ7',
-              amount: '10000000000',
+          info: {
+            track: 33,
+            origin: {
+              type: 'Origins',
+              value: {
+                type: 'MediumSpender',
+              },
             },
-            {
-              who: '12uzRiFHPB5tEKWQ2g7TKVcEy6QkwJR313h7gBcBMQKaQhZ7',
-              amount: '1000000000000',
-            },
-          ],
+          },
           timeline: {
             finalizedAt: 28722810,
           },
