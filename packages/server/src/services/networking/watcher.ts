@@ -56,8 +56,7 @@ const MAX_REORG = 500
 
 const MAX_BLOCK_DIST: number = process.env.OC_MAX_BLOCK_DIST ? Number(process.env.OC_MAX_BLOCK_DIST) : 50 // maximum distance in #blocks
 const max = (...args: number[]) => args.reduce((m, e) => (e > m ? e : m))
-
-// const heightKey = (h: number) => h.toString().padStart(20, "0")
+const heightKey = (h: number) => h.toString().padStart(20, '0')
 
 function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize: number) {
   const targets = []
@@ -182,7 +181,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
           return []
         }
 
-        await db.put(head.height.toString(), head)
+        await db.put(heightKey(head.height), head)
         lastEmitted[head.height] = head.hash
 
         const pruneBelow = head.height - MAX_REORG
@@ -195,18 +194,10 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         }
 
         // prune db
-        // TODO: improve this with padded key prefix
-        // const pruneKey = heightKey(pruneBelow)
+        const pruneKey = heightKey(pruneBelow)
         const batch = db.batch()
-        //for await (const [key] of db.iterator({ lt: pruneKey })) {
-        //  batch.del(key)
-        //}
-        // XXX: full scan
-        for await (const [key] of db.iterator()) {
-          const h = Number(key)
-          if (h < pruneBelow) {
-            batch.del(key)
-          }
+        for await (const [key] of db.iterator({ lt: pruneKey })) {
+          batch.del(key)
         }
         if (batch.length > 0) {
           await batch.write()
@@ -217,7 +208,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         // check for reorg
         if (head.height > 0) {
           const prevHeight = head.height - 1
-          const prevHead = await db.get(prevHeight.toString())
+          const prevHead = await db.get(heightKey(prevHeight))
 
           if (prevHead !== undefined && head.parenthash !== prevHead.hash) {
             this.log.info('[%s] reorg at height %s', chainId, head.height)
