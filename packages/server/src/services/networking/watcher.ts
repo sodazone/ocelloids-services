@@ -57,6 +57,8 @@ const MAX_REORG = 500
 const MAX_BLOCK_DIST: number = process.env.OC_MAX_BLOCK_DIST ? Number(process.env.OC_MAX_BLOCK_DIST) : 50 // maximum distance in #blocks
 const max = (...args: number[]) => args.reduce((m, e) => (e > m ? e : m))
 
+// const heightKey = (h: number) => h.toString().padStart(20, "0")
+
 function arrayOfTargetHeights(newHeight: number, targetHeight: number, batchSize: number) {
   const targets = []
   let n: number = newHeight
@@ -183,11 +185,31 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         await db.put(head.height.toString(), head)
         lastEmitted[head.height] = head.hash
 
+        const pruneBelow = head.height - MAX_REORG
+
         // prune cache
         for (const h of Object.keys(lastEmitted)) {
-          if (Number(h) < head.height - MAX_REORG) {
+          if (Number(h) < pruneBelow) {
             delete lastEmitted[Number(h)]
           }
+        }
+
+        // prune db
+        // TODO: improve this with padded key prefix
+        // const pruneKey = heightKey(pruneBelow)
+        const batch = db.batch()
+        //for await (const [key] of db.iterator({ lt: pruneKey })) {
+        //  batch.del(key)
+        //}
+        // XXX: full scan
+        for await (const [key] of db.iterator()) {
+          const h = Number(key)
+          if (h < pruneBelow) {
+            batch.del(key)
+          }
+        }
+        if (batch.length > 0) {
+          await batch.write()
         }
 
         const emits: NeutralHeader[] = [head]
