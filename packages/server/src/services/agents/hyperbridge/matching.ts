@@ -119,7 +119,6 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
           expiry: this.#expiry,
         }
         await this.#janitor.schedule(task)
-        this.emit('telemetryHyperbridgeJanitorScheduled', task)
       }
     })
   }
@@ -156,7 +155,6 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
           expiry: this.#expiry,
         }
         await this.#janitor.schedule(task)
-        this.emit('telemetryHyperbridgeJanitorScheduled', task)
       }
     })
   }
@@ -193,7 +191,6 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
         expiry: this.#expiry,
       }
       await this.#janitor.schedule(task)
-      this.emit('telemetryHyperbridgeJanitorScheduled', task)
     })
   }
 
@@ -218,7 +215,6 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       expiry: expiry ?? this.#expiry,
     }
     await this.#janitor.schedule(task)
-    this.emit('telemetryHyperbridgeJanitorScheduled', task)
   }
 
   async #handleMatched(
@@ -332,8 +328,6 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
       }
     } catch (e) {
       this.#log.error(e, 'Error on notification')
-    } finally {
-      this.emit('telemetryHyperbridgeJanitorSwept', task)
     }
   }
 }
