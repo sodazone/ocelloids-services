@@ -53,8 +53,8 @@ export const retryCapped = (cap: number) => ({
 })
 
 const MAX_REORG = 500
-
 const MAX_BLOCK_DIST: number = process.env.OC_MAX_BLOCK_DIST ? Number(process.env.OC_MAX_BLOCK_DIST) : 50 // maximum distance in #blocks
+
 const max = (...args: number[]) => args.reduce((m, e) => (e > m ? e : m))
 const heightKey = (h: number) => h.toString().padStart(20, '0')
 
