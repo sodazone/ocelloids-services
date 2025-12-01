@@ -31,6 +31,16 @@ import { asVersionedXcm, messageHash } from './xcm-format.js'
 const ASSET_HUB_PARAID = '1000'
 const BRIDGE_HUB_PARAID = '1002'
 
+enum XcmKind {
+  Raw = 0,
+  CreateAsset = 1,
+}
+
+enum AssetKind {
+  NativeTokenERC20 = 0,
+  ForeignTokenERC20 = 1,
+}
+
 type SnowbridgeEvmInboundLog = {
   eventName: string
   args: { channelID: HexString; messageID: HexString; nonce: string; success: boolean }
@@ -226,16 +236,6 @@ function handleV1SendToken(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
       ],
     },
   })
-}
-
-enum XcmKind {
-  Raw = 0,
-  CreateAsset = 1,
-}
-
-enum AssetKind {
-  NativeTokenERC20 = 0,
-  ForeignTokenERC20 = 1,
 }
 
 function mapV2Assets(
