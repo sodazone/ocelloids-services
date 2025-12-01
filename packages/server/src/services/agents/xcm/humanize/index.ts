@@ -150,7 +150,12 @@ export class XcmHumanizer {
           this.#extractBeneficiary(versioned.value, destination.chainId),
         )
       }
-      const resolvedAssets = await this.#resolveSnowbridgeAsset(assets)
+      const assetsToResolve: SnowbridgeOutboundAsset[] = Array.isArray(assets)
+        ? assets
+        : 'asset' in message.partialHumanized
+          ? ([message.partialHumanized.asset] as SnowbridgeOutboundAsset[])
+          : []
+      const resolvedAssets = await this.#resolveSnowbridgeAsset(assetsToResolve)
       return { type: XcmJourneyType.Transfer, from, to, assets: resolvedAssets, transactCalls: [] }
     }
     const { sender, origin, destination, legs, waypoint } = message
