@@ -1,6 +1,21 @@
 import { NeutralHeader } from '@/services/networking/types.js'
 
 export const scenarios = {
+  FromConfirmed: () => {
+    const confirmed: NeutralHeader = {
+      hash: '0x6be9254791cd9cd3c07a781d15c61ea133d27cbfd8a60ca56e2776727b0be14b',
+      parenthash: '0x82ba5b34e58bbb0eac9ea90b6c7d9ed24ce6b4e64268dc260f400ff971391a16',
+      height: 28005780,
+      status: 'finalized',
+    }
+    const executed: NeutralHeader = {
+      hash: '0x7230ef3d1282cb75cf7bc8a1b5b63930b08d91fdb7d3dd224a1d88136f18b611',
+      parenthash: '0x6be9254791cd9cd3c07a781d15c61ea133d27cbfd8a60ca56e2776727b0be14b',
+      height: 28005781,
+      status: 'finalized',
+    }
+    return [confirmed, executed]
+  },
   Timeout: () => {
     const submitted: NeutralHeader = {
       hash: '0x1e5c50280cb68834e50f05a29ec7685772466360f77a29d3393806a38b920cc8',

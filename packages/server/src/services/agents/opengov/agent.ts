@@ -301,6 +301,50 @@ export class OpenGovAgent implements Agent, Subscribable {
   /** Track a confirmed referendum, storing pending task info for Scheduler execution */
   async #trackConfirmedReferendum(chainId: NetworkURN, block: Block, ev: Event, ref: OpenGovEvent) {
     if (Array.isArray(ref.info)) {
+      if (ref.timeline?.willExecuteAt === undefined) {
+        try {
+          // here we don't have enough information to track the referendum
+          // e.g. if we get directly the "Confirmed" event without seeing the "ConfirmationStarted"
+          // so we fetch the details from an indexer to get the enactment data
+          const details = (await this.#content.fetchDetails(chainId, ref.id)) as any
+          const enactment = details?.onchainData?.enactment
+          if (enactment) {
+            const { when, index } = enactment
+            const pendingKey = `${chainId}:pending:${when}`
+            const pendings = (await this.#db.get(pendingKey)) ?? []
+
+            if (
+              pendings.findIndex(
+                (pending: { referendumId: string }) => String(pending.referendumId) === String(ref.id),
+              ) > -1
+            ) {
+              this.#log.warn(
+                '[%s:%s] Referendum %d already pending on fallback fetch',
+                this.id,
+                chainId,
+                ref.id,
+              )
+              return
+            }
+
+            pendings.push({
+              referendumId: ref.id,
+              taskId: index,
+              scheduledAt: Date.now(),
+              trackedAt: Date.now(),
+              proposal: { type: 'Decoded', value: asSerializable(details?.onchainData?.proposal) },
+            })
+
+            await this.#db.put(pendingKey, pendings)
+
+            // Persist updated ref with scheduling metadata
+            const updated = { ...ref, scheduled: { when, index } }
+            await this.#updateReferendum(chainId, updated)
+          }
+        } catch (error) {
+          this.#log.error('[%s:%s] Failed to track confirmed referendum %d', this.id, chainId, ref.id, error)
+        }
+      }
       return
     }
 

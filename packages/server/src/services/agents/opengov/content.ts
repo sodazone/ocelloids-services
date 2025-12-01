@@ -18,7 +18,7 @@ export type ReferendumDetails = {
   link?: string
 }
 
-function resolveReferendumLink(chainId: string, id: string) {
+function resolveReferendumLink(chainId: string, id: string | number) {
   const prefixUrl = SUBSQUARE_LINKS[chainId]
   if (!prefixUrl) {
     return undefined
@@ -53,7 +53,15 @@ export function createGovDataFetcher() {
   }
 
   return {
-    async fetchDescription(chainId: string, id: string) {
+    async fetchDetails(chainId: string, id: string | number) {
+      try {
+        const response = await getOrCreateFetcher(chainId).get(`gov2/referendums/${id}`)
+        return await response.json()
+      } catch (error) {
+        console.error(`Error fetching gov2 details: ${id}`, error)
+      }
+    },
+    async fetchDescription(chainId: string, id: string | number) {
       let details: ReferendumDetails
       try {
         const response = await getOrCreateFetcher(chainId).get(`gov2/referendums/${id}`)
