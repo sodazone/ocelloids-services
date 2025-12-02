@@ -22,10 +22,11 @@ export async function ConsumerApi(api: FastifyInstance) {
       },
     },
     (_, reply) => {
-      const { substrate, bitcoin } = ingress
+      const { substrate, bitcoin, evm } = ingress
       reply.send({
         substrate: substrate.getChainIds(),
         bitcoin: bitcoin.getChainIds(),
+        evm: evm.getChainIds(),
       })
     },
   )
