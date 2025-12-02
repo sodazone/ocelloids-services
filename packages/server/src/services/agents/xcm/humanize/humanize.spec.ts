@@ -1078,7 +1078,7 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets.length).toBe(2)
   })
 
-  it.only('should humanize Snowbridge V1 transfer from Ethereum', async () => {
+  it('should humanize Snowbridge V1 transfer from Ethereum', async () => {
     const msg = getSnowbridgeXcmBridge(1)
     const results = await humanizer.humanize(msg)
     expect(results.humanized).toBeDefined()
