@@ -5,7 +5,6 @@ import { createServices } from '@/testing/services.js'
 import { apiContext } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
-import { asJSON } from '@/common/util.js'
 
 describe('XcmHumanizer', () => {
   let humanizer: XcmHumanizer

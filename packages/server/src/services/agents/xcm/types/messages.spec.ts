@@ -1,5 +1,5 @@
-import { getSnowbridgeXcmBridge } from "@/testing/humanize.js"
-import { mapXcmBridgeToXcmSent } from "./messages.js"
+import { getSnowbridgeXcmBridge } from '@/testing/humanize.js'
+import { mapXcmBridgeToXcmSent } from './messages.js'
 
 describe('XCM messages types', () => {
   describe('mapXcmBridgeToXcmSent', () => {

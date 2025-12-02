@@ -443,6 +443,7 @@ export class XcmHumanizer {
           ...resolved,
           volume: await this.resolveVolume(resolved),
         })
+        continue
       }
 
       const results = (await this.#fetchAssetMetadataById(chainId, [assetId])).filter((a) =>
