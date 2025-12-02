@@ -62,8 +62,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "isows": "^1.0.7",
-    "zod": "^4.1.12"
+    "isows": "^1.0.7"
   },
   "stableVersion": "3.1.0"
 }

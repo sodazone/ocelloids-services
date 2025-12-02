@@ -9,22 +9,67 @@ import type {
   StatusEvent,
   SyncedEvent,
 } from './balances/sse.js'
-import type {
-  $StewardQueryArgs,
-  $StewardServerSentEventArgs,
-  AssetId,
-  AssetIds,
-  AssetMetadata,
-  StewardQueryArgs,
-  StewardServerSentEventArgs,
-} from './types.js'
+import type { AssetId, AssetIds, AssetMetadata } from './types.js'
+
+/**
+ * @public
+ */
+type StewardServerSentEventArgs = {
+  account: string | string[]
+}
+
+/**
+ * @public
+ */
+type StewardQueryArgs =
+  | {
+      op: 'assets'
+      criteria: {
+        assets: string[]
+        network: string
+      }[]
+    }
+  | {
+      op: 'assets.list'
+      criteria?:
+        | {
+            network: string
+          }
+        | undefined
+    }
+  | {
+      op: 'assets.by_location'
+      criteria: {
+        xcmLocationAnchor: string
+        locations: string[]
+      }[]
+    }
+  | {
+      op: 'assets.by_hash'
+      criteria: {
+        assetHashes: string[]
+      }
+    }
+  | {
+      op: 'chains.list'
+    }
+  | {
+      op: 'chains'
+      criteria: {
+        networks: string[]
+      }
+    }
+  | {
+      op: 'chains.prefix'
+      criteria: {
+        networks: string[]
+      }
+    }
 
 export type {
   AssetMetadata,
   StewardQueryArgs,
   StewardServerSentEventArgs,
-  $StewardQueryArgs,
-  $StewardServerSentEventArgs,
   AssetIds,
   AssetId,
   BalanceEvents,

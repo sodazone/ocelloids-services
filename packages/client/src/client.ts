@@ -88,7 +88,15 @@ export interface SseHandler<L = SseListener> {
 /**
  * @public
  */
-export type SseOptions<P extends Record<string, any> = Record<string, any>> = { streamName: string; args: P }
+export type SseArg = unknown | unknown[]
+
+/**
+ * @public
+ */
+export type SseOptions<P extends Record<string, SseArg> = Record<string, SseArg>> = {
+  streamName: string
+  args: P
+}
 
 /**
  * Streamable Agent API.
@@ -96,7 +104,7 @@ export type SseOptions<P extends Record<string, any> = Record<string, any>> = { 
  * @public
  */
 export interface StreamableApi<
-  S extends SseOptions = { streamName: 'default'; args: Record<string, any> },
+  S extends SseOptions = { streamName: 'default'; args: Record<string, SseArg> },
   L extends SseListener = SseListener,
 > {
   stream(
@@ -165,8 +173,18 @@ export class OcelloidsAgentApi<T>
     const streamName = opts.streamName ?? 'default'
     const sseUrl = `${this.#config.httpUrl}/sse/${this.#agentId}/${streamName}`
 
+    const encodeParams = (args: Record<string, unknown>) =>
+      Object.fromEntries(
+        Object.entries(args).map(([key, val]) => {
+          if (Array.isArray(val)) {
+            return [key, val.join(',')]
+          }
+          return [key, String(val)]
+        }),
+      )
+
     const buildSseUrl = async () => {
-      const params = opts.args
+      const params = encodeParams(opts.args)
       const query = new URLSearchParams(params).toString()
       return `${sseUrl}?${query}`
     }

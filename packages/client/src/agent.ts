@@ -6,7 +6,7 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './client'
-import { XcQueryArgs, XcQueryResponse } from './crosschain/types'
+import { FullJourneyResponse, XcQueryArgs, XcQueryResponse, XcServerSentEventArgs } from './crosschain/types'
 
 import { AnySubscriptionInputs } from './lib'
 import {
@@ -134,7 +134,13 @@ export function createInformantAgent(
  */
 export function createCrosschainAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): QueryableApi<XcQueryArgs, XcQueryResponse> & StreamableApi & OcelloidsClientApi {
+): QueryableApi<XcQueryArgs, XcQueryResponse> &
+  StreamableApi<
+    { streamName: 'default'; args: XcServerSentEventArgs },
+    | { event: 'new_journey'; onData: (data: FullJourneyResponse) => void }
+    | { event: 'update_journey'; onData: (data: FullJourneyResponse) => void }
+  > &
+  OcelloidsClientApi {
   return createAgent('crosschain', optsOrClient)
 }
 

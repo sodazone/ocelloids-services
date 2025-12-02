@@ -41,7 +41,7 @@ export const networks = setNetworks({
 })
 
 /**
- * @public
+ * @private
  */
 export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
@@ -96,7 +96,7 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
 /**
  * Data Steward query arguments.
  *
- * @public
+ * @private
  */
 export type StewardQueryArgs = z.infer<typeof $StewardQueryArgs>
 
@@ -204,7 +204,7 @@ export type StewardManagerContext = {
 const $AccountString = z.string().min(42).max(66)
 
 /**
- * @public
+ * @private
  */
 export const $StewardServerSentEventArgs = z.object({
   account: $AccountString.or(z.array($AccountString).min(1).max(5)),
@@ -213,7 +213,7 @@ export const $StewardServerSentEventArgs = z.object({
 /**
  * Data Steward server-sent event arguments.
  *
- * @public
+ * @private
  */
 export type StewardServerSentEventArgs = z.infer<typeof $StewardServerSentEventArgs>
 

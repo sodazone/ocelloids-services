@@ -22,6 +22,7 @@ export {
   XcmMessagePayload,
   XcmNotificationType,
   XcmNotificationTypes,
+  XcmPartialHumanized,
   XcmReceived,
   XcmRelayed,
   XcmSent,

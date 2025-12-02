@@ -56,7 +56,7 @@ export const $JourneyFilters = $RawJourneyFilters
   .optional()
 
 /**
- * @public
+ * @private
  */
 export const $XcQueryArgs = z.discriminatedUnion('op', [
   z.object({
@@ -75,11 +75,11 @@ export const $XcQueryArgs = z.discriminatedUnion('op', [
 ])
 
 /**
- * @public
+ * @private
  */
 export type JourneyFilters = z.infer<typeof $JourneyFilters>
 
 /**
- * @public
+ * @private
  */
 export type XcQueryArgs = z.infer<typeof $XcQueryArgs>

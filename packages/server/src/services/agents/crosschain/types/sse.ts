@@ -5,7 +5,7 @@ import { $NetworkString } from '@/common/types.js'
 import { $BaseJourneyFilters, $JourneyProtocols, $JourneyStatus } from './queries.js'
 
 /**
- * @public
+ * @private
  */
 export const $XcServerSentEventArgs = $BaseJourneyFilters
   .extend({
@@ -31,6 +31,6 @@ export const $XcServerSentEventArgs = $BaseJourneyFilters
   )
 
 /**
- * @public
+ * @private
  */
 export type XcServerSentEventArgs = z.infer<typeof $XcServerSentEventArgs>
