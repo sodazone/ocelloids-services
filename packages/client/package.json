@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-client",
-  "version": "3.1.1-dev.0",
+  "version": "3.1.1",
   "type": "module",
   "description": "Ocelloids client library",
   "author": "SO/DA <projects@soda.zone>",
@@ -63,6 +63,5 @@
   },
   "dependencies": {
     "isows": "^1.0.7"
-  },
-  "stableVersion": "3.1.0"
+  }
 }
