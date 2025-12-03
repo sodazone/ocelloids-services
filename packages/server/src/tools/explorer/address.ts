@@ -1,8 +1,7 @@
+import { sql } from 'kysely'
 import path from 'path'
-
 import { CrosschainRepository } from '@/services/agents/crosschain/index.js'
 import { createCrosschainDatabase } from '@/services/agents/crosschain/repositories/db.js'
-import { sql } from 'kysely'
 
 async function main() {
   const dbPathArg = process.argv[2]

@@ -13,6 +13,8 @@ const SUBSQUARE_LINKS: Record<string, string> = {
   'urn:ocn:kusama:1000': 'https://kusama.subsquare.io',
 }
 
+const DEFAULT_FETCH_TIMEOUT = 10_000
+
 export type ReferendumDetails = {
   title: string
   link?: string
@@ -42,7 +44,7 @@ export function createGovDataFetcher() {
 
     f = createFetcher({
       prefixUrl,
-      timeout: 1_000,
+      timeout: DEFAULT_FETCH_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
