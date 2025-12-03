@@ -3,13 +3,13 @@ import { z } from 'zod'
 import { asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
 import { HexString } from '@/lib.js'
+import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block, Event } from '@/services/networking/substrate/types.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
-
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { matchExtrinsic } from '../xcm/ops/util.js'
 import { createGovDataFetcher, GovDataFetcher } from './content.js'
@@ -234,10 +234,17 @@ export class OpenGovAgent implements Agent, Subscribable {
       .map(({ event }) => event)
 
     for (const ev of referendaEvents) {
-      const ext = block.extrinsics.find((tx) => matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'))
-      const relayBlockNumber = ext
-        ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number
-        : null
+      let relayBlockNumber: number | null = null
+
+      if (['polkadot', 'kusama', 'paseo'].includes(getConsensus(chainId)) && getChainId(chainId) === '1000') {
+        const ext = block.extrinsics.find((tx) =>
+          matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'),
+        )
+        relayBlockNumber = ext
+          ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number
+          : null
+      }
+
       const ogev = await openGovApi.asOpenGovEvent({
         event: ev,
         block: { number: block.number, hash: block.hash as HexString, relayBlockNumber },

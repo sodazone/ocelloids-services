@@ -55,6 +55,29 @@ export class TemplateRenderer {
     Handlebars.registerHelper('eq', (a, b) => a === b)
     Handlebars.registerHelper('chain', chainHelper)
     Handlebars.registerHelper('escapeMarkdownV2', escapeMarkdownV2)
+    Handlebars.registerHelper('date', (value) => {
+      if (!value) {
+        return ''
+      }
+
+      const date = value instanceof Date ? value : new Date(value)
+      if (isNaN(date.getTime())) {
+        return ''
+      }
+
+      const fmt = new Intl.DateTimeFormat('en-GB', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'UTC',
+        hour12: false,
+      })
+
+      return fmt.format(date) + ' UTC'
+    })
   }
 
   render<T>(context: RenderContext<T>): string {
@@ -80,7 +103,7 @@ export class TemplateRenderer {
 
     const delgate = Handlebars.compile(template, {
       strict: true,
-      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true },
+      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true, date: true },
       knownHelpersOnly: true,
     })
 

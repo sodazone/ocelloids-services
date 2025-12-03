@@ -141,7 +141,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     const { value, type: status } = info ?? {}
 
     const avgBlockTimeMs = ops.avgBlockTimeMs ?? 6_000
-    const currentBlock = block.relayBlockNumber ?? 0
+    const currentBlock = block.relayBlockNumber ?? block.number
 
     let submittedAt: number | undefined = undefined
     let decisionStartedAt: number | undefined = undefined

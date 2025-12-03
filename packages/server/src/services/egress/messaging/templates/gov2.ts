@@ -11,6 +11,11 @@ _{{escapeMarkdownV2 payload.content.title}}_
  · {{payload.info.origin.value.type}}
 {{/if}}
 
+{{~#if payload.timeline.willExecuteAtUtc}}
+
+Execute at {{date payload.timeline.willExecuteAtUtc}}
+{{/if}}
+
 {{#if payload.content.link}}
 [Open in Subsquare]({{payload.content.link}})
 {{/if}}

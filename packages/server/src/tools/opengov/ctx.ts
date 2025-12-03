@@ -8,14 +8,17 @@ import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/
 import { SubsStore } from '@/services/persistence/level/subs.js'
 import { Logger, OpenLevelDB, Services } from '@/services/types.js'
 import { InjectableConnector } from './inject.js'
+import { makeTelegramBot } from './tg.js'
 
 export function initRuntime() {
   const log = pino() as Logger
+  const bot = makeTelegramBot()
 
   const egress = {
     publish: async (sub: any, message: any) => {
       console.log(`${sub.id}=>`)
       console.log(message.metadata, message.payload)
+      bot.send(message)
     },
   } as unknown as Egress
   const db = new MemoryLevel()
