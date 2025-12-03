@@ -1,6 +1,6 @@
 import { HexString } from 'polkadot-api'
 import { fromHex, mergeUint8 } from 'polkadot-api/utils'
-import { createNetworkId, getRelayId } from '@/services/config.js'
+import { createNetworkId, getConsensus, getRelayId } from '@/services/config.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 import { ParsedAsset } from '../../../types.js'
 
@@ -118,7 +118,7 @@ function parseLocalAsset(referenceNetwork: NetworkURN, junctions: MultilocationI
         //   length: genIndex.encodedLength,
         // })
       } else if (junction.type === 'generalkey') {
-        assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
+        assetIdData = mergeUint8([assetIdData, mapGeneralKey(junction.value)])
       } else if (junction.type === 'accountkey20') {
         accountId20 = (junction.value as { key: string }).key as string
       }
@@ -132,8 +132,6 @@ function parseLocalAsset(referenceNetwork: NetworkURN, junctions: MultilocationI
       assetIndex,
     })
   }
-
-  return null
 }
 
 function parseCrossChainAsset(
@@ -147,20 +145,24 @@ function parseCrossChainAsset(
     }
   }
   if (junctions.type === 'x1') {
-    const junction = junctions.value
-    if (Array.isArray(junction)) {
-      if (junction[0].type === 'parachain') {
-        return {
-          network: createNetworkId(referenceNetwork, junction[0].value as string),
-          assetId: { type: 'string', value: 'native' },
-        }
-      }
-    } else if (junction.type === 'parachain') {
+    const junction = Array.isArray(junctions.value) ? junctions.value[0] : junctions.value
+    if (junction.type === 'parachain') {
       return {
         network: createNetworkId(referenceNetwork, junction.value as string),
         assetId: { type: 'string', value: 'native' },
       }
     }
+    if (junction.type === 'globalconsensus') {
+      const network = parseGlobalConsensusNetwork(junction)
+
+      if (network && getConsensus(network) !== getConsensus(referenceNetwork)) {
+        return {
+          network,
+          assetId: { type: 'string', value: 'native' },
+        }
+      }
+    }
+
     return null
   }
 
@@ -188,7 +190,7 @@ function parseCrossChainAsset(
       //   length: genIndex.encodedLength,
       // })
     } else if (junction.type === 'generalkey') {
-      assetIdData = mergeUint8(assetIdData, mapGeneralKey(junction.value))
+      assetIdData = mergeUint8([assetIdData, mapGeneralKey(junction.value)])
     } else if (junction.type === 'accountkey20') {
       accountId20 = (junction.value as { key: string }).key as string
     }

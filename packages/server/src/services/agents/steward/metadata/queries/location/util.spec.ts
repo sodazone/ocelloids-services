@@ -266,5 +266,17 @@ describe('parseAssetFromJson', () => {
       const locationString = '{"parents":3,"interior":{"type":"X3"}}'
       expect(parseAssetFromJson('urn:ocn:polkadot:1000', locationString)).toBeNull()
     })
+
+    it('should parse DOT asset from Ethereum', () => {
+      const locationString =
+        '{"parents":1,"interior":{"type":"x1","value":{"type":"globalconsensus","value":{"type":"polkadot"}}}}'
+      expect(parseAssetFromJson('urn:ocn:ethereum:1', locationString)).toEqual({
+        network: 'urn:ocn:polkadot:0',
+        assetId: {
+          type: 'string',
+          value: 'native',
+        },
+      })
+    })
   })
 })
