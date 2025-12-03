@@ -102,7 +102,10 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
    * Handles ongoing and finalized referenda, safe decoding, and execution scheduling.
    */
   async function asOpenGovEvent(
-    { event, block }: { event: Event; block: { number: number; hash: HexString } },
+    {
+      event,
+      block,
+    }: { event: Event; block: { number: number; hash: HexString; relayBlockNumber: number | null } },
     ops: {
       avgBlockTimeMs?: number
       chainId?: string
@@ -138,7 +141,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     const { value, type: status } = info ?? {}
 
     const avgBlockTimeMs = ops.avgBlockTimeMs ?? 6_000
-    const currentBlock = block.number ?? 0
+    const currentBlock = block.relayBlockNumber ?? 0
 
     let submittedAt: number | undefined = undefined
     let decisionStartedAt: number | undefined = undefined

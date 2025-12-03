@@ -11,9 +11,18 @@ import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/typ
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
+import { matchExtrinsic } from '../xcm/ops/util.js'
 import { createGovDataFetcher, GovDataFetcher } from './content.js'
 import { humanizeReferendumStatus } from './humanize.js'
 import { OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
+
+type SetValidationDataArgs = {
+  data: {
+    validation_data: {
+      relay_parent_number: number
+    }
+  }
+}
 
 export const $OpenGovInputs = z.object({
   networks: z.array(
@@ -225,9 +234,13 @@ export class OpenGovAgent implements Agent, Subscribable {
       .map(({ event }) => event)
 
     for (const ev of referendaEvents) {
+      const ext = block.extrinsics.find((tx) => matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'))
+      const relayBlockNumber = ext
+        ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number
+        : null
       const ogev = await openGovApi.asOpenGovEvent({
         event: ev,
-        block: { number: block.number, hash: block.hash as HexString },
+        block: { number: block.number, hash: block.hash as HexString, relayBlockNumber },
       })
 
       if (!ogev) {
