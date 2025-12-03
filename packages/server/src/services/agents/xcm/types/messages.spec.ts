@@ -7,7 +7,6 @@ describe('XCM messages types', () => {
       const msg = getSnowbridgeXcmBridge(1)
       const sent = mapXcmBridgeToXcmSent(msg)
 
-      console.log(JSON.stringify(sent))
       expect(sent).toBeDefined()
       expect(sent.type).toBe('xcm.sent')
       expect(sent.partialHumanized).toBeDefined()
