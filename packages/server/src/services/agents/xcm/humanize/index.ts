@@ -138,7 +138,7 @@ export class XcmHumanizer {
       const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
       let to: HumanizedAddresses
       if (beneficiary !== undefined) {
-        to = await this.#toAddresses(destination.chainId, beneficiary)
+        to = await this.#toAddresses(destination.chainId, asPublicKey(beneficiary))
       } else {
         const versioned = (waypoint.instructions ??
           origin.instructions ?? {

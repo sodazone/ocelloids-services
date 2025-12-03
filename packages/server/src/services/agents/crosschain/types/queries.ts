@@ -5,7 +5,7 @@ import { $NetworkString } from '@/common/types.js'
 /**
  * @public
  */
-export const $JourneyProtocols = z.enum(['xcm', 'wormhole_portal'])
+export const $JourneyProtocols = z.enum(['xcm', 'wh', 'wh_portal', 'wh_relayer', 'snowbridge', 'hyperbridge'])
 
 /**
  * @public
@@ -33,7 +33,7 @@ export const $RawJourneyFilters = $BaseJourneyFilters.extend({
   origins: z.optional(z.array($NetworkString).min(1).max(50)),
   destinations: z.optional(z.array($NetworkString).min(1).max(50)),
   networks: z.optional(z.array($NetworkString).min(1).max(50)),
-  protocols: z.optional(z.array($JourneyProtocols).min(1).max(2)),
+  protocols: z.optional(z.array($JourneyProtocols).min(1).max(6)),
   status: z.optional(z.array($JourneyStatus).min(1).max(4)),
   actions: z.optional(z.array(z.string()).min(1).max(5)),
 })
