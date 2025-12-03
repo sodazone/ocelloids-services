@@ -2,6 +2,7 @@ import path from 'path'
 
 import { CrosschainRepository } from '@/services/agents/crosschain/index.js'
 import { createCrosschainDatabase } from '@/services/agents/crosschain/repositories/db.js'
+import { sql } from 'kysely'
 
 async function main() {
   const dbPathArg = process.argv[2]
@@ -40,7 +41,7 @@ async function main() {
     }
 
     try {
-      await repository.updateJourney(journey.id, { to: newTo, to_formatted: undefined })
+      await repository.updateJourney(journey.id, { to: newTo, to_formatted: sql`NULL` as any })
     } catch (e) {
       console.error(e, `Error updating journey ${journey.id}`)
     }
