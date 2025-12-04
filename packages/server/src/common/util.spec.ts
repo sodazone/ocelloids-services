@@ -34,6 +34,12 @@ describe('utility functions', () => {
       expect(asPublicKey(ss58)).toBe(expectedHex)
     })
 
+    it('should accept EVM precompile addresses', () => {
+      const address = '0x0000000000000000000000000000000000000816'
+      const expectedHex = '0x0000000000000000000000000000000000000816'
+      expect(asPublicKey(address)).toBe(expectedHex)
+    })
+
     it('should throw on invalid 0x strings', () => {
       expect(() => asPublicKey('0x1234')).toThrow(/invalid 0x address length/)
     })

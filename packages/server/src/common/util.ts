@@ -77,7 +77,7 @@ export function normalizePublicKey(publicKey: Uint8Array | HexString): HexString
   }
 
   // Detect 32-byte padded ETH address
-  if (lower.startsWith(PADDED_PREFIX)) {
+  if (lower.length > 42 && lower.startsWith(PADDED_PREFIX)) {
     return `0x${lower.substring(26)}` as HexString
   }
 

@@ -639,7 +639,7 @@ export class CrosschainRepository {
 
     // address filter
     if (filters?.address) {
-      if (filters.address.length >= 42) {
+      if (filters.address.length > 42) {
         const addressPrefix = filters.address.slice(0, 42).toLowerCase()
         baseQuery = baseQuery.where((eb) =>
           eb.or([
