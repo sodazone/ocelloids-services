@@ -11,10 +11,12 @@ _{{escapeMarkdownV2 payload.content.title}}_
  · {{payload.info.origin.value.type}}
 {{/if}}
 
+{{~#unless payload.execution}}
 {{~#if payload.timeline.willExecuteAtUtc}}
 
 Executes {{humanizeTime payload.timeline.willExecuteAtUtc}}
 {{/if}}
+{{/unless}}
 
 {{#if payload.content.link}}
 [Open in Subsquare]({{payload.content.link}})
