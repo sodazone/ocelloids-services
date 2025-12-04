@@ -12,10 +12,12 @@ _{{escapeMarkdownV2 payload.content.title}}_
 {{/ifNested}}
 
 {{~#unless payload.execution}}
+{{~#if (eq payload.status "Approved")}}
 {{~#ifNested payload "timeline.willExecuteAtUtc"}}
 
 Executes {{humanizeTime payload.timeline.willExecuteAtUtc}}
 {{/ifNested}}
+{{/if}}
 {{/unless}}
 
 {{#ifNested payload "content.link"}}
