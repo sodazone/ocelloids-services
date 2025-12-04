@@ -1,5 +1,6 @@
 import Handlebars, { TemplateDelegate } from 'handlebars'
 import { LRUCache } from 'lru-cache'
+import { humanizeTime } from '@/common/time.js'
 import { chainHelper } from './helpers.js'
 import { escapeMarkdownV2 } from './messaging/escape.js'
 
@@ -55,7 +56,7 @@ export class TemplateRenderer {
     Handlebars.registerHelper('eq', (a, b) => a === b)
     Handlebars.registerHelper('chain', chainHelper)
     Handlebars.registerHelper('escapeMarkdownV2', escapeMarkdownV2)
-    Handlebars.registerHelper('date', (value) => {
+    Handlebars.registerHelper('humanizeTime', (value) => {
       if (!value) {
         return ''
       }
@@ -65,18 +66,7 @@ export class TemplateRenderer {
         return ''
       }
 
-      const fmt = new Intl.DateTimeFormat('en-GB', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'UTC',
-        hour12: false,
-      })
-
-      return fmt.format(date) + ' UTC'
+      return humanizeTime(date)
     })
   }
 
@@ -103,7 +93,14 @@ export class TemplateRenderer {
 
     const delgate = Handlebars.compile(template, {
       strict: true,
-      knownHelpers: { json: true, safe: true, chain: true, eq: true, escapeMarkdownV2: true, date: true },
+      knownHelpers: {
+        json: true,
+        safe: true,
+        chain: true,
+        eq: true,
+        escapeMarkdownV2: true,
+        humanizeTime: true,
+      },
       knownHelpersOnly: true,
     })
 

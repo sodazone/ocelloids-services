@@ -5,7 +5,7 @@ import { TemplateRenderer } from '@/services/egress/template.js'
 export function makeTelegramBot() {
   const token = process.env.TELEGRAM_DEFAULT_BOT_TOKEN
   if (!token) {
-    throw new Error('TELEGRAM_DEFAULT_BOT_TOKEN is not set')
+    return null
   }
   const chatId = process.env.TELEGRAM_CHAT_ID
   if (!chatId) {

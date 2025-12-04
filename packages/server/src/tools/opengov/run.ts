@@ -1,3 +1,4 @@
+import { NetworkURN } from '@/lib.js'
 import { OpenGovAgent } from '@/services/agents/opengov/agent.js'
 import { initRuntime } from './ctx.js'
 import { InjectableConnector } from './inject.js'
@@ -9,9 +10,9 @@ async function delay(ms: number) {
 }
 
 async function injectBlockHeaders(scenario: ScenarioKey, connector: InjectableConnector) {
-  const headers = scenarios[scenario]()
+  const { headers, chainId } = scenarios[scenario]()
   for (const h of headers) {
-    connector.reportFinalizedBlock('urn:ocn:polkadot:0', h)
+    connector.reportFinalizedBlock(chainId as NetworkURN, h)
     await delay(1_000)
   }
 }
@@ -30,7 +31,7 @@ async function main(scenario: ScenarioKey) {
     public: true,
     channels: [],
     args: {
-      networks: ['urn:ocn:polkadot:0'],
+      networks: ['urn:ocn:polkadot:0', 'urn:ocn:polkadot:1000'],
     },
   })
 
@@ -46,7 +47,7 @@ async function main(scenario: ScenarioKey) {
   process.exit(0)
 }
 
-main('Rejected').catch((err) => {
+main('AssetHubExecutedOk').catch((err) => {
   console.error('❌ Fatal error in main loop:', err)
   process.exit(1)
 })

@@ -18,7 +18,7 @@ export function initRuntime() {
     publish: async (sub: any, message: any) => {
       console.log(`${sub.id}=>`)
       console.log(message.metadata, message.payload)
-      bot.send(message)
+      bot?.send(message)
     },
   } as unknown as Egress
   const db = new MemoryLevel()
@@ -31,6 +31,13 @@ export function initRuntime() {
           provider: {
             type: 'rpc',
             url: 'wss://rpc.polkadot.io',
+          },
+        },
+        {
+          id: 'urn:ocn:polkadot:1000',
+          provider: {
+            type: 'rpc',
+            url: 'wss://polkadot-asset-hub-rpc.polkadot.io',
           },
         },
       ],

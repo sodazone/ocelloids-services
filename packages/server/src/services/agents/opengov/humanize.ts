@@ -37,17 +37,12 @@ export function humanizeReferendumStatus(payload: {
 
   const evt = payload.triggeredBy?.name
   if (evt && EVENT_STATUS_MAP[evt]) {
-    if (evt === 'Referenda.Confirmed') {
-      if (payload.execution?.result) {
-        const { success } = payload.execution.result
-        if (success) {
-          return '🤩 Executed Successfully'
-        } else {
-          return '😨 Execution Failed'
-        }
-      } else if (payload.timeline?.willExecuteAtUtc) {
-        const { willExecuteAtUtc } = payload.timeline
-        return `⏰ Secheduled for ${willExecuteAtUtc}`
+    if (evt === 'Referenda.Confirmed' && payload.execution?.result !== undefined) {
+      const { success } = payload.execution.result
+      if (success) {
+        return '🤩 Executed Successfully'
+      } else {
+        return '😨 Execution Failed'
       }
     }
     const { icon, label } = EVENT_STATUS_MAP[evt]

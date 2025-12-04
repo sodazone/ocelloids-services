@@ -36,6 +36,15 @@ type OpenGovHandler = {
   streams: RxSubscriptionWithId[]
 }
 
+function tracksRelayBlockSource(chainId: NetworkURN): boolean {
+  return ['polkadot', 'kusama', 'paseo'].includes(getConsensus(chainId)) && getChainId(chainId) === '1000'
+}
+
+function getRelayHeight(block: Block) {
+  const ext = block.extrinsics.find((tx) => matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'))
+  return ext ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number : null
+}
+
 /**
  * OpenGov Agent
  *
@@ -160,19 +169,21 @@ export class OpenGovAgent implements Agent, Subscribable {
     block: Block,
     subscription: Subscription<OpenGovInputs>,
   ) {
-    const pendings: any[] = (await this.#db.get(`${chainId}:pending:${block.number}`)) ?? []
-
-    if (pendings.length === 0) {
-      return
-    }
-
     const dispatchEvents = block.events.filter(
       ({ event }) => event.module === 'Scheduler' && event.name === 'Dispatched',
     )
 
     for (const dispatched of dispatchEvents) {
+      const height = Number(dispatched.event.value?.task[0])
+      const pendings: any[] = (await this.#db.get(`${chainId}:pending:${height}`)) ?? []
+
+      if (pendings.length === 0) {
+        continue
+      }
+
       const taskId = Number(dispatched.event.value?.task[1])
       const taskIndex = pendings.findIndex((p) => p.taskId === taskId)
+
       if (taskIndex >= 0) {
         const task = pendings[taskIndex]
         pendings.splice(taskIndex, 1)
@@ -213,12 +224,12 @@ export class OpenGovAgent implements Agent, Subscribable {
           payload,
         })
       }
-    }
 
-    if (pendings.length > 0) {
-      await this.#db.put(`${chainId}:pending:${block.number}`, pendings)
-    } else {
-      await this.#db.del(`${chainId}:pending:${block.number}`)
+      if (pendings.length > 0) {
+        await this.#db.put(`${chainId}:pending:${height}`, pendings)
+      } else {
+        await this.#db.del(`${chainId}:pending:${height}`)
+      }
     }
   }
 
@@ -236,13 +247,8 @@ export class OpenGovAgent implements Agent, Subscribable {
     for (const ev of referendaEvents) {
       let relayBlockNumber: number | null = null
 
-      if (['polkadot', 'kusama', 'paseo'].includes(getConsensus(chainId)) && getChainId(chainId) === '1000') {
-        const ext = block.extrinsics.find((tx) =>
-          matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'),
-        )
-        relayBlockNumber = ext
-          ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number
-          : null
+      if (tracksRelayBlockSource(chainId)) {
+        relayBlockNumber = getRelayHeight(block)
       }
 
       const ogev = await openGovApi.asOpenGovEvent({
@@ -368,12 +374,6 @@ export class OpenGovAgent implements Agent, Subscribable {
       return
     }
 
-    const executeAt = ref.timeline?.willExecuteAt
-    if (!executeAt) {
-      this.#log.warn('[%s:%s] Referendum %d confirmed but missing willExecuteAt', this.id, chainId, ref.id)
-      return
-    }
-
     const confirmedIdx = block.events.findIndex(
       ({ event: e }) =>
         e.module === ev.module && e.name === ev.name && (e.value as any)?.index === (ev.value as any)?.index,
@@ -381,9 +381,7 @@ export class OpenGovAgent implements Agent, Subscribable {
 
     const taskEvent = block.events
       .slice(0, confirmedIdx)
-      .find(
-        ({ event: e }) => e.module === 'Scheduler' && e.name === 'Scheduled' && e.value?.when === executeAt,
-      )
+      .findLast(({ event: e }) => e.module === 'Scheduler' && e.name === 'Scheduled')
 
     if (!taskEvent) {
       this.#log.warn(
@@ -398,7 +396,7 @@ export class OpenGovAgent implements Agent, Subscribable {
     const scheduled = taskEvent.event.value
     const taskId = Number(scheduled.index)
 
-    const pendingKey = `${chainId}:pending:${executeAt}`
+    const pendingKey = `${chainId}:pending:${scheduled.when}`
     const pendings = (await this.#db.get(pendingKey)) ?? []
 
     pendings.push({
@@ -421,7 +419,7 @@ export class OpenGovAgent implements Agent, Subscribable {
       chainId,
       ref.id,
       taskId,
-      executeAt,
+      scheduled.when,
     )
 
     return updated

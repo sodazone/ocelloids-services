@@ -1,6 +1,42 @@
 import { NeutralHeader } from '@/services/networking/types.js'
 
 export const scenarios = {
+  AssetHubExecutedOk: () => {
+    const submitted: NeutralHeader = {
+      hash: '0xb9cb4da6bc7183d5686ccdec3730fae0ee155432c0256e352739bb723ed3ce10',
+      parenthash: '0x4fbdeef83e59f55b6d6cc1a6e345457b750996de2d26406a1cd905c145cad820',
+      height: 10492551,
+      status: 'finalized',
+    }
+    const decisionStarted: NeutralHeader = {
+      hash: '0xf4e26a25fb9fb0bcbd4c2d95e5d9310545c1a258de4b232efcde2703b1d20fc0',
+      parenthash: '0xb9cb4da6bc7183d5686ccdec3730fae0ee155432c0256e352739bb723ed3ce10',
+      height: 10492552,
+      status: 'finalized',
+    }
+    const confirmStarted: NeutralHeader = {
+      hash: '0x89719568776e4038519870964ea8b8c714fc94c6994f513ec8fee78dbae11592',
+      parenthash: '0xf4e26a25fb9fb0bcbd4c2d95e5d9310545c1a258de4b232efcde2703b1d20fc0',
+      height: 10492553,
+      status: 'finalized',
+    }
+    const confirmed: NeutralHeader = {
+      hash: '0xd0687b8088245e9f8c9d94ab9c20daeee30338850bd249c98f499d20d22abee0',
+      parenthash: '0x89719568776e4038519870964ea8b8c714fc94c6994f513ec8fee78dbae11592',
+      height: 10492554,
+      status: 'finalized',
+    }
+    const executed: NeutralHeader = {
+      hash: '0xf991b08a43704c8abc3bdb52f351941c6a5cce304e9db076cd4316fa6a3d514b',
+      parenthash: '0xd0687b8088245e9f8c9d94ab9c20daeee30338850bd249c98f499d20d22abee0',
+      height: 10492555,
+      status: 'finalized',
+    }
+    return {
+      headers: [submitted, decisionStarted, confirmStarted, confirmed, executed],
+      chainId: 'urn:ocn:polkadot:1000',
+    }
+  },
   FromConfirmed: () => {
     const confirmed: NeutralHeader = {
       hash: '0x6be9254791cd9cd3c07a781d15c61ea133d27cbfd8a60ca56e2776727b0be14b',
@@ -14,7 +50,7 @@ export const scenarios = {
       height: 28005781,
       status: 'finalized',
     }
-    return [confirmed, executed]
+    return { headers: [confirmed, executed], chainId: 'urn:ocn:polkadot:0' }
   },
   Timeout: () => {
     const submitted: NeutralHeader = {
@@ -29,7 +65,7 @@ export const scenarios = {
       height: 27778248,
       status: 'finalized',
     }
-    return [submitted, timeout]
+    return { headers: [submitted, timeout], chainId: 'urn:ocn:polkadot:0' }
   },
   Cancelled: () => {
     const submitted: NeutralHeader = {
@@ -50,7 +86,7 @@ export const scenarios = {
       height: 22774576,
       status: 'finalized',
     }
-    return [submitted, deposit, cancelled]
+    return { headers: [submitted, deposit, cancelled], chainId: 'urn:ocn:polkadot:0' }
   },
   Killed: () => {
     const submitted: NeutralHeader = {
@@ -71,7 +107,7 @@ export const scenarios = {
       height: 17784632,
       status: 'finalized',
     }
-    return [submitted, deposit, killed]
+    return { headers: [submitted, deposit, killed], chainId: 'urn:ocn:polkadot:0' }
   },
   ExecutedOk: () => {
     const submitted: NeutralHeader = {
@@ -104,7 +140,10 @@ export const scenarios = {
       height: 28005781,
       status: 'finalized',
     }
-    return [submitted, decision, confirmStarted, confirmed, executed]
+    return {
+      headers: [submitted, decision, confirmStarted, confirmed, executed],
+      chainId: 'urn:ocn:polkadot:0',
+    }
   },
   ExecutedFail: () => {
     const submitted: NeutralHeader = {
@@ -137,7 +176,10 @@ export const scenarios = {
       height: 26779262,
       status: 'finalized',
     }
-    return [submitted, decision, confirmStarted, confirmed, executed]
+    return {
+      headers: [submitted, decision, confirmStarted, confirmed, executed],
+      chainId: 'urn:ocn:polkadot:0',
+    }
   },
   Rejected: () => {
     const submitted: NeutralHeader = {
@@ -158,7 +200,7 @@ export const scenarios = {
       height: 27753925,
       status: 'finalized',
     }
-    return [submitted, deposit, rejected]
+    return { headers: [submitted, deposit, rejected], chainId: 'urn:ocn:polkadot:0' }
   },
 } as const
 

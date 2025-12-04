@@ -13,7 +13,7 @@ _{{escapeMarkdownV2 payload.content.title}}_
 
 {{~#if payload.timeline.willExecuteAtUtc}}
 
-Execute at {{date payload.timeline.willExecuteAtUtc}}
+Executes {{humanizeTime payload.timeline.willExecuteAtUtc}}
 {{/if}}
 
 {{#if payload.content.link}}
