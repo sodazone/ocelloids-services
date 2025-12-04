@@ -1,3 +1,20 @@
+export function ifNested(
+  this: ReturnType<typeof Handlebars.registerHelper>,
+  obj: any,
+  path: string,
+  options: any,
+) {
+  const keys = path.split('.')
+  let value = obj
+  for (const key of keys) {
+    if (value == null) {
+      return options.inverse(this)
+    }
+    value = value[key]
+  }
+  return value ? options.fn(this) : options.inverse(this)
+}
+
 export const chainHelper = (urn: any) => {
   if (!urn || typeof urn !== 'string') {
     return ''

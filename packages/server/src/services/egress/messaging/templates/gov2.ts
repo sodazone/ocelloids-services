@@ -1,24 +1,24 @@
 export const Gov2Template = `
 *Referendum {{payload.id}}*
-{{#if payload.content.title}}
+{{#ifNested payload "content.title"}}
 _{{escapeMarkdownV2 payload.content.title}}_
-{{/if}}
+{{/ifNested}}
 
 *{{payload.humanized.status}}*
 
 {{chain payload.chainId}}
-{{~#if payload.info.origin.value.type}}
+{{~#ifNested payload "info.origin.value.type"}}
  · {{payload.info.origin.value.type}}
-{{/if}}
+{{/ifNested}}
 
 {{~#unless payload.execution}}
-{{~#if payload.timeline.willExecuteAtUtc}}
+{{~#ifNested payload "timeline.willExecuteAtUtc"}}
 
 Executes {{humanizeTime payload.timeline.willExecuteAtUtc}}
-{{/if}}
+{{/ifNested}}
 {{/unless}}
 
-{{#if payload.content.link}}
+{{#ifNested payload "content.link"}}
 [Open in Subsquare]({{payload.content.link}})
-{{/if}}
+{{/ifNested}}
 `

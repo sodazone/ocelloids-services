@@ -1,7 +1,7 @@
 import Handlebars, { TemplateDelegate } from 'handlebars'
 import { LRUCache } from 'lru-cache'
 import { humanizeTime } from '@/common/time.js'
-import { chainHelper } from './helpers.js'
+import { chainHelper, ifNested } from './helpers.js'
 import { escapeMarkdownV2 } from './messaging/escape.js'
 
 type RenderContext<T> = {
@@ -55,6 +55,7 @@ export class TemplateRenderer {
     Handlebars.registerHelper('safe', (context) => new Handlebars.SafeString(context))
     Handlebars.registerHelper('eq', (a, b) => a === b)
     Handlebars.registerHelper('chain', chainHelper)
+    Handlebars.registerHelper('ifNested', ifNested)
     Handlebars.registerHelper('escapeMarkdownV2', escapeMarkdownV2)
     Handlebars.registerHelper('humanizeTime', (value) => {
       if (!value) {
@@ -98,6 +99,7 @@ export class TemplateRenderer {
         safe: true,
         chain: true,
         eq: true,
+        ifNested: true,
         escapeMarkdownV2: true,
         humanizeTime: true,
       },
