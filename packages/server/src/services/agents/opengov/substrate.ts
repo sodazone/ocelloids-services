@@ -2,8 +2,11 @@ import { Binary } from 'polkadot-api'
 import { firstValueFrom } from 'rxjs'
 
 import { HexString, NetworkURN } from '@/lib.js'
+import { getChainId, getConsensus } from '@/services/config.js'
+import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Event } from '../../networking/substrate/types.js'
+import { Block, Event } from '../../networking/substrate/types.js'
+import { matchExtrinsic } from '../xcm/ops/util.js'
 
 export type Proposal =
   | { type: 'Lookup'; value: { hash: string; len: number } }
@@ -14,6 +17,39 @@ export type Tally = {
   ayes: bigint
   nays: bigint
   support: bigint
+}
+
+type SetValidationDataArgs = {
+  data: {
+    validation_data: {
+      relay_parent_number: number
+    }
+  }
+}
+
+function tracksRelayBlockSource(chainId: NetworkURN): boolean {
+  return ['polkadot', 'kusama', 'paseo'].includes(getConsensus(chainId)) && getChainId(chainId) === '1000'
+}
+
+function getRelayHeight(block: Block) {
+  const ext = block.extrinsics.find((tx) => matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'))
+  return ext ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number : null
+}
+
+export function estimateExecutionTime(
+  chainId: NetworkURN,
+  block: Block,
+  when: number,
+  avgBlockTimeMs = 6_000,
+): { etaMs: number; willExecuteAtUtc: string } | null {
+  const height = tracksRelayBlockSource(chainId) ? getRelayHeight(block) : block.number
+  if (height != null) {
+    const blockTime = getTimestampFromBlock(block.extrinsics) ?? Date.now()
+    const etaMs = (when - height) * avgBlockTimeMs
+    const willExecuteAtUtc = new Date(blockTime + etaMs).toISOString()
+    return { etaMs, willExecuteAtUtc }
+  }
+  return null
 }
 
 export type OngoingReferendum = {
@@ -102,10 +138,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
    * Handles ongoing and finalized referenda, safe decoding, and execution scheduling.
    */
   async function asOpenGovEvent(
-    {
-      event,
-      block,
-    }: { event: Event; block: { number: number; hash: HexString; relayBlockNumber: number | null } },
+    { event, block }: { event: Event; block: Block },
     ops: {
       avgBlockTimeMs?: number
       chainId?: string
@@ -126,7 +159,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
 
     let referendum: Awaited<ReturnType<typeof getReferendum>> | undefined = undefined
     try {
-      referendum = await getReferendum(index, block.hash)
+      referendum = await getReferendum(index, block.hash as HexString)
     } catch (err) {
       console.warn(`[asOpenGovEvent] Failed to fetch referendum ${index}:`, err)
       return null
@@ -141,7 +174,6 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     const { value, type: status } = info ?? {}
 
     const avgBlockTimeMs = ops.avgBlockTimeMs ?? 6_000
-    const currentBlock = block.relayBlockNumber ?? block.number
 
     let submittedAt: number | undefined = undefined
     let decisionStartedAt: number | undefined = undefined
@@ -189,9 +221,12 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
         }
       }
 
-      if (willExecuteAt && currentBlock && willExecuteAt > currentBlock) {
-        etaMs = (willExecuteAt - currentBlock) * avgBlockTimeMs
-        willExecuteAtUtc = new Date(Date.now() + etaMs).toISOString()
+      if (willExecuteAt) {
+        const eta = estimateExecutionTime(chainId, block, willExecuteAt, avgBlockTimeMs)
+        if (eta) {
+          etaMs = eta.etaMs
+          willExecuteAtUtc = eta.willExecuteAtUtc
+        }
       }
     }
 

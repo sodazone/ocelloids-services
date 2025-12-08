@@ -2,8 +2,6 @@ import { z } from 'zod'
 
 import { asSerializable } from '@/common/index.js'
 import { ValidationError } from '@/errors.js'
-import { HexString } from '@/lib.js'
-import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
@@ -11,18 +9,9 @@ import { Block, Event } from '@/services/networking/substrate/types.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
-import { matchExtrinsic } from '../xcm/ops/util.js'
 import { createGovDataFetcher, GovDataFetcher } from './content.js'
 import { humanizeReferendumStatus } from './humanize.js'
-import { OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
-
-type SetValidationDataArgs = {
-  data: {
-    validation_data: {
-      relay_parent_number: number
-    }
-  }
-}
+import { estimateExecutionTime, OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
 
 export const $OpenGovInputs = z.object({
   networks: z.array(
@@ -34,15 +23,6 @@ export type OpenGovInputs = z.infer<typeof $OpenGovInputs>
 type OpenGovHandler = {
   subscription: Subscription<OpenGovInputs>
   streams: RxSubscriptionWithId[]
-}
-
-function tracksRelayBlockSource(chainId: NetworkURN): boolean {
-  return ['polkadot', 'kusama', 'paseo'].includes(getConsensus(chainId)) && getChainId(chainId) === '1000'
-}
-
-function getRelayHeight(block: Block) {
-  const ext = block.extrinsics.find((tx) => matchExtrinsic(tx, 'ParachainSystem', 'set_validation_data'))
-  return ext ? (ext.args as SetValidationDataArgs).data.validation_data.relay_parent_number : null
 }
 
 /**
@@ -245,15 +225,9 @@ export class OpenGovAgent implements Agent, Subscribable {
       .map(({ event }) => event)
 
     for (const ev of referendaEvents) {
-      let relayBlockNumber: number | null = null
-
-      if (tracksRelayBlockSource(chainId)) {
-        relayBlockNumber = getRelayHeight(block)
-      }
-
       const ogev = await openGovApi.asOpenGovEvent({
         event: ev,
-        block: { number: block.number, hash: block.hash as HexString, relayBlockNumber },
+        block,
       })
 
       if (!ogev) {
@@ -273,7 +247,7 @@ export class OpenGovAgent implements Agent, Subscribable {
       const next: OpenGovEvent = existing
         ? ogev.status === 'Killed' || Array.isArray(ogev.info)
           ? { ...existing, triggeredBy: ogev.triggeredBy, status: ogev.status }
-          : { ...existing, ...ogev, triggeredBy: ogev.triggeredBy, status: ogev.status }
+          : { ...existing, ...ogev }
         : { ...ogev }
 
       // Persist updated record
@@ -365,6 +339,14 @@ export class OpenGovAgent implements Agent, Subscribable {
 
             // Persist updated ref with scheduling metadata
             const updated = { ...ref, scheduled: { when, index } }
+            const eta = estimateExecutionTime(chainId, block, when)
+            if (eta) {
+              updated.timeline = {
+                ...(ref.timeline ?? {}),
+                etaMs: eta.etaMs,
+                willExecuteAtUtc: eta.willExecuteAtUtc,
+              }
+            }
             await this.#updateReferendum(chainId, updated)
           }
         } catch (error) {
@@ -411,6 +393,14 @@ export class OpenGovAgent implements Agent, Subscribable {
 
     // Persist updated ref with scheduling metadata
     const updated = { ...ref, scheduled: { when: scheduled.when, index: taskId } }
+    const eta = estimateExecutionTime(chainId, block, scheduled.when)
+    if (eta) {
+      updated.timeline = {
+        ...(ref.timeline ?? {}),
+        etaMs: eta.etaMs,
+        willExecuteAtUtc: eta.willExecuteAtUtc,
+      }
+    }
     await this.#updateReferendum(chainId, updated)
 
     this.#log.debug(

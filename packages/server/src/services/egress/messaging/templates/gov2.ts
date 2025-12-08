@@ -12,12 +12,14 @@ _{{escapeMarkdownV2 payload.content.title}}_
 {{/ifNested}}
 
 {{~#unless payload.execution}}
-{{~#if (eq payload.status "Approved")}}
+{{~#ifNested payload "triggeredBy.name"}}
+{{~#if (eq payload.triggeredBy.name "Referenda.Confirmed")}}
 {{~#ifNested payload "timeline.willExecuteAtUtc"}}
 
-Executes {{humanizeTime payload.timeline.willExecuteAtUtc}}
+ETA {{humanizeTime payload.timeline.willExecuteAtUtc}}
 {{/ifNested}}
 {{/if}}
+{{/ifNested}}
 {{/unless}}
 
 {{#ifNested payload "content.link"}}
