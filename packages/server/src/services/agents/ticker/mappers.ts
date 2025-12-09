@@ -333,4 +333,18 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x9d39a5de30e57443bff2a8307a4256c8797a3497',
   },
+  EURC: [
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: 42,
+    },
+    {
+      chainId: 'urn:ocn:polkadot:3367',
+      assetId: '0x147758d3dafb1e8675e1a8ecff01cc8a943115b0fec1f4a13cfd4b303e47244a',
+    },
+  ],
 }

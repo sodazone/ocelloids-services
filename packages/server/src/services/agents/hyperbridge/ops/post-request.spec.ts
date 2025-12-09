@@ -50,6 +50,49 @@ describe('requests operators', () => {
       })
     })
 
+    it('should extract substrate hydration to hyperbridge post request', async () => {
+      const block$ = from(testBlocksFrom('hydra/10305620.cbor'))
+      const mockGetIsmpRequest = (_commitment: HexString) =>
+        from([
+          {
+            source: 'POLKADOT-2034',
+            dest: 'POLKADOT-3367',
+            nonce: 0,
+            from: '0xa09b1c60e8650245f92518c8a17314878c4043ed' as HexString,
+            to: '0x7265676973747279' as HexString,
+            timeoutTimestamp: 0,
+            body: '0x00104555524310455552430801f2070000000521000001b0360000000000000000000000000000' as HexString,
+          },
+        ])
+      const test$ = block$.pipe(
+        extractEvents(),
+        extractSubstrateRequest('urn:ocn:polkadot:2034', mockGetIsmpRequest),
+      )
+      const calls = vi.fn()
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            calls()
+            expect(msg.source).toBe('urn:ocn:polkadot:2034')
+            expect(msg.destination).toBe('urn:ocn:polkadot:3367')
+            expect(msg.body).toBeDefined()
+            expect(msg.commitment).toBeDefined()
+            expect(msg.nonce).toBeDefined()
+            expect(msg.from).toBeDefined()
+            expect(msg.to).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(1)
+            resolve()
+          },
+        })
+      })
+    })
+
     it('should extract substrate oracle update request', async () => {
       const block$ = from(testBlocksFrom('bifrost/9792939.cbor'))
       const mockGetIsmpRequest = (_commitment: HexString) =>

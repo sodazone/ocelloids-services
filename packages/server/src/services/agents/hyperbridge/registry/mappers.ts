@@ -16,6 +16,7 @@ import {
 import { AbiFunction, erc20Abi, zeroAddress } from 'viem'
 import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+import { getChainId, getConsensus } from '@/services/config.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
@@ -65,7 +66,7 @@ const gatewayViewFunctions: AbiFunction[] = [
   },
 ]
 
-function bifrostAssetMapper({ log, ingress }: MapperContext) {
+function bifrostAssetMapper({ ingress }: MapperContext) {
   const apis = ingress.substrate
 
   return (chainId: NetworkURN, assets$: Observable<TokenGovernorAsset[]>): Observable<Asset> => {
@@ -143,6 +144,103 @@ function bifrostAssetMapper({ log, ingress }: MapperContext) {
 
         return supportedAssets.map(({ key, assetId }) => {
           const dec = decimals.find((d) => asJSON(d.key) === asJSON(key))
+          const meta = assetsById.get(assetId)
+
+          return {
+            key: `${chainId}|${assetId}`,
+            symbol: meta?.symbol,
+            decimals: dec?.decimals,
+          } as Asset
+        })
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    )
+  }
+}
+
+function hydrationAssetMapper({ ingress }: MapperContext) {
+  const apis = ingress.substrate
+
+  return (chainId: NetworkURN, assets$: Observable<TokenGovernorAsset[]>): Observable<Asset> => {
+    const supportedAssets$ = apis.getContext(chainId).pipe(
+      switchMap((ctx) => {
+        const codec = ctx.storageCodec('TokenGateway', 'SupportedAssets')
+        const keyPrefix = codec.keys.enc() as HexString
+
+        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
+          expand((keys) =>
+            keys.length === STORAGE_PAGE_LEN
+              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+              : EMPTY,
+          ),
+          reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
+          mergeMap((keys) =>
+            apis.queryStorageAt(chainId, keys).pipe(
+              map((changeSets) => {
+                const changes = changeSets[0]?.changes ?? []
+                return changes
+                  .map(([storageKey, rawValue]) => {
+                    if (!rawValue) {
+                      return null
+                    }
+                    const keyArgs = codec.keys.dec(storageKey) as [Record<string, any>]
+                    const value = codec.value.dec(rawValue) as Binary
+                    return { key: keyArgs[0], assetId: value.asHex() }
+                  })
+                  .filter((i) => i !== null)
+              }),
+            ),
+          ),
+        )
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    )
+
+    const decimals$ = apis.getContext(chainId).pipe(
+      switchMap((ctx) => {
+        const codec = ctx.storageCodec('TokenGateway', 'Precisions')
+        const keyPrefix = codec.keys.enc() as HexString
+
+        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
+          expand((keys) =>
+            keys.length === STORAGE_PAGE_LEN
+              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+              : EMPTY,
+          ),
+          reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
+          mergeMap((keys) =>
+            apis.queryStorageAt(chainId, keys).pipe(
+              map((changeSets) => {
+                const changes = changeSets[0]?.changes ?? []
+                return changes
+                  .map(([storageKey, rawValue]) => {
+                    if (!rawValue) {
+                      return null
+                    }
+                    const keyArgs = codec.keys.dec(storageKey) as [number, Record<string, any>]
+                    const value = codec.value.dec(rawValue) as number
+                    return { key: keyArgs, decimals: value }
+                  })
+                  .filter((i) => i !== null)
+              }),
+            ),
+          ),
+        )
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    )
+
+    return combineLatest([assets$, supportedAssets$, decimals$]).pipe(
+      mergeMap(([assets, supportedAssets, decimals]) => {
+        const assetsById = new Map(assets.map((a) => [a.assetId, a]))
+
+        return supportedAssets.map(({ key, assetId }) => {
+          const dec = decimals.find(
+            (d) =>
+              d.key[1].type.toLowerCase() === getConsensus(chainId) &&
+              d.key[1].value.toString() === getChainId(chainId) &&
+              asJSON(d.key[0]) === asJSON(key),
+          )
           const meta = assetsById.get(assetId)
 
           return {
@@ -263,6 +361,7 @@ function evmAssetMapper({ ingress }: MapperContext) {
 export function getAssetMappers(ctx: MapperContext): Record<string, AssetMapper> {
   return {
     'urn:ocn:polkadot:2030': bifrostAssetMapper(ctx),
+    'urn:ocn:polkadot:2034': hydrationAssetMapper(ctx),
     'urn:ocn:polkadot:3367': hyperbridgeAssetMapper(ctx),
     'urn:ocn:ethereum:1': evmAssetMapper(ctx), // Ethereum
     'urn:ocn:ethereum:42161': evmAssetMapper(ctx), // Arbitrum

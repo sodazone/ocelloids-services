@@ -7,6 +7,7 @@ const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => networ
 
 export const networks = setNetworks({
   bifrost: 'urn:ocn:polkadot:2030',
+  hydration: 'urn:ocn:polkadot:2034',
   hyperbridge: 'urn:ocn:polkadot:3367',
   ethereum: 'urn:ocn:ethereum:1',
   arbitrum: 'urn:ocn:ethereum:42161',
@@ -26,7 +27,7 @@ export const HYPERBRIDGE_CONFIG: {
   }
 } = {
   networks: {
-    substrate: [networks.bifrost, networks.hyperbridge],
+    substrate: [networks.bifrost, networks.hydration, networks.hyperbridge],
     evm: [networks.ethereum, networks.optimism, networks.bsc, networks.base, networks.arbitrum],
   },
 }
@@ -91,6 +92,7 @@ const MODULE_IDS = {
   BIFROST: toHex(stringToBytes('ismp-bnc')),
   SLPX: toHex(stringToBytes('bif-slpx')),
   HYPERBRIDGE: toHex(stringToBytes('HYPR-FEE')),
+  TOKEN_GOVERNOR: toHex(stringToBytes('registry')),
 }
 
 export function getHostContractAddress(chainId: NetworkURN): HexString | null {
@@ -121,6 +123,8 @@ export function toIsmpModule(to: HexString) {
       return 'bifrost-slpx'
     case MODULE_IDS.HYPERBRIDGE.toLowerCase():
       return 'hyperbridge'
+    case MODULE_IDS.TOKEN_GOVERNOR.toLowerCase():
+      return 'token-governor'
     default:
       return 'unknown'
   }
