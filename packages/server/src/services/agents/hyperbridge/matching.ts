@@ -127,35 +127,60 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
     await this.#mutex.runExclusive(async () => {
       const key = msg.commitment
 
-      const retryMsg = await this.#retry.get(key)
-      if (retryMsg !== undefined) {
-        this.#onIsmpMatched(retryMsg, msg)
-        return
-      }
-      const outboundMsg = await this.#outbound.get(key)
-      if (outboundMsg !== undefined) {
-        if (msg.outcome === 'Fail') {
-          await this.#storeRetry(outboundMsg)
+      const existingInbound = await this.#inbound.get(key)
+      if (existingInbound !== undefined) {
+        if (existingInbound.outcome === 'Success') {
+          return
         }
-        await this.#handleMatched(outboundMsg, msg, () => this.#outbound.del(key))
-      } else {
+
         this.#log.info(
-          '[%s:%s] IN STORED key=%s (block=%s #%s)',
+          '[%s:%s] INBOUND REPLACE (previous fail) key=%s (block=%s #%s)',
           this.#id,
           msg.chainId,
           key,
           msg.blockHash,
           msg.blockNumber,
         )
+
         await this.#inbound.put(key, msg)
-        await new Promise((res) => setImmediate(res)) // allow event loop tick
-        const task: JanitorTask = {
-          sublevel: prefixes.matching.inbound,
-          key,
-          expiry: this.#expiry,
-        }
-        await this.#janitor.schedule(task)
+        return
       }
+
+      const retryMsg = await this.#retry.get(key)
+      if (retryMsg !== undefined) {
+        this.#onIsmpMatched(retryMsg, msg)
+        return
+      }
+
+      const outboundMsg = await this.#outbound.get(key)
+      if (outboundMsg !== undefined) {
+        if (msg.outcome === 'Fail') {
+          await this.#storeRetry(outboundMsg)
+        }
+
+        await this.#handleMatched(outboundMsg, msg, () => this.#outbound.del(key))
+        return
+      }
+
+      this.#log.info(
+        '[%s:%s] IN STORED key=%s (block=%s #%s)',
+        this.#id,
+        msg.chainId,
+        key,
+        msg.blockHash,
+        msg.blockNumber,
+      )
+
+      await this.#inbound.put(key, msg)
+
+      await new Promise((res) => setImmediate(res)) // let event loop tick
+
+      const task: JanitorTask = {
+        sublevel: prefixes.matching.inbound,
+        key,
+        expiry: this.#expiry,
+      }
+      await this.#janitor.schedule(task)
     })
   }
 
@@ -226,7 +251,7 @@ export class HyperbridgeMatchingEngine extends (EventEmitter as new () => Teleme
     setTimeout(async () => {
       await cleanup()
       await new Promise((res) => setImmediate(res)) // allow event loop tick
-    }, 1_000).unref()
+    }, 500).unref()
     this.#onIsmpMatched(outMsg, inMsg)
   }
 
