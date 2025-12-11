@@ -36,8 +36,8 @@ export function humanizeReferendumStatus(payload: {
   }
 
   const evt = payload.triggeredBy?.name
-  if (evt && EVENT_STATUS_MAP[evt]) {
-    if (evt === 'Referenda.Confirmed' && payload.execution?.result !== undefined) {
+  if (evt) {
+    if (evt === 'Scheduler.Executed' && payload.execution?.result !== undefined) {
       const { success } = payload.execution.result
       if (success) {
         return '🤩 Executed Successfully'
@@ -45,8 +45,10 @@ export function humanizeReferendumStatus(payload: {
         return '😨 Execution Failed'
       }
     }
-    const { icon, label } = EVENT_STATUS_MAP[evt]
-    return `${icon} ${label}`
+    if (EVENT_STATUS_MAP[evt]) {
+      const { icon, label } = EVENT_STATUS_MAP[evt]
+      return `${icon} ${label}`
+    }
   }
 
   const sys = payload.status

@@ -183,6 +183,9 @@ export class OpenGovAgent implements Agent, Subscribable {
         }
         const refWithResult = {
           ...ref,
+          triggeredBy: {
+            name: 'Scheduler.Executed',
+          },
           execution,
         }
         const payload = asSerializable({
