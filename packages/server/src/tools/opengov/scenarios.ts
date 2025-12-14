@@ -1,6 +1,19 @@
 import { NeutralHeader } from '@/services/networking/types.js'
 
 export const scenarios = {
+  InlineReferenda: () => {
+    const submitted: NeutralHeader = {
+      hash: '0x3cd3312c3d623fc2944effbdd084cd1af8a756dc82297339482106eb76df3667',
+      parenthash: '0xcc03769f1f0bf43661a5cfbeb5277b8391b3d175b98e6cd534abfa375742f67f',
+      height: 10794897,
+      status: 'finalized',
+    }
+
+    return {
+      headers: [submitted],
+      chainId: 'urn:ocn:polkadot:1000',
+    }
+  },
   AssetHubExecutedOk: () => {
     const submitted: NeutralHeader = {
       hash: '0xb9cb4da6bc7183d5686ccdec3730fae0ee155432c0256e352739bb723ed3ce10',

@@ -47,7 +47,7 @@ async function main(scenario: ScenarioKey) {
   process.exit(0)
 }
 
-main('AssetHubExecutedOk').catch((err) => {
+main('InlineReferenda').catch((err) => {
   console.error('❌ Fatal error in main loop:', err)
   process.exit(1)
 })
