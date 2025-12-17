@@ -1,5 +1,4 @@
 import { Observer, Subscription } from 'rxjs'
-
 import { ago } from '@/common/time.js'
 import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
@@ -8,12 +7,17 @@ import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/st
 import { WormholeOperation, WormholeProtocols } from '@/services/networking/apis/wormhole/types.js'
 import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
-
 import { CrosschainExplorer } from '../crosschain/explorer.js'
-import { CrosschainRepository, FullJourney, JourneyStatus, JourneyUpdate } from '../crosschain/index.js'
+import {
+  CrosschainRepository,
+  FullJourney,
+  Journey,
+  JourneyStatus,
+  JourneyUpdate,
+} from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
-import { mapOperationToJourney } from './mappers/index.js'
+import { mapOperationToJourney, NewJourneyWithAssets } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
@@ -173,37 +177,90 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    const journey = mapOperationToJourney(op)
-    const existing = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
+    const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
+    const existingTrip = await this.#repository.getJourneyByTripId(journey.trip_id)
+    const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
 
-    if (!existing) {
+    if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
       const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
+      if (existingTrip !== undefined) {
+        this.#log.info(
+          '[connecting-trip] %s existing=%s-%s',
+          existingTrip.correlation_id,
+          existingTrip.origin,
+          existingTrip.destination,
+        )
+        await this.#updateTrip(journey, existingTrip, id)
+        return
+      }
       await this.#broadcast('new_journey', id)
       return
     }
 
-    if (existing.status !== journey.status) {
+    if (existingJourney.status !== journey.status) {
       const update: JourneyUpdate = {}
       update.status = journey.status
 
-      if (journey.recv_at && !existing.recv_at) {
+      if (journey.recv_at && !existingJourney.recv_at) {
         update.recv_at = journey.recv_at
       }
 
-      if (journey.to !== existing.to) {
+      if (journey.to !== existingJourney.to) {
         update.to = journey.to
         update.to_formatted = journey.to_formatted
       }
-      if (journey.from !== existing.from) {
+      if (journey.from !== existingJourney.from) {
         update.from = journey.from
         update.from_formatted = journey.from_formatted
+      }
+      if (journey.destination !== existingJourney.destination) {
+        update.destination = journey.destination
+      }
+      if (journey.trip_id && !existingJourney.trip_id) {
+        update.trip_id = journey.trip_id
       }
 
       update.stops = journey.stops
 
-      await this.#repository.updateJourney(existing.id, update)
-      await this.#broadcast('update_journey', existing.id)
+      await this.#repository.updateJourney(existingJourney.id, update)
+      if (existingTrip !== undefined) {
+        this.#log.info(
+          '[connecting-trip] %s existing=%s-%s',
+          existingTrip.correlation_id,
+          existingTrip.origin,
+          existingTrip.destination,
+        )
+        await this.#updateTrip(journey, existingTrip, existingJourney.id)
+        return
+      }
+      await this.#broadcast('update_journey', existingJourney.id)
+    }
+  }
+
+  async #updateTrip(journey: NewJourneyWithAssets, existingTrip: Journey, journeyId: number) {
+    let id = journeyId
+    try {
+      // journey has context of cross protocol stops
+      if (journey.origin_protocol !== journey.destination_protocol) {
+        if (WormholeProtocols.includes(journey.origin_protocol as any)) {
+          // journey is the first leg of the cross protocol journey
+          id = await this.#repository.mergeJourneys(journeyId, existingTrip.id, journey.trip_id)
+        }
+        if (WormholeProtocols.includes(journey.destination_protocol as any)) {
+          id = await this.#repository.mergeJourneys(existingTrip.id, journeyId, journey.trip_id)
+        }
+      } else if (existingTrip.destination === journey.origin) {
+        // update second part of trip
+        id = await this.#repository.mergeJourneys(existingTrip.id, journeyId, journey.trip_id)
+      } else if (existingTrip.origin === journey.destination) {
+        // update first half of trip
+        id = await this.#repository.mergeJourneys(journeyId, existingTrip.id, journey.trip_id)
+      }
+    } catch (e) {
+      this.#log.error(e, '[connecting-trip] error %s', journeyId)
+    } finally {
+      await this.#broadcast('update_journey', id)
     }
   }
 

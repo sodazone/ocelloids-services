@@ -11,7 +11,7 @@ import {
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 
 import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
-import { isXcmBridge } from '../types/messages.js'
+import { isXcmBridge, legTypes } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
@@ -48,12 +48,15 @@ export function asNewJourneyObject(
 }
 
 export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
-  const updatedStops = payload.legs.map((leg, index) => {
-    const existingStop = existingStops[index]
+  const existingXcmStops = existingStops.filter((s) => legTypes.includes(s.type))
+
+  const builtXcmStops = payload.legs.map((leg, index) => {
+    const existingStop = existingXcmStops[index]
 
     const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
     const extrinsic = event ? (event.extrinsic as any) : undefined
+
     const context = waypoint
       ? {
           chainId: waypoint.chainId,
@@ -85,7 +88,6 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
       : null
 
     if (existingStop) {
-      // Update existing stop with waypoint context
       if (waypoint) {
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
@@ -99,22 +101,38 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
         }
       }
       return existingStop
-    } else {
-      // Create a new stop if no existing stop is found
-      const isOutbound = leg.from === waypoint?.chainId
-      return {
-        type: leg.type,
-        from: isOutbound ? context : { chainId: leg.from },
-        to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
-        relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
-        messageHash: isOutbound ? waypoint.messageHash : undefined,
-        messageId: isOutbound ? (waypoint.messageId ?? payload.messageId) : undefined,
-        instructions: isOutbound ? waypoint.instructions : undefined,
-      }
+    }
+
+    const isOutbound = leg.from === waypoint?.chainId
+    return {
+      type: leg.type,
+      from: isOutbound ? context : { chainId: leg.from },
+      to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
+      relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
+      messageHash: isOutbound ? waypoint?.messageHash : undefined,
+      messageId: isOutbound ? (waypoint?.messageId ?? payload.messageId) : undefined,
+      instructions: isOutbound ? waypoint?.instructions : undefined,
     }
   })
 
-  return updatedStops
+  let xcmIndex = 0
+  let lastXcmIndex = -1
+
+  const merged = existingStops.map((stop, index) => {
+    if (legTypes.includes(stop.type)) {
+      lastXcmIndex = index
+      return builtXcmStops[xcmIndex++] ?? stop
+    }
+    return stop
+  })
+
+  // Insert any remaining new XCM stops
+  if (xcmIndex < builtXcmStops.length) {
+    const insertionIndex = lastXcmIndex >= 0 ? lastXcmIndex + 1 : 0
+    merged.splice(insertionIndex, 0, ...builtXcmStops.slice(xcmIndex))
+  }
+
+  return merged
 }
 
 export function toCorrelationId(payload: XcmMessagePayload): string {
@@ -133,8 +151,9 @@ function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
   return (payload.origin.event as BlockEvent)?.extrinsic?.evmTxHash
 }
 
-export function toNewJourney(payload: HumanizedXcmPayload): NewJourney {
+export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): NewJourney {
   return {
+    trip_id: tripId,
     correlation_id: toCorrelationId(payload),
     created_at: Date.now(),
     type: payload.humanized.type,

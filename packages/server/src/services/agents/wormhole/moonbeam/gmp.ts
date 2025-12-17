@@ -22,6 +22,54 @@ export interface Location {
   interior: Interior
 }
 
+export type GmpInstruction = {
+  gmp: {
+    xcm: {
+      destination: Location
+      beneficiary: Location
+    }
+    resolved: {
+      urn: string | undefined
+      address:
+        | {
+            key: string
+            formatted: string
+          }
+        | undefined
+    }
+    rawAction:
+      | {
+          tag: 'XcmRoutingUserAction'
+          value: {
+            destination:
+              | {
+                  tag: 'xcmV5Location'
+                  value: any
+                }
+              | {
+                  tag: 'XcmV4Location'
+                  value: any
+                }
+          }
+        }
+      | {
+          tag: 'XcmRoutingUserActionWithFee'
+          value: {
+            destination:
+              | {
+                  tag: 'xcmV5Location'
+                  value: any
+                }
+              | {
+                  tag: 'XcmV4Location'
+                  value: any
+                }
+            fee: bigint
+          }
+        }
+  }
+}
+
 const VersionedLocation = Enum(
   {
     xcmV5Location: defaultPolkadotContext.typeCodec('staging_xcm.v5.location.Location'),
@@ -182,7 +230,7 @@ function decodeGmpPayload(payload: bigint | Uint8Array) {
   return action
 }
 
-export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 0) {
+export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 0): GmpInstruction | null {
   const action = decodeGmpPayload(payload)
   if (!action) {
     return null

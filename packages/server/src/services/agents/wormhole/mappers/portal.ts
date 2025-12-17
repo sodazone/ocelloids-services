@@ -7,8 +7,11 @@ import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { decodeTransferPayload, resolvePayloadEnhancer } from './payload.js'
 
-function mapPortalOpToJourney(op: WormholeOperation<PayloadPortalTokenBridge>): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_portal')
+function mapPortalOpToJourney(
+  op: WormholeOperation<PayloadPortalTokenBridge>,
+  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+): NewJourney {
+  return defaultJourneyMapping(op, 'transfer', 'wh_portal', generateTripId)
 }
 
 function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, journey: NewJourney) {

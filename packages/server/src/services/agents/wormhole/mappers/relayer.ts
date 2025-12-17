@@ -7,8 +7,11 @@ import { addressToHex } from '../types/address.js'
 import { tokenAddressToAssetId } from '../types/chain.js'
 import { defaultAssetMapping, defaultJourneyMapping } from './default.js'
 
-function mapRelayerOpToJourney(op: WormholeOperation): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_relayer')
+function mapRelayerOpToJourney(
+  op: WormholeOperation,
+  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+): NewJourney {
+  return defaultJourneyMapping(op, 'transfer', 'wh_relayer', generateTripId)
 }
 
 function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAssetOperation[] {

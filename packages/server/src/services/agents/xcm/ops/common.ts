@@ -2,6 +2,7 @@ import { toHex } from 'polkadot-api/utils'
 import { bufferCount, map, mergeMap, Observable } from 'rxjs'
 import { filterNonNull } from '@/common/index.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
+import { decodeEvmEventLog } from '@/services/networking/substrate/evm/decoder.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import {
   Block,
@@ -24,6 +25,7 @@ import {
   XcmSent,
   XcmSentWithContext,
 } from '../types/index.js'
+import { crossProtocolCorrelationMapping, swapMapping } from './mappers.js'
 import {
   getParaIdFromJunctions,
   getSendersFromEvent,
@@ -36,44 +38,100 @@ import { METHODS_XCMP_QUEUE } from './xcmp.js'
 
 export type Stop = { networkId: NetworkURN; message?: any[] }
 
-const swapMapping: Record<
-  NetworkURN,
-  { match: (event: Event) => boolean; transform: (event: BlockEvent) => AssetSwap }
-> = {
-  'urn:ocn:polkadot:1000': {
-    match: (event: Event) => matchEvent(event, 'AssetConversion', 'SwapCreditExecuted'),
-    transform: (event: BlockEvent): AssetSwap => {
-      const { amount_in, amount_out, path } = event.value
-      return {
-        assetIn: {
-          amount: amount_in,
-          localAssetId: path[0][0],
-        },
-        assetOut: {
-          amount: amount_out,
-          localAssetId: path[path.length - 1][0],
-        },
-        event,
-      } as AssetSwap
-    },
-  },
-  'urn:ocn:polkadot:2034': {
-    match: (event: Event) => matchEvent(event, 'Router', 'Executed'),
-    transform: (event: BlockEvent): AssetSwap => {
-      const { amount_in, amount_out, asset_in, asset_out } = event.value
-      return {
-        assetIn: {
-          amount: amount_in,
-          localAssetId: asset_in,
-        },
-        assetOut: {
-          amount: amount_out,
-          localAssetId: asset_out,
-        },
-        event,
-      } as AssetSwap
-    },
-  },
+function extractInboundConnectionId({
+  chainId,
+  prevEvents,
+  phase,
+}: {
+  chainId: NetworkURN
+  prevEvents: (EventRecord<Event> & { index: number })[]
+  phase: string
+}) {
+  const mapping = crossProtocolCorrelationMapping.inbound[chainId]
+  if (mapping) {
+    const correlationEvent = [...prevEvents]
+      .reverse()
+      .find(({ phase: p, event }) => p.type === phase && mapping.match(event))
+    if (correlationEvent) {
+      return mapping.toConnectionId(correlationEvent.event)
+    }
+  }
+}
+
+function extractOutboundConnectionId({ chainId, event }: { chainId: NetworkURN; event: BlockEvent }) {
+  const mapping = crossProtocolCorrelationMapping.outbound[chainId]
+  if (mapping) {
+    return mapping.toConnectionId(event)
+  }
+}
+
+function extractAssetContext({
+  chainId,
+  prevEvents,
+  phase,
+  blockNumber,
+  blockHash,
+  specVersion,
+  timestamp,
+}: {
+  chainId: NetworkURN
+  prevEvents: (EventRecord<Event> & { index: number })[]
+  phase: string
+  blockNumber: number
+  blockHash: string
+  specVersion?: number
+  timestamp?: number
+}): {
+  assetsTrapped?: AssetsTrapped
+  assetSwaps: AssetSwap[]
+} {
+  try {
+    const lastPrevEvent = prevEvents.at(-1)
+
+    const maybeAssetTrapEvent: BlockEvent | undefined = lastPrevEvent
+      ? toBlockEvent(lastPrevEvent.event, {
+          blockNumber,
+          blockHash,
+          blockPosition: lastPrevEvent.index,
+          specVersion,
+          timestamp,
+        })
+      : undefined
+
+    const assetTrapEvent =
+      maybeAssetTrapEvent && matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
+        ? maybeAssetTrapEvent
+        : undefined
+
+    const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
+
+    let assetSwaps: AssetSwap[] = []
+    const mapping = swapMapping[chainId]
+    if (mapping) {
+      assetSwaps = [...prevEvents]
+        .reverse()
+        .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
+        .map((record) =>
+          mapping.transform(
+            toBlockEvent(record.event, {
+              blockNumber,
+              blockHash,
+              blockPosition: record.index,
+              timestamp,
+              specVersion,
+            }),
+          ),
+        )
+    }
+
+    return { assetsTrapped, assetSwaps }
+  } catch (error) {
+    console.error(
+      error,
+      `Error mapping asset traps and swaps for ${chainId} at block ${blockHash} (#${blockNumber})`,
+    )
+    return { assetSwaps: [] }
+  }
 }
 
 // eslint-disable-next-line complexity
@@ -243,10 +301,12 @@ export function mapXcmInbound(chainId: NetworkURN) {
     source.pipe(map((msg) => new XcmInbound(chainId, msg)))
 }
 
-export function xcmMessagesSent() {
+export function xcmMessagesSent(chainId: NetworkURN) {
   return (source: Observable<BlockEvent>): Observable<XcmSentWithContext> => {
     return source.pipe(
       mergeMap(async (event) => {
+        const connectionId = extractOutboundConnectionId({ chainId, event })
+
         const xcmMessage = event.value as { message_hash: HexString; message_id?: HexString }
         return {
           event: event as AnyJson,
@@ -259,6 +319,7 @@ export function xcmMessagesSent() {
           messageHash: xcmMessage.message_hash ?? xcmMessage.message_id,
           messageId: xcmMessage.message_id,
           txHash: event.extrinsic?.hash as HexString,
+          connectionId,
         } as XcmSentWithContext
       }),
     )
@@ -269,6 +330,8 @@ export function xcmMessagesSent() {
  * Extract XCM receive events for both DMP and HRMP in parachains.
  * Most parachains emit the same event, MessageQueue.Processed, for both DMP and HRMP.
  * But some, like Interlay, emits a different event DmpQueue.ExecutedDownward for DMP.
+ *
+ * NOTE: not in use anymore. Replaced by extractParachainReceiveByBlock
  */
 export function extractParachainReceive() {
   return (source: Observable<BlockEvent>): Observable<XcmInboundWithContext> => {
@@ -352,75 +415,6 @@ export function extractParachainReceive() {
   }
 }
 
-function extractAssetContext({
-  chainId,
-  prevEvents,
-  phase,
-  blockNumber,
-  blockHash,
-  specVersion,
-  timestamp,
-}: {
-  chainId: NetworkURN
-  prevEvents: (EventRecord<Event> & { index: number })[]
-  phase: string
-  blockNumber: number
-  blockHash: string
-  specVersion?: number
-  timestamp?: number
-}): {
-  assetsTrapped?: AssetsTrapped
-  assetSwaps: AssetSwap[]
-} {
-  try {
-    const lastPrevEvent = prevEvents.at(-1)
-
-    const maybeAssetTrapEvent: BlockEvent | undefined = lastPrevEvent
-      ? toBlockEvent(lastPrevEvent.event, {
-          blockNumber,
-          blockHash,
-          blockPosition: lastPrevEvent.index,
-          specVersion,
-          timestamp,
-        })
-      : undefined
-
-    const assetTrapEvent =
-      maybeAssetTrapEvent && matchEvent(maybeAssetTrapEvent, ['XcmPallet', 'PolkadotXcm'], 'AssetsTrapped')
-        ? maybeAssetTrapEvent
-        : undefined
-
-    const assetsTrapped = mapAssetsTrapped(assetTrapEvent)
-
-    let assetSwaps: AssetSwap[] = []
-    const mapping = swapMapping[chainId]
-    if (mapping) {
-      assetSwaps = [...prevEvents]
-        .reverse()
-        .filter(({ phase: p, event }) => p.type === phase && mapping.match(event))
-        .map((record) =>
-          mapping.transform(
-            toBlockEvent(record.event, {
-              blockNumber,
-              blockHash,
-              blockPosition: record.index,
-              timestamp,
-              specVersion,
-            }),
-          ),
-        )
-    }
-
-    return { assetsTrapped, assetSwaps }
-  } catch (error) {
-    console.error(
-      error,
-      `Error mapping asset traps and swaps for ${chainId} at block ${blockHash} (#${blockNumber})`,
-    )
-    return { assetSwaps: [] }
-  }
-}
-
 export function extractParachainReceiveByBlock(chainId: NetworkURN) {
   return (source: Observable<Block>): Observable<XcmInboundWithContext> => {
     return source.pipe(
@@ -430,18 +424,21 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
         const recordsWithIndex = events.map((record, index) => ({ ...record, index }))
         const parachainReceived: XcmInboundWithContext[] = []
         for (const [i, { phase, event }] of events.entries()) {
+          const phaseType = phase.type
+
           if (matchEvent(event, 'XcmpQueue', METHODS_XCMP_QUEUE)) {
             const xcmpQueueData = event.value
             const prevEvents = recordsWithIndex.slice(pointer, i)
             const { assetsTrapped, assetSwaps } = extractAssetContext({
               chainId,
               prevEvents,
-              phase: phase.type,
+              phase: phaseType,
               blockNumber,
               blockHash,
               specVersion,
               timestamp,
             })
+            const connectionId = extractInboundConnectionId({ chainId, prevEvents, phase: phaseType })
 
             pointer = i
             parachainReceived.push(
@@ -457,6 +454,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
                 error: xcmpQueueData.error,
                 assetsTrapped,
                 assetSwaps,
+                connectionId,
               }),
             )
           } else if (matchEvent(event, 'MessageQueue', 'Processed')) {
@@ -470,12 +468,14 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
             const { assetsTrapped, assetSwaps } = extractAssetContext({
               chainId,
               prevEvents,
-              phase: phase.type,
+              phase: phaseType,
               blockNumber,
               blockHash,
               specVersion,
               timestamp,
             })
+            const connectionId = extractInboundConnectionId({ chainId, prevEvents, phase: phaseType })
+
             pointer = i
 
             parachainReceived.push(
@@ -497,6 +497,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
                 error,
                 assetsTrapped,
                 assetSwaps,
+                connectionId,
               }),
             )
           } else if (matchEvent(event, 'DmpQueue', 'ExecutedDownward')) {
@@ -511,7 +512,7 @@ export function extractParachainReceiveByBlock(chainId: NetworkURN) {
             const { assetsTrapped, assetSwaps } = extractAssetContext({
               chainId,
               prevEvents,
-              phase: phase.type,
+              phase: phaseType,
               blockNumber,
               blockHash,
               specVersion,

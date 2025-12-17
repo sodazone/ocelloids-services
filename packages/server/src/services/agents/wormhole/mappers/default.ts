@@ -2,7 +2,7 @@ import { asJSON } from '@/common/util.js'
 import { AnyJson } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { addressToHex } from '@/services/agents/wormhole/types/address.js'
-import { chainIdToUrn } from '@/services/agents/wormhole/types/chain.js'
+import { chainIdToUrn, MOONBEAM_URN, WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { toUTCMillis } from '@/services/archive/time.js'
 import { toStatus } from '@/services/networking/apis/wormhole/status.js'
 import {
@@ -28,6 +28,7 @@ export function defaultJourneyMapping(
   op: WormholeOperation,
   type: WormholeAction,
   protocol: WormholeProtocol,
+  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
 ): NewJourney {
   const s = op.content?.standarizedProperties ?? {}
   const from = prefer(op.sourceChain?.from, s.fromAddress)
@@ -36,7 +37,18 @@ export function defaultJourneyMapping(
   const origin = chainIdToUrn(s.fromChain > 0 ? s.fromChain : op.emitterChain)
   const destination = chainIdToUrn(s.toChain > 0 ? s.toChain : (op.targetChain?.chainId ?? op.emitterChain))
 
+  const txHash =
+    origin === MOONBEAM_URN
+      ? op.sourceChain?.transaction?.txHash
+      : destination === MOONBEAM_URN
+        ? op.targetChain?.transaction?.txHash
+        : undefined
+  const tripId = txHash
+    ? generateTripId({ chainId: chainIdToUrn(WormholeIds.MOONBEAM_ID), values: [txHash] })
+    : undefined
+
   return {
+    trip_id: tripId,
     correlation_id: op.id,
     status: toStatus(op, origin === destination),
     type,

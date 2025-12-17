@@ -27,7 +27,7 @@ import {
   AssetSwap,
   AssetsTrapped,
   HumanizedXcmPayload,
-  SnowbridgeOutboundAsset,
+  PartialHumanizedAsset,
   SwappedAsset,
   XcmMessagePayload,
   XcmTerminus,
@@ -150,10 +150,10 @@ export class XcmHumanizer {
           this.#extractBeneficiary(versioned.value, destination.chainId),
         )
       }
-      const assetsToResolve: SnowbridgeOutboundAsset[] = Array.isArray(assets)
+      const assetsToResolve: PartialHumanizedAsset[] = Array.isArray(assets)
         ? assets
         : 'asset' in message.partialHumanized
-          ? ([message.partialHumanized.asset] as SnowbridgeOutboundAsset[])
+          ? ([message.partialHumanized.asset] as PartialHumanizedAsset[])
           : []
       const resolvedAssets = await this.#resolveSnowbridgeAsset(assetsToResolve)
       return { type: XcmJourneyType.Transfer, from, to, assets: resolvedAssets, transactCalls: [] }
@@ -420,7 +420,7 @@ export class XcmHumanizer {
     return assets
   }
 
-  async #resolveSnowbridgeAsset(assets: SnowbridgeOutboundAsset[]): Promise<HumanizedXcmAsset[]> {
+  async #resolveSnowbridgeAsset(assets: PartialHumanizedAsset[]): Promise<HumanizedXcmAsset[]> {
     const resolvedAssets: HumanizedXcmAsset[] = []
     for (const { chainId, id, amount } of assets) {
       const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id

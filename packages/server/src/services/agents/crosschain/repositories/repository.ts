@@ -1,6 +1,8 @@
+import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
+import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
-
+import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
 import { JourneyFilters } from '../types/queries.js'
 import {
@@ -10,6 +12,7 @@ import {
   CrosschainDatabase,
   FullJourney,
   FullJourneyAsset,
+  Journey,
   JourneyStatus,
   JourneyUpdate,
   ListAsset,
@@ -138,6 +141,21 @@ function mapRowToFullJourney(row: any): FullJourney {
   }
 }
 
+function mergeStops(inStops: any[] = [], outStops: any[] = []): string {
+  const map = new Map<string, any>()
+
+  const makeKey = (s: any) => `${s.type}:${s.from?.chainId ?? ''}:${s.to?.chainId ?? ''}`
+
+  for (const stop of [...inStops, ...outStops]) {
+    const key = makeKey(stop)
+    if (!map.has(key)) {
+      map.set(key, stop)
+    }
+  }
+
+  return asJSON(Array.from(map.values()))
+}
+
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
 
@@ -151,12 +169,30 @@ export class CrosschainRepository {
 
   async getAssetIdentifiers(
     journeyId: number,
-  ): Promise<Pick<AssetOperation, 'asset' | 'role' | 'sequence'>[]> {
+  ): Promise<Pick<AssetOperation, 'asset' | 'role' | 'sequence' | 'amount'>[]> {
     return this.#db
       .selectFrom('xc_asset_ops')
-      .select(['asset', 'role', 'sequence'])
+      .select(['asset', 'role', 'sequence', 'amount'])
       .where('journey_id', '=', journeyId)
       .execute()
+  }
+
+  async addAssetToJourney(journeyId: number, assets: Omit<NewAssetOperation, 'journey_id'>[]) {
+    const existingAssets = await this.getAssetIdentifiers(journeyId)
+    const existingKeySet = new Set(existingAssets.map((a) => `${a.asset}-${a.role ?? ''}-${a.amount}`))
+    const newAssets = assets
+      .filter((asset) => {
+        const key = `${asset.asset}-${asset.role ?? ''}-${asset.amount}`
+        return !existingKeySet.has(key)
+      })
+      .map((a, i) => ({
+        ...a,
+        sequence: existingAssets.length + i,
+      }))
+
+    if (newAssets.length > 0) {
+      await this.insertAssetsForJourney(journeyId, newAssets)
+    }
   }
 
   async updateAsset(
@@ -309,6 +345,18 @@ export class CrosschainRepository {
     return rows.length > 0 ? mapRowToFullJourney(rows[0]) : undefined
   }
 
+  async getJourneyByTripId(tripId?: string): Promise<Journey | undefined> {
+    if (tripId === undefined) {
+      return undefined
+    }
+
+    return await this.#db
+      .selectFrom('xc_journeys')
+      .selectAll()
+      .where('trip_id', '=', tripId)
+      .executeTakeFirst()
+  }
+
   async listAssets(pagination?: QueryPagination): Promise<{
     items: Array<ListAsset>
     pageInfo: {
@@ -454,7 +502,11 @@ export class CrosschainRepository {
   /**
    * Generate a new trip_id (ULID)
    */
-  generateTripId(): string {
+  generateTripId(identifiers?: { chainId: string; values: string[] }): string {
+    if (identifiers) {
+      return toHex(Twox256(stringToUa8(`${identifiers.chainId}${identifiers.values.join()}`)))
+    }
+
     return ulid()
   }
 
@@ -471,6 +523,60 @@ export class CrosschainRepository {
       .execute()
 
     return finalTripId
+  }
+
+  async mergeJourneys(inJourneyId: number, outJourneyId: number, tripId?: string): Promise<number> {
+    return await this.#db.transaction().execute(async (trx) => {
+      const inJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', inJourneyId)
+        .executeTakeFirst()
+
+      if (!inJourney) {
+        throw new Error(`Inbound journey ${inJourneyId} not found`)
+      }
+
+      const outJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', outJourneyId)
+        .executeTakeFirst()
+
+      if (!outJourney) {
+        throw new Error(`Outbound journey ${outJourneyId} not found`)
+      }
+
+      // --- Merge stops ---
+      const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
+
+      // --- Build update payload ---
+      const update: JourneyUpdate = {
+        trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
+
+        destination_protocol: outJourney.destination_protocol,
+        destination: outJourney.destination,
+        to: outJourney.to,
+        to_formatted: outJourney.to_formatted,
+        recv_at: outJourney.recv_at,
+        status: outJourney.status,
+        type: outJourney.type,
+
+        destination_tx_primary: outJourney.destination_tx_primary,
+        destination_tx_secondary: outJourney.destination_tx_secondary,
+
+        // merged data
+        stops: mergedStops,
+      }
+
+      // --- Update inbound journey ---
+      await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
+
+      // --- Delete outbound journey ---
+      await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
+
+      return inJourney.id
+    })
   }
 
   /**

@@ -70,6 +70,16 @@ export type AssetSwap = {
 }
 
 /**
+ * Information for connection cross-protocol journeys.
+ *
+ * @public
+ */
+export type ConnectionId = {
+  chainId: NetworkURN
+  data: string
+}
+
+/**
  * Represents an XCM program bytes and human JSON.
  */
 export type XcmProgram = {
@@ -82,6 +92,7 @@ export interface XcmSentWithContext extends XcmWithContext {
   recipient: NetworkURN
   sender?: SignerData
   instructions: XcmProgram
+  connectionId?: ConnectionId
 }
 
 export interface XcmBridgeAcceptedWithContext extends XcmWithContext {
@@ -98,6 +109,7 @@ export interface XcmInboundWithContext extends XcmWithContext {
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
   assetSwaps?: AssetSwap[]
+  connectionId?: ConnectionId
 }
 
 export interface XcmBridgeInboundWithContext {
@@ -134,7 +146,7 @@ export interface SnowbridgeMessageAccepted {
 /**
  * @public
  */
-export type SnowbridgeOutboundAsset = {
+export type PartialHumanizedAsset = {
   chainId: NetworkURN
   id: HexString
   amount: string
@@ -238,6 +250,7 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
   assetSwaps?: AssetSwap[]
+  connectionId?: ConnectionId
 
   constructor(msg: XcmInboundWithContext) {
     super(msg)
@@ -246,6 +259,7 @@ export class GenericXcmInboundWithContext extends BaseGenericXcmWithContext impl
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
     this.assetSwaps = msg.assetSwaps
+    this.connectionId = msg.connectionId
   }
 }
 
@@ -254,6 +268,7 @@ export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWi
   recipient: NetworkURN
   instructions: XcmProgram
   sender?: SignerData
+  connectionId?: ConnectionId
 
   constructor(msg: XcmSentWithContext) {
     super(msg)
@@ -262,6 +277,7 @@ export class GenericXcmSentWithContext extends BaseXcmEvent implements XcmSentWi
     this.recipient = msg.recipient
     this.instructions = msg.instructions
     this.sender = msg.sender
+    this.connectionId = msg.connectionId
   }
 }
 
@@ -410,6 +426,7 @@ export interface XcmTerminusContext extends XcmWithContext, XcmTerminus {
   outcome: 'Success' | 'Fail'
   error?: AnyJson
   instructions: AnyJson
+  connectionId?: ConnectionId
 }
 
 /**
@@ -454,7 +471,7 @@ export type Leg = {
  */
 export type XcmPartialHumanized = {
   beneficiary?: HexString
-  assets: SnowbridgeOutboundAsset[]
+  assets: PartialHumanizedAsset[]
 }
 
 /**
@@ -529,6 +546,7 @@ export class XcmInbound extends BaseXcmEvent {
   error?: AnyJson
   assetsTrapped?: AssetsTrapped
   assetSwaps?: AssetSwap[]
+  connectionId?: ConnectionId
 
   constructor(chainId: NetworkURN, msg: XcmInboundWithContext) {
     super(msg)
@@ -538,6 +556,7 @@ export class XcmInbound extends BaseXcmEvent {
     this.error = msg.error
     this.assetsTrapped = msg.assetsTrapped
     this.assetSwaps = msg.assetSwaps
+    this.connectionId = msg.connectionId
   }
 }
 
@@ -595,6 +614,7 @@ export class GenericXcmSent extends BaseXcmJourney implements XcmSent {
       instructions: msg.instructions.json,
       messageHash: msg.messageHash,
       messageId: msg.messageId,
+      connectionId: msg.connectionId,
     }
     this.destination = {
       chainId: legs[legs.length - 1].to, // last stop is the destination
@@ -646,6 +666,7 @@ export class GenericXcmReceived extends BaseXcmJourney implements XcmReceived {
       instructions: outMsg.waypoint.instructions,
       messageData: outMsg.waypoint.messageData,
       messageHash: outMsg.waypoint.messageHash,
+      connectionId: inMsg.connectionId,
     }
     this.origin = outMsg.origin
     this.waypoint = {

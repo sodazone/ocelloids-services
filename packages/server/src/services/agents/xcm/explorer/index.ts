@@ -1,4 +1,5 @@
 import { SqliteError } from 'better-sqlite3'
+import { sql } from 'kysely'
 import { concatMap, Subscription } from 'rxjs'
 import { asJSON } from '@/common/util.js'
 import {
@@ -6,13 +7,14 @@ import {
   CrosschainRepository,
   FullJourney,
   FullJourneyResponse,
+  Journey,
   JourneyUpdate,
 } from '@/services/agents/crosschain/index.js'
 import { Logger } from '@/services/types.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking/index.js'
-import { isXcmHop, isXcmReceived, XcmMessagePayload, XcmTerminusContext } from '../types/index.js'
+import { isXcmHop, isXcmReceived, isXcmSent, XcmMessagePayload, XcmTerminusContext } from '../types/index.js'
 import {
   asNewJourneyObject,
   toCorrelationId,
@@ -131,7 +133,24 @@ export class XcmExplorer {
   async #onXcmMessage(message: XcmMessagePayload) {
     try {
       const correlationId = toCorrelationId(message)
+      const connectionId =
+        message.origin.connectionId ??
+        ('connectionId' in message.destination ? message.destination.connectionId : undefined)
+      const tripId = connectionId
+        ? this.#repository.generateTripId({ chainId: connectionId.chainId, values: [connectionId.data] })
+        : undefined
+      const existingTrip = await this.#repository.getJourneyByTripId(tripId)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
+      if (existingTrip !== undefined) {
+        this.#log.info(
+          '[connecting-trip] %s existing=%s-%s',
+          existingTrip.correlation_id,
+          existingTrip.origin,
+          existingTrip.destination,
+        )
+        this.#updateTrip(message, existingTrip, existingJourney)
+        return
+      }
 
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
         this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
@@ -151,7 +170,7 @@ export class XcmExplorer {
 
           // Insert a new journey with assets if no existing journey
           const humanizedXcm = await this.#humanizer.humanize(message)
-          const journey = toNewJourney(humanizedXcm)
+          const journey = toNewJourney(humanizedXcm, tripId)
           const assets = toNewAssets(humanizedXcm.humanized.assets)
           try {
             const id = await this.#repository.insertJourneyWithAssets(journey, assets)
@@ -180,7 +199,7 @@ export class XcmExplorer {
           // Insert a new journey with assets if no existing journey
           const humanizedXcm = await this.#humanizer.humanize(message)
 
-          const newJourney = toNewJourney(humanizedXcm)
+          const newJourney = toNewJourney(humanizedXcm, tripId)
 
           // Apply context from message.origin to the origin chain leg
           const originContext = {
@@ -277,6 +296,38 @@ export class XcmExplorer {
     }
   }
 
+  async #updateTrip(message: XcmMessagePayload, existingTrip: Journey, existingJourney?: FullJourney) {
+    if (existingJourney && isXcmSent(message)) {
+      return
+    }
+    const humanizedXcm = await this.#humanizer.humanize(message)
+    const update: JourneyUpdate = {}
+    if (isXcmSent(message)) {
+      const journey = toNewJourney(humanizedXcm, existingTrip.trip_id)
+      update.status = journey.status
+      update.destination = journey.destination
+      update.to = journey.to
+      update.to_formatted = journey.to_formatted
+      update.destination_protocol = journey.destination_protocol
+      update.recv_at = sql`NULL` as any
+      const updatedStops = toStops(message, existingTrip.stops)
+      update.stops = asJSON(updatedStops)
+    } else {
+      const updatedStops = toStops(message, existingTrip.stops)
+      update.status = toStatus(message)
+      update.stops = asJSON(updatedStops)
+      if (isXcmReceived(message)) {
+        update.recv_at = (message.destination as XcmTerminusContext).timestamp
+      }
+    }
+
+    await this.#repository.updateJourney(existingTrip.id, update)
+    const { items } = await this.#crosschain.getJourneyById({ id: existingTrip.correlation_id })
+    if (items.length > 0) {
+      this.#broadcastUpdateJourney(items[0])
+    }
+  }
+
   async #updateJourney(message: XcmMessagePayload, existingJourney: FullJourney) {
     const updatedStops = toStops(message, existingJourney.stops)
     const updateWith: Partial<JourneyUpdate> = {
@@ -285,7 +336,15 @@ export class XcmExplorer {
     }
     // Update recv_at only for 'xcm.received'
     if (isXcmReceived(message)) {
-      updateWith.recv_at = (message.destination as XcmTerminusContext).timestamp
+      const dest = message.destination as XcmTerminusContext
+      updateWith.recv_at = dest.timestamp
+      if (dest.connectionId) {
+        const tripId = this.#repository.generateTripId({
+          chainId: dest.connectionId.chainId,
+          values: [dest.connectionId.data],
+        })
+        updateWith.trip_id = tripId
+      }
     }
     await this.#repository.updateJourney(existingJourney.id, updateWith)
   }

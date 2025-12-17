@@ -11,7 +11,7 @@ export {
   Leg,
   LegType,
   legTypes,
-  SnowbridgeOutboundAsset,
+  PartialHumanizedAsset,
   SwappedAsset,
   TrappedAsset,
   XcmAssetWithMetadata,
