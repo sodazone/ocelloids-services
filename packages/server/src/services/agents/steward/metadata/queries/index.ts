@@ -7,11 +7,13 @@ import { $StewardQueryArgs, StewardQueryArgs } from '../../types.js'
 import { AssetsQueryHandler } from './assets.js'
 import { ChainsQueryHandler } from './chains.js'
 import { LocationQueryHandler } from './location/handler.js'
+import { WormholeQueryHandler } from './wormhole.js'
 
 export class Queries {
   readonly #assetsHandler
   readonly #chainsHandler
   readonly #locationHandler
+  readonly #wormholeHandler
 
   constructor(
     dbAssets: LevelDB,
@@ -22,6 +24,7 @@ export class Queries {
     this.#assetsHandler = new AssetsQueryHandler(dbAssets, dbAssetsHashIndex)
     this.#chainsHandler = new ChainsQueryHandler(dbChains)
     this.#locationHandler = new LocationQueryHandler(dbAssets, ingress)
+    this.#wormholeHandler = new WormholeQueryHandler(dbAssets)
   }
 
   async dispatch(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
@@ -42,6 +45,10 @@ export class Queries {
       return await this.#chainsHandler.queryChainList(pagination)
     } else if (args.op === 'chains.prefix') {
       return await this.#chainsHandler.queryChainsPrefix(args.criteria)
+    } else if (args.op === 'chains.wormhole.by_id') {
+      return this.#wormholeHandler.queryWormholeIds(args.criteria)
+    } else if (args.op === 'assets.wormhole') {
+      return this.#wormholeHandler.queryAsset(args.criteria)
     }
 
     /* c8 ignore next */

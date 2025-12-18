@@ -91,6 +91,24 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       networks: z.array($NetworkString).min(1).max(50),
     }),
   }),
+  z.object({
+    op: z.literal('chains.wormhole.by_id'),
+    criteria: z.object({
+      ids: z.array(z.number()).min(1).max(50),
+    }),
+  }),
+  z.object({
+    op: z.literal('assets.wormhole'),
+    criteria: z
+      .array(
+        z.object({
+          wormholeId: z.number(),
+          assets: z.array(z.string()).min(1).max(50),
+        }),
+      )
+      .min(1)
+      .max(10),
+  }),
 ])
 
 /**

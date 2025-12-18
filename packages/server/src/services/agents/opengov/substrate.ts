@@ -102,7 +102,7 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
       )
       return ctx.decodeCall(preimage.asBytes())
     } else if (proposal.type === 'Inline') {
-      return ctx.decodeCall(proposal.value)
+      return ctx.decodeCall(proposal.value.asBytes())
     }
     return null
   }
