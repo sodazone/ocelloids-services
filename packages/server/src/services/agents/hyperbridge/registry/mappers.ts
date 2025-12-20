@@ -329,7 +329,7 @@ export function fetchEvmAssetsMetadataBatch$(
 
           for (let i = 0; i < assets.length; i++) {
             const tokenAddr = tokenAddresses[i]
-            if (tokenAddr === zeroAddress) {
+            if (tokenAddr.startsWith(zeroAddress)) {
               continue
             }
 
