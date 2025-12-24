@@ -66,6 +66,10 @@ const gatewayViewFunctions: AbiFunction[] = [
   },
 ]
 
+function isZeroAddress(address: string) {
+  return address.startsWith(zeroAddress)
+}
+
 function bifrostAssetMapper({ ingress }: MapperContext) {
   const apis = ingress.substrate
 
@@ -304,13 +308,13 @@ export function fetchEvmAssetsMetadataBatch$(
     }),
     mergeMap(({ assets, results }) => {
       const tokenAddresses = assets.map((_a, i) => {
-        const erc20Addr = results[i * 2]?.result
-        const erc6160Addr = results[i * 2 + 1]?.result
-        return (erc20Addr !== zeroAddress ? erc20Addr : erc6160Addr) as HexString
+        const erc20Addr = results[i * 2]?.result as string
+        const erc6160Addr = results[i * 2 + 1]?.result as string
+        return (isZeroAddress(erc20Addr) ? erc20Addr : erc6160Addr) as HexString
       })
 
       const metaCalls = tokenAddresses.flatMap((addr) =>
-        addr === zeroAddress
+        isZeroAddress(addr)
           ? []
           : [
               { address: addr, abi: erc20Abi, functionName: 'symbol' },
@@ -329,7 +333,7 @@ export function fetchEvmAssetsMetadataBatch$(
 
           for (let i = 0; i < assets.length; i++) {
             const tokenAddr = tokenAddresses[i]
-            if (tokenAddr.startsWith(zeroAddress)) {
+            if (isZeroAddress(tokenAddr)) {
               continue
             }
 
