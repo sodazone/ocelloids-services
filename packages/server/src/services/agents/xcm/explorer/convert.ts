@@ -47,7 +47,7 @@ export function asNewJourneyObject(
   })
 }
 
-export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
+export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existingStops: any[] = []): any[] {
   const existingXcmStops = existingStops.filter((s) => legTypes.includes(s.type))
 
   const builtXcmStops = payload.legs.map((leg, index) => {
@@ -132,6 +132,24 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
     merged.splice(insertionIndex, 0, ...builtXcmStops.slice(xcmIndex))
   }
 
+  const xprotocolData = 'humanized' in payload ? payload.humanized.xprotocolData : undefined
+  if (xprotocolData) {
+    const fromChainId = payload.destination.chainId
+    const toChainId = xprotocolData.destination
+
+    const alreadyExists = merged.some(
+      (stop) => stop.from?.chainId === fromChainId && stop.to?.chainId === toChainId,
+    )
+
+    if (!alreadyExists) {
+      merged.push({
+        type: xprotocolData.type,
+        from: { chainId: fromChainId },
+        to: { chainId: toChainId },
+      })
+    }
+  }
+
   return merged
 }
 
@@ -152,30 +170,71 @@ function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
 }
 
 export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): NewJourney {
+  const xprotocolData = payload.humanized.xprotocolData
+  const finalDestination = xprotocolData ? xprotocolData.destination : payload.destination.chainId
+  const finalBeneficiary = xprotocolData ? xprotocolData.beneficiary : payload.humanized.to
+  const destinationProtocol = xprotocolData ? xprotocolData.protocol : payload.destinationProtocol
+  const type = xprotocolData && xprotocolData.assets.length > 0 ? 'transfer' : payload.humanized.type
+
   return {
     trip_id: tripId,
     correlation_id: toCorrelationId(payload),
     created_at: Date.now(),
-    type: payload.humanized.type,
-    destination: payload.destination.chainId,
+    type,
+    destination: finalDestination,
     instructions: payload.origin.instructions ? asJSON(payload.origin.instructions) : '[]',
     transact_calls: asJSON(payload.humanized.transactCalls),
     origin_protocol: payload.originProtocol,
-    destination_protocol: payload.destinationProtocol,
+    destination_protocol: destinationProtocol,
     origin: payload.origin.chainId,
     origin_tx_primary: payload.origin.txHash,
     origin_tx_secondary: toEvmTxHash(payload),
     from: payload.humanized.from.key,
-    to: payload.humanized.to.key,
+    to: finalBeneficiary.key,
     from_formatted: payload.humanized.from.formatted,
-    to_formatted: payload.humanized.to.formatted,
+    to_formatted: finalBeneficiary.formatted,
     sent_at: payload.origin.timestamp,
     status: toStatus(payload),
     stops: asJSON(toStops(payload)),
   }
 }
 
-export function toNewAssets(assets: HumanizedXcmAsset[]): Omit<NewAssetOperation, 'journey_id'>[] {
+export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperation, 'journey_id'>[] {
+  const humanizedAssets = payload.humanized.assets ?? []
+  const xprotocolAssets = payload.humanized.xprotocolData?.assets ?? []
+
+  const assetMap = new Map<string, HumanizedXcmAsset>()
+
+  const dedupeKey = (asset: HumanizedXcmAsset) => `${asset.id}:${asset.amount.toString()}`
+
+  for (const asset of humanizedAssets) {
+    assetMap.set(dedupeKey(asset), { ...asset })
+  }
+
+  for (const asset of xprotocolAssets) {
+    const key = dedupeKey(asset)
+    if (!assetMap.has(key)) {
+      assetMap.set(key, { ...asset })
+    }
+  }
+
+  const mergedAssets = Array.from(assetMap.values()).map((asset, index) => ({
+    ...asset,
+    sequence: index,
+  }))
+
+  return mergedAssets.map((asset) => ({
+    symbol: asset.symbol,
+    amount: asset.amount.toString(),
+    asset: asset.id,
+    decimals: asset.decimals,
+    usd: asset.volume,
+    role: asset.role,
+    sequence: asset.sequence,
+  }))
+}
+
+export function toTrappedAssets(assets: HumanizedXcmAsset[]): Omit<NewAssetOperation, 'journey_id'>[] {
   return assets.map((asset) => ({
     symbol: asset.symbol,
     amount: asset.amount.toString(),

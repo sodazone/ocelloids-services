@@ -22,6 +22,18 @@ import {
 
 const MAX_LIMIT = 100
 
+const STATUS_PRIORITY: Record<string, number> = {
+  in_progress: 0,
+  sent: 0,
+  pending: 1,
+  waiting: 2,
+  received: 3,
+  success: 3,
+  fail: 3,
+  completed: 3,
+  confirmed: 3,
+}
+
 function encodeCursor(journeys: FullJourney[]): string {
   for (let i = journeys.length - 1; i >= 0; i--) {
     const journey = journeys[i]
@@ -141,14 +153,38 @@ function mapRowToFullJourney(row: any): FullJourney {
   }
 }
 
-function mergeStops(inStops: any[] = [], outStops: any[] = []): string {
+function stopFreshness(stop: any) {
+  const parts = [stop.from, stop.to, stop.relay].filter(Boolean)
+
+  const statusPriority = Math.max(...parts.map((p) => STATUS_PRIORITY[p.status] ?? -1), -1)
+
+  const fieldCount = parts.reduce((acc, p) => acc + Object.keys(p).length, 0)
+
+  return { statusPriority, fieldCount }
+}
+
+function isNewer(a: any, b: any): boolean {
+  const fa = stopFreshness(a)
+  const fb = stopFreshness(b)
+  console.log('comparing stops', fa, fb)
+
+  if (fa.statusPriority !== fb.statusPriority) {
+    return fa.statusPriority > fb.statusPriority
+  }
+
+  return fa.fieldCount > fb.fieldCount
+}
+
+function mergeStops(inStops: any[] = [], outStops: any[] = []) {
   const map = new Map<string, any>()
 
-  const makeKey = (s: any) => `${s.type}:${s.from?.chainId ?? ''}:${s.to?.chainId ?? ''}`
+  const keyOf = (s: any) => `${s.type}:${s.from.chainId}:${s.to.chainId}`
 
   for (const stop of [...inStops, ...outStops]) {
-    const key = makeKey(stop)
-    if (!map.has(key)) {
+    const key = keyOf(stop)
+    const existing = map.get(key)
+
+    if (!existing || isNewer(stop, existing)) {
       map.set(key, stop)
     }
   }
@@ -345,16 +381,12 @@ export class CrosschainRepository {
     return rows.length > 0 ? mapRowToFullJourney(rows[0]) : undefined
   }
 
-  async getJourneyByTripId(tripId?: string): Promise<Journey | undefined> {
+  async getJourneyByTripId(tripId?: string): Promise<Journey[]> {
     if (tripId === undefined) {
-      return undefined
+      return []
     }
 
-    return await this.#db
-      .selectFrom('xc_journeys')
-      .selectAll()
-      .where('trip_id', '=', tripId)
-      .executeTakeFirst()
+    return await this.#db.selectFrom('xc_journeys').selectAll().where('trip_id', '=', tripId).execute()
   }
 
   async listAssets(pagination?: QueryPagination): Promise<{
@@ -525,7 +557,20 @@ export class CrosschainRepository {
     return finalTripId
   }
 
-  async mergeJourneys(inJourneyId: number, outJourneyId: number, tripId?: string): Promise<number> {
+  async getJourneyAssets(journeyId: number): Promise<FullJourneyAsset[]> {
+    return this.#db
+      .selectFrom('xc_asset_ops')
+      .select(['asset', 'symbol', 'amount', 'decimals', 'usd', 'role', 'sequence'])
+      .where('journey_id', '=', journeyId)
+      .orderBy('sequence', 'asc')
+      .execute()
+  }
+
+  async mergeJourneys(
+    inJourneyId: number,
+    outJourneyId: number,
+    tripId?: string,
+  ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
     return await this.#db.transaction().execute(async (trx) => {
       const inJourney = await trx
         .selectFrom('xc_journeys')
@@ -547,10 +592,6 @@ export class CrosschainRepository {
         throw new Error(`Outbound journey ${outJourneyId} not found`)
       }
 
-      // --- Merge stops ---
-      const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
-
-      // --- Build update payload ---
       const update: JourneyUpdate = {
         trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
 
@@ -565,17 +606,15 @@ export class CrosschainRepository {
         destination_tx_primary: outJourney.destination_tx_primary,
         destination_tx_secondary: outJourney.destination_tx_secondary,
 
-        // merged data
-        stops: mergedStops,
+        stops: mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[]),
       }
 
-      // --- Update inbound journey ---
       await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
-
-      // --- Delete outbound journey ---
-      await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
-
-      return inJourney.id
+      if (inJourneyId !== outJourneyId) {
+        await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
+        return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: outJourney }
+      }
+      return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: null }
     })
   }
 

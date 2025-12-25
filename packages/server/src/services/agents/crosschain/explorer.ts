@@ -152,6 +152,16 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     })
   }
 
+  broadcastReplaceJourney(data: {
+    ids: { id: number; correlationId: string }
+    replaces: FullJourneyResponse
+  }) {
+    this.#broadcaster.send({
+      event: 'replace_journey',
+      data,
+    })
+  }
+
   onServerSentEventsRequest(request: ServerSentEventsRequest<XcServerSentEventArgs>) {
     this.#broadcaster?.stream(request)
   }

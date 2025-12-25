@@ -1,7 +1,7 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { fromHex } from 'polkadot-api/utils'
 import { Enum, Struct, u256 } from 'scale-ts'
-
+import { normalizePublicKey } from '@/common/util.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 
 type Junction =
@@ -191,7 +191,7 @@ export function resolveDestinationAndBeneficiary({
 
     if (acc) {
       if (acc.type === 'AccountId32') {
-        const pubkey = acc.value.id.asHex()
+        const pubkey = normalizePublicKey(acc.value.id.asHex())
         address = { key: pubkey, formatted: fromBufferToBase58(ss58Prefix ?? 0)(fromHex(pubkey)).toString() }
       } else if (acc.type === 'AccountKey20') {
         const raw = acc.value.key.asHex()

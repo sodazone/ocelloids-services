@@ -1,5 +1,6 @@
 import { AnyJson } from '@/lib.js'
 import { AssetRole } from '@/services/agents/crosschain/index.js'
+import { NetworkURN } from '@/services/types.js'
 
 export type XcmV3MultiLocation = AnyJson
 
@@ -211,8 +212,17 @@ export type HumanizedXcm = {
   assets: HumanizedXcmAsset[]
   version?: string
   transactCalls: HumanizedTransactCall[]
+  xprotocolData?: XprotocolData
 }
 
 export function isConcrete(object: any): object is Concrete {
   return object.type !== undefined || object.type === 'Concrete'
+}
+
+export type XprotocolData = {
+  type: string
+  protocol: string
+  destination: NetworkURN
+  beneficiary: HumanizedAddresses
+  assets: HumanizedXcmAsset[]
 }

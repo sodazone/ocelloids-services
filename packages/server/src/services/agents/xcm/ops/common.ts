@@ -2,7 +2,6 @@ import { toHex } from 'polkadot-api/utils'
 import { bufferCount, map, mergeMap, Observable } from 'rxjs'
 import { filterNonNull } from '@/common/index.js'
 import { createNetworkId, getChainId, getConsensus, isOnSameConsensus } from '@/services/config.js'
-import { decodeEvmEventLog } from '@/services/networking/substrate/evm/decoder.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import {
   Block,

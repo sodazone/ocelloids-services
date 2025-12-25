@@ -1,8 +1,9 @@
+import { of } from 'rxjs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { twoHopSwap } from '@/testing/2-hop-swap.js'
-import { getSnowbridgeXcmBridge, getXcmV5Sent } from '@/testing/humanize.js'
+import { getHydrationWormholeXcm, getSnowbridgeXcmBridge, getXcmV5Sent } from '@/testing/humanize.js'
 import { createServices } from '@/testing/services.js'
-import { apiContext } from '@/testing/xcm.js'
+import { apiContext, apiContext_moonbeam } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
 import { XcmHumanizer } from './index.js'
 
@@ -1083,6 +1084,15 @@ describe('XcmHumanizer', () => {
     const results = await humanizer.humanize(msg)
     expect(results.humanized).toBeDefined()
     expect(results.humanized.type).toBe('transfer')
+    expect(results.humanized.assets.length).toBe(1)
+  })
+
+  it.only('should humanize Hydration Wormhole XCM transact', async () => {
+    const msg = getHydrationWormholeXcm()
+    const results = await humanizer.humanize(msg, of(apiContext_moonbeam))
+    console.log('h ----', results.humanized.xprotocolData)
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
     expect(results.humanized.assets.length).toBe(1)
   })
 })

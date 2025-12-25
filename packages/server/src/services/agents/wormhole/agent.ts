@@ -1,3 +1,4 @@
+import { LRUCache } from 'lru-cache'
 import { Observer, Subscription } from 'rxjs'
 import { ago } from '@/common/time.js'
 import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
@@ -51,6 +52,7 @@ export class WormholeAgent implements Agent {
   readonly #watcher: WormholeWatcher
   readonly #subs: Subscription[]
   readonly #telemetry: TelemetryWormholeEventEmitter
+  readonly #replacedJourneysCache: LRUCache<string, number>
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -68,6 +70,12 @@ export class WormholeAgent implements Agent {
     const storage = makeWormholeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
+    this.#replacedJourneysCache = new LRUCache({
+      ttl: 3_600_000, // 1 hr
+      ttlResolution: 60_000,
+      ttlAutopurge: false,
+      max: 1_000,
+    })
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -178,20 +186,24 @@ export class WormholeAgent implements Agent {
     }
 
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
-    const existingTrip = await this.#repository.getJourneyByTripId(journey.trip_id)
+    if (this.#replacedJourneysCache.has(journey.correlation_id)) {
+      this.#log.info('[agent:%s] Journey replaced for correlationId: %s', this.id, journey.correlation_id)
+    }
+    const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
-
+    console.log('WH journey', journey)
     if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
       const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
-      if (existingTrip !== undefined) {
+      if (existingTrips.length > 0) {
         this.#log.info(
-          '[connecting-trip] %s existing=%s-%s',
-          existingTrip.correlation_id,
-          existingTrip.origin,
-          existingTrip.destination,
+          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          this.id,
+          existingTrips.map((t) => t.id),
+          id,
+          journey.trip_id,
         )
-        await this.#updateTrip(journey, existingTrip, id)
+        await this.#updateTrip(journey, existingTrips, id)
         return
       }
       await this.#broadcast('new_journey', id)
@@ -224,43 +236,70 @@ export class WormholeAgent implements Agent {
       update.stops = journey.stops
 
       await this.#repository.updateJourney(existingJourney.id, update)
-      if (existingTrip !== undefined) {
+      if (existingTrips.length > 0) {
         this.#log.info(
-          '[connecting-trip] %s existing=%s-%s',
-          existingTrip.correlation_id,
-          existingTrip.origin,
-          existingTrip.destination,
+          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          this.id,
+          existingTrips.map((t) => t.id),
+          existingJourney.id,
+          journey.trip_id,
         )
-        await this.#updateTrip(journey, existingTrip, existingJourney.id)
+        await this.#updateTrip(journey, existingTrips, existingJourney.id)
         return
       }
       await this.#broadcast('update_journey', existingJourney.id)
     }
   }
 
-  async #updateTrip(journey: NewJourneyWithAssets, existingTrip: Journey, journeyId: number) {
-    let id = journeyId
+  async #updateTrip(journey: NewJourneyWithAssets, existingTrips: Journey[], journeyId: number) {
+    const existingTrip =
+      existingTrips.length === 1
+        ? existingTrips[0]
+        : existingTrips.find((t) => t.origin_protocol !== t.destination_protocol)
+    if (!existingTrip) {
+      return
+    }
+
+    const performMerge = async (
+      firstId: number,
+      secondId: number,
+    ): Promise<{ updatedIds: { id: number; correlationId: string }; replaces: Journey | null }> => {
+      const { updated, deleted } = await this.#repository.mergeJourneys(firstId, secondId, journey.trip_id)
+      return { updatedIds: { ...updated }, replaces: deleted }
+    }
+
     try {
-      // journey has context of cross protocol stops
+      let result: { updatedIds: { id: number; correlationId: string }; replaces: Journey | null } | null =
+        null
+
       if (journey.origin_protocol !== journey.destination_protocol) {
         if (WormholeProtocols.includes(journey.origin_protocol as any)) {
-          // journey is the first leg of the cross protocol journey
-          id = await this.#repository.mergeJourneys(journeyId, existingTrip.id, journey.trip_id)
+          result = await performMerge(journeyId, existingTrip.id)
+        } else if (WormholeProtocols.includes(journey.destination_protocol as any)) {
+          result = await performMerge(existingTrip.id, journeyId)
         }
-        if (WormholeProtocols.includes(journey.destination_protocol as any)) {
-          id = await this.#repository.mergeJourneys(existingTrip.id, journeyId, journey.trip_id)
-        }
-      } else if (existingTrip.destination === journey.origin) {
-        // update second part of trip
-        id = await this.#repository.mergeJourneys(existingTrip.id, journeyId, journey.trip_id)
-      } else if (existingTrip.origin === journey.destination) {
-        // update first half of trip
-        id = await this.#repository.mergeJourneys(journeyId, existingTrip.id, journey.trip_id)
+      } else if (WormholeProtocols.includes(existingTrip.origin_protocol as any)) {
+        result = await performMerge(journeyId, existingTrip.id)
+      } else if (WormholeProtocols.includes(existingTrip.destination_protocol as any)) {
+        result = await performMerge(existingTrip.id, journeyId)
+      }
+
+      await this.#broadcast('update_journey', result?.updatedIds.id ?? journeyId)
+
+      if (result?.replaces && result.updatedIds) {
+        const replacesJourneyAssets = await this.#repository.getJourneyAssets(result.updatedIds.id)
+        this.#crosschain.broadcastReplaceJourney({
+          ids: result.updatedIds,
+          replaces: {
+            ...deepCamelize<Journey>(result.replaces),
+            assets: replacesJourneyAssets,
+            totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
+          },
+        })
+        this.#replacedJourneysCache.set(result.replaces.correlation_id, result.replaces.id)
       }
     } catch (e) {
-      this.#log.error(e, '[connecting-trip] error %s', journeyId)
-    } finally {
-      await this.#broadcast('update_journey', id)
+      this.#log.error(e, '[wh:connecting-trip] error %s', journeyId)
     }
   }
 

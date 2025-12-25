@@ -17,7 +17,16 @@ export const $TimeSelect = z.object({
       '30 days',
     ]),
   ),
-  timeframe: z.enum(['1 days', '7 days', '15 days', '1 months', '3 months', '6 months', '9 months']),
+  timeframe: z.enum([
+    '1 days',
+    '7 days',
+    '15 days',
+    '1 months',
+    '3 months',
+    '6 months',
+    '9 months',
+    '12 months',
+  ]),
 })
 
 export const $TimeAndMaybeNetworkSelect = $TimeSelect.merge(
