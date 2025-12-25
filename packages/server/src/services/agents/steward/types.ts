@@ -197,6 +197,13 @@ export type Empty = {
   query: Record<string, any>
 }
 
+/**
+ * Mapping of Wormhole chain id to network URN.
+ *
+ * @public
+ */
+export type WormholeNetwork = { wormholeId: number; urn: NetworkURN }
+
 export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
   return (
     typeof obj === 'object' &&

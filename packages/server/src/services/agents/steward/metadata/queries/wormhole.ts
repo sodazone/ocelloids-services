@@ -1,9 +1,7 @@
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryResult } from '../../../types.js'
-import { AssetMetadata } from '../../types.js'
+import { AssetMetadata, WormholeNetwork } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
-
-type WormholeNetwork = { wormholeId: number; urn: NetworkURN }
 
 const WormholeIds = {
   MOONBEAM_ID: 16,
