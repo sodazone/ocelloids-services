@@ -191,7 +191,6 @@ export class WormholeAgent implements Agent {
     }
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
-    console.log('WH journey', journey)
     if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
       const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
@@ -260,11 +259,18 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    const performMerge = async (
+    const merge = async (
       firstId: number,
       secondId: number,
     ): Promise<{ updatedIds: { id: number; correlationId: string }; replaces: Journey | null }> => {
       const { updated, deleted } = await this.#repository.mergeJourneys(firstId, secondId, journey.trip_id)
+      this.#log.info(
+        '[agent:wormhole] Journey merge updated=%s,%s deleted=%s,%s',
+        updated.id,
+        updated.correlationId,
+        deleted?.id ?? 'null',
+        deleted?.correlation_id ?? 'null',
+      )
       return { updatedIds: { ...updated }, replaces: deleted }
     }
 
@@ -274,14 +280,14 @@ export class WormholeAgent implements Agent {
 
       if (journey.origin_protocol !== journey.destination_protocol) {
         if (WormholeProtocols.includes(journey.origin_protocol as any)) {
-          result = await performMerge(journeyId, existingTrip.id)
+          result = await merge(journeyId, existingTrip.id)
         } else if (WormholeProtocols.includes(journey.destination_protocol as any)) {
-          result = await performMerge(existingTrip.id, journeyId)
+          result = await merge(existingTrip.id, journeyId)
         }
       } else if (WormholeProtocols.includes(existingTrip.origin_protocol as any)) {
-        result = await performMerge(journeyId, existingTrip.id)
+        result = await merge(journeyId, existingTrip.id)
       } else if (WormholeProtocols.includes(existingTrip.destination_protocol as any)) {
-        result = await performMerge(existingTrip.id, journeyId)
+        result = await merge(existingTrip.id, journeyId)
       }
 
       await this.#broadcast('update_journey', result?.updatedIds.id ?? journeyId)

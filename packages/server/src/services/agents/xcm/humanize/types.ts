@@ -219,6 +219,9 @@ export function isConcrete(object: any): object is Concrete {
   return object.type !== undefined || object.type === 'Concrete'
 }
 
+/**
+ * @public
+ */
 export type XprotocolData = {
   type: string
   protocol: string

@@ -166,7 +166,6 @@ function stopFreshness(stop: any) {
 function isNewer(a: any, b: any): boolean {
   const fa = stopFreshness(a)
   const fb = stopFreshness(b)
-  console.log('comparing stops', fa, fb)
 
   if (fa.statusPriority !== fb.statusPriority) {
     return fa.statusPriority > fb.statusPriority

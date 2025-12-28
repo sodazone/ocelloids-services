@@ -97,16 +97,16 @@ describe('extractXcmMessageData', () => {
     })
   })
 
-  it.only('should emit outbound for hydration xcmp to bridgehub', async () => {
-    const origin = 'urn:ocn:polkadot:2030' as NetworkURN
-    const blocks = from(testBlocksFrom('bifrost/10398242.cbor'))
+  it('should emit outbound for hydration xcmp to bridgehub', async () => {
+    const origin = 'urn:ocn:local:2034' as NetworkURN
+    const blocks = from(testBlocksFrom('hydra/8093942.cbor'))
     const getHrmp = () =>
       from([
         [
           {
-            recipient: 2004,
+            recipient: 1000,
             data: Binary.fromHex(
-              '0x00051800040001040a0013000014bbf08ac602130001040a0013000014bbf08ac602000601010700c817a80442420f00fd026d000180fc0a000000000000000000000000000000000000000000000000000000000000ef81930aa8ed07c17948b2e26b7bfaf20144ef2a000000000000000000000000000000000000000000000000000000000000000091019a41b92408080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000dc51baaa407774935c4e1000000000000000000000000000000000000000000097a4b980cf091a9c1f6fa00140d010220000103007369626cee0700000000000000000000000000002c65e226042c33660d3604c598db1d6bd55c523c4ab10deb1e84441eb9627734aa',
+              '0x0004180008010000079e144c3204020209070403007fc66500c84a76ad7e9c93437bfc5ac33e2ddae90017a08f37e359831035010a13010000079e144c32040016040d0100000101007279fcf9694718e1234d102825dccaf332f0ea36edf1ca7c0358c4b68260d24b100101020209070403007fc66500c84a76ad7e9c93437bfc5ac33e2ddae90002010907040c13000103007fc66500c84a76ad7e9c93437bfc5ac33e2ddae90004000d01020400010300601d579ecd0464a1a090ceef81a703465a1679cd2c7ba0bd809eb613e6137882bb85c46e2c68e3c8eebefc852e823950d499f108f62c7ba0bd809eb613e6137882bb85c46e2c68e3c8eebefc852e823950d499f108f6',
             ),
           },
         ],
@@ -121,7 +121,6 @@ describe('extractXcmMessageData', () => {
     await new Promise<void>((resolve) => {
       test$.subscribe({
         next: (msg) => {
-          console.log(msg)
           calls()
           expect(msg).toBeDefined()
           expect(msg.origin.blockNumber).toBeDefined()

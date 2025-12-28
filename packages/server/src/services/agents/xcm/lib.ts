@@ -3,6 +3,7 @@ export {
   AssetsTrapped,
   BridgeName,
   BridgeStatus,
+  ConnectionId,
   HumanizedAddresses,
   HumanizedTransactCall,
   HumanizedXcm,
@@ -31,4 +32,5 @@ export {
   XcmTimeout,
   XcmWaypointContext,
   XcmWithContext,
+  XprotocolData,
 } from './types/index.js'

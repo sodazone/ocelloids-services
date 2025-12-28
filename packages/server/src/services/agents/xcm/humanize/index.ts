@@ -884,12 +884,7 @@ export class XcmHumanizer {
               destinationChain.urn,
               normalizePublicKey(mapped.recipient),
             )
-            console.log(
-              'x protocol beneficiary',
-              beneficiary,
-              destinationChain.urn,
-              normalizePublicKey(mapped.recipient),
-            )
+
             return {
               type: mapped.type,
               protocol: mapped.protocol,
@@ -931,9 +926,23 @@ export class XcmHumanizer {
           key: publicKeyOrParachain,
         }
       }
+      if (chainId === 'urn:ocn:sui:0x35834a8a') {
+        return {
+          key: publicKeyOrParachain,
+        }
+      }
       if (chainId === 'urn:ocn:solana:101') {
-        const bytes = Buffer.from(publicKeyOrParachain, 'hex')
-        const formatted = bs58.encode(bytes)
+        const hex = publicKeyOrParachain.slice(2)
+        const buf = Buffer.from(hex, 'hex')
+
+        if (buf.length !== 32) {
+          console.error(`Invalid hex length (expected 32 bytes): ${hex}`)
+          return {
+            key: publicKeyOrParachain,
+          }
+        }
+
+        const formatted = bs58.encode(buf)
         return {
           key: publicKeyOrParachain,
           formatted,

@@ -1090,7 +1090,6 @@ describe('XcmHumanizer', () => {
   it.only('should humanize Hydration Wormhole XCM transact', async () => {
     const msg = getHydrationWormholeXcm()
     const results = await humanizer.humanize(msg, of(apiContext_moonbeam))
-    console.log('h ----', results.humanized.xprotocolData)
     expect(results.humanized).toBeDefined()
     expect(results.humanized.type).toBe('transact')
     expect(results.humanized.assets.length).toBe(1)
