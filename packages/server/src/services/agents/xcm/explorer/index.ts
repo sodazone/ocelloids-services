@@ -497,22 +497,36 @@ export class XcmExplorer {
 
   async #updateJourney(message: XcmMessagePayload, existingJourney: FullJourney) {
     const updatedStops = toStops(message, existingJourney.stops)
+
     const updateWith: Partial<JourneyUpdate> = {
       status: toStatus(message),
       stops: asJSON(updatedStops),
     }
-    // Update recv_at only for 'xcm.received'
-    if (isXcmReceived(message)) {
-      const dest = message.destination as XcmTerminusContext
-      updateWith.recv_at = dest.timestamp
-      if (dest.connectionId) {
-        const tripId = this.#repository.generateTripId({
-          chainId: dest.connectionId.chainId,
-          values: [dest.connectionId.data],
-        })
-        updateWith.trip_id = tripId
-      }
+
+    if (!isXcmReceived(message)) {
+      await this.#repository.updateJourney(existingJourney.id, updateWith)
+      return
     }
+
+    const xcmDestination = message.destination as XcmTerminusContext
+
+    if (xcmDestination.connectionId) {
+      updateWith.trip_id = this.#repository.generateTripId({
+        chainId: xcmDestination.connectionId.chainId,
+        values: [xcmDestination.connectionId.data],
+      })
+    }
+
+    if (
+      existingJourney.destination_protocol === 'xcm' ||
+      existingJourney.destination_protocol === 'snowbridge'
+    ) {
+      updateWith.recv_at = xcmDestination.timestamp
+    } else {
+      // still in progress for non-xcm destinations
+      updateWith.status = 'sent'
+    }
+
     await this.#repository.updateJourney(existingJourney.id, updateWith)
   }
 

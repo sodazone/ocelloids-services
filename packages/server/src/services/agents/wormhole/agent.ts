@@ -5,7 +5,7 @@ import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
-import { WormholeOperation, WormholeProtocols } from '@/services/networking/apis/wormhole/types.js'
+import { isWormholeProtocol, WormholeOperation, WormholeProtocols } from '@/services/networking/apis/wormhole/types.js'
 import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
@@ -211,9 +211,11 @@ export class WormholeAgent implements Agent {
 
     if (existingJourney.status !== journey.status) {
       const update: JourneyUpdate = {}
-      update.status = journey.status
+      if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
+        update.status = journey.status
+      }
 
-      if (journey.recv_at && !existingJourney.recv_at) {
+      if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
         update.recv_at = journey.recv_at
       }
 
@@ -279,14 +281,14 @@ export class WormholeAgent implements Agent {
         null
 
       if (journey.origin_protocol !== journey.destination_protocol) {
-        if (WormholeProtocols.includes(journey.origin_protocol as any)) {
+        if (isWormholeProtocol(journey.origin_protocol)) {
           result = await merge(journeyId, existingTrip.id)
-        } else if (WormholeProtocols.includes(journey.destination_protocol as any)) {
+        } else if (isWormholeProtocol(journey.destination_protocol)) {
           result = await merge(existingTrip.id, journeyId)
         }
-      } else if (WormholeProtocols.includes(existingTrip.origin_protocol as any)) {
+      } else if (isWormholeProtocol(existingTrip.origin_protocol)) {
         result = await merge(journeyId, existingTrip.id)
-      } else if (WormholeProtocols.includes(existingTrip.destination_protocol as any)) {
+      } else if (isWormholeProtocol(existingTrip.destination_protocol)) {
         result = await merge(existingTrip.id, journeyId)
       }
 

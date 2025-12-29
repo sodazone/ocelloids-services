@@ -120,3 +120,7 @@ export interface WormholeOperation<P = Payload> {
 export const WormholeProtocols = ['wh', 'wh_portal', 'wh_relayer'] as const
 export type WormholeProtocol = (typeof WormholeProtocols)[number]
 export type WormholeAction = 'transfer' | 'transact' | '??'
+
+export function isWormholeProtocol(protocol: string) {
+  return WormholeProtocols.includes(protocol as any)
+}
