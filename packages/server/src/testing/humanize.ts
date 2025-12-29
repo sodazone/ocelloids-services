@@ -1,5 +1,7 @@
+import { toHex } from 'polkadot-api/utils'
 import { XcmBridge, XcmSent } from '@/services/agents/xcm/lib.js'
 import { fromXcmpFormat } from '@/services/agents/xcm/ops/xcm-format.js'
+import { HexString } from '@/services/subscriptions/types.js'
 import { apiContext } from './xcm.js'
 
 export function getXcmV5Sent(): XcmSent {
@@ -145,4 +147,140 @@ export function getSnowbridgeXcmBridge(version: number) {
   }
 
   throw new Error('Version not supported')
+}
+
+export function getHydrationWormholeXcm(): XcmSent {
+  const msgData =
+    '00041400080001040a0013000064a7b3b6e00d0002046e0300931715fee2d06333043d11f658c8ce934ac61d0c00075475e903170a130001040a0013000064a7b3b6e00d000d0102080001030021c0477815d339945f87ec4d162c253e1ef4244f2c4e9937120dd1431b6322bce3d13b6dff72b6b282a0fa372d29d65965d97a8315041c0b0101010245544800b5fb748ec3e019a7ed4f6f701158bc23fa3a2626000000000000000000040001040a00130000da493b717d0c130001040a00130000da493b717d0c0006010768361c1e1da2252600810e6d0000404b4c0000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000008080000000000000000000000000000000000000000000000000000000000000000110d96e292b8000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000931715fee2d06333043d11f658c8ce934ac61d0c000000000000000000000000cafd2f0a35a4459fa40c0517e17e6fa2939441ca0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000cafd2f0a35a4459fa40c0517e17e6fa2939441ca0000000000000000000000000000000000000000000000000000001703e975540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c41019d654000000000000000000000000931715fee2d06333043d11f658c8ce934ac61d0c0000000000000000000000000000000000000000000000000000001703e9755400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000b5fb748ec3e019a7ed4f6f701158bc23fa3a2626000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140d0102040001030021c0477815d339945f87ec4d162c253e1ef4244f2c0ff73459f387bdbe8009c43cf3f427ddf08b6d0f1b6daaf8b3c5f9408ff8816d'
+  const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+  const xcmp = fromXcmpFormat(buf, apiContext)[1]
+  const instructions = xcmp.instructions
+  const messageData = toHex(xcmp.data) as HexString
+
+  return {
+    legs: [
+      {
+        from: 'urn:ocn:polkadot:2034',
+        to: 'urn:ocn:polkadot:2004',
+        type: 'hrmp',
+        partialMessage: undefined,
+        relay: 'urn:ocn:polkadot:0',
+      },
+    ],
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
+    sender: {
+      signer: {
+        id: '0xb5fb748EC3e019A7Ed4F6F701158bc23FA3a2626',
+        publicKey: '0xb5fb748ec3e019a7ed4f6f701158bc23fa3a2626',
+      },
+      extraSigners: [],
+    },
+    messageId: '0x0ff73459f387bdbe8009c43cf3f427ddf08b6d0f1b6daaf8b3c5f9408ff8816d',
+    partialHumanized: undefined,
+    type: 'xcm.sent',
+    waypoint: {
+      chainId: 'urn:ocn:polkadot:2034',
+      blockHash: '0x0abdb945dc2956fb0fe1ce07dcbd217969f287100443e2c01f83e1f42e07e3cc',
+      blockNumber: '10556625',
+      txHash: '0xbfb0fe1a683bde36c7bf58621b4a7f6053d6808f794c248fa31bdd73a7823768',
+      extrinsicHash: '0xbfb0fe1a683bde36c7bf58621b4a7f6053d6808f794c248fa31bdd73a7823768',
+      specVersion: 359,
+      timestamp: 1766047494000,
+      txPosition: 2,
+      event: {},
+      outcome: 'Success',
+      error: null,
+      messageData,
+      instructions,
+      messageHash: '0xcd5ad96e08999a9a5f13b872c70e14d399bf311dc9039ddaae0e38d618ff42a7',
+      messageId: '0x0ff73459f387bdbe8009c43cf3f427ddf08b6d0f1b6daaf8b3c5f9408ff8816d',
+      connectionId: undefined,
+      legIndex: 0,
+    },
+    origin: {
+      chainId: 'urn:ocn:polkadot:2034',
+      blockHash: '0x0abdb945dc2956fb0fe1ce07dcbd217969f287100443e2c01f83e1f42e07e3cc',
+      blockNumber: '10556625',
+      txHash: '0xbfb0fe1a683bde36c7bf58621b4a7f6053d6808f794c248fa31bdd73a7823768',
+      extrinsicHash: '0xbfb0fe1a683bde36c7bf58621b4a7f6053d6808f794c248fa31bdd73a7823768',
+      specVersion: 359,
+      timestamp: 1766047494000,
+      txPosition: 2,
+      event: {},
+      outcome: 'Success',
+      error: null,
+      messageData,
+      instructions,
+      messageHash: '0xcd5ad96e08999a9a5f13b872c70e14d399bf311dc9039ddaae0e38d618ff42a7',
+      messageId: '0x0ff73459f387bdbe8009c43cf3f427ddf08b6d0f1b6daaf8b3c5f9408ff8816d',
+      connectionId: undefined,
+    },
+    destination: { chainId: 'urn:ocn:polkadot:2004' },
+  }
+}
+
+export function getBifrostEthereumXcmTransact(): XcmSent {
+  const msgData =
+    '00051800040001040a0013000014bbf08ac602130001040a0013000014bbf08ac602000601010700c817a80442420f00fd026d000180fc0a000000000000000000000000000000000000000000000000000000000000ef81930aa8ed07c17948b2e26b7bfaf20144ef2a000000000000000000000000000000000000000000000000000000000000000091019a41b92408080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000dc51baaa407774935c4e1000000000000000000000000000000000000000000097a4b980cf091a9c1f6fa00140d010220000103007369626cee0700000000000000000000000000002c65e226042c33660d3604c598db1d6bd55c523c4ab10deb1e84441eb9627734aa'
+  const buf = new Uint8Array(Buffer.from(msgData, 'hex'))
+  const xcmp = fromXcmpFormat(buf, apiContext)[0]
+  const instructions = xcmp.instructions
+  const messageData = toHex(xcmp.data) as HexString
+
+  return {
+    legs: [
+      {
+        from: 'urn:ocn:polkadot:2030',
+        to: 'urn:ocn:polkadot:2004',
+        type: 'hrmp',
+        partialMessage: undefined,
+        relay: 'urn:ocn:polkadot:0',
+      },
+    ],
+    originProtocol: 'xcm',
+    destinationProtocol: 'xcm',
+    sender: undefined,
+    messageId: '0x65e226042c33660d3604c598db1d6bd55c523c4ab10deb1e84441eb9627734aa',
+    partialHumanized: undefined,
+    type: 'xcm.sent',
+    waypoint: {
+      chainId: 'urn:ocn:polkadot:2030',
+      blockHash: '0x316dd6458f06ec1026449b9e13fd471973c67c8afe18faddf5c02be07f8579a2',
+      blockNumber: '10398242',
+      txHash: undefined,
+      extrinsicHash: undefined,
+      specVersion: 22002,
+      timestamp: 1766060502000,
+      txPosition: undefined,
+      event: {},
+      outcome: 'Success',
+      error: null,
+      messageData,
+      instructions,
+      messageHash: '0xf948ce28da55eefb028a8d0091b1291f78378ed58119dfefa40185a2918ac2dd',
+      messageId: '0x65e226042c33660d3604c598db1d6bd55c523c4ab10deb1e84441eb9627734aa',
+      connectionId: undefined,
+      legIndex: 0,
+    },
+    origin: {
+      chainId: 'urn:ocn:polkadot:2030',
+      blockHash: '0x316dd6458f06ec1026449b9e13fd471973c67c8afe18faddf5c02be07f8579a2',
+      blockNumber: '10398242',
+      txHash: undefined,
+      extrinsicHash: undefined,
+      specVersion: 22002,
+      timestamp: 1766060502000,
+      txPosition: undefined,
+      event: {},
+      outcome: 'Success',
+      error: null,
+      messageData,
+      instructions,
+      messageHash: '0xf948ce28da55eefb028a8d0091b1291f78378ed58119dfefa40185a2918ac2dd',
+      messageId: '0x65e226042c33660d3604c598db1d6bd55c523c4ab10deb1e84441eb9627734aa',
+      connectionId: undefined,
+    },
+    destination: { chainId: 'urn:ocn:polkadot:2004' },
+  }
 }

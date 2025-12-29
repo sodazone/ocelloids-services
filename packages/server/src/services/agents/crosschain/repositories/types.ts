@@ -108,7 +108,7 @@ export interface XcJourneyTable {
   to: ColumnType<string>
   from_formatted: ColumnType<string | undefined>
   to_formatted: ColumnType<string | undefined>
-  sent_at: ColumnType<number, number | undefined, never>
+  sent_at: ColumnType<number, number | undefined, number | undefined>
   recv_at: ColumnType<number, number | undefined, number | undefined>
   created_at: ColumnType<number, number, never>
   stops: JSONColumnType<any>

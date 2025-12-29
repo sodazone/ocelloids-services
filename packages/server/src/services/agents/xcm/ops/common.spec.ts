@@ -605,12 +605,38 @@ describe('common xcm operators', () => {
         })
       })
     })
+
+    it.only('should extract HRMP receive by block', async () => {
+      const blocks = from(testBlocksFrom('moonbeam/13651487.cbor'))
+      const calls = vi.fn()
+      const test$ = extractParachainReceiveByBlock('urn:ocn:polkadot:2004')(blocks)
+
+      await new Promise<void>((resolve) => {
+        test$.subscribe({
+          next: (msg) => {
+            expect(msg).toBeDefined()
+            expect(msg.blockNumber).toBeDefined()
+            expect(msg.blockHash).toBeDefined()
+            expect(msg.event).toBeDefined()
+            expect(msg.messageHash).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
+            expect(msg.outcome).toBeDefined()
+            expect(msg.outcome).toBe('Success')
+            calls()
+          },
+          complete: () => {
+            expect(calls).toHaveBeenCalledTimes(2)
+            resolve()
+          },
+        })
+      })
+    })
   })
 
   describe('xcmMessagesSent', () => {
     it('work with Frontier events', async () => {
       const block$ = from(testBlocksFrom('moonbeam/12962193.cbor'))
-      const test$ = xcmMessagesSent()(
+      const test$ = xcmMessagesSent('urn:ocn:polkadot:2004')(
         block$.pipe(
           extractEvents(),
           filter((event) => matchEvent(event, 'XcmpQueue', 'XcmpMessageSent')),

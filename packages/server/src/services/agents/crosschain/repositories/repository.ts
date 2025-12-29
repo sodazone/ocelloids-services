@@ -1,6 +1,8 @@
+import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
+import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
-
+import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
 import { JourneyFilters } from '../types/queries.js'
 import {
@@ -10,6 +12,7 @@ import {
   CrosschainDatabase,
   FullJourney,
   FullJourneyAsset,
+  Journey,
   JourneyStatus,
   JourneyUpdate,
   ListAsset,
@@ -18,6 +21,18 @@ import {
 } from './types.js'
 
 const MAX_LIMIT = 100
+
+const STATUS_PRIORITY: Record<string, number> = {
+  in_progress: 0,
+  sent: 0,
+  pending: 1,
+  waiting: 2,
+  received: 3,
+  success: 3,
+  fail: 3,
+  completed: 3,
+  confirmed: 3,
+}
 
 function encodeCursor(journeys: FullJourney[]): string {
   for (let i = journeys.length - 1; i >= 0; i--) {
@@ -138,6 +153,44 @@ function mapRowToFullJourney(row: any): FullJourney {
   }
 }
 
+function stopFreshness(stop: any) {
+  const parts = [stop.from, stop.to, stop.relay].filter(Boolean)
+
+  const statusPriority = Math.max(...parts.map((p) => STATUS_PRIORITY[p.status] ?? -1), -1)
+
+  const fieldCount = parts.reduce((acc, p) => acc + Object.keys(p).length, 0)
+
+  return { statusPriority, fieldCount }
+}
+
+function isNewer(a: any, b: any): boolean {
+  const fa = stopFreshness(a)
+  const fb = stopFreshness(b)
+
+  if (fa.statusPriority !== fb.statusPriority) {
+    return fa.statusPriority > fb.statusPriority
+  }
+
+  return fa.fieldCount > fb.fieldCount
+}
+
+function mergeStops(inStops: any[] = [], outStops: any[] = []) {
+  const map = new Map<string, any>()
+
+  const keyOf = (s: any) => `${s.type}:${s.from.chainId}:${s.to.chainId}`
+
+  for (const stop of [...inStops, ...outStops]) {
+    const key = keyOf(stop)
+    const existing = map.get(key)
+
+    if (!existing || isNewer(stop, existing)) {
+      map.set(key, stop)
+    }
+  }
+
+  return asJSON(Array.from(map.values()))
+}
+
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
 
@@ -151,12 +204,30 @@ export class CrosschainRepository {
 
   async getAssetIdentifiers(
     journeyId: number,
-  ): Promise<Pick<AssetOperation, 'asset' | 'role' | 'sequence'>[]> {
+  ): Promise<Pick<AssetOperation, 'asset' | 'role' | 'sequence' | 'amount'>[]> {
     return this.#db
       .selectFrom('xc_asset_ops')
-      .select(['asset', 'role', 'sequence'])
+      .select(['asset', 'role', 'sequence', 'amount'])
       .where('journey_id', '=', journeyId)
       .execute()
+  }
+
+  async addAssetToJourney(journeyId: number, assets: Omit<NewAssetOperation, 'journey_id'>[]) {
+    const existingAssets = await this.getAssetIdentifiers(journeyId)
+    const existingKeySet = new Set(existingAssets.map((a) => `${a.asset}-${a.role ?? ''}-${a.amount}`))
+    const newAssets = assets
+      .filter((asset) => {
+        const key = `${asset.asset}-${asset.role ?? ''}-${asset.amount}`
+        return !existingKeySet.has(key)
+      })
+      .map((a, i) => ({
+        ...a,
+        sequence: existingAssets.length + i,
+      }))
+
+    if (newAssets.length > 0) {
+      await this.insertAssetsForJourney(journeyId, newAssets)
+    }
   }
 
   async updateAsset(
@@ -309,6 +380,14 @@ export class CrosschainRepository {
     return rows.length > 0 ? mapRowToFullJourney(rows[0]) : undefined
   }
 
+  async getJourneyByTripId(tripId?: string): Promise<Journey[]> {
+    if (tripId === undefined) {
+      return []
+    }
+
+    return await this.#db.selectFrom('xc_journeys').selectAll().where('trip_id', '=', tripId).execute()
+  }
+
   async listAssets(pagination?: QueryPagination): Promise<{
     items: Array<ListAsset>
     pageInfo: {
@@ -454,7 +533,11 @@ export class CrosschainRepository {
   /**
    * Generate a new trip_id (ULID)
    */
-  generateTripId(): string {
+  generateTripId(identifiers?: { chainId: string; values: string[] }): string {
+    if (identifiers) {
+      return toHex(Twox256(stringToUa8(`${identifiers.chainId}${identifiers.values.join()}`)))
+    }
+
     return ulid()
   }
 
@@ -471,6 +554,67 @@ export class CrosschainRepository {
       .execute()
 
     return finalTripId
+  }
+
+  async getJourneyAssets(journeyId: number): Promise<FullJourneyAsset[]> {
+    return this.#db
+      .selectFrom('xc_asset_ops')
+      .select(['asset', 'symbol', 'amount', 'decimals', 'usd', 'role', 'sequence'])
+      .where('journey_id', '=', journeyId)
+      .orderBy('sequence', 'asc')
+      .execute()
+  }
+
+  async mergeJourneys(
+    inJourneyId: number,
+    outJourneyId: number,
+    tripId?: string,
+  ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
+    return await this.#db.transaction().execute(async (trx) => {
+      const inJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', inJourneyId)
+        .executeTakeFirst()
+
+      if (!inJourney) {
+        throw new Error(`Inbound journey ${inJourneyId} not found`)
+      }
+
+      const outJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', outJourneyId)
+        .executeTakeFirst()
+
+      if (!outJourney) {
+        throw new Error(`Outbound journey ${outJourneyId} not found`)
+      }
+
+      const update: JourneyUpdate = {
+        trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
+
+        destination_protocol: outJourney.destination_protocol,
+        destination: outJourney.destination,
+        to: outJourney.to,
+        to_formatted: outJourney.to_formatted,
+        recv_at: outJourney.recv_at,
+        status: outJourney.status,
+        type: outJourney.type,
+
+        destination_tx_primary: outJourney.destination_tx_primary,
+        destination_tx_secondary: outJourney.destination_tx_secondary,
+
+        stops: mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[]),
+      }
+
+      await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
+      if (inJourneyId !== outJourneyId) {
+        await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
+        return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: outJourney }
+      }
+      return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: null }
+    })
   }
 
   /**

@@ -1,6 +1,8 @@
 import { NetworkURN } from '@/lib.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 
+export const MOONBEAM_URN = 'urn:ocn:polkadot:2004'
+
 export const WormholeIds = {
   MOONBEAM_ID: 16,
   SOLANA_ID: 1,

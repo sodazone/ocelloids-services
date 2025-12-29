@@ -7,13 +7,12 @@ import { XcServerSentEventArgs } from './types/sse.js'
 
 type XcEvents = {
   event: string
-  data: FullJourneyResponse
+  data: FullJourneyResponse | { id: number; replaces: FullJourneyResponse }
 }
 
-function applySseFilters(
-  filters: XcServerSentEventArgs,
-  { data: journey }: ServerSentEvent<XcEvents>,
-): boolean {
+function applySseFilters(filters: XcServerSentEventArgs, { data }: ServerSentEvent<XcEvents>): boolean {
+  const journey = 'replaces' in data ? data.replaces : data
+
   if (filters.id && filters.id !== journey.correlationId) {
     return false
   }

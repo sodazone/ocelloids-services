@@ -1,7 +1,7 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { fromHex } from 'polkadot-api/utils'
 import { Enum, Struct, u256 } from 'scale-ts'
-
+import { normalizePublicKey } from '@/common/util.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 
 type Junction =
@@ -20,6 +20,54 @@ type Interior =
 export interface Location {
   parents: number
   interior: Interior
+}
+
+export type GmpInstruction = {
+  gmp: {
+    xcm: {
+      destination: Location
+      beneficiary: Location
+    }
+    resolved: {
+      urn: string | undefined
+      address:
+        | {
+            key: string
+            formatted: string
+          }
+        | undefined
+    }
+    rawAction:
+      | {
+          tag: 'XcmRoutingUserAction'
+          value: {
+            destination:
+              | {
+                  tag: 'xcmV5Location'
+                  value: any
+                }
+              | {
+                  tag: 'XcmV4Location'
+                  value: any
+                }
+          }
+        }
+      | {
+          tag: 'XcmRoutingUserActionWithFee'
+          value: {
+            destination:
+              | {
+                  tag: 'xcmV5Location'
+                  value: any
+                }
+              | {
+                  tag: 'XcmV4Location'
+                  value: any
+                }
+            fee: bigint
+          }
+        }
+  }
 }
 
 const VersionedLocation = Enum(
@@ -143,7 +191,7 @@ export function resolveDestinationAndBeneficiary({
 
     if (acc) {
       if (acc.type === 'AccountId32') {
-        const pubkey = acc.value.id.asHex()
+        const pubkey = normalizePublicKey(acc.value.id.asHex())
         address = { key: pubkey, formatted: fromBufferToBase58(ss58Prefix ?? 0)(fromHex(pubkey)).toString() }
       } else if (acc.type === 'AccountKey20') {
         const raw = acc.value.key.asHex()
@@ -182,7 +230,7 @@ function decodeGmpPayload(payload: bigint | Uint8Array) {
   return action
 }
 
-export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 0) {
+export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 0): GmpInstruction | null {
   const action = decodeGmpPayload(payload)
   if (!action) {
     return null

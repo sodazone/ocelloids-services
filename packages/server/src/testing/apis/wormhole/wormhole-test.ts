@@ -26,7 +26,11 @@ export type TestCase = {
 export function runWormholeMapperTests(cases: TestCase[], label = 'wormhole mapper') {
   describe(label, () => {
     test.each(cases)('$name', ({ file, expected }) => {
-      const j = mapOperationToJourney(_test_whscanResponse(file))
+      const j = mapOperationToJourney(
+        _test_whscanResponse(file),
+        (identifiers?: { chainId: string; values: string[] }) =>
+          identifiers ? `${identifiers.chainId}${identifiers.values.join()}` : 'xxx',
+      )
 
       if (expected.status) {
         expect(j.status).toBe(expected.status)

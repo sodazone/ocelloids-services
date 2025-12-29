@@ -66,7 +66,7 @@ export function extractXcmpSend(
         // setTopic instruction, if any
         matchEvent(event, 'XcmpQueue', 'XcmpMessageSent'),
       ),
-      xcmMessagesSent(),
+      xcmMessagesSent(origin),
       findOutboundHrmpMessage(origin, getOutboundHrmpMessages, context),
     )
   }

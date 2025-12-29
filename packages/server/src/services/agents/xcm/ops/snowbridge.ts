@@ -15,9 +15,9 @@ import {
   GenericXcmBridge,
   GenericXcmBridgeInboundWithContext,
   Leg,
+  PartialHumanizedAsset,
   SnowbridgeMessageAccepted,
   SnowbridgeOutboundAccepted,
-  SnowbridgeOutboundAsset,
   XcmBridge,
   XcmBridgeInboundWithContext,
   XcmJourney,
@@ -245,8 +245,8 @@ function mapV2Assets(
     data: HexString
   }[],
   value: bigint,
-): SnowbridgeOutboundAsset[] {
-  const assetsSent: SnowbridgeOutboundAsset[] = [
+): PartialHumanizedAsset[] {
+  const assetsSent: PartialHumanizedAsset[] = [
     {
       chainId,
       id: '0x0000000000000000000000000000000000000000',

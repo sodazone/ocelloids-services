@@ -1,15 +1,16 @@
 import EventEmitter from 'node:events'
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
+import bs58 from 'bs58'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, Observable } from 'rxjs'
 
-import { asPublicKey } from '@/common/util.js'
+import { asPublicKey, normalizePublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getConsensus } from '@/services/config.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
+import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
-
 import { normalizeAssetId } from '../../common/melbourne.js'
 import { DataSteward } from '../../steward/agent.js'
 import { fetchSS58Prefix } from '../../steward/metadata/queries/helper.js'
@@ -19,6 +20,7 @@ import {
   isAssetMetadata,
   StewardQueries,
   StewardQueryArgs,
+  WormholeNetwork,
 } from '../../steward/types.js'
 import { TickerAgent } from '../../ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '../../ticker/types.js'
@@ -27,12 +29,13 @@ import {
   AssetSwap,
   AssetsTrapped,
   HumanizedXcmPayload,
-  SnowbridgeOutboundAsset,
+  PartialHumanizedAsset,
   SwappedAsset,
   XcmMessagePayload,
   XcmTerminus,
   XcmTerminusContext,
 } from '../types/index.js'
+import { getXprotocolArgsMapper } from './mappers.js'
 import { TelemetryXcmHumanizerEmitter, xcmHumanizerMetrics } from './telemetry.js'
 import {
   DepositAsset,
@@ -53,6 +56,7 @@ import {
   XcmInstruction,
   XcmJourneyType,
   XcmVersionedInstructions,
+  XprotocolData,
 } from './types.js'
 import { extractMultiAssetFilterAssets, parseMultiAsset, stringifyMultilocation } from './utils.js'
 
@@ -119,10 +123,13 @@ export class XcmHumanizer {
     }
   }
 
-  async humanize(message: XcmMessagePayload): Promise<HumanizedXcmPayload> {
+  async humanize(
+    message: XcmMessagePayload,
+    overrideGetContext?: Observable<SubstrateApiContext>,
+  ): Promise<HumanizedXcmPayload> {
     return {
       ...message,
-      humanized: await this.#humanizePayload(message),
+      humanized: await this.#humanizePayload(message, overrideGetContext),
     }
   }
 
@@ -130,33 +137,12 @@ export class XcmHumanizer {
     xcmHumanizerMetrics(this.#telemetry)
   }
 
-  async #humanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
+  async #humanizePayload(
+    message: XcmMessagePayload,
+    overrideGetContext?: Observable<SubstrateApiContext>,
+  ): Promise<HumanizedXcm> {
     if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
-      const { sender, origin, destination, waypoint } = message
-      const { beneficiary, assets } = message.partialHumanized
-
-      const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
-      let to: HumanizedAddresses
-      if (beneficiary !== undefined) {
-        to = await this.#toAddresses(destination.chainId, asPublicKey(beneficiary))
-      } else {
-        const versioned = (waypoint.instructions ??
-          origin.instructions ?? {
-            type: '',
-            value: [],
-          }) as XcmVersionedInstructions
-        to = await this.#toAddresses(
-          destination.chainId,
-          this.#extractBeneficiary(versioned.value, destination.chainId),
-        )
-      }
-      const assetsToResolve: SnowbridgeOutboundAsset[] = Array.isArray(assets)
-        ? assets
-        : 'asset' in message.partialHumanized
-          ? ([message.partialHumanized.asset] as SnowbridgeOutboundAsset[])
-          : []
-      const resolvedAssets = await this.#resolveSnowbridgeAsset(assetsToResolve)
-      return { type: XcmJourneyType.Transfer, from, to, assets: resolvedAssets, transactCalls: [] }
+      return await this.#partialHumanizePayload(message)
     }
     const { sender, origin, destination, legs, waypoint } = message
     const { assetSwaps, assetsTrapped, legIndex } = waypoint
@@ -168,7 +154,9 @@ export class XcmHumanizer {
     const instructions = versioned.value
     const type = this.#determineJourneyType(instructions)
     const beneficiary = this.#extractBeneficiary(instructions, destination.chainId)
-    const transactCalls = await this.#extractTransactCall(instructions, destination)
+    const transactCalls = await this.#extractTransactCall(instructions, destination, overrideGetContext)
+    const xprotocolData =
+      transactCalls.length > 0 ? await this.#extractXprotocolArgs(destination, transactCalls) : undefined
 
     const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
     const to = await this.#toAddresses(destination.chainId, beneficiary)
@@ -234,7 +222,35 @@ export class XcmHumanizer {
       this.#telemetry.emit('telemetryXcmInstruction', message, 'InitiateTransfer')
     }
 
-    return { type, from, to, assets: resolvedAssets, version, transactCalls }
+    return { type, from, to, assets: resolvedAssets, version, transactCalls, xprotocolData }
+  }
+
+  async #partialHumanizePayload(message: XcmMessagePayload): Promise<HumanizedXcm> {
+    const { sender, origin, destination, waypoint } = message
+    const { beneficiary, assets } = message.partialHumanized!
+
+    const from = await this.#toAddresses(origin.chainId, sender?.signer?.publicKey)
+    let to: HumanizedAddresses
+    if (beneficiary !== undefined) {
+      to = await this.#toAddresses(destination.chainId, asPublicKey(beneficiary))
+    } else {
+      const versioned = (waypoint.instructions ??
+        origin.instructions ?? {
+          type: '',
+          value: [],
+        }) as XcmVersionedInstructions
+      to = await this.#toAddresses(
+        destination.chainId,
+        this.#extractBeneficiary(versioned.value, destination.chainId),
+      )
+    }
+    const assetsToResolve: PartialHumanizedAsset[] = Array.isArray(assets)
+      ? assets
+      : 'asset' in message.partialHumanized!
+        ? ([message.partialHumanized.asset] as PartialHumanizedAsset[])
+        : []
+    const resolvedAssets = await this.#resolvePartialHumanizedAssets(assetsToResolve)
+    return { type: XcmJourneyType.Transfer, from, to, assets: resolvedAssets, transactCalls: [] }
   }
 
   #extractTrappedAssets(assetsTrapped: AssetsTrapped): QueryableXcmAsset[] {
@@ -420,7 +436,7 @@ export class XcmHumanizer {
     return assets
   }
 
-  async #resolveSnowbridgeAsset(assets: SnowbridgeOutboundAsset[]): Promise<HumanizedXcmAsset[]> {
+  async #resolvePartialHumanizedAssets(assets: PartialHumanizedAsset[]): Promise<HumanizedXcmAsset[]> {
     const resolvedAssets: HumanizedXcmAsset[] = []
     for (const { chainId, id, amount } of assets) {
       const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id
@@ -815,6 +831,7 @@ export class XcmHumanizer {
   async #extractTransactCall(
     instructions: XcmInstruction[],
     destination: XcmTerminusContext | XcmTerminus,
+    overrideGetContext?: Observable<SubstrateApiContext>,
   ): Promise<HumanizedTransactCall[]> {
     const { chainId } = destination
     const specVersion = 'specVersion' in destination ? destination.specVersion : undefined
@@ -824,7 +841,7 @@ export class XcmHumanizer {
       for (const t of transacts) {
         const callData = (t.value as Transact).call
         try {
-          const apiContext = this.#ingress.getContext(chainId, specVersion)
+          const apiContext = overrideGetContext ?? this.#ingress.getContext(chainId, specVersion)
           const decodedCall = (await firstValueFrom(apiContext)).decodeCall(callData)
           humanized.push({ ...decodedCall, raw: callData })
         } catch (error) {
@@ -845,6 +862,57 @@ export class XcmHumanizer {
     return humanized
   }
 
+  async #extractXprotocolArgs(
+    destination: XcmTerminusContext | XcmTerminus,
+    transactCalls: HumanizedTransactCall[],
+  ): Promise<XprotocolData | undefined> {
+    for (const call of transactCalls) {
+      const mapper = getXprotocolArgsMapper(destination.chainId, call)
+      if (mapper !== null) {
+        const mapped = mapper(call.args)
+        if (mapped !== null && mapped.type === 'wormhole') {
+          const destinationChain = await this.#resolveWormholeNetwork(mapped.destination)
+          if (destinationChain !== null) {
+            const assets = await this.#resolvePartialHumanizedAssets(
+              mapped.assets.map((a) => ({
+                id: a.id,
+                amount: a.amount.toString(),
+                chainId: destination.chainId,
+              })),
+            )
+            const beneficiary = await this.#toAddresses(
+              destinationChain.urn,
+              normalizePublicKey(mapped.recipient),
+            )
+
+            return {
+              type: mapped.type,
+              protocol: mapped.protocol,
+              destination: destinationChain.urn,
+              beneficiary,
+              assets,
+            }
+          }
+        }
+      }
+    }
+  }
+
+  async #resolveWormholeNetwork(wormholeId: number) {
+    const { items } = (await this.#steward.query({
+      args: {
+        op: 'chains.wormhole.by_id',
+        criteria: { ids: [wormholeId] },
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<WormholeNetwork>
+
+    if (items.length > 0) {
+      return items[0]
+    }
+
+    return null
+  }
+
   async #toAddresses(chainId: NetworkURN, publicKeyOrParachain?: string | null): Promise<HumanizedAddresses> {
     if (publicKeyOrParachain) {
       if (publicKeyOrParachain.startsWith('urn:ocn')) {
@@ -856,6 +924,28 @@ export class XcmHumanizer {
         // EVM address
         return {
           key: publicKeyOrParachain,
+        }
+      }
+      if (chainId === 'urn:ocn:sui:0x35834a8a') {
+        return {
+          key: publicKeyOrParachain,
+        }
+      }
+      if (chainId === 'urn:ocn:solana:101') {
+        const hex = publicKeyOrParachain.slice(2)
+        const buf = Buffer.from(hex, 'hex')
+
+        if (buf.length !== 32) {
+          console.error(`Invalid hex length (expected 32 bytes): ${hex}`)
+          return {
+            key: publicKeyOrParachain,
+          }
+        }
+
+        const formatted = bs58.encode(buf)
+        return {
+          key: publicKeyOrParachain,
+          formatted,
         }
       }
 

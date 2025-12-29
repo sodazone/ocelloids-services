@@ -6,7 +6,10 @@ import { RelayerMapper } from './relayer.js'
 
 interface ProtocolMapping {
   guard: (op: WormholeOperation<any>) => boolean
-  mapJourney: (op: WormholeOperation<any>) => NewJourney
+  mapJourney: (
+    op: WormholeOperation<any>,
+    generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+  ) => NewJourney
   mapAssets: (op: WormholeOperation<any>, journey: NewJourney) => NewAssetOperation[]
 }
 
@@ -16,21 +19,27 @@ export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
 }
 
-export function mapOperationToJourney(op: WormholeOperation): NewJourneyWithAssets {
+export function mapOperationToJourney(
+  op: WormholeOperation,
+  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+): NewJourneyWithAssets {
   let journey
 
   const mapping = protocolMappings.find((m) => m.guard(op))
   if (mapping) {
-    journey = mapping.mapJourney(op) as NewJourneyWithAssets
+    journey = mapping.mapJourney(op, generateTripId) as NewJourneyWithAssets
     journey.assets = mapping.mapAssets(op, journey)
   } else {
-    journey = defaultJourneyMapping(op, 'transact', 'wh') as NewJourneyWithAssets
+    journey = defaultJourneyMapping(op, 'transact', 'wh', generateTripId) as NewJourneyWithAssets
     journey.assets = defaultAssetMapping(op, journey)
   }
 
   return journey
 }
 
-export function mapOperationsToJourneys(ops: WormholeOperation[]): NewJourneyWithAssets[] {
-  return ops.map(mapOperationToJourney)
+export function mapOperationsToJourneys(
+  ops: WormholeOperation[],
+  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+): NewJourneyWithAssets[] {
+  return ops.map((op) => mapOperationToJourney(op, generateTripId))
 }

@@ -100,7 +100,7 @@ export function extractUmpSend(
           matchEvent(event, 'ParachainSystem', 'UpwardMessageSent') ||
           matchEvent(event, 'PolkadotXcm', 'Sent'),
       ),
-      xcmMessagesSent(),
+      xcmMessagesSent(origin),
       findOutboundUmpMessage(origin, getOutboundUmpMessages, context),
     )
   }

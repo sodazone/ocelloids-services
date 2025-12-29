@@ -3,6 +3,7 @@ export {
   AssetsTrapped,
   BridgeName,
   BridgeStatus,
+  ConnectionId,
   HumanizedAddresses,
   HumanizedTransactCall,
   HumanizedXcm,
@@ -11,7 +12,7 @@ export {
   Leg,
   LegType,
   legTypes,
-  SnowbridgeOutboundAsset,
+  PartialHumanizedAsset,
   SwappedAsset,
   TrappedAsset,
   XcmAssetWithMetadata,
@@ -31,4 +32,5 @@ export {
   XcmTimeout,
   XcmWaypointContext,
   XcmWithContext,
+  XprotocolData,
 } from './types/index.js'

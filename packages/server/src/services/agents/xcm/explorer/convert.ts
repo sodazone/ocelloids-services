@@ -11,7 +11,7 @@ import {
 import { BlockEvent } from '@/services/networking/substrate/index.js'
 
 import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
-import { isXcmBridge } from '../types/messages.js'
+import { isXcmBridge, legTypes } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
@@ -47,13 +47,16 @@ export function asNewJourneyObject(
   })
 }
 
-export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): any[] {
-  const updatedStops = payload.legs.map((leg, index) => {
-    const existingStop = existingStops[index]
+export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existingStops: any[] = []): any[] {
+  const existingXcmStops = existingStops.filter((s) => legTypes.includes(s.type))
+
+  const builtXcmStops = payload.legs.map((leg, index) => {
+    const existingStop = existingXcmStops[index]
 
     const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
     const extrinsic = event ? (event.extrinsic as any) : undefined
+
     const context = waypoint
       ? {
           chainId: waypoint.chainId,
@@ -85,7 +88,6 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
       : null
 
     if (existingStop) {
-      // Update existing stop with waypoint context
       if (waypoint) {
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
@@ -99,22 +101,56 @@ export function toStops(payload: XcmMessagePayload, existingStops: any[] = []): 
         }
       }
       return existingStop
-    } else {
-      // Create a new stop if no existing stop is found
-      const isOutbound = leg.from === waypoint?.chainId
-      return {
-        type: leg.type,
-        from: isOutbound ? context : { chainId: leg.from },
-        to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
-        relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
-        messageHash: isOutbound ? waypoint.messageHash : undefined,
-        messageId: isOutbound ? (waypoint.messageId ?? payload.messageId) : undefined,
-        instructions: isOutbound ? waypoint.instructions : undefined,
-      }
+    }
+
+    const isOutbound = leg.from === waypoint?.chainId
+    return {
+      type: leg.type,
+      from: isOutbound ? context : { chainId: leg.from },
+      to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
+      relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
+      messageHash: isOutbound ? waypoint?.messageHash : undefined,
+      messageId: isOutbound ? (waypoint?.messageId ?? payload.messageId) : undefined,
+      instructions: isOutbound ? waypoint?.instructions : undefined,
     }
   })
 
-  return updatedStops
+  let xcmIndex = 0
+  let lastXcmIndex = -1
+
+  const merged = existingStops.map((stop, index) => {
+    if (legTypes.includes(stop.type)) {
+      lastXcmIndex = index
+      return builtXcmStops[xcmIndex++] ?? stop
+    }
+    return stop
+  })
+
+  // Insert any remaining new XCM stops
+  if (xcmIndex < builtXcmStops.length) {
+    const insertionIndex = lastXcmIndex >= 0 ? lastXcmIndex + 1 : 0
+    merged.splice(insertionIndex, 0, ...builtXcmStops.slice(xcmIndex))
+  }
+
+  const xprotocolData = 'humanized' in payload ? payload.humanized.xprotocolData : undefined
+  if (xprotocolData) {
+    const fromChainId = payload.destination.chainId
+    const toChainId = xprotocolData.destination
+
+    const alreadyExists = merged.some(
+      (stop) => stop.from?.chainId === fromChainId && stop.to?.chainId === toChainId,
+    )
+
+    if (!alreadyExists) {
+      merged.push({
+        type: xprotocolData.type,
+        from: { chainId: fromChainId },
+        to: { chainId: toChainId },
+      })
+    }
+  }
+
+  return merged
 }
 
 export function toCorrelationId(payload: XcmMessagePayload): string {
@@ -133,30 +169,72 @@ function toEvmTxHash(payload: XcmMessagePayload): string | undefined {
   return (payload.origin.event as BlockEvent)?.extrinsic?.evmTxHash
 }
 
-export function toNewJourney(payload: HumanizedXcmPayload): NewJourney {
+export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): NewJourney {
+  const xprotocolData = payload.humanized.xprotocolData
+  const finalDestination = xprotocolData ? xprotocolData.destination : payload.destination.chainId
+  const finalBeneficiary = xprotocolData ? xprotocolData.beneficiary : payload.humanized.to
+  const destinationProtocol = xprotocolData ? xprotocolData.protocol : payload.destinationProtocol
+  const type = xprotocolData && xprotocolData.assets.length > 0 ? 'transfer' : payload.humanized.type
+
   return {
+    trip_id: tripId,
     correlation_id: toCorrelationId(payload),
     created_at: Date.now(),
-    type: payload.humanized.type,
-    destination: payload.destination.chainId,
+    type,
+    destination: finalDestination,
     instructions: payload.origin.instructions ? asJSON(payload.origin.instructions) : '[]',
     transact_calls: asJSON(payload.humanized.transactCalls),
     origin_protocol: payload.originProtocol,
-    destination_protocol: payload.destinationProtocol,
+    destination_protocol: destinationProtocol,
     origin: payload.origin.chainId,
     origin_tx_primary: payload.origin.txHash,
     origin_tx_secondary: toEvmTxHash(payload),
     from: payload.humanized.from.key,
-    to: payload.humanized.to.key,
+    to: finalBeneficiary.key,
     from_formatted: payload.humanized.from.formatted,
-    to_formatted: payload.humanized.to.formatted,
+    to_formatted: finalBeneficiary.formatted,
     sent_at: payload.origin.timestamp,
     status: toStatus(payload),
     stops: asJSON(toStops(payload)),
   }
 }
 
-export function toNewAssets(assets: HumanizedXcmAsset[]): Omit<NewAssetOperation, 'journey_id'>[] {
+export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperation, 'journey_id'>[] {
+  const humanizedAssets = payload.humanized.assets ?? []
+  const xprotocolAssets = payload.humanized.xprotocolData?.assets ?? []
+
+  const assetMap = new Map<string, HumanizedXcmAsset>()
+
+  const dedupeKey = (asset: HumanizedXcmAsset) => `${asset.id}:${asset.amount.toString()}`
+
+  for (const asset of humanizedAssets) {
+    assetMap.set(dedupeKey(asset), { ...asset })
+  }
+
+  for (const asset of xprotocolAssets) {
+    const key = dedupeKey(asset)
+    if (!assetMap.has(key)) {
+      assetMap.set(key, { ...asset })
+    }
+  }
+
+  const mergedAssets = Array.from(assetMap.values()).map((asset, index) => ({
+    ...asset,
+    sequence: index,
+  }))
+
+  return mergedAssets.map((asset) => ({
+    symbol: asset.symbol,
+    amount: asset.amount.toString(),
+    asset: asset.id,
+    decimals: asset.decimals,
+    usd: asset.volume,
+    role: asset.role,
+    sequence: asset.sequence,
+  }))
+}
+
+export function toTrappedAssets(assets: HumanizedXcmAsset[]): Omit<NewAssetOperation, 'journey_id'>[] {
   return assets.map((asset) => ({
     symbol: asset.symbol,
     amount: asset.amount.toString(),

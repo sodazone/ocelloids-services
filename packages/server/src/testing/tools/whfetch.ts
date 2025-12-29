@@ -6,6 +6,8 @@ const client = new WormholescanClient()
 const op = await client.fetchOperationById(
   '2/0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585/564970',
 )
+const generateTripId = (identifiers?: { chainId: string; values: string[] }) =>
+  identifiers ? `${identifiers.chainId}${identifiers.values.join()}` : 'xxx'
 
 console.log('\n\n-\n\n', JSON.stringify(op, null, 2))
-console.log('\n\n-\n\n', JSON.stringify(mapOperationToJourney(op), null, 2))
+console.log('\n\n-\n\n', JSON.stringify(mapOperationToJourney(op, generateTripId), null, 2))
