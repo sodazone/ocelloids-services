@@ -606,7 +606,7 @@ describe('common xcm operators', () => {
       })
     })
 
-    it.only('should extract HRMP receive by block', async () => {
+    it('should extract HRMP receive by block', async () => {
       const blocks = from(testBlocksFrom('moonbeam/13651487.cbor'))
       const calls = vi.fn()
       const test$ = extractParachainReceiveByBlock('urn:ocn:polkadot:2004')(blocks)
