@@ -346,7 +346,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
   ): Observable<NeutralHeader[]> {
     return from(api.getNeutralBlockHeader(newHead.parenthash)).pipe(
       concatMap((header) =>
-        header.height <= targetHeight
+        header.height - 1 <= targetHeight
           ? of([header, ...prev])
           : this.#headers(api, header, targetHeight, [header, ...prev]),
       ),
@@ -374,7 +374,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
           return batchControl.pipe(
             mergeMap(({ target, head, collect }) =>
-              (head.height === target ? of([head]) : this.#headers(api, head, target, collect)).pipe(
+              (head.height - 1 === target ? of([head]) : this.#headers(api, head, target, collect)).pipe(
                 map((heads) => {
                   if (batchControl.value.index === targets.length - 1) {
                     this.log.info('[%s] CATCHUP Final block emitted #%s', chainId, heads[0].height)

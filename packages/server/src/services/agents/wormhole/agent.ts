@@ -5,7 +5,11 @@ import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
-import { isWormholeProtocol, WormholeOperation, WormholeProtocols } from '@/services/networking/apis/wormhole/types.js'
+import {
+  isWormholeProtocol,
+  WormholeOperation,
+  WormholeProtocols,
+} from '@/services/networking/apis/wormhole/types.js'
 import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
