@@ -233,7 +233,7 @@ export class WormholeAgent implements Agent {
       return
     }
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
-    if (existingTrips.every((t) => t.status === 'received')) {
+    if (existingTrips.length > 0 && existingTrips.every((t) => t.status === 'received')) {
       this.#log.info('[agent:%s] Existing trips already completed: %s', this.id, journey.trip_id)
       return
     }
