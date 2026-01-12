@@ -497,9 +497,10 @@ export class XcmExplorer {
 
   async #updateJourney(message: XcmMessagePayload, existingJourney: FullJourney) {
     const updatedStops = toStops(message, existingJourney.stops)
+    const updatedStatus = toStatus(message)
 
     const updateWith: Partial<JourneyUpdate> = {
-      status: toStatus(message),
+      status: updatedStatus,
       stops: asJSON(updatedStops),
     }
 
@@ -522,7 +523,7 @@ export class XcmExplorer {
       existingJourney.destination_protocol === 'snowbridge'
     ) {
       updateWith.recv_at = xcmDestination.timestamp
-    } else {
+    } else if (updatedStatus !== 'failed') {
       // still in progress for non-xcm destinations
       updateWith.status = 'sent'
     }
