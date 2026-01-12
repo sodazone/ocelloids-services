@@ -148,7 +148,7 @@ export class HyperbridgeAssetsRegistry {
             }
 
             // Skip if merged result is identical
-            if (!(mergedSymbol !== stored?.symbol) && !(mergedDecimals !== stored?.decimals)) {
+            if (mergedSymbol === stored?.symbol && mergedDecimals === stored?.decimals) {
               continue
             }
 

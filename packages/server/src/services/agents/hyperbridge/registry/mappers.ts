@@ -310,7 +310,7 @@ export function fetchEvmAssetsMetadataBatch$(
       const tokenAddresses = assets.map((_a, i) => {
         const erc20Addr = results[i * 2]?.result as string
         const erc6160Addr = results[i * 2 + 1]?.result as string
-        return (isZeroAddress(erc20Addr) ? erc20Addr : erc6160Addr) as HexString
+        return (isZeroAddress(erc20Addr) ? erc6160Addr : erc20Addr) as HexString
       })
 
       const metaCalls = tokenAddresses.flatMap((addr) =>
