@@ -27,7 +27,7 @@ type F = Buffer | Uint8Array | string
 
 export type LevelDB<K = any, V = any> = AbstractLevel<F, K, V>
 export type Family<K = string, V = any> = AbstractSublevel<LevelDB, F, K, V>
-export type BatchOperation<K = string, V = any> = AbstractBatchOperation<LevelDB, K, V>
+export type BatchOperation<K = string, V = any> = AbstractBatchOperation<LevelDB<K, V>, K, V>
 export type SubLevel<V> = Family<string, V>
 
 /**

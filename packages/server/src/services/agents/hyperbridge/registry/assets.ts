@@ -125,31 +125,51 @@ export class HyperbridgeAssetsRegistry {
     const substrateMaps = this.#syncSubstrateAssets()
     const evmMaps = this.#syncEvmAssets()
 
-    const allAssetMaps$ = merge(...substrateMaps, ...evmMaps)
-
-    allAssetMaps$
+    merge(...substrateMaps, ...evmMaps)
       .pipe(
         bufferCount(100),
         filter((batch) => batch.length > 0),
       )
       .subscribe({
         next: async (batch) => {
-          const ops = batch.map((a) => ({
-            type: 'put' as const,
-            key: a.key,
-            value: {
-              symbol: a.symbol,
-              decimals: a.decimals,
-            },
-          }))
+          const keys = batch.map((a) => a.key)
+          const existing = await this.#dbAssets.getMany(keys)
+          const ops = []
 
-          try {
-            await this.#dbAssets.batch(ops)
-          } catch (e) {
-            this.#log.error(e, '[%s] metadata batch write failed', this.#id)
+          for (let i = 0; i < batch.length; i++) {
+            const incoming = batch[i]
+            const stored = existing[i]
+
+            const mergedSymbol = stored?.symbol ?? incoming.symbol
+            const mergedDecimals = stored?.decimals ?? incoming.decimals
+
+            if (!stored && mergedSymbol === undefined && mergedDecimals === undefined) {
+              continue
+            }
+
+            // Skip if merged result is identical
+            if (!(mergedSymbol !== stored?.symbol) && !(mergedDecimals !== stored?.decimals)) {
+              continue
+            }
+
+            ops.push({
+              type: 'put' as const,
+              key: incoming.key,
+              value: {
+                symbol: mergedSymbol,
+                decimals: mergedDecimals,
+              },
+            })
           }
+
+          if (ops.length === 0) {
+            return
+          }
+
+          await this.#dbAssets.batch(ops)
         },
         complete: () => this.#log.info('[%s] sync assets complete', this.#id),
+        error: (e) => this.#log.error(e, '[%s] metadata sync error', this.#id),
       })
   }
 
