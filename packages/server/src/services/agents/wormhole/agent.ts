@@ -2,7 +2,11 @@ import { LRUCache } from 'lru-cache'
 import { Observer, Subscription } from 'rxjs'
 import { ago } from '@/common/time.js'
 import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
-import { WormholeIds, WormholeSupportedNetworks } from '@/services/agents/wormhole/types/chain.js'
+import {
+  urnToChainId,
+  WormholeIds,
+  WormholeSupportedNetworks,
+} from '@/services/agents/wormhole/types/chain.js'
 import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
 import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
 import {
@@ -25,6 +29,8 @@ import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from 
 import { mapOperationToJourney, NewJourneyWithAssets } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
+
+const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
 
 function isChainSupported(chainId?: number): boolean {
   return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
@@ -157,25 +163,57 @@ export class WormholeAgent implements Agent {
 
     this.#log.info('[agent:%s] rechecking pending journeys...', this.id)
 
-    const pendings = await this.#repository.getJourneysByStatus('sent', [...WormholeProtocols])
+    const pendings = await this.#repository.getJourneysByStatus(['sent', 'waiting'], [...WormholeProtocols])
 
     for (const journey of pendings) {
-      try {
+      await this.#recheckJourney(journey)
+    }
+
+    this.#log.info('[agent:%s] pending recheck complete (%s items)', this.id, pendings.length)
+  }
+
+  async #recheckJourney(journey: Journey) {
+    try {
+      if (this.#watcher.isWormholeId(journey.correlation_id)) {
         const op = await this.#watcher.fetchOperationById(journey.correlation_id)
         if (op) {
           await this.#onOperation(op)
         }
-      } catch (err) {
-        this.#log.warn(
-          err,
-          '[agent:%s] failed to recheck pending journey %s',
-          this.id,
-          journey.correlation_id,
-        )
+        return
       }
+
+      await this.#recheckBySearch(journey)
+    } catch (err) {
+      this.#log.warn(err, '[agent:%s] failed to recheck pending journey %s', this.id, journey.correlation_id)
+    }
+  }
+
+  async #recheckBySearch(journey: Journey) {
+    const isOriginLeg = isWormholeProtocol(journey.origin_protocol)
+    const address = isOriginLeg ? journey.from : journey.to
+
+    const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+    if (!stop) {
+      return
     }
 
-    this.#log.info('[agent:%s] pending recheck complete (%s items)', this.id, pendings.length)
+    const sourceChain = urnToChainId(stop.from.chainId)
+    const targetChain = urnToChainId(stop.to.chainId)
+
+    const from = new Date(journey.sent_at - OPERATION_LOOKUP_WINDOW_MS).toISOString()
+    const to = new Date(journey.sent_at + OPERATION_LOOKUP_WINDOW_MS).toISOString()
+
+    const { operations } = await this.#watcher.fetchOperations({
+      address,
+      sourceChain,
+      targetChain,
+      from,
+      to,
+    })
+
+    for (const op of operations) {
+      await this.#onOperation(op)
+    }
   }
 
   #onOperation = async (op: WormholeOperation) => {
@@ -192,8 +230,13 @@ export class WormholeAgent implements Agent {
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
     if (this.#replacedJourneysCache.has(journey.correlation_id)) {
       this.#log.info('[agent:%s] Journey replaced for correlationId: %s', this.id, journey.correlation_id)
+      return
     }
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
+    if (existingTrips.every((t) => t.status === 'received')) {
+      this.#log.info('[agent:%s] Existing trips already completed: %s', this.id, journey.trip_id)
+      return
+    }
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
     if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
@@ -213,7 +256,7 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    if (existingJourney.status !== journey.status) {
+    if (existingJourney.status !== 'received' && existingJourney.status !== journey.status) {
       const update: JourneyUpdate = {}
       if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
         update.status = journey.status

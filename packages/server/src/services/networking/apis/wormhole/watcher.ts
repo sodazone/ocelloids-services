@@ -2,7 +2,7 @@ import pLimit from 'p-limit'
 import { Observable } from 'rxjs'
 
 import { JourneyStatus } from '@/services/agents/crosschain/index.js'
-import { WormholescanClient } from './client.js'
+import { WormholeOperationParams, WormholescanClient } from './client.js'
 import { toStatus } from './status.js'
 import { PersistentWatcherStorage } from './storage.js'
 import { WormholeOperation } from './types.js'
@@ -84,6 +84,13 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
   async function fetchOperationById(id: string): Promise<WormholeOperation | undefined> {
     return await client.fetchOperationById(id)
+  }
+
+  async function fetchOperations(
+    params: WormholeOperationParams & { page?: number },
+    signal?: AbortSignal | null,
+  ): Promise<{ operations: WormholeOperation[]; total: number }> {
+    return await client.fetchOperations(params, signal)
   }
 
   async function fetchBatch(
@@ -296,7 +303,18 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     })
   }
 
-  return { fetchOperationById, operations$, loadInitialState, pendingCount: () => pending.size }
+  function isWormholeId(maybeWormholeId: string) {
+    return client.isWormholeId(maybeWormholeId)
+  }
+
+  return {
+    fetchOperationById,
+    fetchOperations,
+    operations$,
+    loadInitialState,
+    isWormholeId,
+    pendingCount: () => pending.size,
+  }
 }
 
 export type WormholeWatcher = ReturnType<typeof makeWatcher>

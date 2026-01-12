@@ -5,7 +5,7 @@ import { WormholeOperation } from './types.js'
 
 const DEFAULT_PAGE_SIZE = 25
 
-type WormholeOperationParams = {
+export type WormholeOperationParams = {
   pageSize?: number
   from?: string // ISO time
   to?: string // ISO time
@@ -153,5 +153,14 @@ export class WormholescanClient {
     const urlId = normalizeWormholeId(id)
     const op = await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>()
     return op
+  }
+
+  isWormholeId(maybeWormholeId: WormholeId) {
+    try {
+      normalizeWormholeId(maybeWormholeId)
+      return true
+    } catch (_e) {
+      return false
+    }
   }
 }
