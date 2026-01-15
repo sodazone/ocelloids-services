@@ -9,6 +9,8 @@ import {
   NewJourney,
 } from '@/services/agents/crosschain/index.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { AnyJson } from '@/services/types.js'
 
 import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
 import { isXcmBridge, legTypes } from '../types/messages.js'
@@ -45,6 +47,17 @@ export function asNewJourneyObject(
     totalUsd: calculateTotalUsd(assets),
     id,
   })
+}
+
+type XcmStopInstructions = {
+  messageHash: HexString
+  messageId?: HexString
+  program: AnyJson
+  executedAt?: {
+    chainId: string
+    event?: AnyJson
+    outcome?: 'Success' | 'Fail'
+  }
 }
 
 export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existingStops: any[] = []): any[] {
@@ -89,13 +102,37 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
 
     if (existingStop) {
       if (waypoint) {
+        let instructions: XcmStopInstructions[]
+
+        if (Array.isArray(existingStop.instructions)) {
+          instructions = existingStop.instructions
+        } else if (existingStop.instructions) {
+          instructions = [existingStop.instructions]
+          existingStop.instructions = instructions
+        } else {
+          instructions = []
+          existingStop.instructions = instructions
+        }
+
+        const existingInstruction = instructions.find((i) => i.messageHash === waypoint.messageHash)
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
-          existingStop.messageHash = waypoint.messageHash
-          existingStop.messageId = waypoint.messageId ?? payload.messageId
-          existingStop.instructions = waypoint.instructions
+          if (existingInstruction === undefined) {
+            instructions.push({
+              messageHash: waypoint.messageHash,
+              messageId: waypoint.messageId ?? payload.messageId,
+              program: waypoint.instructions,
+            })
+          }
         } else if (existingStop.to.chainId === waypoint.chainId) {
           existingStop.to = { ...existingStop.to, ...context }
+          if (existingInstruction) {
+            existingInstruction.executedAt = {
+              chainId: waypoint.chainId,
+              event: context?.event,
+              outcome: context?.status,
+            }
+          }
         } else if (existingStop.relay?.chainId === waypoint.chainId) {
           existingStop.relay = { ...existingStop.relay, ...context }
         }
@@ -109,9 +146,16 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
       from: isOutbound ? context : { chainId: leg.from },
       to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
       relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
-      messageHash: isOutbound ? waypoint?.messageHash : undefined,
-      messageId: isOutbound ? (waypoint?.messageId ?? payload.messageId) : undefined,
-      instructions: isOutbound ? waypoint?.instructions : undefined,
+      instructions:
+        isOutbound && waypoint
+          ? [
+              {
+                messageHash: waypoint.messageHash,
+                messageId: waypoint.messageId ?? payload.messageId,
+                program: waypoint.instructions,
+              },
+            ]
+          : [],
     }
   })
 

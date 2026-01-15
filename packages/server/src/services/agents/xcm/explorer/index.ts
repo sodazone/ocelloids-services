@@ -9,6 +9,7 @@ import {
   FullJourneyResponse,
   Journey,
   JourneyUpdate,
+  NewAssetOperation,
   NewJourney,
 } from '@/services/agents/crosschain/index.js'
 import { Logger } from '@/services/types.js'
@@ -22,15 +23,8 @@ import {
   XcmMessagePayload,
   XcmTerminusContext,
 } from '../types/index.js'
-import {
-  asNewJourneyObject,
-  toCorrelationId,
-  toNewAssets,
-  toNewJourney,
-  toStatus,
-  toStops,
-  toTrappedAssets,
-} from './convert.js'
+import { toCorrelationId, toNewAssets, toNewJourney, toStatus, toStops, toTrappedAssets } from './convert.js'
+import { AssetUpdate, mergeAssets, mergeStops } from './xprotocol.js'
 
 const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
 const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
@@ -149,7 +143,7 @@ export class XcmExplorer {
     try {
       const correlationId = toCorrelationId(message)
       if (this.#replacedJourneysCache.has(correlationId)) {
-        this.#log.info('[xcm:explorer] Journey replaced for correlationId: %s', correlationId)
+        await this.#updateReplacedJourneyStops(message, correlationId)
         return
       }
       const connectionId =
@@ -183,12 +177,32 @@ export class XcmExplorer {
           const assets = toNewAssets(humanizedXcm)
 
           try {
+            // For Hydration-MRL / Wormhole, find duplicates and merge
+            const { replacedJourneys } = await this.#dropXprotocolDuplicatesInNewJourney(
+              message,
+              journey,
+              assets,
+              humanizedXcm,
+            )
+
             // Insert the new journey with assets
             const id = await this.#repository.insertJourneyWithAssets(journey, assets)
+
+            for (const item of replacedJourneys) {
+              await this.#repository.deleteJourney(item.id)
+              this.#log.info(
+                '[xcm:explorer] Journey deleted id=%s correlationId=%s',
+                item.id,
+                item.correlationId,
+              )
+              this.#crosschain.broadcastReplaceJourney({
+                ids: { id, correlationId: journey.correlation_id },
+                replaces: item,
+              })
+            }
             const fullJourney = await this.#repository.getJourneyById(id)
             if (fullJourney) {
-              // For Hydration-MRL / Wormhole, find duplicates and merge
-              await this.#dropXprotocolDuplicates(message, fullJourney, humanizedXcm)
+              this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
 
               if (existingTrips.length > 0) {
                 this.#log.info(
@@ -197,11 +211,8 @@ export class XcmExplorer {
                   id,
                   tripId,
                 )
-                this.#updateTripWithJourney(journey, existingTrips, id)
-                return
+                await this.#updateTripWithJourney(fullJourney, existingTrips)
               }
-
-              this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
             }
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
@@ -224,7 +235,7 @@ export class XcmExplorer {
                 existingJourney.id,
                 tripId,
               )
-              this.#updateTripWithJourney(existingJourney, existingTrips, existingJourney.id)
+              this.#updateTripWithJourney(existingJourney, existingTrips)
               return
             }
 
@@ -269,17 +280,20 @@ export class XcmExplorer {
           const assets = toNewAssets(humanizedXcm)
           try {
             const id = await this.#repository.insertJourneyWithAssets(newJourney, assets)
-            if (existingTrips.length > 0) {
-              this.#log.info(
-                '[xcm:connecting-trip] trip=%s journey=%s tripId=%s',
-                existingTrips.map((t) => t.id),
-                id,
-                tripId,
-              )
-              this.#updateTripWithJourney(newJourney, existingTrips, id)
-              return
+            const fullJourney = await this.#repository.getJourneyById(id)
+            if (fullJourney) {
+              if (existingTrips.length > 0) {
+                this.#log.info(
+                  '[xcm:connecting-trip] trip=%s journey=%s tripId=%s',
+                  existingTrips.map((t) => t.id),
+                  id,
+                  tripId,
+                )
+                this.#updateTripWithJourney(fullJourney, existingTrips)
+                return
+              }
+              this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
             }
-            this.#broadcastNewJourney(asNewJourneyObject(newJourney, assets, id))
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
               this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
@@ -311,11 +325,26 @@ export class XcmExplorer {
             return
           }
 
-          await this.#dropXprotocolDuplicates(message, existingJourney, null)
+          const { replacedJourneys, assetUpdates } = await this.#dropXprotocolDuplicates(
+            message,
+            existingJourney,
+            null,
+          )
 
           await this.#updateJourney(message, existingJourney)
-
           await this.#updateSwapAndTrapAssets(message, existingJourney)
+
+          if (assetUpdates.length > 0) {
+            await Promise.all(
+              assetUpdates.map((a) =>
+                this.#repository.updateAsset(
+                  existingJourney.id,
+                  { asset: a.asset, role: a.role, sequence: a.sequence },
+                  { amount: a.amount, usd: a.usd },
+                ),
+              ),
+            )
+          }
 
           if (existingTrips.length > 0) {
             this.#log.info(
@@ -324,12 +353,25 @@ export class XcmExplorer {
               existingJourney.id,
               tripId,
             )
-            await this.#updateTripWithJourney(existingJourney, existingTrips, existingJourney.id)
+            await this.#updateTripWithJourney(existingJourney, existingTrips)
           } else {
             const { items } = await this.#crosschain.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {
               this.#broadcastUpdateJourney(items[0])
             }
+          }
+
+          for (const item of replacedJourneys) {
+            await this.#repository.deleteJourney(item.id)
+            this.#log.info(
+              '[xcm:explorer] Journey deleted id=%s messageId=%s',
+              item.id,
+              item.stops[0].messageId,
+            )
+            this.#crosschain.broadcastReplaceJourney({
+              ids: { id: existingJourney.id, correlationId: existingJourney.correlation_id },
+              replaces: item,
+            })
           }
 
           // On hop outs, check that we don't have any journeys stored that has the hop out as origin
@@ -420,11 +462,7 @@ export class XcmExplorer {
     }
   }
 
-  async #updateTripWithJourney(
-    journey: NewJourney | FullJourney,
-    existingTrips: Journey[],
-    journeyId: number,
-  ) {
+  async #updateTripWithJourney(journey: FullJourney, existingTrips: Journey[]) {
     const existingTrip =
       existingTrips.length === 1
         ? existingTrips[0]
@@ -461,17 +499,17 @@ export class XcmExplorer {
 
       if (journey.origin_protocol !== journey.destination_protocol) {
         if (journey.origin_protocol === 'xcm') {
-          result = await merge(journeyId, existingTrip.id)
+          result = await merge(journey.id, existingTrip.id)
         } else if (journey.destination_protocol === 'xcm') {
-          result = await merge(existingTrip.id, journeyId)
+          result = await merge(existingTrip.id, journey.id)
         }
       } else if (origin_protocol === 'xcm' || existingTrip.origin === journey.origin) {
-        result = await merge(journeyId, existingTrip.id)
+        result = await merge(journey.id, existingTrip.id)
       } else if (destination_protocol === 'xcm' || existingTrip.destination === journey.destination) {
-        result = await merge(existingTrip.id, journeyId)
+        result = await merge(existingTrip.id, journey.id)
       }
 
-      const updatedJourney = await this.#repository.getJourneyById(result?.updatedIds.id ?? journeyId)
+      const updatedJourney = await this.#repository.getJourneyById(result?.updatedIds.id ?? journey.id)
       if (!updatedJourney) {
         return
       }
@@ -488,10 +526,10 @@ export class XcmExplorer {
             totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
           },
         })
-        this.#replacedJourneysCache.set(result.replaces.correlation_id, result.replaces.id)
+        this.#replacedJourneysCache.set(result.replaces.correlation_id, result.updatedIds.id)
       }
     } catch (e) {
-      this.#log.error(e, '[xcm:connecting-trip] error %s', journeyId)
+      this.#log.error(e, '[xcm:connecting-trip] error %s', journey.id)
     }
   }
 
@@ -580,65 +618,147 @@ export class XcmExplorer {
     }
   }
 
+  async #updateReplacedJourneyStops(message: XcmMessagePayload, correlationId: string) {
+    this.#log.info('[xcm:explorer] Journey replaced for correlationId: %s', correlationId)
+    if (isXcmReceived(message)) {
+      const jid = this.#replacedJourneysCache.get(correlationId)!
+      const trip = await this.#repository.getJourneyById(jid)
+      if (!trip) {
+        return
+      }
+      const stop = trip.stops.find(
+        (s: any) => s.from.chainId === message.origin.chainId && s.to.chainId === message.destination.chainId,
+      )
+      if (!stop) {
+        return
+      }
+      const stopInstructions: any[] = Array.isArray(stop.instructions)
+        ? stop.instructions
+        : stop.instructions
+          ? [stop.instructions]
+          : []
+
+      stopInstructions.forEach((instr) => {
+        if (
+          instr.messageHash === message.waypoint.messageHash ||
+          (instr.messageId && instr.messageId === message.messageId)
+        ) {
+          const outcome = message.waypoint.outcome
+          instr.executedAt = {
+            chainId: message.destination.chainId,
+            outcome,
+            event: message.waypoint.event,
+          }
+
+          if (outcome === 'Fail') {
+            stop.status = outcome
+          }
+        }
+      })
+
+      const updateWith: Partial<JourneyUpdate> = {
+        stops: asJSON(stop),
+      }
+
+      await this.#repository.updateJourney(jid, updateWith)
+
+      this.#log.info('[xcm:explorer] Updated instructions executedAt for journey id=%s', trip.id)
+    }
+  }
+
+  async #humanizeXprotocolPayload(
+    message: XcmMessagePayload,
+    humanizedXcm: HumanizedXcmPayload | null,
+  ): Promise<HumanizedXcmPayload | null> {
+    if (
+      message.origin.chainId !== 'urn:ocn:polkadot:2034' ||
+      message.destination.chainId !== 'urn:ocn:polkadot:2004'
+    ) {
+      return null
+    }
+
+    const hXcm = humanizedXcm ?? (await this.#humanizer.humanize(message))
+
+    if (hXcm.humanized.xprotocolData?.type !== 'wormhole') {
+      return null
+    }
+
+    return hXcm
+  }
+
   async #dropXprotocolDuplicates(
     message: XcmMessagePayload,
     journey: FullJourney,
     humanizedXcm: HumanizedXcmPayload | null,
-  ) {
-    if (
-      !(
-        message.origin.chainId === 'urn:ocn:polkadot:2034' &&
-        message.destination.chainId === 'urn:ocn:polkadot:2004'
-      )
-    ) {
-      return
+  ): Promise<{ replacedJourneys: FullJourneyResponse[]; assetUpdates: AssetUpdate[] }> {
+    const replacedJourneys: FullJourneyResponse[] = []
+    const assetUpdates: AssetUpdate[] = []
+
+    const hXcm = await this.#humanizeXprotocolPayload(message, humanizedXcm)
+
+    if (hXcm === null) {
+      return { replacedJourneys, assetUpdates }
     }
-    const hXcm = humanizedXcm ?? (await this.#humanizer.humanize(message))
-    if (hXcm.humanized.xprotocolData?.type === 'wormhole') {
-      const { items } = await this.#crosschain.listJourneys({
-        origins: [journey.origin],
-        txHash: journey.origin_tx_primary,
-      })
 
-      for (const item of items) {
-        if (
-          item.from === journey.from &&
-          item.to === hXcm.humanized.to.key &&
-          item.destination === hXcm.destination.chainId
-        ) {
-          // Use assets with higher value between the 2 journeys
-          // E.g. J1 Hydration - Moonbeam Transfer 1 GLMR, 5 SOL
-          // J2 Hydration - Solana EthereumXcm.Transact 0.9 GLMR, 5 SOL
-          // Updated journey: Hydration - Solana EthereumXcm.Transact 1 GLMR, 5 SOL
-          for (const a of item.assets) {
-            const existing = journey.assets.find((ja) => ja.asset === a.asset)
-            if (existing && BigInt(a.amount) > BigInt(existing.amount)) {
-              await this.#repository.updateAsset(
-                journey.id,
-                { asset: existing.asset, role: existing.role, sequence: existing.sequence },
-                {
-                  amount: a.amount,
-                  usd: a.usd,
-                },
-              )
-              existing.amount = a.amount
-              existing.usd = a.usd
-            }
-          }
+    const { items } = await this.#crosschain.listJourneys({
+      origins: [journey.origin],
+      txHash: journey.origin_tx_primary,
+    })
 
-          await this.#repository.deleteJourney(item.id)
-          this.#log.info(
-            '[xcm:explorer] Journey deleted id=%s messageId=%s',
-            item.id,
-            item.stops[0].messageId,
-          )
-          this.#crosschain.broadcastReplaceJourney({
-            ids: { id: journey.id, correlationId: journey.correlation_id },
-            replaces: item,
-          })
-        }
+    for (const item of items) {
+      if (
+        item.from !== journey.from ||
+        item.to !== hXcm.humanized.to.key ||
+        item.destination !== hXcm.destination.chainId
+      ) {
+        continue
       }
+
+      assetUpdates.push(...mergeAssets(journey.assets, item.assets))
+      mergeStops(journey.stops, item.stops)
+
+      replacedJourneys.push(item)
     }
-    return
+
+    return { replacedJourneys, assetUpdates }
+  }
+
+  async #dropXprotocolDuplicatesInNewJourney(
+    message: XcmMessagePayload,
+    journey: NewJourney,
+    assets: Omit<NewAssetOperation, 'journey_id'>[],
+    humanizedXcm: HumanizedXcmPayload | null,
+  ): Promise<{ replacedJourneys: FullJourneyResponse[]; assetUpdates: AssetUpdate[] }> {
+    const replacedJourneys: FullJourneyResponse[] = []
+    const assetUpdates: AssetUpdate[] = []
+
+    const hXcm = await this.#humanizeXprotocolPayload(message, humanizedXcm)
+
+    if (hXcm === null) {
+      return { replacedJourneys, assetUpdates }
+    }
+
+    const { items } = await this.#crosschain.listJourneys({
+      origins: [journey.origin],
+      txHash: journey.origin_tx_primary,
+    })
+    const journeyStops = JSON.parse(journey.stops)
+    for (const item of items) {
+      if (
+        item.from !== journey.from ||
+        item.to !== hXcm.humanized.to.key ||
+        item.destination !== hXcm.destination.chainId
+      ) {
+        continue
+      }
+
+      assetUpdates.push(...mergeAssets(assets, item.assets))
+      mergeStops(journeyStops, item.stops)
+
+      replacedJourneys.push(item)
+    }
+
+    journey.stops = asJSON(journeyStops)
+    return { replacedJourneys, assetUpdates }
   }
 }
