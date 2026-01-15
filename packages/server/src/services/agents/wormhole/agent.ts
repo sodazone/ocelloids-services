@@ -222,15 +222,6 @@ export class WormholeAgent implements Agent {
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
 
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
-    if (existingTrips.length > 0 && existingTrips.every((t) => t.status === 'received')) {
-      this.#log.info(
-        '[agent:%s] Existing trips already completed: tripId=%s correlationId=%s',
-        this.id,
-        journey.trip_id,
-        journey.correlation_id,
-      )
-      return
-    }
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
     if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
