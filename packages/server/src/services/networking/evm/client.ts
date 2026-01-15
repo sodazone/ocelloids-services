@@ -27,6 +27,7 @@ const defaultConfirmations: Record<string, number> = {
   polygon: 1,
   arbitrum: 0,
   optimism: 0,
+  'bnb smart chain': 25, // higher confirmations to avoid getBlockByNumber errors
 }
 
 function asTransport(url: string) {
