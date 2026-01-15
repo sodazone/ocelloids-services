@@ -164,7 +164,6 @@ export class SubstrateWatcher extends Watcher<Block> {
 
     const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
-        console.log('api emitted')
         // Create a fresh cancel token for this emitted api instance.
         // Any reconnect will signal this to force a clean teardown of streams tied to this api.
         if (this.#apiCancel[chainId]) {
