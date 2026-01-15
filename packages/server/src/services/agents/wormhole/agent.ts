@@ -1,4 +1,3 @@
-import { LRUCache } from 'lru-cache'
 import { Observer, Subscription } from 'rxjs'
 import { ago } from '@/common/time.js'
 import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
@@ -62,7 +61,6 @@ export class WormholeAgent implements Agent {
   readonly #watcher: WormholeWatcher
   readonly #subs: Subscription[]
   readonly #telemetry: TelemetryWormholeEventEmitter
-  readonly #replacedJourneysCache: LRUCache<string, number>
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -80,12 +78,6 @@ export class WormholeAgent implements Agent {
     const storage = makeWormholeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
-    this.#replacedJourneysCache = new LRUCache({
-      ttl: 3_600_000, // 1 hr
-      ttlResolution: 60_000,
-      ttlAutopurge: false,
-      max: 1_000,
-    })
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -228,15 +220,8 @@ export class WormholeAgent implements Agent {
     }
 
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
-    if (this.#replacedJourneysCache.has(journey.correlation_id)) {
-      this.#log.info('[agent:%s] Journey replaced for correlationId: %s', this.id, journey.correlation_id)
-      return
-    }
+
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
-    if (existingTrips.length > 0 && existingTrips.every((t) => t.status === 'received')) {
-      this.#log.info('[agent:%s] Existing trips already completed: %s', this.id, journey.trip_id)
-      return
-    }
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
     if (!existingJourney) {
       const { assets, ...journeyWithoutAssets } = journey
@@ -351,7 +336,6 @@ export class WormholeAgent implements Agent {
             totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
           },
         })
-        this.#replacedJourneysCache.set(result.replaces.correlation_id, result.replaces.id)
       }
     } catch (e) {
       this.#log.error(e, '[wh:connecting-trip] error %s', journeyId)

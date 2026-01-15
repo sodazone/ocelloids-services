@@ -1,6 +1,7 @@
 import {
   catchError,
   EMPTY,
+  finalize,
   from,
   lastValueFrom,
   map,
@@ -202,7 +203,11 @@ export class SubstrateWatcher extends Watcher<Block> {
           tap(() => this.#resetWatchdog(chainId)), // Reset watchdog on every block
         )
 
-        return backfill$.pipe(mergeWith(liveFinalized$))
+        return backfill$.pipe(
+          mergeWith(liveFinalized$),
+          takeUntil(cancel$),
+          finalize(() => this.log.info('[%s] Inner finalized block stream completed', chainId)),
+        )
       }),
       catchError((err, caught) => {
         this.log.error('[%s] finalizedBlocks error: %s', chainId, err)

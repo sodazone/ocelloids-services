@@ -1,5 +1,5 @@
+import { immediate, microtask } from '@/common/event.loop.js'
 import { createFetcher } from '@/common/http/fetch.js'
-
 import { normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
@@ -137,12 +137,16 @@ export class WormholescanClient {
 
       for (const op of data.operations) {
         yield op
+        await microtask()
       }
 
       if (data.operations.length < pageSize) {
         break
       }
+
       page++
+
+      await immediate()
     }
   }
 

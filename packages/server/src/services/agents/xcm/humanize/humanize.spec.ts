@@ -1,7 +1,12 @@
 import { of } from 'rxjs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { twoHopSwap } from '@/testing/2-hop-swap.js'
-import { getHydrationWormholeXcm, getSnowbridgeXcmBridge, getXcmV5Sent } from '@/testing/humanize.js'
+import {
+  getHydrationWormholeBridgeRelayerXcm,
+  getHydrationWormholeTokenBridgeXcm,
+  getSnowbridgeXcmBridge,
+  getXcmV5Sent,
+} from '@/testing/humanize.js'
 import { createServices } from '@/testing/services.js'
 import { apiContext, apiContext_moonbeam } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat } from '../ops/xcm-format.js'
@@ -1087,11 +1092,23 @@ describe('XcmHumanizer', () => {
     expect(results.humanized.assets.length).toBe(1)
   })
 
-  it('should humanize Hydration Wormhole XCM transact', async () => {
-    const msg = getHydrationWormholeXcm()
+  it('should humanize Hydration Wormhole Bridge Relayer XCM transact', async () => {
+    const msg = getHydrationWormholeBridgeRelayerXcm()
     const results = await humanizer.humanize(msg, of(apiContext_moonbeam))
     expect(results.humanized).toBeDefined()
     expect(results.humanized.type).toBe('transact')
     expect(results.humanized.assets.length).toBe(1)
+    expect(results.humanized.xprotocolData).toBeDefined()
+    expect(results.humanized.xprotocolData?.destination).toBeDefined()
+  })
+
+  it('should humanize Hydration Wormhole Token Bridge XCM transact', async () => {
+    const msg = getHydrationWormholeTokenBridgeXcm()
+    const results = await humanizer.humanize(msg, of(apiContext_moonbeam))
+    expect(results.humanized).toBeDefined()
+    expect(results.humanized.type).toBe('transact')
+    expect(results.humanized.assets.length).toBe(1)
+    expect(results.humanized.xprotocolData).toBeDefined()
+    expect(results.humanized.xprotocolData?.destination).toBeDefined()
   })
 })

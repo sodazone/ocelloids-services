@@ -35,7 +35,7 @@ const API_TIMEOUT_MS = 4 * 60_000
 const BATCH_SIZE = 9
 const CONCURRENT_FETCH = 3
 
-const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161']
+const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:56']
 
 /**
  * Evm Watcher.
