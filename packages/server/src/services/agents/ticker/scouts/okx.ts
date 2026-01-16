@@ -22,7 +22,7 @@ export class OkxPriceScout implements PriceScout {
   }
 
   async fetchPrices(tickers: string[]): Promise<TickerPriceData[]> {
-    const symbols = tickers.map((t) => `${t}-${this.quoteCurrency}`)
+    const symbols = tickers.map((t) => `${t}-${this.quoteCurrency}`.toLowerCase())
 
     const response = await fetch(`${ENDPOINT}/api/v5/market/index-tickers?quoteCcy=${this.quoteCurrency}`)
     if (!response.ok) {
@@ -31,7 +31,7 @@ export class OkxPriceScout implements PriceScout {
     const results = (await response.json()) as { code: string; msg: string; data: IndexTickerData[] }
 
     return results.data
-      .filter((result) => symbols.includes(result.instId))
+      .filter((result) => symbols.includes(result.instId.toLowerCase()))
       .map(({ idxPx, instId }) => {
         return {
           ticker: this.#getTickerFromSymbol(instId),

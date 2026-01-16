@@ -73,7 +73,13 @@ const CG_ID_MAP: Record<string, string> = {
   ENA: 'ethena',
   TEER: 'integritee',
   SUSDE: 'ethena-staked-usde',
+  jitoSOL: 'jito-staked-sol',
 }
+
+const CG_SYMBOL_MAP = Object.fromEntries(Object.entries(CG_ID_MAP).map(([k, v]) => [v, k])) as Record<
+  string,
+  string
+>
 
 const ENDPOINT = 'https://api.coingecko.com/api/v3'
 
@@ -83,7 +89,13 @@ export class CoinGeckoPriceScout implements PriceScout {
   }
 
   async fetchPrices(tickers: string[]): Promise<TickerPriceData[]> {
-    const ids = tickers.map((ticker) => CG_ID_MAP[ticker.toUpperCase()] || ticker.toLowerCase())
+    const ids = tickers.map(
+      (ticker) =>
+        CG_ID_MAP[ticker.toUpperCase()] ??
+        CG_ID_MAP[ticker.toLowerCase()] ??
+        CG_ID_MAP[ticker] ??
+        ticker.toLowerCase(),
+    )
 
     if (ids.length === 0) {
       throw new Error('No valid CoinGecko IDs found for the provided tickers')
@@ -106,10 +118,10 @@ export class CoinGeckoPriceScout implements PriceScout {
     const data = await response.json()
 
     return data.map((coin: CGMarketData) => {
-      const { current_price, symbol, last_updated } = coin
+      const { current_price, symbol, last_updated, id } = coin
 
       return {
-        ticker: symbol.toUpperCase(),
+        ticker: CG_SYMBOL_MAP[id] ?? symbol.toUpperCase(),
         price: current_price,
         source: this.source,
         updated: Date.parse(last_updated),
