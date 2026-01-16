@@ -354,4 +354,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0xe9f9a2e3deae4093c00fbc57b22bb51a4c05ad88',
     },
   ],
+  sUSDS: [
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xda430218862d3db25de9f61458645dde49a9e9c1',
+    },
+    {
+      chainId: 'urn:ocn:ethereum:1',
+      assetId: '0xa3931d71877c0e7a3148cb7eb4463524fec27fbd',
+    },
+  ],
 }
