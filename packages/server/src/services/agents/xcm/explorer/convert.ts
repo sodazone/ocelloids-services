@@ -132,6 +132,17 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
               event: context?.event,
               outcome: context?.status,
             }
+          } else {
+            instructions.push({
+              messageHash: waypoint.messageHash,
+              messageId: waypoint.messageId ?? payload.messageId,
+              program: waypoint.instructions,
+              executedAt: {
+                chainId: waypoint.chainId,
+                event: context?.event,
+                outcome: context?.status,
+              },
+            })
           }
         } else if (existingStop.relay?.chainId === waypoint.chainId) {
           existingStop.relay = { ...existingStop.relay, ...context }
