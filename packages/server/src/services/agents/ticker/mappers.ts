@@ -347,4 +347,11 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0x147758d3dafb1e8675e1a8ecff01cc8a943115b0fec1f4a13cfd4b303e47244a',
     },
   ],
+  jitoSOL: [
+    { chainId: 'urn:ocn:solana:101', assetId: 'j1toso1uck3rlmjorhttrvwy9hj7x8v9yyac6y7kgcpn' },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0xe9f9a2e3deae4093c00fbc57b22bb51a4c05ad88',
+    },
+  ],
 }
