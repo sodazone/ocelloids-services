@@ -8,10 +8,9 @@ import {
   NewAssetOperation,
   NewJourney,
 } from '@/services/agents/crosschain/index.js'
+import { HumanizedXcmAsset } from '@/services/agents/xcm/humanize/types.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
-
-import { HumanizedXcmAsset, HumanizedXcmPayload, XcmMessagePayload } from '../lib.js'
-import { isXcmBridge, legTypes } from '../types/messages.js'
+import { HumanizedXcmPayload, isXcmBridge, legTypes, XcmMessagePayload } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {

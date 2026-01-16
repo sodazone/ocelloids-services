@@ -106,14 +106,9 @@ function parseAssets(assets: any): FullJourneyAsset[] {
       return []
     }
 
-    return parsed
-      .filter(
-        (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
-      )
-      .map((a) => ({
-        ...a,
-        amount: String(a.amount),
-      }))
+    return parsed.filter(
+      (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
+    )
   } catch {
     return []
   }

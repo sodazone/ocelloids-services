@@ -71,7 +71,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       )
       .addColumn('asset', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('symbol', 'varchar(50)')
-      .addColumn('amount', 'bigint', (cb) => cb.notNull())
+      .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer')
       .addColumn('usd', 'decimal')
       .addColumn('role', 'varchar(20)')

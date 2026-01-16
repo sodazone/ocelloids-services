@@ -1,6 +1,5 @@
-import { AnyJson } from '@/lib.js'
 import { AssetRole } from '@/services/agents/crosschain/index.js'
-import { NetworkURN } from '@/services/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 
 export type XcmV3MultiLocation = AnyJson
 
