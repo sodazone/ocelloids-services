@@ -24,7 +24,7 @@ import {
   XcmTerminusContext,
 } from '../types/index.js'
 import { toCorrelationId, toNewAssets, toNewJourney, toStatus, toStops, toTrappedAssets } from './convert.js'
-import { AssetUpdate, mergeAssets, mergeStops } from './xprotocol.js'
+import { AssetUpdate, asArray, mergeAssets, mergeStops } from './xprotocol.js'
 
 const BACKFILL_MIN_TIME_AGO_MILLIS = 600_000
 const hasBackfilling = process.env.OC_SUBSTRATE_BACKFILL_FILE !== undefined
@@ -199,6 +199,7 @@ export class XcmExplorer {
                 ids: { id, correlationId: journey.correlation_id },
                 replaces: item,
               })
+              this.#replacedJourneysCache.set(item.correlationId, id)
             }
             const fullJourney = await this.#repository.getJourneyById(id)
             if (fullJourney) {
@@ -372,6 +373,7 @@ export class XcmExplorer {
               ids: { id: existingJourney.id, correlationId: existingJourney.correlation_id },
               replaces: item,
             })
+            this.#replacedJourneysCache.set(item.correlationId, existingJourney.id)
           }
 
           // On hop outs, check that we don't have any journeys stored that has the hop out as origin
@@ -618,52 +620,71 @@ export class XcmExplorer {
     }
   }
 
+  // finds the corresponding stop for the replaced journey and updates the execution data
+  // for journeys with multiple XCM instructions per stop e.g. Hydration > MRL > out
   async #updateReplacedJourneyStops(message: XcmMessagePayload, correlationId: string) {
     this.#log.info('[xcm:explorer] Journey replaced for correlationId: %s', correlationId)
-    if (isXcmReceived(message)) {
-      const jid = this.#replacedJourneysCache.get(correlationId)!
-      const trip = await this.#repository.getJourneyById(jid)
-      if (!trip) {
-        return
-      }
-      const stop = trip.stops.find(
-        (s: any) => s.from.chainId === message.origin.chainId && s.to.chainId === message.destination.chainId,
-      )
-      if (!stop) {
-        return
-      }
-      const stopInstructions: any[] = Array.isArray(stop.instructions)
-        ? stop.instructions
-        : stop.instructions
-          ? [stop.instructions]
-          : []
+    const jid = this.#replacedJourneysCache.get(correlationId)
 
-      stopInstructions.forEach((instr) => {
-        if (
-          instr.messageHash === message.waypoint.messageHash ||
-          (instr.messageId && instr.messageId === message.messageId)
-        ) {
-          const outcome = message.waypoint.outcome
-          instr.executedAt = {
-            chainId: message.destination.chainId,
-            outcome,
-            event: message.waypoint.event,
-          }
-
-          if (outcome === 'Fail') {
-            stop.status = outcome
-          }
-        }
-      })
-
-      const updateWith: Partial<JourneyUpdate> = {
-        stops: asJSON(stop),
-      }
-
-      await this.#repository.updateJourney(jid, updateWith)
-
-      this.#log.info('[xcm:explorer] Updated instructions executedAt for journey id=%s', trip.id)
+    if (!jid || !isXcmReceived(message)) {
+      return
     }
+
+    const trip = await this.#repository.getJourneyById(jid)
+    if (!trip || !Array.isArray(trip.stops)) {
+      return
+    }
+
+    const stopIndex = trip.stops.findIndex(
+      (s: any) => s.from.chainId === message.origin.chainId && s.to.chainId === message.destination.chainId,
+    )
+
+    if (stopIndex === -1) {
+      return
+    }
+
+    const existingStop = trip.stops[stopIndex]
+    const instructions: any[] = asArray(existingStop.instructions)
+    let stopUpdated = false
+
+    const updatedInstructions = instructions.map((instr) => {
+      if (
+        instr.messageHash === message.waypoint.messageHash ||
+        (instr.messageId && instr.messageId === message.messageId)
+      ) {
+        stopUpdated = true
+        return {
+          ...instr,
+          executedAt: {
+            chainId: message.destination.chainId,
+            outcome: message.waypoint.outcome,
+            event: message.waypoint.event,
+          },
+        }
+      }
+
+      return instr
+    })
+
+    if (!stopUpdated) {
+      return
+    }
+
+    const updatedStop = {
+      ...existingStop,
+      instructions: updatedInstructions,
+      status: updatedInstructions.some((i) => i.executedAt?.outcome === 'Fail')
+        ? 'Fail'
+        : existingStop.status,
+    }
+
+    const updatedStops = trip.stops.map((s: any, idx: number) => (idx === stopIndex ? updatedStop : s))
+
+    await this.#repository.updateJourney(jid, {
+      stops: asJSON(updatedStops),
+    })
+
+    this.#log.info('[xcm:explorer] Updated instructions executedAt for journey id=%s', trip.id)
   }
 
   async #humanizeXprotocolPayload(

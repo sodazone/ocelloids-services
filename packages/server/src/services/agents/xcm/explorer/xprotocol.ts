@@ -8,7 +8,7 @@ export type AssetUpdate = {
   usd?: number
 }
 
-function asArray<T>(v?: T | T[] | null): T[] {
+export function asArray<T>(v?: T | T[] | null): T[] {
   if (!v) {
     return []
   }
@@ -19,17 +19,14 @@ function mergeInstructions(targetStop: any, dupStop: any) {
   const target = asArray(targetStop.instructions)
   const incoming = asArray(dupStop.instructions)
 
-  for (const instr of incoming) {
-    if (
+  const newInstructions = incoming.filter(
+    (instr) =>
       !target.some(
         (i) => i.messageHash === instr.messageHash || (i.messageId && i.messageId === instr.messageId),
-      )
-    ) {
-      target.push(instr)
-    }
-  }
+      ),
+  )
 
-  targetStop.instructions = target
+  targetStop.instructions = [...newInstructions, ...target]
 }
 
 // NOTE: mutates target stops in place
