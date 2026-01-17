@@ -2,6 +2,7 @@ import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
+import { immediate, microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
 import { JourneyFilters } from '../types/queries.js'
@@ -315,43 +316,68 @@ export class CrosschainRepository {
       const snapshot_end = Date.now()
       const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
 
-      await this.#db
-        .insertInto('xc_asset_volume_cache')
-        .columns(['asset', 'symbol', 'usd_volume', 'snapshot_start', 'snapshot_end'])
-        .expression(
-          sql`
-            SELECT
-              x.asset,
-              MAX(x.symbol) AS symbol,
-              COALESCE(v.usd_volume, 0) AS usd_volume,
-              ${snapshot_start} AS snapshot_start,
-              ${snapshot_end} AS snapshot_end
-            FROM xc_asset_ops x
-            LEFT JOIN (
-              SELECT
-                a.asset,
-                SUM(COALESCE(a.usd, 0)) AS usd_volume
-              FROM xc_asset_ops a
-              INNER JOIN xc_journeys j
-                ON a.journey_id = j.id
-              WHERE j.sent_at >= ${snapshot_start}
-                AND j.sent_at <= ${snapshot_end}
-                AND j.status = 'received'
-              GROUP BY a.asset
-            ) v ON x.asset = v.asset
-            WHERE x.symbol IS NOT NULL
-            GROUP BY x.asset
-          `,
-        )
-        .onConflict((oc) =>
-          oc.column('asset').doUpdateSet({
-            symbol: eb => eb.ref('excluded.symbol'),
-            usd_volume: eb => eb.ref('excluded.usd_volume'),
-            snapshot_start: eb => eb.ref('excluded.snapshot_start'),
-            snapshot_end: eb => eb.ref('excluded.snapshot_end'),
-          }),
-        )
-        .execute()
+      const PAGE = 1000
+      let offset = 0
+
+      const volumeSubquery = this.#db
+        .selectFrom('xc_asset_ops as recent_assets')
+        .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
+        .select((eb) => [
+          eb.ref('recent_assets.asset').as('asset'),
+          eb.fn.sum(eb.fn.coalesce('recent_assets.usd', eb.val(0))).as('usd_volume'),
+        ])
+        .where('recent_journeys.sent_at', '>=', snapshot_start)
+        .where('recent_journeys.sent_at', '<=', snapshot_end)
+        .where('recent_journeys.status', '=', 'received')
+        .groupBy('recent_assets.asset')
+        .as('volumes')
+
+      while (true) {
+        const results = await this.#db
+          .selectFrom('xc_asset_ops')
+          .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
+          .select((eb) => [
+            eb.ref('xc_asset_ops.asset').as('asset'),
+            eb.fn.max('xc_asset_ops.symbol').as('symbol'),
+            eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
+          ])
+          .where('xc_asset_ops.symbol', 'is not', null)
+          .groupBy('xc_asset_ops.asset')
+          .limit(PAGE)
+          .offset(offset)
+          .execute()
+
+        if (results.length === 0) {
+          break
+        }
+
+        await microtask()
+
+        // Upsert into snapshot table
+        await this.#db
+          .insertInto('xc_asset_volume_cache')
+          .values(
+            results.map((row) => ({
+              ...row,
+              usd_volume: Number(row.usd_volume),
+              snapshot_end,
+              snapshot_start,
+            })),
+          )
+          .onConflict((oc) =>
+            oc.column('asset').doUpdateSet((eb) => ({
+              symbol: eb.ref('excluded.symbol'),
+              usd_volume: eb.ref('excluded.usd_volume'),
+              snapshot_start: eb.ref('excluded.snapshot_start'),
+              snapshot_end: eb.ref('excluded.snapshot_end'),
+            })),
+          )
+          .execute()
+
+        offset += PAGE
+
+        await immediate()
+      }
     } catch (error) {
       console.error('Error upserting xc_asset_volume_cache:', error)
     }
