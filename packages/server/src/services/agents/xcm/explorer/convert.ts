@@ -10,6 +10,9 @@ import {
 } from '@/services/agents/crosschain/index.js'
 import { HumanizedXcmAsset } from '@/services/agents/xcm/humanize/types.js'
 import { BlockEvent } from '@/services/networking/substrate/index.js'
+import { HexString } from '@/services/subscriptions/types.js'
+import { AnyJson } from '@/services/types.js'
+
 import { HumanizedXcmPayload, isXcmBridge, legTypes, XcmMessagePayload } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
@@ -46,11 +49,45 @@ export function asNewJourneyObject(
   })
 }
 
+type XcmStopInstructions = {
+  messageHash: HexString
+  messageId?: HexString
+  program: AnyJson
+  executedAt?: {
+    chainId: string
+    event?: AnyJson
+    outcome?: 'Success' | 'Fail'
+  }
+}
+
+// waypoints on 2nd hop legs do not hold the XCM hash, topicId and program
+// so we need to hold them in this "cache" when the destination contet is received before origin context
+const executionContexts = new Map<
+  string,
+  {
+    chainId: string
+    event?: AnyJson
+    outcome?: 'Success' | 'Fail'
+  }
+>()
+
+function removeOldExecutionContexts() {
+  while (executionContexts.size > 50) {
+    const first = executionContexts.keys().next().value
+    if (first) {
+      executionContexts.delete(first)
+    }
+  }
+}
+
 export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existingStops: any[] = []): any[] {
   const existingXcmStops = existingStops.filter((s) => legTypes.includes(s.type))
 
   const builtXcmStops = payload.legs.map((leg, index) => {
     const existingStop = existingXcmStops[index]
+    if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
+      console.log('SNOW existing stop', index, existingStop)
+    }
 
     const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
@@ -88,13 +125,60 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
 
     if (existingStop) {
       if (waypoint) {
+        let instructions: XcmStopInstructions[]
+
+        if (Array.isArray(existingStop.instructions)) {
+          instructions = existingStop.instructions
+        } else if (existingStop.instructions) {
+          instructions = [existingStop.instructions]
+          existingStop.instructions = instructions
+        } else {
+          instructions = []
+          existingStop.instructions = instructions
+        }
+
+        // if the stop is a hop on second leg or more, the messageHash will not match
+        // so just find the first one that needs execution updated
+        // only xcms that have >1 instruction per leg is Hyddration → MRL, which has only 1 legs so is not an issue
+        const existingInstruction =
+          existingStop.type === 'hop' && index > 0
+            ? instructions.find((i) => i.executedAt === undefined)
+            : instructions.find((i) => i.messageHash === waypoint.messageHash)
+        if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
+          console.log('SNOW existing instruction', existingInstruction)
+        }
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
-          existingStop.messageHash = waypoint.messageHash
-          existingStop.messageId = waypoint.messageId ?? payload.messageId
-          existingStop.instructions = waypoint.instructions
+          if (existingInstruction === undefined) {
+            const newStopInstruction: XcmStopInstructions = {
+              messageHash: waypoint.messageHash,
+              messageId: waypoint.messageId ?? payload.messageId,
+              program: waypoint.instructions,
+            }
+            const executionContextKey = `${toCorrelationId(payload)}:${index}:${existingStop.to.chainId}`
+            const executionContext = executionContexts.get(executionContextKey)
+            if (executionContext) {
+              newStopInstruction.executedAt = executionContext
+              executionContexts.delete(executionContextKey)
+            }
+            instructions.push(newStopInstruction)
+          }
         } else if (existingStop.to.chainId === waypoint.chainId) {
           existingStop.to = { ...existingStop.to, ...context }
+          if (existingInstruction) {
+            existingInstruction.executedAt = {
+              chainId: waypoint.chainId,
+              event: context?.event,
+              outcome: context?.status,
+            }
+          } else {
+            executionContexts.set(`${toCorrelationId(payload)}:${index}:${waypoint.chainId}`, {
+              chainId: waypoint.chainId,
+              event: context?.event,
+              outcome: context?.status,
+            })
+            removeOldExecutionContexts()
+          }
         } else if (existingStop.relay?.chainId === waypoint.chainId) {
           existingStop.relay = { ...existingStop.relay, ...context }
         }
@@ -108,9 +192,16 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
       from: isOutbound ? context : { chainId: leg.from },
       to: leg.to === waypoint?.chainId ? context : { chainId: leg.to },
       relay: leg.relay === waypoint?.chainId ? context : leg.relay ? { chainId: leg.relay } : null,
-      messageHash: isOutbound ? waypoint?.messageHash : undefined,
-      messageId: isOutbound ? (waypoint?.messageId ?? payload.messageId) : undefined,
-      instructions: isOutbound ? waypoint?.instructions : undefined,
+      instructions:
+        isOutbound && waypoint
+          ? [
+              {
+                messageHash: waypoint.messageHash,
+                messageId: waypoint.messageId ?? payload.messageId,
+                program: waypoint.instructions,
+              },
+            ]
+          : [],
     }
   })
 

@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { concatMap, from, map, Observable, switchMap } from 'rxjs'
+import { forkJoin, from, map, mergeMap, Observable, of, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
@@ -193,12 +193,13 @@ export class SubstrateXcmTracker {
             switchMap((context) =>
               this.#shared.blocks(chainId).pipe(
                 extractXcmMessageData(context),
-                concatMap(async ({ block, hashData }) => {
-                  for (const h of hashData) {
-                    await this.#engine.onMessageData(h)
-                  }
-                  return block
-                }),
+                mergeMap(({ block, hashData }) =>
+                  hashData.length === 0
+                    ? of(block)
+                    : forkJoin(hashData.map((h) => from(this.#engine.onMessageData(h)))).pipe(
+                        map(() => block),
+                      ),
+                ),
               ),
             ),
           )
