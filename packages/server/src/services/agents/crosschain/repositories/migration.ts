@@ -71,7 +71,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       )
       .addColumn('asset', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('symbol', 'varchar(50)')
-      .addColumn('amount', 'bigint', (cb) => cb.notNull())
+      .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer')
       .addColumn('usd', 'decimal')
       .addColumn('role', 'varchar(20)')
@@ -216,6 +216,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('idx_journeys_sent_status')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['status', 'sent_at'])
+      .execute()
+
+    await db.schema
       .createIndex('xc_assets_journey_id_index')
       .ifNotExists()
       .on('xc_asset_ops')
@@ -262,6 +269,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_asset_volume_cache')
       .columns(['snapshot_start', 'usd_volume', 'asset'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_asset_ops_journey_asset')
+      .ifNotExists()
+      .on('xc_asset_ops')
+      .columns(['journey_id', 'asset'])
       .execute()
   } catch (error) {
     console.error(error)

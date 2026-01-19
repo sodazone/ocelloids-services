@@ -2,6 +2,7 @@ import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
+import { immediate, microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
 import { JourneyFilters } from '../types/queries.js'
@@ -106,14 +107,9 @@ function parseAssets(assets: any): FullJourneyAsset[] {
       return []
     }
 
-    return parsed
-      .filter(
-        (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
-      )
-      .map((a) => ({
-        ...a,
-        amount: String(a.amount),
-      }))
+    return parsed.filter(
+      (a: any): a is FullJourneyAsset => a && typeof a === 'object' && a.asset != null && a.amount != null,
+    )
   } catch {
     return []
   }
@@ -316,57 +312,74 @@ export class CrosschainRepository {
   }
 
   async refreshAssetSnapshot() {
-    const snapshot_end = Date.now()
-    const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
+    try {
+      const snapshot_end = Date.now()
+      const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
 
-    // Subquery: sum usd per asset within snapshot window
-    const volumeSubquery = this.#db
-      .selectFrom('xc_asset_ops as recent_assets')
-      .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
-      .select((eb) => [
-        eb.ref('recent_assets.asset').as('asset'),
-        eb.fn.sum(eb.fn.coalesce('recent_assets.usd', eb.val(0))).as('usd_volume'),
-      ])
-      .where('recent_journeys.sent_at', '>=', snapshot_start)
-      .where('recent_journeys.sent_at', '<=', snapshot_end)
-      .where('recent_journeys.status', '=', 'received')
-      .groupBy('recent_assets.asset')
-      .as('volumes')
+      const PAGE = 1000
+      let offset = 0
 
-    // Left join on all known assets
-    const results = await this.#db
-      .selectFrom('xc_asset_ops')
-      .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
-      .select((eb) => [
-        eb.ref('xc_asset_ops.asset').as('asset'),
-        eb.fn.max('xc_asset_ops.symbol').as('symbol'),
-        eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
-      ])
-      .where('xc_asset_ops.symbol', 'is not', null)
-      .groupBy('xc_asset_ops.asset')
-      .execute()
+      const volumeSubquery = this.#db
+        .selectFrom('xc_asset_ops as recent_assets')
+        .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
+        .select((eb) => [
+          eb.ref('recent_assets.asset').as('asset'),
+          eb.fn.sum(eb.fn.coalesce('recent_assets.usd', eb.val(0))).as('usd_volume'),
+        ])
+        .where('recent_journeys.sent_at', '>=', snapshot_start)
+        .where('recent_journeys.sent_at', '<=', snapshot_end)
+        .where('recent_journeys.status', '=', 'received')
+        .groupBy('recent_assets.asset')
+        .as('volumes')
 
-    if (results.length > 0) {
-      // Upsert into snapshot table
-      await this.#db
-        .insertInto('xc_asset_volume_cache')
-        .values(
-          results.map((row) => ({
-            ...row,
-            usd_volume: Number(row.usd_volume),
-            snapshot_end,
-            snapshot_start,
-          })),
-        )
-        .onConflict((oc) =>
-          oc.column('asset').doUpdateSet((eb) => ({
-            symbol: eb.ref('excluded.symbol'),
-            usd_volume: eb.ref('excluded.usd_volume'),
-            snapshot_start: eb.ref('excluded.snapshot_start'),
-            snapshot_end: eb.ref('excluded.snapshot_end'),
-          })),
-        )
-        .execute()
+      while (true) {
+        const results = await this.#db
+          .selectFrom('xc_asset_ops')
+          .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
+          .select((eb) => [
+            eb.ref('xc_asset_ops.asset').as('asset'),
+            eb.fn.max('xc_asset_ops.symbol').as('symbol'),
+            eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
+          ])
+          .where('xc_asset_ops.symbol', 'is not', null)
+          .groupBy('xc_asset_ops.asset')
+          .limit(PAGE)
+          .offset(offset)
+          .execute()
+
+        if (results.length === 0) {
+          break
+        }
+
+        await microtask()
+
+        // Upsert into snapshot table
+        await this.#db
+          .insertInto('xc_asset_volume_cache')
+          .values(
+            results.map((row) => ({
+              ...row,
+              usd_volume: Number(row.usd_volume),
+              snapshot_end,
+              snapshot_start,
+            })),
+          )
+          .onConflict((oc) =>
+            oc.column('asset').doUpdateSet((eb) => ({
+              symbol: eb.ref('excluded.symbol'),
+              usd_volume: eb.ref('excluded.usd_volume'),
+              snapshot_start: eb.ref('excluded.snapshot_start'),
+              snapshot_end: eb.ref('excluded.snapshot_end'),
+            })),
+          )
+          .execute()
+
+        offset += PAGE
+
+        await immediate()
+      }
+    } catch (error) {
+      console.error('Error upserting xc_asset_volume_cache:', error)
     }
   }
 

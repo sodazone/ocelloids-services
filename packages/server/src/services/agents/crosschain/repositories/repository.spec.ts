@@ -45,8 +45,8 @@ describe('CrosschainRepository', () => {
       journey_id: journeyId,
       asset: 'DOT',
       symbol: 'DOT',
-      amount: '100',
-      decimals: 10,
+      amount: '84976593326579916831946',
+      decimals: 18,
       usd: 500,
       role: 'transfer',
       sequence: 0,
@@ -64,6 +64,7 @@ describe('CrosschainRepository', () => {
     expect(fetched!.assets).toHaveLength(1)
     expect(fetched!.assets[0].asset).toBe('DOT')
     expect(fetched!.totalUsd).toBe(500)
+    expect(fetched!.assets[0].amount).toBe('84976593326579916831946')
   })
 
   it('connects two journeys into one trip', async () => {
