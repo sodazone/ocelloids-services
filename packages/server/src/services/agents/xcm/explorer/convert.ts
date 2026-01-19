@@ -85,10 +85,6 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
 
   const builtXcmStops = payload.legs.map((leg, index) => {
     const existingStop = existingXcmStops[index]
-    if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
-      console.log('SNOW existing stop', index, existingStop)
-    }
-
     const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
     const extrinsic = event ? (event.extrinsic as any) : undefined
@@ -144,9 +140,7 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
           existingStop.type === 'hop' && index > 0
             ? instructions.find((i) => i.executedAt === undefined)
             : instructions.find((i) => i.messageHash === waypoint.messageHash)
-        if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
-          console.log('SNOW existing instruction', existingInstruction)
-        }
+
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
           if (existingInstruction === undefined) {
