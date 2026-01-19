@@ -13,7 +13,7 @@ import { BlockEvent } from '@/services/networking/substrate/index.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { AnyJson } from '@/services/types.js'
 
-import { isXcmBridge, legTypes, HumanizedXcmPayload, XcmMessagePayload } from '../types/messages.js'
+import { HumanizedXcmPayload, isXcmBridge, legTypes, XcmMessagePayload } from '../types/messages.js'
 
 export function toStatus(payload: XcmMessagePayload) {
   if ('outcome' in payload.destination) {
@@ -60,11 +60,34 @@ type XcmStopInstructions = {
   }
 }
 
+// waypoints on 2nd hop legs do not hold the XCM hash, topicId and program
+// so we need to hold them in this "cache" when the destination contet is received before origin context
+const executionContexts = new Map<
+  string,
+  {
+    chainId: string
+    event?: AnyJson
+    outcome?: 'Success' | 'Fail'
+  }
+>()
+
+function removeOldExecutionContexts() {
+  while (executionContexts.size > 50) {
+    const first = executionContexts.keys().next().value
+    if (first) {
+      executionContexts.delete(first)
+    }
+  }
+}
+
 export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existingStops: any[] = []): any[] {
   const existingXcmStops = existingStops.filter((s) => legTypes.includes(s.type))
 
   const builtXcmStops = payload.legs.map((leg, index) => {
     const existingStop = existingXcmStops[index]
+    if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
+      console.log('SNOW existing stop', index, existingStop)
+    }
 
     const waypoint = payload.waypoint.legIndex === index ? payload.waypoint : null
     const event = waypoint?.event ? (waypoint.event as any) : undefined
@@ -114,15 +137,31 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
           existingStop.instructions = instructions
         }
 
-        const existingInstruction = instructions.find((i) => i.messageHash === waypoint.messageHash)
+        // if the stop is a hop on second leg or more, the messageHash will not match
+        // so just find the first one that needs execution updated
+        // only xcms that have >1 instruction per leg is Hyddration → MRL, which has only 1 legs so is not an issue
+        const existingInstruction =
+          existingStop.type === 'hop' && index > 0
+            ? instructions.find((i) => i.executedAt === undefined)
+            : instructions.find((i) => i.messageHash === waypoint.messageHash)
+        if (payload.destinationProtocol === 'snowbridge' || payload.originProtocol === 'snowbridge') {
+          console.log('SNOW existing instruction', existingInstruction)
+        }
         if (existingStop.from.chainId === waypoint.chainId) {
           existingStop.from = { ...existingStop.from, ...context }
           if (existingInstruction === undefined) {
-            instructions.push({
+            const newStopInstruction: XcmStopInstructions = {
               messageHash: waypoint.messageHash,
               messageId: waypoint.messageId ?? payload.messageId,
               program: waypoint.instructions,
-            })
+            }
+            const executionContextKey = `${toCorrelationId(payload)}:${index}:${existingStop.to.chainId}`
+            const executionContext = executionContexts.get(executionContextKey)
+            if (executionContext) {
+              newStopInstruction.executedAt = executionContext
+              executionContexts.delete(executionContextKey)
+            }
+            instructions.push(newStopInstruction)
           }
         } else if (existingStop.to.chainId === waypoint.chainId) {
           existingStop.to = { ...existingStop.to, ...context }
@@ -133,16 +172,12 @@ export function toStops(payload: XcmMessagePayload | HumanizedXcmPayload, existi
               outcome: context?.status,
             }
           } else {
-            instructions.push({
-              messageHash: waypoint.messageHash,
-              messageId: waypoint.messageId ?? payload.messageId,
-              program: waypoint.instructions,
-              executedAt: {
-                chainId: waypoint.chainId,
-                event: context?.event,
-                outcome: context?.status,
-              },
+            executionContexts.set(`${toCorrelationId(payload)}:${index}:${waypoint.chainId}`, {
+              chainId: waypoint.chainId,
+              event: context?.event,
+              outcome: context?.status,
             })
+            removeOldExecutionContexts()
           }
         } else if (existingStop.relay?.chainId === waypoint.chainId) {
           existingStop.relay = { ...existingStop.relay, ...context }
