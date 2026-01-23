@@ -116,7 +116,8 @@ const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
     } else if (typeof value === 'object' && value.success && 'value' in value) {
       try {
         const v = value.value.value as Binary
-        return BigInt(v.asBytes().length > 0 ? v.asHex() : 0)
+        const h = v.asHex()
+        return BigInt(h === '0x' ? 0 : h)
       } catch (err) {
         console.warn(err, 'Balance extractor error in ethereumruntimerpcapi.call')
       }
