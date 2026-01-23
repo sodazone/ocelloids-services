@@ -39,4 +39,24 @@ describe('wormhole amounts with normalized decimals', () => {
     const result = wormholeAmountToReal(amount, tokenDecimals, normalizedDecimals)
     expect(result).toBe(expected)
   })
+
+  it('should transform tokenAmounts back to amounts with precision', () => {
+    const tokenAmount = '12'
+    const decimals = 18
+    const [whole, dec] = tokenAmount.split('.')
+    const decLength = dec ? dec.length : 0
+
+    const realAmount = wormholeAmountToReal([whole, dec].join(''), decimals, decLength)
+    expect(realAmount).toBe('12000000000000000000')
+  })
+
+  it('should transform tokenAmounts with decimals back to amounts with precision', () => {
+    const tokenAmount = '67000.12345'
+    const decimals = 18
+    const [whole, dec] = tokenAmount.split('.')
+    const decLength = dec ? dec.length : 0
+
+    const realAmount = wormholeAmountToReal([whole, dec].join(''), decimals, decLength)
+    expect(realAmount).toBe('67000123450000000000000')
+  })
 })

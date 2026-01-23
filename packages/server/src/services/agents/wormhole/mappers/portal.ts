@@ -29,6 +29,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
     const tokenInfo = tokenRegistry.lookup(tokenChain, tokenAddress)
 
     let decimals = normalizedDecimals ?? 8
+    let baseDecimals = normalizedDecimals
     let symbol = '???'
     let isNative = false
 
@@ -48,7 +49,9 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
 
       if (typeof tokenAmount === 'string' && tokenAmount.trim() !== '') {
         try {
-          amount = tokenAmount.replaceAll(/[^0-9]/g, '')
+          const [whole, dec] = tokenAmount.split('.')
+          baseDecimals = dec ? dec.length : 0
+          amount = [whole, dec].join('')
         } catch (err) {
           console.warn('Failed to convert tokenAmount to int:', tokenAmount, err)
           amount = '0'
@@ -59,7 +62,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
       }
     }
 
-    const realAmount = wormholeAmountToReal(amount, decimals, normalizedDecimals)
+    const realAmount = wormholeAmountToReal(amount, decimals, baseDecimals)
 
     const tokenIdentifier = String(tokenAddress).startsWith('0x')
       ? addressToHex(tokenAddress)
