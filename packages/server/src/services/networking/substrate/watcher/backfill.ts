@@ -1,111 +1,127 @@
-import fs from 'fs'
-import path from 'path'
-
-import { defer, EMPTY, from, interval, Observable, range, Subject, Subscription } from 'rxjs'
-import { catchError, concatMap, delay, map, share, switchMap, tap, zipWith } from 'rxjs/operators'
-import { z } from 'zod'
+import {
+  catchError,
+  concatMap,
+  defer,
+  EMPTY,
+  from,
+  interval,
+  map,
+  Observable,
+  range,
+  Subject,
+  Subscription,
+  share,
+  switchMap,
+  timeout,
+  timer,
+  zipWith,
+} from 'rxjs'
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
-import { HexString } from '@/lib.js'
 import { matchExtrinsic } from '@/services/agents/xcm/ops/util.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
+import { HexString } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
+import { Backfill, INITIAL_DELAY_MS, tapError } from '../../backfill.js'
+import { BackfillConfig } from '../../types.js'
 import { RETRY_ONCE } from '../../watcher.js'
 import { BackedCandidate, Block, SubstrateApi } from '../types.js'
 
-const BackfillConfigSchema = z.object({
-  start: z.number(),
-  end: z.number(),
-  paraIds: z.array(z.string()),
-})
-const BackfillConfigsSchema = z.record(z.string(), BackfillConfigSchema)
-
-type BackfillConfig = z.infer<typeof BackfillConfigSchema>
-type BackfillConfigs = z.infer<typeof BackfillConfigsSchema>
-
-const INITIAL_DELAY_MS = 5 * 60 * 1_000
-const EMIT_INTERVAL_MS = 1_000
-
-export class SubstrateBackfill {
-  readonly #log: Logger
-  readonly #chainBlock$ = new Map<string, Observable<Block>>()
+export class SubstrateBackfill extends Backfill<SubstrateApi, Block> {
   readonly #chainBlockHash$ = new Map<string, Subject<HexString>>()
   readonly #relaySubscriptions = new Map<string, Subscription>()
 
-  readonly #backfillConfig?: BackfillConfigs
-  #getApi: (chainId: NetworkURN) => Promise<SubstrateApi>
-
-  constructor(log: Logger, getApi: (chainId: NetworkURN) => Promise<SubstrateApi>) {
-    this.#log = log
-    this.#backfillConfig = this.#loadConfig(process.env.OC_SUBSTRATE_BACKFILL_FILE)
-    this.#getApi = getApi
+  constructor(log: Logger, api$: (chainId: NetworkURN) => Observable<SubstrateApi>) {
+    super(log, api$)
   }
 
-  getBackfill$(chainId: string) {
-    const backfill$ = this.#chainBlock$.get(chainId)
-    if (backfill$) {
-      return defer(() =>
-        backfill$.pipe(
-          tap((block) => this.#log.info('[%s] BACKFILL block #%s %s', chainId, block.number, block.hash)),
-        ),
-      )
-    } else {
-      return EMPTY
-    }
-  }
-
-  start() {
-    if (!this.#backfillConfig) {
+  start(chains: NetworkURN[]) {
+    if (!this.backfillConfig) {
       return
     }
 
-    for (const [relayId, config] of Object.entries(this.#backfillConfig)) {
-      // Create para chain streams
-      for (const paraId of config.paraIds) {
-        this.#initParaChainStream(paraId)
+    this.log.info('[backfill:substrate] starting...')
+    for (const chainId of chains) {
+      const config = this.backfillConfig[chainId]
+      if (!config) {
+        this.log.warn('[backfill:%s] not configured. Skipping...', chainId)
+        continue
       }
+      this.log.info(
+        '[backfill:%s] Initializing backfill stream blocks %s-%s (emission=%sms)',
+        chainId,
+        config.start,
+        config.end,
+        config.emissionRate,
+      )
 
-      // Create relay chain block stream
-      this.#initRelayChainStream(relayId, config)
+      if (config.paraIds) {
+        for (const paraId of config.paraIds) {
+          if (!chains.includes(paraId as NetworkURN)) {
+            continue
+          }
+          this.#initParaChainStream(paraId as NetworkURN)
+        }
+
+        this.#initRelayChainStream(chainId as NetworkURN, config)
+      } else {
+        this.#initChainStream(chainId as NetworkURN, config)
+      }
     }
+    this.log.info('[backfill:substrate] started')
   }
 
   stop() {
+    this.log.info('[backfill:substrate] stopping...')
     for (const sub of this.#relaySubscriptions.values()) {
       sub.unsubscribe()
     }
     this.#relaySubscriptions.clear()
+    this.log.info('[backfill:substrate] stopped')
   }
 
-  #initParaChainStream(paraId: string) {
-    const subject = new Subject<HexString>()
-    this.#chainBlockHash$.set(paraId, subject)
-
-    const observable$ = subject.pipe(
-      concatMap((hash) => {
-        return from(this.#getApi(paraId as NetworkURN)).pipe(switchMap((api) => this.#getBlock(api, hash)))
-      }),
-    )
-
-    this.#chainBlock$.set(paraId, observable$)
-  }
-
-  #initRelayChainStream(relayId: string, config: BackfillConfig) {
-    const { start, end } = config
+  #initChainStream(chainId: NetworkURN, config: BackfillConfig) {
+    const { start, end, emissionRate } = config
     const totalBlocks = end - start + 1
 
-    const relayBlock$ = from(this.#getApi(relayId as NetworkURN)).pipe(
-      delay(INITIAL_DELAY_MS),
-      switchMap((api) =>
-        range(start, totalBlocks).pipe(
-          zipWith(interval(EMIT_INTERVAL_MS)),
-          map(([blockNumber]) => blockNumber),
-          concatMap((blockNumber) => this.#getBlockWithHash(api, relayId, blockNumber)),
-        ),
-      ),
+    let first = true
+
+    const chainBlock$ = this.api$(chainId).pipe(
+      switchMap((api) => {
+        const delay$ = first ? timer(INITIAL_DELAY_MS) : timer(10)
+        first = false
+
+        return delay$.pipe(
+          switchMap(() =>
+            range(start, totalBlocks).pipe(
+              zipWith(interval(emissionRate)),
+              map(([blockNumber]) => blockNumber),
+              concatMap((blockNumber) => this.#getBlockWithHash(api, chainId, blockNumber)),
+            ),
+          ),
+        )
+      }),
       share(),
     )
 
-    this.#chainBlock$.set(relayId, relayBlock$)
+    this.chainBlock$.set(chainId, chainBlock$)
+    this.log.info('[backfill:%s] stream initialized', chainId)
+    return chainBlock$
+  }
+
+  #initParaChainStream(paraId: NetworkURN) {
+    const subject = new Subject<HexString>()
+    this.#chainBlockHash$.set(paraId, subject)
+
+    const observable$ = this.api$(paraId).pipe(
+      switchMap((api) => subject.pipe(concatMap((hash) => this.#getBlock(api, hash)))),
+    )
+
+    this.chainBlock$.set(paraId, observable$)
+    this.log.info('[backfill:%s] stream initialized', paraId)
+  }
+
+  #initRelayChainStream(relayId: NetworkURN, config: BackfillConfig) {
+    const relayBlock$ = this.#initChainStream(relayId, config)
 
     this.#relaySubscriptions.set(
       relayId,
@@ -113,7 +129,7 @@ export class SubstrateBackfill {
         try {
           this.#processRelayBlock(relayId as NetworkURN, block)
         } catch (error) {
-          this.#log.error(error, '[%s] Error processing backfill relay block #%s', relayId, block.number)
+          this.log.error(error, '[%s] Error processing backfill relay block #%s', relayId, block.number)
         }
       }),
     )
@@ -122,11 +138,12 @@ export class SubstrateBackfill {
   #getBlockWithHash(api: SubstrateApi, relayId: string, blockNumber: number) {
     return defer(() =>
       from(api.getBlockHash(blockNumber)).pipe(
+        timeout(10_000),
         retryWithTruncatedExpBackoff(RETRY_ONCE),
-        tapError(this.#log, relayId, 'getBlockHash'),
+        tapError(this.log, relayId, 'getBlockHash'),
         concatMap((hash) => this.#getBlock(api, hash)),
         catchError((err) => {
-          this.#log.warn(err, '[%s] Dropping block %s due to error', relayId, blockNumber)
+          this.log.warn(err, '[%s] Dropping block %s due to error', relayId, blockNumber)
           return EMPTY
         }),
       ),
@@ -138,7 +155,7 @@ export class SubstrateBackfill {
     const inherentData = paraXt?.args?.data
 
     if (!Array.isArray(inherentData?.backed_candidates)) {
-      this.#log.warn('[%s] Invalid or missing backed_candidates', relayId)
+      this.log.warn('[%s] Invalid or missing backed_candidates', relayId)
       return
     }
 
@@ -156,43 +173,13 @@ export class SubstrateBackfill {
 
   #getBlock(api: SubstrateApi, hash: string): Observable<Block> {
     return defer(() => from(api.getBlock(hash, false))).pipe(
+      timeout(10_000),
       retryWithTruncatedExpBackoff(RETRY_ONCE),
       map((block): Block => ({ status: 'finalized', ...block })),
       catchError((err) => {
-        this.#log.warn(err, '[backfill] Failed to getBlock for %s', hash)
+        this.log.warn(err, '[backfill] Failed to getBlock for %s', hash)
         return EMPTY
       }),
     )
   }
-
-  #loadConfig(filePath?: string): BackfillConfigs | undefined {
-    if (!filePath) {
-      return
-    }
-
-    try {
-      const absPath = path.resolve(filePath)
-      const content = fs.readFileSync(absPath, 'utf8')
-      const parsed = JSON.parse(content)
-
-      const result = BackfillConfigsSchema.safeParse(parsed)
-      if (!result.success) {
-        this.#log.warn('[backfill] Invalid config format %j', result.error.format())
-        return
-      }
-
-      return result.data
-    } catch (error: any) {
-      this.#log.warn(error, '[backfill] Error loading config')
-      return
-    }
-  }
-}
-
-function tapError<T>(log: Logger, chainId: string, method: string) {
-  return tap<T>({
-    error: (e) => {
-      log.warn(e, '[%s] error in backfill stream on method=%s', chainId, method)
-    },
-  })
 }

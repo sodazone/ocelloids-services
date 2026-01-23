@@ -4,15 +4,18 @@ import {
   concatMap,
   defer,
   EMPTY,
+  finalize,
   from,
   lastValueFrom,
   map,
   merge,
   mergeMap,
+  mergeWith,
   Observable,
   of,
   Subject,
   share,
+  shareReplay,
   switchMap,
   take,
   takeUntil,
@@ -29,6 +32,7 @@ import { NeutralHeader } from '../../types.js'
 import { RETRY_INFINITE, retryCapped, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
 import { Block, DecodeContractParams } from '../types.js'
+import { EvmBackfill } from './backfill.js'
 
 const API_TIMEOUT_MS = 4 * 60_000
 
@@ -58,6 +62,7 @@ export class EvmWatcher extends Watcher<Block> {
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
   readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
+  readonly #backfill: EvmBackfill
 
   readonly chainIds: NetworkURN[]
   readonly #connector: Connector
@@ -65,11 +70,17 @@ export class EvmWatcher extends Watcher<Block> {
   constructor(services: Services) {
     super(services)
 
-    const { connector } = services
+    const { log, connector } = services
 
     this.#connector = connector
     this.#apis = connector.connectAll('evm')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
+    this.#backfill = new EvmBackfill(log, this.getApi$.bind(this))
+  }
+
+  start() {
+    super.start()
+    this.#backfill.start(Object.keys(this.#apis) as NetworkURN[])
   }
 
   async stop() {
@@ -87,6 +98,8 @@ export class EvmWatcher extends Watcher<Block> {
         ),
       )
     }
+
+    this.#backfill.stop()
 
     const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
     await Promise.allSettled(finalizeds)
@@ -177,9 +190,10 @@ export class EvmWatcher extends Watcher<Block> {
     const cancel$ = this.#apiCancel[chainId]
     let lastReset = Date.now()
 
+    const backfill$ = this.#backfill.getBackfill$(chainId)
     const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
-        return api.followHeads$('finalized').pipe(
+        const live$ = api.followHeads$('finalized').pipe(
           takeUntil(merge(shutdown$, cancel$)),
           this.tapError(chainId, 'finalizedBlocks()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
@@ -188,21 +202,26 @@ export class EvmWatcher extends Watcher<Block> {
           mergeMap((header) => from(api.getBlock(header.hash))),
           this.tapError(chainId, 'getBlock()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          tap((block) => {
+            this.log.info('[%s] FINALIZED block #%s %s', chainId, block.number, block.hash)
+
+            this.emit('telemetryBlockFinalized', {
+              chainId,
+              blockNumber: Number(block.number),
+            })
+            const now = Date.now()
+
+            if (now - lastReset > 10_000) {
+              lastReset = now
+              this.#resetWatchdog(chainId)
+            }
+          }),
         )
-      }),
-      tap((block) => {
-        this.log.info('[%s] FINALIZED block #%s %s', chainId, block.number, block.hash)
-
-        this.emit('telemetryBlockFinalized', {
-          chainId,
-          blockNumber: Number(block.number),
-        })
-        const now = Date.now()
-
-        if (now - lastReset > 10_000) {
-          lastReset = now
-          this.#resetWatchdog(chainId)
-        }
+        return backfill$.pipe(
+          mergeWith(live$),
+          takeUntil(merge(shutdown$, cancel$)),
+          finalize(() => this.log.info('[%s] Inner finalized block stream completed', chainId)),
+        )
       }),
       share({ resetOnRefCountZero: false }),
     )
@@ -218,9 +237,10 @@ export class EvmWatcher extends Watcher<Block> {
     const cancel$ = this.#apiCancel[chainId]
     let lastLog = Date.now()
     const blockNumbers: string[] = []
+    const backfill$ = this.#backfill.getBackfill$(chainId)
     const finalized$ = this.#api$[chainId].pipe(
-      switchMap((api) =>
-        api.followFastHeads$('finalized').pipe(
+      switchMap((api) => {
+        const live$ = api.followFastHeads$('finalized').pipe(
           takeUntil(merge(shutdown$, cancel$)),
           this.tapError(chainId, 'followHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
@@ -245,9 +265,15 @@ export class EvmWatcher extends Watcher<Block> {
               blockNumber: Number(b.number),
             })
           }),
-        ),
-      ),
-      share({ resetOnRefCountZero: false }),
+          takeUntil(merge(shutdown$, cancel$)),
+        )
+        return backfill$.pipe(
+          mergeWith(live$),
+          takeUntil(merge(shutdown$, cancel$)),
+          finalize(() => this.log.info('[%s] Inner finalized block stream completed', chainId)),
+        )
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.#finalized$[chainId] = finalized$
@@ -524,5 +550,13 @@ export class EvmWatcher extends Watcher<Block> {
       this.log.warn('[%s] no finalized block for %dms, reconnecting...', chainId, API_TIMEOUT_MS)
       void this.#reconnect(chainId)
     }, API_TIMEOUT_MS)
+  }
+
+  getApi$(chainId: NetworkURN): Observable<EvmApi> {
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+    }
+
+    return this.#api$[chainId]
   }
 }

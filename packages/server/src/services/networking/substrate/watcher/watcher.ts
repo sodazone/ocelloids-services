@@ -10,6 +10,7 @@ import {
   mergeWith,
   Observable,
   of,
+  ReplaySubject,
   Subject,
   share,
   shareReplay,
@@ -45,7 +46,7 @@ export class SubstrateWatcher extends Watcher<Block> {
   readonly chainIds: NetworkURN[]
 
   readonly #watchdogTimers: Record<NetworkURN, NodeJS.Timeout> = {}
-  readonly #api$ = {} as Record<NetworkURN, Subject<SubstrateApi>>
+  readonly #api$ = {} as Record<NetworkURN, ReplaySubject<SubstrateApi>>
   readonly #apis: Record<string, SubstrateApi>
   readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
@@ -61,12 +62,12 @@ export class SubstrateWatcher extends Watcher<Block> {
     this.#apis = connector.connectAll('substrate')
     this.#connector = connector
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
-    this.#backfill = new SubstrateBackfill(log, this.getApi.bind(this))
+    this.#backfill = new SubstrateBackfill(log, this.getApi$.bind(this))
   }
 
   start() {
     super.start()
-    this.#backfill.start()
+    this.#backfill.start(Object.keys(this.#apis) as NetworkURN[])
   }
 
   async stop() {
@@ -156,7 +157,7 @@ export class SubstrateWatcher extends Watcher<Block> {
     }
 
     if (!this.#api$[chainId]) {
-      this.#api$[chainId] = new Subject<SubstrateApi>()
+      this.#api$[chainId] = new ReplaySubject<SubstrateApi>(1)
       void this.getApi(chainId).then((api) => this.#api$[chainId].next(api))
     }
 
@@ -205,7 +206,7 @@ export class SubstrateWatcher extends Watcher<Block> {
 
         return backfill$.pipe(
           mergeWith(liveFinalized$),
-          takeUntil(cancel$),
+          takeUntil(merge(shutdown$, cancel$)),
           finalize(() => this.log.info('[%s] Inner finalized block stream completed', chainId)),
         )
       }),
@@ -225,6 +226,15 @@ export class SubstrateWatcher extends Watcher<Block> {
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {
     return this.#apis[chainId].isReady()
+  }
+
+  getApi$(chainId: NetworkURN): Observable<SubstrateApi> {
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new ReplaySubject<SubstrateApi>(1)
+      void this.getApi(chainId).then((api) => this.#api$[chainId].next(api))
+    }
+
+    return this.#api$[chainId]
   }
 
   /**
@@ -329,7 +339,7 @@ export class SubstrateWatcher extends Watcher<Block> {
         // 5) Emit the new API on the same Subject so finalized$ subscribers will switchMap to the new API.
         // Important: we reuse the original Subject instance (this.#api$[chainId]) so downstream stream references remain valid.
         if (!this.#api$[chainId]) {
-          this.#api$[chainId] = new Subject<SubstrateApi>()
+          this.#api$[chainId] = new ReplaySubject<SubstrateApi>(1)
         }
         this.#api$[chainId].next(this.#apis[chainId])
         this.log.info('[watcher:substrate] %s emit API', chainId)
