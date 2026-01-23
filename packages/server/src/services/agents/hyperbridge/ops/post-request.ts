@@ -1,11 +1,13 @@
-import { filter, from, map, mergeMap, Observable } from 'rxjs'
+import { catchError, EMPTY, filter, from, map, mergeMap, Observable } from 'rxjs'
 import { Abi, decodeEventLog, TransactionReceipt } from 'viem'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
 import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
 import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
+import { retryCapped } from '@/services/networking/watcher.js'
 import { NetworkURN } from '@/services/types.js'
 import { matchEvent } from '../../xcm/ops/util.js'
 import hostAbi from '../abis/evm-host.json' with { type: 'json' }
@@ -73,6 +75,14 @@ export function extractEvmRequest(
       filterTransactions({ abi: gatewayFunctionsAbi as Abi, addresses: gateways }, ['teleport', 'fillOrder']),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
+          retryWithTruncatedExpBackoff(retryCapped(3)),
+          catchError((err) => {
+            console.error(
+              err,
+              `[hyperbridge:${chainId}] Error getting transaction receipt at #${tx.blockNumber} (tx=${tx.hash})`,
+            )
+            return EMPTY
+          }),
           map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
         ),
       ),

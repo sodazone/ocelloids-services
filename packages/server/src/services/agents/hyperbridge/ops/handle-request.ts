@@ -1,10 +1,12 @@
-import { filter, from, mergeMap, Observable } from 'rxjs'
+import { catchError, EMPTY, filter, from, mergeMap, Observable } from 'rxjs'
 import { Abi, hexToString, TransactionReceipt } from 'viem'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
 import { Block } from '@/services/networking/evm/types.js'
 import { BlockExtrinsicWithEvents, Call, SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import { retryCapped } from '@/services/networking/watcher.js'
 import { NetworkURN } from '@/services/types.js'
 import { matchExtrinsic } from '../../xcm/ops/util.js'
 import handlerV1Abi from '../abis/handler-v1.json' with { type: 'json' }
@@ -194,6 +196,14 @@ export function extractEvmHandlePostRequest(
       ),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
+          retryWithTruncatedExpBackoff(retryCapped(3)),
+          catchError((err) => {
+            console.error(
+              err,
+              `[hyperbridge:${chainId}] Error getting transaction receipt at #${tx.blockNumber} (tx=${tx.hash})`,
+            )
+            return EMPTY
+          }),
           mergeMap(({ status }) => {
             const { blockHash, blockNumber, hash, transactionIndex, timestamp, from } = tx
             if (!tx.decoded || blockHash === null || blockNumber === null) {
