@@ -87,10 +87,6 @@ export class SnowbridgeTracker {
               extractSnowbridgeEvmInbound(evmChain, contractAddress, (txHash: HexString) =>
                 this.#ingress.evm.getTransactionReceipt(evmChain, txHash),
               ),
-              catchError((err) => {
-                this.#log.error(err, '[%s] %s error on snowbridge inbound EVM stream', this.#id, evmChain)
-                return EMPTY
-              }),
             )
             .subscribe((msg) => {
               this.#engine.onBridgeInbound('snowbridge', msg)
@@ -158,10 +154,6 @@ export class SnowbridgeTracker {
                 this.#ingress.evm.getTransactionReceipt(evmChain, txHash),
               ),
               mapOutboundToXcmBridge(),
-              catchError((err) => {
-                this.#log.error(err, '[%s] %s error on origin stream', this.#id, evmChain)
-                return EMPTY
-              }),
             )
             .subscribe((msg) => {
               if (this.#canBeMatched(msg.destination.chainId)) {

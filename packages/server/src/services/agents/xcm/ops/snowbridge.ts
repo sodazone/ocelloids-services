@@ -1,5 +1,6 @@
-import { filter, from, map, mergeMap, Observable } from 'rxjs'
+import { catchError, EMPTY, filter, from, map, mergeMap, Observable } from 'rxjs'
 import { Abi, decodeAbiParameters, decodeEventLog, TransactionReceipt } from 'viem'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { asSerializable } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
@@ -8,6 +9,7 @@ import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/ev
 import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
+import { retryCapped } from '@/services/networking/watcher.js'
 import gatewayAbi from '../abis/gateway-mini.json' with { type: 'json' }
 import {
   GenericSnowbridgeMessageAccepted,
@@ -116,6 +118,14 @@ export function extractSnowbridgeEvmInbound(
       filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['submitV1', 'v2_submit']),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
+          retryWithTruncatedExpBackoff(retryCapped(3)),
+          catchError((err) => {
+            console.error(
+              err,
+              `[snowbridge:${chainId}] Error getting transaction receipt at #${tx.blockNumber} (tx=${tx.hash})`,
+            )
+            return EMPTY
+          }),
           map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
         ),
       ),
@@ -377,6 +387,14 @@ export function extractSnowbridgeEvmOutbound(
       ]),
       mergeMap((tx) =>
         from(getTransactionReceipt(tx.hash)).pipe(
+          retryWithTruncatedExpBackoff(retryCapped(3)),
+          catchError((err) => {
+            console.error(
+              err,
+              `[snowbridge:${chainId}] Error getting transaction receipt at #${tx.blockNumber} (tx=${tx.hash})`,
+            )
+            return EMPTY
+          }),
           map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
         ),
       ),
