@@ -1,3 +1,4 @@
+import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { NetworkURN } from '@/lib.js'
 import { LevelDB } from '@/services/types.js'
@@ -9,10 +10,17 @@ import { assetMetadataKey, limitCap, paginatedResults } from '../../util.js'
 export class AssetsQueryHandler {
   readonly #dbAssets: LevelDB
   readonly #dbAssetsHashIndex: LevelDB
+  readonly #cache: LRUCache<string, AssetMetadata, unknown>
 
   constructor(dbAssets: LevelDB, dbAssetsHashIndex: LevelDB) {
     this.#dbAssets = dbAssets
     this.#dbAssetsHashIndex = dbAssetsHashIndex
+    this.#cache = new LRUCache({
+      ttl: 3_600_000,
+      ttlResolution: 1_000,
+      ttlAutopurge: false,
+      max: 1_000,
+    })
   }
 
   async queryAssetList(
@@ -32,21 +40,34 @@ export class AssetsQueryHandler {
     return await paginatedResults<string, AssetMetadata>(iterator)
   }
 
-  async queryAsset(
-    criteria: {
-      network: string
-      assets: string[]
-    }[],
-  ): Promise<QueryResult<AssetMetadata>> {
+  async queryAsset(criteria: { network: string; assets: string[] }[]): Promise<QueryResult<AssetMetadata>> {
     const keys = criteria.flatMap((s) => s.assets.map((a) => assetMetadataKey(s.network as NetworkURN, a)))
-    const items = (
-      await this.#dbAssets.getMany<string, AssetMetadata>(keys, {
-        /** */
-      })
-    ).filter((x) => x !== undefined)
-    return {
-      items,
+
+    const cachedItems: AssetMetadata[] = []
+    const keysToFetch: string[] = []
+
+    for (const key of keys) {
+      const cached = this.#cache.get(key)
+      if (cached) {
+        cachedItems.push(cached)
+      } else {
+        keysToFetch.push(key)
+      }
     }
+
+    const fetchedItems = keysToFetch.length
+      ? (
+          await this.#dbAssets.getMany<string, AssetMetadata>(keysToFetch, {
+            /** */
+          })
+        ).filter((x) => x !== undefined)
+      : []
+
+    fetchedItems.forEach((item, idx) => {
+      this.#cache.set(keysToFetch[idx], item)
+    })
+
+    return { items: [...cachedItems, ...fetchedItems] }
   }
 
   async queryAssetByHashIndex({ assetHashes }: { assetHashes: string[] }) {

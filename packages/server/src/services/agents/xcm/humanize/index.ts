@@ -4,7 +4,7 @@ import bs58 from 'bs58'
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { firstValueFrom, Observable } from 'rxjs'
-
+import { normaliseDecimals } from '@/common/numbers.js'
 import { asPublicKey, normalizePublicKey } from '@/common/util.js'
 import { QueryParams, QueryResult } from '@/lib.js'
 import { getConsensus } from '@/services/config.js'
@@ -438,6 +438,39 @@ export class XcmHumanizer {
 
   async #resolvePartialHumanizedAssets(assets: PartialHumanizedAsset[]): Promise<HumanizedXcmAsset[]> {
     const resolvedAssets: HumanizedXcmAsset[] = []
+    const args: StewardQueryArgs = {
+      op: 'assets',
+      criteria: [],
+    }
+    for (const { chainId, id } of assets) {
+      const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id
+
+      const chainArgs = args.criteria.find((c) => c.network === chainId)
+      if (chainArgs) {
+        const exists = chainArgs.assets.find((a) => a === assetId)
+        if (!exists) {
+          chainArgs.assets.push(assetId)
+        }
+      } else {
+        args.criteria.push({
+          network: chainId,
+          assets: [assetId],
+        })
+      }
+    }
+
+    const { items } = (await this.#steward.query({
+      args,
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
+    const metadataMap = new Map<string, AssetMetadata>()
+
+    for (const i of items) {
+      if (isAssetMetadata(i)) {
+        const key = `${i.chainId}|${normalizeAssetId(i.id)}`
+        metadataMap.set(key, i)
+      }
+    }
+
     for (const { chainId, id, amount } of assets) {
       const assetId = id === '0x0000000000000000000000000000000000000000' ? 'native' : id
       const assetKey = `${chainId}|${normalizeAssetId(assetId)}`
@@ -448,35 +481,18 @@ export class XcmHumanizer {
         sequence: 0,
       }
 
-      const cached = this.#cache.get(assetKey)
-      if (cached) {
-        const resolved = {
-          ...unresolved,
-          decimals: cached.decimals,
-          symbol: cached.symbol,
-        }
-        resolvedAssets.push({
-          ...resolved,
-          volume: await this.resolveVolume(resolved),
-        })
-        continue
-      }
+      const metadata = metadataMap.get(assetKey)
 
-      const results = (await this.#fetchAssetMetadataById(chainId, [assetId])).filter((a) =>
-        isAssetMetadata(a),
-      )
-
-      if (results.length === 0) {
+      if (!metadata) {
         resolvedAssets.push(unresolved)
         continue
       }
-      const { decimals, symbol } = results[0]
+      const { decimals, symbol } = metadata
       const resolved = {
         ...unresolved,
         decimals,
         symbol,
       }
-      this.#cache.set(assetKey, resolved)
       resolvedAssets.push({
         ...resolved,
         volume: await this.resolveVolume(resolved),
@@ -606,7 +622,7 @@ export class XcmHumanizer {
     if (price === null || asset.decimals === undefined) {
       return
     }
-    const normalizedAmount = Number(asset.amount) / 10 ** asset.decimals
+    const normalizedAmount = Number(normaliseDecimals(asset.amount, asset.decimals))
     return normalizedAmount * price
   }
 

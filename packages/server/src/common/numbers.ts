@@ -1,4 +1,4 @@
-export function normaliseDecimals(amount: string, decimals: number): string {
+export function normaliseDecimals(amount: string | bigint, decimals: number): string {
   const a = BigInt(amount)
   const divisor = 10n ** BigInt(decimals)
 
