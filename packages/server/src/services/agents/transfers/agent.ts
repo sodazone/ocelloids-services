@@ -3,6 +3,7 @@ import z from 'zod'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
+import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { TransfersTracker } from './tracker.js'
 
@@ -32,12 +33,18 @@ export class TransfersAgent implements Agent, Subscribable {
     ctx: AgentRuntimeContext,
     deps: {
       steward: DataSteward
+      ticker: TickerAgent
     },
   ) {
     const { ingress } = ctx
 
     this.#log = ctx.log
-    this.#tracker = new TransfersTracker(ctx.log, ingress.substrate, deps.steward)
+    this.#tracker = new TransfersTracker({
+      log: ctx.log,
+      ingress: ingress.substrate,
+      steward: deps.steward,
+      ticker: deps.ticker,
+    })
 
     this.#log.info('[agent:%s] created ', this.id)
   }

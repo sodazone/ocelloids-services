@@ -12,7 +12,8 @@ export function nativeTransfers$(blockEvents$: Observable<BlockEvent>): Observab
       (blockEvent) =>
         blockEvent.module.toLowerCase() === PALLET_MODULE && blockEvent.name.toLowerCase() === PALLET_EVENT,
     ),
-    map(({ value }) => {
+    map((blockEvent) => {
+      const { value, blockHash, blockNumber, extrinsic, timestamp } = blockEvent
       const { from, to, amount } = value
 
       return {
@@ -20,6 +21,11 @@ export function nativeTransfers$(blockEvents$: Observable<BlockEvent>): Observab
         from: asPublicKey(from),
         to: asPublicKey(to),
         amount,
+        blockNumber: blockNumber.toString(),
+        blockHash,
+        timestamp,
+        event: blockEvent,
+        extrinsic,
       }
     }),
   )
