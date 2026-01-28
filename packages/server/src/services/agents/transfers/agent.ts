@@ -1,21 +1,13 @@
 import { Operation } from 'rfc6902'
-import z from 'zod'
 import { Subscription } from '@/services/subscriptions/types.js'
-import { Logger } from '@/services/types.js'
+import { Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { TransfersTracker } from './tracker.js'
+import { $TransfersAgentInputs, TransfersAgentInputs } from './type.js'
 
 const TRANSFERS_AGENT_ID = 'transfers'
-
-export const $TransfersAgentInputs = z.object({
-  networks: z.array(
-    z.string({ required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"' }).min(1),
-  ),
-})
-
-export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
 export class TransfersAgent implements Agent, Subscribable {
   id = TRANSFERS_AGENT_ID
@@ -49,8 +41,8 @@ export class TransfersAgent implements Agent, Subscribable {
     this.#log.info('[agent:%s] created ', this.id)
   }
 
-  start() {
-    this.#tracker.start()
+  async start() {
+    await this.#tracker.start()
     this.#log.info('[agent:%s] started', this.id)
   }
 
@@ -63,8 +55,10 @@ export class TransfersAgent implements Agent, Subscribable {
     //
   }
 
-  subscribe() {
-    //
+  subscribe(subscription: Subscription<TransfersAgentInputs>) {
+    const { id, args } = subscription
+
+    this.#validateNetworks(args)
   }
 
   unsubscribe() {
@@ -73,5 +67,11 @@ export class TransfersAgent implements Agent, Subscribable {
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
     throw new Error('Update not supported')
+  }
+
+  #validateNetworks({ networks }: TransfersAgentInputs) {
+    if (networks !== '*') {
+      this.#tracker.validateNetworks(networks as NetworkURN[])
+    }
   }
 }

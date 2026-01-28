@@ -1,5 +1,6 @@
 import { Subscription as RxSubscription, Subject, share } from 'rxjs'
 import { normaliseDecimals } from '@/common/numbers.js'
+import { ValidationError } from '@/errors.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
@@ -40,7 +41,11 @@ export class TransfersTracker {
     this.transfers$ = this.#subject.pipe(share())
   }
 
-  start() {
+  async start() {
+    this.#log.info('[agent:%s] wait APIs ready', this.#id)
+    await this.#ingress.isReady()
+    this.#log.info('[agent:%s] APIs ready', this.#id)
+
     const chainIds = this.#ingress.getChainIds()
     for (const chainId of chainIds) {
       this.#subscribeTransfers(chainId)
@@ -55,6 +60,14 @@ export class TransfersTracker {
       this.#log.info('[agent:%s] %s stream unsubscribed ', this.#id, chainId)
     }
     this.#log.info('[agent:%s] stopped', this.#id)
+  }
+
+  validateNetworks(networks: NetworkURN[]) {
+    networks.forEach((chainId) => {
+      if (!this.#ingress.isNetworkDefined(chainId as NetworkURN)) {
+        throw new ValidationError('Unsupported network:' + chainId)
+      }
+    })
   }
 
   #subscribeTransfers(chainId: NetworkURN) {

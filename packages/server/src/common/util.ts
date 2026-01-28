@@ -259,3 +259,7 @@ export function hexTimestampToMillis(hex?: string) {
     return Number(BigInt(hex) * 1000n)
   }
 }
+
+export function uniqueArray(a: Array<string>) {
+  return Array.from(new Set(a))
+}
