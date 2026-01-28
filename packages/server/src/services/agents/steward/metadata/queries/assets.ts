@@ -17,7 +17,7 @@ export class AssetsQueryHandler {
     this.#dbAssetsHashIndex = dbAssetsHashIndex
     this.#cache = new LRUCache({
       ttl: 3_600_000,
-      ttlResolution: 1_000,
+      ttlResolution: 10_000,
       ttlAutopurge: false,
       max: 1_000,
     })

@@ -77,7 +77,6 @@ type SwapAssetFromExchangeAssets = QueryableXcmAsset & {
 export class XcmHumanizer {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
-  readonly #priceCache: LRUCache<string, number, unknown>
   readonly #steward: DataSteward
   readonly #ticker: TickerAgent
   readonly #ingress: SubstrateIngressConsumer
@@ -108,12 +107,6 @@ export class XcmHumanizer {
       ttlResolution: 1_000,
       ttlAutopurge: false,
       max: 1_000,
-    })
-    this.#priceCache = new LRUCache({
-      ttl: 900_000,
-      ttlResolution: 1_000,
-      ttlAutopurge: false,
-      max: 100,
     })
   }
 
@@ -594,17 +587,17 @@ export class XcmHumanizer {
   }
 
   private async resolveVolume(asset: XcmAssetWithMetadata): Promise<number | undefined> {
-    const cachedPrice = this.#priceCache.get(asset.id)
-    if (cachedPrice !== undefined) {
-      return this.#calculateVolume(asset, cachedPrice)
+    if (asset.decimals === undefined) {
+      return
     }
 
     const price = await this.#fetchAssetPrice(asset)
-    if (price !== null) {
-      this.#priceCache.set(asset.id, price)
+    if (price === null) {
+      return
     }
 
-    return this.#calculateVolume(asset, price)
+    const normalizedAmount = Number(normaliseDecimals(asset.amount, asset.decimals))
+    return normalizedAmount * price
   }
 
   async #fetchAssetPrice(asset: XcmAssetWithMetadata): Promise<number | null> {
@@ -616,14 +609,6 @@ export class XcmHumanizer {
       },
     } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
     return items.length > 0 ? items[0].medianPrice : null
-  }
-
-  #calculateVolume(asset: XcmAssetWithMetadata, price: number | null): number | undefined {
-    if (price === null || asset.decimals === undefined) {
-      return
-    }
-    const normalizedAmount = Number(normaliseDecimals(asset.amount, asset.decimals))
-    return normalizedAmount * price
   }
 
   #determineJourneyType(instructions: XcmInstruction[]): XcmJourneyType {
