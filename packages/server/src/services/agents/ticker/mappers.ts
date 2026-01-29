@@ -380,4 +380,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '0xa3931d71877c0e7a3148cb7eb4463524fec27fbd',
     },
   ],
+  PRIME: [
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x52b2f622f5676e92dbea3092004eb9ffb85a8d07',
+    },
+    {
+      chainId: 'urn:ocn:solana:101',
+      assetId: '3b8x44flf9ooxaum3hhsgjpmvs6rzz3ppogngahc3uu7',
+    },
+  ],
 }

@@ -20,6 +20,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 9,
     isNative: false,
   },
+  ['1:3b8x44flf9ooxaum3hhsgjpmvs6rzz3ppogngahc3uu7']: {
+    symbol: 'PRIME',
+    decimals: 6,
+    isNative: false,
+  },
   ['2:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd']: {
     symbol: 'sUSDS',
     decimals: 18,
