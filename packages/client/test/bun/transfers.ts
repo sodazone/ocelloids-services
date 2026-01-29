@@ -35,8 +35,9 @@ agent.subscribe(
   subId,
   {
     onMessage: ({ payload }) => {
-      const { from, to, amount, decimals, symbol, volume } = payload
-      console.log(`Transfer ${normaliseDecimals(amount, decimals ?? 0)} ${symbol} (${volume} USD) from ${from} to ${to}`)
+      const { from, fromFormatted, to, toFormatted, amount, decimals, symbol, blockNumber, eventIndex, network, id } = payload
+        const a = Number(normaliseDecimals(amount, decimals ?? 0))
+        console.log(`[${id}] Transfer ${a.toFixed(4)} ${symbol} from ${fromFormatted ?? from} to ${toFormatted ?? to} (${network} ${blockNumber}-${eventIndex})`)
     },
     onError: (error) => console.log(error),
     onClose: (event) => console.log(event.reason),

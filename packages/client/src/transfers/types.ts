@@ -8,6 +8,11 @@ export type EnrichedTransfer = sourceTransfers.EnrichedTransfer
 /**
  * @public
  */
+export type IcTransferResponse = sourceTransfers.IcTransferResponse
+
+/**
+ * @public
+ */
 export type TransfersAgentInputs = {
   /**
    * An array of network ids or '*' for all.
