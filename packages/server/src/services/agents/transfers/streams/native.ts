@@ -13,19 +13,26 @@ export function nativeTransfers$(blockEvents$: Observable<BlockEvent>): Observab
         blockEvent.module.toLowerCase() === PALLET_MODULE && blockEvent.name.toLowerCase() === PALLET_EVENT,
     ),
     map((blockEvent) => {
-      const { value, blockHash, blockNumber, extrinsic, timestamp } = blockEvent
+      const { value, blockHash, blockNumber, extrinsic, timestamp, module, name, blockPosition } = blockEvent
       const { from, to, amount } = value
 
       return {
         asset: 'native',
         from: asPublicKey(from),
         to: asPublicKey(to),
+        fromFormatted: from,
+        toFormatted: to,
         amount,
         blockNumber: blockNumber.toString(),
         blockHash,
         timestamp,
-        event: blockEvent,
-        extrinsic,
+        event: {
+          module,
+          name,
+          blockPosition,
+          value,
+        },
+        extrinsic: extrinsic,
       }
     }),
   )

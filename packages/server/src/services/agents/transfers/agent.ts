@@ -1,12 +1,17 @@
+import { Migrator } from 'kysely'
 import { Operation } from 'rfc6902'
-import { filter } from 'rxjs'
-import { asSerializable, ControlQuery, Criteria } from '@/common/index.js'
+import { concatMap, filter, from, map, mergeMap, shareReplay, tap } from 'rxjs'
+import { asAccountId, asJSON, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
+import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
+import { createIntrachainTransfersDatabase } from './repositories/db.js'
+import { IntrachainTransfersRepository } from './repositories/repository.js'
+import { IcTransfer, NewIcTransfer } from './repositories/types.js'
 import { TransfersTracker } from './tracker.js'
 import {
   $TransfersAgentInputs,
@@ -14,8 +19,43 @@ import {
   TransfersAgentInputs,
   TransfersSubscriptionHandler,
 } from './type.js'
+import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
+import { fetchSS58Prefix } from '../steward/metadata/queries/helper.js'
 
 const TRANSFERS_AGENT_ID = 'transfers'
+export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
+
+export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
+  const blockPosition = t.event.blockPosition
+  const txHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).hash : undefined
+  const evmTxHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).evmTxHash : undefined
+
+  return {
+    network: t.chainId,
+    block_number: t.blockNumber,
+    block_hash: t.blockHash,
+    event_index: blockPosition,
+    sent_at: t.timestamp,
+    created_at: Date.now(),
+
+    asset: t.asset,
+    from: t.from,
+    to: t.to,
+    from_formatted: t.fromFormatted,
+    to_formatted: t.toFormatted,
+    amount: t.amount,
+
+    decimals: t.decimals,
+    symbol: t.symbol,
+    usd: t.volume,
+
+    tx_primary: txHash,
+    tx_secondary: evmTxHash,
+
+    event: asJSON(t.event),
+    transaction: t.extrinsic ? asJSON(t.extrinsic) : '{}',
+  }
+}
 
 export class TransfersAgent implements Agent, Subscribable {
   id = TRANSFERS_AGENT_ID
@@ -28,6 +68,8 @@ export class TransfersAgent implements Agent, Subscribable {
   readonly inputSchema = $TransfersAgentInputs
   readonly #log: Logger
   readonly #notifier: Egress
+  readonly #repository: IntrachainTransfersRepository
+  readonly #migrator: Migrator
 
   readonly #tracker: TransfersTracker
   readonly #subs: Map<string, TransfersSubscriptionHandler> = new Map()
@@ -50,11 +92,38 @@ export class TransfersAgent implements Agent, Subscribable {
       ticker: deps.ticker,
     })
 
+    const filename = resolveDataPath(DEFAULT_IC_TRANSFERS_PATH, ctx.environment?.dataPath)
+    this.#log.info('[agent:%s] database at %s', this.id, filename)
+
+    const { db, migrator } = createIntrachainTransfersDatabase(filename)
+    this.#migrator = migrator
+    this.#repository = new IntrachainTransfersRepository(db)
+
     this.#log.info('[agent:%s] created ', this.id)
   }
 
-  async start() {
+  async start(subs: Subscription<TransfersAgentInputs>[] = []) {
     await this.#tracker.start()
+
+    this.#log.info('[agent:%s] starting db migration', this.id)
+    const result = await this.#migrator.migrateToLatest()
+
+    if (result.results && result.results.length > 0) {
+      this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
+    }
+
+    if (subs.length > 0) {
+      this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
+
+      for (const sub of subs) {
+        try {
+          this.#subs.set(sub.id, this.#monitor(sub))
+        } catch (error) {
+          this.#log.error(error, '[agent:%s] unable to create subscription: %j', this.id, sub)
+        }
+      }
+    }
+
     this.#log.info('[agent:%s] started', this.id)
   }
 
@@ -71,11 +140,40 @@ export class TransfersAgent implements Agent, Subscribable {
     const { id, args } = subscription
 
     this.#validateNetworks(args)
+    const handler = this.#monitor(subscription)
+
+    this.#subs.set(id, handler)
+  }
+
+  unsubscribe(id: string) {
+    try {
+      const handler = this.#subs.get(id)
+      if (!handler) {
+        this.#log.warn('[agent:%s] unsubscribe from a non-existent subscription %s', this.id, id)
+        return
+      }
+      handler.stream.unsubscribe()
+      this.#subs.delete(id)
+    } catch (error) {
+      this.#log.error(error, '[agent:%s] error unsubscribing %s', this.id, id)
+    }
+  }
+
+  update(subscriptionId: string, patch: Operation[]): Subscription {
+    throw new Error('Update not supported')
+  }
+
+  #monitor(subscription: Subscription<TransfersAgentInputs>): TransfersSubscriptionHandler {
+    const { id, args } = subscription
     const networksControl = ControlQuery.from(this.#networkCriteria(args.networks))
     const stream = this.#tracker.transfers$
-      .pipe(filter((transfer) => networksControl.value.test(transfer)))
+      .pipe(
+        filter((transfer) => networksControl.value.test(transfer)),
+        mergeMap((tf) => this.#repository.insertTransfer(mapTransferToRow(tf)), 10),
+        map(icTransfer => deepCamelize<IcTransfer>(icTransfer))
+      )
       .subscribe({
-        next: (payload: EnrichedTransfer) => {
+        next: (payload) => {
           if (this.#subs.has(id)) {
             const handler = this.#subs.get(id)
             if (!handler) {
@@ -87,9 +185,9 @@ export class TransfersAgent implements Agent, Subscribable {
                 type: 'transfers',
                 subscriptionId: id,
                 agentId: this.id,
-                networkId: payload.chainId,
+                networkId: payload.network as NetworkURN,
                 timestamp: Date.now(),
-                blockTimestamp: payload.timestamp,
+                blockTimestamp: payload.sentAt,
               },
               payload: asSerializable(payload) as unknown as AnyJson,
             })
@@ -112,29 +210,11 @@ export class TransfersAgent implements Agent, Subscribable {
         },
       })
 
-    this.#subs.set(id, {
+    return {
       networksControl,
       subscription,
       stream,
-    })
-  }
-
-  unsubscribe(id: string) {
-    try {
-      const handler = this.#subs.get(id)
-      if (!handler) {
-        this.#log.warn('[agent:%s] unsubscribe from a non-existent subscription %s', this.id, id)
-        return
-      }
-      handler.stream.unsubscribe()
-      this.#subs.delete(id)
-    } catch (error) {
-      this.#log.error(error, '[agent:%s] error unsubscribing %s', this.id, id)
     }
-  }
-
-  update(subscriptionId: string, patch: Operation[]): Subscription {
-    throw new Error('Update not supported')
   }
 
   #validateNetworks({ networks }: TransfersAgentInputs) {

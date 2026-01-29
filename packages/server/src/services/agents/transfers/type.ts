@@ -25,11 +25,18 @@ export type Transfer = {
   asset: string
   from: HexString
   to: HexString
+  fromFormatted: string
+  toFormatted: string
   amount: string
   blockNumber: string
   blockHash: string
   timestamp?: number
-  event: AnyJson
+  event: {
+    module: string
+    name: string
+    blockPosition: number
+    value: Record<string, any>
+  }
   extrinsic?: AnyJson
 }
 
