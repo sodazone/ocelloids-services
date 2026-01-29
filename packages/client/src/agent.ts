@@ -17,9 +17,10 @@ import {
   StewardQueryArgs,
   StewardServerSentEventArgs,
 } from './steward/types'
+import { EnrichedTransfer, TransfersAgentInputs } from './transfers/types'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain'
+type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers'
 
 /**
  * Creates an agent instance.
@@ -148,3 +149,12 @@ export function createCrosschainAgent(
  * @public
  */
 export type CrosschainAgent = ReturnType<typeof createCrosschainAgent>
+
+/**
+ * @public
+ */
+export function createTransfersAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): SubscribableApi<TransfersAgentInputs, EnrichedTransfer> & OcelloidsClientApi {
+  return createAgent<TransfersAgentInputs>('transfers', optsOrClient)
+}

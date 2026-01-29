@@ -27,6 +27,7 @@ export type {
   SubstrateTypes,
   sourceCrosschain,
   sourceSteward,
+  sourceTransfers,
   sourceXcm,
 } from './server-types'
 export * from './types'
@@ -41,3 +42,6 @@ export { steward }
 
 import * as crosschain from './crosschain/types'
 export { crosschain }
+
+import * as transfers from './transfers/types'
+export { transfers }
