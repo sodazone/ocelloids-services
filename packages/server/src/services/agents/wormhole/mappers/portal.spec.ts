@@ -107,6 +107,24 @@ const cases: TestCase[] = [
       ],
     },
   },
+  {
+    name: 'decode PRIME transfer (solana → hydration)',
+    file: 'solana-hydration_prime.json',
+    expected: {
+      type: 'transfer',
+      from: '0x50cb37f312b151495ff9219467e419690ced45988f75ae478be53b4dfc6e3ba5',
+      to: '0x26f5c2370e563e9f4dda435f03a63d7c109d8d04',
+      assets: [
+        {
+          asset: 'urn:ocn:solana:101|3b8x44flf9ooxaum3hhsgjpmvs6rzz3ppogngahc3uu7',
+          symbol: 'PRIME',
+          amount: '100000',
+          decimals: 6,
+          usd: 0.1015,
+        },
+      ],
+    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole portal mapper')
