@@ -70,7 +70,10 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       crosschain: activations['crosschain'] as CrosschainExplorer,
     }),
   transfers: (ctx, activations) =>
-    new TransfersAgent(ctx, { steward: activations['steward'] as DataSteward }),
+    new TransfersAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
+    }),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),
   }),

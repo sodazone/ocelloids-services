@@ -1,9 +1,10 @@
+import { Subscription as RxSubscription } from 'rxjs'
 import z from 'zod'
+import { ControlQuery } from '@/common/index.js'
 import { $NetworkString } from '@/common/types.js'
 import { uniqueArray } from '@/common/util.js'
-import { BlockEvent, BlockExtrinsic } from '@/services/networking/substrate/types.js'
-import { HexString } from '@/services/subscriptions/types.js'
-import { NetworkURN } from '@/services/types.js'
+import { HexString, Subscription } from '@/services/subscriptions/types.js'
+import { AnyJson, NetworkURN } from '@/services/types.js'
 
 export const $TransfersAgentInputs = z.object({
   networks: z.literal('*').or(z.array($NetworkString).transform(uniqueArray)),
@@ -11,6 +12,15 @@ export const $TransfersAgentInputs = z.object({
 
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
+export type TransfersSubscriptionHandler = {
+  networksControl: ControlQuery
+  subscription: Subscription<TransfersAgentInputs>
+  stream: RxSubscription
+}
+
+/**
+ * @public
+ */
 export type Transfer = {
   asset: string
   from: HexString
@@ -19,10 +29,13 @@ export type Transfer = {
   blockNumber: string
   blockHash: string
   timestamp?: number
-  event: BlockEvent
-  extrinsic?: BlockExtrinsic
+  event: AnyJson
+  extrinsic?: AnyJson
 }
 
+/**
+ * @public
+ */
 export type EnrichedTransfer = Transfer & {
   chainId: NetworkURN
   decimals?: number
