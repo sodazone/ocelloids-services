@@ -1,15 +1,15 @@
 import EventEmitter from 'node:events'
 
 import { DuckDBBlobValue } from '@duckdb/node-api'
-import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import bs58 from 'bs58'
 import { safeDestr } from 'destr'
-import { Binary, getSs58AddressInfo } from 'polkadot-api'
+import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { TextEncoder } from 'util'
 
 import { HexString } from '@/lib.js'
 import { Event } from '@/services/networking/substrate/types.js'
+import { publicKeyToSS58, ss58ToPublicKey } from './address.js'
 
 const textEncoder = new TextEncoder()
 const ETH_PREFIX = '0x45544800'
@@ -50,7 +50,7 @@ export function asAccountId(account: HexString, ss58Prefix = 0): string {
     return account
   }
   try {
-    return fromBufferToBase58(ss58Prefix)(fromHex(account))
+    return publicKeyToSS58(fromHex(account), ss58Prefix)
   } catch (error) {
     console.warn(error, `Unable to convert to ss58 address (${account})`)
     return account
@@ -108,9 +108,11 @@ export function asPublicKey(accountId: string): HexString {
   }
 
   // Polkadot/Substrate
-  const info = getSs58AddressInfo(accountId)
-  if (info.isValid) {
-    return normalizePublicKey(info.publicKey)
+  try {
+    const pubKey = ss58ToPublicKey(accountId)
+    return normalizePublicKey(pubKey)
+  } catch {
+    //
   }
 
   // Solana (base58 32 bytes)
