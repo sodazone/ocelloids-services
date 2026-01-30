@@ -12,6 +12,40 @@ export const $TransfersAgentInputs = z.object({
 
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
+export const $TransfersFilters = z.object({
+  networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
+  assets: z.optional(z.array(z.string()).min(1).max(50)),
+  address: z.optional(z.string().min(3).max(100)),
+  txHash: z.optional(z.string().min(3).max(100)),
+  usdAmountGte: z.optional(z.number()),
+  usdAmountLte: z.optional(z.number()),
+  sentAtGte: z.optional(z.number()),
+  sentAtLte: z.optional(z.number()),
+})
+
+export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('transfers.list'),
+    criteria: $TransfersFilters,
+  }),
+  z.object({
+    op: z.literal('trasnsfers.by_id'),
+    criteria: z.object({
+      id: z.string(),
+    }),
+  }),
+  z.object({
+    op: z.literal('transfers.by_id_range'),
+    criteria: z.object({
+      start: z.number(),
+      end: z.number(),
+    }),
+  }),
+])
+
+export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
+export type TransfersFilters = z.infer<typeof $TransfersFilters>
+
 export type TransfersSubscriptionHandler = {
   networksControl: ControlQuery
   subscription: Subscription<TransfersAgentInputs>

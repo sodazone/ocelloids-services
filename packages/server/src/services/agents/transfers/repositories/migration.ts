@@ -52,13 +52,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('ic_transfers_from_to_index')
-      .ifNotExists()
-      .on('ic_transfers')
-      .columns(['from', 'to'])
-      .execute()
-
-    await db.schema
       .createIndex('ic_transfers_tx_primary_index')
       .ifNotExists()
       .on('ic_transfers')
@@ -80,13 +73,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('ic_transfers_asset_symbol_index')
-      .ifNotExists()
-      .on('ic_transfers')
-      .columns(['asset', 'symbol'])
-      .execute()
-
-    await db.schema
       .createIndex('ic_transfers_asset_usd_index')
       .ifNotExists()
       .on('ic_transfers')
@@ -98,6 +84,41 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('ic_transfers')
       .column('sent_at')
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_network_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['network', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_from_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['from', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_to_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['to', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_asset_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['asset', 'sent_at', 'id'])
       .execute()
   } catch (error) {
     console.error(error)

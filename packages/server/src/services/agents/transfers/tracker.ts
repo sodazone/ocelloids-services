@@ -11,7 +11,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Logger, NetworkURN } from '@/services/types.js'
 import { QueryParams, QueryResult } from '../types.js'
 import { transferStreamMappers } from './streams/index.js'
-import { EnrichedTransfer } from './type.js'
+import { EnrichedTransfer } from './types.js'
 
 export class TransfersTracker {
   readonly #id = 'transfers-tracker'

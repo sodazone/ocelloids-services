@@ -12,7 +12,7 @@ import {
   Subscription as RxSubscription,
   Subject,
 } from 'rxjs'
-import { asJSON, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
+import { asJSON, asPublicKey, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
 import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
@@ -20,17 +20,30 @@ import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
-import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
+import {
+  Agent,
+  AgentMetadata,
+  AgentRuntimeContext,
+  getAgentCapabilities,
+  Queryable,
+  QueryPagination,
+  QueryParams,
+  QueryResult,
+  Subscribable,
+} from '../types.js'
 import { createIntrachainTransfersDatabase } from './repositories/db.js'
 import { IntrachainTransfersRepository } from './repositories/repository.js'
 import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
 import { TransfersTracker } from './tracker.js'
 import {
+  $IcTransferQueryArgs,
   $TransfersAgentInputs,
   EnrichedTransfer,
+  IcTransferQueryArgs,
   TransfersAgentInputs,
+  TransfersFilters,
   TransfersSubscriptionHandler,
-} from './type.js'
+} from './types.js'
 
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
@@ -67,13 +80,14 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
   }
 }
 
-export class TransfersAgent implements Agent, Subscribable {
+export class TransfersAgent implements Agent, Subscribable, Queryable {
   id = TRANSFERS_AGENT_ID
   metadata: AgentMetadata = {
     name: 'Transfers Agent',
     description: 'Indexes and tracks intra-chain transfers.',
     capabilities: getAgentCapabilities(this),
   }
+  querySchema = $IcTransferQueryArgs
 
   readonly inputSchema = $TransfersAgentInputs
   readonly #log: Logger
@@ -128,7 +142,7 @@ export class TransfersAgent implements Agent, Subscribable {
               return EMPTY
             }),
           ),
-        10,
+        5,
       ),
       map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),
     )
@@ -178,6 +192,19 @@ export class TransfersAgent implements Agent, Subscribable {
     //
   }
 
+  query(params: QueryParams<IcTransferQueryArgs>): Promise<QueryResult> {
+    switch (params.args.op) {
+      case 'transfers.list':
+        return this.listTransfers(params.args.criteria, params.pagination)
+      case 'trasnsfers.by_id':
+        throw new Error('Not implemented')
+      case 'transfers.by_id_range':
+        throw new Error('Not implemented')
+      default:
+        throw new Error('Unknown query op')
+    }
+  }
+
   subscribe(subscription: Subscription<TransfersAgentInputs>) {
     const { id, args } = subscription
 
@@ -203,6 +230,22 @@ export class TransfersAgent implements Agent, Subscribable {
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
     throw new Error('Update not supported')
+  }
+
+  async listTransfers(
+    filters?: TransfersFilters,
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<IcTransferResponse>> {
+    // convert address filters to public key for matching
+    if (filters?.address) {
+      filters.address = asPublicKey(filters.address)
+    }
+    const result = await this.#repository.listTransfers(filters, pagination)
+
+    return {
+      pageInfo: result.pageInfo,
+      items: result.nodes.map((tf) => deepCamelize<IcTransfer>(tf)),
+    }
   }
 
   #monitor(subscription: Subscription<TransfersAgentInputs>): TransfersSubscriptionHandler {
@@ -261,13 +304,13 @@ export class TransfersAgent implements Agent, Subscribable {
     }
   }
 
-  #networkCriteria(chainIds: string[] | '*'): Criteria {
-    if (chainIds === '*') {
+  #networkCriteria(networks: string[] | '*'): Criteria {
+    if (networks === '*') {
       return {}
     }
 
     return {
-      chainId: { $in: chainIds },
+      network: { $in: networks },
     }
   }
 }

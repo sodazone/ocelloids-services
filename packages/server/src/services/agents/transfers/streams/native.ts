@@ -1,7 +1,7 @@
 import { filter, map, Observable } from 'rxjs'
 import { asPublicKey } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
-import { Transfer } from '../type.js'
+import { Transfer } from '../types.js'
 
 const PALLET_MODULE = 'balances'
 const PALLET_EVENT = 'transfer'

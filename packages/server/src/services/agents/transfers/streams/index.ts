@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
-import { Transfer } from '../type.js'
+import { Transfer } from '../types.js'
 import { nativeTransfers$ } from './native.js'
 
 type TransferStreamMapper = (blockEvents$: Observable<BlockEvent>) => Observable<Transfer>
