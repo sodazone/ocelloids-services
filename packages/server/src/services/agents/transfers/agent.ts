@@ -1,8 +1,20 @@
 import { Migrator } from 'kysely'
 import { Operation } from 'rfc6902'
-import { concatMap, filter, from, map, mergeMap, shareReplay, tap } from 'rxjs'
-import { asAccountId, asJSON, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
+import {
+  Connectable,
+  catchError,
+  connectable,
+  EMPTY,
+  filter,
+  from,
+  map,
+  mergeMap,
+  Subscription as RxSubscription,
+  Subject,
+} from 'rxjs'
+import { asJSON, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
+import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
@@ -11,7 +23,7 @@ import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { createIntrachainTransfersDatabase } from './repositories/db.js'
 import { IntrachainTransfersRepository } from './repositories/repository.js'
-import { IcTransfer, NewIcTransfer } from './repositories/types.js'
+import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
 import { TransfersTracker } from './tracker.js'
 import {
   $TransfersAgentInputs,
@@ -19,8 +31,6 @@ import {
   TransfersAgentInputs,
   TransfersSubscriptionHandler,
 } from './type.js'
-import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
-import { fetchSS58Prefix } from '../steward/metadata/queries/helper.js'
 
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
@@ -72,7 +82,10 @@ export class TransfersAgent implements Agent, Subscribable {
   readonly #migrator: Migrator
 
   readonly #tracker: TransfersTracker
+  readonly #icTransfers$: Connectable<IcTransferResponse>
+
   readonly #subs: Map<string, TransfersSubscriptionHandler> = new Map()
+  #connection?: RxSubscription
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -99,6 +112,30 @@ export class TransfersAgent implements Agent, Subscribable {
     this.#migrator = migrator
     this.#repository = new IntrachainTransfersRepository(db)
 
+    const pipeline$ = this.#tracker.transfers$.pipe(
+      mergeMap(
+        (tf) =>
+          from(this.#repository.insertTransfer(mapTransferToRow(tf))).pipe(
+            catchError((err) => {
+              this.#log.error(
+                err,
+                '[agent:%s] Error inserting transfer to db (%s #%s-%s)',
+                this.id,
+                tf.chainId,
+                tf.blockNumber,
+                tf.event.blockPosition,
+              )
+              return EMPTY
+            }),
+          ),
+        10,
+      ),
+      map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),
+    )
+    this.#icTransfers$ = connectable(pipeline$, {
+      connector: () => new Subject<IcTransferResponse>(),
+    })
+
     this.#log.info('[agent:%s] created ', this.id)
   }
 
@@ -111,6 +148,8 @@ export class TransfersAgent implements Agent, Subscribable {
     if (result.results && result.results.length > 0) {
       this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
     }
+
+    this.#connection = this.#icTransfers$.connect()
 
     if (subs.length > 0) {
       this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
@@ -128,6 +167,9 @@ export class TransfersAgent implements Agent, Subscribable {
   }
 
   stop() {
+    if (this.#connection) {
+      this.#connection.unsubscribe()
+    }
     this.#tracker.stop()
     this.#log.info('[agent:%s] stopped', this.id)
   }
@@ -166,12 +208,8 @@ export class TransfersAgent implements Agent, Subscribable {
   #monitor(subscription: Subscription<TransfersAgentInputs>): TransfersSubscriptionHandler {
     const { id, args } = subscription
     const networksControl = ControlQuery.from(this.#networkCriteria(args.networks))
-    const stream = this.#tracker.transfers$
-      .pipe(
-        filter((transfer) => networksControl.value.test(transfer)),
-        mergeMap((tf) => this.#repository.insertTransfer(mapTransferToRow(tf)), 10),
-        map(icTransfer => deepCamelize<IcTransfer>(icTransfer))
-      )
+    const stream = this.#icTransfers$
+      .pipe(filter((transfer) => networksControl.value.test(transfer)))
       .subscribe({
         next: (payload) => {
           if (this.#subs.has(id)) {

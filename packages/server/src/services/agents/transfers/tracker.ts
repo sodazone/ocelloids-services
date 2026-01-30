@@ -1,4 +1,4 @@
-import { Subscription as RxSubscription, Subject, share } from 'rxjs'
+import { Subscription as RxSubscription, Subject } from 'rxjs'
 import { normaliseDecimals } from '@/common/numbers.js'
 import { ValidationError } from '@/errors.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
@@ -38,7 +38,7 @@ export class TransfersTracker {
     this.#ticker = ticker
 
     this.#subject = new Subject<EnrichedTransfer>()
-    this.transfers$ = this.#subject.pipe(share())
+    this.transfers$ = this.#subject.asObservable()
   }
 
   async start() {

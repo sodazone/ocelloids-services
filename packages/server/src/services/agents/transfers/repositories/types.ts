@@ -47,25 +47,25 @@ export interface IntrachainTransfersDatabase {
 /**
  * @public
  */
-export type IcTransferResponse =  {
-   symbol: string | undefined;
-   network: string;
-   id: number;
-   decimals: number | undefined;
-   blockNumber: string;
-   blockHash: string;
-   eventIndex: number;
-   from: string;
-   to: string;
-   fromFormatted: string | undefined;
-   toFormatted: string | undefined;
-   sentAt: number;
-   createdAt: number;
-   event: any;
-  transaction: any;
-  txPrimary: string | undefined;
-      txSecondary: string | undefined;
-      asset: string;
-      amount: string;
-      usd: number | undefined;
+export type IcTransferResponse = {
+  symbol: string | undefined
+  network: string
+  id: number
+  decimals: number | undefined
+  blockNumber: string
+  blockHash: string
+  eventIndex: number
+  from: string
+  to: string
+  fromFormatted: string | undefined
+  toFormatted: string | undefined
+  sentAt: number
+  createdAt: number
+  event: any
+  transaction: any
+  txPrimary: string | undefined
+  txSecondary: string | undefined
+  asset: string
+  amount: string
+  usd: number | undefined
 }
