@@ -27,6 +27,66 @@ export class IntrachainTransfersRepository {
     return inserted
   }
 
+  async getTransferById(id: number): Promise<IcTransfer> {
+    const transfer = await this.#db
+      .selectFrom('ic_transfers')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst()
+
+    if (!transfer) {
+      throw new Error(`Transfer with id ${id} not found`)
+    }
+
+    return transfer
+  }
+
+  async listTransfersByRange(
+    range: {
+      start: number
+      end: number
+    },
+    pagination?: QueryPagination,
+  ): Promise<{
+    nodes: Array<IcTransfer>
+    pageInfo: {
+      hasNextPage: boolean
+      endCursor: string
+    }
+  }> {
+    const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
+    const queryLimit = limit + 1
+    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
+
+    let query = this.#db
+      .selectFrom('ic_transfers')
+      .selectAll()
+      .where('id', '>=', range.start)
+      .where('id', '<=', range.end)
+
+    if (cursor) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('sent_at', '<', cursor.timestamp),
+          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '<', cursor.id)]),
+        ]),
+      )
+    }
+
+    const rows = await query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(queryLimit).execute()
+    const hasNextPage = rows.length > limit
+    const nodes = hasNextPage ? rows.slice(0, limit) : rows
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes as any[]) : ''
+
+    return {
+      nodes,
+      pageInfo: {
+        hasNextPage,
+        endCursor,
+      },
+    }
+  }
+
   async listTransfers(
     filters?: TransfersFilters,
     pagination?: QueryPagination,
@@ -101,11 +161,11 @@ export class IntrachainTransfersRepository {
 
     const rows = await query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(queryLimit).execute()
     const hasNextPage = rows.length > limit
-    const paginatedTransfers = hasNextPage ? rows.slice(0, limit) : rows
-    const endCursor = paginatedTransfers.length > 0 ? encodeCursor(paginatedTransfers) : ''
+    const nodes = hasNextPage ? rows.slice(0, limit) : rows
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
 
     return {
-      nodes: paginatedTransfers,
+      nodes,
       pageInfo: {
         hasNextPage,
         endCursor,

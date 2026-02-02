@@ -197,9 +197,9 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
       case 'transfers.list':
         return this.listTransfers(params.args.criteria, params.pagination)
       case 'trasnsfers.by_id':
-        throw new Error('Not implemented')
+        return this.getTransferById(params.args.criteria)
       case 'transfers.by_id_range':
-        throw new Error('Not implemented')
+        return this.listTransfersByRange(params.args.criteria, params.pagination)
       default:
         throw new Error('Unknown query op')
     }
@@ -245,6 +245,34 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
     return {
       pageInfo: result.pageInfo,
       items: result.nodes.map((tf) => deepCamelize<IcTransfer>(tf)),
+    }
+  }
+
+  async listTransfersByRange(
+    range: {
+      start: number
+      end: number
+    },
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<IcTransferResponse>> {
+    if (range.start > range.end) {
+      throw new Error('Invalid transfer range')
+    }
+    const result = await this.#repository.listTransfersByRange(range, pagination)
+
+    return {
+      pageInfo: result.pageInfo,
+      items: result.nodes.map((tf) => deepCamelize<IcTransfer>(tf)),
+    }
+  }
+
+  async getTransferById({ id }: { id: number }): Promise<QueryResult<IcTransferResponse>> {
+    try {
+      const transfer = await this.#repository.getTransferById(id)
+      return { items: [deepCamelize<IcTransfer>(transfer)] }
+    } catch (err) {
+      this.#log.error(err, '[%s] Error fetching transfer by id (id=%s)', this.id, id)
+      return { items: [] }
     }
   }
 

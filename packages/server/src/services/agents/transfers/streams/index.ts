@@ -13,4 +13,31 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
   [networks.assetHub]: (blockEvents$) => {
     return nativeTransfers$(blockEvents$)
   },
+  [networks.bridgeHub]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.coretime]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.people]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.acala]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.moonbeam]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.astar]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.bifrost]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.hydration]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.hyperbridge]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
 }

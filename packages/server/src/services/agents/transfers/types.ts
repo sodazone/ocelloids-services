@@ -31,7 +31,7 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('trasnsfers.by_id'),
     criteria: z.object({
-      id: z.string(),
+      id: z.number(),
     }),
   }),
   z.object({
