@@ -11,7 +11,7 @@ import { AssetId } from '../../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { BalanceUpdateItem, RuntimeQueryParams, RuntimeQueueData, StorageQueryParams } from '../types.js'
 import { getFrontierAccountStoragesSlot, toBinary } from '../util.js'
-import { decodeLog } from './evm.js'
+import { decodeTransferLog } from '@/services/networking/substrate/evm/logs.js'
 
 const STORAGE_MODULE = 'EVM'
 const STORAGE_NAME = 'AccountStorages'
@@ -104,7 +104,7 @@ export function moonbeamBalances$(chainId: NetworkURN, ingress: SubstrateIngress
     switchMap((asStorageItem) =>
       streams.blockEvents(chainId).pipe(
         filter((ev) => isEVMLog(ev)),
-        map(decodeLog),
+        map(decodeTransferLog),
         filter(Boolean),
         mergeMap(({ address, decoded }) => {
           const assetId = contractToAssetId(address)

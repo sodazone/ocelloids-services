@@ -112,7 +112,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
           ),
         5,
       ),
-      filter(tf => tf !== null),
+      filter((tf) => tf !== null),
       map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),
     )
     this.#icTransfers$ = connectable(pipeline$, {

@@ -4,38 +4,63 @@ import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { toMelbourne } from '../../steward/util.js'
 import { Transfer } from '../types.js'
 
-const PALLET_MODULES = ['assets', 'foreignassets']
-const PALLET_EVENT = 'transferred'
+const ASSET_MODULES = ['assets', 'foreignassets']
+const ASSET_EVENT = 'transferred'
+
+const CURRENCIES_MODULE = 'currencies'
+const CURRENCIES_EVENT = 'transferred'
+
+const TOKENS_MODULE = 'tokens'
+const TOKENS_EVENT = 'transfer'
+
+function toTransfer(
+  blockEvent: BlockEvent,
+  opts: {
+    assetKey: 'currency_id' | 'asset_id'
+  },
+): Transfer {
+  const { value, blockHash, blockNumber, extrinsic, timestamp, module, name, blockPosition } = blockEvent
+
+  const { from, to, amount } = value
+  const assetId = value[opts.assetKey]
+
+  return {
+    asset: toMelbourne(assetId),
+    from: asPublicKey(from),
+    to: asPublicKey(to),
+    fromFormatted: from,
+    toFormatted: to,
+    amount,
+    blockNumber: blockNumber.toString(),
+    blockHash,
+    timestamp,
+    event: {
+      module,
+      name,
+      blockPosition,
+      value,
+    },
+    extrinsic,
+  }
+}
 
 export function assetTransfers$(blockEvents$: Observable<BlockEvent>): Observable<Transfer> {
   return blockEvents$.pipe(
-    filter(
-      (blockEvent) =>
-        PALLET_MODULES.includes(blockEvent.module.toLowerCase()) &&
-        blockEvent.name.toLowerCase() === PALLET_EVENT,
-    ),
-    map((blockEvent) => {
-      const { value, blockHash, blockNumber, extrinsic, timestamp, module, name, blockPosition } = blockEvent
-      const { from, to, amount, asset_id } = value
+    filter((e) => ASSET_MODULES.includes(e.module.toLowerCase()) && e.name.toLowerCase() === ASSET_EVENT),
+    map((e) => toTransfer(e, { assetKey: 'asset_id' })),
+  )
+}
 
-      return {
-        asset: toMelbourne(asset_id),
-        from: asPublicKey(from),
-        to: asPublicKey(to),
-        fromFormatted: from,
-        toFormatted: to,
-        amount,
-        blockNumber: blockNumber.toString(),
-        blockHash,
-        timestamp,
-        event: {
-          module,
-          name,
-          blockPosition,
-          value,
-        },
-        extrinsic: extrinsic,
-      }
-    }),
+export function currenciesTransfers$(blockEvents$: Observable<BlockEvent>): Observable<Transfer> {
+  return blockEvents$.pipe(
+    filter((e) => e.module.toLowerCase() === CURRENCIES_MODULE && e.name.toLowerCase() === CURRENCIES_EVENT),
+    map((e) => toTransfer(e, { assetKey: 'currency_id' })),
+  )
+}
+
+export function tokensTransfers$(blockEvents$: Observable<BlockEvent>): Observable<Transfer> {
+  return blockEvents$.pipe(
+    filter((e) => e.module.toLowerCase() === TOKENS_MODULE && e.name.toLowerCase() === TOKENS_EVENT),
+    map((e) => toTransfer(e, { assetKey: 'currency_id' })),
   )
 }

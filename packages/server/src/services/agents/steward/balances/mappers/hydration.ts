@@ -12,7 +12,7 @@ import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
 import { padAccountKey20 } from '../codec.js'
 import { Balance, BalanceUpdateItem, CustomDiscoveryFetcher, RuntimeQueueData } from '../types.js'
 import { calculateFreeBalance } from '../util.js'
-import { decodeLog } from './evm.js'
+import { decodeTransferLog } from '@/services/networking/substrate/evm/logs.js'
 
 const RUNTIME_API = 'CurrenciesApi'
 const RUNTIME_API_METHOD = 'account'
@@ -99,7 +99,7 @@ export function hydrationEVM$(
     switchMap((apiCtx) =>
       streams.blockEvents(chainId).pipe(
         filter((ev) => isEVMLog(ev)),
-        map(decodeLog),
+        map(decodeTransferLog),
         filter(Boolean),
         mergeMap(({ address, decoded }) => {
           const accounts: { account: HexString; assetId: number }[] = []

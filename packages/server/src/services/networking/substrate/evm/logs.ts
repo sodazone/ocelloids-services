@@ -62,7 +62,7 @@ const transferEventDefs = [
 
 const topicToEvent = Object.fromEntries(transferEventDefs.map((ev) => [toEventSelector(ev), ev]))
 
-export function decodeLog(event: BlockEvent) {
+export function decodeTransferLog(event: BlockEvent) {
   const { address, topics, data } = event.value.log as Log
   const topic0 = topics[0]
   if (typeof topic0 === 'undefined' || data === '0x') {
