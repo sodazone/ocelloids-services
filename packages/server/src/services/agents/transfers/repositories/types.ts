@@ -7,6 +7,7 @@ import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateab
  */
 export interface IcTransferTable {
   id: Generated<number>
+  transfer_hash: ColumnType<string>
 
   network: ColumnType<string>
   block_number: ColumnType<string>
@@ -48,24 +49,30 @@ export interface IntrachainTransfersDatabase {
  * @public
  */
 export type IcTransferResponse = {
-  symbol: string | undefined
-  network: string
   id: number
-  decimals: number | undefined
+  transferHash: string
+
+  network: string
   blockNumber: string
   blockHash: string
   eventIndex: number
+
   from: string
   to: string
   fromFormatted: string | undefined
   toFormatted: string | undefined
+
   sentAt: number
   createdAt: number
+
   event: any
   transaction: any
   txPrimary: string | undefined
   txSecondary: string | undefined
+
   asset: string
+  symbol: string | undefined
   amount: string
+  decimals: number | undefined
   usd: number | undefined
 }

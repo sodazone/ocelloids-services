@@ -1,7 +1,7 @@
 import { Kysely } from 'kysely'
 import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
-import { TransfersFilters } from '../types.js'
+import { TransferRangeFilters, TransfersFilters } from '../types.js'
 import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.js'
 
 const MAX_LIMIT = 100
@@ -13,18 +13,15 @@ export class IntrachainTransfersRepository {
     this.#db = db
   }
 
-  async insertTransfer(transfer: NewIcTransfer): Promise<IcTransfer> {
+  async insertTransfer(transfer: NewIcTransfer): Promise<IcTransfer | null> {
     const inserted = await this.#db
       .insertInto('ic_transfers')
       .values(transfer)
+      .onConflict((oc) => oc.column('transfer_hash').doNothing())
       .returningAll()
       .executeTakeFirst()
 
-    if (!inserted) {
-      throw new Error('Failed to insert transfer')
-    }
-
-    return inserted
+    return inserted ?? null
   }
 
   async getTransferById(id: number): Promise<IcTransfer> {
@@ -42,10 +39,7 @@ export class IntrachainTransfersRepository {
   }
 
   async listTransfersByRange(
-    range: {
-      start: number
-      end: number
-    },
+    filters: TransferRangeFilters,
     pagination?: QueryPagination,
   ): Promise<{
     nodes: Array<IcTransfer>
@@ -61,8 +55,12 @@ export class IntrachainTransfersRepository {
     let query = this.#db
       .selectFrom('ic_transfers')
       .selectAll()
-      .where('id', '>=', range.start)
-      .where('id', '<=', range.end)
+      .where('id', '>=', filters.start)
+      .where('id', '<=', filters.end)
+
+    if (filters.networks) {
+      query = query.where('network', 'in', filters.networks)
+    }
 
     if (cursor) {
       query = query.where((eb) =>

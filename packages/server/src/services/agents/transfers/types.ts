@@ -23,6 +23,12 @@ export const $TransfersFilters = z.object({
   sentAtLte: z.optional(z.number()),
 })
 
+export const $TransferRangeFilters = z.object({
+  start: z.number(),
+  end: z.number(),
+  networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
+})
+
 export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('transfers.list'),
@@ -36,15 +42,13 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('transfers.by_id_range'),
-    criteria: z.object({
-      start: z.number(),
-      end: z.number(),
-    }),
+    criteria: $TransferRangeFilters,
   }),
 ])
 
 export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
 export type TransfersFilters = z.infer<typeof $TransfersFilters>
+export type TransferRangeFilters = z.infer<typeof $TransferRangeFilters>
 
 export type TransfersSubscriptionHandler = {
   networksControl: ControlQuery

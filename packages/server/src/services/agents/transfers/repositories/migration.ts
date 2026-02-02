@@ -16,6 +16,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .createTable('ic_transfers')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement().notNull())
+      .addColumn('transfer_hash', 'char(64)', (cb) => cb.notNull().unique())
       .addColumn('network', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('block_number', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('block_hash', 'varchar(255)', (cb) => cb.notNull())

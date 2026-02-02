@@ -1,6 +1,6 @@
 import { Binary } from 'polkadot-api'
 import { fromHex } from 'polkadot-api/utils'
-import { filter, map, mergeMap, switchMap } from 'rxjs'
+import { EMPTY, filter, map, mergeMap, switchMap } from 'rxjs'
 
 import { asJSON } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
@@ -78,7 +78,8 @@ function genericAssetsBalances$(
         mergeMap(({ name, value }) => {
           const assetId = value.asset_id
           if (!assetId) {
-            throw new Error(`No asset id found in ${module} event: ${name}`)
+            console.error(`No asset id found in ${module} event: ${name}`)
+            return EMPTY
           }
           const items: BalanceUpdateItem[] = []
 

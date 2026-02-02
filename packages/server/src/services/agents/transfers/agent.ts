@@ -12,9 +12,8 @@ import {
   Subscription as RxSubscription,
   Subject,
 } from 'rxjs'
-import { asJSON, asPublicKey, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
+import { asPublicKey, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
-import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
@@ -31,15 +30,16 @@ import {
   QueryResult,
   Subscribable,
 } from '../types.js'
+import { mapTransferToRow } from './convert.js'
 import { createIntrachainTransfersDatabase } from './repositories/db.js'
 import { IntrachainTransfersRepository } from './repositories/repository.js'
-import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
+import { IcTransfer, IcTransferResponse } from './repositories/types.js'
 import { TransfersTracker } from './tracker.js'
 import {
   $IcTransferQueryArgs,
   $TransfersAgentInputs,
-  EnrichedTransfer,
   IcTransferQueryArgs,
+  TransferRangeFilters,
   TransfersAgentInputs,
   TransfersFilters,
   TransfersSubscriptionHandler,
@@ -47,38 +47,6 @@ import {
 
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
-
-export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
-  const blockPosition = t.event.blockPosition
-  const txHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).hash : undefined
-  const evmTxHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).evmTxHash : undefined
-
-  return {
-    network: t.chainId,
-    block_number: t.blockNumber,
-    block_hash: t.blockHash,
-    event_index: blockPosition,
-    sent_at: t.timestamp,
-    created_at: Date.now(),
-
-    asset: t.asset,
-    from: t.from,
-    to: t.to,
-    from_formatted: t.fromFormatted,
-    to_formatted: t.toFormatted,
-    amount: t.amount,
-
-    decimals: t.decimals,
-    symbol: t.symbol,
-    usd: t.volume,
-
-    tx_primary: txHash,
-    tx_secondary: evmTxHash,
-
-    event: asJSON(t.event),
-    transaction: t.extrinsic ? asJSON(t.extrinsic) : '{}',
-  }
-}
 
 export class TransfersAgent implements Agent, Subscribable, Queryable {
   id = TRANSFERS_AGENT_ID
@@ -144,6 +112,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
           ),
         5,
       ),
+      filter(tf => tf !== null),
       map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),
     )
     this.#icTransfers$ = connectable(pipeline$, {
@@ -249,16 +218,13 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
   }
 
   async listTransfersByRange(
-    range: {
-      start: number
-      end: number
-    },
+    filters: TransferRangeFilters,
     pagination?: QueryPagination,
   ): Promise<QueryResult<IcTransferResponse>> {
-    if (range.start > range.end) {
+    if (filters.start > filters.end) {
       throw new Error('Invalid transfer range')
     }
-    const result = await this.#repository.listTransfersByRange(range, pagination)
+    const result = await this.#repository.listTransfersByRange(filters, pagination)
 
     return {
       pageInfo: result.pageInfo,
