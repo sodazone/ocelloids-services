@@ -32,7 +32,7 @@ export function nativeTransfers$(blockEvents$: Observable<BlockEvent>): Observab
           blockPosition,
           value,
         },
-        extrinsic: extrinsic,
+        extrinsic,
       }
     }),
   )

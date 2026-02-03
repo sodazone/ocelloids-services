@@ -13,6 +13,10 @@ export class IntrachainTransfersRepository {
     this.#db = db
   }
 
+  async close() {
+    await this.#db.destroy()
+  }
+
   async insertTransfer(transfer: NewIcTransfer): Promise<IcTransfer | null> {
     const inserted = await this.#db
       .insertInto('ic_transfers')
