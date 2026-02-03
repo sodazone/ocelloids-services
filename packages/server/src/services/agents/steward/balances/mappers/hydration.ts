@@ -1,18 +1,17 @@
-import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { EMPTY, filter, firstValueFrom, from, map, mergeMap, Observable, switchMap } from 'rxjs'
+import { padAccountKey20, publicKeyToSS58 } from '@/common/address.js'
 import { asPublicKey, isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
+import { decodeTransferLog } from '@/services/networking/substrate/evm/logs.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { padAccountKey20 } from '../codec.js'
 import { Balance, BalanceUpdateItem, CustomDiscoveryFetcher, RuntimeQueueData } from '../types.js'
 import { calculateFreeBalance } from '../util.js'
-import { decodeTransferLog } from '@/services/networking/substrate/evm/logs.js'
 
 const RUNTIME_API = 'CurrenciesApi'
 const RUNTIME_API_METHOD = 'account'
@@ -59,7 +58,7 @@ async function evmToSubstrateAddress({
   } else {
     buf = padAccountKey20(evmAddress)
   }
-  return fromBufferToBase58(0)(new Uint8Array(buf))
+  return publicKeyToSS58(new Uint8Array(buf), 0)
 }
 
 function asRuntimeQueryItem({
@@ -181,7 +180,7 @@ export const hydrationBalancesFetcher: CustomDiscoveryFetcher = async ({
         ingress,
         apiCtx,
       })
-    : fromBufferToBase58(0)(fromHex(account))
+    : publicKeyToSS58(fromHex(account), 0)
   const results = await ingress.runtimeCall<[number, Balance][]>(
     chainId,
     {

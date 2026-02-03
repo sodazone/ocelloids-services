@@ -78,6 +78,15 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       .min(1)
       .max(10),
   }),
+  z.object({
+    op: z.literal('accounts'),
+    criteria: z.object({
+      accounts: z.array(z.string().min(3).max(100)).min(1).max(100),
+    }),
+  }),
+  z.object({
+    op: z.literal('accounts.list'),
+  }),
 ])
 
 /**

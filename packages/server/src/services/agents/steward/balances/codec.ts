@@ -1,8 +1,6 @@
 import { toHex } from 'polkadot-api/utils'
-
+import { ethPrefix, padAccountKey20 } from '@/common/address.js'
 import { HexString } from '@/lib.js'
-
-const ethPrefix = Buffer.concat([Buffer.from('ETH', 'ascii'), new Uint8Array([0])])
 
 function uint256ToBuffer(n: bigint) {
   if (n < 0n) {
@@ -17,15 +15,6 @@ function bufferToUint256(buf: Buffer) {
     throw new Error('must be 32 bytes')
   }
   return BigInt('0x' + buf.toString('hex'))
-}
-
-// EVM address → prefix with "ETH" + 1 zero byte, then address, then pad to 32 bytes
-export function padAccountKey20(addr: Buffer | HexString) {
-  const addrBuf = typeof addr === 'string' ? Buffer.from(addr.substring(2).toLowerCase(), 'hex') : addr
-  const buf = Buffer.alloc(32)
-  ethPrefix.copy(buf)
-  addrBuf.copy(buf, 4)
-  return buf
 }
 
 function fromAddressBuf(addrBuf: Uint8Array): HexString {

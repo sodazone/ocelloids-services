@@ -1,7 +1,10 @@
 import { blake2b } from '@noble/hashes/blake2'
 import bs58 from 'bs58'
+import { HexString } from '@/services/subscriptions/types.js'
 
 const SS58_PREFIX = new TextEncoder().encode('SS58PRE')
+
+export const ethPrefix = Buffer.concat([Buffer.from('ETH', 'ascii'), new Uint8Array([0])])
 
 function looksLikeSS58(decodedLength: number, addressLength: number): boolean {
   return addressLength >= 46 && addressLength <= 50 && (decodedLength === 35 || decodedLength === 36)
@@ -54,4 +57,13 @@ export function publicKeyToSS58(publicKey: Uint8Array, prefix = 0): string {
   addressBytes.set(checksum, payload.length)
 
   return bs58.encode(addressBytes)
+}
+
+// EVM address → prefix with "ETH" + 1 zero byte, then address, then pad to 32 bytes
+export function padAccountKey20(addr: Buffer | HexString) {
+  const addrBuf = typeof addr === 'string' ? Buffer.from(addr.substring(2).toLowerCase(), 'hex') : addr
+  const buf = Buffer.alloc(32)
+  ethPrefix.copy(buf)
+  addrBuf.copy(buf, 4)
+  return buf
 }
