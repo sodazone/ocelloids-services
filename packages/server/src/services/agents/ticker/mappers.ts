@@ -362,6 +362,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       chainId: 'urn:ocn:polkadot:3367',
       assetId: '0x147758d3dafb1e8675e1a8ecff01cc8a943115b0fec1f4a13cfd4b303e47244a',
     },
+    {
+      chainId: 'urn:ocn:ethereum:8453',
+      assetId: '0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x3f9610a50630bc7d4530736942ee2bc9e00e8de8',
+    },
   ],
   jitoSOL: [
     { chainId: 'urn:ocn:solana:101', assetId: 'j1toso1uck3rlmjorhttrvwy9hj7x8v9yyac6y7kgcpn' },
