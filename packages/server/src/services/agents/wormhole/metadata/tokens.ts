@@ -135,6 +135,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['30:0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42']: {
+    symbol: 'EURC',
+    decimals: 6,
+    isNative: false,
+  },
 }
 
 export const tokenRegistry = {
