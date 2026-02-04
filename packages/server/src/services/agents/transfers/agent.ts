@@ -45,6 +45,7 @@ import {
   TransfersSubscriptionHandler,
 } from './types.js'
 
+const MAX_CONCURRENCY = 5
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
 
@@ -110,7 +111,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
               return EMPTY
             }),
           ),
-        5,
+        MAX_CONCURRENCY,
       ),
       filter((tf) => tf !== null),
       map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),

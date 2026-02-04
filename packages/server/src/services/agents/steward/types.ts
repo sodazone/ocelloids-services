@@ -8,6 +8,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
+import { SubstrateAccountMetadata } from './accounts/types.js'
 
 /**
  * @private
@@ -192,6 +193,15 @@ export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
     typeof (obj as any).id !== 'undefined' &&
     typeof (obj as any).xid !== 'undefined' &&
     typeof (obj as any).chainId !== 'undefined'
+  )
+}
+
+export function isAccountMetadata(obj: unknown): obj is SubstrateAccountMetadata {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'publicKey' in obj &&
+    typeof (obj as any).publicKey !== 'undefined'
   )
 }
 

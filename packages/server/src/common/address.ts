@@ -1,5 +1,6 @@
 import { blake2b } from '@noble/hashes/blake2'
 import bs58 from 'bs58'
+import { zeroAddress } from 'viem'
 import { HexString } from '@/services/subscriptions/types.js'
 
 const SS58_PREFIX = new TextEncoder().encode('SS58PRE')
@@ -22,6 +23,11 @@ function encodePrefix(prefix: number): Uint8Array {
   const low = (prefix & 0b00111111) | 0b01000000
   const high = prefix >> 6
   return Uint8Array.from([low, high])
+}
+
+export function isZeroAddress(address: string) {
+  // allow some freedom in last 2 bytes
+  return address.startsWith(zeroAddress.slice(0, 38))
 }
 
 export function ss58ToPublicKey(address: string): Uint8Array {

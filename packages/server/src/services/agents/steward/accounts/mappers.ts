@@ -1,6 +1,6 @@
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { concatMap, EMPTY, expand, from, mergeMap, Observable, of, switchMap } from 'rxjs'
-import { padAccountKey20, ss58ToPublicKey } from '@/common/address.js'
+import { padAccountKey20 } from '@/common/address.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -27,13 +27,6 @@ function decodeData(data: any): string | undefined {
 
       return data.value?.toString?.()
   }
-}
-
-function unwrapData(data: any): string | null {
-  if (!data || data.type === 'None') {
-    return null
-  }
-  return data.value?.toString?.() ?? null
 }
 
 function normalizeIdentity(identity: any): {

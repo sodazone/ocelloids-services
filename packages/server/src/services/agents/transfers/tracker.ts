@@ -1,17 +1,28 @@
-import { Subscription as RxSubscription, Subject } from 'rxjs'
+import { mergeMap, Subscription as RxSubscription, Subject } from 'rxjs'
 import { normaliseDecimals } from '@/common/numbers.js'
 import { ValidationError } from '@/errors.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
-import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
+import {
+  AssetMetadata,
+  Empty,
+  isAccountMetadata,
+  isAssetMetadata,
+  StewardQueryArgs,
+} from '@/services/agents/steward/types.js'
 import { TickerAgent } from '@/services/agents/ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '@/services/agents/ticker/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { HexString } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
+import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { QueryParams, QueryResult } from '../types.js'
+import { resolveEvmToSubstratePubKey } from './convert.js'
 import { transferStreamMappers } from './streams/index.js'
 import { EnrichedTransfer } from './types.js'
+
+const MAX_CONCURRENCY = 5
 
 export class TransfersTracker {
   readonly #id = 'transfers-tracker'
@@ -81,24 +92,33 @@ export class TransfersTracker {
       return
     }
     const blockEvents$ = this.#shared.blockEvents(chainId)
-    const sub = mapper(blockEvents$, this.#ingress).subscribe({
-      next: async (transfer) => {
-        const metadata = await this.#fetchAssetMetadata(chainId, transfer.asset)
-        if (!metadata) {
-          this.#subject.next({ ...transfer, chainId })
-        } else {
-          const enriched: EnrichedTransfer = {
-            ...transfer,
+    const sub = mapper(blockEvents$)
+      .pipe(
+        mergeMap(async (transfer) => {
+          const from = await this.#normaliseAddress(transfer.from)
+          const to = await this.#normaliseAddress(transfer.to)
+
+          const tf = { ...transfer, from, to }
+
+          const metadata = await this.#fetchAssetMetadata(chainId, transfer.asset)
+
+          if (!metadata) {
+            return { ...tf, chainId } satisfies EnrichedTransfer
+          }
+
+          return {
+            ...tf,
             chainId,
             decimals: metadata.decimals,
             symbol: metadata.symbol,
             volume: await this.#resolveVolume(metadata, transfer.amount),
-          }
-          this.#subject.next(enriched)
-        }
-      },
-      error: (err) => this.#log.error(err, '[%s:%s] Error on chain stream', this.#id, chainId),
-    })
+          } satisfies EnrichedTransfer
+        }, MAX_CONCURRENCY),
+      )
+      .subscribe({
+        next: (enriched: EnrichedTransfer) => this.#subject.next(enriched),
+        error: (err) => this.#log.error(err, '[%s:%s] Error on chain stream', this.#id, chainId),
+      })
     this.#streams[chainId] = sub
   }
 
@@ -121,6 +141,35 @@ export class TransfersTracker {
 
     const result = items[0]
     return isAssetMetadata(result) ? result : undefined
+  }
+
+  async #normaliseAddress(address: HexString): Promise<HexString> {
+    if (address.length === 42) {
+      const account = await this.#fetchAccount(address)
+      if (account) {
+        return account.publicKey
+      }
+      return resolveEvmToSubstratePubKey(address)
+    }
+    return address
+  }
+
+  async #fetchAccount(address: string): Promise<SubstrateAccountMetadata | undefined> {
+    const { items } = (await this.#steward.query({
+      args: {
+        op: 'accounts',
+        criteria: {
+          accounts: [address],
+        },
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
+
+    if (items.length === 0) {
+      return undefined
+    }
+
+    const result = items[0]
+    return isAccountMetadata(result) ? result : undefined
   }
 
   async #resolveVolume(
