@@ -1,7 +1,7 @@
-import { mapTransferToRow } from "../convert.js"
-import { EnrichedTransfer } from "../types.js"
-import { createIntrachainTransfersDatabase } from "./db.js"
-import { IntrachainTransfersRepository } from "./repository.js"
+import { mapTransferToRow } from '../convert.js'
+import { EnrichedTransfer } from '../types.js'
+import { createIntrachainTransfersDatabase } from './db.js'
+import { IntrachainTransfersRepository } from './repository.js'
 
 describe('IntrachainTransfersRepository', () => {
   let repo: IntrachainTransfersRepository
@@ -35,10 +35,10 @@ describe('IntrachainTransfersRepository', () => {
         blockPosition: 5,
         module: 'balances',
         name: 'transfer',
-        value: {}
+        value: {},
       },
       extrinsic: {
-        hash: '0x14be5b38dcdc2e8fad87ac54ed5e254813ea4f07bdc8a93d8d22fac6f898f306'
+        hash: '0x14be5b38dcdc2e8fad87ac54ed5e254813ea4f07bdc8a93d8d22fac6f898f306',
       },
       ...overrides,
     }
@@ -62,8 +62,8 @@ describe('IntrachainTransfersRepository', () => {
         blockPosition: 9,
         module: 'another',
         name: 'transfer',
-        value: {}
-      }
+        value: {},
+      },
     })
 
     const inserted = await repo.insertTransfer(mapTransferToRow(transfer))

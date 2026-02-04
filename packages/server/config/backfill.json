@@ -1,0 +1,18 @@
+{
+  "urn:ocn:polkadot:0": {
+    "start": 28189210,
+    "end": 28189957,
+    "paraIds": [
+      "urn:ocn:polkadot:1000",
+      "urn:ocn:polkadot:1002"
+    ]
+  },
+  "urn:ocn:kusama:0": {
+    "start": 30518506,
+    "end": 30519306,
+    "paraIds": [
+      "urn:ocn:kusama:1000",
+      "urn:ocn:kusama:1002"
+    ]
+  }
+}

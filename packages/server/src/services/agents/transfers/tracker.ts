@@ -81,7 +81,7 @@ export class TransfersTracker {
       return
     }
     const blockEvents$ = this.#shared.blockEvents(chainId)
-    const sub = mapper(blockEvents$).subscribe({
+    const sub = mapper(blockEvents$, this.#ingress).subscribe({
       next: async (transfer) => {
         const metadata = await this.#fetchAssetMetadata(chainId, transfer.asset)
         if (!metadata) {
