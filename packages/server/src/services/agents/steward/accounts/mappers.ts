@@ -6,7 +6,6 @@ import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
-import { extractEvmHandlePostRequest } from '../../hyperbridge/ops/handle-request.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const STORAGE_PAGE_LEN = 100
@@ -307,11 +306,4 @@ export const extraAccountMeta$: Record<
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
 > = {
   [networks.hydration]: hydrationEvmAccounts$,
-}
-
-export function toAccountKey(address: string) {
-  if (address.startsWith('0x')) {
-    return address.length > 42 ? address : toHex(padAccountKey20(address as HexString))
-  }
-  return toHex(ss58ToPublicKey(address))
 }

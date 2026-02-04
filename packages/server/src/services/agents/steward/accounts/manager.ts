@@ -1,20 +1,21 @@
 import { AbstractSublevel } from 'abstract-level'
 import { toHex } from 'polkadot-api/utils'
 import { merge, Observable } from 'rxjs'
-import { padAccountKey20 } from '@/common/address.js'
-import { asPublicKey } from '@/common/util.js'
+import { padAccountKey20, ss58ToPublicKey } from '@/common/address.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
+import { HexString } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger } from '@/services/types.js'
 import { StewardManagerContext, StewardQueryArgs } from '../types.js'
 import { limitCap, paginatedResults } from '../util.js'
-import { extraAccountMeta$, identities$, mergeAccountMetadata, toAccountKey } from './mappers.js'
+import { extraAccountMeta$, identities$, mergeAccountMetadata } from './mappers.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const ACCOUNT_METADATA_SYNC_TASK = 'task:steward:accounts-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
-const ACCOUNTS_LEVEL_PREFIX = 'agent:steward:assets'
+const ACCOUNTS_LEVEL_PREFIX = 'agent:steward:accounts'
+const ACCOUNTS_EVM_LEVEL_PREFIX = 'agent:steward:accounts:evm'
 
 const START_DELAY = 30_000 // 45s
 const SCHED_RATE = 86_400_000 // 24h
@@ -30,17 +31,22 @@ export class AccountsMetadataManager {
   readonly #dbAccounts: AbstractSublevel<
     LevelDB,
     string | Buffer | Uint8Array,
-    string,
+    Buffer,
     SubstrateAccountMetadata
   >
+  readonly #dbAccountsEvmIndex: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Buffer, Buffer>
 
   constructor({ log, db, scheduler, ingress }: StewardManagerContext) {
     this.#log = log
     this.#sched = scheduler
     this.#ingress = ingress.substrate
     this.#db = db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
-    this.#dbAccounts = db.sublevel<string, SubstrateAccountMetadata>(ACCOUNTS_LEVEL_PREFIX, {
+    this.#dbAccounts = db.sublevel<Buffer, SubstrateAccountMetadata>(ACCOUNTS_LEVEL_PREFIX, {
       valueEncoding: 'json',
+    })
+    this.#dbAccountsEvmIndex = db.sublevel<Buffer, Buffer>(ACCOUNTS_EVM_LEVEL_PREFIX, {
+      keyEncoding: 'buffer',
+      valueEncoding: 'buffer',
     })
 
     this.#sched.on(ACCOUNT_METADATA_SYNC_TASK, this.#onScheduledTask.bind(this))
@@ -48,7 +54,7 @@ export class AccountsMetadataManager {
 
   async start() {
     const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ACCOUNT_METADATA_SYNC_TASK))
-    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
+    if (this.#sched.enabled /*&& ((await this.#isNotScheduled()) || !alreadyScheduled)*/) {
       await this.#scheduleSync()
 
       // first-time sync
@@ -67,10 +73,10 @@ export class AccountsMetadataManager {
   async queries(params: QueryParams<StewardQueryArgs>): Promise<QueryResult<SubstrateAccountMetadata>> {
     const { args, pagination } = params
     if (args.op === 'accounts') {
-      const pubKeys = args.criteria.accounts.map(toAccountKey)
-      const fetchedItems = pubKeys.length
+      const keysToFetch = await this.#resolveDbKeysFromInput(args.criteria)
+      const fetchedItems = keysToFetch.length
         ? (
-            await this.#dbAccounts.getMany<string, SubstrateAccountMetadata>(pubKeys, {
+            await this.#dbAccounts.getMany<Buffer, SubstrateAccountMetadata>(keysToFetch, {
               /** */
             })
           ).filter((x) => x !== undefined)
@@ -104,17 +110,22 @@ export class AccountsMetadataManager {
 
     merge(...streams).subscribe({
       next: async (incoming) => {
-        const accountKey =
+        const normalisedPublicKey =
           incoming.publicKey.length > 42 ? incoming.publicKey : toHex(padAccountKey20(incoming.publicKey))
+        const pubKeyBuf = Buffer.from(normalisedPublicKey.substring(2).toLowerCase(), 'hex')
         try {
-          const persisted = await this.#dbAccounts.get(accountKey)
+          const persisted = await this.#dbAccounts.get(pubKeyBuf)
           const merged = mergeAccountMetadata(persisted, incoming)
 
           if (persisted && merged.updatedAt === persisted.updatedAt) {
             return
           }
 
-          await this.#dbAccounts.put(accountKey, merged)
+          await this.#dbAccounts.put(pubKeyBuf, merged)
+          for (const evm of merged.evm) {
+            const indexKey = Buffer.from(evm.address.substring(2).toLowerCase(), 'hex')
+            await this.#dbAccountsEvmIndex.put(indexKey, pubKeyBuf)
+          }
         } catch (e) {
           this.#log.error(e, '[agent:%s] on account metadata write (%s)', this.id, incoming.publicKey)
         }
@@ -148,6 +159,36 @@ export class AccountsMetadataManager {
     await this.#db.put('scheduled', true)
 
     this.#log.info('[agent:%s] sync scheduled %s', this.id, timeString)
+  }
+
+  async #resolveDbKeysFromInput({ accounts }: { accounts: string[] }): Promise<Buffer[]> {
+    const resolved: Buffer[] = []
+
+    for (const input of accounts) {
+      if (input.startsWith('0x')) {
+        const addressBuf = Buffer.from(input.slice(2).toLowerCase(), 'hex')
+
+        if (addressBuf.length === 20) {
+          const indexedPubKey = await this.#dbAccountsEvmIndex.get(addressBuf).catch(() => undefined)
+
+          if (indexedPubKey) {
+            resolved.push(indexedPubKey)
+          } else {
+            const padded = padAccountKey20(input as HexString)
+            resolved.push(padded)
+          }
+        } else if (addressBuf.length === 32) {
+          resolved.push(addressBuf)
+        } else {
+          this.#log.warn('[agent:%s] Invalid hex address length %s', this.id, input)
+        }
+
+        continue
+      }
+
+      resolved.push(Buffer.from(ss58ToPublicKey(input)))
+    }
+    return resolved
   }
 
   async #isNotScheduled() {
