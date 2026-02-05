@@ -166,7 +166,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
     switch (params.args.op) {
       case 'transfers.list':
         return this.listTransfers(params.args.criteria, params.pagination)
-      case 'trasnsfers.by_id':
+      case 'transfers.by_id':
         return this.getTransferById(params.args.criteria)
       case 'transfers.by_id_range':
         return this.listTransfersByRange(params.args.criteria, params.pagination)

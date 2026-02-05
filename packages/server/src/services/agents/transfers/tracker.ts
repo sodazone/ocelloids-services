@@ -1,5 +1,6 @@
 import { mergeMap, Subscription as RxSubscription, Subject } from 'rxjs'
 import { normaliseDecimals } from '@/common/numbers.js'
+import { isEVMAddress } from '@/common/util.js'
 import { ValidationError } from '@/errors.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
@@ -20,7 +21,7 @@ import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { QueryParams, QueryResult } from '../types.js'
 import { resolveEvmToSubstratePubKey } from './convert.js'
 import { transferStreamMappers } from './streams/index.js'
-import { EnrichedTransfer } from './types.js'
+import { EnrichedTransfer, Transfer } from './types.js'
 
 const MAX_CONCURRENCY = 5
 
@@ -91,14 +92,20 @@ export class TransfersTracker {
       this.#log.warn('[%s:%s] No mapper defined, skipping...', this.#id, chainId)
       return
     }
-    const blockEvents$ = this.#shared.blockEvents(chainId)
-    const sub = mapper(blockEvents$)
+    const sub = mapper(this.#shared.blockEvents(chainId))
       .pipe(
         mergeMap(async (transfer) => {
           const from = await this.#normaliseAddress(transfer.from)
           const to = await this.#normaliseAddress(transfer.to)
 
-          const tf = { ...transfer, from, to }
+          const tf: Transfer = {
+            ...transfer,
+            asset: `${chainId}|${transfer.asset}`,
+            from,
+            to,
+            fromFormatted: isEVMAddress(from) ? from : transfer.fromFormatted,
+            toFormatted: isEVMAddress(to) ? to : transfer.toFormatted,
+          }
 
           const metadata = await this.#fetchAssetMetadata(chainId, transfer.asset)
 
@@ -173,22 +180,40 @@ export class TransfersTracker {
   }
 
   async #resolveVolume(
-    { chainId, id, decimals }: AssetMetadata,
+    { chainId, id, decimals, symbol, sourceId }: AssetMetadata,
     amount: string,
   ): Promise<number | undefined> {
-    const { items } = (await this.#ticker.query({
-      args: {
-        op: 'prices.by_asset',
-        criteria: [{ chainId, assetId: normalizeAssetId(id) }],
-      },
-    } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
-
-    const price = items.length > 0 ? items[0].medianPrice : null
-
-    if (price === null || decimals === undefined) {
+    if (decimals === undefined) {
       return
     }
+
     const normalizedAmount = Number(normaliseDecimals(amount, decimals))
+
+    const getMedianPrice = async (op: 'prices.by_ticker' | 'prices.by_asset', criteria: unknown) => {
+      const { items } = (await this.#ticker.query({
+        args: { op, criteria: [criteria] },
+      } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
+
+      return items.length > 0 ? items[0].medianPrice : null
+    }
+
+    if (symbol) {
+      const price = await getMedianPrice('prices.by_ticker', { ticker: symbol })
+      if (price) {
+        return normalizedAmount * price
+      }
+    }
+
+    const priceQuery = {
+      chainId: sourceId ? sourceId.chainId : chainId,
+      assetId: normalizeAssetId(sourceId ? sourceId.id : id),
+    }
+
+    const price = await getMedianPrice('prices.by_asset', priceQuery)
+    if (price === null) {
+      return
+    }
+
     return normalizedAmount * price
   }
 }

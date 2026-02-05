@@ -104,23 +104,18 @@ export class IntrachainTransfersRepository {
 
     let query = this.#db.selectFrom('ic_transfers').selectAll()
 
-    // cursor
-    if (pagination?.cursor) {
-      const { timestamp, id } = decodeCursor(pagination.cursor)
-      query = query.where((eb) =>
-        eb.or([
-          eb('sent_at', '<', timestamp),
-          eb.and([eb('sent_at', '=', timestamp), eb('ic_transfers.id', '<', id)]),
-        ]),
+    if (filters?.txHash) {
+      query = query.where((qb) =>
+        qb.or([qb('tx_primary', '=', filters.txHash), qb('tx_secondary', '=', filters.txHash)]),
       )
     }
 
-    if (filters?.networks) {
-      query = query.where('network', 'in', filters.networks)
+    if (filters?.sentAtGte !== undefined) {
+      query = query.where('sent_at', '>=', filters.sentAtGte)
     }
 
-    if (filters?.assets) {
-      query = query.where('asset', 'in', filters?.assets)
+    if (filters?.sentAtLte !== undefined) {
+      query = query.where('sent_at', '<=', filters.sentAtLte)
     }
 
     if (filters?.address) {
@@ -139,12 +134,6 @@ export class IntrachainTransfersRepository {
       }
     }
 
-    if (filters?.txHash) {
-      query = query.where((qb) =>
-        qb.or([qb('tx_primary', '=', filters.txHash), qb('tx_secondary', '=', filters.txHash)]),
-      )
-    }
-
     if (filters?.usdAmountGte !== undefined) {
       query = query.where('usd', '>=', filters.usdAmountGte)
     }
@@ -153,12 +142,27 @@ export class IntrachainTransfersRepository {
       query = query.where('usd', '<=', filters.usdAmountLte)
     }
 
-    if (filters?.sentAtGte !== undefined) {
-      query = query.where('sent_at', '>=', filters.sentAtGte)
+    if (filters?.assets) {
+      query = query.where('asset', 'in', filters?.assets)
     }
 
-    if (filters?.sentAtLte !== undefined) {
-      query = query.where('sent_at', '<=', filters.sentAtLte)
+    if (filters?.networks) {
+      query = query.where('network', 'in', filters.networks)
+    }
+
+    if (filters?.types) {
+      query = query.where('type', 'in', filters.types)
+    }
+
+    // cursor
+    if (pagination?.cursor) {
+      const { timestamp, id } = decodeCursor(pagination.cursor)
+      query = query.where((eb) =>
+        eb.or([
+          eb('sent_at', '<', timestamp),
+          eb.and([eb('sent_at', '=', timestamp), eb('ic_transfers.id', '<', id)]),
+        ]),
+      )
     }
 
     const rows = await query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(queryLimit).execute()

@@ -12,7 +12,14 @@ export const $TransfersAgentInputs = z.object({
 
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
+/**
+ * @public
+ */
+
+export const $IcTransferType = z.enum(['user', 'protocol', 'system'])
+
 export const $TransfersFilters = z.object({
+  types: z.optional(z.array($IcTransferType).min(1).max(3)),
   networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
   assets: z.optional(z.array(z.string()).min(1).max(50)),
   address: z.optional(z.string().min(3).max(100)),
@@ -35,7 +42,7 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
     criteria: $TransfersFilters,
   }),
   z.object({
-    op: z.literal('trasnsfers.by_id'),
+    op: z.literal('transfers.by_id'),
     criteria: z.object({
       id: z.number(),
     }),

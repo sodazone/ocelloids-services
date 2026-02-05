@@ -17,6 +17,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement().notNull())
       .addColumn('transfer_hash', 'char(64)', (cb) => cb.notNull().unique())
+      .addColumn('type', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('network', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('block_number', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('block_hash', 'varchar(255)', (cb) => cb.notNull())
@@ -36,6 +37,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer')
       .addColumn('usd', 'decimal')
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_type_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .column('type')
       .execute()
 
     await db.schema
@@ -92,6 +100,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('ic_transfers')
       .columns(['sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_type_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['type', 'sent_at', 'id'])
       .execute()
 
     await db.schema

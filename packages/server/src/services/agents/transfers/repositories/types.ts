@@ -1,6 +1,11 @@
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
 
 /**
+ * @public
+ */
+export type IcTransferType = 'user' | 'protocol' | 'system'
+
+/**
  * Intra-chain transfers table
  *
  * @internal
@@ -8,6 +13,7 @@ import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateab
 export interface IcTransferTable {
   id: Generated<number>
   transfer_hash: ColumnType<string>
+  type: ColumnType<IcTransferType>
 
   network: ColumnType<string>
   block_number: ColumnType<string>
@@ -51,6 +57,7 @@ export interface IntrachainTransfersDatabase {
 export type IcTransferResponse = {
   id: number
   transferHash: string
+  type: IcTransferType
 
   network: string
   blockNumber: string
