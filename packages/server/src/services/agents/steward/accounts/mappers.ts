@@ -1,5 +1,7 @@
+import { blake2b } from '@noble/hashes/blake2'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { concatMap, EMPTY, expand, from, mergeMap, Observable, of, switchMap } from 'rxjs'
+
+import { concatMap, EMPTY, expand, from, merge, mergeMap, Observable, of, switchMap } from 'rxjs'
 import { padAccountKey20 } from '@/common/address.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
@@ -9,6 +11,8 @@ import { networks } from '../../common/networks.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const STORAGE_PAGE_LEN = 100
+const textEncoder = new TextEncoder()
+const sts = textEncoder.encode('sts')
 
 function decodeData(data: any): string | undefined {
   if (!data) {
@@ -135,6 +139,7 @@ export function mergeAccountMetadata(
       publicKey: incoming.publicKey,
       evm: incoming.evm ?? [],
       identities: incoming.identities ?? [],
+      tags: incoming.tags ?? [],
       updatedAt: now,
     }
   }
@@ -142,11 +147,9 @@ export function mergeAccountMetadata(
   let changed = false
 
   const evmMap = new Map<string, SubstrateAccountMetadata['evm'][number]>()
-
   for (const e of persisted.evm ?? []) {
     evmMap.set(`${e.chainId}|${e.address}`, e)
   }
-
   for (const e of incoming.evm ?? []) {
     const key = `${e.chainId}|${e.address}`
     if (!evmMap.has(key)) {
@@ -154,25 +157,29 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
-
   const evm = Array.from(evmMap.values())
 
   const identityMap = new Map<NetworkURN, SubstrateAccountMetadata['identities'][number]>()
-
   for (const i of persisted.identities ?? []) {
     identityMap.set(i.chainId, i)
   }
-
   for (const i of incoming.identities ?? []) {
     const existing = identityMap.get(i.chainId)
-
     if (!existing || !deepEqualIdentity(existing, i)) {
       identityMap.set(i.chainId, i)
       changed = true
     }
   }
-
   const identities = Array.from(identityMap.values())
+
+  const tagSet = new Set<string>(persisted.tags ?? [])
+  for (const tag of incoming.tags ?? []) {
+    if (!tagSet.has(tag)) {
+      tagSet.add(tag)
+      changed = true
+    }
+  }
+  const tags = Array.from(tagSet)
 
   if (!changed) {
     return persisted
@@ -182,6 +189,7 @@ export function mergeAccountMetadata(
     publicKey: incoming.publicKey,
     evm,
     identities,
+    tags,
     updatedAt: now,
   }
 }
@@ -294,9 +302,80 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
+export function getAavePoolAddress(reserve: string, atoken: string): [HexString, HexString] {
+  const id = reserve + '/' + atoken
+  const name = textEncoder.encode(id)
+  const poolKey = blake2b(new Uint8Array(name), {
+    dkLen: 32,
+  })
+  const evmPoolKey = poolKey.subarray(0, 20)
+  return [toHex(poolKey) as HexString, toHex(evmPoolKey) as HexString]
+}
+
+export function getStablePoolAddress(id: number): [HexString, HexString] {
+  const bytes = Buffer.alloc(4)
+  bytes.writeUInt32LE(id)
+  const name = Buffer.concat([sts, new Uint8Array(bytes)])
+  const poolKey = blake2b(new Uint8Array(name), {
+    dkLen: 32,
+  })
+  const evmPoolKey = poolKey.subarray(0, 20)
+  return [toHex(poolKey) as HexString, toHex(evmPoolKey) as HexString]
+}
+
+function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
+  const chainId = networks.hydration
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) => {
+      const codec = apiCtx.storageCodec('Stableswap', 'Pools')
+      const hashers = apiCtx.getHashers('Stableswap', 'Pools')
+      const prefix = codec.keys.enc() as HexString
+      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
+        expand((keys) =>
+          keys.length === STORAGE_PAGE_LEN
+            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+            : EMPTY,
+        ),
+        concatMap((storageKeys) =>
+          ingress.queryStorageAt(chainId, storageKeys).pipe(
+            mergeMap((changeSets) => {
+              const changes = changeSets[0]?.changes ?? []
+
+              return from(storageKeys).pipe(
+                mergeMap((storageKey) => {
+                  const change = changes.find(([k]) => k === storageKey)
+                  if (!change) {
+                    return EMPTY
+                  }
+
+                  const poolId = itemKeyFromStorageKey(storageKey, prefix, hashers)
+                  const poolIdInt = Number.parseInt(poolId.slice(2), 16)
+                  const [publicKey, evmAddress] = getStablePoolAddress(poolIdInt)
+
+                  return of({
+                    publicKey,
+                    evm: [
+                      {
+                        chainId,
+                        address: evmAddress,
+                      },
+                    ],
+                    tags: [`defi:stableswap-${poolIdInt}`],
+                  })
+                }),
+              )
+            }),
+          ),
+        ),
+      )
+    }),
+  )
+}
+
 export const extraAccountMeta$: Record<
   string,
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
 > = {
-  [networks.hydration]: hydrationEvmAccounts$,
+  [networks.hydration]: (ingress) =>
+    merge(hydrationEvmAccounts$(ingress), hydrationStableswapAccounts$(ingress)),
 }

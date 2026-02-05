@@ -13,6 +13,7 @@ export type SubstrateAccountMetadata = {
     judgements: string[]
     extra: Record<string, any>
   }[]
+  tags: string[]
   updatedAt: number
 }
 
