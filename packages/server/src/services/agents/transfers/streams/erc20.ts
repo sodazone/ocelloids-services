@@ -27,6 +27,18 @@ const hydrationContractToAssetId: Record<string, number> = {
   '0x34d5ffb83d14d82f87aaf2f13be895a3c814c2ad': 69,
 }
 
+// duplicated with steward balances moonbeam mapping
+function moonbeamContractToAssetId(address: string): string {
+  const addrStr = address.toLowerCase().slice(2)
+
+  if (addrStr.startsWith('ffffffff')) {
+    const hexPart = addrStr.slice(8)
+    return BigInt('0x' + hexPart).toString()
+  }
+
+  return address
+}
+
 type AssetResolver = (contract: string) => string | undefined
 
 export function erc20Transfers$(
@@ -39,6 +51,10 @@ export function erc20Transfers$(
     filter(Boolean),
     map(({ address, decoded, blockHash, blockNumber, blockPosition, extrinsic, timestamp, module, name }) => {
       if (!decoded) {
+        return null
+      }
+      // skip AAVE aToken principal transfer events
+      if (decoded.eventName.toLowerCase() === 'balancetransfer') {
         return null
       }
 
@@ -83,5 +99,5 @@ export function hydrationErc20Transfers$(blockEvents$: Observable<BlockEvent>): 
 }
 
 export function moonbeamErc20Transfers$(blockEvents$: Observable<BlockEvent>): Observable<Transfer> {
-  return erc20Transfers$(blockEvents$, (contract) => contract)
+  return erc20Transfers$(blockEvents$, moonbeamContractToAssetId)
 }
