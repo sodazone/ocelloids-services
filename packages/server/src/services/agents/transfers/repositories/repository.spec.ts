@@ -18,6 +18,7 @@ describe('IntrachainTransfersRepository', () => {
 
   function makeTransfer(overrides: Partial<EnrichedTransfer> = {}): EnrichedTransfer {
     return {
+      type: 'user',
       chainId: 'urn:ocn:polkadot:1000',
       blockHash: '0x0102',
       blockNumber: '12345',
