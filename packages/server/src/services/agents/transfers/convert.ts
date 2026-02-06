@@ -3,26 +3,13 @@ import { toHex } from 'polkadot-api/utils'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
-import { IcTransferType, NewIcTransfer } from './repositories/types.js'
+import { NewIcTransfer } from './repositories/types.js'
 import { EnrichedTransfer } from './types.js'
 
 export function isSystemAccount(address: Buffer | HexString) {
   const addressBuf = typeof address === 'string' ? Buffer.from(address.slice(2), 'hex') : address
   const asciiPrefix = addressBuf.subarray(0, 4).toString('ascii')
   return asciiPrefix === 'modl'
-}
-
-function classifyTransfer(from: HexString, to: HexString): IcTransferType {
-  const fromSystem = isSystemAccount(from)
-  const toSystem = isSystemAccount(to)
-
-  if (fromSystem && toSystem) {
-    return 'system'
-  }
-  if (fromSystem || toSystem) {
-    return 'protocol'
-  }
-  return 'user'
 }
 
 export function toTransferHash(t: EnrichedTransfer): string {
@@ -33,10 +20,9 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
   const blockPosition = t.event.blockPosition
   const txHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).hash : undefined
   const evmTxHash = t.extrinsic ? (t.extrinsic as BlockExtrinsic).evmTxHash : undefined
-  const type: IcTransferType = classifyTransfer(t.from, t.to)
 
   return {
-    type,
+    type: t.type,
     transfer_hash: toTransferHash(t),
     network: t.chainId,
     block_number: t.blockNumber,

@@ -16,7 +16,7 @@ export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
  * @public
  */
 
-export const $IcTransferType = z.enum(['user', 'protocol', 'system'])
+export const $IcTransferType = z.enum(['user', 'mixed', 'system'])
 
 export const $TransfersFilters = z.object({
   types: z.optional(z.array($IcTransferType).min(1).max(3)),
@@ -55,6 +55,7 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
 
 export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
 export type TransfersFilters = z.infer<typeof $TransfersFilters>
+export type IcTransferType = z.infer<typeof $IcTransferType>
 export type TransferRangeFilters = z.infer<typeof $TransferRangeFilters>
 
 export type TransfersSubscriptionHandler = {
@@ -89,6 +90,7 @@ export type Transfer = {
  * @public
  */
 export type EnrichedTransfer = Transfer & {
+  type: IcTransferType
   chainId: NetworkURN
   decimals?: number
   symbol?: string

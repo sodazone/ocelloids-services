@@ -19,9 +19,9 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { QueryParams, QueryResult } from '../types.js'
-import { resolveEvmToSubstratePubKey } from './convert.js'
+import { isSystemAccount, resolveEvmToSubstratePubKey } from './convert.js'
 import { transferStreamMappers } from './streams/index.js'
-import { EnrichedTransfer, Transfer } from './types.js'
+import { EnrichedTransfer, IcTransferType, Transfer } from './types.js'
 
 const MAX_CONCURRENCY = 5
 
@@ -87,16 +87,25 @@ export class TransfersTracker {
       this.#log.warn('[%s:%s] Transfers already subscribed', this.#id, chainId)
       return
     }
+
     const mapper = transferStreamMappers[chainId]
     if (!mapper) {
       this.#log.warn('[%s:%s] No mapper defined, skipping...', this.#id, chainId)
       return
     }
+
     const sub = mapper(this.#shared.blockEvents(chainId))
       .pipe(
         mergeMap(async (transfer) => {
-          const from = await this.#normaliseAddress(transfer.from)
-          const to = await this.#normaliseAddress(transfer.to)
+          const [fromAccount, toAccount, asset] = await Promise.all([
+            this.#fetchAccount(transfer.from),
+            this.#fetchAccount(transfer.to),
+            this.#fetchAssetMetadata(chainId, transfer.asset),
+          ])
+
+          const from = this.#normaliseAddress(transfer.from, fromAccount)
+          const to = this.#normaliseAddress(transfer.to, toAccount)
+          const type = this.#classifyTransfer(from, to, fromAccount, toAccount)
 
           const tf: Transfer = {
             ...transfer,
@@ -107,18 +116,17 @@ export class TransfersTracker {
             toFormatted: isEVMAddress(to) ? to : transfer.toFormatted,
           }
 
-          const metadata = await this.#fetchAssetMetadata(chainId, transfer.asset)
-
-          if (!metadata) {
-            return { ...tf, chainId } satisfies EnrichedTransfer
+          if (!asset) {
+            return { ...tf, chainId, type } satisfies EnrichedTransfer
           }
 
           return {
             ...tf,
             chainId,
-            decimals: metadata.decimals,
-            symbol: metadata.symbol,
-            volume: await this.#resolveVolume(metadata, transfer.amount),
+            type,
+            decimals: asset.decimals,
+            symbol: asset.symbol,
+            volume: await this.#resolveVolume(asset, transfer.amount),
           } satisfies EnrichedTransfer
         }, MAX_CONCURRENCY),
       )
@@ -126,7 +134,31 @@ export class TransfersTracker {
         next: (enriched: EnrichedTransfer) => this.#subject.next(enriched),
         error: (err) => this.#log.error(err, '[%s:%s] Error on chain stream', this.#id, chainId),
       })
+
     this.#streams[chainId] = sub
+  }
+
+  #classifyTransfer(
+    from: HexString,
+    to: HexString,
+    fromAccount?: SubstrateAccountMetadata,
+    toAccount?: SubstrateAccountMetadata,
+  ): IcTransferType {
+    const fromTag = fromAccount?.tags.find(
+      ({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'),
+    )
+    const toTag = toAccount?.tags.find(({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'))
+
+    const fromSystem = isSystemAccount(from) || fromTag !== undefined
+    const toSystem = isSystemAccount(to) || toTag !== undefined
+
+    if (fromSystem && toSystem) {
+      return 'system'
+    }
+    if (fromSystem || toSystem) {
+      return 'mixed'
+    }
+    return 'user'
   }
 
   async #fetchAssetMetadata(anchor: string, assetId: string): Promise<AssetMetadata | undefined> {
@@ -150,9 +182,8 @@ export class TransfersTracker {
     return isAssetMetadata(result) ? result : undefined
   }
 
-  async #normaliseAddress(address: HexString): Promise<HexString> {
+  #normaliseAddress(address: HexString, account?: SubstrateAccountMetadata): HexString {
     if (address.length === 42) {
-      const account = await this.#fetchAccount(address)
       if (account) {
         return account.publicKey
       }

@@ -3,7 +3,7 @@ import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateab
 /**
  * @public
  */
-export type IcTransferType = 'user' | 'protocol' | 'system'
+export type IcTransferType = 'user' | 'mixed' | 'system'
 
 /**
  * Intra-chain transfers table
