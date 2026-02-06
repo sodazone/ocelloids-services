@@ -5,6 +5,7 @@ import {
   QueryableApi,
   StreamableApi,
   SubscribableApi,
+  SubscribableWithReplayApi,
 } from './client'
 import { FullJourneyResponse, XcQueryArgs, XcQueryResponse, XcServerSentEventArgs } from './crosschain/types'
 
@@ -17,7 +18,7 @@ import {
   StewardQueryArgs,
   StewardServerSentEventArgs,
 } from './steward/types'
-import { IcTransferResponse, TransfersAgentInputs } from './transfers/types'
+import { IcTransferQueryArgs, IcTransferResponse, TransfersAgentInputs } from './transfers/types'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
 type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers'
@@ -155,6 +156,12 @@ export type CrosschainAgent = ReturnType<typeof createCrosschainAgent>
  */
 export function createTransfersAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): SubscribableApi<TransfersAgentInputs, IcTransferResponse> & OcelloidsClientApi {
+): SubscribableWithReplayApi<
+  TransfersAgentInputs,
+  IcTransferResponse,
+  IcTransferQueryArgs,
+  IcTransferResponse
+> &
+  OcelloidsClientApi {
   return createAgent<TransfersAgentInputs>('transfers', optsOrClient)
 }

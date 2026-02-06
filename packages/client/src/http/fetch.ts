@@ -63,6 +63,7 @@ export async function ocFetch<T>(url: string, ops?: DoFetchOptions): Promise<T> 
     }
 
     // Non-retryable or exhausted retries
+    console.log('error', response)
     throw new Error(`HTTP ${response.status}: ${response.statusText}`)
   }
 

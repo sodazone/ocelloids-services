@@ -4,6 +4,8 @@ import type {
   AnyJson,
   AnyQueryArgs,
   AnyQueryResultItem,
+  Message,
+  MessageHandler,
   QueryPagination,
   QueryParams,
   QueryResult,
@@ -67,6 +69,34 @@ export interface SubscribableApi<T = AnySubscriptionInputs, P = AnyJson> {
  */
 export interface QueryableApi<P = AnyJson, R = AnyJson> {
   query(args: P, pagination?: QueryPagination, options?: RequestOptions): Promise<QueryResult<R>>
+}
+
+/**
+ * Subscribable Agent with Replay + Query API.
+ *
+ * @public
+ */
+export interface SubscribableWithReplayApi<
+  T = AnySubscriptionInputs,
+  P extends { id: number } = { id: number },
+  Q = AnyJson,
+  R = AnyJson,
+> extends SubscribableApi<T, P>,
+    QueryableApi<Q, R> {
+  subscribeWithReplay<
+    P extends { id: number } = { id: number },
+    Q = AnyQueryArgs,
+    _R extends { id: number } = { id: number },
+  >(
+    subscription: SubscriptionId | T,
+    handlers: WebSocketHandlers<P>,
+    replayContext: {
+      toQueryArgs: (next?: number) => Q | null
+      onCompleteRange: () => void
+      onIncompleteRange: (rangeMissed: { start: number | null; end: number | null }) => Promise<void>
+    },
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
+  ): Promise<WebSocket>
 }
 
 /**
@@ -143,7 +173,7 @@ export interface OcelloidsClientApi {
  * @public
  */
 export class OcelloidsAgentApi<T>
-  implements SubscribableApi<T>, QueryableApi, StreamableApi, OcelloidsClientApi
+  implements SubscribableApi<T>, SubscribableWithReplayApi<T>, QueryableApi, StreamableApi, OcelloidsClientApi
 {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
@@ -320,6 +350,110 @@ export class OcelloidsAgentApi<T>
           await this.#withToken(`${baseUrl}/${this.#agentId}/${subscription}`),
           handlers,
         )
+  }
+
+  async subscribeWithReplay<
+    P extends { id: number } = { id: number },
+    Q = AnyQueryArgs,
+    R extends { id: number } = { id: number },
+  >(
+    subscription: SubscriptionId | T,
+    handlers: WebSocketHandlers<P>,
+    replayContext: {
+      toQueryArgs: (next?: number) => Q | null
+      onCompleteRange: () => void
+      onIncompleteRange: (rangeMissed: { start: number | null; end: number | null }) => Promise<void>
+    },
+    onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
+  ): Promise<WebSocket> {
+    const baseUrl = this.#config.wsUrl + '/ws/subs'
+
+    let firstLiveId: number | null = null
+    let lastEmitted: number | null = null
+    let replayStarted = false
+    let replayIncomplete = false
+
+    const emitReplayRange = async (ws: WebSocket, end?: number) => {
+      replayStarted = true
+      const replayQueryArgs = replayContext.toQueryArgs(end)
+      if (replayQueryArgs === null) {
+        return
+      }
+
+      let cursor: string | undefined
+
+      try {
+        do {
+          const result: QueryResult<R> = await this.query<Q, R>(
+            replayQueryArgs,
+            cursor ? { cursor } : undefined,
+          )
+
+          for (const item of result.items) {
+            handlers.onMessage({ payload: item } as any, ws!, undefined as any)
+          }
+
+          lastEmitted = result.items[result.items.length - 1].id
+          cursor = result.pageInfo?.hasNextPage ? result.pageInfo.endCursor : undefined
+        } while (cursor)
+      } catch (err) {
+        console.error(err, 'Error fetching replay range')
+        replayIncomplete = true
+      }
+    }
+
+    const wrappedOnMessage: MessageHandler<Message<P>> = async (message, socket, event) => {
+      try {
+        if (!replayStarted) {
+          firstLiveId = message.payload.id
+
+          await emitReplayRange(socket, firstLiveId)
+          if (replayIncomplete) {
+            await replayContext.onIncompleteRange({ start: lastEmitted, end: firstLiveId })
+          } else {
+            replayContext.onCompleteRange()
+          }
+        }
+      } catch (e) {
+        console.error(e, 'Error emitting replay range')
+      }
+
+      handlers.onMessage(message, socket, event)
+    }
+
+    const ws = isAnySubscriptionInputs(subscription)
+      ? openWebSocket<T, P>(
+          this.#config,
+          await this.#withToken(baseUrl),
+          { ...handlers, onMessage: wrappedOnMessage },
+          {
+            sub: {
+              args: subscription as any,
+              ephemeral: true,
+              agent: this.#agentId,
+            },
+            onDemandHandlers,
+          },
+        )
+      : openWebSocket<T, P>(
+          this.#config,
+          await this.#withToken(`${baseUrl}/${this.#agentId}/${subscription}`),
+          { ...handlers, onMessage: wrappedOnMessage },
+        )
+
+    // Fallback: no live messages yet → open-ended replay
+    queueMicrotask(async () => {
+      if (!replayStarted) {
+        await emitReplayRange(ws, undefined)
+        if (replayIncomplete) {
+          await replayContext.onIncompleteRange({ start: lastEmitted, end: firstLiveId })
+        } else {
+          replayContext.onCompleteRange()
+        }
+      }
+    })
+
+    return ws
   }
 
   async #withToken(base: string) {
