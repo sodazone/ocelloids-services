@@ -147,9 +147,11 @@ export function mergeAccountMetadata(
   let changed = false
 
   const evmMap = new Map<string, SubstrateAccountMetadata['evm'][number]>()
+
   for (const e of persisted.evm ?? []) {
     evmMap.set(`${e.chainId}|${e.address}`, e)
   }
+
   for (const e of incoming.evm ?? []) {
     const key = `${e.chainId}|${e.address}`
     if (!evmMap.has(key)) {
@@ -157,12 +159,15 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
+
   const evm = Array.from(evmMap.values())
 
   const identityMap = new Map<NetworkURN, SubstrateAccountMetadata['identities'][number]>()
+
   for (const i of persisted.identities ?? []) {
     identityMap.set(i.chainId, i)
   }
+
   for (const i of incoming.identities ?? []) {
     const existing = identityMap.get(i.chainId)
     if (!existing || !deepEqualIdentity(existing, i)) {
@@ -170,16 +175,24 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
+
   const identities = Array.from(identityMap.values())
 
-  const tagSet = new Set<string>(persisted.tags ?? [])
-  for (const tag of incoming.tags ?? []) {
-    if (!tagSet.has(tag)) {
-      tagSet.add(tag)
+  const tagMap = new Map<string, SubstrateAccountMetadata['tags'][number]>()
+
+  for (const t of persisted.tags ?? []) {
+    tagMap.set(`${t.chainId}|${t.tag}`, t)
+  }
+
+  for (const t of incoming.tags ?? []) {
+    const key = `${t.chainId}|${t.tag}`
+    if (!tagMap.has(key)) {
+      tagMap.set(key, t)
       changed = true
     }
   }
-  const tags = Array.from(tagSet)
+
+  const tags = Array.from(tagMap.values())
 
   if (!changed) {
     return persisted
@@ -302,16 +315,6 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
-export function getAavePoolAddress(reserve: string, atoken: string): [HexString, HexString] {
-  const id = reserve + '/' + atoken
-  const name = textEncoder.encode(id)
-  const poolKey = blake2b(new Uint8Array(name), {
-    dkLen: 32,
-  })
-  const evmPoolKey = poolKey.subarray(0, 20)
-  return [toHex(poolKey) as HexString, toHex(evmPoolKey) as HexString]
-}
-
 export function getStablePoolAddress(id: number): [HexString, HexString] {
   const bytes = Buffer.alloc(4)
   bytes.writeUInt32LE(id)
@@ -360,7 +363,7 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                         address: evmAddress,
                       },
                     ],
-                    tags: [`defi:stableswap-${poolIdInt}`],
+                    tags: [{ chainId, tag: `protocol:stableswap-${poolIdInt}` }],
                   })
                 }),
               )
@@ -372,10 +375,49 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
   )
 }
 
+function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
+  const chainId = networks.hydration
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) => {
+      const codec = apiCtx.storageCodec('XYK', 'PoolAssets')
+      const hashers = apiCtx.getHashers('XYK', 'PoolAssets')
+      const prefix = codec.keys.enc() as HexString
+      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
+        expand((keys) =>
+          keys.length === STORAGE_PAGE_LEN
+            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
+            : EMPTY,
+        ),
+        mergeMap((storageKeys) =>
+          storageKeys.map((key) => {
+            const publicKey = itemKeyFromStorageKey(key, prefix, hashers)
+            const evmAddress = publicKey.slice(0, 42) as HexString
+
+            return {
+              publicKey,
+              evm: [
+                {
+                  chainId,
+                  address: evmAddress,
+                },
+              ],
+              tags: [{ chainId, tag: `protocol:xyk` }],
+            }
+          }),
+        ),
+      )
+    }),
+  )
+}
+
 export const extraAccountMeta$: Record<
   string,
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
 > = {
   [networks.hydration]: (ingress) =>
-    merge(hydrationEvmAccounts$(ingress), hydrationStableswapAccounts$(ingress)),
+    merge(
+      hydrationEvmAccounts$(ingress),
+      hydrationStableswapAccounts$(ingress),
+      hydrationXykAccounts$(ingress),
+    ),
 }

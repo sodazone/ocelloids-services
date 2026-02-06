@@ -13,7 +13,7 @@ export type SubstrateAccountMetadata = {
     judgements: string[]
     extra: Record<string, any>
   }[]
-  tags: string[]
+  tags: { chainId: NetworkURN; tag: string }[]
   updatedAt: number
 }
 
