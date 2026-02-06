@@ -1,9 +1,5 @@
 import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
-
-/**
- * @public
- */
-export type IcTransferType = 'user' | 'mixed' | 'system'
+import { IcTransferType } from '../types.js'
 
 /**
  * Intra-chain transfers table

@@ -15,9 +15,11 @@ export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 /**
  * @public
  */
-
 export const $IcTransferType = z.enum(['user', 'mixed', 'system'])
 
+/**
+ * @public
+ */
 export const $TransfersFilters = z.object({
   types: z.optional(z.array($IcTransferType).min(1).max(3)),
   networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
@@ -30,12 +32,23 @@ export const $TransfersFilters = z.object({
   sentAtLte: z.optional(z.number()),
 })
 
-export const $TransferRangeFilters = z.object({
-  start: z.number(),
-  end: z.number(),
-  networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
-})
+/**
+ * @public
+ */
+export const $TransferRangeFilters = z
+  .object({
+    start: z.number().optional(),
+    end: z.number().optional(),
+    networks: z.array($NetworkString).min(1).max(50).transform(uniqueArray).optional(),
+  })
+  .refine((data) => data.start === undefined || data.end === undefined || data.start < data.end, {
+    message: '`start` must be less than `end`',
+    path: ['start'],
+  })
 
+/**
+ * @public
+ */
 export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('transfers.list'),
@@ -53,9 +66,21 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   }),
 ])
 
+/**
+ * @public
+ */
 export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
+/**
+ * @public
+ */
 export type TransfersFilters = z.infer<typeof $TransfersFilters>
+/**
+ * @public
+ */
 export type IcTransferType = z.infer<typeof $IcTransferType>
+/**
+ * @public
+ */
 export type TransferRangeFilters = z.infer<typeof $TransferRangeFilters>
 
 export type TransfersSubscriptionHandler = {

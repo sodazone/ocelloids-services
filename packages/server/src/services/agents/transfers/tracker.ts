@@ -144,10 +144,12 @@ export class TransfersTracker {
     fromAccount?: SubstrateAccountMetadata,
     toAccount?: SubstrateAccountMetadata,
   ): IcTransferType {
-    const fromTag = fromAccount?.tags.find(
-      ({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'),
-    )
-    const toTag = toAccount?.tags.find(({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'))
+    const fromTag = fromAccount?.tags
+      ? fromAccount.tags.find(({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'))
+      : undefined
+    const toTag = toAccount?.tags
+      ? toAccount.tags.find(({ tag }) => tag.startsWith('protocol') || tag.startsWith('system'))
+      : undefined
 
     const fromSystem = isSystemAccount(from) || fromTag !== undefined
     const toSystem = isSystemAccount(to) || toTag !== undefined

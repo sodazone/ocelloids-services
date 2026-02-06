@@ -42,6 +42,7 @@ export class IntrachainTransfersRepository {
     return transfer
   }
 
+  // List transfers in range of ids in ascending order
   async listTransfersByRange(
     filters: TransferRangeFilters,
     pagination?: QueryPagination,
@@ -56,12 +57,14 @@ export class IntrachainTransfersRepository {
     const queryLimit = limit + 1
     const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
 
-    let query = this.#db
-      .selectFrom('ic_transfers')
-      .selectAll()
-      .where('id', '>=', filters.start)
-      .where('id', '<=', filters.end)
+    let query = this.#db.selectFrom('ic_transfers').selectAll()
 
+    if (filters.start) {
+      query = query.where('id', '>=', filters.start)
+    }
+    if (filters.end) {
+      query = query.where('id', '<=', filters.end)
+    }
     if (filters.networks) {
       query = query.where('network', 'in', filters.networks)
     }
@@ -69,13 +72,14 @@ export class IntrachainTransfersRepository {
     if (cursor) {
       query = query.where((eb) =>
         eb.or([
-          eb('sent_at', '<', cursor.timestamp),
-          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '<', cursor.id)]),
+          eb('sent_at', '>', cursor.timestamp),
+          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '>', cursor.id)]),
         ]),
       )
     }
 
-    const rows = await query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(queryLimit).execute()
+    const rows = await query.orderBy('sent_at', 'asc').orderBy('id', 'asc').limit(queryLimit).execute()
+
     const hasNextPage = rows.length > limit
     const nodes = hasNextPage ? rows.slice(0, limit) : rows
     const endCursor = nodes.length > 0 ? encodeCursor(nodes as any[]) : ''

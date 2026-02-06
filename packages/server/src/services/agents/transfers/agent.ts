@@ -222,9 +222,6 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
     filters: TransferRangeFilters,
     pagination?: QueryPagination,
   ): Promise<QueryResult<IcTransferResponse>> {
-    if (filters.start > filters.end) {
-      throw new Error('Invalid transfer range')
-    }
     const result = await this.#repository.listTransfersByRange(filters, pagination)
 
     return {
@@ -258,7 +255,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
             }
             this.#notifier.publish(handler.subscription, {
               metadata: {
-                type: 'transfers',
+                type: 'transfers.realtime',
                 subscriptionId: id,
                 agentId: this.id,
                 networkId: payload.network as NetworkURN,
