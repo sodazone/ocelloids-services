@@ -1,7 +1,7 @@
 import { type MessageEvent } from 'isows'
 
-import type { AnyJson, Message } from './server-types'
-import { type MessageHandler } from './types'
+import type { AnyJson, Message } from '../server-types'
+import { type MessageHandler } from '../types'
 
 /**
  * Type guard to check if a value is a Blob.

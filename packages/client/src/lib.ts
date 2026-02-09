@@ -6,7 +6,9 @@
  * @packageDocumentation
  */
 export * from './agent'
-export * from './client'
+export * from './core/api'
+export * from './core/client'
+export * from './core/types'
 export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
 export * from './query'
 export type {
@@ -42,6 +44,8 @@ export { steward }
 
 import * as crosschain from './crosschain/types'
 export { crosschain }
+
+export * from './transfers/agent'
 
 import * as transfers from './transfers/types'
 export { transfers }
