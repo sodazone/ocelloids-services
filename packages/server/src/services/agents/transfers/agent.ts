@@ -12,7 +12,7 @@ import {
   Subscription as RxSubscription,
   Subject,
 } from 'rxjs'
-import { asPublicKey, asSerializable, ControlQuery, Criteria, deepCamelize } from '@/common/index.js'
+import { asPublicKey, asSerializable, ControlQuery, Criteria } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
@@ -30,10 +30,10 @@ import {
   QueryResult,
   Subscribable,
 } from '../types.js'
-import { mapTransferToRow } from './convert.js'
+import { mapRowToTransferResponse, mapTransferToRow } from './convert.js'
 import { createIntrachainTransfersDatabase } from './repositories/db.js'
 import { IntrachainTransfersRepository } from './repositories/repository.js'
-import { IcTransfer, IcTransferResponse } from './repositories/types.js'
+import { IcTransferResponse } from './repositories/types.js'
 import { TransfersTracker } from './tracker.js'
 import {
   $IcTransferQueryArgs,
@@ -114,7 +114,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
         MAX_CONCURRENCY,
       ),
       filter((tf) => tf !== null),
-      map((icTransfer) => deepCamelize<IcTransfer>(icTransfer)),
+      map(mapRowToTransferResponse),
     )
     this.#icTransfers$ = connectable(pipeline$, {
       connector: () => new Subject<IcTransferResponse>(),
@@ -214,7 +214,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map((tf) => deepCamelize<IcTransfer>(tf)),
+      items: result.nodes.map(mapRowToTransferResponse),
     }
   }
 
@@ -226,14 +226,14 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map((tf) => deepCamelize<IcTransfer>(tf)),
+      items: result.nodes.map(mapRowToTransferResponse),
     }
   }
 
   async getTransferById({ id }: { id: number }): Promise<QueryResult<IcTransferResponse>> {
     try {
       const transfer = await this.#repository.getTransferById(id)
-      return { items: [deepCamelize<IcTransfer>(transfer)] }
+      return { items: [mapRowToTransferResponse(transfer)] }
     } catch (err) {
       this.#log.error(err, '[%s] Error fetching transfer by id (id=%s)', this.id, id)
       return { items: [] }

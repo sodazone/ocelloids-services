@@ -38,7 +38,6 @@ function toTransfer(
       module,
       name,
       blockPosition,
-      value,
     },
     extrinsic,
   }

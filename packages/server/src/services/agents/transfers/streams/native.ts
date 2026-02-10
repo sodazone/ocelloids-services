@@ -30,7 +30,6 @@ export function nativeTransfers$(blockEvents$: Observable<BlockEvent>): Observab
           module,
           name,
           blockPosition,
-          value,
         },
         extrinsic,
       }

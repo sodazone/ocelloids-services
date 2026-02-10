@@ -8,12 +8,12 @@ import { IcTransferType } from '../types.js'
  */
 export interface IcTransferTable {
   id: Generated<number>
-  transfer_hash: ColumnType<string>
+  transfer_hash: ColumnType<Uint8Array>
   type: ColumnType<IcTransferType>
 
   network: ColumnType<string>
   block_number: ColumnType<string>
-  block_hash: ColumnType<string>
+  block_hash: ColumnType<Uint8Array>
   event_index: ColumnType<number>
 
   from: ColumnType<string>
@@ -26,8 +26,8 @@ export interface IcTransferTable {
 
   event: JSONColumnType<any>
   transaction: JSONColumnType<any>
-  tx_primary: ColumnType<string | undefined>
-  tx_secondary: ColumnType<string | undefined>
+  tx_primary: ColumnType<Uint8Array | undefined>
+  tx_secondary: ColumnType<Uint8Array | undefined>
 
   asset: ColumnType<string>
   symbol: ColumnType<string | undefined>

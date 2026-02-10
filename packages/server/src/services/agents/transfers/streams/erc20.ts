@@ -82,7 +82,6 @@ export function erc20Transfers$(
           module,
           name,
           blockPosition,
-          value,
         },
         extrinsic,
       } satisfies Transfer

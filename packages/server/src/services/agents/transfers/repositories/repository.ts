@@ -1,4 +1,5 @@
 import { Kysely } from 'kysely'
+import { fromHex } from 'polkadot-api/utils'
 import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
 import { TransferRangeFilters, TransfersFilters } from '../types.js'
@@ -109,8 +110,9 @@ export class IntrachainTransfersRepository {
     let query = this.#db.selectFrom('ic_transfers').selectAll()
 
     if (filters?.txHash) {
+      const txHashBlob = fromHex(filters.txHash)
       query = query.where((qb) =>
-        qb.or([qb('tx_primary', '=', filters.txHash), qb('tx_secondary', '=', filters.txHash)]),
+        qb.or([qb('tx_primary', '=', txHashBlob), qb('tx_secondary', '=', txHashBlob)]),
       )
     }
 

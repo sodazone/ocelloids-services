@@ -106,7 +106,6 @@ export type Transfer = {
     module: string
     name: string
     blockPosition: number
-    value: Record<string, any>
   }
   extrinsic?: AnyJson
 }

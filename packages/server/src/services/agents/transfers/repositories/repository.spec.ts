@@ -36,7 +36,6 @@ describe('IntrachainTransfersRepository', () => {
         blockPosition: 5,
         module: 'balances',
         name: 'transfer',
-        value: {},
       },
       extrinsic: {
         hash: '0x14be5b38dcdc2e8fad87ac54ed5e254813ea4f07bdc8a93d8d22fac6f898f306',
@@ -63,7 +62,6 @@ describe('IntrachainTransfersRepository', () => {
         blockPosition: 9,
         module: 'another',
         name: 'transfer',
-        value: {},
       },
     })
 
