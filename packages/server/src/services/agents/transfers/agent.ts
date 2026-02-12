@@ -11,6 +11,7 @@ import {
   mergeMap,
   Subscription as RxSubscription,
   Subject,
+  tap,
 } from 'rxjs'
 import { asPublicKey, asSerializable, ControlQuery, Criteria } from '@/common/index.js'
 import { Egress } from '@/services/egress/index.js'
@@ -127,6 +128,12 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
       ),
       filter((tf) => tf !== null),
       map(mapRowToTransferResponse),
+      tap((data) =>
+        this.#broadcaster.send({
+          event: 'new_transfer',
+          data,
+        }),
+      ),
     )
     this.#icTransfers$ = connectable(pipeline$, {
       connector: () => new Subject<IcTransferResponse>(),
