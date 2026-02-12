@@ -65,7 +65,7 @@ export class AccountsMetadataManager {
 
   async start() {
     const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ACCOUNT_METADATA_SYNC_TASK))
-    if (this.#sched.enabled /*&& ((await this.#isNotScheduled()) || !alreadyScheduled)*/) {
+    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
       await this.#scheduleSync()
 
       // first-time sync

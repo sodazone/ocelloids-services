@@ -28,16 +28,21 @@ import {
   QueryPagination,
   QueryParams,
   QueryResult,
+  ServerSentEventsBroadcaster,
+  ServerSentEventsRequest,
+  Streamable,
   Subscribable,
 } from '../types.js'
 import { mapRowToTransferResponse, mapTransferToRow } from './convert.js'
 import { createIntrachainTransfersDatabase } from './repositories/db.js'
 import { IntrachainTransfersRepository } from './repositories/repository.js'
 import { IcTransferResponse } from './repositories/types.js'
+import { createTransfersBroadcaster } from './sse.js'
 import { TransfersTracker } from './tracker.js'
 import {
   $IcTransferQueryArgs,
   $TransfersAgentInputs,
+  $TransfersFilters,
   IcTransferQueryArgs,
   TransferRangeFilters,
   TransfersAgentInputs,
@@ -51,7 +56,7 @@ const MAX_CONCURRENCY = 5
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
 
-export class TransfersAgent implements Agent, Subscribable, Queryable {
+export class TransfersAgent implements Agent, Subscribable, Queryable, Streamable {
   id = TRANSFERS_AGENT_ID
   metadata: AgentMetadata = {
     name: 'Transfers Agent',
@@ -59,12 +64,14 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
     capabilities: getAgentCapabilities(this),
   }
   querySchema = $IcTransferQueryArgs
+  streamFilterSchema = $TransfersFilters
 
   readonly inputSchema = $TransfersAgentInputs
   readonly #log: Logger
   readonly #notifier: Egress
   readonly #repository: IntrachainTransfersRepository
   readonly #migrator: Migrator
+  readonly #broadcaster: ServerSentEventsBroadcaster
 
   readonly #tracker: TransfersTracker
   readonly #icTransfers$: Connectable<IcTransferResponse>
@@ -85,6 +92,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
     this.#log = ctx.log
     this.#notifier = ctx.egress
+    this.#broadcaster = createTransfersBroadcaster()
     this.#tracker = new TransfersTracker({
       log: ctx.log,
       ingress: ingress.substrate,
@@ -221,6 +229,10 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
   update(subscriptionId: string, patch: Operation[]): Subscription {
     throw new Error('Update not supported')
+  }
+
+  onServerSentEventsRequest(request: ServerSentEventsRequest<TransfersFilters>) {
+    this.#broadcaster.stream(request)
   }
 
   async listTransfers(

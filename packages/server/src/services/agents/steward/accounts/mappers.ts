@@ -8,9 +8,9 @@ import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
-import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 import { assetOverrides } from '../metadata/overrides.js'
 import { hydrationOverrides } from './overrides.js'
+import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const STORAGE_PAGE_LEN = 100
 const textEncoder = new TextEncoder()
@@ -420,8 +420,8 @@ function hydrationOverrideAccounts$(): Observable<SubstrateAccountUpdate> {
 function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
   const chainId = networks.moonbeam
   return from(assetOverrides).pipe(
-    filter(a => a.chainId === chainId && typeof a.id === 'string' && a.id.startsWith('0x')),
-    map(a => {
+    filter((a) => a.chainId === chainId && typeof a.id === 'string' && a.id.startsWith('0x')),
+    map((a) => {
       return {
         publicKey: toHex(padAccountKey20(a.id as HexString)) as HexString,
         evm: [
@@ -432,7 +432,7 @@ function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
         ],
         tags: [{ chainId, tag: `protocol:token` }],
       }
-    })
+    }),
   )
 }
 
@@ -445,7 +445,7 @@ export const extraAccountMeta$: Record<
       hydrationEvmAccounts$(ingress),
       hydrationStableswapAccounts$(ingress),
       hydrationXykAccounts$(ingress),
-      hydrationOverrideAccounts$()
+      hydrationOverrideAccounts$(),
     ),
-  [networks.moonbeam]: () => moonbeamTokenAccounts$()
+  [networks.moonbeam]: () => moonbeamTokenAccounts$(),
 }

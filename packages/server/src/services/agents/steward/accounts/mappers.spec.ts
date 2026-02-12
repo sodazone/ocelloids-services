@@ -1,6 +1,4 @@
-import { toHex } from 'polkadot-api/utils'
 import { getStablePoolAddress } from './mappers.js'
-import { padAccountKey20 } from '@/common/address.js'
 
 describe('mappers', () => {
   describe('getStablePoolAddress', () => {
