@@ -22,21 +22,35 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('block_number', 'text', (cb) => cb.notNull())
       .addColumn('block_hash', 'blob', (cb) => cb.notNull())
       .addColumn('event_index', 'integer', (cb) => cb.notNull())
+      .addColumn('event_module', 'text', (cb) => cb.notNull())
+      .addColumn('event_name', 'text', (cb) => cb.notNull())
       .addColumn('from', 'text', (cb) => cb.notNull())
       .addColumn('to', 'text', (cb) => cb.notNull())
       .addColumn('from_formatted', 'text')
       .addColumn('to_formatted', 'text')
       .addColumn('sent_at', 'timestamp')
       .addColumn('created_at', 'timestamp', (cb) => cb.notNull().defaultTo(sql`current_timestamp`))
-      .addColumn('event', 'json', (cb) => cb.notNull())
-      .addColumn('transaction', 'json', (cb) => cb.notNull())
       .addColumn('tx_primary', 'blob')
       .addColumn('tx_secondary', 'blob')
+      .addColumn('tx_index', 'integer')
+      .addColumn('tx_module', 'text')
+      .addColumn('tx_method', 'text')
+      .addColumn('tx_signer', 'blob')
       .addColumn('asset', 'text', (cb) => cb.notNull())
       .addColumn('symbol', 'text')
       .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer')
       .addColumn('usd', 'decimal')
+      .execute()
+
+    await db.schema
+      .createTable('ic_asset_volume_cache')
+      .ifNotExists()
+      .addColumn('asset', 'text', (cb) => cb.primaryKey())
+      .addColumn('symbol', 'text')
+      .addColumn('usd_volume', 'real', (cb) => cb.notNull())
+      .addColumn('snapshot_start', 'integer', (cb) => cb.notNull())
+      .addColumn('snapshot_end', 'integer', (cb) => cb.notNull())
       .execute()
 
     await db.schema
@@ -51,6 +65,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('ic_transfers')
       .column('tx_secondary')
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_network_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .column('network')
       .execute()
 
     await db.schema
@@ -94,6 +115,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .on('ic_transfers')
       .columns(['asset', 'sent_at', 'id'])
       .execute()
+
+    await db.schema
+      .createIndex('ic_asset_volume_cache_snapshot_volume_index')
+      .ifNotExists()
+      .on('ic_asset_volume_cache')
+      .columns(['snapshot_start', 'snapshot_end', 'usd_volume', 'asset'])
+      .execute()
   } catch (error) {
     console.error(error)
     throw error
@@ -102,4 +130,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('ic_transfers').execute()
+  await db.schema.dropTable('ic_asset_volume_cache').execute()
 }

@@ -64,6 +64,12 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('transfers.by_id_range'),
     criteria: $TransferRangeFilters,
   }),
+  z.object({
+    op: z.literal('networks.list'),
+  }),
+  z.object({
+    op: z.literal('assets.list'),
+  }),
 ])
 
 /**

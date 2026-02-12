@@ -45,6 +45,8 @@ import {
   TransfersSubscriptionHandler,
 } from './types.js'
 
+const IC_ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
+
 const MAX_CONCURRENCY = 5
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
@@ -69,6 +71,8 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
   readonly #subs: Map<string, TransfersSubscriptionHandler> = new Map()
   #connection?: RxSubscription
+
+  #assetCacheRefreshTask?: NodeJS.Timeout
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -147,10 +151,23 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
       }
     }
 
+    const latest = await this.#repository.getLatestSnapshot()
+
+    if (!latest || Date.now() - new Date(latest.snapshot_end).getTime() > IC_ASSET_CACHE_REFRESH) {
+      await this.#refreshAssetCache()
+    }
+
+    this.#assetCacheRefreshTask = setInterval(
+      this.#refreshAssetCache.bind(this),
+      IC_ASSET_CACHE_REFRESH,
+    ).unref()
+
     this.#log.info('[agent:%s] started', this.id)
   }
 
   stop() {
+    clearInterval(this.#assetCacheRefreshTask)
+
     if (this.#connection) {
       this.#connection.unsubscribe()
     }
@@ -170,6 +187,10 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
         return this.getTransferById(params.args.criteria)
       case 'transfers.by_id_range':
         return this.listTransfersByRange(params.args.criteria, params.pagination)
+      case 'assets.list':
+        return this.listAssets(params.pagination)
+      case 'networks.list':
+        return this.listNetworks()
       default:
         throw new Error('Unknown query op')
     }
@@ -240,6 +261,19 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
     }
   }
 
+  async listAssets(pagination?: QueryPagination): Promise<
+    QueryResult<{
+      asset: string
+      symbol?: string
+    }>
+  > {
+    return await this.#repository.listAssets(pagination)
+  }
+
+  async listNetworks(): Promise<QueryResult<string>> {
+    return await this.#repository.listNetworks()
+  }
+
   #monitor(subscription: Subscription<TransfersAgentInputs>): TransfersSubscriptionHandler {
     const { id, args } = subscription
     const networksControl = ControlQuery.from(this.#networkCriteria(args.networks))
@@ -303,6 +337,15 @@ export class TransfersAgent implements Agent, Subscribable, Queryable {
 
     return {
       network: { $in: networks },
+    }
+  }
+
+  async #refreshAssetCache() {
+    try {
+      await this.#repository.refreshAssetSnapshot()
+      this.#log.info('[agent:%s] asset volume cache table refreshed', this.id)
+    } catch (error) {
+      this.#log.error(error, '[agent:%s] error on refreshing asset volume cache table', this.id)
     }
   }
 }

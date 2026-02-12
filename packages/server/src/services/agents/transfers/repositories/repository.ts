@@ -7,6 +7,30 @@ import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.
 
 const MAX_LIMIT = 100
 
+function encodeAssetsListCursor(
+  row: { asset: string; usd_volume: number },
+  snapshotStart: number,
+  snapshotEnd: number,
+): string {
+  return Buffer.from(
+    JSON.stringify({
+      asset: row.asset,
+      usd_volume: row.usd_volume,
+      snapshotStart,
+      snapshotEnd,
+    }),
+  ).toString('base64')
+}
+
+function decodeAssetsListCursor(cursor: string): {
+  asset: string
+  usd_volume: number
+  snapshotStart: number
+  snapshotEnd: number
+} {
+  return JSON.parse(Buffer.from(cursor, 'base64').toString())
+}
+
 export class IntrachainTransfersRepository {
   readonly #db: Kysely<IntrachainTransfersDatabase>
 
@@ -182,6 +206,131 @@ export class IntrachainTransfersRepository {
         hasNextPage,
         endCursor,
       },
+    }
+  }
+
+  async listNetworks() {
+    const rows = await this.#db
+      .selectFrom('ic_transfers')
+      .select('network')
+      .distinct()
+      .orderBy('network', 'asc')
+      .execute()
+
+    return {
+      items: rows.map((r) => r.network),
+      pageInfo: { hasNextPage: false, endCursor: '' },
+    }
+  }
+
+  async getLatestSnapshot() {
+    return await this.#db
+      .selectFrom('ic_asset_volume_cache')
+      .select(['snapshot_start', 'snapshot_end'])
+      .orderBy('snapshot_end', 'desc')
+      .limit(1)
+      .executeTakeFirst()
+  }
+
+  async refreshAssetSnapshot(): Promise<void> {
+    try {
+      const snapshot_end = Date.now()
+      const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
+
+      const results = await this.#db
+        .selectFrom('ic_transfers')
+        .select((eb) => ['asset', 'symbol', eb.fn.coalesce(eb.fn.sum('usd'), eb.val(0)).as('usd_volume')])
+        .where('sent_at', '>=', snapshot_start)
+        .where('sent_at', '<=', snapshot_end)
+        .groupBy(['asset', 'symbol'])
+        .execute()
+
+      if (results.length === 0) {
+        return
+      }
+
+      await this.#db
+        .insertInto('ic_asset_volume_cache')
+        .values(
+          results.map((r) => ({
+            asset: r.asset,
+            symbol: r.symbol,
+            usd_volume: Number(r.usd_volume),
+            snapshot_start,
+            snapshot_end,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.column('asset').doUpdateSet((eb) => ({
+            symbol: eb.ref('excluded.symbol'),
+            usd_volume: eb.ref('excluded.usd_volume'),
+            snapshot_start: eb.ref('excluded.snapshot_start'),
+            snapshot_end: eb.ref('excluded.snapshot_end'),
+          })),
+        )
+        .execute()
+    } catch (err) {
+      console.error('Error refreshing IC asset snapshot:', err)
+    }
+  }
+
+  async listAssets(pagination?: QueryPagination): Promise<{
+    items: Array<{ asset: string; symbol?: string }>
+    pageInfo: { hasNextPage: boolean; endCursor: string }
+  }> {
+    const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
+    const queryLimit = limit + 1
+
+    let snapshotStart: number | undefined
+    let snapshotEnd: number | undefined
+    let afterAsset: string | undefined
+    let afterUsdVolume: number | undefined
+
+    if (pagination?.cursor) {
+      const decoded = decodeAssetsListCursor(pagination.cursor)
+      snapshotStart = decoded.snapshotStart
+      snapshotEnd = decoded.snapshotEnd
+      afterAsset = decoded.asset
+      afterUsdVolume = decoded.usd_volume
+    }
+
+    // Get latest snapshot if no cursor
+    if (!snapshotStart || !snapshotEnd) {
+      const latest = await this.getLatestSnapshot()
+      if (!latest) {
+        return { items: [], pageInfo: { hasNextPage: false, endCursor: '' } }
+      }
+      snapshotStart = latest.snapshot_start
+      snapshotEnd = latest.snapshot_end
+    }
+
+    let query = this.#db
+      .selectFrom('ic_asset_volume_cache')
+      .select(['asset', 'symbol', 'usd_volume'])
+      .where('snapshot_start', '=', snapshotStart)
+      .where('snapshot_end', '=', snapshotEnd)
+
+    // Cursor for pagination
+    if (afterAsset && afterUsdVolume !== undefined) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('usd_volume', '<', afterUsdVolume),
+          eb.and([eb('usd_volume', '=', afterUsdVolume), eb('asset', '>', afterAsset)]),
+        ]),
+      )
+    }
+
+    const rows = await query.orderBy('usd_volume', 'desc').orderBy('asset', 'asc').limit(queryLimit).execute()
+
+    const hasNextPage = rows.length > limit
+    const items = hasNextPage ? rows.slice(0, limit) : rows
+    const endCursor = hasNextPage
+      ? encodeAssetsListCursor(items[items.length - 1], snapshotStart, snapshotEnd)
+      : ''
+
+    return {
+      items: items.map((r) => ({ asset: r.asset, symbol: r.symbol })),
+      pageInfo: { hasNextPage, endCursor },
     }
   }
 }

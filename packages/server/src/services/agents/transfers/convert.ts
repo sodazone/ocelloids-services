@@ -1,10 +1,26 @@
 import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { asJSON, deepCamelize, stringToUa8 } from '@/common/util.js'
+import { asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
 import { EnrichedTransfer } from './types.js'
+
+function toSignerBlob(signer: any) {
+  if (signer === null || signer === undefined) {
+    return
+  }
+  if (typeof signer === 'string') {
+    return fromHex(asPublicKey(signer))
+  }
+  if (typeof signer === 'object') {
+    const { type, value } = signer as { type: string; value: string }
+    if (type.toLowerCase() === 'id') {
+      return fromHex(asPublicKey(value))
+    }
+  }
+  return
+}
 
 export function isSystemAccount(address: Buffer | HexString) {
   const addressBuf = typeof address === 'string' ? Buffer.from(address.slice(2), 'hex') : address
@@ -19,6 +35,7 @@ export function mapRowToTransferResponse(row: IcTransfer): IcTransferResponse {
     block_hash: toHex(row.block_hash),
     tx_primary: row.tx_primary ? toHex(row.tx_primary) : undefined,
     tx_secondary: row.tx_secondary ? toHex(row.tx_secondary) : undefined,
+    tx_signer: row.tx_signer ? toHex(row.tx_signer) : undefined,
   }
 
   return deepCamelize(response)
@@ -30,9 +47,9 @@ export function toTransferHash(t: EnrichedTransfer): Uint8Array {
 
 export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
   const tx = t.extrinsic ? (t.extrinsic as BlockExtrinsic) : undefined
-  const blockPosition = t.event.blockPosition
   const txHash = tx?.hash ? fromHex(tx.hash) : undefined
   const evmTxHash = tx?.evmTxHash ? fromHex(tx.evmTxHash) : undefined
+  const txSigner = toSignerBlob(tx?.address)
 
   return {
     type: t.type,
@@ -40,7 +57,7 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
     network: t.chainId,
     block_number: t.blockNumber,
     block_hash: fromHex(t.blockHash),
-    event_index: blockPosition,
+
     sent_at: t.timestamp,
     created_at: Date.now(),
 
@@ -57,16 +74,14 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
 
     tx_primary: txHash,
     tx_secondary: evmTxHash,
+    tx_index: tx?.blockPosition,
+    tx_module: tx?.module,
+    tx_method: tx?.method,
+    tx_signer: txSigner,
 
-    event: asJSON(t.event),
-    transaction: tx
-      ? asJSON({
-          index: tx.blockPosition,
-          module: tx.module,
-          method: tx.method,
-          signer: tx.address,
-        })
-      : '{}',
+    event_index: t.event.blockPosition,
+    event_module: t.event.module,
+    event_name: t.event.name,
   }
 }
 

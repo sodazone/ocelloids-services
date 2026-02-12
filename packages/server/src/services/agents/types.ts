@@ -239,7 +239,7 @@ export type AnyQueryArgs = Record<string, any>
  *
  * @public
  */
-export type AnyQueryResultItem = Record<string, any>
+export type AnyQueryResultItem = string | Record<string, any>
 
 /**
  * Query pagination options.
