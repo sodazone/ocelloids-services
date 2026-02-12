@@ -398,4 +398,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: '3b8x44flf9ooxaum3hhsgjpmvs6rzz3ppogngahc3uu7',
     },
   ],
+  HOLLAR: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '222',
+    },
+  ]
 }
