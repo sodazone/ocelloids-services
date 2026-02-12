@@ -1,7 +1,7 @@
 import { blake2b } from '@noble/hashes/blake2'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
-import { concatMap, EMPTY, expand, from, merge, mergeMap, Observable, of, switchMap } from 'rxjs'
+import { concatMap, EMPTY, expand, filter, from, map, merge, mergeMap, Observable, of, switchMap } from 'rxjs'
 import { padAccountKey20 } from '@/common/address.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
@@ -9,6 +9,8 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
+import { assetOverrides } from '../metadata/overrides.js'
+import { hydrationOverrides } from './overrides.js'
 
 const STORAGE_PAGE_LEN = 100
 const textEncoder = new TextEncoder()
@@ -351,9 +353,10 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                     return EMPTY
                   }
 
-                  const poolId = itemKeyFromStorageKey(storageKey, prefix, hashers)
-                  const poolIdInt = Number.parseInt(poolId.slice(2), 16)
-                  const [publicKey, evmAddress] = getStablePoolAddress(poolIdInt)
+                  const poolIdHex = itemKeyFromStorageKey(storageKey, prefix, hashers)
+                  const bytes = Buffer.from(poolIdHex.slice(2), 'hex')
+                  const poolId = bytes.readUInt32LE(0)
+                  const [publicKey, evmAddress] = getStablePoolAddress(poolId)
 
                   return of({
                     publicKey,
@@ -363,7 +366,7 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                         address: evmAddress,
                       },
                     ],
-                    tags: [{ chainId, tag: `protocol:stableswap-${poolIdInt}` }],
+                    tags: [{ chainId, tag: `protocol:stableswap-${poolId}` }],
                   })
                 }),
               )
@@ -410,6 +413,29 @@ function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
+function hydrationOverrideAccounts$(): Observable<SubstrateAccountUpdate> {
+  return from(hydrationOverrides)
+}
+
+function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
+  const chainId = networks.moonbeam
+  return from(assetOverrides).pipe(
+    filter(a => a.chainId === chainId && typeof a.id === 'string' && a.id.startsWith('0x')),
+    map(a => {
+      return {
+        publicKey: toHex(padAccountKey20(a.id as HexString)) as HexString,
+        evm: [
+          {
+            chainId,
+            address: a.id as HexString,
+          },
+        ],
+        tags: [{ chainId, tag: `protocol:token` }],
+      }
+    })
+  )
+}
+
 export const extraAccountMeta$: Record<
   string,
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
@@ -419,5 +445,7 @@ export const extraAccountMeta$: Record<
       hydrationEvmAccounts$(ingress),
       hydrationStableswapAccounts$(ingress),
       hydrationXykAccounts$(ingress),
+      hydrationOverrideAccounts$()
     ),
+  [networks.moonbeam]: () => moonbeamTokenAccounts$()
 }
