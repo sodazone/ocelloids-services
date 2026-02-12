@@ -40,6 +40,7 @@ export class TransfersAgentApi
       replay,
       {
         buildReplayQuery: this.#buildQuery(networks !== '*' ? networks : undefined),
+        buildMessageMetadata: this.#buildMetadata,
       },
       onDemandHandlers,
     )
@@ -59,6 +60,16 @@ export class TransfersAgentApi
           ...(to !== undefined ? { end: to - 1 } : {}),
         },
       }
+    }
+  }
+
+  #buildMetadata(payload: IcTransferResponse) {
+    return {
+      type: 'transfers.replay',
+      agentId: 'transfers',
+      networkId: payload.network,
+      timestamp: Date.now(),
+      blockTimestamp: payload.sentAt,
     }
   }
 }

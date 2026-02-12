@@ -240,6 +240,13 @@ export class OcelloidsAgentApi<T>
     },
     replayStrategy: {
       buildReplayQuery: (from?: number, to?: number) => Q | null
+      buildMessageMetadata: (payload: P) => {
+        type: string
+        agentId: string
+        networkId: string
+        timestamp: number
+        blockTimestamp?: number
+      }
     },
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
   ): Promise<WebSocket> {
@@ -275,7 +282,11 @@ export class OcelloidsAgentApi<T>
             }
 
             lastReplayed = item.id
-            handlers.onMessage({ payload: item } as any, ws, undefined as any)
+            handlers.onMessage(
+              { metadata: replayStrategy.buildMessageMetadata(item as any), payload: item } as any,
+              ws,
+              undefined as any,
+            )
             if (firstLiveId === null) {
               await replay.onPersist(item.id)
             }
