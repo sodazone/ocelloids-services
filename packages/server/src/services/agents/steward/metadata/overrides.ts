@@ -556,6 +556,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
     externalIds: [],
   },
   {
+    chainId: 'urn:ocn:polkadot:2004',
+    id: '0x27900f8fd93295f0a260e576fcf57f7c2119e172',
+    xid: '0x27900f8fd93295f0a260e576fcf57f7c2119e172',
+    name: 'Zuca',
+    symbol: 'ZUCA',
+    decimals: 18,
+    raw: {},
+    externalIds: [],
+  },
+  {
     chainId: 'urn:ocn:solana:101',
     id: 'so11111111111111111111111111111111111111112',
     xid: '0x069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001',
