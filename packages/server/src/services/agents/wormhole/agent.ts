@@ -221,6 +221,15 @@ export class WormholeAgent implements Agent {
 
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
 
+    if (op.vaa === undefined) {
+      this.#log.warn(
+        '[agent:%s] No VAA found in op %s (status=%s)',
+        this.id,
+        op.id,
+        journey.status
+      )
+    }
+
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
     if (!existingJourney) {
@@ -266,7 +275,9 @@ export class WormholeAgent implements Agent {
         update.trip_id = journey.trip_id
       }
 
-      update.stops = journey.stops
+      if (op.vaa !== undefined) {
+        update.stops = journey.stops
+      }
 
       await this.#repository.updateJourney(existingJourney.id, update)
       if (existingTrips.length > 0) {
