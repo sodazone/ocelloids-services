@@ -240,6 +240,7 @@ export class IntrachainTransfersRepository {
       const results = await this.#db
         .selectFrom('ic_transfers')
         .select((eb) => ['asset', 'symbol', eb.fn.coalesce(eb.fn.sum('usd'), eb.val(0)).as('usd_volume')])
+        .where('type', '=', 'user')
         .where('sent_at', '>=', snapshot_start)
         .where('sent_at', '<=', snapshot_end)
         .groupBy(['asset', 'symbol'])

@@ -2,7 +2,7 @@ import { mergeMap, Subscription as RxSubscription, Subject } from 'rxjs'
 import { normaliseDecimals } from '@/common/numbers.js'
 import { isEVMAddress } from '@/common/util.js'
 import { ValidationError } from '@/errors.js'
-import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
+import { normalizeAssetId, toMelbourne } from '@/services/agents/common/melbourne.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
 import {
   AssetMetadata,
@@ -170,13 +170,14 @@ export class TransfersTracker {
       return this.#fetchAssetByLocation(anchor, assetId)
     }
 
+    const aId = typeof assetId !== 'string' ? toMelbourne(assetId) : assetId
     const { items } = (await this.#steward.query({
       args: {
         op: 'assets',
         criteria: [
           {
             network: anchor,
-            assets: [JSON.stringify(assetId)],
+            assets: [aId],
           },
         ],
       },
