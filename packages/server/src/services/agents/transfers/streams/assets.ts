@@ -1,7 +1,6 @@
 import { filter, map, Observable } from 'rxjs'
 import { asPublicKey } from '@/common/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
-import { toMelbourne } from '../../steward/util.js'
 import { Transfer } from '../types.js'
 
 const ASSET_MODULES = ['assets', 'foreignassets']
@@ -25,7 +24,7 @@ function toTransfer(
   const assetId = value[opts.assetKey]
 
   return {
-    asset: toMelbourne(assetId),
+    asset: assetId,
     from: asPublicKey(from),
     to: asPublicKey(to),
     fromFormatted: from,

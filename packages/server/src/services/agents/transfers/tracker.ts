@@ -21,7 +21,7 @@ import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { QueryParams, QueryResult } from '../types.js'
 import { isSystemAccount, resolveEvmToSubstratePubKey } from './convert.js'
 import { transferStreamMappers } from './streams/index.js'
-import { EnrichedTransfer, IcTransferType, Transfer } from './types.js'
+import { EnrichedTransfer, IcTransferType, isXcmLocation, Transfer } from './types.js'
 
 const MAX_CONCURRENCY = 5
 
@@ -109,7 +109,6 @@ export class TransfersTracker {
 
           const tf: Transfer = {
             ...transfer,
-            asset: `${chainId}|${transfer.asset}`,
             from,
             to,
             fromFormatted: isEVMAddress(from) ? from : transfer.fromFormatted,
@@ -163,16 +162,42 @@ export class TransfersTracker {
     return 'user'
   }
 
-  async #fetchAssetMetadata(anchor: string, assetId: string): Promise<AssetMetadata | undefined> {
+  async #fetchAssetMetadata(
+    anchor: string,
+    assetId: string | number | Record<string, any>,
+  ): Promise<AssetMetadata | undefined> {
+    if (isXcmLocation(assetId)) {
+      return this.#fetchAssetByLocation(anchor, assetId)
+    }
+
     const { items } = (await this.#steward.query({
       args: {
         op: 'assets',
         criteria: [
           {
             network: anchor,
-            assets: [assetId],
+            assets: [JSON.stringify(assetId)],
           },
         ],
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
+
+    if (items.length === 0) {
+      return undefined
+    }
+
+    const result = items[0]
+    return isAssetMetadata(result) ? result : undefined
+  }
+
+  async #fetchAssetByLocation(
+    anchor: string,
+    assetId: { parents: number; interior: any },
+  ): Promise<AssetMetadata | undefined> {
+    const { items } = (await this.#steward.query({
+      args: {
+        op: 'assets.by_location',
+        criteria: [{ xcmLocationAnchor: anchor, locations: [JSON.stringify(assetId)] }],
       },
     } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
 

@@ -99,7 +99,7 @@ export type TransfersSubscriptionHandler = {
  * @public
  */
 export type Transfer = {
-  asset: string
+  asset: string | number | Record<string, any>
   from: HexString
   to: HexString
   fromFormatted: string
@@ -125,4 +125,11 @@ export type EnrichedTransfer = Transfer & {
   decimals?: number
   symbol?: string
   volume?: number
+}
+
+export function isXcmLocation(obj: any): obj is { parents: number; interior: any } {
+  if (obj !== undefined && obj !== null && typeof obj === 'object' && 'parents' in obj && 'interior' in obj) {
+    return true
+  }
+  return false
 }

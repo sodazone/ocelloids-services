@@ -1,6 +1,7 @@
 import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
+import { toMelbourne } from '@/services/agents/common/melbourne.js'
 import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
@@ -61,7 +62,7 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
     sent_at: t.timestamp,
     created_at: Date.now(),
 
-    asset: t.asset,
+    asset: `${t.chainId}|${toMelbourne(t.asset)}`,
     from: t.from,
     to: t.to,
     from_formatted: t.fromFormatted,
