@@ -5,7 +5,7 @@ export function normaliseDecimals(amount: string | bigint, decimals: number): st
   const whole = a / divisor
   const fraction = a % divisor
 
-  const fractionStr = fraction.toString().padStart(10, '0')
+  const fractionStr = fraction.toString().padStart(decimals, '0')
 
-  return `${whole}.${fractionStr}`
+  return `${whole}.${fractionStr}`.replace(/\.?0+$/, '')
 }
