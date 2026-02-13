@@ -403,5 +403,17 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       chainId: 'urn:ocn:polkadot:2034',
       assetId: '222',
     },
-  ]
+  ],
+  GDOT: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '69',
+    },
+  ],
+  GETH: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '420',
+    },
+  ],
 }
