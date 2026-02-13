@@ -20,7 +20,7 @@ const ACCOUNTS_LEVEL_PREFIX = 'agent:steward:accounts'
 const ACCOUNTS_EVM_LEVEL_PREFIX = 'agent:steward:accounts:evm'
 
 const START_DELAY = 30_000 // 30s
-const SCHED_RATE = 86_400_000 // 24h
+const SCHED_RATE = 43_200_000 // 24h
 
 export class AccountsMetadataManager {
   id = 'steward:accounts'
