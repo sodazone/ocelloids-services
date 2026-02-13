@@ -9,7 +9,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
 import { assetOverrides } from '../metadata/overrides.js'
-import { hydrationOverrides } from './overrides.js'
+import { hydrationOverrides, moonbeamOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const STORAGE_PAGE_LEN = 100
@@ -436,6 +436,10 @@ function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
   )
 }
 
+function moonbeamOverrideAccounts$(): Observable<SubstrateAccountUpdate> {
+  return from(moonbeamOverrides)
+}
+
 export const extraAccountMeta$: Record<
   string,
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
@@ -447,5 +451,5 @@ export const extraAccountMeta$: Record<
       hydrationXykAccounts$(ingress),
       hydrationOverrideAccounts$(),
     ),
-  [networks.moonbeam]: () => moonbeamTokenAccounts$(),
+  [networks.moonbeam]: () => merge(moonbeamTokenAccounts$(), moonbeamOverrideAccounts$()),
 }
