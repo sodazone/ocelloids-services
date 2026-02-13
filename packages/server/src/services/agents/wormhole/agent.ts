@@ -143,7 +143,8 @@ export class WormholeAgent implements Agent {
   }
 
   async #recheckPendingJourneys() {
-    const enabled = process.env.WORMHOLE_RECHECK_PENDING === 'true'
+    // Enabled by default
+    const enabled = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
     if (!enabled) {
       return
     }
