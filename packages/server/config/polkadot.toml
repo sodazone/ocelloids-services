@@ -1,46 +1,80 @@
 [[substrate.networks]]
 id = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
-  url = "wss://rpc.ibp.network/polkadot"
-
+  url = [
+    "wss://rpc.ibp.network/polkadot",
+    "wss://rpc.dotters.network/polkadot",
+    "wss://polkadot-rpc.dwellir.com",
+    "wss://polkadot-rpc.publicnode.com"
+  ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:1000"
 relay = "urn:ocn:polkadot:0"
-
-  [substrate.networks.provider]
-  type = "rpc"
-  url = "wss://polkadot-asset-hub-rpc.polkadot.io"
-
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+      "wss://asset-hub-polkadot-rpc.dwellir.com",
+      "wss://sys.ibp.network/asset-hub-polkadot",
+      "wss://asset-hub-polkadot.dotters.network",
+      "wss://polkadot-asset-hub-rpc.polkadot.io"
+    ]
 [[substrate.networks]]
-id = "urn:ocn:polkadot:2000"
+id = "urn:ocn:polkadot:1002"
 relay = "urn:ocn:polkadot:0"
-
-  [substrate.networks.provider]
-  type = "rpc"
-  url = "wss://acala-rpc-0.aca-api.network"
-
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+      "wss://sys.ibp.network/bridgehub-polkadot",
+      "wss://bridge-hub-polkadot.dotters.network",
+      "wss://bridge-hub-polkadot-rpc.dwellir.com",
+      "wss://polkadot-bridge-hub-rpc.polkadot.io"
+    ]
 [[substrate.networks]]
-id = "urn:ocn:polkadot:2006"
+id = "urn:ocn:polkadot:1004"
 relay = "urn:ocn:polkadot:0"
-
-  [substrate.networks.provider]
-  type = "rpc"
-  url = "wss://rpc.astar.network"
-
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+    "wss://people-polkadot-rpc.n.dwellir.com",
+    "wss://people-polkadot.dotters.network",
+    "wss://polkadot-people-rpc.polkadot.io"
+    ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2004"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
-  url = "wss://wss.api.moonbeam.network"
-
+  url = [
+    "wss://wss.api.moonbeam.network",
+    "wss://moonbeam-rpc.dwellir.com"
+  ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2034"
 relay = "urn:ocn:polkadot:0"
-
   [substrate.networks.provider]
   type = "rpc"
-  url = "wss://hydradx-rpc.dwellir.com"
+  url = [
+    "wss://hydradx.paras.ibp.network",
+    "wss://hydradx.paras.dotters.network",
+    "wss://rpc.helikon.io/hydradx"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2030"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://bifrost-polkadot.ibp.network",
+    "wss://bifrost-polkadot.dotters.network"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:3367"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://nexus.ibp.network",
+    "wss://nexus.dotters.network",
+    "wss://hyperbridge-nexus-rpc.blockops.network"
+  ]

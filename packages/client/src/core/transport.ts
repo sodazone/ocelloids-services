@@ -1,9 +1,7 @@
 import { WebSocket } from 'isows'
 
-import { OcelloidsClientConfig } from './client'
-import { DoFetch, ocFetch } from './http/fetch'
-import { AnyJson } from './lib'
-import { Protocol } from './protocol'
+import { DoFetch, ocFetch } from '../http/fetch'
+import { AnyJson } from '../lib'
 import {
   AuthReply,
   isSubscription,
@@ -13,7 +11,9 @@ import {
   SubscriptionError,
   WebSocketHandlers,
   WsAuthErrorEvent,
-} from './types'
+} from '../types'
+import { Protocol } from './protocol'
+import { OcelloidsClientConfig } from './types'
 
 /**
  * Returns HTTP headers from configuration.

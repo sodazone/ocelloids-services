@@ -1,18 +1,17 @@
-import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { EMPTY, filter, firstValueFrom, from, map, mergeMap, Observable, switchMap } from 'rxjs'
+import { padAccountKey20, publicKeyToSS58 } from '@/common/address.js'
 import { asPublicKey, isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
+import { decodeTransferLog } from '@/services/networking/substrate/evm/logs.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../../util.js'
-import { padAccountKey20 } from '../codec.js'
 import { Balance, BalanceUpdateItem, CustomDiscoveryFetcher, RuntimeQueueData } from '../types.js'
 import { calculateFreeBalance } from '../util.js'
-import { decodeLog } from './evm.js'
 
 const RUNTIME_API = 'CurrenciesApi'
 const RUNTIME_API_METHOD = 'account'
@@ -26,6 +25,7 @@ const contractToAssetIdMap: Record<string, number> = {
   '0x69003a65189f6ed993d3bd3e2b74f1db39f405ce': 1006,
   '0x11a8f7ffbb7e0fbed88bc20179dd45b4bd6874ff': 1007,
   '0xc09cf2f85367f3c2ab66e094283de3a499cb9108': 1008,
+  '0x00f283c7a97ecb60dd905cdab52febceec04dc0f': 1039,
   '0x35774c305aaf441a102d47988d35f0f5428471b3': 1110,
   '0x1806860d27ee903c1ec7586d4f7d598d7591f124': 1111,
   '0x7e3ce0257506c3e1f96a2a9b25a9440959b0d453': 1112,
@@ -59,7 +59,7 @@ async function evmToSubstrateAddress({
   } else {
     buf = padAccountKey20(evmAddress)
   }
-  return fromBufferToBase58(0)(new Uint8Array(buf))
+  return publicKeyToSS58(new Uint8Array(buf), 0)
 }
 
 function asRuntimeQueryItem({
@@ -99,7 +99,7 @@ export function hydrationEVM$(
     switchMap((apiCtx) =>
       streams.blockEvents(chainId).pipe(
         filter((ev) => isEVMLog(ev)),
-        map(decodeLog),
+        map(decodeTransferLog),
         filter(Boolean),
         mergeMap(({ address, decoded }) => {
           const accounts: { account: HexString; assetId: number }[] = []
@@ -181,7 +181,7 @@ export const hydrationBalancesFetcher: CustomDiscoveryFetcher = async ({
         ingress,
         apiCtx,
       })
-    : fromBufferToBase58(0)(fromHex(account))
+    : publicKeyToSS58(fromHex(account), 0)
   const results = await ingress.runtimeCall<[number, Balance][]>(
     chainId,
     {

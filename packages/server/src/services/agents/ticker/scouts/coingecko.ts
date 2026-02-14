@@ -76,6 +76,9 @@ const CG_ID_MAP: Record<string, string> = {
   jitoSOL: 'jito-staked-sol',
   sUSDS: 'susds',
   PRIME: 'hastra-prime',
+  HOLLAR: 'hydrated-dollar',
+  GDOT: 'gigadot',
+  GETH: 'gigaeth',
 }
 
 const CG_SYMBOL_MAP = Object.fromEntries(Object.entries(CG_ID_MAP).map(([k, v]) => [v, k])) as Record<

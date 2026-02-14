@@ -8,37 +8,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
-
-const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
-
-export const networks = setNetworks({
-  polkadot: 'urn:ocn:polkadot:0',
-  assetHub: 'urn:ocn:polkadot:1000',
-  bridgeHub: 'urn:ocn:polkadot:1002',
-  people: 'urn:ocn:polkadot:1004',
-  coretime: 'urn:ocn:polkadot:1005',
-  acala: 'urn:ocn:polkadot:2000',
-  moonbeam: 'urn:ocn:polkadot:2004',
-  composable: 'urn:ocn:polkadot:2019',
-  astar: 'urn:ocn:polkadot:2006',
-  nodle: 'urn:ocn:polkadot:2026',
-  bifrost: 'urn:ocn:polkadot:2030',
-  centrifuge: 'urn:ocn:polkadot:2031',
-  interlay: 'urn:ocn:polkadot:2032',
-  hydration: 'urn:ocn:polkadot:2034',
-  phala: 'urn:ocn:polkadot:2035',
-  manta: 'urn:ocn:polkadot:2104',
-  pendulum: 'urn:ocn:polkadot:2094',
-  polimec: 'urn:ocn:polkadot:3344',
-  mythos: 'urn:ocn:polkadot:3369',
-  hyperbridge: 'urn:ocn:polkadot:3367',
-  kusama: 'urn:ocn:kusama:0',
-  kusamaAssetHub: 'urn:ocn:kusama:1000',
-  kusamaBridgeHub: 'urn:ocn:kusama:1002',
-  kusamaCoretime: 'urn:ocn:kusama:1005',
-  paseo: 'urn:ocn:paseo:0',
-  paseoAssetHub: 'urn:ocn:paseo:1000',
-})
+import { SubstrateAccountMetadata } from './accounts/types.js'
 
 /**
  * @private
@@ -108,6 +78,15 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
       )
       .min(1)
       .max(10),
+  }),
+  z.object({
+    op: z.literal('accounts'),
+    criteria: z.object({
+      accounts: z.array(z.string().min(3).max(100)).min(1).max(100),
+    }),
+  }),
+  z.object({
+    op: z.literal('accounts.list'),
   }),
 ])
 
@@ -214,6 +193,15 @@ export function isAssetMetadata(obj: unknown): obj is AssetMetadata {
     typeof (obj as any).id !== 'undefined' &&
     typeof (obj as any).xid !== 'undefined' &&
     typeof (obj as any).chainId !== 'undefined'
+  )
+}
+
+export function isAccountMetadata(obj: unknown): obj is SubstrateAccountMetadata {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'publicKey' in obj &&
+    typeof (obj as any).publicKey !== 'undefined'
   )
 }
 

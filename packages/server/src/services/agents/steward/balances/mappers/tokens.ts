@@ -1,4 +1,4 @@
-import { filter, map, mergeMap, switchMap } from 'rxjs'
+import { EMPTY, filter, map, mergeMap, switchMap } from 'rxjs'
 
 import { asJSON } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
@@ -36,7 +36,8 @@ export function tokensBalances$(chainId: NetworkURN, ingress: SubstrateIngressCo
         mergeMap(({ name, value }) => {
           const assetId = value.currency_id
           if (!assetId) {
-            throw new Error(`No currency id found in ${PALLET_MODULE} event: ${name}`)
+            console.error(`No currency id found in ${PALLET_MODULE} event: ${name}`)
+            return EMPTY
           }
 
           const items: BalanceUpdateItem[] = []

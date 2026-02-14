@@ -56,3 +56,9 @@ export { steward }
  */
 import * as crosschain from './services/agents/crosschain/lib.js'
 export { crosschain }
+
+/**
+ * Transfers agent types
+ */
+import * as transfers from './services/agents/transfers/lib.js'
+export { transfers }
