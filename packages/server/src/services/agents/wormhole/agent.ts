@@ -1,6 +1,6 @@
 import { Observer, Subscription } from 'rxjs'
 import { ago } from '@/common/time.js'
-import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
+import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import {
   urnToChainId,
   WormholeIds,
@@ -25,7 +25,7 @@ import {
 } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
-import { mapOperationToJourney, NewJourneyWithAssets } from './mappers/index.js'
+import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
@@ -273,6 +273,8 @@ export class WormholeAgent implements Agent {
 
       if (op.vaa !== undefined) {
         update.stops = journey.stops
+      } else {
+        update.stops = asJSON(mergeUpdatedStops(op, existingJourney.stops))
       }
 
       await this.#repository.updateJourney(existingJourney.id, update)
