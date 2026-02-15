@@ -170,6 +170,7 @@ export class WormholeAgent implements Agent {
       if (this.#watcher.isWormholeId(journey.correlation_id)) {
         const op = await this.#watcher.fetchOperationById(journey.correlation_id)
         if (op) {
+          this.#log.info('[agent:%s] Refetched pending op by correlationId %s', this.id, op.id)
           await this.#onOperation(op)
         }
         return
@@ -195,16 +196,22 @@ export class WormholeAgent implements Agent {
 
     const from = new Date(journey.sent_at - OPERATION_LOOKUP_WINDOW_MS).toISOString()
     const to = new Date(journey.sent_at + OPERATION_LOOKUP_WINDOW_MS).toISOString()
-
-    const { operations } = await this.#watcher.fetchOperations({
+    const searchOp = {
       address,
       sourceChain,
       targetChain,
       from,
       to,
-    })
+    }
+
+    const { operations } = await this.#watcher.fetchOperations(searchOp)
+
+    if (operations.length === 0) {
+      this.#log.info('[agent:%s] No ops found from search %s', this.id, JSON.stringify(searchOp))
+    }
 
     for (const op of operations) {
+      this.#log.info('[agent:%s] Refetched pending op from search %s', this.id, op.id)
       await this.#onOperation(op)
     }
   }
