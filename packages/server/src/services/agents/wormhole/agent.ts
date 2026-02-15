@@ -176,6 +176,21 @@ export class WormholeAgent implements Agent {
         return
       }
 
+      const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+      if (!stop) {
+        return
+      }
+
+      const vaaId = stop.messageId
+      if (vaaId) {
+        const op = await this.#watcher.fetchOperationById(journey.correlation_id)
+        if (op) {
+          this.#log.info('[agent:%s] Refetched pending op by correlationId %s', this.id, op.id)
+          await this.#onOperation(op)
+        }
+        return
+      }
+
       await this.#recheckBySearch(journey)
     } catch (err) {
       this.#log.warn(err, '[agent:%s] failed to recheck pending journey %s', this.id, journey.correlation_id)
