@@ -246,27 +246,30 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    if (existingJourney.status !== 'received' && existingJourney.status !== journey.status) {
+    if (existingJourney.status !== 'received') {
       const update: JourneyUpdate = {}
-      if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
-        update.status = journey.status
+      if (existingJourney.status !== journey.status) {
+        if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
+          update.status = journey.status
+        }
+
+        if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
+          update.recv_at = journey.recv_at
+        }
+
+        if (journey.to !== existingJourney.to) {
+          update.to = journey.to
+          update.to_formatted = journey.to_formatted
+        }
+        if (journey.from !== existingJourney.from) {
+          update.from = journey.from
+          update.from_formatted = journey.from_formatted
+        }
+        if (journey.destination !== existingJourney.destination) {
+          update.destination = journey.destination
+        }
       }
 
-      if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
-        update.recv_at = journey.recv_at
-      }
-
-      if (journey.to !== existingJourney.to) {
-        update.to = journey.to
-        update.to_formatted = journey.to_formatted
-      }
-      if (journey.from !== existingJourney.from) {
-        update.from = journey.from
-        update.from_formatted = journey.from_formatted
-      }
-      if (journey.destination !== existingJourney.destination) {
-        update.destination = journey.destination
-      }
       if (journey.trip_id && !existingJourney.trip_id) {
         update.trip_id = journey.trip_id
       }
