@@ -168,9 +168,13 @@ export class WormholeAgent implements Agent {
   async #recheckJourney(journey: Journey) {
     try {
       if (this.#watcher.isWormholeId(journey.correlation_id)) {
+        this.#log.info(
+          '[agent:%s] Refetching pending op by correlationId %s',
+          this.id,
+          journey.correlation_id,
+        )
         const op = await this.#watcher.fetchOperationById(journey.correlation_id)
         if (op) {
-          this.#log.info('[agent:%s] Refetched pending op by correlationId %s', this.id, op.id)
           await this.#onOperation(op)
         }
         return
@@ -183,9 +187,9 @@ export class WormholeAgent implements Agent {
 
       const vaaId = stop.messageId
       if (vaaId) {
-        const op = await this.#watcher.fetchOperationById(journey.correlation_id)
+        this.#log.info('[agent:%s] Refetching pending op by stop messageId %s', this.id, vaaId)
+        const op = await this.#watcher.fetchOperationById(vaaId)
         if (op) {
-          this.#log.info('[agent:%s] Refetched pending op by correlationId %s', this.id, op.id)
           await this.#onOperation(op)
         }
         return
