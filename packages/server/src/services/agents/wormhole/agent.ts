@@ -255,7 +255,7 @@ export class WormholeAgent implements Agent {
       const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
       if (existingTrips.length > 0) {
         this.#log.info(
-          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          '[agent:%s:connecting-trip] New journey trip=%s journey=%s tripId=%s',
           this.id,
           existingTrips.map((t) => t.id),
           id,
@@ -305,7 +305,7 @@ export class WormholeAgent implements Agent {
       await this.#repository.updateJourney(existingJourney.id, update)
       if (existingTrips.length > 0) {
         this.#log.info(
-          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
           this.id,
           existingTrips.map((t) => t.id),
           existingJourney.id,

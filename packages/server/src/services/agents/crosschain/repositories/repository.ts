@@ -149,14 +149,36 @@ function mapRowToFullJourney(row: any): FullJourney {
   }
 }
 
+function countObjectDepth(obj: any): number {
+  if (!obj || typeof obj !== 'object') {
+    return 0
+  }
+
+  return Object.entries(obj).reduce((acc, [_, value]) => {
+    if (value == null) {
+      return acc
+    }
+    if (typeof value === 'object') {
+      return acc + 1 + countObjectDepth(value)
+    }
+    return acc + 1
+  }, 0)
+}
+
 function stopFreshness(stop: any) {
   const parts = [stop.from, stop.to, stop.relay].filter(Boolean)
 
   const statusPriority = Math.max(...parts.map((p) => STATUS_PRIORITY[p.status] ?? -1), -1)
 
-  const fieldCount = parts.reduce((acc, p) => acc + Object.keys(p).length, 0)
+  const structuralFieldCount = parts.reduce((acc, p) => acc + countObjectDepth(p), 0)
 
-  return { statusPriority, fieldCount }
+  const instructionRichness = countObjectDepth(stop.instructions)
+
+  return {
+    statusPriority,
+    structuralFieldCount,
+    instructionRichness,
+  }
 }
 
 function isNewer(a: any, b: any): boolean {
@@ -167,7 +189,11 @@ function isNewer(a: any, b: any): boolean {
     return fa.statusPriority > fb.statusPriority
   }
 
-  return fa.fieldCount > fb.fieldCount
+  if (fa.instructionRichness !== fb.instructionRichness) {
+    return fa.instructionRichness > fb.instructionRichness
+  }
+
+  return fa.structuralFieldCount > fb.structuralFieldCount
 }
 
 function mergeStops(inStops: any[] = [], outStops: any[] = []) {
