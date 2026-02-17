@@ -137,7 +137,9 @@ export class WormholeAgent implements Agent {
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
-    this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
+    const journeyResponse = deepCamelize<FullJourney>(fullJourney)
+    this.#crosschain.broadcastJourney(event, journeyResponse)
+    this.#crosschain.emit(journeyResponse)
 
     this.#telemetry.emit('telemetryWormholeJourneyBroadcast', fullJourney)
   }

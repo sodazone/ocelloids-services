@@ -1,8 +1,12 @@
 import { Migrator } from 'kysely'
-
-import { asPublicKey, deepCamelize } from '@/common/util.js'
+import { Operation } from 'rfc6902'
+import { filter, Subject } from 'rxjs'
+import { ControlQuery, Criteria } from '@/common/index.js'
+import { asPublicKey, asSerializable, deepCamelize } from '@/common/util.js'
+import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
-import { Logger } from '@/services/types.js'
+import { Subscription } from '@/services/subscriptions/types.js'
+import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import {
   Agent,
   AgentMetadata,
@@ -14,12 +18,18 @@ import {
   ServerSentEventsBroadcaster,
   ServerSentEventsRequest,
   Streamable,
+  Subscribable,
 } from '../types.js'
 import { createCrosschainBroadcaster } from './broadcaster.js'
 import { createCrosschainDatabase } from './repositories/db.js'
 import { CrosschainRepository, FullJourney, FullJourneyResponse, ListAsset } from './repositories/index.js'
 import { $XcQueryArgs, JourneyFilters, XcQueryArgs } from './types/queries.js'
 import { $XcServerSentEventArgs, XcServerSentEventArgs } from './types/sse.js'
+import {
+  $CrosschainSubscriptionInputs,
+  CrosschainSubscriptionHandler,
+  CrosschainSubscriptionInputs,
+} from './types/subscription.js'
 
 const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 
@@ -32,11 +42,15 @@ export const DEFAULT_XC_DB_PATH = 'db.xc-explorer.sqlite'
  * Agent for indexing, querying, and streaming crosschain journeys and assets.
  * Manages persistence, migrations, and SSE broadcasting of live updates.
  */
-export class CrosschainExplorer implements Agent, Queryable, Streamable {
+export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscribable {
   readonly #log: Logger
   readonly #repository: CrosschainRepository
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSentEventsBroadcaster
+  readonly #notifier: Egress
+  readonly inputSchema = $CrosschainSubscriptionInputs
+  readonly #subject: Subject<FullJourneyResponse>
+  readonly #subs: Map<string, CrosschainSubscriptionHandler> = new Map()
 
   #assetCacheRefreshTask?: NodeJS.Timeout
 
@@ -49,6 +63,8 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     capabilities: getAgentCapabilities(this),
   }
 
+  readonly xcTransfers$
+
   get repository() {
     return this.#repository
   }
@@ -56,12 +72,14 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
   constructor({
     log,
     environment,
+    egress,
     broadcaster,
   }: {
     log: Logger
     environment?: {
       dataPath?: string
     }
+    egress: Egress
     broadcaster?: ServerSentEventsBroadcaster
   }) {
     this.#log = log
@@ -73,10 +91,30 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     this.#migrator = migrator
     this.#repository = new CrosschainRepository(db)
     this.#broadcaster = broadcaster ?? createCrosschainBroadcaster()
+    this.#notifier = egress
+
+    this.#subject = new Subject<FullJourneyResponse>()
+    this.xcTransfers$ = this.#subject.asObservable()
   }
 
   collectTelemetry() {
     // TODO: impl
+  }
+
+  /**
+   * Emits a journey update into the internal reactive stream.
+   *
+   * This pushes the given {@link FullJourneyResponse} into the RxJS `Subject`,
+   * making it available to all Observable-based subscribers (e.g. WebSocket
+   * handlers, webhook processors, or other in-process stream consumers).
+   *
+   * This method is transport-agnostic and represents a domain-level event
+   * emission inside the application.
+   *
+   * @param journey - The fully hydrated journey response to emit.
+   */
+  emit(journey: FullJourneyResponse) {
+    this.#subject.next(journey)
   }
 
   async start() {
@@ -120,6 +158,32 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     }
   }
 
+  subscribe(subscription: Subscription<CrosschainSubscriptionInputs>) {
+    const { id } = subscription
+
+    const handler = this.#monitor(subscription)
+
+    this.#subs.set(id, handler)
+  }
+
+  unsubscribe(id: string) {
+    try {
+      const handler = this.#subs.get(id)
+      if (!handler) {
+        this.#log.warn('[agent:%s] unsubscribe from a non-existent subscription %s', this.id, id)
+        return
+      }
+      handler.stream.unsubscribe()
+      this.#subs.delete(id)
+    } catch (error) {
+      this.#log.error(error, '[agent:%s] error unsubscribing %s', this.id, id)
+    }
+  }
+
+  update(subscriptionId: string, patch: Operation[]): Subscription {
+    throw new Error('Update not supported')
+  }
+
   async listAssets(pagination?: QueryPagination): Promise<QueryResult<ListAsset>> {
     return await this.#repository.listAssets(pagination)
   }
@@ -145,6 +209,19 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
     return journey ? { items: [deepCamelize<FullJourney>(journey)] } : { items: [] }
   }
 
+  /**
+   * Broadcasts a journey event to Server-Sent Events (SSE) clients.
+   *
+   * This sends the journey payload over the HTTP-based SSE broadcaster,
+   * delivering the event to connected clients subscribed via the
+   * `Streamable` interface.
+   *
+   * Unlike {@link emit}, this method is transport-specific and is intended
+   * only for external SSE consumers.
+   *
+   * @param event - The SSE event type (`new_journey` or `update_journey`).
+   * @param data - The fully hydrated journey response to broadcast.
+   */
   broadcastJourney(event: 'new_journey' | 'update_journey', data: FullJourneyResponse) {
     this.#broadcaster.send({
       event,
@@ -164,6 +241,66 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable {
 
   onServerSentEventsRequest(request: ServerSentEventsRequest<XcServerSentEventArgs>) {
     this.#broadcaster?.stream(request)
+  }
+
+  #monitor(subscription: Subscription<CrosschainSubscriptionInputs>): CrosschainSubscriptionHandler {
+    const { id, args } = subscription
+    const networksControl = ControlQuery.from(this.#networkCriteria(args.networks))
+    const stream = this.xcTransfers$
+      .pipe(filter((journey) => networksControl.value.test(journey)))
+      .subscribe({
+        next: (payload) => {
+          if (this.#subs.has(id)) {
+            const handler = this.#subs.get(id)
+            if (!handler) {
+              this.#log.error(`No subscription handler found for subscription ID ${id}`)
+              return
+            }
+            this.#notifier.publish(handler.subscription, {
+              metadata: {
+                type: 'xc-journeys.realtime',
+                subscriptionId: id,
+                agentId: this.id,
+                networkId: payload.origin as NetworkURN,
+                timestamp: Date.now(),
+                blockTimestamp: payload.sentAt,
+              },
+              payload: asSerializable(payload) as unknown as AnyJson,
+            })
+          } else {
+            // this could happen with closed ephemeral subscriptions
+            this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
+          }
+        },
+        complete: () => {
+          if (this.#subs.has(id)) {
+            const handler = this.#subs.get(id)
+            if (!handler) {
+              this.#log.error(`No subscription handler found for subscription ID ${id}`)
+              return
+            }
+            if (handler.subscription.ephemeral) {
+              this.#notifier.terminate(handler.subscription)
+            }
+          }
+        },
+      })
+
+    return {
+      networksControl,
+      subscription,
+      stream,
+    }
+  }
+
+  #networkCriteria(networks: string[] | '*'): Criteria {
+    if (networks === '*') {
+      return {}
+    }
+
+    return {
+      network: { $in: networks },
+    }
   }
 
   async #refreshAssetCache() {

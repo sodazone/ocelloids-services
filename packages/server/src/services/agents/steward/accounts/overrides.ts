@@ -322,4 +322,19 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       },
     ],
   },
+  {
+    publicKey: toHex(padAccountKey20('0x571fc4e209686a0d7e1502ec4c4bcbf1d96a2211')) as HexString,
+    evm: [
+      {
+        address: '0x571fc4e209686a0d7e1502ec4c4bcbf1d96a2211',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:moondrop',
+      },
+    ],
+  },
 ]
