@@ -61,7 +61,6 @@ export class TransfersTracker {
     const chainIds = this.#ingress.getChainIds()
     for (const chainId of chainIds) {
       this.#subscribeTransfers(chainId)
-      this.#log.info('[agent:%s] %s stream subscribed ', this.#id, chainId)
     }
     this.#log.info('[agent:%s] started', this.#id)
   }
@@ -135,6 +134,7 @@ export class TransfersTracker {
       })
 
     this.#streams[chainId] = sub
+    this.#log.info('[agent:%s] %s stream subscribed ', this.#id, chainId)
   }
 
   #classifyTransfer(
