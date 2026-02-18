@@ -284,30 +284,52 @@ export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): New
 }
 
 export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperation, 'journey_id'>[] {
-  const humanizedAssets = payload.humanized.assets ?? []
-  const xprotocolAssets = payload.humanized.xprotocolData?.assets ?? []
+  const humanized = payload.humanized
+
+  const allAssets: HumanizedXcmAsset[] = [
+    ...(humanized.assets ?? []),
+    ...(humanized.xprotocolData?.assets ?? []),
+  ]
 
   const assetMap = new Map<string, HumanizedXcmAsset>()
 
-  const dedupeKey = (asset: HumanizedXcmAsset) => `${asset.id}:${asset.amount.toString()}`
+  const dedupeKey = (a: HumanizedXcmAsset) => `${a.id}:${a.role ?? ''}:${a.amount.toString()}`
 
-  for (const asset of humanizedAssets) {
-    assetMap.set(dedupeKey(asset), { ...asset })
-  }
-
-  for (const asset of xprotocolAssets) {
+  for (const asset of allAssets) {
     const key = dedupeKey(asset)
     if (!assetMap.has(key)) {
       assetMap.set(key, { ...asset })
     }
   }
 
-  const mergedAssets = Array.from(assetMap.values()).map((asset, index) => ({
-    ...asset,
-    sequence: index,
-  }))
+  const merged = Array.from(assetMap.values())
 
-  return mergedAssets.map((asset) => ({
+  const transfers: HumanizedXcmAsset[] = []
+  const trapped: HumanizedXcmAsset[] = []
+  const swaps: HumanizedXcmAsset[] = []
+
+  for (const asset of merged) {
+    switch (asset.role) {
+      case 'transfer':
+        transfers.push(asset)
+        break
+      case 'trapped':
+        trapped.push(asset)
+        break
+      case 'swap_in':
+      case 'swap_out':
+        swaps.push(asset)
+        break
+    }
+  }
+
+  const withSequence = [
+    ...transfers.map((a, i) => ({ ...a, sequence: i })),
+    ...swaps, // swaps already have sequence
+    ...trapped.map((a, i) => ({ ...a, sequence: i })),
+  ]
+
+  return withSequence.map((asset) => ({
     symbol: asset.symbol,
     amount: asset.amount.toString(),
     asset: asset.id,
