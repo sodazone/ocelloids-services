@@ -367,4 +367,49 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       },
     ],
   },
+  {
+    publicKey: toHex(padAccountKey20('0xf4c10263f2a4b1f75b8a5fd5328fb61605321639')) as HexString,
+    evm: [
+      {
+        address: '0xf4c10263f2a4b1f75b8a5fd5328fb61605321639',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:stella-swap-v2-pair',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf3a5454496e26ac57da879bf3285fa85debf0388')) as HexString,
+    evm: [
+      {
+        address: '0xf3a5454496e26ac57da879bf3285fa85debf0388',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:stella-distributor-v2',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x051fcf8986b30860a1341e0031e5622bd18d8a85')) as HexString,
+    evm: [
+      {
+        address: '0x051fcf8986b30860a1341e0031e5622bd18d8a85',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:stella-swap-v2-pair',
+      },
+    ],
+  },
 ]
