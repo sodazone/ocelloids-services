@@ -46,4 +46,10 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
   [networks.hyperbridge]: (blockEvents$) => {
     return nativeTransfers$(blockEvents$)
   },
+  [networks.kusama]: (blockEvents$) => {
+    return nativeTransfers$(blockEvents$)
+  },
+  [networks.kusamaAssetHub]: (blockEvents$) => {
+    return merge(nativeTransfers$(blockEvents$), assetTransfers$(blockEvents$))
+  },
 }
