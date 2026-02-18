@@ -23,7 +23,7 @@ import {
 import { createCrosschainBroadcaster } from './broadcaster.js'
 import { createCrosschainDatabase } from './repositories/db.js'
 import { CrosschainRepository, FullJourney, FullJourneyResponse, ListAsset } from './repositories/index.js'
-import { $XcQueryArgs, JourneyFilters, XcQueryArgs } from './types/queries.js'
+import { $XcQueryArgs, JourneyFilters, JourneyRangeFilters, XcQueryArgs } from './types/queries.js'
 import { $XcServerSentEventArgs, XcServerSentEventArgs } from './types/sse.js'
 import {
   $CrosschainSubscriptionInputs,
@@ -117,13 +117,25 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
     this.#subject.next(journey)
   }
 
-  async start() {
+  async start(subs: Subscription<CrosschainSubscriptionInputs>[] = []) {
     this.#log.info('[xc:explorer] start')
 
     const result = await this.#migrator.migrateToLatest()
 
     if (result.results && result.results.length > 0) {
       this.#log.info('[xc:explorer] migration complete %o', result.results)
+    }
+
+    if (subs.length > 0) {
+      this.#log.info('[agent:%s] creating stored subscriptions (%d)', this.id, subs.length)
+
+      for (const sub of subs) {
+        try {
+          this.#subs.set(sub.id, this.#monitor(sub))
+        } catch (error) {
+          this.#log.error(error, '[agent:%s] unable to create subscription: %j', this.id, sub)
+        }
+      }
     }
 
     const latest = await this.#repository.getLatestSnapshot()
@@ -153,6 +165,8 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
         return this.getJourneyById(params.args.criteria)
       case 'assets.list':
         return this.listAssets(params.pagination)
+      case 'journeys.by_id_range':
+        return this.listJourneysByRange(params.args.criteria, params.pagination)
       default:
         throw new Error('Unknown query op')
     }
@@ -207,6 +221,17 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
   async getJourneyById({ id }: { id: string }): Promise<QueryResult<FullJourneyResponse>> {
     const journey = await this.#repository.getJourneyByCorrelationId(id)
     return journey ? { items: [deepCamelize<FullJourney>(journey)] } : { items: [] }
+  }
+
+  async listJourneysByRange(
+    filters?: JourneyRangeFilters,
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<FullJourneyResponse>> {
+    const result = await this.#repository.listJourneysByRange(filters, pagination)
+    return {
+      pageInfo: result.pageInfo,
+      items: result.nodes.map((journey) => deepCamelize<FullJourney>(journey)),
+    }
   }
 
   /**
@@ -299,7 +324,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
     }
 
     return {
-      network: { $in: networks },
+      $or: [{ origin: { $in: networks } }, { destination: { $in: networks } }],
     }
   }
 

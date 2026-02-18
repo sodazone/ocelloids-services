@@ -59,6 +59,14 @@ export type XcQueryArgs =
       }
     }
   | {
+      op: 'journeys.by_id_range'
+      criteria: {
+        start: number | undefined
+        end: number | undefined
+        networks: string[] | undefined
+      }
+    }
+  | {
       op: 'assets.list'
     }
 
