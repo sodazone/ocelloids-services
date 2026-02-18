@@ -307,6 +307,7 @@ export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperatio
   const transfers: HumanizedXcmAsset[] = []
   const trapped: HumanizedXcmAsset[] = []
   const swaps: HumanizedXcmAsset[] = []
+  const others: HumanizedXcmAsset[] = []
 
   for (const asset of merged) {
     switch (asset.role) {
@@ -320,6 +321,8 @@ export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperatio
       case 'swap_out':
         swaps.push(asset)
         break
+      default:
+        others.push(asset)
     }
   }
 
@@ -327,6 +330,7 @@ export function toNewAssets(payload: HumanizedXcmPayload): Omit<NewAssetOperatio
     ...transfers.map((a, i) => ({ ...a, sequence: i })),
     ...swaps, // swaps already have sequence
     ...trapped.map((a, i) => ({ ...a, sequence: i })),
+    ...others.map((a, i) => ({ ...a, sequence: i })),
   ]
 
   return withSequence.map((asset) => ({
