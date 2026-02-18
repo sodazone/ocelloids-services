@@ -1,6 +1,6 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
-import { defaultAssetMapping, defaultJourneyMapping } from './default.js'
+import { defaultAssetMapping, defaultJourneyMapping, toWormholeStops } from './default.js'
 import { PortalMapper } from './portal.js'
 import { RelayerMapper } from './relayer.js'
 
@@ -17,6 +17,25 @@ const protocolMappings: ProtocolMapping[] = [PortalMapper, RelayerMapper]
 
 export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
+}
+
+export function mergeUpdatedStops(op: WormholeOperation, existingStops: any[]) {
+  const newStops = toWormholeStops(op)
+  return newStops.map((newStop: any, index: number) => {
+    const existingStop = existingStops[index]
+
+    if (newStop?.type === 'wormhole' && existingStop?.type === 'wormhole') {
+      return {
+        ...newStop,
+        instructions: {
+          ...newStop.instructions,
+          value: newStop.instructions?.value ?? existingStop.instructions?.value ?? null,
+        },
+      }
+    }
+
+    return newStop
+  })
 }
 
 export function mapOperationToJourney(

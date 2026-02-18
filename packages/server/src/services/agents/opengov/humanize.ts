@@ -15,6 +15,7 @@ const EVENT_STATUS_MAP: IconLabel = {
   'Referenda.DecisionStarted': { icon: '🧐', label: 'Decision Started' },
   'Referenda.DecisionDepositPlaced': { icon: '💰', label: 'Decision Deposit' },
   'Referenda.DecisionDepositRefunded': { icon: '↩️', label: 'Decision Deposit Refunded' },
+  'Referenda.SubmissionDepositRefunded': { icon: '↩️', label: 'Submission Deposit Refunded' },
   'Referenda.DepositSlashed': { icon: '💸', label: 'Decision Deposit Slashed' },
   'Referenda.ConfirmStarted': { icon: '✅', label: 'Confirm Started' },
   'Referenda.ConfirmAborted': { icon: '❌', label: 'Confirm Aborted' },

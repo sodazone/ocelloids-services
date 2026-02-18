@@ -224,7 +224,7 @@ export class OpenGovAgent implements Agent, Subscribable {
     subscription: Subscription<OpenGovInputs>,
   ) {
     const referendaEvents = block.events
-      .filter(({ event }) => event.module === 'Referenda')
+      .filter(({ event }) => event.module === 'Referenda' && event.name !== 'SubmissionDepositRefunded')
       .map(({ event }) => event)
 
     for (const ev of referendaEvents) {

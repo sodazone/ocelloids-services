@@ -1,6 +1,6 @@
 import { Observer, Subscription } from 'rxjs'
 import { ago } from '@/common/time.js'
-import { createTypedEventEmitter, deepCamelize } from '@/common/util.js'
+import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import {
   urnToChainId,
   WormholeIds,
@@ -25,7 +25,7 @@ import {
 } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
-import { mapOperationToJourney, NewJourneyWithAssets } from './mappers/index.js'
+import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
@@ -145,7 +145,8 @@ export class WormholeAgent implements Agent {
   }
 
   async #recheckPendingJourneys() {
-    const enabled = process.env.WORMHOLE_RECHECK_PENDING === 'true'
+    // Enabled by default
+    const enabled = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
     if (!enabled) {
       return
     }
@@ -169,7 +170,27 @@ export class WormholeAgent implements Agent {
   async #recheckJourney(journey: Journey) {
     try {
       if (this.#watcher.isWormholeId(journey.correlation_id)) {
+        this.#log.info(
+          '[agent:%s] Refetching pending op by correlationId %s',
+          this.id,
+          journey.correlation_id,
+        )
         const op = await this.#watcher.fetchOperationById(journey.correlation_id)
+        if (op) {
+          await this.#onOperation(op)
+        }
+        return
+      }
+
+      const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+      if (!stop) {
+        return
+      }
+
+      const vaaId = stop.messageId
+      if (vaaId) {
+        this.#log.info('[agent:%s] Refetching pending op by stop messageId %s', this.id, vaaId)
+        const op = await this.#watcher.fetchOperationById(vaaId)
         if (op) {
           await this.#onOperation(op)
         }
@@ -196,16 +217,22 @@ export class WormholeAgent implements Agent {
 
     const from = new Date(journey.sent_at - OPERATION_LOOKUP_WINDOW_MS).toISOString()
     const to = new Date(journey.sent_at + OPERATION_LOOKUP_WINDOW_MS).toISOString()
-
-    const { operations } = await this.#watcher.fetchOperations({
+    const searchOp = {
       address,
       sourceChain,
       targetChain,
       from,
       to,
-    })
+    }
+
+    const { operations } = await this.#watcher.fetchOperations(searchOp)
+
+    if (operations.length === 0) {
+      this.#log.info('[agent:%s] No ops found from search %s', this.id, JSON.stringify(searchOp))
+    }
 
     for (const op of operations) {
+      this.#log.info('[agent:%s] Refetched pending op from search %s', this.id, op.id)
       await this.#onOperation(op)
     }
   }
@@ -223,6 +250,10 @@ export class WormholeAgent implements Agent {
 
     const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
 
+    if (op.vaa === undefined) {
+      this.#log.warn('[agent:%s] No VAA found in op %s (status=%s)', this.id, op.id, journey.status)
+    }
+
     const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
     const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
     if (!existingJourney) {
@@ -230,7 +261,7 @@ export class WormholeAgent implements Agent {
       const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
       if (existingTrips.length > 0) {
         this.#log.info(
-          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          '[agent:%s:connecting-trip] New journey trip=%s journey=%s tripId=%s',
           this.id,
           existingTrips.map((t) => t.id),
           id,
@@ -243,37 +274,44 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    if (existingJourney.status !== 'received' && existingJourney.status !== journey.status) {
+    if (existingJourney.status !== 'received') {
       const update: JourneyUpdate = {}
-      if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
-        update.status = journey.status
+      if (existingJourney.status !== journey.status) {
+        if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
+          update.status = journey.status
+        }
+
+        if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
+          update.recv_at = journey.recv_at
+        }
+
+        if (journey.to !== existingJourney.to) {
+          update.to = journey.to
+          update.to_formatted = journey.to_formatted
+        }
+        if (journey.from !== existingJourney.from) {
+          update.from = journey.from
+          update.from_formatted = journey.from_formatted
+        }
+        if (journey.destination !== existingJourney.destination) {
+          update.destination = journey.destination
+        }
       }
 
-      if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
-        update.recv_at = journey.recv_at
-      }
-
-      if (journey.to !== existingJourney.to) {
-        update.to = journey.to
-        update.to_formatted = journey.to_formatted
-      }
-      if (journey.from !== existingJourney.from) {
-        update.from = journey.from
-        update.from_formatted = journey.from_formatted
-      }
-      if (journey.destination !== existingJourney.destination) {
-        update.destination = journey.destination
-      }
       if (journey.trip_id && !existingJourney.trip_id) {
         update.trip_id = journey.trip_id
       }
 
-      update.stops = journey.stops
+      if (op.vaa !== undefined) {
+        update.stops = journey.stops
+      } else {
+        update.stops = asJSON(mergeUpdatedStops(op, existingJourney.stops))
+      }
 
       await this.#repository.updateJourney(existingJourney.id, update)
       if (existingTrips.length > 0) {
         this.#log.info(
-          '[agent:%s:connecting-trip] trip=%s journey=%s tripId=%s',
+          '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
           this.id,
           existingTrips.map((t) => t.id),
           existingJourney.id,
