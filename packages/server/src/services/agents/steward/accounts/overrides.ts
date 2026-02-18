@@ -293,6 +293,21 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
+    publicKey: toHex(padAccountKey20('0x2232e98829f985c95c6930342b607496cad7a560')) as HexString,
+    evm: [
+      {
+        address: '0x2232e98829f985c95c6930342b607496cad7a560',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:algebra-pool',
+      },
+    ],
+  },
+  {
     publicKey: toHex(padAccountKey20('0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4')) as HexString,
     evm: [
       {
@@ -409,6 +424,21 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         chainId: 'urn:ocn:polkadot:2004',
         tag: 'protocol:stella-swap-v2-pair',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xe93685f3bba03016f02bd1828badd6195988d950')) as HexString,
+    evm: [
+      {
+        address: '0xe93685f3bba03016f02bd1828badd6195988d950',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:layer-zero-executor',
       },
     ],
   },
