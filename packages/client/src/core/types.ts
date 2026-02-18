@@ -74,9 +74,8 @@ export interface SubscribableWithReplayApi<
   T = AnySubscriptionInputs,
   P extends { id: number } = { id: number },
   Q = AnyJson,
-  R = AnyJson,
 > extends SubscribableApi<T, P>,
-    QueryableApi<Q, R> {
+    QueryableApi<Q, P> {
   /**
    * subscribeWithReplay emits historical and live events concurrently.
    *

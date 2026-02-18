@@ -6,7 +6,7 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './core/types'
-import { FullJourneyResponse, XcQueryArgs, XcQueryResponse, XcServerSentEventArgs } from './crosschain/types'
+import { CrosschainAgentApi } from './crosschain/agent'
 import { AnySubscriptionInputs } from './lib'
 import {
   AccountData,
@@ -134,14 +134,10 @@ export function createInformantAgent(
  */
 export function createCrosschainAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): QueryableApi<XcQueryArgs, XcQueryResponse> &
-  StreamableApi<
-    { streamName: 'default'; args: XcServerSentEventArgs },
-    | { event: 'new_journey'; onData: (data: FullJourneyResponse) => void }
-    | { event: 'update_journey'; onData: (data: FullJourneyResponse) => void }
-  > &
-  OcelloidsClientApi {
-  return createAgent('crosschain', optsOrClient)
+): CrosschainAgentApi {
+  const client = optsOrClient instanceof OcelloidsClient ? optsOrClient : new OcelloidsClient(optsOrClient)
+
+  return new CrosschainAgentApi(client)
 }
 
 /**

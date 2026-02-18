@@ -42,6 +42,8 @@ export { xcm }
 import * as steward from './steward/types'
 export { steward }
 
+export * from './crosschain/agent'
+
 import * as crosschain from './crosschain/types'
 export { crosschain }
 

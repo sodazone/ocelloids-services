@@ -225,11 +225,7 @@ export class OcelloidsAgentApi<T>
         )
   }
 
-  protected async subscribeWithReplayStrategy<
-    P extends { id: number } = { id: number },
-    Q = AnyQueryArgs,
-    R extends { id: number } = { id: number },
-  >(
+  protected async subscribeWithReplayStrategy<P extends { id: number } = { id: number }, Q = AnyQueryArgs>(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
     replay: {
@@ -247,6 +243,7 @@ export class OcelloidsAgentApi<T>
         timestamp: number
         blockTimestamp?: number
       }
+      persist?: (payload: P) => Promise<void>
     },
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
   ): Promise<WebSocket> {
@@ -256,6 +253,8 @@ export class OcelloidsAgentApi<T>
     let lastReplayed = replay.lastSeenId
     let replayStarted = false
     let replayFailed = false
+
+    const persist = replayStrategy.persist ?? (async (payload: P) => await replay.onPersist(payload.id))
 
     const replayRange = async (ws: WebSocket, end?: number) => {
       replayStarted = true
@@ -269,7 +268,7 @@ export class OcelloidsAgentApi<T>
 
       try {
         do {
-          const result = await this.query<Q, R>(args, cursor ? { cursor } : undefined)
+          const result = await this.query<Q, P>(args, cursor ? { cursor } : undefined)
           cursor = result.pageInfo?.hasNextPage ? result.pageInfo.endCursor : undefined
 
           for (const item of result.items) {
@@ -288,7 +287,7 @@ export class OcelloidsAgentApi<T>
               undefined as any,
             )
             if (firstLiveId === null) {
-              await replay.onPersist(item.id)
+              await persist(item)
             }
           }
         } while (cursor)
@@ -314,8 +313,8 @@ export class OcelloidsAgentApi<T>
         replayRange(ws, firstLiveId)
       }
 
-      handlers.onMessage({ payload: message.payload } as any, ws, undefined as any)
-      await replay.onPersist(message.payload.id)
+      handlers.onMessage(message, ws, undefined as any)
+      await persist(message.payload)
     }
 
     const ws = _isAnySubscriptionInputs(subscription)
@@ -338,9 +337,9 @@ export class OcelloidsAgentApi<T>
           { ...handlers, onMessage: wrappedOnMessage },
         )
 
-    queueMicrotask(async () => {
+    queueMicrotask(() => {
       if (!replayStarted) {
-        await replayRange(ws)
+        replayRange(ws)
       }
     })
 
