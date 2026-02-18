@@ -2,7 +2,7 @@ export const substrateNetworks: Record<string, string> = {
   polkadot: 'wss://rpc.ibp.network/polkadot',
   assethub: 'wss://polkadot-asset-hub-rpc.polkadot.io',
   bridgehub: 'wss://sys.ibp.network/bridgehub-polkadot',
-  hydra: 'wss://hydradx.paras.ibp.network',
+  hydra: 'wss://rpc.hydradx.cloud',
   moonbeam: 'wss://moonbeam.ibp.network',
   astar: 'wss://rpc.astar.network',
   bifrost: 'wss://bifrost-polkadot.ibp.network',
