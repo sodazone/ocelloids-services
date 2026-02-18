@@ -278,6 +278,21 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
+    publicKey: toHex(padAccountKey20('0x921b35e54b45b60ee8142fa234baeb2ff5e307e0')) as HexString,
+    evm: [
+      {
+        address: '0x921b35e54b45b60ee8142fa234baeb2ff5e307e0',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:algebra-pool',
+      },
+    ],
+  },
+  {
     publicKey: toHex(padAccountKey20('0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4')) as HexString,
     evm: [
       {
@@ -334,6 +349,21 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         chainId: 'urn:ocn:polkadot:2004',
         tag: 'protocol:moondrop',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x5c3dc0ab1bd70c5cdc8d0865e023164d4d3fd8ec')) as HexString,
+    evm: [
+      {
+        address: '0x5c3dc0ab1bd70c5cdc8d0865e023164d4d3fd8ec',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:swap-flash-loan',
       },
     ],
   },
