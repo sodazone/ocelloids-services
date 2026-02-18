@@ -83,7 +83,7 @@ export class RuntimeApiContext implements SubstrateApiContext {
   }
 
   hasPallet(name: string) {
-    return this.#metadata.pallets.findIndex((p) => p.name === name) > -1
+    return this.#metadata.pallets.findIndex((p) => p.name.toLowerCase() === name.toLowerCase()) > -1
   }
 
   getTypeIdByPath(path: string | string[]): number | undefined {

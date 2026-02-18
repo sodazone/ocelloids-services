@@ -26,6 +26,7 @@ import { HyperbridgeAgent } from '../hyperbridge/agent.js'
 import { OpenGovAgent } from '../opengov/agent.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
+import { TransfersAgent } from '../transfers/agent.js'
 import { WormholeAgent } from '../wormhole/agent.js'
 
 const DIRTY_TOGGLES = {
@@ -67,6 +68,11 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       steward: activations['steward'] as DataSteward,
       ticker: activations['ticker'] as TickerAgent,
       crosschain: activations['crosschain'] as CrosschainExplorer,
+    }),
+  transfers: (ctx, activations) =>
+    new TransfersAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
     }),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),

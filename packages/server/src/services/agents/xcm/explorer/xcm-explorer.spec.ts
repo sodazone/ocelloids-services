@@ -3,7 +3,7 @@ import { resolve } from 'path'
 import { createInterface } from 'readline'
 import { Observable, share } from 'rxjs'
 import { beforeEach, describe, it } from 'vitest'
-
+import { Egress } from '@/services/egress/index.js'
 import { createServices } from '@/testing/services.js'
 import { xcmDataDir } from '@/testing/xcm.js'
 import { CrosschainExplorer } from '../../crosschain/explorer.js'
@@ -49,10 +49,15 @@ describe('XcmExplorer', () => {
       stream: vi.fn(),
       close: vi.fn(),
     } as unknown as ServerSentEventsBroadcaster
+    const egress = {
+      publish: vi.fn(),
+      terminate: vi.fn(),
+    } as unknown as Egress
 
     crosschain = new CrosschainExplorer({
       log,
       broadcaster,
+      egress,
     })
 
     explorer = new XcmExplorer({

@@ -11,6 +11,7 @@ import {
   ServerSentEventsRequest,
   Streamable,
 } from '../types.js'
+import { AccountsMetadataManager } from './accounts/manager.js'
 import { BalancesManager } from './balances/manager.js'
 import { BalanceEvents, createStewardBroadcaster } from './balances/sse.js'
 import { AssetMetadataManager } from './metadata/manager.js'
@@ -39,6 +40,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   }
 
   readonly #metadataManager: AssetMetadataManager
+  readonly #accountsManager: AccountsMetadataManager
   readonly #balancesManager?: BalancesManager
   readonly #substrateIngress: SubstrateIngressConsumer
   readonly #broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>
@@ -55,6 +57,7 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
 
     this.#broadcaster = createStewardBroadcaster()
     this.#metadataManager = new AssetMetadataManager(managerContext)
+    this.#accountsManager = new AccountsMetadataManager(managerContext)
     if (ctx.config && 'balances' in ctx.config && ctx.config['balances']) {
       this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this), this.#broadcaster)
     }
@@ -67,6 +70,9 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
     const queryType = queryPaths[0]
     if (queryType === 'assets' || queryType === 'chains') {
       return this.#metadataManager.queries(params)
+    }
+    if (queryType === 'accounts') {
+      return this.#accountsManager.queries(params)
     }
     throw new Error(`Query type ${queryType} not supported`)
   }
@@ -82,12 +88,14 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
   async stop() {
     await this.#balancesManager?.stop()
     this.#metadataManager.stop()
+    this.#accountsManager.stop()
     this.#broadcaster.close()
   }
 
   async start() {
     await this.#substrateIngress.isReady()
     await this.#metadataManager.start()
+    await this.#accountsManager.start()
     await this.#balancesManager?.start()
   }
 

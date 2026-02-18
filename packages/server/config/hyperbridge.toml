@@ -1,0 +1,139 @@
+[[substrate.networks]]
+id = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/polkadot",
+    "wss://rpc.dotters.network/polkadot",
+    "wss://polkadot-rpc.dwellir.com",
+    "wss://polkadot-rpc.publicnode.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1000"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+      "wss://asset-hub-polkadot-rpc.dwellir.com",
+      "wss://sys.ibp.network/asset-hub-polkadot",
+      "wss://asset-hub-polkadot.dotters.network",
+      "wss://polkadot-asset-hub-rpc.polkadot.io"
+    ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1002"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+    "wss://sys.ibp.network/bridgehub-polkadot",
+    "wss://bridge-hub-polkadot.dotters.network",
+    "wss://bridge-hub-polkadot-rpc.dwellir.com",
+    "wss://polkadot-bridge-hub-rpc.polkadot.io"
+    ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2004"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://wss.api.moonbeam.network",
+    "wss://moonbeam-rpc.dwellir.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2034"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+    "wss://hydradx.paras.ibp.network",
+    "wss://hydradx.paras.dotters.network",
+    "wss://rpc.helikon.io/hydradx"
+    ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2030"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://bifrost-polkadot.ibp.network",
+        "wss://bifrost-polkadot.dotters.network"
+    ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:3367"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://nexus.ibp.network",
+        "wss://nexus.dotters.network",
+        "wss://hyperbridge-nexus-rpc.blockops.network"
+    ]
+
+[[evm.networks]]
+id = "urn:ocn:ethereum:1"
+maxBlockDist = 25
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://ethereum-rpc.publicnode.com",
+        "wss://mainnet.gateway.tenderly.co",
+        "https://eth.llamarpc.com",
+        "https://rpc.mevblocker.io",
+        "https://ethereum-rpc.publicnode.com",
+        "https://eth1.lava.build",
+        "https://eth.blockrazor.xyz"
+    ]
+[[evm.networks]]
+id = "urn:ocn:ethereum:10"
+maxBlockDist = 150
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://optimism.drpc.org",
+        "wss://optimism.gateway.tenderly.co",
+        "wss://optimism-rpc.publicnode.com",
+        "https://mainnet.optimism.io",
+        "https://optimism.gateway.tenderly.co",
+        "https://optimism-public.nodies.app",
+        "https://public-op-mainnet.fastnode.io"
+    ]
+[[evm.networks]]
+id = "urn:ocn:ethereum:56"
+maxBlockDist = 400
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://bsc-rpc.publicnode.com",
+        "https://bsc.blockrazor.xyz",
+        "https://public-bsc-mainnet.fastnode.io",
+        "https://binance-smart-chain-public.nodies.app"
+    ]
+[[evm.networks]]
+id = "urn:ocn:ethereum:8453"
+maxBlockDist = 150
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://base-rpc.publicnode.com",
+        "wss://base.gateway.tenderly.co",
+        "https://developer-access-mainnet.base.org",
+        "https://base-public.nodies.app",
+        "https://base-rpc.publicnode.com",
+        "https://base.meowrpc.com",
+        "https://mainnet.base.org",
+        "https://base.lava.build"
+    ]
+[[evm.networks]]
+id = "urn:ocn:ethereum:42161"
+maxBlockDist = 1_200
+batchSize = 9
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://arbitrum-one-rpc.publicnode.com",
+        "wss://arbitrum.drpc.org",
+        "https://arbitrum-one-public.nodies.app",
+        "https://arbitrum.gateway.tenderly.co",
+        "https://public-arb-mainnet.fastnode.io",
+        "https://arb1.arbitrum.io/rpc",
+    ]

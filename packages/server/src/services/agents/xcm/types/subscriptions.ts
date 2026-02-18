@@ -1,14 +1,10 @@
 import { Subscription as RxSubscription } from 'rxjs'
 import { z } from 'zod'
 
-import { ControlQuery } from '@/common/index.js'
+import { ControlQuery, uniqueArray } from '@/common/index.js'
 import { $HistoricalQuery } from '@/services/archive/types.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { XcmNotificationTypes } from './messages.js'
-
-function distinct(a: Array<string>) {
-  return Array.from(new Set(a))
-}
 
 export type Monitor = {
   streams: RxSubscriptionWithId[]
@@ -36,12 +32,12 @@ export const $XcmInputs = z.object({
           })
           .min(1),
       )
-      .transform(distinct),
+      .transform(uniqueArray),
   ),
   senders: z.optional(
     z
       .literal('*')
-      .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(distinct)),
+      .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(uniqueArray)),
   ),
   destinations: z.literal('*').or(
     z
@@ -52,7 +48,7 @@ export const $XcmInputs = z.object({
           })
           .min(1),
       )
-      .transform(distinct),
+      .transform(uniqueArray),
   ),
   // prevent using $refs
   events: z.optional(

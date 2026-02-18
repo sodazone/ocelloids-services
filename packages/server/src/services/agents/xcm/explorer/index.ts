@@ -617,6 +617,7 @@ export class XcmExplorer {
   #broadcastJourney(event: 'new_journey' | 'update_journey', data: FullJourneyResponse) {
     if (shouldBroadcastJourney(data)) {
       this.#crosschain.broadcastJourney(event, data)
+      this.#crosschain.emit(data)
     }
   }
 

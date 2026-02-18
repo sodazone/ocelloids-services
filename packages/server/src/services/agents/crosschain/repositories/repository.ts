@@ -5,7 +5,7 @@ import { ulid } from 'ulidx'
 import { immediate, microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
-import { JourneyFilters } from '../types/queries.js'
+import { JourneyFilters, JourneyRangeFilters } from '../types/queries.js'
 import {
   AssetOperation,
   AssetOperationUpdate,
@@ -751,6 +751,76 @@ export class CrosschainRepository {
       'asc',
     )
     return rows.map(mapRowToFullJourney)
+  }
+
+  // List journeys in range of ids in ascending order
+  async listJourneysByRange(
+    filters?: JourneyRangeFilters,
+    pagination?: QueryPagination,
+  ): Promise<{
+    nodes: Array<FullJourney>
+    pageInfo: {
+      hasNextPage: boolean
+      endCursor: string
+    }
+  }> {
+    const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
+    const queryLimit = limit + 1
+    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
+
+    let query = this.#db.selectFrom('xc_journeys').select(['id', 'sent_at'])
+
+    if (filters?.start !== undefined) {
+      query = query.where('id', '>=', filters.start)
+    }
+
+    if (filters?.end !== undefined) {
+      query = query.where('id', '<=', filters.end)
+    }
+
+    if (filters?.networks && filters.networks.length > 0) {
+      query = query.where((eb) =>
+        eb.or([eb('origin', 'in', filters.networks!), eb('destination', 'in', filters.networks!)]),
+      )
+    }
+
+    if (cursor) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('sent_at', '>', cursor.timestamp),
+          eb.and([eb('sent_at', '=', cursor.timestamp), eb('xc_journeys.id', '>', cursor.id)]),
+        ]),
+      )
+    }
+
+    const idRows = await query.orderBy('sent_at', 'asc').orderBy('id', 'asc').limit(queryLimit).execute()
+
+    const hasNextPage = idRows.length > limit
+    const paginated = hasNextPage ? idRows.slice(0, limit) : idRows
+    const ids = paginated.map((r) => r.id)
+
+    if (ids.length === 0) {
+      return {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: '',
+        },
+      }
+    }
+
+    const rows = await this.#getFullJourneyData(ids, 'id', 'asc')
+    const nodes = rows.map(mapRowToFullJourney)
+
+    const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
+
+    return {
+      nodes,
+      pageInfo: {
+        hasNextPage,
+        endCursor,
+      },
+    }
   }
 
   async #filterJourneyIds(limit: number, filters?: JourneyFilters, cursor?: string) {

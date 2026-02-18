@@ -1,13 +1,12 @@
+import { OcelloidsClient } from './core/client'
 import {
-  OcelloidsClient,
   OcelloidsClientApi,
   OcelloidsClientConfig,
   QueryableApi,
   StreamableApi,
   SubscribableApi,
-} from './client'
-import { FullJourneyResponse, XcQueryArgs, XcQueryResponse, XcServerSentEventArgs } from './crosschain/types'
-
+} from './core/types'
+import { CrosschainAgentApi } from './crosschain/agent'
 import { AnySubscriptionInputs } from './lib'
 import {
   AccountData,
@@ -17,9 +16,10 @@ import {
   StewardQueryArgs,
   StewardServerSentEventArgs,
 } from './steward/types'
+import { TransfersAgentApi } from './transfers/agent'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain'
+type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers'
 
 /**
  * Creates an agent instance.
@@ -134,17 +134,24 @@ export function createInformantAgent(
  */
 export function createCrosschainAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
-): QueryableApi<XcQueryArgs, XcQueryResponse> &
-  StreamableApi<
-    { streamName: 'default'; args: XcServerSentEventArgs },
-    | { event: 'new_journey'; onData: (data: FullJourneyResponse) => void }
-    | { event: 'update_journey'; onData: (data: FullJourneyResponse) => void }
-  > &
-  OcelloidsClientApi {
-  return createAgent('crosschain', optsOrClient)
+): CrosschainAgentApi {
+  const client = optsOrClient instanceof OcelloidsClient ? optsOrClient : new OcelloidsClient(optsOrClient)
+
+  return new CrosschainAgentApi(client)
 }
 
 /**
  * @public
  */
 export type CrosschainAgent = ReturnType<typeof createCrosschainAgent>
+
+/**
+ * @public
+ */
+export function createTransfersAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): TransfersAgentApi {
+  const client = optsOrClient instanceof OcelloidsClient ? optsOrClient : new OcelloidsClient(optsOrClient)
+
+  return new TransfersAgentApi(client)
+}

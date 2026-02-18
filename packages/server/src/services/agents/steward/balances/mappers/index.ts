@@ -4,7 +4,8 @@ import { fromHex } from 'polkadot-api/utils'
 import { filter, firstValueFrom } from 'rxjs'
 import { isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
-import { AssetId, networks } from '../../types.js'
+import { networks } from '@/services/agents/common/networks.js'
+import { AssetId } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   AssetsBalance,

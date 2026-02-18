@@ -175,7 +175,9 @@ export class HyperbridgeAgent implements Agent {
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
-    this.#crosschain.broadcastJourney(event, deepCamelize<FullJourney>(fullJourney))
+    const camelizedJourney = deepCamelize<FullJourney>(fullJourney)
+    this.#crosschain.broadcastJourney(event, camelizedJourney)
+    this.#crosschain.emit(camelizedJourney)
   }
 
   async #onMessage(message: HyperbridgeDecodedPayload) {

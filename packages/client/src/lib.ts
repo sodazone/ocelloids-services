@@ -6,7 +6,9 @@
  * @packageDocumentation
  */
 export * from './agent'
-export * from './client'
+export * from './core/api'
+export * from './core/client'
+export * from './core/types'
 export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
 export * from './query'
 export type {
@@ -27,6 +29,7 @@ export type {
   SubstrateTypes,
   sourceCrosschain,
   sourceSteward,
+  sourceTransfers,
   sourceXcm,
 } from './server-types'
 export * from './types'
@@ -39,5 +42,12 @@ export { xcm }
 import * as steward from './steward/types'
 export { steward }
 
+export * from './crosschain/agent'
+
 import * as crosschain from './crosschain/types'
 export { crosschain }
+
+export * from './transfers/agent'
+
+import * as transfers from './transfers/types'
+export { transfers }

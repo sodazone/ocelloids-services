@@ -2,10 +2,10 @@ import { Server, WebSocket } from 'mock-socket'
 import nock from 'nock'
 import { vi } from 'vitest'
 
-import samples from '../test/.data/samples.json'
-import { type QueryResult } from './lib'
-import { AssetMetadata, StewardQueryArgs } from './steward/types'
-import { isXcmHop, XcmInputs, XcmMessagePayload } from './xcm/types'
+import samples from '../../test/.data/samples.json'
+import { type QueryResult } from '../lib'
+import { AssetMetadata, StewardQueryArgs } from '../steward/types'
+import { isXcmHop, XcmInputs, XcmMessagePayload } from '../xcm/types'
 
 vi.mock('isows', () => {
   return {
@@ -14,10 +14,10 @@ vi.mock('isows', () => {
   }
 })
 
-import { createXcmAgent } from './agent'
+import { createXcmAgent } from '../agent'
+import { isSubscriptionError, Subscription, WsAuthErrorEvent } from '../types'
+import { isXcmReceived, isXcmRelayed, isXcmSent } from '../xcm/types'
 import { OcelloidsClient } from './client'
-import { isSubscriptionError, Subscription, WsAuthErrorEvent } from './types'
-import { isXcmReceived, isXcmRelayed, isXcmSent } from './xcm/types'
 
 describe('OcelloidsClient', () => {
   it('should create a client instance', () => {

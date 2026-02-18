@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
+import { uniqueArray } from '@/common/util.js'
 
 /**
  * @public
@@ -56,6 +57,20 @@ export const $JourneyFilters = $RawJourneyFilters
   .optional()
 
 /**
+ * @public
+ */
+export const $JourneyRangeFilters = z
+  .object({
+    start: z.number().optional(),
+    end: z.number().optional(),
+    networks: z.array($NetworkString).min(1).max(50).transform(uniqueArray).optional(),
+  })
+  .refine((data) => data.start === undefined || data.end === undefined || data.start < data.end, {
+    message: '`start` must be less than `end`',
+    path: ['start'],
+  })
+
+/**
  * @private
  */
 export const $XcQueryArgs = z.discriminatedUnion('op', [
@@ -68,6 +83,10 @@ export const $XcQueryArgs = z.discriminatedUnion('op', [
     criteria: z.object({
       id: z.string(),
     }),
+  }),
+  z.object({
+    op: z.literal('journeys.by_id_range'),
+    criteria: $JourneyRangeFilters,
   }),
   z.object({
     op: z.literal('assets.list'),
@@ -83,3 +102,5 @@ export type JourneyFilters = z.infer<typeof $JourneyFilters>
  * @private
  */
 export type XcQueryArgs = z.infer<typeof $XcQueryArgs>
+
+export type JourneyRangeFilters = z.infer<typeof $JourneyRangeFilters>

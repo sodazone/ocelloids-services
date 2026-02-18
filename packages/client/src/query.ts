@@ -1,10 +1,5 @@
-import {
-  CrosschainAgent,
-  QueryableApi,
-  StewardAgent,
-  sourceSteward as st,
-  sourceCrosschain as xc,
-} from './lib'
+import { QueryableApi } from './core/types'
+import { CrosschainAgent, StewardAgent, sourceSteward as st, sourceCrosschain as xc } from './lib'
 
 type CamelCase<S extends string> = S extends `${infer P}.${infer R}`
   ? `${P}${Capitalize<CamelCase<R>>}`

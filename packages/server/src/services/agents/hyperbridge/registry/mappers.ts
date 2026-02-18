@@ -13,7 +13,8 @@ import {
   shareReplay,
   switchMap,
 } from 'rxjs'
-import { AbiFunction, erc20Abi, zeroAddress } from 'viem'
+import { AbiFunction, erc20Abi } from 'viem'
+import { isZeroAddress } from '@/common/address.js'
 import { asJSON } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { getChainId, getConsensus } from '@/services/config.js'
@@ -65,10 +66,6 @@ const gatewayViewFunctions: AbiFunction[] = [
     outputs: [{ type: 'address' }],
   },
 ]
-
-function isZeroAddress(address: string) {
-  return address.startsWith(zeroAddress)
-}
 
 function bifrostAssetMapper({ ingress }: MapperContext) {
   const apis = ingress.substrate

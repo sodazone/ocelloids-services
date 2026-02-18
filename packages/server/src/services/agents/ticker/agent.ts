@@ -1,4 +1,5 @@
 import { AbstractSublevel } from 'abstract-level'
+import { LRUCache } from 'lru-cache'
 import { ValidationError } from '@/errors.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { LevelDB, Logger } from '@/services/types.js'
@@ -60,6 +61,7 @@ export class TickerAgent implements Agent, Queryable {
   readonly #db: LevelDB
   readonly #dbPrices: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, string, AssetPriceData>
   readonly #scouts: PriceScout[]
+  readonly #priceCache: LRUCache<string, AggregatedPriceData>
 
   constructor(ctx: AgentRuntimeContext) {
     this.#log = ctx.log
@@ -70,6 +72,12 @@ export class TickerAgent implements Agent, Queryable {
     })
     // XXX proper config and loading
     this.#scouts = [new BinancePriceScout(), new CoinGeckoPriceScout(), new OkxPriceScout()]
+    this.#priceCache = new LRUCache<string, AggregatedPriceData>({
+      ttlResolution: 1_000,
+      ttlAutopurge: false,
+      max: 1_000,
+      ttl: 300_000, // 5 minutes
+    })
 
     this.#sched.on(PRICE_SYNC_TASK, this.#onScheduledTask.bind(this))
   }
@@ -155,6 +163,14 @@ export class TickerAgent implements Agent, Queryable {
 
     for (const { ticker, sources } of criteria) {
       const normalisedTicker = ticker.toLowerCase()
+      const cacheKey = this.#priceCacheKey(normalisedTicker, sources)
+
+      const cached = this.#priceCache.get(cacheKey)
+      if (cached) {
+        allItems.push(cached)
+        continue
+      }
+
       let items: AssetPriceData[] = []
 
       if (sources === undefined || sources === '*') {
@@ -212,6 +228,7 @@ export class TickerAgent implements Agent, Queryable {
         sources: withOutliers,
       }
 
+      this.#priceCache.set(cacheKey, aggregatedItem)
       allItems.push(aggregatedItem)
     }
 
@@ -262,6 +279,7 @@ export class TickerAgent implements Agent, Queryable {
 
       await batch.write()
       this.#log.info('[agent:%s] prices updated (#tickers=%s)', this.id, tickers.length)
+      this.#priceCache.clear()
     } catch (error) {
       this.#log.error(error, '[agent:%s] while writing updated prices', this.id)
     }
@@ -281,5 +299,12 @@ export class TickerAgent implements Agent, Queryable {
 
   #isSameAssetId(idA: string | number | object, idB: string | number | object) {
     return normalizeAssetId(idA).toLowerCase() === normalizeAssetId(idB).toLowerCase()
+  }
+
+  #priceCacheKey(ticker: string, sources?: string[] | '*') {
+    if (!sources || sources === '*') {
+      return `${ticker}|*`
+    }
+    return `${ticker}|${[...sources].sort().join(',')}`
   }
 }

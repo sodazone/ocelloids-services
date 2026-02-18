@@ -17,6 +17,22 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       assetId: 'native',
     },
     {
+      chainId: 'urn:ocn:polkadot:1000',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:1002',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:1004',
+      assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:1005',
+      assetId: 'native',
+    },
+    {
       chainId: 'urn:ocn:polkadot:3367',
       assetId: '0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f',
     },
@@ -380,6 +396,24 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:solana:101',
       assetId: '3b8x44flf9ooxaum3hhsgjpmvs6rzz3ppogngahc3uu7',
+    },
+  ],
+  HOLLAR: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '222',
+    },
+  ],
+  GDOT: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '69',
+    },
+  ],
+  GETH: [
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '420',
     },
   ],
 }

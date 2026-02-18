@@ -16,6 +16,7 @@ export type {
   SubscriptionId,
   SubstrateTypes,
   steward as sourceSteward,
+  transfers as sourceTransfers,
   xcm as sourceXcm,
 } from '@sodazone/ocelloids-service-node'
 

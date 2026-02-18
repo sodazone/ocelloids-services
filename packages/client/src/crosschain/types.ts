@@ -24,3 +24,13 @@ export type ListAsset = sourceCrosschain.ListAsset
  * @public
  */
 export type XcQueryResponse = FullJourneyResponse | ListAsset
+
+/**
+ * @public
+ */
+export type CrosschainSubscriptionInputs = {
+  /**
+   * An array of network ids or '*' for all.
+   */
+  networks: '*' | string[]
+}

@@ -2,10 +2,11 @@ import { toHex } from 'polkadot-api/utils'
 import { map, mergeMap, Observable } from 'rxjs'
 
 import { HexString } from '@/lib.js'
+import { networks } from '@/services/agents/common/networks.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
-import { AssetMapper, AssetMetadata, networks, StorageCodecs, WithRequired } from '../types.js'
+import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired } from '../types.js'
 import { mapAssetsLocationsAndErc20Metadata } from './moonbeam.js'
 import {
   hashItemPartialKey,
