@@ -5,11 +5,84 @@ import { SubstrateAccountUpdate } from './types.js'
 
 export const hydrationOverrides: SubstrateAccountUpdate[] = [
   {
+    publicKey: '0xa7208d10c6622f3f7eca1551de8355fde9de577dbb308d38994ace561738a51f',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kraken',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        tag: 'exchange_name:kraken',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x502de5798c411799bc2e975aff8a5c542356ab48254d1d96f15acecdca3d7991',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kraken',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        tag: 'exchange_name:kraken',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
     publicKey: '0x45544800000000000000000000000000000000000000090a0000000000000000',
     evm: [
       {
         address: '0x000000000000000000000000000000000000090a',
         chainId: 'urn:ocn:polkadot:2034',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        categoryCode: 2,
+        subCategoryCode: 2,
       },
     ],
     tags: [
@@ -25,6 +98,13 @@ export const hydrationOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x112c208b900bcfc9ff8131d0f45769cb6c7c7d8d',
         chainId: 'urn:ocn:polkadot:2034',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        categoryCode: 2,
+        subCategoryCode: 2,
       },
     ],
     tags: [
@@ -45,6 +125,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -58,6 +145,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x4485167772aec1ed2e54038800e0f3890a76cbc7',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -75,6 +169,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -88,6 +189,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x619229df13f518e4c9943c7dcb783d138be79e16',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -105,6 +213,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -118,6 +233,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x67d5e7640ca54418a8f490da8181ea8e01c82c84',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -135,6 +257,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -148,6 +277,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x4c7f187e9f39ea0ffcf105985cb0417f1174b0a2',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -165,6 +301,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -178,6 +321,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x091e463110febf48d45b4ef7ed4d9af2f938df3c',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -195,6 +345,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -208,6 +365,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x65d42a9d3d62df082233e28ca0e3bbcba11e183a',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -225,6 +389,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -238,6 +409,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0xa6ec268ff3140d445587f792ad056906883e29fa',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
       },
     ],
     tags: [
@@ -255,6 +433,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 8,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -268,6 +453,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0xaac5b58833a1e4264b0c1da8c0154779c714583b',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
       },
     ],
     tags: [
@@ -285,6 +477,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -298,6 +497,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x2232e98829f985c95c6930342b607496cad7a560',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
       },
     ],
     tags: [
@@ -315,6 +521,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 3,
+        subCategoryCode: 1,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -330,6 +543,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 3,
+        subCategoryCode: 1,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -343,6 +563,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x2d5d7d31f671f86c782533cc367f14109a082712',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 3,
+        subCategoryCode: 1,
       },
     ],
     tags: [
@@ -375,6 +602,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 2,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -388,6 +622,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0xf4c10263f2a4b1f75b8a5fd5328fb61605321639',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
       },
     ],
     tags: [
@@ -405,6 +646,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -418,6 +666,13 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         address: '0x051fcf8986b30860a1341e0031e5622bd18d8a85',
         chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
       },
     ],
     tags: [
@@ -435,10 +690,311 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
         chainId: 'urn:ocn:polkadot:2004',
       },
     ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 3,
+        subCategoryCode: 1,
+      },
+    ],
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
         tag: 'protocol:layer-zero-executor',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x8e00d5e02e65a19337cdba98bba9f84d4186a180')) as HexString,
+    evm: [
+      {
+        address: '0x8e00d5e02e65a19337cdba98bba9f84d4186a180',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 2,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:moonwell-comptroller-v1',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf977814e90da44bfa03b6295a0616a897441acec')) as HexString,
+    evm: [
+      {
+        address: '0xf977814e90da44bfa03b6295a0616a897441acec',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:binance.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf3918988eb3ce66527e2a1a4d42c303915ce28ce')) as HexString,
+    evm: [
+      {
+        address: '0xf3918988eb3ce66527e2a1a4d42c303915ce28ce',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:binance.com',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x76ec5a0d3632b2133d9f1980903305b62678fbd3')) as HexString,
+    evm: [
+      {
+        address: '0x76ec5a0d3632b2133d9f1980903305b62678fbd3',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:btcturk',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf89d7b9c864f589bbf53a82105107622b35eaa40')) as HexString,
+    evm: [
+      {
+        address: '0xf89d7b9c864f589bbf53a82105107622b35eaa40',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:bybit',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x0d0707963952f2fba59dd06f2b425ace40b492fe')) as HexString,
+    evm: [
+      {
+        address: '0x0d0707963952f2fba59dd06f2b425ace40b492fe',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:gate.io',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xab782bc7d4a2b306825de5a7730034f8f63ee1bc')) as HexString,
+    evm: [
+      {
+        address: '0xab782bc7d4a2b306825de5a7730034f8f63ee1bc',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:bitvavo',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x377b8ce04761754e8ac153b47805a9cf6b190873')) as HexString,
+    evm: [
+      {
+        address: '0x377b8ce04761754e8ac153b47805a9cf6b190873',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:upbit',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x5bdf85216ec1e38d6458c870992a69e38e03f7ef')) as HexString,
+    evm: [
+      {
+        address: '0x5bdf85216ec1e38d6458c870992a69e38e03f7ef',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:bitget',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1')) as HexString,
+    evm: [
+      {
+        address: '0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:coinspot',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x0529ea5885702715e83923c59746ae8734c553b7')) as HexString,
+    evm: [
+      {
+        address: '0x0529ea5885702715e83923c59746ae8734c553b7',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:bitpanda',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xf0bc8fddb1f358cef470d63f96ae65b1d7914953')) as HexString,
+    evm: [
+      {
+        address: '0xf0bc8fddb1f358cef470d63f96ae65b1d7914953',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:korbit',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0xff4606bd3884554cdbdabd9b6e25e2fad4f6fc54')) as HexString,
+    evm: [
+      {
+        address: '0xff4606bd3884554cdbdabd9b6e25e2fad4f6fc54',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'exchange_name:swissborg',
       },
     ],
   },

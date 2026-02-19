@@ -141,6 +141,7 @@ export function mergeAccountMetadata(
       publicKey: incoming.publicKey,
       evm: incoming.evm ?? [],
       identities: incoming.identities ?? [],
+      categories: incoming.categories ?? [],
       tags: incoming.tags ?? [],
       updatedAt: now,
     }
@@ -149,11 +150,9 @@ export function mergeAccountMetadata(
   let changed = false
 
   const evmMap = new Map<string, SubstrateAccountMetadata['evm'][number]>()
-
   for (const e of persisted.evm ?? []) {
     evmMap.set(`${e.chainId}|${e.address}`, e)
   }
-
   for (const e of incoming.evm ?? []) {
     const key = `${e.chainId}|${e.address}`
     if (!evmMap.has(key)) {
@@ -161,15 +160,12 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
-
   const evm = Array.from(evmMap.values())
 
   const identityMap = new Map<NetworkURN, SubstrateAccountMetadata['identities'][number]>()
-
   for (const i of persisted.identities ?? []) {
     identityMap.set(i.chainId, i)
   }
-
   for (const i of incoming.identities ?? []) {
     const existing = identityMap.get(i.chainId)
     if (!existing || !deepEqualIdentity(existing, i)) {
@@ -177,15 +173,25 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
-
   const identities = Array.from(identityMap.values())
 
-  const tagMap = new Map<string, SubstrateAccountMetadata['tags'][number]>()
+  const categoryMap = new Map<string, SubstrateAccountMetadata['categories'][number]>()
+  for (const c of persisted.categories ?? []) {
+    categoryMap.set(`${c.chainId}|${c.categoryCode}|${c.subCategoryCode}`, c)
+  }
+  for (const c of incoming.categories ?? []) {
+    const key = `${c.chainId}|${c.categoryCode}|${c.subCategoryCode}`
+    if (!categoryMap.has(key)) {
+      categoryMap.set(key, c)
+      changed = true
+    }
+  }
+  const categories = Array.from(categoryMap.values())
 
+  const tagMap = new Map<string, SubstrateAccountMetadata['tags'][number]>()
   for (const t of persisted.tags ?? []) {
     tagMap.set(`${t.chainId}|${t.tag}`, t)
   }
-
   for (const t of incoming.tags ?? []) {
     const key = `${t.chainId}|${t.tag}`
     if (!tagMap.has(key)) {
@@ -193,7 +199,6 @@ export function mergeAccountMetadata(
       changed = true
     }
   }
-
   const tags = Array.from(tagMap.values())
 
   if (!changed) {
@@ -204,6 +209,7 @@ export function mergeAccountMetadata(
     publicKey: incoming.publicKey,
     evm,
     identities,
+    categories,
     tags,
     updatedAt: now,
   }
@@ -366,6 +372,13 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                         address: evmAddress,
                       },
                     ],
+                    categories: [
+                      {
+                        chainId,
+                        categoryCode: 2,
+                        subCategoryCode: 1,
+                      },
+                    ],
                     tags: [{ chainId, tag: `protocol:stableswap-${poolId}` }],
                   })
                 }),
@@ -402,6 +415,13 @@ function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
                 {
                   chainId,
                   address: evmAddress,
+                },
+              ],
+              categories: [
+                {
+                  chainId,
+                  categoryCode: 2,
+                  subCategoryCode: 1,
                 },
               ],
               tags: [{ chainId, tag: `protocol:xyk` }],

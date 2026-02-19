@@ -88,6 +88,12 @@ export const $StewardQueryArgs = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('accounts.list'),
   }),
+  z.object({
+    op: z.literal('accounts.updated_since'),
+    criteria: z.object({
+      since: z.number(),
+    }),
+  }),
 ])
 
 /**

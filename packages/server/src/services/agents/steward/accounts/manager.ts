@@ -3,7 +3,8 @@ import { LRUCache } from 'lru-cache'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { filter, merge, Observable, Subscription } from 'rxjs'
 import { padAccountKey20, ss58ToPublicKey } from '@/common/address.js'
-import { QueryParams, QueryResult } from '@/services/agents/types.js'
+import { asAccountId, normalizePublicKey } from '@/common/util.js'
+import { QueryPagination, QueryParams, QueryResult } from '@/services/agents/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
@@ -12,15 +13,28 @@ import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { Empty, StewardManagerContext, StewardQueryArgs } from '../types.js'
 import { limitCap, paginatedResults } from '../util.js'
 import { extraAccountMeta$, identities$, mergeAccountMetadata } from './mappers.js'
-import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
+import { SubstrateAccountMetadata, SubstrateAccountResult, SubstrateAccountUpdate } from './types.js'
 
 const ACCOUNT_METADATA_SYNC_TASK = 'task:steward:accounts-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
 const ACCOUNTS_LEVEL_PREFIX = 'agent:steward:accounts'
 const ACCOUNTS_EVM_LEVEL_PREFIX = 'agent:steward:accounts:evm'
+const ACCOUNTS_UPDATED_LEVEL_PREFIX = 'agent:steward:accounts:updated'
 
 const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 43_200_000 // 24h
+
+const TIMESTAMP_SIZE = 8
+
+function toUpdateIndexKey(updatedAt: number, pubKey: Buffer): Buffer {
+  const tsBuf = Buffer.allocUnsafe(TIMESTAMP_SIZE)
+  tsBuf.writeBigUInt64BE(BigInt(updatedAt))
+  return Buffer.concat([tsBuf, pubKey])
+}
+
+function toAccountCursor(cursor?: string) {
+  return cursor && cursor !== '' ? Buffer.from(fromHex(cursor)) : undefined
+}
 
 export class AccountsMetadataManager {
   id = 'steward:accounts'
@@ -37,20 +51,26 @@ export class AccountsMetadataManager {
     SubstrateAccountMetadata
   >
   readonly #dbAccountsEvmIndex: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Buffer, Buffer>
+  readonly #dbAccountsUpdated: AbstractSublevel<LevelDB, string | Buffer | Uint8Array, Buffer, Buffer>
 
-  readonly #cache: LRUCache<string, SubstrateAccountMetadata, unknown>
+  readonly #cache: LRUCache<string, SubstrateAccountResult, unknown>
   readonly #rxSubs: Subscription[] = []
 
   constructor({ log, db, scheduler, ingress }: StewardManagerContext) {
     this.#log = log
     this.#sched = scheduler
     this.#ingress = ingress.substrate
+
     this.#db = db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAccounts = db.sublevel<Buffer, SubstrateAccountMetadata>(ACCOUNTS_LEVEL_PREFIX, {
       keyEncoding: 'buffer',
       valueEncoding: 'json',
     })
     this.#dbAccountsEvmIndex = db.sublevel<Buffer, Buffer>(ACCOUNTS_EVM_LEVEL_PREFIX, {
+      keyEncoding: 'buffer',
+      valueEncoding: 'buffer',
+    })
+    this.#dbAccountsUpdated = db.sublevel<Buffer, Buffer>(ACCOUNTS_UPDATED_LEVEL_PREFIX, {
       keyEncoding: 'buffer',
       valueEncoding: 'buffer',
     })
@@ -86,9 +106,7 @@ export class AccountsMetadataManager {
     }
   }
 
-  async queries(
-    params: QueryParams<StewardQueryArgs>,
-  ): Promise<QueryResult<SubstrateAccountMetadata | Empty>> {
+  async queries(params: QueryParams<StewardQueryArgs>): Promise<QueryResult<SubstrateAccountResult | Empty>> {
     const { args, pagination } = params
 
     if (args.op === 'accounts') {
@@ -96,15 +114,22 @@ export class AccountsMetadataManager {
     }
 
     if (args.op === 'accounts.list') {
-      const cursor =
-        pagination?.cursor && pagination.cursor !== '' ? Buffer.from(fromHex(pagination.cursor)) : undefined
+      const cursor = toAccountCursor(pagination?.cursor)
 
       const iterator = this.#dbAccounts.iterator({
         ...(cursor ? { gt: cursor } : {}),
         limit: limitCap(pagination),
       })
 
-      return await paginatedResults<Buffer, SubstrateAccountMetadata>(iterator)
+      const paginated = await paginatedResults<Buffer, SubstrateAccountMetadata>(iterator)
+      return {
+        ...paginated,
+        items: paginated.items.map(this.#mapAccountToResult),
+      }
+    }
+
+    if (args.op === 'accounts.updated_since') {
+      return await this.#fetchAccountsUpdatedSince(args.criteria, pagination)
     }
 
     throw new Error('Unsupported op')
@@ -112,12 +137,12 @@ export class AccountsMetadataManager {
 
   async #fetchAccounts(criteria: {
     accounts: string[]
-  }): Promise<QueryResult<SubstrateAccountMetadata | Empty>> {
+  }): Promise<QueryResult<SubstrateAccountResult | Empty>> {
     const inputs = criteria.accounts
 
     const dbKeys = await this.#resolveDbKeysFromInput(criteria)
 
-    const results: (SubstrateAccountMetadata | Empty)[] = new Array(dbKeys.length)
+    const results: (SubstrateAccountResult | Empty)[] = new Array(dbKeys.length)
     const keysToFetch: Buffer[] = []
     const fetchIndexes: number[] = []
 
@@ -144,8 +169,9 @@ export class AccountsMetadataManager {
         const originalInput = inputs[resultIndex]
 
         if (item !== undefined) {
-          results[resultIndex] = item
-          this.#cache.set(keysToFetch[fetchIdx].toString('hex'), item)
+          const result = this.#mapAccountToResult(item)
+          results[resultIndex] = result
+          this.#cache.set(keysToFetch[fetchIdx].toString('hex'), result)
         } else {
           results[resultIndex] = {
             isNotResolved: true,
@@ -156,6 +182,68 @@ export class AccountsMetadataManager {
     }
 
     return { items: results }
+  }
+
+  async #fetchAccountsUpdatedSince(
+    { since }: { since: number },
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<SubstrateAccountResult>> {
+    const limit = limitCap(pagination)
+
+    const cursor = toAccountCursor(pagination?.cursor)
+
+    const iteratorOptions: any = {
+      limit,
+    }
+
+    if (cursor) {
+      iteratorOptions.gt = cursor
+    } else {
+      const lowerBound = Buffer.allocUnsafe(8)
+      lowerBound.writeBigUInt64BE(BigInt(since))
+      iteratorOptions.gt = lowerBound
+    }
+
+    const iterator = this.#dbAccountsUpdated.iterator(iteratorOptions)
+
+    const indexEntries = await iterator.all()
+
+    if (indexEntries.length === 0) {
+      return { items: [] }
+    }
+
+    const items: SubstrateAccountMetadata[] = []
+
+    for (const [, pubKeyBuf] of indexEntries) {
+      try {
+        const account = await this.#dbAccounts.get(pubKeyBuf)
+        if (account) {
+          items.push(account)
+        }
+      } catch (err: any) {
+        if (err?.code !== 'LEVEL_NOT_FOUND') {
+          throw err
+        }
+        this.#log.warn(err, 'Account not found for pub key %s', toHex(pubKeyBuf))
+      }
+    }
+
+    const lastKey = indexEntries[indexEntries.length - 1][0] as Buffer
+
+    return {
+      items: items.map(this.#mapAccountToResult),
+      pageInfo: {
+        endCursor: toHex(lastKey),
+        hasNextPage: indexEntries.length === limit,
+      },
+    }
+  }
+
+  #mapAccountToResult(account: SubstrateAccountMetadata): SubstrateAccountResult {
+    return {
+      ...account,
+      accountId: asAccountId(normalizePublicKey(account.publicKey), 0),
+    }
   }
 
   #syncAccounts() {
@@ -184,7 +272,12 @@ export class AccountsMetadataManager {
             return
           }
 
+          if (persisted) {
+            await this.#dbAccountsUpdated.del(toUpdateIndexKey(persisted.updatedAt, pubKeyBuf))
+          }
+
           await this.#dbAccounts.put(pubKeyBuf, merged)
+          await this.#dbAccountsUpdated.put(toUpdateIndexKey(merged.updatedAt, pubKeyBuf), pubKeyBuf)
           for (const evm of merged.evm) {
             const indexKey = Buffer.from(evm.address.substring(2).toLowerCase(), 'hex')
             await this.#dbAccountsEvmIndex.put(indexKey, pubKeyBuf)
@@ -307,7 +400,7 @@ export class AccountsMetadataManager {
 
               await this.#dbAccounts.put(pubKeyBuf, next)
               await this.#dbAccountsEvmIndex.put(evmBuf, pubKeyBuf)
-              this.#cache.set(pubKeyBuf.toString('hex'), next)
+              this.#cache.set(pubKeyBuf.toString('hex'), this.#mapAccountToResult(next))
             } catch (err) {
               this.#log.error(
                 err,
