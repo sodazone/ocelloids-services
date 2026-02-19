@@ -5,12 +5,21 @@ import { Gauge } from 'prom-client'
 
 export async function dirSize(directory: string) {
   const files = await fs.readdir(directory)
-  const stats = files.map((file) => fs.stat(path.join(directory, file)))
 
   let size = 0
-  for await (const stat of stats) {
-    size += stat.size
+
+  for (const file of files) {
+    try {
+      const stat = await fs.stat(path.join(directory, file))
+      size += stat.size
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') {
+        throw err
+      }
+      // File removed between readdir and stat, ignore
+    }
   }
+
   return size
 }
 
@@ -18,7 +27,11 @@ export function collectDiskStats(directory: string, opts: { name: string; help: 
   const diskGauge = new Gauge(opts)
 
   return async () => {
-    const bytes = await dirSize(directory)
-    diskGauge.set(bytes)
+    try {
+      const bytes = await dirSize(directory)
+      diskGauge.set(bytes)
+    } catch (err) {
+      console.error('disk metrics failed', err)
+    }
   }
 }
