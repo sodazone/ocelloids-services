@@ -1,6 +1,6 @@
 import { Twox128 } from '@polkadot-api/substrate-bindings'
 import { AbstractIterator } from 'abstract-level'
-
+import { toHex } from 'polkadot-api/utils'
 import { HexString } from '@/lib.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryPagination } from '../types.js'
@@ -26,12 +26,8 @@ function encodeCursor(key: unknown): string {
     return key
   }
 
-  if (Buffer.isBuffer(key)) {
-    return key.toString('hex')
-  }
-
-  if (key instanceof Uint8Array) {
-    return Buffer.from(key).toString('hex')
+  if (Buffer.isBuffer(key) || key instanceof Uint8Array) {
+    return toHex(key)
   }
 
   throw new Error(`Unsupported cursor key type: ${typeof key}`)

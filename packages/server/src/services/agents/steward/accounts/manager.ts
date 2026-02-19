@@ -1,6 +1,6 @@
 import { AbstractSublevel } from 'abstract-level'
 import { LRUCache } from 'lru-cache'
-import { toHex } from 'polkadot-api/utils'
+import { fromHex, toHex } from 'polkadot-api/utils'
 import { filter, merge, Observable, Subscription } from 'rxjs'
 import { padAccountKey20, ss58ToPublicKey } from '@/common/address.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
@@ -47,6 +47,7 @@ export class AccountsMetadataManager {
     this.#ingress = ingress.substrate
     this.#db = db.sublevel<string, any>(AGENT_LEVEL_PREFIX, {})
     this.#dbAccounts = db.sublevel<Buffer, SubstrateAccountMetadata>(ACCOUNTS_LEVEL_PREFIX, {
+      keyEncoding: 'buffer',
       valueEncoding: 'json',
     })
     this.#dbAccountsEvmIndex = db.sublevel<Buffer, Buffer>(ACCOUNTS_EVM_LEVEL_PREFIX, {
@@ -96,7 +97,7 @@ export class AccountsMetadataManager {
 
     if (args.op === 'accounts.list') {
       const cursor =
-        pagination?.cursor && pagination.cursor !== '' ? Buffer.from(pagination.cursor, 'hex') : undefined
+        pagination?.cursor && pagination.cursor !== '' ? Buffer.from(fromHex(pagination.cursor)) : undefined
 
       const iterator = this.#dbAccounts.iterator({
         ...(cursor ? { gt: cursor } : {}),
