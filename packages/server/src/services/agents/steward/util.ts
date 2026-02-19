@@ -21,18 +21,34 @@ export function limitCap(pagination?: QueryPagination) {
   return Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX)
 }
 
+function encodeCursor(key: unknown): string {
+  if (typeof key === 'string') {
+    return key
+  }
+
+  if (Buffer.isBuffer(key)) {
+    return key.toString('hex')
+  }
+
+  if (key instanceof Uint8Array) {
+    return Buffer.from(key).toString('hex')
+  }
+
+  throw new Error(`Unsupported cursor key type: ${typeof key}`)
+}
+
 export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB, K, V>) {
   const entries = await iterator.all()
 
   if (entries.length === 0) {
-    return {
-      items: [],
-    }
+    return { items: [] }
   }
+
+  const lastKey = entries[entries.length - 1][0]
 
   return {
     pageInfo: {
-      endCursor: entries[entries.length - 1][0],
+      endCursor: encodeCursor(lastKey),
       hasNextPage: iterator.count >= iterator.limit,
     },
     items: entries.map(([_, v]) => v),

@@ -95,14 +95,15 @@ export class AccountsMetadataManager {
     }
 
     if (args.op === 'accounts.list') {
-      const cursor = pagination?.cursor && pagination.cursor !== '' ? pagination.cursor : undefined
+      const cursor =
+        pagination?.cursor && pagination.cursor !== '' ? Buffer.from(pagination.cursor, 'hex') : undefined
 
       const iterator = this.#dbAccounts.iterator({
         ...(cursor ? { gt: cursor } : {}),
         limit: limitCap(pagination),
       })
 
-      return await paginatedResults<string, SubstrateAccountMetadata>(iterator)
+      return await paginatedResults<Buffer, SubstrateAccountMetadata>(iterator)
     }
 
     throw new Error('Unsupported op')
