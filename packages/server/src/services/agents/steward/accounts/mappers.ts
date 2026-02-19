@@ -12,7 +12,7 @@ import { assetOverrides } from '../metadata/overrides.js'
 import { hydrationOverrides, moonbeamOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
-const STORAGE_PAGE_LEN = 100
+const STORAGE_PAGE_LEN = 50
 const textEncoder = new TextEncoder()
 const sts = textEncoder.encode('sts')
 
