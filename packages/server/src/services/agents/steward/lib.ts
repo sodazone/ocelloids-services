@@ -1,4 +1,11 @@
 import type {
+  AccountCategory,
+  AccountIdentity,
+  AccountTag,
+  SubstrateAccountMetadata,
+  SubstrateAccountResult,
+} from './accounts/types.js'
+import type {
   AccountData,
   AssetData,
   BalanceEvent,
@@ -10,7 +17,6 @@ import type {
   SyncedEvent,
 } from './balances/sse.js'
 import type { AssetId, AssetIds, AssetMetadata } from './types.js'
-import type { SubstrateAccountResult, SubstrateAccountMetadata, AccountCategory, AccountIdentity, AccountTag } from './accounts/types.js'
 
 /**
  * @public
@@ -74,14 +80,13 @@ type StewardQueryArgs =
     }
   | {
       op: 'accounts.list'
-  }
+    }
   | {
       op: 'accounts.updated_since'
       criteria: {
         since: number
       }
     }
-
 
 export type {
   AssetMetadata,
@@ -102,5 +107,5 @@ export type {
   SubstrateAccountMetadata,
   AccountCategory,
   AccountIdentity,
-  AccountTag
+  AccountTag,
 }

@@ -2,7 +2,6 @@ import { blake2b } from '@noble/hashes/blake2'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
 import { concatMap, EMPTY, expand, filter, from, map, merge, mergeMap, Observable, of, switchMap } from 'rxjs'
-import { padAccountKey20 } from '@/common/address.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -301,7 +300,7 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
                   if (extension) {
                     buf = Buffer.concat([fromHex(evmAddress), extension.asBytes()])
                   } else {
-                    buf = padAccountKey20(evmAddress)
+                    buf = Buffer.from(fromHex(evmAddress))
                   }
 
                   const publicKey = toHex(new Uint8Array(buf)) as HexString
@@ -441,7 +440,7 @@ function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
     filter((a) => a.chainId === chainId && typeof a.id === 'string' && a.id.startsWith('0x')),
     map((a) => {
       return {
-        publicKey: toHex(padAccountKey20(a.id as HexString)) as HexString,
+        publicKey: a.id as HexString,
         evm: [
           {
             chainId,

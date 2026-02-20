@@ -2,7 +2,7 @@ import { AbstractSublevel } from 'abstract-level'
 import { LRUCache } from 'lru-cache'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { filter, merge, Observable, Subscription } from 'rxjs'
-import { padAccountKey20, ss58ToPublicKey } from '@/common/address.js'
+import { ss58ToPublicKey } from '@/common/address.js'
 import { asAccountId, normalizePublicKey } from '@/common/util.js'
 import { QueryPagination, QueryParams, QueryResult } from '@/services/agents/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
@@ -261,9 +261,7 @@ export class AccountsMetadataManager {
 
     merge(...streams).subscribe({
       next: async (incoming) => {
-        const normalisedPublicKey =
-          incoming.publicKey.length > 42 ? incoming.publicKey : toHex(padAccountKey20(incoming.publicKey))
-        const pubKeyBuf = Buffer.from(normalisedPublicKey.substring(2).toLowerCase(), 'hex')
+        const pubKeyBuf = Buffer.from(incoming.publicKey.substring(2).toLowerCase(), 'hex')
         try {
           const persisted = await this.#dbAccounts.get(pubKeyBuf)
           const merged = mergeAccountMetadata(persisted, incoming)
@@ -278,9 +276,11 @@ export class AccountsMetadataManager {
 
           await this.#dbAccounts.put(pubKeyBuf, merged)
           await this.#dbAccountsUpdated.put(toUpdateIndexKey(merged.updatedAt, pubKeyBuf), pubKeyBuf)
-          for (const evm of merged.evm) {
-            const indexKey = Buffer.from(evm.address.substring(2).toLowerCase(), 'hex')
-            await this.#dbAccountsEvmIndex.put(indexKey, pubKeyBuf)
+          if (pubKeyBuf.length > 20) {
+            for (const evm of merged.evm) {
+              const indexKey = Buffer.from(evm.address.substring(2).toLowerCase(), 'hex')
+              await this.#dbAccountsEvmIndex.put(indexKey, pubKeyBuf)
+            }
           }
         } catch (e) {
           this.#log.error(e, '[agent:%s] on account metadata write (%s)', this.id, incoming.publicKey)
@@ -330,8 +330,7 @@ export class AccountsMetadataManager {
           if (indexedPubKey) {
             resolved.push(indexedPubKey)
           } else {
-            const padded = padAccountKey20(input as HexString)
-            resolved.push(padded)
+            resolved.push(Buffer.from(fromHex(input as HexString)))
           }
         } else if (addressBuf.length === 32) {
           resolved.push(addressBuf)
