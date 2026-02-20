@@ -12,7 +12,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { Empty, StewardManagerContext, StewardQueryArgs } from '../types.js'
 import { limitCap, paginatedResults } from '../util.js'
-import { extraAccountMeta$, identities$, mergeAccountMetadata } from './mappers.js'
+import { extraAccountMeta$, identities$, mergeAccountMetadata, overrideAccounts$ } from './mappers.js'
 import { SubstrateAccountMetadata, SubstrateAccountResult, SubstrateAccountUpdate } from './types.js'
 
 const ACCOUNT_METADATA_SYNC_TASK = 'task:steward:accounts-metadata-sync'
@@ -249,7 +249,7 @@ export class AccountsMetadataManager {
   #syncAccounts() {
     this.#log.info('[agent:%s] START accounts sync', this.id)
     const chainIds = this.#ingress.getChainIds()
-    const streams: Observable<SubstrateAccountUpdate>[] = []
+    const streams: Observable<SubstrateAccountUpdate>[] = [overrideAccounts$]
 
     for (const chainId of chainIds) {
       streams.push(identities$(this.#ingress, chainId))

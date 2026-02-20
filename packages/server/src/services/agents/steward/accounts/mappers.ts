@@ -9,7 +9,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
 import { assetOverrides } from '../metadata/overrides.js'
-import { hydrationOverrides, moonbeamOverrides } from './overrides.js'
+import { accountOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 const STORAGE_PAGE_LEN = 50
@@ -129,6 +129,8 @@ function deepEqualIdentity(
     JSON.stringify(a.extra) === JSON.stringify(b.extra)
   )
 }
+
+export const overrideAccounts$: Observable<SubstrateAccountUpdate> = from(accountOverrides)
 
 export function mergeAccountMetadata(
   persisted: SubstrateAccountMetadata | undefined,
@@ -433,10 +435,6 @@ function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
-function hydrationOverrideAccounts$(): Observable<SubstrateAccountUpdate> {
-  return from(hydrationOverrides)
-}
-
 function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
   const chainId = networks.moonbeam
   return from(assetOverrides).pipe(
@@ -456,10 +454,6 @@ function moonbeamTokenAccounts$(): Observable<SubstrateAccountUpdate> {
   )
 }
 
-function moonbeamOverrideAccounts$(): Observable<SubstrateAccountUpdate> {
-  return from(moonbeamOverrides)
-}
-
 export const extraAccountMeta$: Record<
   string,
   (ingress: SubstrateIngressConsumer) => Observable<SubstrateAccountUpdate>
@@ -469,7 +463,6 @@ export const extraAccountMeta$: Record<
       hydrationEvmAccounts$(ingress),
       hydrationStableswapAccounts$(ingress),
       hydrationXykAccounts$(ingress),
-      hydrationOverrideAccounts$(),
     ),
-  [networks.moonbeam]: () => merge(moonbeamTokenAccounts$(), moonbeamOverrideAccounts$()),
+  [networks.moonbeam]: () => moonbeamTokenAccounts$(),
 }

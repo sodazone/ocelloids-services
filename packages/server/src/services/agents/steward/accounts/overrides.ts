@@ -3,7 +3,7 @@ import { padAccountKey20 } from '@/common/address.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { SubstrateAccountUpdate } from './types.js'
 
-export const hydrationOverrides: SubstrateAccountUpdate[] = [
+export const accountOverrides: SubstrateAccountUpdate[] = [
   {
     publicKey: '0xa7208d10c6622f3f7eca1551de8355fde9de577dbb308d38994ace561738a51f',
     categories: [
@@ -71,6 +71,187 @@ export const hydrationOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
+    publicKey: '0x8167e55fee5bd1cab9465961646ea62dd3793bfec70c1983ba0734d7260bc29d', // 13vg3Mrxm3GL9eXxLsGgLYRueiwFCiMbkdHBL4ZN5aob5D4N
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:binance.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xa34a249441ffa5f3f9366b6cf44b823825cf5bb5aa4b167302827a61ac9da120',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:binance.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xbb381c0e8a555262ef8a290fd468d8a21409ee4c7a54f01c680357d69ef2a676',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:binance.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x296c8cc292399aaeafad4e8749833db08bdb5ee21ed60de989e51df7d5d13b6f', // 1wKD98HXHf4kr82vZFbWjP54bp3EDbzmkW7nxxZA1H6VgKU
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:gate.io',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x033e762403c2504222426080dd2d33f08448d5779504283fd61bbd4173d574c3', // 15FhX4aeqrb9TKMVqE4J4y3FUBoSkKAmbvhXQb3iN5pFABy
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kucoin.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xdef13599cffaec89ff066f008857330b8c2ff72c92bb85c01db5cfb7082f2979', // 163KHWFRr1xcjkm43Nr7sL4RKXx3nSihQFqWRtWWF7JW2HBX
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kucoin.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xe0e92ca738afe2956313c455dd627652b7028f6c650cd2379f9e832c3ce0ca7e', // 165tzcxR1o2EUkpZVr17DxQsdJwtEkB6HAh69hQubmKGL93f
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kucoin.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x16c1bf15e79d8e619528f4521d655df8e27f0f0ebaa673556950c8ce0cb10a37', // 1WqcGu9P9mi9CrMYx2LYfftki6V6Rr8Zrk5kzGvmwGaQANd
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kucoin.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+
+  {
+    publicKey: '0x74a60525f80c23421eea370e589831868b110c7cbbacfd3fa4de9d4812eb5a62', // 13dwsdSH99fzyW24M2E42emTjj6jWSj939W4uMaEyeaEpDp4
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kucoin.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
     publicKey: '0x45544800000000000000000000000000000000000000090a0000000000000000',
     evm: [
       {
@@ -114,9 +295,6 @@ export const hydrationOverrides: SubstrateAccountUpdate[] = [
       },
     ],
   },
-]
-
-export const moonbeamOverrides: SubstrateAccountUpdate[] = [
   {
     publicKey: toHex(padAccountKey20('0xd85bf1bf64265f9cf660b25094a5aa33ac337db3')) as HexString,
     evm: [
@@ -723,6 +901,94 @@ export const moonbeamOverrides: SubstrateAccountUpdate[] = [
       {
         chainId: 'urn:ocn:polkadot:2004',
         tag: 'protocol:moonwell-comptroller-v1',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x26a2abd79583155ea5d34443b62399879d42748a')) as HexString,
+    evm: [
+      {
+        address: '0x26a2abd79583155ea5d34443b62399879d42748a',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:solarflare-pair',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x58be9bb19c25cbc8a1533c1a9cf5c6bef5d1638e')) as HexString,
+    evm: [
+      {
+        address: '0x58be9bb19c25cbc8a1533c1a9cf5c6bef5d1638e',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:solarflare-pair',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x444ae1ed8f4674428178554b56519af52f654337')) as HexString,
+    evm: [
+      {
+        address: '0x444ae1ed8f4674428178554b56519af52f654337',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:solarflare-pair',
+      },
+    ],
+  },
+  {
+    publicKey: toHex(padAccountKey20('0x7d393bc51b2fc7015c2c9c781feb288054015b7e')) as HexString,
+    evm: [
+      {
+        address: '0x7d393bc51b2fc7015c2c9c781feb288054015b7e',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        categoryCode: 2,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'protocol:beamswap-pair',
       },
     ],
   },
