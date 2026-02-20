@@ -55,9 +55,10 @@ relay = "urn:ocn:polkadot:0"
   [substrate.networks.provider]
   type = "rpc"
   url = [
+    "wss://rpc.helikon.io/hydradx",
+    "wss://hydradx-rpc.dwellir.com",
     "wss://hydradx.paras.ibp.network",
-    "wss://hydradx.paras.dotters.network",
-    "wss://rpc.helikon.io/hydradx"
+    "wss://hydradx.paras.dotters.network"
   ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2030"
