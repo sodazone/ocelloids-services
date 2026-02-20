@@ -252,7 +252,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: '0x45544800000000000000000000000000000000000000090a0000000000000000',
+    publicKey: '0x000000000000000000000000000000000000090a',
     evm: [
       {
         address: '0x000000000000000000000000000000000000090a',
@@ -274,7 +274,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x112c208b900bcfc9ff8131d0f45769cb6c7c7d8d')) as HexString,
+    publicKey: '0x112c208b900bcfc9ff8131d0f45769cb6c7c7d8d',
     evm: [
       {
         address: '0x112c208b900bcfc9ff8131d0f45769cb6c7c7d8d',
@@ -296,7 +296,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xd85bf1bf64265f9cf660b25094a5aa33ac337db3')) as HexString,
+    publicKey: '0xd85bf1bf64265f9cf660b25094a5aa33ac337db3',
     evm: [
       {
         address: '0xd85bf1bf64265f9cf660b25094a5aa33ac337db3',
@@ -318,7 +318,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x4485167772aec1ed2e54038800e0f3890a76cbc7')) as HexString,
+    publicKey: '0x4485167772aec1ed2e54038800e0f3890a76cbc7',
     evm: [
       {
         address: '0x4485167772aec1ed2e54038800e0f3890a76cbc7',
@@ -340,7 +340,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xbf39aa4e1563114382f020754fac47565e299162')) as HexString,
+    publicKey: '0xbf39aa4e1563114382f020754fac47565e299162',
     evm: [
       {
         address: '0xbf39aa4e1563114382f020754fac47565e299162',
@@ -362,7 +362,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x619229df13f518e4c9943c7dcb783d138be79e16')) as HexString,
+    publicKey: '0x619229df13f518e4c9943c7dcb783d138be79e16',
     evm: [
       {
         address: '0x619229df13f518e4c9943c7dcb783d138be79e16',
@@ -384,7 +384,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x13c81e874190490d9f19df734409fbdbca938d05')) as HexString,
+    publicKey: '0x13c81e874190490d9f19df734409fbdbca938d05',
     evm: [
       {
         address: '0x13c81e874190490d9f19df734409fbdbca938d05',
@@ -406,7 +406,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x67d5e7640ca54418a8f490da8181ea8e01c82c84')) as HexString,
+    publicKey: '0x67d5e7640ca54418a8f490da8181ea8e01c82c84',
     evm: [
       {
         address: '0x67d5e7640ca54418a8f490da8181ea8e01c82c84',
@@ -428,7 +428,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x5795d947864ac9a233ad6e41d8b7daa71f10d1aa')) as HexString,
+    publicKey: '0x5795d947864ac9a233ad6e41d8b7daa71f10d1aa',
     evm: [
       {
         address: '0x5795d947864ac9a233ad6e41d8b7daa71f10d1aa',
@@ -450,7 +450,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x4c7f187e9f39ea0ffcf105985cb0417f1174b0a2')) as HexString,
+    publicKey: '0x4c7f187e9f39ea0ffcf105985cb0417f1174b0a2',
     evm: [
       {
         address: '0x4c7f187e9f39ea0ffcf105985cb0417f1174b0a2',
@@ -472,7 +472,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x30f36c704a22c97774fbeb9df796bd609ed53e70')) as HexString,
+    publicKey: '0x30f36c704a22c97774fbeb9df796bd609ed53e70',
     evm: [
       {
         address: '0x30f36c704a22c97774fbeb9df796bd609ed53e70',
@@ -494,7 +494,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x091e463110febf48d45b4ef7ed4d9af2f938df3c')) as HexString,
+    publicKey: '0x091e463110febf48d45b4ef7ed4d9af2f938df3c',
     evm: [
       {
         address: '0x091e463110febf48d45b4ef7ed4d9af2f938df3c',
@@ -516,7 +516,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x46c8f3f9354cbb0a3228178d299543533f45337e')) as HexString,
+    publicKey: '0x46c8f3f9354cbb0a3228178d299543533f45337e',
     evm: [
       {
         address: '0x46c8f3f9354cbb0a3228178d299543533f45337e',
@@ -538,7 +538,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x65d42a9d3d62df082233e28ca0e3bbcba11e183a')) as HexString,
+    publicKey: '0x65d42a9d3d62df082233e28ca0e3bbcba11e183a',
     evm: [
       {
         address: '0x65d42a9d3d62df082233e28ca0e3bbcba11e183a',
@@ -560,7 +560,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xd7033854ae6aa60d03020da557f70fa1a53011a1')) as HexString,
+    publicKey: '0xd7033854ae6aa60d03020da557f70fa1a53011a1',
     evm: [
       {
         address: '0xd7033854ae6aa60d03020da557f70fa1a53011a1',
@@ -582,7 +582,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xa6ec268ff3140d445587f792ad056906883e29fa')) as HexString,
+    publicKey: '0xa6ec268ff3140d445587f792ad056906883e29fa',
     evm: [
       {
         address: '0xa6ec268ff3140d445587f792ad056906883e29fa',
@@ -604,7 +604,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xc3d7a5a7846a677257235cdcd57cda8fa1425370')) as HexString,
+    publicKey: '0xc3d7a5a7846a677257235cdcd57cda8fa1425370',
     evm: [
       {
         address: '0xc3d7a5a7846a677257235cdcd57cda8fa1425370',
@@ -626,7 +626,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xaac5b58833a1e4264b0c1da8c0154779c714583b')) as HexString,
+    publicKey: '0xaac5b58833a1e4264b0c1da8c0154779c714583b',
     evm: [
       {
         address: '0xaac5b58833a1e4264b0c1da8c0154779c714583b',
@@ -648,7 +648,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x921b35e54b45b60ee8142fa234baeb2ff5e307e0')) as HexString,
+    publicKey: '0x921b35e54b45b60ee8142fa234baeb2ff5e307e0',
     evm: [
       {
         address: '0x921b35e54b45b60ee8142fa234baeb2ff5e307e0',
@@ -670,7 +670,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x2232e98829f985c95c6930342b607496cad7a560')) as HexString,
+    publicKey: '0x2232e98829f985c95c6930342b607496cad7a560',
     evm: [
       {
         address: '0x2232e98829f985c95c6930342b607496cad7a560',
@@ -692,7 +692,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4')) as HexString,
+    publicKey: '0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4',
     evm: [
       {
         address: '0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4',
@@ -714,7 +714,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xce16f69375520ab01377ce7b88f5ba8c48f8d666')) as HexString,
+    publicKey: '0xce16f69375520ab01377ce7b88f5ba8c48f8d666',
     evm: [
       {
         address: '0xce16f69375520ab01377ce7b88f5ba8c48f8d666',
@@ -736,7 +736,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x2d5d7d31f671f86c782533cc367f14109a082712')) as HexString,
+    publicKey: '0x2d5d7d31f671f86c782533cc367f14109a082712',
     evm: [
       {
         address: '0x2d5d7d31f671f86c782533cc367f14109a082712',
@@ -758,7 +758,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x571fc4e209686a0d7e1502ec4c4bcbf1d96a2211')) as HexString,
+    publicKey: '0x571fc4e209686a0d7e1502ec4c4bcbf1d96a2211',
     evm: [
       {
         address: '0x571fc4e209686a0d7e1502ec4c4bcbf1d96a2211',
@@ -773,7 +773,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x5c3dc0ab1bd70c5cdc8d0865e023164d4d3fd8ec')) as HexString,
+    publicKey: '0x5c3dc0ab1bd70c5cdc8d0865e023164d4d3fd8ec',
     evm: [
       {
         address: '0x5c3dc0ab1bd70c5cdc8d0865e023164d4d3fd8ec',
@@ -795,7 +795,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf4c10263f2a4b1f75b8a5fd5328fb61605321639')) as HexString,
+    publicKey: '0xf4c10263f2a4b1f75b8a5fd5328fb61605321639',
     evm: [
       {
         address: '0xf4c10263f2a4b1f75b8a5fd5328fb61605321639',
@@ -817,7 +817,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf3a5454496e26ac57da879bf3285fa85debf0388')) as HexString,
+    publicKey: '0xf3a5454496e26ac57da879bf3285fa85debf0388',
     evm: [
       {
         address: '0xf3a5454496e26ac57da879bf3285fa85debf0388',
@@ -839,7 +839,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x051fcf8986b30860a1341e0031e5622bd18d8a85')) as HexString,
+    publicKey: '0x051fcf8986b30860a1341e0031e5622bd18d8a85',
     evm: [
       {
         address: '0x051fcf8986b30860a1341e0031e5622bd18d8a85',
@@ -861,7 +861,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xe93685f3bba03016f02bd1828badd6195988d950')) as HexString,
+    publicKey: '0xe93685f3bba03016f02bd1828badd6195988d950',
     evm: [
       {
         address: '0xe93685f3bba03016f02bd1828badd6195988d950',
@@ -883,7 +883,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x8e00d5e02e65a19337cdba98bba9f84d4186a180')) as HexString,
+    publicKey: '0x8e00d5e02e65a19337cdba98bba9f84d4186a180',
     evm: [
       {
         address: '0x8e00d5e02e65a19337cdba98bba9f84d4186a180',
@@ -905,7 +905,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x26a2abd79583155ea5d34443b62399879d42748a')) as HexString,
+    publicKey: '0x26a2abd79583155ea5d34443b62399879d42748a',
     evm: [
       {
         address: '0x26a2abd79583155ea5d34443b62399879d42748a',
@@ -927,7 +927,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x58be9bb19c25cbc8a1533c1a9cf5c6bef5d1638e')) as HexString,
+    publicKey: '0x58be9bb19c25cbc8a1533c1a9cf5c6bef5d1638e',
     evm: [
       {
         address: '0x58be9bb19c25cbc8a1533c1a9cf5c6bef5d1638e',
@@ -949,7 +949,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x444ae1ed8f4674428178554b56519af52f654337')) as HexString,
+    publicKey: '0x444ae1ed8f4674428178554b56519af52f654337',
     evm: [
       {
         address: '0x444ae1ed8f4674428178554b56519af52f654337',
@@ -971,7 +971,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x7d393bc51b2fc7015c2c9c781feb288054015b7e')) as HexString,
+    publicKey: '0x7d393bc51b2fc7015c2c9c781feb288054015b7e',
     evm: [
       {
         address: '0x7d393bc51b2fc7015c2c9c781feb288054015b7e',
@@ -993,7 +993,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf977814e90da44bfa03b6295a0616a897441acec')) as HexString,
+    publicKey: '0xf977814e90da44bfa03b6295a0616a897441acec',
     evm: [
       {
         address: '0xf977814e90da44bfa03b6295a0616a897441acec',
@@ -1019,7 +1019,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf3918988eb3ce66527e2a1a4d42c303915ce28ce')) as HexString,
+    publicKey: '0xf3918988eb3ce66527e2a1a4d42c303915ce28ce',
     evm: [
       {
         address: '0xf3918988eb3ce66527e2a1a4d42c303915ce28ce',
@@ -1041,7 +1041,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x76ec5a0d3632b2133d9f1980903305b62678fbd3')) as HexString,
+    publicKey: '0x76ec5a0d3632b2133d9f1980903305b62678fbd3',
     evm: [
       {
         address: '0x76ec5a0d3632b2133d9f1980903305b62678fbd3',
@@ -1063,7 +1063,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf89d7b9c864f589bbf53a82105107622b35eaa40')) as HexString,
+    publicKey: '0xf89d7b9c864f589bbf53a82105107622b35eaa40',
     evm: [
       {
         address: '0xf89d7b9c864f589bbf53a82105107622b35eaa40',
@@ -1089,7 +1089,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x0d0707963952f2fba59dd06f2b425ace40b492fe')) as HexString,
+    publicKey: '0x0d0707963952f2fba59dd06f2b425ace40b492fe',
     evm: [
       {
         address: '0x0d0707963952f2fba59dd06f2b425ace40b492fe',
@@ -1111,7 +1111,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xab782bc7d4a2b306825de5a7730034f8f63ee1bc')) as HexString,
+    publicKey: '0xab782bc7d4a2b306825de5a7730034f8f63ee1bc',
     evm: [
       {
         address: '0xab782bc7d4a2b306825de5a7730034f8f63ee1bc',
@@ -1133,7 +1133,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x377b8ce04761754e8ac153b47805a9cf6b190873')) as HexString,
+    publicKey: '0x377b8ce04761754e8ac153b47805a9cf6b190873',
     evm: [
       {
         address: '0x377b8ce04761754e8ac153b47805a9cf6b190873',
@@ -1155,7 +1155,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x5bdf85216ec1e38d6458c870992a69e38e03f7ef')) as HexString,
+    publicKey: '0x5bdf85216ec1e38d6458c870992a69e38e03f7ef',
     evm: [
       {
         address: '0x5bdf85216ec1e38d6458c870992a69e38e03f7ef',
@@ -1177,7 +1177,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1')) as HexString,
+    publicKey: '0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1',
     evm: [
       {
         address: '0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1',
@@ -1199,7 +1199,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0x0529ea5885702715e83923c59746ae8734c553b7')) as HexString,
+    publicKey: '0x0529ea5885702715e83923c59746ae8734c553b7',
     evm: [
       {
         address: '0x0529ea5885702715e83923c59746ae8734c553b7',
@@ -1221,7 +1221,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xf0bc8fddb1f358cef470d63f96ae65b1d7914953')) as HexString,
+    publicKey: '0xf0bc8fddb1f358cef470d63f96ae65b1d7914953',
     evm: [
       {
         address: '0xf0bc8fddb1f358cef470d63f96ae65b1d7914953',
@@ -1243,7 +1243,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
-    publicKey: toHex(padAccountKey20('0xff4606bd3884554cdbdabd9b6e25e2fad4f6fc54')) as HexString,
+    publicKey: '0xff4606bd3884554cdbdabd9b6e25e2fad4f6fc54',
     evm: [
       {
         address: '0xff4606bd3884554cdbdabd9b6e25e2fad4f6fc54',
