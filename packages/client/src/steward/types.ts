@@ -29,3 +29,8 @@ export type AccountData = sourceSteward.AccountData
  * @public
  */
 export type StatusData = sourceSteward.StatusData
+
+/**
+ * @public
+ */
+export type SubstrateAccountResult = sourceSteward.SubstrateAccountResult

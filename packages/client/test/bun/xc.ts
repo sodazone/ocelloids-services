@@ -1,4 +1,4 @@
-import { createCrosschainAgent, createTransfersAgent, NetworkURN } from '../..'
+import { createCrosschainAgent, NetworkURN } from '../..'
 import { existsSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
