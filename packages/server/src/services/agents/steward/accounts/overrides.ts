@@ -18,7 +18,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     tags: [
       {
         chainId: 'urn:ocn:polkadot:1000',
-        tag: 'exchange_name:kraken',
+        tag: 'exchange_name:kraken.com',
       },
       {
         chainId: 'urn:ocn:polkadot:1000',
@@ -26,7 +26,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       },
       {
         chainId: 'urn:ocn:polkadot:2034',
-        tag: 'exchange_name:kraken',
+        tag: 'exchange_name:kraken.com',
       },
       {
         chainId: 'urn:ocn:polkadot:2034',
@@ -51,7 +51,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     tags: [
       {
         chainId: 'urn:ocn:polkadot:1000',
-        tag: 'exchange_name:kraken',
+        tag: 'exchange_name:kraken.com',
       },
       {
         chainId: 'urn:ocn:polkadot:1000',
@@ -59,7 +59,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       },
       {
         chainId: 'urn:ocn:polkadot:2034',
-        tag: 'exchange_name:kraken',
+        tag: 'exchange_name:kraken.com',
       },
       {
         chainId: 'urn:ocn:polkadot:2034',
