@@ -1077,7 +1077,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
-        tag: 'exchange_name:bybit',
+        tag: 'exchange_name:bybit.com',
       },
       {
         chainId: 'urn:ocn:polkadot:2004',
@@ -1169,7 +1169,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     tags: [
       {
         chainId: 'urn:ocn:polkadot:2004',
-        tag: 'exchange_name:bitget',
+        tag: 'exchange_name:bitget.com',
       },
     ],
   },
