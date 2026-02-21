@@ -60,7 +60,13 @@ export class ChainSpy implements Agent, Subscribable {
         for (const network of networks) {
           const chainId = network as NetworkURN
 
-          this.#shared.checkSupportedNetwork(chainId)
+          try {
+            this.#shared.checkSupportedNetwork(chainId)
+          } catch (error) {
+            this.#log.warn(error, '[%s:%s] unsupported network %s', this.id, id, chainId)
+            continue
+          }
+
           const stream = this.#shared.blocks(chainId, 'new').subscribe({
             error: (error: any) => {
               this.#log.error(error, '[%s:%s] error on network subscription %s', this.id, chainId, id)

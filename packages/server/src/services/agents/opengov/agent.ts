@@ -66,9 +66,17 @@ export class OpenGovAgent implements Agent, Subscribable {
       args: { networks },
     } = subscription
 
-    // Validate all networks
+    // Get supported networks
+    const supportedNetworks = []
+
     for (const network of networks) {
-      this.#shared.checkSupportedNetwork(network as NetworkURN)
+      try {
+        this.#shared.checkSupportedNetwork(network as NetworkURN)
+        supportedNetworks.push(network)
+      } catch (error) {
+        this.#log.warn(error, '[%s:%s] unsupported network %s', this.id, id, network)
+        continue
+      }
     }
 
     const streams: RxSubscriptionWithId[] = []
@@ -76,8 +84,8 @@ export class OpenGovAgent implements Agent, Subscribable {
     this.#handlers[id] = { subscription, streams }
     ;(async () => {
       try {
-        // Subscribe to all networks
-        const tasks = networks.map(async (network) => {
+        // Subscribe to all supported networks
+        const tasks = supportedNetworks.map(async (network) => {
           const chainId = network as NetworkURN
           const openGovApi = await withOpenGov(chainId, this.#ingress)
 
