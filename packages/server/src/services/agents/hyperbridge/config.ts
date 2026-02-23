@@ -12,7 +12,7 @@ export const HYPERBRIDGE_CONFIG: {
   }
 } = {
   networks: {
-    substrate: [networks.bifrost, networks.hydration, networks.hyperbridge],
+    substrate: [networks.bifrost, networks.hyperbridge],
     evm: [networks.ethereum, networks.optimism, networks.bsc, networks.base, networks.arbitrum],
   },
 }

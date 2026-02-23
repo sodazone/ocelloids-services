@@ -362,7 +362,7 @@ function evmAssetMapper({ ingress }: MapperContext) {
 export function getAssetMappers(ctx: MapperContext): Record<string, AssetMapper> {
   return {
     'urn:ocn:polkadot:2030': bifrostAssetMapper(ctx),
-    'urn:ocn:polkadot:2034': hydrationAssetMapper(ctx),
+    // 'urn:ocn:polkadot:2034': hydrationAssetMapper(ctx),
     'urn:ocn:polkadot:3367': hyperbridgeAssetMapper(ctx),
     'urn:ocn:ethereum:1': evmAssetMapper(ctx), // Ethereum
     'urn:ocn:ethereum:42161': evmAssetMapper(ctx), // Arbitrum
