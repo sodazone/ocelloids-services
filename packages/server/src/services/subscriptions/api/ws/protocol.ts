@@ -73,11 +73,16 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
       const connections = this.#connections.get(sub.id)
       if (connections) {
         for (const connection of connections) {
-          const { socket, ip } = connection
+          const { socket, ip, id: connId } = connection
           try {
-            this.#safeWrite(socket, msg)
+            this.#safeWrite(socket, msg, (error) => {
+              this.#log.error(error, `closing connection ${connId} due to send failure`)
+              this.#removeConnection(sub.id, connId)
+            })
 
-            this.#telemetryPublish(ip, msg)
+            if (socket.readyState === socket.OPEN) {
+              this.#telemetryPublish(ip, msg)
+            }
           } catch (error) {
             this.#log.error(error)
 
@@ -279,7 +284,7 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
     })
   }
 
-  #safeWrite(socket: WebSocket, content: NonNullable<unknown>) {
+  #safeWrite(socket: WebSocket, content: NonNullable<unknown>, onError?: (error: Error) => void) {
     if (socket.readyState === socket.OPEN) {
       socket.send(JSON.stringify(content), (error) => {
         if (error) {
@@ -287,7 +292,15 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
         }
       })
     } else {
-      this.#log.error('websocket is not open')
+      this.#log.error('websocket not open')
+      if (onError) {
+        onError(new Error('socket not open'))
+      }
+      try {
+        socket.terminate()
+      } catch (e) {
+        this.#log.error(e, 'error terminating closed socket')
+      }
     }
   }
 
@@ -297,5 +310,19 @@ export default class WebsocketProtocol extends (EventEmitter as new () => Teleme
 
   #telemetryPublishError(ip: string, msg: Message, error: string) {
     this.emit('telemetryPublishError', publishTelemetryFrom('websocket', ip, msg, error))
+  }
+
+  #removeConnection(subId: string, connId: string) {
+    const connections = this.#connections.get(subId)
+    if (connections) {
+      const index = connections.findIndex((c) => c.id === connId)
+      if (index > -1) {
+        connections.splice(index, 1)
+      }
+      if (connections.length === 0) {
+        this.#connections.delete(subId)
+      }
+      this.#clientsNum = Math.max(0, this.#clientsNum - 1)
+    }
   }
 }
