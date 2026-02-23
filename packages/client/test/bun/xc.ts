@@ -53,7 +53,7 @@ const agent = createCrosschainAgent({
   wsUrl: 'ws://127.0.0.1:3000',
 })
 
-let lastSeen: number | null = await loadLastSeen()
+const lastSeen: number | null = await loadLastSeen()
 
 if (lastSeen !== null) {
   console.log('Resuming from lastSeen =', lastSeen)

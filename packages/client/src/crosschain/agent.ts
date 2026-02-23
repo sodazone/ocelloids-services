@@ -10,9 +10,8 @@ import {
   XcServerSentEventArgs,
 } from './types'
 
-const TERMINAL_STATUSES = ['received', 'timeout', 'failed']
-
 /**
+ * The crosschain agent API.
  * @public
  */
 export class CrosschainAgentApi
@@ -30,6 +29,10 @@ export class CrosschainAgentApi
     super(clientApi.config, 'crosschain', clientApi)
   }
 
+  /**
+   * TODO: revisit for a solution on how to fill long-range gaps.
+   * Probably storing the event using sequential IDs.
+   */
   async subscribeWithReplay(
     subscription: SubscriptionId | CrosschainSubscriptionInputs,
     handlers: WebSocketHandlers<FullJourneyResponse>,
@@ -56,7 +59,6 @@ export class CrosschainAgentApi
       {
         buildReplayQuery: this.#buildQuery(networks !== '*' ? networks : undefined),
         buildMessageMetadata: this.#buildMetadata,
-        persist: this.#persist(replay.onPersist),
       },
       onDemandHandlers,
     )
@@ -86,30 +88,6 @@ export class CrosschainAgentApi
       networkId: payload.origin,
       timestamp: Date.now(),
       blockTimestamp: payload.sentAt,
-    }
-  }
-
-  #persist(onPersist: (id: number) => Promise<void>) {
-    const sentIds = new Set<number>()
-    let lastPersisted: number | null = null
-
-    const getLowest = () => (sentIds.size ? Math.min(...sentIds) : null)
-
-    return async (payload: FullJourneyResponse) => {
-      const id = payload.id
-
-      if (TERMINAL_STATUSES.includes(payload.status)) {
-        sentIds.delete(id)
-      } else {
-        sentIds.add(id)
-      }
-
-      const lowest = getLowest()
-
-      if (lowest !== lastPersisted) {
-        lastPersisted = lowest
-        await onPersist(lowest ?? id)
-      }
     }
   }
 }

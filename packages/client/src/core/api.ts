@@ -243,23 +243,20 @@ export class OcelloidsAgentApi<T>
         timestamp: number
         blockTimestamp?: number
       }
-      persist?: (payload: P) => Promise<void>
     },
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
   ): Promise<WebSocket> {
     const baseUrl = this.#config.wsUrl + '/ws/subs'
 
     let firstLiveId: number | null = null
-    let lastReplayed = replay.lastSeenId
+    let lastSeen = replay.lastSeenId ?? 0
     let replayStarted = false
     let replayFailed = false
-
-    const persist = replayStrategy.persist ?? (async (payload: P) => await replay.onPersist(payload.id))
 
     const replayRange = async (ws: WebSocket, end?: number) => {
       replayStarted = true
 
-      const args = replayStrategy.buildReplayQuery(lastReplayed, end)
+      const args = replayStrategy.buildReplayQuery(lastSeen, end)
       if (!args) {
         return
       }
@@ -272,7 +269,7 @@ export class OcelloidsAgentApi<T>
           cursor = result.pageInfo?.hasNextPage ? result.pageInfo.endCursor : undefined
 
           for (const item of result.items) {
-            if (lastReplayed !== undefined && item.id <= lastReplayed) {
+            if (lastSeen !== undefined && item.id <= lastSeen) {
               continue
             }
             if (firstLiveId !== null && item.id >= firstLiveId) {
@@ -280,14 +277,15 @@ export class OcelloidsAgentApi<T>
               break
             }
 
-            lastReplayed = item.id
+            lastSeen = item.id
+
             handlers.onMessage(
               { metadata: replayStrategy.buildMessageMetadata(item as any), payload: item } as any,
               ws,
               undefined as any,
             )
             if (firstLiveId === null) {
-              await persist(item)
+              await replay.onPersist(item.id)
             }
           }
         } while (cursor)
@@ -295,26 +293,36 @@ export class OcelloidsAgentApi<T>
         console.error(err, 'Failed to fetch replay range')
         replayFailed = true
         await replay.onIncompleteRange?.({
-          from: lastReplayed ?? null,
+          from: lastSeen ?? null,
           to: end ?? null,
         })
       }
 
       if (!replayFailed) {
         replay.onCompleteRange?.()
+
+        if (lastSeen !== undefined) {
+          await replay.onPersist(lastSeen)
+        }
       }
     }
 
     const wrappedOnMessage: MessageHandler<Message<P>> = async (message, ws) => {
+      const msgId = message.payload.id
       if (firstLiveId === null) {
-        firstLiveId = message.payload.id
+        firstLiveId = msgId
       }
       if (!replayStarted) {
         replayRange(ws, firstLiveId)
       }
 
       handlers.onMessage(message, ws, undefined as any)
-      await persist(message.payload)
+
+      if (msgId > lastSeen) {
+        lastSeen = msgId
+
+        await replay.onPersist(msgId)
+      }
     }
 
     const ws = _isAnySubscriptionInputs(subscription)
