@@ -1,4 +1,5 @@
 import { SubstrateAccountUpdate } from './types.js'
+import okxAccounts from './okx.json' with { type: 'json' }
 
 export const accountOverrides: SubstrateAccountUpdate[] = [
   {
@@ -249,6 +250,358 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
+    publicKey: '0x1ea59183db163bbff90a5daff53873b4fb20a9d727b5853528dcc3716aa3844b',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:bitget.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xef799ac746cfd988ae8d080b159860aa5288da08d1e5fdc509053c3c8ffe015d',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet', // ?
+      },
+    ],
+  },
+  {
+    publicKey: '0x5702cc19a122f2d08c2279b59c6366271f43a5ed22ebfd51eb1ba1df5ff81818', // 12y5zpgBTQnQXWpPX5myorneyTmpVKou2uzP6BkMePGs1nCa
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet', // ?
+      },
+    ],
+  },
+  {
+    publicKey: '0x743a4eddf56f48032d26221155bc834c1352aa8ce39e716166bda6d9d91c50d2', // 13dPsnzjaG3iSM47PHFUN1q5w5nDezTfaq27nL9doDxUEk9g
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet', // ?
+      },
+    ],
+  },
+  {
+    publicKey: '0xc02036e9045a5e779fbb02cced1793785bb7675436c712d8e4faba2da7d0eaaa', // 15LumHe1Z6pUKvFxP6k5cLH7oZGFLkHqFZdczykifpqbe86H
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet', // ?
+      },
+    ],
+  },
+  {
+    publicKey: '0xc6ce9ee72a16ad22649cea5f83920bf6cf2cb33e32334e0126d71117ac2480ec', // 15VfruCYXmVNSHfY9DTy3vkQ6mDqMZ2PhCMdL9pdWv5AvSNh
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet', // ?
+      },
+    ],
+  },
+  {
+    publicKey: '0xf27848a07cb047a043c0b760f8d0d2f4269d10c943251a4faaf662ed41874596', // 16UvKYsqojoivDsNXH3d5G48oXMfo1asxA4NtF2GxhoBjZHz
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet'
+      },
+    ],
+  },
+  {
+    publicKey: '0xd8f651e453265508090e096f16c4bd790f0405a44973125e469d7742b68800a4', // 15uUWtmKAryDvFxuXHxiHBxRNAMtWBxfYpaNdHU3eAQaDR7C
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x78de611f171008adf68736ddbc9907c68f05630ca67798423e97d1c20af9c183', // 13jUonXyq7xGXu7h6raWUW3YwN6Bx6frwbdRm3kmUQipbHgP
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x91a92c8c06587f123367d7f610bde5495af9e914e2a1c7943660f4911f239007', // 14HzCWd5pN7GM4x5kr6ygQ9VAx5UyKuJxsBypmXXaNPv9Rkk
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x21291584f57d42e2917b315b815495ad118745305430572b8a26613ab0ef9b7b', // 1kUnWmQN1PpioghcUBfmvYtawhdc7zkqf5YCJ25j5tTGUdC
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x8284db2eb72fcbfcf388ca9787899f40354fd4639f225784bd8c57b47a594018', // 13x8h7LzDvGTum5FcXftrxojSbUtdDZqWAtd1VcVemdok2gk
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0xfeca87d9cf846c1f8a2da5162d173b5a13ce7f32e9f8e5006ae161e7fb325bd9', // 16m5KxfBVPuxg7iSyUgY1uxYbY2vd3dM9ptKnVVCHd9H4e9G
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0xff4f46cb25fa7d3e694175a223005a9aa718f0e44534c44781e08bff7e51a6d2', // 16mkm7q1Nrh4Km8FTftphmqUBjQ236wVfSPcV3oDdeiiJh2r
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0xdf054b8f354ad6818a18c3a2fe38628a0c18f4d0c4ef2af941f5c9e5a741cadc', // 163RFaJS3aTACp9cL5pbJ1fRkSU9UwaNKGTcA7eLWhqsKMuu
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x8e946f5b7bcf3cb671b0b7a608606ac0c21beeb972e5536e74c009a9aaf2f180', // 14DwtrX3ZVdKEv7WKLmiba1Fp6ptT6ZDrZWbNgM8u3eWGBZn
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x25603153c05b9f5ca897e5a0f78e38c4fd9b649ae0d145836d496515f25a832e', // 1r1M85CukHdM8nueWcVt2cmYD4WEDgWMBbwmU7Hcm7WKiDb
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x7373118e5602bb8246a5748e7ddea78e223d74f8559088e1ad4f4a3bd5c09cb9', // 13cNgydh5MMHSHthbVwaPg5rYMeHo9uYQaUYgTi8Dtea5amp
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0xc51f566f0c26a351184c4cf1012f93ce74f06c71b4f9ad4b5541736e6ba791b9', // 15TTk4oDbZcHm4ebXtHVBd6nXpqjMZduvkVLYE85RmMa1AxP
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+    ],
+  },
+  {
+    publicKey: '0x1e565a249e4ef744cc5b12e4394d653bf6cd39a84c240b3d75406f0723948713', // 1gn68eNGNGqV3QjVcRRDVfw22xFn1eFyUizHCENVn256LXh
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
     publicKey: '0x000000000000000000000000000000000000090a',
     evm: [
       {
@@ -289,6 +642,30 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       {
         chainId: 'urn:ocn:polkadot:2034',
         tag: 'protocol:pot-rewards-transfer-strategy',
+      },
+    ],
+  },
+  {
+    publicKey: '0xffffffffffffffffffffffffffffffffffffffff',
+    evm: [
+      {
+        address: '0xffffffffffffffffffffffffffffffffffffffff',
+        chainId: 'urn:ocn:polkadot:2034',
+      },
+      {
+        address: '0xffffffffffffffffffffffffffffffffffffffff',
+        chainId: 'urn:ocn:polkadot:2004',
+      },
+    ],
+    categories: [],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:2034',
+        tag: 'system:null',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:2004',
+        tag: 'system:null',
       },
     ],
   },
@@ -1261,4 +1638,5 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       },
     ],
   },
+  ...okxAccounts as SubstrateAccountUpdate[]
 ]
