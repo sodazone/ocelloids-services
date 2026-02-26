@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 20
           cache: yarn
-          registry-url: https://registry.npmjs.org
+          # registry-url: https://registry.npmjs.org
           scope: '@sodazone'
       - name: Enable Corepack
         run: corepack enable
@@ -25,7 +25,5 @@ jobs:
       - run: yarn build
       - name: Publish ocelloids client
         run: npm publish --provenance --access public -w packages/client
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
        
