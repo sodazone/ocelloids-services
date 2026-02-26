@@ -26,6 +26,6 @@ jobs:
 
       - name: Publish
         run: |
-          cd packages/ocelloids-client
+          cd packages/client
           npm publish --access public --provenance
          
