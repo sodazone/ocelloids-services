@@ -40,7 +40,7 @@ function isV3V4GeneralKey(obj: any): obj is {
 }
 
 function isVersionedMultilocation(obj: any): obj is VersionedMultilocation {
-  return obj.type && typeof obj.type === 'string' && obj.type.startsWith('v')
+  return obj.type && typeof obj.type === 'string' && obj.type.toLowerCase().startsWith('v')
 }
 
 function mapGeneralKey(key: AnyJson): Uint8Array {

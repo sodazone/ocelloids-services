@@ -265,3 +265,7 @@ export function hexTimestampToMillis(hex?: string) {
 export function uniqueArray(a: Array<string>) {
   return Array.from(new Set(a))
 }
+
+export function toBinary(str: HexString) {
+  return new Binary(fromHex(str))
+}

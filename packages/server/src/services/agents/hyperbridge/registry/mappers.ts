@@ -159,7 +159,7 @@ function bifrostAssetMapper({ ingress }: MapperContext) {
   }
 }
 
-function hydrationAssetMapper({ ingress }: MapperContext) {
+function _hydrationAssetMapper({ ingress }: MapperContext) {
   const apis = ingress.substrate
 
   return (chainId: NetworkURN, assets$: Observable<TokenGovernorAsset[]>): Observable<Asset> => {

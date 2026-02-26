@@ -5,6 +5,7 @@ import { firstValueFrom, Subscription } from 'rxjs'
 import { ControlQuery, Criteria } from '@/common/index.js'
 import { asAccountId, asPublicKey } from '@/common/util.js'
 import { HexString, QueryPagination, QueryParams, QueryResult } from '@/lib.js'
+import { Balance, getBalanceExtractor } from '@/services/networking/substrate/balances.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
@@ -26,12 +27,10 @@ import {
   balancesRuntimeCallMappers,
   balancesStorageMappers,
   customDiscoveryFetchers,
-  getBalanceExtractor,
   onDemandFetchers,
 } from './mappers/index.js'
 import { AssetData, BalanceEvents } from './sse.js'
 import {
-  Balance,
   BalancesQueueData,
   CustomDiscoveryFetcher,
   RuntimeQueryParams,

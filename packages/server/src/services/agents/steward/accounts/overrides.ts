@@ -1,5 +1,5 @@
-import { SubstrateAccountUpdate } from './types.js'
 import okxAccounts from './okx.json' with { type: 'json' }
+import { SubstrateAccountUpdate } from './types.js'
 
 export const accountOverrides: SubstrateAccountUpdate[] = [
   {
@@ -385,7 +385,7 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       },
       {
         chainId: 'urn:ocn:polkadot:1000',
-        tag: 'address_type:hot_wallet'
+        tag: 'address_type:hot_wallet',
       },
     ],
   },
@@ -1638,5 +1638,5 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       },
     ],
   },
-  ...okxAccounts as SubstrateAccountUpdate[]
+  ...(okxAccounts as SubstrateAccountUpdate[]),
 ]

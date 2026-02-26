@@ -1,4 +1,4 @@
-import { Chain, MulticallParameters } from 'viem'
+import { Chain, MulticallParameters, ReadContractParameters } from 'viem'
 import { HexString } from '@/lib.js'
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { NetworkURN, Services } from '@/services/types.js'
@@ -20,6 +20,10 @@ export class EvmLocalConsumer
 
   async multicall(chainId: string, args: MulticallParameters) {
     return await this.watcher.multiCall(chainId, args)
+  }
+
+  async readContract<T = any>(chainId: string, args: ReadContractParameters) {
+    return await this.watcher.readContract<T>(chainId, args)
   }
 
   watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {

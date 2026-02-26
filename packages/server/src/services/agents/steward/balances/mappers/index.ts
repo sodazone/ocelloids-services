@@ -1,22 +1,19 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
-import { Binary } from 'polkadot-api'
 import { fromHex } from 'polkadot-api/utils'
 import { filter, firstValueFrom } from 'rxjs'
 import { isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { networks } from '@/services/agents/common/networks.js'
+import { getBalanceExtractor } from '@/services/networking/substrate/balances.js'
 import { AssetId } from '../../types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
-  AssetsBalance,
-  Balance,
   BalancesStreamMapper,
   CustomDiscoveryFetcher,
-  NativeBalance,
   RuntimeCallMapper,
   StorageKeyMapper,
 } from '../types.js'
-import { calculateFreeBalance, getFrontierAccountStoragesSlot } from '../util.js'
+import { getFrontierAccountStoragesSlot } from '../util.js'
 import {
   assetsBalances$,
   foreignAssetsBalances$,
@@ -102,45 +99,6 @@ export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = 
       foreignAssetsBalances$(chainId, ingress),
     ]
   },
-}
-
-const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
-  'assets.account': (value: AssetsBalance) => {
-    return value.balance
-  },
-  'currenciesapi.account': (value: Balance) => {
-    return calculateFreeBalance(value)
-  },
-  'ethereumruntimerpcapi.call': (value: any) => {
-    if (typeof value === 'bigint') {
-      return value
-    } else if (typeof value === 'object' && value.success && 'value' in value) {
-      try {
-        const v = value.value.value as Binary
-        const h = v.asHex()
-        return BigInt(h === '0x' ? 0 : h)
-      } catch (err) {
-        console.warn(err, 'Balance extractor error in ethereumruntimerpcapi.call')
-      }
-    }
-    return 0n
-  },
-  'evm.accountstorages': (value: Binary) => {
-    return BigInt(value.asHex())
-  },
-  'foreignassets.account': (value: AssetsBalance) => {
-    return value.balance
-  },
-  'system.account': ({ data }: NativeBalance) => {
-    return calculateFreeBalance(data)
-  },
-  'tokens.accounts': (value: Balance) => {
-    return calculateFreeBalance(value)
-  },
-}
-
-export function getBalanceExtractor(...path: string[]) {
-  return balanceExtractorMappers[path.map((p) => p.toLowerCase()).join('.')]
 }
 
 function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {

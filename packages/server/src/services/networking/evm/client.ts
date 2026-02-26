@@ -7,6 +7,7 @@ import {
   MulticallParameters,
   MulticallReturnType,
   PublicClient,
+  ReadContractParameters,
   TransactionReceipt,
   Transport,
   Block as ViemBlock,
@@ -462,7 +463,11 @@ export class EvmApi implements ApiClient {
   }
 
   async multiCall(args: MulticallParameters): Promise<MulticallReturnType> {
-    return await this.#httpClient.multicall(args)
+    return this.#httpClient.multicall(args)
+  }
+
+  async readContract<T = any>(args: ReadContractParameters): Promise<T> {
+    return this.#httpClient.readContract(args) as T
   }
 
   getNetworkInfo() {

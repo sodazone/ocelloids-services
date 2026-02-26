@@ -23,7 +23,7 @@ import {
   timeout,
   toArray,
 } from 'rxjs'
-import { MulticallParameters, SocketClosedError } from 'viem'
+import { MulticallParameters, ReadContractParameters, SocketClosedError } from 'viem'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
@@ -321,6 +321,10 @@ export class EvmWatcher extends Watcher<Block> {
 
   async multiCall(chainId: string, args: MulticallParameters) {
     return await this.#apis[chainId].multiCall(args)
+  }
+
+  async readContract<T = any>(chainId: string, args: ReadContractParameters) {
+    return await this.#apis[chainId].readContract<T>(args)
   }
 
   protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {

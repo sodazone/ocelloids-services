@@ -1,5 +1,3 @@
-import { Binary } from 'polkadot-api'
-import { fromHex } from 'polkadot-api/utils'
 import { EMPTY, filter, map, mergeMap, switchMap } from 'rxjs'
 
 import { asJSON } from '@/common/util.js'
@@ -7,45 +5,13 @@ import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-
+import { serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
 import { AssetId } from '../../types.js'
 import { BalanceUpdateItem, StorageQueryParams } from '../types.js'
 import { asBalanceUpdateItem } from './storage.js'
 
 const PALLET_EVENTS = ['Burned', 'Deposited', 'Issued', 'Transferred', 'Withdrawn']
 const STORAGE_NAME = 'Account'
-
-export function serializeFields(obj: any): any {
-  if (obj == null) {
-    return obj
-  }
-
-  if (typeof obj === 'string' && obj.startsWith('0x')) {
-    return new Binary(fromHex(obj))
-  }
-
-  if (typeof obj === 'string') {
-    try {
-      return BigInt(obj)
-    } catch (_error) {
-      //
-    }
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(serializeFields)
-  }
-
-  if (typeof obj === 'object') {
-    const newObj: any = {}
-    for (const [key, value] of Object.entries(obj)) {
-      newObj[key] = serializeFields(value)
-    }
-    return newObj
-  }
-
-  return obj
-}
 
 export function foreignAssetsBalances$(chainId: NetworkURN, ingress: SubstrateIngressConsumer) {
   return genericAssetsBalances$(chainId, ingress, 'ForeignAssets')
@@ -69,7 +35,8 @@ function genericAssetsBalances$(
         module,
         name: STORAGE_NAME,
         chainId,
-        asKey: (account: string, assetId: AssetId) => codec.keys.enc(serializeFields(assetId), account),
+        asKey: (account: string, assetId: AssetId) =>
+          codec.keys.enc(serializeStorageKeyArg(assetId), account),
       })
     }),
     switchMap((asStorageItem) =>
@@ -103,7 +70,7 @@ export function toAssetsStorageKey(assetId: AssetId | bigint, account: string, a
 }
 
 export function toForeignAssetsStorageKey(assetId: AssetId, account: string, apiCtx: SubstrateApiContext) {
-  return toGenericAssetStorageKey(serializeFields(assetId), account, apiCtx, 'ForeignAssets')
+  return toGenericAssetStorageKey(serializeStorageKeyArg(assetId), account, apiCtx, 'ForeignAssets')
 }
 
 export function toGenericAssetStorageKey(

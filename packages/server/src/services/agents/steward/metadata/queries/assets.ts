@@ -27,16 +27,16 @@ export class AssetsQueryHandler {
     criteria?: { network: string },
     pagination?: QueryPagination,
   ): Promise<QueryResult<AssetMetadata>> {
-    const cursor = pagination
-      ? pagination.cursor === undefined || pagination.cursor === ''
-        ? (criteria?.network ?? '')
-        : pagination.cursor
-      : (criteria?.network ?? '')
+    const prefix = criteria?.network ? `${criteria.network}:` : ''
+
+    const cursor = pagination?.cursor || prefix
+
     const iterator = this.#dbAssets.iterator<string, AssetMetadata>({
-      gt: cursor,
-      lt: criteria?.network ? criteria.network + ':' + OMEGA_250 : OMEGA_250,
+      gte: cursor,
+      lt: prefix !== '' ? prefix + OMEGA_250 : OMEGA_250,
       limit: limitCap(pagination),
     })
+
     return await paginatedResults<string, AssetMetadata>(iterator)
   }
 

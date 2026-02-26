@@ -41,15 +41,17 @@ export class SubstrateLocalConsumer
 
   getContext(chainId: NetworkURN, specVersion?: number): Observable<SubstrateApiContext> {
     const contextKey = `${chainId}:${specVersion ?? 0}`
-    if (this.#contexts$[contextKey] === undefined) {
-      this.#contexts$[contextKey] = from(this.watcher.getApi(chainId)).pipe(
+
+    if (!this.#contexts$[contextKey]) {
+      this.#contexts$[contextKey] = this.watcher.getApi$(chainId).pipe(
         switchMap((api) => from(api.ctx(specVersion))),
-        // TODO retry
         shareReplay({
+          bufferSize: 1,
           refCount: true,
         }),
       )
     }
+
     return this.#contexts$[contextKey]
   }
 
