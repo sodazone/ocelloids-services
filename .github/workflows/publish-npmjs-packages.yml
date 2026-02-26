@@ -17,13 +17,16 @@ jobs:
         with:
           node-version: 20
           cache: yarn
-          # registry-url: https://registry.npmjs.org
-          scope: '@sodazone'
+
       - name: Enable Corepack
         run: corepack enable
-      - run: yarn install --immutable
-      - run: yarn build
-      - name: Publish ocelloids client
-        run: npm publish --provenance --access public -w packages/client
 
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build
+        run: yarn build
+
+      - name: Publish ocelloids client
+        run: yarn workspace @sodazone/ocelloids-client npm publish --access public
        
