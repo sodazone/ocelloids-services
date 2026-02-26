@@ -25,5 +25,7 @@ jobs:
       - run: yarn build
       - name: Publish ocelloids client
         run: npm publish --provenance --access public -w packages/client
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
        
