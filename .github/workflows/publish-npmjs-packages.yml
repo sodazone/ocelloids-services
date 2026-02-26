@@ -29,4 +29,6 @@ jobs:
 
       - name: Publish ocelloids client
         run: yarn workspace @sodazone/ocelloids-client npm publish --access public
+        env:
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
        
