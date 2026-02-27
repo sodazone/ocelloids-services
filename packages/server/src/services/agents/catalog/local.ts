@@ -75,7 +75,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       steward: activations['steward'] as DataSteward,
       ticker: activations['ticker'] as TickerAgent,
     }),
-  invariant: (ctx) => new CrosschainIssuanceAgent(ctx),
+  issuance: (ctx) => new CrosschainIssuanceAgent(ctx),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),
   }),

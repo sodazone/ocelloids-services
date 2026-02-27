@@ -1,6 +1,8 @@
 import { Observable } from 'rxjs'
 import {
   Chain,
+  GetBalanceParameters,
+  GetBalanceReturnType,
   MulticallParameters,
   MulticallReturnType,
   ReadContractParameters,
@@ -18,6 +20,7 @@ export interface EvmIngressConsumer extends IngressConsumer {
   getTransactionReceipt(chainId: string, txHash: HexString): Promise<TransactionReceipt>
   multicall(chainId: string, args: MulticallParameters): Promise<MulticallReturnType>
   readContract<T = any>(chainId: string, args: ReadContractParameters): Promise<T>
+  getBalance(chainId: string, args: GetBalanceParameters): Promise<GetBalanceReturnType>
   watchEvents(
     chainId: NetworkURN,
     params: DecodeContractParams,

@@ -62,3 +62,9 @@ export { crosschain }
  */
 import * as transfers from './services/agents/transfers/lib.js'
 export { transfers }
+
+/**
+ * Crosschain Issuance agent types
+ */
+import * as issuance from './services/agents/issuance/lib.js'
+export { issuance }

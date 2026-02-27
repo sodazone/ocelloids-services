@@ -16,7 +16,7 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { getBalanceExtractor } from '@/services/networking/substrate/balances.js'
 import { toFrontierRuntimeQuery } from '@/services/networking/substrate/evm/helpers.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
-import { serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
+import { isXcmLocation, serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { AssetId } from '../../steward/types.js'
@@ -58,7 +58,7 @@ const storageResolvers: Record<
       return createStorageContext(apiCtx, 'Assets', 'Account', [assetId, address])
     }
 
-    if (typeof assetId === 'object' && 'parents' in assetId) {
+    if (isXcmLocation(assetId)) {
       return createStorageContext(apiCtx, 'ForeignAssets', 'Account', [
         serializeStorageKeyArg(assetId),
         address,
@@ -158,6 +158,21 @@ export function reserveBalanceMappers(
       }
       if (!(address.startsWith('0x') && address.length !== 42)) {
         throw new Error('Ethereum reserve address must be a 20-byte hex string starting with "0x"')
+      }
+
+      if (assetId === 'native') {
+        return timer(0, POLLING_INTERVAL).pipe(
+          exhaustMap(() =>
+            from(ingress.evm.getBalance(chainId, { address: address as HexString })).pipe(
+              catchError((error) => {
+                console.error(error, 'get balance error')
+                return of(null)
+              }),
+            ),
+          ),
+          filter((value): value is bigint => value !== null),
+          distinctUntilChanged(),
+        )
       }
 
       if (assetId.startsWith('0x')) {

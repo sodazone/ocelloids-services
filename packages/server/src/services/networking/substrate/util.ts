@@ -32,3 +32,7 @@ export function serializeStorageKeyArg(obj: any): any {
 
   return obj
 }
+
+export function isXcmLocation(obj: any): obj is { parents: number; interior: any } {
+  return obj !== undefined && obj !== null && typeof obj === 'object' && 'parents' in obj && 'interior' in obj
+}

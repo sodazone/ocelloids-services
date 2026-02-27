@@ -3,6 +3,8 @@ import {
   AbiEvent,
   createPublicClient,
   fallback,
+  GetBalanceParameters,
+  GetBalanceReturnType,
   http,
   MulticallParameters,
   MulticallReturnType,
@@ -468,6 +470,10 @@ export class EvmApi implements ApiClient {
 
   async readContract<T = any>(args: ReadContractParameters): Promise<T> {
     return this.#httpClient.readContract(args) as T
+  }
+
+  async getBalance(args: GetBalanceParameters): Promise<GetBalanceReturnType> {
+    return this.#httpClient.getBalance(args)
   }
 
   getNetworkInfo() {
