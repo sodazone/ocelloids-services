@@ -20,26 +20,17 @@ relay = "urn:ocn:polkadot:0"
       "wss://polkadot-asset-hub-rpc.polkadot.io"
     ]
 [[substrate.networks]]
-id = "urn:ocn:polkadot:1002"
-relay = "urn:ocn:polkadot:0"
-    [substrate.networks.provider]
-    type = "rpc"
-    url = [
-      "wss://sys.ibp.network/bridgehub-polkadot",
-      "wss://bridge-hub-polkadot.dotters.network",
-      "wss://bridge-hub-polkadot-rpc.dwellir.com",
-      "wss://polkadot-bridge-hub-rpc.polkadot.io"
-    ]
-[[substrate.networks]]
-id = "urn:ocn:polkadot:1004"
-relay = "urn:ocn:polkadot:0"
-    [substrate.networks.provider]
-    type = "rpc"
-    url = [
-    "wss://people-polkadot-rpc.n.dwellir.com",
-    "wss://people-polkadot.dotters.network",
-    "wss://polkadot-people-rpc.polkadot.io"
-    ]
+id = "urn:ocn:kusama:1000"
+relay = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/statemine",
+    "wss://asset-hub-kusama.dotters.network",
+    "wss://rpc-asset-hub-kusama.luckyfriday.io",
+    "wss://kusama-asset-hub-rpc.polkadot.io",
+    "wss://asset-hub-kusama-rpc.dwellir.com"
+  ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2004"
 relay = "urn:ocn:polkadot:0"
@@ -49,6 +40,15 @@ relay = "urn:ocn:polkadot:0"
     "wss://wss.api.moonbeam.network",
     "wss://moonbeam-rpc.dwellir.com"
   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2006"
+relay = "urn:ocn:polkadot:0"
+    [substrate.networks.provider]
+    type = "rpc"
+    url = [
+    "wss://rpc.astar.network",
+    "wss://astar.public.curie.radiumblock.co/ws"
+    ]
 [[substrate.networks]]
 id = "urn:ocn:polkadot:2034"
 relay = "urn:ocn:polkadot:0"
@@ -79,3 +79,17 @@ relay = "urn:ocn:polkadot:0"
     "wss://nexus.dotters.network",
     "wss://hyperbridge-nexus-rpc.blockops.network"
   ]
+[[evm.networks]]
+id = "urn:ocn:ethereum:1"
+maxBlockDist = 25
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+        "wss://ethereum-rpc.publicnode.com",
+        "wss://mainnet.gateway.tenderly.co",
+        "https://eth.llamarpc.com",
+        "https://rpc.mevblocker.io",
+        "https://ethereum-rpc.publicnode.com",
+        "https://eth1.lava.build",
+        "https://eth.blockrazor.xyz"
+    ]
