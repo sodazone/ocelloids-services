@@ -654,19 +654,24 @@ export class XcmHumanizer {
   }
 
   #extractBeneficiary(instructions: XcmInstruction[], network: NetworkURN): string | null {
-    const deposit = this.#findDeposit(instructions)
-    if (!deposit) {
+    try {
+      const deposit = this.#findDeposit(instructions)
+      if (!deposit) {
+        return null
+      }
+
+      const interiorValue = (deposit.value as DepositAsset).beneficiary.interior.value
+      const multiAddress = Array.isArray(interiorValue) ? interiorValue[0] : interiorValue
+
+      if (multiAddress.type === 'Parachain') {
+        return `urn:ocn:${getConsensus(network)}:${multiAddress.value}`
+      }
+
+      return this.#resolveMultiAddress(multiAddress)
+    } catch (err) {
+      this.#log.error(err, `Error extracting beneficiary in ${network}`)
       return null
     }
-
-    const interiorValue = (deposit.value as DepositAsset).beneficiary.interior.value
-    const multiAddress = Array.isArray(interiorValue) ? interiorValue[0] : interiorValue
-
-    if (multiAddress.type === 'Parachain') {
-      return `urn:ocn:${getConsensus(network)}:${multiAddress.value}`
-    }
-
-    return this.#resolveMultiAddress(multiAddress)
   }
 
   #resolveMultiAddress(multiAddress: any): string | null {
