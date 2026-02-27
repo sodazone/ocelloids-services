@@ -110,7 +110,6 @@ export function remoteIssuanceMappers(
             return value
           } else if (value !== null && typeof value === 'object' && value.success && 'value' in value) {
             try {
-              console.log('VALUE', value.value)
               const v = value.value.value as Binary
               const h = v.asHex()
               return BigInt(h === '0x' ? 0 : h)
