@@ -705,6 +705,7 @@ export class CrosschainRepository {
   async getJourneysByStatus(
     status: JourneyStatus | JourneyStatus[],
     protocols?: string | string[],
+    sentAfter?: number, // timestamp in millis
   ): Promise<FullJourney[]> {
     const statuses = Array.isArray(status) ? status : [status]
     const protocolList = protocols ? (Array.isArray(protocols) ? protocols : [protocols]) : undefined
@@ -715,6 +716,10 @@ export class CrosschainRepository {
       query = query.where((eb) =>
         eb.or([eb('origin_protocol', 'in', protocolList), eb('destination_protocol', 'in', protocolList)]),
       )
+    }
+
+    if (sentAfter !== undefined) {
+      query = query.where('sent_at', '>=', sentAfter)
     }
 
     query = query.orderBy('sent_at', 'desc')

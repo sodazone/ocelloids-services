@@ -30,6 +30,7 @@ import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
+const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
 
 function isChainSupported(chainId?: number): boolean {
   return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
@@ -158,7 +159,11 @@ export class WormholeAgent implements Agent {
 
     this.#log.info('[agent:%s] rechecking pending journeys...', this.id)
 
-    const pendings = await this.#repository.getJourneysByStatus(['sent', 'waiting'], [...WormholeProtocols])
+    const pendings = await this.#repository.getJourneysByStatus(
+      ['sent', 'waiting'],
+      [...WormholeProtocols],
+      Date.now() - PENDING_RECHECK_WINDOW,
+    )
 
     for (const journey of pendings) {
       await this.#recheckJourney(journey)
