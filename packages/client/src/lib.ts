@@ -31,6 +31,7 @@ export type {
   sourceSteward,
   sourceTransfers,
   sourceXcm,
+  sourceIssuance
 } from './server-types'
 export * from './types'
 
@@ -51,3 +52,8 @@ export * from './transfers/agent'
 
 import * as transfers from './transfers/types'
 export { transfers }
+
+export * from './issuance/agent'
+
+import * as issuance from './issuance/types'
+export { issuance }

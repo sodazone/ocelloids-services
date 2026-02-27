@@ -7,6 +7,7 @@ import {
   SubscribableApi,
 } from './core/types'
 import { CrosschainAgentApi } from './crosschain/agent'
+import { CrosschainIssuanceAgentApi } from './issuance/agent'
 import { AnySubscriptionInputs } from './lib'
 import {
   AccountData,
@@ -19,7 +20,7 @@ import {
 import { TransfersAgentApi } from './transfers/agent'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers'
+type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers' | 'issuance'
 
 /**
  * Creates an agent instance.
@@ -127,6 +128,17 @@ export function createInformantAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
 ): SubscribableApi & OcelloidsClientApi {
   return createAgent('informant', optsOrClient)
+}
+
+/**
+ * @public
+ */
+export function createCrosschainIssuanceAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): CrosschainIssuanceAgentApi {
+  const client = optsOrClient instanceof OcelloidsClient ? optsOrClient : new OcelloidsClient(optsOrClient)
+
+  return new CrosschainIssuanceAgentApi(client)
 }
 
 /**

@@ -7,6 +7,7 @@ export type {
   AnyQueryResultItem,
   crosschain as sourceCrosschain,
   HexString,
+  issuance as sourceIssuance,
   Message,
   NetworkURN,
   QueryPagination,
