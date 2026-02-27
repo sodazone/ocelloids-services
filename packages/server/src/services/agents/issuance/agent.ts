@@ -1,11 +1,13 @@
+import { fromHex } from 'polkadot-api/utils'
 import { Operation } from 'rfc6902'
 import { combineLatest, map, Observable, shareReplay } from 'rxjs'
-
-import { getConsensus } from '@/services/config.js'
+import { asPublicKey } from '@/common/util.js'
+import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
+import { toMelbourne } from '../common/melbourne.js'
 import { AssetId } from '../steward/types.js'
 import {
   Agent,
@@ -94,10 +96,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
 
   subscribe(sub: Subscription<CrosschainIssuanceInputs>) {
-    const isValid = this.#validateArgs(sub.args)
-    if (!isValid) {
-      return
-    }
+    this.#validateArgs(sub.args)
     const rxSub = this.#monitor(sub)
     if (rxSub === null) {
       return
@@ -222,13 +221,13 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
       }
     } catch (err) {
       this.#log.error(err, '[agent:%s] Error on monitor %o', this.id, args)
-      return null
+      throw err
     }
   }
 
   #isNetworkDefined(network: NetworkURN): boolean {
     const consensus = getConsensus(network)
-    if (consensus === 'polkadot') {
+    if (consensus === 'polkadot' || consensus === 'kusama' || consensus === 'paseo') {
       return this.#ingress.substrate.isNetworkDefined(network)
     }
     if (consensus === 'ethereum') {
@@ -237,33 +236,44 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     return false
   }
 
-  #validateArgs(input: CrosschainIssuanceInputs): boolean {
+  #validateArgs(input: CrosschainIssuanceInputs) {
     const reserve = input.reserveChain as NetworkURN
     const remote = input.remoteChain as NetworkURN
 
     if (!this.#isNetworkDefined(reserve)) {
-      this.#log.warn('[agent:%s] Unsupported reserve network %s', this.id, reserve)
-      return false
+      throw new Error(`Unsupported reserve network ${reserve}`)
     }
 
     if (!this.#isNetworkDefined(remote)) {
-      this.#log.warn('[agent:%s] Unsupported remote network %s', this.id, remote)
-      return false
+      throw new Error(`Unsupported remote network ${remote}`)
     }
 
     const reserveMapper = this.#reserveBalanceMappers[reserve]
     if (!reserveMapper) {
-      this.#log.warn('[agent:%s] Reserve balance mapper not defined for reserve network %s', this.id, reserve)
-      return false
+      throw new Error(`Reserve balance mapper not defined for reserve network ${reserve}`)
     }
 
     const remoteMapper = this.#remoteIssuanceMappers[remote]
     if (!remoteMapper) {
-      this.#log.warn('[agent:%s] Remote issuance mapper not defined for remote network %s', this.id, remote)
-      return false
+      throw new Error(`Remote balance mapper not defined for remote network ${remote}`)
     }
 
-    return true
+    const reserveConsensus = getConsensus(reserve)
+    const remoteConsensus = getConsensus(remote)
+    if (reserveConsensus === remoteConsensus && reserveConsensus !== 'ethereum') {
+      const reservePubKey = fromHex(asPublicKey(input.reserveAddress))
+      const prefix = Buffer.from(reservePubKey).subarray(0, 4).toString('ascii')
+      if (prefix !== 'sibl') {
+        throw new Error('Reserve address is not a sibling account')
+      }
+      const paraIdBytes = reservePubKey.slice(4, 6)
+      const paraId = paraIdBytes[0] | (paraIdBytes[1] << 8)
+      if (paraId.toString() !== getChainId(remote)) {
+        throw new Error(
+          `Reserve address does not correspond to remote chain. Decoded reserve address: ${prefix}:${paraId}`,
+        )
+      }
+    }
   }
 
   #getReserveStream({
@@ -275,7 +285,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     assetId: AssetId
     reserveAddress: string
   }) {
-    const key = `${chainId}|${assetId}|${reserveAddress}`
+    const key = `${chainId}|${toMelbourne(assetId)}|${reserveAddress}`
 
     if (!this.#reserveCache.has(key)) {
       const mapper = this.#reserveBalanceMappers[chainId]
@@ -294,7 +304,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
 
   #getRemoteStream({ assetId, chainId }: { chainId: NetworkURN; assetId: AssetId }) {
-    const key = `${chainId}|${assetId}`
+    const key = `${chainId}|${toMelbourne(assetId)}`
 
     if (!this.#remoteCache.has(key)) {
       const mapper = this.#remoteIssuanceMappers[chainId]

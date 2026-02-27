@@ -13,7 +13,10 @@ import {
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { networks } from '@/services/agents/common/networks.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
-import { getBalanceExtractor } from '@/services/networking/substrate/balances.js'
+import {
+  extractEthereumRuntimeRpcCallBalance,
+  getBalanceExtractor,
+} from '@/services/networking/substrate/balances.js'
 import { toFrontierRuntimeQuery } from '@/services/networking/substrate/evm/helpers.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { isXcmLocation, serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
@@ -67,6 +70,57 @@ const storageResolvers: Record<
 
     return null
   },
+  [networks.kusamaAssetHub]: ({ apiCtx, assetId, address }) => {
+    if (assetId === 'native') {
+      return createStorageContext(apiCtx, 'System', 'Account', [address])
+    }
+
+    if (typeof assetId === 'number') {
+      return createStorageContext(apiCtx, 'Assets', 'Account', [assetId, address])
+    }
+
+    if (isXcmLocation(assetId)) {
+      return createStorageContext(apiCtx, 'ForeignAssets', 'Account', [
+        serializeStorageKeyArg(assetId),
+        address,
+      ])
+    }
+
+    return null
+  },
+  [networks.astar]: ({ apiCtx, assetId, address }) => {
+    if (assetId === 'native') {
+      return createStorageContext(apiCtx, 'System', 'Account', [address])
+    }
+
+    if (typeof assetId === 'number') {
+      return createStorageContext(apiCtx, 'Assets', 'Account', [assetId, address])
+    }
+
+    return null
+  },
+  [networks.bifrost]: ({ apiCtx, assetId, address }) => {
+    if (assetId === 'native') {
+      return createStorageContext(apiCtx, 'System', 'Account', [address])
+    }
+
+    if (typeof assetId === 'object' && 'type' in assetId && 'value' in assetId) {
+      return createStorageContext(apiCtx, 'Tokens', 'Accounts', [address, assetId])
+    }
+
+    return null
+  },
+  [networks.hydration]: ({ apiCtx, assetId, address }) => {
+    if (assetId === 'native') {
+      return createStorageContext(apiCtx, 'System', 'Account', [address])
+    }
+
+    if (typeof assetId === 'number') {
+      return createStorageContext(apiCtx, 'Tokens', 'Accounts', [address, assetId])
+    }
+
+    return null
+  },
 }
 
 export function reserveBalanceMappers(
@@ -95,12 +149,100 @@ export function reserveBalanceMappers(
         }),
       )
     },
+    [networks.kusamaAssetHub]: ({ assetId, address }) => {
+      const chainId = networks.kusamaAssetHub
+
+      return ingress.substrate.getContext(chainId).pipe(
+        switchMap((apiCtx) => {
+          const storageResolver = storageResolvers[chainId]
+          const storageContext = storageResolver({ apiCtx, assetId, address })
+
+          if (storageContext === null) {
+            throw new Error(`[${chainId}] storage resolver not defined`)
+          }
+          const { decode, storageKey } = storageContext
+
+          return timer(0, POLLING_INTERVAL).pipe(
+            exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
+            map((value) => decode(value)),
+            filter((balance) => balance !== null),
+            distinctUntilChanged(),
+          )
+        }),
+      )
+    },
+    [networks.astar]: ({ assetId, address }) => {
+      const chainId = networks.astar
+
+      return ingress.substrate.getContext(chainId).pipe(
+        switchMap((apiCtx) => {
+          const storageResolver = storageResolvers[chainId]
+          const storageContext = storageResolver({ apiCtx, assetId, address })
+
+          if (storageContext === null) {
+            throw new Error(`[${chainId}] storage resolver not defined`)
+          }
+          const { decode, storageKey } = storageContext
+
+          return timer(0, POLLING_INTERVAL).pipe(
+            exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
+            map((value) => decode(value)),
+            filter((balance) => balance !== null),
+            distinctUntilChanged(),
+          )
+        }),
+      )
+    },
+    [networks.bifrost]: ({ assetId, address }) => {
+      const chainId = networks.bifrost
+
+      return ingress.substrate.getContext(chainId).pipe(
+        switchMap((apiCtx) => {
+          const storageResolver = storageResolvers[chainId]
+          const storageContext = storageResolver({ apiCtx, assetId, address })
+
+          if (storageContext === null) {
+            throw new Error(`[${chainId}] storage resolver not defined`)
+          }
+          const { decode, storageKey } = storageContext
+
+          return timer(0, POLLING_INTERVAL).pipe(
+            exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
+            map((value) => decode(value)),
+            filter((balance) => balance !== null),
+            distinctUntilChanged(),
+          )
+        }),
+      )
+    },
+    [networks.hydration]: ({ assetId, address }) => {
+      const chainId = networks.hydration
+
+      return ingress.substrate.getContext(chainId).pipe(
+        switchMap((apiCtx) => {
+          const storageResolver = storageResolvers[chainId]
+          const storageContext = storageResolver({ apiCtx, assetId, address })
+
+          if (storageContext === null) {
+            throw new Error(`[${chainId}] storage resolver not defined`)
+          }
+          const { decode, storageKey } = storageContext
+
+          return timer(0, POLLING_INTERVAL).pipe(
+            exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
+            map((value) => decode(value)),
+            filter((balance) => balance !== null),
+            distinctUntilChanged(),
+          )
+        }),
+      )
+    },
     [networks.moonbeam]: ({ assetId, address }) => {
       const chainId = networks.moonbeam
       if (typeof assetId !== 'string') {
         throw new Error('Moonbeam reserve asset ID must be a string')
       }
-      if (!(address.startsWith('0x') && address.length !== 42)) {
+      if (!address.startsWith('0x') && address.length !== 42) {
         throw new Error('Moonbeam reserve address must be a 20-byte hex string starting with "0x"')
       }
       if (assetId === 'native') {
@@ -135,7 +277,7 @@ export function reserveBalanceMappers(
 
         return timer(0, POLLING_INTERVAL).pipe(
           exhaustMap(() =>
-            ingress.substrate.runtimeCall<bigint>(
+            ingress.substrate.runtimeCall(
               chainId,
               {
                 api,
@@ -144,6 +286,7 @@ export function reserveBalanceMappers(
               args,
             ),
           ),
+          map(extractEthereumRuntimeRpcCallBalance),
           filter((value) => value !== null),
           distinctUntilChanged(),
         )
@@ -156,7 +299,7 @@ export function reserveBalanceMappers(
       if (typeof assetId !== 'string') {
         throw new Error('Ethereum reserve asset ID must be a string')
       }
-      if (!(address.startsWith('0x') && address.length !== 42)) {
+      if (!address.startsWith('0x') || address.length !== 42) {
         throw new Error('Ethereum reserve address must be a 20-byte hex string starting with "0x"')
       }
 

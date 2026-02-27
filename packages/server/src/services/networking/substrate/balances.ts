@@ -30,18 +30,8 @@ const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
     return calculateFreeBalance(value)
   },
   'ethereumruntimerpcapi.call': (value: any) => {
-    if (typeof value === 'bigint') {
-      return value
-    } else if (typeof value === 'object' && value.success && 'value' in value) {
-      try {
-        const v = value.value.value as Binary
-        const h = v.asHex()
-        return BigInt(h === '0x' ? 0 : h)
-      } catch (err) {
-        console.warn(err, 'Balance extractor error in ethereumruntimerpcapi.call')
-      }
-    }
-    return 0n
+    const extracted = extractEthereumRuntimeRpcCallBalance(value)
+    return extracted === null ? 0n : extracted
   },
   'evm.accountstorages': (value: Binary) => {
     return BigInt(value.asHex())
@@ -55,6 +45,21 @@ const balanceExtractorMappers: Record<string, (value: any) => bigint> = {
   'tokens.accounts': (value: Balance) => {
     return calculateFreeBalance(value)
   },
+}
+
+export function extractEthereumRuntimeRpcCallBalance(value: any) {
+  if (typeof value === 'bigint') {
+    return value
+  } else if (value !== null && typeof value === 'object' && value.success && 'value' in value) {
+    try {
+      const v = value.value.value as Binary
+      const h = v.asHex()
+      return BigInt(h === '0x' ? 0 : h)
+    } catch (err) {
+      console.warn(err, 'Balance extractor error in ethereumruntimerpcapi.call')
+    }
+  }
+  return null
 }
 
 export function getBalanceExtractor(...path: string[]) {
