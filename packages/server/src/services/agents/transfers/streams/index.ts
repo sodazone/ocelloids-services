@@ -38,6 +38,7 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
   },
   [networks.hydration]: (blockEvents$) => {
     return merge(
+      nativeTransfers$(blockEvents$),
       currenciesTransfers$(blockEvents$),
       tokensTransfers$(blockEvents$),
       hydrationErc20Transfers$(blockEvents$),
