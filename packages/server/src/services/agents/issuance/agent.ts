@@ -1,10 +1,9 @@
-import { fromHex } from 'polkadot-api/utils'
 import { Operation } from 'rfc6902'
 import { combineLatest, map, Observable, shareReplay } from 'rxjs'
-import { asPublicKey } from '@/common/util.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
+import { decodeSovereignAccount } from '@/services/networking/substrate/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { toMelbourne } from '../common/melbourne.js'
@@ -261,14 +260,8 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     const reserveConsensus = getConsensus(reserve)
     const remoteConsensus = getConsensus(remote)
     if (reserveConsensus === remoteConsensus && reserveConsensus !== 'ethereum') {
-      const reservePubKey = fromHex(asPublicKey(input.reserveAddress))
-      const prefix = Buffer.from(reservePubKey).subarray(0, 4).toString('ascii')
-      if (prefix !== 'sibl') {
-        throw new Error('Reserve address is not a sibling account')
-      }
-      const paraIdBytes = reservePubKey.slice(4, 6)
-      const paraId = paraIdBytes[0] | (paraIdBytes[1] << 8)
-      if (paraId.toString() !== getChainId(remote)) {
+      const { prefix, paraId } = decodeSovereignAccount(input.reserveAddress)
+      if (prefix !== 'sibl' || paraId.toString() !== getChainId(remote)) {
         throw new Error(
           `Reserve address does not correspond to remote chain. Decoded reserve address: ${prefix}:${paraId}`,
         )
