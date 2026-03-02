@@ -20,6 +20,15 @@ relay = "urn:ocn:polkadot:0"
       "wss://polkadot-asset-hub-rpc.polkadot.io"
     ]
 [[substrate.networks]]
+id = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/kusama",
+    "wss://rpc.dotters.network/kusama",
+    "wss://kusama.api.onfinality.io/public-ws"
+  ]
+[[substrate.networks]]
 id = "urn:ocn:kusama:1000"
 relay = "urn:ocn:kusama:0"
   [substrate.networks.provider]

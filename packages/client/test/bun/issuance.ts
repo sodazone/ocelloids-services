@@ -28,7 +28,9 @@ const subIds = [
   'assethub-DOT-kusama',
   'kusama-KSM-assethub',
   'assethub-DOT-hydration',
-  'ethereum-0x0e186357c323c806c1efdad36d217f7a54b63d18-assethub'
+  'assethub-DOT-moonbeam',
+  'snow-ethereum-ETH-assethub',
+  'bifrost-VDOT-hydration'
 ]
 
 for (const subId of subIds) {
@@ -44,6 +46,5 @@ for (const subId of subIds) {
       onClose: (event) => console.log(event.reason),
     },
   )
-
   console.log('connected', subId)
 }
