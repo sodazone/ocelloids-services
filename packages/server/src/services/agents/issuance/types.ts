@@ -25,6 +25,8 @@ export const $CrosschainIssuanceInputs = z.object({
   remoteChain: $NetworkString,
   remoteAssetId: $AssetId,
   remoteDecimals: z.number().min(0).max(20),
+
+  assetSymbol: z.string(),
 })
 
 /**
