@@ -1,5 +1,6 @@
 import { Operation } from 'rfc6902'
 import { combineLatest, map, Observable, shareReplay } from 'rxjs'
+import { createTypedEventEmitter } from '@/common/util.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
@@ -20,6 +21,7 @@ import {
 } from '../types.js'
 import { remoteIssuanceMappers } from './mappers/remote.js'
 import { reserveBalanceMappers } from './mappers/reserve.js'
+import { issuanceAgentMetrics, TelemetryIssuanceEventEmitter } from './telemetry.js'
 import {
   $CrosschainIssuanceInputs,
   $CrosschainIssuanceQueryArgs,
@@ -50,6 +52,8 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   readonly #log: Logger
   readonly #notifier: Egress
   readonly #ingress: IngressConsumers
+  readonly #telemetry: TelemetryIssuanceEventEmitter
+
   readonly #reserveBalanceMappers: Record<
     string,
     (ctx: { assetId: AssetId; address: string }) => Observable<bigint>
@@ -67,6 +71,8 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     this.#log = log
     this.#notifier = egress
     this.#ingress = ingress
+    this.#telemetry = createTypedEventEmitter<TelemetryIssuanceEventEmitter>()
+
     this.#reserveBalanceMappers = reserveBalanceMappers(ingress)
     this.#remoteIssuanceMappers = remoteIssuanceMappers(ingress)
     this.#dbIssuance = openLevelDB('issuance:last', { valueEncoding: 'json' })
@@ -123,7 +129,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
 
   collectTelemetry() {
-    //
+    issuanceAgentMetrics(this.#telemetry)
   }
 
   async query(params: QueryParams<CrosschainIssuanceQueryArgs>): Promise<QueryResult> {
@@ -187,6 +193,10 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
             }
           },
           complete: () => {
+            this.#telemetry.emit('telemetryIssuanceStreamError', {
+              code: 'ISSUANCE_STREAM_COMPLETE',
+              id: `${args.reserveChain}_${toMelbourne(args.reserveAssetId)}_${args.remoteChain}_${toMelbourne(args.remoteAssetId)}`,
+            })
             this.#log.warn(`[agent:%s] Stream completed`, this.id)
             if (this.#subs.has(id)) {
               const handler = this.#subs.get(id)
@@ -200,6 +210,10 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
             }
           },
           error: (err) => {
+            this.#telemetry.emit('telemetryIssuanceStreamError', {
+              code: 'ISSUANCE_STREAM_ERROR',
+              id: `${args.reserveChain}_${toMelbourne(args.reserveAssetId)}_${args.remoteChain}_${toMelbourne(args.remoteAssetId)}`,
+            })
             this.#log.error(err, `[agent:%s] Stream errored`, this.id)
             if (this.#subs.has(id)) {
               const handler = this.#subs.get(id)

@@ -5,7 +5,7 @@ import { TelemetryHyperbridgeEventEmitter } from './events.js'
 export function hyperbridgeAgentMetrics(source: TelemetryHyperbridgeEventEmitter) {
   const errorCount = new Counter({
     name: 'oc_hyperbridge_errors_count',
-    help: 'Wormhole errors',
+    help: 'Hyperbridge errors',
     labelNames: ['code', 'id'],
   })
 
