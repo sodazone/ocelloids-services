@@ -14,6 +14,7 @@ import {
 } from 'rxjs'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { publicKeyToSS58 } from '@/common/address.js'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { networks } from '@/services/agents/common/networks.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import {
@@ -154,7 +155,9 @@ function pollSubstrateStorage(
       const { storageKey, decode } = storageContext
 
       return timer(0, POLLING_INTERVAL).pipe(
-        exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
+        switchMap(() =>
+          ingress.substrate.getStorage(chainId, storageKey).pipe(retryWithTruncatedExpBackoff()),
+        ),
         map(decode),
         filter((v): v is bigint => v !== null),
         distinctUntilChanged(),
@@ -189,16 +192,18 @@ function pollDualSubstrateSum(
       return timer(0, POLLING_INTERVAL).pipe(
         switchMap(() =>
           forkJoin([
-            ingress.substrate.getStorage(chainA, storageA.storageKey),
-            ingress.substrate.getStorage(chainB, storageB.storageKey),
+            ingress.substrate.getStorage(chainA, storageA.storageKey).pipe(retryWithTruncatedExpBackoff()),
+            ingress.substrate.getStorage(chainB, storageB.storageKey).pipe(retryWithTruncatedExpBackoff()),
           ]),
         ),
         map(([valA, valB]) => {
           const a = storageA.decode(valA)
           const b = storageB.decode(valB)
+
           if (a === null || b === null) {
             return null
           }
+
           return a + b
         }),
         filter((v): v is bigint => v !== null),

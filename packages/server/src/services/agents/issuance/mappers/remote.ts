@@ -1,19 +1,11 @@
-import {
-  catchError,
-  distinctUntilChanged,
-  exhaustMap,
-  filter,
-  from,
-  map,
-  Observable,
-  of,
-  switchMap,
-  timer,
-} from 'rxjs'
+import { distinctUntilChanged, filter, from, map, Observable, switchMap, timer } from 'rxjs'
 import { encodeFunctionData, erc20Abi } from 'viem'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
+import { NetworkURN } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { extractEthereumRuntimeRpcCallBalance } from '@/services/networking/substrate/balances.js'
 import { toFrontierRuntimeQuery } from '@/services/networking/substrate/evm/helpers.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { isXcmLocation, serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { networks } from '../../common/networks.js'
@@ -36,68 +28,52 @@ type AssetsAssetStorageValue = {
   status: Record<string, any>
 }
 
+function foreignAssetsIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN, assetId: AssetId) {
+  if (!isXcmLocation(assetId)) {
+    throw new Error(`[${chainId}] asset ID must be an XCM location object`)
+  }
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) => {
+      const codec = apiCtx.storageCodec('ForeignAssets', 'Asset')
+      const storageKey = codec.keys.enc(serializeStorageKeyArg(assetId)) as HexString
+
+      return timer(0, POLLING_INTERVAL).pipe(
+        switchMap(() => from(ingress.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff())),
+        filter((value) => value !== null),
+        map((value) => {
+          const { supply } = codec.value.dec(value) as AssetsAssetStorageValue
+          return supply
+        }),
+        distinctUntilChanged(),
+      )
+    }),
+  )
+}
+
+function tokensIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN, assetId: AssetId) {
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) => {
+      const codec = apiCtx.storageCodec('Tokens', 'TotalIssuance')
+      const storageKey = codec.keys.enc(assetId) as HexString
+
+      return timer(0, POLLING_INTERVAL).pipe(
+        switchMap(() => from(ingress.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff())),
+        filter((value) => value !== null),
+        map((value) => codec.value.dec(value) as bigint),
+        distinctUntilChanged(),
+      )
+    }),
+  )
+}
+
 export function remoteIssuanceMappers(
   ingress: IngressConsumers,
 ): Record<string, (ctx: { assetId: AssetId }) => Observable<bigint>> {
   return {
-    [networks.assetHub]: ({ assetId }) => {
-      const chainId = networks.assetHub
-      if (!isXcmLocation(assetId)) {
-        throw new Error(`[${chainId}] asset ID must be an XCM location object`)
-      }
-      return ingress.substrate.getContext(chainId).pipe(
-        switchMap((apiCtx) => {
-          const codec = apiCtx.storageCodec('ForeignAssets', 'Asset')
-          const storageKey = codec.keys.enc(serializeStorageKeyArg(assetId)) as HexString
-
-          return timer(0, POLLING_INTERVAL).pipe(
-            exhaustMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(
-                catchError((err) => {
-                  console.error(err, 'Error in Asset Hub ForeignAssets issuance mapper')
-                  return of(null)
-                }),
-              ),
-            ),
-            filter((value) => value !== null),
-            map((value) => {
-              const { supply } = codec.value.dec(value) as AssetsAssetStorageValue
-              return supply
-            }),
-            distinctUntilChanged(),
-          )
-        }),
-      )
-    },
-    [networks.kusamaAssetHub]: ({ assetId }) => {
-      const chainId = networks.kusamaAssetHub
-      if (!isXcmLocation(assetId)) {
-        throw new Error(`[${chainId}] asset ID must be an XCM location object`)
-      }
-      return ingress.substrate.getContext(chainId).pipe(
-        switchMap((apiCtx) => {
-          const codec = apiCtx.storageCodec('ForeignAssets', 'Asset')
-          const storageKey = codec.keys.enc(serializeStorageKeyArg(assetId)) as HexString
-
-          return timer(0, POLLING_INTERVAL).pipe(
-            exhaustMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(
-                catchError((err) => {
-                  console.error(err, 'Error in Asset Hub ForeignAssets issuance mapper')
-                  return of(null)
-                }),
-              ),
-            ),
-            filter((value) => value !== null),
-            map((value) => {
-              const { supply } = codec.value.dec(value) as AssetsAssetStorageValue
-              return supply
-            }),
-            distinctUntilChanged(),
-          )
-        }),
-      )
-    },
+    [networks.assetHub]: ({ assetId }) =>
+      foreignAssetsIssuance$(ingress.substrate, networks.assetHub, assetId),
+    [networks.kusamaAssetHub]: ({ assetId }) =>
+      foreignAssetsIssuance$(ingress.substrate, networks.assetHub, assetId),
     [networks.moonbeam]: ({ assetId }) => {
       const chainId = networks.moonbeam
 
@@ -116,7 +92,7 @@ export function remoteIssuanceMappers(
       })
 
       return timer(0, POLLING_INTERVAL).pipe(
-        exhaustMap(() =>
+        switchMap(() =>
           from(
             ingress.substrate.runtimeCall(
               chainId,
@@ -126,12 +102,7 @@ export function remoteIssuanceMappers(
               },
               args,
             ),
-          ).pipe(
-            catchError((err) => {
-              console.error(err, 'Error in Moonbeam issuance mapper')
-              return of(null)
-            }),
-          ),
+          ).pipe(retryWithTruncatedExpBackoff()),
         ),
         map(extractEthereumRuntimeRpcCallBalance),
         filter((value) => value !== null),
@@ -151,13 +122,8 @@ export function remoteIssuanceMappers(
           const storageKey = codec.keys.enc(BigInt(assetId)) as HexString
 
           return timer(0, POLLING_INTERVAL).pipe(
-            exhaustMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(
-                catchError((err) => {
-                  console.error(err, 'Error in Astar issuance mapper')
-                  return of(null)
-                }),
-              ),
+            switchMap(() =>
+              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff()),
             ),
             filter((value) => value !== null),
             map((value) => {
@@ -176,26 +142,7 @@ export function remoteIssuanceMappers(
         throw new Error(`[${chainId}] asset ID must be an object`)
       }
 
-      return ingress.substrate.getContext(chainId).pipe(
-        switchMap((apiCtx) => {
-          const codec = apiCtx.storageCodec('Tokens', 'TotalIssuance')
-          const storageKey = codec.keys.enc(assetId) as HexString
-
-          return timer(0, POLLING_INTERVAL).pipe(
-            exhaustMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(
-                catchError((err) => {
-                  console.error(err, 'Error in Hydration issuance mapper')
-                  return of(null)
-                }),
-              ),
-            ),
-            filter((value) => value !== null),
-            map((value) => codec.value.dec(value) as bigint),
-            distinctUntilChanged(),
-          )
-        }),
-      )
+      return tokensIssuance$(ingress.substrate, chainId, assetId)
     },
     [networks.hydration]: ({ assetId }) => {
       const chainId = networks.hydration
@@ -204,26 +151,7 @@ export function remoteIssuanceMappers(
         throw new Error(`[${chainId}] asset ID must be a number`)
       }
 
-      return ingress.substrate.getContext(chainId).pipe(
-        switchMap((apiCtx) => {
-          const codec = apiCtx.storageCodec('Tokens', 'TotalIssuance')
-          const storageKey = codec.keys.enc(assetId) as HexString
-
-          return timer(0, POLLING_INTERVAL).pipe(
-            exhaustMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(
-                catchError((err) => {
-                  console.error(err, 'Error in Hydration issuance mapper')
-                  return of(null)
-                }),
-              ),
-            ),
-            filter((value) => value !== null),
-            map((value) => codec.value.dec(value) as bigint),
-            distinctUntilChanged(),
-          )
-        }),
-      )
+      return tokensIssuance$(ingress.substrate, chainId, assetId)
     },
     [networks.ethereum]: ({ assetId }) => {
       const chainId = networks.ethereum
@@ -237,13 +165,8 @@ export function remoteIssuanceMappers(
         }
 
         return timer(0, POLLING_INTERVAL).pipe(
-          exhaustMap(() =>
-            from(ingress.evm.readContract<bigint>(chainId, callData)).pipe(
-              catchError((error) => {
-                console.error(error, 'read contract error')
-                return of(null)
-              }),
-            ),
+          switchMap(() =>
+            from(ingress.evm.readContract<bigint>(chainId, callData)).pipe(retryWithTruncatedExpBackoff()),
           ),
           filter((value): value is bigint => value !== null),
           distinctUntilChanged(),
