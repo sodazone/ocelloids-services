@@ -19,6 +19,8 @@ import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
+import { SubstrateAccountMetadata } from '../steward/lib.js'
+import { Empty, isAccountMetadata, StewardQueryArgs } from '../steward/types.js'
 import { TickerAgent } from '../ticker/agent.js'
 import {
   Agent,
@@ -73,6 +75,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
   readonly #repository: IntrachainTransfersRepository
   readonly #migrator: Migrator
   readonly #broadcaster: ServerSentEventsBroadcaster
+  readonly #steward: DataSteward
 
   readonly #tracker: TransfersTracker
   readonly #icTransfers$: Connectable<IcTransferResponse>
@@ -94,6 +97,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     this.#log = ctx.log
     this.#notifier = ctx.egress
     this.#broadcaster = createTransfersBroadcaster()
+    this.#steward = deps.steward
     this.#tracker = new TransfersTracker({
       log: ctx.log,
       ingress: ingress.substrate,
@@ -246,15 +250,39 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     filters?: TransfersFilters,
     pagination?: QueryPagination,
   ): Promise<QueryResult<IcTransferResponse>> {
-    // convert address filters to public key for matching
     if (filters?.address) {
       filters.address = asPublicKey(filters.address)
     }
+
     const result = await this.#repository.listTransfers(filters, pagination)
+
+    const transfers = result.nodes.map(mapRowToTransferResponse)
+
+    const uniqueAddresses = new Set<string>()
+
+    for (const t of transfers) {
+      uniqueAddresses.add(t.from)
+      uniqueAddresses.add(t.to)
+    }
+
+    const accountsMap = await this.#fetchAccounts([...uniqueAddresses])
+
+    const enriched = transfers.map((t) => {
+      const fromMeta = accountsMap.get(t.from)
+      const toMeta = accountsMap.get(t.to)
+
+      return {
+        ...t,
+        display: {
+          from: fromMeta ? { identities: fromMeta.identities, tags: fromMeta.tags } : undefined,
+          to: toMeta ? { identities: toMeta.identities, tags: toMeta.tags } : undefined,
+        },
+      }
+    })
 
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map(mapRowToTransferResponse),
+      items: enriched,
     }
   }
 
@@ -273,7 +301,20 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
   async getTransferById({ id }: { id: number }): Promise<QueryResult<IcTransferResponse>> {
     try {
       const transfer = await this.#repository.getTransferById(id)
-      return { items: [mapRowToTransferResponse(transfer)] }
+      const accountsMap = await this.#fetchAccounts([transfer.from, transfer.to])
+      const fromMeta = accountsMap.get(transfer.from)
+      const toMeta = accountsMap.get(transfer.to)
+      return {
+        items: [
+          {
+            ...mapRowToTransferResponse(transfer),
+            display: {
+              from: fromMeta ? { identities: fromMeta.identities, tags: fromMeta.tags } : undefined,
+              to: toMeta ? { identities: toMeta.identities, tags: toMeta.tags } : undefined,
+            },
+          },
+        ],
+      }
     } catch (err) {
       this.#log.error(err, '[%s] Error fetching transfer by id (id=%s)', this.id, id)
       return { items: [] }
@@ -366,5 +407,30 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     } catch (error) {
       this.#log.error(error, '[agent:%s] error on refreshing asset volume cache table', this.id)
     }
+  }
+
+  async #fetchAccounts(addresses: string[]): Promise<Map<string, SubstrateAccountMetadata>> {
+    if (addresses.length === 0) {
+      return new Map()
+    }
+
+    const { items } = (await this.#steward.query({
+      args: {
+        op: 'accounts',
+        criteria: {
+          accounts: addresses,
+        },
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
+
+    const map = new Map<string, SubstrateAccountMetadata>()
+
+    for (const item of items) {
+      if (isAccountMetadata(item)) {
+        map.set(item.publicKey, item)
+      }
+    }
+
+    return map
   }
 }

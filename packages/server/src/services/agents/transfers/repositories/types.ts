@@ -107,4 +107,6 @@ export type IcTransferResponse = {
   amount: string
   decimals: number | undefined
   usd: number | undefined
+
+  display?: Record<string, any>
 }
