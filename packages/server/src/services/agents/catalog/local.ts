@@ -23,7 +23,7 @@ import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { HyperbridgeAgent } from '../hyperbridge/agent.js'
-// import { CrosschainIssuanceAgent } from '../issuance/agent.js'
+import { CrosschainIssuanceAgent } from '../issuance/agent.js'
 import { OpenGovAgent } from '../opengov/agent.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
@@ -75,7 +75,7 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       steward: activations['steward'] as DataSteward,
       ticker: activations['ticker'] as TickerAgent,
     }),
-  // issuance: (ctx) => new CrosschainIssuanceAgent(ctx),
+  issuance: (ctx) => new CrosschainIssuanceAgent(ctx),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),
   }),
