@@ -1,6 +1,6 @@
 import { _isAnySubscriptionInputs, OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
-import { SubscribableApi, QueryableApi } from '../core/types'
+import { QueryableApi, SubscribableApi } from '../core/types'
 import { NetworkURN, OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
 import { CrosschainIssuanceInputs, CrosschainIssuancePayload, CrosschainIssuanceQueryArgs } from './types'
 
@@ -9,7 +9,9 @@ import { CrosschainIssuanceInputs, CrosschainIssuancePayload, CrosschainIssuance
  */
 export class CrosschainIssuanceAgentApi
   extends OcelloidsAgentApi<CrosschainIssuanceInputs>
-  implements SubscribableApi<CrosschainIssuanceInputs, CrosschainIssuancePayload>, QueryableApi<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>
+  implements
+    SubscribableApi<CrosschainIssuanceInputs, CrosschainIssuancePayload>,
+    QueryableApi<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>
 {
   constructor(clientApi: OcelloidsClient) {
     super(clientApi.config, 'issuance', clientApi)

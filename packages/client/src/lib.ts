@@ -28,10 +28,10 @@ export type {
   SubscriptionId,
   SubstrateTypes,
   sourceCrosschain,
+  sourceIssuance,
   sourceSteward,
   sourceTransfers,
   sourceXcm,
-  sourceIssuance
 } from './server-types'
 export * from './types'
 
@@ -57,3 +57,6 @@ export * from './issuance/agent'
 
 import * as issuance from './issuance/types'
 export { issuance }
+
+import * as opengov from './opengov/types'
+export { opengov }

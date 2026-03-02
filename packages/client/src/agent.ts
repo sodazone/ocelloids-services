@@ -8,7 +8,8 @@ import {
 } from './core/types'
 import { CrosschainAgentApi } from './crosschain/agent'
 import { CrosschainIssuanceAgentApi } from './issuance/agent'
-import { AnySubscriptionInputs } from './lib'
+import { AnyJson, AnySubscriptionInputs } from './lib'
+import { OpenGovAgentInputs } from './opengov/types'
 import {
   AccountData,
   AssetMetadata,
@@ -20,7 +21,7 @@ import {
 import { TransfersAgentApi } from './transfers/agent'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers' | 'issuance'
+type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers' | 'issuance' | 'opengov'
 
 /**
  * Creates an agent instance.
@@ -166,4 +167,15 @@ export function createTransfersAgent(
   const client = optsOrClient instanceof OcelloidsClient ? optsOrClient : new OcelloidsClient(optsOrClient)
 
   return new TransfersAgentApi(client)
+}
+
+/**
+ * @public
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @returns An object with methods for subscribing to OpenGov events.
+ */
+export function createOpenGovAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): SubscribableApi<OpenGovAgentInputs, AnyJson> & OcelloidsClientApi {
+  return createAgent<OpenGovAgentInputs>('opengov', optsOrClient)
 }
