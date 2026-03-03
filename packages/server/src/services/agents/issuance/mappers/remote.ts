@@ -7,6 +7,7 @@ import { extractEthereumRuntimeRpcCallBalance } from '@/services/networking/subs
 import { toFrontierRuntimeQuery } from '@/services/networking/substrate/evm/helpers.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { isXcmLocation, serializeStorageKeyArg } from '@/services/networking/substrate/util.js'
+import { RETRY_INFINITE } from '@/services/networking/watcher.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { networks } from '../../common/networks.js'
 import { AssetId } from '../../steward/types.js'
@@ -38,7 +39,7 @@ function foreignAssetsIssuance$(ingress: SubstrateIngressConsumer, chainId: Netw
       const storageKey = codec.keys.enc(serializeStorageKeyArg(assetId)) as HexString
 
       return timer(0, POLLING_INTERVAL).pipe(
-        switchMap(() => from(ingress.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff())),
+        switchMap(() => ingress.getStorage(chainId, storageKey)),
         filter((value) => value !== null),
         map((value) => {
           const { supply } = codec.value.dec(value) as AssetsAssetStorageValue
@@ -57,7 +58,7 @@ function tokensIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN,
       const storageKey = codec.keys.enc(assetId) as HexString
 
       return timer(0, POLLING_INTERVAL).pipe(
-        switchMap(() => from(ingress.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff())),
+        switchMap(() => ingress.getStorage(chainId, storageKey)),
         filter((value) => value !== null),
         map((value) => codec.value.dec(value) as bigint),
         distinctUntilChanged(),
@@ -102,7 +103,7 @@ export function remoteIssuanceMappers(
               },
               args,
             ),
-          ).pipe(retryWithTruncatedExpBackoff()),
+          ).pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE)),
         ),
         map(extractEthereumRuntimeRpcCallBalance),
         filter((value) => value !== null),
@@ -122,9 +123,7 @@ export function remoteIssuanceMappers(
           const storageKey = codec.keys.enc(BigInt(assetId)) as HexString
 
           return timer(0, POLLING_INTERVAL).pipe(
-            switchMap(() =>
-              from(ingress.substrate.getStorage(chainId, storageKey)).pipe(retryWithTruncatedExpBackoff()),
-            ),
+            switchMap(() => ingress.substrate.getStorage(chainId, storageKey)),
             filter((value) => value !== null),
             map((value) => {
               const { supply } = codec.value.dec(value) as AssetsAssetStorageValue
@@ -166,7 +165,9 @@ export function remoteIssuanceMappers(
 
         return timer(0, POLLING_INTERVAL).pipe(
           switchMap(() =>
-            from(ingress.evm.readContract<bigint>(chainId, callData)).pipe(retryWithTruncatedExpBackoff()),
+            from(ingress.evm.readContract<bigint>(chainId, callData)).pipe(
+              retryWithTruncatedExpBackoff(RETRY_INFINITE),
+            ),
           ),
           filter((value): value is bigint => value !== null),
           distinctUntilChanged(),

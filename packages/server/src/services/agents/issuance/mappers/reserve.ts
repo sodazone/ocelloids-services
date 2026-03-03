@@ -29,6 +29,7 @@ import {
   isXcmLocation,
   serializeStorageKeyArg,
 } from '@/services/networking/substrate/util.js'
+import { RETRY_INFINITE } from '@/services/networking/watcher.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { AssetId } from '../../steward/types.js'
@@ -91,7 +92,6 @@ const storageResolvers: Record<
     }
     return null
   },
-
   [networks.kusamaAssetHub]: ({ apiCtx, assetId, address }) => {
     if (assetId === 'native') {
       return systemAccount(apiCtx, address)
@@ -104,7 +104,12 @@ const storageResolvers: Record<
     }
     return null
   },
-
+  [networks.moonbeam]: ({ apiCtx, assetId, address }) => {
+    if (assetId === 'native') {
+      return systemAccount(apiCtx, address)
+    }
+    return null
+  },
   [networks.astar]: ({ apiCtx, assetId, address }) => {
     if (assetId === 'native') {
       return systemAccount(apiCtx, address)
@@ -114,7 +119,6 @@ const storageResolvers: Record<
     }
     return null
   },
-
   [networks.bifrost]: ({ apiCtx, assetId, address }) => {
     if (assetId === 'native') {
       return systemAccount(apiCtx, address)
@@ -124,7 +128,6 @@ const storageResolvers: Record<
     }
     return null
   },
-
   [networks.hydration]: ({ apiCtx, assetId, address }) => {
     if (assetId === 'native') {
       return systemAccount(apiCtx, address)
@@ -155,9 +158,7 @@ function pollSubstrateStorage(
       const { storageKey, decode } = storageContext
 
       return timer(0, POLLING_INTERVAL).pipe(
-        switchMap(() =>
-          ingress.substrate.getStorage(chainId, storageKey).pipe(retryWithTruncatedExpBackoff()),
-        ),
+        switchMap(() => ingress.substrate.getStorage(chainId, storageKey)),
         map(decode),
         filter((v): v is bigint => v !== null),
         distinctUntilChanged(),
@@ -192,8 +193,8 @@ function pollDualSubstrateSum(
       return timer(0, POLLING_INTERVAL).pipe(
         switchMap(() =>
           forkJoin([
-            ingress.substrate.getStorage(chainA, storageA.storageKey).pipe(retryWithTruncatedExpBackoff()),
-            ingress.substrate.getStorage(chainB, storageB.storageKey).pipe(retryWithTruncatedExpBackoff()),
+            ingress.substrate.getStorage(chainA, storageA.storageKey),
+            ingress.substrate.getStorage(chainB, storageB.storageKey),
           ]),
         ),
         map(([valA, valB]) => {
@@ -260,22 +261,7 @@ export function reserveBalanceMappers(
         throw new Error('Moonbeam reserve address must be a 20-byte hex string starting with "0x"')
       }
       if (assetId === 'native') {
-        return ingress.substrate.getContext(chainId).pipe(
-          switchMap((apiCtx) => {
-            const storageContext = createStorageContext(apiCtx, 'System', 'Account', [address])
-            if (storageContext === null) {
-              throw new Error(`[${chainId}] storage resolver not defined`)
-            }
-            const { decode, storageKey } = storageContext
-
-            return timer(0, POLLING_INTERVAL).pipe(
-              exhaustMap(() => ingress.substrate.getStorage(chainId, storageKey)),
-              map((value) => decode(value)),
-              filter((balance) => balance !== null),
-              distinctUntilChanged(),
-            )
-          }),
-        )
+        return pollSubstrateStorage(ingress, chainId, { assetId, address })
       }
       if (assetId.startsWith('0x')) {
         const callData = encodeFunctionData({
@@ -291,14 +277,16 @@ export function reserveBalanceMappers(
 
         return timer(0, POLLING_INTERVAL).pipe(
           exhaustMap(() =>
-            ingress.substrate.runtimeCall(
-              chainId,
-              {
-                api,
-                method,
-              },
-              args,
-            ),
+            from(
+              ingress.substrate.runtimeCall(
+                chainId,
+                {
+                  api,
+                  method,
+                },
+                args,
+              ),
+            ).pipe(retryWithTruncatedExpBackoff(RETRY_INFINITE)),
           ),
           map(extractEthereumRuntimeRpcCallBalance),
           filter((value) => value !== null),
@@ -321,10 +309,7 @@ export function reserveBalanceMappers(
         return timer(0, POLLING_INTERVAL).pipe(
           exhaustMap(() =>
             from(ingress.evm.getBalance(chainId, { address: address as HexString })).pipe(
-              catchError((error) => {
-                console.error(error, 'get balance error')
-                return of(null)
-              }),
+              retryWithTruncatedExpBackoff(RETRY_INFINITE),
             ),
           ),
           filter((value): value is bigint => value !== null),
