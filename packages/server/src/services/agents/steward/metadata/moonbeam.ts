@@ -27,11 +27,17 @@ async function getErc20Metadata(address: HexString) {
     abi: erc20Abi,
     client: client,
   })
-  const metadata = await Promise.all([contract.read.name(), contract.read.symbol(), contract.read.decimals()])
+
+  const results = await Promise.allSettled([
+    contract.read.name(),
+    contract.read.symbol(),
+    contract.read.decimals(),
+  ])
+
   return {
-    name: metadata[0],
-    symbol: metadata[1],
-    decimals: metadata[2],
+    name: results[0].status === 'fulfilled' ? results[0].value : undefined,
+    symbol: results[1].status === 'fulfilled' ? results[1].value : undefined,
+    decimals: results[2].status === 'fulfilled' ? results[2].value : undefined,
   }
 }
 
