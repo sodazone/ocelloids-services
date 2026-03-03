@@ -3,6 +3,7 @@ import {
   EMPTY,
   expand,
   filter,
+  finalize,
   firstValueFrom,
   from,
   map,
@@ -14,6 +15,7 @@ import {
   reduce,
   Subscription,
   switchMap,
+  take,
 } from 'rxjs'
 import { asSerializable } from '@/common/util.js'
 import { HexString, QueryParams, QueryResult } from '@/lib.js'
@@ -102,7 +104,7 @@ export class AssetMetadataManager {
 
   async start() {
     const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ASSET_METADATA_SYNC_TASK))
-    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
+    if (this.#sched.enabled /*&& ((await this.#isNotScheduled()) || !alreadyScheduled)*/) {
       await this.#scheduleSync()
 
       // first-time sync
@@ -231,6 +233,7 @@ export class AssetMetadataManager {
 
   #map(chainId: NetworkURN, mapper: AssetMapper) {
     return this.#ingress.getContext(chainId).pipe(
+      take(1),
       switchMap((context) => mapper(context).entries()),
       mergeMap(([index, mapping]) => {
         this.#log.info(

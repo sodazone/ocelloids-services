@@ -1,7 +1,20 @@
 import { blake2b } from '@noble/hashes/blake2'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
-import { concatMap, EMPTY, expand, filter, from, map, merge, mergeMap, Observable, of, switchMap } from 'rxjs'
+import {
+  concatMap,
+  EMPTY,
+  expand,
+  filter,
+  from,
+  map,
+  merge,
+  mergeMap,
+  Observable,
+  of,
+  switchMap,
+  take,
+} from 'rxjs'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -218,6 +231,7 @@ export function mergeAccountMetadata(
 
 export function identities$(ingress: SubstrateIngressConsumer, chainId: NetworkURN) {
   return ingress.getContext(chainId).pipe(
+    take(1),
     switchMap((apiCtx) => {
       if (!apiCtx.hasPallet('Identity')) {
         return EMPTY
@@ -269,6 +283,7 @@ export function identities$(ingress: SubstrateIngressConsumer, chainId: NetworkU
 function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
   const chainId = networks.hydration
   return ingress.getContext(chainId).pipe(
+    take(1),
     switchMap((apiCtx) => {
       const codec = apiCtx.storageCodec('EVMAccounts', 'AccountExtension')
       const hashers = apiCtx.getHashers('EVMAccounts', 'AccountExtension')
@@ -338,6 +353,7 @@ export function getStablePoolAddress(id: number): [HexString, HexString] {
 function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
   const chainId = networks.hydration
   return ingress.getContext(chainId).pipe(
+    take(1),
     switchMap((apiCtx) => {
       const codec = apiCtx.storageCodec('Stableswap', 'Pools')
       const hashers = apiCtx.getHashers('Stableswap', 'Pools')
@@ -395,6 +411,7 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
 function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
   const chainId = networks.hydration
   return ingress.getContext(chainId).pipe(
+    take(1),
     switchMap((apiCtx) => {
       const codec = apiCtx.storageCodec('XYK', 'PoolAssets')
       const hashers = apiCtx.getHashers('XYK', 'PoolAssets')

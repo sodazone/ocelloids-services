@@ -312,7 +312,7 @@ export class AccountsMetadataManager {
     } as Scheduled
 
     await this.#sched.schedule(task)
-    await this.#db.put('scheduled', true)
+    await this.#db.put('scheduled:accounts', true)
 
     this.#log.info('[agent:%s] sync scheduled %s', this.id, timeString)
   }
