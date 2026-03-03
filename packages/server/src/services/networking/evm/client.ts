@@ -1,6 +1,5 @@
 import { Observable } from 'rxjs'
 import {
-  AbiEvent,
   createPublicClient,
   fallback,
   GetBalanceParameters,
@@ -20,7 +19,7 @@ import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
-import { Block, BlockWithLogs, DecodeContractParams, DecodedLog } from './types.js'
+import { Block, BlockWithLogs } from './types.js'
 
 const MAX_SEEN_BLOCKS = 128
 const MAX_RPC_CONCURRENCY = 10
@@ -78,7 +77,7 @@ function markSeen(seenBlocks: Set<string>, blockId: string) {
   }
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function _shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = (Math.random() * (i + 1)) | 0
     const tmp = arr[i]
@@ -86,10 +85,6 @@ function shuffle<T>(arr: T[]): T[] {
     arr[j] = tmp
   }
   return arr
-}
-
-function getWsEndpoints(endpoints: string[]) {
-  return endpoints.filter((url) => url.startsWith('wss://') || url.startsWith('ws://'))
 }
 
 function getHttpEndpoints(endpoints: string[]) {
@@ -106,7 +101,6 @@ export class EvmApi implements ApiClient {
 
   readonly #log: Logger
   readonly #httpClient: PublicClient<Transport, viemChains.Chain>
-  readonly #wsClient: PublicClient<Transport, viemChains.Chain>
   readonly #unwatches: Set<() => void> = new Set()
 
   constructor(log: Logger, chainId: string, url: string | string[]) {
@@ -115,19 +109,13 @@ export class EvmApi implements ApiClient {
     this.#log = log
 
     const endpoints = Array.isArray(url) ? url : [url]
-    const wsEndpoints = shuffle(getWsEndpoints(endpoints))
-    const httpEndpoints = shuffle(getHttpEndpoints(endpoints))
+    const httpEndpoints = getHttpEndpoints(endpoints)
 
     this.#httpClient = createPublicClient<Transport, viemChains.Chain>({
       chain: resolveChain(chainId),
       transport: fallback(httpEndpoints.map(asTransport)),
     })
-    this.#wsClient = createPublicClient<Transport, viemChains.Chain>({
-      chain: resolveChain(chainId),
-      transport: fallback(wsEndpoints.map(asTransport)),
-    })
-    this.#log.info('[%s] Public client created with RPC %s', this.chainId, httpEndpoints[0])
-    this.#log.info('[%s] WS Public client created with RPC %s', this.chainId, wsEndpoints[0])
+    this.#log.info('[client:%s] Public client created with providers %o', this.chainId, httpEndpoints)
   }
 
   async connect(): Promise<ApiClient> {
@@ -347,35 +335,35 @@ export class EvmApi implements ApiClient {
   // NOTE: watchEvents with filters is less reliable than watchBlocks
   // since RPCs can stop emitting events silently, even though the connection is still open
   // and there's no reliable way to check if this is happening
-  watchEvents$(params: DecodeContractParams, eventNames: string[] = []): Observable<DecodedLog> {
-    return new Observable<DecodedLog>((subscriber) => {
-      const unwatch = this.#wsClient.watchEvent({
-        address: params.addresses,
-        events: params.abi.filter(
-          (item) => item.type === 'event' && eventNames.includes(item.name),
-        ) as AbiEvent[],
-        onLogs: (logs) => {
-          try {
-            for (const log of logs) {
-              subscriber.next(asSerializable<typeof log>(log))
-            }
-          } catch (err) {
-            subscriber.error(err as Error)
-          }
-        },
-        onError: (err) => subscriber.error(err),
-      })
+  // watchEvents$(params: DecodeContractParams, eventNames: string[] = []): Observable<DecodedLog> {
+  //   return new Observable<DecodedLog>((subscriber) => {
+  //     const unwatch = this.#wsClient.watchEvent({
+  //       address: params.addresses,
+  //       events: params.abi.filter(
+  //         (item) => item.type === 'event' && eventNames.includes(item.name),
+  //       ) as AbiEvent[],
+  //       onLogs: (logs) => {
+  //         try {
+  //           for (const log of logs) {
+  //             subscriber.next(asSerializable<typeof log>(log))
+  //           }
+  //         } catch (err) {
+  //           subscriber.error(err as Error)
+  //         }
+  //       },
+  //       onError: (err) => subscriber.error(err),
+  //     })
 
-      this.#unwatches.add(unwatch)
-      return () => {
-        try {
-          unwatch()
-        } finally {
-          this.#unwatches.delete(unwatch)
-        }
-      }
-    })
-  }
+  //     this.#unwatches.add(unwatch)
+  //     return () => {
+  //       try {
+  //         unwatch()
+  //       } finally {
+  //         this.#unwatches.delete(unwatch)
+  //       }
+  //     }
+  //   })
+  // }
 
   async getBlockHash(height: number): Promise<string> {
     const block = await this.#httpClient.getBlock({ blockNumber: BigInt(height) })

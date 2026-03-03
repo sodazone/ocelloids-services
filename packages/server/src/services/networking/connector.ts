@@ -19,6 +19,7 @@ export default class Connector {
   readonly #log: Logger
   readonly #config: ServiceConfiguration
   readonly #chains: Map<ClientId, Record<string, ClientMap[ClientId]>>
+  readonly #lastUsedProvider: Map<ClientId, Record<string, number>> = new Map()
 
   constructor(log: Logger, config: ServiceConfiguration) {
     this.#log = log
@@ -44,16 +45,19 @@ export default class Connector {
     this.#log.info('[connector] Register RPC client: %s (%s)', id, client)
 
     const chainRecord = this.#chains.get(client) ?? this.#chains.set(client, {}).get(client)!
+    const providers = Array.isArray(provider.url) ? provider.url : [provider.url]
+
+    const rotatedProviders = this.#getRotatedProviders(client, id, providers)
 
     switch (client) {
       case 'bitcoin':
-        chainRecord[id] = new BitcoinApi(this.#log, id, provider.url)
+        chainRecord[id] = new BitcoinApi(this.#log, id, rotatedProviders)
         break
       case 'substrate':
-        chainRecord[id] = new SubstrateClient(this.#log, id, provider.url)
+        chainRecord[id] = new SubstrateClient(this.#log, id, rotatedProviders)
         break
       case 'evm':
-        chainRecord[id] = new EvmApi(this.#log, id, provider.url)
+        chainRecord[id] = new EvmApi(this.#log, id, rotatedProviders)
         break
     }
   }
@@ -109,5 +113,17 @@ export default class Connector {
     }
 
     this.#log.info('Closing connections: OK')
+  }
+
+  #getRotatedProviders(client: ClientId, chainId: string, providers: string[]): string[] {
+    const indexRecord =
+      this.#lastUsedProvider.get(client) ?? this.#lastUsedProvider.set(client, {}).get(client)!
+    const lastIndex = indexRecord[chainId] ?? -1
+
+    const nextIndex = (lastIndex + 1) % providers.length
+    indexRecord[chainId] = nextIndex
+
+    const rotated = [...providers.slice(nextIndex), ...providers.slice(0, nextIndex)]
+    return rotated
   }
 }

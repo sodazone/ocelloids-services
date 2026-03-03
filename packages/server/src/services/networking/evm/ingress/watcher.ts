@@ -17,27 +17,20 @@ import {
   share,
   shareReplay,
   switchMap,
-  take,
   takeUntil,
   tap,
   timeout,
   toArray,
 } from 'rxjs'
-import {
-  GetBalanceParameters,
-  GetBalanceReturnType,
-  MulticallParameters,
-  ReadContractParameters,
-  SocketClosedError,
-} from 'viem'
+import { GetBalanceParameters, GetBalanceReturnType, MulticallParameters, ReadContractParameters } from 'viem'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { HexString } from '@/lib.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
-import { RETRY_INFINITE, retryCapped, Watcher } from '../../watcher.js'
+import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
-import { Block, DecodeContractParams } from '../types.js'
+import { Block } from '../types.js'
 import { EvmBackfill } from './backfill.js'
 
 const API_TIMEOUT_MS = 4 * 60_000
@@ -289,32 +282,32 @@ export class EvmWatcher extends Watcher<Block> {
     return finalized$
   }
 
-  watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
-    if (!this.#api$[chainId]) {
-      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
-    }
+  // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
+  //   if (!this.#api$[chainId]) {
+  //     this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+  //   }
 
-    return this.#api$[chainId].pipe(
-      switchMap((api) =>
-        defer(() => api.watchEvents$(params, eventNames)).pipe(
-          this.tapError(chainId, 'watchEvents()'),
-          retryWithTruncatedExpBackoff(retryCapped(3)),
-          catchError((err) => {
-            if (err instanceof SocketClosedError) {
-              this.log.info('[%s] reconnecting API due to SocketClosedError', chainId)
+  //   return this.#api$[chainId].pipe(
+  //     switchMap((api) =>
+  //       defer(() => api.watchEvents$(params, eventNames)).pipe(
+  //         this.tapError(chainId, 'watchEvents()'),
+  //         retryWithTruncatedExpBackoff(retryCapped(3)),
+  //         catchError((err) => {
+  //           if (err instanceof SocketClosedError) {
+  //             this.log.info('[%s] reconnecting API due to SocketClosedError', chainId)
 
-              this.#reconnect(chainId)
-            }
+  //             this.#reconnect(chainId)
+  //           }
 
-            return this.#api$[chainId].pipe(
-              take(1),
-              switchMap((api) => api.watchEvents$(params, eventNames)),
-            )
-          }),
-        ),
-      ),
-    )
-  }
+  //           return this.#api$[chainId].pipe(
+  //             take(1),
+  //             switchMap((api) => api.watchEvents$(params, eventNames)),
+  //           )
+  //         }),
+  //       ),
+  //     ),
+  //   )
+  // }
 
   getNetworkInfo(chainId: string): Promise<AnyJson> {
     const chain = this.#apis[chainId].getNetworkInfo()

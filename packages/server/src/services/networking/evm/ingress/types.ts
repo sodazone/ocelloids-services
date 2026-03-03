@@ -11,7 +11,7 @@ import {
 
 import { HexString, NetworkURN } from '@/lib.js'
 import { IngressConsumer } from '@/services/ingress/consumer/types.js'
-import { BlockWithLogs, DecodeContractParams, DecodedLog } from '../types.js'
+import { BlockWithLogs } from '../types.js'
 
 export interface EvmIngressConsumer extends IngressConsumer {
   newBlocks(chainId: NetworkURN): Observable<BlockWithLogs>
@@ -21,9 +21,4 @@ export interface EvmIngressConsumer extends IngressConsumer {
   multicall(chainId: string, args: MulticallParameters): Promise<MulticallReturnType>
   readContract<T = any>(chainId: string, args: ReadContractParameters): Promise<T>
   getBalance(chainId: string, args: GetBalanceParameters): Promise<GetBalanceReturnType>
-  watchEvents(
-    chainId: NetworkURN,
-    params: DecodeContractParams,
-    eventNames?: string[],
-  ): Observable<DecodedLog>
 }

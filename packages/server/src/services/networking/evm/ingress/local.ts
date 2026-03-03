@@ -1,8 +1,8 @@
 import { Chain, GetBalanceParameters, MulticallParameters, ReadContractParameters } from 'viem'
 import { HexString } from '@/lib.js'
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
-import { NetworkURN, Services } from '@/services/types.js'
-import { BlockWithLogs, DecodeContractParams } from '../types.js'
+import { Services } from '@/services/types.js'
+import { BlockWithLogs } from '../types.js'
 import { EvmIngressConsumer } from './types.js'
 import { EvmWatcher } from './watcher.js'
 
@@ -30,7 +30,7 @@ export class EvmLocalConsumer
     return await this.watcher.getBalance(chainId, args)
   }
 
-  watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
-    return this.watcher.watchEvents(chainId, params, eventNames)
-  }
+  // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
+  //   return this.watcher.watchEvents(chainId, params, eventNames)
+  // }
 }

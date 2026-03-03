@@ -107,6 +107,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
       log: this.#log,
       rpc: this.#rpc,
     })
+    this.#log.info('[client:%s] created with providers %o', chainId, url)
   }
 
   async ctx(specVersion?: number) {
