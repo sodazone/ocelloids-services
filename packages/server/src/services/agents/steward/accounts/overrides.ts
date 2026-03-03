@@ -69,6 +69,62 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     ],
   },
   {
+    publicKey: '0x2097f1c23122d11017cfb836836ce2ba19543e1dcedd5dc5d39ae177e393eb08',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:kraken.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x74d7ec84c9249fb32e1e4e86f3747aca65d3c4e519072356108956391f4419ca',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 1,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'exchange_name:binance.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:user_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x967cccc1ff3d1f37b9e6c8a39d8ba72ad85d35e19cc0717a72f1a21037606144',
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 9,
+        subCategoryCode: 5,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:address-poisoning-op',
+      },
+    ],
+  },
+  {
     publicKey: '0x8167e55fee5bd1cab9465961646ea62dd3793bfec70c1983ba0734d7260bc29d', // 13vg3Mrxm3GL9eXxLsGgLYRueiwFCiMbkdHBL4ZN5aob5D4N
     categories: [
       {
@@ -594,6 +650,174 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
       {
         chainId: 'urn:ocn:polkadot:1000',
         tag: 'exchange_name:okx.com',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0x5670f9f348bd7f967539de1856c5b11de4302122233100adb22ceb9846f98b2c', // 12xLgPQunSsPkwMJ3vAgfac7mtU3Xw6R4fbHQcCp2QqXzdtu
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-owner',
+      },
+    ],
+  },
+  {
+    publicKey: '0x45fd34d372d89f1934e14f99fb3a7a977df9779763d265ce7a450af4d6df8a15', // 12amXH9jF3ob2EqE1a44NKnoFdxz6qsXzmYY17pT84764dLL
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-freezer',
+      },
+    ],
+  },
+  {
+    publicKey: '0x6c7aa3e3187f04f100c14f7d29ebd9e2cdc7e78d367d46ae099751f72f55da36', // 13TEbzUcFVsdZA1BAWm2TjLMRZ4y2CQDq3JEoiPqXh43MEoa
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-admin',
+      },
+    ],
+  },
+  {
+    publicKey: '0x383a171d3c8fbbdcc9a831831663cd83f2efd57d0e84776469cc61c347d1dcfe', // 12GiwQK3AYwaQWgjAvFwWG9L3RYoedk9kTSBSYzFKGSfqkEQ
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-issuer',
+      },
+    ],
+  },
+  {
+    publicKey: '0xc30aa287059cd2bdd121662e18c200b4698ff6fa452b79f70ac63a40a3a690ee', // 15QjVp1rx6tjbBjmaWhhwUV7ESHMG6KjdDdhRuw5dQKWkqzB
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-primary-treasury',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:cold_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xa60a3f49c90ee47b5d46a90315365c7046f067e7151b0e353937a09c860aa454', // 14khzbBopeid31EETq8sTz8r9LYcBMTHqrKMnwgQyHkHSwBp
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-secondary-treasury',
+      },
+    ],
+  },
+  {
+    publicKey: '0x63a56ac41e7f3ce3b847a0863fd98b660a381e2b6d622042011337887cc4189c', // 13Fet2MzBBUbJ2oREa7JJrswGeJPY4p7cY3Z2MC9oash8kzN
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdc-operations',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'address_type:hot_wallet',
+      },
+    ],
+  },
+  {
+    publicKey: '0xd8e5d105e214d8c57e5819fb6d820883f44a617a78a7a6237cb9627ec73a26d2', // 15uPcYeUE2XaMiMJuR6W7QGW2LsLdKXX7F3PxKG8gcizPh3X
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdt-owner',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdt-admin',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdt-issuer',
+      },
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdt-freezer',
+      },
+    ],
+  },
+  {
+    publicKey: '0xcc0e5c24c3747188d7b87a04e7681118afafe3507ff34117553f62820c53f754', // 15cZ2zHq5b2fVh8iDqNJKyvHCtwVKWYGqNLQMakHh6e4wicX
+    categories: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        categoryCode: 6,
+        subCategoryCode: 1,
+      },
+    ],
+    tags: [
+      {
+        chainId: 'urn:ocn:polkadot:1000',
+        tag: 'name:usdt-primary-treasury',
       },
       {
         chainId: 'urn:ocn:polkadot:1000',
