@@ -21,4 +21,5 @@ export type CrosschainIssuanceInputs = {
   remoteChain: string
   remoteAssetId: string | number | Record<string, any>
   remoteDecimals: number
+  assetSymbol: string
 }
