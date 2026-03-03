@@ -3,7 +3,6 @@ import {
   EMPTY,
   expand,
   filter,
-  finalize,
   firstValueFrom,
   from,
   map,
@@ -104,7 +103,7 @@ export class AssetMetadataManager {
 
   async start() {
     const alreadyScheduled = await this.#sched.hasScheduled((key) => key.endsWith(ASSET_METADATA_SYNC_TASK))
-    if (this.#sched.enabled /*&& ((await this.#isNotScheduled()) || !alreadyScheduled)*/) {
+    if (this.#sched.enabled && ((await this.#isNotScheduled()) || !alreadyScheduled)) {
       await this.#scheduleSync()
 
       // first-time sync
