@@ -1,4 +1,5 @@
 import { Observer, Subscription } from 'rxjs'
+import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
 import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import {
@@ -109,7 +110,7 @@ export class WormholeAgent implements Agent {
       this.#subs.push(this.#watcher.operations$(init).subscribe(this.#makeObserver()))
     })
 
-    setImmediate(() => this.#recheckPendingJourneys())
+    this.#recheckPendingJourneys()
   }
 
   #makeObserver = (): Observer<{ op: WormholeOperation; status: JourneyStatus }> => ({
@@ -180,8 +181,10 @@ export class WormholeAgent implements Agent {
           return
         }
 
+        await immediate()
+
         try {
-          setImmediate(() => this.#recheckJourney(journey))
+          await this.#recheckJourney(journey)
         } catch (err) {
           this.#log.error('[agent:%s] recheck failed for %s', this.id, journey.id, err)
         }
