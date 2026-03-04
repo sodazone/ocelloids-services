@@ -100,13 +100,34 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     const results: WormholeOperation[] = []
     const newCursors: Record<string, Cursor> = {}
 
-    for (const [key, cursor] of Object.entries(state.cursors)) {
-      const [nextCursor, ops] = await fetchSinceCursor(cursor, signal)
+    const cursorEntries = Object.entries(state.cursors)
+
+    const tasks = cursorEntries.map(([key, cursor]) =>
+      limit(async () => {
+        try {
+          const [nextCursor, ops] = await fetchSinceCursor(cursor, signal)
+
+          return { key, nextCursor, ops }
+        } catch (err) {
+          console.error('Failed fetching cursor', key, err)
+
+          return { key, nextCursor: cursor, ops: [] }
+        }
+      }),
+    )
+
+    const settled = await Promise.all(tasks)
+
+    for (const { key, nextCursor, ops } of settled) {
       newCursors[key] = nextCursor
       results.push(...ops)
 
       if (storage) {
-        await storage.saveCursor(key, nextCursor)
+        try {
+          await storage.saveCursor(key, nextCursor)
+        } catch (err) {
+          console.error('Failed saving cursor', key, err)
+        }
       }
     }
 
