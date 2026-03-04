@@ -1,4 +1,5 @@
 import { Observer, Subscription } from 'rxjs'
+import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
 import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
 import {
@@ -172,12 +173,15 @@ export class WormholeAgent implements Agent {
     )
 
     const queue = [...pendings]
-    const workers = Array.from({ length: concurrency }).map(async () => {
-      while (queue.length > 0) {
+
+    const runWorker = async () => {
+      while (true) {
         const journey = queue.shift()
         if (!journey) {
           return
         }
+
+        await immediate()
 
         try {
           await this.#recheckJourney(journey)
@@ -185,11 +189,15 @@ export class WormholeAgent implements Agent {
           this.#log.error('[agent:%s] recheck failed for %s', this.id, journey.id, err)
         }
       }
-    })
+    }
 
-    await Promise.all(workers)
+    for (let i = 0; i < concurrency; i++) {
+      runWorker().catch((err) => {
+        this.#log.error('[agent:%s] worker crashed', this.id, err)
+      })
+    }
 
-    this.#log.info('[agent:%s] pending recheck complete (%s items)', this.id, pendings.length)
+    this.#log.info('[agent:%s] pending recheck dispatched (%s items)', this.id, pendings.length)
   }
 
   async #recheckJourney(journey: Journey) {
