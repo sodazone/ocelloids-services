@@ -133,8 +133,9 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
 
   async query(params: QueryParams<CrosschainIssuanceQueryArgs>): Promise<QueryResult> {
-    if (params.args.op === 'issuance.last') {
-      const id = params.args.criteria.subscriptionId
+    const { args } = params
+    if (args.op === 'issuance.last') {
+      const id = args.criteria.subscriptionId
       const lastStored = await this.#dbIssuance.get(id)
       return { items: lastStored ? [lastStored] : [] }
     }

@@ -124,6 +124,15 @@ const storageResolvers: Record<
       return systemAccount(apiCtx, address)
     }
     if (typeof assetId === 'object' && 'type' in assetId && 'value' in assetId) {
+      if (
+        assetId.type === 'Native' &&
+        assetId.value &&
+        typeof assetId.value === 'object' &&
+        'type' in assetId.value &&
+        assetId.value.type === 'BNC'
+      ) {
+        return systemAccount(apiCtx, address)
+      }
       return createStorageContext(apiCtx, 'Tokens', 'Accounts', [address, assetId])
     }
     return null
