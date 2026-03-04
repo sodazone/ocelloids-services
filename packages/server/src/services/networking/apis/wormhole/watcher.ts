@@ -1,6 +1,6 @@
 import pLimit from 'p-limit'
 import { Observable } from 'rxjs'
-
+import { immediate } from '@/common/event.loop.js'
 import { JourneyStatus } from '@/services/agents/crosschain/index.js'
 import { WormholeOperationParams, WormholescanClient } from './client.js'
 import { toStatus } from './status.js'
@@ -179,25 +179,24 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
             processOps(newOps, now)
 
             // 2. fetch pending ops
-            const pendingUpdates = await Promise.all(
-              Array.from(pending.entries()).map(([id, entry]) =>
-                limit(async () => {
-                  try {
-                    const updatedOp = await client.fetchOperationById(id, signal)
-                    const newStatus = toStatus(updatedOp) as JourneyStatus
-                    return { id, updatedOp, newStatus, entry }
-                  } catch (err) {
-                    console.error('Failed to fetch pending op', id, err)
-                    return null
-                  }
-                }),
-              ),
-            )
+            for (const [id, entry] of pending.entries()) {
+              limit(async () => {
+                try {
+                  const updatedOp = await client.fetchOperationById(id, signal)
+                  const newStatus = toStatus(updatedOp) as JourneyStatus
 
-            for (const upd of pendingUpdates) {
-              if (upd) {
-                processPendingUpdate(upd)
-              }
+                  await immediate()
+
+                  processPendingUpdate({
+                    id,
+                    updatedOp,
+                    newStatus,
+                    entry,
+                  })
+                } catch (err) {
+                  console.error('Failed to fetch pending op', id, err)
+                }
+              })
             }
 
             // 3. handle timeout
