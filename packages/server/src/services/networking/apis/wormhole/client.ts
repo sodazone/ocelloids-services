@@ -50,7 +50,7 @@ export class WormholescanClient {
           },
         ],
       },*/
-      timeout: 10_000,
+      timeout: 4_000,
       retry: {
         limit: 5,
         methods: ['get'],
