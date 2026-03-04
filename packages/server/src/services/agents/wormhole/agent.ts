@@ -146,14 +146,20 @@ export class WormholeAgent implements Agent {
   }
 
   async #recheckPendingJourneys() {
-    // Enabled by default
     const enabled = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
     if (!enabled) {
       return
     }
-    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
 
-    this.#log.info('[agent:%s] recheck pending journeys enabled (delay=%sms)', this.id, delay)
+    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
+    const concurrency = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 5)
+
+    this.#log.info(
+      '[agent:%s] recheck pending journeys enabled (delay=%sms, concurrency=%s)',
+      this.id,
+      delay,
+      concurrency,
+    )
 
     await new Promise((r) => setTimeout(r, delay))
 
@@ -165,9 +171,23 @@ export class WormholeAgent implements Agent {
       Date.now() - PENDING_RECHECK_WINDOW,
     )
 
-    for (const journey of pendings) {
-      await this.#recheckJourney(journey)
-    }
+    const queue = [...pendings]
+    const workers = Array.from({ length: concurrency }).map(async () => {
+      while (queue.length > 0) {
+        const journey = queue.shift()
+        if (!journey) {
+          return
+        }
+
+        try {
+          await this.#recheckJourney(journey)
+        } catch (err) {
+          this.#log.error('[agent:%s] recheck failed for %s', this.id, journey.id, err)
+        }
+      }
+    })
+
+    await Promise.all(workers)
 
     this.#log.info('[agent:%s] pending recheck complete (%s items)', this.id, pendings.length)
   }
