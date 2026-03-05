@@ -18,19 +18,7 @@ const agent = createCrosschainIssuanceAgent({
 })
 
 const subIds = [
-  'usdt-1984-hydration',
-  'usdt-1984-moonbeam',
-  'ethereum-usdt-assethub',
-  'assethub-tbtc-hydration',
-  'moonbeam-wbtc-hydration',
-  'assethub-DOT-astar',
-  'assethub-DOT-bifrost',
-  'assethub-DOT-kusama',
-  'kusama-KSM-assethub',
-  'assethub-DOT-hydration',
-  'assethub-DOT-moonbeam',
-  'snow-ethereum-ETH-assethub',
-  'bifrost-VDOT-hydration'
+  'hyperion:polkadot-hydration_xcm'
 ]
 
 for (const subId of subIds) {
@@ -40,10 +28,10 @@ for (const subId of subIds) {
       onMessage: ({ payload }) => {
         const reserve = normaliseDecimals(payload.reserve, payload.inputs.reserveDecimals)
         const remote = normaliseDecimals(payload.remote, payload.inputs.remoteDecimals)
-        console.log(`[${subId}] Reserve: ${reserve} Remote: ${remote} (Diff: ${Number(reserve) - Number(remote)})`)
+        console.log(`[${subId}] ${payload.inputs.assetSymbol} Reserve: ${reserve} Remote: ${remote} (Diff: ${Number(reserve) - Number(remote)})`)
       },
-      onError: (error) => console.log(error),
-      onClose: (event) => console.log(event.reason),
+      onError: (error) => console.log('WS error:', error),
+      onClose: (event) => console.log('WS close', event.reason),
     },
   )
   console.log('connected', subId)
