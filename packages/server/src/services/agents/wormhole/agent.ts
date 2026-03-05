@@ -32,6 +32,9 @@ import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
 const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
+const RECHECK_DELAY_MS = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
+const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 2)
+const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 
 function isChainSupported(chainId?: number): boolean {
   return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
@@ -147,24 +150,18 @@ export class WormholeAgent implements Agent {
   }
 
   async #recheckPendingJourneys() {
-    const enabled = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
-    if (!enabled) {
+    if (!RECHECK_ENABLED) {
       return
     }
-
-    const delay = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
-    const concurrency = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 2)
 
     this.#log.info(
       '[agent:%s] recheck pending journeys enabled (delay=%sms, concurrency=%s)',
       this.id,
-      delay,
-      concurrency,
+      RECHECK_DELAY_MS,
+      RECHECK_CONCURRENCY,
     )
 
-    await new Promise((r) => setTimeout(r, delay))
-
-    this.#log.info('[agent:%s] rechecking pending journeys...', this.id)
+    await new Promise((r) => setTimeout(r, RECHECK_DELAY_MS))
 
     const pendings = await this.#repository.getJourneysByStatus(
       ['sent', 'waiting'],
@@ -172,32 +169,37 @@ export class WormholeAgent implements Agent {
       Date.now() - PENDING_RECHECK_WINDOW,
     )
 
-    const queue = [...pendings]
+    if (pendings.length === 0) {
+      return
+    }
 
-    const runWorker = async () => {
+    this.#log.info('[agent:%s] pending recheck dispatched (%s items)', this.id, pendings.length)
+
+    const queue = pendings[Symbol.iterator]()
+
+    const worker = async () => {
       while (true) {
-        const journey = queue.shift()
-        if (!journey) {
-          return
+        const next = queue.next()
+        if (next.done) {
+          break
         }
 
-        await immediate()
+        const journey = next.value
 
         try {
           await this.#recheckJourney(journey)
         } catch (err) {
           this.#log.error('[agent:%s] recheck failed for %s', this.id, journey.id, err)
         }
+
+        await immediate()
       }
     }
 
-    for (let i = 0; i < concurrency; i++) {
-      runWorker().catch((err) => {
-        this.#log.error('[agent:%s] worker crashed', this.id, err)
-      })
-    }
+    const workers = Array.from({ length: RECHECK_CONCURRENCY }, () => worker())
+    await Promise.allSettled(workers)
 
-    this.#log.info('[agent:%s] pending recheck dispatched (%s items)', this.id, pendings.length)
+    this.#log.info('[agent:%s] all pending journeys rechecked', this.id)
   }
 
   async #recheckJourney(journey: Journey) {
