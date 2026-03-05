@@ -217,14 +217,11 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
               )
               return EMPTY
             }),
-            map(
-              ([reserve, remote]) =>
-                ({
-                  inputs: input,
-                  reserve,
-                  remote,
-                }),
-            ),
+            map(([reserve, remote]) => ({
+              inputs: input,
+              reserve,
+              remote,
+            })),
           )
         }),
         filter((s) => s !== null),
@@ -247,8 +244,8 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
               inputs: {
                 ...payload.inputs,
                 reserveAssetId: melbournedReserveAsset,
-                remoteAssetId: melbournedRemoteAsset
-              }
+                remoteAssetId: melbournedRemoteAsset,
+              },
             }
             this.#dbIssuance.put(`${id}|${melbournedReserveAsset}`, p)
             this.#notifier.publish(handler.subscription, {
