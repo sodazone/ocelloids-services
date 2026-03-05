@@ -223,7 +223,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
                   inputs: input,
                   reserve,
                   remote,
-                }) as CrosschainIssuancePayload,
+                }),
             ),
           )
         }),
@@ -238,7 +238,19 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
               this.#log.error(`No subscription handler found for subscription ID ${id}`)
               return
             }
-            this.#dbIssuance.put(`${id}|${toMelbourne(payload.inputs.reserveAssetId)}`, payload)
+
+            const melbournedReserveAsset = toMelbourne(payload.inputs.reserveAssetId)
+            const melbournedRemoteAsset = toMelbourne(payload.inputs.remoteAssetId)
+
+            const p: CrosschainIssuancePayload = {
+              ...payload,
+              inputs: {
+                ...payload.inputs,
+                reserveAssetId: melbournedReserveAsset,
+                remoteAssetId: melbournedRemoteAsset
+              }
+            }
+            this.#dbIssuance.put(`${id}|${melbournedReserveAsset}`, p)
             this.#notifier.publish(handler.subscription, {
               metadata: {
                 type: 'issuance',
@@ -247,7 +259,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
                 networkId: args.reserveChain as NetworkURN,
                 timestamp: Date.now(),
               },
-              payload: payload as unknown as AnyJson,
+              payload: p as unknown as AnyJson,
             })
           } else {
             // this could happen with closed ephemeral subscriptions

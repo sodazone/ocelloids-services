@@ -54,7 +54,16 @@ export type CrosschainIssuance = {
  * @public
  */
 export type CrosschainIssuancePayload = CrosschainIssuance & {
-  inputs: CrosschainIssuanceInputs
+  inputs: {
+    reserveChain: NetworkURN
+    reserveAssetId: string
+    reserveAddress: string
+    reserveDecimals: number
+    remoteChain: NetworkURN
+    remoteAssetId: string
+    remoteDecimals: number
+    assetSymbol: string
+  }
 }
 
 export type CrosschainIssuanceHandler = {
