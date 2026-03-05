@@ -197,33 +197,17 @@ export class WormholeAgent implements Agent {
 
   async #recheckJourney(journey: Journey) {
     try {
-      if (this.#watcher.isWormholeId(journey.correlation_id)) {
-        this.#log.info(
-          '[agent:%s] Refetching pending op by correlationId %s',
-          this.id,
-          journey.correlation_id,
-        )
-        this.#queuedFetchOp(journey.correlation_id).then((op) => {
-          if (op) {
-            this.#onOperation(op).catch((err) => this.#log.error(err))
-          }
-        })
-        return
-      }
-
       const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
-      if (!stop) {
-        return
-      }
+      const opId =
+        stop?.messageId ||
+        (this.#watcher.isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
 
-      const vaaId = stop.messageId
-      if (vaaId) {
-        this.#log.info('[agent:%s] Refetching pending op by stop messageId %s', this.id, vaaId)
-        this.#queuedFetchOp(vaaId).then((op) => {
-          if (op) {
-            this.#onOperation(op).catch((err) => this.#log.error(err))
-          }
-        })
+      if (opId) {
+        this.#log.info('[agent:%s] Refetching pending op %s', this.id, opId)
+        const op = await this.#queuedFetchOp(opId)
+        if (op) {
+          await this.#onOperation(op)
+        }
         return
       }
 
