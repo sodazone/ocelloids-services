@@ -51,7 +51,7 @@ export function addServerOptions(command: Command) {
       ).default(true),
     )
     .addOption(
-      optInt('--rate-limit-max <number>', 'set the max number of requests', 'OC_RATE_LIMIT_MAX').default(60),
+      optInt('--rate-limit-max <number>', 'set the max number of requests', 'OC_RATE_LIMIT_MAX').default(512),
     )
     .addOption(
       optInt(
