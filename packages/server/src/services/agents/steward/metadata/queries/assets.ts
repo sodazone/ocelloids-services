@@ -1,11 +1,12 @@
 import { LRUCache } from 'lru-cache'
 import { fromHex } from 'polkadot-api/utils'
 import { NetworkURN } from '@/lib.js'
+import { limitCap, paginatedResults } from '@/services/agents/common/query.js'
 import { LevelDB } from '@/services/types.js'
 import { OMEGA_250 } from '../../../consts.js'
 import { QueryPagination, QueryResult } from '../../../types.js'
 import { AssetMetadata } from '../../types.js'
-import { assetMetadataKey, limitCap, paginatedResults } from '../../util.js'
+import { assetMetadataKey } from '../../util.js'
 
 export class AssetsQueryHandler {
   readonly #dbAssets: LevelDB

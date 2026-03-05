@@ -1,9 +1,10 @@
 export {
   $AssetId,
-  $CrosschainIssuanceInputs,
   $CrosschainIssuanceQueryArgs,
+  $CrosschainIssuanceSubscriptionInputs,
   CrosschainIssuance,
   CrosschainIssuanceInputs,
   CrosschainIssuancePayload,
   CrosschainIssuanceQueryArgs,
+  CrosschainIssuanceSubscriptionInputs,
 } from './types.js'

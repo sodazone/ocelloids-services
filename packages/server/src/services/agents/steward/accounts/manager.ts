@@ -10,8 +10,8 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
+import { limitCap, paginatedResults } from '../../common/query.js'
 import { Empty, StewardManagerContext, StewardQueryArgs } from '../types.js'
-import { limitCap, paginatedResults } from '../util.js'
 import { extraAccountMeta$, identities$, mergeAccountMetadata, overrideAccounts$ } from './mappers.js'
 import { SubstrateAccountMetadata, SubstrateAccountResult, SubstrateAccountUpdate } from './types.js'
 

@@ -13,13 +13,7 @@ export type CrosschainIssuanceQueryArgs = sourceIssuance.CrosschainIssuanceQuery
 /**
  * @public
  */
-export type CrosschainIssuanceInputs = {
+export type CrosschainIssuanceSubscriptionInputs = {
   reserveChain: string
-  reserveAssetId: string | number | Record<string, any>
-  reserveAddress: string
-  reserveDecimals: number
   remoteChain: string
-  remoteAssetId: string | number | Record<string, any>
-  remoteDecimals: number
-  assetSymbol: string
 }

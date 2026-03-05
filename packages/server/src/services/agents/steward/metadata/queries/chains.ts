@@ -1,10 +1,10 @@
 import { LRUCache } from 'lru-cache'
+import { limitCap, paginatedResults } from '@/services/agents/common/query.js'
 import { getRelayId } from '@/services/config.js'
 import { SubstrateNetworkInfo } from '@/services/networking/substrate/ingress/types.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { OMEGA_250 } from '../../../consts.js'
 import { QueryPagination, QueryResult } from '../../../types.js'
-import { limitCap, paginatedResults } from '../../util.js'
 
 export type SubstrateSS58PrefixInfo = {
   ss58Prefix: number

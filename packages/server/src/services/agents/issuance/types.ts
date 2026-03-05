@@ -3,6 +3,7 @@ import z from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
 import { Subscription } from '@/services/subscriptions/types.js'
+import { NetworkURN } from '@/services/types.js'
 
 /**
  * @public
@@ -16,23 +17,15 @@ export const $AssetId = z.union([
 /**
  * @public
  */
-export const $CrosschainIssuanceInputs = z.object({
+export const $CrosschainIssuanceSubscriptionInputs = z.object({
   reserveChain: $NetworkString,
-  reserveAssetId: $AssetId,
-  reserveAddress: z.string().min(42).max(66),
-  reserveDecimals: z.number().min(0).max(20),
-
   remoteChain: $NetworkString,
-  remoteAssetId: $AssetId,
-  remoteDecimals: z.number().min(0).max(20),
-
-  assetSymbol: z.string(),
 })
 
 /**
  * @public
  */
-export type CrosschainIssuanceInputs = z.infer<typeof $CrosschainIssuanceInputs>
+export type CrosschainIssuanceSubscriptionInputs = z.infer<typeof $CrosschainIssuanceSubscriptionInputs>
 
 /**
  * @public
@@ -65,6 +58,20 @@ export type CrosschainIssuancePayload = CrosschainIssuance & {
 }
 
 export type CrosschainIssuanceHandler = {
-  subscription: Subscription<CrosschainIssuanceInputs>
+  subscription: Subscription<CrosschainIssuanceSubscriptionInputs>
   stream: RxSubscription
+}
+
+/**
+ * @public
+ */
+export type CrosschainIssuanceInputs = {
+  reserveChain: NetworkURN
+  reserveAssetId: string | number | Record<string, any>
+  reserveAddress: string
+  reserveDecimals: number
+  remoteChain: NetworkURN
+  remoteAssetId: string | number | Record<string, any>
+  remoteDecimals: number
+  assetSymbol: string
 }

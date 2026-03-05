@@ -2,15 +2,19 @@ import { _isAnySubscriptionInputs, OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
 import { QueryableApi, SubscribableApi } from '../core/types'
 import { NetworkURN, OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
-import { CrosschainIssuanceInputs, CrosschainIssuancePayload, CrosschainIssuanceQueryArgs } from './types'
+import {
+  CrosschainIssuancePayload,
+  CrosschainIssuanceQueryArgs,
+  CrosschainIssuanceSubscriptionInputs,
+} from './types'
 
 /**
  * @public
  */
 export class CrosschainIssuanceAgentApi
-  extends OcelloidsAgentApi<CrosschainIssuanceInputs>
+  extends OcelloidsAgentApi<CrosschainIssuanceSubscriptionInputs>
   implements
-    SubscribableApi<CrosschainIssuanceInputs, CrosschainIssuancePayload>,
+    SubscribableApi<CrosschainIssuanceSubscriptionInputs, CrosschainIssuancePayload>,
     QueryableApi<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>
 {
   constructor(clientApi: OcelloidsClient) {
@@ -18,9 +22,9 @@ export class CrosschainIssuanceAgentApi
   }
 
   async subscribe<P = CrosschainIssuancePayload>(
-    subscription: SubscriptionId | CrosschainIssuanceInputs,
+    subscription: SubscriptionId | CrosschainIssuanceSubscriptionInputs,
     handlers: WebSocketHandlers<P>,
-    onDemandHandlers?: OnDemandSubscriptionHandlers<CrosschainIssuanceInputs>,
+    onDemandHandlers?: OnDemandSubscriptionHandlers<CrosschainIssuanceSubscriptionInputs>,
   ) {
     if (_isAnySubscriptionInputs(subscription)) {
       return super.subscribe(subscription, handlers, onDemandHandlers)
@@ -35,8 +39,7 @@ export class CrosschainIssuanceAgentApi
 
     const ws = await super.subscribe(subscription, handlers, onDemandHandlers)
 
-    if (items.length > 0) {
-      const payload = items[0]
+    for (const payload of items) {
       handlers.onMessage(
         {
           metadata: {

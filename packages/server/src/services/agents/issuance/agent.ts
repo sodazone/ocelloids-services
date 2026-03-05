@@ -1,5 +1,16 @@
 import { Operation } from 'rfc6902'
-import { combineLatest, map, Observable, shareReplay } from 'rxjs'
+import {
+  catchError,
+  combineLatest,
+  EMPTY,
+  filter,
+  from,
+  map,
+  mergeMap,
+  Observable,
+  of,
+  shareReplay,
+} from 'rxjs'
 import { createTypedEventEmitter } from '@/common/util.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { Egress } from '@/services/egress/index.js'
@@ -8,6 +19,7 @@ import { decodeSovereignAccount } from '@/services/networking/substrate/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { toMelbourne } from '../common/melbourne.js'
+import { limitCap, paginatedResults } from '../common/query.js'
 import { AssetId } from '../steward/types.js'
 import {
   Agent,
@@ -19,16 +31,18 @@ import {
   QueryResult,
   Subscribable,
 } from '../types.js'
+import { createIssuanceInputsMap } from './mappers/inputs.js'
 import { remoteIssuanceMappers } from './mappers/remote.js'
 import { reserveBalanceMappers } from './mappers/reserve.js'
 import { issuanceAgentMetrics, TelemetryIssuanceEventEmitter } from './telemetry.js'
 import {
-  $CrosschainIssuanceInputs,
   $CrosschainIssuanceQueryArgs,
+  $CrosschainIssuanceSubscriptionInputs,
   CrosschainIssuanceHandler,
   CrosschainIssuanceInputs,
   CrosschainIssuancePayload,
   CrosschainIssuanceQueryArgs,
+  CrosschainIssuanceSubscriptionInputs,
 } from './types.js'
 
 const XC_ISSUANCE_AGENT_ID = 'issuance'
@@ -47,13 +61,14 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
   querySchema = $CrosschainIssuanceQueryArgs
 
-  readonly inputSchema = $CrosschainIssuanceInputs
+  readonly inputSchema = $CrosschainIssuanceSubscriptionInputs
 
   readonly #log: Logger
   readonly #notifier: Egress
   readonly #ingress: IngressConsumers
   readonly #telemetry: TelemetryIssuanceEventEmitter
 
+  readonly #inputsMap: Map<string, CrosschainIssuanceInputs[]>
   readonly #reserveBalanceMappers: Record<
     string,
     (ctx: { assetId: AssetId; address: string }) => Observable<bigint>
@@ -73,6 +88,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     this.#ingress = ingress
     this.#telemetry = createTypedEventEmitter<TelemetryIssuanceEventEmitter>()
 
+    this.#inputsMap = createIssuanceInputsMap()
     this.#reserveBalanceMappers = reserveBalanceMappers(ingress)
     this.#remoteIssuanceMappers = remoteIssuanceMappers(ingress)
     this.#dbIssuance = openLevelDB('issuance:last', { valueEncoding: 'json' })
@@ -100,7 +116,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     this.#log.info('[agent:%s] stopped', this.id)
   }
 
-  subscribe(sub: Subscription<CrosschainIssuanceInputs>) {
+  subscribe(sub: Subscription<CrosschainIssuanceSubscriptionInputs>) {
     this.#validateArgs(sub.args)
     const rxSub = this.#monitor(sub)
     if (rxSub === null) {
@@ -133,105 +149,150 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
   }
 
   async query(params: QueryParams<CrosschainIssuanceQueryArgs>): Promise<QueryResult> {
-    const { args } = params
+    const { args, pagination } = params
     if (args.op === 'issuance.last') {
-      const id = args.criteria.subscriptionId
-      const lastStored = await this.#dbIssuance.get(id)
-      return { items: lastStored ? [lastStored] : [] }
+      const subscriptionId = args.criteria.subscriptionId
+      const cursor = pagination?.cursor
+
+      const iterator = this.#dbIssuance.iterator({
+        ...(cursor ? { gt: cursor } : { gte: `${subscriptionId}|` }),
+        lte: `${subscriptionId}|\xFF`,
+        limit: limitCap(pagination),
+      })
+
+      return paginatedResults<string, CrosschainIssuancePayload>(iterator)
     }
 
     throw new Error('Unknown query op')
   }
 
-  #monitor(subscription: Subscription<CrosschainIssuanceInputs>): CrosschainIssuanceHandler | null {
+  #monitor(
+    subscription: Subscription<CrosschainIssuanceSubscriptionInputs>,
+  ): CrosschainIssuanceHandler | null {
     const { id, args } = subscription
 
+    const key = `${args.reserveChain}-${args.remoteChain}`
+    const inputs = this.#inputsMap.get(key)
+
+    if (!inputs || inputs.length === 0) {
+      throw new Error(`No issuance inputs found for ${key}`)
+    }
+
     try {
-      const reserveBalance$ = this.#getReserveStream({
-        chainId: args.reserveChain as NetworkURN,
-        assetId: args.reserveAssetId,
-        reserveAddress: args.reserveAddress,
-      })
+      const stream$ = from(inputs).pipe(
+        mergeMap((input) => {
+          const reserveConsensus = getConsensus(input.reserveChain)
+          const remoteConsensus = getConsensus(input.remoteChain)
+          if (reserveConsensus === remoteConsensus && reserveConsensus !== 'ethereum') {
+            const { prefix, paraId } = decodeSovereignAccount(input.reserveAddress)
+            if (prefix !== 'sibl' || paraId.toString() !== getChainId(input.remoteChain)) {
+              this.#log.error(
+                '[agent:%s] Reserve address does not correspond to remote chain. Decoded reserve address: %s:%s',
+                this.id,
+                prefix,
+                paraId,
+              )
+              return of(null)
+            }
+          }
+          const reserveBalance$ = this.#getReserveStream({
+            chainId: input.reserveChain as NetworkURN,
+            assetId: input.reserveAssetId,
+            reserveAddress: input.reserveAddress,
+          })
 
-      const remoteIssuance$ = this.#getRemoteStream({
-        chainId: args.remoteChain as NetworkURN,
-        assetId: args.remoteAssetId,
-      })
+          const remoteIssuance$ = this.#getRemoteStream({
+            chainId: input.remoteChain as NetworkURN,
+            assetId: input.remoteAssetId,
+          })
 
-      const stream = combineLatest([reserveBalance$, remoteIssuance$])
-        .pipe(
-          map(
-            ([reserve, remote]) =>
-              ({
-                inputs: args,
-                reserve,
-                remote,
-              }) as CrosschainIssuancePayload,
-          ),
-        )
-        .subscribe({
-          next: (payload) => {
-            if (this.#subs.has(id)) {
-              const handler = this.#subs.get(id)
-              if (!handler) {
-                this.#log.error(`No subscription handler found for subscription ID ${id}`)
-                return
-              }
-              this.#dbIssuance.put(id, payload)
-              this.#notifier.publish(handler.subscription, {
-                metadata: {
-                  type: 'issuance',
-                  subscriptionId: id,
-                  agentId: this.id,
-                  networkId: args.reserveChain as NetworkURN,
-                  timestamp: Date.now(),
-                },
-                payload: payload as unknown as AnyJson,
-              })
-            } else {
-              // this could happen with closed ephemeral subscriptions
-              this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
+          return combineLatest([reserveBalance$, remoteIssuance$]).pipe(
+            catchError((err) => {
+              this.#log.error(
+                err,
+                '[agent:%s] Error in input stream %s-%s',
+                this.id,
+                input.reserveChain,
+                input.remoteChain,
+              )
+              return EMPTY
+            }),
+            map(
+              ([reserve, remote]) =>
+                ({
+                  inputs: input,
+                  reserve,
+                  remote,
+                }) as CrosschainIssuancePayload,
+            ),
+          )
+        }),
+        filter((s) => s !== null),
+      )
+
+      const sub = stream$.subscribe({
+        next: (payload) => {
+          if (this.#subs.has(id)) {
+            const handler = this.#subs.get(id)
+            if (!handler) {
+              this.#log.error(`No subscription handler found for subscription ID ${id}`)
+              return
             }
-          },
-          complete: () => {
-            this.#telemetry.emit('telemetryIssuanceStreamError', {
-              code: 'ISSUANCE_STREAM_COMPLETE',
-              id: `${args.reserveChain}_${toMelbourne(args.reserveAssetId)}_${args.remoteChain}_${toMelbourne(args.remoteAssetId)}`,
+            this.#dbIssuance.put(`${id}|${toMelbourne(payload.inputs.reserveAssetId)}`, payload)
+            this.#notifier.publish(handler.subscription, {
+              metadata: {
+                type: 'issuance',
+                subscriptionId: id,
+                agentId: this.id,
+                networkId: args.reserveChain as NetworkURN,
+                timestamp: Date.now(),
+              },
+              payload: payload as unknown as AnyJson,
             })
-            this.#log.warn(`[agent:%s] Stream completed`, this.id)
-            if (this.#subs.has(id)) {
-              const handler = this.#subs.get(id)
-              if (!handler) {
-                this.#log.error(`No subscription handler found for subscription ID ${id}`)
-                return
-              }
-              if (handler.subscription.ephemeral) {
-                this.#notifier.terminate(handler.subscription)
-              }
+          } else {
+            // this could happen with closed ephemeral subscriptions
+            this.#log.warn('[agent:%s] unable to find descriptor for subscription %s', this.id, id)
+          }
+        },
+        complete: () => {
+          this.#telemetry.emit('telemetryIssuanceStreamError', {
+            code: 'ISSUANCE_STREAM_COMPLETE',
+            id: `${args.reserveChain}_${args.remoteChain}`,
+          })
+          this.#log.warn(`[agent:%s] Stream completed`, this.id)
+          if (this.#subs.has(id)) {
+            const handler = this.#subs.get(id)
+            if (!handler) {
+              this.#log.error(`No subscription handler found for subscription ID ${id}`)
+              return
             }
-          },
-          error: (err) => {
-            this.#telemetry.emit('telemetryIssuanceStreamError', {
-              code: 'ISSUANCE_STREAM_ERROR',
-              id: `${args.reserveChain}_${toMelbourne(args.reserveAssetId)}_${args.remoteChain}_${toMelbourne(args.remoteAssetId)}`,
-            })
-            this.#log.error(err, `[agent:%s] Stream errored`, this.id)
-            if (this.#subs.has(id)) {
-              const handler = this.#subs.get(id)
-              if (!handler) {
-                this.#log.error(`No subscription handler found for subscription ID ${id}`)
-                return
-              }
-              if (handler.subscription.ephemeral) {
-                this.#notifier.terminate(handler.subscription)
-              }
+            if (handler.subscription.ephemeral) {
+              this.#notifier.terminate(handler.subscription)
             }
-          },
-        })
+          }
+        },
+        error: (err) => {
+          this.#telemetry.emit('telemetryIssuanceStreamError', {
+            code: 'ISSUANCE_STREAM_ERROR',
+            id: `${args.reserveChain}_${args.remoteChain}`,
+          })
+          this.#log.error(err, `[agent:%s] Stream errored`, this.id)
+          if (this.#subs.has(id)) {
+            const handler = this.#subs.get(id)
+            if (!handler) {
+              this.#log.error(`No subscription handler found for subscription ID ${id}`)
+              return
+            }
+            if (handler.subscription.ephemeral) {
+              this.#notifier.terminate(handler.subscription)
+            }
+          }
+        },
+      })
 
       return {
         subscription,
-        stream,
+        stream: sub,
       }
     } catch (err) {
       this.#log.error(err, '[agent:%s] Error on monitor %o', this.id, args)
@@ -250,7 +311,7 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     return false
   }
 
-  #validateArgs(input: CrosschainIssuanceInputs) {
+  #validateArgs(input: CrosschainIssuanceSubscriptionInputs) {
     const reserve = input.reserveChain as NetworkURN
     const remote = input.remoteChain as NetworkURN
 
@@ -270,17 +331,6 @@ export class CrosschainIssuanceAgent implements Agent, Subscribable, Queryable {
     const remoteMapper = this.#remoteIssuanceMappers[remote]
     if (!remoteMapper) {
       throw new Error(`Remote balance mapper not defined for remote network ${remote}`)
-    }
-
-    const reserveConsensus = getConsensus(reserve)
-    const remoteConsensus = getConsensus(remote)
-    if (reserveConsensus === remoteConsensus && reserveConsensus !== 'ethereum') {
-      const { prefix, paraId } = decodeSovereignAccount(input.reserveAddress)
-      if (prefix !== 'sibl' || paraId.toString() !== getChainId(remote)) {
-        throw new Error(
-          `Reserve address does not correspond to remote chain. Decoded reserve address: ${prefix}:${paraId}`,
-        )
-      }
     }
   }
 
