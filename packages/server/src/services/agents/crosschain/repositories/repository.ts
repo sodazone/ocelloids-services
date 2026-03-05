@@ -22,6 +22,7 @@ import {
 } from './types.js'
 
 const MAX_LIMIT = 100
+const MAX_TRAVERSAL = 2000
 
 const STATUS_PRIORITY: Record<string, number> = {
   in_progress: 0,
@@ -149,30 +150,68 @@ function mapRowToFullJourney(row: any): FullJourney {
   }
 }
 
-function countObjectDepth(obj: any): number {
+function countObjectFields(obj: any): number {
   if (!obj || typeof obj !== 'object') {
     return 0
   }
 
-  return Object.entries(obj).reduce((acc, [_, value]) => {
-    if (value == null) {
-      return acc
+  let count = 0
+  const stack = [obj]
+  const seen = new Set<any>()
+
+  while (stack.length) {
+    const current = stack.pop()
+
+    if (!current || typeof current !== 'object') {
+      continue
     }
-    if (typeof value === 'object') {
-      return acc + 1 + countObjectDepth(value)
+    if (seen.has(current)) {
+      continue
     }
-    return acc + 1
-  }, 0)
+    seen.add(current)
+
+    for (const key in current) {
+      const value = current[key]
+
+      if (value == null) {
+        continue
+      }
+
+      count++
+
+      if (typeof value === 'object') {
+        stack.push(value)
+      }
+
+      if (count > MAX_TRAVERSAL) {
+        return count
+      }
+    }
+  }
+
+  return count
 }
 
-function stopFreshness(stop: any) {
-  const parts = [stop.from, stop.to, stop.relay].filter(Boolean)
+function computeFreshness(stop: any) {
+  const parts = [stop.from, stop.to, stop.relay]
 
-  const statusPriority = Math.max(...parts.map((p) => STATUS_PRIORITY[p.status] ?? -1), -1)
+  let statusPriority = -1
+  let structuralFieldCount = 0
 
-  const structuralFieldCount = parts.reduce((acc, p) => acc + countObjectDepth(p), 0)
+  for (const p of parts) {
+    if (!p) {
+      continue
+    }
 
-  const instructionRichness = countObjectDepth(stop.instructions)
+    const priority = STATUS_PRIORITY[p.status] ?? -1
+    if (priority > statusPriority) {
+      statusPriority = priority
+    }
+
+    structuralFieldCount += countObjectFields(p)
+  }
+
+  const instructionRichness = stop.instructions ? countObjectFields(stop.instructions) : 0
 
   return {
     statusPriority,
@@ -181,36 +220,52 @@ function stopFreshness(stop: any) {
   }
 }
 
-function isNewer(a: any, b: any): boolean {
-  const fa = stopFreshness(a)
-  const fb = stopFreshness(b)
-
-  if (fa.statusPriority !== fb.statusPriority) {
-    return fa.statusPriority > fb.statusPriority
+function isFreshnessNewer(a: any, b: any): boolean {
+  if (a.statusPriority !== b.statusPriority) {
+    return a.statusPriority > b.statusPriority
   }
 
-  if (fa.instructionRichness !== fb.instructionRichness) {
-    return fa.instructionRichness > fb.instructionRichness
+  if (a.instructionRichness !== b.instructionRichness) {
+    return a.instructionRichness > b.instructionRichness
   }
 
-  return fa.structuralFieldCount > fb.structuralFieldCount
+  return a.structuralFieldCount > b.structuralFieldCount
 }
 
-function mergeStops(inStops: any[] = [], outStops: any[] = []) {
-  const map = new Map<string, any>()
+export function mergeStops(inStops: any[] = [], outStops: any[] = []) {
+  const map = new Map<
+    string,
+    {
+      stop: any
+      freshness: any
+    }
+  >()
 
   const keyOf = (s: any) => `${s.type}:${s.from.chainId}:${s.to.chainId}`
 
-  for (const stop of [...inStops, ...outStops]) {
+  const allStops = [...inStops, ...outStops]
+
+  for (let i = 0; i < allStops.length; i++) {
+    const stop = allStops[i]
     const key = keyOf(stop)
+
+    const freshness = computeFreshness(stop)
+
     const existing = map.get(key)
 
-    if (!existing || isNewer(stop, existing)) {
-      map.set(key, stop)
+    if (!existing || isFreshnessNewer(freshness, existing.freshness)) {
+      map.set(key, { stop, freshness })
     }
   }
 
-  return asJSON(Array.from(map.values()))
+  const merged = new Array(map.size)
+  let i = 0
+
+  for (const v of map.values()) {
+    merged[i++] = v.stop
+  }
+
+  return asJSON(merged)
 }
 
 export class CrosschainRepository {
@@ -609,50 +664,61 @@ export class CrosschainRepository {
     outJourneyId: number,
     tripId?: string,
   ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
-    return await this.#db.transaction().execute(async (trx) => {
-      const inJourney = await trx
-        .selectFrom('xc_journeys')
-        .selectAll()
-        .where('id', '=', inJourneyId)
-        .executeTakeFirst()
+    const inJourney = await this.#db
+      .selectFrom('xc_journeys')
+      .selectAll()
+      .where('id', '=', inJourneyId)
+      .executeTakeFirst()
 
-      if (!inJourney) {
-        throw new Error(`Inbound journey ${inJourneyId} not found`)
-      }
+    if (!inJourney) {
+      throw new Error(`Inbound journey ${inJourneyId} not found`)
+    }
 
-      const outJourney = await trx
-        .selectFrom('xc_journeys')
-        .selectAll()
-        .where('id', '=', outJourneyId)
-        .executeTakeFirst()
+    const outJourney = await this.#db
+      .selectFrom('xc_journeys')
+      .selectAll()
+      .where('id', '=', outJourneyId)
+      .executeTakeFirst()
 
-      if (!outJourney) {
-        throw new Error(`Outbound journey ${outJourneyId} not found`)
-      }
+    if (!outJourney) {
+      throw new Error(`Outbound journey ${outJourneyId} not found`)
+    }
 
-      const update: JourneyUpdate = {
-        trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
+    const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
 
-        destination_protocol: outJourney.destination_protocol,
-        destination: outJourney.destination,
-        to: outJourney.to,
-        to_formatted: outJourney.to_formatted,
-        recv_at: outJourney.recv_at,
-        status: outJourney.status,
-        type: outJourney.type,
+    const update: JourneyUpdate = {
+      trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
 
-        destination_tx_primary: outJourney.destination_tx_primary,
-        destination_tx_secondary: outJourney.destination_tx_secondary,
+      destination_protocol: outJourney.destination_protocol,
+      destination: outJourney.destination,
+      to: outJourney.to,
+      to_formatted: outJourney.to_formatted,
+      recv_at: outJourney.recv_at,
+      status: outJourney.status,
+      type: outJourney.type,
 
-        stops: mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[]),
-      }
+      destination_tx_primary: outJourney.destination_tx_primary,
+      destination_tx_secondary: outJourney.destination_tx_secondary,
 
+      stops: mergedStops,
+    }
+
+    return this.#db.transaction().execute(async (trx) => {
       await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
+
       if (inJourneyId !== outJourneyId) {
         await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
-        return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: outJourney }
+
+        return {
+          updated: { id: inJourney.id, correlationId: inJourney.correlation_id },
+          deleted: outJourney,
+        }
       }
-      return { updated: { id: inJourney.id, correlationId: inJourney.correlation_id }, deleted: null }
+
+      return {
+        updated: { id: inJourney.id, correlationId: inJourney.correlation_id },
+        deleted: null,
+      }
     })
   }
 
