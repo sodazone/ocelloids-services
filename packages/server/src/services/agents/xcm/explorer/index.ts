@@ -212,7 +212,7 @@ export class XcmExplorer {
                   id,
                   tripId,
                 )
-                await this.#updateTripWithJourney(fullJourney, existingTrips)
+                setImmediate(() => this.#updateTripWithJourney(fullJourney, existingTrips))
               }
             }
           } catch (err: any) {
@@ -236,7 +236,7 @@ export class XcmExplorer {
                 existingJourney.id,
                 tripId,
               )
-              this.#updateTripWithJourney(existingJourney, existingTrips)
+              setImmediate(() => this.#updateTripWithJourney(existingJourney, existingTrips))
               return
             }
 
@@ -290,7 +290,7 @@ export class XcmExplorer {
                   id,
                   tripId,
                 )
-                this.#updateTripWithJourney(fullJourney, existingTrips)
+                setImmediate(() => this.#updateTripWithJourney(fullJourney, existingTrips))
                 return
               }
               this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
@@ -316,7 +316,7 @@ export class XcmExplorer {
                 existingTrips.map((t) => t.id),
                 tripId,
               )
-              await this.#updateTrip(message, existingTrips)
+              setImmediate(() => this.#updateTrip(message, existingTrips))
             }
             this.#log.warn(
               '[xcm:explorer] Journey not found for correlationId: %s (%s)',
@@ -354,7 +354,7 @@ export class XcmExplorer {
               existingJourney.id,
               tripId,
             )
-            await this.#updateTripWithJourney(existingJourney, existingTrips)
+            setImmediate(() => this.#updateTripWithJourney(existingJourney, existingTrips))
           } else {
             const { items } = await this.#crosschain.getJourneyById({ id: existingJourney.correlation_id })
             if (items.length > 0) {

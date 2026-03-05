@@ -292,10 +292,10 @@ export class WormholeAgent implements Agent {
           id,
           journey.trip_id,
         )
-        await this.#updateTrip(journey, existingTrips, id)
+        setImmediate(() => this.#updateTrip(journey, existingTrips, id))
         return
       }
-      await this.#broadcast('new_journey', id)
+      this.#broadcast('new_journey', id)
       return
     }
 
@@ -342,10 +342,10 @@ export class WormholeAgent implements Agent {
           existingJourney.id,
           journey.trip_id,
         )
-        await this.#updateTrip(journey, existingTrips, existingJourney.id)
+        setImmediate(() => this.#updateTrip(journey, existingTrips, existingJourney.id))
         return
       }
-      await this.#broadcast('update_journey', existingJourney.id)
+      this.#broadcast('update_journey', existingJourney.id)
     }
   }
 
@@ -389,7 +389,7 @@ export class WormholeAgent implements Agent {
         result = await merge(existingTrip.id, journeyId)
       }
 
-      await this.#broadcast('update_journey', result?.updatedIds.id ?? journeyId)
+      this.#broadcast('update_journey', result?.updatedIds.id ?? journeyId)
 
       if (result?.replaces && result.updatedIds) {
         const replacesJourneyAssets = await this.#repository.getJourneyAssets(result.updatedIds.id)
