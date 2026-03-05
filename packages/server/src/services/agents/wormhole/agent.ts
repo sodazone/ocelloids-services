@@ -1,3 +1,4 @@
+import PQueue from 'p-queue'
 import { Observer, Subscription } from 'rxjs'
 import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
@@ -33,7 +34,7 @@ import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
 const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
 const RECHECK_DELAY_MS = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
-const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 2)
+const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 
 function isChainSupported(chainId?: number): boolean {
@@ -66,6 +67,7 @@ export class WormholeAgent implements Agent {
   readonly #watcher: WormholeWatcher
   readonly #subs: Subscription[]
   readonly #telemetry: TelemetryWormholeEventEmitter
+  readonly #wormholeQueue: PQueue
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -83,6 +85,7 @@ export class WormholeAgent implements Agent {
     const storage = makeWormholeLevelStorage(ctx.db)
     this.#watcher = makeWatcher(new WormholescanClient(), storage)
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
+    this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -161,6 +164,7 @@ export class WormholeAgent implements Agent {
       RECHECK_CONCURRENCY,
     )
 
+    // Wait initial delay
     await new Promise((r) => setTimeout(r, RECHECK_DELAY_MS))
 
     const pendings = await this.#repository.getJourneysByStatus(
@@ -173,33 +177,22 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    this.#log.info('[agent:%s] pending recheck dispatched (%s items)', this.id, pendings.length)
-
-    const queue = pendings[Symbol.iterator]()
-
-    const worker = async () => {
-      while (true) {
-        const next = queue.next()
-        if (next.done) {
-          break
-        }
-
-        const journey = next.value
-
+    for (const journey of pendings) {
+      this.#wormholeQueue.add(async () => {
         try {
           await this.#recheckJourney(journey)
         } catch (err) {
-          this.#log.error('[agent:%s] recheck failed for %s', this.id, journey.id, err)
+          this.#log.error('[agent:%s] journey recheck failed', this.id, err)
         }
-
         await immediate()
-      }
+      })
     }
 
-    const workers = Array.from({ length: RECHECK_CONCURRENCY }, () => worker())
-    await Promise.allSettled(workers)
+    this.#log.info('[agent:%s] pending recheck started (%s items)', this.id, pendings.length)
+  }
 
-    this.#log.info('[agent:%s] all pending journeys rechecked', this.id)
+  async #queuedFetchOp(id: string) {
+    return this.#wormholeQueue.add(() => this.#safeFetchOp(id))
   }
 
   async #recheckJourney(journey: Journey) {
@@ -210,10 +203,11 @@ export class WormholeAgent implements Agent {
           this.id,
           journey.correlation_id,
         )
-        const op = await this.#watcher.fetchOperationById(journey.correlation_id)
-        if (op) {
-          await this.#onOperation(op)
-        }
+        this.#queuedFetchOp(journey.correlation_id).then((op) => {
+          if (op) {
+            this.#onOperation(op).catch((err) => this.#log.error(err))
+          }
+        })
         return
       }
 
@@ -225,16 +219,28 @@ export class WormholeAgent implements Agent {
       const vaaId = stop.messageId
       if (vaaId) {
         this.#log.info('[agent:%s] Refetching pending op by stop messageId %s', this.id, vaaId)
-        const op = await this.#watcher.fetchOperationById(vaaId)
-        if (op) {
-          await this.#onOperation(op)
-        }
+        this.#queuedFetchOp(vaaId).then((op) => {
+          if (op) {
+            this.#onOperation(op).catch((err) => this.#log.error(err))
+          }
+        })
         return
       }
 
       await this.#recheckBySearch(journey)
     } catch (err) {
       this.#log.warn(err, '[agent:%s] failed to recheck pending journey %s', this.id, journey.correlation_id)
+    }
+  }
+
+  async #safeFetchOp(id: string) {
+    try {
+      const op = await this.#watcher.fetchOperationById(id)
+      await immediate()
+      return op
+    } catch (err) {
+      this.#log.error(err, '[agent:%s] fetchOperationById failed for %s', this.id, id)
+      return null
     }
   }
 
