@@ -1,14 +1,18 @@
 import { createFetcher } from '@/common/http/fetch.js'
 
-const SUBSQUARE_URLS: Record<string, string> = {
+const SUBSQUARE_APIS: Record<string, string> = {
   'urn:ocn:polkadot:0': 'https://polkadot-api.subsquare.io',
   'urn:ocn:polkadot:1000': 'https://polkadot-api.subsquare.io',
+  'urn:ocn:polkadot:2030': 'https://bifrost-api.subsquare.io',
+  'urn:ocn:polkadot:2034': 'https://hydration-api.subsquare.io',
   'urn:ocn:kusama:0': 'https://kusama-api.subsquare.io',
   'urn:ocn:kusama:1000': 'https://kusama-api.subsquare.io',
 }
 const SUBSQUARE_LINKS: Record<string, string> = {
   'urn:ocn:polkadot:0': 'https://polkadot.subsquare.io',
   'urn:ocn:polkadot:1000': 'https://polkadot.subsquare.io',
+  'urn:ocn:polkadot:2030': 'https://bifrost.subsquare.io',
+  'urn:ocn:polkadot:2034': 'https://hydration.subsquare.io',
   'urn:ocn:kusama:0': 'https://kusama.subsquare.io',
   'urn:ocn:kusama:1000': 'https://kusama.subsquare.io',
 }
@@ -37,7 +41,7 @@ export function createGovDataFetcher() {
       return f
     }
 
-    const prefixUrl = SUBSQUARE_URLS[chainId]
+    const prefixUrl = SUBSQUARE_APIS[chainId]
     if (!prefixUrl) {
       throw new Error(`Unsupported chain ID: ${chainId}`)
     }
