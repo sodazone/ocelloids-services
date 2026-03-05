@@ -34,6 +34,12 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { AssetId } from '../../steward/types.js'
 
+type Resolver = {
+  chainId: NetworkURN
+  assetId: AssetId
+  address: string
+}
+
 const POLLING_INTERVAL = 60_000
 
 function createStorageContext(
@@ -80,6 +86,8 @@ const storageResolvers: Record<
   [networks.kusama]: ({ apiCtx, assetId, address }) =>
     assetId === 'native' ? systemAccount(apiCtx, address) : null,
 
+  [networks.coretime]: ({ apiCtx, assetId, address }) =>
+    assetId === 'native' ? systemAccount(apiCtx, address) : null,
   [networks.assetHub]: ({ apiCtx, assetId, address }) => {
     if (assetId === 'native') {
       return systemAccount(apiCtx, address)
@@ -176,45 +184,45 @@ function pollSubstrateStorage(
   )
 }
 
-function pollDualSubstrateSum(
-  ingress: IngressConsumers,
-  chainA: NetworkURN,
-  chainB: NetworkURN,
-  resolverA: { assetId: AssetId; address: string },
-  resolverB: { assetId: AssetId; address: string },
-): Observable<bigint> {
-  return combineLatest([ingress.substrate.getContext(chainA), ingress.substrate.getContext(chainB)]).pipe(
-    switchMap(([ctxA, ctxB]) => {
-      const storageA = storageResolvers[chainA]({
-        apiCtx: ctxA,
-        ...resolverA,
-      })
+function pollMultiSubstrateSum(ingress: IngressConsumers, resolvers: Resolver[]): Observable<bigint> {
+  const contexts$ = combineLatest(resolvers.map((r) => ingress.substrate.getContext(r.chainId)))
 
-      const storageB = storageResolvers[chainB]({
-        apiCtx: ctxB,
-        ...resolverB,
-      })
+  return contexts$.pipe(
+    switchMap((contexts) => {
+      const storages = resolvers.map((resolver, i) => {
+        const ctx = contexts[i]
 
-      if (!storageA || !storageB) {
-        throw new Error(`Storage resolver not defined`)
-      }
+        const storage = storageResolvers[resolver.chainId]({
+          apiCtx: ctx,
+          ...resolver,
+        })
+
+        if (!storage) {
+          throw new Error(`Storage resolver not defined for ${resolver.chainId}`)
+        }
+
+        return {
+          chainId: resolver.chainId,
+          storageKey: storage.storageKey,
+          decode: storage.decode,
+        }
+      })
 
       return timer(0, POLLING_INTERVAL).pipe(
-        switchMap(() =>
-          forkJoin([
-            ingress.substrate.getStorage(chainA, storageA.storageKey),
-            ingress.substrate.getStorage(chainB, storageB.storageKey),
-          ]),
-        ),
-        map(([valA, valB]) => {
-          const a = storageA.decode(valA)
-          const b = storageB.decode(valB)
+        switchMap(() => forkJoin(storages.map((s) => ingress.substrate.getStorage(s.chainId, s.storageKey)))),
+        map((values) => {
+          let sum = 0n
 
-          if (a === null || b === null) {
-            return null
+          for (let i = 0; i < values.length; i++) {
+            const decoded = storages[i].decode(values[i])
+            if (decoded === null) {
+              return null
+            }
+
+            sum += decoded
           }
 
-          return a + b
+          return sum
         }),
         filter((v): v is bigint => v !== null),
         distinctUntilChanged(),
@@ -231,16 +239,15 @@ export function reserveBalanceMappers(
       const { prefix, paraId } = decodeSovereignAccount(address)
 
       if (assetId === 'native' && prefix === 'sibl') {
-        return pollDualSubstrateSum(
-          ingress,
-          networks.assetHub,
-          networks.polkadot,
-          { assetId, address },
+        return pollMultiSubstrateSum(ingress, [
+          { chainId: networks.assetHub, assetId, address },
+          { chainId: networks.coretime, assetId, address },
           {
+            chainId: networks.polkadot,
             assetId,
             address: publicKeyToSS58(deriveSovereignAccount(paraId, 'para'), 0),
           },
-        )
+        ])
       }
 
       return pollSubstrateStorage(ingress, networks.assetHub, {
