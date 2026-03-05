@@ -38,7 +38,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     assetSymbol: 'DOT',
   },
   {
-    reserveChain: 'urn:ocn:polkadot:0',
+    reserveChain: 'urn:ocn:polkadot:1000',
     reserveAssetId: 'native',
     reserveAddress: '13cKp88n27dzGussks75PWsnuKzQf4iMJSee31yvDBVvWDmU',
     reserveDecimals: 10,
