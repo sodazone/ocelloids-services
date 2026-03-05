@@ -2,6 +2,48 @@ import { CrosschainIssuanceInputs } from '../types.js'
 
 const issuanceInputs: CrosschainIssuanceInputs[] = [
   {
+    reserveChain: 'urn:ocn:kusama:1000',
+    reserveAssetId: 'native',
+    reserveAddress: 'FwGjEp7GXJXT9NjH8r4sqdyd8XZVogbxSs3iFakx4wFwJ5Y',
+    reserveDecimals: 12,
+    remoteChain: 'urn:ocn:polkadot:1000',
+    remoteAssetId: {
+      parents: 2,
+      interior: {
+        type: 'X1',
+        value: {
+          type: 'GlobalConsensus',
+          value: {
+            type: 'Kusama',
+          },
+        },
+      },
+    },
+    remoteDecimals: 12,
+    assetSymbol: 'KSM',
+  },
+  {
+    reserveChain: 'urn:ocn:polkadot:1000',
+    reserveAssetId: {
+      parents: 2,
+      interior: {
+        type: 'X1',
+        value: {
+          type: 'GlobalConsensus',
+          value: {
+            type: 'Kusama',
+          },
+        },
+      },
+    },
+    reserveAddress: '13cKp89Uh2yWgTG28JA1QEvPUMjEPKejqkjHKf9zqLiFKjH6',
+    reserveDecimals: 12,
+    remoteChain: 'urn:ocn:polkadot:2034',
+    remoteAssetId: 1000771,
+    remoteDecimals: 12,
+    assetSymbol: 'KSM',
+  },
+  {
     reserveChain: 'urn:ocn:polkadot:1000',
     reserveAssetId: 'native',
     reserveAddress: '1jMhfSJv5MkSQmEq97UmXCmMV63SHoQ3ednwkRSKETrCREU',

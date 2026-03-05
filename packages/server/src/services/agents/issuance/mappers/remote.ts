@@ -74,7 +74,7 @@ export function remoteIssuanceMappers(
     [networks.assetHub]: ({ assetId }) =>
       foreignAssetsIssuance$(ingress.substrate, networks.assetHub, assetId),
     [networks.kusamaAssetHub]: ({ assetId }) =>
-      foreignAssetsIssuance$(ingress.substrate, networks.assetHub, assetId),
+      foreignAssetsIssuance$(ingress.substrate, networks.kusamaAssetHub, assetId),
     [networks.moonbeam]: ({ assetId }) => {
       const chainId = networks.moonbeam
 
