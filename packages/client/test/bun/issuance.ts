@@ -1,5 +1,7 @@
 import { createCrosschainIssuanceAgent } from "../..";
 
+const API_KEY = process.env.LILP_ROOT ?? ''
+
 function normaliseDecimals(amount: string | bigint, decimals: number): string {
   const a = BigInt(amount)
   const divisor = 10n ** BigInt(decimals)
@@ -12,9 +14,16 @@ function normaliseDecimals(amount: string | bigint, decimals: number): string {
   return `${whole}.${fractionStr.slice(0,2)}`
 }
 
+// const agent = createCrosschainIssuanceAgent({
+//   httpUrl: 'http://127.0.0.1:3000',
+//   wsUrl: 'ws://127.0.0.1:3000',
+// })
+//
+//
 const agent = createCrosschainIssuanceAgent({
-  httpUrl: 'http://127.0.0.1:3000',
-  wsUrl: 'ws://127.0.0.1:3000',
+  httpUrl: 'https://dev-api.ocelloids.net',
+  wsUrl: 'wss://dev-api.ocelloids.net',
+  apiKey: API_KEY
 })
 
 const subIds = [

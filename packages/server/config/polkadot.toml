@@ -102,3 +102,33 @@ maxBlockDist = 25
         "https://eth1.lava.build",
         "https://eth.blockrazor.xyz"
     ]
+
+# [[evm.networks]]
+# id = "urn:ocn:ethereum:8453"
+# maxBlockDist = 150
+#     [evm.networks.provider]
+#     type = "rpc"
+#     url = [
+#         "wss://base-rpc.publicnode.com",
+#         "wss://base.gateway.tenderly.co",
+#         "https://developer-access-mainnet.base.org",
+#         "https://base-public.nodies.app",
+#         "https://base-rpc.publicnode.com",
+#         "https://base.meowrpc.com",
+#         "https://mainnet.base.org",
+#         "https://base.lava.build"
+#     ]
+# [[evm.networks]]
+# id = "urn:ocn:ethereum:42161"
+# maxBlockDist = 1_200
+# batchSize = 9
+#     [evm.networks.provider]
+#     type = "rpc"
+#     url = [
+#         "wss://arbitrum-one-rpc.publicnode.com",
+#         "wss://arbitrum.drpc.org",
+#         "https://arbitrum-one-public.nodies.app",
+#         "https://arbitrum.gateway.tenderly.co",
+#         "https://public-arb-mainnet.fastnode.io",
+#         "https://arb1.arbitrum.io/rpc",
+#     ]
