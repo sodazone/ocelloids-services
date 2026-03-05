@@ -2068,7 +2068,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
       },
     },
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2122,7 +2122,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
       },
     },
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2154,7 +2154,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2034',
     remoteAssetId: 1000766,
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2186,7 +2186,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2004',
     remoteAssetId: '0xFFFFFFFF166f84967f054ae95ab5764c38cf3aed',
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:ethereum:1',
@@ -2681,7 +2681,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
       },
     },
     remoteDecimals: 6,
-    assetSymbol: 'USDT',
+    assetSymbol: 'USDT (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2735,7 +2735,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
       },
     },
     remoteDecimals: 6,
-    assetSymbol: 'USDT',
+    assetSymbol: 'USDT (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2767,7 +2767,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2034',
     remoteAssetId: 1000767,
     remoteDecimals: 6,
-    assetSymbol: 'USDT',
+    assetSymbol: 'USDT (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -2799,7 +2799,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2004',
     remoteAssetId: '0xFFFFFFFF7bc304425217b49e9598415c514ae81b',
     remoteDecimals: 6,
-    assetSymbol: 'USDT',
+    assetSymbol: 'USDT (snowbridge)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:1000',
@@ -3128,7 +3128,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2032',
     remoteAssetId: 8,
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (wormhole)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:2004',
@@ -3138,7 +3138,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2034',
     remoteAssetId: 21,
     remoteDecimals: 6,
-    assetSymbol: 'USDC',
+    assetSymbol: 'USDC (wormhole)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:2004',
@@ -3188,7 +3188,7 @@ const issuanceInputs: CrosschainIssuanceInputs[] = [
     remoteChain: 'urn:ocn:polkadot:2034',
     remoteAssetId: 23,
     remoteDecimals: 6,
-    assetSymbol: 'USDT',
+    assetSymbol: 'USDT (wormhole)',
   },
   {
     reserveChain: 'urn:ocn:polkadot:2004',
