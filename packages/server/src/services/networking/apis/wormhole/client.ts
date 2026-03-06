@@ -51,12 +51,7 @@ export class WormholescanClient {
         ],
       },*/
       timeout: 4_000,
-      retry: {
-        limit: 5,
-        methods: ['get'],
-        statusCodes: [408, 429, 500, 502, 503, 504],
-        backoffLimit: 2,
-      },
+      retry: 0,
     })
   }
 
@@ -92,16 +87,19 @@ export class WormholescanClient {
   ): Promise<{ operations: WormholeOperation[]; total: number }> {
     const { page = 0, pageSize = DEFAULT_PAGE_SIZE, ...query } = params
 
-    return this.#api
-      .get('api/v1/operations', {
-        searchParams: {
-          ...query,
-          page,
-          pageSize,
-        },
-        signal,
-      })
-      .json<{ operations: WormholeOperation[]; total: number }>()
+    return await withRetry(
+      async () =>
+        await this.#api
+          .get('api/v1/operations', {
+            searchParams: {
+              ...query,
+              page,
+              pageSize,
+            },
+            signal,
+          })
+          .json<{ operations: WormholeOperation[]; total: number }>(),
+    )
   }
 
   /**
@@ -155,8 +153,9 @@ export class WormholescanClient {
    */
   async fetchOperationById(id: WormholeId, signal?: AbortSignal | null): Promise<WormholeOperation> {
     const urlId = normalizeWormholeId(id)
-    const op = await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>()
-    return op
+    return await withRetry(
+      async () => await this.#api.get(`api/v1/operations/${urlId}`, { signal }).json<WormholeOperation>(),
+    )
   }
 
   isWormholeId(maybeWormholeId: WormholeId) {
