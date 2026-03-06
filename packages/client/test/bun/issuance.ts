@@ -14,20 +14,20 @@ function normaliseDecimals(amount: string | bigint, decimals: number): string {
   return `${whole}.${fractionStr.slice(0,2)}`
 }
 
-// const agent = createCrosschainIssuanceAgent({
-//   httpUrl: 'http://127.0.0.1:3000',
-//   wsUrl: 'ws://127.0.0.1:3000',
-// })
-//
-//
 const agent = createCrosschainIssuanceAgent({
-  httpUrl: 'https://dev-api.ocelloids.net',
-  wsUrl: 'wss://dev-api.ocelloids.net',
-  apiKey: API_KEY
+  httpUrl: 'http://127.0.0.1:3000',
+  wsUrl: 'ws://127.0.0.1:3000',
 })
+//
+//
+// const agent = createCrosschainIssuanceAgent({
+//   httpUrl: 'https://dev-api.ocelloids.net',
+//   wsUrl: 'wss://dev-api.ocelloids.net',
+//   apiKey: API_KEY
+// })
 
 const subIds = [
-  'hyperion:polkadot-hydration_xcm'
+  'hyperion:polkadot-bifrost_xcm'
 ]
 
 for (const subId of subIds) {
