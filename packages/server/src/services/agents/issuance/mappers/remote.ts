@@ -1,4 +1,4 @@
-import { distinctUntilChanged, filter, from, map, Observable, switchMap, timer } from 'rxjs'
+import { distinctUntilChanged, filter, forkJoin, from, map, Observable, switchMap, timer } from 'rxjs'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { NetworkURN } from '@/lib.js'
@@ -27,6 +27,19 @@ type AssetsAssetStorageValue = {
   sufficients: number
   approvals: number
   status: Record<string, any>
+}
+
+type SystemStakingConfig = {
+  exec_delay: number
+  system_stakable_base: bigint
+}
+
+type SystemStakingTokenStatus = {
+  system_stakable_amount: bigint
+  system_shadow_amount: bigint
+  pending_redeem_amount: bigint
+  current_config: SystemStakingConfig
+  new_config: SystemStakingConfig
 }
 
 function foreignAssetsIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN, assetId: AssetId) {
@@ -61,6 +74,45 @@ function tokensIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN,
         switchMap(() => ingress.getStorage(chainId, storageKey)),
         filter((value) => value !== null),
         map((value) => codec.value.dec(value) as bigint),
+        distinctUntilChanged(),
+      )
+    }),
+  )
+}
+
+function bifrostIssuance$(ingress: SubstrateIngressConsumer, chainId: NetworkURN, assetId: AssetId) {
+  return ingress.getContext(chainId).pipe(
+    switchMap((apiCtx) => {
+      const tokensCodec = apiCtx.storageCodec('Tokens', 'TotalIssuance')
+      const stakingCodec = apiCtx.storageCodec('SystemStaking', 'TokenStatus')
+
+      const tokensStorageKey = tokensCodec.keys.enc(assetId) as HexString
+      const stakingStorageKey = stakingCodec.keys.enc(assetId) as HexString
+
+      return timer(0, POLLING_INTERVAL).pipe(
+        switchMap(() =>
+          forkJoin({
+            tokens: ingress.getStorage(chainId, tokensStorageKey),
+            staking: ingress.getStorage(chainId, stakingStorageKey),
+          }),
+        ),
+        map(({ tokens, staking }) => {
+          if (tokens === null) {
+            return null
+          }
+
+          const totalIssuance = tokensCodec.value.dec(tokens) as bigint
+
+          if (staking === null) {
+            return totalIssuance
+          }
+
+          const stakingStatus = stakingCodec.value.dec(staking) as SystemStakingTokenStatus
+          const shadowIssuance: bigint = stakingStatus.system_shadow_amount
+
+          return totalIssuance - shadowIssuance
+        }),
+        filter((v): v is bigint => v !== null),
         distinctUntilChanged(),
       )
     }),
@@ -141,7 +193,7 @@ export function remoteIssuanceMappers(
         throw new Error(`[${chainId}] asset ID must be an object`)
       }
 
-      return tokensIssuance$(ingress.substrate, chainId, assetId)
+      return bifrostIssuance$(ingress.substrate, chainId, assetId)
     },
     [networks.hydration]: ({ assetId }) => {
       const chainId = networks.hydration
