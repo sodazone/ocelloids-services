@@ -181,17 +181,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_assets_asset_index')
+      .createIndex('xc_assets_asset_journey_id_index')
       .ifNotExists()
       .on('xc_asset_ops')
-      .column('asset')
-      .execute()
-
-    await db.schema
-      .createIndex('xc_assets_symbol_index')
-      .ifNotExists()
-      .on('xc_asset_ops')
-      .column('symbol')
+      .columns(['asset', 'journey_id'])
       .execute()
 
     await db.schema
@@ -202,31 +195,18 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_assets_usd_index')
+      .createIndex('xc_assets_asset_journey_id_usd_index')
       .ifNotExists()
       .on('xc_asset_ops')
-      .column('usd')
+      .columns(['asset', 'journey_id', 'usd'])
       .execute()
 
-    await db.schema
-      .createIndex('xc_assets_asset_symbol_index')
-      .ifNotExists()
-      .on('xc_asset_ops')
-      .columns(['asset', 'symbol'])
-      .execute()
 
     await db.schema
       .createIndex('xc_asset_volume_cache_snapshot_volume_index')
       .ifNotExists()
       .on('xc_asset_volume_cache')
       .columns(['snapshot_start', 'usd_volume', 'asset'])
-      .execute()
-
-    await db.schema
-      .createIndex('idx_asset_ops_journey_asset')
-      .ifNotExists()
-      .on('xc_asset_ops')
-      .columns(['journey_id', 'asset'])
       .execute()
   } catch (error) {
     console.error(error)
