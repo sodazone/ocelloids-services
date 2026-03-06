@@ -90,13 +90,6 @@ export async function up(db: Kysely<any>): Promise<void> {
 
     // Create indexes
     await db.schema
-      .createIndex('xc_journeys_sent_at_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .column('sent_at')
-      .execute()
-
-    await db.schema
       .createIndex('xc_journeys_type_sent_at_id_index')
       .ifNotExists()
       .on('xc_journeys')
@@ -146,34 +139,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_journeys_destination_tx_primary_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .column('destination_tx_primary')
-      .execute()
-
-    await db.schema
-      .createIndex('xc_journeys_destination_tx_secondary_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .column('destination_tx_secondary')
-      .execute()
-
-    await db.schema
-      .createIndex('xc_journeys_type_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .column('type')
-      .execute()
-
-    await db.schema
-      .createIndex('xc_journeys_status_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .column('status')
-      .execute()
-
-    await db.schema
       .createIndex('xc_journeys_origin_from_index')
       .ifNotExists()
       .on('xc_journeys')
@@ -185,13 +150,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_journeys')
       .columns(['destination', 'to'])
-      .execute()
-
-    await db.schema
-      .createIndex('xc_journeys_from_to_index')
-      .ifNotExists()
-      .on('xc_journeys')
-      .columns(['from', 'to'])
       .execute()
 
     await db.schema
@@ -213,13 +171,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_journeys')
       .column('trip_id')
-      .execute()
-
-    await db.schema
-      .createIndex('idx_journeys_sent_status')
-      .ifNotExists()
-      .on('xc_journeys')
-      .columns(['status', 'sent_at'])
       .execute()
 
     await db.schema
