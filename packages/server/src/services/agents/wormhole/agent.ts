@@ -191,10 +191,6 @@ export class WormholeAgent implements Agent {
     this.#log.info('[agent:%s] pending recheck started (%s items)', this.id, pendings.length)
   }
 
-  async #queuedFetchOp(id: string) {
-    return this.#wormholeQueue.add(() => this.#safeFetchOp(id))
-  }
-
   async #recheckJourney(journey: Journey) {
     try {
       const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
@@ -204,7 +200,7 @@ export class WormholeAgent implements Agent {
 
       if (opId) {
         this.#log.info('[agent:%s] Refetching pending op %s', this.id, opId)
-        const op = await this.#queuedFetchOp(opId)
+        const op = await this.#safeFetchOp(opId)
         if (op) {
           await this.#onOperation(op)
         }
