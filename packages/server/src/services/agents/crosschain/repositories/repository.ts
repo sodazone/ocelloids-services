@@ -664,7 +664,7 @@ export class CrosschainRepository {
     outJourneyId: number,
     tripId?: string,
   ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
-    const updatedJourney = await this.#db.transaction().execute(async (trx) => {
+    return this.#db.transaction().execute(async (trx) => {
       const inJourney = await trx
         .selectFrom('xc_journeys')
         .selectAll()
@@ -695,27 +695,18 @@ export class CrosschainRepository {
 
       await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
 
-      return { inJourney, outJourney }
+      if (inJourneyId !== outJourneyId) {
+        await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
+      }
+
+      return {
+        updated: {
+          id: inJourney.id,
+          correlationId: inJourney.correlation_id,
+        },
+        deleted: inJourneyId !== outJourneyId ? outJourney : null,
+      }
     })
-
-    if (inJourneyId !== outJourneyId) {
-      ;(async () => {
-        try {
-          await this.#db.transaction().execute(async (trx) => {
-            await trx.deleteFrom('xc_asset_ops').where('journey_id', '=', outJourneyId).execute()
-
-            await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
-          })
-        } catch (err) {
-          console.error('Failed to delete outJourney:', outJourneyId, err)
-        }
-      })()
-    }
-
-    return {
-      updated: { id: updatedJourney.inJourney.id, correlationId: updatedJourney.inJourney.correlation_id },
-      deleted: inJourneyId !== outJourneyId ? updatedJourney.outJourney : null,
-    }
   }
 
   /**
