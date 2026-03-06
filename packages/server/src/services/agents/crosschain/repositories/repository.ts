@@ -664,62 +664,58 @@ export class CrosschainRepository {
     outJourneyId: number,
     tripId?: string,
   ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
-    const inJourney = await this.#db
-      .selectFrom('xc_journeys')
-      .selectAll()
-      .where('id', '=', inJourneyId)
-      .executeTakeFirst()
+    const updatedJourney = await this.#db.transaction().execute(async (trx) => {
+      const inJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', inJourneyId)
+        .executeTakeFirstOrThrow()
 
-    if (!inJourney) {
-      throw new Error(`Inbound journey ${inJourneyId} not found`)
-    }
+      const outJourney = await trx
+        .selectFrom('xc_journeys')
+        .selectAll()
+        .where('id', '=', outJourneyId)
+        .executeTakeFirstOrThrow()
 
-    const outJourney = await this.#db
-      .selectFrom('xc_journeys')
-      .selectAll()
-      .where('id', '=', outJourneyId)
-      .executeTakeFirst()
+      const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
 
-    if (!outJourney) {
-      throw new Error(`Outbound journey ${outJourneyId} not found`)
-    }
+      const update: JourneyUpdate = {
+        trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
+        destination_protocol: outJourney.destination_protocol,
+        destination: outJourney.destination,
+        to: outJourney.to,
+        to_formatted: outJourney.to_formatted,
+        recv_at: outJourney.recv_at,
+        status: outJourney.status,
+        type: outJourney.type,
+        destination_tx_primary: outJourney.destination_tx_primary,
+        destination_tx_secondary: outJourney.destination_tx_secondary,
+        stops: mergedStops,
+      }
 
-    const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
-
-    const update: JourneyUpdate = {
-      trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
-
-      destination_protocol: outJourney.destination_protocol,
-      destination: outJourney.destination,
-      to: outJourney.to,
-      to_formatted: outJourney.to_formatted,
-      recv_at: outJourney.recv_at,
-      status: outJourney.status,
-      type: outJourney.type,
-
-      destination_tx_primary: outJourney.destination_tx_primary,
-      destination_tx_secondary: outJourney.destination_tx_secondary,
-
-      stops: mergedStops,
-    }
-
-    return this.#db.transaction().execute(async (trx) => {
       await trx.updateTable('xc_journeys').set(update).where('id', '=', inJourneyId).execute()
 
-      if (inJourneyId !== outJourneyId) {
-        await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
-
-        return {
-          updated: { id: inJourney.id, correlationId: inJourney.correlation_id },
-          deleted: outJourney,
-        }
-      }
-
-      return {
-        updated: { id: inJourney.id, correlationId: inJourney.correlation_id },
-        deleted: null,
-      }
+      return { inJourney, outJourney }
     })
+
+    if (inJourneyId !== outJourneyId) {
+      ;(async () => {
+        try {
+          await this.#db.transaction().execute(async (trx) => {
+            await trx.deleteFrom('xc_asset_ops').where('journey_id', '=', outJourneyId).execute()
+
+            await trx.deleteFrom('xc_journeys').where('id', '=', outJourneyId).execute()
+          })
+        } catch (err) {
+          console.error('Failed to delete outJourney:', outJourneyId, err)
+        }
+      })()
+    }
+
+    return {
+      updated: { id: updatedJourney.inJourney.id, correlationId: updatedJourney.inJourney.correlation_id },
+      deleted: inJourneyId !== outJourneyId ? updatedJourney.outJourney : null,
+    }
   }
 
   /**
