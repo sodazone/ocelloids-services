@@ -188,7 +188,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('xc_assets_journey_usd_index')
+      .createIndex('xc_assets_journey_id_usd_index')
       .ifNotExists()
       .on('xc_asset_ops')
       .columns(['journey_id', 'usd'])
