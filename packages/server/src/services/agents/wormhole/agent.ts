@@ -1,5 +1,4 @@
 import PQueue from 'p-queue'
-import { Subscription } from 'rxjs'
 
 import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
@@ -58,7 +57,6 @@ export class WormholeAgent implements Agent {
   readonly #config: Record<string, any>
   readonly #crosschain: CrosschainExplorer
   readonly #repository: CrosschainRepository
-  readonly #subs: Subscription[]
   readonly #telemetry: TelemetryWormholeEventEmitter
   readonly #wormholeQueue: PQueue
   readonly #worker: WormholeWorkerPool
@@ -72,7 +70,6 @@ export class WormholeAgent implements Agent {
   ) {
     this.#log = ctx.log
     this.#config = ctx.config ?? {}
-    this.#subs = []
     this.#crosschain = deps.crosschain
     this.#repository = deps.crosschain?.repository
 
@@ -93,8 +90,8 @@ export class WormholeAgent implements Agent {
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
 
-  stop() {
-    this.#subs.forEach((sub) => sub.unsubscribe())
+  async stop() {
+    await this.#worker.run('stop')
   }
 
   start() {
