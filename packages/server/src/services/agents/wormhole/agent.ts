@@ -1,5 +1,6 @@
 import PQueue from 'p-queue'
-import { Observer, Subscription } from 'rxjs'
+import { Subscription } from 'rxjs'
+
 import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
 import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
@@ -8,28 +9,21 @@ import {
   WormholeIds,
   WormholeSupportedNetworks,
 } from '@/services/agents/wormhole/types/chain.js'
-import { WormholescanClient } from '@/services/networking/apis/wormhole/client.js'
-import { makeWormholeLevelStorage } from '@/services/networking/apis/wormhole/storage.js'
+import { isWormholeId } from '@/services/networking/apis/wormhole/ids.js'
 import {
   isWormholeProtocol,
   WormholeOperation,
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
-import { makeWatcher, WormholeWatcher } from '@/services/networking/apis/wormhole/watcher.js'
 import { Logger } from '@/services/types.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
-import {
-  CrosschainRepository,
-  FullJourney,
-  Journey,
-  JourneyStatus,
-  JourneyUpdate,
-} from '../crosschain/index.js'
+import { CrosschainRepository, FullJourney, Journey, JourneyUpdate } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
+import { WormholeWorkerPool } from './worker.pool.js'
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
 const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
@@ -64,10 +58,10 @@ export class WormholeAgent implements Agent {
   readonly #config: Record<string, any>
   readonly #crosschain: CrosschainExplorer
   readonly #repository: CrosschainRepository
-  readonly #watcher: WormholeWatcher
   readonly #subs: Subscription[]
   readonly #telemetry: TelemetryWormholeEventEmitter
   readonly #wormholeQueue: PQueue
+  readonly #worker: WormholeWorkerPool
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -82,10 +76,19 @@ export class WormholeAgent implements Agent {
     this.#crosschain = deps.crosschain
     this.#repository = deps.crosschain?.repository
 
-    const storage = makeWormholeLevelStorage(ctx.db)
-    this.#watcher = makeWatcher(new WormholescanClient(), storage)
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
     this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
+    this.#worker = new WormholeWorkerPool(
+      new URL('../../../../dist/services/agents/wormhole/worker.js', import.meta.url),
+      { dataPath: process.env.OC_DATA_DIR ?? './.db/' },
+    )
+    this.#worker.onStream(async (msg) => {
+      if (msg.op) {
+        await this.#onOperation(msg.op)
+      } else if (msg.error) {
+        this.#log.error('[agent:%s] watcher stream error: %s', this.id, msg.error)
+      }
+    })
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -102,40 +105,10 @@ export class WormholeAgent implements Agent {
 
     this.#log.info('[agent:%s] start', this.id)
 
-    this.#watcher.loadInitialState([WormholeIds.MOONBEAM_ID], ago(1, 'day')).then((init) => {
-      this.#log.info(
-        '[agent:%s] subscribe to operations: %j',
-        this.id,
-        Object.values(init.cursors).map((c) => ({
-          chain: c.chain,
-          direction: c.direction,
-          lastSeen: c.lastSeen,
-          seenIds: c.seenIds?.length ?? 0,
-        })),
-      )
-      this.#subs.push(this.#watcher.operations$(init).subscribe(this.#makeObserver()))
-    })
+    this.#worker.run('startWatcher', { chains: [WormholeIds.MOONBEAM_ID], since: ago(1, 'day') })
 
     this.#recheckPendingJourneys()
   }
-
-  #makeObserver = (): Observer<{ op: WormholeOperation; status: JourneyStatus }> => ({
-    next: async ({ op }) => {
-      try {
-        await this.#onOperation(op)
-      } catch (err) {
-        this.#telemetry.emit('telemetryWormholeError', { code: 'OP_ERROR', id: op.id })
-        this.#log.error(err, '[agent:%s] watcher error while processing %s', this.id, op.id)
-      }
-    },
-    error: (err) => {
-      this.#telemetry.emit('telemetryWormholeError', { code: 'WATCHER_ERROR', id: 'watcher' })
-      this.#log.error(err, '[agent:%s] watcher error', this.id)
-    },
-    complete: () => {
-      this.#log.info('[agent:%s] watcher completed', this.id)
-    },
-  })
 
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
     const fullJourney = await this.#repository.getJourneyById(id)
@@ -194,9 +167,7 @@ export class WormholeAgent implements Agent {
   async #recheckJourney(journey: Journey) {
     try {
       const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
-      const opId =
-        stop?.messageId ||
-        (this.#watcher.isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
+      const opId = stop?.messageId || (isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
 
       if (opId) {
         this.#log.info('[agent:%s] Refetching pending op %s', this.id, opId)
@@ -215,7 +186,7 @@ export class WormholeAgent implements Agent {
 
   async #safeFetchOp(id: string) {
     try {
-      const op = await this.#watcher.fetchOperationById(id)
+      const op = await this.#worker.run<WormholeOperation>('fetchOperation', { id })
       await immediate()
       return op
     } catch (err) {
@@ -246,7 +217,9 @@ export class WormholeAgent implements Agent {
       to,
     }
 
-    const { operations } = await this.#watcher.fetchOperations(searchOp)
+    const { operations } = await this.#worker.run<{ operations: WormholeOperation[] }>('fetchOperations', {
+      search: searchOp,
+    })
 
     if (operations.length === 0) {
       this.#log.info('[agent:%s] No ops found from search %s', this.id, JSON.stringify(searchOp))
@@ -408,7 +381,7 @@ export class WormholeAgent implements Agent {
 
     return [
       collectWormholeStats({
-        pending: () => this.#watcher.pendingCount(),
+        pending: () => 0, //this.#watcher.pendingCount(),
       }),
     ]
   }

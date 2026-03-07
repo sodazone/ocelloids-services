@@ -1,6 +1,6 @@
 import { immediate, microtask } from '@/common/event.loop.js'
 import { createFetcher } from '@/common/http/fetch.js'
-import { normalizeWormholeId, WormholeId } from './ids.js'
+import { isWormholeId, normalizeWormholeId, WormholeId } from './ids.js'
 import { WormholeOperation } from './types.js'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -159,11 +159,6 @@ export class WormholescanClient {
   }
 
   isWormholeId(maybeWormholeId: WormholeId) {
-    try {
-      normalizeWormholeId(maybeWormholeId)
-      return true
-    } catch (_e) {
-      return false
-    }
+    return isWormholeId(maybeWormholeId)
   }
 }

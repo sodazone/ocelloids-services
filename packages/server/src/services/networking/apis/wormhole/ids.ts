@@ -37,3 +37,12 @@ export function normalizeWormholeId(id: WormholeId): string {
     '/',
   )
 }
+
+export function isWormholeId(maybeWormholeId: WormholeId) {
+  try {
+    normalizeWormholeId(maybeWormholeId)
+    return true
+  } catch (_e) {
+    return false
+  }
+}
