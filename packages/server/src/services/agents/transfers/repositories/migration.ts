@@ -68,13 +68,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createIndex('ic_transfers_network_index')
-      .ifNotExists()
-      .on('ic_transfers')
-      .column('network')
-      .execute()
-
-    await db.schema
       .createIndex('ic_transfers_sent_at_id_index')
       .ifNotExists()
       .on('ic_transfers')
@@ -114,6 +107,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('ic_transfers')
       .columns(['asset', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_usd_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['usd', 'sent_at', 'id'])
       .execute()
 
     await db.schema

@@ -1,4 +1,4 @@
-import { Kysely } from 'kysely'
+import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
 import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
@@ -135,33 +135,34 @@ export class IntrachainTransfersRepository {
 
     if (filters?.txHash) {
       const txHashBlob = fromHex(filters.txHash)
+
       query = query.where((qb) =>
         qb.or([qb('tx_primary', '=', txHashBlob), qb('tx_secondary', '=', txHashBlob)]),
       )
     }
 
-    if (filters?.sentAtGte !== undefined) {
-      query = query.where('sent_at', '>=', filters.sentAtGte)
-    }
-
-    if (filters?.sentAtLte !== undefined) {
-      query = query.where('sent_at', '<=', filters.sentAtLte)
-    }
-
     if (filters?.address) {
-      if (filters.address.length > 42) {
-        const addressPrefix = filters.address.slice(0, 42).toLowerCase()
-        query = query.where((eb) =>
-          eb.or([eb('from', 'like', `${addressPrefix}%`), eb('to', 'like', `${addressPrefix}%`)]),
-        )
+      const addr = filters.address.toLowerCase()
+
+      if (addr.length > 42) {
+        const prefix = addr.slice(0, 42)
+
+        query = query.where((eb) => eb.or([eb('from', 'like', `${prefix}%`), eb('to', 'like', `${prefix}%`)]))
       } else {
-        query = query.where((eb) =>
-          eb.or([
-            eb('from', '=', filters.address!.toLowerCase()),
-            eb('to', '=', filters.address!.toLowerCase()),
-          ]),
-        )
+        query = query.where((eb) => eb.or([eb('from', '=', addr), eb('to', '=', addr)]))
       }
+    }
+
+    if (filters?.types?.length) {
+      query = query.where('type', 'in', filters.types)
+    }
+
+    if (filters?.networks?.length) {
+      query = query.where('network', 'in', filters.networks)
+    }
+
+    if (filters?.assets?.length) {
+      query = query.where('asset', 'in', filters.assets)
     }
 
     if (filters?.usdAmountGte !== undefined) {
@@ -172,30 +173,22 @@ export class IntrachainTransfersRepository {
       query = query.where('usd', '<=', filters.usdAmountLte)
     }
 
-    if (filters?.assets) {
-      query = query.where('asset', 'in', filters?.assets)
+    if (filters?.sentAtGte !== undefined) {
+      query = query.where('sent_at', '>=', filters.sentAtGte)
     }
 
-    if (filters?.networks) {
-      query = query.where('network', 'in', filters.networks)
+    if (filters?.sentAtLte !== undefined) {
+      query = query.where('sent_at', '<=', filters.sentAtLte)
     }
 
-    if (filters?.types) {
-      query = query.where('type', 'in', filters.types)
-    }
-
-    // cursor
     if (pagination?.cursor) {
       const { timestamp, id } = decodeCursor(pagination.cursor)
-      query = query.where((eb) =>
-        eb.or([
-          eb('sent_at', '<', timestamp),
-          eb.and([eb('sent_at', '=', timestamp), eb('ic_transfers.id', '<', id)]),
-        ]),
-      )
+
+      query = query.where(() => sql`(sent_at, id) < (${timestamp}, ${id})`)
     }
 
     const rows = await query.orderBy('sent_at', 'desc').orderBy('id', 'desc').limit(queryLimit).execute()
+
     const hasNextPage = rows.length > limit
     const nodes = hasNextPage ? rows.slice(0, limit) : rows
     const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
