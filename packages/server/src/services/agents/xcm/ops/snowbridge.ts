@@ -310,8 +310,6 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
     payload: { origin, assets, xcm, claimer, value },
   } = acceptedEventArgs
 
-  console.log('xcm', nonce, xcm)
-
   if (xcm.kind === XcmKind.Raw) {
     try {
       const program = asVersionedXcm(xcm.data, defaultPolkadotContext)
