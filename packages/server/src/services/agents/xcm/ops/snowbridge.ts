@@ -310,39 +310,70 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
     payload: { origin, assets, xcm, claimer, value },
   } = acceptedEventArgs
 
-  if (xcm.kind === XcmKind.Raw) {
-    const program = asVersionedXcm(xcm.data, defaultPolkadotContext)
+  console.log('xcm', nonce, xcm)
 
-    return new GenericSnowbridgeOutboundAccepted({
-      version: 2,
-      chainId,
-      blockHash: tx.blockHash,
-      blockNumber: tx.blockNumber.toString(),
-      messageId: getMessageId(program)!,
-      nonce: nonce.toString(),
-      messageData: xcm.data,
-      messageHash: program.hash,
-      sender: {
-        signer: {
-          id: origin,
-          publicKey: origin,
+  if (xcm.kind === XcmKind.Raw) {
+    try {
+      const program = asVersionedXcm(xcm.data, defaultPolkadotContext)
+
+      return new GenericSnowbridgeOutboundAccepted({
+        version: 2,
+        chainId,
+        blockHash: tx.blockHash,
+        blockNumber: tx.blockNumber.toString(),
+        messageId: getMessageId(program)!,
+        nonce: nonce.toString(),
+        messageData: xcm.data,
+        messageHash: program.hash,
+        sender: {
+          signer: {
+            id: origin,
+            publicKey: origin,
+          },
+          extraSigners: [],
         },
-        extraSigners: [],
-      },
-      claimer,
-      recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
-      event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
-      timestamp: tx.timestamp,
-      txHash: tx.hash,
-      txPosition: tx.transactionIndex ?? undefined,
-      partialHumanized: {
-        assets: mapV2Assets(chainId, assets, value),
-      },
-      instructions: {
-        bytes: program.data,
-        json: program.instructions,
-      },
-    })
+        claimer,
+        recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
+        event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
+        timestamp: tx.timestamp,
+        txHash: tx.hash,
+        txPosition: tx.transactionIndex ?? undefined,
+        partialHumanized: {
+          assets: mapV2Assets(chainId, assets, value),
+        },
+        instructions: {
+          bytes: program.data,
+          json: program.instructions,
+        },
+      })
+    } catch (error) {
+      console.error(error, 'Error on snowbridge evm outbound')
+      return new GenericSnowbridgeOutboundAccepted({
+        version: 2,
+        chainId,
+        blockHash: tx.blockHash,
+        blockNumber: tx.blockNumber.toString(),
+        nonce: nonce.toString(),
+        messageData: xcm.data,
+        messageHash: messageHash(xcm.data),
+        sender: {
+          signer: {
+            id: origin,
+            publicKey: origin,
+          },
+          extraSigners: [],
+        },
+        claimer,
+        recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
+        event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
+        timestamp: tx.timestamp,
+        txHash: tx.hash,
+        txPosition: tx.transactionIndex ?? undefined,
+        partialHumanized: {
+          assets: mapV2Assets(chainId, assets, value),
+        },
+      })
+    }
   } else if (xcm.kind === XcmKind.CreateAsset) {
     return new GenericSnowbridgeOutboundAccepted({
       version: 2,
@@ -402,6 +433,7 @@ export function extractSnowbridgeEvmOutbound(
         if (!tx.decoded || tx.receipt.status === 'reverted') {
           return null
         }
+
         if (tx.decoded.functionName === 'sendToken') {
           return handleV1SendToken(chainId, tx)
         }
