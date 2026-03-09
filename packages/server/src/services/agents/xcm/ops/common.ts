@@ -183,7 +183,7 @@ export function recursiveExtractStops(origin: NetworkURN, instructions: any[], s
     }
 
     if (nextStop !== undefined && message !== undefined) {
-      const networkId = networkIdFromMultiLocation(nextStop, origin)
+      const networkId = networkIdFromMultiLocation(nextStop, stops[stops.length - 1].networkId)
 
       if (networkId) {
         stops.push({ networkId, message })
