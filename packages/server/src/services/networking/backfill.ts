@@ -4,7 +4,7 @@ import { EMPTY, map, Observable, scan, tap } from 'rxjs'
 import { Logger, NetworkURN } from '../types.js'
 import { ApiClient, BackfillConfigs, BackfillConfigsSchema } from './types.js'
 
-export const INITIAL_DELAY_MS = 1 * 60 * 1_000
+export const INITIAL_DELAY_MS = 60_000
 
 export function tapError<T>(log: Logger, chainId: string, method: string) {
   return tap<T>({
