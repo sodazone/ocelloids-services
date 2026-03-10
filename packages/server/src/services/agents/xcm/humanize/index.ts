@@ -74,6 +74,34 @@ type SwapAssetFromExchangeAssets = QueryableXcmAsset & {
   }
 }
 
+function assetKey(asset: HumanizedXcmAsset): string {
+  return `${asset.id}-${asset.amount.toString()}-${asset.role ?? 'null'}`
+}
+
+function mergeAssets(partial: HumanizedXcmAsset[], resolved: HumanizedXcmAsset[]): HumanizedXcmAsset[] {
+  const map = new Map<string, HumanizedXcmAsset>()
+
+  for (const asset of partial) {
+    map.set(assetKey(asset), { ...asset })
+  }
+
+  for (const asset of resolved) {
+    const key = assetKey(asset)
+    const existing = map.get(key)
+
+    if (existing) {
+      map.set(key, {
+        ...existing,
+        ...asset, // resolved overrides partial
+      })
+    } else {
+      map.set(key, asset)
+    }
+  }
+
+  return [...map.values()]
+}
+
 export class XcmHumanizer {
   readonly #log: Logger
   readonly #cache: LRUCache<string, Omit<XcmAssetWithMetadata, 'amount'>, unknown>
@@ -134,13 +162,13 @@ export class XcmHumanizer {
     message: XcmMessagePayload,
     overrideGetContext?: Observable<SubstrateApiContext>,
   ): Promise<HumanizedXcm> {
-    if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
-      return await this.#partialHumanizePayload(message)
-    }
     const { sender, origin, destination, legs, waypoint } = message
     const { assetSwaps, assetsTrapped, legIndex } = waypoint
     const versioned = (waypoint.instructions ?? origin.instructions) as XcmVersionedInstructions
     if (!versioned) {
+      if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
+        return await this.#partialHumanizePayload(message)
+      }
       throw new Error('No instructions or partial humanized data found in XCM message')
     }
     const version = versioned.type
@@ -158,7 +186,12 @@ export class XcmHumanizer {
       return this.#handleBridgeMessage(exportMessage, type, from, to, version)
     }
 
-    const xcmLocationAnchor = legs.length === 1 ? destination.chainId : legs[0]?.to
+    const xcmLocationAnchor =
+      legs.length === 1
+        ? destination.chainId
+        : origin.chainId === 'urn:ocn:ethereum:1' && legs[0].to === 'urn:ocn:polkadot:1002'
+          ? 'urn:ocn:polkadot:1000'
+          : legs[0]?.to
     const assets = this.#extractAssetsFromTransfer(instructions)
     const resolvedAssets = assets.length > 0 ? await this.#resolveAssets(xcmLocationAnchor, assets) : []
 
@@ -205,6 +238,21 @@ export class XcmHumanizer {
       const trapped = this.#extractTrappedAssets(assetsTrapped as AssetsTrapped)
       if (trapped.length > 0) {
         resolvedAssets.push(...(await this.#resolveAssets(waypoint.chainId, trapped)))
+      }
+    }
+
+    if (message.partialHumanized !== undefined && message.partialHumanized !== null) {
+      const fromPartialHumanized = await this.#partialHumanizePayload(message)
+      const partialHumanizedAssets = fromPartialHumanized.assets
+      const assets = mergeAssets(partialHumanizedAssets, resolvedAssets)
+      return {
+        type: type === XcmJourneyType.Unknown ? fromPartialHumanized.type : type,
+        from: fromPartialHumanized.from,
+        to: fromPartialHumanized.to,
+        assets,
+        version,
+        transactCalls,
+        xprotocolData,
       }
     }
 
