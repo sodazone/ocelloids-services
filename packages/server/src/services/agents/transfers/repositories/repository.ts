@@ -141,18 +141,6 @@ export class IntrachainTransfersRepository {
       )
     }
 
-    if (filters?.address) {
-      const addr = filters.address.toLowerCase()
-
-      if (addr.length > 42) {
-        const prefix = addr.slice(0, 42)
-
-        query = query.where((eb) => eb.or([eb('from', 'like', `${prefix}%`), eb('to', 'like', `${prefix}%`)]))
-      } else {
-        query = query.where((eb) => eb.or([eb('from', '=', addr), eb('to', '=', addr)]))
-      }
-    }
-
     if (filters?.types?.length) {
       query = query.where('type', 'in', filters.types)
     }
@@ -179,6 +167,26 @@ export class IntrachainTransfersRepository {
 
     if (filters?.sentAtLte !== undefined) {
       query = query.where('sent_at', '<=', filters.sentAtLte)
+    }
+
+    if (filters?.address) {
+      const addr = filters.address.toLowerCase()
+
+      const apply = (qb: any, column: 'from' | 'to') => {
+        if (addr.length > 42) {
+          const prefix = addr.slice(0, 42)
+          return qb.where(column, 'like', `${prefix}%`)
+        } else {
+          return qb.where(column, '=', addr)
+        }
+      }
+
+      const baseQuery = query
+
+      const fromQuery = apply(baseQuery, 'from')
+      const toQuery = apply(baseQuery, 'to')
+
+      query = fromQuery.unionAll(toQuery)
     }
 
     if (pagination?.cursor) {
