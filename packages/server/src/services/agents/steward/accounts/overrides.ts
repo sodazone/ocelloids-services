@@ -113,8 +113,8 @@ export const accountOverrides: SubstrateAccountUpdate[] = [
     categories: [
       {
         chainId: 'urn:ocn:polkadot:1000',
-        categoryCode: 9,
-        subCategoryCode: 5,
+        categoryCode: 10,
+        subCategoryCode: 0,
       },
     ],
     tags: [
