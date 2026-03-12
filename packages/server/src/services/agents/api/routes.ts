@@ -1,13 +1,73 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { $AgentId, AgentId, AnyQueryArgs, QueryParams } from '@/services/agents/types.js'
-import { CAP_READ } from '@/services/auth/index.js'
+import {
+  $AgentId,
+  AgentId,
+  AnyQueryArgs,
+  AnySubmitPayload,
+  isSubmittable,
+  QueryParams,
+} from '@/services/agents/types.js'
+import { CAP_ADMIN, CAP_READ } from '@/services/auth/index.js'
 
 /**
  * Agents HTTP API
  */
 export async function AgentsApi(api: FastifyInstance) {
   const { agentCatalog: agentService } = api
+
+  /**
+   * POST /submit/:agentId
+   */
+  api.post<{
+    Params: { agentId: AgentId }
+    Body: AnySubmitPayload
+  }>(
+    '/submit/:agentId',
+    {
+      config: {
+        caps: [CAP_ADMIN],
+      },
+      schema: {
+        tags: ['agents'],
+        security: [{ BearerAuth: [] }],
+        params: {
+          type: 'object',
+          properties: {
+            agentId: zodToJsonSchema($AgentId),
+          },
+          required: ['agentId'],
+        },
+        body: {
+          type: 'object',
+          additionalProperties: true,
+        },
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { agentId } = request.params
+      const agent = agentService.getAgentById(agentId)
+
+      if (!agent) {
+        return reply.status(404).send({ error: 'Agent not found' })
+      }
+
+      if (!isSubmittable(agent)) {
+        return reply.status(400).send({ error: 'Agent cannot accept published data' })
+      }
+
+      try {
+        await agent.submit(request.body)
+        reply.send({ success: true })
+      } catch (err) {
+        request.log.error(err, '[agent:%s] submit failed', agentId)
+        reply.status(500).send({ error: 'Failed to submit payload' })
+      }
+    },
+  )
 
   /**
    * POST /query/:agentId
@@ -82,7 +142,7 @@ export async function AgentsApi(api: FastifyInstance) {
       },
     },
     async (_, reply) => {
-      reply.send(await agentService.getAgentIds())
+      reply.send(agentService.getAgentIds())
     },
   )
 

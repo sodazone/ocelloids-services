@@ -11,9 +11,15 @@ import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
 import { limitCap, paginatedResults } from '../../common/query.js'
-import { Empty, StewardManagerContext, StewardQueryArgs } from '../types.js'
+import { Empty, StewardManagerContext, StewardQueryArgs, StewardSubmitPayload } from '../types.js'
 import { extraAccountMeta$, identities$, mergeAccountMetadata, overrideAccounts$ } from './mappers.js'
 import { SubstrateAccountMetadata, SubstrateAccountResult, SubstrateAccountUpdate } from './types.js'
+
+type AccountOps = {
+  accountOps: any[]
+  updatedOps: any[]
+  evmOps: any[]
+}
 
 const ACCOUNT_METADATA_SYNC_TASK = 'task:steward:accounts-metadata-sync'
 const AGENT_LEVEL_PREFIX = 'agent:steward'
@@ -23,6 +29,8 @@ const ACCOUNTS_UPDATED_LEVEL_PREFIX = 'agent:steward:accounts:updated'
 
 const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 43_200_000 // 24h
+
+const SUBMISSION_BATCH_SIZE = 50
 
 const TIMESTAMP_SIZE = 8
 
@@ -104,6 +112,14 @@ export class AccountsMetadataManager {
     for (const sub of this.#rxSubs) {
       sub.unsubscribe()
     }
+  }
+
+  async submit(payload: StewardSubmitPayload) {
+    const { op, data } = payload
+    if (op === 'accounts.insert') {
+      return await this.#upsertAccounts(data as SubstrateAccountUpdate[])
+    }
+    throw new Error(`Operation type ${op} not supported`)
   }
 
   async queries(params: QueryParams<StewardQueryArgs>): Promise<QueryResult<SubstrateAccountResult | Empty>> {
@@ -260,35 +276,103 @@ export class AccountsMetadataManager {
     }
 
     merge(...streams).subscribe({
-      next: async (incoming) => {
-        const pubKeyBuf = Buffer.from(incoming.publicKey.substring(2).toLowerCase(), 'hex')
-        try {
-          const persisted = await this.#dbAccounts.get(pubKeyBuf)
-          const merged = mergeAccountMetadata(persisted, incoming)
-
-          if (persisted && merged.updatedAt === persisted.updatedAt) {
-            return
-          }
-
-          if (persisted) {
-            await this.#dbAccountsUpdated.del(toUpdateIndexKey(persisted.updatedAt, pubKeyBuf))
-          }
-
-          await this.#dbAccounts.put(pubKeyBuf, merged)
-          await this.#dbAccountsUpdated.put(toUpdateIndexKey(merged.updatedAt, pubKeyBuf), pubKeyBuf)
-          if (pubKeyBuf.length > 20) {
-            for (const evm of merged.evm) {
-              const indexKey = Buffer.from(evm.address.substring(2).toLowerCase(), 'hex')
-              await this.#dbAccountsEvmIndex.put(indexKey, pubKeyBuf)
-            }
-          }
-        } catch (e) {
-          this.#log.error(e, '[agent:%s] on account metadata write (%s)', this.id, incoming.publicKey)
-        }
-      },
+      next: this.#upsertAccount.bind(this),
       complete: () => this.#log.info('[agent:%s] END storing accounts', this.id),
       error: (e) => this.#log.error(e, '[agent:%s] on account store', this.id),
     })
+  }
+
+  async #buildAccountOps(incoming: SubstrateAccountUpdate): Promise<AccountOps | null> {
+    const pubKeyBuf = Buffer.from(incoming.publicKey.slice(2).toLowerCase(), 'hex')
+
+    try {
+      const persisted = await this.#dbAccounts.get(pubKeyBuf)
+      const merged = mergeAccountMetadata(persisted, incoming)
+
+      if (persisted && merged.updatedAt === persisted.updatedAt) {
+        return null
+      }
+
+      const accountOps: any[] = []
+      const updatedOps: any[] = []
+      const evmOps: any[] = []
+
+      if (persisted) {
+        updatedOps.push({
+          type: 'del',
+          key: toUpdateIndexKey(persisted.updatedAt, pubKeyBuf),
+        })
+      }
+
+      accountOps.push({
+        type: 'put',
+        key: pubKeyBuf,
+        value: merged,
+      })
+
+      updatedOps.push({
+        type: 'put',
+        key: toUpdateIndexKey(merged.updatedAt, pubKeyBuf),
+        value: pubKeyBuf,
+      })
+
+      if (pubKeyBuf.length > 20) {
+        for (const evm of merged.evm) {
+          const indexKey = Buffer.from(evm.address.slice(2).toLowerCase(), 'hex')
+
+          evmOps.push({
+            type: 'put',
+            key: indexKey,
+            value: pubKeyBuf,
+          })
+        }
+      }
+
+      return { accountOps, updatedOps, evmOps }
+    } catch (e) {
+      this.#log.error(e, '[agent:%s] on account metadata write (%s)', this.id, incoming.publicKey)
+      return null
+    }
+  }
+
+  async #upsertAccounts(accounts: SubstrateAccountUpdate[]) {
+    for (let i = 0; i < accounts.length; i += SUBMISSION_BATCH_SIZE) {
+      const accountOps: any[] = []
+      const updatedOps: any[] = []
+      const evmOps: any[] = []
+
+      for (let j = i; j < i + SUBMISSION_BATCH_SIZE && j < accounts.length; j++) {
+        const ops = await this.#buildAccountOps(accounts[j])
+        if (!ops) {
+          continue
+        }
+
+        accountOps.push(...ops.accountOps)
+        updatedOps.push(...ops.updatedOps)
+        evmOps.push(...ops.evmOps)
+      }
+
+      await Promise.all([
+        accountOps.length ? this.#dbAccounts.batch(accountOps) : undefined,
+        updatedOps.length ? this.#dbAccountsUpdated.batch(updatedOps) : undefined,
+        evmOps.length ? this.#dbAccountsEvmIndex.batch(evmOps) : undefined,
+      ])
+
+      await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+  }
+
+  async #upsertAccount(incoming: SubstrateAccountUpdate) {
+    const ops = await this.#buildAccountOps(incoming)
+    if (!ops) {
+      return
+    }
+
+    await Promise.all([
+      ops.accountOps.length ? this.#dbAccounts.batch(ops.accountOps) : undefined,
+      ops.updatedOps.length ? this.#dbAccountsUpdated.batch(ops.updatedOps) : undefined,
+      ops.evmOps.length ? this.#dbAccountsEvmIndex.batch(ops.evmOps) : undefined,
+    ])
   }
 
   async #onScheduledTask() {

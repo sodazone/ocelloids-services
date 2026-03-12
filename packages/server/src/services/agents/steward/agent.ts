@@ -10,6 +10,7 @@ import {
   ServerSentEventsBroadcaster,
   ServerSentEventsRequest,
   Streamable,
+  Submittable,
 } from '../types.js'
 import { AccountsMetadataManager } from './accounts/manager.js'
 import { BalancesManager } from './balances/manager.js'
@@ -18,8 +19,10 @@ import { AssetMetadataManager } from './metadata/manager.js'
 import {
   $StewardQueryArgs,
   $StewardServerSentEventArgs,
+  $StewardSubmitPayload,
   StewardQueryArgs,
   StewardServerSentEventArgs,
+  StewardSubmitPayload,
 } from './types.js'
 
 /**
@@ -27,11 +30,14 @@ import {
  *
  * Aggregates and enriches cross-chain metadata for assets and currencies.
  */
-export class DataSteward implements Agent, Queryable, Streamable<StewardServerSentEventArgs> {
+export class DataSteward
+  implements Agent, Queryable, Streamable<StewardServerSentEventArgs>, Submittable<StewardSubmitPayload>
+{
   id = 'steward'
 
   querySchema = $StewardQueryArgs
   streamFilterSchema = $StewardServerSentEventArgs
+  submitSchema = $StewardSubmitPayload
 
   metadata: AgentMetadata = {
     name: 'Data Steward',
@@ -62,6 +68,19 @@ export class DataSteward implements Agent, Queryable, Streamable<StewardServerSe
       this.#balancesManager = new BalancesManager(managerContext, this.query.bind(this), this.#broadcaster)
     }
     this.#substrateIngress = ctx.ingress.substrate
+  }
+
+  async submit(payload: StewardSubmitPayload) {
+    const paths = payload.op.split('.')
+    const type = paths[0]
+    if (type === 'accounts') {
+      return this.#accountsManager.submit(payload)
+    }
+    if (type === 'assets') {
+      return this.#metadataManager.submit(payload)
+    }
+
+    throw new Error(`Query type ${type} not supported`)
   }
 
   async query(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {

@@ -282,6 +282,25 @@ export interface Queryable {
   query(params: QueryParams): Promise<QueryResult<AnyQueryResultItem | unknown>>
 }
 
+export type AnySubmitPayload = Record<string, any>
+
+/**
+ * Interface defining the capability to submit external data.
+ */
+export interface Submittable<T = AnySubmitPayload> {
+  /**
+   * Schema for validating incoming submission payloads.
+   */
+  get submitSchema(): z.ZodSchema
+
+  /**
+   * Handles submission of external data (e.g. admin API).
+   *
+   * @param payload - Validated submission payload
+   */
+  submit(payload: T): Promise<void> | void
+}
+
 export type ServerSentEventsRequest<T extends AnyQueryArgs = AnyQueryArgs> = {
   streamName: string
   filters: T
@@ -392,6 +411,13 @@ export function isQueryable(object: any): object is Queryable {
  */
 export function isStreamable(object: any): object is Streamable {
   return 'onServerSentEventsRequest' in object
+}
+
+/**
+ * Submittable guard condition.
+ */
+export function isSubmittable(object: any): object is Submittable {
+  return 'submit' in object
 }
 
 /**

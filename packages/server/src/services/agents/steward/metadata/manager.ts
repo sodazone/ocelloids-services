@@ -32,6 +32,7 @@ import {
   AssetMetadata,
   StewardManagerContext,
   StewardQueryArgs,
+  StewardSubmitPayload,
 } from '../types.js'
 import { assetMetadataKey, assetMetadataKeyHash } from '../util.js'
 import { mappers } from './mappers.js'
@@ -48,6 +49,7 @@ const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 43_200_000 // 12h
 
 const STORAGE_PAGE_LEN = 100
+const UPSERT_BATCH_SIZE = 100
 
 const ASSET_PALLET_EVENTS = [
   'Created',
@@ -125,6 +127,14 @@ export class AssetMetadataManager {
 
   queries(params: QueryParams<StewardQueryArgs>): Promise<QueryResult> {
     return this.#queries.dispatch(params)
+  }
+
+  async submit(payload: StewardSubmitPayload) {
+    const { op, data } = payload
+    if (op === 'assets.insert') {
+      return await this.#upsertAssets(data.map((d) => ({ ...d, updated: Date.now() })) as AssetMetadata[])
+    }
+    throw new Error(`Operation type ${op} not supported`)
   }
 
   async #onScheduledTask() {
@@ -459,6 +469,46 @@ export class AssetMetadataManager {
         chainId,
         assetId,
       )
+    }
+  }
+
+  async #upsertAssets(assets: AssetMetadata[]) {
+    for (let i = 0; i < assets.length; i += UPSERT_BATCH_SIZE) {
+      const chunk = assets.slice(i, i + UPSERT_BATCH_SIZE)
+
+      const assetOps: { type: 'put'; key: string; value: AssetMetadata }[] = []
+      const hashOps: { type: 'put'; key: Buffer; value: string }[] = []
+
+      for (const asset of chunk) {
+        const chainId = asset.chainId
+
+        const assetKey = assetMetadataKey(chainId, asset.id)
+        const assetHashKey = assetMetadataKeyHash(assetKey)
+
+        assetOps.push({
+          type: 'put',
+          key: assetKey,
+          value: asSerializable(asset),
+        })
+
+        hashOps.push({
+          type: 'put',
+          key: assetHashKey,
+          value: assetKey,
+        })
+      }
+
+      try {
+        await Promise.all([this.#dbAssets.batch(assetOps), this.#dbAssetsHashIndex.batch(hashOps)])
+      } catch (e) {
+        this.#log.error(
+          e,
+          '[agent:%s] batch asset metadata write failed (chunk start=%d size=%d)',
+          this.id,
+          i,
+          chunk.length,
+        )
+      }
     }
   }
 

@@ -10,6 +10,67 @@ import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
 import { SubstrateAccountMetadata } from './accounts/types.js'
 
+const HEX_REGEX = /^0x[0-9a-fA-F]+$/
+const $HexString = z.string().regex(HEX_REGEX, 'publicKey must be a hex string starting with 0x')
+
+const $AccountSubmitData = z.object({
+  publicKey: $HexString.min(42).max(66),
+  categories: z.array(
+    z.object({
+      chainId: $NetworkString,
+      categoryCode: z.number().min(0).max(100),
+      subCategoryCode: z.number().min(0).max(100),
+    }),
+  ),
+  tags: z.array(
+    z.object({
+      chainId: $NetworkString,
+      tag: z.string().min(1),
+    }),
+  ),
+})
+
+const $AssetSubmitData = z.object({
+  chainId: $NetworkString,
+  id: z.string(),
+  xid: $HexString,
+  name: z.string(),
+  symbol: z.string(),
+  decimals: z.number(),
+  existentialDeposit: z.string().optional(),
+  isSufficient: z.boolean().optional(),
+  raw: z
+    .object({
+      native: z.boolean().optional(),
+    })
+    .passthrough(),
+  externalIds: z.array(
+    z.object({
+      chainId: $NetworkString,
+      id: z.string(),
+      xid: $HexString,
+    }),
+  ),
+  sourceId: z.object({
+    chainId: $NetworkString,
+    id: z.string(),
+    xid: $HexString,
+  }),
+})
+
+export const $StewardSubmitPayload = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('accounts.insert'),
+    data: z.array($AccountSubmitData),
+  }),
+  z.object({
+    op: z.literal('assets.insert'),
+    data: z.array($AssetSubmitData),
+  }),
+])
+
+export type StewardSubmitPayload = z.infer<typeof $StewardSubmitPayload>
+
 /**
  * @private
  */
