@@ -282,7 +282,6 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       }
 
       function handleTimeout(id: string, entry: PendingEntry) {
-        subscriber.next({ op: entry.op, status: 'timeout' })
         removePending(id)
       }
 

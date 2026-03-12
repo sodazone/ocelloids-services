@@ -25,6 +25,7 @@ import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.
 import { WormholeWorkerPool } from './worker.pool.js'
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
+const PENDING_RECHECK_INTERVAL = 86_400_000 // 24h
 const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
 const RECHECK_DELAY_MS = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
 const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
@@ -105,6 +106,7 @@ export class WormholeAgent implements Agent {
     this.#worker.run('startWatcher', { chains: [WormholeIds.MOONBEAM_ID], since: ago(1, 'day') })
 
     this.#recheckPendingJourneys()
+    setInterval(() => this.#recheckPendingJourneys(), PENDING_RECHECK_INTERVAL)
   }
 
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
