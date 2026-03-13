@@ -25,24 +25,30 @@ function findOutboundHrmpMessage(
           map((messages) => {
             return messages
               .flatMap((msg) => {
-                const { data, recipient } = msg
-                // TODO: caching strategy
-                const xcms = fromXcmpFormat(data.asBytes(), context)
-                return xcms.map(
-                  (xcmProgram) =>
-                    new GenericXcmSentWithContext({
-                      ...sentMsg,
-                      messageDataBuffer: xcmProgram.data,
-                      recipient: createNetworkId(origin, recipient.toString()),
-                      messageHash: xcmProgram.hash,
-                      instructions: {
-                        bytes: xcmProgram.data,
-                        json: xcmProgram.instructions,
-                      },
-                      messageId: getMessageId(xcmProgram),
-                    }),
-                )
+                try {
+                  const { data, recipient } = msg
+                  // TODO: caching strategy
+                  const xcms = fromXcmpFormat(data.asBytes(), context)
+                  return xcms.map(
+                    (xcmProgram) =>
+                      new GenericXcmSentWithContext({
+                        ...sentMsg,
+                        messageDataBuffer: xcmProgram.data,
+                        recipient: createNetworkId(origin, recipient.toString()),
+                        messageHash: xcmProgram.hash,
+                        instructions: {
+                          bytes: xcmProgram.data,
+                          json: xcmProgram.instructions,
+                        },
+                        messageId: getMessageId(xcmProgram),
+                      }),
+                  )
+                } catch (err) {
+                  console.warn(err, 'Error decoding XCMP program')
+                  return null
+                }
               })
+              .filter((msg) => msg !== null)
               .find((msg) => {
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash
               })

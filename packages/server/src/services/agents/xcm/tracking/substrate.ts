@@ -1,5 +1,5 @@
 import EventEmitter from 'node:events'
-import { FixedSizeBinary } from '@polkadot-api/substrate-bindings'
+import { Binary, FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { forkJoin, from, map, mergeMap, Observable, of, switchMap } from 'rxjs'
 
@@ -487,10 +487,16 @@ export class SubstrateXcmTracker {
   #getUmp(chainId: NetworkURN, context: SubstrateApiContext): GetOutboundUmpMessages {
     const codec = context.storageCodec('ParachainSystem', 'UpwardMessages')
     const key = codec.keys.enc() as HexString
+
     return (blockHash: HexString) => {
       return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
         map((buffer) => {
-          return codec.value.dec(buffer)
+          const binaries = codec.value.dec(buffer) as Binary[]
+
+          const hexValues = binaries.map((b) => b.asHex())
+          const endIndex = hexValues.indexOf('0x')
+
+          return endIndex === -1 ? binaries : binaries.slice(0, endIndex)
         }),
       )
     }

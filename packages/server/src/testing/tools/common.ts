@@ -12,6 +12,7 @@ export const substrateNetworks: Record<string, string> = {
   nexus: 'wss://nexus.ibp.network',
   kassethub: 'wss://sys.ibp.network/asset-hub-kusama',
   kbridgehub: 'wss://sys.ibp.network/bridgehub-kusama',
+  kcoretime: 'wss://sys.ibp.network/coretime-kusama',
   passethub: 'wss://sys.ibp.network/asset-hub-paseo',
 }
 

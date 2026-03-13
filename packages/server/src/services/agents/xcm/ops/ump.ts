@@ -63,20 +63,25 @@ function findOutboundUmpMessage(
           map((messages) => {
             return messages
               .map((data) => {
-                const bytes = data.asBytes()
-                const xcmProgram = asVersionedXcm(bytes, context)
-                return new GenericXcmSentWithContext({
-                  ...sentMsg,
-                  messageDataBuffer: xcmProgram.data,
-                  recipient: getRelayId(origin), // always relay
-                  messageHash: xcmProgram.hash,
-                  messageId: getMessageId(xcmProgram),
-                  instructions: {
-                    bytes: xcmProgram.data,
-                    json: xcmProgram.instructions,
-                  },
-                })
+                try {
+                  const bytes = data.asBytes()
+                  const xcmProgram = asVersionedXcm(bytes, context)
+                  return new GenericXcmSentWithContext({
+                    ...sentMsg,
+                    messageDataBuffer: xcmProgram.data,
+                    recipient: getRelayId(origin), // always relay
+                    messageHash: xcmProgram.hash,
+                    messageId: getMessageId(xcmProgram),
+                    instructions: {
+                      bytes: xcmProgram.data,
+                      json: xcmProgram.instructions,
+                    },
+                  })
+                } catch (_err) {
+                  return null
+                }
               })
+              .filter((msg) => msg !== null)
               .find((msg) => {
                 return messageId ? msg.messageId === messageId : msg.messageHash === messageHash
               })
