@@ -166,6 +166,9 @@ export class WormholeAgent implements Agent {
   async #recheckJourney(journey: Journey) {
     try {
       const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+      if (['completed', 'confirmed'].includes(stop?.to?.status)) {
+        return
+      }
       const opId = stop?.messageId || (isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
 
       if (opId) {
