@@ -27,13 +27,13 @@ export function isZeroAddress(address: string) {
 }
 
 export function ss58ToPublicKey(address: string): Uint8Array {
-  const decoded = bs58.decode(address.trim())
+  const d = bs58.decode(address)
 
-  if (decoded.length < 35) {
-    throw new Error('Invalid SS58 address length')
+  if (d.length < 35) {
+    throw new Error('Invalid SS58 address')
   }
 
-  const first = decoded[0]
+  const first = d[0]
 
   if (first >= 128) {
     throw new Error('Invalid SS58 prefix')
@@ -41,13 +41,7 @@ export function ss58ToPublicKey(address: string): Uint8Array {
 
   const prefixLen = first < 64 ? 1 : 2
 
-  const pubkey = decoded.subarray(prefixLen, prefixLen + 32)
-
-  if (pubkey.length !== 32) {
-    throw new Error('Invalid public key length')
-  }
-
-  return pubkey
+  return d.subarray(prefixLen, prefixLen + 32)
 }
 
 export function publicKeyToSS58(publicKey: Uint8Array, prefix = 0): string {

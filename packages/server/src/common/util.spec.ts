@@ -5,7 +5,7 @@ import { asPublicKey, asSerializable, fromDuckDBBlob, toDuckDBHex } from './util
 
 describe('utility functions', () => {
   describe('asPublicKey cross-chain support', () => {
-    it('should work for zero account id', () => {
+    it('should work for zero account id (SS58)', () => {
       const z = '111111111111111111111111111111111HC1'
       expect(asPublicKey(z)).toBe('0x0000000000000000000000000000000000000000')
     })
