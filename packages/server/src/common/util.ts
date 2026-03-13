@@ -111,7 +111,8 @@ export function asPublicKey(accountId: string): HexString {
   try {
     const pubKey = ss58ToPublicKey(accountId)
     return normalizePublicKey(pubKey)
-  } catch {
+  } catch (err) {
+    console.log(err)
     //
   }
 

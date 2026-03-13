@@ -5,6 +5,11 @@ import { asPublicKey, asSerializable, fromDuckDBBlob, toDuckDBHex } from './util
 
 describe('utility functions', () => {
   describe('asPublicKey cross-chain support', () => {
+    it('should work for zero account id', () => {
+      const z = '111111111111111111111111111111111HC1'
+      expect(asPublicKey(z)).toBe('0x0000000000000000000000000000000000000000')
+    })
+
     it('should accept Ethereum 20-byte hex', () => {
       const eth = '0x601D579ECD0464A1A090CEEF81A703465A1679CD'
       expect(asPublicKey(eth)).toBe(eth.toLowerCase())

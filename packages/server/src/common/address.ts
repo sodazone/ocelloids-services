@@ -7,10 +7,6 @@ const SS58_PREFIX = new TextEncoder().encode('SS58PRE')
 
 export const ethPrefix = Buffer.concat([Buffer.from('ETH', 'ascii'), new Uint8Array([0])])
 
-function looksLikeSS58(decodedLength: number, addressLength: number): boolean {
-  return addressLength >= 46 && addressLength <= 50 && (decodedLength === 35 || decodedLength === 36)
-}
-
 function encodePrefix(prefix: number): Uint8Array {
   if (prefix < 0 || prefix > 16383) {
     throw new Error('Invalid SS58 prefix')
@@ -31,18 +27,27 @@ export function isZeroAddress(address: string) {
 }
 
 export function ss58ToPublicKey(address: string): Uint8Array {
-  const addr = address.trim()
-  const len = addr.length
-  const decoded = bs58.decode(addr)
-  if (looksLikeSS58(decoded.length, len)) {
-    const base = decoded[0]
-    if (base === undefined) {
-      throw new Error('Invalid input')
-    }
-    const prefixLen = base & 0x40 ? 2 : 1
-    return decoded.subarray(prefixLen, decoded.length - 2)
+  const decoded = bs58.decode(address.trim())
+
+  if (decoded.length < 35) {
+    throw new Error('Invalid SS58 address length')
   }
-  throw new Error('Input address does not fit SS58 format')
+
+  const first = decoded[0]
+
+  if (first >= 128) {
+    throw new Error('Invalid SS58 prefix')
+  }
+
+  const prefixLen = first < 64 ? 1 : 2
+
+  const pubkey = decoded.subarray(prefixLen, prefixLen + 32)
+
+  if (pubkey.length !== 32) {
+    throw new Error('Invalid public key length')
+  }
+
+  return pubkey
 }
 
 export function publicKeyToSS58(publicKey: Uint8Array, prefix = 0): string {
