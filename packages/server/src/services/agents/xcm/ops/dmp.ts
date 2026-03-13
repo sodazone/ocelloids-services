@@ -111,39 +111,44 @@ function findDmpMessagesFromEvent(
         return getDmp(event.blockHash as HexString, recipient as NetworkURN).pipe(
           mergeMap(async (messages) => {
             const { blockHash, blockNumber, timestamp } = event
-            if (messages.length === 1) {
-              const data = messages[0].msg.asBytes()
-              const program = asVersionedXcm(data, context)
-              return createXcmMessageSent({
-                blockHash,
-                blockNumber,
-                timestamp,
-                recipient,
-                event,
-                data,
-                program,
-                sender: await getSendersFromEvent(event),
-              })
-            } else {
-              // Since we are matching by topic and it is assumed that the TopicId is unique
-              // we can break out of the loop on first matching message found.
-              for (const message of messages) {
-                const data = message.msg.asBytes()
+            try {
+              if (messages.length === 1) {
+                const data = messages[0].msg.asBytes()
                 const program = asVersionedXcm(data, context)
-                if (matchProgramByTopic(program, messageId)) {
-                  return createXcmMessageSent({
-                    blockHash,
-                    blockNumber,
-                    timestamp,
-                    recipient,
-                    event,
-                    data,
-                    program,
-                    sender: await getSendersFromEvent(event),
-                  })
+                return createXcmMessageSent({
+                  blockHash,
+                  blockNumber,
+                  timestamp,
+                  recipient,
+                  event,
+                  data,
+                  program,
+                  sender: await getSendersFromEvent(event),
+                })
+              } else {
+                // Since we are matching by topic and it is assumed that the TopicId is unique
+                // we can break out of the loop on first matching message found.
+                for (const message of messages) {
+                  const data = message.msg.asBytes()
+                  const program = asVersionedXcm(data, context)
+                  if (matchProgramByTopic(program, messageId)) {
+                    return createXcmMessageSent({
+                      blockHash,
+                      blockNumber,
+                      timestamp,
+                      recipient,
+                      event,
+                      data,
+                      program,
+                      sender: await getSendersFromEvent(event),
+                    })
+                  }
                 }
-              }
 
+                return null
+              }
+            } catch (err) {
+              console.warn(err, 'Error decoding DMP program')
               return null
             }
           }),
