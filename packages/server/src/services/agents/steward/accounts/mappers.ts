@@ -1,10 +1,10 @@
 import { blake2b } from '@noble/hashes/blake2'
+import { FixedSizeBinary, u32 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
 import {
   concatMap,
   EMPTY,
-  expand,
   filter,
   from,
   map,
@@ -12,9 +12,11 @@ import {
   mergeMap,
   Observable,
   of,
+  reduce,
   switchMap,
   take,
 } from 'rxjs'
+import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
@@ -24,7 +26,6 @@ import { assetOverrides } from '../metadata/overrides.js'
 import { accountOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
-const STORAGE_PAGE_LEN = 50
 const textEncoder = new TextEncoder()
 const sts = textEncoder.encode('sts')
 
@@ -240,12 +241,7 @@ export function identities$(ingress: SubstrateIngressConsumer, chainId: NetworkU
       const hashers = apiCtx.getHashers('Identity', 'IdentityOf')
       const prefix = codec.keys.enc() as HexString
 
-      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
-        expand((keys) =>
-          keys.length === STORAGE_PAGE_LEN
-            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-            : EMPTY,
-        ),
+      return storageKeysAtLatest$(ingress, chainId, prefix).pipe(
         concatMap((storageKeys) =>
           ingress.queryStorageAt(chainId, storageKeys).pipe(
             mergeMap((changeSets) => {
@@ -288,12 +284,7 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
       const codec = apiCtx.storageCodec('EVMAccounts', 'AccountExtension')
       const hashers = apiCtx.getHashers('EVMAccounts', 'AccountExtension')
       const prefix = codec.keys.enc() as HexString
-      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
-        expand((keys) =>
-          keys.length === STORAGE_PAGE_LEN
-            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-            : EMPTY,
-        ),
+      return storageKeysAtLatest$(ingress, chainId, prefix).pipe(
         concatMap((storageKeys) =>
           ingress.queryStorageAt(chainId, storageKeys).pipe(
             mergeMap((changeSets) => {
@@ -358,12 +349,7 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
       const codec = apiCtx.storageCodec('Stableswap', 'Pools')
       const hashers = apiCtx.getHashers('Stableswap', 'Pools')
       const prefix = codec.keys.enc() as HexString
-      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
-        expand((keys) =>
-          keys.length === STORAGE_PAGE_LEN
-            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-            : EMPTY,
-        ),
+      return storageKeysAtLatest$(ingress, chainId, prefix).pipe(
         concatMap((storageKeys) =>
           ingress.queryStorageAt(chainId, storageKeys).pipe(
             mergeMap((changeSets) => {
@@ -416,12 +402,7 @@ function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
       const codec = apiCtx.storageCodec('XYK', 'PoolAssets')
       const hashers = apiCtx.getHashers('XYK', 'PoolAssets')
       const prefix = codec.keys.enc() as HexString
-      return ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN).pipe(
-        expand((keys) =>
-          keys.length === STORAGE_PAGE_LEN
-            ? ingress.getStorageKeys(chainId, prefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-            : EMPTY,
-        ),
+      return storageKeysAtLatest$(ingress, chainId, prefix).pipe(
         mergeMap((storageKeys) =>
           storageKeys.map((key) => {
             const publicKey = itemKeyFromStorageKey(key, prefix, hashers)
@@ -448,6 +429,147 @@ function hydrationXykAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
         ),
       )
     }),
+  )
+}
+
+function hydrationATokenAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
+  const chainId = networks.hydration
+
+  return ingress.getContext(chainId).pipe(
+    take(1),
+    switchMap((apiCtx) =>
+      from(
+        ingress.runtimeCall<[number, number][]>(
+          chainId,
+          {
+            api: 'AaveTradeExecutor',
+            method: 'pairs',
+          },
+          [],
+        ),
+      ).pipe(
+        filter((pairs): pairs is [number, number][] => pairs !== null),
+        switchMap((pairs) => {
+          const locationCodec = apiCtx.storageCodec('AssetRegistry', 'AssetLocations')
+          const locationHashers = apiCtx.getHashers('AssetRegistry', 'AssetLocations')
+          const locationPrefix = locationCodec.keys.enc() as HexString
+
+          const assetCodec = apiCtx.storageCodec('AssetRegistry', 'Assets')
+          const assetHashers = apiCtx.getHashers('AssetRegistry', 'Assets')
+          const assetPrefix = assetCodec.keys.enc() as HexString
+
+          const aTokens = new Set(pairs.map(([, a]) => a))
+
+          const assets$ = storageKeysAtLatest$(ingress, chainId, assetPrefix).pipe(
+            concatMap((storageKeys) =>
+              ingress.queryStorageAt(chainId, storageKeys).pipe(
+                map((changeSets) => {
+                  const changes = changeSets[0]?.changes ?? []
+                  const map = new Map<number, string>()
+
+                  for (const storageKey of storageKeys) {
+                    const change = changes.find(([k]) => k === storageKey)
+                    if (!change) {
+                      continue
+                    }
+
+                    const assetId = itemKeyFromStorageKey(storageKey, assetPrefix, assetHashers)
+
+                    const rawValue = change[1]
+                    if (!rawValue) {
+                      continue
+                    }
+
+                    const decoded = assetCodec.value.dec(rawValue as HexString)
+
+                    map.set(u32.dec(assetId), decoded.symbol)
+                  }
+
+                  return map
+                }),
+              ),
+            ),
+            reduce((acc, m) => {
+              m.forEach((v, k) => acc.set(k, v))
+              return acc
+            }, new Map<number, string>()),
+          )
+
+          return assets$.pipe(
+            switchMap((assetSymbols) =>
+              storageKeysAtLatest$(ingress, chainId, locationPrefix).pipe(
+                concatMap((storageKeys) =>
+                  ingress.queryStorageAt(chainId, storageKeys).pipe(
+                    mergeMap((changeSets) => {
+                      const changes = changeSets[0]?.changes ?? []
+
+                      return from(storageKeys).pipe(
+                        mergeMap((storageKey) => {
+                          const change = changes.find(([k]) => k === storageKey)
+                          const assetId = u32.dec(
+                            itemKeyFromStorageKey(storageKey, locationPrefix, locationHashers),
+                          )
+
+                          if (!change || !aTokens.has(assetId)) {
+                            return EMPTY
+                          }
+
+                          const rawValue = change[1]
+                          if (!rawValue) {
+                            return EMPTY
+                          }
+
+                          const location = locationCodec.value.dec(rawValue as HexString)
+                          if (
+                            location?.parents === 0 &&
+                            location?.interior?.type === 'X1' &&
+                            location?.interior?.value?.type === 'AccountKey20'
+                          ) {
+                            const address = (location.interior.value.value.key as FixedSizeBinary<20>).asHex()
+
+                            const symbol = assetSymbols.get(assetId)
+                            if (!symbol) {
+                              return EMPTY
+                            }
+
+                            const update: SubstrateAccountUpdate = {
+                              publicKey: address,
+                              evm: [
+                                {
+                                  address,
+                                  chainId,
+                                },
+                              ],
+                              categories: [
+                                {
+                                  chainId,
+                                  categoryCode: 2,
+                                  subCategoryCode: 1,
+                                },
+                              ],
+                              tags: [
+                                {
+                                  chainId,
+                                  tag: `protocol:atoken-${symbol}`,
+                                },
+                              ],
+                              updatedAt: Date.now(),
+                            }
+
+                            return of(update)
+                          }
+                          return EMPTY
+                        }),
+                      )
+                    }),
+                  ),
+                ),
+              ),
+            ),
+          )
+        }),
+      ),
+    ),
   )
 }
 
@@ -479,6 +601,7 @@ export const extraAccountMeta$: Record<
       hydrationEvmAccounts$(ingress),
       hydrationStableswapAccounts$(ingress),
       hydrationXykAccounts$(ingress),
+      hydrationATokenAccounts$(ingress),
     ),
   [networks.moonbeam]: () => moonbeamTokenAccounts$(),
 }
