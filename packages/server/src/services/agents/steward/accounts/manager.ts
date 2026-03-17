@@ -430,7 +430,6 @@ export class AccountsMetadataManager {
     return resolved
   }
 
-  // TODO generalise for other networks and pallets, similar to mappers but for updates
   #subscribeHydrationEvmAccountEvents() {
     const chainsToWatch: NetworkURN[] = ['urn:ocn:polkadot:2034']
     const streams = SubstrateSharedStreams.instance(this.#ingress)

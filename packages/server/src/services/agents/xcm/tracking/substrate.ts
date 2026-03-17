@@ -463,7 +463,7 @@ export class SubstrateXcmTracker {
         lane_id: new FixedSizeBinary(fromHex(lane)),
         nonce: BigInt(nonce),
       }) as HexString
-      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
+      return this.#ingress.getStorage(chainId, key, blockHash).pipe(
         map((buffer) => {
           return codec.value.dec(buffer)
         }),
@@ -476,7 +476,7 @@ export class SubstrateXcmTracker {
     return (blockHash: HexString, networkId: NetworkURN) => {
       const paraId = getChainId(networkId)
       const key = codec.keys.enc(paraId) as HexString
-      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
+      return this.#ingress.getStorage(chainId, key, blockHash).pipe(
         map((buffer) => {
           return codec.value.dec(buffer)
         }),
@@ -489,7 +489,7 @@ export class SubstrateXcmTracker {
     const key = codec.keys.enc() as HexString
 
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
+      return this.#ingress.getStorage(chainId, key, blockHash).pipe(
         map((buffer) => {
           const binaries = codec.value.dec(buffer) as Binary[]
 
@@ -506,7 +506,7 @@ export class SubstrateXcmTracker {
     const codec = context.storageCodec('ParachainSystem', 'HrmpOutboundMessages')
     const key = codec.keys.enc() as HexString
     return (blockHash: HexString) => {
-      return from(this.#ingress.getStorage(chainId, key, blockHash)).pipe(
+      return this.#ingress.getStorage(chainId, key, blockHash).pipe(
         map((buffer) => {
           return codec.value.dec(buffer)
         }),

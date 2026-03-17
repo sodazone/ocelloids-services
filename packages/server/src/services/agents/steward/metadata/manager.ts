@@ -1,7 +1,5 @@
 import { AbstractSublevel } from 'abstract-level'
 import {
-  EMPTY,
-  expand,
   filter,
   firstValueFrom,
   from,
@@ -18,6 +16,7 @@ import {
 } from 'rxjs'
 import { asSerializable } from '@/common/util.js'
 import { HexString, QueryParams, QueryResult } from '@/lib.js'
+import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import {
   SubstrateIngressConsumer,
   SubstrateNetworkInfo,
@@ -48,7 +47,6 @@ const ASSETS_HASH_INDEX_LEVEL_PREFIX = 'agent:steward:assets-hidx'
 const START_DELAY = 30_000 // 30s
 const SCHED_RATE = 43_200_000 // 12h
 
-const STORAGE_PAGE_LEN = 100
 const UPSERT_BATCH_SIZE = 100
 
 const ASSET_PALLET_EVENTS = [
@@ -252,16 +250,8 @@ export class AssetMetadataManager {
           index,
         )
         const { keyPrefix, mapEntry } = mapping
-        return this.#ingress
-          .getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN)
-          .pipe(
-            expand((keys) =>
-              keys.length === STORAGE_PAGE_LEN
-                ? this.#ingress.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-                : EMPTY,
-            ),
-            reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
-          )
+        return storageKeysAtLatest$(this.#ingress, chainId, keyPrefix)
+          .pipe(reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]))
           .pipe(
             mergeMap((keys) => {
               return keys.map((key) =>

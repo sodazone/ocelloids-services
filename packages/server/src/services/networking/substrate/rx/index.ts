@@ -1,3 +1,4 @@
 export * from './evm.js'
 export * from './extract.js'
 export * from './mingo-ops.js'
+export * from './storage.js'

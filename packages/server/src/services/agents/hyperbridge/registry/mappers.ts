@@ -1,8 +1,6 @@
 import { Binary } from 'polkadot-api'
 import {
   combineLatest,
-  EMPTY,
-  expand,
   filter,
   from,
   map,
@@ -20,10 +18,10 @@ import { HexString } from '@/lib.js'
 import { getChainId, getConsensus } from '@/services/config.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
+import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { TOKEN_GATEWAYS } from '../config.js'
 
-const STORAGE_PAGE_LEN = 100
+import { TOKEN_GATEWAYS } from '../config.js'
 
 export type AssetMetadata = {
   symbol?: string
@@ -76,12 +74,7 @@ function bifrostAssetMapper({ ingress }: MapperContext) {
         const codec = ctx.storageCodec('TokenGateway', 'SupportedAssets')
         const keyPrefix = codec.keys.enc() as HexString
 
-        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
-          expand((keys) =>
-            keys.length === STORAGE_PAGE_LEN
-              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-              : EMPTY,
-          ),
+        return storageKeysAtLatest$(apis, chainId, keyPrefix).pipe(
           reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           mergeMap((keys) =>
             apis.queryStorageAt(chainId, keys).pipe(
@@ -110,12 +103,7 @@ function bifrostAssetMapper({ ingress }: MapperContext) {
         const codec = ctx.storageCodec('TokenGateway', 'Decimals')
         const keyPrefix = codec.keys.enc() as HexString
 
-        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
-          expand((keys) =>
-            keys.length === STORAGE_PAGE_LEN
-              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-              : EMPTY,
-          ),
+        return storageKeysAtLatest$(apis, chainId, keyPrefix).pipe(
           reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           mergeMap((keys) =>
             apis.queryStorageAt(chainId, keys).pipe(
@@ -168,12 +156,7 @@ function _hydrationAssetMapper({ ingress }: MapperContext) {
         const codec = ctx.storageCodec('TokenGateway', 'SupportedAssets')
         const keyPrefix = codec.keys.enc() as HexString
 
-        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
-          expand((keys) =>
-            keys.length === STORAGE_PAGE_LEN
-              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-              : EMPTY,
-          ),
+        return storageKeysAtLatest$(apis, chainId, keyPrefix).pipe(
           reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           mergeMap((keys) =>
             apis.queryStorageAt(chainId, keys).pipe(
@@ -202,12 +185,7 @@ function _hydrationAssetMapper({ ingress }: MapperContext) {
         const codec = ctx.storageCodec('TokenGateway', 'Precisions')
         const keyPrefix = codec.keys.enc() as HexString
 
-        return apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN).pipe(
-          expand((keys) =>
-            keys.length === STORAGE_PAGE_LEN
-              ? apis.getStorageKeys(chainId, keyPrefix, STORAGE_PAGE_LEN, keys[keys.length - 1])
-              : EMPTY,
-          ),
+        return storageKeysAtLatest$(apis, chainId, keyPrefix).pipe(
           reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           mergeMap((keys) =>
             apis.queryStorageAt(chainId, keys).pipe(

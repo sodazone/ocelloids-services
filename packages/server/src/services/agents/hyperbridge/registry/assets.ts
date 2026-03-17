@@ -1,22 +1,12 @@
 import { AbstractSublevel } from 'abstract-level'
 import { Binary } from 'polkadot-api'
-import {
-  bufferCount,
-  EMPTY,
-  expand,
-  filter,
-  map,
-  merge,
-  mergeMap,
-  Observable,
-  reduce,
-  shareReplay,
-  switchMap,
-} from 'rxjs'
+import { bufferCount, filter, map, merge, mergeMap, Observable, reduce, shareReplay, switchMap } from 'rxjs'
 import { HexString } from '@/lib.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
+import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { Scheduled, Scheduler } from '@/services/scheduling/scheduler.js'
 import { LevelDB, Logger, NetworkURN } from '@/services/types.js'
+
 import { AgentRuntimeContext } from '../../types.js'
 import { HYPERBRIDGE_CONFIG, HYPERBRIDGE_NETWORK_ID } from '../config.js'
 import { AssetMapper, AssetMetadata, getAssetMappers, TokenGovernorAsset } from './mappers.js'
@@ -26,7 +16,6 @@ const ASSETS_LEVEL_PREFIX = 'agent:hyperbridge:assets'
 
 const START_DELAY = 60_000 // 1 min
 const SCHED_RATE = 86_400_000 // 24h
-const STORAGE_PAGE_LEN = 100
 
 export class HyperbridgeAssetsRegistry {
   readonly #id = 'hyperbridge-registry'
@@ -181,17 +170,7 @@ export class HyperbridgeAssetsRegistry {
         const codec = ctx.storageCodec('TokenGovernor', 'AssetMetadatas')
         const keyPrefix = codec.keys.enc() as HexString
 
-        return apis.getStorageKeys(HYPERBRIDGE_NETWORK_ID, keyPrefix, STORAGE_PAGE_LEN).pipe(
-          expand((keys) =>
-            keys.length === STORAGE_PAGE_LEN
-              ? apis.getStorageKeys(
-                  HYPERBRIDGE_NETWORK_ID,
-                  keyPrefix,
-                  STORAGE_PAGE_LEN,
-                  keys[keys.length - 1],
-                )
-              : EMPTY,
-          ),
+        return storageKeysAtLatest$(apis, HYPERBRIDGE_NETWORK_ID, keyPrefix).pipe(
           reduce((acc, current) => (current.length > 0 ? acc.concat(current) : acc), [] as HexString[]),
           mergeMap((keys) =>
             apis.queryStorageAt(HYPERBRIDGE_NETWORK_ID, keys).pipe(
