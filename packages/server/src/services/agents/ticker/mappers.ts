@@ -66,7 +66,11 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     },
     {
       chainId: 'urn:ocn:polkadot:2004',
-      assetId: '0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D',
+      assetId: '0xe57ebd2d67b462e9926e04a8e33f01cd0d64346d',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x1dc78acda13a8bc4408b207c9e48cdbc096d95e0',
     },
   ],
   WETH: [
@@ -123,6 +127,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:polkadot:2004',
       assetId: 'native',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2004',
+      assetId: '0x0000000000000000000000000000000000000802',
     },
     {
       chainId: 'urn:ocn:polkadot:3367',
