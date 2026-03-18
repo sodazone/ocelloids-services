@@ -10,7 +10,7 @@ describe('SS58 conversion', () => {
     expect(address).toBe('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
   })
 
-  it.only('encodes evm address to SS58 (hydration)', () => {
+  it('encodes evm address to SS58 (hydration)', () => {
     const address = publicKeyToSS58(padAccountKey20('0x0deb93e5c2f77c83fcff06ac3042cb81e06f4f1a'))
 
     expect(address).toBe('12ZuLmUHiTokiUa35br7QLDm2GWGhxXuQqq5UiUBUguKxjbq')
