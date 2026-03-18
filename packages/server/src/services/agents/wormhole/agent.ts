@@ -199,7 +199,9 @@ export class WormholeAgent implements Agent {
 
   async #recheckBySearch(journey: Journey) {
     const isOriginLeg = isWormholeProtocol(journey.origin_protocol)
-    const address = isOriginLeg ? journey.from : journey.to
+    const address = isOriginLeg
+      ? (journey.from_formatted ?? journey.from)
+      : (journey.to_formatted ?? journey.to)
 
     const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
     if (!stop) {
