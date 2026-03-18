@@ -1,4 +1,4 @@
-import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
+import { Binary, fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { fromHex } from 'polkadot-api/utils'
 import { Enum, Struct, u256 } from 'scale-ts'
 import { normalizePublicKey } from '@/common/util.js'
@@ -192,10 +192,10 @@ export function resolveDestinationAndBeneficiary({
     if (acc) {
       if (acc.type === 'AccountId32') {
         const pubkey = normalizePublicKey(acc.value.id.asHex())
-        address = { key: pubkey, formatted: fromBufferToBase58(ss58Prefix ?? 0)(fromHex(pubkey)).toString() }
+        address = { key: pubkey, formatted: toFormattedAddress(pubkey, ss58Prefix) }
       } else if (acc.type === 'AccountKey20') {
-        const raw = acc.value.key.asHex()
-        address = { key: raw, formatted: `0x${String(raw).replace(/^0x/, '')}` }
+        const raw = (acc.value.key as Binary).asHex()
+        address = { key: raw, formatted: toFormattedAddress(raw, ss58Prefix) }
       }
     }
   } catch (err) {
@@ -203,6 +203,13 @@ export function resolveDestinationAndBeneficiary({
   }
 
   return { urn, address }
+}
+
+function toFormattedAddress(raw: string, ss58Prefix = 0) {
+  if (raw.length === 42) {
+    return `0x${String(raw).replace(/^0x/, '')}`
+  }
+  return fromBufferToBase58(ss58Prefix)(fromHex(raw)).toString()
 }
 
 /**
