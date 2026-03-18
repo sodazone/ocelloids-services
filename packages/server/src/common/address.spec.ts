@@ -1,5 +1,5 @@
 import { fromHex } from 'polkadot-api/utils'
-import { publicKeyToSS58, ss58ToPublicKey } from './address.js'
+import { padAccountKey20, publicKeyToSS58, ss58ToPublicKey } from './address.js'
 
 describe('SS58 conversion', () => {
   const alicePublicKey = fromHex('0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d')
@@ -8,6 +8,12 @@ describe('SS58 conversion', () => {
     const address = publicKeyToSS58(alicePublicKey, 42)
 
     expect(address).toBe('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+  })
+
+  it.only('encodes evm address to SS58 (hydration)', () => {
+    const address = publicKeyToSS58(padAccountKey20('0x0deb93e5c2f77c83fcff06ac3042cb81e06f4f1a'))
+
+    expect(address).toBe('12ZuLmUHiTokiUa35br7QLDm2GWGhxXuQqq5UiUBUguKxjbq')
   })
 
   it('decodes SS58 address to public key', () => {
