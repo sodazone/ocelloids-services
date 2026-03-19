@@ -179,7 +179,6 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
             processOps(newOps, now)
 
             // 2. fetch pending ops
-            console.log('>>> wormhole watcher pending size', pending.size)
             for (const [id, entry] of pending.entries()) {
               limit(async () => {
                 try {
