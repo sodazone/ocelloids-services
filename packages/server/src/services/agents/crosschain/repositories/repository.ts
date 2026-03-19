@@ -145,7 +145,7 @@ function mapRowToFullJourney(row: any): FullJourney {
     in_connection_data: row.in_connection_data,
     out_connection_fk: row.out_connection_fk,
     out_connection_data: row.out_connection_data,
-    totalUsd: Number(row.total_usd ?? 0),
+    totalUsd: Number(row.totalUsd ?? 0),
     assets: parseAssets(row.assets),
   }
 }
