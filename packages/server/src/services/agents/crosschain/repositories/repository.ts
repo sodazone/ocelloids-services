@@ -757,11 +757,18 @@ export class CrosschainRepository {
 
   async getJourneysByStatus(
     status: JourneyStatus | JourneyStatus[],
-    protocols?: string | string[],
-    sentAfter?: number, // timestamp in millis
+    opts?: {
+      protocols?: string | string[]
+      sentBefore?: number // timestamp in millis
+      sentAfter?: number // timestamp in millis
+    },
   ): Promise<FullJourney[]> {
     const statuses = Array.isArray(status) ? status : [status]
-    const protocolList = protocols ? (Array.isArray(protocols) ? protocols : [protocols]) : undefined
+    const protocolList = opts?.protocols
+      ? Array.isArray(opts.protocols)
+        ? opts.protocols
+        : [opts.protocols]
+      : undefined
 
     let query = this.#db.selectFrom('xc_journeys').select('id').where('status', 'in', statuses)
 
@@ -771,8 +778,11 @@ export class CrosschainRepository {
       )
     }
 
-    if (sentAfter !== undefined) {
-      query = query.where('sent_at', '>=', sentAfter)
+    if (opts?.sentAfter !== undefined) {
+      query = query.where('sent_at', '>=', opts.sentAfter)
+    }
+    if (opts?.sentBefore !== undefined) {
+      query = query.where('sent_at', '<', opts.sentBefore)
     }
 
     query = query.orderBy('sent_at', 'desc')

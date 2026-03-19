@@ -20,14 +20,15 @@ import { CrosschainRepository, FullJourney, Journey, JourneyUpdate } from '../cr
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
+import { WormholePendingCache } from './pending.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
 import { WormholeWorkerPool } from './worker.pool.js'
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
-const PENDING_RECHECK_INTERVAL = 86_400_000 // 24h
-const PENDING_RECHECK_WINDOW = 604_800_000 // 7 days
-const RECHECK_DELAY_MS = Number(process.env.WORMHOLE_RECHECK_PENDING_DELAY_MS ?? 120_000)
+const PENDING_RECHECK_INTERVAL = 300_000 // 5m
+const PENDING_RECHECK_WINDOW_MIN = 2 * 60 * 60_000 // 2h
+const PENDING_RECHECK_WINDOW_MAX = 604_800_000 // 7 days
 const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 
@@ -60,6 +61,7 @@ export class WormholeAgent implements Agent {
   readonly #repository: CrosschainRepository
   readonly #telemetry: TelemetryWormholeEventEmitter
   readonly #wormholeQueue: PQueue
+  readonly #wormholePendingCache: WormholePendingCache
   readonly #worker: WormholeWorkerPool
 
   constructor(
@@ -76,6 +78,7 @@ export class WormholeAgent implements Agent {
 
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
     this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
+    this.#wormholePendingCache = new WormholePendingCache(ctx.log)
     this.#worker = new WormholeWorkerPool(
       new URL('../../../../dist/services/agents/wormhole/worker.js', import.meta.url),
       { dataPath: process.env.OC_DATA_DIR ?? './.db/' },
@@ -105,8 +108,15 @@ export class WormholeAgent implements Agent {
 
     this.#worker.run('startWatcher', { chains: [WormholeIds.MOONBEAM_ID], since: ago(1, 'day') })
 
-    this.#recheckPendingJourneys()
-    setInterval(() => this.#recheckPendingJourneys(), PENDING_RECHECK_INTERVAL)
+    if (RECHECK_ENABLED) {
+      this.#log.info(
+        '[agent:%s] recheck pending journeys enabled (interval=%sms, concurrency=%s)',
+        this.id,
+        PENDING_RECHECK_INTERVAL,
+        RECHECK_CONCURRENCY,
+      )
+      setInterval(() => this.#recheckPendingJourneys(), PENDING_RECHECK_INTERVAL)
+    }
   }
 
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
@@ -125,31 +135,29 @@ export class WormholeAgent implements Agent {
   }
 
   async #recheckPendingJourneys() {
-    if (!RECHECK_ENABLED) {
+    const pendings = await this.#repository.getJourneysByStatus(['sent', 'waiting'], {
+      protocols: [...WormholeProtocols],
+      sentBefore: Date.now() - PENDING_RECHECK_WINDOW_MIN,
+      sentAfter: Date.now() - PENDING_RECHECK_WINDOW_MAX,
+    })
+
+    this.#wormholePendingCache.add(
+      pendings.filter((journey) => {
+        const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+        if (['completed', 'confirmed'].includes(stop?.to?.status)) {
+          return false
+        }
+        return true
+      }),
+    )
+    const due = this.#wormholePendingCache.getDue()
+
+    if (due.length === 0) {
+      this.#log.info('[agent:%s] No pending rechecks due', this.id, pendings.length)
       return
     }
 
-    this.#log.info(
-      '[agent:%s] recheck pending journeys enabled (delay=%sms, concurrency=%s)',
-      this.id,
-      RECHECK_DELAY_MS,
-      RECHECK_CONCURRENCY,
-    )
-
-    // Wait initial delay
-    await new Promise((r) => setTimeout(r, RECHECK_DELAY_MS))
-
-    const pendings = await this.#repository.getJourneysByStatus(
-      ['sent', 'waiting'],
-      [...WormholeProtocols],
-      Date.now() - PENDING_RECHECK_WINDOW,
-    )
-
-    if (pendings.length === 0) {
-      return
-    }
-
-    for (const journey of pendings) {
+    for (const { journey } of due) {
       this.#wormholeQueue.add(async () => {
         try {
           await this.#recheckJourney(journey)
@@ -160,20 +168,18 @@ export class WormholeAgent implements Agent {
       })
     }
 
-    this.#log.info('[agent:%s] pending recheck started (%s items)', this.id, pendings.length)
+    this.#log.info('[agent:%s] pending recheck started (%s items)', this.id, due.length)
   }
 
-  async #recheckJourney(journey: Journey) {
+  async #recheckJourney(journey: FullJourney) {
     try {
       const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
-      if (['completed', 'confirmed'].includes(stop?.to?.status)) {
-        return
-      }
       const opId = stop?.messageId || (isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
 
       if (opId) {
         this.#log.info('[agent:%s] Refetching pending op %s', this.id, opId)
         const op = await this.#safeFetchOp(opId)
+        this.#wormholePendingCache.update(journey, op)
         if (op) {
           await this.#onOperation(op)
         }
@@ -197,7 +203,7 @@ export class WormholeAgent implements Agent {
     }
   }
 
-  async #recheckBySearch(journey: Journey) {
+  async #recheckBySearch(journey: FullJourney) {
     const isOriginLeg = isWormholeProtocol(journey.origin_protocol)
     const address = isOriginLeg
       ? (journey.from_formatted ?? journey.from)
@@ -227,10 +233,12 @@ export class WormholeAgent implements Agent {
 
     if (operations.length === 0) {
       this.#log.info('[agent:%s] No ops found from search %s', this.id, JSON.stringify(searchOp))
+      this.#wormholePendingCache.update(journey)
     }
 
     for (const op of operations) {
       this.#log.info('[agent:%s] Refetched pending op from search %s', this.id, op.id)
+      this.#wormholePendingCache.update(journey, op)
       await this.#onOperation(op)
     }
   }

@@ -155,7 +155,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
   function operations$(
     initialState: WatcherState,
     intervalMs = 10_000, // 10s
-    timeoutMs = 24 * 60 * 60 * 1_000, // 24h
+    timeoutMs = 2 * 60 * 60 * 1_000, // 2h
   ): Observable<{ op: WormholeOperation; status: JourneyStatus }> {
     return new Observable((subscriber) => {
       let state = initialState
@@ -179,6 +179,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
             processOps(newOps, now)
 
             // 2. fetch pending ops
+            console.log('>>> wormhole watcher pending size', pending.size)
             for (const [id, entry] of pending.entries()) {
               limit(async () => {
                 try {
