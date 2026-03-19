@@ -317,6 +317,7 @@ export class XcmExplorer {
                 tripId,
               )
               setImmediate(() => this.#updateTrip(message, existingTrips))
+              return
             }
             this.#log.warn(
               '[xcm:explorer] Journey not found for correlationId: %s (%s)',
@@ -498,14 +499,17 @@ export class XcmExplorer {
 
       let result: { updatedIds: { id: number; correlationId: string }; replaces: Journey | null } | null =
         null
+      let setCache = false
 
       if (journey.origin_protocol !== journey.destination_protocol) {
         if (journey.origin_protocol === 'xcm') {
+          setCache = true
           result = await merge(journey.id, existingTrip.id)
         } else if (journey.destination_protocol === 'xcm') {
           result = await merge(existingTrip.id, journey.id)
         }
       } else if (origin_protocol === 'xcm' || existingTrip.origin === journey.origin) {
+        setCache = true
         result = await merge(journey.id, existingTrip.id)
       } else if (destination_protocol === 'xcm' || existingTrip.destination === journey.destination) {
         result = await merge(existingTrip.id, journey.id)
@@ -528,7 +532,9 @@ export class XcmExplorer {
             totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
           },
         })
-        this.#replacedJourneysCache.set(result.replaces.correlation_id, result.updatedIds.id)
+        if (setCache) {
+          this.#replacedJourneysCache.set(result.replaces.correlation_id, result.updatedIds.id)
+        }
       }
     } catch (e) {
       this.#log.error(e, '[xcm:connecting-trip] error %s', journey.id)
