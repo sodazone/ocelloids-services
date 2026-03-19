@@ -8,8 +8,15 @@ export interface SQLiteOptions {
 }
 
 export function createKyselyDatabase<T>(opts: SQLiteOptions) {
+  const sqliteDb = new SQLite(opts.filename, opts.options)
+
+  sqliteDb.pragma('journal_mode = WAL')
+  sqliteDb.pragma('cache_size = 10000') // ~40 MB page cache
+  sqliteDb.pragma('synchronous = NORMAL')
+  sqliteDb.pragma('temp_store = MEMORY')
+
   const dialect = new SqliteDialect({
-    database: new SQLite(opts.filename, opts.options),
+    database: sqliteDb,
   })
   const db = new Kysely<T>({
     dialect,
