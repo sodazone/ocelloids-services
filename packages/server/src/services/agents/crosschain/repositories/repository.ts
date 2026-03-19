@@ -1,5 +1,5 @@
 import { Twox256 } from '@polkadot-api/substrate-bindings'
-import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
+import { DeleteResult, Kysely, SelectQueryBuilder, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
 import { immediate, microtask } from '@/common/event.loop.js'
@@ -1048,21 +1048,15 @@ export class CrosschainRepository {
     field: 'id' | 'correlation_id' = 'id',
     order: 'asc' | 'desc' = 'desc',
   ) {
-    const query = this.#db
+    if (values.length === 0) {
+      return []
+    }
+
+    // Step 1: Fetch the journey rows
+    const journeys = await this.#db
       .selectFrom('xc_journeys')
-      .leftJoin(
-        this.#db
-          .selectFrom('xc_asset_ops')
-          .select(['journey_id', sql`SUM(usd)`.as('total_usd')])
-          .where('role', '=', 'transfer')
-          .groupBy('journey_id')
-          .as('asset_totals'),
-        'xc_journeys.id',
-        'asset_totals.journey_id',
-      )
-      .leftJoin('xc_asset_ops', 'xc_journeys.id', 'xc_asset_ops.journey_id')
       .select([
-        'xc_journeys.id',
+        'id',
         'correlation_id',
         'trip_id',
         'status',
@@ -1083,31 +1077,53 @@ export class CrosschainRepository {
         'transact_calls',
         'origin_tx_primary',
         'origin_tx_secondary',
+        'destination_tx_primary',
+        'destination_tx_secondary',
         'in_connection_fk',
         'in_connection_data',
         'out_connection_fk',
         'out_connection_data',
-        sql`IFNULL(asset_totals.total_usd, 0)`.as('total_usd'),
-        sql`IFNULL(json_group_array(
-        CASE
-          WHEN xc_asset_ops.asset IS NOT NULL THEN
-            json_object(
-              'asset', xc_asset_ops.asset,
-              'symbol', xc_asset_ops.symbol,
-              'amount', xc_asset_ops.amount,
-              'decimals', xc_asset_ops.decimals,
-              'usd', xc_asset_ops.usd,
-              'role', xc_asset_ops.role,
-              'sequence', xc_asset_ops.sequence
-            )
-          ELSE NULL
-        END
-      ), json('[]'))`.as('assets'),
       ])
       .where(`xc_journeys.${field}`, 'in', values)
-      .groupBy('xc_journeys.id')
-      .orderBy('xc_journeys.sent_at', order)
+      .orderBy('sent_at', order)
+      .orderBy('id', order)
+      .execute()
 
-    return query.execute()
+    if (journeys.length === 0) {
+      return []
+    }
+
+    const journeyIds = journeys.map((j) => j.id)
+
+    // Step 2: Fetch all assets for these journeys in a single query
+    const assets = await this.#db
+      .selectFrom('xc_asset_ops')
+      .select(['journey_id', 'asset', 'symbol', 'amount', 'decimals', 'usd', 'role', 'sequence'])
+      .where('journey_id', 'in', journeyIds)
+      .execute()
+
+    // Step 3: Map assets to their journeys
+    const journeyAssetsMap = new Map<number, FullJourneyAsset[]>()
+    const journeyUsdMap = new Map<number, number>()
+
+    for (const a of assets) {
+      if (!journeyAssetsMap.has(a.journey_id)) {
+        journeyAssetsMap.set(a.journey_id, [])
+      }
+      journeyAssetsMap.get(a.journey_id)!.push(a)
+
+      if (a.role === 'transfer') {
+        journeyUsdMap.set(a.journey_id, (journeyUsdMap.get(a.journey_id) ?? 0) + (a.usd ?? 0))
+      }
+    }
+
+    // Step 4: Build FullJourney array
+    const fullJourneys: FullJourney[] = journeys.map((j) => ({
+      ...j,
+      totalUsd: journeyUsdMap.get(j.id) ?? 0,
+      assets: journeyAssetsMap.get(j.id) ?? [],
+    }))
+
+    return fullJourneys
   }
 }

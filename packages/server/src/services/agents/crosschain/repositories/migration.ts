@@ -90,6 +90,13 @@ export async function up(db: Kysely<any>): Promise<void> {
 
     // Create indexes
     await db.schema
+      .createIndex('xc_journeys_sent_at_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['sent_at', 'id'])
+      .execute()
+
+    await db.schema
       .createIndex('xc_journeys_type_sent_at_id_index')
       .ifNotExists()
       .on('xc_journeys')
