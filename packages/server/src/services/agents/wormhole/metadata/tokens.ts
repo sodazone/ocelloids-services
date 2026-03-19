@@ -25,6 +25,11 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['1:hzwqbkzw8hxmn6bf2yfznrht3c2ixxzpkcfu7ubedktr']: {
+    symbol: 'EURC',
+    decimals: 6,
+    isNative: false,
+  },
   ['2:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd']: {
     symbol: 'sUSDS',
     decimals: 18,
