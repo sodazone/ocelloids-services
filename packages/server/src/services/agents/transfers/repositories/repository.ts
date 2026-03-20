@@ -293,8 +293,8 @@ export class IntrachainTransfersRepository {
 
     if (pagination?.cursor) {
       const decoded = decodeAssetsListCursor(pagination.cursor)
-      snapshotStart = decoded.snapshotStart
-      snapshotEnd = decoded.snapshotEnd
+      snapshotStart = Number(decoded.snapshotStart)
+      snapshotEnd = Number(decoded.snapshotEnd)
       afterAsset = decoded.asset
       afterUsdVolume = decoded.usd_volume
     }
@@ -305,8 +305,8 @@ export class IntrachainTransfersRepository {
       if (!latest) {
         return { items: [], pageInfo: { hasNextPage: false, endCursor: '' } }
       }
-      snapshotStart = latest.snapshot_start
-      snapshotEnd = latest.snapshot_end
+      snapshotStart = Number(latest.snapshot_start)
+      snapshotEnd = Number(latest.snapshot_end)
     }
 
     let query = this.#db

@@ -2,6 +2,7 @@ import { Migrator } from 'kysely'
 import { Operation } from 'rfc6902'
 import { filter, Subject } from 'rxjs'
 import { ControlQuery, Criteria } from '@/common/index.js'
+import { maskPassword } from '@/common/url.js'
 import { asPublicKey, asSerializable } from '@/common/util.js'
 import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
@@ -87,7 +88,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
     this.#log = log
 
     const connectionString = XC_DB_CONNECTION ?? resolveDataPath(DEFAULT_XC_DB_PATH, environment?.dataPath)
-    this.#log.info('[xc:explorer] database at %s', connectionString)
+    this.#log.info('[xc:explorer] database at %s', maskPassword(connectionString))
     const { db, migrator, dialect } = createCrosschainDatabase(connectionString)
 
     this.#migrator = migrator
@@ -142,7 +143,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - latest.snapshot_end > ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - Number(latest.snapshot_end) > ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 

@@ -521,8 +521,8 @@ export class CrosschainRepository {
         }
       }
 
-      snapshotStart = latestSnapshot.snapshot_start
-      snapshotEnd = latestSnapshot.snapshot_end
+      snapshotStart = Number(latestSnapshot.snapshot_start)
+      snapshotEnd = Number(latestSnapshot.snapshot_end)
     }
 
     let query = this.#db

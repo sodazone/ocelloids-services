@@ -37,8 +37,8 @@ export function mapRowToTransferResponse(row: IcTransfer): IcTransferResponse {
     tx_primary: row.tx_primary ? toHex(row.tx_primary) : undefined,
     tx_secondary: row.tx_secondary ? toHex(row.tx_secondary) : undefined,
     tx_signer: row.tx_signer ? toHex(row.tx_signer) : undefined,
-    sent_at: row.sent_at,
-    created_at: row.created_at,
+    sent_at: Number(row.sent_at),
+    created_at: Number(row.created_at),
   }
 
   return deepCamelize(response)

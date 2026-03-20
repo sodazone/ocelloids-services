@@ -14,6 +14,7 @@ import {
   tap,
 } from 'rxjs'
 import { asPublicKey, asSerializable, ControlQuery, Criteria } from '@/common/index.js'
+import { maskPassword } from '@/common/url.js'
 import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
@@ -108,7 +109,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
 
     const connectionString =
       IC_DB_CONNECTION ?? resolveDataPath(DEFAULT_IC_TRANSFERS_PATH, ctx.environment?.dataPath)
-    this.#log.info('[agent:%s] database at %s', this.id, connectionString)
+    this.#log.info('[agent:%s] database at %s', this.id, maskPassword(connectionString))
     const { db, migrator, dialect } = createIntrachainTransfersDatabase(connectionString)
 
     this.#migrator = migrator
@@ -174,7 +175,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - latest.snapshot_end > IC_ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - Number(latest.snapshot_end) > IC_ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 
@@ -240,7 +241,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     }
   }
 
-  update(subscriptionId: string, patch: Operation[]): Subscription {
+  update(_subscriptionId: string, _patch: Operation[]): Subscription {
     throw new Error('Update not supported')
   }
 

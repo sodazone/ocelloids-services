@@ -91,8 +91,12 @@ export type AssetOperationKey = {
   sequence?: number
 }
 
-type OptionalTimestamp = ColumnType<number | undefined, number | undefined, number | undefined>
-type Timestamp = ColumnType<number, number | undefined, number>
+type OptionalTimestamp = ColumnType<
+  number | string | undefined,
+  number | string | undefined,
+  number | string | undefined
+>
+type Timestamp = ColumnType<number | string, number | string | undefined, number | string>
 
 /**
  * @internal
@@ -179,8 +183,8 @@ export interface XcAssetVolumeCache {
   asset: ColumnType<string>
   symbol: ColumnType<string | undefined>
   usd_volume: ColumnType<number>
-  snapshot_start: ColumnType<number>
-  snapshot_end: ColumnType<number>
+  snapshot_start: Timestamp
+  snapshot_end: Timestamp
 }
 
 export type AssetVolumeCacheRow = Selectable<XcAssetVolumeCache>
