@@ -219,6 +219,9 @@ export class WormholeAgent implements Agent {
     if (!stop) {
       return
     }
+    if (journey.sent_at === undefined) {
+      return
+    }
 
     const sourceChain = urnToChainId(stop.from.chainId)
     const targetChain = urnToChainId(stop.to.chainId)

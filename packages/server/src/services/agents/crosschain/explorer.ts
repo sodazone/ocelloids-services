@@ -142,7 +142,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - new Date(latest.snapshot_end).getTime() > ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - latest.snapshot_end > ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 

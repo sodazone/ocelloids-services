@@ -2,9 +2,10 @@ import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
-import { immediate, microtask } from '@/common/event.loop.js'
+import { microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import { JourneyFilters, JourneyRangeFilters } from '../types/queries.js'
 import {
   AssetOperation,
@@ -42,7 +43,7 @@ function encodeCursor(journeys: FullJourney[]): string {
     const { sent_at, id } = journey
 
     if (sent_at !== undefined && sent_at !== null) {
-      const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
+      const timestamp = typeof sent_at === 'object' ? (sent_at as Date).getTime() : sent_at
 
       return Buffer.from(`${timestamp}|${id}`).toString('base64')
     }
@@ -270,9 +271,11 @@ export function mergeStops(inStops: any[] = [], outStops: any[] = []) {
 
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
+  //readonly #dialect: SQLDialect
 
-  constructor(db: Kysely<CrosschainDatabase>) {
+  constructor(db: Kysely<CrosschainDatabase>, _dialect: SQLDialect = 'sqlite') {
     this.#db = db
+    //this.#dialect = dialect
   }
 
   async updateJourney(id: number, updateWith: JourneyUpdate): Promise<void> {
@@ -400,6 +403,7 @@ export class CrosschainRepository {
       const PAGE = 1000
       let offset = 0
 
+      // Subquery: compute recent 30-day volumes per asset
       const volumeSubquery = this.#db
         .selectFrom('xc_asset_ops as recent_assets')
         .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
@@ -414,16 +418,17 @@ export class CrosschainRepository {
         .as('volumes')
 
       while (true) {
+        // Step 1: Fetch asset ops with joined recent volumes
         const results = await this.#db
-          .selectFrom('xc_asset_ops')
-          .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
+          .selectFrom('xc_asset_ops as a')
+          .leftJoin(volumeSubquery, 'a.asset', 'volumes.asset')
           .select((eb) => [
-            eb.ref('xc_asset_ops.asset').as('asset'),
-            eb.fn.max('xc_asset_ops.symbol').as('symbol'),
-            eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
+            eb.ref('a.asset').as('asset'),
+            eb.fn.max('a.symbol').as('symbol'),
+            eb.fn.coalesce(eb.fn.max('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
           ])
-          .where('xc_asset_ops.symbol', 'is not', null)
-          .groupBy('xc_asset_ops.asset')
+          .where('a.symbol', 'is not', null)
+          .groupBy('a.asset')
           .limit(PAGE)
           .offset(offset)
           .execute()
@@ -432,19 +437,18 @@ export class CrosschainRepository {
           break
         }
 
-        await microtask()
+        // Step 2: Prepare values with snapshot timestamps
+        const values = results.map((row) => ({
+          ...row,
+          usd_volume: Number(row.usd_volume),
+          snapshot_start,
+          snapshot_end,
+        }))
 
-        // Upsert into snapshot table
+        // Step 3: Upsert into snapshot table
         await this.#db
           .insertInto('xc_asset_volume_cache')
-          .values(
-            results.map((row) => ({
-              ...row,
-              usd_volume: Number(row.usd_volume),
-              snapshot_end,
-              snapshot_start,
-            })),
-          )
+          .values(values)
           .onConflict((oc) =>
             oc.column('asset').doUpdateSet((eb) => ({
               symbol: eb.ref('excluded.symbol'),
@@ -456,8 +460,7 @@ export class CrosschainRepository {
           .execute()
 
         offset += PAGE
-
-        await immediate()
+        await microtask()
       }
     } catch (error) {
       console.error('Error upserting xc_asset_volume_cache:', error)

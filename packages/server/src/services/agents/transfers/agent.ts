@@ -174,7 +174,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - new Date(latest.snapshot_end).getTime() > IC_ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - latest.snapshot_end > IC_ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 

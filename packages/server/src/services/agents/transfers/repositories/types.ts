@@ -1,7 +1,7 @@
 import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
 import { IcTransferType } from '../types.js'
 
-type Timestamp = ColumnType<Date | number, Date | number | undefined, Date | number>
+type Timestamp = ColumnType<number, number | undefined, number>
 
 /**
  * Intra-chain transfers table
