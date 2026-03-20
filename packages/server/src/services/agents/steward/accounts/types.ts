@@ -53,6 +53,7 @@ export type SubstrateAccountMetadata = {
 
 export type SubstrateAccountUpdate = Partial<SubstrateAccountMetadata> & {
   publicKey: HexString
+  replace?: boolean
 }
 
 /**
