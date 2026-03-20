@@ -2,7 +2,7 @@ import PQueue from 'p-queue'
 
 import { immediate } from '@/common/event.loop.js'
 import { ago } from '@/common/time.js'
-import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
+import { asJSON, createTypedEventEmitter } from '@/common/util.js'
 import {
   urnToChainId,
   WormholeIds,
@@ -15,6 +15,7 @@ import {
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
 import { Logger } from '@/services/types.js'
+import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository, FullJourney, Journey, JourneyUpdate } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
@@ -127,7 +128,7 @@ export class WormholeAgent implements Agent {
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
-    const journeyResponse = deepCamelize<FullJourney>(fullJourney)
+    const journeyResponse = fullJourneyToResponse(fullJourney)
     this.#crosschain.broadcastJourney(event, journeyResponse)
     this.#crosschain.emit(journeyResponse)
 
@@ -226,8 +227,9 @@ export class WormholeAgent implements Agent {
     const sourceChain = urnToChainId(stop.from.chainId)
     const targetChain = urnToChainId(stop.to.chainId)
 
-    const from = new Date(journey.sent_at - OPERATION_LOOKUP_WINDOW_MS).toISOString()
-    const to = new Date(journey.sent_at + OPERATION_LOOKUP_WINDOW_MS).toISOString()
+    const sentAt = Number(journey.sent_at)
+    const from = new Date(sentAt - OPERATION_LOOKUP_WINDOW_MS).toISOString()
+    const to = new Date(sentAt + OPERATION_LOOKUP_WINDOW_MS).toISOString()
     const searchOp = {
       address,
       sourceChain,
@@ -386,7 +388,7 @@ export class WormholeAgent implements Agent {
         this.#crosschain.broadcastReplaceJourney({
           ids: result.updatedIds,
           replaces: {
-            ...deepCamelize<Journey>(result.replaces),
+            ...journeyToResponse(result.replaces),
             assets: replacesJourneyAssets,
             totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
           },

@@ -1,6 +1,7 @@
 import { mergeMap, Subscription } from 'rxjs'
-import { asJSON, createTypedEventEmitter, deepCamelize } from '@/common/util.js'
+import { asJSON, createTypedEventEmitter } from '@/common/util.js'
 import { Logger, NetworkURN } from '@/services/types.js'
+import { fullJourneyToResponse } from '../crosschain/convert.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { CrosschainRepository, FullJourney, JourneyUpdate } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
@@ -175,9 +176,9 @@ export class HyperbridgeAgent implements Agent {
       throw new Error(`Failed to fetch ${id} journey after insert (${event})`)
     }
     this.#log.info('[agent:%s] broadcast %s:  %s', this.id, event, id)
-    const camelizedJourney = deepCamelize<FullJourney>(fullJourney)
-    this.#crosschain.broadcastJourney(event, camelizedJourney)
-    this.#crosschain.emit(camelizedJourney)
+    const journeyResponse = fullJourneyToResponse(fullJourney)
+    this.#crosschain.broadcastJourney(event, journeyResponse)
+    this.#crosschain.emit(journeyResponse)
   }
 
   async #onMessage(message: HyperbridgeDecodedPayload) {
