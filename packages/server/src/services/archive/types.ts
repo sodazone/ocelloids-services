@@ -1,4 +1,4 @@
-import { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
+import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
 import { z } from 'zod'
 
 export interface HistoricalPayloadsTable {
@@ -6,7 +6,7 @@ export interface HistoricalPayloadsTable {
   network: ColumnType<string>
   agent: ColumnType<string>
   block_number: ColumnType<number>
-  payload: JSONColumnType<any>
+  payload: ColumnType<string>
   created_at: ColumnType<string, never>
 }
 

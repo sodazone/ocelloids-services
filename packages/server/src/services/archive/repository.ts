@@ -98,7 +98,11 @@ export class ArchiveRepository {
       const stream = new Subject<T>()
       this.logs$(q).subscribe({
         next: ({ payload }) => {
-          stream.next(payload)
+          try {
+            stream.next(JSON.parse(payload))
+          } catch (e) {
+            console.error(e, 'Error parsing payload on withHistory')
+          }
         },
         error: (err) => {
           stream.error(err)
@@ -127,7 +131,11 @@ export class ArchiveRepository {
       const stream = new Subject<T>()
       this.logs$(q).subscribe({
         next: ({ payload }) => {
-          stream.next(payload)
+          try {
+            stream.next(JSON.parse(payload))
+          } catch (e) {
+            console.error(e, 'Error parsing payload on withHistory date range')
+          }
         },
         error: (err) => {
           stream.error(err)
@@ -155,7 +163,11 @@ export class ArchiveRepository {
       from$.subscribe({
         next: ({ created_at, payload }) => {
           lastTime = asUTC(created_at)
-          stream.next(payload)
+          try {
+            stream.next(JSON.parse(payload))
+          } catch (e) {
+            console.error(e, 'Error parsing payload on #historicalAndFollow')
+          }
         },
         error: (err) => {
           stream.error(err)
