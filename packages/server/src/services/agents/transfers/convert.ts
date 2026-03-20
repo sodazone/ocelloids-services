@@ -3,6 +3,7 @@ import { fromHex, toHex } from 'polkadot-api/utils'
 import { asPublicKey, deepCamelize, stringToUa8 } from '@/common/util.js'
 import { toMelbourne } from '@/services/agents/common/melbourne.js'
 import { BlockExtrinsic } from '@/services/networking/substrate/types.js'
+import { asNumber } from '@/services/persistence/kysely/val.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { IcTransfer, IcTransferResponse, NewIcTransfer } from './repositories/types.js'
 import { EnrichedTransfer } from './types.js'
@@ -37,6 +38,8 @@ export function mapRowToTransferResponse(row: IcTransfer): IcTransferResponse {
     tx_primary: row.tx_primary ? toHex(row.tx_primary) : undefined,
     tx_secondary: row.tx_secondary ? toHex(row.tx_secondary) : undefined,
     tx_signer: row.tx_signer ? toHex(row.tx_signer) : undefined,
+    sent_at: asNumber(row.sent_at),
+    created_at: asNumber(row.created_at),
   }
 
   return deepCamelize(response)
@@ -59,8 +62,8 @@ export function mapTransferToRow(t: EnrichedTransfer): NewIcTransfer {
     block_number: t.blockNumber,
     block_hash: fromHex(t.blockHash),
 
-    sent_at: t.timestamp,
-    created_at: Date.now(),
+    sent_at: t.timestamp ? new Date(t.timestamp) : undefined,
+    created_at: new Date(),
 
     asset: `${t.chainId}|${toMelbourne(t.asset)}`,
     from: t.from,

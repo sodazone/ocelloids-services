@@ -28,9 +28,9 @@ describe('CrosschainRepository', () => {
       to: '0xto',
       from_formatted: undefined,
       to_formatted: undefined,
-      sent_at: Date.now(),
+      sent_at: new Date(),
       recv_at: undefined,
-      created_at: Date.now(),
+      created_at: new Date(),
       stops: '',
       instructions: '',
       transact_calls: '',
@@ -87,12 +87,12 @@ describe('CrosschainRepository', () => {
   })
 
   it('getTripJourneys returns journeys in ascending id order', async () => {
-    const now = Date.now()
+    const now = new Date()
     const [j1] = await repo.addJourneys([
       { journey: makeJourney({ origin: 'chainX', sent_at: now }), assets: [] },
     ])
     const [j2] = await repo.addJourneys([
-      { journey: makeJourney({ origin: 'chainY', sent_at: now + 1 }), assets: [] },
+      { journey: makeJourney({ origin: 'chainY', sent_at: new Date(now.getTime() + 1) }), assets: [] },
     ])
 
     const trip_id = await repo.connectJourneys(j1, j2)

@@ -1,10 +1,15 @@
-export function encodeCursor<T extends { sent_at: number; id: number }>(items: T[]): string {
+export function encodeCursor<T extends { sent_at: number | string | Date; id: number }>(items: T[]): string {
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i]
     const { sent_at, id } = item
 
     if (sent_at !== undefined && sent_at !== null) {
-      const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
+      const timestamp =
+        typeof sent_at === 'number'
+          ? sent_at
+          : typeof sent_at === 'string'
+            ? new Date(sent_at).getTime()
+            : (sent_at as Date).getTime()
 
       return Buffer.from(`${timestamp}|${id}`).toString('base64')
     }

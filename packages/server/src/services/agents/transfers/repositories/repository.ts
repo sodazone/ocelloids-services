@@ -1,5 +1,7 @@
 import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
+import { asDate, asNumber, bindValuesForDialect } from '@/services/persistence/kysely/val.js'
 import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
 import { TransferRangeFilters, TransfersFilters } from '../types.js'
@@ -33,9 +35,11 @@ function decodeAssetsListCursor(cursor: string): {
 
 export class IntrachainTransfersRepository {
   readonly #db: Kysely<IntrachainTransfersDatabase>
+  readonly #dialect: SQLDialect
 
-  constructor(db: Kysely<IntrachainTransfersDatabase>) {
+  constructor(db: Kysely<IntrachainTransfersDatabase>, dialect: SQLDialect = 'sqlite') {
     this.#db = db
+    this.#dialect = dialect
   }
 
   async close() {
@@ -45,7 +49,7 @@ export class IntrachainTransfersRepository {
   async insertTransfer(transfer: NewIcTransfer): Promise<IcTransfer | null> {
     const inserted = await this.#db
       .insertInto('ic_transfers')
-      .values(transfer)
+      .values(bindValuesForDialect(transfer, this.#dialect))
       .onConflict((oc) => oc.column('transfer_hash').doNothing())
       .returningAll()
       .executeTakeFirst()
@@ -97,8 +101,8 @@ export class IntrachainTransfersRepository {
     if (cursor) {
       query = query.where((eb) =>
         eb.or([
-          eb('sent_at', '>', cursor.timestamp),
-          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '>', cursor.id)]),
+          eb('sent_at', '>', new Date(cursor.timestamp)),
+          eb.and([eb('sent_at', '=', new Date(cursor.timestamp)), eb('ic_transfers.id', '>', cursor.id)]),
         ]),
       )
     }
@@ -162,11 +166,11 @@ export class IntrachainTransfersRepository {
     }
 
     if (filters?.sentAtGte !== undefined) {
-      query = query.where('sent_at', '>=', filters.sentAtGte)
+      query = query.where('sent_at', '>=', new Date(filters.sentAtGte))
     }
 
     if (filters?.sentAtLte !== undefined) {
-      query = query.where('sent_at', '<=', filters.sentAtLte)
+      query = query.where('sent_at', '<=', new Date(filters.sentAtLte))
     }
 
     if (filters?.address) {
@@ -235,15 +239,15 @@ export class IntrachainTransfersRepository {
 
   async refreshAssetSnapshot(): Promise<void> {
     try {
-      const snapshot_end = Date.now()
-      const snapshot_start = snapshot_end - 30 * 24 * 60 * 60 * 1000
+      const snapshot_end = new Date()
+      const snapshot_start = new Date(snapshot_end.getTime() - 30 * 24 * 60 * 60 * 1000)
 
       const results = await this.#db
         .selectFrom('ic_transfers')
         .select((eb) => ['asset', 'symbol', eb.fn.coalesce(eb.fn.sum('usd'), eb.val(0)).as('usd_volume')])
         .where('type', '=', 'user')
-        .where('sent_at', '>=', snapshot_start)
-        .where('sent_at', '<=', snapshot_end)
+        .where('sent_at', '>=', asDate(snapshot_start, this.#dialect))
+        .where('sent_at', '<=', asDate(snapshot_end, this.#dialect))
         .groupBy(['asset', 'symbol'])
         .execute()
 
@@ -254,13 +258,18 @@ export class IntrachainTransfersRepository {
       await this.#db
         .insertInto('ic_asset_volume_cache')
         .values(
-          results.map((r) => ({
-            asset: r.asset,
-            symbol: r.symbol,
-            usd_volume: Number(r.usd_volume),
-            snapshot_start,
-            snapshot_end,
-          })),
+          results.map((r) =>
+            bindValuesForDialect(
+              {
+                asset: r.asset,
+                symbol: r.symbol,
+                usd_volume: Number(r.usd_volume),
+                snapshot_start,
+                snapshot_end,
+              },
+              this.#dialect,
+            ),
+          ),
         )
         .onConflict((oc) =>
           oc.column('asset').doUpdateSet((eb) => ({
@@ -283,15 +292,15 @@ export class IntrachainTransfersRepository {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const queryLimit = limit + 1
 
-    let snapshotStart: number | undefined
-    let snapshotEnd: number | undefined
+    let snapshotStart: Date | number | undefined
+    let snapshotEnd: Date | number | undefined
     let afterAsset: string | undefined
     let afterUsdVolume: number | undefined
 
     if (pagination?.cursor) {
       const decoded = decodeAssetsListCursor(pagination.cursor)
-      snapshotStart = decoded.snapshotStart
-      snapshotEnd = decoded.snapshotEnd
+      snapshotStart = asDate(decoded.snapshotStart, this.#dialect)
+      snapshotEnd = asDate(decoded.snapshotEnd, this.#dialect)
       afterAsset = decoded.asset
       afterUsdVolume = decoded.usd_volume
     }
@@ -327,7 +336,7 @@ export class IntrachainTransfersRepository {
     const hasNextPage = rows.length > limit
     const items = hasNextPage ? rows.slice(0, limit) : rows
     const endCursor = hasNextPage
-      ? encodeAssetsListCursor(items[items.length - 1], snapshotStart, snapshotEnd)
+      ? encodeAssetsListCursor(items[items.length - 1], asNumber(snapshotStart)!, asNumber(snapshotEnd)!)
       : ''
 
     return {

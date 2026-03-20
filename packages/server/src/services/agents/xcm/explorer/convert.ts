@@ -257,7 +257,12 @@ export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): New
   const xprotocolData = payload.humanized.xprotocolData
   const finalDestination = xprotocolData ? xprotocolData.destination : payload.destination.chainId
   const finalBeneficiary = xprotocolData ? xprotocolData.beneficiary : payload.humanized.to
-  const destinationProtocol = xprotocolData ? xprotocolData.protocol : payload.destinationProtocol
+  const destinationProtocol = xprotocolData ? xprotocolData.protocol : (payload.destinationProtocol ?? '')
+  const originProtocol = payload.originProtocol
+    ? payload.originProtocol
+    : xprotocolData
+      ? xprotocolData.protocol
+      : ''
   const type = xprotocolData && xprotocolData.assets.length > 0 ? 'transfer' : payload.humanized.type
 
   return {
@@ -268,7 +273,7 @@ export function toNewJourney(payload: HumanizedXcmPayload, tripId?: string): New
     destination: finalDestination,
     instructions: payload.origin.instructions ? asJSON(payload.origin.instructions) : '[]',
     transact_calls: asJSON(payload.humanized.transactCalls),
-    origin_protocol: payload.originProtocol,
+    origin_protocol: originProtocol,
     destination_protocol: destinationProtocol,
     origin: payload.origin.chainId,
     origin_tx_primary: payload.origin.txHash,

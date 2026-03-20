@@ -1,6 +1,8 @@
 import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
 import { IcTransferType } from '../types.js'
 
+type Timestamp = ColumnType<Date | number, Date | number | undefined, Date | number>
+
 /**
  * Intra-chain transfers table
  *
@@ -20,8 +22,8 @@ export interface IcTransferTable {
   from_formatted: ColumnType<string | undefined>
   to_formatted: ColumnType<string | undefined>
 
-  sent_at: ColumnType<number, number | undefined, never>
-  created_at: ColumnType<number, number | undefined, never>
+  sent_at: Timestamp
+  created_at: Timestamp
 
   event_index: ColumnType<number>
   event_module: ColumnType<string>
@@ -55,8 +57,8 @@ export interface IcAssetSnapshotTable {
   asset: string
   symbol?: string
   usd_volume: number
-  snapshot_start: number
-  snapshot_end: number
+  snapshot_start: Timestamp
+  snapshot_end: Timestamp
 }
 
 /**
