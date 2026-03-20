@@ -4,13 +4,7 @@ export function encodeCursor<T extends { sent_at: number | string | Date; id: nu
     const { sent_at, id } = item
 
     if (sent_at !== undefined && sent_at !== null) {
-      const timestamp =
-        typeof sent_at === 'number'
-          ? sent_at
-          : typeof sent_at === 'string'
-            ? new Date(sent_at).getTime()
-            : (sent_at as Date).getTime()
-
+      const timestamp = typeof sent_at === 'object' ? (sent_at as Date).getTime() : Number(sent_at)
       return Buffer.from(`${timestamp}|${id}`).toString('base64')
     }
   }
