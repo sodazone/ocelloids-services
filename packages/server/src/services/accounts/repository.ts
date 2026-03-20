@@ -47,12 +47,18 @@ export class AccountsRepository {
   }
 
   async findApiTokenById(id: string) {
-    return await this.#db
+    const result = await this.#db
       .selectFrom('api-token')
       .where('id', '=', id)
       .selectAll('api-token')
       .select(({ ref }) => [this.#account(ref('api-token.account_id')).$notNull().as('account')])
       .executeTakeFirst()
+
+    if (result?.account && typeof result.account === 'string') {
+      result.account = JSON.parse(result.account)
+    }
+
+    return result
   }
 
   async findApiTokensByAccount(accountId: number) {
@@ -73,12 +79,18 @@ export class AccountsRepository {
   }
 
   async findAccountBySubject(subject: string) {
-    return await this.#db
+    const result = await this.#db
       .selectFrom('account')
       .where('subject', '=', subject)
       .selectAll('account')
       .select(({ ref }) => [this.#apiTokens(ref('account.id')).as('api_tokens')])
       .executeTakeFirst()
+
+    if (result?.api_tokens && typeof result.api_tokens === 'string') {
+      result.api_tokens = JSON.parse(result.api_tokens)
+    }
+
+    return result
   }
 
   async findAccountById(id: number) {

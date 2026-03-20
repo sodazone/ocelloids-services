@@ -81,8 +81,8 @@ describe('CrosschainRepository', () => {
 
     expect(upstream.out_connection_fk).toBe(downstream.id)
     expect(downstream.in_connection_fk).toBe(upstream.id)
-    expect(upstream.out_connection_data).toStrictEqual({ note: 'linked' })
-    expect(downstream.in_connection_data).toStrictEqual({ note: 'linked' })
+    expect(JSON.parse(upstream.out_connection_data ?? '')).toStrictEqual({ note: 'linked' })
+    expect(JSON.parse(downstream.in_connection_data ?? '')).toStrictEqual({ note: 'linked' })
     expect(upstream.trip_id).toBe(downstream.trip_id)
   })
 

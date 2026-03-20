@@ -52,7 +52,7 @@ describe('ArchiveRepository', () => {
     const newLog = await repository.insertLogs(_payloads[0])
     expect(newLog.id).toBeDefined()
     expect(newLog.created_at).toBeDefined()
-    expect(newLog.payload.b.name).toBe('x0')
+    expect(JSON.parse(newLog.payload).b.name).toBe('x0')
   })
 
   it('should find payloads', async () => {
