@@ -347,13 +347,20 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     newHead: NeutralHeader,
     targetHeight: number,
     prev: NeutralHeader[],
+    depth = 0,
   ): Observable<NeutralHeader[]> {
+    if (depth > 200) {
+      const error = new Error(`[Watcher] Max recursion hit: head=${newHead.height} target=${targetHeight}`)
+      console.error(error)
+      throw error
+    }
+
     return from(api.getNeutralBlockHeader(newHead.parenthash)).pipe(
-      concatMap((header) =>
-        header.height - 1 <= targetHeight
+      concatMap((header) => {
+        return header.height - 1 <= targetHeight
           ? of([header, ...prev])
-          : this.#headers(api, header, targetHeight, [header, ...prev]),
-      ),
+          : this.#headers(api, header, targetHeight, [header, ...prev], depth + 1)
+      }),
     )
   }
 
