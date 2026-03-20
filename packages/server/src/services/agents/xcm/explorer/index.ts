@@ -365,11 +365,7 @@ export class XcmExplorer {
 
           for (const item of replacedJourneys) {
             await this.#repository.deleteJourney(item.id)
-            this.#log.info(
-              '[xcm:explorer] Journey deleted id=%s messageId=%s',
-              item.id,
-              item.stops[0].messageId,
-            )
+            this.#log.info('[xcm:explorer] Journey deleted id=%s cid=%s', item.id, item.correlationId)
             this.#crosschain.broadcastReplaceJourney({
               ids: { id: existingJourney.id, correlationId: existingJourney.correlation_id },
               replaces: item,
@@ -419,7 +415,7 @@ export class XcmExplorer {
       return
     }
 
-    const updatedStops = toStops(message, existingTrip.stops)
+    const updatedStops = toStops(message, JSON.parse(existingTrip.stops))
     const updateWith: Partial<JourneyUpdate> = { stops: asJSON(updatedStops) }
 
     const isCrossProtocol = existingTrip.origin_protocol !== existingTrip.destination_protocol
@@ -542,7 +538,7 @@ export class XcmExplorer {
   }
 
   async #updateJourney(message: XcmMessagePayload, existingJourney: FullJourney) {
-    const updatedStops = toStops(message, existingJourney.stops)
+    const updatedStops = toStops(message, JSON.parse(existingJourney.stops))
     const updatedStatus = toStatus(message)
 
     const updateWith: Partial<JourneyUpdate> = {
@@ -743,7 +739,7 @@ export class XcmExplorer {
       }
 
       assetUpdates.push(...mergeAssets(journey.assets, item.assets))
-      mergeStops(journey.stops, item.stops)
+      mergeStops(JSON.parse(journey.stops), JSON.parse(item.stops))
 
       replacedJourneys.push(item)
     }
@@ -781,7 +777,7 @@ export class XcmExplorer {
       }
 
       assetUpdates.push(...mergeAssets(assets, item.assets))
-      mergeStops(journeyStops, item.stops)
+      mergeStops(journeyStops, JSON.parse(item.stops))
 
       replacedJourneys.push(item)
     }

@@ -677,7 +677,10 @@ export class CrosschainRepository {
         .where('id', '=', outJourneyId)
         .executeTakeFirstOrThrow()
 
-      const mergedStops = mergeStops((inJourney.stops ?? []) as any[], (outJourney.stops ?? []) as any[])
+      const mergedStops = mergeStops(
+        JSON.parse(inJourney.stops ?? '[]') as any[],
+        JSON.parse(outJourney.stops ?? '[]') as any[],
+      )
 
       const update: JourneyUpdate = {
         trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,

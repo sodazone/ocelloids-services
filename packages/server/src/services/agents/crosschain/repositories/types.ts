@@ -1,4 +1,4 @@
-import type { ColumnType, Generated, Insertable, JSONColumnType, Selectable, Updateable } from 'kysely'
+import type { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
 
 /**
  * Cross chain asset role.
@@ -37,9 +37,9 @@ export type JourneyResponse = {
   sentAt?: number
   recvAt?: number
   createdAt: number
-  stops: any
-  instructions: any
-  transactCalls: any[]
+  stops: string
+  instructions: string
+  transactCalls: string
   originTxPrimary?: string
   originTxSecondary?: string
   destinationTxPrimary?: string
@@ -111,17 +111,17 @@ export interface XcJourneyTable {
   sent_at: ColumnType<number, number | undefined, number | undefined>
   recv_at: ColumnType<number, number | undefined, number | undefined>
   created_at: ColumnType<number, number, never>
-  stops: JSONColumnType<any>
-  instructions: JSONColumnType<any>
-  transact_calls: JSONColumnType<any[]>
+  stops: ColumnType<string>
+  instructions: ColumnType<string>
+  transact_calls: ColumnType<string>
   origin_tx_primary: ColumnType<string | undefined>
   origin_tx_secondary: ColumnType<string | undefined>
   destination_tx_primary: ColumnType<string | undefined>
   destination_tx_secondary: ColumnType<string | undefined>
   in_connection_fk: ColumnType<number | undefined>
-  in_connection_data?: JSONColumnType<any>
+  in_connection_data?: ColumnType<string>
   out_connection_fk: ColumnType<number | undefined>
-  out_connection_data?: JSONColumnType<any>
+  out_connection_data?: ColumnType<string>
 }
 
 /**

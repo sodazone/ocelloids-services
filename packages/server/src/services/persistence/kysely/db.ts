@@ -1,5 +1,5 @@
 import SQLite from 'better-sqlite3'
-import { Kysely, Migration, Migrator, ParseJSONResultsPlugin, SqliteDialect } from 'kysely'
+import { Kysely, Migration, Migrator, SqliteDialect } from 'kysely'
 
 export interface SQLiteOptions {
   filename: string
@@ -20,7 +20,6 @@ export function createKyselyDatabase<T>(opts: SQLiteOptions) {
   })
   const db = new Kysely<T>({
     dialect,
-    plugins: [new ParseJSONResultsPlugin()],
   })
 
   const migrator = new Migrator({
