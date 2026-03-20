@@ -143,7 +143,9 @@ export class WormholeAgent implements Agent {
 
     this.#wormholePendingCache.add(
       pendings.filter((journey) => {
-        const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+        const stop = JSON.parse(journey.stops).find(
+          (s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type),
+        )
         if (['completed', 'confirmed'].includes(stop?.to?.status)) {
           return false
         }
@@ -173,7 +175,9 @@ export class WormholeAgent implements Agent {
 
   async #recheckJourney(journey: FullJourney) {
     try {
-      const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+      const stop = JSON.parse(journey.stops).find(
+        (s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type),
+      )
       const opId = stop?.messageId || (isWormholeId(journey.correlation_id) ? journey.correlation_id : null)
 
       if (opId) {
@@ -209,7 +213,9 @@ export class WormholeAgent implements Agent {
       ? (journey.from_formatted ?? journey.from)
       : (journey.to_formatted ?? journey.to)
 
-    const stop = journey.stops.find((s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type))
+    const stop = JSON.parse(journey.stops).find(
+      (s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type),
+    )
     if (!stop) {
       return
     }
@@ -311,7 +317,7 @@ export class WormholeAgent implements Agent {
       if (op.vaa !== undefined) {
         update.stops = journey.stops
       } else {
-        update.stops = asJSON(mergeUpdatedStops(op, existingJourney.stops))
+        update.stops = asJSON(mergeUpdatedStops(op, JSON.parse(existingJourney.stops)))
       }
 
       await this.#repository.updateJourney(existingJourney.id, update)

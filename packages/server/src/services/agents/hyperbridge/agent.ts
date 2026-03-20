@@ -253,9 +253,8 @@ export class HyperbridgeAgent implements Agent {
   }
 
   async #updateJourney(message: HyperbridgeDecodedPayload, existingJourney: FullJourney) {
-    const existingStops = Array.isArray(existingJourney.stops)
-      ? existingJourney.stops
-      : [existingJourney.stops]
+    const stops = JSON.parse(existingJourney.stops)
+    const existingStops = Array.isArray(stops) ? stops : [stops]
 
     if (message.type === 'ismp.relayed') {
       const stop = existingStops.find((s) => s.relay.chainId === message.waypoint.chainId)
