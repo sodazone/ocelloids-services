@@ -129,7 +129,7 @@ const mappedNodes = nodes.map((journey) => ({
   correlationId: journey.correlation_id,
   messageId: getMessageId(journey.instructions),
   destination: journey.destination,
-  stops: journey.stops,
+  stops: JSON.parse(journey.stops),
 }))
 
 log.info('[xcm:explorer] %s journeys found', mappedNodes.length)
