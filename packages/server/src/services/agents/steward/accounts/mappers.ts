@@ -555,7 +555,6 @@ function hydrationATokenAccounts$(ingress: SubstrateIngressConsumer): Observable
                                 },
                               ],
                               updatedAt: Date.now(),
-                              replace: true,
                             }
 
                             return of(update)
