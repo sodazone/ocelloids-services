@@ -136,21 +136,36 @@ export class IntrachainTransfersRepository {
     if (filters?.txHash) {
       const txHashBlob = fromHex(filters.txHash)
 
-      query = query.where((qb) =>
-        qb.or([qb('tx_primary', '=', txHashBlob), qb('tx_secondary', '=', txHashBlob)]),
-      )
+      const baseQuery = query
+
+      const primaryQuery = baseQuery.where('tx_primary', '=', txHashBlob)
+      const secondaryQuery = baseQuery.where('tx_secondary', '=', txHashBlob)
+
+      query = primaryQuery.unionAll(secondaryQuery)
     }
 
     if (filters?.types?.length) {
-      query = query.where('type', 'in', filters.types)
+      if (filters.types.length === 1) {
+        query = query.where('type', '=', filters.types[0])
+      } else if (filters.types.length > 1) {
+        query = query.where('type', 'in', filters.types)
+      }
     }
 
     if (filters?.networks?.length) {
-      query = query.where('network', 'in', filters.networks)
+      if (filters.networks.length === 1) {
+        query = query.where('network', '=', filters.networks[0])
+      } else if (filters.networks.length > 1) {
+        query = query.where('network', 'in', filters.networks)
+      }
     }
 
     if (filters?.assets?.length) {
-      query = query.where('asset', 'in', filters.assets)
+      if (filters.assets.length === 1) {
+        query = query.where('asset', '=', filters.assets[0])
+      } else if (filters.assets.length > 1) {
+        query = query.where('asset', 'in', filters.assets)
+      }
     }
 
     if (filters?.usdAmountGte !== undefined) {
