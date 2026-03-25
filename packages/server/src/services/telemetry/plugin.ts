@@ -12,6 +12,8 @@ import { wsMetrics } from './metrics/ws.js'
 import { createReplyHook } from './reply-hook.js'
 import { PullCollector } from './types.js'
 
+const REFRESH_INTERVAL = 60_000
+
 declare module 'fastify' {
   interface FastifyContextConfig {
     disableTelemetry?: boolean
@@ -101,6 +103,22 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions & DatabaseOptions> = 
 
     fastify.addHook('onResponse', createReplyHook())
 
+    const runCollectors = async () => {
+      try {
+        await Promise.all(pullCollectors.map((c) => c()))
+      } catch (err) {
+        fastify.log.error(err, '[metrics] background update failed')
+      }
+    }
+
+    runCollectors()
+
+    const interval = setInterval(runCollectors, REFRESH_INTERVAL)
+
+    fastify.addHook('onClose', async () => {
+      clearInterval(interval)
+    })
+
     /* c8 ignore next */
     fastify.get(
       '/metrics',
@@ -114,10 +132,6 @@ const telemetryPlugin: FastifyPluginAsync<TelemetryOptions & DatabaseOptions> = 
         },
       },
       async (_, reply) => {
-        if (pullCollectors.length > 0) {
-          await Promise.all(pullCollectors.map((c) => c()))
-        }
-
         reply.send(await register.metrics())
       },
     )
