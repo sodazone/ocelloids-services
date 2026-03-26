@@ -66,12 +66,13 @@ export class WormholePendingCache {
   update(journey: FullJourney, op?: WormholeOperation | null) {
     const jid = journey.correlation_id
     const entry = this.#pendingOps.get(jid)
-    if (!entry) {
+    if (!entry || journey.sent_at === undefined) {
       return
     }
 
+    const sentAt = Number(journey.sent_at)
     const isReceived = op ? FINAL_STATUS.includes(toStatus(op)) : false
-    const isTimeout = Date.now() - journey.sent_at > DAYS_7
+    const isTimeout = Date.now() - sentAt > DAYS_7
 
     if (isReceived || isTimeout) {
       this.#pendingOps.delete(jid)
@@ -84,7 +85,7 @@ export class WormholePendingCache {
       return
     }
 
-    entry.nextCheckAt = this.#computeNextCheck(entry)
+    entry.nextCheckAt = this.#computeNextCheck(sentAt)
     entry.lastCheckedAt = Date.now()
     entry.attempt++
 
@@ -99,8 +100,8 @@ export class WormholePendingCache {
     return Array.from(this.#pendingOps.values()).filter((op) => op.nextCheckAt <= now)
   }
 
-  #computeNextCheck(entry: PendingJourney): number {
-    const age = Date.now() - entry.journey.sent_at
+  #computeNextCheck(sentAt: number): number {
+    const age = Date.now() - sentAt
     if (age <= HOURS_24) {
       return Date.now() + 899_000
     }
