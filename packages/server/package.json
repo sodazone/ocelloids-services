@@ -1,6 +1,6 @@
 {
   "name": "@sodazone/ocelloids-service-node",
-  "version": "3.0.1-dev.0",
+  "version": "4.0.7-dev.0",
   "type": "module",
   "description": "Ocelloids Service Node",
   "author": "SO/DA <projects@soda.zone>",
@@ -98,5 +98,5 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "packageManager": "yarn@4.1.0",
-  "stableVersion": "3.0.0"
+  "stableVersion": "4.0.6"
 }

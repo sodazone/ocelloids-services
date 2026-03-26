@@ -1,5 +1,5 @@
 import { blake2b } from '@noble/hashes/blake2'
-import { FixedSizeBinary, u32 } from '@polkadot-api/substrate-bindings'
+import { Binary, FixedSizeBinary, u32 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
 import {
@@ -481,8 +481,9 @@ function hydrationATokenAccounts$(ingress: SubstrateIngressConsumer): Observable
                     }
 
                     const decoded = assetCodec.value.dec(rawValue as HexString)
-
-                    map.set(u32.dec(assetId), decoded.symbol)
+                    if (decoded.symbol) {
+                      map.set(u32.dec(assetId), (decoded.symbol as Binary).asText())
+                    }
                   }
 
                   return map

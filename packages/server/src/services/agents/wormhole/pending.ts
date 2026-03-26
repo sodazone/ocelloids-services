@@ -4,9 +4,11 @@ import { Logger } from '@/services/types.js'
 import { FullJourney, JourneyStatus } from '../crosschain/index.js'
 
 const FINAL_STATUS: JourneyStatus[] = ['received', 'timeout', 'failed', 'unknown']
-const BASE = 300_000 // 5m
-const MAX = 86_400_000 // 24h
-const MAX_TIMEOUT = 604_800_000 // 7 days
+const HOUR = 3_600_000
+const HOURS_6 = 6 * HOUR
+const HOURS_24 = 24 * HOUR
+const HOURS_72 = 72 * HOUR
+const DAYS_7 = 604_800_000
 
 type PendingJourney = {
   journey: FullJourney
@@ -69,7 +71,7 @@ export class WormholePendingCache {
     }
 
     const isReceived = op ? FINAL_STATUS.includes(toStatus(op)) : false
-    const isTimeout = Date.now() - entry.firstSeenAt > MAX_TIMEOUT
+    const isTimeout = Date.now() - journey.sent_at > DAYS_7
 
     if (isReceived || isTimeout) {
       this.#pendingOps.delete(jid)
@@ -98,7 +100,13 @@ export class WormholePendingCache {
   }
 
   #computeNextCheck(entry: PendingJourney): number {
-    const delay = Math.min(BASE * 2 ** entry.attempt, MAX)
-    return Date.now() + delay
+    const age = Date.now() - entry.journey.sent_at
+    if (age <= HOURS_24) {
+      return Date.now() + 899_000
+    }
+    if (age <= HOURS_72) {
+      return Date.now() + HOUR
+    }
+    return Date.now() + HOURS_6
   }
 }

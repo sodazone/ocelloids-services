@@ -287,9 +287,9 @@ export class AccountsMetadataManager {
 
     try {
       const persisted = await this.#dbAccounts.get(pubKeyBuf)
-      const merged = mergeAccountMetadata(persisted, incoming)
+      const merged = mergeAccountMetadata(incoming.replace ? undefined : persisted, incoming)
 
-      if (persisted && merged.updatedAt === persisted.updatedAt) {
+      if (!incoming.replace && persisted && merged.updatedAt === persisted.updatedAt) {
         return null
       }
 
@@ -301,6 +301,13 @@ export class AccountsMetadataManager {
         updatedOps.push({
           type: 'del',
           key: toUpdateIndexKey(persisted.updatedAt, pubKeyBuf),
+        })
+      }
+
+      if (incoming.replace) {
+        accountOps.push({
+          type: 'del',
+          key: pubKeyBuf,
         })
       }
 
@@ -317,14 +324,26 @@ export class AccountsMetadataManager {
       })
 
       if (pubKeyBuf.length > 20) {
-        for (const evm of merged.evm) {
-          const indexKey = Buffer.from(evm.address.slice(2).toLowerCase(), 'hex')
+        const prev = new Set((persisted?.evm ?? []).map((e) => e.address.toLowerCase()))
+        const next = new Set((merged.evm ?? []).map((e) => e.address.toLowerCase()))
 
-          evmOps.push({
-            type: 'put',
-            key: indexKey,
-            value: pubKeyBuf,
-          })
+        for (const addr of prev) {
+          if (!next.has(addr)) {
+            evmOps.push({
+              type: 'del',
+              key: Buffer.from(addr.slice(2), 'hex'),
+            })
+          }
+        }
+
+        for (const addr of next) {
+          if (!prev.has(addr)) {
+            evmOps.push({
+              type: 'put',
+              key: Buffer.from(addr.slice(2), 'hex'),
+              value: pubKeyBuf,
+            })
+          }
         }
       }
 
