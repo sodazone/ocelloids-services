@@ -1,5 +1,5 @@
 import { Twox256 } from '@polkadot-api/substrate-bindings'
-import { DeleteResult, Kysely, SelectQueryBuilder, Transaction } from 'kysely'
+import { DeleteResult, Kysely, SelectQueryBuilder, sql, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
 import { immediate, microtask } from '@/common/event.loop.js'
@@ -964,13 +964,21 @@ export class CrosschainRepository {
     // address filter
     if (filters?.address) {
       if (filters.address.length > 42) {
-        const addressPrefix = filters.address.slice(0, 42).toLowerCase()
-        baseQuery = baseQuery.where((eb) =>
-          eb.or([
-            eb(field('from'), 'like', `${addressPrefix}%`),
-            eb(field('to'), 'like', `${addressPrefix}%`),
-          ]),
-        ) as T
+        const escapedAddress = filters.address.slice(0, 42).toLowerCase().replace(/[%_]/g, '\\$&')
+
+        const likePattern = `${escapedAddress}%`
+
+        baseQuery = this.#db
+          .selectFrom(
+            sql<any>`(
+                 SELECT * FROM xc_journeys INDEXED BY xc_journeys_from_sent_at_id_index
+                 WHERE "from" LIKE ${likePattern} ESCAPE '\\'
+                 UNION ALL
+                 SELECT * FROM xc_journeys INDEXED BY xc_journeys_to_sent_at_id_index
+                 WHERE "to" LIKE ${likePattern} ESCAPE '\\'
+               )`.as('address_filtered'),
+          )
+          .selectAll() as unknown as T
       } else {
         baseQuery = baseQuery.where((eb) =>
           eb.or([

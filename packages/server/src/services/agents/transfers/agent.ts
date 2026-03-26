@@ -199,6 +199,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
   }
 
   query(params: QueryParams<IcTransferQueryArgs>): Promise<QueryResult> {
+    console.log('IC QUERY', params.args)
     switch (params.args.op) {
       case 'transfers.list':
         return this.listTransfers(params.args.criteria, params.pagination)
