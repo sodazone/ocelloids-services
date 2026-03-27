@@ -43,6 +43,8 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('to', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('from_formatted', 'varchar(255)')
       .addColumn('to_formatted', 'varchar(255)')
+      .addColumn('from_prefix', 'varchar(42)')
+      .addColumn('to_prefix', 'varchar(42)')
       .addColumn('sent_at', 'bigint')
       .addColumn('recv_at', 'bigint')
       .addColumn('created_at', 'bigint', (cb) => cb.notNull())
@@ -178,6 +180,34 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('xc_journeys')
       .column('trip_id')
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_from_prefix_sent_at_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['from_prefix', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_to_prefix_sent_at_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['to_prefix', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_from_sent_at_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['from', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('xc_journeys_to_sent_at_id_index')
+      .ifNotExists()
+      .on('xc_journeys')
+      .columns(['to', 'sent_at', 'id'])
       .execute()
 
     await db.schema
