@@ -30,7 +30,7 @@ import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
 import { RETRY_INFINITE, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
-import { Block } from '../types.js'
+import { Block, SerializableLog } from '../types.js'
 import { EvmBackfill } from './backfill.js'
 
 const API_TIMEOUT_MS = 4 * 60_000
@@ -328,6 +328,10 @@ export class EvmWatcher extends Watcher<Block> {
 
   async getBalance(chainId: string, args: GetBalanceParameters): Promise<GetBalanceReturnType> {
     return await this.#apis[chainId].getBalance(args)
+  }
+
+  async getLogs(chainId: string, blockNumber: bigint): Promise<SerializableLog[]> {
+    return await this.#apis[chainId].getLogs(blockNumber)
   }
 
   protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {

@@ -19,7 +19,7 @@ import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
-import { Block, BlockWithLogs } from './types.js'
+import { Block, BlockWithLogs, SerializableLog } from './types.js'
 
 const MAX_SEEN_BLOCKS = 128
 const MAX_RPC_CONCURRENCY = 10
@@ -434,18 +434,24 @@ export class EvmApi implements ApiClient {
       throw new Error(`[${this.chainId}] Block with hash ${hash} not found`)
     }
 
-    // We use {fromBlock,toBlock} for maximum compatibility.
-    // Some RPCs doesn't support by block hash.
-    const logs = await this.#httpClient.getLogs({
-      fromBlock: block.number,
-      toBlock: block.number,
-    })
+    const logs = await this.getLogs(block.number)
 
     const blockWithLogs = {
       ...asSerializable<typeof block>({ ...block, timestamp: reliableTimestamp(block) }),
-      logs: asSerializable<typeof logs>(logs),
+      logs,
     }
     return blockWithLogs as BlockWithLogs
+  }
+
+  async getLogs(blockNumber: bigint): Promise<SerializableLog[]> {
+    // We use {fromBlock,toBlock} for maximum compatibility.
+    // Some RPCs doesn't support by block hash.
+    const logs = await this.#httpClient.getLogs({
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+    })
+
+    return asSerializable<typeof logs>(logs)
   }
 
   async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {

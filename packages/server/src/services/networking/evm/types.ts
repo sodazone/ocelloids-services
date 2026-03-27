@@ -4,10 +4,10 @@ import { HexString } from '@/lib.js'
 
 type BlockWithTransactions = GetBlockReturnType<undefined, true>
 
-type SerializableLogs = Serializable<Log>
+export type SerializableLog = Serializable<Log>
 
 export type BlockWithLogs = Serializable<BlockWithTransactions> & {
-  logs: SerializableLogs[]
+  logs: SerializableLog[]
 }
 
 export type Block = Serializable<BlockWithTransactions>
@@ -21,7 +21,9 @@ export type DecodedLogParams = {
   args?: Record<string, unknown> | readonly unknown[]
 }
 
-export type DecodedLog = SerializableLogs & DecodedLogParams
+export type DecodedLog = SerializableLog & DecodedLogParams
+
+export type DecodedLogWithTimestamp = DecodedLog & { timestamp: number }
 
 export type DecodedTx = TransactionWithTimestamp & {
   decoded?: {

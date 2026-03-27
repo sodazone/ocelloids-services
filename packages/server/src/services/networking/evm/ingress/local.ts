@@ -30,6 +30,11 @@ export class EvmLocalConsumer
     return await this.watcher.getBalance(chainId, args)
   }
 
+  async getLogs(chainId: string, blockNumber: bigint | string) {
+    const bn = typeof blockNumber === 'string' ? BigInt(blockNumber) : blockNumber
+    return await this.watcher.getLogs(chainId, bn)
+  }
+
   // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
   //   return this.watcher.watchEvents(chainId, params, eventNames)
   // }
