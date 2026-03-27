@@ -7,6 +7,7 @@ import {
   DecodeContractParams,
   DecodedLog,
   DecodedLogParams,
+  DecodedLogWithTimestamp,
   DecodedTx,
   DecodedTxWithLogs,
   TransactionWithTimestamp,
@@ -75,10 +76,21 @@ export function decodeLogs(params: DecodeContractParams[]) {
 
 export function filterLogs(params: DecodeContractParams, eventNames: string[] = []) {
   const addressFilter = params.addresses ? params.addresses.map((a) => a.toLowerCase()) : []
-  return (source: Observable<BlockWithLogs>): Observable<DecodedLog> =>
+  const abiSelectorMap = buildAbiSelectorMap(params, 'logs')
+
+  return (source: Observable<BlockWithLogs>): Observable<DecodedLogWithTimestamp> =>
     source.pipe(
-      mergeMap((block) => block.logs, MAX_CONCURRENCY_LOGS),
-      map((log) => {
+      mergeMap(
+        (block) =>
+          from(block.logs ?? []).pipe(
+            map((log) => ({
+              log,
+              timestamp: block.timestamp,
+            })),
+          ),
+        MAX_CONCURRENCY_LOGS,
+      ),
+      map(({ log, timestamp }) => {
         const { address, topics, data } = log
         if (addressFilter.length > 0 && !addressFilter.includes(address)) {
           return null
@@ -89,7 +101,6 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
           return null
         }
 
-        const abiSelectorMap = buildAbiSelectorMap(params, 'logs')
         const ev = abiSelectorMap[topic0]
         if (!ev) {
           return null
@@ -100,13 +111,17 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
         try {
           const event = decodeEventLog({ abi: [ev], topics: log.topics as LogTopics, data: log.data })
           decoded = { eventName: event.eventName, args: event.args }
-          return asSerializable({ ...log, ...decoded }) as DecodedLog
+          return asSerializable({
+            ...log,
+            ...decoded,
+            timestamp: Number(timestamp) * 1_000,
+          }) as DecodedLogWithTimestamp
         } catch (err) {
           console.warn(`[${log.address}] failed to decode log:`, err)
           return null
         }
       }),
-      filter((log): log is DecodedLog => {
+      filter((log): log is DecodedLogWithTimestamp => {
         if (log === null) {
           return false
         }

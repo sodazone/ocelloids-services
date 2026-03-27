@@ -4,8 +4,8 @@ import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { asSerializable } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
-import { filterTransactions } from '@/services/networking/evm/rx/extract.js'
-import { Block, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
+import { filterLogs, filterTransactions } from '@/services/networking/evm/rx/extract.js'
+import { Block, BlockWithLogs, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
 import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
@@ -41,6 +41,19 @@ enum XcmKind {
 enum AssetKind {
   NativeTokenERC20 = 0,
   ForeignTokenERC20 = 1,
+}
+
+type V1InboundMessageDispatchedArgs = {
+  channelID: HexString
+  messageID: HexString
+  nonce: string
+  success: boolean
+}
+type V2InboundMessageDispatchedArgs = {
+  topic: HexString
+  nonce: string
+  success: boolean
+  rewardAddress: HexString
 }
 
 type SnowbridgeEvmInboundLog = {
@@ -108,7 +121,66 @@ type SnowbridgeSubstrateAcceptedEvent = {
   nonce: number
 }
 
-export function extractSnowbridgeEvmInbound(
+function isV1InboundMessageDispatched(obj: any): obj is V1InboundMessageDispatchedArgs {
+  return 'channelID' in obj && 'messageID' in obj
+}
+
+function isV2InboundMessageDispatched(obj: any): obj is V2InboundMessageDispatchedArgs {
+  return 'rewardAddress' in obj && 'topic' in obj
+}
+
+export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {
+  return (source: Observable<BlockWithLogs>): Observable<XcmBridgeInboundWithContext> => {
+    return source.pipe(
+      filterLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['InboundMessageDispatched']),
+      map(({ eventName, args, blockHash, blockNumber, timestamp, transactionHash, transactionIndex }) => {
+        if (!args || blockHash === null || blockNumber === null) {
+          return null
+        }
+
+        if (isV1InboundMessageDispatched(args)) {
+          const { channelID, messageID, nonce, success } = args
+          return new GenericXcmBridgeInboundWithContext({
+            version: 1,
+            chainId,
+            blockHash: blockHash,
+            blockNumber: blockNumber.toString(),
+            channelId: channelID,
+            messageId: messageID,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: eventName, args: asSerializable(args) } as AnyJson,
+            timestamp: timestamp,
+            txHash: transactionHash ?? undefined,
+            txPosition: transactionIndex ?? undefined,
+          })
+        }
+
+        if (isV2InboundMessageDispatched(args)) {
+          const { nonce, success, topic } = args
+          return new GenericXcmBridgeInboundWithContext({
+            version: 2,
+            chainId,
+            blockHash: blockHash,
+            blockNumber: blockNumber.toString(),
+            messageId: topic,
+            nonce: nonce.toString(),
+            outcome: success ? 'Success' : 'Fail',
+            event: { name: eventName, args: asSerializable(args) } as AnyJson,
+            timestamp: timestamp,
+            txHash: transactionHash ?? undefined,
+            txPosition: transactionIndex ?? undefined,
+          })
+        }
+
+        console.warn('Unsupported Snowbridge version', args)
+        return null
+      }),
+      filter((ev) => ev !== null),
+    )
+  }
+}
+export function _extractSnowbridgeEvmInbound(
   chainId: NetworkURN,
   contractAddress: HexString,
   getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,

@@ -40,7 +40,11 @@ export class SubstrateLocalConsumer
   }
 
   getContext(chainId: NetworkURN, specVersion?: number): Observable<SubstrateApiContext> {
-    const contextKey = `${chainId}:${specVersion ?? 0}`
+    if (specVersion === undefined) {
+      return this.watcher.getApi$(chainId).pipe(switchMap((api) => from(api.ctx(specVersion))))
+    }
+
+    const contextKey = `${chainId}:${specVersion}`
 
     if (!this.#contexts$[contextKey]) {
       this.#contexts$[contextKey] = this.watcher.getApi$(chainId).pipe(

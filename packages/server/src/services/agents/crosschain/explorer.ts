@@ -161,6 +161,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
   }
 
   query(params: QueryParams<XcQueryArgs>): Promise<QueryResult> {
+    console.log('XC QUERY', params.args)
     switch (params.args.op) {
       case 'journeys.list':
         return this.listJourneys(params.args.criteria, params.pagination)

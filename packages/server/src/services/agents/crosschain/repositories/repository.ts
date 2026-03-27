@@ -279,7 +279,15 @@ export class CrosschainRepository {
   }
 
   async updateJourney(id: number, updateWith: JourneyUpdate): Promise<void> {
-    await this.#db.updateTable('xc_journeys').set(updateWith).where('id', '=', id).execute()
+    const updateData = { ...updateWith }
+
+    if (updateWith.from !== undefined) {
+      updateData.from_prefix = updateWith.from?.slice(0, 42).toLowerCase()
+    }
+    if (updateWith.to !== undefined) {
+      updateData.to_prefix = updateWith.to?.slice(0, 42).toLowerCase()
+    }
+    await this.#db.updateTable('xc_journeys').set(updateData).where('id', '=', id).execute()
   }
 
   async getAssetIdentifiers(
@@ -362,7 +370,11 @@ export class CrosschainRepository {
   ): Promise<number> {
     const insertedJourney = await db
       .insertInto('xc_journeys')
-      .values(journey)
+      .values({
+        ...journey,
+        from_prefix: journey.from?.slice(0, 42).toLowerCase(),
+        to_prefix: journey.to?.slice(0, 42).toLowerCase(),
+      })
       .returning('id')
       .executeTakeFirst()
 
@@ -691,6 +703,7 @@ export class CrosschainRepository {
         destination: outJourney.destination,
         to: outJourney.to,
         to_formatted: outJourney.to_formatted,
+        to_prefix: outJourney.to?.slice(0, 42).toLowerCase(),
         recv_at: outJourney.recv_at,
         status: outJourney.status,
         type: outJourney.type,
@@ -967,12 +980,10 @@ export class CrosschainRepository {
     // address filter
     if (filters?.address) {
       if (filters.address.length > 42) {
-        const addressPrefix = filters.address.slice(0, 42).toLowerCase()
+        const normalized = filters.address.slice(0, 42).toLowerCase()
+
         baseQuery = baseQuery.where((eb) =>
-          eb.or([
-            eb(field('from'), 'like', `${addressPrefix}%`),
-            eb(field('to'), 'like', `${addressPrefix}%`),
-          ]),
+          eb.or([eb('from_prefix', '=', normalized), eb('to_prefix', '=', normalized)]),
         ) as T
       } else {
         baseQuery = baseQuery.where((eb) =>

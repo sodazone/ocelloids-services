@@ -118,6 +118,8 @@ export interface XcJourneyTable {
   sent_at: OptionalTimestamp
   recv_at: OptionalTimestamp
   created_at: Timestamp
+  from_prefix?: ColumnType<string | undefined>
+  to_prefix?: ColumnType<string | undefined>
   stops: ColumnType<string>
   instructions: ColumnType<string>
   transact_calls: ColumnType<string>
@@ -174,7 +176,7 @@ export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 /**
  * @internal
  */
-export type FullJourney = Journey & {
+export type FullJourney = Omit<Journey, 'from_prefix' | 'to_prefix'> & {
   totalUsd: number
   assets: FullJourneyAsset[]
 }

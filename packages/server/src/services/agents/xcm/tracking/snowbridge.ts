@@ -1,4 +1,4 @@
-import { catchError, EMPTY } from 'rxjs'
+import { catchError, EMPTY, mergeMap } from 'rxjs'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
@@ -84,9 +84,13 @@ export class SnowbridgeTracker {
           sub: this.#ingress.evm
             .finalizedBlocks(evmChain)
             .pipe(
-              extractSnowbridgeEvmInbound(evmChain, contractAddress, (txHash: HexString) =>
-                this.#ingress.evm.getTransactionReceipt(evmChain, txHash),
+              mergeMap((block) =>
+                this.#ingress.evm.getLogs(evmChain, block.number).then((logs) => ({
+                  ...block,
+                  logs,
+                })),
               ),
+              extractSnowbridgeEvmInbound(evmChain, contractAddress),
             )
             .subscribe((msg) => {
               this.#engine.onBridgeInbound('snowbridge', msg)

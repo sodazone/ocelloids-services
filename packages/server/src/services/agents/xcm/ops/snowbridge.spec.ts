@@ -15,13 +15,11 @@ describe('snowbridge operator', () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23618095.cbor', true))
       const test$ = block$.pipe(
         mergeMap((blockWithLogs) => {
-          const logs = blockWithLogs.logs
-          const block = { ...blockWithLogs, logs: undefined }
-          return of(block).pipe(
+          return of(blockWithLogs).pipe(
             extractSnowbridgeEvmInbound(
               'urn:ocn:ethereum:1',
               '0x27ca963C279c93801941e1eB8799c23f407d68e7',
-              vi.fn().mockResolvedValue({ status: 'success', logs }),
+              // vi.fn().mockResolvedValue({ status: 'success', logs }),
             ),
           )
         }),
@@ -36,6 +34,7 @@ describe('snowbridge operator', () => {
             expect(msg.channelId).toBeDefined()
             expect(msg.messageId).toBeDefined()
             expect(msg.nonce).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
@@ -49,13 +48,11 @@ describe('snowbridge operator', () => {
       const block$ = from(testEvmBlocksFrom('ethereum/23844982.cbor', true))
       const test$ = block$.pipe(
         mergeMap((blockWithLogs) => {
-          const logs = blockWithLogs.logs
-          const block = { ...blockWithLogs, logs: undefined }
-          return of(block).pipe(
+          return of(blockWithLogs).pipe(
             extractSnowbridgeEvmInbound(
               'urn:ocn:ethereum:1',
               '0x27ca963C279c93801941e1eB8799c23f407d68e7',
-              vi.fn().mockResolvedValue({ status: 'success', logs }),
+              // vi.fn().mockResolvedValue({ status: 'success', logs }),
             ),
           )
         }),
@@ -69,6 +66,7 @@ describe('snowbridge operator', () => {
             expect(msg).toBeDefined()
             expect(msg.messageId).toBeDefined()
             expect(msg.nonce).toBeDefined()
+            expect(msg.timestamp).toBeDefined()
           },
           complete: () => {
             expect(calls).toHaveBeenCalledTimes(1)
