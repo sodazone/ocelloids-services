@@ -103,6 +103,34 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createIndex('ic_transfers_type_from_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['type', 'from', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_type_to_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['type', 'to', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_tx_primary_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['tx_primary', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createIndex('ic_transfers_tx_secondary_sent_at_id_index')
+      .ifNotExists()
+      .on('ic_transfers')
+      .columns(['tx_secondary', 'sent_at', 'id'])
+      .execute()
+
+    await db.schema
       .createIndex('ic_transfers_asset_sent_at_id_index')
       .ifNotExists()
       .on('ic_transfers')
