@@ -108,6 +108,8 @@ export interface XcJourneyTable {
   to: ColumnType<string>
   from_formatted: ColumnType<string | undefined>
   to_formatted: ColumnType<string | undefined>
+  from_prefix?: ColumnType<string | undefined>
+  to_prefix?: ColumnType<string | undefined>
   sent_at: ColumnType<number, number | undefined, number | undefined>
   recv_at: ColumnType<number, number | undefined, number | undefined>
   created_at: ColumnType<number, number, never>
@@ -167,7 +169,7 @@ export type FullJourneyAsset = Omit<AssetOperation, 'id' | 'journey_id'>
 /**
  * @internal
  */
-export type FullJourney = Journey & {
+export type FullJourney = Omit<Journey, 'from_prefix' | 'to_prefix'> & {
   totalUsd: number
   assets: FullJourneyAsset[]
 }
