@@ -15,7 +15,7 @@ export function mockServer(overrides?: Record<string, any>) {
     archiveRetentionPeriod: '0_days',
     agents: '',
     archiveTick: 0,
-    telemetry: true,
+    telemetry: false,
     sweepExpiry: 0,
     schedulerFrequency: 0,
     grace: 500,
