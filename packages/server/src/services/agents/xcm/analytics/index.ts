@@ -62,6 +62,12 @@ export class XcmAnalytics {
           this.#log.error(error, '[xcm:analytics] error on tracker stream')
         },
       })
+
+    if (process.env.OC_ARCHIVE_XCM_ANALYTICS === 'true') {
+      this.#log.info('[xcm:analytics] archiving data...')
+      await this.#repository.archiveOldData(process.env.OC_DATA_DIR ?? '.db')
+      this.#log.info('[xcm:analytics] archiving data OK')
+    }
   }
 
   stop() {
