@@ -6,6 +6,7 @@ import {
   DuckDBTimestampValue,
   DuckDBValue,
 } from '@duckdb/node-api'
+import { createCache, SimpleCache } from '@/common/cache.js'
 import { fromDuckDBBlob, toDuckDBHex, toSafeAsciiText, toSqlText } from '@/common/util.js'
 import { TimeAndMaybeNetworkSelect, TimeAndNetworkSelect, TimeSelect } from '../../types/index.js'
 import { NewXcmTransfer } from '../types.js'
@@ -87,9 +88,30 @@ function safe(s: string) {
  */
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
+  readonly #cache: SimpleCache<any>
 
   constructor(db: DuckDBConnection) {
     this.#db = db
+    this.#cache = createCache(1000 * 60 * 60)
+  }
+
+  async archiveOldData(archiveDir: string) {
+    await this.#db.run(`
+      COPY (
+        SELECT *,
+               YEAR(sent_at) AS year,
+               MONTH(sent_at) AS month
+        FROM xcm_transfers
+        WHERE sent_at < NOW() - INTERVAL '6 months'
+      )
+      TO '${archiveDir}/analytics.archive'
+      (FORMAT PARQUET, PARTITION_BY (year, month));
+    `)
+
+    await this.#db.run(`
+      DELETE FROM xcm_transfers
+      WHERE sent_at < NOW() - INTERVAL '6 months';
+    `)
   }
 
   async migrate() {
@@ -444,6 +466,13 @@ export class XcmTransfersRepository {
     const timeframe = criteria.timeframe
     const unit = getUnit(bucketInterval)
 
+    const key = `volumeByNetwork:${timeframe}:${bucketInterval}`
+
+    const cached = this.#cache.get(key)
+    if (cached) {
+      return cached
+    }
+
     const query = `
         WITH network_data AS (
           SELECT
@@ -480,7 +509,7 @@ export class XcmTransfersRepository {
       `
     const result = await this.#db.run(query.trim())
     const rows = await result.getRows()
-    return rows.map((row) => {
+    const mapped = rows.map((row) => {
       const volumeIn = toNullableNumber(row[3])
       const volumeOut = toNullableNumber(row[4])
       return {
@@ -492,6 +521,10 @@ export class XcmTransfersRepository {
         netflow: volumeIn !== null && volumeOut !== null ? volumeIn - volumeOut : null,
       }
     })
+
+    this.#cache.set(key, mapped)
+
+    return mapped
   }
 
   async networkVolumeSeries(criteria: TimeAndNetworkSelect) {
