@@ -228,9 +228,9 @@ export class IntrachainTransfersRepository {
   async listNetworks() {
     const rows = (
       await sql<{ network: string }>`
-      SELECT DISTINCT network
-      FROM ic_transfers INDEXED BY ic_transfers_network_index
-      ORDER BY network ASC
+        SELECT network
+        FROM ic_networks
+        ORDER BY network ASC
       `.execute(this.#db)
     ).rows
 

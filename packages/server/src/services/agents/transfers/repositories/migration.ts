@@ -44,6 +44,12 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
+      .createTable('ic_networks')
+      .ifNotExists()
+      .addColumn('network', 'text', (cb) => cb.primaryKey())
+      .execute()
+
+    await db.schema
       .createTable('ic_asset_volume_cache')
       .ifNotExists()
       .addColumn('asset', 'text', (cb) => cb.primaryKey())
