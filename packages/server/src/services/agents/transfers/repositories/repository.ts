@@ -1,43 +1,17 @@
 import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
-import { decodeCursor, encodeCursor } from '../../common/explorer.js'
+import {
+  decodeAssetsListCursor,
+  decodeCursor,
+  encodeAssetsListCursor,
+  encodeCursor,
+  parseIdCursor,
+} from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
 import { TransferRangeFilters, TransfersFilters } from '../types.js'
 import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.js'
 
 const MAX_LIMIT = 100
-
-function parseCursor(cursor?: string): number | undefined {
-  if (!cursor) {
-    return undefined
-  }
-  const id = Number(cursor)
-  return Number.isInteger(id) && id >= 0 ? id : undefined
-}
-
-function encodeAssetsListCursor(
-  row: { asset: string; usd_volume: number },
-  snapshotStart: number,
-  snapshotEnd: number,
-): string {
-  return Buffer.from(
-    JSON.stringify({
-      asset: row.asset,
-      usd_volume: row.usd_volume,
-      snapshotStart,
-      snapshotEnd,
-    }),
-  ).toString('base64')
-}
-
-function decodeAssetsListCursor(cursor: string): {
-  asset: string
-  usd_volume: number
-  snapshotStart: number
-  snapshotEnd: number
-} {
-  return JSON.parse(Buffer.from(cursor, 'base64').toString())
-}
 
 export class IntrachainTransfersRepository {
   readonly #db: Kysely<IntrachainTransfersDatabase>
@@ -88,7 +62,7 @@ export class IntrachainTransfersRepository {
   }> {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const queryLimit = limit + 1
-    const cursor = pagination?.cursor ? parseCursor(pagination.cursor) : undefined
+    const cursor = pagination?.cursor ? parseIdCursor(pagination.cursor) : undefined
 
     let query = this.#db.selectFrom('ic_transfers').selectAll()
 

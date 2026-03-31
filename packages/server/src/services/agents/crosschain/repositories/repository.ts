@@ -5,6 +5,13 @@ import { ulid } from 'ulidx'
 import { immediate, microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
+import {
+  decodeAssetsListCursor,
+  decodeCursor,
+  encodeAssetsListCursor,
+  encodeCursor,
+  parseIdCursor,
+} from '../../common/explorer.js'
 import { JourneyFilters, JourneyRangeFilters } from '../types/queries.js'
 import {
   AssetOperation,
@@ -34,60 +41,6 @@ const STATUS_PRIORITY: Record<string, number> = {
   fail: 3,
   completed: 3,
   confirmed: 3,
-}
-
-function encodeCursor(journeys: FullJourney[]): string {
-  for (let i = journeys.length - 1; i >= 0; i--) {
-    const journey = journeys[i]
-    const { sent_at, id } = journey
-
-    if (sent_at !== undefined && sent_at !== null) {
-      const timestamp = typeof sent_at === 'number' ? sent_at : (sent_at as Date).getTime()
-
-      return Buffer.from(`${timestamp}|${id}`).toString('base64')
-    }
-  }
-
-  throw new Error('No sent_at timestamp found in journeys list')
-}
-
-function decodeCursor(cursor: string): { timestamp: number; id: number } {
-  try {
-    const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
-    const [timestampStr, idStr] = decoded.split('|')
-    const timestamp = parseInt(timestampStr, 10)
-    const id = parseInt(idStr, 10)
-    if (isNaN(timestamp) || isNaN(id)) {
-      throw new Error()
-    }
-    return { timestamp, id }
-  } catch {
-    throw new Error('Invalid cursor format')
-  }
-}
-
-function encodeAssetsListCursor(
-  row: { asset: string; usd_volume: number },
-  snapshotStart: number,
-  snapshotEnd: number,
-): string {
-  return Buffer.from(
-    JSON.stringify({
-      asset: row.asset,
-      usd_volume: row.usd_volume,
-      snapshotStart,
-      snapshotEnd,
-    }),
-  ).toString('base64')
-}
-
-function decodeAssetsListCursor(cursor: string): {
-  asset: string
-  usd_volume: number
-  snapshotStart: number
-  snapshotEnd: number
-} {
-  return JSON.parse(Buffer.from(cursor, 'base64').toString())
 }
 
 export function calculateTotalUsd(assets: { usd?: number | null; role?: AssetRole }[]) {
@@ -850,9 +803,9 @@ export class CrosschainRepository {
   }> {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const queryLimit = limit + 1
-    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
+    const cursor = pagination?.cursor ? parseIdCursor(pagination.cursor) : undefined
 
-    let query = this.#db.selectFrom('xc_journeys').select(['id', 'sent_at'])
+    let query = this.#db.selectFrom('xc_journeys').select(['id'])
 
     if (filters?.start !== undefined) {
       query = query.where('id', '>=', filters.start)
@@ -869,15 +822,10 @@ export class CrosschainRepository {
     }
 
     if (cursor) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('sent_at', '>', cursor.timestamp),
-          eb.and([eb('sent_at', '=', cursor.timestamp), eb('xc_journeys.id', '>', cursor.id)]),
-        ]),
-      )
+      query = query.where('id', '>', cursor)
     }
 
-    const idRows = await query.orderBy('sent_at', 'asc').orderBy('id', 'asc').limit(queryLimit).execute()
+    const idRows = await query.orderBy('id', 'asc').limit(queryLimit).execute()
 
     const hasNextPage = idRows.length > limit
     const paginated = hasNextPage ? idRows.slice(0, limit) : idRows
@@ -893,10 +841,10 @@ export class CrosschainRepository {
       }
     }
 
-    const rows = await this.#getFullJourneyData(ids, 'id', 'asc')
+    const rows = await this.#getFullJourneyData(ids, 'id', 'asc', false)
     const nodes = rows.map(mapRowToFullJourney)
 
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
+    const endCursor = nodes.length > 0 ? nodes[nodes.length - 1].id.toString() : ''
 
     return {
       nodes,
@@ -1071,13 +1019,14 @@ export class CrosschainRepository {
     values: (number | string)[],
     field: 'id' | 'correlation_id' = 'id',
     order: 'asc' | 'desc' = 'desc',
+    orderBySentAt: boolean = true,
   ) {
     if (values.length === 0) {
       return []
     }
 
     // Step 1: Fetch the journey rows
-    const journeys = await this.#db
+    let query = this.#db
       .selectFrom('xc_journeys')
       .select([
         'id',
@@ -1109,9 +1058,12 @@ export class CrosschainRepository {
         'out_connection_data',
       ])
       .where(`xc_journeys.${field}`, 'in', values)
-      .orderBy('sent_at', order)
-      .orderBy('id', order)
-      .execute()
+
+    if (orderBySentAt) {
+      query = query.orderBy('sent_at', order)
+    }
+
+    const journeys = await query.orderBy('id', order).execute()
 
     if (journeys.length === 0) {
       return []
