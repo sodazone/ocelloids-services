@@ -1,11 +1,11 @@
-import { createTransfersAgent, NetworkURN } from '../..'
 import { existsSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { createTransfersAgent, NetworkURN } from '../..'
 
 const STATE_FILE = path.resolve('./last-seen.json')
 
-const NETWORKS: NetworkURN[] | '*' = ['urn:ocn:polkadot:1000']
+const _NETWORKS: NetworkURN[] | '*' = ['urn:ocn:polkadot:1000']
 
 function normaliseDecimals(amount: string | bigint, decimals: number): string {
   const a = BigInt(amount)
@@ -54,11 +54,7 @@ async function loadLastSeen(): Promise<number | null> {
 }
 
 async function persistLastSeen(id: number): Promise<void> {
-  await writeFile(
-    STATE_FILE,
-    JSON.stringify({ lastSeen: id }, null, 2),
-    'utf8',
-  )
+  await writeFile(STATE_FILE, JSON.stringify({ lastSeen: id }, null, 2), 'utf8')
 }
 
 const agent = createTransfersAgent({
@@ -66,7 +62,7 @@ const agent = createTransfersAgent({
   wsUrl: 'ws://127.0.0.1:3000',
 })
 
-let lastSeen: number | null = await loadLastSeen()
+const lastSeen: number | null = await loadLastSeen()
 
 if (lastSeen !== null) {
   console.log('Resuming from lastSeen =', lastSeen)
@@ -92,10 +88,24 @@ agent.subscribeWithReplay(
   subId,
   {
     onMessage: ({ payload }) => {
-      const { from, fromFormatted, to, toFormatted, amount, decimals, symbol, blockNumber, eventIndex, network, id } = payload
+      const {
+        from,
+        fromFormatted,
+        to,
+        toFormatted,
+        amount,
+        decimals,
+        symbol,
+        blockNumber,
+        eventIndex,
+        network,
+        id,
+      } = payload
       const a = Number(normaliseDecimals(amount, decimals ?? 0))
 
-      console.log(`[${id}] Transfer ${a.toFixed(4)} ${symbol} from ${shortenAddress(fromFormatted ?? from)} to ${shortenAddress(toFormatted ?? to)} (${network} ${blockNumber}-${eventIndex})`)
+      console.log(
+        `[${id}] Transfer ${a.toFixed(4)} ${symbol} from ${shortenAddress(fromFormatted ?? from)} to ${shortenAddress(toFormatted ?? to)} (${network} ${blockNumber}-${eventIndex})`,
+      )
     },
     onError: (error) => console.log(error),
     onClose: (event) => console.log(event.reason),
@@ -104,6 +114,6 @@ agent.subscribeWithReplay(
     lastSeenId: lastSeen ?? undefined,
     onPersist: persistLastSeen,
     onCompleteRange: () => console.log('complete range'),
-    onIncompleteRange: async (missed) => console.log('incomplete', missed)
-  }
+    onIncompleteRange: async (missed) => console.log('incomplete', missed),
+  },
 )

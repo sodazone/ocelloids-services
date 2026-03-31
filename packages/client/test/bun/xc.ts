@@ -1,10 +1,10 @@
-import { createCrosschainAgent, NetworkURN } from '../..'
 import { existsSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { createCrosschainAgent, NetworkURN } from '../..'
 
 const STATE_FILE = path.resolve('./last-seen-xc.json')
-const NETWORKS: NetworkURN[] | '*' = '*'
+const _NETWORKS: NetworkURN[] | '*' = '*'
 
 function shortenAddress(address: string) {
   if (!address || typeof address !== 'string') {
@@ -41,11 +41,7 @@ async function loadLastSeen(): Promise<number | null> {
 }
 
 async function persistLastSeen(id: number): Promise<void> {
-  await writeFile(
-    STATE_FILE,
-    JSON.stringify({ lastSeen: id }, null, 2),
-    'utf8',
-  )
+  await writeFile(STATE_FILE, JSON.stringify({ lastSeen: id }, null, 2), 'utf8')
 }
 
 const agent = createCrosschainAgent({
@@ -81,7 +77,9 @@ agent.subscribeWithReplay(
     onMessage: ({ payload }) => {
       const { from, fromFormatted, to, toFormatted, origin, destination, id, status } = payload
 
-      console.log(`[${id}] Transfer from ${shortenAddress(fromFormatted ?? from)} (${origin}) to ${shortenAddress(toFormatted ?? to)} (${destination}) (status=${status})`)
+      console.log(
+        `[${id}] Transfer from ${shortenAddress(fromFormatted ?? from)} (${origin}) to ${shortenAddress(toFormatted ?? to)} (${destination}) (status=${status})`,
+      )
     },
     onError: (error) => console.log(error),
     onClose: (event) => console.log(event.reason),
@@ -90,6 +88,6 @@ agent.subscribeWithReplay(
     lastSeenId: lastSeen ?? undefined,
     onPersist: persistLastSeen,
     onCompleteRange: () => console.log('complete range'),
-    onIncompleteRange: async (missed) => console.log('incomplete', missed)
-  }
+    onIncompleteRange: async (missed) => console.log('incomplete', missed),
+  },
 )
