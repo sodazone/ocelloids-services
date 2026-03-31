@@ -2,6 +2,7 @@
   "name": "test-bun",
   "private": true,
   "scripts": {
-    "test": "bun run.ts"
+    "test": "bun run.ts",
+    "lint": "biome check --write --unsafe ."
   }
 }

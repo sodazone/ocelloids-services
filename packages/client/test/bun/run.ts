@@ -16,7 +16,7 @@ client.subscribe(
   },
   {
     onMessage: (msg, ws) => {
-      if(xcm.isHumanized(msg.payload)) {
+      if (xcm.isHumanized(msg.payload)) {
         console.log('HUMANIZED', msg.payload.humanized)
       }
 
@@ -26,7 +26,7 @@ client.subscribe(
         console.log('SENT', msg.metadata.subscriptionId)
       }
       console.log(msg)
-      ws.close(1001, 'bye!')
+      //ws.close(1001, 'bye!')
     },
     onError: (error) => console.log(error),
     onClose: (event) => console.log(event.reason),
@@ -34,6 +34,6 @@ client.subscribe(
   {
     onSubscriptionCreated: (sub) => {
       console.log('SUB', sub)
-    }
-  }
+    },
+  },
 )
