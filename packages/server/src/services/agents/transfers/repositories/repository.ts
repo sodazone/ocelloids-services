@@ -7,6 +7,14 @@ import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.
 
 const MAX_LIMIT = 100
 
+function parseCursor(cursor?: string): number | undefined {
+  if (!cursor) {
+    return undefined
+  }
+  const id = Number(cursor)
+  return Number.isInteger(id) && id >= 0 ? id : undefined
+}
+
 function encodeAssetsListCursor(
   row: { asset: string; usd_volume: number },
   snapshotStart: number,
@@ -80,7 +88,7 @@ export class IntrachainTransfersRepository {
   }> {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const queryLimit = limit + 1
-    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
+    const cursor = pagination?.cursor ? parseCursor(pagination.cursor) : undefined
 
     let query = this.#db.selectFrom('ic_transfers').selectAll()
 
@@ -95,19 +103,14 @@ export class IntrachainTransfersRepository {
     }
 
     if (cursor) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('sent_at', '>', cursor.timestamp),
-          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '>', cursor.id)]),
-        ]),
-      )
+      query = query.where('id', '>', cursor)
     }
 
-    const rows = await query.orderBy('sent_at', 'asc').orderBy('id', 'asc').limit(queryLimit).execute()
+    const rows = await query.orderBy('id', 'asc').limit(queryLimit).execute()
 
     const hasNextPage = rows.length > limit
     const nodes = hasNextPage ? rows.slice(0, limit) : rows
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes as any[]) : ''
+    const endCursor = nodes.length > 0 ? nodes[nodes.length - 1].id.toString() : ''
 
     return {
       nodes,
