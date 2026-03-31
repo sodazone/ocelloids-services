@@ -1020,7 +1020,8 @@ export class XcmTransfersRepository {
 
         while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
           if (Date.now() > deadline) {
-            throw new Error(`Query timed out after ${timeoutMs}ms\nSQL: ${sql}`)
+            console.error('[xcm:analytics] query time out', sql)
+            throw new Error(`Query timed out after ${timeoutMs}ms`)
           }
 
           await immediate()
