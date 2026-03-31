@@ -1009,24 +1009,28 @@ export class XcmTransfersRepository {
       throw new Error('Too many analytics queries queued, try again later')
     }
 
-    const release = await this.#mutex.acquire()
     this.#queriesRunning += 1
-    const deadline = Date.now() + timeoutMs
 
     try {
-      const pending = await this.#db.start(sql)
+      const release = await this.#mutex.acquire()
+      const deadline = Date.now() + timeoutMs
 
-      while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
-        if (Date.now() > deadline) {
-          throw new Error(`Query timed out after ${timeoutMs}ms\nSQL: ${sql}`)
+      try {
+        const pending = await this.#db.start(sql)
+
+        while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
+          if (Date.now() > deadline) {
+            throw new Error(`Query timed out after ${timeoutMs}ms\nSQL: ${sql}`)
+          }
+
+          await immediate()
         }
 
-        await immediate()
+        return await pending.getResult()
+      } finally {
+        release()
       }
-
-      return await pending.getResult()
     } finally {
-      release()
       this.#queriesRunning -= 1
     }
   }
