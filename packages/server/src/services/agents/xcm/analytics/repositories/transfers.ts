@@ -79,6 +79,8 @@ function safe(s: string) {
   throw new Error('unsafe string')
 }
 
+const MAX_QUERIES = 20
+
 /**
  * This repository provides analytics for XCM transfers, aggregating transaction counts
  * and volumes by channels and assets. It enables querying transfer data efficiently
@@ -93,6 +95,7 @@ export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
   readonly #cache: SimpleCache<any>
   readonly #mutex: Mutex
+  #queriesRunning = 0
 
   constructor(db: DuckDBConnection) {
     this.#db = db
@@ -1002,14 +1005,19 @@ export class XcmTransfersRepository {
   }
 
   async #runNonBlocking(sql: string, timeoutMs: number = 2_500) {
+    if (this.#queriesRunning >= MAX_QUERIES) {
+      throw new Error('Too many analytics queries queued, try again later')
+    }
+
     const release = await this.#mutex.acquire()
-    const start = Date.now()
+    this.#queriesRunning += 1
+    const deadline = Date.now() + timeoutMs
 
     try {
       const pending = await this.#db.start(sql)
 
       while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
-        if (Date.now() - start > timeoutMs) {
+        if (Date.now() > deadline) {
           throw new Error(`Query timed out after ${timeoutMs}ms\nSQL: ${sql}`)
         }
 
@@ -1019,6 +1027,7 @@ export class XcmTransfersRepository {
       return await pending.getResult()
     } finally {
       release()
+      this.#queriesRunning -= 1
     }
   }
 }
