@@ -41,6 +41,7 @@ import {
   $SubscriptionServerOptions,
 } from '@/types.js'
 import version from '@/version.js'
+import { registerWebsocketHeartbeat } from './heartbeat.js'
 
 const WS_MAX_PAYLOAD = 1048576 // 1MB
 
@@ -124,6 +125,8 @@ export async function createServer(opts: ServerOptions) {
       /* empty */
     },
   })
+
+  registerWebsocketHeartbeat(server)
 
   await server.register(FastifySwagger, {
     openapi: {
