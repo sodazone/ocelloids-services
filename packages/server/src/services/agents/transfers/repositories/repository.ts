@@ -229,12 +229,13 @@ export class IntrachainTransfersRepository {
   }
 
   async listNetworks() {
-    const rows = await this.#db
-      .selectFrom('ic_transfers')
-      .select('network')
-      .distinct()
-      .orderBy('network', 'asc')
-      .execute()
+    const rows = (
+      await sql<{ network: string }>`
+        SELECT network
+        FROM ic_networks
+        ORDER BY network ASC
+      `.execute(this.#db)
+    ).rows
 
     return {
       items: rows.map((r) => r.network),

@@ -3,10 +3,13 @@ import {
   DuckDBBlobValue,
   DuckDBConnection,
   DuckDBDecimalValue,
+  DuckDBPendingResultState,
   DuckDBTimestampValue,
   DuckDBValue,
 } from '@duckdb/node-api'
+import { Mutex } from 'async-mutex'
 import { createCache, SimpleCache } from '@/common/cache.js'
+import { immediate } from '@/common/event.loop.js'
 import { fromDuckDBBlob, toDuckDBHex, toSafeAsciiText, toSqlText } from '@/common/util.js'
 import { TimeAndMaybeNetworkSelect, TimeAndNetworkSelect, TimeSelect } from '../../types/index.js'
 import { NewXcmTransfer } from '../types.js'
@@ -76,6 +79,8 @@ function safe(s: string) {
   throw new Error('unsafe string')
 }
 
+const MAX_QUERIES = 20
+
 /**
  * This repository provides analytics for XCM transfers, aggregating transaction counts
  * and volumes by channels and assets. It enables querying transfer data efficiently
@@ -89,10 +94,13 @@ function safe(s: string) {
 export class XcmTransfersRepository {
   readonly #db: DuckDBConnection
   readonly #cache: SimpleCache<any>
+  readonly #mutex: Mutex
+  #queriesRunning = 0
 
   constructor(db: DuckDBConnection) {
     this.#db = db
     this.#cache = createCache(1000 * 60 * 60)
+    this.#mutex = new Mutex()
   }
 
   async archiveOldData(archiveDir: string) {
@@ -209,7 +217,7 @@ export class XcmTransfersRepository {
           (SELECT SUM(COALESCE(volume, 0)) FROM previous_period) AS previous_volume_usd;
       `.trim()
 
-    const result = await this.#db.run(query)
+    const result = await this.#runNonBlocking(query)
     const rows = await result.getRows()
 
     return rows.map((row) => ({
@@ -279,7 +287,7 @@ export class XcmTransfersRepository {
           (SELECT SUM(COALESCE(volume, 0)) FROM previous_period) AS previous_volume_usd;
       `.trim()
 
-    const result = await this.#db.run(query)
+    const result = await this.#runNonBlocking(query)
     const rows = await result.getRows()
 
     return rows.map((row) => ({
@@ -308,7 +316,7 @@ export class XcmTransfersRepository {
   }
 
   async all() {
-    return (await this.#db.run('SELECT * FROM xcm_transfers')).getRows()
+    return (await this.#runNonBlocking('SELECT * FROM xcm_transfers')).getRows()
   }
 
   async getAggregatedData(criteria: TimeSelect, metric: 'txs' | 'volumeByAsset' | 'transfersByChannel') {
@@ -381,7 +389,7 @@ export class XcmTransfersRepository {
       `
     }
 
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
 
     if (metric === 'txs') {
@@ -507,7 +515,7 @@ export class XcmTransfersRepository {
         GROUP BY network
         ORDER BY volume_usd DESC;
       `
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
     const mapped = rows.map((row) => {
       const volumeIn = toNullableNumber(row[3])
@@ -593,7 +601,7 @@ export class XcmTransfersRepository {
     ORDER BY a.time_range, network;
   `
 
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
 
     // Format output: grouped by time_range, each with network shares
@@ -727,7 +735,7 @@ export class XcmTransfersRepository {
       `
     }
 
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
 
     const data: Record<string, NetworkAssetData> = {}
@@ -824,7 +832,7 @@ export class XcmTransfersRepository {
         ORDER BY time_range;
       `
     }
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
 
     const data: Record<string, NetworkFlowData> = {}
@@ -920,7 +928,7 @@ export class XcmTransfersRepository {
       ORDER BY volume_usd DESC;
     `
 
-    const result = await this.#db.run(query.trim())
+    const result = await this.#runNonBlocking(query.trim())
     const rows = await result.getRows()
 
     const avgXcmTime = await this.averageTimeXcm(criteria)
@@ -953,7 +961,7 @@ export class XcmTransfersRepository {
         AND sent_at >= DATE_TRUNC('${unit}', NOW() - INTERVAL '${timeframe}');
     `.trim()
 
-    const result = await this.#db.run(query)
+    const result = await this.#runNonBlocking(query)
     const rows = await result.getRows()
     const avgTimeSpent = rows[0]?.[0] !== null ? Number(rows[0][0]) : null
 
@@ -994,6 +1002,37 @@ export class XcmTransfersRepository {
 
   close() {
     this.#db.closeSync()
+  }
+
+  async #runNonBlocking(sql: string, timeoutMs: number = 2_500) {
+    if (this.#queriesRunning >= MAX_QUERIES) {
+      throw new Error('Too many analytics queries queued, try again later')
+    }
+
+    this.#queriesRunning += 1
+
+    try {
+      const release = await this.#mutex.acquire()
+      const deadline = Date.now() + timeoutMs
+
+      try {
+        const pending = await this.#db.start(sql)
+
+        while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
+          if (Date.now() > deadline) {
+            throw new Error(`Query timed out after ${timeoutMs}ms\nSQL: ${sql}`)
+          }
+
+          await immediate()
+        }
+
+        return await pending.getResult()
+      } finally {
+        release()
+      }
+    } finally {
+      this.#queriesRunning -= 1
+    }
   }
 }
 
