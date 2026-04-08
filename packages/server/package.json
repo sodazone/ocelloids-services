@@ -73,7 +73,7 @@
     "fastify-plugin": "^5.1.0",
     "fzstd": "^0.1.1",
     "got": "^14.5.0",
-    "handlebars": "^4.7.8",
+    "handlebars": "^4.7.9",
     "ky": "^1.12.0",
     "kysely": "^0.28.8",
     "level": "^10.0.0",
