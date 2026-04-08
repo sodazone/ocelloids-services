@@ -43,28 +43,33 @@ export * as SubstrateTypes from './services/networking/substrate/public-types.js
 // The "export * as ___" syntax is not supported yet; as a workaround,
 // use "import * as ___" with a separate "export { ___ }" declaration
 import * as xcm from './services/agents/xcm/lib.js'
+
 export { xcm }
 
 /**
  * Steward agent types
  */
 import * as steward from './services/agents/steward/lib.js'
+
 export { steward }
 
 /**
  * Crosschain agent types
  */
 import * as crosschain from './services/agents/crosschain/lib.js'
+
 export { crosschain }
 
 /**
  * Transfers agent types
  */
 import * as transfers from './services/agents/transfers/lib.js'
+
 export { transfers }
 
 /**
  * Crosschain Issuance agent types
  */
 import * as issuance from './services/agents/issuance/lib.js'
+
 export { issuance }

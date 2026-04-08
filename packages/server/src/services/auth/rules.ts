@@ -59,7 +59,7 @@ export async function ensureAccountAuthorized(
         log.warn('[authorization] token without associated account %j', apiToken)
       }
     } else {
-      log.warn('[authorization] disabled token attempt %j', apiToken)
+      log.warn('[authorization] disabled token attempt %j', apiToken ?? null)
     }
   }
 

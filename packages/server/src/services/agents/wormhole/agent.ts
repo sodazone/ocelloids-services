@@ -155,7 +155,7 @@ export class WormholeAgent implements Agent {
     const due = this.#wormholePendingCache.getDue()
 
     if (due.length === 0) {
-      this.#log.info('[agent:%s] No pending rechecks due', this.id, pendings.length)
+      this.#log.info('[agent:%s] No pending rechecks due', this.id)
       return
     }
 
@@ -164,7 +164,7 @@ export class WormholeAgent implements Agent {
         try {
           await this.#recheckJourney(journey)
         } catch (err) {
-          this.#log.error('[agent:%s] journey recheck failed', this.id, err)
+          this.#log.error(err, '[agent:%s] journey recheck failed', this.id)
         }
         await immediate()
       })

@@ -50,14 +50,14 @@
     "ws": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.6",
-    "@microsoft/api-extractor": "^7.53.1",
-    "finalhandler": "^2.1.0",
+    "@biomejs/biome": "2.4.10",
+    "@microsoft/api-extractor": "^7.58.1",
+    "finalhandler": "^2.1.1",
     "mock-socket": "^9.3.1",
-    "nock": "^14.0.10",
-    "tsup": "^8.5.0",
-    "tsx": "^4.20.6",
-    "typedoc": "^0.28.14",
+    "nock": "^14.0.12",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typedoc": "^0.28.18",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

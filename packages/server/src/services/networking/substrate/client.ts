@@ -22,7 +22,7 @@ export async function createSubstrateClient(log: Logger, chainId: string, url: s
 
 const retryOnStopError = <T>() =>
   retry<T>({
-    delay(error: unknown) {
+    delay(error: unknown): Observable<unknown> {
       if (error instanceof StopError) {
         return of(null)
       }
