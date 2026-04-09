@@ -244,13 +244,14 @@ export type SnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U
 /**
  * @public
  */
-export type DeepCamelize<T> = T extends Array<infer U>
-  ? DeepCamelize<U>[]
-  : T extends object
-    ? {
-        [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
-      }
-    : T
+export type DeepCamelize<T> =
+  T extends Array<infer U>
+    ? DeepCamelize<U>[]
+    : T extends object
+      ? {
+          [K in keyof T as SnakeToCamelCase<string & K>]: DeepCamelize<T[K]>
+        }
+      : T
 
 export function createTypedEventEmitter<T extends EventEmitter>(): T {
   return new EventEmitter() as unknown as T

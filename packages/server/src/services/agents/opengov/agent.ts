@@ -361,7 +361,7 @@ export class OpenGovAgent implements Agent, Subscribable {
             await this.#updateReferendum(chainId, updated)
           }
         } catch (error) {
-          this.#log.error('[%s:%s] Failed to track confirmed referendum %d', this.id, chainId, ref.id, error)
+          this.#log.error(error, '[%s:%s] Failed to track confirmed referendum %s', this.id, chainId, ref.id)
         }
       }
       return

@@ -295,10 +295,11 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     pagination?: QueryPagination,
   ): Promise<QueryResult<IcTransferResponse>> {
     const result = await this.#repository.listTransfersByRange(filters, pagination)
+    const items = result.nodes.map(mapRowToTransferResponse)
 
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map(mapRowToTransferResponse),
+      items,
     }
   }
 

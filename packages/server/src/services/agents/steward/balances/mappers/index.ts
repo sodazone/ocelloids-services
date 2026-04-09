@@ -174,6 +174,10 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
     if (id === 'native') {
       return toNativeStorageKey(ss58Account, apiCtx)
     }
+    if (typeof id === 'object') {
+      console.warn(id, 'Unknown asset ID type for Astar')
+      return null
+    }
     try {
       const assetId = BigInt(id)
       return toAssetsStorageKey(assetId, ss58Account, apiCtx)

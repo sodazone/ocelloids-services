@@ -1,36 +1,18 @@
 import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
-import { SQLDialect } from '@/services/persistence/kysely/db.js'
-import { decodeCursor, encodeCursor } from '../../common/explorer.js'
+import {
+  decodeAssetsListCursor,
+  decodeCursor,
+  encodeAssetsListCursor,
+  encodeCursor,
+  parseIdCursor,
+} from '../../common/explorer.js'
 import { QueryPagination } from '../../types.js'
 import { TransferRangeFilters, TransfersFilters } from '../types.js'
 import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.js'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
 
 const MAX_LIMIT = 100
-
-function encodeAssetsListCursor(
-  row: { asset: string; usd_volume: number },
-  snapshotStart: number,
-  snapshotEnd: number,
-): string {
-  return Buffer.from(
-    JSON.stringify({
-      asset: row.asset,
-      usd_volume: row.usd_volume,
-      snapshotStart,
-      snapshotEnd,
-    }),
-  ).toString('base64')
-}
-
-function decodeAssetsListCursor(cursor: string): {
-  asset: string
-  usd_volume: number
-  snapshotStart: number
-  snapshotEnd: number
-} {
-  return JSON.parse(Buffer.from(cursor, 'base64').toString())
-}
 
 export class IntrachainTransfersRepository {
   readonly #db: Kysely<IntrachainTransfersDatabase>
@@ -83,7 +65,7 @@ export class IntrachainTransfersRepository {
   }> {
     const limit = Math.min(pagination?.limit ?? 50, MAX_LIMIT)
     const queryLimit = limit + 1
-    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : undefined
+    const cursor = pagination?.cursor ? parseIdCursor(pagination.cursor) : undefined
 
     let query = this.#db.selectFrom('ic_transfers').selectAll()
 
@@ -98,19 +80,14 @@ export class IntrachainTransfersRepository {
     }
 
     if (cursor) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('sent_at', '>', cursor.timestamp),
-          eb.and([eb('sent_at', '=', cursor.timestamp), eb('ic_transfers.id', '>', cursor.id)]),
-        ]),
-      )
+      query = query.where('id', '>', cursor)
     }
 
-    const rows = await query.orderBy('sent_at', 'asc').orderBy('id', 'asc').limit(queryLimit).execute()
+    const rows = await query.orderBy('id', 'asc').limit(queryLimit).execute()
 
     const hasNextPage = rows.length > limit
     const nodes = hasNextPage ? rows.slice(0, limit) : rows
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes as any[]) : ''
+    const endCursor = nodes.length > 0 ? nodes[nodes.length - 1].id.toString() : ''
 
     return {
       nodes,

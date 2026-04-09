@@ -128,7 +128,7 @@ export class EvmApi implements ApiClient {
       try {
         unwatch()
       } catch (err) {
-        this.#log.error('[%s] error during unwatch: %O', this.chainId, err)
+        this.#log.error(err, '[%s] error during unwatch', this.chainId)
       }
     }
     this.#unwatches.clear()

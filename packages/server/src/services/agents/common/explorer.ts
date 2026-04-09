@@ -26,3 +26,35 @@ export function decodeCursor(cursor: string): { timestamp: number; id: number } 
     throw new Error('Invalid cursor format')
   }
 }
+
+export function parseIdCursor(cursor?: string): number | undefined {
+  if (!cursor) {
+    return undefined
+  }
+  const id = Number(cursor)
+  return Number.isInteger(id) && id >= 0 ? id : undefined
+}
+
+export function encodeAssetsListCursor(
+  row: { asset: string; usd_volume: number },
+  snapshotStart: number,
+  snapshotEnd: number,
+): string {
+  return Buffer.from(
+    JSON.stringify({
+      asset: row.asset,
+      usd_volume: row.usd_volume,
+      snapshotStart,
+      snapshotEnd,
+    }),
+  ).toString('base64')
+}
+
+export function decodeAssetsListCursor(cursor: string): {
+  asset: string
+  usd_volume: number
+  snapshotStart: number
+  snapshotEnd: number
+} {
+  return JSON.parse(Buffer.from(cursor, 'base64').toString())
+}

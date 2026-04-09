@@ -216,6 +216,7 @@ export class HyperbridgeAgent implements Agent {
             this.#log.error(
               err,
               '[%s:explorer] Error inserting new journey for correlationId: %s',
+              this.id,
               correlationId,
             )
           }

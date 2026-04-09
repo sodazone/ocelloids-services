@@ -929,7 +929,7 @@ export class BalancesManager {
       try {
         sub.unsubscribe()
       } catch (err) {
-        this.#log?.warn?.('Failed to unsubscribe cleanly', err)
+        this.#log?.warn?.(err, 'Failed to unsubscribe cleanly')
       }
     }
     this.#rxSubs.length = 0

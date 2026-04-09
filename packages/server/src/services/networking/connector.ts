@@ -91,7 +91,7 @@ export default class Connector {
             this.#log.info('[connector:%s] connected', chain)
           })
           .catch((error) => {
-            this.#log.error(error, '[connector:%s] failed to connect: %s', chain)
+            this.#log.error(error, '[connector:%s] failed to connect', chain)
           })
       }, i * INC_CONNECTION_MILLIS)
     }

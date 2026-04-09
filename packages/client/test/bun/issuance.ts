@@ -15,16 +15,10 @@ function normaliseDecimals(amount: string | bigint, decimals: number): string {
 }
 
 const agent = createCrosschainIssuanceAgent({
-  httpUrl: 'http://127.0.0.1:3000',
-  wsUrl: 'ws://127.0.0.1:3000',
+  httpUrl: 'https://dev-api.ocelloids.net',
+  wsUrl: 'wss://dev-api.ocelloids.net',
+  apiKey: _API_KEY
 })
-//
-//
-// const agent = createCrosschainIssuanceAgent({
-//   httpUrl: 'https://dev-api.ocelloids.net',
-//   wsUrl: 'wss://dev-api.ocelloids.net',
-//   apiKey: _API_KEY
-// })
 
 const subIds = ['hyperion:polkadot-bifrost_xcm']
 
