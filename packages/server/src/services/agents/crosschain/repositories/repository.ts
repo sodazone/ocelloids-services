@@ -581,7 +581,8 @@ export class CrosschainRepository {
 
     const nodes = rows.map(mapRowToFullJourney)
 
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes.map(n => ({sent_at: n.sent_at ?? 0, id: n.id}))) : ''
+    const endCursor =
+      nodes.length > 0 ? encodeCursor(nodes.map((n) => ({ sent_at: n.sent_at ?? 0, id: n.id }))) : ''
 
     return {
       nodes,
@@ -1137,45 +1138,45 @@ export class CrosschainRepository {
     if (this.#dialect === 'postgres') {
       return this.#getFullJourneyDataWithJoin(values, field, order)
     } else {
-    // Step 1: Fetch the journey rows
-    let query = this.#db
-      .selectFrom('xc_journeys')
-      .select([
-        'id',
-        'correlation_id',
-        'trip_id',
-        'status',
-        'type',
-        'origin_protocol',
-        'destination_protocol',
-        'origin',
-        'destination',
-        'from',
-        'to',
-        'from_formatted',
-        'to_formatted',
-        'sent_at',
-        'recv_at',
-        'created_at',
-        'stops',
-        'instructions',
-        'transact_calls',
-        'origin_tx_primary',
-        'origin_tx_secondary',
-        'destination_tx_primary',
-        'destination_tx_secondary',
-        'in_connection_fk',
-        'in_connection_data',
-        'out_connection_fk',
-        'out_connection_data',
-      ])
-      .where(`xc_journeys.${field}`, 'in', values)
+      // Step 1: Fetch the journey rows
+      let query = this.#db
+        .selectFrom('xc_journeys')
+        .select([
+          'id',
+          'correlation_id',
+          'trip_id',
+          'status',
+          'type',
+          'origin_protocol',
+          'destination_protocol',
+          'origin',
+          'destination',
+          'from',
+          'to',
+          'from_formatted',
+          'to_formatted',
+          'sent_at',
+          'recv_at',
+          'created_at',
+          'stops',
+          'instructions',
+          'transact_calls',
+          'origin_tx_primary',
+          'origin_tx_secondary',
+          'destination_tx_primary',
+          'destination_tx_secondary',
+          'in_connection_fk',
+          'in_connection_data',
+          'out_connection_fk',
+          'out_connection_data',
+        ])
+        .where(`xc_journeys.${field}`, 'in', values)
 
-    if (orderBySentAt) {
-      query = query.orderBy('sent_at', order)
-    }
+      if (orderBySentAt) {
+        query = query.orderBy('sent_at', order)
+      }
 
-    const journeys = await query.orderBy('id', order).execute()
+      const journeys = await query.orderBy('id', order).execute()
 
       if (journeys.length === 0) {
         return []
@@ -1214,5 +1215,5 @@ export class CrosschainRepository {
 
       return fullJourneys
     }
-    }
   }
+}

@@ -1,5 +1,6 @@
 import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import {
   decodeAssetsListCursor,
   decodeCursor,
@@ -10,7 +11,6 @@ import {
 import { QueryPagination } from '../../types.js'
 import { TransferRangeFilters, TransfersFilters } from '../types.js'
 import { IcTransfer, IntrachainTransfersDatabase, NewIcTransfer } from './types.js'
-import { SQLDialect } from '@/services/persistence/kysely/db.js'
 
 const MAX_LIMIT = 100
 
