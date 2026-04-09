@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { zodToJsonSchema } from 'zod-to-json-schema'
+import z from 'zod'
 import {
   $AgentId,
   AgentId,
@@ -34,7 +34,7 @@ export async function AgentsApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
           },
           required: ['agentId'],
         },
@@ -89,7 +89,7 @@ export async function AgentsApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         body: {
@@ -165,7 +165,7 @@ export async function AgentsApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         response: {
@@ -176,7 +176,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(zodToJsonSchema(await agentService.getAgentInputSchema(agentId)))
+      reply.send(z.toJSONSchema(agentService.getAgentInputSchema(agentId), { unrepresentable: 'any' }))
     },
   )
 
@@ -199,7 +199,7 @@ export async function AgentsApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         response: {
@@ -210,7 +210,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(zodToJsonSchema(await agentService.getAgentQuerySchema(agentId)))
+      reply.send(z.toJSONSchema(agentService.getAgentQuerySchema(agentId), { unrepresentable: 'any' }))
     },
   )
 
@@ -231,7 +231,7 @@ export async function AgentsApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
             streamName: { type: 'string' },
           },
           required: ['agentId', 'streamName'],

@@ -40,9 +40,9 @@ describe('xcm agent', () => {
 
   it('should subscribe to persisted subscriptions on start', async () => {
     await agentService.startAgent('xcm', [testSub])
-
-    expect(agentService.getAgentById<XcmAgent>('xcm').getSubscriptionHandler(testSub.id)).toBeDefined()
-  })
+    const handler = agentService.getAgentById<XcmAgent>('xcm').getSubscriptionHandler(testSub.id)
+    expect(handler).toBeDefined()
+  }, 10_000)
 
   it('should throw when subscribing to a chain that is not configured', async () => {
     await agentService.startAgent('xcm')

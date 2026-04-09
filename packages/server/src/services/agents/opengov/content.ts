@@ -41,13 +41,13 @@ export function createGovDataFetcher() {
       return f
     }
 
-    const prefixUrl = SUBSQUARE_APIS[chainId]
-    if (!prefixUrl) {
+    const baseUrl = SUBSQUARE_APIS[chainId]
+    if (!baseUrl) {
       throw new Error(`Unsupported chain ID: ${chainId}`)
     }
 
     f = createFetcher({
-      prefixUrl,
+      baseUrl,
       timeout: DEFAULT_FETCH_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',

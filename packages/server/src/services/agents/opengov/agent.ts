@@ -14,9 +14,7 @@ import { humanizeReferendumStatus } from './humanize.js'
 import { estimateExecutionTime, OpenGovApi, OpenGovEvent, withOpenGov } from './substrate.js'
 
 export const $OpenGovInputs = z.object({
-  networks: z.array(
-    z.string({ required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"' }).min(1),
-  ),
+  networks: z.array(z.string({ error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"' }).min(1)),
 })
 
 export type OpenGovInputs = z.infer<typeof $OpenGovInputs>

@@ -28,7 +28,7 @@ export const $XcmInputs = z.object({
       .array(
         z
           .string({
-            required_error: 'at least 1 origin is required',
+            error: 'at least 1 origin is required',
           })
           .min(1),
       )
@@ -44,7 +44,7 @@ export const $XcmInputs = z.object({
       .array(
         z
           .string({
-            required_error: 'at least 1 destination is required',
+            error: 'at least 1 destination is required',
           })
           .min(1),
       )
