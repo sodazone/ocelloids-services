@@ -176,7 +176,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(z.toJSONSchema(agentService.getAgentInputSchema(agentId), { unrepresentable: 'any' }))
+      reply.send(z.toJSONSchema(agentService.getAgentInputSchema(agentId)))
     },
   )
 
@@ -210,7 +210,7 @@ export async function AgentsApi(api: FastifyInstance) {
     },
     async (request, reply) => {
       const { agentId } = request.params
-      reply.send(z.toJSONSchema(agentService.getAgentQuerySchema(agentId), { unrepresentable: 'any' }))
+      reply.send(z.toJSONSchema(agentService.getAgentQuerySchema(agentId)))
     },
   )
 

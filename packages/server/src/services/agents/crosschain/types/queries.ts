@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 import { $NetworkString } from '@/common/types.js'
-import { uniqueArray } from '@/common/util.js'
 
 /**
  * @public
@@ -63,7 +62,17 @@ export const $JourneyRangeFilters = z
   .object({
     start: z.number().optional(),
     end: z.number().optional(),
-    networks: z.array($NetworkString).min(1).max(50).transform(uniqueArray).optional(),
+    networks: z
+      .array($NetworkString)
+      .min(1)
+      .max(50)
+      .refine(
+        (arr) => {
+          return new Set(arr).size === arr.length
+        },
+        { message: 'networks must be unique' },
+      )
+      .optional(),
   })
   .refine((data) => data.start === undefined || data.end === undefined || data.start < data.end, {
     message: '`start` must be less than `end`',

@@ -2,7 +2,6 @@ import { Subscription as RxSubscription } from 'rxjs'
 import z from 'zod'
 import { ControlQuery } from '@/common/index.js'
 import { $NetworkString } from '@/common/types.js'
-import { uniqueArray } from '@/common/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 
 export type CrosschainSubscriptionHandler = {
@@ -12,7 +11,14 @@ export type CrosschainSubscriptionHandler = {
 }
 
 export const $CrosschainSubscriptionInputs = z.object({
-  networks: z.literal('*').or(z.array($NetworkString).transform(uniqueArray)),
+  networks: z.literal('*').or(
+    z.array($NetworkString).refine(
+      (arr) => {
+        return new Set(arr).size === arr.length
+      },
+      { message: 'networks must be unique' },
+    ),
+  ),
 })
 
 export type CrosschainSubscriptionInputs = z.infer<typeof $CrosschainSubscriptionInputs>

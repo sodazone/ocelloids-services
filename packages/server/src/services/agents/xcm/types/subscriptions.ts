@@ -1,7 +1,7 @@
 import { Subscription as RxSubscription } from 'rxjs'
 import { z } from 'zod'
 
-import { ControlQuery, uniqueArray } from '@/common/index.js'
+import { ControlQuery } from '@/common/index.js'
 import { $HistoricalQuery } from '@/services/archive/types.js'
 import { RxSubscriptionWithId, Subscription } from '@/services/subscriptions/types.js'
 import { XcmNotificationTypes } from './messages.js'
@@ -32,12 +32,25 @@ export const $XcmInputs = z.object({
           })
           .min(1),
       )
-      .transform(uniqueArray),
+      .refine(
+        (arr) => {
+          return new Set(arr).size === arr.length
+        },
+        { message: 'origins must be unique' },
+      ),
   ),
   senders: z.optional(
-    z
-      .literal('*')
-      .or(z.array(z.string()).min(1, 'at least 1 sender address is required').transform(uniqueArray)),
+    z.literal('*').or(
+      z
+        .array(z.string())
+        .min(1, 'at least 1 sender address is required')
+        .refine(
+          (arr) => {
+            return new Set(arr).size === arr.length
+          },
+          { message: 'senders must be unique' },
+        ),
+    ),
   ),
   destinations: z.literal('*').or(
     z
@@ -48,7 +61,12 @@ export const $XcmInputs = z.object({
           })
           .min(1),
       )
-      .transform(uniqueArray),
+      .refine(
+        (arr) => {
+          return new Set(arr).size === arr.length
+        },
+        { message: 'destinations must be unique' },
+      ),
   ),
   // prevent using $refs
   events: z.optional(
