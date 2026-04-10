@@ -1,4 +1,4 @@
-import { Kysely } from 'kysely'
+import { Kysely, sql } from 'kysely'
 
 /**
  * Crosschain journeys schema.
@@ -230,6 +230,16 @@ export async function up(db: Kysely<any>): Promise<void> {
       .on('xc_asset_ops')
       .columns(['journey_id', 'usd'])
       .execute()
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS xc_journeys_origin_protocol_sent_at_id_index
+      ON xc_journeys (origin_protocol, sent_at DESC, id DESC)
+    `.execute(db)
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS xc_journeys_destination_protocol_sent_at_id_index
+      ON xc_journeys (destination_protocol, sent_at DESC, id DESC)
+    `.execute(db)
 
     await db.schema
       .createIndex('xc_assets_asset_journey_id_usd_index')
