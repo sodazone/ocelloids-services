@@ -1,10 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { Operation } from 'rfc6902'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-
+import z from 'zod'
 import { $AgentId, AgentId } from '@/services/agents/types.js'
 import { CAP_READ, CAP_WRITE } from '@/services/auth/index.js'
-
 import { $NewSubscription, $Subscription, $SubscriptionId, NewSubscription } from '../types.js'
 import { OnlyOwner, PublicOrOwner, SubscriptionPathParams } from './handlers.js'
 import $JSONPatch from './json-patch.js'
@@ -35,13 +33,13 @@ export async function SubscriptionApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         response: {
           200: {
             type: 'array',
-            items: zodToJsonSchema($Subscription),
+            items: z.toJSONSchema($Subscription),
           },
           404: { type: 'string' },
         },
@@ -69,12 +67,12 @@ export async function SubscriptionApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            subscriptionId: zodToJsonSchema($SubscriptionId),
-            agentId: zodToJsonSchema($AgentId),
+            subscriptionId: z.toJSONSchema($SubscriptionId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         response: {
-          200: zodToJsonSchema($Subscription),
+          200: z.toJSONSchema($Subscription),
           404: { type: 'string' },
         },
       },
@@ -98,10 +96,10 @@ export async function SubscriptionApi(api: FastifyInstance) {
         security: [{ BearerAuth: [] }],
         body: {
           oneOf: [
-            zodToJsonSchema($NewSubscription),
+            z.toJSONSchema($NewSubscription),
             {
               type: 'array',
-              items: zodToJsonSchema($NewSubscription),
+              items: z.toJSONSchema($NewSubscription),
             },
           ],
         },
@@ -137,13 +135,13 @@ export async function SubscriptionApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            subscriptionId: zodToJsonSchema($SubscriptionId),
-            agentId: zodToJsonSchema($AgentId),
+            subscriptionId: z.toJSONSchema($SubscriptionId),
+            agentId: z.toJSONSchema($AgentId),
           },
         },
         body: $JSONPatch,
         response: {
-          200: zodToJsonSchema($Subscription),
+          200: z.toJSONSchema($Subscription),
           400: { type: 'string' },
           404: { type: 'string' },
         },
@@ -178,8 +176,8 @@ export async function SubscriptionApi(api: FastifyInstance) {
         params: {
           type: 'object',
           properties: {
-            agentId: zodToJsonSchema($AgentId),
-            subscriptionId: zodToJsonSchema($SubscriptionId),
+            agentId: z.toJSONSchema($AgentId),
+            subscriptionId: z.toJSONSchema($SubscriptionId),
           },
         },
         response: {

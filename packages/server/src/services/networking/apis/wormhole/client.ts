@@ -42,7 +42,7 @@ export class WormholescanClient {
 
   constructor(baseUrl = 'https://api.wormholescan.io') {
     this.#api = createFetcher({
-      prefixUrl: baseUrl,
+      baseUrl,
       /*hooks: {
         beforeRequest: [
           (request) => {

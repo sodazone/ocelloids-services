@@ -1,5 +1,5 @@
-import { Context, Options, QueryOperator } from 'mingo/core'
-import { Any, AnyObject, Predicate } from 'mingo/types'
+import { Context } from 'mingo/core'
+import { Any, AnyObject, Options, Predicate, QueryOperator } from 'mingo/types'
 import { ensureArray, resolve } from 'mingo/util'
 
 import { asPublicKey } from '@/common/util.js'

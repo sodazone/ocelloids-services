@@ -18,7 +18,7 @@ export const $InformantInputs = z.object({
   networks: z.array(
     z
       .string({
-        required_error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
+        error: 'Network URNs are required, e.g. "urn:ocn:polkadot:0"',
       })
       .min(1),
   ),

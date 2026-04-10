@@ -2,12 +2,18 @@ import { Subscription as RxSubscription } from 'rxjs'
 import z from 'zod'
 import { ControlQuery } from '@/common/index.js'
 import { $NetworkString } from '@/common/types.js'
-import { uniqueArray } from '@/common/util.js'
 import { HexString, Subscription } from '@/services/subscriptions/types.js'
 import { AnyJson, NetworkURN } from '@/services/types.js'
 
 export const $TransfersAgentInputs = z.object({
-  networks: z.literal('*').or(z.array($NetworkString).transform(uniqueArray)),
+  networks: z.literal('*').or(
+    z.array($NetworkString).refine(
+      (arr) => {
+        return new Set(arr).size === arr.length
+      },
+      { message: 'networks must be unique' },
+    ),
+  ),
 })
 
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
@@ -22,7 +28,18 @@ export const $IcTransferType = z.enum(['user', 'mixed', 'system'])
  */
 export const $TransfersFilters = z.object({
   types: z.optional(z.array($IcTransferType).min(1).max(3)),
-  networks: z.optional(z.array($NetworkString).min(1).max(50).transform(uniqueArray)),
+  networks: z.optional(
+    z
+      .array($NetworkString)
+      .min(1)
+      .max(50)
+      .refine(
+        (arr) => {
+          return new Set(arr).size === arr.length
+        },
+        { message: 'networks must be unique' },
+      ),
+  ),
   assets: z.optional(z.array(z.string()).min(1).max(50)),
   address: z.optional(z.string().min(3).max(100)),
   txHash: z.optional(z.string().min(3).max(100)),
@@ -39,7 +56,17 @@ export const $TransferRangeFilters = z
   .object({
     start: z.number().optional(),
     end: z.number().optional(),
-    networks: z.array($NetworkString).min(1).max(50).transform(uniqueArray).optional(),
+    networks: z
+      .array($NetworkString)
+      .min(1)
+      .max(50)
+      .refine(
+        (arr) => {
+          return new Set(arr).size === arr.length
+        },
+        { message: 'networks must be unique' },
+      )
+      .optional(),
   })
   .refine((data) => data.start === undefined || data.end === undefined || data.start < data.end, {
     message: '`start` must be less than `end`',

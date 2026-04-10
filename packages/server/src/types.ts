@@ -19,13 +19,13 @@ export const $RedisServerOptions = z.object({
 export const $DatabaseOptions = z.object({
   data: z
     .string({
-      required_error: 'Data directory path is required',
+      error: 'Data directory path is required',
     })
     .min(1),
 })
 
 export const $LevelServerOptions = z.object({
-  levelEngine: z.nativeEnum(LevelEngine).default(LevelEngine.classic),
+  levelEngine: z.enum(LevelEngine).default(LevelEngine.classic),
   scheduler: z.boolean().default(true),
   schedulerFrequency: z.number().min(1000),
   sweepExpiry: z.number().min(20000),

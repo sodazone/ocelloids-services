@@ -117,10 +117,19 @@ describe('WebsocketProtocol', () => {
         await flushPromises()
 
         expect(spy).toHaveBeenCalledTimes(1)
-        expect(testSubStream.send).toHaveBeenCalledWith(
-          '{"issues":[{"code":"custom","message":"test error","path":["ws-test"]}],"name":"ZodError"}',
-          expect.any(Function),
-        )
+        const callArgs = testSubStream.send.mock.calls[0]
+        const jsonArg = callArgs[0]
+        const funcArg = callArgs[1]
+
+        const parsed = JSON.parse(jsonArg)
+
+        expect(funcArg).toEqual(expect.any(Function))
+        expect(parsed.name).toBe('ZodError')
+        expect(parsed.message).toBeDefined()
+
+        const parsedMessage = JSON.parse(parsed.message)
+        expect(parsedMessage.length).toBe(1)
+        expect(parsedMessage[0].message).toBe('test error')
       })
 
       it('should send error if subscription is not valid JSON', async () => {
@@ -136,10 +145,20 @@ describe('WebsocketProtocol', () => {
         await websocketProtocol.handle(mockStream, mockRequest)
         await flushPromises()
         expect(spy).toHaveBeenCalledTimes(0)
-        expect(mockStream.send).toHaveBeenCalledWith(
-          '{"issues":[{"code":"custom","message":"Invalid JSON","path":[]}],"name":"ZodError"}',
-          expect.any(Function),
-        )
+
+        const callArgs = testSubStream.send.mock.calls[0]
+        const jsonArg = callArgs[0]
+        const funcArg = callArgs[1]
+
+        const parsed = JSON.parse(jsonArg)
+
+        expect(funcArg).toEqual(expect.any(Function))
+        expect(parsed.name).toBe('ZodError')
+        expect(parsed.message).toBeDefined()
+
+        const parsedMessage = JSON.parse(parsed.message)
+        expect(parsedMessage.length).toBe(1)
+        expect(parsedMessage[0].message).toBe('Invalid JSON')
       })
 
       it('should send error if throws ValidationError on subscribe', async () => {
@@ -148,10 +167,20 @@ describe('WebsocketProtocol', () => {
         await websocketProtocol.handle(testSubStream, mockRequest)
         await flushPromises()
         expect(spy).toHaveBeenCalledTimes(1)
-        expect(testSubStream.send).toHaveBeenCalledWith(
-          '{"issues":[{"code":"custom","path":["filter","match"],"message":"test validation error"}],"name":"ZodError"}',
-          expect.any(Function),
-        )
+
+        const callArgs = testSubStream.send.mock.calls[0]
+        const jsonArg = callArgs[0]
+        const funcArg = callArgs[1]
+
+        const parsed = JSON.parse(jsonArg)
+
+        expect(funcArg).toEqual(expect.any(Function))
+        expect(parsed.name).toBe('ZodError')
+        expect(parsed.message).toBeDefined()
+
+        const parsedMessage = JSON.parse(parsed.message)
+        expect(parsedMessage.length).toBe(1)
+        expect(parsedMessage[0].message).toBe('test validation error')
       })
 
       it('should close socket stream if throws unknown error on subscribe', async () => {
