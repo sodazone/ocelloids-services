@@ -981,48 +981,33 @@ export class CrosschainRepository {
 
     // protocols
     if (filters?.protocols) {
-      const protoBranches = []
-
-      const protoOriginBase = baseQuery.where(field('origin_protocol'), 'in', filters.protocols)
-      const protoDestBase = baseQuery.where(field('destination_protocol'), 'in', filters.protocols)
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb(field('origin_protocol'), 'in', filters.protocols!),
+          eb(field('destination_protocol'), 'in', filters.protocols!),
+        ]),
+      ) as T
 
       if (filters?.networks) {
-        protoBranches.push(
-          protoOriginBase.where(field('origin'), 'in', filters.networks),
-          protoOriginBase.where(field('destination'), 'in', filters.networks),
-          protoDestBase.where(field('origin'), 'in', filters.networks),
-          protoDestBase.where(field('destination'), 'in', filters.networks),
-        )
-      } else {
-        protoBranches.push(protoOriginBase, protoDestBase)
+        baseQuery = baseQuery.where((eb) =>
+          eb.or([
+            eb(field('origin'), 'in', filters.networks!),
+            eb(field('destination'), 'in', filters.networks!),
+          ]),
+        ) as T
       }
 
-      let combined = protoBranches[0]
-      for (const branch of protoBranches.slice(1)) {
-        combined = combined.unionAll(branch)
-      }
-
-      if (this.#dialect === 'postgres') {
-        return combined.distinctOn(['id']) as T
-      } else {
-        const combinedAsTable = combined.as('combined_proto')
-        return this.#db.selectFrom(combinedAsTable).selectAll().groupBy('id') as T
-      }
+      return baseQuery
     }
 
     // networks
     if (filters?.networks) {
-      const originBranch = baseQuery.where(field('origin'), 'in', filters.networks)
-      const destBranch = baseQuery.where(field('destination'), 'in', filters.networks)
-
-      const combined = originBranch.unionAll(destBranch)
-
-      if (this.#dialect === 'postgres') {
-        return combined.distinctOn(['id']) as T
-      } else {
-        const combinedAsTable = combined.as('combined_network')
-        return this.#db.selectFrom(combinedAsTable).selectAll().groupBy('id') as T
-      }
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb(field('origin'), 'in', filters.networks!),
+          eb(field('destination'), 'in', filters.networks!),
+        ]),
+      ) as T
     }
 
     return baseQuery
