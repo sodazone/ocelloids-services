@@ -1,5 +1,6 @@
 import { Kysely, sql } from 'kysely'
 import { fromHex } from 'polkadot-api/utils'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import {
   decodeAssetsListCursor,
   decodeCursor,
@@ -15,9 +16,11 @@ const MAX_LIMIT = 100
 
 export class IntrachainTransfersRepository {
   readonly #db: Kysely<IntrachainTransfersDatabase>
+  //readonly #dialect: SQLDialect
 
-  constructor(db: Kysely<IntrachainTransfersDatabase>) {
+  constructor(db: Kysely<IntrachainTransfersDatabase>, _dialect: SQLDialect = 'sqlite') {
     this.#db = db
+    //this.#dialect = dialect
   }
 
   async close() {
@@ -283,8 +286,8 @@ export class IntrachainTransfersRepository {
 
     if (pagination?.cursor) {
       const decoded = decodeAssetsListCursor(pagination.cursor)
-      snapshotStart = decoded.snapshotStart
-      snapshotEnd = decoded.snapshotEnd
+      snapshotStart = Number(decoded.snapshotStart)
+      snapshotEnd = Number(decoded.snapshotEnd)
       afterAsset = decoded.asset
       afterUsdVolume = decoded.usd_volume
     }
@@ -295,8 +298,8 @@ export class IntrachainTransfersRepository {
       if (!latest) {
         return { items: [], pageInfo: { hasNextPage: false, endCursor: '' } }
       }
-      snapshotStart = latest.snapshot_start
-      snapshotEnd = latest.snapshot_end
+      snapshotStart = Number(latest.snapshot_start)
+      snapshotEnd = Number(latest.snapshot_end)
     }
 
     let query = this.#db

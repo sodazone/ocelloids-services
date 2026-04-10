@@ -8,7 +8,6 @@ import {
   defer,
   EMPTY,
   from,
-  lastValueFrom,
   map,
   mergeAll,
   mergeMap,
@@ -176,56 +175,61 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
 
     const rollbackOnReorg = (head: NeutralHeader): Observable<NeutralHeader> =>
       defer(async () => {
-        if (lastEmitted[head.height] === head.hash) {
-          // already processed
-          return []
-        }
+        const emits: NeutralHeader[] = []
+        let currentHead: NeutralHeader | undefined = head
 
-        await db.put(heightKey(head.height), head)
-        lastEmitted[head.height] = head.hash
+        const stack: NeutralHeader[] = []
 
-        const pruneBelow = head.height - MAX_REORG
-
-        // prune cache
-        for (const h of Object.keys(lastEmitted)) {
-          if (Number(h) < pruneBelow) {
-            delete lastEmitted[Number(h)]
+        while (currentHead) {
+          if (lastEmitted[currentHead.height] === currentHead.hash) {
+            // already processed
+            break
           }
-        }
 
-        // prune db
-        const pruneKey = heightKey(pruneBelow)
-        const batch = db.batch()
-        for await (const [key] of db.iterator({ lt: pruneKey })) {
-          batch.del(key)
-        }
-        if (batch.length > 0) {
-          await batch.write()
-        }
+          // save to DB
+          await db.put(heightKey(currentHead.height), currentHead)
+          lastEmitted[currentHead.height] = currentHead.hash
 
-        const emits: NeutralHeader[] = [head]
-
-        // check for reorg
-        if (head.height > 0) {
-          const prevHeight = head.height - 1
-          const prevHead = await db.get(heightKey(prevHeight))
-
-          if (prevHead !== undefined && head.parenthash !== prevHead.hash) {
-            this.log.info('[%s] reorg at height %s', chainId, head.height)
-
-            // fetch missing parent
-            const parentHead = await api.getNeutralBlockHeader(head.parenthash)
-
-            // recurse, collect its emissions
-            const parentEmits = await lastValueFrom(rollbackOnReorg(parentHead))
-
-            // prepend parent emissions so they flow before this head
-            if (Array.isArray(parentEmits)) {
-              emits.unshift(...parentEmits)
-            } else {
-              emits.unshift(parentEmits)
+          // prune cache
+          const pruneBelow = currentHead.height - MAX_REORG
+          for (const h of Object.keys(lastEmitted)) {
+            if (Number(h) < pruneBelow) {
+              delete lastEmitted[Number(h)]
             }
           }
+
+          // prune DB
+          const pruneKey = heightKey(pruneBelow)
+          const batch = db.batch()
+          for await (const [key] of db.iterator({ lt: pruneKey })) {
+            batch.del(key)
+          }
+          if (batch.length > 0) {
+            await batch.write()
+          }
+
+          // check for reorg
+          if (currentHead.height > 0) {
+            const prevHead = await db.get(heightKey(currentHead.height - 1))
+            if (prevHead !== undefined && currentHead.parenthash !== prevHead.hash) {
+              this.log.info('[%s] reorg at height %s', chainId, currentHead.height)
+
+              // push current onto stack, continue with missing parent
+              const parentHead = await api.getNeutralBlockHeader(currentHead.parenthash)
+              stack.push(currentHead)
+              currentHead = parentHead
+              continue
+            }
+          }
+
+          // no reorg, emit current
+          emits.push(currentHead)
+          break
+        }
+
+        // append remaining stack in order
+        while (stack.length) {
+          emits.push(stack.pop()!)
         }
 
         return emits
@@ -343,13 +347,20 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
     newHead: NeutralHeader,
     targetHeight: number,
     prev: NeutralHeader[],
+    depth = 0,
   ): Observable<NeutralHeader[]> {
+    if (depth > 200) {
+      const error = new Error(`[Watcher] Max recursion hit: head=${newHead.height} target=${targetHeight}`)
+      console.error(error)
+      throw error
+    }
+
     return from(api.getNeutralBlockHeader(newHead.parenthash)).pipe(
-      concatMap((header) =>
-        header.height - 1 <= targetHeight
+      concatMap((header) => {
+        return header.height - 1 <= targetHeight
           ? of([header, ...prev])
-          : this.#headers(api, header, targetHeight, [header, ...prev]),
-      ),
+          : this.#headers(api, header, targetHeight, [header, ...prev], depth + 1)
+      }),
     )
   }
 

@@ -2,9 +2,10 @@ import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, Transaction } from 'kysely'
 import { toHex } from 'polkadot-api/utils'
 import { ulid } from 'ulidx'
-import { immediate, microtask } from '@/common/event.loop.js'
+import { microtask } from '@/common/event.loop.js'
 import { asJSON, stringToUa8 } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
+import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import {
   decodeAssetsListCursor,
   decodeCursor,
@@ -223,9 +224,11 @@ export function mergeStops(inStops: any[] = [], outStops: any[] = []) {
 
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
+  readonly #dialect: SQLDialect
 
-  constructor(db: Kysely<CrosschainDatabase>) {
+  constructor(db: Kysely<CrosschainDatabase>, dialect: SQLDialect = 'sqlite') {
     this.#db = db
+    this.#dialect = dialect
   }
 
   async updateJourney(id: number, updateWith: JourneyUpdate): Promise<void> {
@@ -365,6 +368,7 @@ export class CrosschainRepository {
       const PAGE = 1000
       let offset = 0
 
+      // Subquery: compute recent 30-day volumes per asset
       const volumeSubquery = this.#db
         .selectFrom('xc_asset_ops as recent_assets')
         .innerJoin('xc_journeys as recent_journeys', 'recent_assets.journey_id', 'recent_journeys.id')
@@ -379,16 +383,17 @@ export class CrosschainRepository {
         .as('volumes')
 
       while (true) {
+        // Step 1: Fetch asset ops with joined recent volumes
         const results = await this.#db
-          .selectFrom('xc_asset_ops')
-          .leftJoin(volumeSubquery, 'xc_asset_ops.asset', 'volumes.asset')
+          .selectFrom('xc_asset_ops as a')
+          .leftJoin(volumeSubquery, 'a.asset', 'volumes.asset')
           .select((eb) => [
-            eb.ref('xc_asset_ops.asset').as('asset'),
-            eb.fn.max('xc_asset_ops.symbol').as('symbol'),
-            eb.fn.coalesce(eb.ref('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
+            eb.ref('a.asset').as('asset'),
+            eb.fn.max('a.symbol').as('symbol'),
+            eb.fn.coalesce(eb.fn.max('volumes.usd_volume'), eb.val(0)).as('usd_volume'),
           ])
-          .where('xc_asset_ops.symbol', 'is not', null)
-          .groupBy('xc_asset_ops.asset')
+          .where('a.symbol', 'is not', null)
+          .groupBy('a.asset')
           .limit(PAGE)
           .offset(offset)
           .execute()
@@ -397,19 +402,18 @@ export class CrosschainRepository {
           break
         }
 
-        await microtask()
+        // Step 2: Prepare values with snapshot timestamps
+        const values = results.map((row) => ({
+          ...row,
+          usd_volume: Number(row.usd_volume),
+          snapshot_start,
+          snapshot_end,
+        }))
 
-        // Upsert into snapshot table
+        // Step 3: Upsert into snapshot table
         await this.#db
           .insertInto('xc_asset_volume_cache')
-          .values(
-            results.map((row) => ({
-              ...row,
-              usd_volume: Number(row.usd_volume),
-              snapshot_end,
-              snapshot_start,
-            })),
-          )
+          .values(values)
           .onConflict((oc) =>
             oc.column('asset').doUpdateSet((eb) => ({
               symbol: eb.ref('excluded.symbol'),
@@ -421,8 +425,7 @@ export class CrosschainRepository {
           .execute()
 
         offset += PAGE
-
-        await immediate()
+        await microtask()
       }
     } catch (error) {
       console.error('Error upserting xc_asset_volume_cache:', error)
@@ -483,8 +486,8 @@ export class CrosschainRepository {
         }
       }
 
-      snapshotStart = latestSnapshot.snapshot_start
-      snapshotEnd = latestSnapshot.snapshot_end
+      snapshotStart = Number(latestSnapshot.snapshot_start)
+      snapshotEnd = Number(latestSnapshot.snapshot_end)
     }
 
     let query = this.#db
@@ -578,7 +581,8 @@ export class CrosschainRepository {
 
     const nodes = rows.map(mapRowToFullJourney)
 
-    const endCursor = nodes.length > 0 ? encodeCursor(nodes) : ''
+    const endCursor =
+      nodes.length > 0 ? encodeCursor(nodes.map((n) => ({ sent_at: n.sent_at ?? 0, id: n.id }))) : ''
 
     return {
       nodes,
@@ -975,19 +979,20 @@ export class CrosschainRepository {
       ) as T
     }
 
+    // protocols
     if (filters?.protocols) {
-      const protoBranches: any[] = []
+      const protoBranches = []
 
       const protoOriginBase = baseQuery.where(field('origin_protocol'), 'in', filters.protocols)
       const protoDestBase = baseQuery.where(field('destination_protocol'), 'in', filters.protocols)
 
       if (filters?.networks) {
-        for (const protoBase of [protoOriginBase, protoDestBase]) {
-          const netOriginBranch = protoBase.where(field('origin'), 'in', filters.networks)
-          const netDestBranch = protoBase.where(field('destination'), 'in', filters.networks)
-
-          protoBranches.push(netOriginBranch, netDestBranch)
-        }
+        protoBranches.push(
+          protoOriginBase.where(field('origin'), 'in', filters.networks),
+          protoOriginBase.where(field('destination'), 'in', filters.networks),
+          protoDestBase.where(field('origin'), 'in', filters.networks),
+          protoDestBase.where(field('destination'), 'in', filters.networks),
+        )
       } else {
         protoBranches.push(protoOriginBase, protoDestBase)
       }
@@ -997,22 +1002,127 @@ export class CrosschainRepository {
         combined = combined.unionAll(branch)
       }
 
-      return this.#db.selectFrom(combined.as('combined_proto')).selectAll().groupBy('id') as T
+      if (this.#dialect === 'postgres') {
+        return combined.distinctOn(['id']) as T
+      } else {
+        const combinedAsTable = combined.as('combined_proto')
+        return this.#db.selectFrom(combinedAsTable).selectAll().groupBy('id') as T
+      }
     }
 
+    // networks
     if (filters?.networks) {
-      const networkBase = baseQuery
+      const originBranch = baseQuery.where(field('origin'), 'in', filters.networks)
+      const destBranch = baseQuery.where(field('destination'), 'in', filters.networks)
 
-      const originBranch = networkBase.where(field('origin'), 'in', filters.networks)
-      const destinationBranch = networkBase.where(field('destination'), 'in', filters.networks)
+      const combined = originBranch.unionAll(destBranch)
 
-      return this.#db
-        .selectFrom(originBranch.unionAll(destinationBranch).as('combined_network'))
-        .selectAll()
-        .groupBy('id') as T
+      if (this.#dialect === 'postgres') {
+        return combined.distinctOn(['id']) as T
+      } else {
+        const combinedAsTable = combined.as('combined_network')
+        return this.#db.selectFrom(combinedAsTable).selectAll().groupBy('id') as T
+      }
     }
 
     return baseQuery
+  }
+
+  async #getFullJourneyDataWithJoin(
+    values: (number | string)[],
+    field: 'id' | 'correlation_id' = 'id',
+    order: 'asc' | 'desc' = 'desc',
+  ) {
+    if (values.length === 0) {
+      return []
+    }
+
+    const rows = await this.#db
+      .selectFrom('xc_journeys as j')
+      .leftJoin('xc_asset_ops as a', 'a.journey_id', 'j.id')
+      .select([
+        'j.id',
+        'j.correlation_id',
+        'j.trip_id',
+        'j.status',
+        'j.type',
+        'j.origin_protocol',
+        'j.destination_protocol',
+        'j.origin',
+        'j.destination',
+        'j.from',
+        'j.to',
+        'j.from_formatted',
+        'j.to_formatted',
+        'j.sent_at',
+        'j.recv_at',
+        'j.created_at',
+        'j.stops',
+        'j.instructions',
+        'j.transact_calls',
+        'j.origin_tx_primary',
+        'j.origin_tx_secondary',
+        'j.destination_tx_primary',
+        'j.destination_tx_secondary',
+        'j.in_connection_fk',
+        'j.in_connection_data',
+        'j.out_connection_fk',
+        'j.out_connection_data',
+
+        // asset fields
+        'a.journey_id as a_journey_id',
+        'a.asset as a_asset',
+        'a.symbol as a_symbol',
+        'a.amount as a_amount',
+        'a.decimals as a_decimals',
+        'a.usd as a_usd',
+        'a.role as a_role',
+        'a.sequence as a_sequence',
+      ])
+      .where(`j.${field}`, 'in', values)
+      .orderBy('j.sent_at', order)
+      .orderBy('j.id', order)
+      .execute()
+
+    if (rows.length === 0) {
+      return []
+    }
+
+    const journeyMap = new Map<number, any>()
+
+    for (const row of rows) {
+      let journey = journeyMap.get(row.id)
+
+      if (!journey) {
+        journey = {
+          ...row,
+          totalUsd: 0,
+          assets: [],
+        }
+        journeyMap.set(row.id, journey)
+      }
+
+      if (row.a_asset) {
+        const asset = {
+          asset: row.a_asset,
+          symbol: row.a_symbol,
+          amount: row.a_amount,
+          decimals: row.a_decimals,
+          usd: row.a_usd,
+          role: row.a_role,
+          sequence: row.a_sequence,
+        }
+
+        journey.assets.push(asset)
+
+        if (row.a_role === 'transfer') {
+          const usd = row.a_usd ?? 0
+          journey.totalUsd += usd
+        }
+      }
+    }
+
+    return Array.from(journeyMap.values())
   }
 
   async #getFullJourneyData(
@@ -1025,81 +1135,85 @@ export class CrosschainRepository {
       return []
     }
 
-    // Step 1: Fetch the journey rows
-    let query = this.#db
-      .selectFrom('xc_journeys')
-      .select([
-        'id',
-        'correlation_id',
-        'trip_id',
-        'status',
-        'type',
-        'origin_protocol',
-        'destination_protocol',
-        'origin',
-        'destination',
-        'from',
-        'to',
-        'from_formatted',
-        'to_formatted',
-        'sent_at',
-        'recv_at',
-        'created_at',
-        'stops',
-        'instructions',
-        'transact_calls',
-        'origin_tx_primary',
-        'origin_tx_secondary',
-        'destination_tx_primary',
-        'destination_tx_secondary',
-        'in_connection_fk',
-        'in_connection_data',
-        'out_connection_fk',
-        'out_connection_data',
-      ])
-      .where(`xc_journeys.${field}`, 'in', values)
+    if (this.#dialect === 'postgres') {
+      return this.#getFullJourneyDataWithJoin(values, field, order)
+    } else {
+      // Step 1: Fetch the journey rows
+      let query = this.#db
+        .selectFrom('xc_journeys')
+        .select([
+          'id',
+          'correlation_id',
+          'trip_id',
+          'status',
+          'type',
+          'origin_protocol',
+          'destination_protocol',
+          'origin',
+          'destination',
+          'from',
+          'to',
+          'from_formatted',
+          'to_formatted',
+          'sent_at',
+          'recv_at',
+          'created_at',
+          'stops',
+          'instructions',
+          'transact_calls',
+          'origin_tx_primary',
+          'origin_tx_secondary',
+          'destination_tx_primary',
+          'destination_tx_secondary',
+          'in_connection_fk',
+          'in_connection_data',
+          'out_connection_fk',
+          'out_connection_data',
+        ])
+        .where(`xc_journeys.${field}`, 'in', values)
 
-    if (orderBySentAt) {
-      query = query.orderBy('sent_at', order)
-    }
-
-    const journeys = await query.orderBy('id', order).execute()
-
-    if (journeys.length === 0) {
-      return []
-    }
-
-    const journeyIds = journeys.map((j) => j.id)
-
-    // Step 2: Fetch all assets for these journeys in a single query
-    const assets = await this.#db
-      .selectFrom('xc_asset_ops')
-      .select(['journey_id', 'asset', 'symbol', 'amount', 'decimals', 'usd', 'role', 'sequence'])
-      .where('journey_id', 'in', journeyIds)
-      .execute()
-
-    // Step 3: Map assets to their journeys
-    const journeyAssetsMap = new Map<number, FullJourneyAsset[]>()
-    const journeyUsdMap = new Map<number, number>()
-
-    for (const a of assets) {
-      if (!journeyAssetsMap.has(a.journey_id)) {
-        journeyAssetsMap.set(a.journey_id, [])
+      if (orderBySentAt) {
+        query = query.orderBy('sent_at', order)
       }
-      journeyAssetsMap.get(a.journey_id)!.push(a)
 
-      if (a.role === 'transfer') {
-        journeyUsdMap.set(a.journey_id, (journeyUsdMap.get(a.journey_id) ?? 0) + (a.usd ?? 0))
+      const journeys = await query.orderBy('id', order).execute()
+
+      if (journeys.length === 0) {
+        return []
       }
+
+      const journeyIds = journeys.map((j) => j.id)
+
+      // Step 2: Fetch all assets for these journeys in a single query
+      const assets = await this.#db
+        .selectFrom('xc_asset_ops')
+        .select(['journey_id', 'asset', 'symbol', 'amount', 'decimals', 'usd', 'role', 'sequence'])
+        .where('journey_id', 'in', journeyIds)
+        .execute()
+
+      // Step 3: Map assets to their journeys
+      const journeyAssetsMap = new Map<number, FullJourneyAsset[]>()
+      const journeyUsdMap = new Map<number, number>()
+
+      for (const a of assets) {
+        if (!journeyAssetsMap.has(a.journey_id)) {
+          journeyAssetsMap.set(a.journey_id, [])
+        }
+        journeyAssetsMap.get(a.journey_id)!.push(a)
+
+        if (a.role === 'transfer') {
+          journeyUsdMap.set(a.journey_id, (journeyUsdMap.get(a.journey_id) ?? 0) + (a.usd ?? 0))
+        }
+      }
+
+      // Step 4: Build FullJourney array
+      const fullJourneys: FullJourney[] = journeys.map((j) => ({
+        ...j,
+        totalUsd: journeyUsdMap.get(j.id) ?? 0,
+        assets: journeyAssetsMap.get(j.id) ?? [],
+      }))
+
+      return fullJourneys
     }
-
-    // Step 4: Build FullJourney array
-    const fullJourneys: FullJourney[] = journeys.map((j) => ({
-      ...j,
-      totalUsd: journeyUsdMap.get(j.id) ?? 0,
-      assets: journeyAssetsMap.get(j.id) ?? [],
-    }))
-
-    return fullJourneys
   }
 }

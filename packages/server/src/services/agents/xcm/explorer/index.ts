@@ -1,7 +1,7 @@
 import { SqliteError } from 'better-sqlite3'
 import { LRUCache } from 'lru-cache'
 import { concatMap, Subscription } from 'rxjs'
-import { asJSON, deepCamelize } from '@/common/util.js'
+import { asJSON } from '@/common/util.js'
 import {
   CrosschainExplorer,
   CrosschainRepository,
@@ -13,6 +13,7 @@ import {
   NewJourney,
 } from '@/services/agents/crosschain/index.js'
 import { Logger } from '@/services/types.js'
+import { fullJourneyToResponse, journeyToResponse } from '../../crosschain/convert.js'
 import { XcmHumanizer } from '../humanize/index.js'
 import { XcmJourneyType } from '../humanize/types.js'
 import { XcmTracker } from '../tracking/index.js'
@@ -203,7 +204,7 @@ export class XcmExplorer {
             }
             const fullJourney = await this.#repository.getJourneyById(id)
             if (fullJourney) {
-              this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
+              this.#broadcastNewJourney(fullJourneyToResponse(fullJourney))
 
               if (existingTrips.length > 0) {
                 this.#log.info(
@@ -216,6 +217,7 @@ export class XcmExplorer {
               }
             }
           } catch (err: any) {
+            console.log(err)
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
               this.#log.warn('[xcm:explorer] Duplicate insert prevented for correlationId: %s', correlationId)
               return
@@ -293,7 +295,7 @@ export class XcmExplorer {
                 setImmediate(() => this.#updateTripWithJourney(fullJourney, existingTrips))
                 return
               }
-              this.#broadcastNewJourney(deepCamelize<FullJourney>(fullJourney))
+              this.#broadcastNewJourney(fullJourneyToResponse(fullJourney))
             }
           } catch (err: any) {
             if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT') {
@@ -457,7 +459,7 @@ export class XcmExplorer {
 
     const updatedJourney = await this.#repository.getJourneyById(existingTrip.id)
     if (updatedJourney) {
-      this.#broadcastUpdateJourney(deepCamelize<FullJourney>(updatedJourney))
+      this.#broadcastUpdateJourney(fullJourneyToResponse(updatedJourney))
     }
   }
 
@@ -516,14 +518,14 @@ export class XcmExplorer {
         return
       }
 
-      this.#broadcastUpdateJourney(deepCamelize<FullJourney>(updatedJourney))
+      this.#broadcastUpdateJourney(fullJourneyToResponse(updatedJourney))
 
       if (result?.replaces && result.updatedIds) {
         const replacesJourneyAssets = await this.#repository.getJourneyAssets(result.updatedIds.id)
         this.#crosschain.broadcastReplaceJourney({
           ids: result.updatedIds,
           replaces: {
-            ...deepCamelize<Journey>(result.replaces),
+            ...journeyToResponse(result.replaces),
             assets: replacesJourneyAssets,
             totalUsd: replacesJourneyAssets.reduce((sum, a) => sum + (a.usd ?? 0), 0),
           },

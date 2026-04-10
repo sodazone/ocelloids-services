@@ -14,6 +14,7 @@ import {
   tap,
 } from 'rxjs'
 import { asPublicKey, asSerializable, ControlQuery, Criteria } from '@/common/index.js'
+import { maskPassword } from '@/common/url.js'
 import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
@@ -58,6 +59,7 @@ const IC_ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 const MAX_CONCURRENCY = 5
 const TRANSFERS_AGENT_ID = 'transfers'
 export const DEFAULT_IC_TRANSFERS_PATH = 'db.ic-transfers.sqlite'
+const IC_DB_CONNECTION = process.env.OC_IC_DB_CONNECTION
 
 export class TransfersAgent implements Agent, Subscribable, Queryable, Streamable {
   id = TRANSFERS_AGENT_ID
@@ -105,12 +107,13 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
       ticker: deps.ticker,
     })
 
-    const filename = resolveDataPath(DEFAULT_IC_TRANSFERS_PATH, ctx.environment?.dataPath)
-    this.#log.info('[agent:%s] database at %s', this.id, filename)
+    const connectionString =
+      IC_DB_CONNECTION ?? resolveDataPath(DEFAULT_IC_TRANSFERS_PATH, ctx.environment?.dataPath)
+    this.#log.info('[agent:%s] database at %s', this.id, maskPassword(connectionString))
+    const { db, migrator, dialect } = createIntrachainTransfersDatabase(connectionString)
 
-    const { db, migrator } = createIntrachainTransfersDatabase(filename)
     this.#migrator = migrator
-    this.#repository = new IntrachainTransfersRepository(db)
+    this.#repository = new IntrachainTransfersRepository(db, dialect)
 
     const pipeline$ = this.#tracker.transfers$.pipe(
       mergeMap(
@@ -172,7 +175,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - new Date(latest.snapshot_end).getTime() > IC_ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - Number(latest.snapshot_end) > IC_ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 
@@ -239,7 +242,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     }
   }
 
-  update(subscriptionId: string, patch: Operation[]): Subscription {
+  update(_subscriptionId: string, _patch: Operation[]): Subscription {
     throw new Error('Update not supported')
   }
 

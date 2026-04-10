@@ -91,6 +91,13 @@ export type AssetOperationKey = {
   sequence?: number
 }
 
+type OptionalTimestamp = ColumnType<
+  number | string | undefined,
+  number | string | undefined,
+  number | string | undefined
+>
+type Timestamp = ColumnType<number | string, number | string | undefined, number | string>
+
 /**
  * @internal
  */
@@ -108,11 +115,11 @@ export interface XcJourneyTable {
   to: ColumnType<string>
   from_formatted: ColumnType<string | undefined>
   to_formatted: ColumnType<string | undefined>
+  sent_at: OptionalTimestamp
+  recv_at: OptionalTimestamp
+  created_at: Timestamp
   from_prefix?: ColumnType<string | undefined>
   to_prefix?: ColumnType<string | undefined>
-  sent_at: ColumnType<number, number | undefined, number | undefined>
-  recv_at: ColumnType<number, number | undefined, number | undefined>
-  created_at: ColumnType<number, number, never>
   stops: ColumnType<string>
   instructions: ColumnType<string>
   transact_calls: ColumnType<string>
@@ -178,8 +185,8 @@ export interface XcAssetVolumeCache {
   asset: ColumnType<string>
   symbol: ColumnType<string | undefined>
   usd_volume: ColumnType<number>
-  snapshot_start: ColumnType<number>
-  snapshot_end: ColumnType<number>
+  snapshot_start: Timestamp
+  snapshot_end: Timestamp
 }
 
 export type AssetVolumeCacheRow = Selectable<XcAssetVolumeCache>

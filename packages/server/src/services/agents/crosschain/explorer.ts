@@ -2,7 +2,8 @@ import { Migrator } from 'kysely'
 import { Operation } from 'rfc6902'
 import { filter, Subject } from 'rxjs'
 import { ControlQuery, Criteria } from '@/common/index.js'
-import { asPublicKey, asSerializable, deepCamelize } from '@/common/util.js'
+import { maskPassword } from '@/common/url.js'
+import { asPublicKey, asSerializable } from '@/common/util.js'
 import { Egress } from '@/services/egress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
@@ -21,8 +22,9 @@ import {
   Subscribable,
 } from '../types.js'
 import { createCrosschainBroadcaster } from './broadcaster.js'
+import { fullJourneyToResponse } from './convert.js'
 import { createCrosschainDatabase } from './repositories/db.js'
-import { CrosschainRepository, FullJourney, FullJourneyResponse, ListAsset } from './repositories/index.js'
+import { CrosschainRepository, FullJourneyResponse, ListAsset } from './repositories/index.js'
 import { $XcQueryArgs, JourneyFilters, JourneyRangeFilters, XcQueryArgs } from './types/queries.js'
 import { $XcServerSentEventArgs, XcServerSentEventArgs } from './types/sse.js'
 import {
@@ -35,6 +37,7 @@ const ASSET_CACHE_REFRESH = 86_400_000 // 24 hours
 
 export const CROSSCHAIN_AGENT_ID = 'crosschain'
 export const DEFAULT_XC_DB_PATH = 'db.xc-explorer.sqlite'
+const XC_DB_CONNECTION = process.env.OC_XC_DB_CONNECTION
 
 /**
  * Crosschain Explorer
@@ -84,12 +87,12 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
   }) {
     this.#log = log
 
-    const filename = resolveDataPath(DEFAULT_XC_DB_PATH, environment?.dataPath)
-    this.#log.info('[xc:explorer] database at %s', filename)
+    const connectionString = XC_DB_CONNECTION ?? resolveDataPath(DEFAULT_XC_DB_PATH, environment?.dataPath)
+    this.#log.info('[xc:explorer] database at %s', maskPassword(connectionString))
+    const { db, migrator, dialect } = createCrosschainDatabase(connectionString)
 
-    const { db, migrator } = createCrosschainDatabase(filename)
     this.#migrator = migrator
-    this.#repository = new CrosschainRepository(db)
+    this.#repository = new CrosschainRepository(db, dialect)
     this.#broadcaster = broadcaster ?? createCrosschainBroadcaster()
     this.#notifier = egress
 
@@ -140,7 +143,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
 
     const latest = await this.#repository.getLatestSnapshot()
 
-    if (!latest || Date.now() - new Date(latest.snapshot_end).getTime() > ASSET_CACHE_REFRESH) {
+    if (!latest || Date.now() - Number(latest.snapshot_end) > ASSET_CACHE_REFRESH) {
       await this.#refreshAssetCache()
     }
 
@@ -215,13 +218,17 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
 
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map((journey) => deepCamelize<FullJourney>(journey)),
+      items: result.nodes.map(fullJourneyToResponse),
     }
   }
 
   async getJourneyById({ id }: { id: string }): Promise<QueryResult<FullJourneyResponse>> {
     const journey = await this.#repository.getJourneyByCorrelationId(id)
-    return journey ? { items: [deepCamelize<FullJourney>(journey)] } : { items: [] }
+    return journey
+      ? {
+          items: [fullJourneyToResponse(journey)],
+        }
+      : { items: [] }
   }
 
   async listJourneysByRange(
@@ -231,7 +238,7 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
     const result = await this.#repository.listJourneysByRange(filters, pagination)
     return {
       pageInfo: result.pageInfo,
-      items: result.nodes.map((journey) => deepCamelize<FullJourney>(journey)),
+      items: result.nodes.map(fullJourneyToResponse),
     }
   }
 
