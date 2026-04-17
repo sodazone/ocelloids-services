@@ -257,13 +257,6 @@ export class TransfersTracker {
       return items.length > 0 ? items[0].medianPrice : null
     }
 
-    if (symbol) {
-      const price = await getMedianPrice('prices.by_ticker', { ticker: symbol })
-      if (price) {
-        return normalizedAmount * price
-      }
-    }
-
     const priceQuery = {
       chainId: sourceId ? sourceId.chainId : chainId,
       assetId: normalizeAssetId(sourceId ? sourceId.id : id),
