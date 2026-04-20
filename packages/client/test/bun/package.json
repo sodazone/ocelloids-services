@@ -4,5 +4,8 @@
   "scripts": {
     "test": "bun run.ts",
     "lint": "biome check --write --unsafe ."
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.12"
   }
 }
