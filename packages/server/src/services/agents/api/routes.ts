@@ -260,7 +260,6 @@ export async function AgentsApi(api: FastifyInstance) {
         streamName,
         filters: request.query,
         request: request.raw,
-        uid: request.ip,
         reply,
       })
 
