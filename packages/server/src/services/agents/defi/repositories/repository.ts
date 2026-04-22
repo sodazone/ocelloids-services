@@ -38,11 +38,10 @@ export class DefiRepository {
     return inserted ?? null
   }
 
-  async updatePoolReserves(
-    poolKey: PoolKey,
-    reserves: Array<NewDefiDexPoolReserve>,
-  ): Promise<void> {
-    if (!reserves.length) return
+  async updatePoolReserves(poolKey: PoolKey, reserves: Array<NewDefiDexPoolReserve>): Promise<void> {
+    if (!reserves.length) {
+      return
+    }
 
     await this.#db
       .with('pool', (db) =>
@@ -68,8 +67,6 @@ export class DefiRepository {
       )
       .execute()
   }
-
-
 
   async getPoolById(id: number): Promise<DefiDexPool> {
     const row = await this.#db.selectFrom('defi_dex_pool').selectAll().where('id', '=', id).executeTakeFirst()

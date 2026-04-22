@@ -2,8 +2,8 @@ import { Subject, Subscription } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
-import { createOmnipoolWatcher } from './omnipool.js'
 import { Block } from '@/services/networking/substrate/types.js'
+import { createOmnipoolWatcher } from './omnipool.js'
 
 export function hydrationDexMonitor(ingress: SubstrateIngressConsumer) {
   const chainId = networks.hydration
@@ -28,6 +28,6 @@ export function hydrationDexMonitor(ingress: SubstrateIngressConsumer) {
         sub.unsubscribe()
       }
     },
-    events$: subject.asObservable()
+    events$: subject.asObservable(),
   }
 }

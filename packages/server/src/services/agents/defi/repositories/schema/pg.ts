@@ -30,10 +30,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('balance', 'text', (cb) => cb.notNull())
       .addColumn('usd_value', 'decimal')
       .addColumn('weight', 'decimal')
-      .addUniqueConstraint('defi_dex_pool_reserve_pool_asset_unique', [
-          'pool_id',
-          'asset_id',
-        ])
+      .addUniqueConstraint('defi_dex_pool_reserve_pool_asset_unique', ['pool_id', 'asset_id'])
       .execute()
 
     await db.schema
