@@ -1,38 +1,5 @@
-import { Binary } from 'polkadot-api'
 import { fromHex } from 'polkadot-api/utils'
 import { asPublicKey } from '@/common/util.js'
-
-export function serializeStorageKeyArg(obj: any): any {
-  if (obj == null) {
-    return obj
-  }
-
-  if (typeof obj === 'string' && obj.startsWith('0x')) {
-    return new Binary(fromHex(obj))
-  }
-
-  if (typeof obj === 'string') {
-    try {
-      return BigInt(obj)
-    } catch (_error) {
-      //
-    }
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(serializeStorageKeyArg)
-  }
-
-  if (typeof obj === 'object') {
-    const newObj: any = {}
-    for (const [key, value] of Object.entries(obj)) {
-      newObj[key] = serializeStorageKeyArg(value)
-    }
-    return newObj
-  }
-
-  return obj
-}
 
 export function isXcmLocation(obj: any): obj is { parents: number; interior: any } {
   return obj !== undefined && obj !== null && typeof obj === 'object' && 'parents' in obj && 'interior' in obj

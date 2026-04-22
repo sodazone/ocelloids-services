@@ -2,7 +2,7 @@ import { Binary } from 'polkadot-api'
 import { fromHex, toHex } from 'polkadot-api/utils'
 import { EMPTY, filter, firstValueFrom, from, map, mergeMap, Observable, switchMap } from 'rxjs'
 import { padAccountKey20, publicKeyToSS58 } from '@/common/address.js'
-import { asPublicKey, isEVMAddress } from '@/common/util.js'
+import { asPublicKey } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { Balance, calculateFreeBalance } from '@/services/networking/substrate/balances.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
@@ -168,33 +168,25 @@ export function hydrationCurrecies$(chainId: NetworkURN, ingress: SubstrateIngre
   )
 }
 
-export const hydrationBalancesFetcher: CustomDiscoveryFetcher = async ({
-  chainId,
-  account,
-  ingress,
-  apiCtx,
-}) => {
-  const accountId32 = isEVMAddress(account)
-    ? await evmToSubstrateAddress({
-        evmAddress: account as HexString,
-        chainId,
-        ingress,
-        apiCtx,
-      })
-    : publicKeyToSS58(fromHex(account), 0)
-  const results = await ingress.runtimeCall<[number, Balance][]>(
-    chainId,
-    {
-      api: 'CurrenciesApi',
-      method: 'accounts',
-    },
-    [accountId32],
-  )
-  if (!results) {
-    return []
+export function hydrationBalancesFetcher(
+  chainId: NetworkURN,
+  ingress: SubstrateIngressConsumer,
+): CustomDiscoveryFetcher {
+  return async (account: HexString) => {
+    const results = await ingress.runtimeCall<[number, Balance][]>(
+      chainId,
+      {
+        api: 'CurrenciesApi',
+        method: 'accounts',
+      },
+      [account],
+    )
+    if (!results) {
+      return []
+    }
+    return results.map(([assetId, balance]) => ({
+      assetId,
+      balance: calculateFreeBalance(balance),
+    }))
   }
-  return results.map(([assetId, balance]) => ({
-    assetId,
-    balance: calculateFreeBalance(balance),
-  }))
 }

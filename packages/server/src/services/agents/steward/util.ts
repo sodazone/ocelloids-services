@@ -1,6 +1,7 @@
 import { Twox128 } from '@polkadot-api/substrate-bindings'
 import { HexString } from '@/lib.js'
 import { NetworkURN } from '@/services/types.js'
+import { toMelbourne } from '../common/melbourne.js'
 import { AssetId } from './types.js'
 
 export function getLocationIfAny(assetDetails: Record<string, any>) {
@@ -9,29 +10,6 @@ export function getLocationIfAny(assetDetails: Record<string, any>) {
     return location
   }
   return undefined
-}
-
-export function toMelbourne(o: unknown): string {
-  if (o == null) {
-    return ''
-  }
-
-  if (typeof o === 'object') {
-    return Object.entries(o)
-      .flatMap(([k, v]) => {
-        if (k === 'type') {
-          return v
-        }
-        if (k === 'value') {
-          return v == null ? null : toMelbourne(v)
-        }
-        return `${k}:${toMelbourne(v)}`
-      })
-      .filter(Boolean)
-      .join(':')
-  }
-
-  return o.toString()
 }
 
 function normalize(assetId: AssetId) {
