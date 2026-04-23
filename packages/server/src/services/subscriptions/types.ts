@@ -107,12 +107,7 @@ const $WebsocketNotification = z.object({
   type: z.literal('websocket'),
 })
 
-export const $AgentArgs = z.record(
-  z.string({
-    error: 'argument name is required',
-  }),
-  z.any(),
-)
+export const $AgentArgs = z.record(z.any(), z.any())
 
 const $NotificationUnion = z.discriminatedUnion('type', [
   $TelegramNotification,
