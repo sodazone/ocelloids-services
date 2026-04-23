@@ -38,25 +38,28 @@ export * from './types'
 // The "export * as ___" syntax is not supported yet; as a workaround,
 // use "import * as ___" with a separate "export { ___ }" declaration
 import * as xcm from './xcm/types'
+
 export { xcm }
 
 import * as steward from './steward/types'
-export { steward }
 
 export * from './crosschain/agent'
+export { steward }
 
 import * as crosschain from './crosschain/types'
-export { crosschain }
 
 export * from './transfers/agent'
+export { crosschain }
 
 import * as transfers from './transfers/types'
-export { transfers }
 
 export * from './issuance/agent'
+export { transfers }
 
 import * as issuance from './issuance/types'
+
 export { issuance }
 
 import * as opengov from './opengov/types'
+
 export { opengov }
