@@ -38,6 +38,31 @@ export const raw = {
       hash: messageHash(encoded),
     }
   },
+  asXcmpVersionedXcmsDouble(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
+    const xcms: Program[] = []
+
+    let offset = 1
+
+    while (offset < buffer.length) {
+      try {
+        const fragmentLen = decodeCompact(buffer.slice(offset))
+        offset += fragmentLen.offset
+
+        const end = offset + fragmentLen.value
+        const fragment = buffer.slice(offset, end)
+
+        const xcm = raw.asVersionedXcm(fragment, context)
+        xcms.push(xcm)
+
+        offset = end
+      } catch (error) {
+        console.error('Failed parsing fragment at offset', offset, error)
+        break
+      }
+    }
+
+    return xcms
+  },
   asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
     const len = buffer.length
     const xcms: Program[] = []
@@ -96,6 +121,13 @@ function asXcmpVersionedXcms(buffer: Uint8Array, context: SubstrateApiContext): 
   })
 }
 
+function asXcmpVersionedXcmsDouble(buffer: Uint8Array, context: SubstrateApiContext): Program[] {
+  return raw.asXcmpVersionedXcmsDouble(buffer, context).map((xcm) => {
+    xcm.instructions = asSerializable(xcm.instructions)
+    return xcm
+  })
+}
+
 /**
  * Decodes XCMP message formats.
  *
@@ -119,8 +151,12 @@ export function fromXcmpFormat(buf: Uint8Array, context: SubstrateApiContext): P
       // TODO handle signals (?)
       break
     }
+    case 0x03: {
+      // Concatenated opaque double encoded XCM
+      return asXcmpVersionedXcmsDouble(buf, context)
+    }
     default: {
-      throw new Error('Unknown XCMP format')
+      throw new Error(`Unknown XCMP format ${buf[0]}`)
     }
   }
   return []
