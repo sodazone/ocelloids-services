@@ -28,19 +28,13 @@ export function createOmnipoolWatcher(ingress: SubstrateIngressConsumer) {
 
     const [pairs, feeEntries] = await Promise.all([
       firstValueFrom(
-        storageEntriesAtLatest$<number, OmnipoolValue>(
-          ingress,
-          CHAIN_ID,
-          'Omnipool',
-          'Assets',
-        ).pipe(toArray()),
+        storageEntriesAtLatest$<number, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
+          toArray(),
+        ),
       ),
 
       firstValueFrom(
-        storageEntriesAtLatest$<
-          number,
-          { asset_fee?: number; protocol_fee?: number }
-        >(
+        storageEntriesAtLatest$<number, { asset_fee?: number; protocol_fee?: number }>(
           ingress,
           CHAIN_ID,
           'DynamicFees',
@@ -49,17 +43,12 @@ export function createOmnipoolWatcher(ingress: SubstrateIngressConsumer) {
       ),
     ])
 
-    const feeMap = new Map<
-      number,
-      { assetFee: number; protocolFee: number }
-    >()
+    const feeMap = new Map<number, { assetFee: number; protocolFee: number }>()
 
     for (const { key, value } of feeEntries) {
       feeMap.set(key, {
-        assetFee:
-          (value?.asset_fee ?? DEFAULT_ASSET_FEE) / 10_000 / 100,
-        protocolFee:
-          (value?.protocol_fee ?? DEFAULT_PROTOCOL_FEE) / 10_000 / 100,
+        assetFee: (value?.asset_fee ?? DEFAULT_ASSET_FEE) / 10_000 / 100,
+        protocolFee: (value?.protocol_fee ?? DEFAULT_PROTOCOL_FEE) / 10_000 / 100,
       })
     }
 
@@ -70,10 +59,14 @@ export function createOmnipoolWatcher(ingress: SubstrateIngressConsumer) {
         const { hub_reserve } = value
 
         const balance = balances.find((b) => b.assetId === key)
-        if (balance === undefined) continue
+        if (balance === undefined) {
+          continue
+        }
 
         const reserves = balance.balance ?? 0n
-        if (reserves === 0n || hub_reserve === 0n) continue
+        if (reserves === 0n || hub_reserve === 0n) {
+          continue
+        }
 
         const fees = feeMap.get(key) ?? {
           assetFee: DEFAULT_ASSET_FEE / 10_000 / 100,
@@ -97,10 +90,7 @@ export function createOmnipoolWatcher(ingress: SubstrateIngressConsumer) {
           ],
         })
       } catch (error) {
-        console.error(
-          `Error loading omnipool asset ${key}`,
-          (error as Error).message,
-        )
+        console.error(`Error loading omnipool asset ${key}`, (error as Error).message)
       }
     }
 
