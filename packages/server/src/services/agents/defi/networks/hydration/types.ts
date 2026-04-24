@@ -12,11 +12,14 @@ export type StablesPool = {
   totalIssuance: string
   amplification: string
   pegs: string
+  fees: number
 }
 
 export type OmniPool = {
   type: 'omnipool'
   address: string
+  assetFee: number
+  protocolFee: number
   tokens: PoolToken[]
 }
 
