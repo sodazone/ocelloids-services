@@ -513,7 +513,12 @@ export class XcmExplorer {
         result = await merge(existingTrip.id, journey.id)
       }
 
-      const updatedJourney = await this.#repository.getJourneyById(result?.updatedIds.id ?? journey.id)
+      const targetId = result?.updatedIds.id ?? null
+      if (!targetId) {
+        return
+      }
+
+      const updatedJourney = await this.#repository.getJourneyById(targetId)
       if (!updatedJourney) {
         return
       }
