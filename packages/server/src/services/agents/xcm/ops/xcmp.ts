@@ -44,7 +44,7 @@ function findOutboundHrmpMessage(
                       }),
                   )
                 } catch (err) {
-                  console.warn(err, 'Error decoding XCMP program')
+                  console.warn(err, `Error decoding XCMP program at block ${blockHash} (${origin})`)
                   return null
                 }
               })

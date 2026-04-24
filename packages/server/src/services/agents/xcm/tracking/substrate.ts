@@ -189,25 +189,26 @@ export class SubstrateXcmTracker {
           // VMP + HRMP
           this.#log.info('[%s] %s subscribe inbound DMP + HRMP / XCMP', this.#id, chainId)
 
-          const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
-            switchMap((context) =>
-              this.#shared.blocks(chainId).pipe(
-                extractXcmMessageData(context),
-                mergeMap(({ block, hashData }) =>
-                  hashData.length === 0
-                    ? of(block)
-                    : forkJoin(hashData.map((h) => from(this.#engine.onMessageData(h)))).pipe(
-                        map(() => block),
-                      ),
-                ),
-              ),
-            ),
-          )
+          // messages do not come any more in the parachainSystem.SetValidationData
+          // const messageHashBlocks$ = this.#ingress.getContext(chainId).pipe(
+          //   switchMap((context) =>
+          //     this.#shared.blocks(chainId).pipe(
+          //       extractXcmMessageData(context),
+          //       mergeMap(({ block, hashData }) =>
+          //         hashData.length === 0
+          //           ? of(block)
+          //           : forkJoin(hashData.map((h) => from(this.#engine.onMessageData(h)))).pipe(
+          //               map(() => block),
+          //             ),
+          //       ),
+          //     ),
+          //   ),
+          // )
 
           // Extract both DMP and HRMP receive
           subs.push({
             id: chainId,
-            sub: messageHashBlocks$
+            sub: this.#shared.blocks(chainId)
               .pipe(extractParachainReceiveByBlock(chainId), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })

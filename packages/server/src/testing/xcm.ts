@@ -1,6 +1,7 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Binary } from 'polkadot-api'
 import { from, of } from 'rxjs'
-import { fileURLToPath, resolve } from 'url'
 import { ControlQuery } from '@/common/index.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { messageCriteria, sendersCriteria } from '../services/agents/xcm/ops/criteria.js'
@@ -15,7 +16,7 @@ export const apiContext_bridgehub_polkadot: SubstrateApiContext =
 export const apiContext_nexus: SubstrateApiContext = testApiContextFromMetadata('nexus.scale')
 export const apiContext_moonbeam: SubstrateApiContext = testApiContextFromMetadata('moonbeam.scale')
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const __dirname = dirname(fileURLToPath(import.meta.url))
 export const xcmDataDir = resolve(__dirname, '__data__/xcm')
 
 // XCMP testing mocks

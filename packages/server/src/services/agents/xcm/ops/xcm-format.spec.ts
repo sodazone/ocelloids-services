@@ -2,6 +2,17 @@ import { apiContext, apiContext_xcmv2 } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat, messageHash, raw, versionedXcmCodec } from './xcm-format.js'
 
 describe('xcm formats', () => {
+  it.only('should decode double encoded concatenated XCM', () => {
+    const collectives8714627 =
+      '03bc050803cd0b0200000001000104402c15bbf3bc7073d38df25faca825fccfcd97ce022d4ba7cbbc6c94fc10caba21c3bc050803cd0b0200000001000104402c15bbf3bc7073d38df25faca825fccfcd97ce022d4ba7cbbc6c94fc10caba21c3'
+    const buf = new Uint8Array(Buffer.from(collectives8714627, 'hex'))
+
+    const xcms = fromXcmpFormat(buf, apiContext)
+    expect(xcms.length).toBe(2)
+    expect(xcms[0].hash).toBe('0xc44d460fc76e2575596f689a735a5fb4dc53267c771632e377c1b41ebc2b56d4')
+    expect(xcms[1].hash).toBe('0xc44d460fc76e2575596f689a735a5fb4dc53267c771632e377c1b41ebc2b56d4')
+  })
+
   it('should decode xcmp concatenated fragments', () => {
     const moon4361335 =
       '0002100004000000001700004b3471bb156b050a13000000001700004b3471bb156b05010300286bee0d010004000101001e08eb75720cb63fbfcbe7237c6d9b7cf6b4953518da6b38731d5bc65b9ffa32021000040000000017206d278c7e297945030a130000000017206d278c7e29794503010300286bee0d010004000101000257fd81d0a71b094c2c8d3e6c93a9b01a31a43d38408bb2c4c2b49a4c58eb01'
