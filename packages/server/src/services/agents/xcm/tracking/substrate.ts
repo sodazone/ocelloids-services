@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
 import { Binary, FixedSizeBinary } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
-import { forkJoin, from, map, mergeMap, Observable, of, switchMap } from 'rxjs'
+import { map, Observable, switchMap } from 'rxjs'
 
 import { ControlQuery } from '@/common/rx/index.js'
 import { getChainId, getConsensus } from '@/services/config.js'
@@ -208,7 +208,8 @@ export class SubstrateXcmTracker {
           // Extract both DMP and HRMP receive
           subs.push({
             id: chainId,
-            sub: this.#shared.blocks(chainId)
+            sub: this.#shared
+              .blocks(chainId)
               .pipe(extractParachainReceiveByBlock(chainId), mapXcmInbound(chainId))
               .subscribe(inboundObserver),
           })
