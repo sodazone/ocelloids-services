@@ -10,6 +10,7 @@ export const networks = setNetworks({
   coretime: 'urn:ocn:polkadot:1005',
   acala: 'urn:ocn:polkadot:2000',
   moonbeam: 'urn:ocn:polkadot:2004',
+  moonbeam_evm: 'urn:ocn:ethereum:1284',
   composable: 'urn:ocn:polkadot:2019',
   astar: 'urn:ocn:polkadot:2006',
   nodle: 'urn:ocn:polkadot:2026',
