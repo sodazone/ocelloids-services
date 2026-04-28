@@ -19,6 +19,7 @@ import { asSerializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
+import { customChains } from './chains.js'
 import { Block, BlockWithLogs, SerializableLog } from './types.js'
 
 const MAX_SEEN_BLOCKS = 128
@@ -47,6 +48,10 @@ export function resolveChain(chainId: string) {
     throw new Error(
       `Malformed EVM chain identifier: ${chainId}. Expected format: 'urn:ocn:ethereum:{viem-chain-name|chain-id}'`,
     )
+  }
+
+  if (customChains[chainId]) {
+    return customChains[chainId]
   }
 
   const chainValue = chainId.substring(17)
