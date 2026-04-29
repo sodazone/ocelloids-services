@@ -1,6 +1,7 @@
 import { Abi, GetBlockReturnType, Log, Transaction, TransactionReceipt } from 'viem'
 import { Serializable } from '@/common/util.js'
 import { HexString } from '@/lib.js'
+import { BlockIngestionMode } from '../types.js'
 
 type BlockWithTransactions = GetBlockReturnType<undefined, true>
 
@@ -10,7 +11,9 @@ export type BlockWithLogs = Serializable<BlockWithTransactions> & {
   logs: SerializableLog[]
 }
 
-export type Block = Serializable<BlockWithTransactions>
+export type Block = Serializable<BlockWithTransactions> & {
+  ingestionMode?: BlockIngestionMode
+}
 
 export type TransactionWithTimestamp = Serializable<Transaction> & { timestamp: number }
 

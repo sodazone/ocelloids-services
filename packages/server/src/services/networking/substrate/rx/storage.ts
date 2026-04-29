@@ -32,6 +32,7 @@ export function storageEntriesAtLatest$<TK = unknown, TV = unknown>(
   chainId: NetworkURN,
   pallet: string,
   method: string,
+  storageKeyArgs?: unknown[],
 ): Observable<DecodedStorageEntry<TK, TV>> {
   return ingress.getContext(chainId).pipe(
     take(1),
@@ -44,7 +45,15 @@ export function storageEntriesAtLatest$<TK = unknown, TV = unknown>(
       const hashers = apiCtx.getHashers(pallet, method)
       const prefix = codec.keys.enc() as HexString
 
-      return storageKeysAtLatest$(ingress, chainId, prefix).pipe(
+      const storageKeys$ = storageKeyArgs
+        ? of(
+            storageKeyArgs.map((arg) =>
+              Array.isArray(arg) ? (codec.keys.enc(...arg) as HexString) : (codec.keys.enc(arg) as HexString),
+            ),
+          )
+        : storageKeysAtLatest$(ingress, chainId, prefix)
+
+      return storageKeys$.pipe(
         concatMap((storageKeys) =>
           ingress.queryStorageAt(chainId, storageKeys).pipe(
             mergeMap((changeSets) => {

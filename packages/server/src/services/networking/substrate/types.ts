@@ -8,7 +8,7 @@ import type { ChainSpecData } from '@polkadot-api/substrate-client'
 import type { BlockInfo as PapiBlockInfo } from 'polkadot-api'
 import { Serializable } from '@/common/util.js'
 import type { HexString } from '@/lib.js'
-import { ApiClient, BlockStatus } from '../types.js'
+import { ApiClient, BlockIngestionMode, BlockStatus } from '../types.js'
 import { RpcApi } from './rpc.js'
 
 export type StorageCodec<T = any> = {
@@ -65,6 +65,7 @@ export type Block = {
     logs: any[]
   }
   status?: BlockStatus
+  ingestionMode?: BlockIngestionMode
 }
 
 export type BlockInfo = Omit<PapiBlockInfo, 'hasNewRuntime'>

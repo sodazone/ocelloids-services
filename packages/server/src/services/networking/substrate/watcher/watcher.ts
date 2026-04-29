@@ -190,9 +190,9 @@ export class SubstrateWatcher extends Watcher<Block> {
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
           takeUntil(merge(shutdown$, cancel$)),
-          mergeMap(({ hash, status }) =>
+          mergeMap(({ hash, status, ingestionMode }) =>
             from(api.getBlock(hash, true)).pipe(
-              map((block) => ({ status, ...block })),
+              map((block): Block => ({ ...block, ingestionMode: ingestionMode ?? 'live', status })),
               catchError((error) => {
                 this.log.error(error, '[%s] error fetching block %s (%s)', chainId, hash, status)
                 return EMPTY

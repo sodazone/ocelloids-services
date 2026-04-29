@@ -3,12 +3,14 @@ import { z } from 'zod'
 
 export type Finality = 'finalized' | 'new'
 export type BlockStatus = 'new' | 'finalized' | 'pruned'
+export type BlockIngestionMode = 'live' | 'backfill' | 'catchup'
 
 export type NeutralHeader = {
   hash: string
   parenthash: string
   height: number
   status?: BlockStatus
+  ingestionMode?: BlockIngestionMode
 }
 
 export interface ApiOps {

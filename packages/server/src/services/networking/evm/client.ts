@@ -186,6 +186,7 @@ export class EvmApi implements ApiClient {
                 height: Number(block.number),
                 parenthash: block.parentHash!,
                 status: finality,
+                ingestionMode: 'live',
               }
 
               // Skip duplicates

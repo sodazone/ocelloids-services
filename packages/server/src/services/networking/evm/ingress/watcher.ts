@@ -198,9 +198,13 @@ export class EvmWatcher extends Watcher<Block> {
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
           this.handleReorgs(chainId, api),
-          mergeMap((header) => from(api.getBlock(header.hash))),
-          this.tapError(chainId, 'getBlock()'),
-          retryWithTruncatedExpBackoff(RETRY_INFINITE),
+          mergeMap(({ hash, ingestionMode }) =>
+            from(api.getBlock(hash)).pipe(
+              map((block): Block => ({ ...block, ingestionMode: ingestionMode ?? 'live' })),
+              this.tapError(chainId, 'getBlock()'),
+              retryWithTruncatedExpBackoff(RETRY_INFINITE),
+            ),
+          ),
           tap((block) => {
             this.log.info('[%s] FINALIZED block #%s %s', chainId, block.number, block.hash)
 
@@ -244,6 +248,7 @@ export class EvmWatcher extends Watcher<Block> {
           this.tapError(chainId, 'followHeads()'),
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.#catchUpBlocks(chainId, api),
+          map((block): Block => ({ ...block, ingestionMode: 'live' })), // No catchup mode for fast chains
           tap((b) => {
             blockNumbers.push(b.number)
             const now = Date.now()
@@ -390,9 +395,9 @@ export class EvmWatcher extends Watcher<Block> {
                       retryWithTruncatedExpBackoff(RETRY_INFINITE),
                       toArray(),
                       map((b) => b.sort((a, b) => a.height - b.height)),
-                      mergeMap((blocks) =>
+                      mergeMap((headers) =>
                         defer(async () => {
-                          const last = blocks[blocks.length - 1]
+                          const last = headers[headers.length - 1]
                           await this.chainTips.put(chainId, {
                             blockHash: last.hash,
                             blockNumber: last.height.toString(),
@@ -400,10 +405,11 @@ export class EvmWatcher extends Watcher<Block> {
                             parentHash: last.parenthash,
                             receivedAt: new Date(),
                           })
-                          return blocks
+                          return headers
                         }),
                       ),
-                      mergeMap((blocks) => from(blocks)),
+                      mergeMap((headers) => from(headers)),
+                      map((header): NeutralHeader => ({ ...header, ingestionMode: 'catchup' })),
                     ),
                   1,
                 ),
