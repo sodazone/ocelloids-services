@@ -2,7 +2,7 @@ import { NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
 
-export const networks = setNetworks({
+export const networks: Record<string, NetworkURN> = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
   assetHub: 'urn:ocn:polkadot:1000',
   bridgeHub: 'urn:ocn:polkadot:1002',
