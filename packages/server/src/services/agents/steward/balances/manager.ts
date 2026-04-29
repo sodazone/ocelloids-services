@@ -3,18 +3,22 @@ import { LRUCache } from 'lru-cache'
 import { toHex } from 'polkadot-api/utils'
 import { firstValueFrom, Subscription } from 'rxjs'
 import { ControlQuery, Criteria } from '@/common/index.js'
-import { asAccountId, asPublicKey } from '@/common/util.js'
+import { asAccountId, asPublicKey, isEVMAddress } from '@/common/util.js'
 import { HexString, QueryPagination, QueryParams, QueryResult } from '@/lib.js'
 import { Balance, getBalanceExtractor } from '@/services/networking/substrate/balances.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { MaxEnqueuedError, PriorityQueue } from '../../../../common/pqueue.js'
+import { networks } from '../../common/networks.js'
 import { ServerSentEventsBroadcaster, ServerSentEventsRequest } from '../../types.js'
+import { SubstrateAccountResult } from '../accounts/types.js'
 import { fetchSS58Prefix } from '../metadata/queries/helper.js'
 import {
   AssetId,
   AssetMetadata,
+  Empty,
+  isAccountMetadata,
   StewardManagerContext,
   StewardQueries,
   StewardQueryArgs,
@@ -86,6 +90,7 @@ export class BalancesManager {
   readonly #balanceUpdateQueue: Record<NetworkURN, Map<string, BalancesQueueData>> = {}
   readonly #balanceDiscoveryQueue = new PriorityQueue<HexString>({ maxEnqueuedItems: 10 })
   readonly #balanceDiscoveryInProgress = new Set<HexString>()
+  readonly #discoveryFetchers: Record<string, CustomDiscoveryFetcher>
 
   readonly #requestedAccountRefs: Map<HexString, number> = new Map()
 
@@ -99,7 +104,7 @@ export class BalancesManager {
   #running = false
 
   constructor(
-    { log, openLevelDB, ingress, config }: StewardManagerContext,
+    { log, openLevelDB, ingress }: StewardManagerContext,
     queries: StewardQueries,
     broadcaster: ServerSentEventsBroadcaster<StewardServerSentEventArgs, BalanceEvents>,
   ) {
@@ -117,6 +122,7 @@ export class BalancesManager {
       ttlAutopurge: false,
       max: 1_000,
     })
+    this.#discoveryFetchers = customDiscoveryFetchers(ingress.substrate)
   }
 
   async start() {
@@ -310,13 +316,7 @@ export class BalancesManager {
         continue
       }
 
-      const apiCtx = await firstValueFrom(this.#substrateIngress.getContext(chainId))
-      const balances = await fetcher({
-        chainId,
-        account: publicKey,
-        apiCtx,
-        ingress: this.#substrateIngress,
-      })
+      const balances = await fetcher(publicKey)
 
       const balanceRecords: BalanceRecord[] = []
 
@@ -593,12 +593,11 @@ export class BalancesManager {
     apiCtx: SubstrateApiContext,
     pagination?: QueryPagination,
   ): Promise<void> {
-    const customFetcher = customDiscoveryFetchers[chainId]
+    const customFetcher = this.#discoveryFetchers[chainId]
     if (customFetcher !== undefined) {
       await this.#runCustomDiscoveryFetcher(customFetcher, {
         chainId,
         account,
-        apiCtx,
       })
     }
 
@@ -679,11 +678,12 @@ export class BalancesManager {
   }
 
   async #runCustomDiscoveryFetcher(
-    fetcher: CustomDiscoveryFetcher,
-    ctx: { chainId: NetworkURN; account: HexString; apiCtx: SubstrateApiContext },
+    fetchBalance: CustomDiscoveryFetcher,
+    ctx: { chainId: NetworkURN; account: HexString },
   ) {
     try {
-      const balances = await fetcher({ ...ctx, ingress: this.#substrateIngress })
+      const account = await this.#normaliseAccount(ctx.chainId, ctx.account)
+      const balances = await fetchBalance(account)
 
       const ops: BalanceRecord[] = []
       for (const { assetId, balance } of balances) {
@@ -691,10 +691,10 @@ export class BalancesManager {
           continue
         }
         const assetKeyHash = toHex(assetMetadataKeyHash(assetMetadataKey(ctx.chainId, assetId))) as HexString
-        ops.push({ accountHex: ctx.account, assetKeyHash, balance })
+        ops.push({ accountHex: account, assetKeyHash, balance })
         await this.#streamBalance({
           origin: 'snapshot',
-          accountHex: ctx.account,
+          accountHex: account,
           assetKeyHash,
           balance,
         })
@@ -940,5 +940,24 @@ export class BalancesManager {
       this.#subscribeBalancesEvents()
     }
     this.#log.info('[%s] Switched to %s mode', this.id, this.#mode)
+  }
+
+  async #normaliseAccount(chainId: NetworkURN, account: HexString): Promise<HexString> {
+    let normalised = account
+
+    if (chainId === networks.hydration && isEVMAddress(account)) {
+      const { items } = (await this.#queries({
+        args: {
+          op: 'accounts',
+          criteria: { accounts: [account] },
+        },
+      })) as QueryResult<SubstrateAccountResult | Empty>
+
+      if (items.length > 0 && isAccountMetadata(items[0])) {
+        normalised = items[0].publicKey
+      }
+    }
+
+    return normalised
   }
 }

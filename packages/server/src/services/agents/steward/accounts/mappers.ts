@@ -16,9 +16,9 @@ import {
   switchMap,
   take,
 } from 'rxjs'
+import { itemKeyFromStorageKey } from '@/services/networking/substrate/common/storage.js'
 import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { networks } from '../../common/networks.js'
@@ -73,63 +73,6 @@ function normalizeIdentity(identity: any): {
     judgements,
     extra,
   }
-}
-
-function itemKeyFromStorageKey(
-  fullStorageKey: HexString,
-  prefix: HexString,
-  hashers: Hashers | null,
-): HexString {
-  const fullHex = fullStorageKey.startsWith('0x') ? fullStorageKey.slice(2) : fullStorageKey
-
-  const prefixHex = prefix.startsWith('0x') ? prefix.slice(2) : prefix
-
-  if (!fullHex.startsWith(prefixHex)) {
-    throw new Error('Storage key does not start with given prefix')
-  }
-
-  let remaining = fullHex.slice(prefixHex.length)
-
-  if (hashers === null) {
-    return `0x${remaining}` as HexString
-  }
-
-  for (const hasher of hashers) {
-    switch (hasher.tag) {
-      case 'Identity':
-        return `0x${remaining}` as HexString
-
-      case 'Twox64Concat': {
-        const HASH_BYTES = 8
-        remaining = remaining.slice(HASH_BYTES * 2)
-        return `0x${remaining}` as HexString
-      }
-
-      case 'Blake2128Concat': {
-        const HASH_BYTES = 16
-        remaining = remaining.slice(HASH_BYTES * 2)
-        return `0x${remaining}` as HexString
-      }
-
-      case 'Twox128':
-        remaining = remaining.slice(16 * 2)
-        break
-
-      case 'Blake2128':
-        remaining = remaining.slice(16 * 2)
-        break
-
-      case 'Twox256':
-      case 'Blake2256':
-        remaining = remaining.slice(32 * 2)
-        break
-
-      default:
-        throw new Error(`Unsupported hasher: ${(hasher as any).tag}`)
-    }
-  }
-
-  throw new Error('No raw key present in storage key for given hashers')
 }
 
 function deepEqualIdentity(
