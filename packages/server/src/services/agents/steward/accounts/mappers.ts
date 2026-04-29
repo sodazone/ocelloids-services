@@ -1,4 +1,3 @@
-import { blake2b } from '@noble/hashes/blake2'
 import { Binary, FixedSizeBinary, u32 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
@@ -21,13 +20,11 @@ import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
+import { getStablePoolPublicKey } from '../../common/hydration.js'
 import { networks } from '../../common/networks.js'
 import { assetOverrides } from '../metadata/overrides.js'
 import { accountOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
-
-const textEncoder = new TextEncoder()
-const sts = textEncoder.encode('sts')
 
 function decodeData(data: any): string | undefined {
   if (!data) {
@@ -273,17 +270,6 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
-export function getStablePoolAddress(id: number): [HexString, HexString] {
-  const bytes = Buffer.alloc(4)
-  bytes.writeUInt32LE(id)
-  const name = Buffer.concat([sts, new Uint8Array(bytes)])
-  const poolKey = blake2b(new Uint8Array(name), {
-    dkLen: 32,
-  })
-  const evmPoolKey = poolKey.subarray(0, 20)
-  return [toHex(poolKey) as HexString, toHex(evmPoolKey) as HexString]
-}
-
 function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
   const chainId = networks.hydration
   return ingress.getContext(chainId).pipe(
@@ -308,14 +294,15 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                   const poolIdHex = itemKeyFromStorageKey(storageKey, prefix, hashers)
                   const bytes = Buffer.from(poolIdHex.slice(2), 'hex')
                   const poolId = bytes.readUInt32LE(0)
-                  const [publicKey, evmAddress] = getStablePoolAddress(poolId)
+                  const poolKey = getStablePoolPublicKey(poolId)
+                  const evmPoolKey = poolKey.subarray(0, 20)
 
                   return of({
-                    publicKey,
+                    publicKey: toHex(poolKey) as HexString,
                     evm: [
                       {
                         chainId,
-                        address: evmAddress,
+                        address: toHex(evmPoolKey) as HexString,
                       },
                     ],
                     categories: [

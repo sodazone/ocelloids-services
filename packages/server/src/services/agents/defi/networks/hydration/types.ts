@@ -1,38 +1,47 @@
+import { HexString } from '@/services/subscriptions/types.js'
+
 export type PoolToken = {
   id: string
   reserves: bigint
 }
 
-export type StablesPool = {
+export type OmniPoolToken = PoolToken & {
+  hubReserves: bigint
+  cap: bigint
+  shares: bigint
+  protocolShares: bigint
+}
+
+export type StableSwapPool = {
   type: 'stableswap'
-  address: string
-  id: string
+  address: HexString
+  id: number
   tokens: PoolToken[]
-  reserves: string
-  totalIssuance: string
-  amplification: string
-  pegs: string
+  totalIssuance: bigint
+  amplification: bigint
+  pegs: string[][]
   fees: number
 }
 
 export type OmniPool = {
   type: 'omnipool'
-  address: string
-  assetFee: number
-  protocolFee: number
-  tokens: PoolToken[]
+  address: HexString
+  tokens: OmniPoolToken[]
 }
 
 export type XykPool = {
   type: 'xyk'
-  address: string
+  address: HexString
   tokens: PoolToken[]
 }
 
 export type AavePool = {
   type: 'aave'
-  address: string
+  address: HexString
+  borrowed: bigint
+  available: bigint
+  oraclePrice: bigint
   tokens: PoolToken[]
 }
 
-export type Pool = StablesPool | OmniPool | XykPool | AavePool
+export type Pool = StableSwapPool | OmniPool | XykPool | AavePool

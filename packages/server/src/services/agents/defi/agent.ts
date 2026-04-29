@@ -7,7 +7,7 @@ import { hydrationDexMonitor } from './networks/hydration/index.js'
 const DEFI_AGENT_ID = 'defi'
 
 type DefiMonitor = {
-  start: () => void
+  start: () => Promise<void> | void
   stop: () => void
 }
 
@@ -17,6 +17,7 @@ export class DefiAgent implements Agent {
     name: 'DeFi Agent',
     description: 'Indexes and tracks DeFi activity and TVL.',
     capabilities: getAgentCapabilities(this),
+    runInBackground: true,
   }
 
   readonly #log: Logger
@@ -32,12 +33,12 @@ export class DefiAgent implements Agent {
     const { ingress } = ctx
 
     this.#log = ctx.log
-    this.#monitors = [hydrationDexMonitor(ingress.substrate)]
+    this.#monitors = [hydrationDexMonitor(ingress)]
   }
 
   async start() {
     for (const monitor of this.#monitors) {
-      monitor.start()
+      await monitor.start()
     }
   }
 

@@ -1,4 +1,6 @@
-import { getStablePoolAddress, mergeAccountMetadata } from './mappers.js'
+import { toHex } from 'polkadot-api/utils'
+import { getStablePoolPublicKey } from '../../common/hydration.js'
+import { mergeAccountMetadata } from './mappers.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
 
 describe('mappers', () => {
@@ -7,9 +9,8 @@ describe('mappers', () => {
       const poolIdHex = '0xb2020000'
       const bytes = Buffer.from(poolIdHex.slice(2), 'hex')
       const poolId = bytes.readUInt32LE(0)
-      const [substrateKey, evmAddress] = getStablePoolAddress(poolId)
-      expect(substrateKey).toBe('0xe21da918e4176b72ef1930ffaa17edcb03b9b739c2843fb0cf096283a7d9c261')
-      expect(evmAddress).toBe('0xe21da918e4176b72ef1930ffaa17edcb03b9b739')
+      const substrateKey = getStablePoolPublicKey(poolId)
+      expect(toHex(substrateKey)).toBe('0xe21da918e4176b72ef1930ffaa17edcb03b9b739c2843fb0cf096283a7d9c261')
     })
   })
 

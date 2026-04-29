@@ -173,7 +173,8 @@ export function hydrationBalancesFetcher(
   ingress: SubstrateIngressConsumer,
 ): CustomDiscoveryFetcher {
   return async (account: HexString) => {
-    const ss58 = account.length === 42 ? publicKeyToSS58(padAccountKey20(account)) : publicKeyToSS58(fromHex(account))
+    const ss58 =
+      account.length === 42 ? publicKeyToSS58(padAccountKey20(account)) : publicKeyToSS58(fromHex(account))
     const results = await ingress.runtimeCall<[number, Balance][]>(
       chainId,
       {
