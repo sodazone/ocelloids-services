@@ -182,7 +182,7 @@ export function createStellaswapProcessor({
   function extractPoolEvents() {
     return (source: Observable<BlockWithLogs>): Observable<any> => {
       return source.pipe(
-        filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn', 'Flash']),
+        filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn']),
         map((log) => {
           if (log.eventName === 'Swap') {
             console.log(log.args as SwapEventArgs)
