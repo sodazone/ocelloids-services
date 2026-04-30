@@ -1,12 +1,14 @@
 import { mergeMap, Subject, share } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
+import { createMoonwellProcessor } from './moonwell/processor.js'
 import { createStellaswapProcessor } from './stellaswap/index.js'
 
 export function moonbeamDexMonitor(ingress: EvmIngressConsumer) {
   const chainId = networks.moonbeam_evm
   const subject = new Subject<any>()
-  const processors = [createStellaswapProcessor({ chainId, ingress, subject })]
+  const ctx = { chainId, ingress, subject }
+  const processors = [createMoonwellProcessor(ctx), createStellaswapProcessor(ctx)]
 
   function start() {
     const blockWithLogs$ = ingress.finalizedBlocks(chainId).pipe(

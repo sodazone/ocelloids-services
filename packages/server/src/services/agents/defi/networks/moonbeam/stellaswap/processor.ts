@@ -1,13 +1,13 @@
 import { filter, map, Observable, Subject, Subscription } from 'rxjs'
-import { Abi } from 'viem'
-import { NetworkURN } from '@/lib.js'
+import { Abi, formatUnits } from 'viem'
+import { HexString, NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { Block, BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
-import { algebraPools, tokens } from './metadata.static.js'
+import { algebraPools, tokens } from './definitioins.js'
 import { computeUSDPrices } from './pricing.js'
-import { PriceEdge } from './types.js'
+import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
 export function createStellaswapProcessor({
   chainId,
@@ -33,12 +33,20 @@ export function createStellaswapProcessor({
     return price * 10 ** (decimals0 - decimals1)
   }
 
-  function formatUnits(value: bigint, decimals: number) {
-    return Number(value) / 10 ** decimals
-  }
-
   async function updatePoolData(blockNumber?: bigint) {
-    const poolResults: any[] = []
+    const poolResults: {
+      tick: number
+      pair: string
+      price: number
+      priceInverse: number
+      liquidity: bigint
+      chainId: NetworkURN
+      token1: string
+      token0: string
+      address: HexString
+      reserve0: string
+      reserve1: string
+    }[] = []
     const calls: any[] = []
     const poolEntries = Object.entries(algebraPools)
 
@@ -71,7 +79,6 @@ export function createStellaswapProcessor({
         blockNumber,
       })
 
-      // results are returned in same order as calls
       for (let i = 0; i < poolEntries.length; i++) {
         const [pair, pool] = poolEntries[i]
 
@@ -152,11 +159,16 @@ export function createStellaswapProcessor({
       const priceUSD_token0 = usdPrices[p.token0]
       const priceUSD_token1 = usdPrices[p.token1]
 
+      const tvl0 = Number(p.reserve0) * (priceUSD_token0 || 0)
+      const tvl1 = Number(p.reserve1) * (priceUSD_token1 || 0)
+      const tvlUSD = tvl0 + tvl1
+
       const impliedPrice = priceUSD_token0 / priceUSD_token1
       const deviation = Math.abs(impliedPrice - p.price) / p.price
 
       const payload = {
         ...p,
+        tvlUSD,
         priceUSD_token0,
         priceUSD_token1,
         impliedPrice,
@@ -164,7 +176,6 @@ export function createStellaswapProcessor({
       }
 
       subject.next(payload)
-      console.log(payload)
     }
   }
 
@@ -173,7 +184,15 @@ export function createStellaswapProcessor({
       return source.pipe(
         filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn', 'Flash']),
         map((log) => {
-          console.log(log.eventName, log)
+          if (log.eventName === 'Swap') {
+            console.log(log.args as SwapEventArgs)
+          } else if (log.eventName === 'Mint') {
+            console.log(log.args as MintEventArgs)
+          } else if (log.eventName === 'Burn') {
+            console.log(log.args as BurnEventArgs)
+          } else {
+            console.log(log.eventName, log)
+          }
           return null
         }),
         filter((ev) => ev !== null),
