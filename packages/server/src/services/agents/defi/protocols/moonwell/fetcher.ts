@@ -90,16 +90,15 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
     const reservesUSD = Number(formatUnits(totalReserves, underlying.decimals)) * priceUSDNum
     const badDebtUSD = Number(formatUnits(badDebtUnderlying, underlying.decimals)) * priceUSDNum
 
-    // 1. Calculate Real Liquidity (What is actually available for user withdrawals)
+    // Calculate Real Liquidity (What is actually available for user withdrawals)
     // Cash is physical tokens. Reserves belong to the protocol.
     const realAvailableUnderlying = cash > totalReserves ? cash - totalReserves : 0n
 
-    // 2. Calculate the Withdrawal Gap (How much is missing to pay all suppliers)
+    // Calculate the Withdrawal Gap (How much is missing to pay all suppliers)
     // If this is > 0, the market is a "Liquidity Trap"
     const withdrawalShortfallUnderlying =
       totalUnderlyingSupply > realAvailableUnderlying ? totalUnderlyingSupply - realAvailableUnderlying : 0n
 
-    // 3. Convert to USD for your valuation object
     const realLiquidityUSD = Number(formatUnits(realAvailableUnderlying, underlying.decimals)) * priceUSDNum
     const shortfallUSD = Number(formatUnits(withdrawalShortfallUnderlying, underlying.decimals)) * priceUSDNum
 
