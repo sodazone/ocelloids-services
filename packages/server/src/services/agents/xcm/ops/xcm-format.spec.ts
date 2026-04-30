@@ -2,7 +2,7 @@ import { apiContext, apiContext_xcmv2 } from '@/testing/xcm.js'
 import { asVersionedXcm, fromXcmpFormat, messageHash, raw, versionedXcmCodec } from './xcm-format.js'
 
 describe('xcm formats', () => {
-  it.only('should decode double encoded concatenated XCM', () => {
+  it('should decode double encoded concatenated XCM', () => {
     const collectives8714627 =
       '03bc050803cd0b0200000001000104402c15bbf3bc7073d38df25faca825fccfcd97ce022d4ba7cbbc6c94fc10caba21c3bc050803cd0b0200000001000104402c15bbf3bc7073d38df25faca825fccfcd97ce022d4ba7cbbc6c94fc10caba21c3'
     const buf = new Uint8Array(Buffer.from(collectives8714627, 'hex'))
