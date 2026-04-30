@@ -1,13 +1,12 @@
 import '@/testing/network.js'
 
 import { ValidationError } from '@/errors.js'
+import { Services } from '@/services/types.js'
 import { createServices } from '@/testing/services.js'
-
 import { Subscription } from '../../subscriptions/types.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
 import { XcmInputs } from './types/index.js'
-import { Services } from '@/services/types.js'
 
 const testSub: Subscription<XcmInputs> = {
   id: '1000:2000:0',

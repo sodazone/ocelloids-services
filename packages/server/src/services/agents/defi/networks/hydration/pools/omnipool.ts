@@ -5,7 +5,7 @@ import { Block, storageEntriesAtLatest$ } from '@/services/networking/substrate/
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { CHAIN_ID, OMNI_POOL_ADDRESS } from '../consts.js'
-import { OmniPoolToken, Pool } from '../types.js'
+import { AssetMetadataFetcher, OmniPoolToken, Pool } from '../types.js'
 
 type OmnipoolValue = {
   hub_reserve: bigint
@@ -18,22 +18,33 @@ type OmnipoolValue = {
 export function createOmnipoolWatcher(
   ingress: SubstrateIngressConsumer,
   fetchBalances: CustomDiscoveryFetcher,
+  fetchAssetMetadata: AssetMetadataFetcher,
 ) {
   async function getUpdatedPoolReserves(_block: Block): Promise<Pool[]> {
     const balances = await fetchBalances(OMNI_POOL_ADDRESS)
 
-    const pairs = await firstValueFrom(
+    const omniAssets = await firstValueFrom(
       storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
         toArray(),
       ),
     )
 
-    const tokens: OmniPoolToken[] = []
-
-    for (const { key, value } of pairs) {
-      try {
+    const keysToAssetIdsMap = new Map(
+      omniAssets.map(({ key }) => {
         const bytes = Buffer.from(key.slice(2), 'hex')
         const assetId = bytes.readUInt32LE(0)
+        return [key, assetId]
+      }),
+    )
+    const assetIds = [...keysToAssetIdsMap.values()]
+
+    const assetMetadata = await fetchAssetMetadata(assetIds.map((a) => a.toString()))
+
+    const tokens: OmniPoolToken[] = []
+
+    for (const { key, value } of omniAssets) {
+      try {
+        const assetId = keysToAssetIdsMap.get(key)!
 
         const { hub_reserve, cap, protocol_shares, shares } = value
 
@@ -47,8 +58,12 @@ export function createOmnipoolWatcher(
           continue
         }
 
+        const metadata = assetMetadata.find((m) => m.id === assetId)
+
         tokens.push({
           id: toAssetId(CHAIN_ID, assetId),
+          decimals: metadata?.decimals ?? 0,
+          symbol: metadata?.symbol,
           reserves,
           hubReserves: hub_reserve,
           cap,

@@ -1,8 +1,11 @@
+import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 
 export type PoolToken = {
   id: string
   reserves: bigint
+  decimals: number
+  symbol?: string
 }
 
 export type OmniPoolToken = PoolToken & {
@@ -45,3 +48,5 @@ export type AavePool = {
 }
 
 export type Pool = StableSwapPool | OmniPool | XykPool | AavePool
+
+export type AssetMetadataFetcher = (assets: string[]) => Promise<AssetMetadata[]>

@@ -33,7 +33,7 @@ export class DefiAgent implements Agent {
     const { ingress } = ctx
 
     this.#log = ctx.log
-    this.#monitors = [hydrationDexMonitor(ingress)]
+    this.#monitors = [hydrationDexMonitor(ingress, deps.steward)]
   }
 
   async start() {

@@ -8,7 +8,7 @@ import { HexString } from '@/services/subscriptions/types.js'
 import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'json' }
 import { AaveV3HydrationMainnet } from '../config.js'
 import { CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
-import { AavePool, Pool } from '../types.js'
+import { AavePool, AssetMetadataFetcher, Pool } from '../types.js'
 
 type AaveTradeExecutorPool = {
   reserve: number
@@ -29,6 +29,7 @@ type AaveReservesDataResponse = {
 export function createAaveWatcher(
   substrateIngress: SubstrateIngressConsumer,
   evmIngress: EvmIngressConsumer,
+  fetchAssetMetadata: AssetMetadataFetcher,
 ) {
   async function loadPools(): Promise<Pool[]> {
     const pools = await substrateIngress.runtimeCall<AaveTradeExecutorPool[]>(CHAIN_ID, {
@@ -38,6 +39,9 @@ export function createAaveWatcher(
     if (pools === null) {
       throw new Error('No AAVE pools found')
     }
+
+    const poolTokens = pools.flatMap((p) => [p.reserve, p.atoken])
+    const assetMetadata = await fetchAssetMetadata(poolTokens.map((a) => a.toString()))
 
     const aaveReservesResponse: AaveReservesDataResponse[] = await evmIngress.readContract(EVM_CHAIN_ID, {
       address: AaveV3HydrationMainnet.UI_POOL_DATA_PROVIDER as HexString,
@@ -56,6 +60,10 @@ export function createAaveWatcher(
         console.error(`No reserves data found for AAVE pool ${reserve}:${atoken}`)
         continue
       }
+
+      const reserveMetadata = assetMetadata.find((m) => m.id === reserve)
+      const atokenMetadata = assetMetadata.find((m) => m.id === atoken)
+
       aavePools.push({
         type: 'aave',
         address: reservesData.aTokenAddress,
@@ -66,10 +74,14 @@ export function createAaveWatcher(
           {
             id: toAssetId(CHAIN_ID, reserve),
             reserves: liqudity_in,
+            decimals: reserveMetadata?.decimals ?? 0,
+            symbol: reserveMetadata?.symbol,
           },
           {
             id: toAssetId(CHAIN_ID, atoken),
             reserves: liqudity_out,
+            decimals: atokenMetadata?.decimals ?? 0,
+            symbol: atokenMetadata?.symbol,
           },
         ],
       })

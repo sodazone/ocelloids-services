@@ -8,7 +8,7 @@ import { Block, storageEntriesAtLatest$ } from '@/services/networking/substrate/
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { CHAIN_ID } from '../consts.js'
-import { Pool, PoolToken, StableSwapPool } from '../types.js'
+import { AssetMetadataFetcher, Pool, PoolToken, StableSwapPool } from '../types.js'
 
 type StablePoolValue = {
   assets: number[]
@@ -95,6 +95,7 @@ function getDefaultPegs(size: number): string[][] {
 export function createStableswapWatcher(
   ingress: SubstrateIngressConsumer,
   fetchBalances: CustomDiscoveryFetcher,
+  fetchAssetMetadata: AssetMetadataFetcher,
 ) {
   async function mapPool({
     block,
@@ -120,15 +121,20 @@ export function createStableswapWatcher(
       currentBlock: BigInt(block.number),
     })
     const balances = await fetchBalances(address)
+    const assetMetadata = await fetchAssetMetadata(assets.map((a) => a.toString()))
 
     const tokens: PoolToken[] = []
 
     for (const asset of assets) {
       const balance = balances.find((b) => b.assetId === asset)
       const reserves = balance?.balance ?? 0n
+      const metadata = assetMetadata.find((a) => a.id === asset)
+
       tokens.push({
         id: toAssetId(CHAIN_ID, asset),
         reserves,
+        decimals: metadata?.decimals ?? 0,
+        symbol: metadata?.symbol,
       })
     }
 
