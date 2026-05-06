@@ -6,6 +6,7 @@ import { QueryParams, QueryResult } from '@/services/agents/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block } from '@/services/networking/substrate/types.js'
+import { DefiSubscriptionPayload } from '../../types.js'
 import { CHAIN_ID } from './consts.js'
 import { createAaveWatcher } from './pools/aave.js'
 import { createOmnipoolWatcher } from './pools/omnipool.js'
@@ -39,7 +40,7 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
   const aave = createAaveWatcher(substrateIngress, evmIngress, fetchAssetMetadata)
   const xyk = createXykWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
 
-  const subject = new Subject<any>()
+  const subject = new Subject<DefiSubscriptionPayload>()
 
   let sub: Subscription
 
@@ -65,6 +66,7 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
         sub.unsubscribe()
       }
     },
+    chainId: CHAIN_ID,
     events$: subject.asObservable(),
   }
 }

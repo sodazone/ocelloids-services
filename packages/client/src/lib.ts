@@ -43,23 +43,27 @@ export { xcm }
 
 import * as steward from './steward/types'
 
-export * from './crosschain/agent'
 export { steward }
 
 import * as crosschain from './crosschain/types'
 
-export * from './transfers/agent'
+export { CrosschainAgentApi } from './crosschain/agent'
 export { crosschain }
 
 import * as transfers from './transfers/types'
 
-export * from './issuance/agent'
+export { TransfersAgentApi } from './transfers/agent'
 export { transfers }
 
 import * as issuance from './issuance/types'
 
+export { CrosschainIssuanceAgentApi } from './issuance/agent'
 export { issuance }
 
 import * as opengov from './opengov/types'
 
 export { opengov }
+
+import * as defi from './defi/types'
+
+export { defi }

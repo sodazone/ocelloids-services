@@ -7,6 +7,7 @@ import {
   SubscribableApi,
 } from './core/types'
 import { CrosschainAgentApi } from './crosschain/agent'
+import { DefiAgentInputs, DefiSubscriptionPayload } from './defi/types'
 import { CrosschainIssuanceAgentApi } from './issuance/agent'
 import { AnyJson, AnySubscriptionInputs } from './lib'
 import { OpenGovAgentInputs } from './opengov/types'
@@ -21,7 +22,15 @@ import {
 import { TransfersAgentApi } from './transfers/agent'
 import { HumanizedXcmPayload, XcmInputs, XcmMessagePayload } from './xcm/types'
 
-type KnownAgentIds = 'xcm' | 'steward' | 'informant' | 'crosschain' | 'transfers' | 'issuance' | 'opengov'
+type KnownAgentIds =
+  | 'xcm'
+  | 'steward'
+  | 'informant'
+  | 'crosschain'
+  | 'transfers'
+  | 'issuance'
+  | 'opengov'
+  | 'defi'
 
 /**
  * Creates an agent instance.
@@ -178,4 +187,15 @@ export function createOpenGovAgent(
   optsOrClient: OcelloidsClientConfig | OcelloidsClient,
 ): SubscribableApi<OpenGovAgentInputs, AnyJson> & OcelloidsClientApi {
   return createAgent<OpenGovAgentInputs>('opengov', optsOrClient)
+}
+
+/**
+ * @public
+ * @param optsOrClient - Configuration options for the OcelloidsClient, or an existing OcelloidsClient instance.
+ * @returns An object with methods for subscribing to DeFi events.
+ */
+export function createDefiAgent(
+  optsOrClient: OcelloidsClientConfig | OcelloidsClient,
+): SubscribableApi<DefiAgentInputs, DefiSubscriptionPayload> & OcelloidsClientApi {
+  return createAgent<DefiAgentInputs>('defi', optsOrClient)
 }

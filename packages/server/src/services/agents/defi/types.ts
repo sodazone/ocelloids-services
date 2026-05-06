@@ -1,27 +1,39 @@
 import z from 'zod'
 import { $NetworkString } from '@/common/types.js'
 
+/**
+ * @private
+ */
 const $LiquidityFilters = z.object({
   dex: z.array(z.string()).optional(),
 })
 
+/**
+ * @private
+ */
 const $EventFilters = z.object({
   type: z.enum(['swap', 'mint', 'burn']).optional(),
 })
 
+/**
+ * @private
+ */
 export const $DefiAgentInputs = z.discriminatedUnion('topic', [
   z.object({
     topic: z.literal('liquidity'),
     networks: z.literal('*').or(z.array($NetworkString)),
-    filters: $LiquidityFilters,
+    filters: $LiquidityFilters.optional(),
   }),
   z.object({
     topic: z.literal('events'),
     networks: z.literal('*').or(z.array($NetworkString)),
-    filters: $EventFilters,
+    filters: $EventFilters.optional(),
   }),
 ])
 
+/**
+ * @private
+ */
 export type DefiAgentInputs = z.infer<typeof $DefiAgentInputs>
 
 export type DefiLiquidityAsset = {

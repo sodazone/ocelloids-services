@@ -5,6 +5,7 @@ import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { Block, BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
+import { DefiSubscriptionPayload } from '../../../types.js'
 import { algebraPools, tokens } from './definitioins.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
@@ -16,8 +17,9 @@ export function createStellaswapProcessor({
 }: {
   chainId: NetworkURN
   ingress: EvmIngressConsumer
-  subject: Subject<any>
+  subject: Subject<DefiSubscriptionPayload>
 }) {
+  const EVERY_N_BLOCKS = 10
   const Q96 = 2n ** 96n
   const poolAddresses = Object.values(algebraPools).map((p) => p.address)
 
@@ -163,23 +165,44 @@ export function createStellaswapProcessor({
       const tvl1 = Number(p.reserve1) * (priceUSD_token1 || 0)
       const tvlUSD = tvl0 + tvl1
 
-      const impliedPrice = priceUSD_token0 / priceUSD_token1
-      const deviation = Math.abs(impliedPrice - p.price) / p.price
+      // const impliedPrice = priceUSD_token0 / priceUSD_token1
+      // const deviation = Math.abs(impliedPrice - p.price) / p.price
 
-      const payload = {
-        ...p,
+      const token0 = tokens[p.token0]
+      const token1 = tokens[p.token1]
+
+      subject.next({
+        category: 'exchange',
+        marketId: p.address,
+        type: 'liquidity',
+        protocol: 'stellaswap',
         tvlUSD,
-        priceUSD_token0,
-        priceUSD_token1,
-        impliedPrice,
-        deviation,
-      }
-
-      subject.next(payload)
+        assets: [
+          {
+            assetId: token0.address,
+            decimals: token0.decimals,
+            symbol: p.token0,
+            priceUSD: priceUSD_token0,
+            balances: {
+              total: p.reserve0,
+            },
+          },
+          {
+            assetId: token1.address,
+            decimals: token1.decimals,
+            symbol: p.token1,
+            priceUSD: priceUSD_token1,
+            balances: {
+              total: p.reserve1,
+            },
+          },
+        ],
+        // TODO: price and implied...
+      })
     }
   }
 
-  function extractPoolEvents() {
+  function _extractPoolEvents() {
     return (source: Observable<BlockWithLogs>): Observable<any> => {
       return source.pipe(
         filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn']),
@@ -202,16 +225,14 @@ export function createStellaswapProcessor({
 
   function start(blockWithLogs$: Observable<BlockWithLogs>) {
     subs.push(
-      blockWithLogs$.subscribe((block: Block) => {
-        console.log(block.number)
-        //updatePoolData(BigInt(block.number))
+      blockWithLogs$.pipe(filter((_, idx) => (idx + 1) % EVERY_N_BLOCKS === 0)).subscribe((block: Block) => {
+        updatePoolData(BigInt(block.number)).catch((err) => {
+          console.error(err, 'Failed to update pool data for block %s', block.number)
+        })
       }),
     )
 
-    subs.push(blockWithLogs$.pipe(extractPoolEvents()).subscribe())
-
-    // XXX: for testing
-    updatePoolData()
+    // subs.push(blockWithLogs$.pipe(extractPoolEvents()).subscribe())
   }
 
   return {
