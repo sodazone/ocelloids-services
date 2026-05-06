@@ -7,7 +7,7 @@ import { Block, storageEntriesAtLatest$ } from '@/services/networking/substrate/
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { CHAIN_ID } from '../consts.js'
-import { AssetMetadataFetcher, PoolToken, StableSwapPool } from '../types.js'
+import { AssetMetadataFetcher, Peg, PoolToken, StableSwapPool } from '../types.js'
 
 type StablePoolValue = {
   assets: number[]
@@ -78,15 +78,15 @@ function calculateAmplification({
   }
 }
 
-function getRecentPegs(poolPegs: PoolPegInfo): string[][] {
+function getRecentPegs(poolPegs: PoolPegInfo): Peg[] {
   const { current } = poolPegs
-  return Array.from(current.entries()).map(([_, pegs]) => pegs.map((p) => p.toString()))
+  return Array.from(current.entries()).map(([_, pegs]) => [pegs[0], pegs[1]])
 }
 
-function getDefaultPegs(size: number): string[][] {
-  const pegs = []
+function getDefaultPegs(size: number): Peg[] {
+  const pegs: Peg[] = []
   for (let i = 0; i < size; i++) {
-    pegs.push(['1', '1'])
+    pegs.push([1n, 1n])
   }
   return pegs
 }
@@ -121,7 +121,8 @@ export function createStableswapWatcher(
     })
     const isRampPeriod = block.number >= initial_block && block.number < final_block
     const balances = await fetchBalances(address)
-    const assetMetadata = await fetchAssetMetadata(assets.map((a) => a.toString()))
+    const assetMetadata = await fetchAssetMetadata([...assets.map((a) => a.toString()), poolId.toString()])
+    const sharesMetadata = assetMetadata.find((m) => m.id === poolId)
 
     const tokens: PoolToken[] = []
 
@@ -148,8 +149,10 @@ export function createStableswapWatcher(
       totalIssuance,
       amplification,
       pegs: poolPegs,
-      fees: fee / 1_000_000,
+      fees: fee,
       isRampPeriod,
+      sharesDecimals: sharesMetadata?.decimals ?? 0,
+      sharesSymbol: sharesMetadata?.symbol,
     }
   }
 
@@ -218,48 +221,54 @@ export function createStableswapWatcher(
   async function updatePoolReserves(pools: StableSwapPool[], block: Block): Promise<StableSwapPool[]> {
     const updatedPools: StableSwapPool[] = []
     for (const pool of pools) {
-      const { address, id, tokens } = pool
-      const balances = await fetchBalances(address)
-      const [totalIssuance, pegs] = await Promise.all([
-        ingress.query<bigint>(
-          CHAIN_ID,
-          {
-            module: 'Tokens',
-            method: 'TotalIssuance',
-          },
-          id,
-        ),
-        ingress.query<PoolPegInfo>(CHAIN_ID, {
-          module: 'Stableswap',
-          method: 'PoolPegs',
-        }),
-      ])
+      try {
+        const { address, id, tokens } = pool
 
-      if (!totalIssuance) {
-        console.error(`Issuance not found for stableswap pool ${id}`)
-        continue
-      }
+        const balances = await fetchBalances(address)
+        const [totalIssuance, pegs] = await Promise.all([
+          ingress.query<bigint>(
+            CHAIN_ID,
+            {
+              module: 'Tokens',
+              method: 'TotalIssuance',
+            },
+            id,
+          ),
+          ingress.query<PoolPegInfo>(CHAIN_ID, {
+            module: 'Stableswap',
+            method: 'PoolPegs',
+          }),
+        ])
 
-      const poolPegs = pegs ? getRecentPegs(pegs) : getDefaultPegs(tokens.length)
+        if (!totalIssuance) {
+          console.error(`Issuance not found for stableswap pool ${id}`)
+          continue
+        }
 
-      const updatedTokens: PoolToken[] = []
+        const poolPegs = pegs ? getRecentPegs(pegs) : getDefaultPegs(tokens.length)
 
-      for (const t of tokens) {
-        const balance = balances.find((b) => b.assetId === t.id)
-        const reserves = balance?.balance ?? 0n
+        const updatedTokens: PoolToken[] = []
 
-        tokens.push({
-          ...t,
-          reserves,
+        for (const t of tokens) {
+          const balance = balances.find((b) => b.assetId === t.id)
+          const reserves = balance?.balance ?? 0n
+
+          updatedTokens.push({
+            ...t,
+            reserves,
+          })
+        }
+
+        updatedPools.push({
+          ...pool,
+          totalIssuance,
+          pegs: poolPegs,
+          tokens: updatedTokens,
         })
+      } catch (err) {
+        console.error(err, `Unable to update stableswap pool ${pool.id}`)
+        updatedPools.push(pool)
       }
-
-      updatedPools.push({
-        ...pool,
-        totalIssuance,
-        pegs: poolPegs,
-        tokens: updatedTokens,
-      })
     }
     return updatedPools
   }

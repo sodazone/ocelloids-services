@@ -12,16 +12,10 @@ import { createAaveWatcher } from './pools/aave.js'
 import { createOmnipoolWatcher } from './pools/omnipool.js'
 import { createStableswapWatcher } from './pools/stableswap.js'
 import { createXykWatcher } from './pools/xyk.js'
-import { AavePool, OmniPool, StableSwapPool, XykPool } from './types.js'
+import { buildGraph, chartPath } from './routing.js'
+import { Path, Pool, PoolsContext } from './types.js'
 
-type PoolsContext = {
-  stableswap: StableSwapPool[]
-  omnipool: OmniPool | null
-  aave: AavePool[]
-  xyk: XykPool[]
-}
-
-type Graph<T> = Map<T, T[]>
+const DEFAULT_QUOTE_TOKEN = 10
 
 export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataSteward) {
   const fetchAssetMetadata = async (assets: string[]): Promise<AssetMetadata[]> => {
@@ -58,21 +52,46 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
     xyk: [],
   }
 
-  const _graph: Graph<{
-    pool: string
-    asset: number
-  }> = new Map()
+  const allTokens = new Set<number>()
+  const cachedPaths: Map<number, Path | null> = new Map()
 
   let sub: Subscription
+  let inFlight = 0
+  let counter = 0
 
-  async function onBlock(block: Block) {
-    if (block.number % 50 !== 0) {
-      return
-    }
+  async function updateReserves(block: Block) {
     pools.xyk = await xyk.updatePoolReserves(pools.xyk)
     pools.omnipool = await omnipool.updatePoolReserves(pools.omnipool)
     pools.stableswap = await stableswaps.updatePoolReserves(pools.stableswap, block)
     pools.aave = await aave.updatePoolReserves(pools.aave)
+  }
+
+  function updatePrices() {
+    if (counter < 20) {
+      return
+    }
+    try {
+      // calculate prices
+    } finally {
+      counter = 0
+    }
+  }
+
+  async function onBlock(block: Block) {
+    counter++
+    if (inFlight > 0) {
+      return
+    }
+
+    inFlight++
+    console.log('inFlight:', inFlight)
+
+    try {
+      await updateReserves(block)
+      updatePrices()
+    } finally {
+      inFlight--
+    }
   }
 
   async function start() {
@@ -84,7 +103,27 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
     pools.xyk = await xyk.loadPools()
     pools.aave = await aave.loadPools()
 
+    const allPools: Pool[] = getAllPools()
+    for (const pool of allPools) {
+      for (const token of pool.tokens) {
+        allTokens.add(token.id)
+      }
+    }
+
+    const graph = buildGraph(allPools)
+
+    for (const token of allTokens) {
+      if (!cachedPaths.has(token)) {
+        cachedPaths.set(token, chartPath(graph, token, DEFAULT_QUOTE_TOKEN))
+      }
+    }
+
     sub = blocks$.subscribe(onBlock)
+  }
+
+  function getAllPools(): Pool[] {
+    const { aave, omnipool, stableswap, xyk } = pools
+    return [omnipool, ...aave, ...stableswap, ...xyk].filter((p) => p !== null)
   }
 
   return {

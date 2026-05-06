@@ -53,7 +53,7 @@ export function createAaveWatcher(
 
     for (const { reserve, atoken, liqudity_in, liqudity_out } of pools) {
       const reservesHex = assetIdToHex(reserve)
-      const reservesData = aaveReservesData.find((a) => a.underlyingAsset === reservesHex)
+      const reservesData = aaveReservesData.find((a) => a.underlyingAsset.toLowerCase() === reservesHex)
       if (!reservesData) {
         console.error(`No reserves data found for AAVE pool ${reserve}:${atoken}`)
         continue
