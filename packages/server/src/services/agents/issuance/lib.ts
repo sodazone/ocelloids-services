@@ -1,7 +1,6 @@
+// TODO: redeclare pure ts, non-zod inferred types for inputs
+// (args of subscription). We want them in the client lib...
 export {
-  $AssetId,
-  $CrosschainIssuanceQueryArgs,
-  $CrosschainIssuanceSubscriptionInputs,
   CrosschainIssuance,
   CrosschainIssuanceInputs,
   CrosschainIssuancePayload,

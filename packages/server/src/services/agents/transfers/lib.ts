@@ -1,7 +1,8 @@
 export { IcTransferResponse } from './repositories/types.js'
+
+// TODO: redeclare pure ts, non-zod inferred types for inputs
+// (args of subscription). We want them in the client lib...
 export {
-  $IcTransferQueryArgs,
-  $IcTransferType,
   EnrichedTransfer,
   IcTransferQueryArgs,
   IcTransferType,
