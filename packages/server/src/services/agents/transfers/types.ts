@@ -19,12 +19,12 @@ export const $TransfersAgentInputs = z.object({
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
 /**
- * @public
+ * @private
  */
 export const $IcTransferType = z.enum(['user', 'mixed', 'system'])
 
 /**
- * @public
+ * @private
  */
 export const $TransfersFilters = z.object({
   types: z.optional(z.array($IcTransferType).min(1).max(3)),
@@ -50,7 +50,7 @@ export const $TransfersFilters = z.object({
 })
 
 /**
- * @public
+ * @private
  */
 export const $TransferRangeFilters = z
   .object({
@@ -74,7 +74,7 @@ export const $TransferRangeFilters = z
   })
 
 /**
- * @public
+ * @private
  */
 export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
   z.object({
@@ -100,19 +100,22 @@ export const $IcTransferQueryArgs = z.discriminatedUnion('op', [
 ])
 
 /**
- * @public
+ * @private
  */
 export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
+
 /**
- * @public
+ * @private
  */
 export type TransfersFilters = z.infer<typeof $TransfersFilters>
+
 /**
- * @public
+ * @private
  */
 export type IcTransferType = z.infer<typeof $IcTransferType>
+
 /**
- * @public
+ * @private
  */
 export type TransferRangeFilters = z.infer<typeof $TransferRangeFilters>
 
