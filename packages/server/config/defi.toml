@@ -71,14 +71,13 @@ relay = "urn:ocn:polkadot:0"
 #  type = "rpc"
 #  url = "wss://ws.manta.systems"
 
-#---
+# ==========================================
 # EVM networks
-#---
+# ==========================================
 
 [[evm.networks]]
 id = "urn:ocn:ethereum:1284"
 maxBlockDist = 25
-
   [evm.networks.provider]
   type = "rpc"
   url = [
@@ -87,3 +86,15 @@ maxBlockDist = 25
     "https://moonbeam.api.pocket.network",
     "https://moonbeam.unitedbloc.com"
   ]
+
+[[evm.networks]]
+id = "urn:ocn:ethereum:222222"
+maxBlockDist = 150
+    [evm.networks.provider]
+    type = "rpc"
+    url = [
+      "https://hydration.ibp.network",
+      "https://hydration-rpc.n.dwellir.com",
+      "https://hydration.dotters.network",
+      "https://rpc.helikon.io/hydradx"
+    ]
