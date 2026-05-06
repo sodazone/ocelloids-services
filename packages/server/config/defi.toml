@@ -20,9 +20,11 @@ relay = "urn:ocn:polkadot:0"
   [substrate.networks.provider]
   type = "rpc"
   url = [
-    "wss://hydradx.paras.ibp.network",
-    "wss://hydradx.paras.dotters.network",
-    "wss://rpc.helikon.io/hydradx"
+    "wss://rpc.hydradx.cloud",
+    "wss://rpc.helikon.io/hydradx",
+    "wss://hydration-rpc.n.dwellir.com",
+    "wss://hydration.ibp.network",
+    "wss://hydration.dotters.network"
   ]
 
 [[substrate.networks]]
@@ -32,29 +34,34 @@ relay = "urn:ocn:polkadot:0"
   [substrate.networks.provider]
   type = "rpc"
   url = [
-    "wss://bifrost-polkadot.ibp.network",
-    "wss://bifrost-polkadot.dotters.network"
+    "wss://hk.p.bifrost-rpc.liebi.com/ws",
+    "wss://eu.bifrost-polkadot-rpc.liebi.com/ws"
   ]
 
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:2031"
+#relay = "urn:ocn:polkadot:0"
+
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = [
+#    "wss://fullnode.centrifuge.io",
+#    "wss://centrifuge-rpc.dwellir.com",
+#    "wss://rpc-centrifuge.luckyfriday.io"
+#  ]
+
 [[substrate.networks]]
-id = "urn:ocn:polkadot:2031"
+id = "urn:ocn:polkadot:2004"
 relay = "urn:ocn:polkadot:0"
 
   [substrate.networks.provider]
   type = "rpc"
   url = [
-    "wss://fullnode.centrifuge.io",
-    "wss://centrifuge-rpc.dwellir.com",
-    "wss://rpc-centrifuge.luckyfriday.io"
+    "wss://wss.api.moonbeam.network",
+    "wss://moonbeam-rpc.n.dwellir.com",
+    "wss://moonbeam.unitedbloc.com",
+    "wss://moonbeam.api.onfinality.io/public-ws"
   ]
-
-#[[substrate.networks]]
-#id = "urn:ocn:polkadot:2004"
-#relay = "urn:ocn:polkadot:0"
-#
-#  [substrate.networks.provider]
-#  type = "rpc"
-#  url = "wss://moonbeam.api.onfinality.io/public-ws"
 
 #[[substrate.networks]]
 #id = "urn:ocn:polkadot:2104"
@@ -63,3 +70,20 @@ relay = "urn:ocn:polkadot:0"
 #  [substrate.networks.provider]
 #  type = "rpc"
 #  url = "wss://ws.manta.systems"
+
+#---
+# EVM networks
+#---
+
+[[evm.networks]]
+id = "urn:ocn:ethereum:1284"
+maxBlockDist = 25
+
+  [evm.networks.provider]
+  type = "rpc"
+  url = [
+    "https://rpc.api.moonbeam.network",
+    "https://moonbeam-rpc.publicnode.com",
+    "https://moonbeam.api.pocket.network",
+    "https://moonbeam.unitedbloc.com"
+  ]
