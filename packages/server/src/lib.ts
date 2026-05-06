@@ -73,3 +73,10 @@ export { transfers }
 import * as issuance from './services/agents/issuance/lib.js'
 
 export { issuance }
+
+/**
+ * DeFi agent types
+ */
+import * as defi from './services/agents/defi/lib.js'
+
+export { defi }

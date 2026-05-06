@@ -6,6 +6,7 @@ export type {
   AnyQueryArgs,
   AnyQueryResultItem,
   crosschain as sourceCrosschain,
+  defi as sourceDefi,
   HexString,
   issuance as sourceIssuance,
   Message,
