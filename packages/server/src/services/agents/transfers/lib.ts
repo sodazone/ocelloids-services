@@ -5,6 +5,7 @@ export { IcTransferResponse } from './repositories/types.js'
 
 export {
   EnrichedTransfer,
+  IC_TRANSFER_TYPES,
   IcTransferType,
   Transfer,
 } from './types.js'
