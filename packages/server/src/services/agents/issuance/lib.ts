@@ -1,9 +1,25 @@
-// TODO: redeclare pure ts, non-zod inferred types for inputs
-// (args of subscription). We want them in the client lib...
+import { NetworkURN } from '@/lib.js'
+
 export {
   CrosschainIssuance,
   CrosschainIssuanceInputs,
   CrosschainIssuancePayload,
-  CrosschainIssuanceQueryArgs,
-  CrosschainIssuanceSubscriptionInputs,
 } from './types.js'
+
+/**
+ * @public
+ */
+export type CrosschainIssuanceSubscriptionInputs = {
+  reserveChain: NetworkURN
+  remoteChain: NetworkURN
+}
+
+/**
+ * @public
+ */
+export type CrosschainIssuanceQueryArgs = {
+  op: 'issuance.last'
+  criteria: {
+    subscriptionId: string
+  }
+}

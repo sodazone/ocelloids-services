@@ -2,6 +2,11 @@ import z from 'zod'
 import { $NetworkString } from '@/common/types.js'
 
 /**
+ * @public
+ */
+export const DEFI_EVENT_NAMES = ['swap', 'mint', 'burn'] as const
+
+/**
  * @private
  */
 const $LiquidityFilters = z.object({
@@ -12,7 +17,7 @@ const $LiquidityFilters = z.object({
  * @private
  */
 const $EventFilters = z.object({
-  type: z.enum(['swap', 'mint', 'burn']).optional(),
+  type: z.enum(DEFI_EVENT_NAMES).optional(),
 })
 
 /**
@@ -36,6 +41,9 @@ export const $DefiAgentInputs = z.discriminatedUnion('topic', [
  */
 export type DefiAgentInputs = z.infer<typeof $DefiAgentInputs>
 
+/**
+ * @public
+ */
 export type DefiLiquidityAsset = {
   assetId: string
   symbol: string
@@ -52,6 +60,9 @@ export type DefiLiquidityAsset = {
   role?: 'liquid' | 'collateral' | 'debt'
 }
 
+/**
+ * @public
+ */
 export type DefiLiquidityPayload = {
   type: 'liquidity'
   category: 'exchange' | 'money-market'
@@ -70,9 +81,51 @@ export type DefiLiquidityPayload = {
   }
 }
 
-export type DefiEventPayload = {
-  type: 'event'
-  name: 'swap' | 'burn' | 'mint'
+/**
+ * @public
+ */
+export type DefiEventName = (typeof DEFI_EVENT_NAMES)[number]
+
+/**
+ * @public
+ */
+export type DefiEventAsset = {
+  assetId: string
+  symbol: string
+  amount: string
+  amountUSD?: number
 }
 
+/**
+ * @public
+ */
+export type DefiEventPayload = {
+  type: 'event'
+  marketId: string
+  protocol: string
+  networkId: string
+  blockNumber: number
+  txHash: string
+} & (
+  | {
+      name: 'swap'
+      data: {
+        origin: string
+        in: DefiEventAsset[]
+        out: DefiEventAsset[]
+      }
+    }
+  | {
+      name: 'mint' | 'burn'
+      data: {
+        provider: string
+        assets: DefiEventAsset[]
+        lpAmount?: string
+      }
+    }
+)
+
+/**
+ * @public
+ */
 export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload

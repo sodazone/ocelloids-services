@@ -19,9 +19,14 @@ export const $TransfersAgentInputs = z.object({
 export type TransfersAgentInputs = z.infer<typeof $TransfersAgentInputs>
 
 /**
+ * @public
+ */
+export const IC_TRANSFER_TYPES = ['user', 'mixed', 'system'] as const
+
+/**
  * @private
  */
-export const $IcTransferType = z.enum(['user', 'mixed', 'system'])
+export const $IcTransferType = z.enum(IC_TRANSFER_TYPES)
 
 /**
  * @private
@@ -110,9 +115,9 @@ export type IcTransferQueryArgs = z.infer<typeof $IcTransferQueryArgs>
 export type TransfersFilters = z.infer<typeof $TransfersFilters>
 
 /**
- * @private
+ * @public
  */
-export type IcTransferType = z.infer<typeof $IcTransferType>
+export type IcTransferType = (typeof IC_TRANSFER_TYPES)[number]
 
 /**
  * @private

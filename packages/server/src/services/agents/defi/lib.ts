@@ -1,4 +1,5 @@
 import { NetworkURN } from '@/lib.js'
+import { DefiEventName } from './types.js'
 
 export { DefiEventPayload, DefiLiquidityPayload, DefiSubscriptionPayload } from './types.js'
 
@@ -13,7 +14,7 @@ export type LiquidityFilters = {
  * @public
  */
 export type EventFilters = {
-  type?: 'swap' | 'mint' | 'burn'
+  type?: DefiEventName
 }
 
 /**

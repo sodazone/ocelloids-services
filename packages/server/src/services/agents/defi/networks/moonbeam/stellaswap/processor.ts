@@ -3,9 +3,14 @@ import { Abi, formatUnits } from 'viem'
 import { HexString, NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
-import { Block, BlockWithLogs } from '@/services/networking/evm/types.js'
+import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
-import { DefiSubscriptionPayload } from '../../../types.js'
+import {
+  DefiEventAsset,
+  DefiEventPayload,
+  DefiLiquidityPayload,
+  DefiSubscriptionPayload,
+} from '../../../types.js'
 import { algebraPools, tokens } from './definitioins.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
@@ -36,203 +41,196 @@ export function createStellaswapProcessor({
   }
 
   async function updatePoolData(blockNumber?: bigint) {
-    const poolResults: {
-      tick: number
-      pair: string
-      price: number
-      priceInverse: number
-      liquidity: bigint
-      chainId: NetworkURN
-      token1: string
-      token0: string
-      address: HexString
-      reserve0: string
-      reserve1: string
-    }[] = []
-    const calls: any[] = []
     const poolEntries = Object.entries(algebraPools)
 
-    for (const [, pool] of poolEntries) {
-      calls.push(
-        {
-          address: pool.address,
-          abi: poolAbi as Abi,
-          functionName: 'globalState',
-          blockNumber,
-        },
-        {
-          address: pool.address,
-          abi: poolAbi as Abi,
-          functionName: 'liquidity',
-          blockNumber,
-        },
-        {
-          address: pool.address,
-          abi: poolAbi as Abi,
-          functionName: 'getReserves',
-          blockNumber,
-        },
-      )
-    }
+    // 1. Prepare Multicall
+    const contracts = poolEntries.flatMap(([, pool]) => [
+      { address: pool.address, abi: poolAbi as Abi, functionName: 'globalState' },
+      { address: pool.address, abi: poolAbi as Abi, functionName: 'liquidity' },
+      { address: pool.address, abi: poolAbi as Abi, functionName: 'getReserves' },
+    ])
 
     try {
-      const results = await ingress.multicall(chainId, {
-        contracts: calls,
-        blockNumber,
-      })
+      const results = await ingress.multicall(chainId, { contracts, blockNumber })
 
-      for (let i = 0; i < poolEntries.length; i++) {
-        const [pair, pool] = poolEntries[i]
+      // 2. Extract results and compute prices
+      const poolData = poolEntries
+        .map(([pair, pool], i) => {
+          const base = i * 3
+          const [gs, liq, res] = [results[base], results[base + 1], results[base + 2]]
 
-        const base = i * 3
+          if (gs.status !== 'success' || liq.status !== 'success' || res.status !== 'success') {
+            return null
+          }
 
-        const globalStateResult = results[base]
-        const liquidityResult = results[base + 1]
-        const reservesResult = results[base + 2]
+          const globalState = gs.result as [bigint, number, number, number, boolean]
+          const token0 = tokens[pool.token0]
+          const token1 = tokens[pool.token1]
 
-        if (
-          globalStateResult.status !== 'success' ||
-          liquidityResult.status !== 'success' ||
-          reservesResult.status !== 'success'
-        ) {
-          console.error(`Failed reading pool ${pair}`, {
-            globalStateResult,
-            liquidityResult,
-            reservesResult,
-          })
+          const rawPrice = sqrtPriceX96ToPrice(globalState[0])
+          const price = normalizePrice(rawPrice, token0.decimals, token1.decimals)
+
+          return {
+            pair,
+            pool,
+            price,
+            reserve0: formatUnits((res.result as bigint[])[0], token0.decimals),
+            reserve1: formatUnits((res.result as bigint[])[1], token1.decimals),
+          }
+        })
+        .filter(Boolean)
+
+      // 3. Pricing & USD Conversion
+      const edges: PriceEdge[] = poolData.map((p) => ({
+        from: p!.pool.token0,
+        to: p!.pool.token1,
+        price: p!.price,
+      }))
+      const usdPrices = computeUSDPrices(edges)
+
+      // 4. Emit payloads
+      for (const p of poolData) {
+        if (!p) {
           continue
         }
 
-        const globalState = globalStateResult.result as [bigint, number, number, number, boolean]
-        const liquidity = liquidityResult.result as bigint
-        const reserves = reservesResult.result as [bigint, bigint]
+        const priceUSD0 = usdPrices[p.pool.token0] || 0
+        const priceUSD1 = usdPrices[p.pool.token1] || 0
+        const tvlUSD = Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1
 
-        const sqrtPriceX96 = globalState[0]
-        const tick = globalState[1]
-
-        const token0 = tokens[pool.token0]
-        const token1 = tokens[pool.token1]
-
-        const rawPrice = sqrtPriceX96ToPrice(sqrtPriceX96)
-        const price = normalizePrice(rawPrice, token0.decimals, token1.decimals)
-        const priceInverse = 1 / price
-
-        const reserve0 = formatUnits(reserves[0], token0.decimals)
-        const reserve1 = formatUnits(reserves[1], token1.decimals)
-
-        poolResults.push({
-          chainId,
-          pair,
-          address: pool.address,
-          token0: pool.token0,
-          token1: pool.token1,
-          price,
-          priceInverse,
-          tick,
-          liquidity: BigInt(liquidity),
-          reserve0,
-          reserve1,
-        })
+        const payload: DefiLiquidityPayload = {
+          type: 'liquidity',
+          category: 'exchange',
+          protocol: 'stellaswap',
+          marketId: p.pool.address,
+          tvlUSD,
+          assets: [
+            {
+              assetId: tokens[p.pool.token0].address,
+              symbol: p.pool.token0,
+              decimals: tokens[p.pool.token0].decimals,
+              priceUSD: priceUSD0,
+              balances: { total: p.reserve0 },
+            },
+            {
+              assetId: tokens[p.pool.token1].address,
+              symbol: p.pool.token1,
+              decimals: tokens[p.pool.token1].decimals,
+              priceUSD: priceUSD1,
+              balances: { total: p.reserve1 },
+            },
+          ],
+        }
+        subject.next(payload)
       }
     } catch (err) {
-      console.error('Multicall failed', err)
-      return
-    }
-
-    const edges: PriceEdge[] = []
-
-    for (const p of poolResults) {
-      edges.push({
-        from: p.token0,
-        to: p.token1,
-        price: p.price,
-      })
-    }
-
-    const usdPrices = computeUSDPrices(edges)
-
-    for (const token of Object.keys(tokens)) {
-      if (!usdPrices[token]) {
-        console.warn('NO USD PATH:', token)
-      }
-    }
-
-    for (const p of poolResults) {
-      const priceUSD_token0 = usdPrices[p.token0]
-      const priceUSD_token1 = usdPrices[p.token1]
-
-      const tvl0 = Number(p.reserve0) * (priceUSD_token0 || 0)
-      const tvl1 = Number(p.reserve1) * (priceUSD_token1 || 0)
-      const tvlUSD = tvl0 + tvl1
-
-      // const impliedPrice = priceUSD_token0 / priceUSD_token1
-      // const deviation = Math.abs(impliedPrice - p.price) / p.price
-
-      const token0 = tokens[p.token0]
-      const token1 = tokens[p.token1]
-
-      subject.next({
-        category: 'exchange',
-        marketId: p.address,
-        type: 'liquidity',
-        protocol: 'stellaswap',
-        tvlUSD,
-        assets: [
-          {
-            assetId: token0.address,
-            decimals: token0.decimals,
-            symbol: p.token0,
-            priceUSD: priceUSD_token0,
-            balances: {
-              total: p.reserve0,
-            },
-          },
-          {
-            assetId: token1.address,
-            decimals: token1.decimals,
-            symbol: p.token1,
-            priceUSD: priceUSD_token1,
-            balances: {
-              total: p.reserve1,
-            },
-          },
-        ],
-        // TODO: price and implied...
-      })
+      console.error('[stellaswap] liquidity update failed', err)
     }
   }
 
-  function _extractPoolEvents() {
-    return (source: Observable<BlockWithLogs>): Observable<any> => {
+  function extractPoolEvents() {
+    return (source: Observable<BlockWithLogs>): Observable<DefiEventPayload> => {
       return source.pipe(
         filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn']),
         map((log) => {
-          if (log.eventName === 'Swap') {
-            console.log(log.args as SwapEventArgs)
-          } else if (log.eventName === 'Mint') {
-            console.log(log.args as MintEventArgs)
-          } else if (log.eventName === 'Burn') {
-            console.log(log.args as BurnEventArgs)
-          } else {
-            console.log(log.eventName, log)
+          const pool = algebraPools[log.address as HexString]
+          const token0 = tokens[pool.token0]
+          const token1 = tokens[pool.token1]
+
+          const base = {
+            type: 'event' as const,
+            marketId: log.address,
+            protocol: 'stellaswap',
+            networkId: chainId,
+            blockNumber: Number(log.blockNumber),
+            txHash: log.transactionHash,
           }
-          return null
+
+          if (log.eventName === 'Swap') {
+            const args = log.args as SwapEventArgs
+
+            // Determine which token was 'in' (positive) and 'out' (negative)
+            // In Algebra/UniV3, amount0/1 are int256
+            const assetsIn: DefiEventAsset[] = []
+            const assetsOut: DefiEventAsset[] = []
+
+            const amount0 = BigInt(args.amount0)
+            const amount1 = BigInt(args.amount1)
+
+            if (amount0 > 0n) {
+              assetsIn.push({
+                assetId: token0.address,
+                symbol: pool.token0,
+                amount: formatUnits(amount0, token0.decimals),
+              })
+              assetsOut.push({
+                assetId: token1.address,
+                symbol: pool.token1,
+                amount: formatUnits(-amount1, token1.decimals),
+              })
+            } else {
+              assetsIn.push({
+                assetId: token1.address,
+                symbol: pool.token1,
+                amount: formatUnits(amount1, token1.decimals),
+              })
+              assetsOut.push({
+                assetId: token0.address,
+                symbol: pool.token0,
+                amount: formatUnits(-amount0, token0.decimals),
+              })
+            }
+
+            return {
+              ...base,
+              name: 'swap',
+              data: { origin: args.sender, in: assetsIn, out: assetsOut },
+            } as DefiEventPayload
+          }
+
+          // Generic Mint/Burn mapping
+          const isMint = log.eventName === 'Mint'
+          const args = isMint ? (log.args as MintEventArgs) : (log.args as BurnEventArgs)
+
+          const amount0 = BigInt(args.amount0)
+          const amount1 = BigInt(args.amount1)
+
+          return {
+            ...base,
+            name: isMint ? 'mint' : 'burn',
+            data: {
+              provider: args.owner,
+              assets: [
+                {
+                  assetId: token0.address,
+                  symbol: pool.token0,
+                  amount: formatUnits(amount0, token0.decimals),
+                },
+                {
+                  assetId: token1.address,
+                  symbol: pool.token1,
+                  amount: formatUnits(amount1, token1.decimals),
+                },
+              ],
+            },
+          } as DefiEventPayload
         }),
-        filter((ev) => ev !== null),
       )
     }
   }
 
   function start(blockWithLogs$: Observable<BlockWithLogs>) {
-    subs.push(
-      blockWithLogs$.pipe(filter((_, idx) => (idx + 1) % EVERY_N_BLOCKS === 0)).subscribe((block: Block) => {
-        updatePoolData(BigInt(block.number)).catch((err) => {
-          console.error(err, 'Failed to update pool data for block %s', block.number)
-        })
-      }),
-    )
+    const liquiditySub = blockWithLogs$.pipe(filter((_, idx) => (idx + 1) % EVERY_N_BLOCKS === 0)).subscribe({
+      next: (block) => updatePoolData(BigInt(block.number)),
+      error: (err) => console.error('[stellaswap] Block stream error', err),
+    })
 
-    // subs.push(blockWithLogs$.pipe(extractPoolEvents()).subscribe())
+    const eventsSub = blockWithLogs$.pipe(extractPoolEvents()).subscribe({
+      next: (payload) => subject.next(payload),
+      error: (err) => console.error('[stellaswap] Event stream error', err),
+    })
+
+    subs.push(liquiditySub, eventsSub)
   }
 
   return {
