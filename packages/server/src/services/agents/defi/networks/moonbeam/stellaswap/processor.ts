@@ -1,4 +1,4 @@
-import { filter, map, Observable, Subject, Subscription } from 'rxjs'
+import { filter, map, Observable, Subject, Subscription, scan, share } from 'rxjs'
 import { Abi, formatUnits } from 'viem'
 import { HexString, NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
@@ -11,7 +11,7 @@ import {
   DefiLiquidityPayload,
   DefiSubscriptionPayload,
 } from '../../../types.js'
-import { algebraPools, tokens } from './definitioins.js'
+import { algebraPools, algebraPoolsMap, tokens } from './definitioins.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
@@ -24,9 +24,9 @@ export function createStellaswapProcessor({
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
 }) {
-  const EVERY_N_BLOCKS = 10
+  const MAX_STALE_BLOCKS = 1_000
   const Q96 = 2n ** 96n
-  const poolAddresses = Object.values(algebraPools).map((p) => p.address)
+  const poolAddresses = algebraPools.map((p) => p.address)
 
   const subs: Subscription[] = []
 
@@ -41,10 +41,8 @@ export function createStellaswapProcessor({
   }
 
   async function updatePoolData(blockNumber?: bigint) {
-    const poolEntries = Object.entries(algebraPools)
-
     // 1. Prepare Multicall
-    const contracts = poolEntries.flatMap(([, pool]) => [
+    const contracts = algebraPools.flatMap((pool) => [
       { address: pool.address, abi: poolAbi as Abi, functionName: 'globalState' },
       { address: pool.address, abi: poolAbi as Abi, functionName: 'liquidity' },
       { address: pool.address, abi: poolAbi as Abi, functionName: 'getReserves' },
@@ -54,7 +52,7 @@ export function createStellaswapProcessor({
       const results = await ingress.multicall(chainId, { contracts, blockNumber })
 
       // 2. Extract results and compute prices
-      const poolData = poolEntries
+      const poolData = Object.entries(algebraPoolsMap)
         .map(([pair, pool], i) => {
           const base = i * 3
           const [gs, liq, res] = [results[base], results[base + 1], results[base + 2]]
@@ -133,7 +131,13 @@ export function createStellaswapProcessor({
       return source.pipe(
         filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn']),
         map((log) => {
-          const pool = algebraPools[log.address as HexString]
+          const pool = algebraPools.find((c) => c.address === (log.address as HexString))
+
+          if (pool === undefined) {
+            console.log('Cannot resolve pool for event', log)
+            return null
+          }
+
           const token0 = tokens[pool.token0]
           const token1 = tokens[pool.token1]
 
@@ -215,22 +219,55 @@ export function createStellaswapProcessor({
             },
           } as DefiEventPayload
         }),
+        filter((payload): payload is DefiEventPayload => payload !== null),
       )
     }
   }
 
   function start(blockWithLogs$: Observable<BlockWithLogs>) {
-    const liquiditySub = blockWithLogs$.pipe(filter((_, idx) => (idx + 1) % EVERY_N_BLOCKS === 0)).subscribe({
-      next: (block) => updatePoolData(BigInt(block.number)),
-      error: (err) => console.error('[stellaswap] Block stream error', err),
-    })
+    const events$ = blockWithLogs$.pipe(extractPoolEvents(), share())
 
-    const eventsSub = blockWithLogs$.pipe(extractPoolEvents()).subscribe({
-      next: (payload) => subject.next(payload),
-      error: (err) => console.error('[stellaswap] Event stream error', err),
-    })
+    // 1. Subscription for real-time events
+    subs.push(
+      events$.subscribe({
+        next: (payload) => subject.next(payload),
+        error: (err) => console.error('[stellaswap] Event stream error', err),
+      }),
+    )
 
-    subs.push(liquiditySub, eventsSub)
+    // 2. Subscription for Liquidity Updates
+    // we update if max stale blocks reached or there's a recent DeFi event
+    subs.push(
+      blockWithLogs$
+        .pipe(
+          scan(
+            (acc, block) => {
+              const hasEvent = block.logs.some((log) =>
+                poolAddresses.includes(log.address.toLowerCase() as HexString),
+              )
+
+              const blocksSinceUpdate =
+                acc.lastUpdateBlock === 0n ? MAX_STALE_BLOCKS : BigInt(block.number) - acc.lastUpdateBlock
+
+              const shouldUpdate =
+                acc.lastUpdateBlock === 0n || hasEvent || blocksSinceUpdate >= BigInt(MAX_STALE_BLOCKS)
+
+              return {
+                block,
+                shouldUpdate,
+                lastUpdateBlock: shouldUpdate ? BigInt(block.number) : acc.lastUpdateBlock,
+              }
+            },
+            { block: null as any, shouldUpdate: false, lastUpdateBlock: 0n },
+          ),
+          filter((state) => state.shouldUpdate),
+          map((state) => state.block),
+        )
+        .subscribe({
+          next: (block) => updatePoolData(BigInt(block.number)),
+          error: (err) => console.error('[stellaswap] Liquidity trigger error', err),
+        }),
+    )
   }
 
   return {

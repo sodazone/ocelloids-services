@@ -42,7 +42,7 @@ export const tokens: Record<string, { address: `0x${string}`; decimals: number }
   },
 }
 
-export const algebraPools: Record<string, { address: `0x${string}`; token0: string; token1: string }> = {
+export const algebraPoolsMap: Record<string, { address: `0x${string}`; token0: string; token1: string }> = {
   'WGLMR-xcDOT': {
     address: '0xc295aa4287127C5776Ad7031648692659eF2ceBB',
     token0: 'WGLMR',
@@ -98,4 +98,6 @@ export const algebraPools: Record<string, { address: `0x${string}`; token0: stri
     token0: 'WETH',
     token1: 'ETH.e',
   },
-}
+} as const
+
+export const algebraPools = Object.values(algebraPoolsMap)

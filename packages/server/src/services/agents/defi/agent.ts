@@ -113,11 +113,11 @@ export class DefiAgent implements Agent, Subscribable {
         monitor.events$.pipe(
           filter((payload) => payload.type === args.topic),
           filter((payload) => {
-            if (args.topic === 'liquidity' && payload.type === 'liquidity') {
+            if (payload.type === 'liquidity') {
               // TODO: liquidity filters
             }
 
-            if (args.topic === 'events' && payload.type === 'event') {
+            if (payload.type === 'event') {
               // TODO: event filters
             }
 

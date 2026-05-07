@@ -27,7 +27,7 @@ export type DefiAgentInputs =
       filters?: LiquidityFilters
     }
   | {
-      topic: 'events'
+      topic: 'event'
       networks: '*' | NetworkURN[]
       filters?: EventFilters
     }

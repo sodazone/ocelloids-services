@@ -30,7 +30,7 @@ export const $DefiAgentInputs = z.discriminatedUnion('topic', [
     filters: $LiquidityFilters.optional(),
   }),
   z.object({
-    topic: z.literal('events'),
+    topic: z.literal('event'),
     networks: z.literal('*').or(z.array($NetworkString)),
     filters: $EventFilters.optional(),
   }),
