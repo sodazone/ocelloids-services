@@ -3,29 +3,33 @@ import { calculateStableswapSpotPrice } from './stablemath.js'
 
 const stablesReservesLowLiq: StableSwapPool = {
   type: 'stableswap',
-  address: '0xaffeef2e0ccac1986d8ac3b557e1e0d682d649bf61aee81e1a7faaab7eae35e0',
-  id: 101,
+  address: '0x22bb00df7706a5965728b60f96406ee59ce675fd5fd10652a4ed6f618856ccfe',
+  id: 100,
   tokens: [
+    { id: 100, reserves: 489739599801193155715n, decimals: 18, symbol: '4-Pool' },
+    { id: 10, reserves: 53840243n, decimals: 6, symbol: 'USDT' },
     {
-      id: 101,
-      reserves: 39653834808673304n,
+      id: 18,
+      reserves: 354157031119211120050n,
       decimals: 18,
-      symbol: '2-Pool',
+      symbol: 'DAI',
     },
-    { id: 11, reserves: 2309436n, decimals: 8, symbol: 'iBTC' },
-    { id: 19, reserves: 1759829n, decimals: 8, symbol: 'WBTC' },
+    { id: 21, reserves: 53847086n, decimals: 6, symbol: 'USDC' },
+    { id: 23, reserves: 53644878n, decimals: 6, symbol: 'USDT' },
   ],
-  amplification: 5n,
+  amplification: 320n,
   pegs: [
+    [1n, 1n],
+    [1n, 1n],
     [1n, 1n],
     [1n, 1n],
   ],
   fees: 200,
   isRampPeriod: false,
-  isLowLiquidity: false,
+  isLowLiquidity: true
 }
 
-const stableReserves110: StableSwapPool = {
+const stableReservesDeepLiq: StableSwapPool = {
   type: 'stableswap',
   address: '0x0cfd4ae3c8db0e5d06a84cd788c72cb15f8d0c247117b1cc75f69907002674c6',
   id: 110,
@@ -56,36 +60,36 @@ const stableReserves110: StableSwapPool = {
   ],
   fees: 200,
   isRampPeriod: false,
-  isLowLiquidity: false,
+  isLowLiquidity: false
 }
 
 describe('stablemath calculations', () => {
   describe('calculateStableswapSpotPrice', () => {
     it('should calculate spot price between 2 stables in deep pool', () => {
-      const { tokens } = stableReserves110
+      const { tokens } = stableReservesDeepLiq
       const tokenIn = tokens[1]
       const tokenOut = tokens[2]
-      const out = calculateStableswapSpotPrice(stableReserves110, tokenIn.id, tokenOut.id)
+      const out = calculateStableswapSpotPrice(stableReservesDeepLiq, tokenIn.id, tokenOut.id)
       expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from share token to stable in deep pool', () => {
-      const { id, tokens } = stableReserves110
+      const { id, tokens } = stableReservesDeepLiq
       const tokenOut = tokens[1]
 
-      const out = calculateStableswapSpotPrice(stableReserves110, id, tokenOut.id)
+      const out = calculateStableswapSpotPrice(stableReservesDeepLiq, id, tokenOut.id)
       expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from stable to share token in deep pool', () => {
-      const { id, tokens } = stableReserves110
+      const { id, tokens } = stableReservesDeepLiq
       const tokenIn = tokens[1]
 
-      const out = calculateStableswapSpotPrice(stableReserves110, tokenIn.id, id)
+      const out = calculateStableswapSpotPrice(stableReservesDeepLiq, tokenIn.id, id)
       expect(out).toBeCloseTo(0.999, 1)
     })
 
-    it.only('should calculate spot price between 2 stables in shallow pool', () => {
+    it('should calculate spot price between 2 stables in shallow pool', () => {
       const { tokens } = stablesReservesLowLiq
       const tokenIn = tokens[1]
       const tokenOut = tokens[2]
