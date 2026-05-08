@@ -78,7 +78,7 @@ export function createMoonwellProcessor({
         .pipe(
           smartTrigger({
             events$,
-            maxStaleBlocks: 1_000,
+            maxStaleBlocks: 1_010,
           }),
         )
         .subscribe({
