@@ -34,8 +34,27 @@ export function absDiff(a: bigint, b: bigint): bigint {
   return a > b ? a - b : b - a
 }
 
-export function formatFixed(value: bigint, decimals: number): string {
-  const s = value.toString().padStart(decimals + 1, '0')
-  const pos = s.length - decimals
-  return s.slice(0, pos) + '.' + s.slice(pos)
+export function toPrecisionNumber({
+  priceScaled,
+  decimalsIn,
+  decimalsOut,
+  scale = PRECISION_BIGINT,
+}: {
+  priceScaled: bigint
+  decimalsIn: number
+  decimalsOut: number
+  scale?: bigint
+}): number {
+  const exponentDiff = decimalsIn - decimalsOut
+
+  let finalPriceBI: bigint
+  if (exponentDiff < 0) {
+    finalPriceBI = priceScaled / 10n ** BigInt(Math.abs(exponentDiff))
+  } else if (exponentDiff > 0) {
+    finalPriceBI = priceScaled * 10n ** BigInt(exponentDiff)
+  } else {
+    finalPriceBI = priceScaled
+  }
+
+  return Number(finalPriceBI) / Number(scale)
 }

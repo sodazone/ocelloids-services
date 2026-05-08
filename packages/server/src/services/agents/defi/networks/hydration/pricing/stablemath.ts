@@ -1,4 +1,4 @@
-import { Peg, PoolReserve, PoolToken } from '../types.js'
+import { Peg, PoolReserve, StableSwapPool } from '../types.js'
 import { normalizeReserves, PERMILL_BIGINT, PRECISION_BIGINT, PRECISION_NUM } from './common.js'
 
 function calculateAnn(n: number, amplification: bigint): bigint | null {
@@ -264,25 +264,20 @@ export function calculateShares(
   }
 }
 
-export function calculateSpotPrice(
-  poolId: number,
-  assetReserves: PoolToken[],
-  amplification: bigint,
+export function calculateStableswapSpotPrice(
+  pool: StableSwapPool,
   assetIn: number,
   assetOut: number,
-  shareIssuance: bigint,
-  minTradeAmount: bigint,
-  fee: number | null,
-  pegs: Peg[],
-  sharesDecimals: number,
+  tradeAmount: bigint,
 ): number | null {
-  const nCoins = assetReserves.length
+  const { id: poolId, tokens, amplification, totalIssuance, pegs, sharesDecimals } = pool
+  const nCoins = tokens.length
 
   if (nCoins <= 1 || assetIn === assetOut || pegs.length !== nCoins) {
     return null
   }
 
-  const reserves = assetReserves.map((r) => ({ reserves: r.reserves, decimals: r.decimals }))
+  const reserves = tokens.map((r) => ({ reserves: r.reserves, decimals: r.decimals }))
 
   const D = calculateD(reserves, amplification, pegs)
   if (!D) {
@@ -293,31 +288,23 @@ export function calculateSpotPrice(
   const isShareOut = assetOut === poolId
 
   if (!isShareIn && !isShareOut) {
-    const i = assetReserves.findIndex((r) => r.id === assetIn)
-    const j = assetReserves.findIndex((r) => r.id === assetOut)
+    const i = tokens.findIndex((r) => r.id === assetIn)
+    const j = tokens.findIndex((r) => r.id === assetOut)
 
-    return calculateSpotPriceStable(reserves, amplification, D, i, j, fee, pegs)
+    return calculateSpotPriceStable(reserves, amplification, D, i, j, null, pegs)
   }
   if (isShareIn && !isShareOut) {
-    const i = assetReserves.findIndex((r) => r.id === assetOut)
-    const results = calculateSharesForAmount(
-      reserves,
-      i,
-      minTradeAmount,
-      amplification,
-      shareIssuance,
-      fee ?? 0,
-      pegs,
-    )
+    const i = tokens.findIndex((r) => r.id === assetOut)
+    const results = calculateSharesForAmount(reserves, i, tradeAmount, amplification, totalIssuance, 0, pegs)
     if (results === null) {
       return null
     }
-    const priceScaled = (results.shares * PRECISION_BIGINT) / minTradeAmount
+    const priceScaled = (results.shares * PRECISION_BIGINT) / tradeAmount
 
-    const decimalAdjustment = 10n ** BigInt(Math.abs(assetReserves[i].decimals - sharesDecimals))
+    const decimalAdjustment = 10n ** BigInt(Math.abs(tokens[i].decimals - sharesDecimals))
 
     let finalPrice
-    if (assetReserves[i].decimals < sharesDecimals) {
+    if (tokens[i].decimals < sharesDecimals) {
       finalPrice = priceScaled / decimalAdjustment
     } else {
       finalPrice = priceScaled * decimalAdjustment
@@ -327,7 +314,7 @@ export function calculateSpotPrice(
   }
 
   if (!isShareIn && isShareOut) {
-    const inIdx = assetReserves.findIndex((r) => r.id === assetIn)
+    const inIdx = tokens.findIndex((r) => r.id === assetIn)
     if (inIdx === -1) {
       return null
     }
@@ -335,22 +322,21 @@ export function calculateSpotPrice(
     // Create a hypothetical updated reserve state
     const updatedReserves = reserves.map((r, idx) => ({
       ...r,
-      reserves: idx === inIdx ? r.reserves + minTradeAmount : r.reserves,
+      reserves: idx === inIdx ? r.reserves + tradeAmount : r.reserves,
     }))
 
-    const result = calculateShares(reserves, updatedReserves, amplification, shareIssuance, fee ?? 0, pegs)
+    const result = calculateShares(reserves, updatedReserves, amplification, totalIssuance, 0, pegs)
 
     if (!result || result.shares === 0n) {
       return null
     }
 
-    // Price = minTradeAmount / shares_received
-    const priceScaled = (minTradeAmount * PRECISION_BIGINT) / result.shares
+    const priceScaled = (tradeAmount * PRECISION_BIGINT) / result.shares
 
-    const decimalAdjustment = 10n ** BigInt(Math.abs(sharesDecimals - assetReserves[inIdx].decimals))
+    const decimalAdjustment = 10n ** BigInt(Math.abs(sharesDecimals - tokens[inIdx].decimals))
 
     let finalPrice
-    if (sharesDecimals < assetReserves[inIdx].decimals) {
+    if (sharesDecimals < tokens[inIdx].decimals) {
       finalPrice = priceScaled / decimalAdjustment
     } else {
       finalPrice = priceScaled * decimalAdjustment

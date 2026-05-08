@@ -12,6 +12,7 @@ import { createAaveWatcher } from './pools/aave.js'
 import { createOmnipoolWatcher } from './pools/omnipool.js'
 import { createStableswapWatcher } from './pools/stableswap.js'
 import { createXykWatcher } from './pools/xyk.js'
+import { calculateSpot } from './pricing/index.js'
 import { buildGraph, chartPath } from './routing.js'
 import { Path, Pool, PoolsContext } from './types.js'
 
@@ -54,6 +55,7 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
 
   const allTokens = new Set<number>()
   const cachedPaths: Map<number, Path | null> = new Map()
+  const prices: Map<number, number> = new Map()
 
   let sub: Subscription
   let inFlight = 0
@@ -67,13 +69,31 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
   }
 
   function updatePrices() {
-    if (counter < 20) {
+    if (counter < 10) {
+      console.log('counter', counter)
       return
     }
+    console.log('starting price calc')
     try {
-      // calculate prices
+      for (const [asset, path] of cachedPaths) {
+        if (!path) {
+          console.log('No path found', asset)
+          continue
+        }
+        try {
+          const spot = calculateSpot(pools, path)
+          if (spot) {
+            prices.set(asset, spot)
+          } else {
+            console.log('No spot price calculated', asset)
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
     } finally {
       counter = 0
+      console.log('updated prices --', prices)
     }
   }
 

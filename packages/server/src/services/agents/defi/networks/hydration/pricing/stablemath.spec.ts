@@ -1,5 +1,5 @@
 import { StableSwapPool } from '../types.js'
-import { calculateSpotPrice } from './stablemath.js'
+import { calculateStableswapSpotPrice } from './stablemath.js'
 
 const stablesReserves100: StableSwapPool = {
   type: 'stableswap',
@@ -61,119 +61,83 @@ const stableReserves110: StableSwapPool = {
 }
 
 describe('stablemath calculations', () => {
-  describe('calculateSpotPrice', () => {
+  describe('calculateStableswapSpotPrice', () => {
     it('should calculate spot price between 2 stables in deep pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stableReserves110
+      const { tokens } = stableReserves110
       const tokenIn = tokens[0]
       const tokenOut = tokens[1]
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stableReserves110,
         tokenIn.id,
         tokenOut.id,
-        totalIssuance,
         100n * BigInt(10 ** tokenIn.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('price USDC -> HOLLAR', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from share token to stable in deep pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stableReserves110
+      const { id, tokens } = stableReserves110
       const tokenOut = tokens[1]
 
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stableReserves110,
         id,
         tokenOut.id,
-        totalIssuance,
         100n * BigInt(10 ** tokenOut.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('price shares -> USDC', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from stable to share token in deep pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stableReserves110
+      const { id, tokens } = stableReserves110
       const tokenIn = tokens[0]
 
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stableReserves110,
         tokenIn.id,
         id,
-        totalIssuance,
         100n * BigInt(10 ** tokenIn.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('2-pool price HOLLAR -> shares', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price between 2 stables in shallow pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stablesReserves100
+      const { tokens } = stablesReserves100
       const tokenIn = tokens[0]
       const tokenOut = tokens[1]
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stablesReserves100,
         tokenIn.id,
         tokenOut.id,
-        totalIssuance,
         100n * BigInt(10 ** tokenIn.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('4-pool price USDT -> DAI', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from share token to stable in shallow pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stablesReserves100
+      const { id, tokens } = stablesReserves100
       const tokenOut = tokens[0]
 
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stablesReserves100,
         id,
         tokenOut.id,
-        totalIssuance,
         10n * BigInt(10 ** tokenOut.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('4-pool price shares -> USDT', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
 
     it('should calculate spot price from stable to share token in shallow pool', () => {
-      const { id, tokens, totalIssuance, amplification, pegs, sharesDecimals } = stablesReserves100
+      const { id, tokens } = stablesReserves100
       const tokenIn = tokens[0]
 
-      const out = calculateSpotPrice(
-        id,
-        tokens,
-        amplification,
+      const out = calculateStableswapSpotPrice(
+        stablesReserves100,
         tokenIn.id,
         id,
-        totalIssuance,
         10n * BigInt(10 ** tokenIn.decimals),
-        null,
-        pegs,
-        sharesDecimals,
       )
-      console.log('4-pool price USDT -> shares', out)
+      expect(out).toBeCloseTo(0.999, 1)
     })
   })
 })
