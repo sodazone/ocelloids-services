@@ -1,14 +1,12 @@
 import { Abi } from 'viem'
-import { toAssetId } from '@/services/agents/common/assets.js'
 import { assetIdToHex } from '@/services/agents/common/hydration.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Block } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'json' }
 import { AaveV3HydrationMainnet } from '../config.js'
 import { CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
-import { AavePool, AssetMetadataFetcher, Pool } from '../types.js'
+import { AavePool, AssetMetadataFetcher } from '../types.js'
 
 type AaveTradeExecutorPool = {
   reserve: number
@@ -31,7 +29,7 @@ export function createAaveWatcher(
   evmIngress: EvmIngressConsumer,
   fetchAssetMetadata: AssetMetadataFetcher,
 ) {
-  async function loadPools(): Promise<Pool[]> {
+  async function loadPools(): Promise<AavePool[]> {
     const pools = await substrateIngress.runtimeCall<AaveTradeExecutorPool[]>(CHAIN_ID, {
       api: 'AaveTradeExecutor',
       method: 'pools',
@@ -72,13 +70,13 @@ export function createAaveWatcher(
         oraclePrice: reservesData.priceInMarketReferenceCurrency,
         tokens: [
           {
-            id: toAssetId(CHAIN_ID, reserve),
+            id: reserve,
             reserves: liqudity_in,
             decimals: reserveMetadata?.decimals ?? 0,
             symbol: reserveMetadata?.symbol,
           },
           {
-            id: toAssetId(CHAIN_ID, atoken),
+            id: atoken,
             reserves: liqudity_out,
             decimals: atokenMetadata?.decimals ?? 0,
             symbol: atokenMetadata?.symbol,
@@ -90,11 +88,12 @@ export function createAaveWatcher(
     return aavePools
   }
 
-  async function getUpdatedPoolReserves(_block: Block): Promise<Pool[]> {
+  async function updatePoolReserves(_pools: AavePool[]): Promise<AavePool[]> {
     return loadPools()
   }
 
   return {
-    getUpdatedPoolReserves,
+    updatePoolReserves,
+    loadPools,
   }
 }

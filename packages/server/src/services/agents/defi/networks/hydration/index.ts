@@ -1,4 +1,4 @@
-import { Subject, Subscription } from 'rxjs'
+import { firstValueFrom, Subject, Subscription } from 'rxjs'
 import { DataSteward } from '@/services/agents/steward/agent.js'
 import { hydrationBalancesFetcher } from '@/services/agents/steward/balances/mappers/hydration.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
@@ -12,6 +12,16 @@ import { createAaveWatcher } from './pools/aave.js'
 import { createOmnipoolWatcher } from './pools/omnipool.js'
 import { createStableswapWatcher } from './pools/stableswap.js'
 import { createXykWatcher } from './pools/xyk.js'
+import { AavePool, OmniPool, StableSwapPool, XykPool } from './types.js'
+
+type PoolsContext = {
+  stableswap: StableSwapPool[]
+  omnipool: OmniPool | null
+  aave: AavePool[]
+  xyk: XykPool[]
+}
+
+type Graph<T> = Map<T, T[]>
 
 export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataSteward) {
   const fetchAssetMetadata = async (assets: string[]): Promise<AssetMetadata[]> => {
@@ -41,6 +51,17 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
   const xyk = createXykWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
 
   const subject = new Subject<DefiSubscriptionPayload>()
+  const pools: PoolsContext = {
+    stableswap: [],
+    omnipool: null,
+    aave: [],
+    xyk: [],
+  }
+
+  const _graph: Graph<{
+    pool: string
+    asset: number
+  }> = new Map()
 
   let sub: Subscription
 
@@ -48,15 +69,22 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
     if (block.number % 50 !== 0) {
       return
     }
-    const _xykReserves = await xyk.getUpdatedPoolReserves(block)
-    const _omnipoolReserves = await omnipool.getUpdatedPoolReserves(block)
-    const _stableswapReserves = await stableswaps.getUpdatedPoolReserves(block)
-    const _aaveReserves = await aave.getUpdatedPoolReserves(block)
+    pools.xyk = await xyk.updatePoolReserves(pools.xyk)
+    pools.omnipool = await omnipool.updatePoolReserves(pools.omnipool)
+    pools.stableswap = await stableswaps.updatePoolReserves(pools.stableswap, block)
+    pools.aave = await aave.updatePoolReserves(pools.aave)
   }
 
   async function start() {
     const shared$ = SubstrateSharedStreams.instance(substrateIngress)
-    sub = shared$.blocks(CHAIN_ID).subscribe(onBlock)
+    const blocks$ = shared$.blocks(CHAIN_ID)
+    const latestBlock = await firstValueFrom(blocks$)
+    pools.stableswap = await stableswaps.loadPools(latestBlock)
+    pools.omnipool = await omnipool.loadPools()
+    pools.xyk = await xyk.loadPools()
+    pools.aave = await aave.loadPools()
+
+    sub = blocks$.subscribe(onBlock)
   }
 
   return {

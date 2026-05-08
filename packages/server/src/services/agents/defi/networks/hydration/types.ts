@@ -2,7 +2,7 @@ import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 
 export type PoolToken = {
-  id: string
+  id: number
   reserves: bigint
   decimals: number
   symbol?: string
@@ -24,6 +24,7 @@ export type StableSwapPool = {
   amplification: bigint
   pegs: string[][]
   fees: number
+  isRampPeriod: boolean
 }
 
 export type OmniPool = {
