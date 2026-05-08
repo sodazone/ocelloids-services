@@ -1,7 +1,15 @@
 import { NetworkURN } from '@/lib.js'
 import { DefiEventName } from './types.js'
 
-export { DefiEventPayload, DefiLiquidityPayload, DefiSubscriptionPayload } from './types.js'
+export type {
+  DEFI_EVENT_NAMES,
+  DefiEventAsset,
+  DefiEventName,
+  DefiEventPayload,
+  DefiLiquidityAsset,
+  DefiLiquidityPayload,
+  DefiSubscriptionPayload,
+} from './types.js'
 
 /**
  * @public
