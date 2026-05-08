@@ -12,8 +12,6 @@ export * from './core/types'
 export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
 export * from './query'
 export type {
-  $AgentId,
-  $SubscriptionId,
   AgentId,
   AnyJson,
   AnyQueryArgs,

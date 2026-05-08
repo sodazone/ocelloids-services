@@ -3,8 +3,6 @@
  */
 
 export type {
-  $AgentId,
-  AgentId,
   AnyQueryArgs,
   AnyQueryResultItem,
   GenericEvent,
@@ -13,13 +11,23 @@ export type {
   QueryResult,
   ServerSentEvent,
 } from './services/agents/types.js'
+
+/**
+ * @public
+ */
+export type AgentId = string
+
 export type { Message } from './services/egress/types.js'
 export type {
-  $SubscriptionId,
   HexString,
   SignerData,
-  SubscriptionId,
 } from './services/subscriptions/types.js'
+
+/**
+ * @public
+ */
+export type SubscriptionId = string
+
 export type { AnyJson, NetworkURN } from './services/types.js'
 
 // ====================================================================
@@ -38,45 +46,26 @@ export * as SubstrateTypes from './services/networking/substrate/public-types.js
 // ====================================================================
 
 /**
- * XCM agent types
- */
-// The "export * as ___" syntax is not supported yet; as a workaround,
-// use "import * as ___" with a separate "export { ___ }" declaration
-import * as xcm from './services/agents/xcm/lib.js'
-
-export { xcm }
-
-/**
- * Steward agent types
- */
-import * as steward from './services/agents/steward/lib.js'
-
-export { steward }
-
-/**
  * Crosschain agent types
  */
-import * as crosschain from './services/agents/crosschain/lib.js'
-
-export { crosschain }
-
-/**
- * Transfers agent types
- */
-import * as transfers from './services/agents/transfers/lib.js'
-
-export { transfers }
-
-/**
- * Crosschain Issuance agent types
- */
-import * as issuance from './services/agents/issuance/lib.js'
-
-export { issuance }
-
+export * as crosschain from './services/agents/crosschain/lib.js'
 /**
  * DeFi agent types
  */
-import * as defi from './services/agents/defi/lib.js'
-
-export { defi }
+export * as defi from './services/agents/defi/lib.js'
+/**
+ * Crosschain Issuance agent types
+ */
+export * as issuance from './services/agents/issuance/lib.js'
+/**
+ * Steward agent types
+ */
+export * as steward from './services/agents/steward/lib.js'
+/**
+ * Transfers agent types
+ */
+export * as transfers from './services/agents/transfers/lib.js'
+/**
+ * XCM agent types
+ */
+export * as xcm from './services/agents/xcm/lib.js'
