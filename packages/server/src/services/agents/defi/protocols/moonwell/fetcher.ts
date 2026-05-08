@@ -1,9 +1,10 @@
 import { formatUnits, parseAbi } from 'viem'
 import { HexString, NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
+import { DefiLiquidityPayload } from '../../types.js'
 import { Market } from './types.js'
 
-const mTokenAbi = parseAbi([
+export const mTokenAbi = parseAbi([
   'function totalSupply() view returns (uint256)',
   'function supplyRatePerTimestamp() view returns (uint256)',
   'function borrowRatePerTimestamp() view returns (uint256)',
@@ -11,6 +12,12 @@ const mTokenAbi = parseAbi([
   'function totalBorrows() view returns (uint256)',
   'function getCash() view returns (uint256)',
   'function totalReserves() view returns (uint256)',
+  'event Mint(address minter, uint256 mintAmount, uint256 mintTokens)',
+  'event Redeem(address redeemer, uint256 redeemAmount, uint256 redeemTokens)',
+  'event Borrow(address borrower, uint256 borrowAmount, uint256 accountBorrows, uint256 totalBorrows)',
+  'event RepayBorrow(address payer, address borrower, uint256 repayAmount, uint256 accountBorrows, uint256 totalBorrows)',
+  'event LiquidateBorrow(address liquidator, address borrower, uint256 repayAmount, address mTokenCollateral, uint256 seizeTokens)',
+  'event AccrueInterest(uint256 cashPrior, uint256 interestAccumulated, uint256 borrowIndex, uint256 totalBorrows)',
 ])
 
 const oracleAbi = parseAbi(['function getUnderlyingPrice(address mToken) view returns (uint256)'])
@@ -28,7 +35,8 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
     { mToken, underlying }: Market,
     oracleAddress: HexString,
     comptrollerAddress: HexString,
-  ) {
+    blockNumber?: bigint,
+  ): Promise<DefiLiquidityPayload> {
     const mTokenAddress = mToken.address
     const data = await client.multicall(chainId, {
       contracts: [
@@ -59,8 +67,11 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
           args: [mTokenAddress],
         },
       ],
+      blockNumber,
     })
 
+    const supplyRate = data[0].result as bigint
+    const borrowRate = data[1].result as bigint
     const exchangeRate = data[2].result as bigint
     const totalSupply = data[3].result as bigint
     const price = data[4].result as bigint
@@ -73,79 +84,56 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
     const borrowCap = data[10].result as bigint
 
     const priceUSDNum = Number(formatUnits(price, 36 - underlying.decimals))
-    const totalUnderlyingSupply = (totalSupply * exchangeRate) / BigInt(1e18) // What is owed to users
-    const totalAssets = cash + totalBorrows // What the protocol actually holds/is owed
-
-    // Solvency
-    // Note: totalReserves is protocol equity; technically the system is solvent
-    // even if it consumes reserves, but "Pure Solvency" checks Assets vs Liabilities.
-    const badDebtUnderlying = totalUnderlyingSupply > totalAssets ? totalUnderlyingSupply - totalAssets : 0n
-
-    const solvencyRatio =
-      totalUnderlyingSupply > 0n ? (Number(totalAssets) / Number(totalUnderlyingSupply)) * 100 : 100
-
+    const totalUnderlyingSupply = (totalSupply * exchangeRate) / BigInt(1e18)
     const tvlUSD = Number(formatUnits(totalUnderlyingSupply, underlying.decimals)) * priceUSDNum
-    const borrowsUSD = Number(formatUnits(totalBorrows, underlying.decimals)) * priceUSDNum
-    const cashUSD = Number(formatUnits(cash, underlying.decimals)) * priceUSDNum
-    const reservesUSD = Number(formatUnits(totalReserves, underlying.decimals)) * priceUSDNum
-    const badDebtUSD = Number(formatUnits(badDebtUnderlying, underlying.decimals)) * priceUSDNum
 
-    // Calculate Real Liquidity (What is actually available for user withdrawals)
-    // Cash is physical tokens. Reserves belong to the protocol.
-    const realAvailableUnderlying = cash > totalReserves ? cash - totalReserves : 0n
-
-    // Calculate the Withdrawal Gap (How much is missing to pay all suppliers)
-    // If this is > 0, the market is a "Liquidity Trap"
-    const withdrawalShortfallUnderlying =
-      totalUnderlyingSupply > realAvailableUnderlying ? totalUnderlyingSupply - realAvailableUnderlying : 0n
-
-    const realLiquidityUSD = Number(formatUnits(realAvailableUnderlying, underlying.decimals)) * priceUSDNum
-    const shortfallUSD = Number(formatUnits(withdrawalShortfallUnderlying, underlying.decimals)) * priceUSDNum
+    const SECONDS_PER_YEAR = 31_536_000n
+    const supplyAPR = (Number(supplyRate) / 1e18) * Number(SECONDS_PER_YEAR) * 100
+    const borrowAPR = (Number(borrowRate) / 1e18) * Number(SECONDS_PER_YEAR) * 100
 
     return {
-      chainId,
-      market: { mToken, underlying },
-      rates: {
-        supply: data[0].result,
-        borrow: data[1].result,
-      },
-      stats: {
-        totalSupply,
-        totalUnderlyingSupply,
-        totalBorrows,
-        totalReserves,
-        cash,
-        badDebtUnderlying,
-      },
-      prices: {
-        raw: price,
-        usd: priceUSDNum,
-      },
-      valuation: {
-        tvlUSD,
-        borrowsUSD,
-        cashUSD,
-        realLiquidityUSD,
-        shortfallUSD,
-        equityUSD: reservesUSD,
-        badDebtUSD,
-      },
-      health: {
-        solvencyRatio,
-        isSolvent: totalAssets >= totalUnderlyingSupply,
-        exitLiquidityRatio:
-          totalUnderlyingSupply > 0n
-            ? (Number(realAvailableUnderlying) / Number(totalUnderlyingSupply)) * 100
-            : 100,
-        utilizationRate:
+      type: 'liquidity',
+      category: 'money-market',
+      protocol: 'moonwell',
+      marketId: mTokenAddress,
+      tvlUSD,
+      assets: [
+        {
+          assetId: underlying.address,
+          symbol: underlying.symbol,
+          decimals: underlying.decimals,
+          priceUSD: priceUSDNum,
+          balances: {
+            total: formatUnits(totalUnderlyingSupply, underlying.decimals),
+            available: formatUnits(cash, underlying.decimals),
+            borrowed: formatUnits(totalBorrows, underlying.decimals),
+            reserves: formatUnits(totalReserves, underlying.decimals),
+          },
+        },
+      ],
+      lending: {
+        utilization:
           totalUnderlyingSupply > 0n ? (Number(totalBorrows) / Number(totalUnderlyingSupply)) * 100 : 0,
-      },
-      status: {
-        mintPaused: isMintPaused,
-        borrowPaused: isBorrowPaused,
-        isFrozen: isMintPaused && isBorrowPaused,
-        borrowCap: borrowCap,
-        label: isMintPaused && isBorrowPaused ? 'FROZEN' : isMintPaused ? 'REDEEM_ONLY' : 'ACTIVE',
+        supplyAPR,
+        borrowAPR,
+        isPaused: isMintPaused || isBorrowPaused,
+        canBorrow: !isBorrowPaused,
+        borrowCap: formatUnits(borrowCap, underlying.decimals),
+        health: {
+          solvencyRatio:
+            totalUnderlyingSupply > 0n
+              ? (Number(cash + totalBorrows) / Number(totalUnderlyingSupply)) * 100
+              : 100,
+          badDebtUSD:
+            Number(
+              formatUnits(
+                totalUnderlyingSupply > cash + totalBorrows
+                  ? totalUnderlyingSupply - (cash + totalBorrows)
+                  : 0n,
+                underlying.decimals,
+              ),
+            ) * priceUSDNum,
+        },
       },
     }
   }

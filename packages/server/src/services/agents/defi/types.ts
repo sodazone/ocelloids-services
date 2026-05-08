@@ -52,9 +52,10 @@ export type DefiLiquidityAsset = {
   priceUSD: number
 
   balances: {
-    total?: string // total liquidity (DEX or supplied)
+    total?: string // total liquidity
     available?: string // cash (lending)
     borrowed?: string // lending
+    reserves: string
   }
 
   role?: 'liquid' | 'collateral' | 'debt'
@@ -74,11 +75,18 @@ export type DefiLiquidityPayload = {
 
   assets: DefiLiquidityAsset[]
 
-  lending?: {
-    utilization?: number
-    borrowAPR?: number
-    supplyAPR?: number
-  }
+  lending?: Partial<{
+    utilization: number
+    borrowAPR: number
+    supplyAPR: number
+    isPaused: boolean
+    canBorrow: boolean
+    borrowCap: string
+    health: {
+      solvencyRatio: number
+      badDebtUSD?: number
+    }
+  }>
 }
 
 /**

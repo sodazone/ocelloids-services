@@ -1,17 +1,13 @@
-import { filter, map, Observable, Subject, Subscription, scan, share } from 'rxjs'
+import { filter, map, Observable, Subject, Subscription, share } from 'rxjs'
 import { Abi, formatUnits } from 'viem'
-import { HexString, NetworkURN } from '@/lib.js'
+import { NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
-import {
-  DefiEventAsset,
-  DefiEventPayload,
-  DefiLiquidityPayload,
-  DefiSubscriptionPayload,
-} from '../../../types.js'
-import { algebraPools, algebraPoolsMap, tokens } from './definitioins.js'
+import { smartTrigger } from '../../../rxjs/trigger.js'
+import { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
+import { algebraPools, tokens } from './definitioins.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
@@ -24,24 +20,22 @@ export function createStellaswapProcessor({
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
 }) {
-  const MAX_STALE_BLOCKS = 1_000
   const Q96 = 2n ** 96n
+
   const poolAddresses = algebraPools.map((p) => p.address)
+  const poolLookup = new Map(algebraPools.map((p) => [p.address.toLowerCase(), p]))
 
   const subs: Subscription[] = []
 
-  function sqrtPriceX96ToPrice(sqrtPriceX96: bigint): number {
-    const numerator = sqrtPriceX96 * sqrtPriceX96
-    const denominator = Q96 * Q96
-    return Number(numerator) / Number(denominator)
-  }
+  const sqrtPriceX96ToPrice = (sqrtPriceX96: bigint) =>
+    Number(sqrtPriceX96 * sqrtPriceX96) / Number(Q96 * Q96)
 
-  function normalizePrice(price: number, decimals0: number, decimals1: number) {
-    return price * 10 ** (decimals0 - decimals1)
-  }
+  const normalizePrice = (price: number, d0: number, d1: number) => price * 10 ** (d0 - d1)
 
-  async function updatePoolData(blockNumber?: bigint) {
-    // 1. Prepare Multicall
+  /**
+   * Refreshes all market data and pushes to the subject
+   */
+  async function updateAllMarkets(blockNumber?: bigint) {
     const contracts = algebraPools.flatMap((pool) => [
       { address: pool.address, abi: poolAbi as Abi, functionName: 'globalState' },
       { address: pool.address, abi: poolAbi as Abi, functionName: 'liquidity' },
@@ -51,9 +45,8 @@ export function createStellaswapProcessor({
     try {
       const results = await ingress.multicall(chainId, { contracts, blockNumber })
 
-      // 2. Extract results and compute prices
-      const poolData = Object.entries(algebraPoolsMap)
-        .map(([pair, pool], i) => {
+      const poolData = algebraPools
+        .map((pool, i) => {
           const base = i * 3
           const [gs, liq, res] = [results[base], results[base + 1], results[base + 2]]
 
@@ -62,64 +55,54 @@ export function createStellaswapProcessor({
           }
 
           const globalState = gs.result as [bigint, number, number, number, boolean]
-          const token0 = tokens[pool.token0]
-          const token1 = tokens[pool.token1]
+          const t0 = tokens[pool.token0]
+          const t1 = tokens[pool.token1]
 
-          const rawPrice = sqrtPriceX96ToPrice(globalState[0])
-          const price = normalizePrice(rawPrice, token0.decimals, token1.decimals)
+          const price = normalizePrice(sqrtPriceX96ToPrice(globalState[0]), t0.decimals, t1.decimals)
 
           return {
-            pair,
             pool,
             price,
-            reserve0: formatUnits((res.result as bigint[])[0], token0.decimals),
-            reserve1: formatUnits((res.result as bigint[])[1], token1.decimals),
+            reserve0: formatUnits((res.result as bigint[])[0], t0.decimals),
+            reserve1: formatUnits((res.result as bigint[])[1], t1.decimals),
           }
         })
-        .filter(Boolean)
+        .filter((p): p is NonNullable<typeof p> => p !== null)
 
-      // 3. Pricing & USD Conversion
       const edges: PriceEdge[] = poolData.map((p) => ({
-        from: p!.pool.token0,
-        to: p!.pool.token1,
-        price: p!.price,
+        from: p.pool.token0,
+        to: p.pool.token1,
+        price: p.price,
       }))
       const usdPrices = computeUSDPrices(edges)
 
-      // 4. Emit payloads
       for (const p of poolData) {
-        if (!p) {
-          continue
-        }
-
         const priceUSD0 = usdPrices[p.pool.token0] || 0
         const priceUSD1 = usdPrices[p.pool.token1] || 0
-        const tvlUSD = Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1
 
-        const payload: DefiLiquidityPayload = {
+        subject.next({
           type: 'liquidity',
           category: 'exchange',
           protocol: 'stellaswap',
           marketId: p.pool.address,
-          tvlUSD,
+          tvlUSD: Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1,
           assets: [
             {
               assetId: tokens[p.pool.token0].address,
               symbol: p.pool.token0,
               decimals: tokens[p.pool.token0].decimals,
               priceUSD: priceUSD0,
-              balances: { total: p.reserve0 },
+              balances: { total: p.reserve0, reserves: p.reserve0 },
             },
             {
               assetId: tokens[p.pool.token1].address,
               symbol: p.pool.token1,
               decimals: tokens[p.pool.token1].decimals,
               priceUSD: priceUSD1,
-              balances: { total: p.reserve1 },
+              balances: { total: p.reserve1, reserves: p.reserve1 },
             },
           ],
-        }
-        subject.next(payload)
+        })
       }
     } catch (err) {
       console.error('[stellaswap] liquidity update failed', err)
@@ -131,16 +114,13 @@ export function createStellaswapProcessor({
       return source.pipe(
         filterLogs({ abi: poolAbi as Abi, addresses: poolAddresses }, ['Swap', 'Mint', 'Burn']),
         map((log) => {
-          const pool = algebraPools.find((c) => c.address === (log.address as HexString))
-
-          if (pool === undefined) {
-            console.log('Cannot resolve pool for event', log)
+          const pool = poolLookup.get(log.address.toLowerCase())
+          if (!pool) {
             return null
           }
 
           const token0 = tokens[pool.token0]
           const token1 = tokens[pool.token1]
-
           const base = {
             type: 'event' as const,
             marketId: log.address,
@@ -152,74 +132,55 @@ export function createStellaswapProcessor({
 
           if (log.eventName === 'Swap') {
             const args = log.args as SwapEventArgs
+            const a0 = BigInt(args.amount0)
+            const a1 = BigInt(args.amount1)
 
-            // Determine which token was 'in' (positive) and 'out' (negative)
-            // In Algebra/UniV3, amount0/1 are int256
-            const assetsIn: DefiEventAsset[] = []
-            const assetsOut: DefiEventAsset[] = []
-
-            const amount0 = BigInt(args.amount0)
-            const amount1 = BigInt(args.amount1)
-
-            if (amount0 > 0n) {
-              assetsIn.push({
-                assetId: token0.address,
-                symbol: pool.token0,
-                amount: formatUnits(amount0, token0.decimals),
-              })
-              assetsOut.push({
-                assetId: token1.address,
-                symbol: pool.token1,
-                amount: formatUnits(-amount1, token1.decimals),
-              })
-            } else {
-              assetsIn.push({
-                assetId: token1.address,
-                symbol: pool.token1,
-                amount: formatUnits(amount1, token1.decimals),
-              })
-              assetsOut.push({
-                assetId: token0.address,
-                symbol: pool.token0,
-                amount: formatUnits(-amount0, token0.decimals),
-              })
-            }
-
+            const isA0In = a0 > 0n
             return {
               ...base,
               name: 'swap',
-              data: { origin: args.sender, in: assetsIn, out: assetsOut },
+              data: {
+                origin: args.sender,
+                in: [
+                  {
+                    assetId: (isA0In ? token0 : token1).address,
+                    symbol: isA0In ? pool.token0 : pool.token1,
+                    amount: formatUnits(isA0In ? a0 : a1, (isA0In ? token0 : token1).decimals),
+                  },
+                ],
+                out: [
+                  {
+                    assetId: (isA0In ? token1 : token0).address,
+                    symbol: isA0In ? pool.token1 : pool.token0,
+                    amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
+                  },
+                ],
+              },
             } as DefiEventPayload
           }
 
-          // Generic Mint/Burn mapping
-          const isMint = log.eventName === 'Mint'
-          const args = isMint ? (log.args as MintEventArgs) : (log.args as BurnEventArgs)
-
-          const amount0 = BigInt(args.amount0)
-          const amount1 = BigInt(args.amount1)
-
+          const args = log.args as MintEventArgs | BurnEventArgs
           return {
             ...base,
-            name: isMint ? 'mint' : 'burn',
+            name: log.eventName?.toLowerCase() as 'mint' | 'burn',
             data: {
               provider: args.owner,
               assets: [
                 {
                   assetId: token0.address,
                   symbol: pool.token0,
-                  amount: formatUnits(amount0, token0.decimals),
+                  amount: formatUnits(BigInt(args.amount0), token0.decimals),
                 },
                 {
                   assetId: token1.address,
                   symbol: pool.token1,
-                  amount: formatUnits(amount1, token1.decimals),
+                  amount: formatUnits(BigInt(args.amount1), token1.decimals),
                 },
               ],
             },
           } as DefiEventPayload
         }),
-        filter((payload): payload is DefiEventPayload => payload !== null),
+        filter((p): p is DefiEventPayload => p !== null),
       )
     }
   }
@@ -227,55 +188,27 @@ export function createStellaswapProcessor({
   function start(blockWithLogs$: Observable<BlockWithLogs>) {
     const events$ = blockWithLogs$.pipe(extractPoolEvents(), share())
 
-    // 1. Subscription for real-time events
-    subs.push(
-      events$.subscribe({
-        next: (payload) => subject.next(payload),
-        error: (err) => console.error('[stellaswap] Event stream error', err),
-      }),
-    )
+    // Event
+    subs.push(events$.subscribe((payload) => subject.next(payload)))
 
-    // 2. Subscription for Liquidity Updates
-    // we update if max stale blocks reached or there's a recent DeFi event
+    // Liquidity
     subs.push(
       blockWithLogs$
         .pipe(
-          scan(
-            (acc, block) => {
-              const hasEvent = block.logs.some((log) =>
-                poolAddresses.includes(log.address.toLowerCase() as HexString),
-              )
-
-              const blocksSinceUpdate =
-                acc.lastUpdateBlock === 0n ? MAX_STALE_BLOCKS : BigInt(block.number) - acc.lastUpdateBlock
-
-              const shouldUpdate =
-                acc.lastUpdateBlock === 0n || hasEvent || blocksSinceUpdate >= BigInt(MAX_STALE_BLOCKS)
-
-              return {
-                block,
-                shouldUpdate,
-                lastUpdateBlock: shouldUpdate ? BigInt(block.number) : acc.lastUpdateBlock,
-              }
-            },
-            { block: null as any, shouldUpdate: false, lastUpdateBlock: 0n },
-          ),
-          filter((state) => state.shouldUpdate),
-          map((state) => state.block),
+          smartTrigger({
+            events$,
+            maxStaleBlocks: 1_000,
+          }),
         )
-        .subscribe({
-          next: (block) => updatePoolData(BigInt(block.number)),
-          error: (err) => console.error('[stellaswap] Liquidity trigger error', err),
-        }),
+        .subscribe((block) => updateAllMarkets(BigInt(block.number))),
     )
   }
 
   return {
     start,
     stop: () => {
-      for (const sub of subs) {
-        sub.unsubscribe()
-      }
+      subs.forEach((s) => s.unsubscribe())
+      subs.length = 0
     },
   }
 }
