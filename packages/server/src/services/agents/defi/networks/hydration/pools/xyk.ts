@@ -8,6 +8,7 @@ import { AssetMetadataFetcher, XykPool } from '../types.js'
 
 type XykPoolValue = number[]
 const WHITELIST_ASSETS = [5, 10, 15, 22, 25, 30, 34, 36, 252525, 1000081, 1000085]
+const LOW_LIQUIDITY_POOLS: HexString[] = []
 
 function isWhitelisted(assetId: number) {
   return WHITELIST_ASSETS.includes(assetId)
@@ -63,6 +64,7 @@ export function createXykWatcher(
             symbol: metadataB?.symbol,
           },
         ],
+        isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(key),
       })
     }
 

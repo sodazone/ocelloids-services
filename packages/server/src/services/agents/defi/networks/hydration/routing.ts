@@ -1,9 +1,9 @@
 import { Edge, Path, Pool, PoolsGraph } from './types.js'
 
 export function buildGraph(pools: Pool[]): PoolsGraph {
-  const graph = new Map()
+  const graph: PoolsGraph = new Map()
 
-  for (const { type, address, tokens } of pools) {
+  for (const { type, address, tokens, isLowLiquidity } of pools) {
     const n = tokens.length
 
     for (let i = 0; i < n; i++) {
@@ -26,107 +26,143 @@ export function buildGraph(pools: Pool[]): PoolsGraph {
           poolType: type,
           pool: address,
           token: tokenOut,
+          isLowLiquidity,
         })
       }
     }
   }
 
+  for (const edges of graph.values()) {
+    edges.sort((a, b) => {
+      // high liquidity comes before low liquidity
+      if (a.isLowLiquidity !== b.isLowLiquidity) {
+        return a.isLowLiquidity ? 1 : -1
+      }
+
+      // if both have same liquidity status, deprioritize 'xyk'
+      const aIsXyk = a.poolType === 'xyk'
+      const bIsXyk = b.poolType === 'xyk'
+
+      if (aIsXyk !== bIsXyk) {
+        return aIsXyk ? 1 : -1
+      }
+
+      return 0
+    })
+  }
+
   return graph
 }
 
-// Returns all possible paths found with DFS
-export function chartPaths(
+function findShortestBestPaths(
   graph: PoolsGraph,
   start: number,
   end: number,
-  maxLength = 4,
-  path: Path = [{ token: start }],
+  maxHops = 5,
+  limit = 3,
 ): Path[] {
-  const current = path[path.length - 1].token
+  const queue: Path[] = [[{ token: start }]]
+  const results: Path[] = []
 
-  // ✅ reached target (at least 1 hop)
-  if (current === end && path.length > 1) {
-    return [path]
-  }
+  while (queue.length > 0 && results.length < limit) {
+    const path = queue.shift()! // Get the oldest path (shortest)
+    const current = path[path.length - 1].token
 
-  const hops = path.length - 1
-  if (hops >= maxLength) {
-    return []
-  }
-
-  if (!graph.has(current)) {
-    return []
-  }
-
-  const paths: Path[] = []
-
-  for (const edge of graph.get(current)!) {
-    const nextToken = edge.token
-
-    // prevent cycles (except allow reaching end)
-    const alreadyVisited = path.some((p) => p.token === nextToken)
-    if (alreadyVisited && nextToken !== end) {
+    if (path.length - 1 >= maxHops) {
       continue
     }
 
-    const nextStep: Edge = {
-      token: nextToken,
-      pool: edge.pool,
-      poolType: edge.poolType,
+    const neighbors = graph.get(current) || []
+
+    for (const edge of neighbors) {
+      // Cycle prevention
+      if (path.some((p) => p.token === edge.token) && edge.token !== end) {
+        continue
+      }
+
+      const newPath: Path = [...path, { ...edge }]
+
+      if (edge.token === end) {
+        results.push(newPath)
+        if (results.length >= limit) {
+          return results
+        }
+      } else {
+        queue.push(newPath)
+      }
     }
-
-    const subPaths = chartPaths(graph, nextToken, end, maxLength, [...path, nextStep] as Path)
-
-    paths.push(...subPaths)
   }
 
-  return paths
+  return results
 }
 
-// Returns first full path found
-export function chartPath(
-  graph: PoolsGraph,
-  start: number,
-  end: number,
-  maxLength = 4,
-  path: Path = [{ token: start }],
-): Path | null {
-  const current = path[path.length - 1].token
+function getBestPath(paths: Path[]): Path | null {
+  if (paths.length === 0) {
+    return null
+  }
 
-  if (current === end && path.length > 1) {
+  return paths.sort((a, b) => {
+    // 1. Count XYK hops in each path
+    const aXykCount = a.filter((step) => 'poolType' in step && step.poolType === 'xyk').length
+    const bXykCount = b.filter((step) => 'poolType' in step && step.poolType === 'xyk').length
+
+    if (aXykCount !== bXykCount) {
+      return aXykCount - bXykCount // Fewer XYK hops wins
+    }
+
+    // 2. Shortest path (fewer hops) wins
+    if (a.length !== b.length) {
+      return a.length - b.length
+    }
+
+    // 3. Liquidity check
+    const aLowLiq = a.some((step) => 'isLowLiquidity' in step && step.isLowLiquidity)
+    const bLowLiq = b.some((step) => 'isLowLiquidity' in step && step.isLowLiquidity)
+
+    if (aLowLiq !== bLowLiq) {
+      return aLowLiq ? 1 : -1
+    }
+
+    return 0
+  })[0]
+}
+
+function collapsePath(path: Path): Path {
+  if (path.length <= 2) {
     return path
   }
 
-  const hops = path.length - 1
-  if (hops >= maxLength) {
-    return null
-  }
+  const collapsed: Path = [path[0]]
 
-  if (!graph.has(current)) {
-    return null
-  }
+  for (let i = 1; i < path.length; i++) {
+    const currentStep = path[i] as Edge
+    const lastCollapsedStep = collapsed[collapsed.length - 1] as Edge
 
-  for (const edge of graph.get(current)!) {
-    const nextToken = edge.token
+    // Check if we can collapse:
+    // 1. Both this step and the previous recorded step must have a pool
+    // 2. Both must be 'stableswap' or 'omnipool'
+    // 3. Both must belong to the same pool address
+    const canCollapse =
+      lastCollapsedStep?.pool &&
+      currentStep.pool === lastCollapsedStep.pool &&
+      ((currentStep.poolType === 'stableswap' && lastCollapsedStep.poolType === 'stableswap') ||
+        (currentStep.poolType === 'omnipool' && lastCollapsedStep.poolType === 'omnipool'))
 
-    // prevent cycles (allow ending at target)
-    const alreadyVisited = path.some((p) => p.token === nextToken)
-    if (alreadyVisited && nextToken !== end) {
-      continue
-    }
-
-    const nextStep: Edge = {
-      token: nextToken,
-      pool: edge.pool,
-      poolType: edge.poolType,
-    }
-
-    const result = chartPath(graph, nextToken, end, maxLength, [...path, nextStep] as Path)
-
-    if (result) {
-      return result
+    if (canCollapse) {
+      collapsed[collapsed.length - 1] = {
+        ...lastCollapsedStep,
+        token: currentStep.token,
+      }
+    } else {
+      collapsed.push(currentStep)
     }
   }
 
-  return null
+  return collapsed
+}
+
+export function getSwapPath(graph: PoolsGraph, start: number, end: number, maxLength = 5): Path | null {
+  const paths = findShortestBestPaths(graph, start, end, maxLength)
+  const cleanedPaths = paths.map(collapsePath)
+  return getBestPath(cleanedPaths)
 }

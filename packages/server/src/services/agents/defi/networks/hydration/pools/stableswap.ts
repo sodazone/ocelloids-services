@@ -9,6 +9,11 @@ import { HexString } from '@/services/subscriptions/types.js'
 import { CHAIN_ID } from '../consts.js'
 import { AssetMetadataFetcher, Peg, PoolToken, StableSwapPool } from '../types.js'
 
+const LOW_LIQUIDITY_POOLS: HexString[] = [
+  '0x22bb00df7706a5965728b60f96406ee59ce675fd5fd10652a4ed6f618856ccfe', // 4-pool
+  '0xaffeef2e0ccac1986d8ac3b557e1e0d682d649bf61aee81e1a7faaab7eae35e0', // iBTC-WBTC
+]
+
 type StablePoolValue = {
   assets: number[]
   final_amplification: number
@@ -124,7 +129,14 @@ export function createStableswapWatcher(
     const assetMetadata = await fetchAssetMetadata([...assets.map((a) => a.toString()), poolId.toString()])
     const sharesMetadata = assetMetadata.find((m) => m.id === poolId)
 
-    const tokens: PoolToken[] = []
+    const tokens: PoolToken[] = [
+      {
+        id: poolId,
+        reserves: totalIssuance,
+        decimals: sharesMetadata?.decimals ?? 0,
+        symbol: sharesMetadata?.symbol,
+      },
+    ]
 
     for (const asset of assets) {
       const balance = balances.find((b) => b.assetId === asset)
@@ -146,13 +158,11 @@ export function createStableswapWatcher(
       address,
       id: poolId,
       tokens,
-      totalIssuance,
       amplification,
       pegs: poolPegs,
       fees: fee,
       isRampPeriod,
-      sharesDecimals: sharesMetadata?.decimals ?? 0,
-      sharesSymbol: sharesMetadata?.symbol,
+      isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(address),
     }
   }
 
@@ -245,11 +255,18 @@ export function createStableswapWatcher(
           continue
         }
 
-        const poolPegs = pegs ? getRecentPegs(pegs) : getDefaultPegs(tokens.length)
+        const poolPegs = pegs ? getRecentPegs(pegs) : getDefaultPegs(tokens.length - 1) // use tokens length - 1 since tokens also includes share token
 
         const updatedTokens: PoolToken[] = []
 
         for (const t of tokens) {
+          if (t.id === id) {
+            updatedTokens.push({
+              ...t,
+              reserves: totalIssuance,
+            })
+            continue
+          }
           const balance = balances.find((b) => b.assetId === t.id)
           const reserves = balance?.balance ?? 0n
 
@@ -261,7 +278,6 @@ export function createStableswapWatcher(
 
         updatedPools.push({
           ...pool,
-          totalIssuance,
           pegs: poolPegs,
           tokens: updatedTokens,
         })

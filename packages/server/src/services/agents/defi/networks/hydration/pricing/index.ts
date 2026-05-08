@@ -30,13 +30,8 @@ export function calculateSpot(poolsCtx: PoolsContext, path: Path) {
         if (!pool) {
           throw new Error(`Stable pool ${poolAddress} not found`)
         }
-        const inReserves = pool.tokens.find((t) => t.id === tokenIn)
-        if (!inReserves) {
-          throw new Error(`Token ${tokenIn} not found in stable pool ${poolAddress}`)
-        }
-        // Set trade amount to 0.1% of the tokenIn reserves
-        const tradeAmount = inReserves.reserves / 1_000n
-        stepPrice = calculateStableswapSpotPrice(pool, tokenIn, tokenOut, tradeAmount)
+
+        stepPrice = calculateStableswapSpotPrice(pool, tokenIn, tokenOut)
         break
       }
       case 'xyk': {

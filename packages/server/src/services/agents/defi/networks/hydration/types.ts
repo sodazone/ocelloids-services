@@ -20,39 +20,35 @@ export type OmniPoolToken = PoolToken & {
 
 export type Peg = [bigint, bigint]
 
-export type StableSwapPool = {
-  type: 'stableswap'
+export type PoolBase = {
   address: HexString
-  id: number
   tokens: PoolToken[]
-  totalIssuance: bigint
+  isLowLiquidity: boolean
+}
+
+export type StableSwapPool = PoolBase & {
+  type: 'stableswap'
+  id: number
   amplification: bigint
   pegs: Peg[]
   fees: number
   isRampPeriod: boolean
-  sharesDecimals: number
-  sharesSymbol?: string
 }
 
-export type OmniPool = {
+export type OmniPool = PoolBase & {
   type: 'omnipool'
-  address: HexString
   tokens: OmniPoolToken[]
 }
 
-export type XykPool = {
+export type XykPool = PoolBase & {
   type: 'xyk'
-  address: HexString
-  tokens: PoolToken[]
 }
 
-export type AavePool = {
+export type AavePool = PoolBase & {
   type: 'aave'
-  address: HexString
   borrowed: bigint
   available: bigint
   oraclePrice: bigint
-  tokens: PoolToken[]
 }
 
 export type Pool = StableSwapPool | OmniPool | XykPool | AavePool
@@ -74,6 +70,7 @@ export type Edge = {
   poolType: PoolType
   pool: string
   token: number
+  isLowLiquidity: boolean
 }
 
 type StartNode = {

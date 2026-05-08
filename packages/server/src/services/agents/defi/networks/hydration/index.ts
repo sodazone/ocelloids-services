@@ -13,7 +13,7 @@ import { createOmnipoolWatcher } from './pools/omnipool.js'
 import { createStableswapWatcher } from './pools/stableswap.js'
 import { createXykWatcher } from './pools/xyk.js'
 import { calculateSpot } from './pricing/index.js'
-import { buildGraph, chartPath } from './routing.js'
+import { buildGraph, getSwapPath } from './routing.js'
 import { Path, Pool, PoolsContext } from './types.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
@@ -69,15 +69,16 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
   }
 
   function updatePrices() {
-    if (counter < 10) {
-      console.log('counter', counter)
+    if (counter < 3) {
       return
     }
-    console.log('starting price calc')
     try {
       for (const [asset, path] of cachedPaths) {
         if (!path) {
           console.log('No path found', asset)
+          continue
+        }
+        if (asset !== 1000765 && asset !== 222) {
           continue
         }
         try {
@@ -85,7 +86,7 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
           if (spot) {
             prices.set(asset, spot)
           } else {
-            console.log('No spot price calculated', asset)
+            console.log('No spot price calculated', asset, path)
           }
         } catch (e) {
           console.error(e)
@@ -93,7 +94,6 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
       }
     } finally {
       counter = 0
-      console.log('updated prices --', prices)
     }
   }
 
@@ -104,7 +104,6 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
     }
 
     inFlight++
-    console.log('inFlight:', inFlight)
 
     try {
       await updateReserves(block)
@@ -131,12 +130,13 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
     }
 
     const graph = buildGraph(allPools)
-
+    console.time('paths')
     for (const token of allTokens) {
       if (!cachedPaths.has(token)) {
-        cachedPaths.set(token, chartPath(graph, token, DEFAULT_QUOTE_TOKEN))
+        cachedPaths.set(token, getSwapPath(graph, token, DEFAULT_QUOTE_TOKEN))
       }
     }
+    console.timeEnd('paths')
 
     sub = blocks$.subscribe(onBlock)
   }

@@ -70,11 +70,7 @@ export function createOmnipoolWatcher(
       }
     }
 
-    return {
-      type: 'omnipool',
-      address: OMNI_POOL_ADDRESS,
-      tokens,
-    }
+    return buildOmniPool(tokens)
   }
 
   async function updatePoolReserves(pool: OmniPool | null): Promise<OmniPool> {
@@ -131,10 +127,15 @@ export function createOmnipoolWatcher(
         console.error(`Error loading omnipool asset ${key}`, (error as Error).message)
       }
     }
+    return buildOmniPool(tokens)
+  }
+
+  function buildOmniPool(tokens: OmniPoolToken[]): OmniPool {
     return {
       type: 'omnipool',
       address: OMNI_POOL_ADDRESS,
       tokens,
+      isLowLiquidity: false,
     }
   }
 

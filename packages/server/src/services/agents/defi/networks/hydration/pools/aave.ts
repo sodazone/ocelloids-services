@@ -8,6 +8,8 @@ import { AaveV3HydrationMainnet } from '../config.js'
 import { CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
 import { AavePool, AssetMetadataFetcher } from '../types.js'
 
+const LOW_LIQUIDITY_POOLS: HexString[] = []
+
 type AaveTradeExecutorPool = {
   reserve: number
   atoken: number
@@ -82,6 +84,7 @@ export function createAaveWatcher(
             symbol: atokenMetadata?.symbol,
           },
         ],
+        isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(reservesData.aTokenAddress),
       })
     }
 

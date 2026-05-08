@@ -68,7 +68,7 @@ export function calculateSpotPriceStable(
   D: bigint,
   assetInIndex: number,
   assetOutIndex: number,
-  feePermill: number | null, // e.g., 3 for 0.3%
+  feePermill: number | null,
   pegs: Peg[],
 ): number | null {
   const nCoins = reserves.length
@@ -81,7 +81,7 @@ export function calculateSpotPriceStable(
     return null
   }
 
-  // Adjusted Reserves (Apply Pegs with Downward Rounding)
+  // 1. Adjusted Reserves (Apply Pegs)
   const adjustedReserves = reserves.map((r, idx) => {
     const [pNum, pDenom] = pegs[idx]
     return {
@@ -90,38 +90,44 @@ export function calculateSpotPriceStable(
     }
   })
 
-  // Normalize (Handle decimals to common precision, usually 18)
+  // 2. Normalize to common precision
   const xp = normalizeReserves(adjustedReserves)
-  const x0 = xp[assetInIndex]
-  const xi = xp[assetOutIndex]
+  const xIn = xp[assetInIndex] // Formerly x0
+  const xOut = xp[assetOutIndex] // Formerly xi
 
-  // Calculate 'c' using High Precision
-  // We sort a copy to avoid mutating the original indices needed for x0 and xi
-  const sortedXp = [...xp].sort((a, b) => (a < b ? -1 : 1))
+  // 3. Calculate 'c' Invariant
   const n = BigInt(nCoins)
-
   let c = D
-  for (const x of sortedXp) {
+  for (const x of xp) {
     c = (c * D) / (x * n)
   }
 
-  // Invariant Derivative (The Spot Price Ratio)
-  // Price = x0 * (ann * xi + c) / xi * (ann * x0 + c)
-  const num = x0 * (ann * xi + c)
-  const denom = xi * (ann * x0 + c)
+  /**
+   * 4. Invariant Derivative (The Spot Price Ratio)
+   * To get "Amount Out per 1 unit of In", the formula is:
+   * Price = (xOut * (ann * xIn + c)) / (xIn * (ann * xOut + c))
+   */
+  const num = xOut * (ann * xIn + c)
+  const denom = xIn * (ann * xOut + c)
 
-  // Apply Peg Correction to the Ratio
-  // result = (num / denom) * (pegOut / pegIn)
+  // 5. Apply Peg Correction
+  // result = (num / denom) * (pegIn / pegOut)
+  // We flip the pegs because we flipped the num/denom ratio
   const [pegInNum, pegInDenom] = pegs[assetInIndex]
   const [pegOutNum, pegOutDenom] = pegs[assetOutIndex]
 
-  // (num * pegOutNum * pegInDenom) / (denom * pegOutDenom * pegInNum)
-  const finalNum = num * pegOutNum * pegInDenom
-  let finalDenom = denom * pegOutDenom * pegInNum
+  const finalNum = num * pegInNum * pegOutDenom
+  const finalDenom = denom * pegInDenom * pegOutNum
 
+  // 6. Apply Fees (Deduct from the output)
   if (feePermill !== null) {
     const feeMultiplier = PERMILL_BIGINT - BigInt(feePermill)
-    finalDenom = (finalDenom * feeMultiplier) / PERMILL_BIGINT
+    // Fee reduces the numerator (the amount out)
+    return (
+      Number(finalNum * feeMultiplier * PRECISION_BIGINT) /
+      Number(finalDenom * PERMILL_BIGINT) /
+      PRECISION_NUM
+    )
   }
 
   const priceScaled = (finalNum * PRECISION_BIGINT) / finalDenom
@@ -203,7 +209,6 @@ export function calculateSharesForAmount(
 
 /**
  * Calculates shares for a given update in reserves.
- * Mirrors the Rust logic: (issuance * (D_initial - D_adjusted)) / D_initial
  */
 export function calculateShares(
   initialReserves: PoolReserve[],
@@ -268,43 +273,70 @@ export function calculateStableswapSpotPrice(
   pool: StableSwapPool,
   assetIn: number,
   assetOut: number,
-  tradeAmount: bigint,
 ): number | null {
-  const { id: poolId, tokens, amplification, totalIssuance, pegs, sharesDecimals } = pool
-  const nCoins = tokens.length
+  const { id: poolId, tokens, amplification, pegs } = pool
+
+  const stableTokens = tokens
+    .map((r) => {
+      if (r.id === poolId) {
+        return null
+      }
+      return { id: r.id, reserves: r.reserves, decimals: r.decimals }
+    })
+    .filter((r) => r !== null)
+
+  const nCoins = stableTokens.length
 
   if (nCoins <= 1 || assetIn === assetOut || pegs.length !== nCoins) {
     return null
   }
 
-  const reserves = tokens.map((r) => ({ reserves: r.reserves, decimals: r.decimals }))
-
-  const D = calculateD(reserves, amplification, pegs)
+  const D = calculateD(stableTokens, amplification, pegs)
   if (!D) {
     return null
   }
 
   const isShareIn = assetIn === poolId
   const isShareOut = assetOut === poolId
-
+  const sharesToken = tokens.find((r) => r.id === poolId)
+  if (!sharesToken) {
+    return null
+  }
+  const { reserves: sharesIssuance, decimals: sharesDecimals } = sharesToken
   if (!isShareIn && !isShareOut) {
-    const i = tokens.findIndex((r) => r.id === assetIn)
-    const j = tokens.findIndex((r) => r.id === assetOut)
-
-    return calculateSpotPriceStable(reserves, amplification, D, i, j, null, pegs)
+    const i = stableTokens.findIndex((r) => r.id === assetIn)
+    const j = stableTokens.findIndex((r) => r.id === assetOut)
+    if (i === -1 || j === -1) {
+      return null
+    }
+    return calculateSpotPriceStable(stableTokens, amplification, D, i, j, null, pegs)
   }
   if (isShareIn && !isShareOut) {
-    const i = tokens.findIndex((r) => r.id === assetOut)
-    const results = calculateSharesForAmount(reserves, i, tradeAmount, amplification, totalIssuance, 0, pegs)
+    const i = stableTokens.findIndex((r) => r.id === assetOut)
+    if (i === -1) {
+      return null
+    }
+    // Set trade amount to 0.1% of the token reserves
+    const tradeAmount = stableTokens[i].reserves / 1_000n
+
+    const results = calculateSharesForAmount(
+      stableTokens,
+      i,
+      tradeAmount,
+      amplification,
+      sharesIssuance,
+      0,
+      pegs,
+    )
     if (results === null) {
       return null
     }
-    const priceScaled = (results.shares * PRECISION_BIGINT) / tradeAmount
+    const priceScaled = (tradeAmount * PRECISION_BIGINT) / results.shares
 
-    const decimalAdjustment = 10n ** BigInt(Math.abs(tokens[i].decimals - sharesDecimals))
+    const decimalAdjustment = 10n ** BigInt(Math.abs(stableTokens[i].decimals - sharesDecimals))
 
     let finalPrice
-    if (tokens[i].decimals < sharesDecimals) {
+    if (stableTokens[i].decimals > sharesDecimals) {
       finalPrice = priceScaled / decimalAdjustment
     } else {
       finalPrice = priceScaled * decimalAdjustment
@@ -314,18 +346,20 @@ export function calculateStableswapSpotPrice(
   }
 
   if (!isShareIn && isShareOut) {
-    const inIdx = tokens.findIndex((r) => r.id === assetIn)
-    if (inIdx === -1) {
+    const i = stableTokens.findIndex((r) => r.id === assetIn)
+    if (i === -1) {
       return null
     }
+    // Set trade amount to 0.1% of the token reserves
+    const tradeAmount = stableTokens[i].reserves / 1_000n
 
     // Create a hypothetical updated reserve state
-    const updatedReserves = reserves.map((r, idx) => ({
+    const updatedReserves = stableTokens.map((r, idx) => ({
       ...r,
-      reserves: idx === inIdx ? r.reserves + tradeAmount : r.reserves,
+      reserves: idx === i ? r.reserves + tradeAmount : r.reserves,
     }))
 
-    const result = calculateShares(reserves, updatedReserves, amplification, totalIssuance, 0, pegs)
+    const result = calculateShares(stableTokens, updatedReserves, amplification, sharesIssuance, 0, pegs)
 
     if (!result || result.shares === 0n) {
       return null
@@ -333,10 +367,10 @@ export function calculateStableswapSpotPrice(
 
     const priceScaled = (tradeAmount * PRECISION_BIGINT) / result.shares
 
-    const decimalAdjustment = 10n ** BigInt(Math.abs(sharesDecimals - tokens[inIdx].decimals))
+    const decimalAdjustment = 10n ** BigInt(Math.abs(sharesDecimals - stableTokens[i].decimals))
 
     let finalPrice
-    if (sharesDecimals < tokens[inIdx].decimals) {
+    if (sharesDecimals < stableTokens[i].decimals) {
       finalPrice = priceScaled / decimalAdjustment
     } else {
       finalPrice = priceScaled * decimalAdjustment
