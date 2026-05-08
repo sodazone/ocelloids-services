@@ -226,6 +226,7 @@ const omnipoolReserves: OmniPool = {
       shares: 2343307542501n,
     },
   ],
+  isLowLiquidity: false
 }
 
 describe('omnimath calculations', () => {
