@@ -18,6 +18,10 @@ export type OmniPoolToken = PoolToken & {
   protocolShares: bigint
 }
 
+export type AaveToken = PoolToken & {
+  isUnderlying: boolean
+}
+
 export type Peg = [bigint, bigint]
 
 export type PoolBase = {
@@ -49,6 +53,7 @@ export type AavePool = PoolBase & {
   borrowed: bigint
   available: bigint
   oraclePrice: bigint
+  tokens: AaveToken[]
 }
 
 export type Pool = StableSwapPool | OmniPool | XykPool | AavePool
