@@ -244,10 +244,14 @@ export function createStableswapWatcher(
             },
             id,
           ),
-          ingress.query<PoolPegInfo>(CHAIN_ID, {
-            module: 'Stableswap',
-            method: 'PoolPegs',
-          }),
+          ingress.query<PoolPegInfo>(
+            CHAIN_ID,
+            {
+              module: 'Stableswap',
+              method: 'PoolPegs',
+            },
+            id,
+          ),
         ])
 
         if (!totalIssuance) {
