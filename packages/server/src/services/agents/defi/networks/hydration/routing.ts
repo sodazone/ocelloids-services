@@ -163,6 +163,5 @@ function collapsePath(path: Path): Path {
 
 export function getSwapPath(graph: PoolsGraph, start: number, end: number, maxLength = 5): Path | null {
   const paths = findShortestBestPaths(graph, start, end, maxLength)
-  const cleanedPaths = paths.map(collapsePath)
-  return getBestPath(cleanedPaths)
+  return getBestPath(paths.map(collapsePath))
 }
