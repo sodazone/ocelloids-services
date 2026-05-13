@@ -7,7 +7,7 @@ import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
 import { smartTrigger } from '../../../rxjs/trigger.js'
 import { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
-import { algebraPools, tokens } from './definitioins.js'
+import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
