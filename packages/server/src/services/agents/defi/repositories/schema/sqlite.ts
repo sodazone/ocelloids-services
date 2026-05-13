@@ -1,35 +1,35 @@
 import { Kysely } from 'kysely'
 
 /**
- * DeFi DEX pools schema.
+ * DeFi DEX pools schema for SQLite.
  */
 export async function up(db: Kysely<any>): Promise<void> {
   try {
     await db.schema
       .createTable('defi_pool')
       .ifNotExists()
-      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
-      .addColumn('category', 'varchar(100)', (cb) => cb.notNull())
-      .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
-      .addColumn('network', 'varchar(100)', (cb) => cb.notNull())
-      .addColumn('market_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
+      .addColumn('category', 'text', (cb) => cb.notNull())
+      .addColumn('protocol', 'text', (cb) => cb.notNull())
+      .addColumn('network', 'text', (cb) => cb.notNull())
+      .addColumn('market_id', 'text', (cb) => cb.notNull())
       .addUniqueConstraint('defi_pool_network_protocol_market_unique', ['network', 'protocol', 'market_id'])
       .execute()
 
     await db.schema
       .createTable('defi_pool_asset')
       .ifNotExists()
-      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
       .addColumn('pool_id', 'integer', (cb) => cb.references('defi_pool.id').onDelete('cascade').notNull())
-      .addColumn('asset_id', 'varchar(255)', (cb) => cb.notNull())
-      .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
+      .addColumn('asset_id', 'text', (cb) => cb.notNull())
+      .addColumn('symbol', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer', (cb) => cb.notNull())
       .addColumn('balance_total', 'text')
       .addColumn('balance_available', 'text')
       .addColumn('balance_borrowed', 'text')
       .addColumn('reserves', 'text', (cb) => cb.notNull())
       .addColumn('price_usd', 'text')
-      .addColumn('role', 'varchar(50)')
+      .addColumn('role', 'text')
       .addUniqueConstraint('defi_pool_asset_pool_asset_unique', ['pool_id', 'asset_id'])
       .execute()
 
@@ -47,7 +47,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .column('pool_id')
       .execute()
   } catch (error) {
-    console.error('PostgreSQL Migration failed:', error)
+    console.error('SQLite Migration failed:', error)
     throw error
   }
 }

@@ -1,13 +1,20 @@
 import { createKyselyDatabase, parseConnectionString } from '@/services/persistence/kysely/db.js'
 import * as pgSchema from './schema/pg.js'
+import * as sqliteSchema from './schema/sqlite.js'
 
 import { DefiDatabase } from './types.js'
 
-export function createIntrachainTransfersDatabase(connectionString: string) {
+export function createDefiDatabase(connectionString: string) {
   const info = parseConnectionString(connectionString)
 
   if (info.dialect === 'sqlite') {
-    throw new Error('SQLite is not supported')
+    return createKyselyDatabase<DefiDatabase>({
+      dialect: 'sqlite',
+      filename: info.filename,
+      migrations: {
+        '2026-04-22_create_defi_tables': sqliteSchema,
+      },
+    })
   } else {
     return createKyselyDatabase<DefiDatabase>({
       dialect: 'postgres',

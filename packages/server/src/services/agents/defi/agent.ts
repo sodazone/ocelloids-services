@@ -1,8 +1,10 @@
+import { Migrator } from 'kysely'
 import { Operation } from 'rfc6902'
 import { filter, map, merge, Observable, Subscription as RxSubscription } from 'rxjs'
-
+import { maskPassword } from '@/common/url.js'
 import { Egress } from '@/services/egress/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
+import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
@@ -10,9 +12,13 @@ import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
 import { hydrationDexMonitor } from './networks/hydration/index.js'
 import { moonbeamDexMonitor } from './networks/moonbeam/monitor.js'
+import { createDefiDatabase } from './repositories/db.js'
+import { DefiRepository } from './repositories/repository.js'
 import { $DefiAgentInputs, DefiAgentInputs, DefiSubscriptionPayload } from './types.js'
 
 const DEFI_AGENT_ID = 'defi'
+export const DEFAULT_DEFI_PATH = 'db.defi.sqlite'
+const DEFI_DB_CONNECTION = process.env.OC_DEFI_DB_CONNECTION
 
 type DefiMonitor = {
   start: () => Promise<void> | void
@@ -49,6 +55,10 @@ export class DefiAgent implements Agent, Subscribable {
   readonly #monitors: DefiMonitor[]
   readonly #subs: Map<string, SubscriptionHandler> = new Map()
 
+  readonly #repository: DefiRepository
+  readonly #migrator: Migrator
+  readonly #writers: RxSubscription[]
+
   readonly inputSchema = $DefiAgentInputs
 
   constructor(ctx: AgentRuntimeContext, deps: DefiAgentDependencies) {
@@ -58,10 +68,26 @@ export class DefiAgent implements Agent, Subscribable {
     this.#ingress = ingress
     this.#notifier = egress
     this.#dependencies = deps
+    this.#writers = []
     this.#monitors = []
+
+    const connectionString =
+      DEFI_DB_CONNECTION ?? resolveDataPath(DEFAULT_DEFI_PATH, ctx.environment?.dataPath)
+    this.#log.info('[agent:%s] database at %s', this.id, maskPassword(connectionString))
+    const { db, dialect, migrator } = createDefiDatabase(connectionString)
+    this.#repository = new DefiRepository(db, dialect)
+    this.#migrator = migrator
   }
 
   async start(subs?: Subscription<DefiAgentInputs>[]) {
+    this.#log.info('[agent:%s] starting db migration', this.id)
+
+    const result = await this.#migrator.migrateToLatest()
+
+    if (result.results && result.results.length > 0) {
+      this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
+    }
+
     // TODO: check networks before creating the monitors, if(ingress.substrate.isNetworkDefined())
     this.#monitors.push(
       hydrationDexMonitor(this.#ingress, this.#dependencies.steward),
@@ -69,6 +95,16 @@ export class DefiAgent implements Agent, Subscribable {
     )
 
     for (const monitor of this.#monitors) {
+      this.#writers.push(
+        monitor.events$.subscribe({
+          next: async (payload) => {
+            if (payload.type === 'liquidity') {
+              await this.#repository.upsertLiquidityData(monitor.chainId, payload)
+            }
+          },
+        }),
+      )
+
       await monitor.start()
     }
 
@@ -93,6 +129,10 @@ export class DefiAgent implements Agent, Subscribable {
 
     for (const monitor of this.#monitors) {
       monitor.stop()
+    }
+
+    for (const writer of this.#writers) {
+      writer.unsubscribe()
     }
 
     this.#log.info('[agent:%s] stopped', this.id)

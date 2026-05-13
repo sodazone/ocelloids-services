@@ -3,44 +3,45 @@ import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysel
 export type PoolKey = {
   network: string
   protocol: string
-  address: string
+  market_id: string
 }
 
-export interface DefiDexPoolTable {
-  id: ColumnType<number>
-  type: ColumnType<string>
+export interface DefiPoolTable {
+  id: Generated<number>
+  category: ColumnType<string>
 
   protocol: ColumnType<string>
   network: ColumnType<string>
-  address: ColumnType<string>
+  market_id: ColumnType<string>
 }
 
-export interface DefiDexPoolReserveTable {
+export interface DefiPoolAssetTable {
   id: Generated<number>
   pool_id: ColumnType<number>
-
-  block_number: ColumnType<number>
-  block_timestamp: ColumnType<bigint>
 
   asset_id: ColumnType<string>
   symbol: ColumnType<string>
   decimals: ColumnType<number>
 
-  balance: ColumnType<string>
-  usd_value: ColumnType<string | null>
+  balance_total: ColumnType<string | null>
+  balance_available: ColumnType<string | null>
+  balance_borrowed: ColumnType<string | null>
 
-  weight: ColumnType<number | null>
+  reserves: ColumnType<string>
+  price_usd: ColumnType<string | null>
+
+  role: ColumnType<string | null>
 }
 
-export type DefiDexPool = Selectable<DefiDexPoolTable>
-export type NewDefiDexPool = Insertable<DefiDexPoolTable>
-export type DefiDexPoolUpdate = Updateable<DefiDexPoolTable>
+export type DefiPool = Selectable<DefiPoolTable>
+export type NewDefiPool = Insertable<DefiPoolTable>
+export type DefiPoolUpdate = Updateable<DefiPoolTable>
 
-export type DefiDexPoolReserve = Selectable<DefiDexPoolReserveTable>
-export type NewDefiDexPoolReserve = Insertable<DefiDexPoolReserveTable>
-export type DefiDexPoolReserveUpdate = Updateable<DefiDexPoolReserveTable>
+export type DefiPoolAsset = Selectable<DefiPoolAssetTable>
+export type NewDefiPoolAsset = Insertable<DefiPoolAssetTable>
+export type DefiPoolAssetUpdate = Updateable<DefiPoolAssetTable>
 
 export interface DefiDatabase {
-  defi_dex_pool: DefiDexPoolTable
-  defi_dex_pool_reserve: DefiDexPoolReserveTable
+  defi_pool: DefiPoolTable
+  defi_pool_asset: DefiPoolAssetTable
 }
