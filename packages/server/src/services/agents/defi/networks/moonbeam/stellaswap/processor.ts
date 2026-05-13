@@ -84,18 +84,18 @@ export function createStellaswapProcessor({
           type: 'liquidity',
           category: 'exchange',
           protocol: 'stellaswap',
-          marketId: p.pool.address,
+          marketId: p.pool.address.toLowerCase(),
           tvlUSD: Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1,
           assets: [
             {
-              assetId: tokens[p.pool.token0].address,
+              assetId: tokens[p.pool.token0].address.toLowerCase(),
               symbol: p.pool.token0,
               decimals: tokens[p.pool.token0].decimals,
               priceUSD: priceUSD0,
               balances: { total: p.reserve0, reserves: p.reserve0 },
             },
             {
-              assetId: tokens[p.pool.token1].address,
+              assetId: tokens[p.pool.token1].address.toLowerCase(),
               symbol: p.pool.token1,
               decimals: tokens[p.pool.token1].decimals,
               priceUSD: priceUSD1,
@@ -143,14 +143,14 @@ export function createStellaswapProcessor({
                 origin: args.sender,
                 in: [
                   {
-                    assetId: (isA0In ? token0 : token1).address,
+                    assetId: (isA0In ? token0 : token1).address.toLowerCase(),
                     symbol: isA0In ? pool.token0 : pool.token1,
                     amount: formatUnits(isA0In ? a0 : a1, (isA0In ? token0 : token1).decimals),
                   },
                 ],
                 out: [
                   {
-                    assetId: (isA0In ? token1 : token0).address,
+                    assetId: (isA0In ? token1 : token0).address.toLowerCase(),
                     symbol: isA0In ? pool.token1 : pool.token0,
                     amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
                   },
@@ -167,12 +167,12 @@ export function createStellaswapProcessor({
               provider: args.owner,
               assets: [
                 {
-                  assetId: token0.address,
+                  assetId: token0.address.toLowerCase(),
                   symbol: pool.token0,
                   amount: formatUnits(BigInt(args.amount0), token0.decimals),
                 },
                 {
-                  assetId: token1.address,
+                  assetId: token1.address.toLowerCase(),
                   symbol: pool.token1,
                   amount: formatUnits(BigInt(args.amount1), token1.decimals),
                 },
