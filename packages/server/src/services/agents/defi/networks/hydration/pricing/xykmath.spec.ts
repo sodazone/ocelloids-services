@@ -13,7 +13,7 @@ const UNQ_POOL: XykPool = {
       symbol: 'UNQ',
     },
   ],
-  isLowLiquidity: false
+  isLowLiquidity: false,
 }
 
 const MYTH_POOL: XykPool = {
@@ -28,7 +28,7 @@ const MYTH_POOL: XykPool = {
       symbol: 'MYTH',
     },
   ],
-  isLowLiquidity: false
+  isLowLiquidity: false,
 }
 describe('xyk calculations', () => {
   describe('calculateXykSpotPrice', () => {

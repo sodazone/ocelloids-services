@@ -26,7 +26,7 @@ const stablesReservesLowLiq: StableSwapPool = {
   ],
   fees: 200,
   isRampPeriod: false,
-  isLowLiquidity: true
+  isLowLiquidity: true,
 }
 
 const stableReservesDeepLiq: StableSwapPool = {
@@ -60,7 +60,7 @@ const stableReservesDeepLiq: StableSwapPool = {
   ],
   fees: 200,
   isRampPeriod: false,
-  isLowLiquidity: false
+  isLowLiquidity: false,
 }
 
 describe('stablemath calculations', () => {
