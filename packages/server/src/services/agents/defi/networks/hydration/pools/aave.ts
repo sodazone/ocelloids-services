@@ -7,8 +7,10 @@ import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'j
 import { AaveV3HydrationMainnet } from '../config.js'
 import { CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
 import { AavePool, AssetMetadataFetcher } from '../types.js'
+import { bigintToNumber } from '../utils.js'
 
 const LOW_LIQUIDITY_POOLS: HexString[] = []
+const RAY_DECIMALS = 27
 
 type AaveTradeExecutorPool = {
   reserve: number
@@ -24,7 +26,15 @@ type AaveReservesDataResponse = {
   availableLiquidity: bigint
   totalScaledVariableDebt: bigint
   priceInMarketReferenceCurrency: bigint
+  variableBorrowRate: bigint
+  liquidityRate: bigint
+  borrowCap: bigint
+  supplyCap: bigint
+  isPaused: boolean
+  borrowingEnabled: boolean
 }[]
+
+
 
 export function createAaveWatcher(
   substrateIngress: SubstrateIngressConsumer,
@@ -53,27 +63,41 @@ export function createAaveWatcher(
 
     const aavePools: AavePool[] = []
 
-    for (const { reserve, atoken, liqudity_in, liqudity_out } of pools) {
+    for (const { reserve, atoken, liqudity_out } of pools) {
       const reservesHex = assetIdToHex(reserve)
       const reservesData = aaveReservesData.find((a) => a.underlyingAsset.toLowerCase() === reservesHex)
       if (!reservesData) {
         console.error(`No reserves data found for AAVE pool ${reserve}:${atoken}`)
         continue
       }
+      console.log('aaaaa', reservesData)
 
       const reserveMetadata = assetMetadata.find((m) => m.id === reserve)
       const atokenMetadata = assetMetadata.find((m) => m.id === atoken)
 
+      const available = reservesData.availableLiquidity
+      const borrowed = reservesData.totalScaledVariableDebt
+      const reserves = available + borrowed
+      const utilization = Number(borrowed / reserves)
+
       aavePools.push({
         type: 'aave',
         address: reservesData.aTokenAddress,
-        available: reservesData.availableLiquidity,
-        borrowed: reservesData.totalScaledVariableDebt,
         oraclePrice: reservesData.priceInMarketReferenceCurrency,
+        details: {
+          utilization,
+          borrowAPR: bigintToNumber(reservesData.variableBorrowRate, RAY_DECIMALS),
+          supplyAPR: bigintToNumber(reservesData.liquidityRate, RAY_DECIMALS),
+          borrowCap: reservesData.borrowCap.toString(),
+          canBorrow: reservesData.borrowingEnabled,
+          isPaused: reservesData.isPaused,
+        },
         tokens: [
-          {
+           {
             id: reserve,
-            reserves: liqudity_in,
+            reserves,
+            available,
+            borrowed,
             decimals: reserveMetadata?.decimals ?? 0,
             symbol: reserveMetadata?.symbol,
             isUnderlying: true,
