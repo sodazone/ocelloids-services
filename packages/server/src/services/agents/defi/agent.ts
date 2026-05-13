@@ -24,6 +24,10 @@ type DefiMonitor = {
   start: () => Promise<void> | void
   stop: () => void
   chainId: NetworkURN
+  config: {
+    evm: boolean
+    substrate: boolean
+  }
   events$: Observable<DefiSubscriptionPayload>
 }
 
@@ -88,8 +92,7 @@ export class DefiAgent implements Agent, Subscribable {
       this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
     }
 
-    // TODO: check networks before creating the monitors, if(ingress.substrate.isNetworkDefined())
-    this.#monitors.push(
+    this.#addMonitors(
       hydrationDexMonitor(this.#ingress, this.#dependencies.steward),
       moonbeamDexMonitor(this.#ingress.evm),
     )
@@ -204,5 +207,18 @@ export class DefiAgent implements Agent, Subscribable {
 
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription {
     throw new Error('Update not supported')
+  }
+
+  #addMonitors(...monitors: DefiMonitor[]) {
+    for (const m of monitors) {
+      if (
+        (!m.config.substrate || this.#ingress.substrate.isNetworkDefined(m.chainId)) &&
+        (!m.config.evm || this.#ingress.evm.isNetworkDefined(m.chainId))
+      ) {
+        this.#monitors.push(m)
+      } else {
+        this.#log.warn('[agent:%s] network %s not defined, monitor not started', this.id, m.chainId)
+      }
+    }
   }
 }

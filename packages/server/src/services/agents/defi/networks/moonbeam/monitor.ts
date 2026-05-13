@@ -35,6 +35,10 @@ export function moonbeamDexMonitor(ingress: EvmIngressConsumer) {
       }
     },
     chainId,
+    config: {
+      evm: true,
+      substrate: true,
+    },
     events$: subject.asObservable(),
   }
 }

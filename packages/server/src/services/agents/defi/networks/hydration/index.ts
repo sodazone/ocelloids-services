@@ -154,6 +154,10 @@ export function hydrationDexMonitor(ingress: IngressConsumers, steward: DataStew
       }
     },
     chainId: CHAIN_ID,
+    config: {
+      evm: true,
+      substrate: true,
+    },
     events$: subject.asObservable(),
   }
 }
