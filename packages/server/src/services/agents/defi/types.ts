@@ -63,18 +63,19 @@ export type DefiLiquidityAsset = {
 /**
  * @public
  */
- export type MoneyMarketPayload = Partial<{
-   utilization: number
-   borrowAPR: number
-   supplyAPR: number
-   isPaused: boolean
-   canBorrow: boolean
-   borrowCap: string
-   health: {
-     solvencyRatio: number
-     badDebtUSD?: number
-   }
- }>
+export type MoneyMarketPayload = Partial<{
+  utilization: number
+  borrowAPR: number
+  supplyAPR: number
+  isPaused: boolean
+  canBorrow: boolean
+  borrowCap: string
+  supplyCap: string
+  health: {
+    solvencyRatio: number
+    badDebtUSD?: number
+  }
+}>
 
 /**
  * @public

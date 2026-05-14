@@ -20,13 +20,13 @@ export interface OmniPoolToken extends PoolToken {
 }
 
 export interface UnderlyingToken extends PoolToken {
-  isUnderlying: true;
-  available: bigint;
-  borrowed: bigint;
+  isUnderlying: true
+  available: bigint
+  borrowed: bigint
 }
 
 export interface AToken extends PoolToken {
-  isUnderlying: false;
+  isUnderlying: false
 }
 
 export type AaveToken = UnderlyingToken | AToken
