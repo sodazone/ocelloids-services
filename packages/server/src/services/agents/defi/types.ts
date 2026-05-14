@@ -42,6 +42,29 @@ export const $DefiAgentInputs = z.discriminatedUnion('topic', [
 export type DefiAgentInputs = z.infer<typeof $DefiAgentInputs>
 
 /**
+ * @private
+ */
+export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('liquidity.last'),
+    criteria: z.object({
+      networks: z.literal('*').or(z.array($NetworkString)).optional(),
+    }),
+  }),
+  z.object({
+    op: z.literal('events'),
+    criteria: z.object({
+      networks: z.literal('*').or(z.array($NetworkString)).optional(),
+    }),
+  }),
+])
+
+/**
+ * @private
+ */
+export type DefiAgentQueryArgs = z.infer<typeof $DefiAgentQueryArgs>
+
+/**
  * @public
  */
 export type DefiLiquidityAsset = {

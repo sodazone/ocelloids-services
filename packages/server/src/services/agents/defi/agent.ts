@@ -9,12 +9,27 @@ import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
-import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
+import {
+  Agent,
+  AgentMetadata,
+  AgentRuntimeContext,
+  getAgentCapabilities,
+  Queryable,
+  QueryParams,
+  QueryResult,
+  Subscribable,
+} from '../types.js'
 import { hydrationDexMonitor } from './networks/hydration/monitor.js'
 import { moonbeamDexMonitor } from './networks/moonbeam/monitor.js'
 import { createDefiDatabase } from './repositories/db.js'
 import { DefiRepository } from './repositories/repository.js'
-import { $DefiAgentInputs, DefiAgentInputs, DefiSubscriptionPayload } from './types.js'
+import {
+  $DefiAgentInputs,
+  $DefiAgentQueryArgs,
+  DefiAgentInputs,
+  DefiAgentQueryArgs,
+  DefiSubscriptionPayload,
+} from './types.js'
 
 const DEFI_AGENT_ID = 'defi'
 export const DEFAULT_DEFI_PATH = 'db.defi.sqlite'
@@ -41,7 +56,7 @@ type DefiAgentDependencies = {
   ticker: TickerAgent
 }
 
-export class DefiAgent implements Agent, Subscribable {
+export class DefiAgent implements Agent, Subscribable, Queryable {
   id = DEFI_AGENT_ID
   metadata: AgentMetadata = {
     name: 'DeFi Agent',
@@ -63,6 +78,7 @@ export class DefiAgent implements Agent, Subscribable {
   readonly #writers: RxSubscription[]
 
   readonly inputSchema = $DefiAgentInputs
+  readonly querySchema = $DefiAgentQueryArgs
 
   constructor(ctx: AgentRuntimeContext, deps: DefiAgentDependencies) {
     const { ingress, egress } = ctx
@@ -210,6 +226,21 @@ export class DefiAgent implements Agent, Subscribable {
 
   update(subscriptionId: string, patch: Operation[]): Promise<Subscription> | Subscription {
     throw new Error('Update not supported')
+  }
+
+  async query(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult> {
+    const { args } = params
+    if (args.op === 'liquidity.last') {
+      // TODO: paginate? is it too much for a single query?
+      const items = await this.#repository.getLatestPoolStates()
+      return {
+        items,
+      }
+    } else if (args.op === 'events') {
+      throw new Error('Not implemented')
+    }
+
+    throw new Error('Unknown query op')
   }
 
   #addMonitors(...monitors: DefiMonitor[]) {
