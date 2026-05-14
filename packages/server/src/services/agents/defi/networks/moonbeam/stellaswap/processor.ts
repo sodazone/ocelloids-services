@@ -126,7 +126,7 @@ export function createStellaswapProcessor({
             marketId: log.address,
             protocol: 'stellaswap',
             networkId: chainId,
-            blockNumber: Number(log.blockNumber),
+            blockNumber: log.blockNumber,
             txHash: log.transactionHash,
           }
 

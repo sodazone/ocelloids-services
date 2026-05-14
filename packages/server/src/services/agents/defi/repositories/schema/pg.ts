@@ -1,7 +1,7 @@
 import { Kysely } from 'kysely'
 
 /**
- * DeFi DEX pools schema.
+ * DeFi schema for PostgreSQL.
  */
 export async function up(db: Kysely<any>): Promise<void> {
   try {
@@ -45,6 +45,35 @@ export async function up(db: Kysely<any>): Promise<void> {
       .ifNotExists()
       .on('defi_pool_asset')
       .column('pool_id')
+      .execute()
+
+    await db.schema
+      .createTable('defi_dex_event')
+      .ifNotExists()
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
+      .addColumn('pool_id', 'integer', (cb) => cb.references('defi_dex_pool.id').onDelete('set null'))
+      .addColumn('network_id', 'varchar(100)', (cb) => cb.notNull())
+      .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
+      .addColumn('market_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('block_number', 'bigint', (cb) => cb.notNull())
+      .addColumn('tx_hash', 'varchar(66)', (cb) => cb.notNull())
+      .addColumn('event_name', 'varchar(20)', (cb) => cb.notNull())
+      .addColumn('actor_address', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('lp_amount', 'text')
+      .execute()
+
+    await db.schema
+      .createTable('defi_dex_event_asset')
+      .ifNotExists()
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
+      .addColumn('event_id', 'integer', (cb) =>
+        cb.references('defi_dex_event.id').onDelete('cascade').notNull(),
+      )
+      .addColumn('asset_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
+      .addColumn('amount', 'text', (cb) => cb.notNull())
+      .addColumn('amount_usd', 'text')
+      .addColumn('direction', 'varchar(10)', (cb) => cb.notNull())
       .execute()
   } catch (error) {
     console.error('PostgreSQL Migration failed:', error)

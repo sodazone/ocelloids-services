@@ -112,7 +112,7 @@ export type DefiEventPayload = {
   marketId: string
   protocol: string
   networkId: string
-  blockNumber: number
+  blockNumber: string
   txHash: string
 } & (
   | {
@@ -124,14 +124,23 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'mint' | 'burn'
+      name: 'mint' | 'burn' | 'liquidate'
       data: {
         provider: string
         assets: DefiEventAsset[]
         lpAmount?: string
       }
     }
+  | {
+      name: 'borrow' | 'repay'
+      data: {
+        provider: string
+        assets: DefiEventAsset[]
+      }
+    }
 )
+
+export type DefiEventAction = 'mint' | 'burn' | 'borrow' | 'repay' | 'liquidate' | 'swap'
 
 /**
  * @public

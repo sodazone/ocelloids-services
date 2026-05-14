@@ -7,7 +7,7 @@ import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import { createMoonwellDataFetcher, mTokenAbi } from '../../../protocols/moonwell/fetcher.js'
 import { Market } from '../../../protocols/moonwell/types.js'
 import { smartTrigger } from '../../../rxjs/trigger.js'
-import { DefiSubscriptionPayload } from '../../../types.js'
+import { DefiEventAction, DefiEventAsset, DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
 import { defs } from './definitions.js'
 
 export function createMoonwellProcessor({
@@ -57,7 +57,6 @@ export function createMoonwellProcessor({
         'Borrow',
         'RepayBorrow',
         'LiquidateBorrow',
-        'AccrueInterest',
       ]),
       share(),
     )
@@ -66,8 +65,92 @@ export function createMoonwellProcessor({
     subs.push(
       events$.subscribe({
         next: (log) => {
-          // TODO: Map log to DefiEventPayload
-          // subject.next(payload)
+          try {
+            const eventName = log.eventName
+            const args = log.args as Record<string, any>
+
+            const targetMarketAddress = log.address.toLowerCase()
+            const marketMeta = Object.values(defs.markets).find(
+              (m) => defs.tokens[m.marketToken].address.toLowerCase() === targetMarketAddress,
+            )
+            if (!marketMeta) {
+              return
+            }
+
+            const underlyingToken = defs.tokens[marketMeta.underlyingToken]
+
+            let actionType: DefiEventAction
+            let providerAddress = ''
+            let underlyingAmount = 0n
+            let lpAmount: bigint | undefined
+
+            switch (eventName) {
+              case 'Mint':
+                actionType = 'mint'
+                providerAddress = args.minter
+                underlyingAmount = args.mintAmount
+                lpAmount = args.mintTokens
+                break
+
+              case 'Borrow':
+                actionType = 'borrow'
+                providerAddress = args.borrower
+                underlyingAmount = args.borrowAmount
+                break
+
+              case 'Redeem':
+                actionType = 'burn'
+                providerAddress = args.redeemer
+                underlyingAmount = args.redeemAmount
+                lpAmount = args.redeemTokens
+                break
+
+              case 'RepayBorrow':
+                actionType = 'repay'
+                providerAddress = args.payer
+                underlyingAmount = args.repayAmount
+                break
+
+              case 'LiquidateBorrow':
+                actionType = 'liquidate'
+                providerAddress = args.liquidator
+                underlyingAmount = args.repayAmount
+                lpAmount = args.seizeTokens
+                break
+
+              default:
+                // Skip
+                return
+            }
+
+            const assets: DefiEventAsset[] = [
+              {
+                assetId: underlyingToken.address,
+                symbol: underlyingToken.symbol,
+                amount: underlyingAmount.toString(),
+                // TODO: look up historical prices to compute amountUSD here if available
+              },
+            ]
+
+            const payload: DefiEventPayload = {
+              type: 'event',
+              marketId: targetMarketAddress,
+              protocol: 'moonwell',
+              networkId: chainId,
+              blockNumber: log.blockNumber ?? '',
+              txHash: log.transactionHash ?? '',
+              name: actionType,
+              data: {
+                provider: providerAddress,
+                assets: assets,
+                ...(lpAmount !== undefined && { lpAmount: lpAmount.toString() }),
+              },
+            }
+
+            subject.next(payload)
+          } catch (decodeError) {
+            console.error('[moonwell] Log mapping evaluation failure:', decodeError)
+          }
         },
       }),
     )
